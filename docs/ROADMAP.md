@@ -63,8 +63,10 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 ### 1.0 Validation gate: egg runtime
 - [x] Read Pterodactyl Wings' source: environment building, container config, install process, stop handling, config parsers
 - [x] Write down the exact env var list, container UID/GID, mounts, and entrypoint behavior in [EGGS.md](EGGS.md#runtime-environment)
-- [ ] Get **Paper**, **Rust**, and a **Node.js Discord bot** egg installing and running with unmodified yolks images
+- [x] Get **Paper**, **Rust**, and a **Node.js Discord bot** egg installing and running with unmodified yolks images
 - **Gate:** all three run. This becomes the first real code of the egg engine, not throwaway.
+
+✅ **Gate passed.** Paper (Pterodactyl and Pelican formats), Node.js (a stand-in app printing the egg's done string, since a real Discord bot needs a token), and Rust install, reach running, and stop cleanly on arm64 (dev VM) and x86_64 (GitHub runner). Rust is x86-only and was tested on x86_64 only.
 
 ### 1.1 Daemon skeleton
 - [x] `raptor wings run`: config loading (strict `config.yml` per [WINGS.md](WINGS.md#config-file)), `slog` logging, graceful shutdown
