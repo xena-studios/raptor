@@ -75,7 +75,8 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 - Ports must be **1024–65535**. Lower ports need the owner to enable them per node. Wings' own ports (SFTP, HTTPS file transfer) are never allocatable.
 - An `(ip, port, protocol)` belongs to at most one server on the node, and Wings also refuses ports that another program on the host is already listening on.
 - Allocation changes are applied on the **next start**. The Panel says a restart is needed.
-- In `host` network mode the game binds ports directly. Wings still only opens the allocated ports in the `RAPTOR` chain, and warns that the server can bind any port.
+- An allocation on `127.0.0.1` is published on the `raptor0` gateway address, so the host and other servers can reach it but the internet can't (Pterodactyl-compatible).
+- In `host` network mode the game binds ports directly and nothing is published. The Panel warns that the server can bind any port. The metadata endpoint is still blocked for it (see [WINGS.md](WINGS.md#firewall)).
 
 ## Console
 

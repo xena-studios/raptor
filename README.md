@@ -6,7 +6,7 @@ Raptor is a hosted game server management platform. You bring your own Linux mac
 
 Raptor is compatible with Pterodactyl and Pelican eggs.
 
-> **Status:** early development. Phase 0 (foundations) is complete. Phase 1 (Wings core) is in progress: eggs install and run from their real images, and the Wings daemon runs under systemd with its local API. Nothing here is usable yet. See the [roadmap](docs/ROADMAP.md).
+> **Status:** early development. Phase 0 (foundations) is complete. Phase 1 (Wings core) is in progress: eggs install and run from their real images, the Wings daemon runs under systemd with its local API, and the container runtime (networks, firewall isolation for install scripts, resource limits) is in place. Nothing here is usable yet. See the [roadmap](docs/ROADMAP.md).
 
 ## Components
 

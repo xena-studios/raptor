@@ -57,9 +57,10 @@ Nothing else from the host is mounted: no Docker socket, no host paths, no other
 
 **Network isolation**
 - Install containers use their own Docker network, `raptor_install`, with inter-container traffic disabled.
-- Rules in the `RAPTOR` chain allow **outbound internet only**. Traffic to the host itself, private ranges (RFC 1918, `100.64.0.0/10`, IPv6 ULA), link-local addresses (including the **cloud metadata endpoint `169.254.169.254`**), and the `raptor_nw` server network is dropped.
-- DNS works through Docker's embedded resolver.
-- An owner can allowlist specific private CIDRs per node (e.g. a local package mirror).
+- Rules in Wings' nftables table allow **outbound internet only**. Traffic to the host itself, private ranges (RFC 1918, `100.64.0.0/10`, IPv6 ULA), link-local addresses (including the **cloud metadata endpoint `169.254.169.254`**), and the `raptor_nw` server network is dropped. See [WINGS.md](WINGS.md#firewall).
+- DNS works through Docker's embedded resolver. Port 53 to the host's own upstream resolvers is allowed even when they're on a private range (e.g. a home router).
+- An owner can allowlist specific private CIDRs per node with `docker.install_allow` (e.g. a local package mirror).
+- `task e2e:runtime` checks all of this against a real Docker: the install container reaches the internet but not the host, a published server port, a server container, or the metadata endpoint, while a plain Docker container on the same box reaches them.
 
 **After the install**
 - Wings hands ownership of the server's files to the runtime container's UID/GID, as Pterodactyl does. The walk goes through `os.Root` and uses `lchown`: it **never follows symlinks**, never leaves the server directory, and never crosses mount points. A malicious install can't trick Wings into changing ownership of host files.
@@ -97,7 +98,7 @@ Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server
 | `TZ` | Node timezone |
 | `STARTUP` | The startup command **unexpanded**, with `{{VAR}}` placeholders intact |
 | `SERVER_MEMORY` | Memory allocation in MiB (without the overhead) |
-| `SERVER_IP` | Primary allocation IP. Pterodactyl rewrites `127.0.0.1` to the Docker bridge IP so the server is reachable; Raptor will do the same (Phase 1.2). |
+| `SERVER_IP` | Primary allocation IP, as allocated. For a `127.0.0.1` allocation the *port binding* uses the `raptor0` gateway instead, as Pterodactyl does with its bridge; `SERVER_IP` itself isn't changed. |
 | `SERVER_PORT` | Primary allocation port |
 | `P_SERVER_UUID` | Server ID |
 | `P_SERVER_LOCATION` | Node name |

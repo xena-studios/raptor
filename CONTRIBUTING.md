@@ -70,6 +70,17 @@ task e2e:eggs RUN=TestEggNode      # one egg
 
 x86-only eggs like Rust can't run on an ARM Mac. They run in the **E2E eggs** GitHub workflow on an x86 runner: start it from the Actions tab, or push a branch named `e2e/<anything>`.
 
+### Runtime end-to-end tests
+
+The container runtime (networks, firewall isolation, resource limits, hardening, port checks) is tested against a real Docker:
+
+```bash
+task e2e:runtime                          # all runtime tests in the VM
+task e2e:runtime RUN=TestRuntimeIsolation # one test
+```
+
+They need root: they create Wings' networks, load its nftables table, and set up `raptor.slice`, exactly as the daemon does. CI runs them on every PR (the `e2e-runtime` job).
+
 ### Releases
 
 Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md).

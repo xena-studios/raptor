@@ -34,13 +34,14 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 | Logs | `/var/log/raptor/` |
 | Socket | `/run/raptor/wings.sock` (root + `raptor` group) |
 | System user | `raptor` |
-| Docker network | `raptor_nw`, bridge `raptor0`, subnet chosen at install to avoid collisions |
-| Container labels | `raptor.wings.managed=true`, `raptor.wings.server=<id>`, `raptor.wings.node=<id>`, `raptor.wings.role=server\|install` |
-| Firewall | `RAPTOR` chain, one jump rule from `DOCKER-USER` |
+| Docker networks | `raptor_nw` (bridge `raptor0`) for servers, `raptor_install` (bridge `raptor-inst`) for installs; subnets picked automatically to avoid collisions |
+| cgroup | `raptor.slice` (all Raptor containers) |
+| Container labels | `raptor.wings.managed=true`, `raptor.wings.server=<id>`, `raptor.wings.node=<id>` (once linked), `raptor.wings.role=server\|install`. Networks carry `raptor.wings.managed=true`. |
+| Firewall | nftables table `inet raptor` (see [Firewall](#firewall)) |
 
 ### Coexistence with Pterodactyl's Wings
 - Different binary, service, paths, network, subnet, labels, and user. No shared resources.
-- Wings **only lists and manages containers labeled `raptor.wings.managed=true`**. It never prunes or touches others.
+- Wings **only lists and manages containers labeled `raptor.wings.managed=true`**. It never prunes or touches others. If a container or network with one of Wings' names exists without the label, Wings refuses to touch it and reports an error instead.
 - Before accepting a port allocation, Wings checks that the host port is free. The Panel rejects allocations Wings reports as taken.
 - SFTP uses 2022 unless it's taken (Pterodactyl's default), then the first free port in 2022–2099. HTTPS files use 8443, falling back within 8443–8499. The Panel always shows the real port.
 - The installer **merges** into `/etc/docker/daemon.json`, never overwrites it.
@@ -52,7 +53,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 - `Restart=always`, `OOMScoreAdjust=-900`, `LimitNOFILE=65536`.
 - **Stopping or restarting the service never stops servers:** their containers live in Docker's cgroups, not the service's.
 - `UMask=0077`, and systemd creates `/var/lib/raptor`, `/var/log/raptor`, and `/etc/raptor` as `0700`. `/run/raptor` is `0755` so the `raptor` group can reach the socket.
-- Sandboxing: `ProtectSystem=strict` (writable: `/etc/raptor`, `/var/lib/raptor`, `/var/log/raptor`, `/run/raptor`), `ProtectHome`, `PrivateTmp`, `NoNewPrivileges`, kernel module/log/clock/hostname/cgroup protection, `RestrictNamespaces`, `RestrictSUIDSGID`, native syscalls only, and only `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK` sockets. `systemd-analyze security` rates it 5.9 (medium). Wings needs root for Docker, quotas, and nftables, so it can't go much lower; this will be revisited as those features land.
+- Sandboxing: `ProtectSystem=strict` (writable: `/etc/raptor`, `/var/lib/raptor`, `/var/log/raptor`, `/run/raptor`), `ProtectHome`, `PrivateTmp`, `NoNewPrivileges`, kernel module/log/clock/hostname/cgroup protection, `RestrictNamespaces`, `RestrictSUIDSGID`, native syscalls only, and only `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK` sockets. `systemd-analyze security` rates it 5.9 (medium). Wings runs `nft` and `systemctl` itself (firewall and slice setup) and both work inside this sandbox. Wings needs root for Docker, quotas, and nftables, so it can't go much lower; this will be revisited as those features land.
 - On shutdown Wings stops the local API (the socket is removed) and closes the database.
 
 ## Config file
@@ -75,9 +76,10 @@ paths:
   socket: /run/raptor/wings.sock
 docker:
   network: raptor_nw
-  subnet: 172.29.0.0/16          # chosen at install to avoid collisions
+  subnet: ""                     # empty: first free range, picked when the network is created
   install_network: raptor_install
-  install_subnet: 172.30.0.0/16
+  install_subnet: ""
+  install_allow: []              # private CIDRs installs may reach, e.g. [192.168.1.10/32]
 ports:
   sftp: 2022
   https: 8443
@@ -85,6 +87,7 @@ limits:
   concurrent_installs: 2
   concurrent_backups: 2
   host_disk_min_free: 10GiB      # below this: refuse installs and image pulls
+  reserved_memory: 0             # kept free of servers; 0 = 10% of RAM, 1–4 GiB
 updates:
   channel: stable
   pin: ""                        # e.g. "1.4.2" to pin a version
@@ -126,26 +129,48 @@ Tables (sketch): `servers`, `allocations`, `server_variables`, `eggs` (cached), 
 - The Docker package is held (`apt-mark hold`) so unattended upgrades can't restart Docker at 3 AM. `raptor update` upgrades Docker deliberately.
 
 ### Networking
-- Servers get their allocated ports published on the node's IP(s).
-- **Host networking mode** is an optional per-server setting for games that need it.
-- Install containers use a separate `raptor_install` network: outbound internet only, with the host, private ranges, `raptor_nw`, and link-local addresses blocked (see [EGGS.md](EGGS.md#install)).
-- All Raptor containers are blocked from the cloud metadata endpoint (`169.254.169.254`). Game servers can still reach private ranges, because proxies like Velocity talk to backend servers over them.
-- Docker's iptables management stays on. Wings only ever publishes **allocated** ports, and its own rules (IP allowlists, blocks) live in the `RAPTOR` chain. Preflight tells UFW users that game ports are managed by Raptor, not UFW.
+Wings sets up its runtime when it starts, and retries every minute until it succeeds (Docker may still be starting):
+1. **Networks.** `raptor_nw` (bridge `raptor0`, containers can talk to each other) for servers and `raptor_install` (bridge `raptor-inst`, inter-container traffic off) for installs. Both are IPv4 bridges labeled `raptor.wings.managed=true`. Existing networks are reused as they are.
+2. **Subnets** are picked when a network is created, unless the config sets one: the first `/16` from `172.29–31`, `172.24–28`, then `10.200–255` that doesn't overlap a host interface, a route in the kernel's routing table, or another Docker network. A configured subnet that overlaps one of those is an error, not a silent change.
+3. **`raptor.slice`** memory ceiling (see [Resource limits](#resource-limits-performance-critical)).
+4. **Firewall** table (see [Firewall](#firewall)).
+
+- Servers get their allocated ports published on the node's IP(s), TCP and UDP, with the same port inside and outside the container (as in Pterodactyl).
+- An allocation on **`127.0.0.1` is bound to the `raptor0` gateway address** instead (Pterodactyl does the same with its bridge). Host loopback isn't reachable from containers, while the gateway is reachable from the host and other servers (e.g. a proxy) but not from the internet. `SERVER_IP` stays `127.0.0.1`.
+- Before creating a server's container, Wings checks every allocated port (TCP and UDP) is free on the host, so a port held by another program fails with a clear error.
+- **Host networking mode** is an optional per-server setting for games that need it. No ports are published; the game binds them directly.
+- Docker's iptables management stays on. Wings only ever publishes **allocated** ports. Preflight tells UFW users that game ports are managed by Raptor, not UFW.
+
+### Firewall
+Wings' rules live in their **own nftables table, `inet raptor`**, not in Docker's chains. Its base chains hook `forward`, `input`, and `output` at priority `filter - 1`, so they run before Docker's. nftables evaluates every table on a hook and a drop is final, so these rules can't be bypassed by Docker's accepts, and Docker rewriting its own rules never removes them. The table is replaced atomically (one `nft -f` transaction) and checked every minute: if something removed it (e.g. `nft flush ruleset`, which Debian's `nftables.service` runs on restart), Wings reapplies it and logs a warning.
+
+| Rule | Applies to |
+|---|---|
+| Drop the cloud metadata endpoint (`169.254.169.254`, `fd00:ec2::254`) | All Raptor containers: forwarded traffic from both bridges, and host-networked servers via their cgroup (`raptor.slice`) |
+| Drop private, loopback, link-local, CGNAT, multicast, and reserved ranges (IPv4 and IPv6) | Install containers (`raptor-inst`) |
+| Drop everything addressed to the host itself | Install containers |
+| Allow port 53 to the host's upstream DNS resolvers, even in private ranges | Install containers |
+| Allow `docker.install_allow` CIDRs | Install containers |
+
+- **DNS for installs:** Docker's embedded resolver forwards container queries to the host's resolvers from inside the container's network namespace, so those packets are filtered like any other. Home boxes usually resolve through the router (`192.168.x.1`), so without the DNS exception every install would fail. Wings reads the resolvers from `/etc/resolv.conf`, or from systemd-resolved's upstream list when it points at the local stub.
+- Game servers can still reach private ranges, the host, and each other, because proxies like Velocity talk to backend servers over them.
+- Future per-server rules (IP allowlists, blocks) go in the same table.
 
 ### Resource limits (performance-critical)
 - **Memory:** container limit = server memory + overhead (Pterodactyl-compatible overhead rules), so Java heap = allocated memory doesn't get the container OOM-killed. Swap configurable per server (default: none).
 - **CPU:** default is **CPU weight (shares)**, not a hard CFS quota. Hard CFS quotas cause throttling stalls that show up as tick lag in Minecraft and similar games. A hard limit is available per server. Optional **CPU pinning** (cpuset) for dedicated cores.
 - **PIDs:** limit per container (egg `pid_limit` feature respected).
-- **I/O:** game servers get normal I/O weight. Backup and install jobs run with low I/O weight so they can't cause lag.
-- Game server containers run in a `raptor.slice` cgroup with a total memory ceiling below the box's RAM, leaving room for the OS, Docker, and Wings.
+- **I/O:** game servers get normal I/O weight. Backup and install jobs run with low I/O weight so they can't cause lag. Docker sets the weight in `io.weight`, but the kernel only enforces it with the BFQ scheduler or the `io.cost` controller; with `none` or `mq-deadline` (common defaults) it has no effect.
+- **`raptor.slice`:** every Raptor container runs in this systemd slice (Docker's `cgroup-parent`). Its `MemoryMax` is total RAM minus a reserve for the OS, Docker, and Wings (10% of RAM, at least 1 GiB and at most 4 GiB, or `limits.reserved_memory`), so servers together can never starve the host. Wings sets it at runtime on every start, so it follows RAM changes. Needs Docker's systemd cgroup driver (the default on Debian 12); with `cgroupfs` Wings logs a warning and runs without the ceiling.
 - Wings itself runs with `OOMScoreAdjust=-900`.
 
 ### Container hardening
 - Non-root user inside the container (Pterodactyl-compatible UID)
-- Drop all capabilities except what eggs require; `no-new-privileges`
-- Default seccomp profile
-- Read-only root filesystem where the image allows it; `/home/container` is the only writable mount
+- Drops the same capabilities as Pterodactyl (`SETPCAP`, `MKNOD`, `AUDIT_WRITE`, `NET_RAW`, `DAC_OVERRIDE`, `FOWNER`, `FSETID`, `NET_BIND_SERVICE`, `SYS_CHROOT`, `SETFCAP`); `no-new-privileges`
+- Docker's default seccomp profile
+- Read-only root filesystem; `/home/container` and a 100 MB `/tmp` tmpfs are the only writable paths
 - Only the server's own directory is mounted. Nothing else from the host, ever.
+- Tested for real by `task e2e:runtime` (see [CONTRIBUTING.md](../CONTRIBUTING.md#runtime-end-to-end-tests)).
 
 ## Disk quotas
 
