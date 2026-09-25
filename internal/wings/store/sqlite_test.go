@@ -33,7 +33,11 @@ func TestOpenAndKV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	if err := db.Read.SetKV(ctx, SetKVParams{Key: "x", Value: []byte("y")}); err == nil {
 		t.Fatal("write through reader succeeded, want query_only error")

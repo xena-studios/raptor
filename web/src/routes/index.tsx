@@ -9,7 +9,10 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { data, error, isPending, refetch, isFetching } = useQuery(MetaService.method.getVersion, {});
+  const { data, error, isPending, refetch, isFetching } = useQuery(
+    MetaService.method.getVersion,
+    {},
+  );
 
   return (
     <main className="mx-auto max-w-xl p-8">

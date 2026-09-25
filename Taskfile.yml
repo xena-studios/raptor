@@ -65,6 +65,57 @@ tasks:
       - go test -race ./...
       - pnpm --dir web typecheck
 
+  lint:
+    desc: Lint and format-check Go, proto, and web code
+    deps: [web:install]
+    cmds:
+      - "{{.GOTOOL}} golangci-lint run ./..."
+      - "{{.GOTOOL}} golangci-lint fmt --diff ./..."
+      - "{{.GOTOOL}} buf lint"
+      - pnpm --dir web lint
+
+  fmt:
+    desc: Format Go and web code
+    deps: [web:install]
+    cmds:
+      - "{{.GOTOOL}} golangci-lint fmt ./..."
+      - pnpm --dir web lint:fix
+
+  check:gen:
+    desc: Fail if generated code is out of date
+    cmds:
+      - task: gen
+      - git diff --exit-code -- internal/gen web/src/gen web/src/routeTree.gen.ts ':(glob)internal/*/store/*_gen.go'
+
+  check:licenses:
+    desc: Fail on dependencies with non-AGPL-compatible licenses
+    deps: [web:install]
+    cmds:
+      - "{{.GOTOOL}} go-licenses check ./... --allowed_licenses=AGPL-3.0,Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0"
+      - pnpm --dir web licenses list --json --prod | node scripts/check-web-licenses.mjs
+
+  check:vuln:
+    desc: Scan Go and web dependencies for known vulnerabilities
+    deps: [web:install]
+    cmds:
+      - "{{.GOTOOL}} govulncheck ./..."
+      - pnpm --dir web audit --prod
+
+  check:secrets:
+    desc: Scan the git history for committed secrets
+    cmds:
+      - docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner
+
+  check:
+    desc: Run every check CI runs
+    cmds:
+      - task: lint
+      - task: check:gen
+      - task: test
+      - task: check:licenses
+      - task: check:vuln
+      - task: check:secrets
+
   build:
     desc: Build binaries into bin/ and the web app into web/dist
     deps: [web:install]
@@ -72,6 +123,14 @@ tasks:
       - go build -o bin/panel ./cmd/panel
       - go build -o bin/raptor ./cmd/raptor
       - pnpm --dir web build
+
+  release:sign:
+    desc: "Sign and publish a draft release with the offline key (TAG=vX.Y.Z)"
+    requires:
+      vars: [TAG]
+    interactive: true
+    cmds:
+      - scripts/sign-release.sh {{.TAG}}
 
   web:install:
     internal: true

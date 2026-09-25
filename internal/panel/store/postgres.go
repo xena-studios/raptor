@@ -27,7 +27,7 @@ func Open(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 // Migrate applies all pending migrations.
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	db := stdlib.OpenDBFromPool(pool)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p, err := goose.NewProvider(goose.DialectPostgres, db, migrations.FS)
 	if err != nil {

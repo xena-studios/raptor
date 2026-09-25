@@ -32,13 +32,13 @@ func Open(ctx context.Context, path string) (*DB, error) {
 	writer.SetMaxOpenConns(1)
 
 	if err := migrate(ctx, writer); err != nil {
-		writer.Close()
+		_ = writer.Close()
 		return nil, err
 	}
 
 	reader, err := sql.Open("sqlite", dsn(path, true))
 	if err != nil {
-		writer.Close()
+		_ = writer.Close()
 		return nil, err
 	}
 	reader.SetMaxOpenConns(max(4, runtime.NumCPU()))
