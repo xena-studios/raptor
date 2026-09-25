@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package raptor.meta.v1;
+
+// MetaService exposes information about the running service.
+service MetaService {
+  // GetVersion returns the build version of the service.
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message GetVersionRequest {}
+
+message GetVersionResponse {
+  string version = 1;
+  string commit = 2;
+  string date = 3;
+}

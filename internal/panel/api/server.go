@@ -7,7 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/xena-studios/raptor/internal/gen/proto/raptor/meta/v1/metav1connect"
 )
+
+// apiPrefix is where Connect services are mounted. The web app calls /api/<service>/<method>.
+const apiPrefix = "/api"
 
 // Config configures the API server.
 type Config struct {
@@ -20,6 +25,10 @@ func Handler() http.Handler {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+
+	path, handler := metav1connect.NewMetaServiceHandler(metaService{})
+	mux.Handle(apiPrefix+path, http.StripPrefix(apiPrefix, handler))
+
 	return mux
 }
 
@@ -29,7 +38,11 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		Addr:              cfg.Addr,
 		Handler:           Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
+		Protocols:         new(http.Protocols),
 	}
+	// HTTP/1.1 for browsers, unencrypted HTTP/2 for gRPC clients behind the TLS proxy.
+	srv.Protocols.SetHTTP1(true)
+	srv.Protocols.SetUnencryptedHTTP2(true)
 
 	errc := make(chan error, 1)
 	go func() {
