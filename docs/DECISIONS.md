@@ -58,4 +58,4 @@ Locked decisions and the reasons behind them. Change a decision by adding a new 
 | 52 | **Install success = no Docker error and no timeout**, not the script's exit code (Pterodactyl-compatible); a non-zero exit is recorded and shown as a warning | Many community install scripts end with a harmless failing command. Failing them would break working eggs. |
 | 53 | **Eggs are tested for real:** `task e2e:eggs` installs and runs certified eggs with their unmodified images in the Wings VM; x86-only eggs (Rust) run on an x86 GitHub runner via the "E2E eggs" workflow (on demand or on `e2e/*` branches) | Egg compatibility can only be proven by running eggs. Rust's ~10 GB download is too slow for every PR. |
 | 54 | **Local API methods are added only when implemented** (starting with `GetStatus`), not declared up front | No placeholder RPCs, and `buf breaking` never blocks designing a method properly when its feature is built. |
-
+| 55 | **Squash merges only; `main` requires signed commits** | GitHub signs squash merges with its own key, but rebase merges recreate commits without any signature (PR #4's five commits landed unverified that way). |
