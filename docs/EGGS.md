@@ -12,9 +12,17 @@ Raptor runs **Pterodactyl and Pelican eggs natively**. Eggs are Raptor's templat
 |---|---|---|
 | `PTDL_v1` | Pterodactyl (legacy) | `meta.version` |
 | `PTDL_v2` | Pterodactyl | `meta.version` |
-| `PLCN_v*` | Pelican | `meta.version` |
+| `PLCN_v1`–`PLCN_v3` | Pelican (JSON or YAML) | `meta.version` |
 
 Unknown versions are rejected with a clear error rather than half-supported.
+
+Format differences the parser normalizes (implemented in `internal/eggs`):
+- **Encoding:** Pterodactyl eggs are JSON; Pelican exports YAML. Both are parsed into one model with key order preserved (the first image and first startup command are the defaults). JSON is decoded with a real JSON decoder, because some valid JSON (the `\/` escape) isn't valid YAML.
+- **Images:** `PTDL_v1` has a single `image`; later formats have an ordered `docker_images` map.
+- **Startup:** Pterodactyl has one `startup` string; Pelican has an ordered `startup_commands` map.
+- **Config:** Pterodactyl stores `config.files`, `config.startup`, and `config.logs` as **JSON-encoded strings**; Pelican stores them as objects.
+- **Placeholders:** Pterodactyl config files use `{{server.build.default.port}}`, Pelican uses `{{server.allocations.default.port}}`. Both are supported (Phase 1.3).
+- **Variables:** `rules` is a `|`-separated string (Pterodactyl) or a list (Pelican). Pipes inside `regex:` rules are kept together. `user_viewable`/`user_editable` are booleans, or `0`/`1` in `PTDL_v1`.
 
 ## What must be implemented
 
@@ -59,19 +67,49 @@ Nothing else from the host is mounted: no Docker socket, no host paths, no other
 - Output (stdout/stderr) is kept as the job's log, capped at 10 MB (the tail is kept).
 
 **Failure and reinstall**
+- **What counts as failed:** a Docker error (image pull, container create/start) or the timeout. Like Pterodactyl, the script's **exit code does not decide success**: many community scripts end with a harmless failing command. A non-zero exit code is recorded and shown as a warning with the install log.
 - A failed install marks the server `install_failed`. Files are **kept** for debugging, and the server can't start until an install succeeds, unless the owner chooses **skip install script** (Pterodactyl has the same option).
 - **Reinstall** runs the script over the existing files by default (Pterodactyl behavior). The owner can instead choose **wipe and reinstall**, which always takes a safety backup first.
 
 ### Runtime environment
-- Server files mounted at **`/home/container`**, the working directory.
-- Container user: Pterodactyl-compatible UID/GID.
-- Environment: every egg variable, plus built-ins such as `STARTUP`, `SERVER_MEMORY`, `SERVER_IP`, `SERVER_PORT`, `P_SERVER_UUID`, `P_SERVER_LOCATION`, `P_SERVER_ALLOCATION_LIMIT`, `TZ`. The exact list and values are taken from Pterodactyl Wings.
-- The yolks' entrypoints perform their own `{{VAR}}` → `${VAR}` substitution on `STARTUP`. Wings passes `STARTUP` exactly as Pterodactyl Wings does.
+
+Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server/server.go`) and verified by running real eggs (`task e2e:eggs`).
+
+**Container**
+| Setting | Value |
+|---|---|
+| Mount | Server directory → **`/home/container`** (read-write). The yolks' entrypoints `cd` there. |
+| User | The host's `raptor` system user's UID:GID (Pterodactyl uses its `pterodactyl` user the same way; the yolks' built-in `container` user is overridden) |
+| Hostname | The server ID |
+| TTY / stdin | TTY on, stdin open (console commands are written to stdin) |
+| Root filesystem | **Read-only** |
+| `/tmp` | tmpfs, `rw,exec,nosuid,size=100M` |
+| Capabilities dropped | `SETPCAP`, `MKNOD`, `AUDIT_WRITE`, `NET_RAW`, `DAC_OVERRIDE`, `FOWNER`, `FSETID`, `NET_BIND_SERVICE`, `SYS_CHROOT`, `SETFCAP` |
+| Security options | `no-new-privileges` |
+| Memory | Limit = allocation × overhead (**+15%** up to 2 GiB, **+10%** up to 4 GiB, **+5%** above), reservation = allocation, no swap by default |
+| PIDs | 512 |
+| Restart policy | `no` (Wings restarts servers; see [SERVERS.md](SERVERS.md)) |
+| Logs | `local` driver, 3 × 20 MB |
+
+**Environment variables, in this order**
+| Variable | Value |
+|---|---|
+| `TZ` | Node timezone |
+| `STARTUP` | The startup command **unexpanded**, with `{{VAR}}` placeholders intact |
+| `SERVER_MEMORY` | Memory allocation in MiB (without the overhead) |
+| `SERVER_IP` | Primary allocation IP. Pterodactyl rewrites `127.0.0.1` to the Docker bridge IP so the server is reachable; Raptor will do the same (Phase 1.2). |
+| `SERVER_PORT` | Primary allocation port |
+| `P_SERVER_UUID` | Server ID |
+| `P_SERVER_LOCATION` | Node name |
+| `P_SERVER_ALLOCATION_LIMIT` | Allowed number of allocations |
+| egg variables | Every egg variable, name upper-cased. An egg variable can't override a built-in above. |
+
+**Startup:** the yolks' entrypoint (`/entrypoint.sh` under `tini`) converts `{{VAR}}` in `STARTUP` to `${VAR}` and `eval`s it **inside the container**. Wings never expands or runs the startup command itself, and never on the host.
 
 ### Startup, running, and stop
 - `startup` command with variable substitution. **Never executed through a host shell.**
-- `config.startup.done`: string or list of strings. Seeing one in console output marks the server as running.
-- `config.stop`: a console command (e.g. `stop`), or a signal: `^C` (SIGINT), `^^C` (SIGKILL), `^X`-style values as Pterodactyl handles them. Timeout, then kill.
+- `config.startup.done`: string or list of strings. A console line **containing** one marks the server as running; a value prefixed with `regex:` is a regular expression instead. `strip_ansi` removes color codes before matching. Eggs with no done strings are running as soon as they start.
+- `config.stop`, as Pterodactyl interprets it: a value **not** starting with `^` is a console command (e.g. `stop`). A value starting with `^` is a signal: after removing one `^`, `C` or `SIGINT` → SIGINT, `SIGTERM` → SIGTERM, `SIGABRT` → SIGABRT, **anything else → SIGKILL** (so `^^C` is SIGKILL). An empty value uses Docker's normal stop. After the stop timeout, the container is killed.
 
 ### Config file parsers (`config.files`)
 Parsers: `properties`, `yaml`, `json`, `ini`, `xml`, `file` (line-based find/replace).
@@ -86,6 +124,8 @@ Parsers: `properties`, `yaml`, `json`, `ini`, `xml`, `file` (line-based find/rep
 
 ### Features
 `eula`, `java_version`, `pid_limit`, `steam_disk_space`, `gsl_token` and similar. These drive Panel UI prompts (e.g. "accept the Minecraft EULA") and Wings behavior where applicable. Unknown features are ignored.
+
+`java_version` matters in practice: the e2e tests found that the Pterodactyl-format Paper egg defaults to a Java 21 image, while current Minecraft needs Java 25. Pterodactyl detects the "requires Java" console message and prompts the user to switch images; Raptor must do the same.
 
 ### Inheritance
 `config.extends` / `copy_script_from` (Pterodactyl legacy). Resolved when importing the egg.
