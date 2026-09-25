@@ -28,6 +28,8 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      - name: Install nftables
+        run: command -v nft || (sudo apt-get update && sudo apt-get install -y --no-install-recommends nftables)
       - name: Build test binary
         run: go test -c -tags e2e -o /tmp/docker-e2e ./internal/wings/docker
       - name: Run eggs

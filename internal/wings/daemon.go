@@ -11,7 +11,10 @@ import (
 	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/config"
+	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/firewall"
+	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
@@ -21,6 +24,10 @@ const (
 	snapshotInterval = time.Hour
 	snapshotKeep     = 24
 )
+
+// How often the runtime is checked: setup is retried until it succeeds, and
+// the firewall table is reapplied if something removed it.
+const runtimeCheckInterval = time.Minute
 
 // Run starts the daemon and blocks until ctx is cancelled, then shuts down
 // gracefully. Stopping Wings never stops servers: they belong to Docker.
@@ -37,11 +44,21 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	dc, err := docker.New()
+	subnet, installSubnet := cfg.Docker.Subnets()
+	dc, err := docker.New(docker.Config{
+		NodeID:         cfg.NodeID,
+		Network:        cfg.Docker.Network,
+		Subnet:         subnet,
+		InstallNetwork: cfg.Docker.InstallNetwork,
+		InstallSubnet:  installSubnet,
+	})
 	if err != nil {
 		return fmt.Errorf("docker client: %w", err)
 	}
 	defer func() { _ = dc.Close() }()
+
+	rt := &runtimeSetup{rt: dc, cfg: cfg, log: log}
+	rt.check(ctx)
 
 	svc := &localapi.Service{
 		NodeID:    cfg.NodeID,
@@ -60,6 +77,8 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 
 	ticker := time.NewTicker(snapshotInterval)
 	defer ticker.Stop()
+	runtimeTicker := time.NewTicker(runtimeCheckInterval)
+	defer runtimeTicker.Stop()
 
 	for {
 		select {
@@ -70,6 +89,8 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			return errors.Join(srv.Shutdown(shutdownCtx), <-errc)
 		case err := <-errc:
 			return fmt.Errorf("local api: %w", err)
+		case <-runtimeTicker.C:
+			rt.check(ctx)
 		case <-ticker.C:
 			if path, err := db.Snapshot(ctx, "hourly", snapshotKeep); err != nil {
 				log.Error("state snapshot failed", "err", err)
@@ -78,4 +99,61 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			}
 		}
 	}
+}
+
+// runtimeSetup prepares the container runtime: networks, the raptor.slice
+// memory ceiling, and the firewall. Docker may not be up yet when Wings
+// starts, so it's retried until it succeeds.
+type runtimeSetup struct {
+	rt    containers.Runtime
+	cfg   config.Config
+	log   *slog.Logger
+	rules *firewall.Rules // set once setup succeeded
+}
+
+func (r *runtimeSetup) check(ctx context.Context) {
+	if r.rules == nil {
+		if err := r.setup(ctx); err != nil {
+			r.log.Error("runtime setup failed; retrying", "err", err, "retry_in", runtimeCheckInterval.String())
+		}
+		return
+	}
+	if !firewall.Present(ctx) {
+		r.log.Warn("firewall table was removed; reapplying", "table", "inet "+firewall.Table)
+		if err := firewall.Apply(ctx, *r.rules); err != nil {
+			r.log.Error("firewall reapply failed", "err", err)
+		}
+	}
+}
+
+func (r *runtimeSetup) setup(ctx context.Context) error {
+	nets, err := r.rt.Setup(ctx)
+	if err != nil {
+		return err
+	}
+	rules := firewall.Rules{
+		ServerBridge:  nets.Server.Bridge,
+		InstallBridge: nets.Install.Bridge,
+		DNS:           firewall.HostResolvers(),
+		InstallAllow:  r.cfg.Docker.AllowedPrefixes(),
+	}
+	if nets.CgroupParent != "" {
+		limit, err := host.ApplySlice(ctx, int64(r.cfg.Limits.ReservedMemory))
+		if err != nil {
+			return fmt.Errorf("slice: %w", err)
+		}
+		rules.Cgroup = nets.CgroupParent
+		r.log.Info("container slice ready", "slice", nets.CgroupParent, "memory_max", limit)
+	} else {
+		r.log.Warn("docker doesn't use the systemd cgroup driver; containers run without the raptor.slice memory ceiling")
+	}
+	if err := firewall.Apply(ctx, rules); err != nil {
+		return fmt.Errorf("firewall: %w", err)
+	}
+	r.rules = &rules
+	r.log.Info("runtime ready",
+		"network", nets.Server.Name, "subnet", nets.Server.Subnet,
+		"install_network", nets.Install.Name, "install_subnet", nets.Install.Subnet,
+		"dns_allowed", rules.DNS)
+	return nil
 }

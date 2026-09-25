@@ -57,6 +57,22 @@ jobs:
       - run: task check:vuln
       - run: task check:secrets
 
+  # The container runtime against a real Docker: networks, firewall isolation,
+  # limits, hardening. Needs root, so it runs the compiled test binary with sudo.
+  e2e-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install nftables
+        run: command -v nft || (sudo apt-get update && sudo apt-get install -y --no-install-recommends nftables)
+      - name: Build test binary
+        run: go test -c -tags e2e -o /tmp/docker-e2e ./internal/wings/docker
+      - name: Run runtime tests
+        run: sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime'
+
   pr:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

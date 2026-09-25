@@ -5,7 +5,11 @@
 // or on a CI runner, not on a developer's Mac:
 //
 //	task e2e:eggs            # Paper (both formats) + Node.js in the Lima VM
+//	task e2e:runtime         # networks, firewall, limits, hardening
 //	go test -tags e2e -run TestEggRust ./internal/wings/docker/   # x86_64 only
+//
+// They set up the runtime the way Wings does (networks, raptor.slice,
+// firewall table), so installs run with the real network isolation.
 package docker
 
 import (
@@ -22,6 +26,7 @@ import (
 	"time"
 
 	"github.com/xena-studios/raptor/internal/eggs"
+	"github.com/xena-studios/raptor/internal/wings/containers"
 )
 
 // Container UID/GID for tests; Wings uses the raptor system user's IDs.
@@ -143,22 +148,17 @@ func runEgg(t *testing.T, c eggCase) {
 		Variables: vars,
 	}.Environment()
 
-	dc, err := New()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = dc.Close() }()
+	dc := newRuntime(t)
 
 	// Install.
 	start := time.Now()
-	res, err := dc.Install(ctx, InstallSpec{
+	res, err := dc.Install(ctx, containers.InstallSpec{
 		ServerID:  id,
 		Dir:       dir,
 		TmpDir:    base,
 		Install:   egg.Install,
 		Env:       env,
 		MemoryMiB: c.memoryMiB,
-		Network:   "bridge",
 		Timeout:   2 * time.Hour,
 		Output:    tailWriter(t, "install"),
 	})
@@ -175,16 +175,15 @@ func runEgg(t *testing.T, c eggCase) {
 	}
 
 	// Run.
-	id2, err := dc.CreateServer(ctx, ServerSpec{
-		ServerID:  id,
-		Dir:       dir,
-		Image:     egg.DefaultImage(),
-		Env:       env,
-		MemoryMiB: c.memoryMiB,
-		UID:       testUID,
-		GID:       testGID,
-		Network:   "bridge",
-		Ports:     []Port{{Port: c.port}},
+	id2, err := dc.Create(ctx, containers.ServerSpec{
+		ServerID: id,
+		Dir:      dir,
+		Image:    egg.DefaultImage(),
+		Env:      env,
+		UID:      testUID,
+		GID:      testGID,
+		Limits:   containers.Limits{MemoryMiB: c.memoryMiB},
+		Ports:    []containers.Port{{Port: c.port}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +198,7 @@ func runEgg(t *testing.T, c eggCase) {
 
 	done := make(chan struct{})
 	go func() {
-		sc := bufio.NewScanner(att.Output)
+		sc := bufio.NewScanner(att)
 		sc.Buffer(make([]byte, 64*1024), 1024*1024)
 		signaled := false
 		for sc.Scan() {
