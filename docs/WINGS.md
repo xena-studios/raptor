@@ -74,6 +74,8 @@ Tables (sketch): `servers`, `allocations`, `server_variables`, `eggs` (cached), 
 ### Networking
 - Servers get their allocated ports published on the node's IP(s).
 - **Host networking mode** is an optional per-server setting for games that need it.
+- Install containers use a separate `raptor_install` network: outbound internet only, with the host, private ranges, `raptor_nw`, and link-local addresses blocked (see [EGGS.md](EGGS.md#install)).
+- All Raptor containers are blocked from the cloud metadata endpoint (`169.254.169.254`). Game servers can still reach private ranges, because proxies like Velocity talk to backend servers over them.
 - Docker's iptables management stays on. Wings only ever publishes **allocated** ports, and its own rules (IP allowlists, blocks) live in the `RAPTOR` chain. Preflight tells UFW users that game ports are managed by Raptor, not UFW.
 
 ### Resource limits (performance-critical)
