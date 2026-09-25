@@ -147,7 +147,7 @@ func runEgg(t *testing.T, c eggCase) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dc.Close()
+	defer func() { _ = dc.Close() }()
 
 	// Install.
 	start := time.Now()
@@ -195,7 +195,7 @@ func runEgg(t *testing.T, c eggCase) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer att.Close()
+	defer func() { _ = att.Close() }()
 
 	done := make(chan struct{})
 	go func() {

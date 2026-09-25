@@ -49,7 +49,7 @@ type Client struct {
 
 // New connects to the local Docker daemon.
 func New() (*Client, error) {
-	api, err := client.New(client.FromEnv, client.WithAPIVersionNegotiation())
+	api, err := client.New(client.FromEnv)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (c *Client) Install(ctx context.Context, s InstallSpec) (InstallResult, err
 	if err != nil {
 		return InstallResult{}, err
 	}
-	defer os.RemoveAll(scriptDir)
+	defer func() { _ = os.RemoveAll(scriptDir) }()
 
 	script := strings.ReplaceAll(s.Install.Script, "\r\n", "\n")
 	if err := os.WriteFile(filepath.Join(scriptDir, "install.sh"), []byte(script), 0o644); err != nil { //nolint:gosec // read-only mount, readable by the container
@@ -208,7 +208,7 @@ func FixOwnership(dir string, uid, gid int) error {
 	if err != nil {
 		return err
 	}
-	defer root.Close()
+	defer func() { _ = root.Close() }()
 	return fs.WalkDir(root.FS(), ".", func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -415,7 +415,7 @@ func (c *Client) follow(ctx context.Context, id string, w io.Writer) {
 	if err != nil {
 		return
 	}
-	defer logs.Close()
+	defer func() { _ = logs.Close() }()
 	_, _ = io.Copy(w, logs)
 }
 
@@ -430,4 +430,13 @@ func signalName(s syscall.Signal) string {
 	default:
 		return "SIGKILL"
 	}
+}
+
+// Version returns the Docker daemon's version.
+func (c *Client) Version(ctx context.Context) (string, error) {
+	v, err := c.api.ServerVersion(ctx, client.ServerVersionOptions{})
+	if err != nil {
+		return "", err
+	}
+	return v.Version, nil
 }
