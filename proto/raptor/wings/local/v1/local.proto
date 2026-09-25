@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package raptor.wings.local.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// LocalService is served by Wings on its Unix socket (/run/raptor/wings.sock)
+// for the raptor CLI and TUI. Access is controlled by socket permissions.
+// It has no methods that change server configuration (docs/WINGS.md).
+// Methods are added as the features behind them are built.
+service LocalService {
+  // GetStatus reports node health.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  string version = 1;
+  string commit = 2;
+  // Empty until the node is linked to the Panel.
+  string node_id = 3;
+  string panel_url = 4;
+  google.protobuf.Timestamp started_at = 5;
+  DockerStatus docker = 6;
+  // The Unix user the request was attributed to, e.g. "root".
+  string caller = 7;
+}
+
+message DockerStatus {
+  bool reachable = 1;
+  string version = 2;
+  string error = 3;
+}
