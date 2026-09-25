@@ -1,0 +1,57 @@
+# Raptor Wings daemon. Installed by `raptor bootstrap`.
+#
+# Stopping or restarting this service never stops game servers: their
+# containers belong to Docker, not to this service's cgroup.
+
+[Unit]
+Description=Raptor Wings
+Documentation=https://github.com/xena-studios/raptor
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=exec
+ExecStart=/usr/local/bin/raptor wings run
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+# Game servers can run out of memory; Wings must not be what the kernel kills.
+OOMScoreAdjust=-900
+LimitNOFILE=65536
+
+# systemd creates these with the right ownership and permissions. Everything
+# Wings writes is private to root by default (the socket is opened up to the
+# raptor group explicitly).
+UMask=0077
+RuntimeDirectory=raptor
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+StateDirectory=raptor
+StateDirectoryMode=0700
+LogsDirectory=raptor
+LogsDirectoryMode=0700
+ConfigurationDirectory=raptor
+ConfigurationDirectoryMode=0700
+
+# Sandboxing. Wings runs as root (Docker, quotas, nftables), so limit
+# everything it doesn't need.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/raptor /var/lib/raptor /var/log/raptor /run/raptor
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

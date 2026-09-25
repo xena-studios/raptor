@@ -180,6 +180,26 @@ tasks:
         limactl shell {{.VM}} sudo install -m 0755 /tmp/raptor /usr/local/bin/raptor
         limactl shell {{.VM}} raptor version
 
+  wings:vm:install:
+    desc: Install raptor, the systemd unit, and a dev config in the VM, and (re)start Wings
+    cmds:
+      - task: wings:vm:deploy
+      - limactl copy install/systemd/raptor-wings.service {{.VM}}:/tmp/raptor-wings.service
+      - limactl copy dev/wings/config.yml {{.VM}}:/tmp/raptor-config.yml
+      - |
+        limactl shell {{.VM}} sudo bash -euc '
+          getent group raptor >/dev/null || groupadd --system raptor
+          id raptor >/dev/null 2>&1 || useradd --system --gid raptor --no-create-home --shell /usr/sbin/nologin raptor
+          install -m 0644 /tmp/raptor-wings.service /etc/systemd/system/raptor-wings.service
+          install -d -m 0700 /etc/raptor
+          install -m 0600 /tmp/raptor-config.yml /etc/raptor/config.yml
+          systemctl daemon-reload
+          systemctl enable raptor-wings >/dev/null 2>&1
+          systemctl restart raptor-wings
+          sleep 1
+          systemctl --no-pager --lines=5 status raptor-wings
+        '
+
   e2e:eggs:
     desc: "Install and run real eggs in the Wings VM (RUN=regex selects tests, default Paper + Node)"
     vars:
