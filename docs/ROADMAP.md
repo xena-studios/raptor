@@ -67,9 +67,9 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - **Gate:** all three run. This becomes the first real code of the egg engine, not throwaway.
 
 ### 1.1 Daemon skeleton
-- [ ] `raptor wings run`: config loading, `slog` logging, graceful shutdown
+- [ ] `raptor wings run`: config loading (strict `config.yml` per [WINGS.md](WINGS.md#config-file)), `slog` logging, graceful shutdown
 - [ ] SQLite: WAL, single writer + readers, migrations, `VACUUM INTO` snapshots
-- [ ] Local socket API (`/run/raptor/wings.sock`, root + `raptor` group)
+- [ ] Local socket API (`/run/raptor/wings.sock`, root + `raptor` group, `SO_PEERCRED` attribution) per [WINGS.md](WINGS.md#local-socket-api)
 - [ ] systemd unit (`OOMScoreAdjust=-900`, sandboxing options)
 
 ### 1.2 Runtime
@@ -92,11 +92,15 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Arch check against image manifests
 - [ ] Fuzz tests: variable substitution + config parsers + path handling
 
-### 1.4 Server lifecycle
-- [ ] Create / install / reinstall / delete / start / stop / restart / kill
-- [ ] Console: stdout drained into a ring buffer, stdin commands, never blocks the container
-- [ ] **Reattach on Wings start**: reconcile containers against SQLite, refill console from Docker logs
-- [ ] Crash detection + restart with backoff + crash-loop stop
+### 1.4 Server lifecycle (per [SERVERS.md](SERVERS.md))
+- [ ] Server model with egg snapshots, `desired_state`, and config versions
+- [ ] State machine; idempotent power actions; create / install / reinstall / delete / start / stop / restart / kill with stop timeouts
+- [ ] Allocations: primary + extras, port range rules, host-port-in-use check, applied on next start
+- [ ] Console: always drained, 1,000-line ring buffer, output throttling, input limits, audit of commands
+- [ ] **Reconcile on Wings start**: reattach running containers, start servers with `desired_state=running` (staggered), refill console from Docker logs
+- [ ] `raptor-shutdown.service` for graceful stops on host shutdown
+- [ ] Crash policy: crash detection (incl. OOM and clean exit), backoff, crash-loop stop, crash events with last console lines
+- [ ] Deletion: optional final backup, file + quota cleanup, orphaned offsite backups
 
 ### 1.5 Job engine
 - [ ] Durable queue in SQLite, resume/retry, per-server locks, global concurrency limits

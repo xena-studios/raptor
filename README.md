@@ -22,6 +22,7 @@ Raptor is compatible with Pterodactyl and Pelican eggs.
 - [Architecture](docs/ARCHITECTURE.md): how the pieces fit together
 - [Wings](docs/WINGS.md): the daemon in detail
 - [Panel](docs/PANEL.md): the SaaS control plane
+- [Servers](docs/SERVERS.md): server model, states, ports, console, crash policy, deletion
 - [Egg compatibility](docs/EGGS.md): Pterodactyl/Pelican egg support
 - [Security model](docs/SECURITY-MODEL.md): threat model and security rules
 - [Reliability and performance](docs/RELIABILITY.md): requirements and how we meet them
