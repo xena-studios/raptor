@@ -23,10 +23,44 @@ Unknown versions are rejected with a clear error rather than half-supported.
 - Arch awareness: a server can only use images with a manifest for the node's architecture (checked before install).
 
 ### Install
-- The install script runs in a **separate install container** using the egg's `script.container` image and `script.entrypoint`.
-- The server directory is mounted at `/mnt/server`. Nothing else from the host.
-- Install environment variables include the egg variables plus the built-ins.
-- Install containers run with network access and are removed afterwards. Install logs are kept as job logs.
+
+Install scripts are the least trusted code Raptor runs: they come from the egg, run as **root inside the container** (many use `apt-get`), and have internet access. They run in a **separate, short-lived install container**, never in the server's runtime container, and never on the host.
+
+**Lifecycle**
+- Runs as a `server.install` / `server.reinstall` job, holding the server's lock. The server must be stopped.
+- The egg's `script.container` image is pulled first (with retries and an architecture check), then the container runs `script.entrypoint` on the script.
+- The container is **always removed** afterwards, on success, failure, or timeout.
+
+**What the container can see**
+| Mount | Access | Contents |
+|---|---|---|
+| `/mnt/server` | read-write | The server's directory (on the quota volume, so the disk limit applies during install) |
+| `/mnt/install` | **read-only** | `install.sh`: the egg's script, line endings normalized to LF (as Pterodactyl does), written to a per-job temp directory that is deleted afterwards |
+
+Nothing else from the host is mounted: no Docker socket, no host paths, no other servers.
+
+**Environment:** the egg variables (validated against their rules first) plus the same built-ins as the runtime (`SERVER_MEMORY`, `SERVER_IP`, `SERVER_PORT`, …).
+
+**Hardening**
+- Root inside the container (required for egg compatibility), but **never `--privileged`**, `no-new-privileges`, Docker's default seccomp profile, and Docker's default capabilities minus `NET_RAW`, `MKNOD`, `AUDIT_WRITE`, and `SETFCAP`. The exact set is confirmed by the conformance suite.
+- `/tmp` is a tmpfs.
+- **Limits:** memory = the larger of the server's memory and 1 GiB; PID limit 512; low CPU and I/O weight so installs can't lag running servers; at most 2 concurrent installs per node.
+- **Timeout:** 2 hours by default (SteamCMD downloads can be very large), overridable per egg with `x-raptor.install.timeout`. On timeout the container is killed and the install is marked failed.
+
+**Network isolation**
+- Install containers use their own Docker network, `raptor_install`, with inter-container traffic disabled.
+- Rules in the `RAPTOR` chain allow **outbound internet only**. Traffic to the host itself, private ranges (RFC 1918, `100.64.0.0/10`, IPv6 ULA), link-local addresses (including the **cloud metadata endpoint `169.254.169.254`**), and the `raptor_nw` server network is dropped.
+- DNS works through Docker's embedded resolver.
+- An owner can allowlist specific private CIDRs per node (e.g. a local package mirror).
+
+**After the install**
+- Wings hands ownership of the server's files to the runtime container's UID/GID, as Pterodactyl does. The walk goes through `os.Root` and uses `lchown`: it **never follows symlinks**, never leaves the server directory, and never crosses mount points. A malicious install can't trick Wings into changing ownership of host files.
+- Symlinks the script created are left as they are. They're harmless: the runtime container only sees its own directory, and every Wings file operation goes through `os.Root`.
+- Output (stdout/stderr) is kept as the job's log, capped at 10 MB (the tail is kept).
+
+**Failure and reinstall**
+- A failed install marks the server `install_failed`. Files are **kept** for debugging, and the server can't start until an install succeeds, unless the owner chooses **skip install script** (Pterodactyl has the same option).
+- **Reinstall** runs the script over the existing files by default (Pterodactyl behavior). The owner can instead choose **wipe and reinstall**, which always takes a safety backup first.
 
 ### Runtime environment
 - Server files mounted at **`/home/container`**, the working directory.
@@ -69,6 +103,7 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
     "wait_for": "Saved the game"
   },
   "health": { "type": "port", "protocol": "tcp" },
+  "install": { "timeout": "3h" },
   "players": { "query": "minecraft" },
   "certified": true
 }

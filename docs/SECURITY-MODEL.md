@@ -36,7 +36,8 @@
 - **Host-side file safety.** Every file operation on server data (file manager, SFTP, config parsers, backups, restores, imports) goes through **`os.Root`**, confined to the server's directory. Symlinks, `..`, and absolute paths that escape are rejected. This is where Pterodactyl's Wings has had repeated vulnerabilities, so it gets the most review and fuzzing.
 - **Variables are validated against egg rules before substitution**, and never pass through a host shell.
 - **Container hardening:** non-root user, capabilities dropped, `no-new-privileges`, seccomp, only the server directory mounted, PID limits.
-- **Install containers** mount only the server directory.
+- **Install containers** are treated as the least trusted code on the node (egg scripts, root inside the container, internet access). They run separately from the runtime container, mount only the server directory (read-write) and the script (read-only), are never privileged, have limits and a timeout, and are **network-isolated**: outbound internet only, with the host, private ranges, other servers, and the cloud metadata endpoint blocked. The post-install ownership fix never follows symlinks. Details in [EGGS.md](EGGS.md#install).
+- **Every Raptor container** (install and runtime) is blocked from the cloud metadata endpoint (`169.254.169.254`), which can hand out provider credentials.
 - Wings runs as root (required for Docker, quotas, and nftables) with systemd sandboxing where possible (`ProtectSystem`, `ProtectHome`, `PrivateTmp`, restricted address families).
 - **Docker firewall:** Wings publishes only allocated ports. Custom rules live in the `RAPTOR` chain.
 - Local socket: root + `raptor` group only.

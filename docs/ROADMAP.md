@@ -84,7 +84,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 ### 1.3 Egg engine
 - [ ] Parsers for `PTDL_v1`, `PTDL_v2`, `PLCN_v*`; reject unknown versions
 - [ ] Variables: Laravel-style rule validation (the subset real eggs use), validated **before** substitution
-- [ ] Install containers (`/mnt/server`), install logs
+- [ ] Install containers per [EGGS.md](EGGS.md#install): `/mnt/server` + read-only `/mnt/install`, hardening, limits, timeout, `raptor_install` network isolation (incl. metadata endpoint block), symlink-safe ownership fix, capped logs, failure/reinstall behavior
 - [ ] Runtime environment matching Pterodactyl Wings exactly (from 1.0)
 - [ ] Startup "done" detection, stop commands and signals, timeouts
 - [ ] Config file parsers: properties, yaml, json, ini, xml, file, all through `os.Root`
