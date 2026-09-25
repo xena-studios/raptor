@@ -61,16 +61,16 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 **Goal:** a Wings daemon that runs egg-based servers reliably. No Panel yet; driven by a test harness and the CLI.
 
 ### 1.0 Validation gate: egg runtime
-- [ ] Read Pterodactyl Wings' source: environment building, container config, install process, stop handling, config parsers
-- [ ] Write down the exact env var list, container UID/GID, mounts, and entrypoint behavior in [EGGS.md](EGGS.md)
+- [x] Read Pterodactyl Wings' source: environment building, container config, install process, stop handling, config parsers
+- [x] Write down the exact env var list, container UID/GID, mounts, and entrypoint behavior in [EGGS.md](EGGS.md#runtime-environment)
 - [ ] Get **Paper**, **Rust**, and a **Node.js Discord bot** egg installing and running with unmodified yolks images
 - **Gate:** all three run. This becomes the first real code of the egg engine, not throwaway.
 
 ### 1.1 Daemon skeleton
-- [ ] `raptor wings run`: config loading (strict `config.yml` per [WINGS.md](WINGS.md#config-file)), `slog` logging, graceful shutdown
-- [ ] SQLite: WAL, single writer + readers, migrations, `VACUUM INTO` snapshots
-- [ ] Local socket API (`/run/raptor/wings.sock`, root + `raptor` group, `SO_PEERCRED` attribution) per [WINGS.md](WINGS.md#local-socket-api)
-- [ ] systemd unit (`OOMScoreAdjust=-900`, sandboxing options)
+- [x] `raptor wings run`: config loading (strict `config.yml` per [WINGS.md](WINGS.md#config-file)), `slog` logging, graceful shutdown
+- [x] SQLite: WAL, single writer + readers, migrations, `VACUUM INTO` snapshots (hourly + pre-migration), private (0600) files
+- [x] Local socket API (`/run/raptor/wings.sock`, root + `raptor` group, `SO_PEERCRED` attribution) per [WINGS.md](WINGS.md#local-socket-api)
+- [x] systemd unit (`OOMScoreAdjust=-900`, sandboxing options, `UMask=0077`), verified in the dev VM
 
 ### 1.2 Runtime
 - [ ] `Runtime` interface + Docker implementation

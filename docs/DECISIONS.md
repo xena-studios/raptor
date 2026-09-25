@@ -55,3 +55,7 @@ Locked decisions and the reasons behind them. Change a decision by adding a new 
 | 49 | **Console:** always drained, 1,000-line ring buffer, 1,000 lines/s streamed to viewers with a suppression marker, never kill a server for spam | A chatty or broken server can't stall Wings, browsers, or itself. |
 | 50 | **Deleting a server keeps offsite backups** (orphaned, 30-day expiry for hosted); local backups are deleted | Deletion is irreversible; offsite backups are the only way back. |
 | 51 | **`config.yml` holds only static box settings**, strict parsing; everything else lives in SQLite from the Panel | One source of truth for server config; typos in the file fail loudly. |
+| 52 | **Install success = no Docker error and no timeout**, not the script's exit code (Pterodactyl-compatible); a non-zero exit is recorded and shown as a warning | Many community install scripts end with a harmless failing command. Failing them would break working eggs. |
+| 53 | **Eggs are tested for real:** `task e2e:eggs` installs and runs certified eggs with their unmodified images in the Wings VM; x86-only eggs (Rust) run on an x86 GitHub runner via the "E2E eggs" workflow (on demand or on `e2e/*` branches) | Egg compatibility can only be proven by running eggs. Rust's ~10 GB download is too slow for every PR. |
+| 54 | **Local API methods are added only when implemented** (starting with `GetStatus`), not declared up front | No placeholder RPCs, and `buf breaking` never blocks designing a method properly when its feature is built. |
+

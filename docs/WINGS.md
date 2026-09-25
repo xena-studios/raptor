@@ -46,6 +46,15 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 - The installer **merges** into `/etc/docker/daemon.json`, never overwrites it.
 - A CI test runs both Wings on one VM and checks neither disturbs the other.
 
+## systemd service
+
+`install/systemd/raptor-wings.service` (installed by `raptor bootstrap`; in development by `task wings:vm:install`):
+- `Restart=always`, `OOMScoreAdjust=-900`, `LimitNOFILE=65536`.
+- **Stopping or restarting the service never stops servers:** their containers live in Docker's cgroups, not the service's.
+- `UMask=0077`, and systemd creates `/var/lib/raptor`, `/var/log/raptor`, and `/etc/raptor` as `0700`. `/run/raptor` is `0755` so the `raptor` group can reach the socket.
+- Sandboxing: `ProtectSystem=strict` (writable: `/etc/raptor`, `/var/lib/raptor`, `/var/log/raptor`, `/run/raptor`), `ProtectHome`, `PrivateTmp`, `NoNewPrivileges`, kernel module/log/clock/hostname/cgroup protection, `RestrictNamespaces`, `RestrictSUIDSGID`, native syscalls only, and only `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK` sockets. `systemd-analyze security` rates it 5.9 (medium). Wings needs root for Docker, quotas, and nftables, so it can't go much lower; this will be revisited as those features land.
+- On shutdown Wings stops the local API (the socket is removed) and closes the database.
+
 ## Config file
 
 `/etc/raptor/config.yml` holds **only static, box-level settings**, written by the installer and rarely changed. Everything about servers, schedules, and backups lives in SQLite and comes from the Panel. Owned by root, mode `0600`.
@@ -63,6 +72,7 @@ paths:
   state: /var/lib/raptor/state.db
   volumes: /var/lib/raptor/volumes
   tmp: /var/lib/raptor/tmp
+  socket: /run/raptor/wings.sock
 docker:
   network: raptor_nw
   subnet: 172.29.0.0/16          # chosen at install to avoid collisions
@@ -89,8 +99,9 @@ log:
 ## Local state (SQLite)
 
 - **WAL mode**, `synchronous=NORMAL`, `busy_timeout` set, **one writer connection** + a pool of readers.
-- Forward-only migrations, applied automatically on upgrade, **after** a `VACUUM INTO` snapshot of `state.db`.
-- Hourly `VACUUM INTO` snapshot (keep last 24), plus the latest snapshot is included in offsite backups.
+- Forward-only migrations, applied automatically on upgrade, **after** a `VACUUM INTO` snapshot of `state.db` (`snapshots/pre-migrate-*.db`, last 5 kept).
+- Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept), plus the latest snapshot is included in offsite backups.
+- **Private files:** SQLite creates database files as 0644 regardless of the umask, and gives its `-wal`/`-shm` files the same mode. Wings creates `state.db` as 0600 before SQLite opens it, so all three stay root-only.
 
 Tables (sketch): `servers`, `allocations`, `server_variables`, `eggs` (cached), `schedules`, `schedule_steps`, `jobs`, `job_logs`, `backups`, `backup_destinations`, `events` (outbox, with `seq`), `executed_commands`, `grant_cache`, `sftp_key_cache`, `metrics_rollup`, `kv` (node config).
 
@@ -229,7 +240,9 @@ raptor tui
 
 ### Local socket API
 
-A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock`. It's not the Panel API, and it has no methods that change server configuration.
+A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
+
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus` (`raptor status`). The full planned set:
 
 | Method | Purpose |
 |---|---|
@@ -246,7 +259,7 @@ A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`
 | `Link`, `Unlink`, `Relink` | Panel linking |
 | `Update` | Self-update |
 
-- **Access:** Unix socket permissions only (root and the `raptor` group). No passwords or tokens.
+- **Access:** Unix socket permissions only: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens.
 - **Attribution:** Wings reads the caller's Unix user from the socket (`SO_PEERCRED`). Every mutating call is recorded as an event with actor `local:<username>`, so it appears in the Panel's audit log.
 
 ## `doctor`
