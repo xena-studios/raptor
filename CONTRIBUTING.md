@@ -62,6 +62,10 @@ task wings:vm:shell    # shell into the VM
 
 Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md).
 
+## Pull requests
+
+`main` is protected. Every change lands through a pull request, and all CI jobs (`lint`, `generated`, `test`, `build`, `security`, `pr`) must pass. Merges are squash or rebase only (linear history). Use conventional commit titles (`feat:`, `fix:`, `docs:`, …).
+
 ## Ground rules
 
 - **Security issues:** don't open a public issue. See [SECURITY.md](SECURITY.md).
