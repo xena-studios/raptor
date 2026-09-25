@@ -1,0 +1,36 @@
+name: E2E eggs
+
+# Installs and runs real eggs with their unmodified images on an x86_64 runner.
+# Slow (Rust downloads ~10 GB through SteamCMD), so it only runs on demand or
+# when a branch named e2e/* is pushed.
+on:
+  workflow_dispatch:
+    inputs:
+      run:
+        description: Test regex
+        default: "TestEgg"
+  push:
+    branches: ["e2e/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  eggs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Build test binary
+        run: go test -c -tags e2e -o /tmp/docker-e2e ./internal/wings/docker
+      - name: Run eggs
+        run: |
+          sudo RAPTOR_E2E_EGGS="$PWD/internal/eggs/testdata" \
+            /tmp/docker-e2e -test.v -test.timeout 170m -test.run '${{ inputs.run || 'TestEgg' }}'
