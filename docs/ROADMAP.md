@@ -48,9 +48,11 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - (The per-release install script with the embedded SHA-256 moves to Phase 3.3, alongside the install script itself.)
 
 ### Repository
-- [ ] Branch protection on `main`: require PRs and passing CI. **Blocked:** GitHub only allows rulesets on private repos with a paid plan. Apply when the repo goes public (or the org upgrades).
+- [x] Branch protection on `main`: PRs required, all CI jobs must pass, linear history, no force pushes or deletion
 
 **Exit criteria:** `git push` runs all checks green; a tagged release produces signed binaries for both architectures.
+
+✅ **Met.** CI is green on `main`; `v0.0.1-rc.1` was built by CI, signed offline, published, and verified from the public download URLs.
 
 ---
 
