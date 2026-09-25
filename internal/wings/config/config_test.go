@@ -22,8 +22,12 @@ func TestParseFull(t *testing.T) {
 	cfg, err := Parse([]byte(`
 panel:
   url: https://example.test
+docker:
+  subnet: 10.50.0.0/16
+  install_allow: [192.168.1.10/32]
 limits:
   host_disk_min_free: 5GiB
+  reserved_memory: 2GiB
 log:
   level: debug
 `))
@@ -33,8 +37,15 @@ log:
 	if cfg.Panel.URL != "https://example.test" || cfg.Panel.Tunnel != "tunnel.raptorpanel.net:443" {
 		t.Errorf("panel = %+v", cfg.Panel)
 	}
-	if cfg.Limits.HostDiskMinFree != 5<<30 {
-		t.Errorf("min free = %d", cfg.Limits.HostDiskMinFree)
+	if cfg.Limits.HostDiskMinFree != 5<<30 || cfg.Limits.ReservedMemory != 2<<30 {
+		t.Errorf("limits = %+v", cfg.Limits)
+	}
+	server, install := cfg.Docker.Subnets()
+	if server.String() != "10.50.0.0/16" || install.IsValid() {
+		t.Errorf("subnets = %v, %v", server, install)
+	}
+	if p := cfg.Docker.AllowedPrefixes(); len(p) != 1 || p[0].String() != "192.168.1.10/32" {
+		t.Errorf("install_allow = %v", p)
 	}
 }
 
@@ -47,6 +58,10 @@ func TestParseRejects(t *testing.T) {
 		"relative path":  "paths:\n  state: state.db\n",
 		"bad size":       "limits:\n  host_disk_min_free: lots\n",
 		"bad channel":    "updates:\n  channel: nightly\n",
+		"bad subnet":     "docker:\n  subnet: 10.50.0.1/16\n",
+		"ipv6 subnet":    "docker:\n  subnet: fd00::/64\n",
+		"bad allow":      "docker:\n  install_allow: [lan]\n",
+		"same networks":  "docker:\n  install_network: raptor_nw\n",
 	} {
 		if _, err := Parse([]byte(in)); err == nil {
 			t.Errorf("%s: expected error", name)

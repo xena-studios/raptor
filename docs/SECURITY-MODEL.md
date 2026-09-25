@@ -39,7 +39,8 @@
 - **Install containers** are treated as the least trusted code on the node (egg scripts, root inside the container, internet access). They run separately from the runtime container, mount only the server directory (read-write) and the script (read-only), are never privileged, have limits and a timeout, and are **network-isolated**: outbound internet only, with the host, private ranges, other servers, and the cloud metadata endpoint blocked. The post-install ownership fix never follows symlinks. Details in [EGGS.md](EGGS.md#install).
 - **Every Raptor container** (install and runtime) is blocked from the cloud metadata endpoint (`169.254.169.254`), which can hand out provider credentials.
 - Wings runs as root (required for Docker, quotas, and nftables) with systemd sandboxing where possible (`ProtectSystem`, `ProtectHome`, `PrivateTmp`, restricted address families).
-- **Docker firewall:** Wings publishes only allocated ports. Custom rules live in the `RAPTOR` chain.
+- **Docker firewall:** Wings publishes only allocated ports. Its own rules live in a separate nftables table (`inet raptor`) that runs before Docker's chains, is replaced atomically, and is reapplied if something removes it. See [WINGS.md](WINGS.md#firewall).
+- **Wings never touches what it doesn't own:** containers and networks without the `raptor.wings.managed` label are never listed, modified, or removed, even when their names collide with Wings' own.
 - Local socket: root + `raptor` group only.
 
 ### Enrollment and identity

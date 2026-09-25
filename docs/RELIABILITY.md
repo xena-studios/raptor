@@ -40,7 +40,7 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 
 ### Game server performance
 - **CPU:** default to CPU **weight**, not hard CFS quotas. Hard quotas cause throttling stalls that show up as tick lag. A hard limit and CPU pinning are per-server options.
-- **Memory:** container limit = allocated + overhead, so JVM servers aren't OOM-killed at the edge of their heap. Game containers live in `raptor.slice` with a ceiling below total RAM. Wings has `OOMScoreAdjust=-900`.
+- **Memory:** container limit = allocated + overhead, so JVM servers aren't OOM-killed at the edge of their heap. Game containers live in `raptor.slice` with a ceiling of total RAM minus a reserve (10% of RAM, 1–4 GiB) for the OS, Docker, and Wings. Wings has `OOMScoreAdjust=-900`.
 - **Background work can't cause lag:** backups, installs, and updates run with low CPU and I/O weight, with global concurrency limits (e.g. 2 backups per node).
 - **Networking:** `userland-proxy` off (kernel forwarding, important for UDP). Host networking available per server.
 - **Disk usage reporting is free:** XFS project quotas give instant usage. No `du` scans walking millions of files.

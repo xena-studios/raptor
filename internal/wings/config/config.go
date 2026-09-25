@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
 	"strconv"
 	"strings"
@@ -51,12 +52,14 @@ type Paths struct {
 	Socket  string `yaml:"socket"`
 }
 
-// Docker holds Docker network settings.
+// Docker holds Docker network settings. Empty subnets are picked
+// automatically from free ranges when the network is first created.
 type Docker struct {
-	Network        string `yaml:"network"`
-	Subnet         string `yaml:"subnet"`
-	InstallNetwork string `yaml:"install_network"`
-	InstallSubnet  string `yaml:"install_subnet"`
+	Network        string   `yaml:"network"`
+	Subnet         string   `yaml:"subnet"`
+	InstallNetwork string   `yaml:"install_network"`
+	InstallSubnet  string   `yaml:"install_subnet"`
+	InstallAllow   []string `yaml:"install_allow"` // private CIDRs install containers may reach
 }
 
 // Ports holds Wings' own listening ports.
@@ -70,6 +73,9 @@ type Limits struct {
 	ConcurrentInstalls int      `yaml:"concurrent_installs"`
 	ConcurrentBackups  int      `yaml:"concurrent_backups"`
 	HostDiskMinFree    ByteSize `yaml:"host_disk_min_free"`
+	// ReservedMemory is kept free of game servers for the OS, Docker, and
+	// Wings. 0 = automatic (10% of RAM, 1–4 GiB).
+	ReservedMemory ByteSize `yaml:"reserved_memory"`
 }
 
 // Updates controls self-update.
@@ -100,9 +106,7 @@ func Default() Config {
 		},
 		Docker: Docker{
 			Network:        "raptor_nw",
-			Subnet:         "172.29.0.0/16",
 			InstallNetwork: "raptor_install",
-			InstallSubnet:  "172.30.0.0/16",
 		},
 		Ports:   Ports{SFTP: 2022, HTTPS: 8443},
 		Limits:  Limits{ConcurrentInstalls: 2, ConcurrentBackups: 2, HostDiskMinFree: 10 << 30},
@@ -161,7 +165,42 @@ func (c Config) Validate() error {
 			errs = append(errs, fmt.Errorf("%s %q: must be an absolute path", name, p))
 		}
 	}
+	for name, v := range map[string]string{"docker.subnet": c.Docker.Subnet, "docker.install_subnet": c.Docker.InstallSubnet} {
+		if v == "" {
+			continue
+		}
+		if p, err := netip.ParsePrefix(v); err != nil || !p.Addr().Is4() || p != p.Masked() {
+			errs = append(errs, fmt.Errorf("%s %q: want an IPv4 network like 172.29.0.0/16", name, v))
+		}
+	}
+	for _, v := range c.Docker.InstallAllow {
+		if _, err := netip.ParsePrefix(v); err != nil {
+			errs = append(errs, fmt.Errorf("docker.install_allow %q: want a CIDR like 192.168.1.10/32", v))
+		}
+	}
+	if c.Docker.Network == "" || c.Docker.InstallNetwork == "" || c.Docker.Network == c.Docker.InstallNetwork {
+		errs = append(errs, errors.New("docker: network and install_network must be set and different"))
+	}
 	return errors.Join(errs...)
+}
+
+// Subnets returns the configured subnets; a zero prefix means automatic.
+// Call after Validate.
+func (d Docker) Subnets() (server, install netip.Prefix) {
+	server, _ = netip.ParsePrefix(d.Subnet)
+	install, _ = netip.ParsePrefix(d.InstallSubnet)
+	return server, install
+}
+
+// AllowedPrefixes returns install_allow parsed. Call after Validate.
+func (d Docker) AllowedPrefixes() []netip.Prefix {
+	out := make([]netip.Prefix, 0, len(d.InstallAllow))
+	for _, v := range d.InstallAllow {
+		if p, err := netip.ParsePrefix(v); err == nil {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // ByteSize is a size written like "10GiB", "512MiB", or a plain byte count.

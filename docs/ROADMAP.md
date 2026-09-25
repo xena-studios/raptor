@@ -74,19 +74,20 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Local socket API (`/run/raptor/wings.sock`, root + `raptor` group, `SO_PEERCRED` attribution) per [WINGS.md](WINGS.md#local-socket-api)
 - [x] systemd unit (`OOMScoreAdjust=-900`, sandboxing options, `UMask=0077`), verified in the dev VM
 
-### 1.2 Runtime
-- [ ] `Runtime` interface + Docker implementation
-- [ ] `raptor_nw` network with collision-free subnet selection
-- [ ] Labels `raptor.wings.*`; every query filtered by `raptor.wings.managed=true`
-- [ ] Resource limits: memory + overhead, CPU weight (default) / hard limit / pinning, PID limit, `raptor.slice`
-- [ ] Hardening: non-root, cap drop, `no-new-privileges`, seccomp, only the server dir mounted
-- [ ] Port publishing for allocations; host-port-in-use check; optional host networking
-- [ ] `RAPTOR` firewall chain + jump from `DOCKER-USER`
+### 1.2 Runtime ✅
+- [x] `Runtime` interface + Docker implementation
+- [x] `raptor_nw` network with collision-free subnet selection (plus `raptor_install`)
+- [x] Labels `raptor.wings.*`; every query filtered by `raptor.wings.managed=true`; unlabeled containers and networks are never touched
+- [x] Resource limits: memory + overhead, CPU weight (default) / hard limit / pinning, PID limit, `raptor.slice` with a memory ceiling
+- [x] Hardening: non-root, cap drop, `no-new-privileges`, seccomp, only the server dir mounted
+- [x] Port publishing for allocations; host-port-in-use check; optional host networking; `127.0.0.1` → gateway binding
+- [x] Firewall: own nftables table `inet raptor` instead of a `DOCKER-USER` jump ([decision 56](DECISIONS.md)); install network isolation, metadata endpoint block, self-healing
+- [x] `task e2e:runtime` + a CI job running it on every PR
 
 ### 1.3 Egg engine
 - [ ] Parsers for `PTDL_v1`, `PTDL_v2`, `PLCN_v*`; reject unknown versions
 - [ ] Variables: Laravel-style rule validation (the subset real eggs use), validated **before** substitution
-- [ ] Install containers per [EGGS.md](EGGS.md#install): `/mnt/server` + read-only `/mnt/install`, hardening, limits, timeout, `raptor_install` network isolation (incl. metadata endpoint block), symlink-safe ownership fix, capped logs, failure/reinstall behavior
+- [ ] Install containers per [EGGS.md](EGGS.md#install): `/mnt/server` + read-only `/mnt/install`, hardening, limits, timeout, `raptor_install` network isolation (incl. metadata endpoint block; done in 1.2), symlink-safe ownership fix, capped logs, failure/reinstall behavior
 - [ ] Runtime environment matching Pterodactyl Wings exactly (from 1.0)
 - [ ] Startup "done" detection, stop commands and signals, timeouts
 - [ ] Config file parsers: properties, yaml, json, ini, xml, file, all through `os.Root`

@@ -215,6 +215,19 @@ tasks:
         limactl copy bin/docker-e2e-$ARCH {{.VM}}:/tmp/docker-e2e
         limactl shell {{.VM}} sudo RAPTOR_E2E_EGGS=/tmp/raptor-e2e-eggs /tmp/docker-e2e -test.v -test.timeout 120m -test.run '{{.RUN}}'
 
+  e2e:runtime:
+    desc: "Test the container runtime in the Wings VM: networks, firewall isolation, limits, hardening"
+    vars:
+      RUN: '{{.RUN | default "TestRuntime"}}'
+    cmds:
+      - task: wings:vm:up
+      - |
+        set -eu
+        ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/docker-e2e-$ARCH ./internal/wings/docker
+        limactl copy bin/docker-e2e-$ARCH {{.VM}}:/tmp/docker-e2e
+        limactl shell {{.VM}} sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
+
   wings:vm:delete:
     desc: Delete the Wings VM
     cmds:
