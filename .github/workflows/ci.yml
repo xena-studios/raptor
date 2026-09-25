@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: task lint
+
+  generated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: task check:gen
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: task test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: task build
+      - name: Cross-compile raptor (static)
+        run: |
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -o /tmp/raptor-$arch ./cmd/raptor
+          done
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - run: task check:licenses
+      - run: task check:vuln
+      - run: task check:secrets
+
+  pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: DCO sign-off
+        run: scripts/check-dco.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+      - name: Protobuf breaking changes
+        run: go tool -modfile=tools/go.mod buf breaking --against ".git#ref=${{ github.event.pull_request.base.sha }}"

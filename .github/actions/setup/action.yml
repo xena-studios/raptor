@@ -1,0 +1,22 @@
+name: Setup
+description: Install Go, Node, pnpm, and Task, with caching
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v6
+      with:
+        go-version-file: go.mod
+        cache-dependency-path: |
+          go.sum
+          tools/go.sum
+    - uses: pnpm/action-setup@v4
+      with:
+        package_json_file: web/package.json
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 24
+        cache: pnpm
+        cache-dependency-path: web/pnpm-lock.yaml
+    - uses: go-task/setup-task@v1
+      with:
+        version: 3.x
