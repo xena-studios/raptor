@@ -46,6 +46,46 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 - The installer **merges** into `/etc/docker/daemon.json`, never overwrites it.
 - A CI test runs both Wings on one VM and checks neither disturbs the other.
 
+## Config file
+
+`/etc/raptor/config.yml` holds **only static, box-level settings**, written by the installer and rarely changed. Everything about servers, schedules, and backups lives in SQLite and comes from the Panel. Owned by root, mode `0600`.
+
+```yaml
+node_id: 0192f0a4-...            # assigned at enrollment
+panel:
+  url: https://raptorpanel.net   # never hardcoded in Wings
+  tunnel: tunnel.raptorpanel.net:443
+tls:                             # all files root-only, 0600
+  ca: /etc/raptor/tls/panel-ca.pem
+  cert: /etc/raptor/tls/node.pem
+  key: /etc/raptor/tls/node.key  # generated on the box, never leaves it
+paths:
+  state: /var/lib/raptor/state.db
+  volumes: /var/lib/raptor/volumes
+  tmp: /var/lib/raptor/tmp
+docker:
+  network: raptor_nw
+  subnet: 172.29.0.0/16          # chosen at install to avoid collisions
+  install_network: raptor_install
+  install_subnet: 172.30.0.0/16
+ports:
+  sftp: 2022
+  https: 8443
+limits:
+  concurrent_installs: 2
+  concurrent_backups: 2
+  host_disk_min_free: 10GiB      # below this: refuse installs and image pulls
+updates:
+  channel: stable
+  pin: ""                        # e.g. "1.4.2" to pin a version
+log:
+  level: info
+```
+
+- Unknown keys are an error, so typos don't go unnoticed.
+- `raptor doctor` validates the file.
+- Changes need `systemctl restart raptor-wings` (servers are unaffected).
+
 ## Local state (SQLite)
 
 - **WAL mode**, `synchronous=NORMAL`, `busy_timeout` set, **one writer connection** + a pool of readers.
@@ -64,10 +104,13 @@ Tables (sketch): `servers`, `allocations`, `server_variables`, `eggs` (cached), 
   "live-restore": true,
   "userland-proxy": false,
   "log-driver": "local",
-  "log-opts": { "max-size": "20m", "max-file": "3" }
+  "log-opts": { "max-size": "20m", "max-file": "3" },
+  "shutdown-timeout": 90
 }
 ```
 - `live-restore`: containers survive Docker daemon restarts. Applied by reload.
+- `shutdown-timeout`: backstop for host shutdown. Servers are normally stopped gracefully first by `raptor-shutdown.service` (see [SERVERS.md](SERVERS.md#host-shutdown)).
+- Containers use restart policy `no`; Wings starts servers itself after verifying the quota volume (see [SERVERS.md](SERVERS.md#after-a-reboot-or-wings-restart)).
 - `userland-proxy: false`: kernel forwarding for published ports (important for UDP game traffic). **Requires a Docker restart.** If other containers are running, the installer asks before restarting. `doctor` reminds until it's applied.
 - The Docker package is held (`apt-mark hold`) so unattended upgrades can't restart Docker at 3 AM. `raptor update` upgrades Docker deliberately.
 
@@ -140,6 +183,8 @@ A durable queue in SQLite. Everything long-running is a job: `server.install`, `
 
 ## Crash detection and restart
 
+Exact rules (what counts as a crash, backoff, crash-loop thresholds) are in [SERVERS.md](SERVERS.md#crash-policy).
+
 - Watches container exits and egg "done"/health signals.
 - Restart with backoff. After N crashes in M minutes, stop and mark `crashed` (no infinite restart loops).
 - On by default.
@@ -182,7 +227,27 @@ raptor uninstall [--wipe-data]
 raptor tui
 ```
 
-The local socket API is a **small dedicated service** (~15 methods), not the full Panel API. Access is controlled by Unix socket permissions: root and the `raptor` group.
+### Local socket API
+
+A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock`. It's not the Panel API, and it has no methods that change server configuration.
+
+| Method | Purpose |
+|---|---|
+| `GetStatus` | Node health, Panel link, Docker, disk, version |
+| `ListServers`, `GetServer` | Servers, states, resource usage |
+| `Start`, `Stop`, `Restart`, `Kill` | Power actions |
+| `AttachConsole` (stream) | Console output + sending commands |
+| `TailLogs` (stream) | Server logs |
+| `ListBackups`, `CreateBackup`, `RestoreBackup` | Backups |
+| `ListJobs`, `TailJobLogs` (stream) | Jobs and their logs |
+| `RunDoctor`, `CreateBundle` | Diagnostics |
+| `GetStorage`, `GrowStorage` | Quota volume |
+| `GetSupportStatus`, `RevokeSupport` | Support access |
+| `Link`, `Unlink`, `Relink` | Panel linking |
+| `Update` | Self-update |
+
+- **Access:** Unix socket permissions only (root and the `raptor` group). No passwords or tokens.
+- **Attribution:** Wings reads the caller's Unix user from the socket (`SO_PEERCRED`). Every mutating call is recorded as an event with actor `local:<username>`, so it appears in the Panel's audit log.
 
 ## `doctor`
 

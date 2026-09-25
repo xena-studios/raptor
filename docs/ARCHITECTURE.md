@@ -166,7 +166,8 @@ Every step is idempotent. Re-running the command after a failure resumes.
 | Tunnel drops mid-command | The command is retried with the same `command_id`. No duplicates. |
 | Wings crashes or updates | **Containers keep running** (they belong to Docker). Wings reattaches on start. |
 | Docker restarts | `live-restore` keeps containers running. |
-| Box reboots | Docker restarts containers per Wings' restart policy. Wings verifies the quota volume is mounted before starting anything. |
+| Box shuts down | `raptor-shutdown.service` gracefully stops every server (egg stop command) before Docker stops. |
+| Box reboots | Wings verifies the quota volume is mounted, then starts every server whose desired state is `running`, staggered. Docker doesn't auto-restart containers. |
 | Box dies permanently | Panel mirror has the config. Offsite backups (key held by the Panel by default) restore onto a new node. |
 | Node's SQLite corrupt | Restore from local snapshot (`VACUUM INTO`) or offsite copy. Worst case: rebuild from the Panel mirror + backups. |
 | Owner stops paying | Panel goes read-only for unpaid nodes. Servers keep running. |
