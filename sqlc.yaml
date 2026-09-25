@@ -1,0 +1,23 @@
+version: "2"
+sql:
+  - engine: postgresql
+    schema: db/panel/migrations
+    queries: db/panel/queries
+    gen:
+      go:
+        package: store
+        out: internal/panel/store
+        sql_package: pgx/v5
+        output_files_suffix: _gen
+        output_db_file_name: db_gen.go
+        output_models_file_name: models_gen.go
+  - engine: sqlite
+    schema: db/wings/migrations
+    queries: db/wings/queries
+    gen:
+      go:
+        package: store
+        out: internal/wings/store
+        output_files_suffix: _gen
+        output_db_file_name: db_gen.go
+        output_models_file_name: models_gen.go
