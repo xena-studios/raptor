@@ -1,0 +1,3 @@
+# Wings config for the development VM (task wings:vm:install).
+log:
+  level: debug
