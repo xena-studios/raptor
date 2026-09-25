@@ -44,7 +44,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Cross-compile `raptor` for linux/amd64 + linux/arm64 (static, no CGO) with GoReleaser
 - [x] Release workflow producing a draft release with binaries + `checksums.txt`
 - [x] minisign signing of `checksums.txt` with the offline key (`task release:sign`)
-- [ ] Generate the release key and commit `release/minisign.pub` (maintainer, offline)
+- [x] Generate the release key and commit `release/minisign.pub` (maintainer, offline)
 - (The per-release install script with the embedded SHA-256 moves to Phase 3.3, alongside the install script itself.)
 
 ### Repository
