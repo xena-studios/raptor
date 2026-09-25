@@ -201,7 +201,7 @@ Checks, each with **what's wrong, why it matters, and how to fix it**:
 
 - Channels: `stable`, `beta`. Optional version pin.
 - Staged rollout controlled by the Panel (e.g. 5% → 25% → 100%).
-- Download → **verify signature** → atomic binary swap → `systemctl restart raptor-wings` (servers unaffected) → health check.
+- Download `checksums.txt` + `checksums.txt.minisig` → **verify the signature** with the embedded public key → download the binary → **verify its SHA-256** → atomic binary swap → `systemctl restart raptor-wings` (servers unaffected) → health check.
 - **Automatic rollback** to the previous binary if the new version fails to start or can't reconnect within 5 minutes.
 - SQLite migrations never break the previous minor version's ability to read state (so rollback is safe), or they block rollback explicitly.
 

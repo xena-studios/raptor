@@ -49,7 +49,7 @@
 - **The CA private key** is kept separate from the Panel's application secrets, ideally in an HSM or KMS later, at minimum a separate encrypted secret with restricted access.
 
 ### Releases and supply chain
-- Wings binaries are **signed** with minisign (Ed25519). The signing key is kept **offline**, separate from production and CI secrets, with signing done in a protected release workflow.
+- Wings releases are **signed** with minisign (Ed25519): the signature covers `checksums.txt`, which covers every binary. CI only builds **draft** releases; the maintainer signs and publishes locally. The private key is kept **offline** and never stored in the repository or CI.
 - The install script is generated per release with the binary's SHA-256 embedded, and verifies it before running anything. The binary verifies every later update's minisign signature with an embedded public key.
 - Dependencies pinned. CI runs `govulncheck`, `npm audit`, license checks, and secret scanning (gitleaks).
 - Egg imports show the image registry and install script before import.

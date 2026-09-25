@@ -30,7 +30,7 @@ Forgot to sign off? Fix the last commit with `git commit --amend -s`, or a whole
 - Docker (Docker Desktop or OrbStack)
 - [Task](https://taskfile.dev) and [Lima](https://lima-vm.io): `brew install go-task lima`
 
-Code generators (buf, sqlc, protoc plugins) are pinned in `tools/go.mod` and run through `go tool`, so there's nothing else to install.
+Dev tools (buf, sqlc, protoc plugins, golangci-lint, govulncheck, go-licenses) are pinned in `tools/go.mod` and run through `go tool`, so there's nothing else to install. gitleaks runs from its Docker image.
 
 ### Common tasks
 
@@ -39,6 +39,9 @@ task setup     # install web deps, start Postgres
 task dev       # Postgres + Panel API (:8080) + web dev server (:5173)
 task test      # all tests, including Postgres-backed ones
 task gen       # regenerate protobuf, sqlc, and route tree code
+task lint      # golangci-lint, buf lint, Biome
+task fmt       # format Go and web code
+task check     # everything CI runs: lint, generated code, tests, licenses, vulns, secrets
 task build     # binaries into bin/, web app into web/dist
 task --list    # everything else
 ```
@@ -54,6 +57,10 @@ task wings:vm:up       # create/start the VM (first run downloads the image)
 task wings:vm:deploy   # build raptor for the VM and install it
 task wings:vm:shell    # shell into the VM
 ```
+
+### Releases
+
+Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md).
 
 ## Ground rules
 

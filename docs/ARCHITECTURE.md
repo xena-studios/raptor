@@ -177,17 +177,22 @@ Every step is idempotent. Re-running the command after a failure resumes.
 raptor/
   proto/              # protobuf: tunnel, public API, local socket API
   cmd/
-    panel/            # Panel binary (roles: api, tunnel)
+    panel/            # Panel binary (roles: api, tunnel; migrate)
     raptor/           # Wings daemon + CLI + TUI
   internal/
-    panel/...         # Panel packages
-    wings/...         # Wings packages
+    gen/proto/        # generated Go protobuf + Connect code
+    panel/...         # Panel packages (api, store, ...)
+    wings/...         # Wings packages (store, ...)
     eggs/             # egg parsing + runtime (used by Wings)
-    shared/...        # shared Go packages
+    shared/...        # shared Go packages (buildinfo, ...)
   db/
     panel/            # Postgres migrations + sqlc queries
     wings/            # SQLite migrations + sqlc queries
-  web/                # React app
+  web/                # React app (src/gen = generated TS protobuf)
   install/            # get.raptorpanel.net bash script
+  tools/              # go.mod pinning dev tools (go tool -modfile=tools/go.mod ...)
+  scripts/            # CI/release helper scripts
+  release/            # release signing public key
+  dev/                # local dev environment (Lima VM config)
   docs/
 ```

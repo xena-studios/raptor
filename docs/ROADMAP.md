@@ -23,26 +23,32 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 **Goal:** a repo where adding real code is fast and safe.
 
 ### Repo and tooling
-- [ ] Go module layout per [ARCHITECTURE.md](ARCHITECTURE.md#monorepo-layout)
-- [ ] `proto/` with `buf`: lint, breaking-change check, Connect codegen for Go + TypeScript
-- [ ] `sqlc` configured for Postgres (`db/panel`) and SQLite (`db/wings`)
-- [ ] Migration tooling for both (forward-only)
-- [ ] `web/`: Vite + React + TS + TanStack Router/Query + shadcn/ui + Tailwind, generated Connect client wired in
-- [ ] `Makefile` or `Taskfile` for common commands
-- [ ] Dev environment: Docker Compose with Postgres, plus a Debian VM (Lima/Multipass/UTM) for running Wings
+- [x] Go module layout per [ARCHITECTURE.md](ARCHITECTURE.md#monorepo-layout)
+- [x] `proto/` with `buf`: lint, breaking-change check, Connect codegen for Go + TypeScript
+- [x] `sqlc` configured for Postgres (`db/panel`) and SQLite (`db/wings`)
+- [x] Migration tooling for both (goose, forward-only, embedded in the binaries)
+- [x] `web/`: Vite + React + TS + TanStack Router/Query + shadcn/ui + Tailwind, generated Connect client wired in
+- [x] `Taskfile` for common commands
+- [x] Dev environment: Docker Compose with Postgres (dev + test), plus a Lima Debian 12 VM for running Wings
 
 ### CI (GitHub Actions)
-- [ ] Go: build, `go vet`, `golangci-lint`, tests with race detector
-- [ ] Web: typecheck, lint, tests, build
-- [ ] `buf lint` + `buf breaking`
-- [ ] DCO check
-- [ ] License check (`go-licenses`, `license-checker`): fail on non-AGPL-compatible licenses
-- [ ] `gitleaks`, `govulncheck`, `npm audit`
+- [x] Go: build, `go vet`, `golangci-lint`, tests with race detector, static cross-compile
+- [x] Web: typecheck, lint (Biome), build. Web tests start in Phase 4, when there's UI to test.
+- [x] `buf lint` + `buf breaking` (on PRs)
+- [x] DCO check (on PRs)
+- [x] Generated code is up to date
+- [x] License check (`go-licenses` + `scripts/check-web-licenses.mjs`): fail on non-AGPL-compatible licenses
+- [x] `gitleaks`, `govulncheck`, `pnpm audit`
 
 ### Releases
-- [ ] Cross-compile `raptor` for linux/amd64 + linux/arm64 (static, no CGO)
-- [ ] minisign signing (key kept **offline**); install script generated per release with the binary's SHA-256 embedded
-- [ ] Release workflow producing signed binaries + checksums
+- [x] Cross-compile `raptor` for linux/amd64 + linux/arm64 (static, no CGO) with GoReleaser
+- [x] Release workflow producing a draft release with binaries + `checksums.txt`
+- [x] minisign signing of `checksums.txt` with the offline key (`task release:sign`)
+- [ ] Generate the release key and commit `release/minisign.pub` (maintainer, offline)
+- (The per-release install script with the embedded SHA-256 moves to Phase 3.3, alongside the install script itself.)
+
+### Repository
+- [ ] Branch protection on `main`: require PRs and passing CI
 
 **Exit criteria:** `git push` runs all checks green; a tagged release produces signed binaries for both architectures.
 
@@ -165,7 +171,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 ### 3.3 Nodes
 - [ ] Internal CA (separate key storage); client cert issuance + rotation
-- [ ] Join tokens; **install script** at `get.raptorpanel.net`; `raptor bootstrap` preflight + setup + enroll
+- [ ] Join tokens; **install script** at `get.raptorpanel.net` (generated per release with the binary's SHA-256 embedded); `raptor bootstrap` preflight + setup + enroll
 - [ ] `raptor link` / `unlink` / `relink`
 - [ ] Tunnel role: connection registry, version negotiation, heartbeats, drain
 - [ ] Command routing api → tunnel → Wings, with `command_id`
