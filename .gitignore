@@ -2,8 +2,9 @@
 .env
 .env.*
 /bin/
-/dist/
+dist/
 node_modules/
 *.db
 *.db-wal
 *.db-shm
+*.tsbuildinfo
