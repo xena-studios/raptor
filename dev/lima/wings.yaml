@@ -1,0 +1,46 @@
+# Debian 12 VM for running Wings during development.
+# Wings needs Linux (Docker, XFS quotas, nftables, systemd), so it can't run on macOS directly.
+# Usage: task wings:vm:up && task wings:vm:deploy
+minimumLimaVersion: "2.0.0"
+
+images:
+  - location: "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-arm64.qcow2"
+    arch: "aarch64"
+  - location: "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
+    arch: "x86_64"
+
+cpus: 2
+memory: "4GiB"
+disk: "40GiB"
+
+# No host mounts: binaries are copied in with `task wings:vm:deploy`.
+mounts: []
+
+containerd:
+  system: false
+  user: false
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get install -y --no-install-recommends ca-certificates curl gnupg xfsprogs quota nftables jq
+      # Docker CE from Docker's repository (same source the Wings installer uses).
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+        > /etc/apt/sources.list.d/docker.list
+      apt-get update
+      apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io
+      systemctl enable --now docker
+      usermod -aG docker "{{.User}}"
+
+probes:
+  - description: "docker is running"
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      timeout 300 bash -c 'until sudo docker info >/dev/null 2>&1; do sleep 3; done'

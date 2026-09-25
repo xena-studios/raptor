@@ -1,0 +1,127 @@
+version: "3"
+
+vars:
+  GOTOOL: go tool -modfile=tools/go.mod
+  DEV_DATABASE_URL: postgres://raptor:raptor@127.0.0.1:54320/raptor
+  TEST_DATABASE_URL: postgres://raptor:raptor@127.0.0.1:54321/raptor_test
+  VM: raptor-wings
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  setup:
+    desc: Install web dependencies and start local services
+    cmds:
+      - task: web:install
+      - task: db:up
+
+  gen:
+    desc: Regenerate protobuf, sqlc, and route tree code
+    deps: [web:install]
+    cmds:
+      - "{{.GOTOOL}} buf generate"
+      - "{{.GOTOOL}} sqlc generate"
+      - pnpm --dir web exec tsr generate
+
+  dev:
+    desc: Run Postgres, the Panel API, and the web dev server
+    deps: [db:up, web:install]
+    cmds:
+      - task: migrate
+      - task: dev:run
+
+  dev:run:
+    internal: true
+    deps: [dev:api, dev:web]
+
+  dev:api:
+    internal: true
+    env:
+      PANEL_DATABASE_URL: "{{.DEV_DATABASE_URL}}"
+    cmds:
+      - go run ./cmd/panel serve api
+
+  dev:web:
+    internal: true
+    dir: web
+    cmds:
+      - pnpm dev
+
+  migrate:
+    desc: Apply Panel migrations to the dev database
+    env:
+      PANEL_DATABASE_URL: "{{.DEV_DATABASE_URL}}"
+    cmds:
+      - go run ./cmd/panel migrate
+
+  test:
+    desc: Run all tests (Go incl. Postgres, web typecheck)
+    deps: [db:up, web:install]
+    env:
+      PANEL_TEST_DATABASE_URL: "{{.TEST_DATABASE_URL}}"
+    cmds:
+      - go test -race ./...
+      - pnpm --dir web typecheck
+
+  build:
+    desc: Build binaries into bin/ and the web app into web/dist
+    deps: [web:install]
+    cmds:
+      - go build -o bin/panel ./cmd/panel
+      - go build -o bin/raptor ./cmd/raptor
+      - pnpm --dir web build
+
+  web:install:
+    internal: true
+    dir: web
+    sources: [package.json, pnpm-lock.yaml]
+    generates: [node_modules/.modules.yaml]
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  db:up:
+    desc: Start local Postgres (dev + test)
+    cmds:
+      - docker compose up -d --wait
+
+  db:down:
+    desc: Stop local Postgres
+    cmds:
+      - docker compose down
+
+  db:reset:
+    desc: Stop local Postgres and delete its data
+    cmds:
+      - docker compose down -v
+
+  wings:vm:up:
+    desc: Create/start the Debian VM used to run Wings
+    cmds:
+      - limactl start --name={{.VM}} --tty=false dev/lima/wings.yaml
+    status:
+      - limactl list --format '{{`{{.Status}}`}}' {{.VM}} 2>/dev/null | grep -q Running
+
+  wings:vm:shell:
+    desc: Open a shell in the Wings VM
+    interactive: true
+    cmds:
+      - limactl shell {{.VM}}
+
+  wings:vm:deploy:
+    desc: Cross-compile raptor for the VM and copy it to /usr/local/bin
+    cmds:
+      - task: wings:vm:up
+      - |
+        set -eu
+        ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go build -o bin/raptor-linux-$ARCH ./cmd/raptor
+        limactl copy bin/raptor-linux-$ARCH {{.VM}}:/tmp/raptor
+        limactl shell {{.VM}} sudo install -m 0755 /tmp/raptor /usr/local/bin/raptor
+        limactl shell {{.VM}} raptor version
+
+  wings:vm:delete:
+    desc: Delete the Wings VM
+    cmds:
+      - limactl delete --force {{.VM}}

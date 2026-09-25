@@ -29,6 +29,7 @@
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.15.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/router-cli": "^1.167.38",
     "@tanstack/router-plugin": "^1.168.40",
     "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",

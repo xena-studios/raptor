@@ -22,6 +22,39 @@ By adding it, you certify that you wrote the change (or otherwise have the right
 
 Forgot to sign off? Fix the last commit with `git commit --amend -s`, or a whole branch with `git rebase --signoff main`.
 
+## Development
+
+### Requirements
+
+- Go (version in `go.mod`), Node 24+, pnpm
+- Docker (Docker Desktop or OrbStack)
+- [Task](https://taskfile.dev) and [Lima](https://lima-vm.io): `brew install go-task lima`
+
+Code generators (buf, sqlc, protoc plugins) are pinned in `tools/go.mod` and run through `go tool`, so there's nothing else to install.
+
+### Common tasks
+
+```bash
+task setup     # install web deps, start Postgres
+task dev       # Postgres + Panel API (:8080) + web dev server (:5173)
+task test      # all tests, including Postgres-backed ones
+task gen       # regenerate protobuf, sqlc, and route tree code
+task build     # binaries into bin/, web app into web/dist
+task --list    # everything else
+```
+
+Generated code is committed. After changing anything in `proto/`, `db/`, or `web/src/routes/`, run `task gen` and commit the result.
+
+### Running Wings
+
+Wings only runs on Linux. For development it runs in a Debian 12 VM:
+
+```bash
+task wings:vm:up       # create/start the VM (first run downloads the image)
+task wings:vm:deploy   # build raptor for the VM and install it
+task wings:vm:shell    # shell into the VM
+```
+
 ## Ground rules
 
 - **Security issues:** don't open a public issue. See [SECURITY.md](SECURITY.md).
