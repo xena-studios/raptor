@@ -52,6 +52,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 **Exit criteria:** `git push` runs all checks green; a tagged release produces signed binaries for both architectures.
 
+✅ **Met.** CI is green on `main`; `v0.0.1-rc.1` was built by CI, signed offline, published, and verified from the public download URLs.
+
 ---
 
 ## Phase 1 · Wings core
