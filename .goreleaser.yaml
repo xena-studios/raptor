@@ -1,0 +1,47 @@
+version: 2
+project_name: raptor
+
+builds:
+  - id: raptor
+    main: ./cmd/raptor
+    binary: raptor
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/xena-studios/raptor/internal/shared/buildinfo.Version={{ .Version }}
+      - -X github.com/xena-studios/raptor/internal/shared/buildinfo.Commit={{ .ShortCommit }}
+      - -X github.com/xena-studios/raptor/internal/shared/buildinfo.Date={{ .CommitDate }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [binary]
+    name_template: "raptor_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+release:
+  draft: true
+  prerelease: auto
+
+changelog:
+  use: github
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - '^docs'
+      - '^test'
+      - '^chore'
