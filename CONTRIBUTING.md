@@ -53,10 +53,22 @@ Generated code is committed. After changing anything in `proto/`, `db/`, or `web
 Wings only runs on Linux. For development it runs in a Debian 12 VM:
 
 ```bash
-task wings:vm:up       # create/start the VM (first run downloads the image)
-task wings:vm:deploy   # build raptor for the VM and install it
-task wings:vm:shell    # shell into the VM
+task wings:vm:up        # create/start the VM (first run downloads the image)
+task wings:vm:deploy    # build raptor for the VM and copy it to /usr/local/bin
+task wings:vm:install   # deploy + systemd unit + dev config, then (re)start Wings
+task wings:vm:shell     # shell into the VM (then: sudo raptor status)
 ```
+
+### Egg end-to-end tests
+
+Eggs are tested by installing and running them with their real, unmodified images:
+
+```bash
+task e2e:eggs                      # Paper (both formats) + Node.js in the VM
+task e2e:eggs RUN=TestEggNode      # one egg
+```
+
+x86-only eggs like Rust can't run on an ARM Mac. They run in the **E2E eggs** GitHub workflow on an x86 runner: start it from the Actions tab, or push a branch named `e2e/<anything>`.
 
 ### Releases
 
