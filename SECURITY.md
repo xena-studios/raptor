@@ -21,7 +21,7 @@ Please include the affected component (Panel, Wings, CLI, installer), steps to r
 ## Scope
 
 In scope:
-- The Panel (raptorpanel.net) and its API
+- The Panel web app (app.raptorpanel.net) and its API (api.raptorpanel.net)
 - Wings, the `raptor` CLI, and the install script
 - The Panel ↔ Wings connection protocol, enrollment, and node/Panel key handling
 - Egg processing in Wings (variable substitution, config file parsing, file paths)

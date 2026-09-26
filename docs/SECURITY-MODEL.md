@@ -69,7 +69,7 @@ A WebAuthn passkey signs whatever challenge a site gives it. For dangerous actio
 4. **Wings checks**:
    - the signature, with a key it trusts for that user;
    - `clientDataJSON.type` is `webauthn.get` and the challenge equals the command's hash;
-   - the origin is `https://raptorpanel.net` and the `rpIdHash` matches `raptorpanel.net`, so phishing sites can't produce valid signatures;
+   - the origin is `https://app.raptorpanel.net` and the `rpIdHash` matches `app.raptorpanel.net`, so phishing sites and other `raptorpanel.net` subdomains can't produce valid signatures;
    - both user presence and user verification flags are set;
    - the command hasn't expired;
    - its `command_id` has never run (the `executed_commands` table);
@@ -99,9 +99,12 @@ If the Panel simply told Wings which keys to trust, a compromised Panel would se
 - `raptor keys list` shows the trusted keys and delegations on the node.
 
 **The web app is part of the trust boundary.** Browsers don't show *what* a passkey is signing, so an attacker who controls the JavaScript could display "Restart" while asking for a signature on "Delete". Defenses:
-- The web app is **served from separate static hosting, not the API servers**. Compromising the API or the database can't change the code users run. Deploying the web app requires separate credentials.
+- The web app is **served from separate static hosting, not the API servers**, on its own origin (`app.raptorpanel.net`). Compromising the API or the database can't change the code users run. Deploying the web app requires separate credentials.
+- **The API has a different origin** (`api.raptorpanel.net`). On the app's origin, a compromised API could serve a page that asks passkeys to sign, or register a service worker that replaces the app; on its own origin it can do neither, and it can't use the app's RP ID.
+- **The RP ID is `app.raptorpanel.net`**, so the landing page, docs, and status page can't ask users' passkeys for signatures even if they're compromised.
 - A **strict Content Security Policy** (no inline scripts, no third-party scripts, `script-src` limited to the app's own hashed bundles, Trusted Types).
 - **Reproducible builds:** each release publishes the bundle hashes, so anyone can check that the deployed app matches the public source.
+- **The domain accounts are part of this boundary:** whoever controls DNS or the static host controls the app. The registrar and Cloudflare accounts use hardware-key 2FA, the domains have registrar lock, and API tokens are scoped so the Panel servers can't change DNS or the web app.
 - **Alerts straight from the node:** Wings reports every signed dangerous action to the owner through a channel configured on the node (Discord webhook or email), not through the Panel, and `raptor audit` lists them from the node's own records. A tampered action gets noticed even if the Panel hides it.
 
 Even if every one of these failed, each malicious action would still need a real person's passkey at that moment, bound to one command. That turns "one Panel breach controls every node" into "an attacker must trick specific users, one action at a time".
@@ -119,7 +122,7 @@ Even if every one of these failed, each malicious action would still need a real
 ### Panel
 - **Passwordless auth built into the Panel** (passkeys, OAuth, email codes; TOTP 2FA). No passwords exist to leak. Passkeys are phishing-resistant and preferred. Details in [PANEL.md](PANEL.md#auth).
 - OAuth logins only link to existing accounts when the provider verified the email (prevents account takeover through unverified emails).
-- The Panel issues its own sessions (hashed tokens, `HttpOnly`, `Secure`, `SameSite` cookies), with CSRF protection. **Dangerous actions require recent re-authentication** with a passkey or TOTP.
+- The Panel issues its own sessions (hashed tokens in a host-only `__Host-` cookie on `api.raptorpanel.net`: `HttpOnly`, `Secure`, `SameSite=Strict`). Other `raptorpanel.net` subdomains are treated as untrusted: the API only accepts browser requests with `Origin: https://app.raptorpanel.net`, and the `__Host-` prefix stops them from setting the session cookie. **Dangerous actions require recent re-authentication** with a passkey or TOTP.
 - Email codes: 10-minute expiry, single use, limited attempts, stored hashed. Rate limits and Cloudflare Turnstile protect the send endpoint.
 - **XSS:** console output, file contents, and egg metadata are untrusted and always escaped. xterm.js renders console output, never `innerHTML`.
 - Postgres row-level security by `org_id`, in addition to application checks.

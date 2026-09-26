@@ -65,7 +65,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 ```yaml
 node_id: 0192f0a4-...            # assigned at enrollment
 panel:
-  url: https://raptorpanel.net   # never hardcoded in Wings
+  url: https://api.raptorpanel.net  # never hardcoded in Wings
 identity:                        # written at enrollment (Phase 3), root-only 0600
   key: /etc/raptor/node.key      # the node's private key; generated on the box, never leaves it
   panel_key: /etc/raptor/panel.pub  # the Panel's signing key, pinned at enrollment
@@ -299,7 +299,7 @@ Checks, each with **what's wrong, why it matters, and how to fix it**:
 - Quota volume mounted, healthy, free space
 - Host disk free space (Docker images, SQLite)
 - Clock synced (NTP). Clock drift breaks connection signatures, grants, and schedules.
-- Panel reachable through Cloudflare (`wss://raptorpanel.net`), node key present
+- Panel reachable through Cloudflare (`wss://api.raptorpanel.net`), node key present
 - SFTP port bound (when enabled); node hostname resolves to this box's public IP
 - Pterodactyl coexistence
 - Security warnings (warn only, never change): password root SSH login, unattended upgrades off
