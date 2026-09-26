@@ -91,7 +91,7 @@ The Panel is one process role (`serve api`), deployed with zero downtime for bro
 Reliability you can't see isn't reliability.
 - **Panel:** structured logs (`slog`), OpenTelemetry metrics and traces, dashboards and alerts for API error rates and latency, node connection counts, reconnect rates, event lag per node, job queue depth, and Postgres replication lag.
 - **Wings:** its own health metrics (reconnects, job failures, crash loops, disk pressure) are reported over the node connection, visible to the owner on the node health page and to us in aggregate.
-- **Status page** hosted with a different provider than the Panel.
+- **Status page** (`status.raptorpanel.net`) hosted with a different provider than the Panel, with DNS that doesn't depend on Cloudflare, so it stays up during a Cloudflare outage.
 - Alerting that pages a human for: API down, Cloudflare or node connections failing, replication broken, backup archive failing, mass node disconnects.
 
 ## Testing for reliability

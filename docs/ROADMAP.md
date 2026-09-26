@@ -173,14 +173,16 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 ### 3.1 Infrastructure
 - [ ] Server #1 (primary) + #2 (Postgres replica); Docker Compose; Caddy
 - [ ] pgBackRest WAL archive to object storage in another location; **restore test**
-- [ ] DNS: `raptorpanel.net` behind the Cloudflare proxy (origin locked to Cloudflare, WAF rule for node connections); `raptornodes.net` DNS-only on a plan with enough records
+- [ ] DNS: hostnames from [ARCHITECTURE.md](ARCHITECTURE.md#hostnames); `api.raptorpanel.net` behind the Cloudflare proxy (origin locked to Cloudflare, WAF rule for node connections); `raptornodes.net` DNS-only on a plan with enough records, apex redirecting to `raptorpanel.net`
+- [ ] Domain account hardening: hardware-key 2FA on the registrar and Cloudflare (no SMS recovery), registrar lock, scoped API tokens; decide whether the web app is hosted under a separate account or provider from DNS and the proxy
+- [ ] Move code to the split hostnames: API on `api.raptorpanel.net` with CORS for `https://app.raptorpanel.net` only, node connections at `wss://api.raptorpanel.net/nodes/connect`, Wings' default Panel URL, WebAuthn origin and RP ID `app.raptorpanel.net`
 - [ ] Observability: OpenTelemetry → Grafana (Cloud or self-hosted), alerts
 - [ ] Deploy pipeline: zero-downtime deploys, with node connections drained and reconnected with jitter
 
 ### 3.2 Accounts
 - [ ] Passwordless auth in the Panel ([PANEL.md](PANEL.md#auth)): passkeys, OAuth (Google, Discord, GitHub), email codes + links, TOTP + recovery codes, safe OAuth account linking
-- [ ] Sessions: hashed tokens, device list, revocation, re-auth for dangerous actions; CSRF; rate limits + Turnstile on email codes; security notification emails
-- [ ] Transactional email provider (DNS: SPF, DKIM, DMARC)
+- [ ] Sessions: hashed tokens in a `__Host-` cookie on `api.`, device list, revocation, re-auth for dangerous actions; `Origin` checks against sibling subdomains; rate limits + Turnstile on email codes; security notification emails
+- [ ] Transactional email provider on its own sending subdomain (DNS: SPF, DKIM, DMARC)
 - [ ] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks)
 - [ ] Orgs, members, roles, invitations
 - [ ] Postgres RLS by `org_id`
@@ -208,7 +210,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 - [ ] App shell: auth flows, org switcher, navigation, live/stale/pending/failed states
 - [ ] Signing prompts for dangerous actions (one signature per bulk action), trusted key and delegation management, fingerprint display at enrollment
-- [ ] Web app hosted separately from the API, strict CSP, reproducible build with published bundle hashes
+- [ ] Web app hosted separately from the API on `app.raptorpanel.net`, strict CSP (kept in the repo and tested in CI), no third-party scripts, reproducible build with published bundle hashes
 - [ ] **Nodes:** add node (command + live enrollment progress), node list, node health page (doctor warnings), settings, remove
 - [ ] **Servers:** create wizard (egg picker filtered by arch, variables, EULA prompts, allocations), overview (status, stats graphs, players), settings, reinstall, delete
 - [ ] **Console:** xterm.js, one multiplexed WebSocket per tab
@@ -218,7 +220,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] **Users:** sub-users, per-server permissions, SSH keys
 - [ ] **Egg catalog:** browse certified/community, import from URL with image + script review
 - [ ] **Connection test** with provider guides
-- [ ] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link
+- [ ] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link (the domain is on the Public Suffix List first)
 - [ ] **Audit log** view
 - [ ] Performance: route code splitting, lazy xterm/Monaco
 
@@ -238,8 +240,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] **Hosted backup storage** + metering ($0.02/GB-month)
 - [ ] **Support access:** request/approve/revoke flow, banners, staff console, staff MFA
 - [ ] **Load test** with fake-Wings simulator (thousands of nodes)
-- [ ] Status page (hosted with a different provider than the Panel)
-- [ ] Docs site: install guide, provider guides (Hetzner, OVH, Oracle Free Tier, home PC), CLI reference, egg authoring
+- [ ] Status page at `status.raptorpanel.net` (hosted with a different provider than the Panel, DNS not on Cloudflare)
+- [ ] Docs site (Astro Starlight, `docs.raptorpanel.net`): install guide, provider guides (Hetzner, OVH, Oracle Free Tier, home PC), CLI reference, egg authoring
 - [ ] AGPL source link in the Panel footer (deployed commit)
 
 **Exit criteria (launch gate):**
@@ -255,7 +257,9 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 | When | Task |
 |---|---|
 | Now | Reserve GitHub org, social handles, Discord server |
-| Now | Landing page + waitlist on `raptorpanel.net` |
+| Now | Landing page + waitlist on `raptorpanel.net` (Astro, `site/`) |
+| Now | Register `raptorpanel.com` (and `raptornodes.com` if available) and redirect them |
+| By Phase 4 | Apply to add `raptornodes.net` to the Public Suffix List (takes weeks; must be done before user subdomains) |
 | By Phase 3 | Business entity (needed for Polar payouts) |
 | By Phase 3 | `security@raptorpanel.net` mailbox |
 | By Phase 5 | Terms of Service, Privacy Policy, DPA (covering support access and player data) |

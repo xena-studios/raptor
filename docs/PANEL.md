@@ -1,6 +1,6 @@
 # Panel
 
-The Panel is Raptor's SaaS control plane: the web app and the API at `raptorpanel.net`. It is **SaaS-only**. The stack is chosen for running it ourselves; there are no concessions or docs for self-hosting.
+The Panel is Raptor's SaaS control plane: the web app at `app.raptorpanel.net` and the API at `api.raptorpanel.net`. It is **SaaS-only**. The stack is chosen for running it ourselves; there are no concessions or docs for self-hosting.
 
 ## Responsibilities
 
@@ -94,7 +94,9 @@ Built into the Panel, **passwordless**. There are no passwords to store, leak, o
 - **Recovery:** recovery codes (if TOTP is on), or an email code. Someone who controls the inbox can get in unless 2FA or passkeys-only is set, which is the honest limit of any passwordless system. For people who lose everything, there's a support process with identity checks.
 
 **Sessions**
-- The Panel issues its own sessions: random tokens (stored hashed) in `HttpOnly`, `Secure`, `SameSite=Lax` cookies on `raptorpanel.net`, plus CSRF protection.
+- The Panel issues its own sessions: random tokens (stored hashed) in a host-only `__Host-` cookie on `api.raptorpanel.net` (`HttpOnly`, `Secure`, `SameSite=Strict`, no `Domain`). The short-lived OAuth state cookie is `SameSite=Lax` so it survives the provider's redirect back.
+- **CSRF and sibling subdomains:** every `*.raptorpanel.net` site is same-site, so `SameSite` alone doesn't stop the landing page or docs from sending credentialed requests. The API only accepts browser requests whose `Origin` is `https://app.raptorpanel.net` (CORS allows only that origin) and requires the Connect content type. The `__Host-` prefix stops sibling subdomains from setting or overwriting the session cookie.
+- **Passkeys use the RP ID `app.raptorpanel.net`**, not `raptorpanel.net`, so no other subdomain can ask for signatures from them. Passkeys are bound to their RP ID permanently.
 - Sessions expire after 30 days of inactivity and 90 days at most. Users see their devices and can log out one or all of them. Signing in rotates the session token.
 - **Actions on nodes that destroy data, change code, or change access** (deleting servers, wiping reinstalls, changing eggs/images/startup, granting support access, adding SSH keys or sub-users, removing nodes) are **signed by the user's passkey and verified by Wings itself**, so the Panel can't forge them ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)). They require a passkey.
 - **Re-authentication for sensitive account actions** that stay in the Panel (billing changes, adding a node, adding or removing passkeys/OAuth/TOTP, changing the email): a passkey or TOTP (or an email code if neither is set up) within the last 5 minutes.
@@ -150,6 +152,8 @@ The Panel footer links to the **exact source commit** that is deployed. All depe
 
 - A primary server, deployed with Docker Compose. The hosting provider is an operational choice and is intentionally not fixed in these docs.
 - Postgres with WAL archiving via pgBackRest to **object storage in a different location**, plus a **streaming replica on a second server** at launch (see [RELIABILITY.md](RELIABILITY.md)).
-- `raptorpanel.net` is behind the **Cloudflare proxy** (browsers and node connections alike); the origin only accepts traffic from Cloudflare (Authenticated Origin Pulls or an IP allowlist). Caddy terminates TLS at the origin.
-- `raptornodes.net` is **DNS-only**, on a plan sized for the record count (see [ARCHITECTURE.md](ARCHITECTURE.md#node-dns)).
-- The status page is hosted with a different provider than the Panel.
+- Hostnames are listed in [ARCHITECTURE.md](ARCHITECTURE.md#hostnames). `api.raptorpanel.net` is behind the **Cloudflare proxy** (browsers and node connections alike); the origin only accepts traffic from Cloudflare (Authenticated Origin Pulls or an IP allowlist). Caddy terminates TLS at the origin.
+- The web app, landing page, and docs are static sites on separate hosting from the Panel servers; the web app's deploy credentials are separate from everything else.
+- `raptornodes.net` is **DNS-only**, on a plan sized for the record count, and on the Public Suffix List (see [ARCHITECTURE.md](ARCHITECTURE.md#node-dns)). Nothing of ours is hosted on it.
+- The status page (`status.raptorpanel.net`) is hosted with a different provider than the Panel, and its DNS doesn't depend on Cloudflare.
+- **Account security:** the registrar and Cloudflare accounts use hardware-key 2FA with no SMS recovery, the domains have registrar lock, and API tokens are scoped (the web app's deploy token can only deploy it; the Panel servers hold no Cloudflare token). Whoever controls DNS or the static host controls the code users run.

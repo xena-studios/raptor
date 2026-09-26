@@ -3,10 +3,10 @@
 ## Overview
 
 ```
-                         raptorpanel.net (Cloudflare proxy)
+                        *.raptorpanel.net (Cloudflare proxy)
                     ┌──────────────────────────────────────────────────────────────┐
  ┌─────────┐ HTTPS  │  ┌──────────────┐     ┌──────────────────────────────────┐   │
- │ Browser │───────►│  │  Web app     │────►│  panel serve api                 │   │
+ │ Browser │───────►│  │  app.        │────►│  api.  panel serve api           │   │
  │ (React) │◄──WS───│  │  static SPA  │     │  auth (passkeys, OAuth, email),  │   │
  └─────────┘        │  └──────────────┘     │  billing (Polar), mirror, jobs,  │   │
                     │                       │  node connections (WebSocket)    │   │
@@ -15,7 +15,7 @@
                     │                       │  Postgres   │──────────┘ NOTIFY      │
                     │                       └─────────────┘                        │
                     └──────────────────────────────▲───────────────────────────────┘
-                                                   │ WebSocket (wss://raptorpanel.net),
+                                                   │ WebSocket (wss://api.raptorpanel.net),
                                                    │ yamux inside, opened OUTBOUND by Wings
                 ┌──────────────────────────────────┼─────────────────────────────┐
                 │ Owner's Linux box                │   n-<short-id>.raptornodes.net (DNS only)
@@ -36,7 +36,7 @@
 ## Components
 
 ### Panel
-A single Go binary, `panel serve api`: the HTTP/Connect API, WebSockets for browsers **and for nodes**, background jobs (River), and billing webhooks. It runs behind the **Cloudflare proxy** on `raptorpanel.net`, and can run as several instances.
+A single Go binary, `panel serve api`: the HTTP/Connect API, WebSockets for browsers **and for nodes**, background jobs (River), and billing webhooks. It runs behind the **Cloudflare proxy** on its own origin, `api.raptorpanel.net`, and can run as several instances.
 
 - There's no separate tunnel process. A deploy disconnects every node for a moment; Wings reconnects on its own with random delays (see [Node connection](#node-connection)), and servers are never affected.
 - With several instances, a request may land on an instance that doesn't hold the target node's connection. It's forwarded to the instance that does through Postgres `LISTEN/NOTIFY`.
@@ -46,7 +46,25 @@ The only infrastructure is **Postgres**. No Redis, no NATS, no message broker.
 ### Web app
 React + TypeScript SPA (Vite, TanStack Router + Query, shadcn/ui + Tailwind, xterm.js, Monaco). Talks to the API through generated Connect clients.
 
-It's served as static files **from separate static hosting, not the API servers**, on `raptorpanel.net` (the API lives under `/api` on the same origin, routed by Cloudflare). The web app is what asks users' passkeys to sign dangerous commands, so compromising the API must not let anyone change it. Deploys need separate credentials, a strict Content Security Policy applies, and each release publishes the bundle hashes (see [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)).
+It's served as static files **from separate static hosting, not the API servers**, on `app.raptorpanel.net`, and calls the API cross-origin at `api.raptorpanel.net`. The web app is what asks users' passkeys to sign dangerous commands, so compromising the API must not let anyone change it. Deploys need separate credentials, a strict Content Security Policy applies, it loads no third-party scripts, and each release publishes the bundle hashes (see [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)).
+
+The API is deliberately **not** served under `/api` on the app's origin: whoever serves a response controls its headers, so a compromised API on that origin could serve a page that asks passkeys to sign, or a service worker that replaces the app (decision 81). In development the Vite dev server still proxies `/api` to the local API.
+
+### Landing page and docs
+The landing page (`raptorpanel.net`) is an **Astro** site in `site/`, and the docs (`docs.raptorpanel.net`) will be **Astro Starlight** in `docs-site/`. Both are static, deploy separately from the web app, and never share its origin or CSP. Analytics and marketing scripts live here, never in the web app.
+
+### Hostnames
+
+| Host | Serves | Hosting |
+|---|---|---|
+| `raptorpanel.net` | Landing page + waitlist (`www` redirects here) | Static, Cloudflare proxy |
+| `app.raptorpanel.net` | Web app; passkey RP ID | Static, separate deploy credentials |
+| `api.raptorpanel.net` | `panel serve api`: Connect API, browser WebSockets, node connections | Panel servers, Cloudflare proxy |
+| `docs.raptorpanel.net` | Docs site | Static |
+| `get.raptorpanel.net` | Install script | Static |
+| `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |
+| Mail sending subdomain | SPF/DKIM for transactional email | Email provider |
+| `n-<short-id>.raptornodes.net`, `<name>.raptornodes.net` | Node hostnames and player subdomains | DNS-only; the apex redirects to `raptorpanel.net` |
 
 ### Wings
 A single Go binary (`raptor`) that is both the daemon (`raptor wings run`) and the CLI. Runs on the owner's box as a systemd service. See [WINGS.md](WINGS.md).
@@ -99,15 +117,15 @@ Every command carries the Panel's per-user grant. **Dangerous commands** (destro
 **Wings connects out to the Panel and stays connected when it can, but never depends on it.**
 
 ```
-Wings ──wss://raptorpanel.net/api/nodes/connect──► Cloudflare ──► panel serve api
+Wings ──wss://api.raptorpanel.net/nodes/connect──► Cloudflare ──► panel serve api
          (outbound port 443, through NAT/CGNAT)
          yamux streams inside: Panel→Wings RPCs, Wings→Panel RPCs, console, stats
 ```
 
-- **One WebSocket, opened by Wings**, to `wss://raptorpanel.net/api/nodes/connect` through Cloudflare. It's an ordinary outbound HTTPS connection on port 443, so it works behind home routers, CGNAT, and firewalls. **Nodes open no management port.**
+- **One WebSocket, opened by Wings**, to `wss://api.raptorpanel.net/nodes/connect` through Cloudflare. It's an ordinary outbound HTTPS connection on port 443, so it works behind home routers, CGNAT, and firewalls. **Nodes open no management port.**
 - **Identity, both ways:**
   - *The node proves itself:* at enrollment Wings generates a key pair on the box and the Panel stores the public key. On every connection the Panel sends a random challenge and Wings signs it together with a timestamp and the connection's purpose, so a captured signature can't be replayed. A compromised node's key can be revoked in the Panel. (Client certificates can't be used: Cloudflare terminates TLS, so the Panel never sees them.)
-  - *The Panel proves itself:* Wings pins the **Panel's signing key** at enrollment, and the Panel signs its side of the handshake with it. Normal TLS to `raptorpanel.net` protects the connection, but because Cloudflare terminates TLS, a pinned server certificate can't be used; the signature is what tells Wings it's talking to the real Panel. The same key signs the per-user command grants Wings verifies (see [SECURITY-MODEL.md](SECURITY-MODEL.md)).
+  - *The Panel proves itself:* Wings pins the **Panel's signing key** at enrollment, and the Panel signs its side of the handshake with it. Normal TLS to `api.raptorpanel.net` protects the connection, but because Cloudflare terminates TLS, a pinned server certificate can't be used; the signature is what tells Wings it's talking to the real Panel. The same key signs the per-user command grants Wings verifies (see [SECURITY-MODEL.md](SECURITY-MODEL.md)).
 - **Multiplexing:** yamux runs inside the WebSocket, so both sides can make calls at the same time on separate streams. The Panel calls Wings (commands, file operations, console), and Wings calls the Panel (event upload, SFTP login checks, IP updates).
 - **Protocol:** Connect/gRPC services defined in `proto/`, carried over yamux streams.
 - **Keepalive:** a ping every 30 seconds, because Cloudflare closes WebSockets that are idle for ~100 seconds. It's a loop inside Wings, not a separate process. The connection is considered dead after 90 seconds without a reply.
@@ -117,7 +135,7 @@ Wings ──wss://raptorpanel.net/api/nodes/connect──► Cloudflare ──�
 - **Version negotiation** at handshake: each side declares its protocol version and capabilities. The Panel supports the last N Wings minor versions.
 
 ### Cloudflare in front of the Panel
-- `raptorpanel.net` is proxied (orange cloud). `raptornodes.net` is **DNS-only** (grey cloud): game traffic and SFTP can't go through the proxy.
+- `raptorpanel.net` and its subdomains are proxied (orange cloud), except `status.`, which must stay up when Cloudflare doesn't. `raptornodes.net` is **DNS-only** (grey cloud): game traffic and SFTP can't go through the proxy.
 - **Origin locked to Cloudflare** (Authenticated Origin Pulls, or a firewall allowing only Cloudflare's IP ranges), so nobody can reach the Panel around Cloudflare. The client IP header (`CF-Connecting-IP`) is only trusted on connections from Cloudflare.
 - A WAF rule lets the node connection path through Cloudflare's bot and challenge features, since Wings isn't a browser.
 - Request bodies are limited to 100 MB on Cloudflare's Free and Pro plans, so file uploads through the Panel are sent in chunks.
@@ -158,13 +176,14 @@ Every node gets a hostname: **`n-<short-id>.raptornodes.net`**, e.g. `n-k7m2qx9d
 - **Dynamic DNS:** Wings reports its public IP (IPv4 and IPv6) over the node connection and the Panel updates the A/AAAA records (low TTL), so boxes on home connections with changing IPs keep working.
 - **Player subdomains** (`smp.raptornodes.net`) share the zone. They can't start with `n-` or use reserved names, so they never collide with node hostnames.
 - The hostname points at the owner's real IP, often a home connection without DDoS protection. Players see the IP when they connect anyway; the future connection relay add-on is for owners who want to hide it.
+- **Public Suffix List:** `raptornodes.net` is listed before launch, so each subdomain counts as its own registered domain. Otherwise every owner getting a Let's Encrypt certificate for their subdomain shares one rate limit, and one subdomain could set cookies for the others.
 - **Record volume:** each node is one record and each player subdomain two (A + SRV). Cloudflare caps records per zone on Free plans, so `raptornodes.net` needs a plan (or DNS provider) with a quota sized for launch. Decide before launch.
 
 ## Ports on the node
 
 | Port | Purpose | Direction |
 |---|---|---|
-| 443 → `raptorpanel.net` | Node connection (WebSocket) | Outbound only |
+| 443 → `api.raptorpanel.net` | Node connection (WebSocket) | Outbound only |
 | Allocated game ports | Game traffic | Inbound |
 | 2022 (or next free), **only if SFTP is enabled** | SFTP | Inbound |
 
@@ -220,6 +239,8 @@ raptor/
     panel/            # Postgres migrations + sqlc queries
     wings/            # SQLite migrations + sqlc queries
   web/                # React app (src/gen = generated TS protobuf)
+  site/               # Astro landing page (planned)
+  docs-site/          # Astro Starlight docs (planned)
   install/            # get.raptorpanel.net bash script
   tools/              # go.mod pinning dev tools (go tool -modfile=tools/go.mod ...)
   scripts/            # CI/release helper scripts

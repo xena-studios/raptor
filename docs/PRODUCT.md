@@ -142,5 +142,5 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 
 | Domain | Use |
 |---|---|
-| `raptorpanel.net` | Panel, API, installer (`get.raptorpanel.net`), node connections (behind Cloudflare) |
+| `raptorpanel.net` | Landing page; web app (`app.`), API and node connections (`api.`), docs (`docs.`), installer (`get.`), status page (`status.`) |
 | `raptornodes.net` | Node hostnames (`n-k7m2qx9d.raptornodes.net`) and player-facing server subdomains (`smp.raptornodes.net`) |
