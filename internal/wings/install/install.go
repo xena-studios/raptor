@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	goruntime "runtime"
+	"sync"
 	"time"
 
 	"github.com/xena-studios/raptor/internal/eggs"
@@ -125,14 +126,18 @@ func FixOwnership(dir string, uid, gid int) error {
 	})
 }
 
-// tail keeps the last limit bytes written to it.
+// tail keeps the last limit bytes written to it. It's safe for concurrent
+// use: the runtime writes from its own goroutine.
 type tail struct {
+	mu        sync.Mutex
 	limit     int
 	buf       []byte
 	truncated bool
 }
 
 func (t *tail) Write(p []byte) (int, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.buf = append(t.buf, p...)
 	if len(t.buf) > 2*t.limit {
 		t.buf = append(t.buf[:0:0], t.buf[len(t.buf)-t.limit:]...)
@@ -142,8 +147,10 @@ func (t *tail) Write(p []byte) (int, error) {
 }
 
 func (t *tail) bytes() ([]byte, bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	if len(t.buf) > t.limit {
-		return t.buf[len(t.buf)-t.limit:], true
+		return append([]byte(nil), t.buf[len(t.buf)-t.limit:]...), true
 	}
-	return t.buf, t.truncated
+	return append([]byte(nil), t.buf...), t.truncated
 }

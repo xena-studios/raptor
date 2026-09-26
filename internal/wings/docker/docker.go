@@ -217,22 +217,45 @@ func (c *Client) Install(ctx context.Context, s containers.InstallSpec) (contain
 	runCtx, cancel := context.WithTimeout(ctx, s.Timeout)
 	defer cancel()
 
+	var logsDone chan struct{}
 	if s.Output != nil {
-		go c.follow(runCtx, created.ID, s.Output)
+		logsDone = make(chan struct{})
+		go func() {
+			defer close(logsDone)
+			c.follow(context.WithoutCancel(runCtx), created.ID, s.Output)
+		}()
+	}
+	// The output stream ends once the container stops. Wait for it before
+	// returning, so the end of the log (usually what explains a failure)
+	// isn't lost and nothing writes to Output after Install returns.
+	drain := func() {
+		if logsDone == nil {
+			return
+		}
+		select {
+		case <-logsDone:
+		case <-time.After(logDrainTimeout):
+		}
 	}
 
 	wait := c.api.ContainerWait(runCtx, created.ID, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
 	select {
 	case res := <-wait.Result:
+		drain()
 		return containers.InstallResult{ExitCode: res.StatusCode}, nil
 	case err := <-wait.Error:
 		if errors.Is(runCtx.Err(), context.DeadlineExceeded) {
 			_, _ = c.api.ContainerKill(context.WithoutCancel(ctx), created.ID, client.ContainerKillOptions{Signal: "SIGKILL"})
+			drain()
 			return containers.InstallResult{TimedOut: true}, fmt.Errorf("install timed out after %s", s.Timeout)
 		}
 		return containers.InstallResult{}, err
 	}
 }
+
+// logDrainTimeout bounds how long Install waits for the rest of the output
+// after the container exits.
+const logDrainTimeout = 10 * time.Second
 
 // Create creates (but doesn't start) the server's container.
 func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, error) {
