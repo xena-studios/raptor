@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -78,4 +79,25 @@ func MemTotal(path string) (int64, error) {
 		return 0, err
 	}
 	return 0, errors.New("meminfo: no MemTotal")
+}
+
+// OOMKills returns how many processes the kernel's OOM killer has killed in
+// the slice and everything below it (memory.events is hierarchical). Docker
+// doesn't reliably report OOM kills on cgroup v2 (State.OOMKilled stays
+// false and no "oom" event is sent), so Wings reads the kernel's counter.
+func OOMKills(slice string) (int64, error) {
+	return oomKills(filepath.Join("/sys/fs/cgroup", slice, "memory.events"))
+}
+
+func oomKills(path string) (int64, error) {
+	b, err := os.ReadFile(path) //nolint:gosec // fixed cgroup path
+	if err != nil {
+		return 0, err
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		if v, ok := strings.CutPrefix(line, "oom_kill "); ok {
+			return strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+		}
+	}
+	return 0, errors.New("memory.events has no oom_kill")
 }

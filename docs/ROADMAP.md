@@ -96,15 +96,16 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Arch check against image manifests
 - [x] Fuzz tests: egg parsing, rules, placeholders, config parsers, path handling
 
-### 1.4 Server lifecycle (per [SERVERS.md](SERVERS.md))
-- [ ] Server model with egg snapshots, `desired_state`, and config versions
-- [ ] State machine; idempotent power actions; create / install / reinstall / delete / start / stop / restart / kill with stop timeouts
-- [ ] Allocations: primary + extras, port range rules, host-port-in-use check, applied on next start
-- [ ] Console: always drained, 1,000-line ring buffer, output throttling, input limits, audit of commands
-- [ ] **Reconcile on Wings start**: reattach running containers, start servers with `desired_state=running` (staggered), refill console from Docker logs
-- [ ] `raptor-shutdown.service` for graceful stops on host shutdown
-- [ ] Crash policy: crash detection (incl. OOM and clean exit), backoff, crash-loop stop, crash events with last console lines
-- [ ] Deletion: optional final backup, file + quota cleanup, orphaned offsite backups
+### 1.4 Server lifecycle (per [SERVERS.md](SERVERS.md)) ✅
+- [x] Server model with egg snapshots, `desired_state`, and config versions
+- [x] State machine; idempotent power actions; create / install / reinstall / delete / start / stop / restart / kill with stop timeouts
+- [x] Allocations: primary + extras, port range rules, host-port-in-use check, applied on next start
+- [x] Console: always drained, 1,000-line ring buffer, output throttling, input limits, audit of commands
+- [x] **Reconcile on Wings start**: reattach running containers, start servers with `desired_state=running` (staggered), refill console from Docker logs; resume after Docker restarts
+- [x] `raptor-shutdown.service` for graceful stops on host shutdown, with container scopes ordered after it
+- [x] Crash policy: crash detection (incl. OOM and clean exit), backoff, crash-loop stop, crash events with last console lines
+- [x] Deletion: file cleanup and freed allocations. The final backup and orphaned offsite backups come with backups (Phase 2), quota cleanup with 1.6.
+- [x] `task e2e:host`: Wings restart, Docker restart, host shutdown, and reboot, against the real systemd units
 
 ### 1.5 Job engine
 - [ ] Durable queue in SQLite, resume/retry, per-server locks, global concurrency limits

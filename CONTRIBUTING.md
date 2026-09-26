@@ -83,12 +83,15 @@ When the fuzzer finds a failing input, it saves it under `testdata/fuzz/`. Fix t
 
 ### Runtime end-to-end tests
 
-The container runtime (networks, firewall isolation, resource limits, hardening, port checks) is tested against a real Docker:
+The container runtime (networks, firewall isolation, resource limits, hardening, port checks) and the server lifecycle (install, power actions, console, crashes, reconcile) are tested against a real Docker:
 
 ```bash
-task e2e:runtime                          # all runtime tests in the VM
-task e2e:runtime RUN=TestRuntimeIsolation # one test
+task e2e:runtime                          # all runtime and lifecycle tests in the VM
+task e2e:runtime RUN=TestCrashPolicy      # one test
+task e2e:host                             # Wings/Docker restarts, host shutdown, and a real reboot
 ```
+
+`e2e:host` installs Wings with its systemd units in the VM, seeds a running server, and reboots the VM, so it takes a few minutes.
 
 They need root: they create Wings' networks, load its nftables table, and set up `raptor.slice`, exactly as the daemon does. CI runs them on every PR (the `e2e-runtime` job).
 

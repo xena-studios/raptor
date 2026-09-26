@@ -68,10 +68,14 @@ jobs:
           go-version-file: go.mod
       - name: Install nftables
         run: command -v nft || (sudo apt-get update && sudo apt-get install -y --no-install-recommends nftables)
-      - name: Build test binary
-        run: go test -c -tags e2e -o /tmp/docker-e2e ./internal/wings/docker
+      - name: Build test binaries
+        run: |
+          go test -c -tags e2e -o /tmp/docker-e2e ./internal/wings/docker
+          go test -c -tags e2e -o /tmp/server-e2e ./internal/wings/server
       - name: Run runtime tests
         run: sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime'
+      - name: Run server lifecycle tests
+        run: sudo /tmp/server-e2e -test.v -test.timeout 20m
 
   pr:
     if: github.event_name == 'pull_request'

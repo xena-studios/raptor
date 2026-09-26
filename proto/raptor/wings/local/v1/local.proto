@@ -13,6 +13,23 @@ service LocalService {
   rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ShutdownServers gracefully stops every running server with its egg's
+  // stop command, without changing whether it should run, so servers start
+  // again when the host is back. Called by raptor-shutdown.service when the
+  // host shuts down. Root only.
+  rpc ShutdownServers(ShutdownServersRequest) returns (ShutdownServersResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
+}
+
+message ShutdownServersRequest {}
+
+message ShutdownServersResponse {
+  // How many servers were running and were stopped.
+  int32 stopped = 1;
+  // Servers that didn't stop cleanly, as "<server id>: <error>".
+  repeated string errors = 2;
 }
 
 message GetStatusRequest {}

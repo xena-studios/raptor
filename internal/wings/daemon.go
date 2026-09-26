@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/config"
@@ -16,6 +18,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
+	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -32,7 +35,7 @@ const runtimeCheckInterval = time.Minute
 // Run starts the daemon and blocks until ctx is cancelled, then shuts down
 // gracefully. Stopping Wings never stops servers: they belong to Docker.
 func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
-	for _, dir := range []string{filepath.Dir(cfg.Paths.State), cfg.Paths.Volumes, cfg.Paths.Tmp} {
+	for _, dir := range []string{filepath.Dir(cfg.Paths.State), cfg.Paths.Volumes, cfg.Paths.Tmp, cfg.Paths.Logs} {
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
 		}
@@ -57,15 +60,16 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	defer func() { _ = dc.Close() }()
 
-	rt := &runtimeSetup{rt: dc, cfg: cfg, log: log}
-	rt.check(ctx)
-
 	svc := &localapi.Service{
 		NodeID:    cfg.NodeID,
 		PanelURL:  cfg.Panel.URL,
 		StartedAt: time.Now(),
 		Docker:    dc,
 	}
+	rt := &runtimeSetup{rt: dc, cfg: cfg, log: log, db: db, svc: svc}
+	defer rt.close()
+	rt.check(ctx)
+
 	srv, err := localapi.Listen(ctx, cfg.Paths.Socket, localapi.Group, svc, log)
 	if err != nil {
 		return fmt.Errorf("local api: %w", err)
@@ -103,12 +107,23 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 
 // runtimeSetup prepares the container runtime: networks, the raptor.slice
 // memory ceiling, and the firewall. Docker may not be up yet when Wings
-// starts, so it's retried until it succeeds.
+// starts, so it's retried until it succeeds. Then it starts the server
+// manager, which reattaches to running servers and starts the rest.
 type runtimeSetup struct {
-	rt    containers.Runtime
-	cfg   config.Config
-	log   *slog.Logger
-	rules *firewall.Rules // set once setup succeeded
+	rt      containers.Runtime
+	cfg     config.Config
+	log     *slog.Logger
+	db      *store.DB
+	svc     *localapi.Service
+	rules   *firewall.Rules // set once setup succeeded
+	servers *server.Manager
+}
+
+// close detaches from servers without stopping them.
+func (r *runtimeSetup) close() {
+	if r.servers != nil {
+		r.servers.Close()
+	}
 }
 
 func (r *runtimeSetup) check(ctx context.Context) {
@@ -150,6 +165,37 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	if err := firewall.Apply(ctx, rules); err != nil {
 		return fmt.Errorf("firewall: %w", err)
 	}
+
+	u, err := user.Lookup(localapi.Group)
+	if err != nil {
+		return fmt.Errorf("the %q system user is missing (the installer creates it): %w", localapi.Group, err)
+	}
+	uid, _ := strconv.Atoi(u.Uid)
+	gid, _ := strconv.Atoi(u.Gid)
+	opts := server.Options{
+		Runtime:            r.rt,
+		Store:              r.db,
+		Log:                r.log,
+		VolumesDir:         r.cfg.Paths.Volumes,
+		TmpDir:             r.cfg.Paths.Tmp,
+		LogDir:             r.cfg.Paths.Logs,
+		UID:                uid,
+		GID:                gid,
+		Timezone:           host.Timezone(),
+		DockerInterface:    nets.Server.Gateway.String(),
+		ReservedPorts:      []int{r.cfg.Ports.SFTP, r.cfg.Ports.HTTPS},
+		ConcurrentInstalls: r.cfg.Limits.ConcurrentInstalls,
+	}
+	if nets.CgroupParent != "" {
+		opts.OOMKills = func() (int64, error) { return host.OOMKills(nets.CgroupParent) }
+	}
+	mgr := server.New(opts)
+	if err := mgr.Reconcile(ctx); err != nil {
+		mgr.Close()
+		return fmt.Errorf("reconcile servers: %w", err)
+	}
+	r.servers = mgr
+	r.svc.SetServers(mgr)
 	r.rules = &rules
 	r.log.Info("runtime ready",
 		"network", nets.Server.Name, "subnet", nets.Server.Subnet,

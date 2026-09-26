@@ -35,12 +35,20 @@ const (
 const (
 	// LocalServiceGetStatusProcedure is the fully-qualified name of the LocalService's GetStatus RPC.
 	LocalServiceGetStatusProcedure = "/raptor.wings.local.v1.LocalService/GetStatus"
+	// LocalServiceShutdownServersProcedure is the fully-qualified name of the LocalService's
+	// ShutdownServers RPC.
+	LocalServiceShutdownServersProcedure = "/raptor.wings.local.v1.LocalService/ShutdownServers"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
 type LocalServiceClient interface {
 	// GetStatus reports node health.
 	GetStatus(context.Context, *v1.GetStatusRequest) (*v1.GetStatusResponse, error)
+	// ShutdownServers gracefully stops every running server with its egg's
+	// stop command, without changing whether it should run, so servers start
+	// again when the host is back. Called by raptor-shutdown.service when the
+	// host shuts down. Root only.
+	ShutdownServers(context.Context, *v1.ShutdownServersRequest) (*v1.ShutdownServersResponse, error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -61,12 +69,20 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		shutdownServers: connect.NewClient[v1.ShutdownServersRequest, v1.ShutdownServersResponse](
+			httpClient,
+			baseURL+LocalServiceShutdownServersProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ShutdownServers")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // localServiceClient implements LocalServiceClient.
 type localServiceClient struct {
-	getStatus *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	getStatus       *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	shutdownServers *connect.Client[v1.ShutdownServersRequest, v1.ShutdownServersResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -78,10 +94,24 @@ func (c *localServiceClient) GetStatus(ctx context.Context, req *v1.GetStatusReq
 	return nil, err
 }
 
+// ShutdownServers calls raptor.wings.local.v1.LocalService.ShutdownServers.
+func (c *localServiceClient) ShutdownServers(ctx context.Context, req *v1.ShutdownServersRequest) (*v1.ShutdownServersResponse, error) {
+	response, err := c.shutdownServers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
 	GetStatus(context.Context, *v1.GetStatusRequest) (*v1.GetStatusResponse, error)
+	// ShutdownServers gracefully stops every running server with its egg's
+	// stop command, without changing whether it should run, so servers start
+	// again when the host is back. Called by raptor-shutdown.service when the
+	// host shuts down. Root only.
+	ShutdownServers(context.Context, *v1.ShutdownServersRequest) (*v1.ShutdownServersResponse, error)
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -98,10 +128,19 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceShutdownServersHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceShutdownServersProcedure,
+		svc.ShutdownServers,
+		connect.WithSchema(localServiceMethods.ByName("ShutdownServers")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
 			localServiceGetStatusHandler.ServeHTTP(w, r)
+		case LocalServiceShutdownServersProcedure:
+			localServiceShutdownServersHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -113,4 +152,8 @@ type UnimplementedLocalServiceHandler struct{}
 
 func (UnimplementedLocalServiceHandler) GetStatus(context.Context, *v1.GetStatusRequest) (*v1.GetStatusResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.GetStatus is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ShutdownServers(context.Context, *v1.ShutdownServersRequest) (*v1.ShutdownServersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ShutdownServers is not implemented"))
 }

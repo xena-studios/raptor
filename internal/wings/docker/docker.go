@@ -397,7 +397,7 @@ func (c *Client) Start(ctx context.Context, id string) error {
 
 // Stop stops a server the way its egg asks: a console command, a signal, or
 // Docker's default stop. If it hasn't exited after timeout, it's killed.
-func (c *Client) Stop(ctx context.Context, id string, a containers.Console, stop eggs.Stop, timeout time.Duration) error {
+func (c *Client) Stop(ctx context.Context, id string, a containers.Sender, stop eggs.Stop, timeout time.Duration) error {
 	switch {
 	case stop.Command != "" && a != nil:
 		if err := a.Send(stop.Command); err != nil {
