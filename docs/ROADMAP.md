@@ -111,7 +111,9 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Durable queue in SQLite, resume/retry, per-server locks, global concurrency limits
 - [ ] Job logs
 - [ ] Event outbox with monotonic `seq`
-- [ ] `executed_commands` table for idempotency
+- [ ] `executed_commands` table for idempotency, also used as replay protection for signed commands
+- [ ] **Command envelope:** `command_id`, expiry, Panel grant, and optional passkey signature (`authenticatorData`, `clientDataJSON`, signature); RFC 8785 canonical form; which actions require a signature ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands))
+- [ ] **Signed-command verification in Wings:** trusted keys and delegations in SQLite, the full WebAuthn assertion check, rejection and logging of anything unsigned or invalid; tested with a software authenticator and fuzzed
 
 ### 1.6 Disk quotas
 - [ ] **Validation gate first:** on a fresh Debian 12 VM (ext4 root), loop image + systemd mount unit + project quotas set from Go. Fill past the limit, reboot, grow online, and benchmark against native disk. **Gate:** limits hold, survive reboot, grow online, within ~10% of native I/O.
@@ -144,7 +146,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + prune jobs, safety backup before restore, low CPU/I/O weight, on by default
 - [ ] **SFTP:** off by default, enabled per node; `x/crypto/ssh`, `user.serverid`, `os.Root` chroot, host key generated on the node, auth callback interface (stubbed), public key cache
 - [ ] **File operations for the web file manager:** list, read, write, rename, delete, archive, through `os.Root`; chunked, resumable uploads and downloads (chunks under 100 MB, 1 GB per-file cap) on a separate outbound connection per transfer. No HTTP server on the node.
-- [ ] **Notifications:** Discord + generic webhooks from Wings
+- [ ] **Notifications:** Discord + generic webhooks from Wings, including direct alerts for every signed dangerous action (configured on the node, not through the Panel)
+- [ ] **`raptor keys list|reset`** (pairing code shown on the box) and **`raptor audit`**
 - [ ] **Local metrics:** ~7 days, downsampled
 - [ ] **`doctor`:** all checks from [WINGS.md](WINGS.md#doctor), with fix messages; `--bundle`, `--upload`
 - [ ] **TUI** (Bubble Tea): server list, stats, console, power + backup keys
@@ -192,6 +195,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Event ingestion (batched) + mirror + snapshot rebuild
 - [ ] Node DNS: `n-<short-id>.raptornodes.net` created at enrollment, updated from the IP Wings reports, names never reused
 - [ ] Signed short-lived grants attached to commands; Wings verification
+- [ ] Passkey-signed dangerous commands end to end: owner key pinned at enrollment (with fingerprint comparison), signed key additions, owner-signed delegations for sub-users
 - [ ] SFTP auth over the node connection + public key sync
 
 **Exit criteria:** on fresh Debian 12, Debian 13, and Ubuntu 24.04 VMs (amd64 + arm64), one command links the node and it shows Connected; dropping node connections and redeploying the Panel both work without game impact; the mirror rebuilds correctly after being dropped.
@@ -203,6 +207,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 **Goal:** the full user-facing product.
 
 - [ ] App shell: auth flows, org switcher, navigation, live/stale/pending/failed states
+- [ ] Signing prompts for dangerous actions (one signature per bulk action), trusted key and delegation management, fingerprint display at enrollment
+- [ ] Web app hosted separately from the API, strict CSP, reproducible build with published bundle hashes
 - [ ] **Nodes:** add node (command + live enrollment progress), node list, node health page (doctor warnings), settings, remove
 - [ ] **Servers:** create wizard (egg picker filtered by arch, variables, EULA prompts, allocations), overview (status, stats graphs, players), settings, reinstall, delete
 - [ ] **Console:** xterm.js, one multiplexed WebSocket per tab

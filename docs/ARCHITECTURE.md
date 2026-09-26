@@ -44,7 +44,9 @@ A single Go binary, `panel serve api`: the HTTP/Connect API, WebSockets for brow
 The only infrastructure is **Postgres**. No Redis, no NATS, no message broker.
 
 ### Web app
-React + TypeScript SPA (Vite, TanStack Router + Query, shadcn/ui + Tailwind, xterm.js, Monaco). Served as static files. Talks to the API through generated Connect clients.
+React + TypeScript SPA (Vite, TanStack Router + Query, shadcn/ui + Tailwind, xterm.js, Monaco). Talks to the API through generated Connect clients.
+
+It's served as static files **from separate static hosting, not the API servers**, on `raptorpanel.net` (the API lives under `/api` on the same origin, routed by Cloudflare). The web app is what asks users' passkeys to sign dangerous commands, so compromising the API must not let anyone change it. Deploys need separate credentials, a strict Content Security Policy applies, and each release publishes the bundle hashes (see [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)).
 
 ### Wings
 A single Go binary (`raptor`) that is both the daemon (`raptor wings run`) and the CLI. Runs on the owner's box as a systemd service. See [WINGS.md](WINGS.md).
@@ -88,6 +90,9 @@ Panel mirror ◄── event (node seq N) ◄───────────�
 
 ### Commands are idempotent
 Every command carries a `command_id` (UUIDv7). Wings records executed command IDs (retained ≥ 24h) and returns the stored result for duplicates. A retried "create backup" can never produce two backups.
+
+### Commands are signed
+Every command carries the Panel's per-user grant. **Dangerous commands** (destroying data, changing code, changing access) also carry the **user's passkey signature over the exact command**, which Wings verifies against keys pinned on the node. The executed-command table doubles as replay protection for those signatures. See [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands).
 
 ## Node connection
 

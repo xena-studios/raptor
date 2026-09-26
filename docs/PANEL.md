@@ -96,7 +96,8 @@ Built into the Panel, **passwordless**. There are no passwords to store, leak, o
 **Sessions**
 - The Panel issues its own sessions: random tokens (stored hashed) in `HttpOnly`, `Secure`, `SameSite=Lax` cookies on `raptorpanel.net`, plus CSRF protection.
 - Sessions expire after 30 days of inactivity and 90 days at most. Users see their devices and can log out one or all of them. Signing in rotates the session token.
-- **Re-authentication for dangerous actions**: deleting servers, removing nodes, adding a node, billing changes, adding or removing passkeys/OAuth/TOTP, changing the email, and approving support access. These require a passkey or TOTP (or an email code if neither is set up) within the last 5 minutes.
+- **Actions on nodes that destroy data, change code, or change access** (deleting servers, wiping reinstalls, changing eggs/images/startup, granting support access, adding SSH keys or sub-users, removing nodes) are **signed by the user's passkey and verified by Wings itself**, so the Panel can't forge them ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)). They require a passkey.
+- **Re-authentication for sensitive account actions** that stay in the Panel (billing changes, adding a node, adding or removing passkeys/OAuth/TOTP, changing the email): a passkey or TOTP (or an email code if neither is set up) within the last 5 minutes.
 
 **Abuse protection**
 - Rate limits per IP, per email address, and per account on sending codes and on every verification step.
@@ -110,6 +111,7 @@ Built into the Panel, **passwordless**. There are no passwords to store, leak, o
 - Org roles: `owner`, `admin`, `member`.
 - Per-server grants for sub-users (e.g. `console.read`, `console.write`, `power`, `files.read`, `files.write`, `backups`, `schedules`, `startup`, `sftp`, …).
 - When a user acts on a node, the Panel sends a **signed, short-lived grant** (≤ 5 min, bound to user + server + action) with the command. Wings verifies the signature and expiry locally.
+- **Dangerous actions** additionally need the user's passkey signature over the exact command. Owners' keys are trusted by the node directly; sub-users need a **delegation signed by an owner's passkey** for each dangerous action they're allowed. The Panel stores and displays delegations but can't create them.
 
 ## Billing (Polar)
 
@@ -125,8 +127,8 @@ Built into the Panel, **passwordless**. There are no passwords to store, leak, o
 ## Support access
 
 1. Staff requests access to a node: level (1 diagnostics / 2 operate / 3 manage), duration, reason, **ticket reference required**.
-2. The owner gets an email + Panel notice and approves (may lower level/duration) or denies.
-3. The Panel issues a support grant. Wings enforces it like any grant and checks expiry locally.
+2. The owner gets an email + Panel notice and approves (may lower level/duration) or denies. **Approval is signed with the owner's passkey.**
+3. Wings only accepts the support grant with the owner's signature, enforces it like any grant, and checks expiry locally. A compromised Panel or staff account can't grant itself access.
 4. While active: banner in the Panel, notice in `raptor status`. Every staff action goes into the owner's audit log **by staff member name**.
 5. Owner can revoke instantly (Panel or `raptor support revoke`). Nodes can disable support access entirely.
 

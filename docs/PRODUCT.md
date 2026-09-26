@@ -128,13 +128,14 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 ## Security principles
 
 - Wings only accepts specific, typed commands. It never runs arbitrary shell commands sent to it.
-- No passwords: sign in with a passkey, Google, Discord, GitHub, or a code sent to your email, with authenticator-app 2FA. Dangerous actions (deleting servers, removing nodes, billing) ask you to confirm with your passkey or 2FA code.
+- No passwords: sign in with a passkey, Google, Discord, GitHub, or a code sent to your email, with authenticator-app 2FA.
+- **Your box only obeys your passkey for dangerous actions.** Deleting servers, changing what code runs, or giving anyone access must be signed by your own passkey, and your box checks that signature itself. Even if Raptor's servers were hacked, nobody could wipe or backdoor your servers without your fingerprint.
 - Your box connects out to Raptor; it opens no management ports. Both sides prove their identity with signed keys, and your box's key is generated on it and never leaves it.
 - Raptor's site runs behind Cloudflare, which can see traffic passing through the web panel. For private file transfers, use SFTP, which goes straight to your box.
 - Wings releases are cryptographically signed.
 - Backups are encrypted on your box before upload.
 - Servers run in hardened, isolated containers.
-- Support access requires your approval, is time-limited, and is fully audited.
+- Support access requires your approval (signed with your passkey), is time-limited, and is fully audited.
 - All the code is public and auditable.
 
 ## Domains
