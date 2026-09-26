@@ -7,7 +7,7 @@
                     ┌──────────────────────────────────────────────────────────────┐
  ┌─────────┐ HTTPS  │  ┌──────────────┐     ┌──────────────────────────────────┐   │
  │ Browser │───────►│  │  Web app     │────►│  panel serve api                 │   │
- │ (React) │◄──WS───│  │  static SPA  │     │  auth (WorkOS), orgs, grants,    │   │
+ │ (React) │◄──WS───│  │  static SPA  │     │  auth (passkeys, OAuth, email),  │   │
  └─────────┘        │  └──────────────┘     │  billing (Polar), mirror, jobs,  │   │
                     │                       │  node connections (WebSocket)    │   │
                     │                       └──────┬─────────────────▲─────────┘   │
@@ -44,7 +44,9 @@ A single Go binary, `panel serve api`: the HTTP/Connect API, WebSockets for brow
 The only infrastructure is **Postgres**. No Redis, no NATS, no message broker.
 
 ### Web app
-React + TypeScript SPA (Vite, TanStack Router + Query, shadcn/ui + Tailwind, xterm.js, Monaco). Served as static files. Talks to the API through generated Connect clients.
+React + TypeScript SPA (Vite, TanStack Router + Query, shadcn/ui + Tailwind, xterm.js, Monaco). Talks to the API through generated Connect clients.
+
+It's served as static files **from separate static hosting, not the API servers**, on `raptorpanel.net` (the API lives under `/api` on the same origin, routed by Cloudflare). The web app is what asks users' passkeys to sign dangerous commands, so compromising the API must not let anyone change it. Deploys need separate credentials, a strict Content Security Policy applies, and each release publishes the bundle hashes (see [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)).
 
 ### Wings
 A single Go binary (`raptor`) that is both the daemon (`raptor wings run`) and the CLI. Runs on the owner's box as a systemd service. See [WINGS.md](WINGS.md).
@@ -56,7 +58,7 @@ Every piece of data has **exactly one owner**. Nothing is merged.
 | Data | Owner | Other side |
 |---|---|---|
 | Users, orgs, members, roles | Panel | — |
-| Auth, sessions | Panel (WorkOS for identity) | — |
+| Auth, sessions | Panel (built in, passwordless) | — |
 | Billing, subscriptions, ledger | Panel (Polar) | — |
 | Node identity | Panel stores each node's public key | Wings holds its private key (generated on the box, never leaves it) |
 | Node DNS (`n-<short-id>.raptornodes.net`) | Panel | Wings reports its public IP |
@@ -88,6 +90,9 @@ Panel mirror ◄── event (node seq N) ◄───────────�
 
 ### Commands are idempotent
 Every command carries a `command_id` (UUIDv7). Wings records executed command IDs (retained ≥ 24h) and returns the stored result for duplicates. A retried "create backup" can never produce two backups.
+
+### Commands are signed
+Every command carries the Panel's per-user grant. **Dangerous commands** (destroying data, changing code, changing access) also carry the **user's passkey signature over the exact command**, which Wings verifies against keys pinned on the node. The executed-command table doubles as replay protection for those signatures. See [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands).
 
 ## Node connection
 
@@ -184,7 +189,8 @@ Every step is idempotent. Re-running the command after a failure resumes.
 | Panel redeployed | Every node disconnects briefly and reconnects with jitter. Servers unaffected. |
 | Cloudflare outage | Same as Panel API down: nodes look offline, the web UI is unavailable, games keep running. |
 | Postgres down | Panel down (above). Nodes unaffected. |
-| WorkOS down | New logins fail. Existing Panel sessions keep working (sessions are issued by the Panel). |
+| Email provider down | Email-code sign-ins fail; passkeys, OAuth, and existing sessions keep working. |
+| Google / Discord / GitHub down | That provider's sign-in fails; other methods and existing sessions work. |
 | Polar down | Billing actions fail. Nothing else is affected. |
 | Node connection drops mid-command | The command is retried with the same `command_id`. No duplicates. |
 | Node's public IP changes | Wings reports the new IP; the Panel updates `n-<short-id>.raptornodes.net`. |

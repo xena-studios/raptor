@@ -259,6 +259,8 @@ raptor backup list|create|restore <server> [id]
 raptor jobs [logs <id>]
 raptor storage status|grow <size>
 raptor support status|revoke          see / end active support access
+raptor keys list|reset                trusted passkeys for signed actions; reset = re-pair from the box
+raptor audit                          signed dangerous actions, from the node's own records
 raptor import pterodactyl             migrate servers from Pterodactyl Wings
 raptor uninstall [--wipe-data]
 raptor tui
