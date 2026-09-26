@@ -58,18 +58,19 @@ after-reboot)
 	wait_for running || fail "server didn't come back after the reboot"
 	[ "$(started)" != "$(cat /var/lib/raptor-e2e/host-t1)" ] || fail "container wasn't restarted by the reboot?"
 	pass "reboot: Wings started the server again"
-	# In the previous boot's shutdown, raptor-shutdown must have finished
-	# before systemd stopped any container scope (docker-.scope.d drop-in).
-	log=$(journalctl -b -1 --no-pager -o cat)
-	# The last shutdown in the boot is the reboot's (earlier ones are the
-	# manual host-shutdown test). No matches is fine for scope_at.
-	done_at=$(grep -n "Stopped raptor-shutdown.service" <<<"$log" | tail -1 | cut -d: -f1 || true)
-	scope_at=$(tail -n +"${done_at:-1}" <<<"$log" | grep -c "Stopping docker-.*\.scope" || true)
-	before=$(head -n "${done_at:-0}" <<<"$log" | sed -n '/Stopping raptor-shutdown/,$p' | grep -c "Stopping docker-.*\.scope" || true)
-	[ -n "$done_at" ] || fail "raptor-shutdown didn't run at shutdown"
-	grep -q "stopped [1-9][0-9]* server" <<<"$log" || fail "raptor-shutdown stopped no servers"
-	[ "$before" = 0 ] || fail "systemd stopped $before container scope(s) before raptor-shutdown finished"
-	echo "  container scopes systemd stopped afterwards: $scope_at (0 = all servers were already stopped gracefully)"
+	# Look only at the reboot's shutdown (after "System is powering down"),
+	# not the manual host-shutdown test earlier in the same boot. There,
+	# raptor-shutdown must have stopped the servers, and systemd must not
+	# have stopped any container scope before it finished.
+	log=$(journalctl -b -1 --no-pager -o cat | sed -n '/System is powering down/,$p')
+	[ -n "$log" ] || fail "no shutdown found in the previous boot's journal"
+	stopped=$(grep -m1 -o "stopped [0-9]* server" <<<"$log" || true)
+	[ -n "$stopped" ] && [ "$stopped" != "stopped 0 server" ] || fail "raptor-shutdown didn't stop servers during the reboot ($stopped)"
+	done_at=$(grep -n -m1 "Stopped raptor-shutdown.service" <<<"$log" | cut -d: -f1 || true)
+	[ -n "$done_at" ] || fail "raptor-shutdown didn't finish during the reboot"
+	early=$(head -n "$done_at" <<<"$log" | grep -c "Stopping docker-.*\.scope" || true)
+	[ "$early" = 0 ] || fail "systemd stopped $early container scope(s) before raptor-shutdown finished"
+	echo "  reboot: $stopped(s) gracefully; container scopes stopped before that: $early"
 	pass "reboot: raptor-shutdown stopped servers gracefully before systemd or Docker touched them"
 	;;
 *)
