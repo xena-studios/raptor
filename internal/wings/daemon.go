@@ -183,7 +183,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		GID:                gid,
 		Timezone:           host.Timezone(),
 		DockerInterface:    nets.Server.Gateway.String(),
-		ReservedPorts:      []int{r.cfg.Ports.SFTP, r.cfg.Ports.HTTPS},
+		ReservedPorts:      []int{r.cfg.Ports.SFTP},
 		ConcurrentInstalls: r.cfg.Limits.ConcurrentInstalls,
 	}
 	if nets.CgroupParent != "" {

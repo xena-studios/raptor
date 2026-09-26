@@ -95,7 +95,7 @@ func newEnv(t *testing.T) *env {
 		Runtime: rt, Store: db,
 		VolumesDir: filepath.Join(dir, "volumes"), TmpDir: filepath.Join(dir, "tmp"), LogDir: filepath.Join(dir, "logs"),
 		UID: testUID, GID: testGID, Timezone: "UTC", Location: "e2e",
-		DockerInterface: nets.Server.Gateway.String(), ReservedPorts: []int{2022, 8443},
+		DockerInterface: nets.Server.Gateway.String(), ReservedPorts: []int{2022},
 		StartStagger: 200 * time.Millisecond,
 		OOMKills:     func() (int64, error) { return host.OOMKills(host.Slice) },
 		CrashWindow:  time.Minute, CrashDelays: []time.Duration{0, time.Second},
@@ -504,7 +504,7 @@ func TestAllocationsAndDelete(t *testing.T) {
 	if _, err := m.Create(ctx, cfg(port), CreateOptions{}); !errors.Is(err, ErrInvalid) {
 		t.Errorf("duplicate allocation: %v", err)
 	}
-	if _, err := m.Create(ctx, cfg(2022), CreateOptions{}); !errors.Is(err, ErrInvalid) {
+	if _, err := m.Create(ctx, cfg(2022), CreateOptions{}); !errors.Is(err, ErrInvalid) { // SFTP
 		t.Errorf("Wings' own port: %v", err)
 	}
 	ln, _ := net.Listen("tcp", "0.0.0.0:0") //nolint:noctx // test listener

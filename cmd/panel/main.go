@@ -18,8 +18,7 @@ import (
 const usage = `usage: panel <command>
 
 commands:
-  serve api      run the API role
-  serve tunnel   run the tunnel role
+  serve api      run the Panel (API, browser and node connections)
   migrate        apply database migrations (PANEL_DATABASE_URL)
   version        print version`
 
@@ -43,8 +42,6 @@ func run(args []string, log *slog.Logger) error {
 		return migrate(ctx, log)
 	case len(args) == 2 && args[0] == "serve" && args[1] == "api":
 		return api.Run(ctx, api.Config{Addr: envOr("PANEL_API_ADDR", ":8080")}, log)
-	case len(args) == 2 && args[0] == "serve" && args[1] == "tunnel":
-		return errors.New("tunnel role not implemented yet")
 	default:
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)
