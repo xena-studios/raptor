@@ -176,7 +176,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] pgBackRest WAL archive to object storage in another location; **restore test**
 - [ ] DNS: hostnames from [ARCHITECTURE.md](ARCHITECTURE.md#hostnames); `api.raptorpanel.net` behind the Cloudflare proxy (origin locked to Cloudflare, WAF rule for node connections); `raptornodes.net` DNS-only on a plan with enough records, apex redirecting to `raptorpanel.net`
 - [ ] Domain account hardening: hardware-key 2FA on the registrar and Cloudflare (no SMS recovery), registrar lock, scoped API tokens; decide whether the web app is hosted under a separate account or provider from DNS and the proxy
-- [ ] Move code to the split hostnames: API on `api.raptorpanel.net` with CORS for `https://app.raptorpanel.net` only, node connections at `wss://api.raptorpanel.net/nodes/connect`, Wings' default Panel URL, WebAuthn origin and RP ID `app.raptorpanel.net`
+- [ ] Move code to the split hostnames: API on `api.raptorpanel.net` with CORS for `https://app.raptorpanel.net` only, node connections at `wss://api.raptorpanel.net/nodes/connect`, WebAuthn origin and RP ID `app.raptorpanel.net` in the Panel (Wings' defaults already point at `api.` and `app.` since 1.5)
 - [ ] Observability: OpenTelemetry → Grafana (Cloud or self-hosted), alerts
 - [ ] Deploy pipeline: zero-downtime deploys, with node connections drained and reconnected with jitter
 

@@ -97,7 +97,7 @@ type Log struct {
 // Default returns the config used for any key the file doesn't set.
 func Default() Config {
 	return Config{
-		Panel: Panel{URL: "https://raptorpanel.net", AppURL: "https://app.raptorpanel.net"},
+		Panel: Panel{URL: "https://api.raptorpanel.net", AppURL: "https://app.raptorpanel.net"},
 		Identity: Identity{
 			Key:      "/etc/raptor/node.key",
 			PanelKey: "/etc/raptor/panel.pub",

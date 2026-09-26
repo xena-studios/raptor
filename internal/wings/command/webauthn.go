@@ -24,8 +24,8 @@ const (
 // Relying party identity: signatures are only valid when made on this
 // origin, for this RP ID.
 type RelyingParty struct {
-	Origin string // "https://raptorpanel.net"
-	ID     string // "raptorpanel.net"
+	Origin string // "https://app.raptorpanel.net"
+	ID     string // "app.raptorpanel.net"
 }
 
 var errBadAssertion = errors.New("invalid passkey signature")
