@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	goruntime "runtime"
@@ -36,6 +37,9 @@ type Params struct {
 	// Skip runs no install script (Pterodactyl's "skip egg scripts"); the
 	// directory is still created and its ownership fixed.
 	Skip bool
+	// Output, if set, also receives the script's output as it runs (the
+	// job log).
+	Output io.Writer
 }
 
 // Result describes a finished install.
@@ -87,6 +91,10 @@ func Run(ctx context.Context, rt containers.Runtime, p Params) (Result, error) {
 	env := p.Env
 	env.Variables = vars
 	log := &tail{limit: LogLimit}
+	var output io.Writer = log
+	if p.Output != nil {
+		output = io.MultiWriter(log, p.Output)
+	}
 	start := time.Now()
 	out, runErr := rt.Install(ctx, containers.InstallSpec{
 		ServerID:  p.ServerID,
@@ -96,7 +104,7 @@ func Run(ctx context.Context, rt containers.Runtime, p Params) (Result, error) {
 		Env:       env.Environment(),
 		MemoryMiB: env.MemoryMiB,
 		Timeout:   p.Egg.InstallTimeout(),
-		Output:    log,
+		Output:    output,
 	})
 	res.Duration = time.Since(start)
 	res.ExitCode = out.ExitCode

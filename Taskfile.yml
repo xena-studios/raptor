@@ -256,10 +256,13 @@ tasks:
         ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
         CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/docker-e2e-$ARCH ./internal/wings/docker
         CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/server-e2e-$ARCH ./internal/wings/server
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/actions-e2e-$ARCH ./internal/wings/actions
         limactl copy bin/docker-e2e-$ARCH {{.VM}}:/tmp/docker-e2e
         limactl copy bin/server-e2e-$ARCH {{.VM}}:/tmp/server-e2e
+        limactl copy bin/actions-e2e-$ARCH {{.VM}}:/tmp/actions-e2e
         limactl shell {{.VM}} sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime.*{{.RUN}}'
         limactl shell {{.VM}} sudo /tmp/server-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
+        limactl shell {{.VM}} sudo /tmp/actions-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
 
   e2e:host:
     desc: "Host-level lifecycle test in the Wings VM: Wings/Docker restarts, host shutdown, reboot"

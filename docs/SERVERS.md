@@ -57,14 +57,14 @@ Stored in Wings' SQLite (the source of truth) and mirrored to the Panel.
 | `crashed` | Exited unexpectedly. Auto-restart moves it back to `starting`; after a crash loop it stays `crashed` until someone acts. See [Crash policy](#crash-policy). |
 
 - Power actions are **idempotent**: `start` on a running server or `stop` on an offline one succeeds without doing anything.
-- Every state change is an event, and it reaches the Panel mirror and any webhooks. (Until the event outbox lands in Phase 1.5, events are logged and delivered to in-process subscribers.)
+- Every state change is an event, recorded in the event outbox ([WINGS.md](WINGS.md#event-outbox)), and it reaches the Panel mirror and any webhooks.
 - Implemented in `internal/wings/server`; each rule on this page is exercised against a real Docker by `task e2e:runtime` and `task e2e:host`.
 
 ### After a reboot or Wings restart
 
 - **Containers use Docker's restart policy `no`.** Wings, not Docker, decides when servers start, because it must first verify that the quota volume is mounted. A Docker restart policy would bypass that check.
 - When Wings starts, it **reconciles**: containers that are still running are reattached and left alone (Wings restarts never stop servers), and the console is refilled from Docker's logs. Servers whose `desired_state` is `running` but whose container isn't running are started, staggered 3 seconds apart so a box with many servers doesn't spike at boot.
-- Install containers left over from a Wings stop are removed and the install is marked `install_failed` ("interrupted"), so the owner can reinstall. The job engine (Phase 1.5) will resume them instead.
+- An install interrupted by a Wings stop is **resumed** by the job engine: its leftover container is removed and the install runs again over the files ([WINGS.md](WINGS.md#job-engine)). Only an install with no job behind it (from before jobs existed) is marked `install_failed` ("interrupted").
 - Containers labeled as Raptor's but with no server in SQLite are reported and **left alone**.
 - **Docker restarts** (with `live-restore`) keep containers running. Wings notices the log stream dropped, reconnects to the container's output and stdin, and resumes after the last line it saw, so nothing is lost or repeated.
 
@@ -128,7 +128,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 | `stop` | Sends the egg's stop command or signal → `stopping`. If it hasn't exited after the **stop timeout** (default 60 s, configurable per server up to 10 minutes), Wings sends SIGKILL. Sets `desired_state=stopped`. |
 | `restart` | `stop`, then `start`. Crash counters are not affected. |
 | `kill` | Immediate SIGKILL. Needs the `power` permission. The Panel warns that unsaved data will be lost. Sets `desired_state=stopped`. |
-| `install` / `reinstall` | The server must be stopped. At most `limits.concurrent_installs` (default 2) run at once; the rest wait. The install log is written to `/var/log/raptor/install/<id>.log`. |
+| `install` / `reinstall` | Runs as a job ([WINGS.md](WINGS.md#job-engine)). The server must be stopped. At most `limits.concurrent_installs` (default 2) run at once; the rest wait. Survives Wings restarts. The install output is the job log (`/var/log/raptor/jobs/<job-id>.log`). |
 
 Power actions take the server's lock, so they never overlap with installs, backups, or restores.
 

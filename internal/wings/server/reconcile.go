@@ -53,6 +53,13 @@ func (m *Manager) Reconcile(ctx context.Context) error {
 		m.mu.Unlock()
 
 		if r.InstallState == installInstalling || r.InstallState == installPending {
+			// Installs are jobs: the job engine resumes them.
+			if active, err := m.o.Jobs.HasActive(ctx, r.ID); err != nil {
+				return err
+			} else if active {
+				i.state = Installing
+				continue
+			}
 			msg := "interrupted (Wings stopped during the install); reinstall to retry"
 			if err := m.o.Store.Write.SetInstallState(ctx, store.SetInstallStateParams{InstallState: installFailed, InstallError: msg, ID: r.ID}); err != nil {
 				return err

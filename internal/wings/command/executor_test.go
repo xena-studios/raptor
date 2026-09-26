@@ -17,7 +17,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
-var testRP = RelyingParty{Origin: "https://raptorpanel.net", ID: "raptorpanel.net"}
+var testRP = RelyingParty{Origin: "https://app.raptorpanel.net", ID: "app.raptorpanel.net"}
 
 const nodeID = "node-1"
 
@@ -62,7 +62,7 @@ func (f *fixture) cmd(user, action, server string, params any) Envelope {
 
 func (f *fixture) grant(e Envelope) Grant {
 	g := Grant{UserID: e.UserID, NodeID: e.NodeID, CommandID: e.CommandID, Action: e.Action, ServerID: e.ServerID, ExpiresAt: e.ExpiresAt}
-	p, err := g.payload()
+	p, err := g.Payload()
 	if err != nil {
 		f.t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func (f *fixture) sign(e Envelope, a *authenticator) Envelope {
 }
 
 func (f *fixture) trust(a *authenticator, p KeyParams) {
-	p.CredentialID, p.PublicKey = a.credID, a.cose
+	p.CredentialID, p.PublicKey = a.CredentialID, a.COSE
 	if p.Role == "" {
 		p.Role = "owner"
 	}
@@ -196,34 +196,34 @@ func TestSignatureAttacks(t *testing.T) {
 			return f.sign(f.cmd("alice", "server.delete", "s1", nil), newAuthenticator(t, "ES256"))
 		},
 		"phishing origin": func() Envelope {
-			b := *a
-			b.origin = "https://raptorpanel.net.evil.example"
-			return f.sign(f.cmd("alice", "server.delete", "s1", nil), &b)
+			b := a.clone()
+			b.Origin = "https://app.raptorpanel.net.evil.example"
+			return f.sign(f.cmd("alice", "server.delete", "s1", nil), b)
 		},
 		"other RP ID": func() Envelope {
-			b := *a
-			b.rpID = "evil.example"
-			return f.sign(f.cmd("alice", "server.delete", "s1", nil), &b)
+			b := a.clone()
+			b.RPID = "evil.example"
+			return f.sign(f.cmd("alice", "server.delete", "s1", nil), b)
 		},
 		"no user verification": func() Envelope {
-			b := *a
-			b.flags = flagUserPresent
-			return f.sign(f.cmd("alice", "server.delete", "s1", nil), &b)
+			b := a.clone()
+			b.Flags = flagUserPresent
+			return f.sign(f.cmd("alice", "server.delete", "s1", nil), b)
 		},
 		"no user presence": func() Envelope {
-			b := *a
-			b.flags = flagUserVerified
-			return f.sign(f.cmd("alice", "server.delete", "s1", nil), &b)
+			b := a.clone()
+			b.Flags = flagUserVerified
+			return f.sign(f.cmd("alice", "server.delete", "s1", nil), b)
 		},
 		"registration, not assertion": func() Envelope {
-			b := *a
-			b.typ = "webauthn.create"
-			return f.sign(f.cmd("alice", "server.delete", "s1", nil), &b)
+			b := a.clone()
+			b.Type = "webauthn.create"
+			return f.sign(f.cmd("alice", "server.delete", "s1", nil), b)
 		},
 		"cross-origin iframe": func() Envelope {
-			b := *a
-			b.crossOrigin = true
-			return f.sign(f.cmd("alice", "server.delete", "s1", nil), &b)
+			b := a.clone()
+			b.CrossOrigin = true
+			return f.sign(f.cmd("alice", "server.delete", "s1", nil), b)
 		},
 		"garbage signature": func() Envelope {
 			e := f.sign(f.cmd("alice", "server.delete", "s1", nil), a)
@@ -247,15 +247,15 @@ func TestSignCounter(t *testing.T) {
 	f := newFixture(t)
 	a := newAuthenticator(t, "EdDSA")
 	f.trust(a, KeyParams{UserID: "alice"})
-	a.counter = 5
+	a.Counter = 5
 	if _, err := f.exec(f.sign(f.cmd("alice", "server.delete", "s1", nil), a)); err != nil {
 		t.Fatal(err)
 	}
-	a.counter = 5 // a clone replaying the same counter
+	a.Counter = 5 // a clone replaying the same counter
 	if _, err := f.exec(f.sign(f.cmd("alice", "server.delete", "s2", nil), a)); err == nil || !strings.Contains(err.Error(), "counter") {
 		t.Fatalf("non-increasing counter: %v", err)
 	}
-	a.counter = 6
+	a.Counter = 6
 	if _, err := f.exec(f.sign(f.cmd("alice", "server.delete", "s3", nil), a)); err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +274,7 @@ func TestDelegation(t *testing.T) {
 	for name, e := range map[string]Envelope{
 		"other action":   f.cmd("bob", "server.delete", "s1", nil),
 		"other server":   f.cmd("bob", "server.reinstall", "s2", nil),
-		"key management": f.cmd("bob", ActionKeysAdd, "", KeyParams{CredentialID: []byte("x"), UserID: "bob", PublicKey: helper.cose, Role: "owner"}),
+		"key management": f.cmd("bob", ActionKeysAdd, "", KeyParams{CredentialID: []byte("x"), UserID: "bob", PublicKey: helper.COSE, Role: "owner"}),
 	} {
 		if _, err := f.exec(f.sign(e, helper)); !errors.Is(err, ErrUntrustedKey) {
 			t.Errorf("%s: %v", name, err)
@@ -292,7 +292,7 @@ func TestKeyManagement(t *testing.T) {
 	f.trust(owner, KeyParams{UserID: "alice", Name: "phone"})
 	laptop := newAuthenticator(t, "EdDSA")
 
-	add := f.cmd("alice", ActionKeysAdd, "", KeyParams{CredentialID: laptop.credID, UserID: "alice", PublicKey: laptop.cose, Role: "owner", Name: "laptop"})
+	add := f.cmd("alice", ActionKeysAdd, "", KeyParams{CredentialID: laptop.CredentialID, UserID: "alice", PublicKey: laptop.COSE, Role: "owner", Name: "laptop"})
 	if _, err := f.exec(add); !errors.Is(err, ErrSignatureNeeded) {
 		t.Fatalf("unsigned key add: %v", err)
 	}
@@ -304,13 +304,13 @@ func TestKeyManagement(t *testing.T) {
 		t.Fatalf("new key: %v", err)
 	}
 	// …and records who added it.
-	k, _ := f.db.Read.GetTrustedKey(context.Background(), laptop.credID)
-	if string(k.AddedBy) != string(owner.credID) {
+	k, _ := f.db.Read.GetTrustedKey(context.Background(), laptop.CredentialID)
+	if string(k.AddedBy) != string(owner.CredentialID) {
 		t.Error("added_by not recorded")
 	}
 
 	rm := func(k *authenticator, by *authenticator) error {
-		_, err := f.exec(f.sign(f.cmd("alice", ActionKeysRemove, "", RemoveKeyParams{CredentialID: k.credID}), by))
+		_, err := f.exec(f.sign(f.cmd("alice", ActionKeysRemove, "", RemoveKeyParams{CredentialID: k.CredentialID}), by))
 		return err
 	}
 	if err := rm(owner, laptop); err != nil {
@@ -354,5 +354,37 @@ func TestCanonical(t *testing.T) {
 	want := `{"action":"a","command_id":"c","expires_at":5,"node_id":"n","params":{"a":[true,"x"],"b":1},"server_id":"","user_id":"u"}`
 	if string(ca) != want || string(cb) != want {
 		t.Fatalf("canonical:\n%s\n%s", ca, cb)
+	}
+}
+
+// Signatures made for the registrable domain or a sibling subdomain (the
+// landing page, the API) are refused: only the web app's origin and RP ID
+// count (decision 82).
+func TestSiblingSubdomainsRefused(t *testing.T) {
+	f := newFixture(t)
+	a := newAuthenticator(t, "ES256")
+	f.trust(a, KeyParams{UserID: "alice"})
+	for _, site := range []struct{ origin, rpID string }{
+		{"https://raptorpanel.net", "raptorpanel.net"},
+		{"https://api.raptorpanel.net", "api.raptorpanel.net"},
+		{"https://docs.raptorpanel.net", "raptorpanel.net"},
+	} {
+		b := a.clone()
+		b.Origin, b.RPID = site.origin, site.rpID
+		if _, err := f.exec(f.sign(f.cmd("alice", "server.delete", "s1", nil), b)); err == nil {
+			t.Errorf("signature from %s (RP ID %s) accepted", site.origin, site.rpID)
+		}
+	}
+}
+
+func TestRelyingPartyFor(t *testing.T) {
+	rp, err := RelyingPartyFor("https://app.raptorpanel.net")
+	if err != nil || rp.Origin != "https://app.raptorpanel.net" || rp.ID != "app.raptorpanel.net" {
+		t.Fatalf("%+v %v", rp, err)
+	}
+	for _, bad := range []string{"http://app.raptorpanel.net", "https://app.raptorpanel.net/login", "app.raptorpanel.net", ""} {
+		if _, err := RelyingPartyFor(bad); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
 	}
 }

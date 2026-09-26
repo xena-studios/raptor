@@ -60,7 +60,7 @@ func TestSuccessAndLog(t *testing.T) {
 			if err := j.Decode(&p); err != nil {
 				return nil, err
 			}
-			fmt.Fprintln(log, "hello", p.Msg)
+			_, _ = fmt.Fprintln(log, "hello", p.Msg)
 			return map[string]string{"got": p.Msg}, nil
 		}})
 	})

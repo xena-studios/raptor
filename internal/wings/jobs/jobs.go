@@ -302,7 +302,8 @@ func (e *Engine) dispatch() {
 		if l, ok := e.o.Limits[h.Class]; ok {
 			limit = l
 		}
-		free := e.classUsed[h.Class] < limit && !(h.ServerLock && r.ServerID != "" && e.busy[r.ServerID])
+		serverBusy := h.ServerLock && r.ServerID != "" && e.busy[r.ServerID]
+		free := e.classUsed[h.Class] < limit && !serverBusy
 		if free {
 			e.classUsed[h.Class]++
 			if h.ServerLock && r.ServerID != "" {
@@ -347,7 +348,7 @@ func (e *Engine) start(h Handler, j Job, maxAttempts int64) {
 	go func() {
 		defer e.wg.Done()
 		defer cancel(nil)
-		var w io.Writer = io.Discard
+		w := io.Discard
 		if log != nil {
 			w = log
 		}

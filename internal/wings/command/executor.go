@@ -5,11 +5,15 @@ import (
 	"context"
 	"crypto/ed25519"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"os"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -227,7 +231,7 @@ func (x *Executor) checkGrant(e Envelope, now time.Time) error {
 		return ErrNotEnrolled
 	}
 	g := e.Grant
-	payload, err := g.payload()
+	payload, err := g.Payload()
 	if err != nil {
 		return err
 	}
@@ -302,4 +306,34 @@ func safeRun(ctx context.Context, h Handler, e Envelope) (value any, err error) 
 		}
 	}()
 	return h.Run(ctx, e)
+}
+
+// LoadPanelKey reads the Panel's pinned signing key (base64 Ed25519 public
+// key), written at enrollment. A missing file means the node isn't linked
+// yet: nil, and every remote command is refused.
+func LoadPanelKey(path string) (ed25519.PublicKey, error) {
+	b, err := os.ReadFile(path) //nolint:gosec // path from config
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	k, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(b)))
+	if err != nil || len(k) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("%s: not a base64 Ed25519 public key", path)
+	}
+	return ed25519.PublicKey(k), nil
+}
+
+// RelyingPartyFor derives the passkey origin and RP ID from the web app's
+// URL (panel.app_url; never hardcoded: docs/WINGS.md#config-file). The RP ID
+// is the app's own hostname, not the registrable domain, so no other
+// subdomain can obtain signatures (docs/DECISIONS.md #82).
+func RelyingPartyFor(appURL string) (RelyingParty, error) {
+	u, err := url.Parse(appURL)
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" || (u.Path != "" && u.Path != "/") {
+		return RelyingParty{}, fmt.Errorf("panel.app_url %q must be an https origin like https://app.raptorpanel.net", appURL)
+	}
+	return RelyingParty{Origin: "https://" + u.Host, ID: u.Hostname()}, nil
 }

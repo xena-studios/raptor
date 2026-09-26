@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -15,6 +15,7 @@ import (
 	"github.com/xena-studios/raptor/internal/eggs/configfile"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/install"
+	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -137,7 +138,9 @@ func (i *instance) send(cmd string) error {
 
 // --- install ---
 
-func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool) error {
+// runInstall installs the server. It runs as a job (installJob); out is the
+// job log.
+func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool, out io.Writer) error {
 	i.power.Lock()
 	defer i.power.Unlock()
 	if i.isUp() {
@@ -156,13 +159,6 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool) 
 	if err := m.o.Store.Write.SetInstallState(ctx, store.SetInstallStateParams{InstallState: installInstalling, ID: i.id}); err != nil {
 		return err
 	}
-	select {
-	case m.install <- struct{}{}:
-		defer func() { <-m.install }()
-	case <-ctx.Done():
-		return m.finishInstall(i, srv, install.Result{}, ctx.Err())
-	}
-
 	m.publish(EventInstallStarted, i.id, srv.Version, nil)
 	i.console.Notice("installing (%s)", srv.Egg().Name)
 	res, err := install.Run(ctx, m.o.Runtime, install.Params{
@@ -176,7 +172,14 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool) 
 		UID:       m.o.UID,
 		GID:       m.o.GID,
 		Skip:      srv.Settings.SkipInstall,
+		Output:    out,
 	})
+	// Wings is stopping: the job engine resumes this install on the next
+	// start, so it isn't a failure.
+	if errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
+		i.console.Notice("install interrupted by a Wings stop; it resumes when Wings starts")
+		return err
+	}
 	if err := m.finishInstall(i, srv, res, err); err != nil {
 		return err
 	}
@@ -188,13 +191,10 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool) 
 
 func (m *Manager) finishInstall(i *instance, srv *Server, res install.Result, runErr error) error {
 	ctx := context.WithoutCancel(m.ctx)
-	if len(res.Log) > 0 {
-		m.writeInstallLog(i.id, res.Log)
-	}
 	if runErr != nil {
 		msg := runErr.Error()
 		if errors.Is(runErr, context.Canceled) {
-			msg = "interrupted (Wings stopped during the install)"
+			msg = "cancelled"
 		}
 		_ = m.o.Store.Write.SetInstallState(ctx, store.SetInstallStateParams{InstallState: installFailed, InstallError: msg, ID: i.id})
 		i.console.Notice("install failed: %s", msg)
@@ -214,20 +214,6 @@ func (m *Manager) finishInstall(i *instance, srv *Server, res install.Result, ru
 	i.setState(Offline)
 	m.publish(EventInstallDone, i.id, srv.Version, data)
 	return nil
-}
-
-func (m *Manager) writeInstallLog(id string, log []byte) {
-	if m.o.LogDir == "" {
-		return
-	}
-	dir := filepath.Join(m.o.LogDir, "install")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		m.log.Warn("install log", "server", id, "err", err)
-		return
-	}
-	if err := os.WriteFile(filepath.Join(dir, id+".log"), log, 0o600); err != nil {
-		m.log.Warn("install log", "server", id, "err", err)
-	}
 }
 
 // --- start ---

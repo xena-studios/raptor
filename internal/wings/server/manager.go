@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -17,6 +18,8 @@ import (
 
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/events"
+	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -48,8 +51,11 @@ type Options struct {
 	DockerInterface string
 	// ReservedPorts are Wings' own ports, never allocatable.
 	ReservedPorts []int
-	// ConcurrentInstalls limits parallel installs (default 2).
-	ConcurrentInstalls int
+	// Jobs runs installs (register before Jobs.Start). Its "install" class
+	// limit is the number of parallel installs.
+	Jobs *jobs.Engine
+	// Events is the outbox every server event is recorded in.
+	Events *events.Outbox
 	// StartStagger spaces out starts after a reboot (default 3s).
 	StartStagger time.Duration
 
@@ -66,10 +72,9 @@ type Options struct {
 
 // Manager owns every server on the node.
 type Manager struct {
-	o       Options
-	log     *slog.Logger
-	events  bus
-	install chan struct{} // install slots
+	o      Options
+	log    *slog.Logger
+	events bus
 
 	oomMu   sync.Mutex
 	oomSeen int64 // OOM kills already attributed to an exit
@@ -83,9 +88,6 @@ type Manager struct {
 
 // New creates a Manager. Call Reconcile once before using it.
 func New(o Options) *Manager {
-	if o.ConcurrentInstalls < 1 {
-		o.ConcurrentInstalls = 2
-	}
 	if o.StartStagger == 0 {
 		o.StartStagger = 3 * time.Second
 	}
@@ -102,7 +104,6 @@ func New(o Options) *Manager {
 	m := &Manager{
 		o:       o,
 		log:     o.Log,
-		install: make(chan struct{}, o.ConcurrentInstalls),
 		servers: map[string]*instance{},
 		ctx:     ctx,
 		cancel:  cancel,
@@ -110,7 +111,21 @@ func New(o Options) *Manager {
 	if o.OOMKills != nil {
 		m.oomSeen, _ = o.OOMKills()
 	}
+	o.Jobs.Register(JobInstall, jobs.Handler{
+		Class:       "install",
+		ServerLock:  true,
+		Resumable:   true, // an install runs its script over the files again
+		MaxAttempts: 3,
+		Run:         m.installJob,
+	})
 	return m
+}
+
+// JobInstall is the install/reinstall job type.
+const JobInstall = "server.install"
+
+type installPayload struct {
+	StartAfter bool `json:"start_after,omitempty"`
 }
 
 // oomKilled reports whether an unexplained SIGKILL was the OOM killer: the
@@ -133,8 +148,29 @@ func (m *Manager) oomKilled() bool {
 // Events subscribes to server events. Call the returned function to stop.
 func (m *Manager) Events() (<-chan Event, func()) { return m.events.subscribe(256) }
 
+// publish records an event in the outbox and tells in-process subscribers.
 func (m *Manager) publish(typ, id string, version int64, data map[string]any) {
 	e := Event{Type: typ, ServerID: id, Version: version, Time: time.Now(), Data: data}
+	if _, err := m.o.Events.Append(context.WithoutCancel(m.ctx), outboxEvent(e)); err != nil {
+		m.log.Error("recording event failed", "server", id, "event", typ, "err", err)
+	}
+	m.emit(e)
+}
+
+// publishTx records an event inside a transaction; call emit after commit.
+func publishTx(ctx context.Context, q *store.Queries, e Event) error {
+	_, err := events.AppendTx(ctx, q, outboxEvent(e))
+	return err
+}
+
+func outboxEvent(e Event) events.Event {
+	return events.Event{Type: e.Type, ServerID: e.ServerID, Version: e.Version, At: e.Time, Data: e.Data}
+}
+
+// emit logs an event and tells in-process subscribers (after it's recorded).
+func (m *Manager) emit(e Event) {
+	m.o.Events.Wake()
+	typ, id, data := e.Type, e.ServerID, e.Data
 	attrs := []any{"server", id, "event", typ}
 	for k, v := range data {
 		if k != "console" {
@@ -143,6 +179,10 @@ func (m *Manager) publish(typ, id string, version int64, data map[string]any) {
 	}
 	m.log.Info("server event", attrs...)
 	m.events.publish(e)
+}
+
+func newEvent(typ, id string, version int64, data map[string]any) Event {
+	return Event{Type: typ, ServerID: id, Version: version, Time: time.Now(), Data: data}
 }
 
 // goTracked runs fn in a goroutine Close waits for. After Close it does
@@ -161,9 +201,11 @@ func (m *Manager) goTracked(fn func()) {
 	}()
 }
 
-// Close detaches from every server without stopping any: containers keep
-// running and the next Wings reattaches to them (docs/SERVERS.md).
+// Close stops the job engine (running installs resume on the next start) and
+// detaches from every server without stopping any: containers keep running
+// and the next Wings reattaches to them (docs/SERVERS.md).
 func (m *Manager) Close() {
+	m.o.Jobs.Close()
 	m.mu.Lock()
 	m.cancel()
 	for _, i := range m.servers {
@@ -243,6 +285,8 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 	if err := m.checkHostPorts(cfg.Allocations); err != nil {
 		return "", err
 	}
+	created := newEvent(EventCreated, sid, 1, nil)
+	// The server, its event, and its install job exist together or not at all.
 	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
 		if err := checkConflicts(ctx, q, sid, cfg.Allocations); err != nil {
 			return err
@@ -255,7 +299,14 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 		}); err != nil {
 			return err
 		}
-		return insertAllocations(ctx, q, sid, cfg.Allocations)
+		if err := insertAllocations(ctx, q, sid, cfg.Allocations); err != nil {
+			return err
+		}
+		if err := publishTx(ctx, q, created); err != nil {
+			return err
+		}
+		_, err := m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobInstall, ServerID: sid, Payload: installPayload{StartAfter: opts.StartAfterInstall}})
+		return err
 	})
 	if err != nil {
 		return "", err
@@ -265,12 +316,8 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 	m.mu.Lock()
 	m.servers[sid] = i
 	m.mu.Unlock()
-	m.publish(EventCreated, sid, 1, nil)
-	m.goTracked(func() {
-		if err := m.runInstall(m.ctx, i, opts.StartAfterInstall); err != nil && !errors.Is(err, context.Canceled) {
-			m.log.Error("install failed", "server", sid, "err", err)
-		}
-	})
+	m.emit(created)
+	m.o.Jobs.Wake()
 	return sid, nil
 }
 
@@ -301,6 +348,7 @@ func (m *Manager) Update(ctx context.Context, id string, cfg Config) error {
 	if err := m.checkHostPorts(added); err != nil {
 		return err
 	}
+	var updated Event
 	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
 		if err := checkConflicts(ctx, q, id, cfg.Allocations); err != nil {
 			return err
@@ -320,16 +368,20 @@ func (m *Manager) Update(ctx context.Context, id string, cfg Config) error {
 		if err := q.DeleteServerAllocations(ctx, id); err != nil {
 			return err
 		}
-		return insertAllocations(ctx, q, id, cfg.Allocations)
+		if err := insertAllocations(ctx, q, id, cfg.Allocations); err != nil {
+			return err
+		}
+		row, err := q.GetServer(ctx, id)
+		if err != nil {
+			return err
+		}
+		updated = newEvent(EventUpdated, id, row.Version, map[string]any{"restart_needed": i.isUp()})
+		return publishTx(ctx, q, updated)
 	})
 	if err != nil {
 		return err
 	}
-	srv, err := m.Get(ctx, id)
-	if err != nil {
-		return err
-	}
-	m.publish(EventUpdated, id, srv.Version, map[string]any{"restart_needed": i.isUp()})
+	m.emit(updated)
 	return nil
 }
 
@@ -370,14 +422,34 @@ func (m *Manager) checkHostPorts(allocs []Allocation) error {
 	return nil
 }
 
-// Install reinstalls a server: runs the egg's install script over the
-// existing files (docs/EGGS.md#install). The server must be stopped.
-func (m *Manager) Install(ctx context.Context, id string) error {
+// Install queues a reinstall: the egg's install script runs over the
+// existing files (docs/EGGS.md#install). The server must be stopped. It
+// returns the job ID.
+func (m *Manager) Install(ctx context.Context, id string) (string, error) {
 	i, err := m.instance(id)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return m.runInstall(ctx, i, false)
+	if i.isUp() {
+		return "", ErrRunning
+	}
+	if active, err := m.o.Jobs.HasActive(ctx, id); err != nil || active {
+		return "", errors.Join(ErrInstalling, err)
+	}
+	return m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobInstall, ServerID: id, Payload: installPayload{}})
+}
+
+// installJob is the job handler for installs.
+func (m *Manager) installJob(ctx context.Context, j jobs.Job, log io.Writer) (any, error) {
+	var p installPayload
+	if err := j.Decode(&p); err != nil {
+		return nil, err
+	}
+	i, err := m.instance(j.ServerID)
+	if err != nil {
+		return nil, err
+	}
+	return nil, m.runInstall(ctx, i, p.StartAfter, log)
 }
 
 // Start starts a server. Starting a starting or running server does nothing.
@@ -452,6 +524,10 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+	// A pending or running install for a server being deleted is cancelled.
+	if err := m.cancelJobs(ctx, id); err != nil {
+		return err
+	}
 	i.power.Lock()
 	defer i.power.Unlock()
 	if err := i.stopLocked(ctx, false, true); err != nil {
@@ -473,14 +549,40 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("remove files: %w", err)
 	}
-	if err := m.o.Store.Write.DeleteServer(ctx, id); err != nil {
+	deleted := newEvent(EventDeleted, id, 0, nil)
+	if err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if err := q.DeleteServer(ctx, id); err != nil {
+			return err
+		}
+		return publishTx(ctx, q, deleted)
+	}); err != nil {
 		return err
 	}
 	m.mu.Lock()
 	delete(m.servers, id)
 	m.mu.Unlock()
 	i.setDeleted()
-	m.publish(EventDeleted, id, 0, nil)
+	m.emit(deleted)
+	return nil
+}
+
+// cancelJobs cancels a server's queued and running jobs and waits for them.
+func (m *Manager) cancelJobs(ctx context.Context, id string) error {
+	list, err := m.o.Jobs.List(ctx, id, 100)
+	if err != nil {
+		return err
+	}
+	for _, j := range list {
+		if j.Status != jobs.Queued && j.Status != jobs.Running {
+			continue
+		}
+		if err := m.o.Jobs.Cancel(ctx, j.ID); err != nil {
+			continue // it finished meanwhile
+		}
+		if _, err := m.o.Jobs.Wait(ctx, j.ID); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -542,4 +644,28 @@ func (m *Manager) runtimeEnv(s *Server) eggs.Runtime {
 		AllocationLimit: len(s.Allocations),
 		Variables:       s.Variables,
 	}
+}
+
+// ChangesCode reports whether applying cfg to the server would change what
+// code runs: the egg (and so its install script), the image, or the startup
+// command. Such updates must be signed with the user's passkey
+// (docs/SECURITY-MODEL.md#passkey-signed-commands). Wings decides this from
+// its own records, so the Panel can't mislabel an update.
+func (m *Manager) ChangesCode(ctx context.Context, id string, cfg Config) (bool, error) {
+	cur, err := m.Get(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	if eggHash(cfg.Egg) != cur.EggHash {
+		return true, nil
+	}
+	// Empty image/startup mean the egg's defaults, as in validate.
+	image, startup := cfg.Image, cfg.Startup
+	if image == "" {
+		image = cur.Egg().DefaultImage()
+	}
+	if startup == "" {
+		startup = cur.Egg().DefaultStartup()
+	}
+	return image != cur.Image || startup != cur.Startup, nil
 }

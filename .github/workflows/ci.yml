@@ -72,10 +72,13 @@ jobs:
         run: |
           go test -c -tags e2e -o /tmp/docker-e2e ./internal/wings/docker
           go test -c -tags e2e -o /tmp/server-e2e ./internal/wings/server
+          go test -c -tags e2e -o /tmp/actions-e2e ./internal/wings/actions
       - name: Run runtime tests
         run: sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime'
       - name: Run server lifecycle tests
         run: sudo /tmp/server-e2e -test.v -test.timeout 20m
+      - name: Run command path tests (grants, passkey signatures)
+        run: sudo /tmp/actions-e2e -test.v -test.timeout 20m
 
   pr:
     if: github.event_name == 'pull_request'

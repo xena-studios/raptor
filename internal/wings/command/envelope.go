@@ -99,10 +99,9 @@ func (e Envelope) Hash() ([]byte, error) {
 	return h[:], nil
 }
 
-// grantPayload is what the Panel signs for a grant.
-func (g Grant) payload() ([]byte, error) {
-	unsigned := g
-	unsigned.Signature = nil
+// Payload is what the Panel signs for a grant (canonical JSON of every field
+// but the signature). The Panel uses this same function to sign.
+func (g Grant) Payload() ([]byte, error) {
 	raw, err := json.Marshal(struct {
 		UserID    string `json:"user_id"`
 		NodeID    string `json:"node_id"`
@@ -110,7 +109,7 @@ func (g Grant) payload() ([]byte, error) {
 		Action    string `json:"action"`
 		ServerID  string `json:"server_id"`
 		ExpiresAt int64  `json:"expires_at"`
-	}{unsigned.UserID, unsigned.NodeID, unsigned.CommandID, unsigned.Action, unsigned.ServerID, unsigned.ExpiresAt})
+	}{g.UserID, g.NodeID, g.CommandID, g.Action, g.ServerID, g.ExpiresAt})
 	if err != nil {
 		return nil, err
 	}

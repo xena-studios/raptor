@@ -2,29 +2,19 @@ package command
 
 import (
 	"context"
-	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
 	"testing"
 
-	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
+	"github.com/xena-studios/raptor/internal/wings/command/commandtest"
 )
 
 func fixedAuthenticator() *authenticator {
-	priv := ed25519.NewKeyFromSeed(make([]byte, ed25519.SeedSize))
-	cose, err := webauthncbor.Marshal(webauthncose.OKPPublicKeyData{
-		PublicKeyData: webauthncose.PublicKeyData{KeyType: 1, Algorithm: int64(webauthncose.AlgEdDSA)},
-		Curve:         6, XCoord: priv.Public().(ed25519.PublicKey),
-	})
+	a, err := commandtest.New("EdDSA", testRP.Origin, testRP.ID, make([]byte, 32))
 	if err != nil {
 		panic(err)
 	}
-	return &authenticator{
-		credID: []byte("fixed"), cose: cose, origin: testRP.Origin, rpID: testRP.ID, typ: "webauthn.get",
-		flags: flagUserPresent | flagUserVerified,
-		sign:  func(d []byte) []byte { return ed25519.Sign(priv, d) },
-	}
+	return &authenticator{a}
 }
 
 // Random assertions never verify and never crash the parser. The fuzzer runs
@@ -34,13 +24,13 @@ func FuzzVerifyAssertion(f *testing.F) {
 	a := fixedAuthenticator()
 	challenge := sha256.Sum256([]byte("command"))
 	good := a.assert(challenge[:])
-	f.Add(good.AuthenticatorData, good.ClientDataJSON, good.Signature, a.cose)
+	f.Add(good.AuthenticatorData, good.ClientDataJSON, good.Signature, a.COSE)
 	f.Add([]byte{}, []byte("{}"), []byte{}, []byte{})
 	f.Fuzz(func(t *testing.T, ad, cd, sig, key []byte) {
 		s := PasskeySignature{AuthenticatorData: ad, ClientDataJSON: cd, Signature: sig}
 		_, err := verifyAssertion(key, s, challenge[:], testRP)
 		genuine := string(ad) == string(good.AuthenticatorData) && string(cd) == string(good.ClientDataJSON) &&
-			string(sig) == string(good.Signature) && string(key) == string(a.cose)
+			string(sig) == string(good.Signature) && string(key) == string(a.COSE)
 		if err == nil && !genuine {
 			t.Fatalf("a forged assertion verified")
 		}

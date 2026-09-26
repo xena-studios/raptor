@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -23,8 +24,10 @@ import (
 
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
+	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -102,11 +105,9 @@ func newEnv(t *testing.T) *env {
 	}
 	t.Cleanup(func() {
 		// Remove every server this test created, then its files.
-		m := New(e.opts)
-		if err := m.Reconcile(context.Background()); err == nil {
-			for id := range m.List() {
-				_ = m.Delete(context.Background(), id)
-			}
+		m := e.manager()
+		for id := range m.List() {
+			_ = m.Delete(context.Background(), id)
 		}
 		m.Close()
 		_ = db.Close()
@@ -115,9 +116,17 @@ func newEnv(t *testing.T) *env {
 	return e
 }
 
+// manager starts a "Wings": a manager with its own job engine, as the
+// daemon wires them. Close it to simulate Wings stopping.
 func (e *env) manager() *Manager {
-	m := New(e.opts)
+	o := e.opts
+	o.Events = events.New(e.db)
+	o.Jobs = jobs.New(jobs.Options{Store: e.db, LogDir: filepath.Join(e.dir, "logs", "jobs"), Limits: map[string]int{"install": 2}, Poll: 200 * time.Millisecond})
+	m := New(o)
 	if err := m.Reconcile(context.Background()); err != nil {
+		e.t.Fatal(err)
+	}
+	if err := o.Jobs.Start(context.Background()); err != nil {
 		e.t.Fatal(err)
 	}
 	return m
@@ -546,28 +555,73 @@ func TestAllocationsAndDelete(t *testing.T) {
 	}
 }
 
-func TestInstallInterruptedByWingsStop(t *testing.T) {
+// Installs are durable jobs: stopping Wings mid-install doesn't fail it; the
+// next Wings runs it again (install scripts run over existing files) and it
+// finishes.
+func TestInstallResumesAfterWingsStop(t *testing.T) {
 	e := newEnv(t)
 	m := e.manager()
 	id, err := m.Create(context.Background(), Config{
-		Name: "slow", Egg: shellEgg("sleep 120"), Limits: containers.Limits{MemoryMiB: 128},
+		Name: "slow", Egg: shellEgg("echo resuming-install; sleep 5; echo installed > /mnt/server/installed.txt"), Limits: containers.Limits{MemoryMiB: 128},
 		Allocations: []Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}},
 	}, CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	waitState(t, m, id, Installing, 10*time.Second)
-	time.Sleep(3 * time.Second)
-	m.Close()
+	time.Sleep(2 * time.Second)
+	m.Close() // Wings stops mid-install
 
 	m2 := e.manager()
 	defer m2.Close()
-	waitState(t, m2, id, InstallFailed, 10*time.Second)
-	if _, err := e.rt.Inspect(context.Background(), containerName(id)+"-install"); err == nil {
-		t.Error("install container left behind")
+	if st, _ := m2.Status(id); st.State != Installing {
+		t.Fatalf("after restart: %s, want installing (resumed)", st.State)
 	}
-	if err := m2.Start(context.Background(), id); !errors.Is(err, ErrNotInstalled) {
-		t.Errorf("starting a failed install: %v", err)
+	waitState(t, m2, id, Offline, 2*time.Minute)
+	if _, err := os.Stat(filepath.Join(e.opts.VolumesDir, id, "installed.txt")); err != nil {
+		t.Fatalf("resumed install didn't finish: %v", err)
+	}
+	list, _ := m2.o.Jobs.List(context.Background(), id, 10)
+	if len(list) != 1 || list[0].Status != jobs.Succeeded || list[0].Attempts != 2 {
+		t.Fatalf("install job: %+v", list)
+	}
+	if log, _ := m2.o.Jobs.Log(list[0].ID); !strings.Contains(string(log), "resuming-install") {
+		t.Errorf("install output isn't in the job log: %q", log)
+	}
+}
+
+// Every change is in the event outbox, numbered, in order.
+func TestEventsRecorded(t *testing.T) {
+	e := newEnv(t)
+	m := e.manager()
+	defer m.Close()
+	id := e.create(m, freePort(t))
+	ready(t, m, id)
+	if err := m.Stop(context.Background(), id); err != nil {
+		t.Fatal(err)
+	}
+	waitState(t, m, id, Offline, 10*time.Second)
+
+	got, err := m.o.Events.Since(context.Background(), 0, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var types []string
+	for n, ev := range got {
+		if ev.Seq != int64(n+1) {
+			t.Fatalf("event %d has seq %d", n, ev.Seq)
+		}
+		if ev.ServerID == id {
+			types = append(types, ev.Type)
+		}
+	}
+	for _, want := range []string{EventCreated, EventInstallStarted, EventInstallDone, EventCommand, EventState} {
+		if !slices.Contains(types, want) {
+			t.Errorf("no %s event in %v", want, types)
+		}
+	}
+	if types[0] != EventCreated {
+		t.Errorf("first event %s, want %s", types[0], EventCreated)
 	}
 }
 
@@ -601,11 +655,16 @@ func TestSeedRealDaemon(t *testing.T) {
 	}
 	uid, _ := strconv.Atoi(u.Uid)
 	gid, _ := strconv.Atoi(u.Gid)
+	eng := jobs.New(jobs.Options{Store: db, LogDir: "/var/log/raptor/jobs", Limits: map[string]int{"install": 2}})
 	m := New(Options{
 		Runtime: rt, Store: db, VolumesDir: "/var/lib/raptor/volumes", TmpDir: "/var/lib/raptor/tmp", LogDir: "/var/log/raptor",
 		UID: uid, GID: gid, Timezone: "UTC", DockerInterface: nets.Server.Gateway.String(),
+		Jobs: eng, Events: events.New(db),
 	})
 	if err := m.Reconcile(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := eng.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
 	id, err := m.Create(ctx, Config{
