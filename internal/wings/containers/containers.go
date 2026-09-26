@@ -35,6 +35,10 @@ type Runtime interface {
 	Remove(ctx context.Context, id string) error
 	// List returns the containers Wings manages, and nothing else.
 	List(ctx context.Context) ([]Container, error)
+	// CheckArch fails with ErrUnsupportedArch if the image has no variant for
+	// this machine's CPU architecture. When the registry can't be asked, it
+	// falls back to a local copy and otherwise lets the pull decide.
+	CheckArch(ctx context.Context, image string) error
 	Version(ctx context.Context) (string, error)
 }
 
@@ -124,6 +128,9 @@ type Container struct {
 	Role     string
 	State    string
 }
+
+// ErrUnsupportedArch is returned when an image can't run on this machine.
+var ErrUnsupportedArch = errors.New("image not available for this CPU architecture")
 
 // ErrPortInUse is returned when an allocated port is already taken on the host.
 var ErrPortInUse = errors.New("port in use")

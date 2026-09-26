@@ -84,16 +84,17 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Firewall: own nftables table `inet raptor` instead of a `DOCKER-USER` jump ([decision 56](DECISIONS.md)); install network isolation, metadata endpoint block, self-healing
 - [x] `task e2e:runtime` + a CI job running it on every PR
 
-### 1.3 Egg engine
-- [ ] Parsers for `PTDL_v1`, `PTDL_v2`, `PLCN_v*`; reject unknown versions
-- [ ] Variables: Laravel-style rule validation (the subset real eggs use), validated **before** substitution
-- [ ] Install containers per [EGGS.md](EGGS.md#install): `/mnt/server` + read-only `/mnt/install`, hardening, limits, timeout, `raptor_install` network isolation (incl. metadata endpoint block; done in 1.2), symlink-safe ownership fix, capped logs, failure/reinstall behavior
-- [ ] Runtime environment matching Pterodactyl Wings exactly (from 1.0)
-- [ ] Startup "done" detection, stop commands and signals, timeouts
-- [ ] Config file parsers: properties, yaml, json, ini, xml, file, all through `os.Root`
-- [ ] `x-raptor` extension parsing
-- [ ] Arch check against image manifests
-- [ ] Fuzz tests: variable substitution + config parsers + path handling
+### 1.3 Egg engine ✅
+- [x] Parsers for `PTDL_v1`, `PTDL_v2`, `PLCN_v*`; reject unknown versions
+- [x] Variables: Laravel-style rule validation (every rule used by 606 surveyed community eggs), validated **before** substitution
+- [x] Install containers per [EGGS.md](EGGS.md#install): `/mnt/server` + read-only `/mnt/install`, hardening, limits, timeout, `raptor_install` network isolation, symlink-safe ownership fix, capped logs, failure behavior. "Wipe and reinstall" needs backups and moves to Phase 2.
+- [x] Runtime environment matching Pterodactyl Wings exactly (from 1.0)
+- [x] Startup "done" detection, stop commands and signals, timeouts
+- [x] Config file parsers: properties, yaml, json, ini, xml, file, all through `os.Root`, editing in place
+- [x] Placeholders for both Pterodactyl and Pelican eggs
+- [x] `x-raptor` extension parsing and validation
+- [x] Arch check against image manifests
+- [x] Fuzz tests: egg parsing, rules, placeholders, config parsers, path handling
 
 ### 1.4 Server lifecycle (per [SERVERS.md](SERVERS.md))
 - [ ] Server model with egg snapshots, `desired_state`, and config versions

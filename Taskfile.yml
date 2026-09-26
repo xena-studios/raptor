@@ -215,6 +215,20 @@ tasks:
         limactl copy bin/docker-e2e-$ARCH {{.VM}}:/tmp/docker-e2e
         limactl shell {{.VM}} sudo RAPTOR_E2E_EGGS=/tmp/raptor-e2e-eggs /tmp/docker-e2e -test.v -test.timeout 120m -test.run '{{.RUN}}'
 
+  fuzz:
+    desc: "Run every fuzz test for FUZZTIME each (default 30s)"
+    vars:
+      FUZZTIME: '{{.FUZZTIME | default "30s"}}'
+    cmds:
+      - |
+        set -eu
+        for pkg in ./internal/eggs ./internal/eggs/configfile; do
+          for fz in $(go test -list '^Fuzz' $pkg | grep '^Fuzz'); do
+            echo "== $pkg $fz"
+            go test $pkg -run '^$' -fuzz "^$fz\$" -fuzztime {{.FUZZTIME}}
+          done
+        done
+
   e2e:runtime:
     desc: "Test the container runtime in the Wings VM: networks, firewall isolation, limits, hardening"
     vars:

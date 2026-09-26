@@ -70,6 +70,17 @@ task e2e:eggs RUN=TestEggNode      # one egg
 
 x86-only eggs like Rust can't run on an ARM Mac. They run in the **E2E eggs** GitHub workflow on an x86 runner: start it from the Actions tab, or push a branch named `e2e/<anything>`.
 
+### Fuzz tests
+
+The egg engine handles untrusted input (egg files, variable values, config files on disk), so its parsers are fuzzed:
+
+```bash
+task fuzz                  # every fuzz test, 30s each
+task fuzz FUZZTIME=5m      # longer
+```
+
+When the fuzzer finds a failing input, it saves it under `testdata/fuzz/`. Fix the bug and commit that file: it then runs as a regular test on every `go test`.
+
 ### Runtime end-to-end tests
 
 The container runtime (networks, firewall isolation, resource limits, hardening, port checks) is tested against a real Docker:
