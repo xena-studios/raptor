@@ -27,9 +27,19 @@ type Runtime interface {
 	Create(ctx context.Context, s ServerSpec) (string, error)
 	// Attach connects to a container's console. Call before Start so no output is missed.
 	Attach(ctx context.Context, id string) (Console, error)
+	// Input connects to a container's stdin only. Unlike Attach, nothing has to
+	// read the container's output, so a slow reader can never stall the game.
+	Input(ctx context.Context, id string) (Input, error)
+	// Logs streams the container's output, one line per Line, from Docker's
+	// log store: history (the last tail lines, or all if tail < 0, after
+	// since if set) and then, with follow, live output. Unlike an attach
+	// stream it can be resumed exactly after a Wings or Docker restart.
+	Logs(ctx context.Context, id string, o LogOptions) (<-chan Line, <-chan error)
+	// Inspect reports a container's state.
+	Inspect(ctx context.Context, id string) (State, error)
 	Start(ctx context.Context, id string) error
 	// Stop stops a server the way its egg asks, killing it after timeout.
-	Stop(ctx context.Context, id string, console Console, stop eggs.Stop, timeout time.Duration) error
+	Stop(ctx context.Context, id string, in Sender, stop eggs.Stop, timeout time.Duration) error
 	// Wait blocks until the container stops and returns its exit code.
 	Wait(ctx context.Context, id string) (int64, error)
 	Remove(ctx context.Context, id string) error
@@ -42,12 +52,43 @@ type Runtime interface {
 	Version(ctx context.Context) (string, error)
 }
 
+// Sender writes console commands to a container's stdin.
+type Sender interface {
+	// Send writes a console command followed by a newline.
+	Send(cmd string) error
+}
+
+// Input is a connection to a container's stdin.
+type Input interface {
+	Sender
+	Close() error
+}
+
 // Console is a live connection to a container's stdin and output.
 type Console interface {
 	io.Reader
-	// Send writes a console command followed by a newline.
-	Send(cmd string) error
-	Close() error
+	Input
+}
+
+// LogOptions select what Logs returns.
+type LogOptions struct {
+	Follow bool
+	Tail   int       // lines of history; < 0 = all
+	Since  time.Time // only output at or after this time
+}
+
+// Line is one line of container output.
+type Line struct {
+	Time time.Time
+	Text string // without the line ending
+}
+
+// State is a container's state.
+type State struct {
+	Running   bool
+	ExitCode  int64
+	OOMKilled bool
+	StartedAt time.Time
 }
 
 // Network is one of Wings' container networks.
@@ -101,17 +142,17 @@ type ServerSpec struct {
 
 // Limits are a server's resource limits.
 type Limits struct {
-	MemoryMiB int64 // allocated memory; the container gets this plus overhead
-	SwapMiB   int64
+	MemoryMiB int64 `json:"memory_mib"` // allocated memory; the container gets this plus overhead
+	SwapMiB   int64 `json:"swap_mib"`
 	// CPUWeight is the relative CPU share (Docker CPU shares, default 1024).
 	// It's the default way to divide CPU because it never throttles.
-	CPUWeight int64
+	CPUWeight int64 `json:"cpu_weight"`
 	// CPUPercent is an optional hard limit: 100 = one core. 0 = none.
-	CPUPercent int64
+	CPUPercent int64 `json:"cpu_percent"`
 	// Cpuset pins the server to specific cores ("0-3", "1,3"). "" = any.
-	Cpuset string
+	Cpuset string `json:"cpuset"`
 	// PIDs is the process limit. 0 = the default (512).
-	PIDs int64
+	PIDs int64 `json:"pids"`
 }
 
 // Port is a published port (TCP and UDP).

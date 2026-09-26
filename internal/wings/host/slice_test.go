@@ -30,3 +30,13 @@ func TestMemTotal(t *testing.T) {
 		t.Fatalf("got %d, %v", got, err)
 	}
 }
+
+func TestOOMKills(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "memory.events")
+	if err := os.WriteFile(path, []byte("low 0\nhigh 0\nmax 12\noom 3\noom_kill 2\noom_group_kill 0\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := oomKills(path); err != nil || n != 2 {
+		t.Fatalf("got %d, %v", n, err)
+	}
+}

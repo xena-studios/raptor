@@ -158,7 +158,8 @@ tasks:
   wings:vm:up:
     desc: Create/start the Debian VM used to run Wings
     cmds:
-      - limactl start --name={{.VM}} --tty=false dev/lima/wings.yaml
+      # Start the existing VM, or create it on the first run.
+      - limactl list -q | grep -qx {{.VM}} && limactl start --tty=false {{.VM}} || limactl start --name={{.VM}} --tty=false dev/lima/wings.yaml
     status:
       - limactl list --format '{{`{{.Status}}`}}' {{.VM}} 2>/dev/null | grep -q Running
 
@@ -185,16 +186,21 @@ tasks:
     cmds:
       - task: wings:vm:deploy
       - limactl copy install/systemd/raptor-wings.service {{.VM}}:/tmp/raptor-wings.service
+      - limactl copy install/systemd/raptor-shutdown.service {{.VM}}:/tmp/raptor-shutdown.service
+      - limactl copy "install/systemd/docker-.scope.d/10-raptor.conf" {{.VM}}:/tmp/raptor-scope.conf
       - limactl copy dev/wings/config.yml {{.VM}}:/tmp/raptor-config.yml
       - |
         limactl shell {{.VM}} sudo bash -euc '
           getent group raptor >/dev/null || groupadd --system raptor
           id raptor >/dev/null 2>&1 || useradd --system --gid raptor --no-create-home --shell /usr/sbin/nologin raptor
           install -m 0644 /tmp/raptor-wings.service /etc/systemd/system/raptor-wings.service
+          install -m 0644 /tmp/raptor-shutdown.service /etc/systemd/system/raptor-shutdown.service
+          install -D -m 0644 /tmp/raptor-scope.conf "/etc/systemd/system/docker-.scope.d/10-raptor.conf"
           install -d -m 0700 /etc/raptor
           install -m 0600 /tmp/raptor-config.yml /etc/raptor/config.yml
           systemctl daemon-reload
-          systemctl enable raptor-wings >/dev/null 2>&1
+          systemctl enable raptor-wings raptor-shutdown >/dev/null 2>&1
+          systemctl start raptor-shutdown
           systemctl restart raptor-wings
           sleep 1
           systemctl --no-pager --lines=5 status raptor-wings
@@ -230,17 +236,36 @@ tasks:
         done
 
   e2e:runtime:
-    desc: "Test the container runtime in the Wings VM: networks, firewall isolation, limits, hardening"
+    desc: "Test the runtime and server lifecycle in the Wings VM (RUN=regex selects tests)"
     vars:
-      RUN: '{{.RUN | default "TestRuntime"}}'
+      RUN: '{{.RUN | default "."}}'
     cmds:
       - task: wings:vm:up
       - |
         set -eu
         ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
         CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/docker-e2e-$ARCH ./internal/wings/docker
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/server-e2e-$ARCH ./internal/wings/server
         limactl copy bin/docker-e2e-$ARCH {{.VM}}:/tmp/docker-e2e
-        limactl shell {{.VM}} sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
+        limactl copy bin/server-e2e-$ARCH {{.VM}}:/tmp/server-e2e
+        limactl shell {{.VM}} sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime.*{{.RUN}}'
+        limactl shell {{.VM}} sudo /tmp/server-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
+
+  e2e:host:
+    desc: "Host-level lifecycle test in the Wings VM: Wings/Docker restarts, host shutdown, reboot"
+    cmds:
+      - task: wings:vm:install
+      - |
+        set -eu
+        ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/server-e2e-$ARCH ./internal/wings/server
+        limactl copy bin/server-e2e-$ARCH {{.VM}}:/tmp/server-e2e
+        limactl copy scripts/e2e-host.sh {{.VM}}:/tmp/e2e-host.sh
+        limactl shell {{.VM}} sudo install -D -m 0755 /tmp/e2e-host.sh /var/lib/raptor-e2e/e2e-host.sh
+        limactl shell {{.VM}} sudo /var/lib/raptor-e2e/e2e-host.sh seed
+        limactl stop {{.VM}}
+        limactl start --tty=false {{.VM}}
+        limactl shell {{.VM}} sudo /var/lib/raptor-e2e/e2e-host.sh after-reboot
 
   wings:vm:delete:
     desc: Delete the Wings VM

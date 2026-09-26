@@ -4,8 +4,36 @@
 
 package store
 
+type Allocation struct {
+	ServerID  string
+	Ip        string
+	Port      int64
+	IsPrimary int64
+}
+
 type Kv struct {
 	Key       string
 	Value     []byte
 	UpdatedAt int64
+}
+
+type Server struct {
+	ID           string
+	Name         string
+	Egg          []byte
+	EggSource    string
+	EggHash      string
+	Image        string
+	Startup      string
+	Variables    string
+	Limits       string
+	Settings     string
+	HostNetwork  int64
+	DesiredState string
+	InstallState string
+	InstallError string
+	LastState    string
+	Version      int64
+	CreatedAt    int64
+	UpdatedAt    int64
 }

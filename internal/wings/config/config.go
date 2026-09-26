@@ -49,6 +49,7 @@ type Paths struct {
 	State   string `yaml:"state"`
 	Volumes string `yaml:"volumes"`
 	Tmp     string `yaml:"tmp"`
+	Logs    string `yaml:"logs"`
 	Socket  string `yaml:"socket"`
 }
 
@@ -102,6 +103,7 @@ func Default() Config {
 			State:   "/var/lib/raptor/state.db",
 			Volumes: "/var/lib/raptor/volumes",
 			Tmp:     "/var/lib/raptor/tmp",
+			Logs:    "/var/log/raptor",
 			Socket:  "/run/raptor/wings.sock",
 		},
 		Docker: Docker{
@@ -160,7 +162,7 @@ func (c Config) Validate() error {
 	if c.Limits.ConcurrentInstalls < 1 || c.Limits.ConcurrentBackups < 1 {
 		errs = append(errs, errors.New("limits: concurrency must be at least 1"))
 	}
-	for name, p := range map[string]string{"paths.state": c.Paths.State, "paths.volumes": c.Paths.Volumes, "paths.tmp": c.Paths.Tmp, "paths.socket": c.Paths.Socket} {
+	for name, p := range map[string]string{"paths.state": c.Paths.State, "paths.volumes": c.Paths.Volumes, "paths.tmp": c.Paths.Tmp, "paths.logs": c.Paths.Logs, "paths.socket": c.Paths.Socket} {
 		if !strings.HasPrefix(p, "/") {
 			errs = append(errs, fmt.Errorf("%s %q: must be an absolute path", name, p))
 		}

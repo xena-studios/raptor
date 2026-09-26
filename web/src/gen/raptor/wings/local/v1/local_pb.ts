@@ -12,7 +12,46 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/wings/local/v1/local.proto.
  */
 export const file_raptor_wings_local_v1_local: GenFile = /*@__PURE__*/
-  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSISChBHZXRTdGF0dXNSZXF1ZXN0Is0BChFHZXRTdGF0dXNSZXNwb25zZRIPCgd2ZXJzaW9uGAEgASgJEg4KBmNvbW1pdBgCIAEoCRIPCgdub2RlX2lkGAMgASgJEhEKCXBhbmVsX3VybBgEIAEoCRIuCgpzdGFydGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCgZkb2NrZXIYBiABKAsyIy5yYXB0b3Iud2luZ3MubG9jYWwudjEuRG9ja2VyU3RhdHVzEg4KBmNhbGxlchgHIAEoCSJBCgxEb2NrZXJTdGF0dXMSEQoJcmVhY2hhYmxlGAEgASgIEg8KB3ZlcnNpb24YAiABKAkSDQoFZXJyb3IYAyABKAkycwoMTG9jYWxTZXJ2aWNlEmMKCUdldFN0YXR1cxInLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXF1ZXN0GigucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgOQAgFC7wEKGWNvbS5yYXB0b3Iud2luZ3MubG9jYWwudjFCCkxvY2FsUHJvdG9QAVpPZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3Ivd2luZ3MvbG9jYWwvdjE7bG9jYWx2MaICA1JXTKoCFVJhcHRvci5XaW5ncy5Mb2NhbC5WMcoCFVJhcHRvclxXaW5nc1xMb2NhbFxWMeICIVJhcHRvclxXaW5nc1xMb2NhbFxWMVxHUEJNZXRhZGF0YeoCGFJhcHRvcjo6V2luZ3M6OkxvY2FsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIYChZTaHV0ZG93blNlcnZlcnNSZXF1ZXN0IjoKF1NodXRkb3duU2VydmVyc1Jlc3BvbnNlEg8KB3N0b3BwZWQYASABKAUSDgoGZXJyb3JzGAIgAygJIhIKEEdldFN0YXR1c1JlcXVlc3QizQEKEUdldFN0YXR1c1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAkSDgoGY29tbWl0GAIgASgJEg8KB25vZGVfaWQYAyABKAkSEQoJcGFuZWxfdXJsGAQgASgJEi4KCnN0YXJ0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKBmRvY2tlchgGIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5Eb2NrZXJTdGF0dXMSDgoGY2FsbGVyGAcgASgJIkEKDERvY2tlclN0YXR1cxIRCglyZWFjaGFibGUYASABKAgSDwoHdmVyc2lvbhgCIAEoCRINCgVlcnJvchgDIAEoCTLqAQoMTG9jYWxTZXJ2aWNlEmMKCUdldFN0YXR1cxInLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXF1ZXN0GigucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgOQAgESdQoPU2h1dGRvd25TZXJ2ZXJzEi0ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNodXRkb3duU2VydmVyc1JlcXVlc3QaLi5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2UiA5ACAkLvAQoZY29tLnJhcHRvci53aW5ncy5sb2NhbC52MUIKTG9jYWxQcm90b1ABWk9naXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci93aW5ncy9sb2NhbC92MTtsb2NhbHYxogIDUldMqgIVUmFwdG9yLldpbmdzLkxvY2FsLlYxygIVUmFwdG9yXFdpbmdzXExvY2FsXFYx4gIhUmFwdG9yXFdpbmdzXExvY2FsXFYxXEdQQk1ldGFkYXRh6gIYUmFwdG9yOjpXaW5nczo6TG9jYWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+
+/**
+ * @generated from message raptor.wings.local.v1.ShutdownServersRequest
+ */
+export type ShutdownServersRequest = Message<"raptor.wings.local.v1.ShutdownServersRequest"> & {
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ShutdownServersRequest.
+ * Use `create(ShutdownServersRequestSchema)` to create a new message.
+ */
+export const ShutdownServersRequestSchema: GenMessage<ShutdownServersRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 0);
+
+/**
+ * @generated from message raptor.wings.local.v1.ShutdownServersResponse
+ */
+export type ShutdownServersResponse = Message<"raptor.wings.local.v1.ShutdownServersResponse"> & {
+  /**
+   * How many servers were running and were stopped.
+   *
+   * @generated from field: int32 stopped = 1;
+   */
+  stopped: number;
+
+  /**
+   * Servers that didn't stop cleanly, as "<server id>: <error>".
+   *
+   * @generated from field: repeated string errors = 2;
+   */
+  errors: string[];
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ShutdownServersResponse.
+ * Use `create(ShutdownServersResponseSchema)` to create a new message.
+ */
+export const ShutdownServersResponseSchema: GenMessage<ShutdownServersResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 1);
 
 /**
  * @generated from message raptor.wings.local.v1.GetStatusRequest
@@ -25,7 +64,7 @@ export type GetStatusRequest = Message<"raptor.wings.local.v1.GetStatusRequest">
  * Use `create(GetStatusRequestSchema)` to create a new message.
  */
 export const GetStatusRequestSchema: GenMessage<GetStatusRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 0);
+  messageDesc(file_raptor_wings_local_v1_local, 2);
 
 /**
  * @generated from message raptor.wings.local.v1.GetStatusResponse
@@ -76,7 +115,7 @@ export type GetStatusResponse = Message<"raptor.wings.local.v1.GetStatusResponse
  * Use `create(GetStatusResponseSchema)` to create a new message.
  */
 export const GetStatusResponseSchema: GenMessage<GetStatusResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 1);
+  messageDesc(file_raptor_wings_local_v1_local, 3);
 
 /**
  * @generated from message raptor.wings.local.v1.DockerStatus
@@ -103,7 +142,7 @@ export type DockerStatus = Message<"raptor.wings.local.v1.DockerStatus"> & {
  * Use `create(DockerStatusSchema)` to create a new message.
  */
 export const DockerStatusSchema: GenMessage<DockerStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 2);
+  messageDesc(file_raptor_wings_local_v1_local, 4);
 
 /**
  * LocalService is served by Wings on its Unix socket (/run/raptor/wings.sock)
@@ -123,6 +162,19 @@ export const LocalService: GenService<{
     methodKind: "unary";
     input: typeof GetStatusRequestSchema;
     output: typeof GetStatusResponseSchema;
+  },
+  /**
+   * ShutdownServers gracefully stops every running server with its egg's
+   * stop command, without changing whether it should run, so servers start
+   * again when the host is back. Called by raptor-shutdown.service when the
+   * host shuts down. Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.ShutdownServers
+   */
+  shutdownServers: {
+    methodKind: "unary";
+    input: typeof ShutdownServersRequestSchema;
+    output: typeof ShutdownServersResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_wings_local_v1_local, 0);

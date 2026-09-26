@@ -24,6 +24,9 @@ const usage = `usage: raptor <command> [flags]
 commands:
   status      show node status (talks to the running daemon)
   wings run   run the Wings daemon
+  wings shutdown-servers
+              gracefully stop every server for a host shutdown (root; used
+              by raptor-shutdown.service, servers start again at boot)
   version     print version
 
 Run "raptor <command> -h" for a command's flags.`
@@ -47,6 +50,8 @@ func run(args []string) error {
 		return status(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
 		return wingsRun(ctx, args[2:])
+	case len(args) >= 2 && args[0] == "wings" && args[1] == "shutdown-servers":
+		return shutdownServers(ctx, args[2:])
 	default:
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)
@@ -105,4 +110,26 @@ func printStatus(s *localv1.GetStatusResponse) {
 	fmt.Printf("Wings    %s (%s), up %s\n", s.GetVersion(), s.GetCommit(), uptime)
 	fmt.Printf("Panel    %s\n", linked)
 	fmt.Printf("Docker   %s\n", docker)
+}
+
+func shutdownServers(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("wings shutdown-servers", flag.ContinueOnError)
+	socket := fs.String("socket", config.Default().Paths.Socket, "Wings socket")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
+	defer cancel()
+	res, err := localapi.Dial(*socket).ShutdownServers(ctx, &localv1.ShutdownServersRequest{})
+	if err != nil {
+		return fmt.Errorf("can't stop servers through Wings at %s: %w", *socket, err)
+	}
+	fmt.Printf("stopped %d server(s)\n", res.GetStopped())
+	for _, e := range res.GetErrors() {
+		fmt.Fprintln(os.Stderr, "raptor:", e)
+	}
+	if len(res.GetErrors()) > 0 {
+		return errors.New("some servers didn't stop cleanly")
+	}
+	return nil
 }

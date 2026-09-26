@@ -24,7 +24,10 @@ import (
 // Group is the Unix group whose members may use the socket (besides root).
 const Group = "raptor"
 
-type callerKey struct{}
+type (
+	callerKey struct{}
+	rootKey   struct{}
+)
 
 // Caller returns who made the request, as "local:<username>".
 func Caller(ctx context.Context) string {
@@ -32,6 +35,12 @@ func Caller(ctx context.Context) string {
 		return c
 	}
 	return "local:unknown"
+}
+
+// IsRoot reports whether the request came from uid 0.
+func IsRoot(ctx context.Context) bool {
+	root, _ := ctx.Value(rootKey{}).(bool)
+	return root
 }
 
 // Server serves the local API.
@@ -69,6 +78,8 @@ func Listen(ctx context.Context, path, group string, svc localv1connect.LocalSer
 		ReadHeaderTimeout: 10 * time.Second,
 		Protocols:         new(http.Protocols),
 		ConnContext: func(ctx context.Context, c net.Conn) context.Context {
+			uid, ok := peerUID(c)
+			ctx = context.WithValue(ctx, rootKey{}, ok && uid == 0)
 			return context.WithValue(ctx, callerKey{}, callerName(c))
 		},
 	}
