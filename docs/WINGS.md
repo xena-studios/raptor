@@ -32,7 +32,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 | Config | `/etc/raptor/config.yml` |
 | State DB | `/var/lib/raptor/state.db` |
 | Server data | `/var/lib/raptor/volumes/<server-id>/` (quota volume) |
-| Logs | `/var/log/raptor/` (install logs in `install/<server-id>.log`) |
+| Logs | `/var/log/raptor/` (job logs, including installs, in `jobs/<job-id>.log`) |
 | Socket | `/run/raptor/wings.sock` (root + `raptor` group) |
 | System user | `raptor` |
 | Docker networks | `raptor_nw` (bridge `raptor0`) for servers, `raptor_install` (bridge `raptor-inst`) for installs; subnets picked automatically to avoid collisions |
@@ -66,6 +66,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 node_id: 0192f0a4-...            # assigned at enrollment
 panel:
   url: https://api.raptorpanel.net  # never hardcoded in Wings
+  app_url: https://app.raptorpanel.net  # passkey origin and RP ID for signed commands
 identity:                        # written at enrollment (Phase 3), root-only 0600
   key: /etc/raptor/node.key      # the node's private key; generated on the box, never leaves it
   panel_key: /etc/raptor/panel.pub  # the Panel's signing key, pinned at enrollment
@@ -106,7 +107,7 @@ log:
 - Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept), plus the latest snapshot is included in offsite backups.
 - **Private files:** SQLite creates database files as 0644 regardless of the umask, and gives its `-wal`/`-shm` files the same mode. Wings creates `state.db` as 0600 before SQLite opens it, so all three stay root-only.
 
-Tables (sketch): `servers`, `allocations`, `server_variables`, `eggs` (cached), `schedules`, `schedule_steps`, `jobs`, `job_logs`, `backups`, `backup_destinations`, `events` (outbox, with `seq`), `executed_commands`, `grant_cache`, `sftp_key_cache`, `metrics_rollup`, `kv` (node config).
+Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `kv` (node config). Still to come with their features: `schedules`, `schedule_steps`, `backups`, `backup_destinations`, `grant_cache`, `sftp_key_cache`, `metrics_rollup`.
 
 ## Container runtime
 
@@ -191,13 +192,33 @@ Wings' rules live in their **own nftables table, `inet raptor`**, not in Docker'
 
 ## Job engine
 
-A durable queue in SQLite. Everything long-running is a job: `server.install`, `server.reinstall`, `server.update`, `backup.create`, `backup.restore`, `backup.prune`, `schedule.run`, `logs.rotate`, `transfer.send`, `transfer.receive`.
+A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a job. Implemented: `server.install` (installs and reinstalls). Coming with their features: `backup.create`, `backup.restore`, `backup.prune`, `schedule.run`, `transfer.send`, `transfer.receive`.
 
-- Jobs survive Wings restarts and reboots, and resume or retry with backoff.
-- **Per-server lock:** one mutating job per server at a time.
-- **Global limits:** e.g. max 2 concurrent backups, 2 concurrent installs per node.
-- Every job has persisted logs (`raptor jobs logs <id>`, and the Panel).
-- Every job emits events to the outbox.
+- **Survives Wings restarts and reboots.** A job that was running when Wings stopped is **resumed** if its handler says re-running it is safe (installs are: the script runs over the existing files again), and otherwise marked failed with "interrupted". Interruptions count as attempts, so a job that crashes Wings can't loop forever.
+- **Created atomically with what it's for:** a server, its "created" event, and its install job are written in one SQLite transaction.
+- **Retries:** a handler can mark an error as retryable; the job is requeued with exponential backoff (30 s doubling, at most 30 min) until its attempts run out.
+- **Per-server lock:** at most one locked job per server runs at a time.
+- **Global limits** per class: installs `limits.concurrent_installs` (default 2), backups `limits.concurrent_backups` (default 2), everything else 4.
+- **Cancel** queued or running jobs; deleting a server cancels its jobs first.
+- **Logs:** each job's output is kept in `/var/log/raptor/jobs/<job-id>.log`, the last 10 MB of it, written every 5 seconds while it runs (so a crash loses little) and at the end. Readable live while the job runs.
+- A handler panic fails the job; it never takes Wings down.
+- Finished jobs and their logs are deleted after 30 days.
+
+## Event outbox
+
+Every change on the node is appended to `events` with a **monotonic sequence number** (`internal/wings/events`); it's what the Panel's mirror is built from ([ARCHITECTURE.md](ARCHITECTURE.md#mirror-sync)).
+- Events describing a database change are written **in the same transaction** as the change, so an event exists if and only if its change happened.
+- Readers ask for everything after the last sequence number they have; a sequence number is never reused, even after pruning.
+- **Retention:** acknowledged events are kept 7 days; unacknowledged ones up to the newest 100,000, so a node that never reaches a Panel can't grow its database forever. A reader that fell behind what's kept gets `ErrGap` and must rebuild from a snapshot.
+
+## Commands from the Panel
+
+`internal/wings/command` receives commands (the transport arrives in Phase 3) and decides whether to run them. See [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands).
+- **Envelope:** `command_id` (UUIDv7), node, user, action, server, params, and an expiry at most 10 minutes out.
+- **Panel grant:** an Ed25519 signature by the Panel's pinned key over the user, node, command ID, action, and server. Bound to one command, so it can't be reused. No Panel key (not linked yet) means every command is refused.
+- **Passkey signature** for dangerous actions, verified by Wings itself.
+- **Exactly once:** each `command_id` runs at most once. A retry of the same command returns the stored result (even after it expired); the same ID with different content is refused. Records are kept 7 days. Commands left running by a Wings crash are marked failed on start.
+- **Actions** (`internal/wings/actions`): `server.create` (signed), `server.update` (signed when it changes the egg, image, or startup command, decided by Wings from its own records), `server.delete` (signed), `server.reinstall`, `server.start`/`stop`/`restart`/`kill`, `server.command`, and `keys.add`/`keys.remove` (signed by an owner key).
 
 ## Scheduler
 

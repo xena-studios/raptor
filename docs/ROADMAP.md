@@ -107,13 +107,14 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Deletion: file cleanup and freed allocations. The final backup and orphaned offsite backups come with backups (Phase 2), quota cleanup with 1.6.
 - [x] `task e2e:host`: Wings restart, Docker restart, host shutdown, and reboot, against the real systemd units
 
-### 1.5 Job engine
-- [ ] Durable queue in SQLite, resume/retry, per-server locks, global concurrency limits
-- [ ] Job logs
-- [ ] Event outbox with monotonic `seq`
-- [ ] `executed_commands` table for idempotency, also used as replay protection for signed commands
-- [ ] **Command envelope:** `command_id`, expiry, Panel grant, and optional passkey signature (`authenticatorData`, `clientDataJSON`, signature); RFC 8785 canonical form; which actions require a signature ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands))
-- [ ] **Signed-command verification in Wings:** trusted keys and delegations in SQLite, the full WebAuthn assertion check, rejection and logging of anything unsigned or invalid; tested with a software authenticator and fuzzed
+### 1.5 Job engine ✅
+- [x] Durable queue in SQLite, resume/retry, per-server locks, global concurrency limits; installs run as resumable jobs
+- [x] Job logs
+- [x] Event outbox with monotonic `seq`, written in the same transaction as each change
+- [x] `executed_commands` table for idempotency, also used as replay protection for signed commands
+- [x] **Command envelope:** `command_id`, expiry, Panel grant, and optional passkey signature (`authenticatorData`, `clientDataJSON`, signature); RFC 8785 canonical form; which actions require a signature ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands))
+- [x] **Signed-command verification in Wings:** trusted keys and delegations in SQLite, the full WebAuthn assertion check, rejection and logging of anything unsigned or invalid; tested with a software authenticator and fuzzed
+- [x] Server actions (`server.create/update/delete/reinstall/start/stop/restart/kill/command`, `keys.add/remove`) wired to the manager and tested end to end on Docker
 
 ### 1.6 Disk quotas
 - [ ] **Validation gate first:** on a fresh Debian 12 VM (ext4 root), loop image + systemd mount unit + project quotas set from Go. Fill past the limit, reboot, grow online, and benchmark against native disk. **Gate:** limits hold, survive reboot, grow online, within ~10% of native I/O.
@@ -175,7 +176,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] pgBackRest WAL archive to object storage in another location; **restore test**
 - [ ] DNS: hostnames from [ARCHITECTURE.md](ARCHITECTURE.md#hostnames); `api.raptorpanel.net` behind the Cloudflare proxy (origin locked to Cloudflare, WAF rule for node connections); `raptornodes.net` DNS-only on a plan with enough records, apex redirecting to `raptorpanel.net`
 - [ ] Domain account hardening: hardware-key 2FA on the registrar and Cloudflare (no SMS recovery), registrar lock, scoped API tokens; decide whether the web app is hosted under a separate account or provider from DNS and the proxy
-- [ ] Move code to the split hostnames: API on `api.raptorpanel.net` with CORS for `https://app.raptorpanel.net` only, node connections at `wss://api.raptorpanel.net/nodes/connect`, Wings' default Panel URL, WebAuthn origin and RP ID `app.raptorpanel.net`
+- [ ] Move code to the split hostnames: API on `api.raptorpanel.net` with CORS for `https://app.raptorpanel.net` only, node connections at `wss://api.raptorpanel.net/nodes/connect`, WebAuthn origin and RP ID `app.raptorpanel.net` in the Panel (Wings' defaults already point at `api.` and `app.` since 1.5)
 - [ ] Observability: OpenTelemetry → Grafana (Cloud or self-hosted), alerts
 - [ ] Deploy pipeline: zero-downtime deploys, with node connections drained and reconnected with jitter
 

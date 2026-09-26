@@ -4,11 +4,53 @@
 
 package store
 
+import (
+	"database/sql"
+)
+
 type Allocation struct {
 	ServerID  string
 	Ip        string
 	Port      int64
 	IsPrimary int64
+}
+
+type Event struct {
+	Seq      int64
+	Type     string
+	ServerID string
+	Version  int64
+	At       int64
+	Data     string
+}
+
+type ExecutedCommand struct {
+	CommandID   string
+	PayloadHash []byte
+	Action      string
+	UserID      string
+	SignedBy    []byte
+	Status      string
+	Result      string
+	Error       string
+	ReceivedAt  int64
+	FinishedAt  sql.NullInt64
+}
+
+type Job struct {
+	ID          string
+	ServerID    string
+	Type        string
+	Payload     string
+	Status      string
+	Attempts    int64
+	MaxAttempts int64
+	RunAfter    int64
+	Error       string
+	Result      string
+	CreatedAt   int64
+	StartedAt   sql.NullInt64
+	FinishedAt  sql.NullInt64
 }
 
 type Kv struct {
@@ -36,4 +78,18 @@ type Server struct {
 	Version      int64
 	CreatedAt    int64
 	UpdatedAt    int64
+}
+
+type TrustedKey struct {
+	CredentialID []byte
+	UserID       string
+	PublicKey    []byte
+	Role         string
+	ServerID     string
+	Actions      string
+	Name         string
+	SignCount    int64
+	ExpiresAt    sql.NullInt64
+	AddedBy      []byte
+	AddedAt      int64
 }

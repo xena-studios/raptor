@@ -12,11 +12,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/xena-studios/raptor/internal/wings/actions"
+	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
+	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -66,7 +70,10 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		StartedAt: time.Now(),
 		Docker:    dc,
 	}
-	rt := &runtimeSetup{rt: dc, cfg: cfg, log: log, db: db, svc: svc}
+	rt, err := newRuntimeSetup(dc, cfg, log, db, svc)
+	if err != nil {
+		return err
+	}
 	defer rt.close()
 	rt.check(ctx)
 
@@ -96,6 +103,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		case <-runtimeTicker.C:
 			rt.check(ctx)
 		case <-ticker.C:
+			rt.prune(ctx)
 			if path, err := db.Snapshot(ctx, "hourly", snapshotKeep); err != nil {
 				log.Error("state snapshot failed", "err", err)
 			} else {
@@ -117,12 +125,49 @@ type runtimeSetup struct {
 	svc     *localapi.Service
 	rules   *firewall.Rules // set once setup succeeded
 	servers *server.Manager
+
+	events   *events.Outbox
+	jobs     *jobs.Engine
+	commands *command.Executor // receives Panel commands (connected in Phase 3)
 }
 
-// close detaches from servers without stopping them.
+func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger, db *store.DB, svc *localapi.Service) (*runtimeSetup, error) {
+	rp, err := command.RelyingPartyFor(cfg.Panel.AppURL)
+	if err != nil {
+		return nil, err
+	}
+	panelKey, err := command.LoadPanelKey(cfg.Identity.PanelKey)
+	if err != nil {
+		return nil, err
+	}
+	r := &runtimeSetup{rt: rt, cfg: cfg, log: log, db: db, svc: svc, events: events.New(db)}
+	r.jobs = jobs.New(jobs.Options{
+		Store:  db,
+		LogDir: filepath.Join(cfg.Paths.Logs, "jobs"),
+		Log:    log,
+		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups},
+	})
+	r.commands = &command.Executor{DB: db, NodeID: cfg.NodeID, RP: rp, PanelKey: panelKey, Log: log}
+	return r, nil
+}
+
+// close stops jobs (running installs resume on the next start) and detaches
+// from servers without stopping them.
 func (r *runtimeSetup) close() {
 	if r.servers != nil {
-		r.servers.Close()
+		r.servers.Close() // stops jobs first
+	}
+}
+
+// prune drops old events, executed commands, and job records.
+func (r *runtimeSetup) prune(ctx context.Context) {
+	if n, err := r.events.Prune(ctx, time.Now()); err != nil {
+		r.log.Error("pruning events failed", "err", err)
+	} else if n > 0 {
+		r.log.Debug("events pruned", "count", n)
+	}
+	if _, err := r.commands.Prune(ctx); err != nil {
+		r.log.Error("pruning executed commands failed", "err", err)
 	}
 }
 
@@ -173,26 +218,38 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	uid, _ := strconv.Atoi(u.Uid)
 	gid, _ := strconv.Atoi(u.Gid)
 	opts := server.Options{
-		Runtime:            r.rt,
-		Store:              r.db,
-		Log:                r.log,
-		VolumesDir:         r.cfg.Paths.Volumes,
-		TmpDir:             r.cfg.Paths.Tmp,
-		LogDir:             r.cfg.Paths.Logs,
-		UID:                uid,
-		GID:                gid,
-		Timezone:           host.Timezone(),
-		DockerInterface:    nets.Server.Gateway.String(),
-		ReservedPorts:      []int{r.cfg.Ports.SFTP},
-		ConcurrentInstalls: r.cfg.Limits.ConcurrentInstalls,
+		Runtime:         r.rt,
+		Store:           r.db,
+		Log:             r.log,
+		VolumesDir:      r.cfg.Paths.Volumes,
+		TmpDir:          r.cfg.Paths.Tmp,
+		LogDir:          r.cfg.Paths.Logs,
+		UID:             uid,
+		GID:             gid,
+		Timezone:        host.Timezone(),
+		DockerInterface: nets.Server.Gateway.String(),
+		ReservedPorts:   []int{r.cfg.Ports.SFTP},
+		Jobs:            r.jobs,
+		Events:          r.events,
 	}
 	if nets.CgroupParent != "" {
 		opts.OOMKills = func() (int64, error) { return host.OOMKills(nets.CgroupParent) }
 	}
-	mgr := server.New(opts)
+	mgr := server.New(opts) // registers the install job handler
 	if err := mgr.Reconcile(ctx); err != nil {
 		mgr.Close()
 		return fmt.Errorf("reconcile servers: %w", err)
+	}
+	if err := r.commands.Start(ctx); err != nil {
+		mgr.Close()
+		return fmt.Errorf("commands: %w", err)
+	}
+	actions.Register(r.commands, mgr)
+	// Jobs start after reconcile, so interrupted installs resume against
+	// servers that are already loaded.
+	if err := r.jobs.Start(ctx); err != nil {
+		mgr.Close()
+		return fmt.Errorf("jobs: %w", err)
 	}
 	r.servers = mgr
 	r.svc.SetServers(mgr)

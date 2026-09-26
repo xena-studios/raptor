@@ -35,6 +35,10 @@ type Config struct {
 // hardcoded in Wings.
 type Panel struct {
 	URL string `yaml:"url"`
+	// AppURL is the web app's origin. Passkey signatures are only accepted
+	// when made there, with its hostname as the RP ID (docs/DECISIONS.md #82):
+	// never the API's hostname or any other subdomain.
+	AppURL string `yaml:"app_url"`
 }
 
 // Identity holds the node's key and the Panel's pinned signing key, both
@@ -93,7 +97,7 @@ type Log struct {
 // Default returns the config used for any key the file doesn't set.
 func Default() Config {
 	return Config{
-		Panel: Panel{URL: "https://raptorpanel.net"},
+		Panel: Panel{URL: "https://api.raptorpanel.net", AppURL: "https://app.raptorpanel.net"},
 		Identity: Identity{
 			Key:      "/etc/raptor/node.key",
 			PanelKey: "/etc/raptor/panel.pub",

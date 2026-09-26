@@ -80,14 +80,15 @@ A WebAuthn passkey signs whatever challenge a site gives it. For dangerous actio
 Verification takes about 0.1 ms on the node. The user's cost is one fingerprint or PIN tap, which replaces the re-authentication prompt these actions already needed. Bulk actions sign once (one signature over the list of servers), and the browser signs before sending, so there's no extra round trip.
 
 **Which actions are signed** (anything that destroys data, changes what code runs, or changes who has access):
+- **Creating a server** (it chooses an egg, and so the install script and image that run)
 - Deleting a server; reinstalling with "wipe"; restoring a backup over current files
-- Changing the egg, install script, startup command, or Docker image
+- Changing the egg, install script, startup command, or Docker image (Wings compares the update with its own records to decide; the Panel can't mislabel it)
 - Granting support access
 - Adding SSH/SFTP keys or sub-users, and delegating signed actions to them
 - Changing the node's trusted keys
 - Removing the node
 
-**Not signed** (to keep everyday use fast): start/stop/restart/kill, console commands, file browsing and editing, schedules, and settings that don't change code or access. These still need the Panel's per-user grant. A compromised Panel could read files and the console and disrupt servers, but not destroy them, backdoor them through eggs or images, or quietly add access.
+**Not signed** (to keep everyday use fast): start/stop/restart/kill, console commands, a plain reinstall (it re-runs the egg the owner already approved), file browsing and editing, variables, schedules, and settings that don't change code or access. These still need the Panel's per-user grant. A compromised Panel could read files and the console and disrupt servers, but not destroy them, backdoor them through eggs or images, or quietly add access.
 
 **Trusted keys: rooted on the node, not in the Panel**
 
@@ -108,6 +109,11 @@ If the Panel simply told Wings which keys to trust, a compromised Panel would se
 - **Alerts straight from the node:** Wings reports every signed dangerous action to the owner through a channel configured on the node (Discord webhook or email), not through the Panel, and `raptor audit` lists them from the node's own records. A tampered action gets noticed even if the Panel hides it.
 
 Even if every one of these failed, each malicious action would still need a real person's passkey at that moment, bound to one command. That turns "one Panel breach controls every node" into "an attacker must trick specific users, one action at a time".
+
+**Implementation status:** the envelope, grant check, WebAuthn verification, trusted-key store, delegations, and key management are implemented in Wings (`internal/wings/command`, Phase 1.5). They're tested with a software authenticator producing real ES256, EdDSA, and RS256 assertions, including every attack in the flow above (changed params, moved signatures, other users' and untrusted keys, phishing origins, other RP IDs, missing user verification or presence, registration instead of assertion, cross-origin frames, forged signatures, cloned counters, delegation scope and expiry), and fuzzed. Pinning at enrollment arrives with enrollment (Phase 3); `raptor keys reset` with the CLI.
+
+- Signature counters: authenticators that keep a counter must move it forward, or the signature is rejected as a possible cloned key. Synced passkeys always report 0 and are exempt.
+- Params must not rely on integers above 2^53: canonical JSON numbers are doubles in browsers.
 
 **Requirements**
 - Dangerous actions need a **passkey**. Authenticator-app codes can't be verified by Wings, so they're not enough for these actions (they still protect sign-in). Nearly every current phone and laptop supports passkeys, and hardware security keys cover the rest.
