@@ -44,7 +44,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 - Different binary, service, paths, network, subnet, labels, and user. No shared resources.
 - Wings **only lists and manages containers labeled `raptor.wings.managed=true`**. It never prunes or touches others. If a container or network with one of Wings' names exists without the label, Wings refuses to touch it and reports an error instead.
 - Before accepting a port allocation, Wings checks that the host port is free. The Panel rejects allocations Wings reports as taken.
-- SFTP uses 2022 unless it's taken (Pterodactyl's default), then the first free port in 2022–2099. HTTPS files use 8443, falling back within 8443–8499. The Panel always shows the real port.
+- SFTP (only when enabled) uses 2022 unless it's taken (Pterodactyl's default), then the first free port in 2022–2099. The Panel always shows the real port. Wings runs no HTTP server.
 - The installer **merges** into `/etc/docker/daemon.json`, never overwrites it.
 - A CI test runs both Wings on one VM and checks neither disturbs the other.
 
@@ -66,11 +66,9 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 node_id: 0192f0a4-...            # assigned at enrollment
 panel:
   url: https://raptorpanel.net   # never hardcoded in Wings
-  tunnel: tunnel.raptorpanel.net:443
-tls:                             # all files root-only, 0600
-  ca: /etc/raptor/tls/panel-ca.pem
-  cert: /etc/raptor/tls/node.pem
-  key: /etc/raptor/tls/node.key  # generated on the box, never leaves it
+identity:                        # written at enrollment (Phase 3), root-only 0600
+  key: /etc/raptor/node.key      # the node's private key; generated on the box, never leaves it
+  panel_key: /etc/raptor/panel.pub  # the Panel's signing key, pinned at enrollment
 paths:
   state: /var/lib/raptor/state.db
   volumes: /var/lib/raptor/volumes
@@ -85,7 +83,6 @@ docker:
   install_allow: []              # private CIDRs installs may reach, e.g. [192.168.1.10/32]
 ports:
   sftp: 2022
-  https: 8443
 limits:
   concurrent_installs: 2
   concurrent_backups: 2
@@ -236,12 +233,13 @@ Sent **directly from Wings** so they work during Panel outages: Discord webhooks
 
 ~7 days of CPU/RAM/disk/network/player history per server in SQLite, downsampled over time. Streamed live to the Panel only while someone is watching.
 
-## SFTP and HTTPS file server
+## Files and SFTP
 
-- Built-in SFTP server (`golang.org/x/crypto/ssh`), usernames `user.serverid`, chrooted to the server's directory.
-- Auth via the Panel. Cached SSH public keys + permissions allow key auth while the Panel is unreachable.
-- Host key signed by the Panel's CA at enrollment. The Panel shows the fingerprint.
-- HTTPS file endpoint on 8443 for large uploads/downloads with short-lived signed tokens; cert for `<node-id>.node.raptornodes.net` delivered by the Panel.
+**Wings runs no HTTP server.** It only listens on the game servers' ports and, when enabled, SFTP.
+- **Web file manager:** operations arrive over the node connection. Uploads and downloads are chunked (under 100 MB per chunk, resumable, 1 GB per file) and carried on a separate short-lived outbound connection per transfer, so they never slow the console. See [ARCHITECTURE.md](ARCHITECTURE.md#files-and-sftp).
+- **SFTP** (off by default, enabled per node in the Panel): built-in server (`golang.org/x/crypto/ssh`), usernames `user.serverid`, chrooted to the server's directory, reachable at `n-<short-id>.raptornodes.net`. For files over the web cap and bulk transfers.
+- SFTP auth via the Panel. Cached SSH public keys + permissions allow key auth while the Panel is unreachable.
+- SFTP host key generated on the node; its fingerprint is reported to the Panel and shown to users. **Nodes need no TLS certificates.**
 - **All file operations use `os.Root`** (symlink-safe, confined to the server directory).
 
 ## CLI scope
@@ -298,9 +296,9 @@ Checks, each with **what's wrong, why it matters, and how to fix it**:
 - Docker running, configured (`live-restore`, `userland-proxy`), version
 - Quota volume mounted, healthy, free space
 - Host disk free space (Docker images, SQLite)
-- Clock synced (NTP). Clock drift breaks certs, tokens, and schedules.
-- Tunnel reachable, cert validity
-- SFTP/HTTPS ports bound
+- Clock synced (NTP). Clock drift breaks connection signatures, grants, and schedules.
+- Panel reachable through Cloudflare (`wss://raptorpanel.net`), node key present
+- SFTP port bound (when enabled); node hostname resolves to this box's public IP
 - Pterodactyl coexistence
 - Security warnings (warn only, never change): password root SSH login, unattended upgrades off
 

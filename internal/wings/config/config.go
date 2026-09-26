@@ -20,28 +20,28 @@ const DefaultPath = "/etc/raptor/config.yml"
 
 // Config is the parsed config file.
 type Config struct {
-	NodeID  string  `yaml:"node_id"`
-	Panel   Panel   `yaml:"panel"`
-	TLS     TLS     `yaml:"tls"`
-	Paths   Paths   `yaml:"paths"`
-	Docker  Docker  `yaml:"docker"`
-	Ports   Ports   `yaml:"ports"`
-	Limits  Limits  `yaml:"limits"`
-	Updates Updates `yaml:"updates"`
-	Log     Log     `yaml:"log"`
+	NodeID   string   `yaml:"node_id"`
+	Panel    Panel    `yaml:"panel"`
+	Identity Identity `yaml:"identity"`
+	Paths    Paths    `yaml:"paths"`
+	Docker   Docker   `yaml:"docker"`
+	Ports    Ports    `yaml:"ports"`
+	Limits   Limits   `yaml:"limits"`
+	Updates  Updates  `yaml:"updates"`
+	Log      Log      `yaml:"log"`
 }
 
-// Panel is where Wings connects. Never hardcoded in Wings.
+// Panel is where Wings connects (a WebSocket to the Panel URL). Never
+// hardcoded in Wings.
 type Panel struct {
-	URL    string `yaml:"url"`
-	Tunnel string `yaml:"tunnel"`
+	URL string `yaml:"url"`
 }
 
-// TLS holds certificate paths.
-type TLS struct {
-	CA   string `yaml:"ca"`
-	Cert string `yaml:"cert"`
-	Key  string `yaml:"key"`
+// Identity holds the node's key and the Panel's pinned signing key, both
+// written at enrollment (docs/ARCHITECTURE.md#node-connection).
+type Identity struct {
+	Key      string `yaml:"key"`       // the node's private key; never leaves the box
+	PanelKey string `yaml:"panel_key"` // the Panel's public signing key
 }
 
 // Paths holds on-box locations.
@@ -63,10 +63,10 @@ type Docker struct {
 	InstallAllow   []string `yaml:"install_allow"` // private CIDRs install containers may reach
 }
 
-// Ports holds Wings' own listening ports.
+// Ports holds Wings' own listening ports. Wings runs no HTTP server; SFTP
+// only listens when it's enabled for the node.
 type Ports struct {
-	SFTP  int `yaml:"sftp"`
-	HTTPS int `yaml:"https"`
+	SFTP int `yaml:"sftp"`
 }
 
 // Limits holds node-wide concurrency and safety limits.
@@ -93,11 +93,10 @@ type Log struct {
 // Default returns the config used for any key the file doesn't set.
 func Default() Config {
 	return Config{
-		Panel: Panel{URL: "https://raptorpanel.net", Tunnel: "tunnel.raptorpanel.net:443"},
-		TLS: TLS{
-			CA:   "/etc/raptor/tls/panel-ca.pem",
-			Cert: "/etc/raptor/tls/node.pem",
-			Key:  "/etc/raptor/tls/node.key",
+		Panel: Panel{URL: "https://raptorpanel.net"},
+		Identity: Identity{
+			Key:      "/etc/raptor/node.key",
+			PanelKey: "/etc/raptor/panel.pub",
 		},
 		Paths: Paths{
 			State:   "/var/lib/raptor/state.db",
@@ -110,7 +109,7 @@ func Default() Config {
 			Network:        "raptor_nw",
 			InstallNetwork: "raptor_install",
 		},
-		Ports:   Ports{SFTP: 2022, HTTPS: 8443},
+		Ports:   Ports{SFTP: 2022},
 		Limits:  Limits{ConcurrentInstalls: 2, ConcurrentBackups: 2, HostDiskMinFree: 10 << 30},
 		Updates: Updates{Channel: "stable"},
 		Log:     Log{Level: "info"},
@@ -154,10 +153,8 @@ func (c Config) Validate() error {
 	default:
 		errs = append(errs, fmt.Errorf("updates.channel %q: want stable or beta", c.Updates.Channel))
 	}
-	for name, p := range map[string]int{"ports.sftp": c.Ports.SFTP, "ports.https": c.Ports.HTTPS} {
-		if p < 1 || p > 65535 {
-			errs = append(errs, fmt.Errorf("%s %d: out of range", name, p))
-		}
+	if p := c.Ports.SFTP; p < 1 || p > 65535 {
+		errs = append(errs, fmt.Errorf("ports.sftp %d: out of range", p))
 	}
 	if c.Limits.ConcurrentInstalls < 1 || c.Limits.ConcurrentBackups < 1 {
 		errs = append(errs, errors.New("limits: concurrency must be at least 1"))

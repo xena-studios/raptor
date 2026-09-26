@@ -34,7 +34,7 @@ log:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Panel.URL != "https://example.test" || cfg.Panel.Tunnel != "tunnel.raptorpanel.net:443" {
+	if cfg.Panel.URL != "https://example.test" || cfg.Identity.Key != "/etc/raptor/node.key" {
 		t.Errorf("panel = %+v", cfg.Panel)
 	}
 	if cfg.Limits.HostDiskMinFree != 5<<30 || cfg.Limits.ReservedMemory != 2<<30 {

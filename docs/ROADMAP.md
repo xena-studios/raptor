@@ -12,7 +12,7 @@ Phase 5   Beta + launch
           Business/legal track (runs alongside all phases)
 ```
 
-**Critical path:** egg runtime → Wings core → tunnel + enrollment → web app → billing. The egg runtime is the biggest risk: if it takes longer, everything after it moves.
+**Critical path:** egg runtime → Wings core → node connection + enrollment → web app → billing. The egg runtime is the biggest risk: if it takes longer, everything after it moves.
 
 There is no separate prototype phase. The riskiest assumptions are checked by a **validation gate** at the start of the phase that depends on them (1.0, 1.6, 3.0). If a gate fails, fix the design docs before continuing that phase.
 
@@ -142,8 +142,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 - [ ] **Scheduler:** cron + timezone, multi-step tasks, `only_when_online`, jitter, missed-run policy
 - [ ] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + prune jobs, safety backup before restore, low CPU/I/O weight, on by default
-- [ ] **SFTP:** `x/crypto/ssh`, `user.serverid`, `os.Root` chroot, host key, auth callback interface (stubbed), public key cache
-- [ ] **HTTPS file server:** port 8443, signed short-lived tokens, streaming upload/download
+- [ ] **SFTP:** off by default, enabled per node; `x/crypto/ssh`, `user.serverid`, `os.Root` chroot, host key generated on the node, auth callback interface (stubbed), public key cache
+- [ ] **File operations for the web file manager:** list, read, write, rename, delete, archive, through `os.Root`; chunked, resumable uploads and downloads (chunks under 100 MB, 1 GB per-file cap) on a separate outbound connection per transfer. No HTTP server on the node.
 - [ ] **Notifications:** Discord + generic webhooks from Wings
 - [ ] **Local metrics:** ~7 days, downsampled
 - [ ] **`doctor`:** all checks from [WINGS.md](WINGS.md#doctor), with fix messages; `--bundle`, `--upload`
@@ -151,7 +151,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] **Self-update:** channels, signature verification, atomic swap, rollback on failure
 - [ ] **Pterodactyl coexistence** CI test + **`raptor import pterodactyl`**
 - [ ] **Host disk protection:** refuse installs/pulls below the threshold
-- [ ] **Fault-injection suite:** kill tunnel/Wings/Docker mid-job, reboot, fill disks, unmount the volume, corrupt `state.db`
+- [ ] **Fault-injection suite:** drop the node connection, kill Wings/Docker mid-job, reboot, fill disks, unmount the volume, corrupt `state.db`
 
 **Exit criteria:** fault-injection suite passes; a node survives a week-long soak test (scheduled restarts + backups + random Wings restarts) with no unexpected game downtime.
 
@@ -161,18 +161,18 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 **Goal:** a real Panel that nodes connect to. Minimal UI.
 
-### 3.0 Validation gate: tunnel
-- [ ] Wings dials the Panel over mTLS + yamux; RPCs in both directions
+### 3.0 Validation gate: node connection through Cloudflare
+- [ ] Wings dials `wss://` through the real Cloudflare proxy; yamux inside; RPCs in both directions; challenge signatures both ways
 - [ ] Kill the connection mid-RPC → reconnect with jitter → retry with the same `command_id` → no duplicate execution
-- [ ] Stream 10 MB on one stream while measuring console latency on another
-- **Gate:** RPCs work both ways, retries are idempotent, console latency stays acceptable during the transfer. This becomes the real tunnel code.
+- [ ] Hold connections idle for hours (ping keeps them alive), survive Cloudflare dropping them, and measure console latency while a 1 GB upload runs on its separate transfer connection
+- **Gate:** RPCs work both ways through Cloudflare, retries are idempotent, idle connections stay up, console latency stays acceptable during a transfer. This becomes the real connection code.
 
 ### 3.1 Infrastructure
 - [ ] Server #1 (primary) + #2 (Postgres replica); Docker Compose; Caddy
 - [ ] pgBackRest WAL archive to object storage in another location; **restore test**
-- [ ] DNS for `raptorpanel.net` and `raptornodes.net`; `tunnel.raptorpanel.net` unproxied
+- [ ] DNS: `raptorpanel.net` behind the Cloudflare proxy (origin locked to Cloudflare, WAF rule for node connections); `raptornodes.net` DNS-only on a plan with enough records
 - [ ] Observability: OpenTelemetry → Grafana (Cloud or self-hosted), alerts
-- [ ] Deploy pipeline: zero-downtime `api` deploys; graceful `tunnel` drain
+- [ ] Deploy pipeline: zero-downtime deploys, with node connections drained and reconnected with jitter
 
 ### 3.2 Accounts
 - [ ] WorkOS AuthKit integration; own `users` table; Panel-issued sessions; CSRF
@@ -181,17 +181,17 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Audit log
 
 ### 3.3 Nodes
-- [ ] Internal CA (separate key storage); client cert issuance + rotation
+- [ ] Node keys: enrollment stores the node's public key; challenge signing; Panel signing key (separate storage) pinned by Wings; revocation
 - [ ] Join tokens; **install script** at `get.raptorpanel.net` (generated per release with the binary's SHA-256 embedded); `raptor bootstrap` preflight + setup + enroll
 - [ ] `raptor link` / `unlink` / `relink`
-- [ ] Tunnel role: connection registry, version negotiation, heartbeats, drain
-- [ ] Command routing api → tunnel → Wings, with `command_id`
+- [ ] Node connections in `serve api`: connection registry, version negotiation, pings, drain, forwarding between instances via `LISTEN/NOTIFY`
+- [ ] Command routing to the instance holding the node, with `command_id`
 - [ ] Event ingestion (batched) + mirror + snapshot rebuild
-- [ ] Node certs for `<node-id>.node.raptornodes.net` via Let's Encrypt DNS-01, delivered over the tunnel
+- [ ] Node DNS: `n-<short-id>.raptornodes.net` created at enrollment, updated from the IP Wings reports, names never reused
 - [ ] Signed short-lived grants attached to commands; Wings verification
-- [ ] SFTP auth over tunnel + public key sync
+- [ ] SFTP auth over the node connection + public key sync
 
-**Exit criteria:** on fresh Debian 12, Debian 13, and Ubuntu 24.04 VMs (amd64 + arm64), one command links the node and it shows Connected; killing the tunnel process and redeploying `api` both work without game impact; the mirror rebuilds correctly after being dropped.
+**Exit criteria:** on fresh Debian 12, Debian 13, and Ubuntu 24.04 VMs (amd64 + arm64), one command links the node and it shows Connected; dropping node connections and redeploying the Panel both work without game impact; the mirror rebuilds correctly after being dropped.
 
 ---
 
@@ -203,7 +203,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] **Nodes:** add node (command + live enrollment progress), node list, node health page (doctor warnings), settings, remove
 - [ ] **Servers:** create wizard (egg picker filtered by arch, variables, EULA prompts, allocations), overview (status, stats graphs, players), settings, reinstall, delete
 - [ ] **Console:** xterm.js, one multiplexed WebSocket per tab
-- [ ] **Files:** browser, Monaco editor, direct large uploads/downloads to `:8443`, archive/unarchive
+- [ ] **Files:** browser, Monaco editor, chunked resumable uploads/downloads through the Panel (1 GB cap, "use SFTP" beyond it), archive/unarchive
 - [ ] **Schedules:** builder for multi-step tasks, timezone picker, run history
 - [ ] **Backups:** list, create, restore, destinations, retention, key mode
 - [ ] **Users:** sub-users, per-server permissions, SSH keys
@@ -263,7 +263,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - Queued config edits for offline nodes
 - Public API keys + webhooks
 - More certified games and OS versions
-- QUIC tunnel, if measurements call for it
+- End-to-end encryption of node traffic inside the WebSocket (so Cloudflare can't read it), if customers ask for it
 
 ## Metrics to watch from beta onward
 

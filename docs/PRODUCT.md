@@ -67,9 +67,9 @@ Does the actual work: runs servers in Docker containers, runs schedules and back
 - **Free subdomains** with SRV records, so players type `smp.raptornodes.net` instead of an IP and port
 
 **Files**
-- Web file manager with a code editor
-- SFTP directly to your box at full speed
-- Large uploads and downloads go straight to your box, not through Raptor
+- Web file manager with a code editor, uploads and downloads up to 1 GB per file
+- SFTP directly to your box at full speed for anything bigger (turn it on per node)
+- Every node gets its own hostname (`n-k7m2qx9d.raptornodes.net`) that follows your IP, even on a home connection
 
 **Automation**
 - Multi-step schedules (warn players → wait → back up → restart) in your timezone
@@ -116,7 +116,7 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 | | Pterodactyl / Pelican | Raptor |
 |---|---|---|
 | Panel | You install and maintain it | Hosted, nothing to maintain |
-| Node setup | Configure wings, TLS, ports, DNS | One command |
+| Node setup | Configure wings, TLS, ports, DNS | One command, no ports to open for management, a hostname included |
 | Panel goes down | Nodes can't be managed | Servers, schedules, and backups keep running |
 | Local control | None | CLI + TUI on the box |
 | Disk limits | Soft, scan-based | Kernel-enforced, instant |
@@ -128,7 +128,8 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 ## Security principles
 
 - Wings only accepts specific, typed commands. It never runs arbitrary shell commands sent to it.
-- All Panel ↔ Wings traffic uses mutual TLS. Keys are generated on your box and never leave it.
+- Your box connects out to Raptor; it opens no management ports. Both sides prove their identity with signed keys, and your box's key is generated on it and never leaves it.
+- Raptor's site runs behind Cloudflare, which can see traffic passing through the web panel. For private file transfers, use SFTP, which goes straight to your box.
 - Wings releases are cryptographically signed.
 - Backups are encrypted on your box before upload.
 - Servers run in hardened, isolated containers.
@@ -139,6 +140,5 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 
 | Domain | Use |
 |---|---|
-| `raptorpanel.net` | Panel, API, installer (`get.raptorpanel.net`), tunnel endpoint |
-| `raptornodes.net` | Player-facing server subdomains (`smp.raptornodes.net`) |
-| `node.raptornodes.net` | Per-node hostnames and TLS certificates (`<node-id>.node.raptornodes.net`) |
+| `raptorpanel.net` | Panel, API, installer (`get.raptorpanel.net`), node connections (behind Cloudflare) |
+| `raptornodes.net` | Node hostnames (`n-k7m2qx9d.raptornodes.net`) and player-facing server subdomains (`smp.raptornodes.net`) |

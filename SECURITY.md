@@ -23,7 +23,7 @@ Please include the affected component (Panel, Wings, CLI, installer), steps to r
 In scope:
 - The Panel (raptorpanel.net) and its API
 - Wings, the `raptor` CLI, and the install script
-- The Panel ↔ Wings tunnel protocol, enrollment, and certificates
+- The Panel ↔ Wings connection protocol, enrollment, and node/Panel key handling
 - Egg processing in Wings (variable substitution, config file parsing, file paths)
 
 Out of scope:
