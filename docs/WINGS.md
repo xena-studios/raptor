@@ -28,7 +28,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 |---|---|
 | Binary | `/usr/local/bin/raptor` |
 | Services | `raptor-wings.service`; `raptor-shutdown.service` (graceful stops on host shutdown) |
-| systemd drop-in | `/etc/systemd/system/docker-.scope.d/10-raptor.conf`: container scopes stop after `raptor-shutdown` ([SERVERS.md](SERVERS.md#host-shutdown)) |
+| systemd drop-in | `/etc/systemd/system/docker-.scope.d/10-raptor.conf` (`Before=raptor-shutdown.service`): container scopes stop only after `raptor-shutdown` has stopped servers gracefully ([SERVERS.md](SERVERS.md#host-shutdown)) |
 | Config | `/etc/raptor/config.yml` |
 | State DB | `/var/lib/raptor/state.db` |
 | Server data | `/var/lib/raptor/volumes/<server-id>/` (quota volume) |

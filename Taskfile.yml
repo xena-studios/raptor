@@ -104,7 +104,17 @@ tasks:
   check:secrets:
     desc: Scan the git history for committed secrets
     cmds:
-      - docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner
+      # Mounted at the same absolute paths so git worktrees (whose .git file
+      # points into the main checkout's .git) work too. A scan that sees no
+      # commits fails instead of silently passing.
+      - |
+        set -eu
+        common=$(git rev-parse --path-format=absolute --git-common-dir)
+        mounts="-v $PWD:$PWD"
+        case "$common" in "$PWD"/*) ;; *) mounts="$mounts -v $common:$common" ;; esac
+        out=$(docker run --rm $mounts -w "$PWD" ghcr.io/gitleaks/gitleaks:v8.30.1 git "$PWD" --redact --no-banner 2>&1) || { echo "$out"; exit 1; }
+        echo "$out"
+        if echo "$out" | grep -q " 0 commits scanned"; then echo "gitleaks scanned no commits"; exit 1; fi
 
   check:
     desc: Run every check CI runs
