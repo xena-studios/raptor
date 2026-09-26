@@ -8,8 +8,11 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/xena-studios/raptor/internal/shared/ordered"
 )
 
 // Supported egg format versions (meta.version).
@@ -65,11 +68,18 @@ type ConfigFile struct {
 	Find   []FindRule // in egg order
 }
 
-// FindRule is one key/value replacement. Value is a string or a nested
-// structure (for match/replace_with rules); interpreted by the config parsers.
+// FindRule is one replacement in a config file. Key's meaning depends on the
+// parser (a property name, a dotted path, a line prefix). Value is a string,
+// bool, or number, with placeholders unresolved.
+//
+// An egg can make a replacement conditional by giving an object instead of a
+// value: {"key": {"<if_value>": "<value>"}}. Each entry becomes its own rule
+// with IfValue set, in egg order, the way Pterodactyl's Panel flattens them.
+// An IfValue starting with "regex:" replaces only the matched part.
 type FindRule struct {
-	Key   string
-	Value any
+	Key     string
+	IfValue string
+	Value   any
 }
 
 // Install is the egg's installation script.
@@ -111,6 +121,42 @@ type Extension struct {
 	Certified bool `yaml:"certified"`
 }
 
+// DefaultInstallTimeout is used when the egg doesn't set x-raptor.install.timeout.
+const DefaultInstallTimeout = 2 * time.Hour
+
+// InstallTimeout returns how long the install script may run.
+func (e *Egg) InstallTimeout() time.Duration {
+	if d, err := time.ParseDuration(e.Raptor.Install.Timeout); err == nil && d > 0 {
+		return d
+	}
+	return DefaultInstallTimeout
+}
+
+// SupportsArch reports whether the egg declares support for a CPU
+// architecture (Go names: "amd64", "arm64"). Eggs that don't declare any
+// are assumed to support all; the image manifest is checked separately.
+func (e *Egg) SupportsArch(arch string) bool {
+	if len(e.Raptor.Arch) == 0 {
+		return true
+	}
+	for _, a := range e.Raptor.Arch {
+		if normalizeArch(a) == arch {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizeArch(a string) string {
+	switch strings.ToLower(a) {
+	case "x86_64", "x86-64", "amd64":
+		return "amd64"
+	case "aarch64", "arm64":
+		return "arm64"
+	}
+	return strings.ToLower(a)
+}
+
 // DefaultImage returns the egg's default image reference.
 func (e *Egg) DefaultImage() string {
 	if len(e.Images) == 0 {
@@ -130,7 +176,7 @@ func (e *Egg) DefaultStartup() string {
 // Parse parses an egg in any supported format (JSON or YAML), preserving the
 // order of images, startup commands, and config keys.
 func Parse(data []byte) (*Egg, error) {
-	root, err := decode(data)
+	root, err := ordered.Decode(data)
 	if err != nil {
 		return nil, fmt.Errorf("egg: %w", err)
 	}
@@ -149,10 +195,20 @@ func Parse(data []byte) (*Egg, error) {
 	e.Features = strings_(get(root, "features"))
 	e.FileDenylist = strings_(get(root, "file_denylist"))
 
-	// Images: PTDL_v1 has a single "image"; later formats have an ordered map.
+	// Images: later formats have an ordered "docker_images" map. PTDL_v1 has
+	// an "images" list or a single "image" (Pterodactyl's importer accepts
+	// both), and some exports have "docker_images" as a list.
 	if n := get(root, "docker_images"); n != nil && n.Kind == yaml.MappingNode {
 		for i := 0; i+1 < len(n.Content); i += 2 {
 			e.Images = append(e.Images, Image{Name: n.Content[i].Value, Ref: n.Content[i+1].Value})
+		}
+	} else if refs := strings_(n); len(refs) > 0 {
+		for _, ref := range refs {
+			e.Images = append(e.Images, Image{Name: ref, Ref: ref})
+		}
+	} else if refs := strings_(get(root, "images")); len(refs) > 0 {
+		for _, ref := range refs {
+			e.Images = append(e.Images, Image{Name: ref, Ref: ref})
 		}
 	} else if img := scalar(get(root, "image")); img != "" {
 		e.Images = []Image{{Name: img, Ref: img}}
@@ -209,9 +265,39 @@ func Parse(data []byte) (*Egg, error) {
 		if err := n.Decode(&e.Raptor); err != nil {
 			return nil, fmt.Errorf("egg: x-raptor: %w", err)
 		}
+		if t := e.Raptor.Install.Timeout; t != "" {
+			if d, err := time.ParseDuration(t); err != nil || d <= 0 {
+				return nil, fmt.Errorf("egg: x-raptor.install.timeout %q: want a duration like 90m", t)
+			}
+		}
+		for _, a := range e.Raptor.Arch {
+			if n := normalizeArch(a); n != "amd64" && n != "arm64" {
+				return nil, fmt.Errorf("egg: x-raptor.arch %q: want amd64 or arm64", a)
+			}
+		}
 	}
 
 	return e, nil
+}
+
+// scalarValue decodes a replacement value: a string, bool, or number. Anything
+// else (lists, deeper objects) is kept as its JSON/YAML text.
+func scalarValue(n *yaml.Node) (any, error) {
+	if n.Kind != yaml.ScalarNode {
+		out, err := yaml.Marshal(n)
+		return strings.TrimSpace(string(out)), err
+	}
+	switch n.ShortTag() {
+	case "!!bool", "!!int", "!!float":
+		var v any
+		if err := n.Decode(&v); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case "!!null":
+		return "", nil
+	}
+	return n.Value, nil
 }
 
 func parseFiles(n *yaml.Node) ([]ConfigFile, error) {
@@ -224,11 +310,22 @@ func parseFiles(n *yaml.Node) ([]ConfigFile, error) {
 		f := ConfigFile{Path: n.Content[i].Value, Parser: scalar(get(spec, "parser"))}
 		if find := get(spec, "find"); find != nil && find.Kind == yaml.MappingNode {
 			for j := 0; j+1 < len(find.Content); j += 2 {
-				var v any
-				if err := find.Content[j+1].Decode(&v); err != nil {
-					return nil, fmt.Errorf("egg: config file %q: %w", f.Path, err)
+				key, val := find.Content[j].Value, find.Content[j+1]
+				if val.Kind == yaml.MappingNode {
+					for k := 0; k+1 < len(val.Content); k += 2 {
+						v, err := scalarValue(val.Content[k+1])
+						if err != nil {
+							return nil, fmt.Errorf("egg: config file %q, key %q: %w", f.Path, key, err)
+						}
+						f.Find = append(f.Find, FindRule{Key: key, IfValue: val.Content[k].Value, Value: v})
+					}
+					continue
 				}
-				f.Find = append(f.Find, FindRule{Key: find.Content[j].Value, Value: v})
+				v, err := scalarValue(val)
+				if err != nil {
+					return nil, fmt.Errorf("egg: config file %q, key %q: %w", f.Path, key, err)
+				}
+				f.Find = append(f.Find, FindRule{Key: key, Value: v})
 			}
 		}
 		files = append(files, f)
@@ -243,7 +340,13 @@ func parseRules(n *yaml.Node) []string {
 		return nil
 	}
 	if n.Kind == yaml.SequenceNode {
-		return strings_(n)
+		var out []string
+		for _, r := range strings_(n) {
+			if r = strings.TrimSpace(r); r != "" {
+				out = append(out, r)
+			}
+		}
+		return out
 	}
 	if n.Value == "" {
 		return nil
@@ -258,7 +361,9 @@ func parseRules(n *yaml.Node) []string {
 				p += "|" + parts[i]
 			}
 		}
-		out = append(out, p)
+		if p = strings.TrimSpace(p); p != "" { // "required|string|" has an empty last rule
+			out = append(out, p)
+		}
 	}
 	return out
 }
@@ -298,7 +403,7 @@ func embedded(n *yaml.Node) *yaml.Node {
 	if n == nil || n.Kind != yaml.ScalarNode {
 		return n
 	}
-	d, err := decode([]byte(n.Value))
+	d, err := ordered.Decode([]byte(n.Value))
 	if err != nil {
 		return nil
 	}

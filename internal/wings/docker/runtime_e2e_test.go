@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	goruntime "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,6 +27,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
+	"github.com/xena-studios/raptor/internal/wings/install"
 )
 
 const testImage = "busybox:1"
@@ -333,6 +335,61 @@ func TestRuntimeHostNetwork(t *testing.T) {
 	}
 }
 
+func TestRuntimeCheckArch(t *testing.T) {
+	dc := newRuntime(t)
+	ctx := context.Background()
+	if err := dc.CheckArch(ctx, testImage); err != nil {
+		t.Fatalf("multi-arch image: %v", err)
+	}
+	// Docker's official per-architecture repositories hold single-arch images.
+	other := "arm64v8/busybox:latest"
+	if goruntime.GOARCH == "arm64" {
+		other = "amd64/busybox:latest"
+	}
+	if err := dc.CheckArch(ctx, other); !errors.Is(err, containers.ErrUnsupportedArch) {
+		t.Fatalf("%s: got %v, want ErrUnsupportedArch", other, err)
+	}
+}
+
+// The install flow around the container: validation happens before anything
+// runs, a failing script is a warning, and the egg's timeout is enforced.
+func TestRuntimeInstallFlow(t *testing.T) {
+	ctx := context.Background()
+	dc := newRuntime(t)
+	egg := func(script, timeout string) *eggs.Egg {
+		e := &eggs.Egg{
+			Install:   eggs.Install{Script: script, Container: testImage, Entrypoint: "sh"},
+			Variables: []eggs.Variable{{Env: "VERSION", Default: "1.0", Rules: []string{"required", "string", "max:10"}}},
+		}
+		e.Raptor.Install.Timeout = timeout
+		return e
+	}
+	run := func(e *eggs.Egg, vars map[string]string) (install.Result, error) {
+		dir := testDir(t)
+		return install.Run(ctx, dc, install.Params{
+			Egg: e, Image: testImage, ServerID: "e2e" + randomSuffix(t), Dir: dir, TmpDir: filepath.Dir(dir),
+			Variables: vars, Env: eggs.Runtime{MemoryMiB: 256}, UID: testUID, GID: testGID,
+		})
+	}
+
+	_, err := run(egg("echo never", ""), map[string]string{"VERSION": "this-is-far-too-long"})
+	var ve eggs.VariableErrors
+	if !errors.As(err, &ve) {
+		t.Fatalf("invalid variable: got %v, want VariableErrors", err)
+	}
+
+	res, err := run(egg(`echo "version $VERSION"; exit 3`, ""), nil)
+	if err != nil || res.ExitCode != 3 || !strings.Contains(string(res.Log), "version 1.0") {
+		t.Fatalf("failing script: err=%v exit=%d log=%q", err, res.ExitCode, res.Log)
+	}
+
+	start := time.Now()
+	_, err = run(egg("sleep 120", "3s"), nil)
+	if err == nil || !strings.Contains(err.Error(), "timed out") || time.Since(start) > time.Minute {
+		t.Fatalf("timeout: got %v after %s", err, time.Since(start))
+	}
+}
+
 // --- helpers ---
 
 type runningServer struct {
@@ -351,7 +408,7 @@ func startServer(t *testing.T, dc *Client, spec containers.ServerSpec) runningSe
 	if spec.Limits.MemoryMiB == 0 {
 		spec.Limits.MemoryMiB = 128
 	}
-	if err := FixOwnership(spec.Dir, testUID, testGID); err != nil {
+	if err := install.FixOwnership(spec.Dir, testUID, testGID); err != nil {
 		t.Fatal(err)
 	}
 	id, err := dc.Create(ctx, spec)

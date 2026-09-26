@@ -1,32 +1,47 @@
-package eggs
+// Package ordered decodes and encodes JSON and YAML as yaml.Node trees, so
+// key order, comments (YAML), and number formatting survive a round trip.
+package ordered
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
-// decode parses JSON or YAML into a yaml.Node, preserving key order. JSON is
+// Decode parses JSON or YAML into a yaml.Node, preserving key order. JSON is
 // decoded with encoding/json because some valid JSON (e.g. the "\/" escape) is
 // not valid YAML.
-func decode(data []byte) (*yaml.Node, error) {
+func Decode(data []byte) (*yaml.Node, error) {
 	trimmed := bytes.TrimSpace(data)
 	if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[') {
-		dec := json.NewDecoder(bytes.NewReader(trimmed))
-		dec.UseNumber()
-		n, err := jsonValue(dec)
-		if err != nil {
-			return nil, err
-		}
-		if dec.More() {
-			return nil, errors.New("trailing data after JSON value")
-		}
-		return n, nil
+		return DecodeJSON(trimmed)
 	}
+	return DecodeYAML(data)
+}
+
+// DecodeJSON parses a JSON document. Numbers keep their original text.
+func DecodeJSON(data []byte) (*yaml.Node, error) {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	n, err := jsonValue(dec, 0)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return nil, errors.New("trailing data after JSON value")
+	}
+	return n, nil
+}
+
+// DecodeYAML parses a YAML document and returns its root node (not the
+// document node).
+func DecodeYAML(data []byte) (*yaml.Node, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		return nil, err
@@ -37,7 +52,13 @@ func decode(data []byte) (*yaml.Node, error) {
 	return doc.Content[0], nil
 }
 
-func jsonValue(dec *json.Decoder) (*yaml.Node, error) {
+// maxDepth bounds nesting so hostile input can't exhaust the stack.
+const maxDepth = 512
+
+func jsonValue(dec *json.Decoder, depth int) (*yaml.Node, error) {
+	if depth > maxDepth {
+		return nil, errors.New("JSON nested too deeply")
+	}
 	tok, err := dec.Token()
 	if err != nil {
 		return nil, err
@@ -56,7 +77,7 @@ func jsonValue(dec *json.Decoder) (*yaml.Node, error) {
 				if !ok {
 					return nil, fmt.Errorf("unexpected key %v", kt)
 				}
-				val, err := jsonValue(dec)
+				val, err := jsonValue(dec, depth+1)
 				if err != nil {
 					return nil, err
 				}
@@ -67,7 +88,7 @@ func jsonValue(dec *json.Decoder) (*yaml.Node, error) {
 		case '[':
 			n := &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq"}
 			for dec.More() {
-				val, err := jsonValue(dec)
+				val, err := jsonValue(dec, depth+1)
 				if err != nil {
 					return nil, err
 				}
@@ -80,7 +101,11 @@ func jsonValue(dec *json.Decoder) (*yaml.Node, error) {
 	case string:
 		return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: v}, nil
 	case json.Number:
-		return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: v.String()}, nil
+		tag := "!!int"
+		if strings.ContainsAny(v.String(), ".eE") {
+			tag = "!!float"
+		}
+		return &yaml.Node{Kind: yaml.ScalarNode, Tag: tag, Value: v.String()}, nil
 	case bool:
 		return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!bool", Value: strconv.FormatBool(v)}, nil
 	case nil:

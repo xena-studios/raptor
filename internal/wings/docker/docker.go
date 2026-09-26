@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"math"
 	"net/netip"
 	"os"
@@ -233,22 +232,6 @@ func (c *Client) Install(ctx context.Context, s containers.InstallSpec) (contain
 		}
 		return containers.InstallResult{}, err
 	}
-}
-
-// FixOwnership hands every file in dir to uid:gid after an install. It uses
-// lchown through os.Root, so it never follows symlinks and never leaves dir.
-func FixOwnership(dir string, uid, gid int) error {
-	root, err := os.OpenRoot(dir)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = root.Close() }()
-	return fs.WalkDir(root.FS(), ".", func(path string, _ fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		return root.Lchown(path, uid, gid)
-	})
 }
 
 // Create creates (but doesn't start) the server's container.

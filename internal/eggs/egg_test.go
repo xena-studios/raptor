@@ -1,10 +1,12 @@
 package eggs
 
 import (
+	"fmt"
 	"os"
 	"slices"
 	"syscall"
 	"testing"
+	"time"
 )
 
 func load(t *testing.T, name string) *Egg {
@@ -124,6 +126,69 @@ func TestParsePTDLv1(t *testing.T) {
 	v := e.Variables[0]
 	if v.Default != "5" || !v.UserViewable || v.UserEditable {
 		t.Errorf("variable = %+v", v)
+	}
+}
+
+// Pterodactyl's own source-engine eggs (Garry's Mod, TF2, …) are PTDL_v1
+// with an "images" list; older exports have "docker_images" as a list.
+func TestParseImageLists(t *testing.T) {
+	for name, images := range map[string]string{
+		"images":        `"images": ["ghcr.io/pterodactyl/games:source", "b"]`,
+		"docker_images": `"docker_images": ["ghcr.io/pterodactyl/games:source", "b"]`,
+	} {
+		e, err := Parse([]byte(`{"meta": {"version": "PTDL_v1"}, ` + images + `, "startup": "./srcds_run"}`))
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if len(e.Images) != 2 || e.DefaultImage() != "ghcr.io/pterodactyl/games:source" {
+			t.Errorf("%s: images = %+v", name, e.Images)
+		}
+	}
+}
+
+// A conditional find value becomes one rule per condition, in egg order.
+func TestParseConditionalFind(t *testing.T) {
+	e, err := Parse([]byte(`{
+		"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"config": {"files": "{\"config.yml\": {\"parser\": \"yaml\", \"find\": {\"listeners[0].host\": \"0.0.0.0:{{server.build.default.port}}\", \"servers.*.address\": {\"regex:^(127\\\\.0\\\\.0\\\\.1|localhost)(:\\\\d{1,5})?$\": \"{{config.docker.interface}}$2\", \"127.0.0.1\": \"{{config.docker.interface}}\"}, \"online\": true}}}"}
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := e.Config.Files[0].Find
+	want := []FindRule{
+		{Key: "listeners[0].host", Value: "0.0.0.0:{{server.build.default.port}}"},
+		{Key: "servers.*.address", IfValue: `regex:^(127\.0\.0\.1|localhost)(:\d{1,5})?$`, Value: "{{config.docker.interface}}$2"},
+		{Key: "servers.*.address", IfValue: "127.0.0.1", Value: "{{config.docker.interface}}"},
+		{Key: "online", Value: true},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("find = %+v", got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("rule %d = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestParseXRaptor(t *testing.T) {
+	base := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x", "x-raptor": %s}`
+	e, err := Parse(fmt.Appendf(nil, base, `{"arch": ["x86_64"], "install": {"timeout": "3h"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.InstallTimeout() != 3*time.Hour || !e.SupportsArch("amd64") || e.SupportsArch("arm64") {
+		t.Errorf("timeout %s, arch %v", e.InstallTimeout(), e.Raptor.Arch)
+	}
+	for _, bad := range []string{`{"install": {"timeout": "soon"}}`, `{"install": {"timeout": "-1h"}}`, `{"arch": ["sparc"]}`} {
+		if _, err := Parse(fmt.Appendf(nil, base, bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
+	}
+	plain, _ := Parse(fmt.Appendf(nil, base, `{}`))
+	if plain.InstallTimeout() != DefaultInstallTimeout || !plain.SupportsArch("arm64") {
+		t.Error("defaults wrong")
 	}
 }
 

@@ -19,14 +19,15 @@ import (
 	"encoding/hex"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/xena-studios/raptor/internal/eggs"
+	"github.com/xena-studios/raptor/internal/eggs/configfile"
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/install"
 )
 
 // Container UID/GID for tests; Wings uses the raptor system user's IDs.
@@ -41,6 +42,8 @@ type eggCase struct {
 	// prepare runs after the install, before the server starts (e.g. accepting
 	// the EULA, which the Panel asks the user to do).
 	prepare func(t *testing.T, dir string)
+	// checkFile maps files to text the egg's config parsers must have written.
+	checkFile map[string]string
 }
 
 func acceptEULA(t *testing.T, dir string) {
@@ -52,9 +55,10 @@ func TestEggPaper(t *testing.T) {
 	runEgg(t, eggCase{
 		egg:         "paper.plcn_v3.yaml",
 		memoryMiB:   2048,
-		port:        25565,
+		port:        25570, // not Minecraft's default: only the egg's parser can set it
 		doneTimeout: 5 * time.Minute,
 		prepare:     acceptEULA,
+		checkFile:   map[string]string{"server.properties": "server-port=25570"},
 	})
 }
 
@@ -98,17 +102,8 @@ func TestEggRust(t *testing.T) {
 		memoryMiB:   8192,
 		port:        28015,
 		doneTimeout: 30 * time.Minute,
-		prepare: func(t *testing.T, dir string) {
-			// Config parsers arrive in Phase 1.3; until then shrink the seeded map
-			// directly so the test fits a CI runner.
-			cfg := filepath.Join(dir, "server/rust/cfg/server.cfg")
-			b, err := os.ReadFile(cfg)
-			if err != nil {
-				t.Fatal(err)
-			}
-			b = regexp.MustCompile(`(?m)^server\.worldsize .*$`).ReplaceAll(b, []byte("server.worldsize 1000"))
-			writeFile(t, cfg, string(b))
-		},
+		// The egg's own "file" parser writes WORLD_SIZE into server.cfg.
+		checkFile: map[string]string{"server/rust/cfg/server.cfg": "server.worldsize 1000"},
 	})
 }
 
@@ -133,11 +128,8 @@ func runEgg(t *testing.T, c eggCase) {
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 
-	vars := egg.Defaults()
-	for k, v := range c.vars {
-		vars[k] = v
-	}
-	env := eggs.Runtime{
+	dc := newRuntime(t)
+	rt := eggs.Runtime{
 		ServerID:  id,
 		Startup:   egg.DefaultStartup(),
 		MemoryMiB: c.memoryMiB,
@@ -145,33 +137,55 @@ func runEgg(t *testing.T, c eggCase) {
 		Port:      c.port,
 		Timezone:  "UTC",
 		Location:  "e2e",
-		Variables: vars,
-	}.Environment()
+	}
 
-	dc := newRuntime(t)
-
-	// Install.
-	start := time.Now()
-	res, err := dc.Install(ctx, containers.InstallSpec{
+	// Install: the same flow Wings runs (validation, arch check, isolated
+	// install container, ownership fix).
+	res, err := install.Run(ctx, dc, install.Params{
+		Egg:       egg,
+		Image:     egg.DefaultImage(),
 		ServerID:  id,
 		Dir:       dir,
 		TmpDir:    base,
-		Install:   egg.Install,
-		Env:       env,
-		MemoryMiB: c.memoryMiB,
-		Timeout:   2 * time.Hour,
-		Output:    tailWriter(t, "install"),
+		Variables: c.vars,
+		Env:       rt,
+		UID:       testUID,
+		GID:       testGID,
 	})
+	for _, line := range strings.Split(string(res.Log), "\n") {
+		t.Logf("install: %s", strings.TrimRight(line, "\r"))
+	}
 	if err != nil {
 		t.Fatalf("install: %v", err)
 	}
-	t.Logf("install finished in %s, exit code %d", time.Since(start).Round(time.Second), res.ExitCode)
+	t.Logf("install finished in %s, exit code %d", res.Duration.Round(time.Second), res.ExitCode)
 
 	if c.prepare != nil {
 		c.prepare(t, dir)
 	}
-	if err := FixOwnership(dir, testUID, testGID); err != nil {
-		t.Fatalf("fix ownership: %v", err)
+
+	// Config files, as before every start.
+	rt.Variables = res.Variables
+	env := rt.Environment()
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = root.Close() }()
+	if err := configfile.Apply(root, egg.Config.Files, eggs.Values{
+		ServerID: id, IP: rt.IP, Port: rt.Port, MemoryMiB: rt.MemoryMiB,
+		Env: res.Variables, DockerInterface: dc.nets.Server.Gateway.String(),
+	}, configfile.Owner{UID: testUID, GID: testGID}); err != nil {
+		t.Fatalf("config files: %v", err)
+	}
+	for file, want := range c.checkFile {
+		b, err := os.ReadFile(filepath.Join(dir, file))
+		if err != nil || !strings.Contains(string(b), want) {
+			t.Fatalf("%s doesn't contain %q (%v):\n%s", file, want, err, b)
+		}
+	}
+	if err := install.FixOwnership(dir, testUID, testGID); err != nil { // files prepare wrote
+		t.Fatal(err)
 	}
 
 	// Run.
@@ -211,7 +225,7 @@ func runEgg(t *testing.T, c eggCase) {
 		}
 	}()
 
-	start = time.Now()
+	start := time.Now()
 	if err := dc.Start(ctx, id2); err != nil {
 		t.Fatal(err)
 	}
@@ -259,24 +273,4 @@ func envOr(k, def string) string {
 		return v
 	}
 	return def
-}
-
-type lineLogger struct {
-	t      *testing.T
-	prefix string
-	buf    []byte
-}
-
-func tailWriter(t *testing.T, prefix string) *lineLogger { return &lineLogger{t: t, prefix: prefix} }
-
-func (l *lineLogger) Write(p []byte) (int, error) {
-	l.buf = append(l.buf, p...)
-	for {
-		i := strings.IndexAny(string(l.buf), "\n")
-		if i < 0 {
-			return len(p), nil
-		}
-		l.t.Logf("%s: %s", l.prefix, strings.TrimRight(string(l.buf[:i]), "\r"))
-		l.buf = l.buf[i+1:]
-	}
 }
