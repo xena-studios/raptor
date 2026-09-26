@@ -4,7 +4,7 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 
 ## The most important property
 
-**A game server's uptime depends only on the box it runs on.** The Panel, the tunnel, WorkOS, Polar, Wings restarts, Wings updates, and Docker restarts can all fail or restart without a game server going down. Every design choice is checked against this.
+**A game server's uptime depends only on the box it runs on.** The Panel, the node connection, Cloudflare, WorkOS, Polar, Wings restarts, Wings updates, and Docker restarts can all fail or restart without a game server going down. Every design choice is checked against this.
 
 ## Targets
 
@@ -51,25 +51,22 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 - Image pulls and install downloads: timeouts, retries, progress reporting.
 - Crash loops are detected and stopped (N crashes in M minutes → `crashed`).
 
-## Tunnel
+## Node connection
 
-- One mTLS TCP connection per node, multiplexed with yamux. Heartbeat 15s, dead at 45s.
-- **Reconnect with full jitter** (1s → 60s cap) so thousands of nodes don't reconnect at the same moment.
-- **Head-of-line blocking:** all streams share one TCP connection, so a large transfer can delay console and control traffic. Rules:
-  - Bulk data over the tunnel is **capped at 10 MB** per operation. Larger transfers go direct to the node over HTTPS.
+- One WebSocket per node through Cloudflare, multiplexed with yamux. Ping every 30 s (Cloudflare closes WebSockets idle for ~100 s); dead after 90 s without a reply.
+- **Reconnect with full jitter** (1 s → 60 s cap) so thousands of nodes don't reconnect at the same moment. Reconnects are routine: every Panel deploy and Cloudflare's own maintenance drop long-lived WebSockets.
+- **Head-of-line blocking:** all streams share one TCP connection, so a large transfer could delay console and control traffic. Rules:
+  - File transfers never use the main connection: Wings opens a **separate short-lived outbound connection** per transfer.
   - Separate streams for control, console, and stats, with per-stream flow control windows.
-  - If measurements later show this isn't enough, QUIC (`quic-go`) is the upgrade path. It removes head-of-line blocking at the cost of UDP egress being blocked on some networks. **Not needed for v1.**
 - Command idempotency via `command_id` makes retries after drops safe.
-- Capacity: a Go process holds tens of thousands of idle TLS connections comfortably. At launch scale this is not a constraint.
+- Capacity: a Go process holds tens of thousands of idle WebSockets comfortably (tens of KB each). At launch scale this is not a constraint.
 
 ## Panel
 
-### Deploys don't disconnect nodes
-The Panel runs as two process roles from one binary:
-- `api` is deployed often, with zero downtime (start new → health check → shift traffic → drain old).
-- `tunnel` is deployed rarely. When it does restart, it drains gracefully: it tells connected Wings to reconnect with jitter before shutting down.
-
-**Why:** with a single process, every deploy would drop every node's tunnel and every open console. That's frequent disruption and a reconnect storm on each deploy.
+### Deploys
+The Panel is one process role (`serve api`), deployed with zero downtime for browsers (start new → health check → shift traffic → drain old).
+- Node connections move to the new instances during the drain: the old instance asks its nodes to reconnect, spread over a short window, before it exits. Open consoles reconnect the same way.
+- **Accepted trade-off:** every deploy briefly reconnects every node. Game servers are never affected (they don't depend on the connection), and jittered reconnects avoid a storm. This replaced the separate `tunnel` process of the original design (decision 72).
 
 ### Database
 - **Streaming replica on a second server from launch.** A single Postgres box is a single point of failure for logins and management. Promoting a replica takes minutes; restoring from a WAL archive can take much longer. A second box is cheap compared to the cost of a long outage.
@@ -92,15 +89,15 @@ The Panel runs as two process roles from one binary:
 ## Observability
 
 Reliability you can't see isn't reliability.
-- **Panel:** structured logs (`slog`), OpenTelemetry metrics and traces, dashboards and alerts for API error rates and latency, tunnel connection counts, reconnect rates, event lag per node, job queue depth, and Postgres replication lag.
-- **Wings:** its own health metrics (reconnects, job failures, crash loops, disk pressure) are reported over the tunnel, visible to the owner on the node health page and to us in aggregate.
+- **Panel:** structured logs (`slog`), OpenTelemetry metrics and traces, dashboards and alerts for API error rates and latency, node connection counts, reconnect rates, event lag per node, job queue depth, and Postgres replication lag.
+- **Wings:** its own health metrics (reconnects, job failures, crash loops, disk pressure) are reported over the node connection, visible to the owner on the node health page and to us in aggregate.
 - **Status page** hosted with a different provider than the Panel.
-- Alerting that pages a human for: API down, tunnel down, replication broken, backup archive failing, mass node disconnects.
+- Alerting that pages a human for: API down, Cloudflare or node connections failing, replication broken, backup archive failing, mass node disconnects.
 
 ## Testing for reliability
 
-- **Fault-injection tests:** kill the tunnel mid-command, kill Wings mid-job, kill Docker, reboot the VM, fill the host disk, fill the quota volume, unmount the quota volume, corrupt `state.db`. Expected behavior is asserted, not assumed.
-- **Load tests:** a fake-Wings simulator opening thousands of tunnels and streaming events, run against the Panel before launch and before major releases.
+- **Fault-injection tests:** drop the node connection mid-command, kill Wings mid-job, kill Docker, reboot the VM, fill the host disk, fill the quota volume, unmount the quota volume, corrupt `state.db`. Expected behavior is asserted, not assumed.
+- **Load tests:** a fake-Wings simulator opening thousands of node connections through Cloudflare and streaming events, run against the Panel before launch and before major releases.
 - **Install matrix:** Debian 12, Debian 13, Ubuntu 24.04 × amd64/arm64, full install end to end in CI on real VMs.
 - **Upgrade tests:** upgrade from each supported previous Wings version, then roll back.
 - **Egg conformance suite:** see [EGGS.md](EGGS.md).

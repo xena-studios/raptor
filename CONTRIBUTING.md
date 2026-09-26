@@ -9,7 +9,7 @@ Raptor uses the [Developer Certificate of Origin 1.1](https://developercertifica
 Every commit must be signed off:
 
 ```bash
-git commit -s -m "fix console reconnect on tunnel drop"
+git commit -s -m "fix console reconnect after node connection drop"
 ```
 
 This adds a line to the commit message:

@@ -84,7 +84,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 
 - Each server has **one primary allocation**. It provides `SERVER_IP` and `SERVER_PORT` and is what egg config parsers use. Extra allocations are published too and shown in the Panel; eggs that need them reference them explicitly.
 - `ip` may be a specific node address or `0.0.0.0` (all addresses).
-- Ports must be **1024–65535**. Lower ports need the owner to enable them per node. Wings' own ports (SFTP, HTTPS file transfer) are never allocatable.
+- Ports must be **1024–65535**. Lower ports need the owner to enable them per node. Wings' own port (SFTP, when enabled) is never allocatable.
 - An `(ip, port)` belongs to at most one server on the node (both TCP and UDP are always published), and `0.0.0.0` conflicts with every address on the same port. Wings also refuses ports that another program on the host is already listening on, and checks them again before every start.
 - Allocations are IPv4 for now.
 - Allocation changes are applied on the **next start**. The Panel says a restart is needed.

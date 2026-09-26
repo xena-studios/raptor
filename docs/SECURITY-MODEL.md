@@ -11,12 +11,12 @@
 3. Backups
 4. User accounts and sessions
 5. The Wings release signing key
-6. The Panel CA (issues node and SFTP host certificates)
+6. The Panel's signing key (proves the Panel to nodes and signs per-user command grants)
 
 ## Trust boundaries
 
 ```
- Internet ──► Panel (API) ──► Panel (tunnel) ══mTLS══► Wings (root) ──► Docker ──► container
+ Internet ──► Cloudflare ──► Panel (API) ◄══WebSocket (opened by Wings)══ Wings (root) ──► Docker ──► container
                                                           │
                                    owner's root / CLI ────┘
 ```
@@ -32,7 +32,7 @@
 ## Rules
 
 ### Wings
-- **No arbitrary execution.** The tunnel protocol, local socket API, and support tooling expose only typed operations.
+- **No arbitrary execution.** The node connection protocol, local socket API, and support tooling expose only typed operations.
 - **Host-side file safety.** Every file operation on server data (file manager, SFTP, config parsers, backups, restores, imports) goes through **`os.Root`**, confined to the server's directory. Symlinks, `..`, and absolute paths that escape are rejected. This is where Pterodactyl's Wings has had repeated vulnerabilities, so it gets the most review and fuzzing.
 - **Variables are validated against egg rules before substitution**, and never pass through a host shell.
 - **Container hardening:** non-root user, capabilities dropped, `no-new-privileges`, seccomp, only the server directory mounted, PID limits.
@@ -45,10 +45,13 @@
 
 ### Enrollment and identity
 - Join tokens: single-use, 1-hour expiry, org-bound, stored hashed.
-- **Keys are generated on the node and never leave it.** The Panel signs a client cert (short-lived, auto-rotated).
-- Node removal revokes the cert and drops the tunnel immediately.
-- SFTP host keys are signed by the Panel CA, and the Panel shows fingerprints.
-- **The CA private key** is kept separate from the Panel's application secrets, ideally in an HSM or KMS later, at minimum a separate encrypted secret with restricted access.
+- **Keys are generated on the node and never leave it.** The Panel stores only the public key. The node proves itself on every connection by signing a fresh challenge (bound to a timestamp and the connection's purpose, so it can't be replayed).
+- **The Panel proves itself** with its signing key, which Wings pins at enrollment. TLS terminates at Cloudflare, so the TLS certificate alone doesn't prove the Panel's identity to Wings.
+- Node removal revokes the node's key and drops its connection immediately.
+- SFTP host keys are generated on the node; the fingerprint is reported to the Panel over the authenticated connection and shown to users.
+- **The Panel's signing key** is kept separate from the Panel's application secrets, ideally in an HSM or KMS later, at minimum a separate encrypted secret with restricted access.
+- The Panel origin only accepts connections from Cloudflare, and trusts `CF-Connecting-IP` only on those.
+- **Cloudflare can read Panel traffic** (it terminates TLS): console, commands, and web file transfers. Disclosed in the privacy policy; SFTP is direct to the node.
 
 ### Releases and supply chain
 - Wings releases are **signed** with minisign (Ed25519): the signature covers `checksums.txt`, which covers every binary. CI only builds **draft** releases; the maintainer signs and publishes locally. The private key is kept **offline** and never stored in the repository or CI.

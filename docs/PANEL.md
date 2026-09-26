@@ -4,7 +4,7 @@ The Panel is Raptor's SaaS control plane: the web app and the API at `raptorpane
 
 ## Responsibilities
 
-The Panel **owns**: users, orgs, members, roles, auth sessions, permission grants, billing, node identity and certificates, support access grants, the audit log, and the template (egg) catalog.
+The Panel **owns**: users, orgs, members, roles, auth sessions, permission grants, billing, node identity (public keys) and node DNS, support access grants, the audit log, and the template (egg) catalog.
 
 The Panel **mirrors** (read-only, disposable): servers, schedules, backup index, status, job summaries, and metric summaries, all reported by Wings.
 
@@ -12,9 +12,8 @@ The Panel **never stores**: game files, backup contents, live console, raw logs.
 
 ## Process model
 
-One Go binary, two roles (see [ARCHITECTURE.md](ARCHITECTURE.md#panel)):
-- `panel serve api`: Connect API + browser WebSockets + River jobs
-- `panel serve tunnel`: Wings connections
+One Go binary, one role (see [ARCHITECTURE.md](ARCHITECTURE.md#panel)):
+- `panel serve api`: Connect API, WebSockets for browsers and nodes, River jobs. Several instances can run; requests for a node held by another instance are forwarded through Postgres `LISTEN/NOTIFY`.
 
 ## Stack
 
@@ -98,7 +97,8 @@ IDs are UUIDv7. Every tenant-scoped row carries `org_id`, and Postgres row-level
 ## Beginner-focused features
 
 - **Connection test:** after a server starts (and on demand), the Panel probes the game port from outside. On failure: likely cause + provider-specific guide (Hetzner, OVH, Oracle, AWS, home router).
-- **Subdomains:** `<name>.raptornodes.net` with A + SRV records. Reserved names (`node`, `www`, `api`, `mail`, `status`, and similar), abuse reporting, and bans. Node hostnames live under `node.raptornodes.net`, so player names can never collide with them.
+- **Subdomains:** `<name>.raptornodes.net` with A + SRV records. Reserved names (`www`, `api`, `mail`, `status`, and similar) and anything starting with `n-` are rejected, so player names can never collide with node hostnames (`n-<short-id>.raptornodes.net`). Abuse reporting and bans.
+- **Node DNS:** the Panel creates `n-<short-id>.raptornodes.net` at enrollment and updates its A/AAAA records whenever Wings reports a new public IP. Deleted nodes' names are never reused.
 - **Safe defaults:** backups on, crash restart on.
 - **Node health page:** security and configuration warnings reported by `doctor`.
 
@@ -110,6 +110,6 @@ The Panel footer links to the **exact source commit** that is deployed. All depe
 
 - A primary server, deployed with Docker Compose. The hosting provider is an operational choice and is intentionally not fixed in these docs.
 - Postgres with WAL archiving via pgBackRest to **object storage in a different location**, plus a **streaming replica on a second server** at launch (see [RELIABILITY.md](RELIABILITY.md)).
-- Caddy for TLS on the API and web app; a CDN/DDoS proxy in front of HTTP traffic.
-- `tunnel.raptorpanel.net` is **not** behind the HTTP proxy (it's raw TCP) and points directly at the Panel servers.
+- `raptorpanel.net` is behind the **Cloudflare proxy** (browsers and node connections alike); the origin only accepts traffic from Cloudflare (Authenticated Origin Pulls or an IP allowlist). Caddy terminates TLS at the origin.
+- `raptornodes.net` is **DNS-only**, on a plan sized for the record count (see [ARCHITECTURE.md](ARCHITECTURE.md#node-dns)).
 - The status page is hosted with a different provider than the Panel.
