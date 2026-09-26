@@ -4,7 +4,7 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 
 ## The most important property
 
-**A game server's uptime depends only on the box it runs on.** The Panel, the node connection, Cloudflare, WorkOS, Polar, Wings restarts, Wings updates, and Docker restarts can all fail or restart without a game server going down. Every design choice is checked against this.
+**A game server's uptime depends only on the box it runs on.** The Panel, the node connection, Cloudflare, the email provider, OAuth providers, Polar, Wings restarts, Wings updates, and Docker restarts can all fail or restart without a game server going down. Every design choice is checked against this.
 
 ## Targets
 

@@ -60,7 +60,10 @@
 - Egg imports show the image registry and install script before import.
 
 ### Panel
-- WorkOS for identity. The Panel issues its own sessions (HTTP-only, secure, SameSite cookies). CSRF protection.
+- **Passwordless auth built into the Panel** (passkeys, OAuth, email codes; TOTP 2FA). No passwords exist to leak. Passkeys are phishing-resistant and preferred. Details in [PANEL.md](PANEL.md#auth).
+- OAuth logins only link to existing accounts when the provider verified the email (prevents account takeover through unverified emails).
+- The Panel issues its own sessions (hashed tokens, `HttpOnly`, `Secure`, `SameSite` cookies), with CSRF protection. **Dangerous actions require recent re-authentication** with a passkey or TOTP.
+- Email codes: 10-minute expiry, single use, limited attempts, stored hashed. Rate limits and Cloudflare Turnstile protect the send endpoint.
 - **XSS:** console output, file contents, and egg metadata are untrusted and always escaped. xterm.js renders console output, never `innerHTML`.
 - Postgres row-level security by `org_id`, in addition to application checks.
 - Rate limiting on auth, join-token creation, subdomain creation, and bundle uploads.

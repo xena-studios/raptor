@@ -7,7 +7,7 @@
                     ┌──────────────────────────────────────────────────────────────┐
  ┌─────────┐ HTTPS  │  ┌──────────────┐     ┌──────────────────────────────────┐   │
  │ Browser │───────►│  │  Web app     │────►│  panel serve api                 │   │
- │ (React) │◄──WS───│  │  static SPA  │     │  auth (WorkOS), orgs, grants,    │   │
+ │ (React) │◄──WS───│  │  static SPA  │     │  auth (passkeys, OAuth, email),  │   │
  └─────────┘        │  └──────────────┘     │  billing (Polar), mirror, jobs,  │   │
                     │                       │  node connections (WebSocket)    │   │
                     │                       └──────┬─────────────────▲─────────┘   │
@@ -56,7 +56,7 @@ Every piece of data has **exactly one owner**. Nothing is merged.
 | Data | Owner | Other side |
 |---|---|---|
 | Users, orgs, members, roles | Panel | — |
-| Auth, sessions | Panel (WorkOS for identity) | — |
+| Auth, sessions | Panel (built in, passwordless) | — |
 | Billing, subscriptions, ledger | Panel (Polar) | — |
 | Node identity | Panel stores each node's public key | Wings holds its private key (generated on the box, never leaves it) |
 | Node DNS (`n-<short-id>.raptornodes.net`) | Panel | Wings reports its public IP |
@@ -184,7 +184,8 @@ Every step is idempotent. Re-running the command after a failure resumes.
 | Panel redeployed | Every node disconnects briefly and reconnects with jitter. Servers unaffected. |
 | Cloudflare outage | Same as Panel API down: nodes look offline, the web UI is unavailable, games keep running. |
 | Postgres down | Panel down (above). Nodes unaffected. |
-| WorkOS down | New logins fail. Existing Panel sessions keep working (sessions are issued by the Panel). |
+| Email provider down | Email-code sign-ins fail; passkeys, OAuth, and existing sessions keep working. |
+| Google / Discord / GitHub down | That provider's sign-in fails; other methods and existing sessions work. |
 | Polar down | Billing actions fail. Nothing else is affected. |
 | Node connection drops mid-command | The command is retried with the same `command_id`. No duplicates. |
 | Node's public IP changes | Wings reports the new IP; the Panel updates `n-<short-id>.raptornodes.net`. |

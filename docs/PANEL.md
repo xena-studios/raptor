@@ -24,7 +24,8 @@ One Go binary, one role (see [ARCHITECTURE.md](ARCHITECTURE.md#panel)):
 | Database | Postgres, `pgx` + `sqlc` |
 | Jobs | River (Postgres-backed) |
 | Pub/sub | Postgres `LISTEN/NOTIFY` |
-| Auth | WorkOS (AuthKit) |
+| Auth | Built into the Panel, passwordless: passkeys (`go-webauthn/webauthn`), OAuth (`golang.org/x/oauth2`, `coreos/go-oidc`), email codes, TOTP (`pquerna/otp`) |
+| Email | Transactional email provider (login codes, notifications) |
 | Billing | Polar |
 | Object storage | S3-compatible object storage (hosted backups, doctor bundles) |
 | Frontend | React, TypeScript, Vite, TanStack Router + Query, shadcn/ui, Tailwind, xterm.js, Monaco |
@@ -33,10 +34,20 @@ One Go binary, one role (see [ARCHITECTURE.md](ARCHITECTURE.md#panel)):
 ## Data model (sketch)
 
 ```
-users            id, workos_user_id, email, name, created_at
+users            id, email, email_verified_at, name, totp_secret (encrypted), created_at
+passkeys         id, user_id, credential_id, public_key, sign_count, aaguid, name,
+                 created_at, last_used_at
+oauth_accounts   id, user_id, provider (google|discord|github), subject, email,
+                 email_verified, created_at
+email_codes      id, email, code_hash, link_token_hash, purpose, attempts,
+                 expires_at, used_at
+recovery_codes   id, user_id, code_hash, used_at
+sessions         id, user_id, token_hash, created_at, last_seen_at, expires_at,
+                 reauth_at, ip, user_agent, revoked_at
 orgs             id, name, slug, created_at
 org_members      org_id, user_id, role (owner|admin|member)
-nodes            id, org_id, name, status, cert_serial, cert_expires_at,
+nodes            id, org_id, name, short_id, public_key, public_ipv4, public_ipv6,
+                 status, key_revoked_at, sftp_enabled,
                  wings_version, protocol_version, last_seen_at, last_acked_seq,
                  support_access_disabled, billing_state
 join_tokens      id, org_id, token_hash, expires_at, used_at
@@ -62,10 +73,37 @@ IDs are UUIDv7. Every tenant-scoped row carries `org_id`, and Postgres row-level
 
 ## Auth
 
-- **WorkOS AuthKit** for identity: email + password, magic links, social login, passkeys, MFA.
-- The Panel keeps its own `users` table keyed by our own ID. The WorkOS ID is a column, so the provider can be changed later.
-- After WorkOS authenticates a user, **the Panel issues its own session**. Existing sessions keep working if WorkOS is down.
-- Staff accounts are separate from customer accounts and require hardware-key MFA.
+Built into the Panel, **passwordless**. There are no passwords to store, leak, or reset, and no auth vendor. Any session can send commands to nodes where Wings runs as root, so auth is treated as the most sensitive code in the Panel.
+
+**Ways to sign in**
+
+| Method | Details |
+|---|---|
+| **Passkeys** (preferred) | WebAuthn. Several per account (phone, laptop, security key). Phishing-resistant, and already two factors (device + biometric/PIN), so they skip the 2FA step. After a user's first sign-in, the Panel prompts them to add one. |
+| **OAuth** | Google (OpenID Connect), Discord, GitHub. |
+| **Email code or link** | One email with a **6-digit code and a sign-in link**; either works. Codes work across devices (read on the phone, type on the PC), and links can be used up by email scanners that open links automatically, so both are sent. 10-minute expiry, single use, 5 attempts. Also used to sign up and to verify the address. |
+
+**Two-factor authentication**
+- **TOTP** (authenticator apps) with **one-time recovery codes** given at setup.
+- Required after **email and OAuth** sign-ins when enabled. Those are only as strong as the user's inbox or Google/Discord/GitHub account. Passkey sign-ins skip it, since they're already two factors.
+- The Panel encourages every account that owns nodes to have a passkey or TOTP.
+
+**Accounts**
+- Users are keyed by our own ID; email is unique. An OAuth login is **linked to an existing account only if the provider says the email is verified**, otherwise someone could create an OAuth account with a victim's unverified email and take over their Raptor account. Discord and GitHub report whether the email is verified; unverified ones are treated as a new, separate identity.
+- Users can add and remove passkeys, OAuth logins, and TOTP, but never remove their last way to sign in.
+- **Recovery:** recovery codes (if TOTP is on), or an email code. Someone who controls the inbox can get in unless 2FA or passkeys-only is set, which is the honest limit of any passwordless system. For people who lose everything, there's a support process with identity checks.
+
+**Sessions**
+- The Panel issues its own sessions: random tokens (stored hashed) in `HttpOnly`, `Secure`, `SameSite=Lax` cookies on `raptorpanel.net`, plus CSRF protection.
+- Sessions expire after 30 days of inactivity and 90 days at most. Users see their devices and can log out one or all of them. Signing in rotates the session token.
+- **Re-authentication for dangerous actions**: deleting servers, removing nodes, adding a node, billing changes, adding or removing passkeys/OAuth/TOTP, changing the email, and approving support access. These require a passkey or TOTP (or an email code if neither is set up) within the last 5 minutes.
+
+**Abuse protection**
+- Rate limits per IP, per email address, and per account on sending codes and on every verification step.
+- Cloudflare Turnstile on "email me a code", so the Panel can't be used to spam inboxes or run up the email bill.
+- Every sign-in, failure, and change to sign-in methods goes to the audit log, and security changes (new passkey, TOTP disabled, new device) are emailed to the user.
+
+**Staff** accounts are separate from customer accounts and must use hardware security keys (passkeys on a physical key).
 
 ## Permissions
 

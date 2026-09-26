@@ -175,7 +175,10 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Deploy pipeline: zero-downtime deploys, with node connections drained and reconnected with jitter
 
 ### 3.2 Accounts
-- [ ] WorkOS AuthKit integration; own `users` table; Panel-issued sessions; CSRF
+- [ ] Passwordless auth in the Panel ([PANEL.md](PANEL.md#auth)): passkeys, OAuth (Google, Discord, GitHub), email codes + links, TOTP + recovery codes, safe OAuth account linking
+- [ ] Sessions: hashed tokens, device list, revocation, re-auth for dangerous actions; CSRF; rate limits + Turnstile on email codes; security notification emails
+- [ ] Transactional email provider (DNS: SPF, DKIM, DMARC)
+- [ ] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks)
 - [ ] Orgs, members, roles, invitations
 - [ ] Postgres RLS by `org_id`
 - [ ] Audit log
