@@ -27,11 +27,12 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 | Resource | Value |
 |---|---|
 | Binary | `/usr/local/bin/raptor` |
-| Service | `raptor-wings.service` |
+| Services | `raptor-wings.service`; `raptor-shutdown.service` (graceful stops on host shutdown) |
+| systemd drop-in | `/etc/systemd/system/docker-.scope.d/10-raptor.conf`: container scopes stop after `raptor-shutdown` ([SERVERS.md](SERVERS.md#host-shutdown)) |
 | Config | `/etc/raptor/config.yml` |
 | State DB | `/var/lib/raptor/state.db` |
 | Server data | `/var/lib/raptor/volumes/<server-id>/` (quota volume) |
-| Logs | `/var/log/raptor/` |
+| Logs | `/var/log/raptor/` (install logs in `install/<server-id>.log`) |
 | Socket | `/run/raptor/wings.sock` (root + `raptor` group) |
 | System user | `raptor` |
 | Docker networks | `raptor_nw` (bridge `raptor0`) for servers, `raptor_install` (bridge `raptor-inst`) for installs; subnets picked automatically to avoid collisions |
@@ -54,7 +55,8 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 - **Stopping or restarting the service never stops servers:** their containers live in Docker's cgroups, not the service's.
 - `UMask=0077`, and systemd creates `/var/lib/raptor`, `/var/log/raptor`, and `/etc/raptor` as `0700`. `/run/raptor` is `0755` so the `raptor` group can reach the socket.
 - Sandboxing: `ProtectSystem=strict` (writable: `/etc/raptor`, `/var/lib/raptor`, `/var/log/raptor`, `/run/raptor`), `ProtectHome`, `PrivateTmp`, `NoNewPrivileges`, kernel module/log/clock/hostname/cgroup protection, `RestrictNamespaces`, `RestrictSUIDSGID`, native syscalls only, and only `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK` sockets. `systemd-analyze security` rates it 5.9 (medium). Wings runs `nft` and `systemctl` itself (firewall and slice setup) and both work inside this sandbox. Wings needs root for Docker, quotas, and nftables, so it can't go much lower; this will be revisited as those features land.
-- On shutdown Wings stops the local API (the socket is removed) and closes the database.
+- On shutdown Wings stops the local API (the socket is removed), detaches from servers (they keep running), and closes the database.
+- When the runtime is ready, Wings starts the server manager, which reconciles with Docker: it reattaches to running servers and starts those that should run ([SERVERS.md](SERVERS.md#after-a-reboot-or-wings-restart)). Server containers run as the `raptor` user's UID/GID, with the host's time zone as `TZ`.
 
 ## Config file
 
@@ -73,6 +75,7 @@ paths:
   state: /var/lib/raptor/state.db
   volumes: /var/lib/raptor/volumes
   tmp: /var/lib/raptor/tmp
+  logs: /var/log/raptor
   socket: /run/raptor/wings.sock
 docker:
   network: raptor_nw
@@ -267,11 +270,12 @@ raptor tui
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus` (`raptor status`). The full planned set:
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus` (`raptor status`) and `ShutdownServers` (root only; `raptor wings shutdown-servers`, called by `raptor-shutdown.service`). The full planned set:
 
 | Method | Purpose |
 |---|---|
 | `GetStatus` | Node health, Panel link, Docker, disk, version |
+| `ShutdownServers` | Graceful stop of every server for a host shutdown, keeping `desired_state` (root only) |
 | `ListServers`, `GetServer` | Servers, states, resource usage |
 | `Start`, `Stop`, `Restart`, `Kill` | Power actions |
 | `AttachConsole` (stream) | Console output + sending commands |
