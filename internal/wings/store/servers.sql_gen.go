@@ -7,6 +7,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 )
 
 const deleteServer = `-- name: DeleteServer :exec
@@ -28,7 +29,7 @@ func (q *Queries) DeleteServerAllocations(ctx context.Context, serverID string) 
 }
 
 const getServer = `-- name: GetServer :one
-SELECT id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings, host_network, desired_state, install_state, install_error, last_state, version, created_at, updated_at FROM servers WHERE id = ?
+SELECT id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings, host_network, desired_state, install_state, install_error, last_state, version, created_at, updated_at, quota_project FROM servers WHERE id = ?
 `
 
 func (q *Queries) GetServer(ctx context.Context, id string) (Server, error) {
@@ -53,6 +54,7 @@ func (q *Queries) GetServer(ctx context.Context, id string) (Server, error) {
 		&i.Version,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.QuotaProject,
 	)
 	return i, err
 }
@@ -184,7 +186,7 @@ func (q *Queries) ListServerAllocations(ctx context.Context, serverID string) ([
 }
 
 const listServers = `-- name: ListServers :many
-SELECT id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings, host_network, desired_state, install_state, install_error, last_state, version, created_at, updated_at FROM servers ORDER BY created_at, id
+SELECT id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings, host_network, desired_state, install_state, install_error, last_state, version, created_at, updated_at, quota_project FROM servers ORDER BY created_at, id
 `
 
 func (q *Queries) ListServers(ctx context.Context) ([]Server, error) {
@@ -215,6 +217,7 @@ func (q *Queries) ListServers(ctx context.Context) ([]Server, error) {
 			&i.Version,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.QuotaProject,
 		); err != nil {
 			return nil, err
 		}
@@ -227,6 +230,18 @@ func (q *Queries) ListServers(ctx context.Context) ([]Server, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const nextQuotaProject = `-- name: NextQuotaProject :one
+SELECT CAST(COALESCE(MAX(quota_project), 999) + 1 AS INTEGER) FROM servers
+`
+
+// Projects start at 1000; lower IDs are left for the owner's own use.
+func (q *Queries) NextQuotaProject(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, nextQuotaProject)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const replaceEgg = `-- name: ReplaceEgg :exec
@@ -296,6 +311,20 @@ type SetLastStateParams struct {
 
 func (q *Queries) SetLastState(ctx context.Context, arg SetLastStateParams) error {
 	_, err := q.db.ExecContext(ctx, setLastState, arg.LastState, arg.ID)
+	return err
+}
+
+const setQuotaProject = `-- name: SetQuotaProject :exec
+UPDATE servers SET quota_project = ? WHERE id = ?
+`
+
+type SetQuotaProjectParams struct {
+	QuotaProject sql.NullInt64
+	ID           string
+}
+
+func (q *Queries) SetQuotaProject(ctx context.Context, arg SetQuotaProjectParams) error {
+	_, err := q.db.ExecContext(ctx, setQuotaProject, arg.QuotaProject, arg.ID)
 	return err
 }
 

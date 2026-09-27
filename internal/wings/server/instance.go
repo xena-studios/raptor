@@ -38,6 +38,7 @@ type instance struct {
 	stopping     bool          // Wings asked the server to stop
 	runningSince time.Time
 	lastLine     time.Time // timestamp of the last output line seen
+	overLimit    int       // consecutive soft-limit scans that found it over its disk limit
 	crashes      crashTracker
 	restartTimer *time.Timer
 	deleted      bool
@@ -159,6 +160,9 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool, 
 	if err := m.o.Store.Write.SetInstallState(ctx, store.SetInstallStateParams{InstallState: installInstalling, ID: i.id}); err != nil {
 		return err
 	}
+	if err := m.prepareStorage(ctx, srv); err != nil {
+		return m.finishInstall(i, srv, install.Result{}, err)
+	}
 	m.publish(EventInstallStarted, i.id, srv.Version, nil)
 	i.console.Notice("installing (%s)", srv.Egg().Name)
 	res, err := install.Run(ctx, m.o.Runtime, install.Params{
@@ -237,6 +241,9 @@ func (i *instance) startLocked(ctx context.Context, setDesired bool) error {
 		}
 		return ErrNotInstalled
 	}
+	if i.overDiskLimit() && m.stillOverLimit(ctx, i, srv) {
+		return ErrDiskLimit
+	}
 	if setDesired {
 		if err := i.setDesired(ctx, "running"); err != nil {
 			return err
@@ -265,10 +272,7 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // the server's own directory
-		return err
-	}
-	if err := os.Chown(dir, m.o.UID, m.o.GID); err != nil {
+	if err := m.prepareStorage(ctx, srv); err != nil {
 		return err
 	}
 
@@ -575,4 +579,10 @@ func (i *instance) stopLocked(ctx context.Context, kill, setDesired bool) error 
 		return ctx.Err()
 	}
 	return nil
+}
+
+func (i *instance) overDiskLimit() bool {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.overLimit > 0
 }

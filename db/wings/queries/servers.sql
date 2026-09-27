@@ -43,3 +43,10 @@ DELETE FROM allocations WHERE server_id = ?;
 
 -- name: SetLastState :exec
 UPDATE servers SET last_state = ? WHERE id = ?;
+
+-- name: NextQuotaProject :one
+-- Projects start at 1000; lower IDs are left for the owner's own use.
+SELECT CAST(COALESCE(MAX(quota_project), 999) + 1 AS INTEGER) FROM servers;
+
+-- name: SetQuotaProject :exec
+UPDATE servers SET quota_project = ? WHERE id = ?;

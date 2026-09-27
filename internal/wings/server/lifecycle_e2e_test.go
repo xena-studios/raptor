@@ -28,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -95,7 +96,7 @@ func newEnv(t *testing.T) *env {
 	}
 	e := &env{t: t, rt: rt, nets: nets, db: db, dir: dir}
 	e.opts = Options{
-		Runtime: rt, Store: db,
+		Runtime: rt, Store: db, Storage: &storage.Volume{Path: filepath.Join(dir, "volumes"), Soft: true},
 		VolumesDir: filepath.Join(dir, "volumes"), TmpDir: filepath.Join(dir, "tmp"), LogDir: filepath.Join(dir, "logs"),
 		UID: testUID, GID: testGID, Timezone: "UTC", Location: "e2e",
 		DockerInterface: nets.Server.Gateway.String(), ReservedPorts: []int{2022},
@@ -208,8 +209,12 @@ func waitConsole(t *testing.T, m *Manager, id, want string) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	st, _ := m.Status(id)
-	t.Fatalf("console never showed %q:\n%s", want, strings.Join(st.Console.Tail(30), "\n"))
+	st, err := m.Status(id)
+	if err != nil {
+		t.Fatalf("console never showed %q (status: %v)", want, err)
+	}
+	h := st.Console.History()
+	t.Fatalf("console never showed %q (state %s, %d lines):\n%s", want, st.State, len(h), strings.Join(st.Console.Tail(30), "\n"))
 }
 
 func (e *env) startedAt(id string) time.Time {
@@ -657,7 +662,7 @@ func TestSeedRealDaemon(t *testing.T) {
 	gid, _ := strconv.Atoi(u.Gid)
 	eng := jobs.New(jobs.Options{Store: db, LogDir: "/var/log/raptor/jobs", Limits: map[string]int{"install": 2}})
 	m := New(Options{
-		Runtime: rt, Store: db, VolumesDir: "/var/lib/raptor/volumes", TmpDir: "/var/lib/raptor/tmp", LogDir: "/var/log/raptor",
+		Runtime: rt, Store: db, Storage: &storage.Volume{Path: "/var/lib/raptor/volumes", Soft: true}, VolumesDir: "/var/lib/raptor/volumes", TmpDir: "/var/lib/raptor/tmp", LogDir: "/var/log/raptor",
 		UID: uid, GID: gid, Timezone: "UTC", DockerInterface: nets.Server.Gateway.String(),
 		Jobs: eng, Events: events.New(db),
 	})
@@ -718,4 +723,91 @@ func TestDockerRestart(t *testing.T) {
 	if n != 1 {
 		t.Errorf("\"before-docker-restart\" appears %d times after resuming", n)
 	}
+}
+
+// Disk limits on a real XFS volume with project quotas (quota tiers 1 and 2).
+// Needs RAPTOR_E2E_VOLUME: an XFS filesystem mounted with prjquota.
+func TestDiskQuota(t *testing.T) {
+	vol := os.Getenv("RAPTOR_E2E_VOLUME")
+	if vol == "" {
+		t.Skip("RAPTOR_E2E_VOLUME not set")
+	}
+	e := newEnv(t)
+	vdir := filepath.Join(vol, fmt.Sprintf("servers-%d", time.Now().UnixNano()))
+	if err := os.Mkdir(vdir, 0o755); err != nil { //nolint:gosec // test dir
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(vdir) })
+	e.opts.VolumesDir = vdir
+	e.opts.Storage = &storage.Volume{Path: vol}
+	m := e.manager()
+	defer m.Close()
+	ctx := context.Background()
+
+	id := e.create(m, freePort(t), func(c *Config) { c.Limits.DiskMiB = 64 })
+	srv, _ := m.Get(ctx, id)
+	if srv.QuotaProject < 1000 {
+		t.Fatalf("quota project %d", srv.QuotaProject)
+	}
+	ready(t, m, id)
+
+	// The game writes past its limit: the kernel stops it at 64 MiB.
+	command(t, m, id, `dd if=/dev/zero of=/home/container/fill bs=1M count=100; echo "RESULT dd done"`)
+	waitConsole(t, m, id, "RESULT dd done")
+	waitConsole(t, m, id, "No space left on device")
+	u, err := m.DiskUsage(ctx, id)
+	if err != nil || u.Bytes < 60<<20 || u.Bytes > 65<<20 || u.LimitBytes != 64<<20 {
+		t.Fatalf("usage %+v %v", u, err)
+	}
+	t.Logf("server stopped at %d MiB of its 64 MiB limit", u.Bytes>>20)
+
+	// Raising the limit applies at once, while it runs.
+	cfg := srv.Config
+	cfg.Limits.DiskMiB = 128
+	if err := m.Update(ctx, id, cfg); err != nil {
+		t.Fatal(err)
+	}
+	command(t, m, id, `dd if=/dev/zero of=/home/container/more bs=1M count=40 2>/dev/null; echo "RESULT more $?"`)
+	waitConsole(t, m, id, "RESULT more 0")
+	if u, _ := m.DiskUsage(ctx, id); u.LimitBytes != 128<<20 || u.Bytes < 100<<20 {
+		t.Fatalf("after raising the limit: %+v", u)
+	}
+
+	// Deleting clears the project's limit.
+	project := srv.QuotaProject
+	if err := m.Delete(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(vdir, id)); !os.IsNotExist(err) {
+		t.Fatalf("server files still exist after delete: %v", err)
+	}
+	// XFS frees deleted files in the background (inode inactivation), so the
+	// project's usage drops shortly after the files are gone.
+	var u2 storage.Usage
+	for range 100 {
+		if u2, err = storage.GetUsage(vol, project); err == nil && u2.Bytes == 0 && u2.LimitBytes == 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if u2.Bytes != 0 || u2.LimitBytes != 0 {
+		t.Fatalf("after delete: %+v %v", u2, err)
+	}
+}
+
+// Without the volume, servers are refused instead of writing to the host.
+func TestVolumeUnavailable(t *testing.T) {
+	e := newEnv(t)
+	m := e.manager()
+	id := e.create(m, freePort(t))
+	m.Close()
+
+	e.opts.Storage = &storage.Volume{Path: e.opts.VolumesDir} // quotas on, but it's a plain directory
+	m2 := e.manager()
+	defer m2.Close()
+	err := m2.Start(context.Background(), id)
+	if !errors.Is(err, storage.ErrUnavailable) {
+		t.Fatalf("start without the volume: %v", err)
+	}
+	t.Logf("refused: %v", err)
 }

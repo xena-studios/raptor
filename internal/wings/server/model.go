@@ -107,6 +107,7 @@ type Server struct {
 	Config
 	egg          *eggs.Egg
 	EggHash      string
+	QuotaProject uint32 // the server's XFS quota project; 0 = not assigned yet
 	DesiredState string // "running" or "stopped"
 	InstallState string
 	InstallError string
@@ -166,7 +167,7 @@ func (c *Config) validate(reserved []int) (*eggs.Egg, error) {
 	if l.MemoryMiB < 64 {
 		return nil, bad("memory must be at least 64 MiB")
 	}
-	if l.SwapMiB < 0 || l.CPUPercent < 0 || l.CPUWeight < 0 || l.PIDs < 0 {
+	if l.SwapMiB < 0 || l.CPUPercent < 0 || l.CPUWeight < 0 || l.PIDs < 0 || l.DiskMiB < 0 {
 		return nil, bad("limits can't be negative")
 	}
 	st := &c.Settings
@@ -228,6 +229,7 @@ func fromRow(r store.Server, allocs []store.Allocation) (*Server, error) {
 		InstallState: r.InstallState,
 		InstallError: r.InstallError,
 		Version:      r.Version,
+		QuotaProject: uint32(r.QuotaProject.Int64), //nolint:gosec // allocated by Wings from 1000 up
 		CreatedAt:    time.Unix(r.CreatedAt, 0),
 		UpdatedAt:    time.Unix(r.UpdatedAt, 0),
 		Config: Config{

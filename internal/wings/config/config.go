@@ -27,6 +27,7 @@ type Config struct {
 	Docker   Docker   `yaml:"docker"`
 	Ports    Ports    `yaml:"ports"`
 	Limits   Limits   `yaml:"limits"`
+	Storage  Storage  `yaml:"storage"`
 	Updates  Updates  `yaml:"updates"`
 	Log      Log      `yaml:"log"`
 }
@@ -83,6 +84,14 @@ type Limits struct {
 	ReservedMemory ByteSize `yaml:"reserved_memory"`
 }
 
+// Storage configures the server data volume (docs/WINGS.md#disk-quotas).
+type Storage struct {
+	// Quotas: disk limits enforced by XFS project quotas on the volume
+	// (tiers 1 and 2). false = tier 3, the owner opted out (--no-quota):
+	// limits are checked by periodic scans instead.
+	Quotas bool `yaml:"quotas"`
+}
+
 // Updates controls self-update.
 type Updates struct {
 	Channel string `yaml:"channel"`
@@ -115,6 +124,7 @@ func Default() Config {
 		},
 		Ports:   Ports{SFTP: 2022},
 		Limits:  Limits{ConcurrentInstalls: 2, ConcurrentBackups: 2, HostDiskMinFree: 10 << 30},
+		Storage: Storage{Quotas: true},
 		Updates: Updates{Channel: "stable"},
 		Log:     Log{Level: "info"},
 	}

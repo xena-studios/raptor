@@ -30,6 +30,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -200,7 +201,7 @@ func newManager(t *testing.T) (*server.Manager, *store.DB) {
 	}
 	eng := jobs.New(jobs.Options{Store: db, LogDir: filepath.Join(dir, "logs", "jobs"), Poll: 200 * time.Millisecond})
 	m := server.New(server.Options{
-		Runtime: rt, Store: db, VolumesDir: filepath.Join(dir, "volumes"), TmpDir: filepath.Join(dir, "tmp"), LogDir: filepath.Join(dir, "logs"),
+		Runtime: rt, Store: db, Storage: &storage.Volume{Path: filepath.Join(dir, "volumes"), Soft: true}, VolumesDir: filepath.Join(dir, "volumes"), TmpDir: filepath.Join(dir, "tmp"), LogDir: filepath.Join(dir, "logs"),
 		UID: 988, GID: 988, Timezone: "UTC", DockerInterface: nets.Server.Gateway.String(), ReservedPorts: []int{2022},
 		Jobs: eng, Events: events.New(db),
 	})

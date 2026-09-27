@@ -153,6 +153,9 @@ type Limits struct {
 	Cpuset string `json:"cpuset"`
 	// PIDs is the process limit. 0 = the default (512).
 	PIDs int64 `json:"pids"`
+	// DiskMiB is the server's disk limit, enforced by an XFS project quota
+	// on the volume (not a container setting). 0 = unlimited.
+	DiskMiB int64 `json:"disk_mib"`
 }
 
 // Port is a published port (TCP and UDP).
