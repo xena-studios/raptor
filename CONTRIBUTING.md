@@ -88,11 +88,11 @@ The container runtime (networks, firewall isolation, resource limits, hardening,
 ```bash
 task e2e:runtime                          # all runtime and lifecycle tests in the VM
 task e2e:runtime RUN=TestCrashPolicy      # one test
-task e2e:host                             # Wings/Docker restarts, host shutdown, and a real reboot
+task e2e:host                             # Wings/Docker restarts, host shutdown, the CLI, and a real reboot
 task e2e:quotas                           # disk quotas on a real XFS loop volume, with a reboot
 ```
 
-`e2e:host` installs Wings with its systemd units in the VM, seeds a running server, and reboots the VM, so it takes a few minutes. `e2e:quotas` creates a loop volume under `/var/lib/raptor-gate` with Wings' own code, checks limits on the host and in containers (including the seccomp escape check) and in the server manager, reboots, and grows the volume online.
+`e2e:host` installs Wings with its systemd units and a quota volume in the VM, seeds a running server, runs the CLI against it (as root and as a `raptor` group member), and reboots the VM, so it takes a few minutes. `e2e:quotas` creates a loop volume under `/var/lib/raptor-gate` with Wings' own code, checks limits on the host and in containers (including the seccomp escape check) and in the server manager, reboots, and grows the volume online.
 
 They need root: they create Wings' networks, load its nftables table, and set up `raptor.slice`, exactly as the daemon does. CI runs them on every PR (the `e2e-runtime` job).
 

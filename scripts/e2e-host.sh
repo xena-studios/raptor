@@ -22,7 +22,10 @@ seed)
 		systemctl restart docker
 	fi
 	systemctl stop raptor-wings
-	ID=$(RAPTOR_E2E_SEED_DB=/var/lib/raptor/state.db /tmp/server-e2e -test.run '^TestSeedRealDaemon$' | awk '/^SEEDED/ {print $2}')
+	# A unique name: servers from earlier runs stay (the CLI can't delete).
+	NAME=host-test-$(date +%s)
+	echo "$NAME" > /var/lib/raptor-e2e/host-name
+	ID=$(RAPTOR_E2E_SEED_NAME=$NAME RAPTOR_E2E_SEED_DB=/var/lib/raptor/state.db /tmp/server-e2e -test.run '^TestSeedRealDaemon$' | awk '/^SEEDED/ {print $2}')
 	[ -n "$ID" ] || fail "seeding a server"
 	echo "$ID" > /var/lib/raptor-e2e/host-id
 	T0=$(started)
@@ -53,6 +56,67 @@ seed)
 	pass "server started again afterwards (desired_state stayed running)"
 	started > /var/lib/raptor-e2e/host-t1
 	;;
+cli)
+	# The CLI against the real daemon and socket, as root and as a member of
+	# the raptor group (read-only).
+	ID=$(cat /var/lib/raptor-e2e/host-id)
+	NAME=$(cat /var/lib/raptor-e2e/host-name)
+	SHORT=${ID: -8}
+	getent passwd raptor-viewer >/dev/null || useradd --system --gid raptor --no-create-home --shell /usr/sbin/nologin raptor-viewer
+	viewer() { runuser -u raptor-viewer -- "$@"; }
+	state() { raptor ps -json | grep -o "\"id\":\"$ID\"[^}]*\"state\":\"[a-z_]*\"" | grep -o '"state":"[a-z_]*"' | cut -d'"' -f4; }
+	is_state() { [ "$(state)" = "$1" ]; }
+	ready() { echo "echo READY" | raptor console "$SHORT" >/dev/null; wait_for is_state running; }
+	ready || fail "the server didn't become ready"
+
+	out=$(raptor status)
+	grep -Eq "Servers  [0-9]+, [0-9]+ up" <<<"$out" && grep -q "Storage  ✓" <<<"$out" || fail "raptor status: $out"
+	pass "status: server counts and storage"
+
+	out=$(raptor ps)
+	echo "$out"
+	grep -E "^$SHORT +$NAME +running +[0-9.]+% +[0-9.]+ [KMG]iB / 128.0 MiB" <<<"$out" >/dev/null || fail "raptor ps"
+	pass "ps: short ID, state, CPU, memory"
+
+	out=$(echo "echo cli-hello" | raptor console $NAME)
+	grep -qx "cli-hello" <<<"$out" || fail "console: piped command's output missing: $out"
+	grep -qx "READY" <<<"$out" || fail "console: no history"
+	pass "console: history, then a piped command and its output"
+
+	out=$(raptor logs "$ID" -n 2 -t)
+	[ "$(wc -l <<<"$out")" = 2 ] && grep -q "cli-hello" <<<"$out" && grep -Eq "^[0-9]{4}-[0-9]{2}-[0-9]{2} " <<<"$out" || fail "logs -n 2 -t: $out"
+	raptor logs $NAME -f >/tmp/raptor-follow.log &
+	FOLLOW=$!
+	echo "echo followed-line" | raptor console $NAME >/dev/null
+	wait_for grep -q followed-line /tmp/raptor-follow.log || fail "logs -f didn't follow"
+	kill $FOLLOW
+	pass "logs: history with timestamps, and -f follows"
+
+	out=$(viewer raptor ps) && grep -q $NAME <<<"$out" || fail "raptor group member can't list servers"
+	viewer raptor logs $NAME -n 1 >/dev/null || fail "raptor group member can't read logs"
+	out=$(viewer raptor stop $NAME 2>&1) && fail "raptor group member could stop a server"
+	grep -q "only root" <<<"$out" || fail "unexpected refusal: $out"
+	out=$(echo "echo nope" | viewer raptor console $NAME 2>&1) && fail "raptor group member could send a command"
+	grep -q "only root" <<<"$out" || fail "unexpected refusal: $out"
+	running || fail "server stopped by a refused request"
+	pass "raptor group: read-only (ps, logs), power and commands refused"
+
+	out=$(raptor stop $NAME)
+	[ "$out" = "$NAME: offline" ] && ! running || fail "stop: $out"
+	[ "$(docker inspect -f '{{.State.ExitCode}}' "raptor-$ID")" = 0 ] || fail "stop didn't use the egg's stop command"
+	raptor start "$SHORT" >/dev/null && ready || fail "start"
+	T=$(started)
+	raptor restart $NAME >/dev/null && ready && [ "$(started)" != "$T" ] || fail "restart"
+	raptor kill $NAME >/dev/null && ! running || fail "kill"
+	raptor start $NAME >/dev/null && ready || fail "start after kill"
+	pass "stop (graceful), start, restart, kill"
+
+	out=$(raptor stop nope 2>&1) && fail "unknown server accepted"
+	grep -q 'no server "nope"' <<<"$out" || fail "unknown server: $out"
+	journalctl -u raptor-wings --no-pager -o cat | grep '"event":"server.power"' | grep -q '"user":"local:root"' || fail "power actions not attributed to local:root"
+	pass "unknown servers refused; power actions attributed to the Unix user"
+	started > /var/lib/raptor-e2e/host-t1
+	;;
 after-reboot)
 	ID=$(cat /var/lib/raptor-e2e/host-id)
 	wait_for running || fail "server didn't come back after the reboot"
@@ -74,7 +138,7 @@ after-reboot)
 	pass "reboot: raptor-shutdown stopped servers gracefully before systemd or Docker touched them"
 	;;
 *)
-	echo "usage: $0 seed|after-reboot" >&2
+	echo "usage: $0 seed|cli|after-reboot" >&2
 	exit 2
 	;;
 esac

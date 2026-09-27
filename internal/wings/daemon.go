@@ -70,6 +70,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		PanelURL:  cfg.Panel.URL,
 		StartedAt: time.Now(),
 		Docker:    dc,
+		Storage:   &storage.Volume{Path: cfg.Paths.Volumes, Soft: !cfg.Storage.Quotas},
 	}
 	rt, err := newRuntimeSetup(dc, cfg, log, db, svc)
 	if err != nil {

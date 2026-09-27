@@ -7,6 +7,7 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -673,7 +674,7 @@ func TestSeedRealDaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 	id, err := m.Create(ctx, Config{
-		Name: "host-test", Egg: shellEgg("echo installed > /mnt/server/installed.txt"),
+		Name: cmp.Or(os.Getenv("RAPTOR_E2E_SEED_NAME"), "host-test"), Egg: shellEgg("echo installed > /mnt/server/installed.txt"),
 		Limits: containers.Limits{MemoryMiB: 128}, Settings: DefaultSettings(),
 		Allocations: []Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}},
 	}, CreateOptions{StartAfterInstall: true})

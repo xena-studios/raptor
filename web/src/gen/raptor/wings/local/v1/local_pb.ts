@@ -2,8 +2,8 @@
 // @generated from file raptor/wings/local/v1/local.proto (package raptor.wings.local.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +12,287 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/wings/local/v1/local.proto.
  */
 export const file_raptor_wings_local_v1_local: GenFile = /*@__PURE__*/
-  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIYChZTaHV0ZG93blNlcnZlcnNSZXF1ZXN0IjoKF1NodXRkb3duU2VydmVyc1Jlc3BvbnNlEg8KB3N0b3BwZWQYASABKAUSDgoGZXJyb3JzGAIgAygJIhIKEEdldFN0YXR1c1JlcXVlc3QizQEKEUdldFN0YXR1c1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAkSDgoGY29tbWl0GAIgASgJEg8KB25vZGVfaWQYAyABKAkSEQoJcGFuZWxfdXJsGAQgASgJEi4KCnN0YXJ0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKBmRvY2tlchgGIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5Eb2NrZXJTdGF0dXMSDgoGY2FsbGVyGAcgASgJIkEKDERvY2tlclN0YXR1cxIRCglyZWFjaGFibGUYASABKAgSDwoHdmVyc2lvbhgCIAEoCRINCgVlcnJvchgDIAEoCTLqAQoMTG9jYWxTZXJ2aWNlEmMKCUdldFN0YXR1cxInLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXF1ZXN0GigucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgOQAgESdQoPU2h1dGRvd25TZXJ2ZXJzEi0ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNodXRkb3duU2VydmVyc1JlcXVlc3QaLi5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2UiA5ACAkLvAQoZY29tLnJhcHRvci53aW5ncy5sb2NhbC52MUIKTG9jYWxQcm90b1ABWk9naXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci93aW5ncy9sb2NhbC92MTtsb2NhbHYxogIDUldMqgIVUmFwdG9yLldpbmdzLkxvY2FsLlYxygIVUmFwdG9yXFdpbmdzXExvY2FsXFYx4gIhUmFwdG9yXFdpbmdzXExvY2FsXFYxXEdQQk1ldGFkYXRh6gIYUmFwdG9yOjpXaW5nczo6TG9jYWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIYChZTaHV0ZG93blNlcnZlcnNSZXF1ZXN0IjoKF1NodXRkb3duU2VydmVyc1Jlc3BvbnNlEg8KB3N0b3BwZWQYASABKAUSDgoGZXJyb3JzGAIgAygJIhIKEEdldFN0YXR1c1JlcXVlc3QiugIKEUdldFN0YXR1c1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAkSDgoGY29tbWl0GAIgASgJEg8KB25vZGVfaWQYAyABKAkSEQoJcGFuZWxfdXJsGAQgASgJEi4KCnN0YXJ0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKBmRvY2tlchgGIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5Eb2NrZXJTdGF0dXMSDgoGY2FsbGVyGAcgASgJEjQKB3NlcnZlcnMYCCABKAsyIy5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VydmVyQ291bnRzEjUKB3N0b3JhZ2UYCSABKAsyJC5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RvcmFnZVN0YXR1cyIpCgxTZXJ2ZXJDb3VudHMSDQoFdG90YWwYASABKAUSCgoCdXAYAiABKAUiSwoNU3RvcmFnZVN0YXR1cxIMCgRwYXRoGAEgASgJEg4KBnF1b3RhcxgCIAEoCBINCgVyZWFkeRgDIAEoCBINCgVlcnJvchgEIAEoCSJBCgxEb2NrZXJTdGF0dXMSEQoJcmVhY2hhYmxlGAEgASgIEg8KB3ZlcnNpb24YAiABKAkSDQoFZXJyb3IYAyABKAkqiwEKC1Bvd2VyQWN0aW9uEhwKGFBPV0VSX0FDVElPTl9VTlNQRUNJRklFRBAAEhYKElBPV0VSX0FDVElPTl9TVEFSVBABEhUKEVBPV0VSX0FDVElPTl9TVE9QEAISGAoUUE9XRVJfQUNUSU9OX1JFU1RBUlQQAxIVChFQT1dFUl9BQ1RJT05fS0lMTBAEMuoFCgxMb2NhbFNlcnZpY2USYwoJR2V0U3RhdHVzEicucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldFN0YXR1c1JlcXVlc3QaKC5yYXB0b3Iud2luZ3MubG9jYWwudjEuR2V0U3RhdHVzUmVzcG9uc2UiA5ACARJ1Cg9TaHV0ZG93blNlcnZlcnMSLS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2h1dGRvd25TZXJ2ZXJzUmVxdWVzdBouLnJhcHRvci53aW5ncy5sb2NhbC52MS5TaHV0ZG93blNlcnZlcnNSZXNwb25zZSIDkAICEmkKC0xpc3RTZXJ2ZXJzEikucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RTZXJ2ZXJzUmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0U2VydmVyc1Jlc3BvbnNlIgOQAgESVAoFUG93ZXISIy5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJSZXF1ZXN0GiQucmFwdG9yLndpbmdzLmxvY2FsLnYxLlBvd2VyUmVzcG9uc2UiABJxCg1TdHJlYW1Db25zb2xlEisucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0cmVhbUNvbnNvbGVSZXF1ZXN0GiwucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0cmVhbUNvbnNvbGVSZXNwb25zZSIDkAIBMAESZgoLU2VuZENvbW1hbmQSKS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VuZENvbW1hbmRSZXF1ZXN0GioucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlbmRDb21tYW5kUmVzcG9uc2UiABJiCghUYWlsTG9ncxImLnJhcHRvci53aW5ncy5sb2NhbC52MS5UYWlsTG9nc1JlcXVlc3QaJy5yYXB0b3Iud2luZ3MubG9jYWwudjEuVGFpbExvZ3NSZXNwb25zZSIDkAIBMAFC7wEKGWNvbS5yYXB0b3Iud2luZ3MubG9jYWwudjFCCkxvY2FsUHJvdG9QAVpPZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3Ivd2luZ3MvbG9jYWwvdjE7bG9jYWx2MaICA1JXTKoCFVJhcHRvci5XaW5ncy5Mb2NhbC5WMcoCFVJhcHRvclxXaW5nc1xMb2NhbFxWMeICIVJhcHRvclxXaW5nc1xMb2NhbFxWMVxHUEJNZXRhZGF0YeoCGFJhcHRvcjo6V2luZ3M6OkxvY2FsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+
+/**
+ * @generated from message raptor.wings.local.v1.ListServersRequest
+ */
+export type ListServersRequest = Message<"raptor.wings.local.v1.ListServersRequest"> & {
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ListServersRequest.
+ * Use `create(ListServersRequestSchema)` to create a new message.
+ */
+export const ListServersRequestSchema: GenMessage<ListServersRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 0);
+
+/**
+ * @generated from message raptor.wings.local.v1.ListServersResponse
+ */
+export type ListServersResponse = Message<"raptor.wings.local.v1.ListServersResponse"> & {
+  /**
+   * @generated from field: repeated raptor.wings.local.v1.ServerInfo servers = 1;
+   */
+  servers: ServerInfo[];
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ListServersResponse.
+ * Use `create(ListServersResponseSchema)` to create a new message.
+ */
+export const ListServersResponseSchema: GenMessage<ListServersResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 1);
+
+/**
+ * @generated from message raptor.wings.local.v1.ServerInfo
+ */
+export type ServerInfo = Message<"raptor.wings.local.v1.ServerInfo"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * installing, install_failed, offline, starting, running, stopping, crashed
+   *
+   * @generated from field: string state = 3;
+   */
+  state: string;
+
+  /**
+   * Set while running.
+   *
+   * @generated from field: google.protobuf.Timestamp running_since = 4;
+   */
+  runningSince?: Timestamp | undefined;
+
+  /**
+   * Percent of one CPU core; 0 unless the container is up (starting,
+   * running, or stopping).
+   *
+   * @generated from field: double cpu_percent = 5;
+   */
+  cpuPercent: number;
+
+  /**
+   * @generated from field: int64 memory_bytes = 6;
+   */
+  memoryBytes: bigint;
+
+  /**
+   * @generated from field: int64 memory_limit_bytes = 7;
+   */
+  memoryLimitBytes: bigint;
+
+  /**
+   * @generated from field: int64 disk_bytes = 8;
+   */
+  diskBytes: bigint;
+
+  /**
+   * 0 = unlimited.
+   *
+   * @generated from field: int64 disk_limit_bytes = 9;
+   */
+  diskLimitBytes: bigint;
+
+  /**
+   * The primary allocation, "ip:port".
+   *
+   * @generated from field: string address = 10;
+   */
+  address: string;
+
+  /**
+   * Why the last install failed, if it did.
+   *
+   * @generated from field: string install_error = 11;
+   */
+  installError: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ServerInfo.
+ * Use `create(ServerInfoSchema)` to create a new message.
+ */
+export const ServerInfoSchema: GenMessage<ServerInfo> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 2);
+
+/**
+ * @generated from message raptor.wings.local.v1.PowerRequest
+ */
+export type PowerRequest = Message<"raptor.wings.local.v1.PowerRequest"> & {
+  /**
+   * @generated from field: string server = 1;
+   */
+  server: string;
+
+  /**
+   * @generated from field: raptor.wings.local.v1.PowerAction action = 2;
+   */
+  action: PowerAction;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.PowerRequest.
+ * Use `create(PowerRequestSchema)` to create a new message.
+ */
+export const PowerRequestSchema: GenMessage<PowerRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 3);
+
+/**
+ * @generated from message raptor.wings.local.v1.PowerResponse
+ */
+export type PowerResponse = Message<"raptor.wings.local.v1.PowerResponse"> & {
+  /**
+   * @generated from field: string server_id = 1;
+   */
+  serverId: string;
+
+  /**
+   * The state after the action.
+   *
+   * @generated from field: string state = 2;
+   */
+  state: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.PowerResponse.
+ * Use `create(PowerResponseSchema)` to create a new message.
+ */
+export const PowerResponseSchema: GenMessage<PowerResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 4);
+
+/**
+ * @generated from message raptor.wings.local.v1.StreamConsoleRequest
+ */
+export type StreamConsoleRequest = Message<"raptor.wings.local.v1.StreamConsoleRequest"> & {
+  /**
+   * @generated from field: string server = 1;
+   */
+  server: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.StreamConsoleRequest.
+ * Use `create(StreamConsoleRequestSchema)` to create a new message.
+ */
+export const StreamConsoleRequestSchema: GenMessage<StreamConsoleRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 5);
+
+/**
+ * One console line.
+ *
+ * @generated from message raptor.wings.local.v1.StreamConsoleResponse
+ */
+export type StreamConsoleResponse = Message<"raptor.wings.local.v1.StreamConsoleResponse"> & {
+  /**
+   * @generated from field: string text = 1;
+   */
+  text: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.StreamConsoleResponse.
+ * Use `create(StreamConsoleResponseSchema)` to create a new message.
+ */
+export const StreamConsoleResponseSchema: GenMessage<StreamConsoleResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 6);
+
+/**
+ * @generated from message raptor.wings.local.v1.SendCommandRequest
+ */
+export type SendCommandRequest = Message<"raptor.wings.local.v1.SendCommandRequest"> & {
+  /**
+   * @generated from field: string server = 1;
+   */
+  server: string;
+
+  /**
+   * @generated from field: string command = 2;
+   */
+  command: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.SendCommandRequest.
+ * Use `create(SendCommandRequestSchema)` to create a new message.
+ */
+export const SendCommandRequestSchema: GenMessage<SendCommandRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 7);
+
+/**
+ * @generated from message raptor.wings.local.v1.SendCommandResponse
+ */
+export type SendCommandResponse = Message<"raptor.wings.local.v1.SendCommandResponse"> & {
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.SendCommandResponse.
+ * Use `create(SendCommandResponseSchema)` to create a new message.
+ */
+export const SendCommandResponseSchema: GenMessage<SendCommandResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 8);
+
+/**
+ * @generated from message raptor.wings.local.v1.TailLogsRequest
+ */
+export type TailLogsRequest = Message<"raptor.wings.local.v1.TailLogsRequest"> & {
+  /**
+   * @generated from field: string server = 1;
+   */
+  server: string;
+
+  /**
+   * Lines of history; 0 = 100, negative = all.
+   *
+   * @generated from field: int32 lines = 2;
+   */
+  lines: number;
+
+  /**
+   * @generated from field: bool follow = 3;
+   */
+  follow: boolean;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.TailLogsRequest.
+ * Use `create(TailLogsRequestSchema)` to create a new message.
+ */
+export const TailLogsRequestSchema: GenMessage<TailLogsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 9);
+
+/**
+ * One line of output.
+ *
+ * @generated from message raptor.wings.local.v1.TailLogsResponse
+ */
+export type TailLogsResponse = Message<"raptor.wings.local.v1.TailLogsResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp time = 1;
+   */
+  time?: Timestamp | undefined;
+
+  /**
+   * @generated from field: string text = 2;
+   */
+  text: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.TailLogsResponse.
+ * Use `create(TailLogsResponseSchema)` to create a new message.
+ */
+export const TailLogsResponseSchema: GenMessage<TailLogsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 10);
 
 /**
  * @generated from message raptor.wings.local.v1.ShutdownServersRequest
@@ -25,7 +305,7 @@ export type ShutdownServersRequest = Message<"raptor.wings.local.v1.ShutdownServ
  * Use `create(ShutdownServersRequestSchema)` to create a new message.
  */
 export const ShutdownServersRequestSchema: GenMessage<ShutdownServersRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 0);
+  messageDesc(file_raptor_wings_local_v1_local, 11);
 
 /**
  * @generated from message raptor.wings.local.v1.ShutdownServersResponse
@@ -51,7 +331,7 @@ export type ShutdownServersResponse = Message<"raptor.wings.local.v1.ShutdownSer
  * Use `create(ShutdownServersResponseSchema)` to create a new message.
  */
 export const ShutdownServersResponseSchema: GenMessage<ShutdownServersResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 1);
+  messageDesc(file_raptor_wings_local_v1_local, 12);
 
 /**
  * @generated from message raptor.wings.local.v1.GetStatusRequest
@@ -64,7 +344,7 @@ export type GetStatusRequest = Message<"raptor.wings.local.v1.GetStatusRequest">
  * Use `create(GetStatusRequestSchema)` to create a new message.
  */
 export const GetStatusRequestSchema: GenMessage<GetStatusRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 2);
+  messageDesc(file_raptor_wings_local_v1_local, 13);
 
 /**
  * @generated from message raptor.wings.local.v1.GetStatusResponse
@@ -108,6 +388,18 @@ export type GetStatusResponse = Message<"raptor.wings.local.v1.GetStatusResponse
    * @generated from field: string caller = 7;
    */
   caller: string;
+
+  /**
+   * Unset until the container runtime is ready.
+   *
+   * @generated from field: raptor.wings.local.v1.ServerCounts servers = 8;
+   */
+  servers?: ServerCounts | undefined;
+
+  /**
+   * @generated from field: raptor.wings.local.v1.StorageStatus storage = 9;
+   */
+  storage?: StorageStatus | undefined;
 };
 
 /**
@@ -115,7 +407,69 @@ export type GetStatusResponse = Message<"raptor.wings.local.v1.GetStatusResponse
  * Use `create(GetStatusResponseSchema)` to create a new message.
  */
 export const GetStatusResponseSchema: GenMessage<GetStatusResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 3);
+  messageDesc(file_raptor_wings_local_v1_local, 14);
+
+/**
+ * @generated from message raptor.wings.local.v1.ServerCounts
+ */
+export type ServerCounts = Message<"raptor.wings.local.v1.ServerCounts"> & {
+  /**
+   * @generated from field: int32 total = 1;
+   */
+  total: number;
+
+  /**
+   * Starting, running, or stopping.
+   *
+   * @generated from field: int32 up = 2;
+   */
+  up: number;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ServerCounts.
+ * Use `create(ServerCountsSchema)` to create a new message.
+ */
+export const ServerCountsSchema: GenMessage<ServerCounts> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 15);
+
+/**
+ * @generated from message raptor.wings.local.v1.StorageStatus
+ */
+export type StorageStatus = Message<"raptor.wings.local.v1.StorageStatus"> & {
+  /**
+   * @generated from field: string path = 1;
+   */
+  path: string;
+
+  /**
+   * Disk limits are enforced by project quotas (false: soft limits).
+   *
+   * @generated from field: bool quotas = 2;
+   */
+  quotas: boolean;
+
+  /**
+   * Servers can be installed and started.
+   *
+   * @generated from field: bool ready = 3;
+   */
+  ready: boolean;
+
+  /**
+   * Why not, if not ready.
+   *
+   * @generated from field: string error = 4;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.StorageStatus.
+ * Use `create(StorageStatusSchema)` to create a new message.
+ */
+export const StorageStatusSchema: GenMessage<StorageStatus> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 16);
 
 /**
  * @generated from message raptor.wings.local.v1.DockerStatus
@@ -142,7 +496,43 @@ export type DockerStatus = Message<"raptor.wings.local.v1.DockerStatus"> & {
  * Use `create(DockerStatusSchema)` to create a new message.
  */
 export const DockerStatusSchema: GenMessage<DockerStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 4);
+  messageDesc(file_raptor_wings_local_v1_local, 17);
+
+/**
+ * @generated from enum raptor.wings.local.v1.PowerAction
+ */
+export enum PowerAction {
+  /**
+   * @generated from enum value: POWER_ACTION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: POWER_ACTION_START = 1;
+   */
+  START = 1,
+
+  /**
+   * @generated from enum value: POWER_ACTION_STOP = 2;
+   */
+  STOP = 2,
+
+  /**
+   * @generated from enum value: POWER_ACTION_RESTART = 3;
+   */
+  RESTART = 3,
+
+  /**
+   * @generated from enum value: POWER_ACTION_KILL = 4;
+   */
+  KILL = 4,
+}
+
+/**
+ * Describes the enum raptor.wings.local.v1.PowerAction.
+ */
+export const PowerActionSchema: GenEnum<PowerAction> = /*@__PURE__*/
+  enumDesc(file_raptor_wings_local_v1_local, 0);
 
 /**
  * LocalService is served by Wings on its Unix socket (/run/raptor/wings.sock)
@@ -175,6 +565,60 @@ export const LocalService: GenService<{
     methodKind: "unary";
     input: typeof ShutdownServersRequestSchema;
     output: typeof ShutdownServersResponseSchema;
+  },
+  /**
+   * ListServers lists every server with its state and resource usage. It
+   * takes about half a second (CPU usage is measured over an interval).
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.ListServers
+   */
+  listServers: {
+    methodKind: "unary";
+    input: typeof ListServersRequestSchema;
+    output: typeof ListServersResponseSchema;
+  },
+  /**
+   * Power starts, stops, restarts, or kills a server and returns when it's
+   * done (a stop can take up to the server's stop timeout). Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.Power
+   */
+  power: {
+    methodKind: "unary";
+    input: typeof PowerRequestSchema;
+    output: typeof PowerResponseSchema;
+  },
+  /**
+   * StreamConsole sends the console history and then live console output
+   * until the client disconnects or the server is deleted.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.StreamConsole
+   */
+  streamConsole: {
+    methodKind: "server_streaming";
+    input: typeof StreamConsoleRequestSchema;
+    output: typeof StreamConsoleResponseSchema;
+  },
+  /**
+   * SendCommand writes a command to a running server's console. Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.SendCommand
+   */
+  sendCommand: {
+    methodKind: "unary";
+    input: typeof SendCommandRequestSchema;
+    output: typeof SendCommandResponseSchema;
+  },
+  /**
+   * TailLogs sends a server's output from Docker's log store, which goes
+   * back further than the console history, optionally following it.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.TailLogs
+   */
+  tailLogs: {
+    methodKind: "server_streaming";
+    input: typeof TailLogsRequestSchema;
+    output: typeof TailLogsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_wings_local_v1_local, 0);

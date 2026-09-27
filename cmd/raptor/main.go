@@ -23,6 +23,13 @@ const usage = `usage: raptor <command> [flags]
 
 commands:
   status      show node status (talks to the running daemon)
+  ps          list servers with their state and resource usage
+  start|stop|restart|kill <server>
+              power actions (root); stop waits for a clean shutdown
+  console <server>
+              live console; type commands to send them (root)
+  logs <server> [-n lines] [-f] [-t]
+              server output, further back than the console history
   storage status|setup|grow
               show, create, or enlarge the server data volume (root for
               setup and grow)
@@ -32,6 +39,7 @@ commands:
               by raptor-shutdown.service, servers start again at boot)
   version     print version
 
+<server> is a server's ID, the short ID from ps, or its exact name.
 Run "raptor <command> -h" for a command's flags.`
 
 func main() {
@@ -51,6 +59,14 @@ func run(args []string) error {
 		return nil
 	case len(args) >= 1 && args[0] == "status":
 		return status(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "ps":
+		return ps(ctx, args[1:])
+	case len(args) >= 1 && (args[0] == "start" || args[0] == "stop" || args[0] == "restart" || args[0] == "kill"):
+		return power(ctx, args[0], args[1:])
+	case len(args) >= 1 && args[0] == "console":
+		return console(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "logs":
+		return logs(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "storage":
 		return storageCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
@@ -115,6 +131,22 @@ func printStatus(s *localv1.GetStatusResponse) {
 	fmt.Printf("Wings    %s (%s), up %s\n", s.GetVersion(), s.GetCommit(), uptime)
 	fmt.Printf("Panel    %s\n", linked)
 	fmt.Printf("Docker   %s\n", docker)
+	if st := s.GetStorage(); st != nil {
+		limits := "quotas"
+		if !st.GetQuotas() {
+			limits = "soft limits"
+		}
+		if st.GetReady() {
+			fmt.Printf("Storage  ✓ %s (%s)\n", st.GetPath(), limits)
+		} else {
+			fmt.Printf("Storage  ✗ %s (see raptor storage status)\n", st.GetError())
+		}
+	}
+	if n := s.GetServers(); n != nil {
+		fmt.Printf("Servers  %d, %d up\n", n.GetTotal(), n.GetUp())
+	} else {
+		fmt.Println("Servers  - (the container runtime isn't ready; see raptor-wings logs)")
+	}
 }
 
 func shutdownServers(ctx context.Context, args []string) error {

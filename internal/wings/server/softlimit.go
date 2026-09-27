@@ -15,6 +15,7 @@ const softScanEvery = 5 * time.Minute
 const EventDiskLimit = "server.disk_limit_exceeded"
 
 func (m *Manager) softLimitLoop() {
+	m.scanSoftLimits(m.ctx) // so usage is known right away; a first finding only warns
 	t := time.NewTicker(softScanEvery)
 	defer t.Stop()
 	for {
@@ -36,7 +37,7 @@ func (m *Manager) scanSoftLimits(ctx context.Context) {
 	m.mu.Unlock()
 	for _, id := range ids {
 		srv, err := m.Get(ctx, id)
-		if err != nil || srv.Limits.DiskMiB == 0 {
+		if err != nil {
 			continue
 		}
 		u, err := m.DiskUsage(ctx, id)
@@ -46,7 +47,8 @@ func (m *Manager) scanSoftLimits(ctx context.Context) {
 		}
 		limit := srv.Limits.DiskMiB << 20
 		i.mu.Lock()
-		if u.Bytes <= limit {
+		i.lastScan = u // reported by ListServers between scans
+		if limit == 0 || u.Bytes <= limit {
 			i.overLimit = 0
 			i.mu.Unlock()
 			continue

@@ -41,7 +41,8 @@ type Subscription struct {
 	C chan string
 }
 
-func newConsole() *Console {
+// NewConsole returns an empty console.
+func NewConsole() *Console {
 	return &Console{subs: map[*Subscription]struct{}{}, commands: map[string][]time.Time{}, now: time.Now}
 }
 

@@ -16,6 +16,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/install"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -37,15 +38,16 @@ type instance struct {
 	exited       chan struct{} // closed when the current container has exited
 	stopping     bool          // Wings asked the server to stop
 	runningSince time.Time
-	lastLine     time.Time // timestamp of the last output line seen
-	overLimit    int       // consecutive soft-limit scans that found it over its disk limit
+	lastLine     time.Time     // timestamp of the last output line seen
+	overLimit    int           // consecutive soft-limit scans that found it over its disk limit
+	lastScan     storage.Usage // the last soft-limit scan (quotas off)
 	crashes      crashTracker
 	restartTimer *time.Timer
 	deleted      bool
 }
 
 func (m *Manager) newInstance(id string, state State) *instance {
-	return &instance{m: m, id: id, console: newConsole(), state: state}
+	return &instance{m: m, id: id, console: NewConsole(), state: state}
 }
 
 func (i *instance) getState() State {

@@ -13,7 +13,7 @@ type fakeClock struct{ t time.Time }
 func (f *fakeClock) now() time.Time { return f.t }
 
 func TestConsoleHistory(t *testing.T) {
-	c := newConsole()
+	c := NewConsole()
 	for i := range 1500 {
 		c.Write(fmt.Sprint(i))
 	}
@@ -27,7 +27,7 @@ func TestConsoleHistory(t *testing.T) {
 }
 
 func TestConsoleByteCap(t *testing.T) {
-	c := newConsole()
+	c := NewConsole()
 	long := strings.Repeat("x", 8<<10)
 	for range 500 {
 		c.Write(long)
@@ -40,7 +40,7 @@ func TestConsoleByteCap(t *testing.T) {
 
 func TestConsoleThrottle(t *testing.T) {
 	clk := &fakeClock{t: time.Unix(1000, 0)}
-	c := newConsole()
+	c := NewConsole()
 	c.now = clk.now
 	_, sub, cancel := c.Subscribe()
 	defer cancel()
@@ -68,7 +68,7 @@ func TestConsoleThrottle(t *testing.T) {
 
 func TestConsoleThrottleMarker(t *testing.T) {
 	clk := &fakeClock{t: time.Unix(1000, 0)}
-	c := newConsole()
+	c := NewConsole()
 	c.now = clk.now
 	_, sub, cancel := c.Subscribe()
 	defer cancel()
@@ -92,7 +92,7 @@ func TestConsoleThrottleMarker(t *testing.T) {
 }
 
 func TestConsoleSubscribe(t *testing.T) {
-	c := newConsole()
+	c := NewConsole()
 	c.Write("old")
 	hist, sub, cancel := c.Subscribe()
 	c.Write("new")
@@ -109,7 +109,7 @@ func TestConsoleSubscribe(t *testing.T) {
 
 func TestAllowCommand(t *testing.T) {
 	clk := &fakeClock{t: time.Unix(1000, 0)}
-	c := newConsole()
+	c := NewConsole()
 	c.now = clk.now
 	for i := range 10 {
 		if err := c.allowCommand("alice", "say hi"); err != nil {
