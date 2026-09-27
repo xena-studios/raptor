@@ -6,6 +6,8 @@
 set -euo pipefail
 DIR=${1:-/var/lib/raptor-bench}
 RUNS=${RUNS:-5}
+LOOP_DIO=${LOOP_DIO:-on}   # on/off: direct I/O on the loop device
+ONLY=${ONLY:-}             # run only tests whose name contains this
 mkdir -p "$DIR/native"
 command -v fio >/dev/null || { apt-get update -qq && apt-get install -y -qq fio >/dev/null; }
 
@@ -15,7 +17,7 @@ mkfs.xfs -q -f "$img"
 mkdir -p "$mnt"
 mount -o loop,prjquota,noatime "$img" "$mnt"
 dev=$(findmnt -no SOURCE "$mnt")
-losetup --direct-io=on "$dev"
+losetup --direct-io="$LOOP_DIO" "$dev"
 trap 'umount "$mnt"; rm -f "$img"' EXIT
 echo "native: $(findmnt -no FSTYPE,SOURCE --target "$DIR/native")   volume: xfs on $dev (direct I/O $(cat /sys/block/$(basename "$dev")/loop/dio))"
 
@@ -30,6 +32,7 @@ measure() { # dir fio-args... -> median IOPS
 
 printf "%-18s %12s %12s %7s\n" test native xfs-loop ratio
 while IFS='|' read -r name args; do
+  [ -n "$ONLY" ] && [[ "$name" != *"$ONLY"* ]] && continue
   # shellcheck disable=SC2086
   n=$(measure "$DIR/native" $args); x=$(measure "$mnt" $args)
   printf "%-18s %12s %12s %6s%%\n" "$name" "$n" "$x" "$(( 100 * x / n ))"
