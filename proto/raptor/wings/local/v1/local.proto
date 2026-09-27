@@ -21,6 +21,110 @@ service LocalService {
   rpc ShutdownServers(ShutdownServersRequest) returns (ShutdownServersResponse) {
     option idempotency_level = IDEMPOTENT;
   }
+
+  // ListServers lists every server with its state and resource usage. It
+  // takes about half a second (CPU usage is measured over an interval).
+  rpc ListServers(ListServersRequest) returns (ListServersResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Power starts, stops, restarts, or kills a server and returns when it's
+  // done (a stop can take up to the server's stop timeout). Root only.
+  rpc Power(PowerRequest) returns (PowerResponse) {}
+
+  // StreamConsole sends the console history and then live console output
+  // until the client disconnects or the server is deleted.
+  rpc StreamConsole(StreamConsoleRequest) returns (stream StreamConsoleResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // SendCommand writes a command to a running server's console. Root only.
+  rpc SendCommand(SendCommandRequest) returns (SendCommandResponse) {}
+
+  // TailLogs sends a server's output from Docker's log store, which goes
+  // back further than the console history, optionally following it.
+  rpc TailLogs(TailLogsRequest) returns (stream TailLogsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// Servers are named in requests by full ID, the last 8 or more characters of
+// the ID (the short ID shown by `raptor ps`), or exact name. Ambiguous names
+// are an error.
+
+message ListServersRequest {}
+
+message ListServersResponse {
+  repeated ServerInfo servers = 1;
+}
+
+message ServerInfo {
+  string id = 1;
+  string name = 2;
+  // installing, install_failed, offline, starting, running, stopping, crashed
+  string state = 3;
+  // Set while running.
+  google.protobuf.Timestamp running_since = 4;
+  // Percent of one CPU core; 0 unless the container is up (starting,
+  // running, or stopping).
+  double cpu_percent = 5;
+  int64 memory_bytes = 6;
+  int64 memory_limit_bytes = 7;
+  int64 disk_bytes = 8;
+  // 0 = unlimited.
+  int64 disk_limit_bytes = 9;
+  // The primary allocation, "ip:port".
+  string address = 10;
+  // Why the last install failed, if it did.
+  string install_error = 11;
+}
+
+enum PowerAction {
+  POWER_ACTION_UNSPECIFIED = 0;
+  POWER_ACTION_START = 1;
+  POWER_ACTION_STOP = 2;
+  POWER_ACTION_RESTART = 3;
+  POWER_ACTION_KILL = 4;
+}
+
+message PowerRequest {
+  string server = 1;
+  PowerAction action = 2;
+}
+
+message PowerResponse {
+  string server_id = 1;
+  // The state after the action.
+  string state = 2;
+}
+
+message StreamConsoleRequest {
+  string server = 1;
+}
+
+// One console line.
+message StreamConsoleResponse {
+  string text = 1;
+}
+
+message SendCommandRequest {
+  string server = 1;
+  string command = 2;
+}
+
+message SendCommandResponse {}
+
+message TailLogsRequest {
+  string server = 1;
+  // Lines of history; 0 = 100, negative = all.
+  int32 lines = 2;
+  bool follow = 3;
+}
+
+// One line of output.
+message TailLogsResponse {
+  google.protobuf.Timestamp time = 1;
+  string text = 2;
 }
 
 message ShutdownServersRequest {}
@@ -44,6 +148,25 @@ message GetStatusResponse {
   DockerStatus docker = 6;
   // The Unix user the request was attributed to, e.g. "root".
   string caller = 7;
+  // Unset until the container runtime is ready.
+  ServerCounts servers = 8;
+  StorageStatus storage = 9;
+}
+
+message ServerCounts {
+  int32 total = 1;
+  // Starting, running, or stopping.
+  int32 up = 2;
+}
+
+message StorageStatus {
+  string path = 1;
+  // Disk limits are enforced by project quotas (false: soft limits).
+  bool quotas = 2;
+  // Servers can be installed and started.
+  bool ready = 3;
+  // Why not, if not ready.
+  string error = 4;
 }
 
 message DockerStatus {

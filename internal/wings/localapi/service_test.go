@@ -11,6 +11,7 @@ import (
 )
 
 type fakeServers struct {
+	Servers
 	n   int
 	err error
 }

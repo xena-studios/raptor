@@ -3,13 +3,16 @@ package docker
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 
 	"github.com/xena-studios/raptor/internal/wings/containers"
@@ -122,4 +125,28 @@ func (c *Client) Inspect(ctx context.Context, id string) (containers.State, erro
 	}
 	started, _ := time.Parse(time.RFC3339Nano, st.StartedAt)
 	return containers.State{Running: st.Running, ExitCode: int64(st.ExitCode), OOMKilled: st.OOMKilled, StartedAt: started}, nil
+}
+
+// Stats samples a container's usage. One-shot: Docker returns immediately
+// instead of waiting a second for a second sample.
+func (c *Client) Stats(ctx context.Context, id string) (containers.Stats, error) {
+	res, err := c.api.ContainerStats(ctx, id, client.ContainerStatsOptions{})
+	if err != nil {
+		return containers.Stats{}, err
+	}
+	defer func() { _ = res.Body.Close() }()
+	var s container.StatsResponse
+	if err := json.NewDecoder(res.Body).Decode(&s); err != nil {
+		return containers.Stats{}, err
+	}
+	// Like `docker stats`: page cache the kernel can reclaim isn't counted.
+	mem := s.MemoryStats.Usage
+	if cache := s.MemoryStats.Stats["inactive_file"]; cache < mem {
+		mem -= cache
+	}
+	return containers.Stats{
+		Time:        s.Read,
+		CPUNanos:    s.CPUStats.CPUUsage.TotalUsage,
+		MemoryBytes: int64(min(mem, math.MaxInt64)), //nolint:gosec // bounded above
+	}, nil
 }

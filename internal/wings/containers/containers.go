@@ -37,6 +37,8 @@ type Runtime interface {
 	Logs(ctx context.Context, id string, o LogOptions) (<-chan Line, <-chan error)
 	// Inspect reports a container's state.
 	Inspect(ctx context.Context, id string) (State, error)
+	// Stats samples a running container's resource usage.
+	Stats(ctx context.Context, id string) (Stats, error)
 	Start(ctx context.Context, id string) error
 	// Stop stops a server the way its egg asks, killing it after timeout.
 	Stop(ctx context.Context, id string, in Sender, stop eggs.Stop, timeout time.Duration) error
@@ -89,6 +91,13 @@ type State struct {
 	ExitCode  int64
 	OOMKilled bool
 	StartedAt time.Time
+}
+
+// Stats is one sample of a container's resource usage.
+type Stats struct {
+	Time        time.Time
+	CPUNanos    uint64 // cumulative CPU time used, across all cores
+	MemoryBytes int64  // in use, not counting reclaimable page cache
 }
 
 // Network is one of Wings' container networks.

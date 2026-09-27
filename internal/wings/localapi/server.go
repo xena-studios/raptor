@@ -25,9 +25,17 @@ import (
 const Group = "raptor"
 
 type (
-	callerKey struct{}
-	rootKey   struct{}
+	callerKey   struct{}
+	rootKey     struct{}
+	shutdownKey struct{}
 )
+
+// shuttingDown is closed when the server starts shutting down, so streams
+// (which would otherwise hold Shutdown until its deadline) end right away.
+func shuttingDown(ctx context.Context) <-chan struct{} {
+	ch, _ := ctx.Value(shutdownKey{}).(chan struct{})
+	return ch // nil (never ready) outside the server, e.g. in tests
+}
 
 // Caller returns who made the request, as "local:<username>".
 func Caller(ctx context.Context) string {
@@ -73,6 +81,7 @@ func Listen(ctx context.Context, path, group string, svc localv1connect.LocalSer
 	mux := http.NewServeMux()
 	mux.Handle(localv1connect.NewLocalServiceHandler(svc, connect.WithInterceptors(logCalls(log))))
 
+	closing := make(chan struct{})
 	srv := &http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
@@ -80,11 +89,13 @@ func Listen(ctx context.Context, path, group string, svc localv1connect.LocalSer
 		ConnContext: func(ctx context.Context, c net.Conn) context.Context {
 			uid, ok := peerUID(c)
 			ctx = context.WithValue(ctx, rootKey{}, ok && uid == 0)
+			ctx = context.WithValue(ctx, shutdownKey{}, closing)
 			return context.WithValue(ctx, callerKey{}, callerName(c))
 		},
 	}
 	srv.Protocols.SetHTTP1(true)
 	srv.Protocols.SetUnencryptedHTTP2(true)
+	srv.RegisterOnShutdown(func() { close(closing) })
 
 	return &Server{srv: srv, ln: ln, log: log}, nil
 }

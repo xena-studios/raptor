@@ -72,12 +72,12 @@ func Register(x *command.Executor, m *server.Manager) {
 		}
 		return nil
 	}
-	power := func(fn func(context.Context, string) error) command.Handler {
+	power := func(a server.PowerAction) command.Handler {
 		return command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 			if err := needServer(e); err != nil {
 				return nil, err
 			}
-			return nil, fn(ctx, e.ServerID)
+			return nil, m.Power(ctx, e.ServerID, a, e.UserID)
 		}}
 	}
 
@@ -136,10 +136,10 @@ func Register(x *command.Executor, m *server.Manager) {
 		return map[string]string{"job_id": job}, nil
 	}})
 
-	x.Register(ServerStart, power(m.Start))
-	x.Register(ServerStop, power(m.Stop))
-	x.Register(ServerRestart, power(m.Restart))
-	x.Register(ServerKill, power(m.Kill))
+	x.Register(ServerStart, power(server.PowerStart))
+	x.Register(ServerStop, power(server.PowerStop))
+	x.Register(ServerRestart, power(server.PowerRestart))
+	x.Register(ServerKill, power(server.PowerKill))
 
 	x.Register(ServerCommand, command.Handler{Signed: command.Never, Run: func(_ context.Context, e command.Envelope) (any, error) {
 		var p CommandParams

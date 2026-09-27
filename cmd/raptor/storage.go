@@ -133,6 +133,10 @@ func storageSetup(ctx context.Context, cfg *config.Config, size int64) error {
 		return fmt.Errorf("%s isn't empty; move its contents out before creating the volume", vol)
 	}
 	image := vol + ".xfs"
+	// On a new box Wings hasn't created its state directory yet.
+	if err := os.MkdirAll(filepath.Dir(image), 0o700); err != nil { //nolint:gosec // path from the root-owned config
+		return err
+	}
 	if err := checkHostSpace(image, size, int64(cfg.Limits.HostDiskMinFree)); err != nil {
 		return err
 	}

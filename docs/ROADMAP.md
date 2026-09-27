@@ -123,8 +123,10 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Instant usage reporting; limit changes apply to running servers
 - [x] `task e2e:quotas` (with a real reboot) and the same tests in CI, minus the reboot
 
-### 1.7 CLI (first cut)
-- [ ] `status`, `ps`, `start|stop|restart|kill`, `console`, `logs`
+### 1.7 CLI (first cut) ✅
+- [x] `status`, `ps`, `start|stop|restart|kill`, `console`, `logs`, over the local socket API
+- [x] `raptor` group can look, root can act; local actions attributed to the Unix user
+- [x] Tested against the real daemon in `task e2e:host` (as root and as a `raptor` group member)
 
 ### 1.8 Egg conformance suite
 - [ ] Harness: import → install → start → done → command → stop → reinstall

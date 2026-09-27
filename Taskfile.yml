@@ -208,6 +208,14 @@ tasks:
           install -D -m 0644 /tmp/raptor-scope.conf "/etc/systemd/system/docker-.scope.d/10-raptor.conf"
           install -d -m 0700 /etc/raptor
           install -m 0600 /tmp/raptor-config.yml /etc/raptor/config.yml
+          # Server data volume with quotas, as on a real node (tier 2).
+          if ! raptor storage status >/dev/null 2>&1; then
+            v=/var/lib/raptor/volumes
+            if [ -d $v ] && ! mountpoint -q $v && [ -n "$(ls -A $v)" ]; then
+              mv $v $v.old-$(date +%s)
+            fi
+            raptor storage setup -size 4GiB
+          fi
           systemctl daemon-reload
           systemctl enable raptor-wings raptor-shutdown >/dev/null 2>&1
           systemctl start raptor-shutdown
@@ -287,7 +295,7 @@ tasks:
         limactl shell {{.VM}} $Q after-reboot grow
 
   e2e:host:
-    desc: "Host-level lifecycle test in the Wings VM: Wings/Docker restarts, host shutdown, reboot"
+    desc: "Host-level lifecycle test in the Wings VM: Wings/Docker restarts, host shutdown, the CLI, reboot"
     cmds:
       - task: wings:vm:install
       - |
@@ -298,6 +306,7 @@ tasks:
         limactl copy scripts/e2e-host.sh {{.VM}}:/tmp/e2e-host.sh
         limactl shell {{.VM}} sudo install -D -m 0755 /tmp/e2e-host.sh /var/lib/raptor-e2e/e2e-host.sh
         limactl shell {{.VM}} sudo /var/lib/raptor-e2e/e2e-host.sh seed
+        limactl shell {{.VM}} sudo /var/lib/raptor-e2e/e2e-host.sh cli
         limactl stop {{.VM}}
         limactl start --tty=false {{.VM}}
         limactl shell {{.VM}} sudo /var/lib/raptor-e2e/e2e-host.sh after-reboot

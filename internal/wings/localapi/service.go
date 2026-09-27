@@ -14,6 +14,9 @@ import (
 
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
+	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 )
 
 // DockerVersioner reports the Docker daemon version.
@@ -21,9 +24,17 @@ type DockerVersioner interface {
 	Version(ctx context.Context) (string, error)
 }
 
-// Servers is the part of the server manager the local API uses.
+// Servers is the part of the server manager the local API uses
+// (*server.Manager).
 type Servers interface {
 	ShutdownAll(ctx context.Context) (int, error)
+	List() map[string]server.State
+	Get(ctx context.Context, id string) (*server.Server, error)
+	Usage(ctx context.Context, id string) (server.Usage, error)
+	Power(ctx context.Context, id string, a server.PowerAction, user string) error
+	Status(id string) (server.Status, error)
+	SendCommand(id, user, cmd string) error
+	Logs(ctx context.Context, id string, tail int, follow bool) (<-chan containers.Line, <-chan error, error)
 }
 
 // Service implements the local API.
@@ -32,6 +43,7 @@ type Service struct {
 	PanelURL  string
 	StartedAt time.Time
 	Docker    DockerVersioner
+	Storage   *storage.Volume // nil in tests
 
 	mu      sync.RWMutex
 	servers Servers
@@ -81,6 +93,24 @@ func (s *Service) GetStatus(ctx context.Context, _ *localv1.GetStatusRequest) (*
 		StartedAt: timestamppb.New(s.StartedAt),
 		Caller:    Caller(ctx),
 		Docker:    &localv1.DockerStatus{},
+	}
+	if v := s.Storage; v != nil {
+		resp.Storage = &localv1.StorageStatus{Path: v.Path, Quotas: !v.Soft, Ready: true}
+		if err := v.Check(); err != nil {
+			resp.Storage.Ready, resp.Storage.Error = false, err.Error()
+		}
+	}
+	s.mu.RLock()
+	srv := s.servers
+	s.mu.RUnlock()
+	if srv != nil {
+		resp.Servers = &localv1.ServerCounts{}
+		for _, st := range srv.List() {
+			resp.Servers.Total++
+			if st == server.Starting || st == server.Running || st == server.Stopping {
+				resp.Servers.Up++
+			}
+		}
 	}
 	dctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()

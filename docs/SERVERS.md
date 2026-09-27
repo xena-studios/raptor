@@ -101,7 +101,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 - There is no separate console log file. History beyond the ring buffer is Docker's rotated logs (3 × 20 MB).
 
 **Input**
-- Requires the `console.write` permission (or local root via the CLI).
+- Requires the `console.write` permission, or root on the box through `raptor console`.
 - A command is at most 4 KiB, and each user is limited to 10 commands per second.
 - Commands can't contain line breaks (one command, one line).
 - Commands are written to the container's stdin and recorded in the audit log with the user who sent them. If the stdin connection broke (e.g. a Docker restart), Wings reconnects and retries once.

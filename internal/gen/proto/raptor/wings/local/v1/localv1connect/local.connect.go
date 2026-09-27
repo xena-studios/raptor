@@ -38,6 +38,19 @@ const (
 	// LocalServiceShutdownServersProcedure is the fully-qualified name of the LocalService's
 	// ShutdownServers RPC.
 	LocalServiceShutdownServersProcedure = "/raptor.wings.local.v1.LocalService/ShutdownServers"
+	// LocalServiceListServersProcedure is the fully-qualified name of the LocalService's ListServers
+	// RPC.
+	LocalServiceListServersProcedure = "/raptor.wings.local.v1.LocalService/ListServers"
+	// LocalServicePowerProcedure is the fully-qualified name of the LocalService's Power RPC.
+	LocalServicePowerProcedure = "/raptor.wings.local.v1.LocalService/Power"
+	// LocalServiceStreamConsoleProcedure is the fully-qualified name of the LocalService's
+	// StreamConsole RPC.
+	LocalServiceStreamConsoleProcedure = "/raptor.wings.local.v1.LocalService/StreamConsole"
+	// LocalServiceSendCommandProcedure is the fully-qualified name of the LocalService's SendCommand
+	// RPC.
+	LocalServiceSendCommandProcedure = "/raptor.wings.local.v1.LocalService/SendCommand"
+	// LocalServiceTailLogsProcedure is the fully-qualified name of the LocalService's TailLogs RPC.
+	LocalServiceTailLogsProcedure = "/raptor.wings.local.v1.LocalService/TailLogs"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
@@ -49,6 +62,20 @@ type LocalServiceClient interface {
 	// again when the host is back. Called by raptor-shutdown.service when the
 	// host shuts down. Root only.
 	ShutdownServers(context.Context, *v1.ShutdownServersRequest) (*v1.ShutdownServersResponse, error)
+	// ListServers lists every server with its state and resource usage. It
+	// takes about half a second (CPU usage is measured over an interval).
+	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
+	// Power starts, stops, restarts, or kills a server and returns when it's
+	// done (a stop can take up to the server's stop timeout). Root only.
+	Power(context.Context, *v1.PowerRequest) (*v1.PowerResponse, error)
+	// StreamConsole sends the console history and then live console output
+	// until the client disconnects or the server is deleted.
+	StreamConsole(context.Context, *v1.StreamConsoleRequest) (*connect.ServerStreamForClient[v1.StreamConsoleResponse], error)
+	// SendCommand writes a command to a running server's console. Root only.
+	SendCommand(context.Context, *v1.SendCommandRequest) (*v1.SendCommandResponse, error)
+	// TailLogs sends a server's output from Docker's log store, which goes
+	// back further than the console history, optionally following it.
+	TailLogs(context.Context, *v1.TailLogsRequest) (*connect.ServerStreamForClient[v1.TailLogsResponse], error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -76,6 +103,39 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
+		listServers: connect.NewClient[v1.ListServersRequest, v1.ListServersResponse](
+			httpClient,
+			baseURL+LocalServiceListServersProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ListServers")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		power: connect.NewClient[v1.PowerRequest, v1.PowerResponse](
+			httpClient,
+			baseURL+LocalServicePowerProcedure,
+			connect.WithSchema(localServiceMethods.ByName("Power")),
+			connect.WithClientOptions(opts...),
+		),
+		streamConsole: connect.NewClient[v1.StreamConsoleRequest, v1.StreamConsoleResponse](
+			httpClient,
+			baseURL+LocalServiceStreamConsoleProcedure,
+			connect.WithSchema(localServiceMethods.ByName("StreamConsole")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		sendCommand: connect.NewClient[v1.SendCommandRequest, v1.SendCommandResponse](
+			httpClient,
+			baseURL+LocalServiceSendCommandProcedure,
+			connect.WithSchema(localServiceMethods.ByName("SendCommand")),
+			connect.WithClientOptions(opts...),
+		),
+		tailLogs: connect.NewClient[v1.TailLogsRequest, v1.TailLogsResponse](
+			httpClient,
+			baseURL+LocalServiceTailLogsProcedure,
+			connect.WithSchema(localServiceMethods.ByName("TailLogs")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -83,6 +143,11 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 type localServiceClient struct {
 	getStatus       *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
 	shutdownServers *connect.Client[v1.ShutdownServersRequest, v1.ShutdownServersResponse]
+	listServers     *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
+	power           *connect.Client[v1.PowerRequest, v1.PowerResponse]
+	streamConsole   *connect.Client[v1.StreamConsoleRequest, v1.StreamConsoleResponse]
+	sendCommand     *connect.Client[v1.SendCommandRequest, v1.SendCommandResponse]
+	tailLogs        *connect.Client[v1.TailLogsRequest, v1.TailLogsResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -103,6 +168,43 @@ func (c *localServiceClient) ShutdownServers(ctx context.Context, req *v1.Shutdo
 	return nil, err
 }
 
+// ListServers calls raptor.wings.local.v1.LocalService.ListServers.
+func (c *localServiceClient) ListServers(ctx context.Context, req *v1.ListServersRequest) (*v1.ListServersResponse, error) {
+	response, err := c.listServers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// Power calls raptor.wings.local.v1.LocalService.Power.
+func (c *localServiceClient) Power(ctx context.Context, req *v1.PowerRequest) (*v1.PowerResponse, error) {
+	response, err := c.power.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// StreamConsole calls raptor.wings.local.v1.LocalService.StreamConsole.
+func (c *localServiceClient) StreamConsole(ctx context.Context, req *v1.StreamConsoleRequest) (*connect.ServerStreamForClient[v1.StreamConsoleResponse], error) {
+	return c.streamConsole.CallServerStream(ctx, connect.NewRequest(req))
+}
+
+// SendCommand calls raptor.wings.local.v1.LocalService.SendCommand.
+func (c *localServiceClient) SendCommand(ctx context.Context, req *v1.SendCommandRequest) (*v1.SendCommandResponse, error) {
+	response, err := c.sendCommand.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// TailLogs calls raptor.wings.local.v1.LocalService.TailLogs.
+func (c *localServiceClient) TailLogs(ctx context.Context, req *v1.TailLogsRequest) (*connect.ServerStreamForClient[v1.TailLogsResponse], error) {
+	return c.tailLogs.CallServerStream(ctx, connect.NewRequest(req))
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
@@ -112,6 +214,20 @@ type LocalServiceHandler interface {
 	// again when the host is back. Called by raptor-shutdown.service when the
 	// host shuts down. Root only.
 	ShutdownServers(context.Context, *v1.ShutdownServersRequest) (*v1.ShutdownServersResponse, error)
+	// ListServers lists every server with its state and resource usage. It
+	// takes about half a second (CPU usage is measured over an interval).
+	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
+	// Power starts, stops, restarts, or kills a server and returns when it's
+	// done (a stop can take up to the server's stop timeout). Root only.
+	Power(context.Context, *v1.PowerRequest) (*v1.PowerResponse, error)
+	// StreamConsole sends the console history and then live console output
+	// until the client disconnects or the server is deleted.
+	StreamConsole(context.Context, *v1.StreamConsoleRequest, *connect.ServerStream[v1.StreamConsoleResponse]) error
+	// SendCommand writes a command to a running server's console. Root only.
+	SendCommand(context.Context, *v1.SendCommandRequest) (*v1.SendCommandResponse, error)
+	// TailLogs sends a server's output from Docker's log store, which goes
+	// back further than the console history, optionally following it.
+	TailLogs(context.Context, *v1.TailLogsRequest, *connect.ServerStream[v1.TailLogsResponse]) error
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -135,12 +251,55 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceListServersHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceListServersProcedure,
+		svc.ListServers,
+		connect.WithSchema(localServiceMethods.ByName("ListServers")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServicePowerHandler := connect.NewUnaryHandlerSimple(
+		LocalServicePowerProcedure,
+		svc.Power,
+		connect.WithSchema(localServiceMethods.ByName("Power")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceStreamConsoleHandler := connect.NewServerStreamHandlerSimple(
+		LocalServiceStreamConsoleProcedure,
+		svc.StreamConsole,
+		connect.WithSchema(localServiceMethods.ByName("StreamConsole")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceSendCommandHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceSendCommandProcedure,
+		svc.SendCommand,
+		connect.WithSchema(localServiceMethods.ByName("SendCommand")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceTailLogsHandler := connect.NewServerStreamHandlerSimple(
+		LocalServiceTailLogsProcedure,
+		svc.TailLogs,
+		connect.WithSchema(localServiceMethods.ByName("TailLogs")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
 			localServiceGetStatusHandler.ServeHTTP(w, r)
 		case LocalServiceShutdownServersProcedure:
 			localServiceShutdownServersHandler.ServeHTTP(w, r)
+		case LocalServiceListServersProcedure:
+			localServiceListServersHandler.ServeHTTP(w, r)
+		case LocalServicePowerProcedure:
+			localServicePowerHandler.ServeHTTP(w, r)
+		case LocalServiceStreamConsoleProcedure:
+			localServiceStreamConsoleHandler.ServeHTTP(w, r)
+		case LocalServiceSendCommandProcedure:
+			localServiceSendCommandHandler.ServeHTTP(w, r)
+		case LocalServiceTailLogsProcedure:
+			localServiceTailLogsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -156,4 +315,24 @@ func (UnimplementedLocalServiceHandler) GetStatus(context.Context, *v1.GetStatus
 
 func (UnimplementedLocalServiceHandler) ShutdownServers(context.Context, *v1.ShutdownServersRequest) (*v1.ShutdownServersResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ShutdownServers is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ListServers is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) Power(context.Context, *v1.PowerRequest) (*v1.PowerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.Power is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) StreamConsole(context.Context, *v1.StreamConsoleRequest, *connect.ServerStream[v1.StreamConsoleResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.StreamConsole is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) SendCommand(context.Context, *v1.SendCommandRequest) (*v1.SendCommandResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.SendCommand is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) TailLogs(context.Context, *v1.TailLogsRequest, *connect.ServerStream[v1.TailLogsResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.TailLogs is not implemented"))
 }

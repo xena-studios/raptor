@@ -287,14 +287,14 @@ Sent **directly from Wings** so they work during Panel outages: Discord webhooks
 The CLI keeps things running. **It never changes server configuration.** All setup happens in the Panel.
 
 ```
-raptor status                         node health, Panel link, disk, Docker
+raptor status                         node health, Panel link, Docker, storage, server counts
 raptor doctor [--bundle [--upload]]   diagnose + fix suggestions; offline support bundle
 raptor update                         update Wings (and Docker, deliberately)
 raptor link --token … | unlink | relink
-raptor ps                             servers + state + CPU/RAM
-raptor start|stop|restart|kill <server>
-raptor console <server>               live console
-raptor logs <server> [-f]
+raptor ps [-json]                     servers: short ID, state, CPU, memory, disk, address, uptime
+raptor start|stop|restart|kill <server>   (root) stop waits for the egg's clean shutdown
+raptor console <server>               live console; typed or piped lines are sent as commands (root)
+raptor logs <server> [-n N] [-f] [-t] output from Docker's log store, further back than the console
 raptor backup list|create|restore <server> [id]
 raptor jobs [logs <id>]
 raptor storage status|setup|grow        volume state; create the image volume; grow it online
@@ -306,30 +306,38 @@ raptor uninstall [--wipe-data]
 raptor tui
 ```
 
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), and `wings run|shutdown-servers` (used by the systemd units).
+
+- **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
+- **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
+- **`logs`** reads Docker's log store for the server's current container (it survives stops; each start replaces it), so it goes back further than the console's 1,000-line history. `-n -1` prints everything.
+- Flags can go before or after the server (`raptor logs srv -f`).
+
 ### Local socket API
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus` (`raptor status`) and `ShutdownServers` (root only; `raptor wings shutdown-servers`, called by `raptor-shutdown.service`). The full planned set:
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, and `TailLogs`. The full planned set:
 
 | Method | Purpose |
 |---|---|
 | `GetStatus` | Node health, Panel link, Docker, disk, version |
 | `ShutdownServers` | Graceful stop of every server for a host shutdown, keeping `desired_state` (root only) |
-| `ListServers`, `GetServer` | Servers, states, resource usage |
-| `Start`, `Stop`, `Restart`, `Kill` | Power actions |
-| `AttachConsole` (stream) | Console output + sending commands |
-| `TailLogs` (stream) | Server logs |
+| `ListServers` | Servers, states, resource usage (CPU measured over 0.5 s, all servers in parallel) |
+| `Power` | Start, stop, restart, kill; returns when done (root only) |
+| `StreamConsole` (stream), `SendCommand` | Console history and live output; sending commands (root only) |
+| `TailLogs` (stream) | Server output from Docker's log store, optionally followed |
 | `ListBackups`, `CreateBackup`, `RestoreBackup` | Backups |
 | `ListJobs`, `TailJobLogs` (stream) | Jobs and their logs |
 | `RunDoctor`, `CreateBundle` | Diagnostics |
-| `GetStorage`, `GrowStorage` | Quota volume |
 | `GetSupportStatus`, `RevokeSupport` | Support access |
 | `Link`, `Unlink`, `Relink` | Panel linking |
 | `Update` | Self-update |
 
-- **Access:** Unix socket permissions only: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens.
-- **Attribution:** Wings reads the caller's Unix user from the socket (`SO_PEERCRED`). Every mutating call is recorded as an event with actor `local:<username>`, so it appears in the Panel's audit log.
+- **Access:** Unix socket permissions: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens. Members of the `raptor` group can **look** (status, `ps`, console output, logs); anything that changes a server (power actions, console commands, shutting servers down) needs **root**, checked by Wings from the caller's Unix user.
+- **Attribution:** Wings reads the caller's Unix user from the socket (`SO_PEERCRED`). Every mutating call is recorded as an event with actor `local:<username>` (power actions as `server.power`, commands as `server.console.command`), so it appears in the Panel's audit log. Power actions from the Panel are recorded the same way with the Panel user.
+- **Streams end when Wings shuts down,** so an open `console` or `logs -f` never holds up a Wings restart.
+- `raptor storage` works on the box directly, not through the socket, so it also works while Wings is stopped.
 
 ## `doctor`
 
