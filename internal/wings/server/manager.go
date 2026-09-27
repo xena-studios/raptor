@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +21,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -29,6 +31,7 @@ var (
 	ErrInstalling   = errors.New("server is installing")
 	ErrNotInstalled = errors.New("server isn't installed; reinstall it or enable skip install")
 	ErrRunning      = errors.New("server is running; stop it first")
+	ErrDiskLimit    = errors.New("server is over its disk limit; free space or raise the limit")
 	ErrClosed       = errors.New("server manager is shut down")
 )
 
@@ -37,6 +40,8 @@ type Options struct {
 	Runtime containers.Runtime
 	Store   *store.DB
 	Log     *slog.Logger
+	// Storage is the server data volume and its quotas.
+	Storage *storage.Volume
 
 	VolumesDir string // server directories: <VolumesDir>/<id>
 	TmpDir     string // install scripts
@@ -110,6 +115,9 @@ func New(o Options) *Manager {
 	}
 	if o.OOMKills != nil {
 		m.oomSeen, _ = o.OOMKills()
+	}
+	if o.Storage != nil && o.Storage.Soft {
+		m.goTracked(m.softLimitLoop)
 	}
 	o.Jobs.Register(JobInstall, jobs.Handler{
 		Class:       "install",
@@ -302,6 +310,9 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 		if err := insertAllocations(ctx, q, sid, cfg.Allocations); err != nil {
 			return err
 		}
+		if err := assignQuotaProject(ctx, q, sid); err != nil {
+			return err
+		}
 		if err := publishTx(ctx, q, created); err != nil {
 			return err
 		}
@@ -380,6 +391,12 @@ func (m *Manager) Update(ctx context.Context, id string, cfg Config) error {
 	})
 	if err != nil {
 		return err
+	}
+	// A new disk limit applies at once, even while the server runs.
+	if cfg.Limits.DiskMiB != old.Limits.DiskMiB && old.QuotaProject != 0 {
+		if err := m.o.Storage.SetLimit(old.QuotaProject, cfg.Limits.DiskMiB<<20); err != nil {
+			m.log.Warn("applying the new disk limit failed; it's applied on the next start", "server", id, "err", err)
+		}
 	}
 	m.emit(updated)
 	return nil
@@ -546,8 +563,14 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+	srv, _ := m.Get(ctx, id)
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("remove files: %w", err)
+	}
+	if srv != nil {
+		if err := m.o.Storage.Release(srv.QuotaProject); err != nil {
+			m.log.Warn("clearing the disk limit failed", "server", id, "err", err)
+		}
 	}
 	deleted := newEvent(EventDeleted, id, 0, nil)
 	if err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
@@ -668,4 +691,53 @@ func (m *Manager) ChangesCode(ctx context.Context, id string, cfg Config) (bool,
 		startup = cur.Egg().DefaultStartup()
 	}
 	return image != cur.Image || startup != cur.Startup, nil
+}
+
+// assignQuotaProject gives a server the next free XFS quota project.
+func assignQuotaProject(ctx context.Context, q *store.Queries, id string) error {
+	n, err := q.NextQuotaProject(ctx)
+	if err != nil {
+		return err
+	}
+	return q.SetQuotaProject(ctx, store.SetQuotaProjectParams{QuotaProject: sql.NullInt64{Int64: n, Valid: true}, ID: id})
+}
+
+// prepareStorage checks the volume and puts the server's directory under
+// its quota project and limit. Called before every install and start, so a
+// missing volume stops the server from writing to the host disk instead, and
+// a server created before quotas gets a project on its next start.
+func (m *Manager) prepareStorage(ctx context.Context, srv *Server) error {
+	if srv.QuotaProject == 0 && !m.o.Storage.Soft {
+		if err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error { return assignQuotaProject(ctx, q, srv.ID) }); err != nil {
+			return err
+		}
+		fresh, err := m.Get(ctx, srv.ID)
+		if err != nil {
+			return err
+		}
+		srv.QuotaProject = fresh.QuotaProject
+	}
+	dir, err := m.serverDir(srv.ID)
+	if err != nil {
+		return err
+	}
+	return m.o.Storage.Prepare(dir, srv.QuotaProject, srv.Limits.DiskMiB<<20, m.o.UID, m.o.GID)
+}
+
+// DiskUsage returns a server's disk usage: instantly from its quota, or by
+// scanning its directory when quotas are off.
+func (m *Manager) DiskUsage(ctx context.Context, id string) (storage.Usage, error) {
+	srv, err := m.Get(ctx, id)
+	if err != nil {
+		return storage.Usage{}, err
+	}
+	dir, err := m.serverDir(id)
+	if err != nil {
+		return storage.Usage{}, err
+	}
+	u, err := m.o.Storage.Usage(ctx, dir, srv.QuotaProject)
+	if err == nil && u.LimitBytes == 0 {
+		u.LimitBytes = srv.Limits.DiskMiB << 20
+	}
+	return u, err
 }

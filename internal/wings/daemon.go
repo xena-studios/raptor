@@ -23,6 +23,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -217,7 +218,19 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	}
 	uid, _ := strconv.Atoi(u.Uid)
 	gid, _ := strconv.Atoi(u.Gid)
+	vol := &storage.Volume{Path: r.cfg.Paths.Volumes, Soft: !r.cfg.Storage.Quotas}
+	if err := vol.Check(); err != nil {
+		// Wings keeps running (status, local API); servers are refused
+		// until the volume is back, and start again from reconcile.
+		r.log.Error("server data volume unavailable; servers won't start", "err", err)
+	} else if m, ok, _ := storage.FindMount(vol.Path); ok {
+		if err := storage.EnableDirectIO(m); err != nil {
+			r.log.Warn("couldn't enable direct I/O on the volume", "err", err)
+		}
+		r.log.Info("server data volume ready", "path", vol.Path, "source", m.Source, "quotas", !vol.Soft)
+	}
 	opts := server.Options{
+		Storage:         vol,
 		Runtime:         r.rt,
 		Store:           r.db,
 		Log:             r.log,

@@ -124,7 +124,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 
 | Action | Behavior |
 |---|---|
-| `start` | Checks: install succeeded (or skipped), quota volume mounted (Phase 1.6), allocations free, image present (pulls if needed). Applies config files and creates a **fresh container**, so pending changes (allocations, limits, variables, image) take effect, then starts it → `starting`. Sets `desired_state=running`. |
+| `start` | Checks: install succeeded (or skipped), quota volume mounted with project quotas (or, with soft limits, the server not over its limit), allocations free, image present (pulls if needed). Applies config files and creates a **fresh container**, so pending changes (allocations, limits, variables, image) take effect, then starts it → `starting`. Sets `desired_state=running`. |
 | `stop` | Sends the egg's stop command or signal → `stopping`. If it hasn't exited after the **stop timeout** (default 60 s, configurable per server up to 10 minutes), Wings sends SIGKILL. Sets `desired_state=stopped`. |
 | `restart` | `stop`, then `start`. Crash counters are not affected. |
 | `kill` | Immediate SIGKILL. Needs the `power` permission. The Panel warns that unsaved data will be lost. Sets `desired_state=stopped`. |
@@ -134,7 +134,7 @@ Power actions take the server's lock, so they never overlap with installs, backu
 
 ## Deleting a server
 
-Implemented now: stop (kill after the stop timeout), remove the server and install containers, delete the files, free the allocations, drop the row. The final backup (Phase 2), quota project cleanup (Phase 1.6), and orphaned offsite backups (Phase 2) arrive with those features.
+Implemented now: stop (kill after the stop timeout), remove the server and install containers, delete the files, free the allocations, clear the quota limit, drop the row. The final backup and orphaned offsite backups arrive with backups (Phase 2).
 
 1. The Panel requires the owner to type the server name and **sign the deletion with their passkey** (Wings rejects unsigned deletions). A **final backup** option is shown, on by default when a backup destination exists.
 2. Wings stops the server (kills it after the stop timeout), takes the final backup if requested, and removes the container.

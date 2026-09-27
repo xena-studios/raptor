@@ -264,6 +264,28 @@ tasks:
         limactl shell {{.VM}} sudo /tmp/server-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
         limactl shell {{.VM}} sudo /tmp/actions-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
 
+  e2e:quotas:
+    desc: "Disk quota tests in the Wings VM: limits, the seccomp escape check, a real reboot, online growth"
+    cmds:
+      - task: wings:vm:up
+      - |
+        set -eu
+        ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/storage-e2e-$ARCH ./internal/wings/storage
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/server-e2e-$ARCH ./internal/wings/server
+        limactl shell {{.VM}} sudo mkdir -p /var/lib/raptor-e2e
+        for f in storage-e2e server-e2e; do
+          limactl copy bin/$f-$ARCH {{.VM}}:/tmp/$f
+          limactl shell {{.VM}} sudo install -m 0755 /tmp/$f /var/lib/raptor-e2e/$f
+        done
+        limactl copy scripts/e2e-quotas.sh {{.VM}}:/tmp/e2e-quotas.sh
+        limactl shell {{.VM}} sudo install -m 0755 /tmp/e2e-quotas.sh /var/lib/raptor-e2e/e2e-quotas.sh
+        Q="sudo /var/lib/raptor-e2e/e2e-quotas.sh /var/lib/raptor-e2e/storage-e2e /var/lib/raptor-e2e/server-e2e"
+        limactl shell {{.VM}} $Q fresh test
+        limactl stop {{.VM}}
+        limactl start --tty=false {{.VM}}
+        limactl shell {{.VM}} $Q after-reboot grow
+
   e2e:host:
     desc: "Host-level lifecycle test in the Wings VM: Wings/Docker restarts, host shutdown, reboot"
     cmds:

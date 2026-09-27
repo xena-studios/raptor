@@ -23,6 +23,9 @@ const usage = `usage: raptor <command> [flags]
 
 commands:
   status      show node status (talks to the running daemon)
+  storage status|setup|grow
+              show, create, or enlarge the server data volume (root for
+              setup and grow)
   wings run   run the Wings daemon
   wings shutdown-servers
               gracefully stop every server for a host shutdown (root; used
@@ -48,6 +51,8 @@ func run(args []string) error {
 		return nil
 	case len(args) >= 1 && args[0] == "status":
 		return status(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "storage":
+		return storageCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
 		return wingsRun(ctx, args[2:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "shutdown-servers":

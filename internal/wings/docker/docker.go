@@ -192,7 +192,7 @@ func (c *Client) Install(ctx context.Context, s containers.InstallSpec) (contain
 			},
 			Tmpfs:       map[string]string{"/tmp": "rw,exec,nosuid,size=" + strconv.Itoa(tmpfsSizeMiB) + "M"},
 			NetworkMode: container.NetworkMode(c.nets.Install.Name),
-			SecurityOpt: []string{"no-new-privileges"},
+			SecurityOpt: securityOpts(),
 			CapDrop:     []string{"NET_RAW", "MKNOD", "AUDIT_WRITE", "SETFCAP"},
 			Resources: container.Resources{
 				CgroupParent: c.nets.CgroupParent,
@@ -331,7 +331,7 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 			PortBindings:   bindings,
 			NetworkMode:    netMode,
 			ReadonlyRootfs: true,
-			SecurityOpt:    []string{"no-new-privileges"},
+			SecurityOpt:    securityOpts(),
 			CapDrop: []string{
 				"SETPCAP", "MKNOD", "AUDIT_WRITE", "NET_RAW", "DAC_OVERRIDE",
 				"FOWNER", "FSETID", "NET_BIND_SERVICE", "SYS_CHROOT", "SETFCAP",

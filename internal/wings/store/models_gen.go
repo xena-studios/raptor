@@ -78,6 +78,7 @@ type Server struct {
 	Version      int64
 	CreatedAt    int64
 	UpdatedAt    int64
+	QuotaProject sql.NullInt64
 }
 
 type TrustedKey struct {

@@ -89,6 +89,8 @@ limits:
   concurrent_backups: 2
   host_disk_min_free: 10GiB      # below this: refuse installs and image pulls
   reserved_memory: 0             # kept free of servers; 0 = 10% of RAM, 1–4 GiB
+storage:
+  quotas: true                   # false = soft disk limits by scanning (tier 3)
 updates:
   channel: stable
   pin: ""                        # e.g. "1.4.2" to pin a version
@@ -168,27 +170,44 @@ Wings' rules live in their **own nftables table, `inet raptor`**, not in Docker'
 ### Container hardening
 - Non-root user inside the container (Pterodactyl-compatible UID)
 - Drops the same capabilities as Pterodactyl (`SETPCAP`, `MKNOD`, `AUDIT_WRITE`, `NET_RAW`, `DAC_OVERRIDE`, `FOWNER`, `FSETID`, `NET_BIND_SERVICE`, `SYS_CHROOT`, `SETFCAP`); `no-new-privileges`
-- Docker's default seccomp profile
+- Docker's default seccomp profile, minus one call: `ioctl` is allowed for every command except `FS_IOC_FSSETXATTR`. A file's owner can otherwise move it to another quota project without any capability, escaping its disk limit ([Disk quotas](#disk-quotas)). The rule is written as allow-only because in libseccomp a matching allow beats a matching deny; values with extra high bits don't match any allow (the kernel truncates the command to 32 bits), and sign-extended values from musl are allowed. Install containers get the same profile.
 - Read-only root filesystem; `/home/container` and a 100 MB `/tmp` tmpfs are the only writable paths
 - Only the server's own directory is mounted. Nothing else from the host, ever.
 - Tested for real by `task e2e:runtime` (see [CONTRIBUTING.md](../CONTRIBUTING.md#runtime-end-to-end-tests)).
 
 ## Disk quotas
 
-**XFS project quotas.** Kernel-enforced, zero overhead, instant usage readout (no `du` scans), instant limit changes.
+**XFS project quotas** (`internal/wings/storage`). Kernel-enforced, no overhead on normal I/O, instant usage readout (no `du` scans), and limit changes that apply instantly, even while the server runs.
 
 | Tier | When | How |
 |---|---|---|
-| 1 | `/var/lib/raptor/volumes` is on XFS with `prjquota` (or `--data-disk` given) | Use it directly |
-| 2 | Anything else (default ext4 Debian/Ubuntu) | One **preallocated** file (`fallocate`, size chosen at install, default ~80% of free space), formatted XFS, loop-mounted with **direct I/O** at `/var/lib/raptor/volumes` |
-| 3 | Owner passes `--no-quota` | Soft limits: periodic usage scan, warn then stop server when over |
+| 1 | `/var/lib/raptor/volumes` is on XFS mounted with `prjquota` (e.g. a data disk) | Use it directly. Full native speed. |
+| 2 | Anything else (the default ext4 Debian/Ubuntu box) | **Default.** `raptor storage setup -size <size>` preallocates one image file (`/var/lib/raptor/volumes.xfs`), formats it XFS, and loop-mounts it with **direct I/O** at `/var/lib/raptor/volumes` |
+| 3 | Owner opts out (`storage.quotas: false`) | Soft limits: usage is scanned every 5 minutes; over the limit, the console gets a warning, then the server is stopped and can't start until it's under |
 
-- Quotas set via syscalls (`quotactl`, `FS_IOC_FSSETXATTR`), not shell commands.
-- The loop image is mounted by a **systemd mount unit**, ordered after local filesystems and **before** Docker and Wings.
-- **Wings refuses to start any server if the volume isn't mounted.** This prevents writing into the empty mount point underneath.
-- `raptor storage grow <size>` grows the image and runs `xfs_growfs` online.
-- `doctor` checks mount state, free space, and can run `xfs_repair` (with servers stopped).
+**Tier 2 costs fsync'd writes about half their speed**, measured on a real Linux runner (ext4 host disk vs the loop volume, fio, 5 runs each, median):
+
+| Test | Loop volume vs native |
+|---|---|
+| Sequential write / read (1 MiB) | 100% / 99% |
+| Random write / read (4 KiB) | 184–206% / 100% |
+| Buffered writes | 90–100% |
+| **16 KiB writes with fsync each (game saves)** | **48–56%** |
+
+Each fsync commits two journals: the XFS journal inside the image, and then the host filesystem's journal for the image file. Turning the loop device's direct I/O off made it worse (41%). In absolute terms the loop volume still sustained about 1,000–2,900 fsync'd saves per second on a basic cloud disk, which is far more than game servers do. Hard limits stay the default, because a limit that can be overrun between scans doesn't protect the other servers on the box. The installer explains the trade-off, and boxes that want native speed use a data disk (tier 1).
+
+How it works:
+- Each server gets a **quota project** ID (from 1000, stored with the server). Wings sets it on the server's directory with `FS_IOC_FSSETXATTR` and the inherit flag, so everything created inside belongs to it, and sets and reads limits with `quotactl_fd`. No shell commands.
+- Before every install and start, Wings puts the directory (and anything already in it) in the server's project and applies its `disk_mib` limit (`0` = unlimited). Deleting a server clears its limit.
+- A full quota shows up in the game as **"No space left on device"** (XFS reports project quotas as `ENOSPC`, not `EDQUOT`).
+- **Quota escape, blocked:** a file's owner (or root in a container) can move a file into another project with `FS_IOC_FSSETXATTR`, no capability needed, and so write past its limit. The gate reproduced it from a server container. Raptor's seccomp profile refuses that one `ioctl` in every container ([Container hardening](#container-hardening)).
+- The image is mounted by a **systemd mount unit** that Wings writes (`var-lib-raptor-volumes.mount`), with `DefaultDependencies=no`: after local filesystems (and whichever holds the image), before Docker and Wings, and unmounted only after they stop. With the default dependencies, the unit is ordered before `local-fs.target` and after local filesystems at once, a cycle that systemd resolves by silently not mounting it at boot (caught by the gate). It's wanted by `multi-user.target`, not `local-fs.target`, so a broken volume never drops a remote box into emergency mode.
+- A mount unit can't turn on direct I/O, so Wings does it on every start.
+- **Wings refuses to install or start any server if the volume isn't mounted with project quotas.** This prevents writing into the empty mount point underneath, onto the host disk without limits. Wings itself keeps running and says why.
+- `raptor storage grow -size <size>` extends the image, refreshes the loop device, and runs `xfs_growfs`, all online. Setup and grow keep `limits.host_disk_min_free` free on the host.
+- `doctor` will check mount state and free space, and offer `xfs_repair` with servers stopped.
 - Docker images stay on the host disk (`/var/lib/docker`); only server data lives on the quota volume.
+- Tested by `task e2e:quotas` (see [CONTRIBUTING.md](../CONTRIBUTING.md#runtime-end-to-end-tests)).
 
 ## Job engine
 
@@ -278,7 +297,7 @@ raptor console <server>               live console
 raptor logs <server> [-f]
 raptor backup list|create|restore <server> [id]
 raptor jobs [logs <id>]
-raptor storage status|grow <size>
+raptor storage status|setup|grow        volume state; create the image volume; grow it online
 raptor support status|revoke          see / end active support access
 raptor keys list|reset                trusted passkeys for signed actions; reset = re-pair from the box
 raptor audit                          signed dangerous actions, from the node's own records

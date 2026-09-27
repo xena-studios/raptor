@@ -1,0 +1,23 @@
+name: Storage benchmark
+
+# The disk quota validation benchmark (scripts/storage-bench.sh) on a real
+# Linux disk: native filesystem vs the XFS loop volume. On demand, or when a
+# branch named bench/* is pushed.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["bench/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Benchmark (loop direct I/O on)
+        run: sudo RUNS=5 LOOP_DIO=on scripts/storage-bench.sh /var/lib/raptor-bench
+      - name: Benchmark fsync and buffered writes (loop direct I/O off)
+        run: sudo RUNS=5 LOOP_DIO=off ONLY=save scripts/storage-bench.sh /var/lib/raptor-bench && sudo RUNS=5 LOOP_DIO=off ONLY=buffered scripts/storage-bench.sh /var/lib/raptor-bench

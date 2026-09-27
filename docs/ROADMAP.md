@@ -116,11 +116,12 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] **Signed-command verification in Wings:** trusted keys and delegations in SQLite, the full WebAuthn assertion check, rejection and logging of anything unsigned or invalid; tested with a software authenticator and fuzzed
 - [x] Server actions (`server.create/update/delete/reinstall/start/stop/restart/kill/command`, `keys.add/remove`) wired to the manager and tested end to end on Docker
 
-### 1.6 Disk quotas
-- [ ] **Validation gate first:** on a fresh Debian 12 VM (ext4 root), loop image + systemd mount unit + project quotas set from Go. Fill past the limit, reboot, grow online, and benchmark against native disk. **Gate:** limits hold, survive reboot, grow online, within ~10% of native I/O.
-- [ ] Quota volume tiers 1–3
-- [ ] Refuse to start servers if the volume isn't mounted
-- [ ] Instant usage reporting
+### 1.6 Disk quotas ✅
+- [x] **Validation gate first:** on a fresh Debian 12 VM (ext4 root), loop image + systemd mount unit + project quotas set from Go. Fill past the limit, reboot, grow online, and benchmark against native disk. **Gate:** limits hold, survive reboot, grow online, within ~10% of native I/O. **Result:** limits hold (host, and root in containers), survive a real reboot, and grow online; I/O is at native speed except fsync'd writes, at about half ([WINGS.md](WINGS.md#disk-quotas)). The owner accepted that cost for hard limits by default (#92). The gate also found a quota escape from containers and a mount unit that systemd dropped at boot; both are fixed and tested (#93, #94).
+- [x] Quota volume tiers 1–3; `raptor storage status|setup|grow`
+- [x] Refuse to install or start servers if the volume isn't mounted with project quotas
+- [x] Instant usage reporting; limit changes apply to running servers
+- [x] `task e2e:quotas` (with a real reboot) and the same tests in CI, minus the reboot
 
 ### 1.7 CLI (first cut)
 - [ ] `status`, `ps`, `start|stop|restart|kill`, `console`, `logs`
@@ -191,7 +192,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 ### 3.3 Nodes
 - [ ] Node keys: enrollment stores the node's public key; challenge signing; Panel signing key (separate storage) pinned by Wings; revocation
-- [ ] Join tokens; **install script** at `get.raptorpanel.net` (generated per release with the binary's SHA-256 embedded); `raptor bootstrap` preflight + setup + enroll
+- [ ] Join tokens; **install script** at `get.raptorpanel.net` (generated per release with the binary's SHA-256 embedded); `raptor bootstrap` preflight + setup + enroll; storage setup explains the tier 2 fsync cost and offers a data disk (tier 1) or soft limits (tier 3)
 - [ ] `raptor link` / `unlink` / `relink`
 - [ ] Node connections in `serve api`: connection registry, version negotiation, pings, drain, forwarding between instances via `LISTEN/NOTIFY`
 - [ ] Command routing to the instance holding the node, with `command_id`
