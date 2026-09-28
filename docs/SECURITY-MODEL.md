@@ -48,6 +48,18 @@ The strongest of them: **destructive and code-changing actions must be signed by
 - **Wings never touches what it doesn't own:** containers and networks without the `raptor.wings.managed` label are never listed, modified, or removed, even when their names collide with Wings' own.
 - Local socket: root + `raptor` group only.
 
+### Server files
+
+A server's directory is written by code Raptor doesn't trust: the egg's install script (root in the install container) and the game itself. Anything can be planted there: symlinks to host files or other servers, directory symlinks, loops, FIFOs, hard links, setuid and unreadable files. Wings touches those files when it fixes ownership after an install, edits config files before every start, tags files for the disk quota, measures disk usage, and deletes a server. None of these may reach outside the directory or hang:
+
+- **Config file edits** go through `os.Root`: symlinks and paths that escape are refused and reported on the console (the server still starts); only regular files are edited, so a FIFO can't block a start; a symlink that stays inside is written through. Egg paths with `..` or a leading `/` land inside the directory.
+- **Ownership fix** walks through `os.Root` with `Lchown`, never following a symlink.
+- **Quota tagging** opens files with `O_NOFOLLOW` through `os.Root` and skips symlinks; **disk usage** never follows symlinks.
+- **Delete** removes links, not their targets.
+- Edits happen only while the server is stopped, so nothing can swap a file between Wings checking it and writing it.
+
+**Tested:** `TestPathSafety` (in `task e2e:runtime` and CI) uses a hostile egg that plants all of the above, including links to `/etc/passwd`, a root-only host file, and another server's files, then runs install, start, disk usage, reinstall, and delete, and checks that nothing outside the directory changed (content, mode, owner), nothing hung, and the other server still starts. The suite was checked against deliberately broken Wings builds: an ownership fix that follows symlinks, and config edits that resolve paths without `os.Root`. It failed on both. The config parsers' path handling is also fuzzed.
+
 ### Enrollment and identity
 - Join tokens: single-use, 1-hour expiry, org-bound, stored hashed.
 - **Keys are generated on the node and never leave it.** The Panel stores only the public key. The node proves itself on every connection by signing a fresh challenge (bound to a timestamp and the connection's purpose, so it can't be replayed).
