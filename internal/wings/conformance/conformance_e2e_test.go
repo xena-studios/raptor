@@ -230,12 +230,44 @@ func (r *run) prepare() {
 	}
 }
 
+// start starts the server and waits for its done string, then for the
+// test's ready line if it has one (eggs whose done string comes before the
+// server takes commands). Only output from this start counts.
 func (r *run) start() {
 	r.t.Helper()
+	ready := make(chan struct{})
+	if r.e.Test.Ready != "" {
+		st, err := r.m.Status(r.id)
+		if err != nil {
+			r.fail("status: %v", err)
+		}
+		re := regexp.MustCompile(r.e.Test.Ready)
+		_, sub, unsubscribe := st.Console.Subscribe()
+		defer unsubscribe()
+		go func() {
+			for l := range sub.C {
+				if re.MatchString(stripANSI(l)) {
+					close(ready)
+					for range sub.C { //nolint:revive // drain until unsubscribed
+					}
+					return
+				}
+			}
+		}()
+	} else {
+		close(ready)
+	}
 	if err := r.m.Start(context.Background(), r.id); err != nil {
 		r.fail("start: %v", err)
 	}
-	r.waitState(server.Running, time.Duration(r.e.Test.DoneTimeout))
+	timeout := time.Duration(r.e.Test.DoneTimeout)
+	r.waitState(server.Running, timeout)
+	select {
+	case <-ready:
+	case <-time.After(timeout):
+		r.dumpConsole()
+		r.fail("never ready: no console line matching %q", r.e.Test.Ready)
+	}
 }
 
 func (r *run) stop() {

@@ -234,6 +234,7 @@ test:
   variables: {}             # checked against the egg's own rules
   files: {}                 # written after the install, like a user's uploads
   done_timeout: 5m
+  ready: ""                 # a console line to wait for first, if done comes early
   command: "list"           # sent to the console...
   expect: "There are 0 of a max of \\d+ players"   # ...and a reply must match
   config: {}                # file → text the egg's config parsers must write ({{port}})

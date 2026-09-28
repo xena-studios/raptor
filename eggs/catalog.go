@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -80,6 +81,10 @@ type Test struct {
 	Files map[string]string `yaml:"files"`
 	// DoneTimeout bounds the time from start to the egg's done string.
 	DoneTimeout Duration `yaml:"done_timeout"`
+	// Ready, if set, is a regular expression for a console line to wait for
+	// before sending Command, for eggs whose done string comes before the
+	// server accepts commands.
+	Ready string `yaml:"ready"`
 	// Command is sent to the running server's console; Expect is a regular
 	// expression a console line must match within a minute. Empty for
 	// servers without a console (voice servers).
@@ -187,6 +192,13 @@ func (e *Entry) validate() error {
 		return errors.New("test.done_timeout is required")
 	case (t.Command == "") != (t.Expect == ""):
 		return errors.New("test.command and test.expect go together")
+	case t.Ready != "" && t.Command == "":
+		return errors.New("test.ready only applies with test.command")
+	}
+	for _, re := range []string{t.Ready, t.Expect} {
+		if _, err := regexp.Compile(re); err != nil {
+			return err
+		}
 	}
 	return nil
 }

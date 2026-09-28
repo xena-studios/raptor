@@ -14,5 +14,7 @@ test:
     ADMIN_PASSWORD: "conformance"
     SERVER_NAME: "raptor-conformance"
   done_timeout: 30m
+  # The egg's done string comes before RCON (which its console uses) listens.
+  ready: "Running Palworld dedicated server"
   command: "Info"
   expect: "Welcome to Pal Server"

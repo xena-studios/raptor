@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"regexp"
 	"slices"
 	"testing"
 
@@ -26,11 +25,6 @@ func TestCatalog(t *testing.T) {
 		if img := e.Test.Image; img != "" && !slices.ContainsFunc(egg.Images, func(i eggs.Image) bool { return i.Ref == img }) {
 			t.Errorf("%s: test image %s isn't one of the egg's images", e.ID, img)
 		}
-		if e.Test.Expect != "" {
-			if _, err := regexp.Compile(e.Test.Expect); err != nil {
-				t.Errorf("%s: expect: %v", e.ID, err)
-			}
-		}
 		// Test variables must pass the egg's own rules, as in the Panel.
 		if _, err := egg.Validate(e.Test.Variables); err != nil && e.Test.Tier != TierManual {
 			t.Errorf("%s: variables: %v", e.ID, err)
@@ -53,6 +47,8 @@ func TestValidateRejects(t *testing.T) {
 		"manual, no why": func(e *Entry) { e.Test.Tier, e.Test.Reason = TierManual, "" },
 		"command alone":  func(e *Entry) { e.Test.Command, e.Test.Expect = "list", "" },
 		"broken egg":     func(e *Entry) { e.Egg = []byte("{") },
+		"bad regexp":     func(e *Entry) { e.Test.Command, e.Test.Expect = "list", "(" },
+		"ready alone":    func(e *Entry) { e.Test.Command, e.Test.Expect, e.Test.Ready = "", "", "x" },
 	} {
 		e := good
 		e.Arch = slices.Clone(good.Arch)
