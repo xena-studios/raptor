@@ -25,7 +25,13 @@ func TestCatalog(t *testing.T) {
 		if img := e.Test.Image; img != "" && !slices.ContainsFunc(egg.Images, func(i eggs.Image) bool { return i.Ref == img }) {
 			t.Errorf("%s: test image %s isn't one of the egg's images", e.ID, img)
 		}
-		// Test variables must pass the egg's own rules, as in the Panel.
+		// Test variables must be the egg's (a typo would silently do nothing)
+		// and pass its own rules, as in the Panel.
+		for k := range e.Test.Variables {
+			if !slices.ContainsFunc(egg.Variables, func(v eggs.Variable) bool { return v.Env == k }) {
+				t.Errorf("%s: test variable %s isn't one of the egg's", e.ID, k)
+			}
+		}
 		if _, err := egg.Validate(e.Test.Variables); err != nil && e.Test.Tier != TierManual {
 			t.Errorf("%s: variables: %v", e.ID, err)
 		}

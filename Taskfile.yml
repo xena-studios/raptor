@@ -225,9 +225,10 @@ tasks:
         '
 
   e2e:conformance:
-    desc: "Egg conformance suite in the Wings VM (TIER=fast|slow|manual|all, RUN=regex of catalog IDs)"
+    desc: "Egg conformance suite in the Wings VM (TIER=fast|slow|manual|all, SET=certified|community|all, RUN=regex of catalog IDs)"
     vars:
       TIER: '{{.TIER | default "fast"}}'
+      SET: '{{.SET | default "all"}}'
       RUN: '{{.RUN | default "."}}'
     cmds:
       - task: wings:vm:up
@@ -237,7 +238,7 @@ tasks:
         CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/conformance-e2e-$ARCH ./internal/wings/conformance
         limactl copy bin/conformance-e2e-$ARCH {{.VM}}:/tmp/conformance-e2e
         limactl shell {{.VM}} sudo rm -f /tmp/conformance.md
-        limactl shell {{.VM}} sudo RAPTOR_CONFORMANCE_TIER={{.TIER}} RAPTOR_CONFORMANCE_REPORT=/tmp/conformance.md \
+        limactl shell {{.VM}} sudo RAPTOR_CONFORMANCE_TIER={{.TIER}} RAPTOR_CONFORMANCE_SET={{.SET}} RAPTOR_CONFORMANCE_REPORT=/tmp/conformance.md \
           /tmp/conformance-e2e -test.v -test.timeout 600m -test.run 'TestConformance/{{.RUN}}' || rc=$?
         limactl shell {{.VM}} cat /tmp/conformance.md 2>/dev/null || true
         exit ${rc:-0}

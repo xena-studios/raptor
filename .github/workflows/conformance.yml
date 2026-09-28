@@ -1,7 +1,9 @@
 name: Egg conformance
 
 # Runs catalog eggs through the full Wings lifecycle with their unmodified
-# images (internal/wings/conformance). Tiers (eggs/*/*/raptor.yaml):
+# images (internal/wings/conformance). Certified eggs must pass; community
+# eggs run in their own jobs, whose failures are reported (job summary) but
+# don't fail the workflow. Tiers (eggs/*/*/raptor.yaml):
 #   fast: on PRs that touch eggs or the code that runs them, nightly, on
 #         demand; on amd64 and arm64
 #   slow: big SteamCMD games, weekly and on demand; amd64 only (the games are)
@@ -51,9 +53,14 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-latest, ubuntu-24.04-arm]
+        set: [certified, community]
+    name: fast ${{ matrix.set }} (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 120
+    continue-on-error: ${{ matrix.set == 'community' }}
+    timeout-minutes: 180
     steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
@@ -64,16 +71,27 @@ jobs:
         run: go test -c -tags e2e -o /tmp/conformance-e2e ./internal/wings/conformance
       - name: Run eggs
         run: |
-          sudo RAPTOR_CONFORMANCE_TIER=fast \
+          sudo RAPTOR_CONFORMANCE_TIER=fast RAPTOR_CONFORMANCE_SET=${{ matrix.set }} RAPTOR_CONFORMANCE_PRUNE=1 \
             RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
-            /tmp/conformance-e2e -test.v -test.timeout 110m -test.run 'TestConformance/${{ inputs.run || '.' }}'
+            /tmp/conformance-e2e -test.v -test.timeout 170m -test.run 'TestConformance/${{ inputs.run || '.' }}'
 
   slow:
     if: >-
       github.event_name == 'push' ||
       github.event.schedule == '43 5 * * 0' ||
       (github.event_name == 'workflow_dispatch' && inputs.tier != 'fast')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { set: certified, shard: 0/1 }
+          - { set: community, shard: 0/4 }
+          - { set: community, shard: 1/4 }
+          - { set: community, shard: 2/4 }
+          - { set: community, shard: 3/4 }
+    name: slow ${{ matrix.set }} ${{ matrix.shard }}
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.set == 'community' }}
     timeout-minutes: 360
     steps:
       - name: Free disk space
@@ -91,5 +109,7 @@ jobs:
         run: go test -c -tags e2e -o /tmp/conformance-e2e ./internal/wings/conformance
       - name: Run eggs
         run: |
-          sudo RAPTOR_CONFORMANCE_TIER=slow RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
+          sudo RAPTOR_CONFORMANCE_TIER=slow RAPTOR_CONFORMANCE_SET=${{ matrix.set }} \
+            RAPTOR_CONFORMANCE_SHARD=${{ matrix.shard }} RAPTOR_CONFORMANCE_PRUNE=1 \
+            RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
             /tmp/conformance-e2e -test.v -test.timeout 350m -test.run 'TestConformance/${{ inputs.run || '.' }}'

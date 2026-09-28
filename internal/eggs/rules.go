@@ -18,10 +18,12 @@ import (
 // and Pelican validate them with. This implements the rules real eggs use
 // (surveyed across ~600 community eggs) with Laravel's semantics:
 //
-//   - An empty value (after trimming) is null, as Laravel's middleware makes
-//     it. With "nullable", null passes every rule. Without it, null fails
-//     "required" and every type rule (string, integer, numeric, boolean,
-//     regex, …), and counts as length 0 for size rules.
+//   - An empty value (after trimming) fails only "required" and "filled";
+//     every other rule is skipped. That's Pelican: it validates an empty
+//     field as its default, an empty string, and Laravel only runs implicit
+//     rules on empty strings. (Pterodactyl turns empty into null first, which
+//     then fails type rules like "string"; Pelican accepts everything
+//     Pterodactyl does and more, so no working egg is affected.)
 //   - Size rules (min, max, between, size, gt, …) compare numbers when the
 //     variable also has a numeric rule (numeric, integer) and the value is
 //     numeric; otherwise they compare the string length in characters.
@@ -125,7 +127,7 @@ func (v Variable) check(raw string) []VariableError {
 			return slices.Contains(names, name)
 		})
 	}
-	if null && has("nullable") {
+	if null && !has("required", "filled") {
 		return nil
 	}
 	numericRules := has("numeric", "integer", "int")

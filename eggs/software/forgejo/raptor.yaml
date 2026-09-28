@@ -1,0 +1,17 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/software/blob/c940765/forgejo/egg-forgejo.json
+source:
+  repo: pelican-eggs/software
+  commit: c9407659fa8a99a97966bfe91cc4eede58a25a87
+  path: forgejo/egg-forgejo.json
+license: MIT
+certified: false
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  # The install script reads the latest version from a DNS TXT record that
+  # now lists two versions, and builds a broken download URL; pinned.
+  variables:
+    VERSION: "16.0.5"
+  done_timeout: 5m

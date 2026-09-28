@@ -13,9 +13,17 @@
 //	task e2e:conformance                          # the fast tier
 //	task e2e:conformance TIER=slow RUN=steam/rust
 //
-// RAPTOR_CONFORMANCE_TIER picks the tier (fast, slow, manual, or all);
-// -test.run picks eggs by catalog ID. RAPTOR_CONFORMANCE_REPORT, if set,
-// receives a Markdown summary. Eggs for another CPU architecture are skipped.
+// Environment:
+//   - RAPTOR_CONFORMANCE_TIER: fast (default), slow, manual, or all
+//   - RAPTOR_CONFORMANCE_SET: certified, community, or all (default)
+//   - RAPTOR_CONFORMANCE_SHARD: "i/n" runs every n-th selected egg from the
+//     i-th (0-based), to split a tier across CI jobs
+//   - RAPTOR_CONFORMANCE_PRUNE=1: remove unused Docker images after each egg
+//     (CI runners' disks can't hold every game's image at once)
+//   - RAPTOR_CONFORMANCE_REPORT: file that receives a Markdown summary
+//
+// -test.run picks eggs by catalog ID. Eggs for another CPU architecture are
+// skipped.
 package conformance
 
 import (
@@ -23,6 +31,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -57,13 +66,31 @@ func TestConformance(t *testing.T) {
 		t.Fatal(err)
 	}
 	tier := catalog.Tier(envOr("RAPTOR_CONFORMANCE_TIER", string(catalog.TierFast)))
-	rep := &report{tier: tier}
-	t.Cleanup(func() { rep.write(t) })
+	set := envOr("RAPTOR_CONFORMANCE_SET", "all")
+	shard, shards := 0, 1
+	if v := os.Getenv("RAPTOR_CONFORMANCE_SHARD"); v != "" {
+		if _, err := fmt.Sscanf(v, "%d/%d", &shard, &shards); err != nil || shards < 1 || shard < 0 || shard >= shards {
+			t.Fatalf("RAPTOR_CONFORMANCE_SHARD=%q: want i/n", v)
+		}
+	}
+	var selected []catalog.Entry
 	for _, e := range all {
+		if (tier == "all" || e.Test.Tier == tier) &&
+			(set == "all" || (set == "certified") == e.Certified) {
+			selected = append(selected, e)
+		}
+	}
+	rep := &report{tier: tier, set: set}
+	t.Cleanup(func() { rep.write(t) })
+	for n, e := range selected {
+		if n%shards != shard {
+			continue
+		}
 		t.Run(e.ID, func(t *testing.T) {
+			if os.Getenv("RAPTOR_CONFORMANCE_PRUNE") == "1" {
+				t.Cleanup(pruneImages)
+			}
 			switch {
-			case tier != "all" && e.Test.Tier != tier:
-				t.Skipf("tier %s", e.Test.Tier)
 			case !e.Supports(runtime.GOARCH):
 				rep.add(e, "skipped", "the game doesn't run on "+runtime.GOARCH, nil)
 				t.Skipf("the game doesn't run on %s", runtime.GOARCH)
@@ -482,10 +509,17 @@ func (e *env) manager() *server.Manager {
 	return m
 }
 
+// pruneImages removes images no container uses, after an egg's server is
+// deleted.
+func pruneImages() {
+	_ = exec.Command("docker", "image", "prune", "-af").Run()
+}
+
 // report collects results for the Markdown summary.
 type report struct {
 	mu   sync.Mutex
 	tier catalog.Tier
+	set  string
 	rows []string
 }
 
@@ -513,7 +547,7 @@ func (p *report) write(t *testing.T) {
 		return
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "### Egg conformance: %s tier on %s\n\n", p.tier, runtime.GOARCH)
+	fmt.Fprintf(&b, "### Egg conformance: %s tier, %s eggs, on %s\n\n", p.tier, p.set, runtime.GOARCH)
 	b.WriteString("| Egg | Result | Install | Start | Command | Wings restart | Stop | Reinstall | Start again | Notes |\n")
 	b.WriteString("|---|---|---|---|---|---|---|---|---|---|\n")
 	for _, r := range p.rows {

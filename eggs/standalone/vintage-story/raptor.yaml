@@ -1,0 +1,13 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-standalone/blob/3caf3cf/vintage_story/egg-vintage-story.json
+source:
+  repo: pelican-eggs/games-standalone
+  commit: 3caf3cf09c3fe36d54cef90ef51c1f2b59e676ff
+  path: vintage_story/egg-vintage-story.json
+license: MIT
+certified: false
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 4096
+  done_timeout: 15m

@@ -1,0 +1,14 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-steamcmd/blob/e17e2c3/unturned/egg-unturned.json
+source:
+  repo: pelican-eggs/games-steamcmd
+  commit: e17e2c3db36aaf1ddecbc227803dd6cdbb0e6b1f
+  path: unturned/egg-unturned.json
+license: MIT
+certified: false
+arch: [amd64]
+test:
+  tier: manual
+  reason: "needs a Steam Game Server Login Token (GSLT); with a dummy one the server never finishes starting"
+  memory_mib: 4096
+  done_timeout: 20m

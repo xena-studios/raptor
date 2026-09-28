@@ -18,8 +18,10 @@ func TestValidateRules(t *testing.T) {
 		{"required|string|max:20", "", false},
 		{"required|string|max:5", "abcdef", false},
 		{"nullable|string|max:5", "", true},
-		{"string|max:20", "", false}, // null without nullable fails string (Laravel)
-		{"max:20", "", true},         // but size rules see length 0
+		{"string|max:20", "", true},  // empty skips non-required rules (Pelican)
+		{"integer|min:1", " ", true}, // blank is empty too
+		{"filled|string", "", false},
+		{"max:20", "", true},
 		{"required|integer|between:1024,65535", "25565", true},
 		{"required|integer|between:1024,65535", "80", false},
 		{"required|integer", "08", false},

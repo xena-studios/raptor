@@ -1,0 +1,15 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-steamcmd/blob/e17e2c3/killing_floor_2/egg-killing-floor2.json
+source:
+  repo: pelican-eggs/games-steamcmd
+  commit: e17e2c3db36aaf1ddecbc227803dd6cdbb0e6b1f
+  path: killing_floor_2/egg-killing-floor2.json
+license: MIT
+certified: false
+arch: [amd64]
+test:
+  tier: slow
+  memory_mib: 4096
+  variables:
+    ADMIN_PASS: "conformance"
+  done_timeout: 40m

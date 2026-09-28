@@ -1,0 +1,14 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-steamcmd/blob/e17e2c3/dont_starve/egg-don-t-starve-together.json
+source:
+  repo: pelican-eggs/games-steamcmd
+  commit: e17e2c3db36aaf1ddecbc227803dd6cdbb0e6b1f
+  path: dont_starve/egg-don-t-starve-together.json
+license: MIT
+certified: false
+arch: [amd64]
+test:
+  tier: manual
+  reason: "needs a cluster token (SERVER_TOKEN) from a Klei account"
+  memory_mib: 2048
+  done_timeout: 15m

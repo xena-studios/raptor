@@ -132,7 +132,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Harness: import → install → start → done → command → Wings restart → stop → reinstall ([EGGS.md](EGGS.md#conformance-test-suite))
 - [x] Built-in catalog of certified eggs (`eggs/`, unmodified upstream copies + `raptor.yaml`)
 - [x] Certified eggs in CI, in tiers: fast on amd64 + arm64, slow SteamCMD games weekly, CS2 by hand
-- [ ] Top ~50 community eggs
+- [x] Top ~50 community eggs (46 that pass, chosen as in [EGGS.md](EGGS.md#community-eggs); 18 that don't work were left out and listed)
 - [ ] Behavioral diff test against Pterodactyl Wings for a subset
 
 **Exit criteria:**

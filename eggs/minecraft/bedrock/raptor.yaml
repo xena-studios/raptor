@@ -1,0 +1,16 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/minecraft/blob/75bf05d/bedrock/bedrock/egg-vanilla-bedrock.json
+# The Bedrock Dedicated Server is x86_64-only; upstream has a separate box64 egg for arm64.
+source:
+  repo: pelican-eggs/minecraft
+  commit: 75bf05db3c6c305e0fa6eef1d38c7e7176121de9
+  path: bedrock/bedrock/egg-vanilla-bedrock.json
+license: MIT
+certified: false
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m
+  command: "list"
+  expect: "There are 0/\\d+ players online"

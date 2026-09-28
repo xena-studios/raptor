@@ -168,7 +168,7 @@ Unknown `server.*`/`env.*` placeholders become empty and unknown `config.*` plac
 - Values are escaped per destination: env vars (no shell involved), each config parser's format.
 
 `rules` are Laravel validation rules, because that's what Pterodactyl and Pelican use, and eggs depend on Laravel's exact semantics:
-- **Empty is null.** A value that's empty after trimming is null (Laravel's middleware does this). With `nullable`, null passes everything. Without it, null fails `required` and every type rule (`string`, `integer`, `numeric`, `boolean`, `regex`, …), and has length 0 for size rules.
+- **Empty fails only `required` and `filled`.** A value that's empty after trimming skips every other rule. That's how Pelican validates: an empty field is validated as its default (an empty string), and Laravel only runs implicit rules on empty strings. Pterodactyl turns empty fields into null first, and null fails type rules like `string`, so Pterodactyl rejects some eggs' own defaults (e.g. SpongeVanilla's `FORGE_VERSION`, rule `string`, default empty). Pelican's behavior accepts everything Pterodactyl's does, and more.
 - **Sizes depend on type.** `min`, `max`, `between`, `size`, `gt`/`gte`/`lt`/`lte` compare the number when the variable also has `numeric` or `integer` and the value is numeric; otherwise they count characters.
 - **`boolean`** accepts only `1` and `0` for string values (Laravel rejects the strings `true`/`false`; eggs that want those use `in:true,false`).
 - **`regex:`** patterns are PHP (PCRE) with delimiters, including bracket delimiters (`regex:([a-z]+$)`) and modifiers `i m s U A u D`. They're translated to Go.
@@ -257,18 +257,54 @@ A unit test loads every entry and checks it: the egg parses, the source matches 
 **Tiers** (`test.tier`):
 | Tier | Eggs | When |
 |---|---|---|
-| fast | Minecraft family, Node.js, Python, Mumble, TeamSpeak, Terraria | PRs that touch eggs or the code that runs them, nightly, on demand; amd64 and arm64 runners |
-| slow | Rust, Valheim, Palworld, 7 Days to Die | Weekly and on demand; amd64 (the games are x86-only) |
-| manual | CS2 | By hand: it needs ~40 GB of disk and a Steam login token (`STEAM_GSLT`) tied to a Steam account |
+| fast | Certified: Minecraft family, Node.js, Python, Mumble, TeamSpeak, Terraria. Community: Minecraft variants, standalone games, databases, software | PRs that touch eggs or the code that runs them, nightly, on demand; amd64 and arm64 runners |
+| slow | Certified: Rust, Valheim, Palworld, 7 Days to Die. Community: SteamCMD and Wine/Proton games (split across 4 jobs) | Weekly and on demand; amd64 (the games are x86-only) |
+| manual | CS2 (disk, Steam token); Don't Starve Together, Eco, TF2, Unturned (account tokens) | By hand |
 
 ```bash
 task e2e:conformance                         # fast tier in the VM
 task e2e:conformance TIER=slow RUN=steam/rust
 ```
 
-Still to come in Phase 1.8: the top ~50 community eggs; **behavioral diff tests** (for a set of eggs, run the same server under Pterodactyl Wings and Raptor Wings, and compare the environment, files written by config parsers, and startup command); and a symlink and path-traversal suite.
+Still to come in Phase 1.8: **behavioral diff tests** (for a set of eggs, run the same server under Pterodactyl Wings and Raptor Wings, and compare the environment, files written by config parsers, and startup command); and a symlink and path-traversal suite.
 
 Fuzz tests (`go test -fuzz`) cover egg parsing, rule validation, PHP regex translation, placeholder resolution, every config parser (output must always re-parse), `.properties` round trips, and config file paths (nothing outside the server directory is ever touched). Inputs the fuzzer found are kept in `testdata/fuzz` and run as regular tests.
+
+## Community eggs
+
+46 community eggs are in the catalog (`certified: false`) beside the certified ones, tested the same way. Their CI jobs report failures in the job summary without failing the build: an upstream egg breaking shouldn't block Raptor's PRs, but it should be seen.
+
+**How they were chosen.** Nobody publishes egg download counts, so the list was built from the maintained [pelican-eggs](https://github.com/pelican-eggs) repositories (317 eggs; Raptor's parser reads 316, the other is an empty file upstream):
+- Games with large player bases that people self-host, plus a few widely used non-game servers (databases, Lavalink, Forgejo). Recent upstream commits were a tiebreaker.
+- Anonymous downloads only: eggs that need a game account to install (DayZ, Starbound, Assetto Corsa's Steam variant) were left out. Eggs that need an account token only to run (Don't Starve Together, Eco, TF2, Unturned) are in the **manual** tier.
+- Windows-only servers run under Wine or Proton are included where the egg does it (Enshrouded, V Rising, Abiotic Factor, Conan Exiles); they're x86-only.
+- The upstream arm64 variants of Bedrock and Factorio (x86 servers run through box64) are included for arm64 coverage.
+
+**An egg that doesn't work isn't in the catalog.** The first runs found these broken (as of the pinned commits); they were dropped, and are worth reporting or fixing upstream:
+
+| Egg | What's broken |
+|---|---|
+| Folia, Waterfall | Use PaperMC's v2 download API, which no longer serves them |
+| Mohist | Mohist's API returns no build, so nothing is downloaded |
+| NanoLimbo | Its GitHub release lookup returns an empty download URL |
+| PocketMine-MP | Install fails on both architectures (the arm64 PHP build script 404s) |
+| Uptime Kuma | Its done string no longer matches the app's output, so it never reaches running |
+| Luanti (Minetest) | The image no longer has the `minetest` binary after the rename to Luanti |
+| Mindustry | The server needs Java 17; the egg only offers a Java 11 image |
+| Redis 7 | Starts Redis with `--daemonize yes`, which sends the log (and the done string) to /dev/null |
+| Left 4 Dead 2 | SteamCMD rejects the Linux download ("Invalid platform") |
+| Necesse | The install doesn't fetch the bundled Java runtime the startup uses |
+| Space Engineers | The default world template is missing ("Premade world not found") |
+| TeamSpeak 6 | The download fails, so there's no server binary |
+| Spigot | The install script builds with the install image's Java 8 unless the version is "latest", and "latest" (Minecraft 26.x) needs Java 25, not the Java 21 it downloads; on arm64 it downloads an x86 JDK |
+| Sons of the Forest | Crashes under Wine during startup (after the first-boot restart) |
+| The Isle Evrima | Never reaches its done string (40 minutes) |
+| Stationeers | Killed by the OOM killer at 4 GiB; at 8 GiB never reaches its done string |
+| Project Zomboid | SteamCMD fails every time with "Missing configuration" for the server app (three runs); earlier, killed by the OOM killer at 4 GiB |
+| Risk of Rain 2 | The install doesn't produce the server executable (`Risk of Rain 2.exe` missing) |
+| Pavlov VR | Not broken, but needs an API key from the developer; not added |
+
+Eggs kept with a workaround in their test settings (each explained in its `raptor.yaml`): Forge, NeoForge, and Forgejo pin versions their scripts can install; TShock and several Minecraft eggs pick a newer image the egg offers; Palworld waits for its real ready line. Known flaky: NeoForge (see above).
 
 ## Certified at launch
 

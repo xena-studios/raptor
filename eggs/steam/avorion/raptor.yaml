@@ -1,0 +1,16 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-steamcmd/blob/e17e2c3/avorion/egg-avorion.json
+source:
+  repo: pelican-eggs/games-steamcmd
+  commit: e17e2c3db36aaf1ddecbc227803dd6cdbb0e6b1f
+  path: avorion/egg-avorion.json
+license: MIT
+certified: false
+arch: [amd64]
+test:
+  tier: slow
+  memory_mib: 4096
+  # Any Steam ID; this is the first one ever issued.
+  variables:
+    ADMIN_ID: "76561197960265728"
+  done_timeout: 20m
