@@ -1,6 +1,7 @@
 package eggs
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -31,7 +32,8 @@ func (r Runtime) Environment() []string {
 		"SERVER_PORT=" + strconv.Itoa(r.Port),
 		"P_SERVER_UUID=" + r.ServerID,
 		"P_SERVER_LOCATION=" + r.Location,
-		"P_SERVER_ALLOCATION_LIMIT=" + strconv.Itoa(r.AllocationLimit),
+		// Pterodactyl's Wings formats every number from the Panel with %f.
+		"P_SERVER_ALLOCATION_LIMIT=" + fmt.Sprintf("%f", float64(r.AllocationLimit)),
 	}
 	seen := make(map[string]bool, len(env))
 	for _, kv := range env {

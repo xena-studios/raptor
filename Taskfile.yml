@@ -243,6 +243,24 @@ tasks:
         limactl shell {{.VM}} cat /tmp/conformance.md 2>/dev/null || true
         exit ${rc:-0}
 
+  e2e:pterodactyl:
+    desc: "Behavioral diff against the real Pterodactyl Panel and Wings, in the Wings VM (RUN=regex of cases)"
+    vars:
+      RUN: '{{.RUN | default "."}}'
+    cmds:
+      - task: wings:vm:up
+      - |
+        set -eu
+        ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/conformance-e2e-$ARCH ./internal/wings/conformance
+        limactl copy bin/conformance-e2e-$ARCH {{.VM}}:/tmp/conformance-e2e
+        limactl copy scripts/pterodactyl/setup.sh {{.VM}}:/tmp/pterodactyl-setup.sh
+        limactl shell {{.VM}} rm -rf /tmp/diff-eggs
+        limactl copy -r internal/wings/conformance/testdata {{.VM}}:/tmp/diff-eggs
+        limactl shell {{.VM}} sh -c 'command -v jq >/dev/null || sudo apt-get install -y -qq jq >/dev/null'
+        limactl shell {{.VM}} sudo sh -c 'bash /tmp/pterodactyl-setup.sh /tmp/diff-eggs/*.json'
+        limactl shell {{.VM}} sudo /tmp/conformance-e2e -test.v -test.timeout 120m -test.run 'TestPterodactylDiff/{{.RUN}}'
+
   e2e:runtime:
     desc: "Test the runtime and server lifecycle in the Wings VM (RUN=regex selects tests)"
     vars:

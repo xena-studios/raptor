@@ -133,7 +133,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Built-in catalog of certified eggs (`eggs/`, unmodified upstream copies + `raptor.yaml`)
 - [x] Certified eggs in CI, in tiers: fast on amd64 + arm64, slow SteamCMD games weekly, CS2 by hand
 - [x] Top ~50 community eggs (46 that pass, chosen as in [EGGS.md](EGGS.md#community-eggs); 18 that don't work were left out and listed)
-- [ ] Behavioral diff test against Pterodactyl Wings for a subset
+- [x] Behavioral diff test against the real Pterodactyl Panel and Wings (every parser and placeholder form, and Paper); found and fixed a missing `/etc/machine-id` and the allocation limit's format
 
 **Exit criteria:**
 - Paper, Rust, and a Discord bot install and run from the harness (Hytale moved to community: its server needs a Hytale account, #100)

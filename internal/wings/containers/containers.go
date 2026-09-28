@@ -148,6 +148,10 @@ type ServerSpec struct {
 	// the server network. Ports are then bound by the game directly.
 	HostNetwork bool
 	Ports       []Port
+	// MachineID is a file on the host mounted read-only at /etc/machine-id
+	// ("" = none). Some servers need one (Hytale encrypts its tokens with
+	// it); Pterodactyl mounts one too.
+	MachineID string
 }
 
 // Limits are a server's resource limits.

@@ -236,6 +236,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		Store:           r.db,
 		Log:             r.log,
 		VolumesDir:      r.cfg.Paths.Volumes,
+		MachineIDDir:    filepath.Join(filepath.Dir(r.cfg.Paths.Socket), "machine-id"),
 		TmpDir:          r.cfg.Paths.Tmp,
 		LogDir:          r.cfg.Paths.Logs,
 		UID:             uid,

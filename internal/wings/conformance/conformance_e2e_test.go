@@ -476,7 +476,8 @@ func newEnv(t *testing.T) *env {
 	e.opts = server.Options{
 		Runtime: rt, Store: db, Storage: vol,
 		VolumesDir: vol.Path, TmpDir: filepath.Join(dir, "tmp"), LogDir: filepath.Join(dir, "logs"),
-		UID: uid, GID: gid, Timezone: "UTC", Location: "conformance",
+		MachineIDDir: filepath.Join(dir, "machine-id"),
+		UID:          uid, GID: gid, Timezone: "UTC", Location: "conformance",
 		DockerInterface: nets.Server.Gateway.String(), ReservedPorts: []int{2022},
 		OOMKills: func() (int64, error) { return host.OOMKills(host.Slice) },
 	}

@@ -253,7 +253,7 @@ func TestEnvironment(t *testing.T) {
 		"SERVER_PORT=25565",
 		"P_SERVER_UUID=id",
 		"P_SERVER_LOCATION=node1",
-		"P_SERVER_ALLOCATION_LIMIT=0",
+		"P_SERVER_ALLOCATION_LIMIT=0.000000",
 		"SERVER_JARFILE=server.jar",
 	}
 	if !slices.Equal(env, want) {
