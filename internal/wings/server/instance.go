@@ -365,6 +365,11 @@ func (i *instance) watch(cid string, in containers.Input, cfg eggs.Config, tail 
 func (i *instance) follow(ctx context.Context, gen uint64, cid string, cfg eggs.Config, tail int) {
 	rt := i.m.o.Runtime
 	backoff := time.Second
+	// When reattaching (tail >= 0), output from before now is history.
+	var historyBefore time.Time
+	if tail >= 0 {
+		historyBefore = time.Now()
+	}
 	for {
 		i.mu.Lock()
 		since := i.lastLine
@@ -385,7 +390,11 @@ func (i *instance) follow(ctx context.Context, gen uint64, cid string, cfg eggs.
 			if dup {
 				continue // the line Docker's "since" repeats
 			}
-			i.console.Write(l.Text)
+			if l.Time.Before(historyBefore) {
+				i.console.Backfill(l.Text)
+			} else {
+				i.console.Write(l.Text)
+			}
 			if starting && cfg.IsDone(l.Text) {
 				i.setState(Running)
 			}

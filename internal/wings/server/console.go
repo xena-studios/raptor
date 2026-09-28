@@ -68,6 +68,17 @@ func (c *Console) Write(line string) {
 	c.broadcast(line)
 }
 
+// Backfill records a line of past output (the history Wings reloads from
+// Docker after a restart). It reaches current viewers but doesn't count
+// toward the streaming limit, so reloading a long history can't suppress the
+// live lines that follow it.
+func (c *Console) Backfill(line string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.record(line)
+	c.broadcast(line)
+}
+
 // Notice writes a Wings message ("[raptor] …") to the console. It isn't
 // rate limited.
 func (c *Console) Notice(format string, a ...any) {

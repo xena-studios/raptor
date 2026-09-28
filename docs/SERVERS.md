@@ -97,7 +97,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 - Wings reads output from **Docker's log stream**, not the attach stream, and attaches to stdin only. Nothing has to read an attach stream, so a slow or absent viewer can never block the game, and every line carries Docker's timestamp, so Wings can resume exactly after the last line it saw (Wings or Docker restarts).
 - Per server, Wings keeps a **ring buffer of the last 1,000 lines** (at most 1 MiB). New viewers get it immediately. After a Wings restart it's refilled from Docker's logs.
 - Lines longer than 8 KiB are truncated.
-- **Throttling:** at most 1,000 lines per second per server are streamed to viewers. Excess lines are dropped and replaced by a single `[raptor] N lines suppressed` line. The server itself is never stopped for spamming the console.
+- **Throttling:** at most 1,000 lines per second per server are streamed to viewers. Excess lines are dropped and replaced by a single `[raptor] N lines suppressed` line. The server itself is never stopped for spamming the console. History reloaded from Docker after a Wings restart doesn't count toward the limit, so a long history (e.g. a world generation's progress lines) can't suppress the live lines after it.
 - There is no separate console log file. History beyond the ring buffer is Docker's rotated logs (3 × 20 MB).
 
 **Input**

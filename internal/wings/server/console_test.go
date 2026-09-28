@@ -133,3 +133,37 @@ func TestAllowCommand(t *testing.T) {
 		t.Fatal("multi-line command accepted")
 	}
 }
+
+// Reloading a long history after a Wings restart must not use up the
+// streaming limit: the conformance suite caught Terraria's world generation
+// output (thousands of lines) suppressing the first live lines after it.
+func TestConsoleBackfillDoesntThrottle(t *testing.T) {
+	clock := &fakeClock{t: time.Unix(1000, 0)}
+	c := NewConsole()
+	c.now = clock.now
+	_, sub, unsubscribe := c.Subscribe()
+	defer unsubscribe()
+	for i := range 5000 {
+		c.Backfill(fmt.Sprint("history ", i))
+		if len(sub.C) == cap(sub.C) { // a slow viewer; drain like one
+			for len(sub.C) > 0 {
+				<-sub.C
+			}
+		}
+	}
+	for len(sub.C) > 0 {
+		<-sub.C
+	}
+	c.Write("live reply")
+	select {
+	case l := <-sub.C:
+		if l != "live reply" {
+			t.Fatalf("got %q", l)
+		}
+	default:
+		t.Fatal("the live line after a backfill was suppressed")
+	}
+	if h := c.History(); h[len(h)-1] != "live reply" || len(h) != historyLines {
+		t.Fatalf("history: %d lines, last %q", len(h), h[len(h)-1])
+	}
+}
