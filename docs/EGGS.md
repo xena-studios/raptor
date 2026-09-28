@@ -272,7 +272,7 @@ Fuzz tests (`go test -fuzz`) cover egg parsing, rule validation, PHP regex trans
 
 ## Community eggs
 
-47 community eggs are in the catalog (`certified: false`) beside the certified ones, tested the same way. Their CI jobs report failures in the job summary without failing the build: an upstream egg breaking shouldn't block Raptor's PRs, but it should be seen.
+46 community eggs are in the catalog (`certified: false`) beside the certified ones, tested the same way. Their CI jobs report failures in the job summary without failing the build: an upstream egg breaking shouldn't block Raptor's PRs, but it should be seen.
 
 **How they were chosen.** Nobody publishes egg download counts, so the list was built from the maintained [pelican-eggs](https://github.com/pelican-eggs) repositories (317 eggs; Raptor's parser reads 316, the other is an empty file upstream):
 - Games with large player bases that people self-host, plus a few widely used non-game servers (databases, Lavalink, Forgejo). Recent upstream commits were a tiebreaker.
@@ -300,10 +300,11 @@ Fuzz tests (`go test -fuzz`) cover egg parsing, rule validation, PHP regex trans
 | Sons of the Forest | Crashes under Wine during startup (after the first-boot restart) |
 | The Isle Evrima | Never reaches its done string (40 minutes) |
 | Stationeers | Killed by the OOM killer at 4 GiB; at 8 GiB never reaches its done string |
+| Project Zomboid | SteamCMD fails every time with "Missing configuration" for the server app (three runs); earlier, killed by the OOM killer at 4 GiB |
 | Risk of Rain 2 | The install doesn't produce the server executable (`Risk of Rain 2.exe` missing) |
 | Pavlov VR | Not broken, but needs an API key from the developer; not added |
 
-Eggs kept with a workaround in their test settings (each explained in its `raptor.yaml`): Forge, NeoForge, and Forgejo pin versions their scripts can install; TShock and several Minecraft eggs pick a newer image the egg offers; Palworld waits for its real ready line. Known flaky: Project Zomboid (SteamCMD's intermittent "Missing configuration" error) and NeoForge (see above).
+Eggs kept with a workaround in their test settings (each explained in its `raptor.yaml`): Forge, NeoForge, and Forgejo pin versions their scripts can install; TShock and several Minecraft eggs pick a newer image the egg offers; Palworld waits for its real ready line. Known flaky: NeoForge (see above).
 
 ## Certified at launch
 
