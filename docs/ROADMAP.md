@@ -128,18 +128,19 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] `raptor` group can look, root can act; local actions attributed to the Unix user
 - [x] Tested against the real daemon in `task e2e:host` (as root and as a `raptor` group member)
 
-### 1.8 Egg conformance suite
+### 1.8 Egg conformance suite ✅
 - [x] Harness: import → install → start → done → command → Wings restart → stop → reinstall ([EGGS.md](EGGS.md#conformance-test-suite))
 - [x] Built-in catalog of certified eggs (`eggs/`, unmodified upstream copies + `raptor.yaml`)
 - [x] Certified eggs in CI, in tiers: fast on amd64 + arm64, slow SteamCMD games weekly, CS2 by hand
 - [x] Top ~50 community eggs (46 that pass, chosen as in [EGGS.md](EGGS.md#community-eggs); 18 that don't work were left out and listed)
 - [x] Behavioral diff test against the real Pterodactyl Panel and Wings (every parser and placeholder form, and Paper); found and fixed a missing `/etc/machine-id` and the allocation limit's format
+- [x] Symlink and path-traversal suite ([SECURITY-MODEL.md](SECURITY-MODEL.md#server-files)), checked against deliberately broken builds
 
 **Exit criteria:**
 - Paper, Rust, and a Discord bot install and run from the harness (Hytale moved to community: its server needs a Hytale account, #100)
 - `systemctl restart raptor-wings` → **no game server restarts**, console history intact
 - `systemctl restart docker` → servers keep running (`live-restore`)
-- Conformance suite passes for all certified eggs
+- Conformance suite passes for all certified eggs (all automated tiers pass; CS2, the one manual egg, still needs its first run on an x86 box with a Steam login token)
 - A symlink/path-traversal test suite passes
 
 ---
