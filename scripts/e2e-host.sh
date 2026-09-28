@@ -115,6 +115,10 @@ cli)
 	grep -q 'no server "nope"' <<<"$out" || fail "unknown server: $out"
 	journalctl -u raptor-wings --no-pager -o cat | grep '"event":"server.power"' | grep -q '"user":"local:root"' || fail "power actions not attributed to local:root"
 	pass "unknown servers refused; power actions attributed to the Unix user"
+
+	# The server's user can read its machine-id (Wings runs with UMask=0077).
+	[ "$(docker exec "raptor-$ID" cat /etc/machine-id)" = "${ID//-/}" ] || fail "/etc/machine-id isn't the server ID without dashes, or isn't readable"
+	pass "/etc/machine-id: the server ID, readable by the server"
 	started > /var/lib/raptor-e2e/host-t1
 	;;
 after-reboot)

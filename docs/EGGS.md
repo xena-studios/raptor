@@ -270,7 +270,19 @@ task e2e:conformance                         # fast tier in the VM
 task e2e:conformance TIER=slow RUN=steam/rust
 ```
 
-Still to come in Phase 1.8: **behavioral diff tests** (for a set of eggs, run the same server under Pterodactyl Wings and Raptor Wings, and compare the environment, files written by config parsers, and startup command); and a symlink and path-traversal suite.
+Still to come in Phase 1.8: a symlink and path-traversal suite.
+
+### Behavioral diff against Pterodactyl
+
+`TestPterodactylDiff` (`task e2e:pterodactyl`; in CI on PRs that touch eggs or the code that runs them) runs the **real** Pterodactyl stack beside Raptor: the Panel (with its database and cache) in Docker and Pterodactyl's Wings on the host, set up by `scripts/pterodactyl/setup.sh` through the Panel's own commands and services. Using the real Panel matters: it rewrites eggs' config file rules and resolves some placeholders before Wings sees them, and a stand-in would only test a copy of that logic.
+
+For each case the same egg, variables, image, and port run on Pterodactyl, then on Raptor, and the test compares:
+- the container: environment, startup command, user, hostname, mounts, tmpfs, capabilities, security options, limits, logging, DNS, ports;
+- the config files the egg's rules wrote, by value (a properties map, the YAML/JSON tree, INI sections, the XML tree, text lines), since Raptor edits in place and Pterodactyl re-serializes.
+
+Every difference must be listed as intended, with its reason, and every listed file difference must actually happen: when Pterodactyl changes, the test fails instead of letting the docs go stale. Cases: a test egg that exercises every parser, placeholder form, and condition (`internal/wings/conformance/testdata/parsers.ptdl_v2.json`), and Paper.
+
+The first run found two gaps, both fixed: Raptor didn't mount `/etc/machine-id`, and set `P_SERVER_ALLOCATION_LIMIT` to the allocation count instead of the limit in Pterodactyl's number format. It also showed that four of the five "Pterodactyl is broken here" cases these docs listed had since been fixed in Pterodactyl.
 
 Fuzz tests (`go test -fuzz`) cover egg parsing, rule validation, PHP regex translation, placeholder resolution, every config parser (output must always re-parse), `.properties` round trips, and config file paths (nothing outside the server directory is ever touched). Inputs the fuzzer found are kept in `testdata/fuzz` and run as regular tests.
 

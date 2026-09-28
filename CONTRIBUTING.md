@@ -69,6 +69,8 @@ task e2e:conformance RUN=minecraft/paper         # one egg
 task e2e:conformance TIER=slow RUN=steam/rust    # x86-only: not on an ARM Mac
 ```
 
+`task e2e:pterodactyl` compares Raptor with the real Pterodactyl Panel and Wings in the VM (`scripts/pterodactyl/setup.sh` starts them; `setup.sh down` removes them). See [EGGS.md](docs/EGGS.md#behavioral-diff-against-pterodactyl).
+
 The **Egg conformance** GitHub workflow runs the fast tier on amd64 and arm64 for PRs that touch eggs or the code that runs them, and nightly; the slow tier (big SteamCMD games) runs weekly. Start either from the Actions tab, or push a branch named `conformance/<anything>` to run both. To add an egg, see [EGGS.md](docs/EGGS.md#built-in-catalog).
 
 ### Fuzz tests

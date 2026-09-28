@@ -756,12 +756,20 @@ func (m *Manager) writeMachineID(id string) (string, error) {
 	if !idPattern.MatchString(id) {
 		return "", fmt.Errorf("invalid server id %q", id)
 	}
+	// The server's user reads these. Wings runs with UMask=0077, so the
+	// modes are set explicitly rather than left to the umask.
 	if err := os.MkdirAll(m.o.MachineIDDir, 0o755); err != nil { //nolint:gosec // mounted into containers, must be readable
+		return "", err
+	}
+	if err := os.Chmod(m.o.MachineIDDir, 0o755); err != nil { //nolint:gosec // see above
 		return "", err
 	}
 	p := filepath.Join(m.o.MachineIDDir, id)
 	if err := os.WriteFile(p, []byte(strings.ReplaceAll(id, "-", "")+"\n"), 0o644); err != nil { //nolint:gosec // read by the server's user
 		return "", fmt.Errorf("machine-id: %w", err)
+	}
+	if err := os.Chmod(p, 0o644); err != nil { //nolint:gosec // see above
+		return "", err
 	}
 	return p, nil
 }

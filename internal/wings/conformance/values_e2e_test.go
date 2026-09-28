@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -64,7 +65,7 @@ func configValues(parser string, data []byte) (map[string]string, error) {
 		seen := map[string]int{}
 		for {
 			tok, err := dec.Token()
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			if err != nil {

@@ -55,16 +55,20 @@ type diffCase struct {
 }
 
 var diffCases = []diffCase{
-	{name: "parsers", egg: "parsers.ptdl_v2.json", image: "ghcr.io/pterodactyl/yolks:debian", mem: 256,
+	{
+		name: "parsers", egg: "parsers.ptdl_v2.json", image: "ghcr.io/pterodactyl/yolks:debian", mem: 256,
 		vars: map[string]string{"SERVER_NAME": "diff server", "MOTD": `hello "world" & <you>`, "MAX_PLAYERS": "20", "REGION": "us-east"},
 		expect: map[string]string{
 			"file.config.yml:clusters.east.nodes.a.port": "more than one * in a path matches every level; Pterodactyl expands only the first",
 			"file.config.yml:clusters.east.nodes.b.port": "more than one * in a path matches every level; Pterodactyl expands only the first",
 			"file.config.yml:clusters.east.nodes.*.port": "Pterodactyl creates a key literally named * for the second wildcard",
 			"file.plain.cfg:line 003":                    "Pterodactyl's text parser leaves {{server.build.memory}} (the Panel's rewrite of {{server.build.env.SERVER_MEMORY}}) unresolved; Raptor resolves it",
-		}},
-	{name: "paper", egg: "paper.ptdl_v2.json", image: "ghcr.io/pelican-eggs/yolks:java_21", mem: 2048, eula: true,
-		vars: map[string]string{"MINECRAFT_VERSION": "1.21.4", "SERVER_JARFILE": "server.jar", "BUILD_NUMBER": "latest"}},
+		},
+	},
+	{
+		name: "paper", egg: "paper.ptdl_v2.json", image: "ghcr.io/pelican-eggs/yolks:java_21", mem: 2048, eula: true,
+		vars: map[string]string{"MINECRAFT_VERSION": "1.21.4", "SERVER_JARFILE": "server.jar", "BUILD_NUMBER": "latest"},
+	},
 }
 
 // expectedDiffs are the differences Raptor has on purpose, keyed by the
