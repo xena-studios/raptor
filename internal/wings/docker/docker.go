@@ -305,6 +305,11 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 		shares = defaultCPU
 	}
 
+	mounts := []mount.Mount{{Type: mount.TypeBind, Source: s.Dir, Target: "/home/container"}}
+	if s.MachineID != "" {
+		mounts = append(mounts, mount.Mount{Type: mount.TypeBind, Source: s.MachineID, Target: "/etc/machine-id", ReadOnly: true})
+	}
+
 	name := "raptor-" + s.ServerID
 	if err := c.removeManaged(ctx, name); err != nil {
 		return "", err
@@ -326,7 +331,7 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 			Labels:       c.labels(s.ServerID, RoleServer),
 		},
 		HostConfig: &container.HostConfig{
-			Mounts:         []mount.Mount{{Type: mount.TypeBind, Source: s.Dir, Target: "/home/container"}},
+			Mounts:         mounts,
 			Tmpfs:          map[string]string{"/tmp": "rw,exec,nosuid,size=" + strconv.Itoa(tmpfsSizeMiB) + "M"},
 			PortBindings:   bindings,
 			NetworkMode:    netMode,

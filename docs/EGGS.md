@@ -80,12 +80,13 @@ Nothing else from the host is mounted: no Docker socket, no host paths, no other
 
 ### Runtime environment
 
-Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server/server.go`) and verified by running real eggs (the [conformance suite](#conformance-test-suite)).
+Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server/server.go`), verified by running real eggs (the [conformance suite](#conformance-test-suite)), and compared setting by setting against the real Pterodactyl by the [behavioral diff](#behavioral-diff-against-pterodactyl).
 
 **Container**
 | Setting | Value |
 |---|---|
 | Mount | Server directory → **`/home/container`** (read-write). The yolks' entrypoints `cd` there. |
+| `/etc/machine-id` | Read-only, per server: the server ID without dashes (as Pterodactyl writes it; Hytale encrypts its tokens with it). Written to `/run/raptor/machine-id/<id>` before every start. |
 | User | The host's `raptor` system user's UID:GID (Pterodactyl uses its `pterodactyl` user the same way; the yolks' built-in `container` user is overridden) |
 | Hostname | The server ID |
 | TTY / stdin | TTY on, stdin open (console commands are written to stdin) |
@@ -95,6 +96,8 @@ Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server
 | Security options | `no-new-privileges` |
 | Memory | Limit = allocation × overhead (**+15%** up to 2 GiB, **+10%** up to 4 GiB, **+5%** above), reservation = allocation, no swap by default |
 | PIDs | 512 |
+| CPU / I/O weight | Docker's defaults (CPU shares 1024); Pterodactyl sets I/O weight 500 on every server. Both are relative, so servers share the same way. |
+| DNS | The host's resolvers through Docker. Pterodactyl forces `1.1.1.1` and `1.0.0.1`; Raptor respects the provider's DNS and works where outside DNS is blocked. |
 | Restart policy | `no` (Wings restarts servers; see [SERVERS.md](SERVERS.md)) |
 | Logs | `local` driver, 3 × 20 MB |
 
@@ -108,10 +111,10 @@ Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server
 | `SERVER_PORT` | Primary allocation port |
 | `P_SERVER_UUID` | Server ID |
 | `P_SERVER_LOCATION` | Node name |
-| `P_SERVER_ALLOCATION_LIMIT` | Allowed number of allocations |
+| `P_SERVER_ALLOCATION_LIMIT` | The server's allocation limit, printed as Pterodactyl's Wings prints numbers (`0.000000`); 0 until the Panel has allocation limits |
 | egg variables | Every egg variable, name upper-cased. An egg variable can't override a built-in above. |
 
-**Startup:** the yolks' entrypoint (`/entrypoint.sh` under `tini`) converts `{{VAR}}` in `STARTUP` to `${VAR}` and `eval`s it **inside the container**. Wings never expands or runs the startup command itself, and never on the host.
+**Startup:** the yolks' entrypoint (`/entrypoint.sh` under `tini`) converts `{{VAR}}` in `STARTUP` to `${VAR}` and `eval`s it **inside the container**. Wings never expands or runs the startup command itself, and never on the host. The entrypoint expands the command with `eval echo` and runs it with `exec env`, not through a shell, so a startup must be a single command: `&&` or `;` run during the expansion, before anything is printed (found by the diff tests, and the same on Pterodactyl).
 
 ### Startup, running, and stop
 - `startup` command with variable substitution. **Never executed through a host shell.**
@@ -136,11 +139,12 @@ Path syntax for `json`/`yaml`: `a.b.c`, `list[0].host` (or `list.0.host`), and `
 
 **Conditions** (`if_value`): an exact value, or `regex:<pattern>` to replace only the matched part (Go regex syntax, with `$1` references in the value). Conditional rules never create missing keys.
 
-**Where Raptor deliberately differs from Pterodactyl's Wings** (each case is one where Pterodactyl does nothing or breaks the file):
-- `list[0].host` sets the element's key; Pterodactyl creates a key literally named `list[0]` (this affects the BungeeCord egg's `listeners[0].host`).
-- An exact `if_value` compares against the value at the path; Pterodactyl compares against the whole document, so exact conditions never match (the BungeeCord egg's `127.0.0.1` → bridge rewrite).
-- `if_value` also works for `properties`, `ini`, and `xml`, where Pterodactyl ignores it.
-- More than one `*` in a path works.
+**Where Raptor differs from Pterodactyl's Wings**, verified against Pterodactyl Wings 1.13.3 by the [behavioral diff](#behavioral-diff-against-pterodactyl):
+- More than one `*` in a path matches at every level; Pterodactyl expands only the first `*` and creates a key literally named `*`.
+- The `file` (text) parser resolves placeholders like `{{server.build.memory}}` (what the Panel rewrites `{{server.build.env.SERVER_MEMORY}}` to); Pterodactyl's text parser writes them unresolved.
+- Edits are made in place (comments, key order, and formatting kept), where Pterodactyl re-serializes the file; the values written are the same.
+
+Earlier Pterodactyl versions (read from source) also mishandled `list[0].key` paths and exact `if_value` conditions, and ignored `if_value` for `properties`, `ini`, and `xml`. Current Pterodactyl handles all of these as Raptor does; the diff test covers each.
 
 **Safety**
 - Files are only touched through an `os.Root` on the server directory: `..`, absolute paths, and symlinks can't reach anything outside it (fuzz-tested). Symlinks inside the directory are written through, not replaced.

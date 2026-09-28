@@ -1,0 +1,72 @@
+{
+    "_comment": "Test egg for the behavioral diff against Pterodactyl Wings: every config parser and placeholder form, on a small image.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-09-28T00:00:00+00:00",
+    "name": "Parser conformance",
+    "author": "raptor@raptor.invalid",
+    "description": "Exercises config file parsers and placeholders for the Pterodactyl diff.",
+    "features": null,
+    "docker_images": {
+        "Debian": "ghcr.io/pterodactyl/yolks:debian"
+    },
+    "file_denylist": [],
+    "startup": "tail -n +1 -f ready.txt",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-port\": \"{{server.build.default.port}}\", \"motd\": \"{{server.build.env.MOTD}}\", \"max-players\": \"{{env.MAX_PLAYERS}}\", \"level-name\": {\"world\": \"renamed-world\"}, \"added-key\": \"{{server.build.memory}}\"}}, \"config.yml\": {\"parser\": \"yaml\", \"find\": {\"settings.port\": \"{{server.build.default.port}}\", \"settings.name\": \"{{server.build.env.SERVER_NAME}}\", \"settings.online\": \"false\", \"settings.memory\": \"{{server.build.memory}}\", \"servers.*.address\": \"{{config.docker.interface}}:25565\", \"new.nested.key\": \"created\", \"listeners[0].host\": \"0.0.0.0:{{server.build.default.port}}\", \"listeners[0].motd\": {\"old\": \"exact-match\"}, \"clusters.*.nodes.*.port\": \"{{server.build.default.port}}\"}}, \"config.json\": {\"parser\": \"json\", \"find\": {\"server.port\": \"{{server.build.default.port}}\", \"server.ip\": \"{{server.build.default.ip}}\", \"server.public\": \"true\", \"name\": \"{{env.SERVER_NAME}}\"}}, \"config.ini\": {\"parser\": \"ini\", \"find\": {\"Server.Port\": \"{{server.build.default.port}}\", \"Server.Name\": \"{{server.build.env.SERVER_NAME}}\", \"[/Script/Engine.GameSession].MaxPlayers\": \"{{env.MAX_PLAYERS}}\", \"Server.Mode\": {\"pvp\": \"ini-exact\"}}}, \"config.xml\": {\"parser\": \"xml\", \"find\": {\"property[@name='ServerPort']\": \"[value='{{server.build.default.port}}']\", \"property[@name='ServerName']\": \"[value='{{env.SERVER_NAME}}']\", \"Region\": \"{{env.REGION}}\", \"Mode\": {\"pvp\": \"xml-exact\"}}}, \"plain.cfg\": {\"parser\": \"file\", \"find\": {\"port\": \"port {{server.build.default.port}}\", \"hostname\": \"hostname {{server.build.env.SERVER_NAME}}\", \"maxplayers\": \"maxplayers {{server.build.env.SERVER_MEMORY}}\"}}}",
+        "startup": "{\"done\": \"READY\"}",
+        "logs": "{}",
+        "stop": "^SIGKILL"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/sh\n# Writes one file per config parser, for Wings' config file rules to edit.\ncd /mnt/server\ncat > server.properties <<'X'\n# Minecraft-style properties\nserver-port=1\nmotd=old motd\nmax-players=5\nlevel-name=world\nX\ncat > config.yml <<'X'\n# BungeeCord-style YAML\nlisteners:\n- host: 0.0.0.0:1\n  motd: old\n  max_players: 1\nsettings:\n  port: 1\n  name: a\n  online: true\nclusters:\n  east:\n    nodes:\n      a:\n        port: 1\n      b:\n        port: 2\nservers:\n  lobby:\n    address: 127.0.0.1:1\n  games:\n    address: 127.0.0.1:2\nX\ncat > config.json <<'X'\n{\n  \"server\": {\"port\": 1, \"ip\": \"x\", \"public\": false},\n  \"list\": [{\"a\": 1}, {\"a\": 2}],\n  \"name\": \"a\"\n}\nX\ncat > config.ini <<'X'\n[Server]\nPort=1\nName=a\nPassword=\nMode=pvp\n[/Script/Engine.GameSession]\nMaxPlayers=1\nX\ncat > config.xml <<'X'\n<?xml version=\"1.0\"?>\n<ServerSettings>\n  <property name=\"ServerPort\" value=\"1\"/>\n  <property name=\"ServerName\" value=\"a\"/>\n  <Region>eu</Region>\n  <Mode>pvp</Mode>\n</ServerSettings>\nX\ncat > plain.cfg <<'X'\nport 1\nhostname old\nmaxplayers 1\nX\n# The startup prints this and keeps running: a single command, because\n# the yolks' entrypoint runs STARTUP without a shell.\necho READY > ready.txt\necho installed\n",
+            "container": "alpine:3",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "",
+            "env_variable": "SERVER_NAME",
+            "default_value": "diff server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40",
+            "field_type": "text"
+        },
+        {
+            "name": "MOTD",
+            "description": "",
+            "env_variable": "MOTD",
+            "default_value": "hello \"world\" & <you>",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "20",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,100",
+            "field_type": "text"
+        },
+        {
+            "name": "Region",
+            "description": "",
+            "env_variable": "REGION",
+            "default_value": "us-east",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        }
+    ]
+}

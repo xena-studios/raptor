@@ -44,8 +44,11 @@ type Options struct {
 	Storage *storage.Volume
 
 	VolumesDir string // server directories: <VolumesDir>/<id>
-	TmpDir     string // install scripts
-	LogDir     string // install logs: <LogDir>/install/<id>.log
+	// MachineIDDir holds each server's /etc/machine-id (<dir>/<id>), written
+	// before every start. "" = no machine-id.
+	MachineIDDir string
+	TmpDir       string // install scripts
+	LogDir       string // install logs: <LogDir>/install/<id>.log
 
 	// UID and GID the server containers run as (the raptor user).
 	UID, GID int
@@ -664,7 +667,7 @@ func (m *Manager) runtimeEnv(s *Server) eggs.Runtime {
 		Port:            p.Port,
 		Timezone:        m.o.Timezone,
 		Location:        m.o.Location,
-		AllocationLimit: len(s.Allocations),
+		AllocationLimit: 0, // Raptor has no per-server allocation limits yet
 		Variables:       s.Variables,
 	}
 }
@@ -740,4 +743,25 @@ func (m *Manager) DiskUsage(ctx context.Context, id string) (storage.Usage, erro
 		u.LimitBytes = srv.Limits.DiskMiB << 20
 	}
 	return u, err
+}
+
+// writeMachineID writes a server's machine-id file and returns its path ("" if
+// machine-ids are off): the server ID without dashes, as Pterodactyl writes
+// it, so a server keeps its machine-id across starts, Wings restarts, and
+// moves from Pterodactyl.
+func (m *Manager) writeMachineID(id string) (string, error) {
+	if m.o.MachineIDDir == "" {
+		return "", nil
+	}
+	if !idPattern.MatchString(id) {
+		return "", fmt.Errorf("invalid server id %q", id)
+	}
+	if err := os.MkdirAll(m.o.MachineIDDir, 0o755); err != nil { //nolint:gosec // mounted into containers, must be readable
+		return "", err
+	}
+	p := filepath.Join(m.o.MachineIDDir, id)
+	if err := os.WriteFile(p, []byte(strings.ReplaceAll(id, "-", "")+"\n"), 0o644); err != nil { //nolint:gosec // read by the server's user
+		return "", fmt.Errorf("machine-id: %w", err)
+	}
+	return p, nil
 }

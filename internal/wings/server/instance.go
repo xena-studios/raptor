@@ -301,7 +301,12 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 	for _, a := range srv.Allocations {
 		ports = append(ports, containers.Port{IP: a.IP, Port: a.Port})
 	}
+	machineID, err := m.writeMachineID(i.id)
+	if err != nil {
+		return err
+	}
 	cid, err := m.o.Runtime.Create(ctx, containers.ServerSpec{
+		MachineID:   machineID,
 		ServerID:    i.id,
 		Dir:         dir,
 		Image:       srv.Image,
