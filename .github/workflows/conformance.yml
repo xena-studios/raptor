@@ -1,0 +1,95 @@
+name: Egg conformance
+
+# Runs catalog eggs through the full Wings lifecycle with their unmodified
+# images (internal/wings/conformance). Tiers (eggs/*/*/raptor.yaml):
+#   fast: on PRs that touch eggs or the code that runs them, nightly, on
+#         demand; on amd64 and arm64
+#   slow: big SteamCMD games, weekly and on demand; amd64 only (the games are)
+#   manual: can't run on standard runners (see each egg's test.reason)
+# Pushing a branch named conformance/* runs both fast and slow.
+on:
+  push:
+    branches: ["conformance/**"]
+  pull_request:
+    paths:
+      - eggs/**
+      - internal/eggs/**
+      - internal/wings/containers/**
+      - internal/wings/docker/**
+      - internal/wings/install/**
+      - internal/wings/server/**
+      - internal/wings/conformance/**
+      - .github/workflows/conformance.yml
+  schedule:
+    - cron: "17 4 * * *" # fast, nightly
+    - cron: "43 5 * * 0" # slow, weekly
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: Tier
+        type: choice
+        options: [fast, slow, all]
+        default: fast
+      run:
+        description: Catalog IDs to run (regex)
+        default: "."
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conformance-${{ github.ref }}-${{ github.event.schedule || inputs.tier || 'fast' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  fast:
+    if: >-
+      github.event_name == 'pull_request' || github.event_name == 'push' ||
+      github.event.schedule == '17 4 * * *' ||
+      (github.event_name == 'workflow_dispatch' && inputs.tier != 'slow')
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install nftables
+        run: command -v nft || (sudo apt-get update && sudo apt-get install -y --no-install-recommends nftables)
+      - name: Build the harness
+        run: go test -c -tags e2e -o /tmp/conformance-e2e ./internal/wings/conformance
+      - name: Run eggs
+        run: |
+          sudo RAPTOR_CONFORMANCE_TIER=fast \
+            RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
+            /tmp/conformance-e2e -test.v -test.timeout 110m -test.run 'TestConformance/${{ inputs.run || '.' }}'
+
+  slow:
+    if: >-
+      github.event_name == 'push' ||
+      github.event.schedule == '43 5 * * 0' ||
+      (github.event_name == 'workflow_dispatch' && inputs.tier != 'fast')
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo docker image prune -af
+          df -h /
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install nftables
+        run: command -v nft || (sudo apt-get update && sudo apt-get install -y --no-install-recommends nftables)
+      - name: Build the harness
+        run: go test -c -tags e2e -o /tmp/conformance-e2e ./internal/wings/conformance
+      - name: Run eggs
+        run: |
+          sudo RAPTOR_CONFORMANCE_TIER=slow RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
+            /tmp/conformance-e2e -test.v -test.timeout 350m -test.run 'TestConformance/${{ inputs.run || '.' }}'

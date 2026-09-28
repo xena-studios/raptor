@@ -20,7 +20,7 @@ People who **own or rent a Linux box but don't have a reliable, easy way to host
 
 ## What you can host
 
-- **Game servers (primary focus):** the Minecraft family (Paper, Purpur, Fabric, Forge, NeoForge, Vanilla, Velocity, BungeeCord), Hytale, Rust, and popular Steam games
+- **Game servers (primary focus):** the Minecraft family (Paper, Purpur, Fabric, Forge, NeoForge, Vanilla, Velocity, BungeeCord), Rust, popular Steam games, and Hytale (community egg; see [EGGS.md](EGGS.md#certified-at-launch))
 - **Also officially supported:** Discord bots (Node.js/Python), voice servers (TeamSpeak, Mumble), generic Node/Python apps
 
 Anything with a Pterodactyl or Pelican egg can run. The list above is what we **certify** (test in CI and document). Raptor is not a general app platform.

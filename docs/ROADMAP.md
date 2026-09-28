@@ -129,12 +129,14 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Tested against the real daemon in `task e2e:host` (as root and as a `raptor` group member)
 
 ### 1.8 Egg conformance suite
-- [ ] Harness: import → install → start → done → command → stop → reinstall
-- [ ] Certified eggs + top ~50 community eggs, running in CI on a VM
+- [x] Harness: import → install → start → done → command → Wings restart → stop → reinstall ([EGGS.md](EGGS.md#conformance-test-suite))
+- [x] Built-in catalog of certified eggs (`eggs/`, unmodified upstream copies + `raptor.yaml`)
+- [x] Certified eggs in CI, in tiers: fast on amd64 + arm64, slow SteamCMD games weekly, CS2 by hand
+- [ ] Top ~50 community eggs
 - [ ] Behavioral diff test against Pterodactyl Wings for a subset
 
 **Exit criteria:**
-- Paper, Rust, Hytale, and a Discord bot install and run from the harness
+- Paper, Rust, and a Discord bot install and run from the harness (Hytale moved to community: its server needs a Hytale account, #100)
 - `systemctl restart raptor-wings` → **no game server restarts**, console history intact
 - `systemctl restart docker` → servers keep running (`live-restore`)
 - Conformance suite passes for all certified eggs

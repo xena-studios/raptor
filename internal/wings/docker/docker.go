@@ -420,20 +420,25 @@ func (c *Client) Start(ctx context.Context, id string) error {
 
 // Stop stops a server the way its egg asks: a console command, a signal, or
 // Docker's default stop. If it hasn't exited after timeout, it's killed.
-func (c *Client) Stop(ctx context.Context, id string, a containers.Sender, stop eggs.Stop, timeout time.Duration) error {
+func (c *Client) Stop(ctx context.Context, id string, a containers.Sender, stop eggs.Stop, timeout time.Duration) (forced bool, err error) {
 	switch {
 	case stop.Command != "" && a != nil:
 		if err := a.Send(stop.Command); err != nil {
-			return err
+			return false, err
 		}
 	case stop.Signal != 0:
 		if _, err := c.api.ContainerKill(ctx, id, client.ContainerKillOptions{Signal: signalName(stop.Signal)}); err != nil {
-			return err
+			return false, err
 		}
 	default:
+		// Docker sends SIGTERM and kills after the timeout itself; a SIGKILL
+		// exit code means it had to.
 		secs := int(timeout.Seconds())
-		_, err := c.api.ContainerStop(ctx, id, client.ContainerStopOptions{Timeout: &secs})
-		return err
+		if _, err := c.api.ContainerStop(ctx, id, client.ContainerStopOptions{Timeout: &secs}); err != nil {
+			return false, err
+		}
+		st, err := c.Inspect(ctx, id)
+		return err == nil && st.ExitCode == 128+int64(syscall.SIGKILL), nil
 	}
 
 	waitCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -441,10 +446,13 @@ func (c *Client) Stop(ctx context.Context, id string, a containers.Sender, stop 
 	wait := c.api.ContainerWait(waitCtx, id, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
 	select {
 	case <-wait.Result:
-		return nil
+		return false, nil
 	case <-wait.Error:
+		if ctx.Err() != nil {
+			return false, ctx.Err()
+		}
 		_, err := c.api.ContainerKill(ctx, id, client.ContainerKillOptions{Signal: "SIGKILL"})
-		return err
+		return err == nil, err
 	}
 }
 

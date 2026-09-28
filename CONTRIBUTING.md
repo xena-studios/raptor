@@ -59,16 +59,17 @@ task wings:vm:install   # deploy + systemd unit + dev config, then (re)start Win
 task wings:vm:shell     # shell into the VM (then: sudo raptor status)
 ```
 
-### Egg end-to-end tests
+### Egg conformance tests
 
-Eggs are tested by installing and running them with their real, unmodified images:
+Catalog eggs (`eggs/`) are tested by installing and running them with their real, unmodified images through the full Wings lifecycle (install, start, console command, Wings restart, stop, reinstall):
 
 ```bash
-task e2e:eggs                      # Paper (both formats) + Node.js in the VM
-task e2e:eggs RUN=TestEggNode      # one egg
+task e2e:conformance                             # the fast tier in the VM
+task e2e:conformance RUN=minecraft/paper         # one egg
+task e2e:conformance TIER=slow RUN=steam/rust    # x86-only: not on an ARM Mac
 ```
 
-x86-only eggs like Rust can't run on an ARM Mac. They run in the **E2E eggs** GitHub workflow on an x86 runner: start it from the Actions tab, or push a branch named `e2e/<anything>`.
+The **Egg conformance** GitHub workflow runs the fast tier on amd64 and arm64 for PRs that touch eggs or the code that runs them, and nightly; the slow tier (big SteamCMD games) runs weekly. Start either from the Actions tab, or push a branch named `conformance/<anything>` to run both. To add an egg, see [EGGS.md](docs/EGGS.md#built-in-catalog).
 
 ### Fuzz tests
 

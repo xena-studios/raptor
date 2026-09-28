@@ -1,0 +1,25 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/minecraft/blob/75bf05d/java/neoforge/egg-neo-forge.json
+source:
+  repo: pelican-eggs/minecraft
+  commit: 75bf05db3c6c305e0fa6eef1d38c7e7176121de9
+  path: java/neoforge/egg-neo-forge.json
+license: MIT
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  # The egg defaults to Java 8; current Minecraft needs Java 25.
+  image: ghcr.io/pelican-eggs/yolks:java_25
+  memory_mib: 2048
+  # Pinned exactly: to find a version, the egg's install script downloads
+  # NeoForge's version list with no retry or error check, and it sometimes
+  # gets nothing back ("1.", "no valid version"), seen three times across
+  # the VM and CI. An exact version skips that lookup.
+  variables:
+    MC_VERSION: "1.21.10"
+    NEOFORGE_VERSION: "21.10.64"
+  eula: true
+  done_timeout: 10m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"

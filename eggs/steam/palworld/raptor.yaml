@@ -1,0 +1,20 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-steamcmd/blob/e17e2c3/palworld/egg-palworld.yaml
+source:
+  repo: pelican-eggs/games-steamcmd
+  commit: e17e2c3db36aaf1ddecbc227803dd6cdbb0e6b1f
+  path: palworld/egg-palworld.yaml
+license: MIT
+certified: true
+arch: [amd64]
+test:
+  tier: slow
+  memory_mib: 12288
+  variables:
+    ADMIN_PASSWORD: "conformance"
+    SERVER_NAME: "raptor-conformance"
+  done_timeout: 30m
+  # The egg's done string comes before RCON (which its console uses) listens.
+  ready: "Running Palworld dedicated server"
+  command: "Info"
+  expect: "Welcome to Pal Server"

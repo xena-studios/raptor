@@ -1,0 +1,13 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/voice/blob/33858e0/mumble/egg-mumble-server.yaml
+source:
+  repo: pelican-eggs/voice
+  commit: 33858e0558d92e82cda04ba0550f9a733ced9d4c
+  path: mumble/egg-mumble-server.yaml
+license: MIT
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

@@ -80,7 +80,7 @@ Nothing else from the host is mounted: no Docker socket, no host paths, no other
 
 ### Runtime environment
 
-Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server/server.go`) and verified by running real eggs (`task e2e:eggs`).
+Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server/server.go`) and verified by running real eggs (the [conformance suite](#conformance-test-suite)).
 
 **Container**
 | Setting | Value |
@@ -209,27 +209,77 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
 
 ## Egg sources
 
-- Built-in catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and license preserved.
+- Built-in catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and license preserved ([below](#built-in-catalog)).
 - Users can import eggs from a URL or file. The Panel shows the **image registry and install script** before importing. A malicious egg is effectively a malicious program on the node.
+
+## Built-in catalog
+
+`eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`), for the Panel's egg catalog and the conformance suite. One directory per egg, e.g. `eggs/minecraft/paper/`:
+- The egg file, an **unmodified copy** of upstream at a pinned commit, under its upstream file name. Updating an egg means replacing the file and the commit.
+- `raptor.yaml`: where it came from (repository, full commit hash, path), its license, whether it's certified, which CPU architectures the game runs on, and how the conformance suite tests it:
+
+```yaml
+source:
+  repo: pelican-eggs/minecraft
+  commit: 75bf05db3c6c305e0fa6eef1d38c7e7176121de9
+  path: java/paper/egg-paper.yaml
+license: MIT
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast                # fast | slow | manual (manual needs a reason)
+  image: ""                 # the user's image choice, if not the egg's default
+  memory_mib: 2048
+  eula: true                # write eula.txt, as accepting the EULA in the Panel does
+  variables: {}             # checked against the egg's own rules
+  files: {}                 # written after the install, like a user's uploads
+  done_timeout: 5m
+  ready: ""                 # a console line to wait for first, if done comes early
+  command: "list"           # sent to the console...
+  expect: "There are 0 of a max of \\d+ players"   # ...and a reply must match
+  config: {}                # file → text the egg's config parsers must write ({{port}})
+```
+
+A unit test loads every entry and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, and a chosen image is one the egg offers.
 
 ## Conformance test suite
 
-Built early (during Wings core) and run in CI:
-- The top ~50 community eggs plus every certified egg.
-- For each: import → install → start → "done" detected → console command → stop → reinstall.
-- **Behavioral diff tests:** for a set of eggs, run the same server under Pterodactyl Wings and Raptor Wings, and compare the environment, files written by config parsers, and startup command.
-- Fuzz tests (`go test -fuzz`): egg parsing, rule validation, PHP regex translation, placeholder resolution, every config parser (output must always re-parse), `.properties` round trips, and config file paths (nothing outside the server directory is ever touched). Inputs the fuzzer found are kept in `testdata/fuzz` and run as regular tests.
+`internal/wings/conformance` runs catalog eggs through the full Wings lifecycle with the real server manager, Docker, and the eggs' unmodified images:
+
+**install → EULA and uploads → start → done string → console command → Wings restart → stop → reinstall → start → stop → delete**
+
+- **Wings restart:** the manager is closed and a new one started on the same state, as a Wings restart does. The server must keep running (same container start time), its console history must be refilled, and commands must still work.
+- **Stop** must be the egg's own stop, not a kill: Wings reports a stop that hit its timeout (`[raptor] didn't stop within 1m0s; killed`), and the suite fails on it.
+- **Reinstall** runs the install script over the existing files, then the server must start again.
+- Each step is timed; a Markdown summary goes to `RAPTOR_CONFORMANCE_REPORT` (the job summary in CI).
+- Failures are never retried away. On a failed install or start, the install log and console are printed. Known upstream flakiness: NeoForge's install fails occasionally (its script fetches version lists and the installer downloads many libraries without retries); its test pins exact versions, which removed most of it.
+
+**Tiers** (`test.tier`):
+| Tier | Eggs | When |
+|---|---|---|
+| fast | Minecraft family, Node.js, Python, Mumble, TeamSpeak, Terraria | PRs that touch eggs or the code that runs them, nightly, on demand; amd64 and arm64 runners |
+| slow | Rust, Valheim, Palworld, 7 Days to Die | Weekly and on demand; amd64 (the games are x86-only) |
+| manual | CS2 | By hand: it needs ~40 GB of disk and a Steam login token (`STEAM_GSLT`) tied to a Steam account |
+
+```bash
+task e2e:conformance                         # fast tier in the VM
+task e2e:conformance TIER=slow RUN=steam/rust
+```
+
+Still to come in Phase 1.8: the top ~50 community eggs; **behavioral diff tests** (for a set of eggs, run the same server under Pterodactyl Wings and Raptor Wings, and compare the environment, files written by config parsers, and startup command); and a symlink and path-traversal suite.
+
+Fuzz tests (`go test -fuzz`) cover egg parsing, rule validation, PHP regex translation, placeholder resolution, every config parser (output must always re-parse), `.properties` round trips, and config file paths (nothing outside the server directory is ever touched). Inputs the fuzzer found are kept in `testdata/fuzz` and run as regular tests.
 
 ## Certified at launch
 
 | Category | Eggs |
 |---|---|
 | Minecraft | Paper, Purpur, Fabric, Forge, NeoForge, Vanilla, Velocity, BungeeCord |
-| Hytale | Hytale dedicated server |
 | Steam | Rust (incl. Oxide/Carbon), Valheim, Palworld, CS2, Terraria, 7 Days to Die |
-| Other | Discord bot (Node.js), Discord bot (Python), TeamSpeak, Mumble, generic Node.js, generic Python |
+| Other | Discord bot (Node.js), Discord bot (Python), TeamSpeak, Mumble, generic Node.js, generic Python (the Discord bot entries are the generic Node.js and Python eggs) |
 
 Notes:
+- **Hytale isn't certified.** Its official server image signs in to a Hytale account (OAuth device flow) before it downloads the server, so it can't be tested unattended. It stays available as a community egg, and owners sign in with their own account from the console.
 - Most Steam dedicated servers are **x86_64-only** (Rust, CS2, …). The Panel hides them on arm64 nodes. No x86 emulation in v1.
 - Only **anonymous SteamCMD** games in v1. No storing Steam credentials.
 - Minecraft: users must accept the EULA. Server jars are downloaded at install time and never redistributed.
