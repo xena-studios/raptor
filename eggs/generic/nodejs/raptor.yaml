@@ -1,0 +1,25 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/generic/blob/18aeeb4/nodejs/egg-nodejs-generic.yaml
+source:
+  repo: pelican-eggs/generic
+  commit: 18aeeb4bb54e04ccaf3410623afcccaec5efab82
+  path: nodejs/egg-nodejs-generic.yaml
+license: MIT
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    USER_UPLOAD: "1"
+    MAIN_FILE: "index.js"
+  files:
+    index.js: |
+      // Stand-in for a Discord bot (a real one needs a token): prints the
+      // egg's done string and echoes console input.
+      console.log('change this text 1');
+      process.stdin.setEncoding('utf8');
+      process.stdin.on('data', (d) => console.log('got: ' + d.trim()));
+  done_timeout: 3m
+  command: "hello"
+  expect: "^got: hello$"

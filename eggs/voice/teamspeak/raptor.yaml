@@ -1,0 +1,14 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/voice/blob/33858e0/teamspeak/egg-teamspeak3-server.yaml
+# TeamSpeak 3 is x86_64-only here; upstream has a separate arm64 egg.
+source:
+  repo: pelican-eggs/voice
+  commit: 33858e0558d92e82cda04ba0550f9a733ced9d4c
+  path: teamspeak/egg-teamspeak3-server.yaml
+license: MIT
+certified: true
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 2m

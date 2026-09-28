@@ -569,8 +569,12 @@ func (i *instance) stopLocked(ctx context.Context, kill, setDesired bool) error 
 	if in != nil {
 		sender = in
 	}
-	if err := m.o.Runtime.Stop(ctx, cid, sender, stop, timeout); err != nil {
+	forced, err := m.o.Runtime.Stop(ctx, cid, sender, stop, timeout)
+	if err != nil {
 		return fmt.Errorf("stop: %w", err)
+	}
+	if forced && !kill {
+		i.console.Notice("didn't stop within %s; killed", timeout)
 	}
 	// The watcher sees the exit and settles the state.
 	select {

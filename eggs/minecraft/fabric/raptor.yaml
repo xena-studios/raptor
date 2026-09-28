@@ -1,0 +1,18 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/minecraft/blob/75bf05d/java/fabric/egg-fabric.yaml
+source:
+  repo: pelican-eggs/minecraft
+  commit: 75bf05db3c6c305e0fa6eef1d38c7e7176121de9
+  path: java/fabric/egg-fabric.yaml
+license: MIT
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  # The egg defaults to Java 8; current Minecraft needs Java 25.
+  image: ghcr.io/pelican-eggs/yolks:java_25
+  memory_mib: 2048
+  eula: true
+  done_timeout: 5m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"

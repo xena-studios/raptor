@@ -1,0 +1,14 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-steamcmd/blob/e17e2c3/counter_strike/counter_strike_2/egg-counter--strike2.yaml
+source:
+  repo: pelican-eggs/games-steamcmd
+  commit: e17e2c3db36aaf1ddecbc227803dd6cdbb0e6b1f
+  path: counter_strike/counter_strike_2/egg-counter--strike2.yaml
+license: MIT
+certified: true
+arch: [amd64]
+test:
+  tier: manual
+  reason: "needs ~40 GB of disk (more than standard CI runners have) and a Steam Game Server Login Token (STEAM_GSLT), which is tied to a Steam account"
+  memory_mib: 4096
+  done_timeout: 30m

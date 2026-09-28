@@ -1,0 +1,15 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/minecraft/blob/75bf05d/proxy/java/bungeecord/egg-bungeecord.yaml
+source:
+  repo: pelican-eggs/minecraft
+  commit: 75bf05db3c6c305e0fa6eef1d38c7e7176121de9
+  path: proxy/java/bungeecord/egg-bungeecord.yaml
+license: MIT
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "glist"
+  expect: "Total players online: 0"

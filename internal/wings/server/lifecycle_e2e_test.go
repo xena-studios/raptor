@@ -466,7 +466,7 @@ func TestReconcileStartsDesiredServers(t *testing.T) {
 	ready(t, m, up)
 	m.Close()
 	// Simulate the reboot: the container is gone, desired_state stays.
-	if err := e.rt.Stop(context.Background(), containerName(up), nil, eggsKill, 10*time.Second); err != nil {
+	if _, err := e.rt.Stop(context.Background(), containerName(up), nil, eggsKill, 10*time.Second); err != nil {
 		t.Fatal(err)
 	}
 

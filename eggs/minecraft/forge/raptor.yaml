@@ -1,0 +1,21 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/minecraft/blob/75bf05d/java/forge/egg-forge-minecraft.yaml
+source:
+  repo: pelican-eggs/minecraft
+  commit: 75bf05db3c6c305e0fa6eef1d38c7e7176121de9
+  path: java/forge/egg-forge-minecraft.yaml
+license: MIT
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 2048
+  # The egg's install script can't install Forge for Minecraft 26.x (it
+  # looks for the old installer output name), so "latest" fails upstream;
+  # pinned to the last 1.x release, the most used for modpacks.
+  variables:
+    MC_VERSION: "1.21.10"
+  eula: true
+  done_timeout: 10m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"

@@ -1,11 +1,17 @@
 //go:build e2e
 
+// End-to-end runtime tests against a real Docker: networks, firewall
+// isolation, limits, hardening. They need root, so they run in the Wings VM
+// or on a CI runner (task e2e:runtime). Eggs are tested by the conformance
+// suite (internal/wings/conformance).
 package docker
 
 import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -603,4 +609,29 @@ func abs(n int64) int64 {
 		return -n
 	}
 	return n
+}
+
+// Container UID/GID for tests; Wings uses the raptor system user's IDs.
+const testUID, testGID = 988, 988
+
+func randomID(t *testing.T) string {
+	b := make([]byte, 6)
+	if _, err := rand.Read(b); err != nil {
+		t.Fatal(err)
+	}
+	return "e2e" + hex.EncodeToString(b)
+}
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil { //nolint:gosec // test fixture
+		t.Fatal(err)
+	}
+}
+
+func envOr(k, def string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return def
 }

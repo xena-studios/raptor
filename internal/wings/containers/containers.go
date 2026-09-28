@@ -41,7 +41,8 @@ type Runtime interface {
 	Stats(ctx context.Context, id string) (Stats, error)
 	Start(ctx context.Context, id string) error
 	// Stop stops a server the way its egg asks, killing it after timeout.
-	Stop(ctx context.Context, id string, in Sender, stop eggs.Stop, timeout time.Duration) error
+	// forced reports that it had to be killed.
+	Stop(ctx context.Context, id string, in Sender, stop eggs.Stop, timeout time.Duration) (forced bool, err error)
 	// Wait blocks until the container stops and returns its exit code.
 	Wait(ctx context.Context, id string) (int64, error)
 	Remove(ctx context.Context, id string) error

@@ -1,0 +1,27 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/generic/blob/18aeeb4/python/egg-python-generic.json
+source:
+  repo: pelican-eggs/generic
+  commit: 18aeeb4bb54e04ccaf3410623afcccaec5efab82
+  path: python/egg-python-generic.json
+license: MIT
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    USER_UPLOAD: "1"
+    PY_FILE: "app.py"
+  files:
+    app.py: |
+      # Stand-in for a Discord bot (a real one needs a token): prints the
+      # egg's done string and echoes console input.
+      import sys
+
+      print("change this text 1", flush=True)
+      for line in sys.stdin:
+          print("got: " + line.strip(), flush=True)
+  done_timeout: 3m
+  command: "hello"
+  expect: "^got: hello$"
