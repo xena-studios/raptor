@@ -1,0 +1,16 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-standalone/blob/3caf3cf/factorio/factorio/egg-factorio.yaml
+# x86_64 build; upstream has a separate box64 egg for arm64.
+source:
+  repo: pelican-eggs/games-standalone
+  commit: 3caf3cf09c3fe36d54cef90ef51c1f2b59e676ff
+  path: factorio/factorio/egg-factorio.yaml
+license: MIT
+certified: false
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 10m
+  command: "/players"
+  expect: "Players \\(0\\)"

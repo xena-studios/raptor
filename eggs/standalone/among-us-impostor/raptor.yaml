@@ -1,0 +1,13 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-standalone/blob/3caf3cf/among_us/impostor_server/egg-among-us--impostor-server.json
+source:
+  repo: pelican-eggs/games-standalone
+  commit: 3caf3cf09c3fe36d54cef90ef51c1f2b59e676ff
+  path: among_us/impostor_server/egg-among-us--impostor-server.json
+license: MIT
+certified: false
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 5m

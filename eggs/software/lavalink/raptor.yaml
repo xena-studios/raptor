@@ -1,0 +1,13 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/software/blob/c940765/lavalink/egg-lavalink.json
+source:
+  repo: pelican-eggs/software
+  commit: c9407659fa8a99a97966bfe91cc4eede58a25a87
+  path: lavalink/egg-lavalink.json
+license: MIT
+certified: false
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m

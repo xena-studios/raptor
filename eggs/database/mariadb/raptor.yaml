@@ -1,0 +1,13 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/database/blob/8799980/sql/mariadb/egg-maria-d-b114.json
+source:
+  repo: pelican-eggs/database
+  commit: 879998017b19a513a997a35dc45317f99863a37a
+  path: sql/mariadb/egg-maria-d-b114.json
+license: MIT
+certified: false
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m

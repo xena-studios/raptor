@@ -1,0 +1,16 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/minecraft/blob/75bf05d/bedrock/bedrock/egg-vanilla-bedrock-a-r-m64.json
+# The x86_64 Bedrock server run on arm64 through box64.
+source:
+  repo: pelican-eggs/minecraft
+  commit: 75bf05db3c6c305e0fa6eef1d38c7e7176121de9
+  path: bedrock/bedrock/egg-vanilla-bedrock-a-r-m64.json
+license: MIT
+certified: false
+arch: [arm64]
+test:
+  tier: fast
+  memory_mib: 2048  # killed by the OOM killer at 1 GiB under box64
+  done_timeout: 10m
+  command: "list"
+  expect: "There are 0/\\d+ players online"

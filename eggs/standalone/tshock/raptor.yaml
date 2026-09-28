@@ -1,0 +1,15 @@
+# Catalog entry for the egg in this directory, an unmodified copy of
+# https://github.com/pelican-eggs/games-standalone/blob/3caf3cf/terraria/tshock/egg-tshock.json
+source:
+  repo: pelican-eggs/games-standalone
+  commit: 3caf3cf09c3fe36d54cef90ef51c1f2b59e676ff
+  path: terraria/tshock/egg-tshock.json
+license: MIT
+certified: false
+arch: [amd64, arm64]
+test:
+  tier: fast
+  # TShock 6 needs .NET 9; the egg's default image has .NET 6.
+  image: ghcr.io/parkervcp/yolks:dotnet_9
+  memory_mib: 2048
+  done_timeout: 15m
