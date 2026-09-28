@@ -252,6 +252,7 @@ A unit test loads every entry and checks it: the egg parses, the source matches 
 - **Stop** must be the egg's own stop, not a kill: Wings reports a stop that hit its timeout (`[raptor] didn't stop within 1m0s; killed`), and the suite fails on it.
 - **Reinstall** runs the install script over the existing files, then the server must start again.
 - Each step is timed; a Markdown summary goes to `RAPTOR_CONFORMANCE_REPORT` (the job summary in CI).
+- Failures are never retried away. On a failed install or start, the install log and console are printed. Known upstream flakiness: NeoForge's install fails occasionally (its script fetches version lists and the installer downloads many libraries without retries); its test pins exact versions, which removed most of it.
 
 **Tiers** (`test.tier`):
 | Tier | Eggs | When |

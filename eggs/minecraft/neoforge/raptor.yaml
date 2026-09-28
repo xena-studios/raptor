@@ -12,10 +12,13 @@ test:
   # The egg defaults to Java 8; current Minecraft needs Java 25.
   image: ghcr.io/pelican-eggs/yolks:java_25
   memory_mib: 2048
-  # The egg's install script sometimes resolves "latest" to "1." and finds
-  # no NeoForge build (seen twice, on arm64 and in the VM); pinned.
+  # Pinned exactly: to find a version, the egg's install script downloads
+  # NeoForge's version list with no retry or error check, and it sometimes
+  # gets nothing back ("1.", "no valid version"), seen three times across
+  # the VM and CI. An exact version skips that lookup.
   variables:
     MC_VERSION: "1.21.10"
+    NEOFORGE_VERSION: "21.10.64"
   eula: true
   done_timeout: 10m
   command: "list"
