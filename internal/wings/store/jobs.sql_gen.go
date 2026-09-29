@@ -62,7 +62,7 @@ func (q *Queries) FinishJob(ctx context.Context, arg FinishJobParams) error {
 }
 
 const getJob = `-- name: GetJob :one
-SELECT id, server_id, type, payload, status, attempts, max_attempts, run_after, error, result, created_at, started_at, finished_at FROM jobs WHERE id = ?
+SELECT id, server_id, type, payload, status, attempts, max_attempts, run_after, error, result, created_at, started_at, finished_at, checkpoint FROM jobs WHERE id = ?
 `
 
 func (q *Queries) GetJob(ctx context.Context, id string) (Job, error) {
@@ -82,6 +82,7 @@ func (q *Queries) GetJob(ctx context.Context, id string) (Job, error) {
 		&i.CreatedAt,
 		&i.StartedAt,
 		&i.FinishedAt,
+		&i.Checkpoint,
 	)
 	return i, err
 }
@@ -115,7 +116,7 @@ func (q *Queries) InsertJob(ctx context.Context, arg InsertJobParams) error {
 }
 
 const listJobs = `-- name: ListJobs :many
-SELECT id, server_id, type, payload, status, attempts, max_attempts, run_after, error, result, created_at, started_at, finished_at FROM jobs WHERE (?1 = '' OR server_id = ?1)
+SELECT id, server_id, type, payload, status, attempts, max_attempts, run_after, error, result, created_at, started_at, finished_at, checkpoint FROM jobs WHERE (?1 = '' OR server_id = ?1)
 ORDER BY created_at DESC LIMIT ?2
 `
 
@@ -147,6 +148,7 @@ func (q *Queries) ListJobs(ctx context.Context, arg ListJobsParams) ([]Job, erro
 			&i.CreatedAt,
 			&i.StartedAt,
 			&i.FinishedAt,
+			&i.Checkpoint,
 		); err != nil {
 			return nil, err
 		}
@@ -233,7 +235,7 @@ func (q *Queries) RequeueJob(ctx context.Context, arg RequeueJobParams) error {
 }
 
 const runnableJobs = `-- name: RunnableJobs :many
-SELECT id, server_id, type, payload, status, attempts, max_attempts, run_after, error, result, created_at, started_at, finished_at FROM jobs WHERE status = 'queued' AND run_after <= ? ORDER BY run_after, created_at LIMIT 100
+SELECT id, server_id, type, payload, status, attempts, max_attempts, run_after, error, result, created_at, started_at, finished_at, checkpoint FROM jobs WHERE status = 'queued' AND run_after <= ? ORDER BY run_after, created_at LIMIT 100
 `
 
 func (q *Queries) RunnableJobs(ctx context.Context, runAfter int64) ([]Job, error) {
@@ -259,6 +261,7 @@ func (q *Queries) RunnableJobs(ctx context.Context, runAfter int64) ([]Job, erro
 			&i.CreatedAt,
 			&i.StartedAt,
 			&i.FinishedAt,
+			&i.Checkpoint,
 		); err != nil {
 			return nil, err
 		}
@@ -274,7 +277,7 @@ func (q *Queries) RunnableJobs(ctx context.Context, runAfter int64) ([]Job, erro
 }
 
 const runningJobs = `-- name: RunningJobs :many
-SELECT id, server_id, type, payload, status, attempts, max_attempts, run_after, error, result, created_at, started_at, finished_at FROM jobs WHERE status = 'running'
+SELECT id, server_id, type, payload, status, attempts, max_attempts, run_after, error, result, created_at, started_at, finished_at, checkpoint FROM jobs WHERE status = 'running'
 `
 
 func (q *Queries) RunningJobs(ctx context.Context) ([]Job, error) {
@@ -300,6 +303,7 @@ func (q *Queries) RunningJobs(ctx context.Context) ([]Job, error) {
 			&i.CreatedAt,
 			&i.StartedAt,
 			&i.FinishedAt,
+			&i.Checkpoint,
 		); err != nil {
 			return nil, err
 		}
@@ -312,4 +316,18 @@ func (q *Queries) RunningJobs(ctx context.Context) ([]Job, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const setJobCheckpoint = `-- name: SetJobCheckpoint :exec
+UPDATE jobs SET checkpoint = ? WHERE id = ? AND status = 'running'
+`
+
+type SetJobCheckpointParams struct {
+	Checkpoint string
+	ID         string
+}
+
+func (q *Queries) SetJobCheckpoint(ctx context.Context, arg SetJobCheckpointParams) error {
+	_, err := q.db.ExecContext(ctx, setJobCheckpoint, arg.Checkpoint, arg.ID)
+	return err
 }

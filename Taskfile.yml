@@ -65,6 +65,20 @@ tasks:
       - go test -race ./...
       - pnpm --dir web typecheck
 
+  fuzz:
+    desc: "Run every fuzz test (FUZZTIME each, default 30s)"
+    vars:
+      FUZZTIME: '{{.FUZZTIME | default "30s"}}'
+    cmds:
+      - |
+        set -eu
+        for pkg in $(go list ./...); do
+          for f in $(go test -list '^Fuzz' "$pkg" | grep '^Fuzz' || true); do
+            echo "== $pkg $f"
+            go test -run '^$' -fuzz "^$f\$" -fuzztime {{.FUZZTIME}} "$pkg"
+          done
+        done
+
   lint:
     desc: Lint and format-check Go, proto, and web code
     deps: [web:install]

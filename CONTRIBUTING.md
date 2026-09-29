@@ -75,7 +75,7 @@ The **Egg conformance** GitHub workflow runs the fast tier on amd64 and arm64 fo
 
 ### Fuzz tests
 
-The egg engine handles untrusted input (egg files, variable values, config files on disk), so its parsers are fuzzed:
+The egg engine handles untrusted input (egg files, variable values, config files on disk), so its parsers are fuzzed, as are the command envelope and cron expressions:
 
 ```bash
 task fuzz                  # every fuzz test, 30s each
@@ -86,7 +86,7 @@ When the fuzzer finds a failing input, it saves it under `testdata/fuzz/`. Fix t
 
 ### Runtime end-to-end tests
 
-The container runtime (networks, firewall isolation, resource limits, hardening, port checks), the server lifecycle (install, power actions, console, crashes, reconcile, resumed installs, events), and the command path (Panel grants, passkey-signed commands) are tested against a real Docker:
+The container runtime (networks, firewall isolation, resource limits, hardening, port checks), the server lifecycle (install, power actions, console, crashes, reconcile, resumed installs, events), the command path (Panel grants, passkey-signed commands), and schedules (a scheduled console command and restart) are tested against a real Docker:
 
 ```bash
 task e2e:runtime                          # all runtime and lifecycle tests in the VM

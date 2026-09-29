@@ -16,6 +16,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
+	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -165,9 +167,104 @@ func TestCommands(t *testing.T) {
 	}
 }
 
+// Schedules through the command path, run against a real server: a console
+// command, then a restart.
+func TestScheduleCommands(t *testing.T) {
+	ctx := context.Background()
+	var sched *schedule.Scheduler
+	var eng *jobs.Engine
+	m, db := newManagerWith(t, func(m *server.Manager, db *store.DB, e *jobs.Engine) {
+		eng = e
+		sched = schedule.New(schedule.Options{Store: db, Jobs: e, Events: events.New(db), Servers: m})
+	})
+	t.Cleanup(sched.Close)
+	sched.Start()
+	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
+	x := &command.Executor{DB: db, NodeID: nodeID, RP: rp, PanelKey: pub}
+	RegisterSchedules(x, sched)
+	p := &panel{t: t, x: x, key: priv}
+
+	id, err := m.Create(ctx, server.Config{
+		Name: "smp", Egg: []byte(shellEgg), Limits: containers.Limits{MemoryMiB: 128}, Settings: server.DefaultSettings(),
+		Allocations: []server.Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}},
+	}, server.CreateOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = m.Delete(context.Background(), id) })
+	waitState(t, m, id, server.Offline)
+	if err := m.Start(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.SendCommand(id, "alice", "echo READY"); err != nil {
+		t.Fatal(err)
+	}
+	waitState(t, m, id, server.Running)
+	started := containerStart(t, id)
+
+	def := schedule.Definition{Name: "nightly", Cron: "0 4 * * *", Timezone: "Europe/Berlin", Enabled: true, Steps: []schedule.Step{
+		{Type: schedule.StepCommand, Command: "echo SCHEDULED"},
+		{Type: schedule.StepWait, Duration: server.Duration(time.Second)},
+		{Type: schedule.StepPower, Action: server.PowerRestart},
+	}}
+	res, err := p.send("alice", ScheduleCreate, id, ScheduleParams{Definition: def}, nil)
+	if err != nil {
+		t.Fatalf("create (unsigned): %v", err)
+	}
+	var created struct {
+		ScheduleID string `json:"schedule_id"`
+		NextRunAt  int64  `json:"next_run_at"`
+	}
+	_ = json.Unmarshal(res.Value, &created)
+	if next := time.UnixMilli(created.NextRunAt).In(mustLoad(t, "Europe/Berlin")); next.Hour() != 4 || next.Minute() != 0 {
+		t.Fatalf("next run %v, want 04:00 Berlin time", next)
+	}
+
+	res, err = p.send("alice", ScheduleRun, id, ScheduleParams{ScheduleID: created.ScheduleID}, nil)
+	if err != nil {
+		t.Fatalf("run now: %v", err)
+	}
+	var run struct {
+		JobID string `json:"job_id"`
+	}
+	_ = json.Unmarshal(res.Value, &run)
+	waitCtx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	j, err := eng.Wait(waitCtx, run.JobID)
+	if err != nil || j.Status != jobs.Succeeded {
+		t.Fatalf("run: %+v %v", j, err)
+	}
+	st, _ := m.Status(id)
+	if !slices.Contains(st.Console.History(), "SCHEDULED") {
+		t.Fatalf("console doesn't show the scheduled command: %q", st.Console.History())
+	}
+	if containerStart(t, id).Equal(started) {
+		t.Fatal("the scheduled restart didn't restart the container")
+	}
+
+	// A schedule is only reachable through its own server.
+	if _, err := p.send("alice", ScheduleDelete, "0199a000-0000-7000-8000-000000000002", ScheduleParams{ScheduleID: created.ScheduleID}, nil); !errors.Is(err, schedule.ErrNotFound) {
+		t.Fatalf("delete through another server: %v", err)
+	}
+	// Deleting the server deletes its schedules.
+	if err := m.Delete(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := sched.List(ctx, ""); len(list) != 0 {
+		t.Fatalf("schedules left after deleting the server: %+v", list)
+	}
+}
+
 // --- environment ---
 
 func newManager(t *testing.T) (*server.Manager, *store.DB) {
+	t.Helper()
+	return newManagerWith(t, nil)
+}
+
+// newManagerWith calls before (to register more job handlers) before the
+// job engine starts.
+func newManagerWith(t *testing.T, before func(*server.Manager, *store.DB, *jobs.Engine)) (*server.Manager, *store.DB) {
 	t.Helper()
 	ctx := context.Background()
 	rt, err := docker.New(docker.Config{Network: "raptor_nw", InstallNetwork: "raptor_install"})
@@ -208,6 +305,9 @@ func newManager(t *testing.T) (*server.Manager, *store.DB) {
 	if err := m.Reconcile(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if before != nil {
+		before(m, db, eng)
+	}
 	if err := eng.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -217,6 +317,29 @@ func newManager(t *testing.T) (*server.Manager, *store.DB) {
 		_ = os.RemoveAll(dir)
 	})
 	return m, db
+}
+
+func containerStart(t *testing.T, id string) time.Time {
+	t.Helper()
+	rt, err := docker.New(docker.Config{Network: "raptor_nw", InstallNetwork: "raptor_install"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rt.Close() }()
+	st, err := rt.Inspect(context.Background(), "raptor-"+id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return st.StartedAt
+}
+
+func mustLoad(t *testing.T, name string) *time.Location {
+	t.Helper()
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return loc
 }
 
 func waitState(t *testing.T, m *server.Manager, id string, want server.State) {
