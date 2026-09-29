@@ -195,15 +195,29 @@ func TestResumeAfterRestart(t *testing.T) {
 	ctx := context.Background()
 	var runs atomic.Int32
 	started := make(chan struct{}, 4)
+	var engine atomic.Pointer[Engine]
 	register := func(e *Engine) {
-		e.Register("install", Handler{Resumable: true, MaxAttempts: 3, Run: func(ctx context.Context, _ Job, _ io.Writer) (any, error) {
+		engine.Store(e)
+		e.Register("install", Handler{Resumable: true, MaxAttempts: 3, Run: func(ctx context.Context, j Job, _ io.Writer) (any, error) {
 			n := runs.Add(1)
-			started <- struct{}{}
+			var cp struct{ Step int }
+			has, err := j.DecodeCheckpoint(&cp)
+			if err != nil {
+				return nil, err
+			}
 			if n == 1 {
+				if has {
+					return nil, errors.New("fresh job has a checkpoint")
+				}
+				if err := engine.Load().Checkpoint(ctx, j.ID, map[string]int{"Step": 2}); err != nil {
+					return nil, err
+				}
+				started <- struct{}{}
 				<-ctx.Done() // interrupted by the stop
 				return nil, ctx.Err()
 			}
-			return "done", nil
+			started <- struct{}{}
+			return fmt.Sprintf("resumed at step %d", cp.Step), nil
 		}})
 		e.Register("once", Handler{Run: func(ctx context.Context, _ Job, _ io.Writer) (any, error) {
 			started <- struct{}{}
@@ -223,7 +237,7 @@ func TestResumeAfterRestart(t *testing.T) {
 
 	e2 := v.engine(t, register)
 	defer e2.Close()
-	if j := wait(t, e2, resumable); j.Status != Succeeded || j.Attempts != 2 {
+	if j := wait(t, e2, resumable); j.Status != Succeeded || j.Attempts != 2 || string(j.Result) != `"resumed at step 2"` {
 		t.Fatalf("resumed: %+v", j)
 	}
 	if j, _ := e2.Get(ctx, once); j.Status != Failed || !strings.Contains(j.Error, "interrupted") {

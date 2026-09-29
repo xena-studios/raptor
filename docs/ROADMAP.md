@@ -149,7 +149,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 **Goal:** every node-side feature exists, tested against a stub Panel.
 
-- [ ] **Scheduler:** cron + timezone, multi-step tasks, `only_when_online`, jitter, missed-run policy
+- [x] **Scheduler:** cron + timezone (with defined DST behavior), multi-step runs (`command`, `wait`, `power`; the `backup` step comes with backups), `only_when_online`, jitter, missed-run policy, runs that resume after a Wings restart ([WINGS.md](WINGS.md#scheduler))
 - [ ] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + prune jobs, safety backup before restore, low CPU/I/O weight, on by default
 - [ ] **SFTP:** off by default, enabled per node; `x/crypto/ssh`, `user.serverid`, `os.Root` chroot, host key generated on the node, auth callback interface (stubbed), public key cache
 - [ ] **File operations for the web file manager:** list, read, write, rename, delete, archive, through `os.Root`; chunked, resumable uploads and downloads (chunks under 100 MB, 1 GB per-file cap) on a separate outbound connection per transfer. No HTTP server on the node.

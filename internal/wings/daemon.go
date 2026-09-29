@@ -22,6 +22,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
+	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -127,6 +128,7 @@ type runtimeSetup struct {
 	svc     *localapi.Service
 	rules   *firewall.Rules // set once setup succeeded
 	servers *server.Manager
+	sched   *schedule.Scheduler
 
 	events   *events.Outbox
 	jobs     *jobs.Engine
@@ -147,15 +149,19 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 		Store:  db,
 		LogDir: filepath.Join(cfg.Paths.Logs, "jobs"),
 		Log:    log,
-		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups},
+		// Schedule runs mostly wait, so many can run at once.
+		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32},
 	})
 	r.commands = &command.Executor{DB: db, NodeID: cfg.NodeID, RP: rp, PanelKey: panelKey, Log: log}
 	return r, nil
 }
 
-// close stops jobs (running installs resume on the next start) and detaches
-// from servers without stopping them.
+// close stops schedules and jobs (running installs and schedule runs resume
+// on the next start) and detaches from servers without stopping them.
 func (r *runtimeSetup) close() {
+	if r.sched != nil {
+		r.sched.Close()
+	}
 	if r.servers != nil {
 		r.servers.Close() // stops jobs first
 	}
@@ -260,12 +266,18 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		return fmt.Errorf("commands: %w", err)
 	}
 	actions.Register(r.commands, mgr)
+	sched := schedule.New(schedule.Options{Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Log: r.log})
+	actions.RegisterSchedules(r.commands, sched)
 	// Jobs start after reconcile, so interrupted installs resume against
 	// servers that are already loaded.
 	if err := r.jobs.Start(ctx); err != nil {
 		mgr.Close()
 		return fmt.Errorf("jobs: %w", err)
 	}
+	// Schedules fire once servers are loaded; runs missed while Wings was
+	// down are handled on the first tick.
+	sched.Start()
+	r.sched = sched
 	r.servers = mgr
 	r.svc.SetServers(mgr)
 	r.rules = &rules

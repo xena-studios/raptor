@@ -11,6 +11,7 @@ import (
 
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 )
 
@@ -25,6 +26,11 @@ const (
 	ServerRestart   = "server.restart"
 	ServerKill      = "server.kill"
 	ServerCommand   = "server.command"
+
+	ScheduleCreate = "schedule.create"
+	ScheduleUpdate = "schedule.update"
+	ScheduleDelete = "schedule.delete"
+	ScheduleRun    = "schedule.run" // run now
 )
 
 // ServerConfig is a server's configuration as sent by the Panel.
@@ -150,6 +156,81 @@ func Register(x *command.Executor, m *server.Manager) {
 			return nil, err
 		}
 		return nil, m.SendCommand(e.ServerID, e.UserID, p.Command)
+	}})
+}
+
+// ScheduleParams are the params of the schedule actions. ScheduleID is
+// empty for schedule.create; the definition is only read by create and
+// update.
+type ScheduleParams struct {
+	ScheduleID string `json:"schedule_id,omitempty"`
+	schedule.Definition
+}
+
+// RegisterSchedules adds the schedule actions. None are signed: a schedule
+// only does what the user could already do unsigned (console commands and
+// power actions) (docs/SECURITY-MODEL.md#passkey-signed-commands).
+func RegisterSchedules(x *command.Executor, s *schedule.Scheduler) {
+	params := func(e command.Envelope, needID bool) (ScheduleParams, error) {
+		var p ScheduleParams
+		if e.ServerID == "" {
+			return p, errors.New("command needs a server_id")
+		}
+		if err := decode(e, &p); err != nil {
+			return p, err
+		}
+		if needID && p.ScheduleID == "" {
+			return p, errors.New("command needs a schedule_id")
+		}
+		return p, nil
+	}
+	result := func(sc *schedule.Schedule) map[string]any {
+		r := map[string]any{"schedule_id": sc.ID}
+		if !sc.NextRun.IsZero() {
+			r["next_run_at"] = sc.NextRun.UnixMilli()
+		}
+		return r
+	}
+
+	x.Register(ScheduleCreate, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		p, err := params(e, false)
+		if err != nil {
+			return nil, err
+		}
+		sc, err := s.Create(ctx, e.ServerID, p.Definition)
+		if err != nil {
+			return nil, err
+		}
+		return result(sc), nil
+	}})
+	x.Register(ScheduleUpdate, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		p, err := params(e, true)
+		if err != nil {
+			return nil, err
+		}
+		sc, err := s.Update(ctx, e.ServerID, p.ScheduleID, p.Definition)
+		if err != nil {
+			return nil, err
+		}
+		return result(sc), nil
+	}})
+	x.Register(ScheduleDelete, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		p, err := params(e, true)
+		if err != nil {
+			return nil, err
+		}
+		return nil, s.Delete(ctx, e.ServerID, p.ScheduleID)
+	}})
+	x.Register(ScheduleRun, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		p, err := params(e, true)
+		if err != nil {
+			return nil, err
+		}
+		job, err := s.RunNow(ctx, e.ServerID, p.ScheduleID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": job}, nil
 	}})
 }
 

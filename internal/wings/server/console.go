@@ -159,13 +159,21 @@ var (
 	ErrConsoleNotReady = errors.New("server isn't running")
 )
 
-// allowCommand checks a command's length and the user's rate.
-func (c *Console) allowCommand(user, cmd string) error {
+// CheckCommand reports whether cmd can be sent as a console command.
+func CheckCommand(cmd string) error {
 	if len(cmd) > maxCommand {
 		return ErrCommandTooLong
 	}
 	if strings.ContainsAny(cmd, "\r\n") {
 		return ErrCommandInvalid
+	}
+	return nil
+}
+
+// allowCommand checks a command's length and the user's rate.
+func (c *Console) allowCommand(user, cmd string) error {
+	if err := CheckCommand(cmd); err != nil {
+		return err
 	}
 	c.cmdMu.Lock()
 	defer c.cmdMu.Unlock()

@@ -36,3 +36,6 @@ UPDATE jobs SET status = 'cancelled', error = 'cancelled', finished_at = ? WHERE
 
 -- name: PruneJobs :many
 DELETE FROM jobs WHERE status IN ('succeeded', 'failed', 'cancelled') AND finished_at < ? RETURNING id;
+
+-- name: SetJobCheckpoint :exec
+UPDATE jobs SET checkpoint = ? WHERE id = ? AND status = 'running';

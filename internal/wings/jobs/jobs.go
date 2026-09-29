@@ -51,14 +51,17 @@ type Handler struct {
 
 // Job is a job's stored state.
 type Job struct {
-	ID         string
-	ServerID   string
-	Type       string
-	Payload    json.RawMessage
-	Status     string
-	Attempts   int
-	Error      string
-	Result     json.RawMessage
+	ID       string
+	ServerID string
+	Type     string
+	Payload  json.RawMessage
+	Status   string
+	Attempts int
+	Error    string
+	Result   json.RawMessage
+	// Checkpoint is what the job saved with Engine.Checkpoint in an earlier
+	// attempt (nil if nothing), so a resumed job can continue where it was.
+	Checkpoint json.RawMessage
 	CreatedAt  time.Time
 	StartedAt  time.Time
 	FinishedAt time.Time
@@ -66,6 +69,15 @@ type Job struct {
 
 // Decode unmarshals the payload.
 func (j Job) Decode(v any) error { return json.Unmarshal(j.Payload, v) }
+
+// DecodeCheckpoint unmarshals the checkpoint. It reports false if the job
+// has none.
+func (j Job) DecodeCheckpoint(v any) (bool, error) {
+	if len(j.Checkpoint) == 0 {
+		return false, nil
+	}
+	return true, json.Unmarshal(j.Checkpoint, v)
+}
 
 // Spec describes a job to enqueue.
 type Spec struct {
@@ -435,6 +447,16 @@ func (e *Engine) Cancel(ctx context.Context, id string) error {
 	return nil
 }
 
+// Checkpoint saves a running job's progress. If Wings stops, the resumed
+// job gets it back in Job.Checkpoint.
+func (e *Engine) Checkpoint(ctx context.Context, id string, v any) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	return e.o.Store.Write.SetJobCheckpoint(context.WithoutCancel(ctx), store.SetJobCheckpointParams{Checkpoint: string(b), ID: id})
+}
+
 // Get returns a job.
 func (e *Engine) Get(ctx context.Context, id string) (Job, error) {
 	r, err := e.o.Store.Read.GetJob(ctx, id)
@@ -522,6 +544,9 @@ func fromRow(r store.Job) Job {
 	}
 	if r.Result != "" {
 		j.Result = json.RawMessage(r.Result)
+	}
+	if r.Checkpoint != "" {
+		j.Checkpoint = json.RawMessage(r.Checkpoint)
 	}
 	if r.StartedAt.Valid {
 		j.StartedAt = time.UnixMilli(r.StartedAt.Int64)

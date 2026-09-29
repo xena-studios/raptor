@@ -51,12 +51,31 @@ type Job struct {
 	CreatedAt   int64
 	StartedAt   sql.NullInt64
 	FinishedAt  sql.NullInt64
+	Checkpoint  string
 }
 
 type Kv struct {
 	Key       string
 	Value     []byte
 	UpdatedAt int64
+}
+
+type Schedule struct {
+	ID             string
+	ServerID       string
+	Name           string
+	Cron           string
+	Timezone       string
+	Enabled        int64
+	OnlyWhenOnline int64
+	JitterS        int64
+	Missed         string
+	Steps          string
+	NextRunAt      sql.NullInt64
+	LastRunAt      sql.NullInt64
+	Version        int64
+	CreatedAt      int64
+	UpdatedAt      int64
 }
 
 type Server struct {

@@ -109,7 +109,7 @@ log:
 - Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept), plus the latest snapshot is included in offsite backups.
 - **Private files:** SQLite creates database files as 0644 regardless of the umask, and gives its `-wal`/`-shm` files the same mode. Wings creates `state.db` as 0600 before SQLite opens it, so all three stay root-only.
 
-Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `kv` (node config). Still to come with their features: `schedules`, `schedule_steps`, `backups`, `backup_destinations`, `grant_cache`, `sftp_key_cache`, `metrics_rollup`.
+Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `schedules` (Phase 2, steps stored in it as JSON); `kv` (node config). Still to come with their features: `backups`, `backup_destinations`, `grant_cache`, `sftp_key_cache`, `metrics_rollup`.
 
 ## Container runtime
 
@@ -211,13 +211,14 @@ How it works:
 
 ## Job engine
 
-A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a job. Implemented: `server.install` (installs and reinstalls). Coming with their features: `backup.create`, `backup.restore`, `backup.prune`, `schedule.run`, `transfer.send`, `transfer.receive`.
+A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a job. Implemented: `server.install` (installs and reinstalls) and `schedule.run`. Coming with their features: `backup.create`, `backup.restore`, `backup.prune`, `transfer.send`, `transfer.receive`.
 
 - **Survives Wings restarts and reboots.** A job that was running when Wings stopped is **resumed** if its handler says re-running it is safe (installs are: the script runs over the existing files again), and otherwise marked failed with "interrupted". Interruptions count as attempts, so a job that crashes Wings can't loop forever.
+- **Checkpoints:** a job can save its progress while it runs; a resumed job gets it back and continues from there instead of starting over (schedule runs continue after their last finished step).
 - **Created atomically with what it's for:** a server, its "created" event, and its install job are written in one SQLite transaction.
 - **Retries:** a handler can mark an error as retryable; the job is requeued with exponential backoff (30 s doubling, at most 30 min) until its attempts run out.
 - **Per-server lock:** at most one locked job per server runs at a time.
-- **Global limits** per class: installs `limits.concurrent_installs` (default 2), backups `limits.concurrent_backups` (default 2), everything else 4.
+- **Global limits** per class: installs `limits.concurrent_installs` (default 2), backups `limits.concurrent_backups` (default 2), schedule runs 32 (they mostly wait), everything else 4.
 - **Cancel** queued or running jobs; deleting a server cancels its jobs first.
 - **Logs:** each job's output is kept in `/var/log/raptor/jobs/<job-id>.log`, the last 10 MB of it, written every 5 seconds while it runs (so a crash loses little) and at the end. Readable live while the job runs.
 - A handler panic fails the job; it never takes Wings down.
@@ -237,14 +238,26 @@ Every change on the node is appended to `events` with a **monotonic sequence num
 - **Panel grant:** an Ed25519 signature by the Panel's pinned key over the user, node, command ID, action, and server. Bound to one command, so it can't be reused. No Panel key (not linked yet) means every command is refused.
 - **Passkey signature** for dangerous actions, verified by Wings itself.
 - **Exactly once:** each `command_id` runs at most once. A retry of the same command returns the stored result (even after it expired); the same ID with different content is refused. Records are kept 7 days. Commands left running by a Wings crash are marked failed on start.
-- **Actions** (`internal/wings/actions`): `server.create` (signed), `server.update` (signed when it changes the egg, image, or startup command, decided by Wings from its own records), `server.delete` (signed), `server.reinstall`, `server.start`/`stop`/`restart`/`kill`, `server.command`, and `keys.add`/`keys.remove` (signed by an owner key).
+- **Actions** (`internal/wings/actions`): `server.create` (signed), `server.update` (signed when it changes the egg, image, or startup command, decided by Wings from its own records), `server.delete` (signed), `server.reinstall`, `server.start`/`stop`/`restart`/`kill`, `server.command`, `schedule.create`/`update`/`delete`/`run` (unsigned: a schedule can only do what the user could already do unsigned), and `keys.add`/`keys.remove` (signed by an owner key).
 
 ## Scheduler
 
-- Cron expressions with a **per-schedule timezone** (DST handled by the cron library).
-- **Multi-step** tasks: `command`, `wait`, `power`, `backup`.
-- `only_when_online` flag, optional jitter.
-- Missed runs: `skip` (default) or `run_once_on_boot`. Never replays a backlog.
+`internal/wings/schedule`, with cron parsing in `internal/cron` (shared with the Panel, which uses it to validate schedules and show the next run). Schedules live in SQLite and fire from Wings, whether or not the Panel is reachable.
+
+- **When:** a standard five-field cron expression (minute, hour, day of month, month, day of week; names like `mon` and `jan`; the macros `@hourly`, `@daily`, `@weekly`, `@monthly`, `@yearly`) in the **schedule's own IANA time zone** (default UTC). Time zone data is built into Wings. An expression that can never run (`0 0 30 2 *`) is refused.
+- **Daylight saving time,** defined by Raptor rather than left to a library:
+  - A run whose time is skipped when the clocks go forward (02:30 on the night 02:00 becomes 03:00) runs once, when the clocks change.
+  - A time that happens twice when the clocks go back runs once, the first time. A schedule that runs every hour keeps its rhythm through the repeated hour too.
+  - Checked against a brute-force minute-by-minute reference in zones with 30-minute and midnight clock changes, and fuzzed.
+- **Steps** (1–20), run in order: `command` (a console command), `wait` (1 s to 1 h), `power` (`start`, `stop`, `restart`, `kill`). A failed step ends the run unless it has `continue_on_failure`. A `backup` step comes with backups. Runs are attributed to `schedule:<id>` in the audit events.
+- **`only_when_online`:** scheduled runs are skipped while the server isn't running. "Run now" always runs.
+- **Jitter** (up to 1 h): every run is delayed by the same amount, derived from the schedule's ID, so schedules set for the same minute don't all start together, and the next run shown is the real one.
+- **One run at a time:** if the previous run is still going, the new one is skipped (with an event saying so).
+- **Late and missed runs:** a run up to 5 minutes late (a Wings restart) still runs. Later than that it was missed, and the schedule's policy decides: `skip` (default) or `run_once` (run once now). Missed runs are never replayed one by one; the next run is the next one on the clock.
+- **Runs are jobs** (`schedule.run`). The steps are copied into the job when it fires, so editing a schedule doesn't change a run in progress. Firing a run and moving the schedule to its next time happen in one transaction, so a crash can't fire it twice.
+- **Wings restarts during a run:** the run continues after its last finished step (a wait continues until its original end). If Wings was down for more than 5 minutes, the rest of the run is skipped instead: restarting a server long after its players were warned would be worse than not restarting it. Wings knows how long it was down from a heartbeat the scheduler writes about once a minute.
+- **Events:** `schedule.created`/`updated`/`deleted`, `schedule.run.queued`, `schedule.run.skipped` (with the reason: `missed`, `offline`, `still_running`), and `schedule.run.finished` (each step's result); they carry the next run time for the Panel's mirror. Deleting a server deletes its schedules; deleting a schedule cancels its run in progress.
+- Limits: 50 schedules per server.
 
 ## Backups
 
