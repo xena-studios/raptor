@@ -66,6 +66,7 @@ A server's directory is written by code Raptor doesn't trust: the egg's install 
 - **The Panel proves itself** with its signing key, which Wings pins at enrollment. TLS terminates at Cloudflare, so the TLS certificate alone doesn't prove the Panel's identity to Wings.
 - Node removal revokes the node's key and drops its connection immediately.
 - SFTP host keys are generated on the node; the fingerprint is reported to the Panel over the authenticated connection and shown to users.
+- **SFTP** is off by default. When on, it serves only the `sftp` subsystem (no shell, commands, or forwarding), refuses FIFOs and device nodes, never sets setuid bits or ownership, limits failed logins per address, and ends sessions when an install or a backup restore starts. Cached keys stop working once the Panel rejects them or hasn't confirmed them in 30 days. See [WINGS.md](WINGS.md#files-and-sftp).
 - **The Panel's signing key** is kept separate from the Panel's application secrets, ideally in an HSM or KMS later, at minimum a separate encrypted secret with restricted access.
 - The Panel origin only accepts connections from Cloudflare, and trusts `CF-Connecting-IP` only on those.
 - **Cloudflare can read Panel traffic** (it terminates TLS): console, commands, and web file transfers. Disclosed in the privacy policy; SFTP is direct to the node.

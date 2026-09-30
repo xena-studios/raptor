@@ -71,6 +71,7 @@ panel:
 identity:                        # written at enrollment (Phase 3), root-only 0600
   key: /etc/raptor/node.key      # the node's private key; generated on the box, never leaves it
   panel_key: /etc/raptor/panel.pub  # the Panel's signing key, pinned at enrollment
+  sftp_host_key: /etc/raptor/sftp_host_key  # Ed25519, generated on first start, never leaves the box
 paths:
   state: /var/lib/raptor/state.db
   volumes: /var/lib/raptor/volumes
@@ -112,7 +113,7 @@ log:
 - Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept), plus the latest snapshot is included in offsite backups.
 - **Private files:** SQLite creates database files as 0644 regardless of the umask, and gives its `-wal`/`-shm` files the same mode. Wings creates `state.db` as 0600 before SQLite opens it, so all three stay root-only.
 
-Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `schedules` (Phase 2, steps stored in it as JSON); `backups`, `backup_destinations`, and `backup_policies` (Phase 2); `kv` (node config, and the backup repository password). Still to come with their features: `grant_cache`, `sftp_key_cache`, `metrics_rollup`.
+Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `schedules` (Phase 2, steps stored in it as JSON); `backups`, `backup_destinations`, and `backup_policies` (Phase 2); `sftp_key_cache` (Phase 2); `kv` (node config, the backup repository password, and whether SFTP is on and its port). Still to come with their features: `grant_cache`, `metrics_rollup`.
 
 ## Container runtime
 
@@ -305,9 +306,14 @@ Sent **directly from Wings** so they work during Panel outages: Discord webhooks
 
 **Wings runs no HTTP server.** It only listens on the game servers' ports and, when enabled, SFTP.
 - **Web file manager:** operations arrive over the node connection. Uploads and downloads are chunked (under 100 MB per chunk, resumable, 1 GB per file) and carried on a separate short-lived outbound connection per transfer, so they never slow the console. See [ARCHITECTURE.md](ARCHITECTURE.md#files-and-sftp).
-- **SFTP** (off by default, enabled per node in the Panel): built-in server (`golang.org/x/crypto/ssh`), usernames `user.serverid`, chrooted to the server's directory, reachable at `n-<short-id>.raptornodes.net`. For files over the web cap and bulk transfers.
-- SFTP auth via the Panel. Cached SSH public keys + permissions allow key auth while the Panel is unreachable.
-- SFTP host key generated on the node; its fingerprint is reported to the Panel and shown to users. **Nodes need no TLS certificates.**
+- **SFTP** (off by default, turned on per node by the Panel with `node.sftp`): built-in server (`golang.org/x/crypto/ssh`, with `pkg/sftp` for the protocol), reachable at `n-<short-id>.raptornodes.net`. For files over the web cap and bulk transfers. Only the `sftp` subsystem: no shell, commands, or forwarding.
+  - **Username** `user.serverid`: the server's full ID or its short ID (the last 8 characters, as `raptor ps` shows; Pterodactyl uses the first 8, but Raptor's UUIDv7 IDs start with a timestamp that servers created within about a minute of each other share), split at the last dot.
+  - **Port:** the one used last, else `ports.sftp` (2022), else the first free port in 2022–2099, never one allocated to a server. Whether SFTP is on and its port are stored in SQLite, so it comes back after restarts. Every change (and every start) records a `node.sftp` event with the port and host key fingerprint.
+  - **Auth via the Panel** (`sftp.Authenticator`; stubbed as "Panel unreachable" until the node connection exists in Phase 3). Logging in needs the `sftp` permission; reading needs `files.read`, and anything that changes files `files.write`. Keys the Panel accepts are cached with their permissions (`sftp_key_cache`) and log in while the Panel is unreachable; a Panel rejection removes the cached key, and a key it hasn't confirmed in 30 days stops working. Passwords are never cached. Every login is recorded as a `server.sftp.login` event.
+  - **Limits:** 30 failed logins per address in 5 minutes, then that address is refused until the window ends; 32 connections per address, 512 in total, 8 sessions per connection; 30 s to finish the handshake.
+  - **Files:** every operation goes through `os.Root` on the server's directory. FIFOs, device nodes, and sockets are refused (a hostile install can plant them, and Wings runs as root); new files and directories belong to the servers' user with modes 0644/0755; `chmod` sets permission bits only; ownership changes are ignored; symlinks can be created (their target stored as given); plain rename never replaces a file (posix-rename does).
+  - Sessions end when an install or a backup restore starts or the server is deleted, and file access is refused while it installs or restores. With soft disk limits, anything that adds data (uploads, new directories and links) is refused while the server is over its limit, but reading, moving, truncating, and deleting still work so space can be freed; with quotas, the kernel enforces the limit.
+- SFTP host key: Ed25519, generated on the node at first start (whether or not SFTP is on); its fingerprint is reported to the Panel and shown to users. **Nodes need no TLS certificates.**
 - **All file operations use `os.Root`** (symlink-safe, confined to the server directory).
 
 ## CLI scope

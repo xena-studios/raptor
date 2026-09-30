@@ -8,12 +8,18 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/fs"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
+
+	wsftp "github.com/xena-studios/raptor/internal/wings/sftp"
 )
 
 // Symlink and path-traversal suite (docs/SECURITY-MODEL.md#server-files).
@@ -106,6 +112,9 @@ func TestPathSafety(t *testing.T) {
 		t.Errorf("disk usage %d MiB: it followed a symlink out of the directory", u.Bytes>>20)
 	}
 
+	sftpAttack(t, m, id)
+	check("sftp")
+
 	if err := m.Kill(context.Background(), id); err != nil {
 		t.Fatal(err)
 	}
@@ -131,6 +140,81 @@ func TestPathSafety(t *testing.T) {
 	}
 	// The victim server is intact and still starts.
 	ready(t, m, victim)
+}
+
+// sftpAttack goes after every planted file over SFTP, as a user with full
+// file permissions. Reads and writes through links out of the directory,
+// and opening the FIFO, must fail without hanging; the internal link works.
+func sftpAttack(t *testing.T, m *Manager, id string) {
+	t.Helper()
+	hk, err := wsftp.LoadHostKey(filepath.Join(t.TempDir(), "host_key"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := wsftp.New(wsftp.Options{HostKey: hk, Auth: allowAll{}, Servers: m, UID: m.o.UID, GID: m.o.GID})
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() { _ = srv.Serve(ln) }()
+	defer func() { _ = srv.Close() }()
+	c, err := ssh.Dial("tcp", ln.Addr().String(), &ssh.ClientConfig{
+		User: "owner." + id[len(id)-8:], Auth: []ssh.AuthMethod{ssh.Password("x")},
+		HostKeyCallback: ssh.FixedHostKey(hk.PublicKey()), Timeout: 10 * time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = c.Close() }()
+	cl, err := sftp.NewClient(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = cl.Close() }()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for _, name := range []string{
+			"passwd.properties", "relative.properties", "sentinel.properties", "sibling.properties",
+			"etc-link/hosts", "secrets-dir/secret.properties", "loop.properties", "fifo.properties",
+			"../../../etc/hosts", "/etc/hostname",
+		} {
+			if f, err := cl.Open(name); err == nil {
+				_ = f.Close()
+				t.Errorf("sftp read %s", name)
+			}
+			if f, err := cl.OpenFile(name, os.O_WRONLY|os.O_TRUNC); err == nil {
+				_ = f.Close()
+				t.Errorf("sftp opened %s for writing", name)
+			}
+			_ = cl.Chmod(name, 0o777)
+			_ = cl.Truncate(name, 0)
+		}
+		_ = cl.Rename("real/inner.properties", "secrets-dir/moved")
+		_ = cl.Mkdir("secrets-dir/new")
+		f, err := cl.OpenFile("inner.properties", os.O_WRONLY|os.O_APPEND)
+		if err != nil {
+			t.Errorf("sftp write through an internal symlink: %v", err)
+			return
+		}
+		_ = f.Close()
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Minute):
+		t.Fatal("sftp hung on the planted files")
+	}
+}
+
+type allowAll struct{}
+
+func (allowAll) Password(context.Context, wsftp.Login, string) (wsftp.Grant, error) {
+	return wsftp.Grant{Permissions: []string{wsftp.PermSFTP, wsftp.PermRead, wsftp.PermWrite}}, nil
+}
+
+func (allowAll) PublicKey(context.Context, wsftp.Login, ssh.PublicKey) (wsftp.Grant, error) {
+	return wsftp.Grant{}, wsftp.ErrDenied
 }
 
 // hostileEgg plants symlinks, a loop, a FIFO, and hard links, and points
