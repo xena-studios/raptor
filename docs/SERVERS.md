@@ -49,6 +49,7 @@ Stored in Wings' SQLite (the source of truth) and mirrored to the Panel.
 | State | Meaning |
 |---|---|
 | `installing` | An install or reinstall job is running. Power actions are rejected. |
+| `restoring` | A backup is being restored. The server is stopped, power actions are refused, and it starts again afterwards if it was meant to be running ([WINGS.md](WINGS.md#backups)). |
 | `install_failed` | The last install failed. Files are kept. The server can't start until an install succeeds, unless "skip install script" is set. |
 | `offline` | Container not running, by request. |
 | `starting` | Container started, egg "done" string not seen yet. Eggs without a done string go straight to `running`. If `starting` lasts longer than 10 minutes, the Panel shows a warning; Wings doesn't kill it. |
@@ -134,7 +135,7 @@ Power actions take the server's lock, so they never overlap with installs, backu
 
 ## Deleting a server
 
-Implemented now: stop (kill after the stop timeout), remove the server and install containers, delete the files, free the allocations, clear the quota limit, drop the row. The final backup and orphaned offsite backups arrive with backups (Phase 2).
+Implemented now: stop (kill after the stop timeout), remove the server and install containers, delete the files, free the allocations, clear the quota limit, drop the row. Local backups are deleted and offsite ones kept (step 5). The final backup is still to come.
 
 1. The Panel requires the owner to type the server name and **sign the deletion with their passkey** (Wings rejects unsigned deletions). A **final backup** option is shown, on by default when a backup destination exists.
 2. Wings stops the server (kills it after the stop timeout), takes the final backup if requested, and removes the container.

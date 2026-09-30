@@ -3,10 +3,12 @@ package schedule
 import (
 	"context"
 	"errors"
+	"io"
 	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -86,8 +88,35 @@ func (c *clock) set(t time.Time) {
 	c.mu.Unlock()
 }
 
+// backups is a fake backup manager: its backups are jobs that finish when
+// released.
+type backups struct {
+	jobs    func() *jobs.Engine
+	calls   atomic.Int32
+	fail    atomic.Bool
+	release chan struct{}
+}
+
+func (b *backups) Backup(ctx context.Context, serverID, _ string) (string, error) {
+	b.calls.Add(1)
+	return b.jobs().Enqueue(ctx, jobs.Spec{Type: "test.backup", ServerID: serverID})
+}
+
+func (b *backups) run(ctx context.Context, _ jobs.Job, _ io.Writer) (any, error) {
+	select {
+	case <-b.release:
+	case <-ctx.Done():
+		return nil, context.Cause(ctx)
+	}
+	if b.fail.Load() {
+		return nil, errors.New("disk full")
+	}
+	return nil, nil
+}
+
 type env struct {
 	t       *testing.T
+	backups *backups
 	db      *store.DB
 	dir     string
 	clock   *clock
@@ -114,6 +143,7 @@ func newEnv(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	v := &env{t: t, db: db, dir: dir, clock: &clock{t: t0}, servers: &servers{state: server.Running, sent: make(chan string, 16)}, events: events.New(db)}
+	v.backups = &backups{jobs: func() *jobs.Engine { return v.jobs }, release: make(chan struct{})}
 	v.start()
 	return v
 }
@@ -121,7 +151,8 @@ func newEnv(t *testing.T) *env {
 // start starts a job engine and scheduler, as Wings does on startup.
 func (v *env) start() {
 	v.jobs = jobs.New(jobs.Options{Store: v.db, LogDir: filepath.Join(v.dir, "jobs"), Poll: 20 * time.Millisecond})
-	v.s = New(Options{Store: v.db, Jobs: v.jobs, Events: v.events, Servers: v.servers, Now: v.clock.now})
+	v.jobs.Register("test.backup", jobs.Handler{Resumable: true, MaxAttempts: 3, Run: v.backups.run})
+	v.s = New(Options{Store: v.db, Jobs: v.jobs, Events: v.events, Servers: v.servers, Backups: v.backups, Now: v.clock.now})
 	if err := v.jobs.Start(context.Background()); err != nil {
 		v.t.Fatal(err)
 	}
@@ -213,7 +244,7 @@ func TestValidation(t *testing.T) {
 		"local timezone": func(d *Definition) { d.Timezone = "Local" },
 		"no steps":       func(d *Definition) { d.Steps = nil },
 		"too many steps": func(d *Definition) { d.Steps = slices.Repeat([]Step{cmd("x")}, MaxSteps+1) },
-		"unknown step":   func(d *Definition) { d.Steps = []Step{{Type: "backup"}} },
+		"unknown step":   func(d *Definition) { d.Steps = []Step{{Type: "reboot"}} },
 		"empty command":  func(d *Definition) { d.Steps = []Step{cmd(" ")} },
 		"two lines":      func(d *Definition) { d.Steps = []Step{cmd("say a\nop me")} },
 		"zero wait":      func(d *Definition) { d.Steps = []Step{wait(0)} },
@@ -511,5 +542,54 @@ func TestNoResumeAfterLongStop(t *testing.T) {
 	j := v.waitRun(v.runs()[0].ID)
 	if j.Status != jobs.Failed || !strings.Contains(j.Error, "stopped for 2h") || len(v.servers.got()) != 1 {
 		t.Fatalf("run after a long stop: %+v, calls %q", j, v.servers.got())
+	}
+}
+
+// A backup step waits for the backup, and fails with it.
+func TestBackupStep(t *testing.T) {
+	v := newEnv(t)
+	v.create(every5(Step{Type: StepBackup}, cmd("say backed up")))
+	v.tickAt(t0.Add(3 * time.Minute))
+	time.Sleep(200 * time.Millisecond)
+	if got := v.servers.got(); len(got) != 0 {
+		t.Fatalf("the run went on before the backup finished: %q", got)
+	}
+	close(v.backups.release)
+	if j := v.waitRun(v.runs()[0].ID); j.Status != jobs.Succeeded || !slices.Equal(v.servers.got(), []string{"command say backed up"}) {
+		t.Fatalf("run: %+v, calls %q", j, v.servers.got())
+	}
+
+	v.backups.fail.Store(true)
+	v.tickAt(t0.Add(8 * time.Minute))
+	var run jobs.Job
+	for _, j := range v.runs() {
+		if j.Type == JobRun && j.Status != jobs.Succeeded {
+			run = v.waitRun(j.ID)
+		}
+	}
+	if run.Status != jobs.Failed || !strings.Contains(run.Error, "disk full") || len(v.servers.got()) != 1 {
+		t.Fatalf("failed backup: %+v, calls %q", run, v.servers.got())
+	}
+}
+
+// A run resumed during its backup step waits for the same backup.
+func TestBackupStepResume(t *testing.T) {
+	v := newEnv(t)
+	v.create(every5(Step{Type: StepBackup}))
+	v.tickAt(t0.Add(3 * time.Minute))
+	time.Sleep(200 * time.Millisecond) // the backup is running
+	v.jobs.Close()
+
+	v.clock.set(v.clock.now().Add(30 * time.Second))
+	v.start()
+	close(v.backups.release)
+	var run jobs.Job
+	for _, j := range v.runs() {
+		if j.Type == JobRun {
+			run = v.waitRun(j.ID)
+		}
+	}
+	if run.Status != jobs.Succeeded || v.backups.calls.Load() != 1 {
+		t.Fatalf("resumed run: %+v, %d backups", run, v.backups.calls.Load())
 	}
 }

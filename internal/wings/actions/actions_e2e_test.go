@@ -89,7 +89,7 @@ func TestCommands(t *testing.T) {
 	m, db := newManager(t)
 	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
 	x := &command.Executor{DB: db, NodeID: nodeID, RP: rp, PanelKey: pub}
-	Register(x, m)
+	Register(x, m, Defaults{})
 	p := &panel{t: t, x: x, key: priv}
 
 	owner, err := commandtest.New("ES256", rp.Origin, rp.ID, nil)
@@ -263,8 +263,8 @@ func newManager(t *testing.T) (*server.Manager, *store.DB) {
 }
 
 // newManagerWith calls before (to register more job handlers) before the
-// job engine starts.
-func newManagerWith(t *testing.T, before func(*server.Manager, *store.DB, *jobs.Engine)) (*server.Manager, *store.DB) {
+// job engine starts; opts change the manager's options.
+func newManagerWith(t *testing.T, before func(*server.Manager, *store.DB, *jobs.Engine), opts ...func(*server.Options)) (*server.Manager, *store.DB) {
 	t.Helper()
 	ctx := context.Background()
 	rt, err := docker.New(docker.Config{Network: "raptor_nw", InstallNetwork: "raptor_install"})
@@ -297,11 +297,15 @@ func newManagerWith(t *testing.T, before func(*server.Manager, *store.DB, *jobs.
 		t.Fatal(err)
 	}
 	eng := jobs.New(jobs.Options{Store: db, LogDir: filepath.Join(dir, "logs", "jobs"), Poll: 200 * time.Millisecond})
-	m := server.New(server.Options{
+	o := server.Options{
 		Runtime: rt, Store: db, Storage: &storage.Volume{Path: filepath.Join(dir, "volumes"), Soft: true}, VolumesDir: filepath.Join(dir, "volumes"), TmpDir: filepath.Join(dir, "tmp"), LogDir: filepath.Join(dir, "logs"),
 		UID: 988, GID: 988, Timezone: "UTC", DockerInterface: nets.Server.Gateway.String(), ReservedPorts: []int{2022},
 		Jobs: eng, Events: events.New(db),
-	})
+	}
+	for _, f := range opts {
+		f(&o)
+	}
+	m := server.New(o)
 	if err := m.Reconcile(ctx); err != nil {
 		t.Fatal(err)
 	}

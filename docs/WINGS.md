@@ -73,6 +73,7 @@ identity:                        # written at enrollment (Phase 3), root-only 06
 paths:
   state: /var/lib/raptor/state.db
   volumes: /var/lib/raptor/volumes
+  backups: /var/lib/raptor/backups   # the local backup destination
   tmp: /var/lib/raptor/tmp
   logs: /var/log/raptor
   socket: /run/raptor/wings.sock
@@ -89,6 +90,7 @@ limits:
   concurrent_backups: 2
   host_disk_min_free: 10GiB      # below this: refuse installs and image pulls
   reserved_memory: 0             # kept free of servers; 0 = 10% of RAM, 1–4 GiB
+  backup_memory: 1GiB            # memory cap of each backup worker process
 storage:
   quotas: true                   # false = soft disk limits by scanning (tier 3)
 updates:
@@ -109,7 +111,7 @@ log:
 - Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept), plus the latest snapshot is included in offsite backups.
 - **Private files:** SQLite creates database files as 0644 regardless of the umask, and gives its `-wal`/`-shm` files the same mode. Wings creates `state.db` as 0600 before SQLite opens it, so all three stay root-only.
 
-Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `schedules` (Phase 2, steps stored in it as JSON); `kv` (node config). Still to come with their features: `backups`, `backup_destinations`, `grant_cache`, `sftp_key_cache`, `metrics_rollup`.
+Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `schedules` (Phase 2, steps stored in it as JSON); `backups`, `backup_destinations`, and `backup_policies` (Phase 2); `kv` (node config, and the backup repository password). Still to come with their features: `grant_cache`, `sftp_key_cache`, `metrics_rollup`.
 
 ## Container runtime
 
@@ -211,10 +213,10 @@ How it works:
 
 ## Job engine
 
-A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a job. Implemented: `server.install` (installs and reinstalls) and `schedule.run`. Coming with their features: `backup.create`, `backup.restore`, `backup.prune`, `transfer.send`, `transfer.receive`.
+A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a job. Implemented: `server.install` (installs and reinstalls), `schedule.run`, `backup.create`, `backup.restore`, `backup.delete`, and `backup.maintain`. Coming with their features: `transfer.send`, `transfer.receive`.
 
 - **Survives Wings restarts and reboots.** A job that was running when Wings stopped is **resumed** if its handler says re-running it is safe (installs are: the script runs over the existing files again), and otherwise marked failed with "interrupted". Interruptions count as attempts, so a job that crashes Wings can't loop forever.
-- **Checkpoints:** a job can save its progress while it runs; a resumed job gets it back and continues from there instead of starting over (schedule runs continue after their last finished step).
+- **Checkpoints:** a job can save its progress while it runs; a resumed job gets it back and continues from there instead of starting over (schedule runs continue after their last finished step; a resumed backup sends the egg's post-backup commands first; a resumed restore doesn't take a second safety backup).
 - **Created atomically with what it's for:** a server, its "created" event, and its install job are written in one SQLite transaction.
 - **Retries:** a handler can mark an error as retryable; the job is requeued with exponential backoff (30 s doubling, at most 30 min) until its attempts run out.
 - **Per-server lock:** at most one locked job per server runs at a time.
@@ -238,7 +240,7 @@ Every change on the node is appended to `events` with a **monotonic sequence num
 - **Panel grant:** an Ed25519 signature by the Panel's pinned key over the user, node, command ID, action, and server. Bound to one command, so it can't be reused. No Panel key (not linked yet) means every command is refused.
 - **Passkey signature** for dangerous actions, verified by Wings itself.
 - **Exactly once:** each `command_id` runs at most once. A retry of the same command returns the stored result (even after it expired); the same ID with different content is refused. Records are kept 7 days. Commands left running by a Wings crash are marked failed on start.
-- **Actions** (`internal/wings/actions`): `server.create` (signed), `server.update` (signed when it changes the egg, image, or startup command, decided by Wings from its own records), `server.delete` (signed), `server.reinstall`, `server.start`/`stop`/`restart`/`kill`, `server.command`, `schedule.create`/`update`/`delete`/`run` (unsigned: a schedule can only do what the user could already do unsigned), and `keys.add`/`keys.remove` (signed by an owner key).
+- **Actions** (`internal/wings/actions`): `server.create` (signed), `server.update` (signed when it changes the egg, image, or startup command, decided by Wings from its own records), `server.delete` (signed), `server.reinstall`, `server.start`/`stop`/`restart`/`kill`, `server.command`, `schedule.create`/`update`/`delete`/`run` (unsigned: a schedule can only do what the user could already do unsigned), `backup.create`, `backup.restore` (signed), `backup.delete` (signed), `backup.lock` (signed to unlock), `backup.policy.update` (signed when it lowers any keep value), `backup.destination.save`/`delete`, and `keys.add`/`keys.remove` (signed by an owner key).
 
 ## Scheduler
 
@@ -249,7 +251,7 @@ Every change on the node is appended to `events` with a **monotonic sequence num
   - A run whose time is skipped when the clocks go forward (02:30 on the night 02:00 becomes 03:00) runs once, when the clocks change.
   - A time that happens twice when the clocks go back runs once, the first time. A schedule that runs every hour keeps its rhythm through the repeated hour too.
   - Checked against a brute-force minute-by-minute reference in zones with 30-minute and midnight clock changes, and fuzzed.
-- **Steps** (1–20), run in order: `command` (a console command), `wait` (1 s to 1 h), `power` (`start`, `stop`, `restart`, `kill`). A failed step ends the run unless it has `continue_on_failure`. A `backup` step comes with backups. Runs are attributed to `schedule:<id>` in the audit events.
+- **Steps** (1–20), run in order: `command` (a console command), `wait` (1 s to 1 h), `power` (`start`, `stop`, `restart`, `kill`), `backup` (back up the server and wait for it; a resumed run waits for the same backup). A failed step ends the run unless it has `continue_on_failure`. Runs are attributed to `schedule:<id>` in the audit events.
 - **`only_when_online`:** scheduled runs are skipped while the server isn't running. "Run now" always runs.
 - **Jitter** (up to 1 h): every run is delayed by the same amount, derived from the schedule's ID, so schedules set for the same minute don't all start together, and the next run shown is the real one.
 - **One run at a time:** if the previous run is still going, the new one is skipped (with an event saying so).
@@ -261,14 +263,26 @@ Every change on the node is appended to `events` with a **monotonic sequence num
 
 ## Backups
 
-- Engine: **Kopia** (Go library, incremental, deduplicated, compressed, encrypted).
-- **Game-aware hooks** from the egg's `x-raptor` extension (e.g. Minecraft `save-off` / `save-all` before, `save-on` after).
-- **On by default** for new servers: daily, local destination, keep 7.
-- Destinations: local, S3-compatible (S3, B2, R2, Wasabi…), Raptor hosted storage.
-- **Encryption key:** per-node key, stored encrypted in the Panel **by default** (so backups survive a dead box). Optional owner-held key mode with an explicit "lose the key, lose the backups" warning.
-- Retention policies (daily/weekly/monthly), pruning as a separate job.
-- **Restore takes a safety backup first.**
-- Runs with low I/O and CPU weight.
+`internal/wings/backup`, with the Kopia work in `internal/wings/backup/engine`.
+
+- **Engine: Kopia**, used as a Go library: incremental, deduplicated, compressed (zstd), encrypted.
+- **One repository per destination**, shared by every server on the node, so a file several servers have (a server jar, a plugin) is stored once. Each server's backups are a separate snapshot source, so each backup is incremental against that server's last one.
+- **Destinations:** `local` (always there: `paths.backups`, on the host disk) and S3-compatible buckets (S3, B2, R2, Wasabi, MinIO…), added by the owner. S3 credentials are stored in SQLite and never appear in events or listings. Deleting a destination forgets its backups; the data in the bucket is left alone. Raptor hosted storage comes with the Panel (Phase 5).
+- **Encryption key:** one random repository password per node, generated on first use and kept in SQLite. When the node is linked (Phase 3), a copy is stored encrypted in the Panel **by default** (so backups survive a dead box). Optional owner-held key mode, with an explicit "lose the key, lose the backups" warning.
+- **On by default:** a new server gets a "Daily backup" schedule (04:00 to 05:00 in the node's time zone, spread by jitter, made up once if the node was off, skipped while the server is offline) with a `backup` step, unless the create command asks for none. It's an ordinary schedule: the owner can move, disable, or delete it.
+- **Per-server settings:** the destination, retention, and ignore patterns (gitignore style; a `.pteroignore` file in the server directory also works, for servers moved from Pterodactyl). Defaults: local, keep the last 3, 7 daily, 4 weekly.
+- **Retention** runs after every backup of the server. Each rule keeps the newest backup in each of its last N periods that have a backup (days, ISO weeks, and months in the node's time zone), so a server that was offline for a month doesn't lose its backups to the calendar. Anything a rule keeps is kept. **Locked** backups are never deleted by retention; at least one keep value must be above zero.
+- **Game-aware hooks** from the egg's `x-raptor.backup` extension ([EGGS.md](EGGS.md#raptor-extensions)), only while the server is running: the `pre` commands (e.g. Minecraft `save-off`, `save-all flush`), then wait up to a minute for the `wait_for` console line, the snapshot, then the `post` commands (`save-on`), **even if the backup failed**. If the game doesn't confirm in time, the backup is still taken and marked with a warning: a possibly inconsistent backup beats none. `wait_for` text shouldn't appear in a pre command itself, in case the game echoes commands.
+- **Files that change while being read** (a log being rotated) are skipped rather than failing the backup; the backup notes how many.
+- **Restore** is a signed command. It stops the server (it stays stopped if anything fails), takes a **safety backup** of the current files (skipped for an empty directory; kept 7 days, never counted by retention), replaces the directory's contents with the backup, and starts the server again if it was meant to be running. The server is `restoring` meanwhile, and power actions are refused. A backup larger than the server's disk limit is refused before anything changes.
+- **File safety:** backups read and restores write only through `os.Root`, confined to the server's directory. Symlinks are backed up as links, never followed. Restored files belong to the server's user and lose setuid, setgid, and sticky bits; nothing is written through an existing entry (the directory is emptied first, and files are created exclusively).
+- **The worker process:** Kopia doesn't run inside Wings. Each operation runs in `raptor wings backup-worker`, started by Wings in a transient systemd scope in `raptor-backup.slice` (under `raptor.slice`, beside the game servers) with CPU and I/O weight 10 (games have 100) and `MemoryMax=limits.backup_memory`, and it sets its own OOM score to the maximum. Wings is protected from the OOM killer (`-900`); Kopia's memory inside Wings would make the kernel kill a game server instead. It also dies with Wings, so a resumed job never runs beside an orphan. At most `limits.concurrent_backups` run at once, with two parallel file reads each. As with installs, I/O weight only applies with BFQ or `io.cost`.
+- **Disk space:** a backup to the local destination is refused when its filesystem has less than `limits.host_disk_min_free` free.
+- **Maintenance:** Wings is each repository's only client and its maintenance owner. Every hour a `backup.maintain` job per destination runs Kopia maintenance when it's due (quick hourly, full daily). Space from deleted backups is freed by full maintenance after Kopia's safety delay, so about a day or two later. The same hourly pass deletes expired safety backups and failed backups older than 7 days.
+- **Deleting a server** deletes its local backups; offsite ones are kept (see [SERVERS.md](SERVERS.md#deletion)).
+- **Jobs:** `backup.create` and `backup.restore` take the server's job lock (so they never overlap each other or an install) and resume after a Wings restart; `backup.delete` and `backup.maintain` are per destination.
+- **Events:** `backup.queued`, `backup.finished` (with size, files, new data uploaded, and any warning or error), `backup.deleted` (with the reason: `deleted`, `retention`, `expired`, `server_deleted`), `backup.locked`, `backup.restore.queued`, `backup.restore.finished` (with the safety backup's ID), `backup.policy.updated`, `backup.destination.updated`.
+- Tested by unit tests (the engine against a local repository; retention against properties over random histories) and `TestBackupCommands` in `task e2e:runtime`: the command path against a real server, the worker's scope and OOM score, and an S3 destination (MinIO).
 
 ## Crash detection and restart
 
@@ -319,7 +333,7 @@ raptor uninstall [--wipe-data]
 raptor tui
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), and `wings run|shutdown-servers` (used by the systemd units).
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).

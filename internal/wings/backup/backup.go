@@ -1,0 +1,853 @@
+// Package backup runs server backups (docs/WINGS.md#backups): Kopia
+// repositories on local disk or S3-compatible storage, one per destination,
+// shared by every server on the node; backups and restores as jobs, with the
+// egg's hooks around them; retention after every backup; and repository
+// maintenance in the background.
+package backup
+
+import (
+	"context"
+	"crypto/rand"
+	"database/sql"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
+	"strings"
+	"sync"
+	"time"
+	"unicode/utf8"
+
+	"github.com/google/uuid"
+
+	"github.com/xena-studios/raptor/internal/wings/backup/engine"
+	"github.com/xena-studios/raptor/internal/wings/events"
+	"github.com/xena-studios/raptor/internal/wings/jobs"
+	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/store"
+)
+
+// Backup kinds.
+const (
+	KindManual    = "manual"
+	KindScheduled = "scheduled"
+	KindSafety    = "safety" // taken before a restore; expires after SafetyTTL
+)
+
+// Backup statuses.
+const (
+	StatusPending = "pending"
+	StatusRunning = "running"
+	StatusOK      = "ok"
+	StatusFailed  = "failed"
+)
+
+// Job types.
+const (
+	JobCreate   = "backup.create"
+	JobRestore  = "backup.restore"
+	JobDelete   = "backup.delete"
+	JobMaintain = "backup.maintain"
+)
+
+// Event types.
+const (
+	EventQueued        = "backup.queued"
+	EventFinished      = "backup.finished" // ok or failed
+	EventDeleted       = "backup.deleted"
+	EventLocked        = "backup.locked"
+	EventRestoreQueued = "backup.restore.queued"
+	EventRestored      = "backup.restore.finished"
+	EventPolicy        = "backup.policy.updated"
+	EventDestination   = "backup.destination.updated" // created, updated, or deleted
+)
+
+// LocalDestination is the ID of the built-in local destination.
+const LocalDestination = "local"
+
+// Timings.
+const (
+	SafetyTTL        = 7 * 24 * time.Hour
+	failedTTL        = 7 * 24 * time.Hour
+	maintainInterval = time.Hour
+	maxIgnore        = 100
+	maxNameLen       = 100
+)
+
+// passwordKey holds the repository password in kv. One password per node,
+// for every destination.
+const passwordKey = "backup.password"
+
+// Errors.
+var (
+	ErrNotFound    = errors.New("backup not found")
+	ErrInvalid     = errors.New("invalid backup settings")
+	ErrNotReady    = errors.New("the backup isn't finished")
+	ErrInUse       = errors.New("destination is used by servers' backup settings")
+	ErrLowDisk     = errors.New("not enough free disk space for backups")
+	ErrDestination = errors.New("destination not found")
+)
+
+// Servers is what backups need from the server manager.
+type Servers interface {
+	Status(id string) (server.Status, error)
+	SendCommand(id, user, cmd string) error
+	BackupSource(ctx context.Context, id string) (server.BackupSource, error)
+	Restore(ctx context.Context, id string, start bool, fn func(ctx context.Context, dir string) error) error
+}
+
+// Options configure a Manager.
+type Options struct {
+	Store   *store.DB
+	Jobs    *jobs.Engine
+	Events  *events.Outbox
+	Servers Servers
+	Log     *slog.Logger
+	Runner  Runner
+	// LocalPath is the local destination's directory.
+	LocalPath string
+	// StateDir holds repository connections and caches.
+	StateDir string
+	// Location is the time zone retention counts days, weeks, and months
+	// in (default UTC).
+	Location *time.Location
+	// FreeSpace returns the free bytes on the filesystem holding a path; with
+	// MinFree, backups to the local destination are refused below it. nil =
+	// no check.
+	FreeSpace func(path string) (int64, error)
+	MinFree   int64
+	// HookTimeout is how long to wait for the egg's wait_for line (default
+	// 1 minute).
+	HookTimeout time.Duration
+	Now         func() time.Time
+}
+
+// Manager runs backups.
+type Manager struct {
+	o   Options
+	log *slog.Logger
+
+	pwMu sync.Mutex
+	pw   string
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+}
+
+// New creates a Manager and registers its job handlers. Call it before
+// Jobs.Start, and Start after.
+func New(o Options) *Manager {
+	if o.Log == nil {
+		o.Log = slog.New(slog.DiscardHandler)
+	}
+	if o.Location == nil {
+		o.Location = time.UTC
+	}
+	if o.Now == nil {
+		o.Now = time.Now
+	}
+	if o.Runner == nil {
+		o.Runner = InProcess{}
+	}
+	if o.HookTimeout == 0 {
+		o.HookTimeout = time.Minute
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	m := &Manager{o: o, log: o.Log, ctx: ctx, cancel: cancel}
+	// Backups are resumable: a backup interrupted by a Wings stop starts
+	// again (it's incremental, so the work already uploaded isn't redone).
+	o.Jobs.Register(JobCreate, jobs.Handler{Class: "backup", ServerLock: true, Resumable: true, MaxAttempts: 3, Run: m.createJob})
+	// A restore resumes too: it clears the directory and restores again.
+	o.Jobs.Register(JobRestore, jobs.Handler{Class: "backup", ServerLock: true, Resumable: true, MaxAttempts: 3, Run: m.restoreJob})
+	o.Jobs.Register(JobDelete, jobs.Handler{Class: "backup", Resumable: true, MaxAttempts: 5, Run: m.deleteJob})
+	o.Jobs.Register(JobMaintain, jobs.Handler{Class: "backup", Resumable: true, Run: m.maintainJob})
+	return m
+}
+
+// Start cleans up after the last run and starts background maintenance.
+func (m *Manager) Start(ctx context.Context) error {
+	if err := m.cleanupInterrupted(ctx); err != nil {
+		return err
+	}
+	m.wg.Go(m.loop)
+	return nil
+}
+
+// Close stops background maintenance. Running jobs are the job engine's.
+func (m *Manager) Close() {
+	m.cancel()
+	m.wg.Wait()
+}
+
+func (m *Manager) loop() {
+	t := time.NewTicker(maintainInterval)
+	defer t.Stop()
+	for {
+		m.housekeeping(m.ctx)
+		select {
+		case <-m.ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
+}
+
+// housekeeping deletes expired backups and queues maintenance for every
+// destination with backups.
+func (m *Manager) housekeeping(ctx context.Context) {
+	now := m.o.Now()
+	expired, err := m.o.Store.Read.ExpiredBackups(ctx, store.ExpiredBackupsParams{
+		Now: sql.NullInt64{Int64: now.UnixMilli(), Valid: true}, FailedBefore: now.Add(-failedTTL).UnixMilli(),
+	})
+	if err != nil {
+		m.log.Error("listing expired backups failed", "err", err)
+	}
+	byDest := map[string][]string{}
+	for _, b := range expired {
+		byDest[b.DestinationID] = append(byDest[b.DestinationID], b.ID)
+	}
+	for dest, ids := range byDest {
+		if _, err := m.enqueueDelete(ctx, dest, ids, "expired"); err != nil {
+			m.log.Error("queueing expired backup deletion failed", "err", err)
+		}
+	}
+	dests, err := m.o.Store.Read.ListBackupDestinations(ctx)
+	if err != nil {
+		m.log.Error("listing backup destinations failed", "err", err)
+		return
+	}
+	active, err := m.activeJobs(ctx, JobMaintain)
+	if err != nil {
+		m.log.Error("listing backup jobs failed", "err", err)
+		return
+	}
+	for _, d := range dests {
+		if active[d.ID] {
+			continue
+		}
+		if _, err := m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobMaintain, Payload: maintainPayload{DestinationID: d.ID}}); err != nil {
+			m.log.Error("queueing backup maintenance failed", "destination", d.ID, "err", err)
+		}
+	}
+}
+
+// activeJobs returns the destinations with a queued or running job of typ.
+func (m *Manager) activeJobs(ctx context.Context, typ string) (map[string]bool, error) {
+	list, err := m.o.Jobs.List(ctx, "", 500)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]bool{}
+	for _, j := range list {
+		if j.Type != typ || (j.Status != jobs.Queued && j.Status != jobs.Running) {
+			continue
+		}
+		var p maintainPayload
+		if j.Decode(&p) == nil {
+			out[p.DestinationID] = true
+		}
+	}
+	return out, nil
+}
+
+// cleanupInterrupted fails backups whose job is gone (cancelled when their
+// server was deleted, or given up on after repeated Wings crashes).
+func (m *Manager) cleanupInterrupted(ctx context.Context) error {
+	list, err := m.o.Store.Read.ListBackups(ctx, "")
+	if err != nil {
+		return err
+	}
+	for _, b := range list {
+		if b.Status != StatusPending && b.Status != StatusRunning {
+			continue
+		}
+		j, err := m.o.Jobs.Get(ctx, b.JobID)
+		if err == nil && (j.Status == jobs.Queued || j.Status == jobs.Running) {
+			continue
+		}
+		m.fail(ctx, fromRow(b), errors.New("interrupted"))
+	}
+	return nil
+}
+
+// password returns the node's repository password, creating it on first
+// use.
+func (m *Manager) password(ctx context.Context) (string, error) {
+	m.pwMu.Lock()
+	defer m.pwMu.Unlock()
+	if m.pw != "" {
+		return m.pw, nil
+	}
+	var pw string
+	err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if v, err := q.GetKV(ctx, passwordKey); err == nil {
+			pw = string(v)
+			return nil
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		b := make([]byte, 32)
+		if _, err := rand.Read(b); err != nil {
+			return err
+		}
+		pw = base64.RawURLEncoding.EncodeToString(b)
+		return q.SetKV(ctx, store.SetKVParams{Key: passwordKey, Value: []byte(pw)})
+	})
+	if err != nil {
+		return "", err
+	}
+	m.pw = pw
+	return pw, nil
+}
+
+// --- backups ---
+
+// Backup is a stored backup.
+type Backup struct {
+	ID            string    `json:"id"`
+	ServerID      string    `json:"server_id"`
+	DestinationID string    `json:"destination_id"`
+	Kind          string    `json:"kind"`
+	Status        string    `json:"status"`
+	Locked        bool      `json:"locked"`
+	Size          int64     `json:"size"`
+	Files         int64     `json:"files"`
+	Uploaded      int64     `json:"uploaded"`
+	Warning       string    `json:"warning,omitempty"`
+	Error         string    `json:"error,omitempty"`
+	JobID         string    `json:"job_id"`
+	CreatedBy     string    `json:"created_by"`
+	CreatedAt     time.Time `json:"created_at"`
+	FinishedAt    time.Time `json:"finished_at,omitzero"`
+	ExpiresAt     time.Time `json:"expires_at,omitzero"`
+	snapshotID    string
+}
+
+func fromRow(r store.Backup) *Backup {
+	b := &Backup{
+		ID: r.ID, ServerID: r.ServerID, DestinationID: r.DestinationID, Kind: r.Kind, Status: r.Status,
+		Locked: r.Locked == 1, Size: r.Size, Files: r.Files, Uploaded: r.Uploaded, Warning: r.Warning,
+		Error: r.Error, JobID: r.JobID, CreatedBy: r.CreatedBy, CreatedAt: time.UnixMilli(r.CreatedAt),
+		snapshotID: r.SnapshotID,
+	}
+	if r.FinishedAt.Valid {
+		b.FinishedAt = time.UnixMilli(r.FinishedAt.Int64)
+	}
+	if r.ExpiresAt.Valid {
+		b.ExpiresAt = time.UnixMilli(r.ExpiresAt.Int64)
+	}
+	return b
+}
+
+func (b *Backup) eventData() map[string]any {
+	d := map[string]any{
+		"backup_id": b.ID, "destination_id": b.DestinationID, "kind": b.Kind, "status": b.Status,
+		"locked": b.Locked, "created_at": b.CreatedAt.UnixMilli(), "created_by": b.CreatedBy,
+	}
+	if b.Status == StatusOK {
+		d["size"], d["files"], d["uploaded"] = b.Size, b.Files, b.Uploaded
+	}
+	if b.Warning != "" {
+		d["warning"] = b.Warning
+	}
+	if b.Error != "" {
+		d["error"] = b.Error
+	}
+	if !b.FinishedAt.IsZero() {
+		d["finished_at"] = b.FinishedAt.UnixMilli()
+	}
+	if !b.ExpiresAt.IsZero() {
+		d["expires_at"] = b.ExpiresAt.UnixMilli()
+	}
+	return d
+}
+
+// Get returns a server's backup.
+func (m *Manager) Get(ctx context.Context, serverID, id string) (*Backup, error) {
+	r, err := m.o.Store.Read.GetBackup(ctx, id)
+	if err != nil || r.ServerID != serverID {
+		return nil, ErrNotFound
+	}
+	return fromRow(r), nil
+}
+
+// List returns a server's backups, newest first ("" = every server's,
+// including those of deleted servers).
+func (m *Manager) List(ctx context.Context, serverID string) ([]*Backup, error) {
+	rows, err := m.o.Store.Read.ListBackups(ctx, serverID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*Backup, len(rows))
+	for i, r := range rows {
+		out[i] = fromRow(r)
+	}
+	return out, nil
+}
+
+// CreateOptions describe a new backup.
+type CreateOptions struct {
+	Kind   string // KindManual or KindScheduled
+	User   string // who asked, for the audit event
+	Locked bool   // never deleted by retention
+}
+
+// Create queues a backup of a server to its destination and returns it.
+func (m *Manager) Create(ctx context.Context, serverID string, opts CreateOptions) (*Backup, error) {
+	if opts.Kind != KindManual && opts.Kind != KindScheduled {
+		return nil, fmt.Errorf("%w: kind %q", ErrInvalid, opts.Kind)
+	}
+	if _, err := m.o.Servers.Status(serverID); err != nil {
+		return nil, err
+	}
+	pol, err := m.Policy(ctx, serverID)
+	if err != nil {
+		return nil, err
+	}
+	if err := m.checkSpace(pol.DestinationID); err != nil {
+		return nil, err
+	}
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+	b := &Backup{
+		ID: id.String(), ServerID: serverID, DestinationID: pol.DestinationID, Kind: opts.Kind,
+		Status: StatusPending, Locked: opts.Locked, CreatedBy: opts.User, CreatedAt: m.o.Now(),
+	}
+	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		b.JobID, err = m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobCreate, ServerID: serverID, Payload: createPayload{BackupID: b.ID}})
+		if err != nil {
+			return err
+		}
+		return m.insert(ctx, q, b)
+	})
+	if err != nil {
+		return nil, err
+	}
+	m.o.Events.Wake()
+	m.o.Jobs.Wake()
+	return b, nil
+}
+
+func (m *Manager) insert(ctx context.Context, q *store.Queries, b *Backup) error {
+	var expires sql.NullInt64
+	if !b.ExpiresAt.IsZero() {
+		expires = sql.NullInt64{Int64: b.ExpiresAt.UnixMilli(), Valid: true}
+	}
+	if err := q.InsertBackup(ctx, store.InsertBackupParams{
+		ID: b.ID, ServerID: b.ServerID, DestinationID: b.DestinationID, Kind: b.Kind, Locked: boolInt(b.Locked),
+		JobID: b.JobID, CreatedBy: b.CreatedBy, CreatedAt: b.CreatedAt.UnixMilli(), ExpiresAt: expires,
+	}); err != nil {
+		return err
+	}
+	_, err := events.AppendTx(ctx, q, events.Event{Type: EventQueued, ServerID: b.ServerID, Data: b.eventData()})
+	return err
+}
+
+func (m *Manager) checkSpace(destID string) error {
+	if destID != LocalDestination || m.o.FreeSpace == nil || m.o.MinFree <= 0 {
+		return nil
+	}
+	free, err := m.o.FreeSpace(m.o.LocalPath)
+	if err != nil {
+		return nil //nolint:nilerr // the directory is created by the first backup
+	}
+	if free < m.o.MinFree {
+		return fmt.Errorf("%w: %d bytes free on %s, at least %d needed", ErrLowDisk, free, m.o.LocalPath, m.o.MinFree)
+	}
+	return nil
+}
+
+// Backup queues a scheduled backup (a schedule's backup step) and returns
+// its job ID.
+func (m *Manager) Backup(ctx context.Context, serverID, user string) (string, error) {
+	b, err := m.Create(ctx, serverID, CreateOptions{Kind: KindScheduled, User: user})
+	if err != nil {
+		return "", err
+	}
+	return b.JobID, nil
+}
+
+// Lock sets whether retention may delete a backup.
+func (m *Manager) Lock(ctx context.Context, serverID, id string, locked bool) error {
+	b, err := m.Get(ctx, serverID, id)
+	if err != nil {
+		return err
+	}
+	b.Locked = locked
+	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if err := q.SetBackupLocked(ctx, store.SetBackupLockedParams{Locked: boolInt(locked), ID: id}); err != nil {
+			return err
+		}
+		_, err := events.AppendTx(ctx, q, events.Event{Type: EventLocked, ServerID: serverID, Data: b.eventData()})
+		return err
+	})
+	if err == nil {
+		m.o.Events.Wake()
+	}
+	return err
+}
+
+// Delete queues the deletion of a server's backup. A backup that's still
+// being made can't be deleted.
+func (m *Manager) Delete(ctx context.Context, serverID, id string) (string, error) {
+	b, err := m.Get(ctx, serverID, id)
+	if err != nil {
+		return "", err
+	}
+	if b.Status == StatusPending || b.Status == StatusRunning {
+		return "", ErrNotReady
+	}
+	return m.enqueueDelete(ctx, b.DestinationID, []string{id}, "deleted")
+}
+
+// ServerDeleted deletes a deleted server's local backups. Offsite ones are
+// kept: they're the only way back (docs/SERVERS.md#deletion).
+func (m *Manager) ServerDeleted(ctx context.Context, serverID string) {
+	rows, err := m.o.Store.Read.ListDestinationBackups(ctx, store.ListDestinationBackupsParams{DestinationID: LocalDestination, ServerID: serverID})
+	if err != nil {
+		m.log.Error("listing a deleted server's backups failed", "server", serverID, "err", err)
+		return
+	}
+	ids := make([]string, len(rows))
+	for i, r := range rows {
+		ids[i] = r.ID
+	}
+	if len(ids) == 0 {
+		return
+	}
+	if _, err := m.enqueueDelete(ctx, LocalDestination, ids, "server_deleted"); err != nil {
+		m.log.Error("queueing a deleted server's backup deletion failed", "server", serverID, "err", err)
+	}
+}
+
+func (m *Manager) enqueueDelete(ctx context.Context, destID string, ids []string, reason string) (string, error) {
+	id, err := m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobDelete, Payload: deletePayload{DestinationID: destID, BackupIDs: ids, Reason: reason}})
+	if err == nil {
+		m.o.Jobs.Wake()
+	}
+	return id, err
+}
+
+// Restore queues restoring a backup over a server's files. A safety backup
+// of the current files is taken first.
+func (m *Manager) Restore(ctx context.Context, serverID, id, user string) (string, error) {
+	b, err := m.Get(ctx, serverID, id)
+	if err != nil {
+		return "", err
+	}
+	if b.Status != StatusOK {
+		return "", ErrNotReady
+	}
+	var jobID string
+	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		jobID, err = m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobRestore, ServerID: serverID, Payload: restorePayload{BackupID: id, User: user}})
+		if err != nil {
+			return err
+		}
+		_, err = events.AppendTx(ctx, q, events.Event{Type: EventRestoreQueued, ServerID: serverID, Data: map[string]any{
+			"backup_id": id, "job_id": jobID, "user": user,
+		}})
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	m.o.Events.Wake()
+	m.o.Jobs.Wake()
+	return jobID, nil
+}
+
+// --- policies ---
+
+// Policy is a server's backup settings.
+type Policy struct {
+	DestinationID string `json:"destination_id"`
+	Retention
+	Ignore []string `json:"ignore,omitempty"` // gitignore-style patterns
+}
+
+// DefaultPolicy is used by servers without settings of their own.
+func DefaultPolicy() Policy {
+	return Policy{DestinationID: LocalDestination, Retention: DefaultRetention}
+}
+
+func (p *Policy) validate() error {
+	if err := p.Retention.validate(); err != nil {
+		return err
+	}
+	if len(p.Ignore) > maxIgnore {
+		return fmt.Errorf("at most %d ignore patterns", maxIgnore)
+	}
+	for _, s := range p.Ignore {
+		if strings.TrimSpace(s) == "" || strings.ContainsAny(s, "\n\r\x00") || len(s) > 1000 {
+			return fmt.Errorf("bad ignore pattern %q", s)
+		}
+	}
+	if p.DestinationID == "" {
+		p.DestinationID = LocalDestination
+	}
+	return nil
+}
+
+// Policy returns a server's backup settings.
+func (m *Manager) Policy(ctx context.Context, serverID string) (Policy, error) {
+	r, err := m.o.Store.Read.GetBackupPolicy(ctx, serverID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DefaultPolicy(), nil
+	}
+	if err != nil {
+		return Policy{}, err
+	}
+	p := Policy{DestinationID: r.DestinationID, Retention: Retention{
+		KeepLast: int(r.KeepLast), KeepDaily: int(r.KeepDaily), KeepWeekly: int(r.KeepWeekly), KeepMonthly: int(r.KeepMonthly),
+	}}
+	if err := json.Unmarshal([]byte(r.Ignore), &p.Ignore); err != nil {
+		return Policy{}, err
+	}
+	return p, nil
+}
+
+// SetPolicy replaces a server's backup settings. Existing backups stay
+// where they are; retention applies to them from the next backup.
+func (m *Manager) SetPolicy(ctx context.Context, serverID string, p Policy) error {
+	if err := p.validate(); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalid, err)
+	}
+	if _, err := m.o.Servers.Status(serverID); err != nil {
+		return err
+	}
+	ignore, err := json.Marshal(p.Ignore)
+	if err != nil {
+		return err
+	}
+	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if _, err := q.GetBackupDestination(ctx, p.DestinationID); err != nil {
+			return ErrDestination
+		}
+		if err := q.UpsertBackupPolicy(ctx, store.UpsertBackupPolicyParams{
+			ServerID: serverID, DestinationID: p.DestinationID,
+			KeepLast: int64(p.KeepLast), KeepDaily: int64(p.KeepDaily), KeepWeekly: int64(p.KeepWeekly), KeepMonthly: int64(p.KeepMonthly),
+			Ignore: string(ignore), UpdatedAt: m.o.Now().UnixMilli(),
+		}); err != nil {
+			return err
+		}
+		_, err := events.AppendTx(ctx, q, events.Event{Type: EventPolicy, ServerID: serverID, Data: map[string]any{"policy": p}})
+		return err
+	})
+	if err == nil {
+		m.o.Events.Wake()
+	}
+	return err
+}
+
+// --- destinations ---
+
+// Destination is where backups are stored.
+type Destination struct {
+	ID   string          `json:"id"`
+	Name string          `json:"name"`
+	Type string          `json:"type"` // engine.Local or engine.S3
+	S3   engine.S3Config `json:"s3,omitzero"`
+}
+
+func (d *Destination) validate() error {
+	d.Name = strings.TrimSpace(d.Name)
+	if d.Name == "" || utf8.RuneCountInString(d.Name) > maxNameLen {
+		return fmt.Errorf("name must be 1 to %d characters", maxNameLen)
+	}
+	if d.Type != engine.S3 {
+		return errors.New(`only "s3" destinations can be added; the local one always exists`)
+	}
+	c := &d.S3
+	if c.Endpoint == "" || c.Bucket == "" || c.AccessKey == "" || c.SecretKey == "" {
+		return errors.New("s3 needs an endpoint, bucket, access key, and secret key")
+	}
+	if strings.Contains(c.Endpoint, "://") && !strings.HasPrefix(c.Endpoint, "https://") && !strings.HasPrefix(c.Endpoint, "http://") {
+		return fmt.Errorf("endpoint %q must be a host or an http(s) URL", c.Endpoint)
+	}
+	return nil
+}
+
+// Redacted returns the destination without its secret key, for events and
+// listings.
+func (d Destination) Redacted() Destination {
+	if d.S3.SecretKey != "" {
+		d.S3.SecretKey = "********"
+	}
+	return d
+}
+
+// Destinations lists the destinations, secrets redacted.
+func (m *Manager) Destinations(ctx context.Context) ([]Destination, error) {
+	rows, err := m.o.Store.Read.ListBackupDestinations(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Destination, 0, len(rows))
+	for _, r := range rows {
+		d, err := destFromRow(r)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, d.Redacted())
+	}
+	return out, nil
+}
+
+func destFromRow(r store.BackupDestination) (Destination, error) {
+	d := Destination{ID: r.ID, Name: r.Name, Type: r.Type}
+	if r.Type == engine.S3 {
+		if err := json.Unmarshal([]byte(r.Config), &d.S3); err != nil {
+			return d, fmt.Errorf("destination %s: %w", r.ID, err)
+		}
+	}
+	return d, nil
+}
+
+// SaveDestination adds a destination (d.ID empty) or replaces one. The
+// secret key can be left empty on update to keep the stored one. It returns
+// the destination's ID.
+func (m *Manager) SaveDestination(ctx context.Context, d Destination) (string, error) {
+	if d.ID == LocalDestination {
+		return "", fmt.Errorf("%w: the local destination can't be changed", ErrInvalid)
+	}
+	now := m.o.Now().UnixMilli()
+	err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if d.ID != "" {
+			r, err := q.GetBackupDestination(ctx, d.ID)
+			if err != nil {
+				return ErrDestination
+			}
+			old, err := destFromRow(r)
+			if err != nil {
+				return err
+			}
+			if d.S3.SecretKey == "" {
+				d.S3.SecretKey = old.S3.SecretKey
+			}
+		}
+		if err := d.validate(); err != nil {
+			return fmt.Errorf("%w: %w", ErrInvalid, err)
+		}
+		cfg, err := json.Marshal(d.S3) //nolint:gosec // stored in the node's private database
+		if err != nil {
+			return err
+		}
+		if d.ID == "" {
+			id, err := uuid.NewV7()
+			if err != nil {
+				return err
+			}
+			d.ID = id.String()
+			err = q.InsertBackupDestination(ctx, store.InsertBackupDestinationParams{
+				ID: d.ID, Name: d.Name, Type: d.Type, Config: string(cfg), CreatedAt: now, UpdatedAt: now,
+			})
+			if err != nil {
+				return err
+			}
+		} else if err := q.UpdateBackupDestination(ctx, store.UpdateBackupDestinationParams{
+			Name: d.Name, Config: string(cfg), UpdatedAt: now, ID: d.ID,
+		}); err != nil {
+			return err
+		}
+		_, err = events.AppendTx(ctx, q, events.Event{Type: EventDestination, Data: map[string]any{"destination": d.Redacted()}})
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	m.o.Events.Wake()
+	return d.ID, nil
+}
+
+// DeleteDestination removes a destination no server's settings use. Its
+// backups are forgotten; the data in the bucket is left alone.
+func (m *Manager) DeleteDestination(ctx context.Context, id string) error {
+	if id == LocalDestination {
+		return fmt.Errorf("%w: the local destination can't be deleted", ErrInvalid)
+	}
+	err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if _, err := q.GetBackupDestination(ctx, id); err != nil {
+			return ErrDestination
+		}
+		n, err := q.CountDestinationPolicies(ctx, id)
+		if err != nil {
+			return err
+		}
+		if n > 0 {
+			return ErrInUse
+		}
+		if err := q.DeleteBackupDestination(ctx, id); err != nil {
+			return err
+		}
+		_, err = events.AppendTx(ctx, q, events.Event{Type: EventDestination, Data: map[string]any{"destination_id": id, "deleted": true}})
+		return err
+	})
+	if err == nil {
+		m.o.Events.Wake()
+	}
+	return err
+}
+
+// engineDest returns what the worker needs to open a destination.
+func (m *Manager) engineDest(ctx context.Context, id string) (engine.Destination, error) {
+	r, err := m.o.Store.Read.GetBackupDestination(ctx, id)
+	if err != nil {
+		return engine.Destination{}, ErrDestination
+	}
+	d, err := destFromRow(r)
+	if err != nil {
+		return engine.Destination{}, err
+	}
+	ed := engine.Destination{ID: d.ID, Type: d.Type, S3: d.S3}
+	if d.Type == engine.Local {
+		ed.Path = m.o.LocalPath
+	}
+	return ed, nil
+}
+
+// run sends one request to the worker.
+func (m *Manager) run(ctx context.Context, destID string, req request, progress func(engine.Progress), log io.Writer) (json.RawMessage, error) {
+	dest, err := m.engineDest(ctx, destID)
+	if err != nil {
+		return nil, err
+	}
+	pw, err := m.password(ctx)
+	if err != nil {
+		return nil, err
+	}
+	req.Dest, req.Password, req.StateDir = dest, pw, m.o.StateDir
+	return m.o.Runner.Run(ctx, req, progress, log)
+}
+
+func boolInt(b bool) int64 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func newID() (string, error) {
+	id, err := uuid.NewV7()
+	return id.String(), err
+}
+
+// isEmpty reports whether a directory has no entries.
+func isEmpty(dir string) (bool, error) {
+	f, err := os.Open(dir) //nolint:gosec // the server's directory
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = f.Close() }()
+	_, err = f.Readdirnames(1)
+	if errors.Is(err, io.EOF) {
+		return true, nil
+	}
+	return false, err
+}

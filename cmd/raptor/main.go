@@ -15,6 +15,7 @@ import (
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/wings"
+	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 )
@@ -71,6 +72,10 @@ func run(args []string) error {
 		return storageCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
 		return wingsRun(ctx, args[2:])
+	case len(args) >= 2 && args[0] == "wings" && args[1] == "backup-worker":
+		// Started by Wings for each backup operation; not for people.
+		backup.PrepareWorker()
+		return backup.Serve(ctx, os.Stdin, os.Stdout)
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "shutdown-servers":
 		return shutdownServers(ctx, args[2:])
 	default:

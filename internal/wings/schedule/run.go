@@ -35,6 +35,13 @@ const (
 // Wings knows how long it was down.
 const aliveKey = "scheduler.alive_at"
 
+// Backups makes backups for the backup step.
+type Backups interface {
+	// Backup queues a backup of the server on behalf of user and returns
+	// its job ID.
+	Backup(ctx context.Context, serverID, user string) (jobID string, err error)
+}
+
 // Servers is what runs need from the server manager.
 type Servers interface {
 	Status(id string) (server.Status, error)
@@ -48,6 +55,7 @@ type Options struct {
 	Jobs    *jobs.Engine
 	Events  *events.Outbox
 	Servers Servers
+	Backups Backups // nil: backup steps fail
 	Log     *slog.Logger
 	// Grace: a run late by at most this much (a quick Wings restart) still
 	// runs; later than that, the schedule's missed-run policy applies.
@@ -326,6 +334,7 @@ type runPayload struct {
 type checkpoint struct {
 	Next      int          `json:"next"`                 // the step to run next
 	WaitUntil int64        `json:"wait_until,omitempty"` // unix ms, while step Next is a wait
+	Job       string       `json:"job,omitempty"`        // the backup job, while step Next is a backup
 	Results   []StepResult `json:"results"`
 }
 
@@ -379,7 +388,7 @@ func (s *Scheduler) run(ctx context.Context, j jobs.Job, log io.Writer) (any, er
 			_, _ = fmt.Fprintf(log, "  failed: %v\n", err)
 		}
 		cp.Results = append(cp.Results, res)
-		cp.Next, cp.WaitUntil = i+1, 0
+		cp.Next, cp.WaitUntil, cp.Job = i+1, 0, ""
 		if cerr := s.o.Jobs.Checkpoint(ctx, j.ID, cp); cerr != nil {
 			s.log.Warn("saving schedule run progress failed", "job", j.ID, "err", cerr)
 		}
@@ -413,8 +422,36 @@ func (s *Scheduler) step(ctx context.Context, j jobs.Job, cp *checkpoint, i int,
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	case StepBackup:
+		return s.backup(ctx, j, cp, user)
 	}
 	return fmt.Errorf("unknown step type %q (step %d)", st.Type, i+1)
+}
+
+// backup queues a backup and waits for it. The job ID is saved first, so a
+// resumed run waits for the same backup instead of starting another.
+func (s *Scheduler) backup(ctx context.Context, j jobs.Job, cp *checkpoint, user string) error {
+	if s.o.Backups == nil {
+		return errors.New("backups aren't available")
+	}
+	if cp.Job == "" {
+		id, err := s.o.Backups.Backup(ctx, j.ServerID, user)
+		if err != nil {
+			return err
+		}
+		cp.Job = id
+		if err := s.o.Jobs.Checkpoint(ctx, j.ID, cp); err != nil {
+			s.log.Warn("saving schedule run progress failed", "job", j.ID, "err", err)
+		}
+	}
+	done, err := s.o.Jobs.Wait(ctx, cp.Job)
+	if err != nil {
+		return err
+	}
+	if done.Status != jobs.Succeeded {
+		return fmt.Errorf("backup %s: %s", done.Status, done.Error)
+	}
+	return nil
 }
 
 // finished records how a run ended.

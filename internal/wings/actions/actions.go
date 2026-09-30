@@ -9,10 +9,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
 // Action names.
@@ -31,6 +33,14 @@ const (
 	ScheduleUpdate = "schedule.update"
 	ScheduleDelete = "schedule.delete"
 	ScheduleRun    = "schedule.run" // run now
+
+	BackupCreate            = "backup.create"
+	BackupRestore           = "backup.restore"
+	BackupDelete            = "backup.delete"
+	BackupLock              = "backup.lock"
+	BackupPolicy            = "backup.policy.update"
+	BackupDestinationSave   = "backup.destination.save" // create or update
+	BackupDestinationDelete = "backup.destination.delete"
 )
 
 // ServerConfig is a server's configuration as sent by the Panel.
@@ -63,6 +73,15 @@ func (c ServerConfig) toConfig() server.Config {
 type CreateParams struct {
 	ServerConfig
 	StartAfterInstall bool `json:"start_after_install,omitempty"`
+	// BackupSchedule: add the default daily backup schedule (default true).
+	BackupSchedule *bool `json:"backup_schedule,omitempty"`
+}
+
+// Defaults are what new servers get.
+type Defaults struct {
+	// BackupSchedule adds the daily backup schedule to a new server, in the
+	// transaction that creates it. nil = none.
+	BackupSchedule func(ctx context.Context, q *store.Queries, serverID string) error
 }
 
 // CommandParams are the params of server.command.
@@ -71,7 +90,7 @@ type CommandParams struct {
 }
 
 // Register adds every server action to the executor.
-func Register(x *command.Executor, m *server.Manager) {
+func Register(x *command.Executor, m *server.Manager, d Defaults) {
 	needServer := func(e command.Envelope) error {
 		if e.ServerID == "" {
 			return errors.New("command needs a server_id")
@@ -94,7 +113,11 @@ func Register(x *command.Executor, m *server.Manager) {
 		if err := decode(e, &p); err != nil {
 			return nil, err
 		}
-		id, err := m.Create(ctx, p.toConfig(), server.CreateOptions{StartAfterInstall: p.StartAfterInstall})
+		opts := server.CreateOptions{StartAfterInstall: p.StartAfterInstall}
+		if d.BackupSchedule != nil && (p.BackupSchedule == nil || *p.BackupSchedule) {
+			opts.InTx = d.BackupSchedule
+		}
+		id, err := m.Create(ctx, p.toConfig(), opts)
 		if err != nil {
 			return nil, err
 		}
@@ -231,6 +254,133 @@ func RegisterSchedules(x *command.Executor, s *schedule.Scheduler) {
 			return nil, err
 		}
 		return map[string]string{"job_id": job}, nil
+	}})
+}
+
+// BackupParams are the params of the backup actions that name a backup.
+type BackupParams struct {
+	BackupID string `json:"backup_id"`
+	Locked   bool   `json:"locked,omitempty"` // backup.create, backup.lock
+}
+
+// DestinationParams are the params of the destination actions.
+type DestinationParams struct {
+	backup.Destination
+}
+
+// RegisterBackups adds the backup actions. Restoring over a server's files
+// and deleting a backup destroy data, so they're signed; so are changes
+// that let retention delete more (lower keep values, unlocking a backup),
+// which would otherwise delete backups one step removed
+// (docs/SECURITY-MODEL.md#passkey-signed-commands).
+func RegisterBackups(x *command.Executor, b *backup.Manager) {
+	backupParams := func(e command.Envelope, needID bool) (BackupParams, error) {
+		var p BackupParams
+		if e.ServerID == "" {
+			return p, errors.New("command needs a server_id")
+		}
+		if len(e.Params) > 0 {
+			if err := json.Unmarshal(e.Params, &p); err != nil {
+				return p, fmt.Errorf("params: %w", err)
+			}
+		}
+		if needID && p.BackupID == "" {
+			return p, errors.New("command needs a backup_id")
+		}
+		return p, nil
+	}
+	jobResult := func(id string) map[string]string { return map[string]string{"job_id": id} }
+
+	x.Register(BackupCreate, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		p, err := backupParams(e, false)
+		if err != nil {
+			return nil, err
+		}
+		bk, err := b.Create(ctx, e.ServerID, backup.CreateOptions{Kind: backup.KindManual, User: e.UserID, Locked: p.Locked})
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"backup_id": bk.ID, "job_id": bk.JobID}, nil
+	}})
+	x.Register(BackupRestore, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		p, err := backupParams(e, true)
+		if err != nil {
+			return nil, err
+		}
+		id, err := b.Restore(ctx, e.ServerID, p.BackupID, e.UserID)
+		if err != nil {
+			return nil, err
+		}
+		return jobResult(id), nil
+	}})
+	x.Register(BackupDelete, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		p, err := backupParams(e, true)
+		if err != nil {
+			return nil, err
+		}
+		id, err := b.Delete(ctx, e.ServerID, p.BackupID)
+		if err != nil {
+			return nil, err
+		}
+		return jobResult(id), nil
+	}})
+	x.Register(BackupLock, command.Handler{
+		Signed: func(_ context.Context, e command.Envelope) (bool, error) {
+			p, err := backupParams(e, true)
+			return !p.Locked, err
+		},
+		Run: func(ctx context.Context, e command.Envelope) (any, error) {
+			p, err := backupParams(e, true)
+			if err != nil {
+				return nil, err
+			}
+			return nil, b.Lock(ctx, e.ServerID, p.BackupID, p.Locked)
+		},
+	})
+	policy := func(e command.Envelope) (backup.Policy, error) {
+		var p backup.Policy
+		if e.ServerID == "" {
+			return p, errors.New("command needs a server_id")
+		}
+		return p, decode(e, &p)
+	}
+	x.Register(BackupPolicy, command.Handler{
+		Signed: func(ctx context.Context, e command.Envelope) (bool, error) {
+			p, err := policy(e)
+			if err != nil {
+				return false, err
+			}
+			cur, err := b.Policy(ctx, e.ServerID)
+			if err != nil {
+				return false, err
+			}
+			return p.KeepsLess(cur.Retention), nil
+		},
+		Run: func(ctx context.Context, e command.Envelope) (any, error) {
+			p, err := policy(e)
+			if err != nil {
+				return nil, err
+			}
+			return nil, b.SetPolicy(ctx, e.ServerID, p)
+		},
+	})
+	x.Register(BackupDestinationSave, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DestinationParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		id, err := b.SaveDestination(ctx, p.Destination)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"destination_id": id}, nil
+	}})
+	x.Register(BackupDestinationDelete, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DestinationParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, b.DeleteDestination(ctx, p.ID)
 	}})
 }
 

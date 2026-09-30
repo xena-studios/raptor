@@ -53,6 +53,7 @@ type Identity struct {
 type Paths struct {
 	State   string `yaml:"state"`
 	Volumes string `yaml:"volumes"`
+	Backups string `yaml:"backups"` // the local backup destination
 	Tmp     string `yaml:"tmp"`
 	Logs    string `yaml:"logs"`
 	Socket  string `yaml:"socket"`
@@ -82,6 +83,8 @@ type Limits struct {
 	// ReservedMemory is kept free of game servers for the OS, Docker, and
 	// Wings. 0 = automatic (10% of RAM, 1–4 GiB).
 	ReservedMemory ByteSize `yaml:"reserved_memory"`
+	// BackupMemory caps each backup worker process.
+	BackupMemory ByteSize `yaml:"backup_memory"`
 }
 
 // Storage configures the server data volume (docs/WINGS.md#disk-quotas).
@@ -114,6 +117,7 @@ func Default() Config {
 		Paths: Paths{
 			State:   "/var/lib/raptor/state.db",
 			Volumes: "/var/lib/raptor/volumes",
+			Backups: "/var/lib/raptor/backups",
 			Tmp:     "/var/lib/raptor/tmp",
 			Logs:    "/var/log/raptor",
 			Socket:  "/run/raptor/wings.sock",
@@ -123,7 +127,7 @@ func Default() Config {
 			InstallNetwork: "raptor_install",
 		},
 		Ports:   Ports{SFTP: 2022},
-		Limits:  Limits{ConcurrentInstalls: 2, ConcurrentBackups: 2, HostDiskMinFree: 10 << 30},
+		Limits:  Limits{ConcurrentInstalls: 2, ConcurrentBackups: 2, HostDiskMinFree: 10 << 30, BackupMemory: 1 << 30},
 		Storage: Storage{Quotas: true},
 		Updates: Updates{Channel: "stable"},
 		Log:     Log{Level: "info"},
@@ -173,7 +177,10 @@ func (c Config) Validate() error {
 	if c.Limits.ConcurrentInstalls < 1 || c.Limits.ConcurrentBackups < 1 {
 		errs = append(errs, errors.New("limits: concurrency must be at least 1"))
 	}
-	for name, p := range map[string]string{"paths.state": c.Paths.State, "paths.volumes": c.Paths.Volumes, "paths.tmp": c.Paths.Tmp, "paths.logs": c.Paths.Logs, "paths.socket": c.Paths.Socket} {
+	if c.Limits.BackupMemory < 256<<20 {
+		errs = append(errs, errors.New("limits.backup_memory: at least 256MiB"))
+	}
+	for name, p := range map[string]string{"paths.state": c.Paths.State, "paths.volumes": c.Paths.Volumes, "paths.backups": c.Paths.Backups, "paths.tmp": c.Paths.Tmp, "paths.logs": c.Paths.Logs, "paths.socket": c.Paths.Socket} {
 		if !strings.HasPrefix(p, "/") {
 			errs = append(errs, fmt.Errorf("%s %q: must be an absolute path", name, p))
 		}
