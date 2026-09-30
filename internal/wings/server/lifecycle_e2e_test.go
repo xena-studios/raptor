@@ -835,8 +835,10 @@ func TestLowHostDisk(t *testing.T) {
 	defer m.Close()
 	id := e.create(m, freePort(t))
 	set(lowErr)
-	cfg := Config{Name: "new", Egg: shellEgg("true"), Limits: containers.Limits{MemoryMiB: 128}, Settings: DefaultSettings(),
-		Allocations: []Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}}}
+	cfg := Config{
+		Name: "new", Egg: shellEgg("true"), Limits: containers.Limits{MemoryMiB: 128}, Settings: DefaultSettings(),
+		Allocations: []Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}},
+	}
 	if _, err := m.Create(context.Background(), cfg, CreateOptions{}); !errors.Is(err, host.ErrLowDisk) {
 		t.Fatalf("create: %v", err)
 	}
