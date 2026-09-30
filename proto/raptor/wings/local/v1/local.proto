@@ -46,6 +46,20 @@ service LocalService {
   rpc TailLogs(TailLogsRequest) returns (stream TailLogsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ListBackups lists a server's backups, newest first, or every backup on
+  // the node (including offsite backups of deleted servers).
+  rpc ListBackups(ListBackupsRequest) returns (ListBackupsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // CreateBackup backs up a server to its destination. Root only.
+  rpc CreateBackup(CreateBackupRequest) returns (CreateBackupResponse) {}
+
+  // RestoreBackup replaces a server's files with one of its backups, after
+  // taking a safety backup of the current files. The server is stopped
+  // meanwhile and started again if it was meant to be running. Root only.
+  rpc RestoreBackup(RestoreBackupRequest) returns (RestoreBackupResponse) {}
 }
 
 // Servers are named in requests by full ID, the last 8 or more characters of
@@ -125,6 +139,74 @@ message TailLogsRequest {
 message TailLogsResponse {
   google.protobuf.Timestamp time = 1;
   string text = 2;
+}
+
+// Backups are named in requests by full ID or the last 8 or more
+// characters of it.
+
+message ListBackupsRequest {
+  // Empty = every backup on the node.
+  string server = 1;
+}
+
+message ListBackupsResponse {
+  repeated BackupInfo backups = 1;
+}
+
+message BackupInfo {
+  string id = 1;
+  string server_id = 2;
+  // Empty if the server was deleted (its offsite backups are kept).
+  string server_name = 3;
+  string destination_id = 4;
+  // manual, scheduled, or safety (taken before a restore).
+  string kind = 5;
+  // pending, running, ok, or failed.
+  string status = 6;
+  // Never deleted by retention.
+  bool locked = 7;
+  // Total size of the files.
+  int64 size_bytes = 8;
+  int64 files = 9;
+  // New data this backup added to the repository.
+  int64 uploaded_bytes = 10;
+  string warning = 11;
+  string error = 12;
+  // "local:<user>", "schedule:<id>", a Panel user ID, or "backup".
+  string created_by = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp finished_at = 15;
+  // Safety backups expire.
+  google.protobuf.Timestamp expires_at = 16;
+  string job_id = 17;
+}
+
+message CreateBackupRequest {
+  string server = 1;
+  // Keep it until it's unlocked (in the Panel).
+  bool locked = 2;
+  // Return when the backup is finished instead of when it's queued. A
+  // failed backup is then an error.
+  bool wait = 3;
+}
+
+message CreateBackupResponse {
+  BackupInfo backup = 1;
+}
+
+message RestoreBackupRequest {
+  string server = 1;
+  string backup = 2;
+  // Return when the restore is finished instead of when it's queued. A
+  // failed restore is then an error.
+  bool wait = 3;
+}
+
+message RestoreBackupResponse {
+  string job_id = 1;
+  // The backup of the files the restore replaced (set when waiting; empty
+  // if the server's directory was empty).
+  string safety_backup_id = 2;
 }
 
 message ShutdownServersRequest {}

@@ -9,6 +9,8 @@ started() { docker inspect -f '{{.State.StartedAt}}' "raptor-$ID"; }
 running() { [ "$(docker inspect -f '{{.State.Running}}' "raptor-$ID")" = true ]; }
 pass() { echo "PASS: $*"; }
 fail() { echo "FAIL: $*"; journalctl -u raptor-wings --no-pager -n 30 -o cat; exit 1; }
+# (No `| grep -q` after a long producer: with pipefail, grep exiting early
+# fails the pipeline with SIGPIPE.)
 wait_for() { for _ in $(seq 1 60); do if "$@"; then return 0; fi; sleep 1; done; return 1; }
 
 mkdir -p /var/lib/raptor-e2e # survives the reboot, unlike /tmp
@@ -113,12 +115,30 @@ cli)
 
 	out=$(raptor stop nope 2>&1) && fail "unknown server accepted"
 	grep -q 'no server "nope"' <<<"$out" || fail "unknown server: $out"
-	journalctl -u raptor-wings --no-pager -o cat | grep '"event":"server.power"' | grep -q '"user":"local:root"' || fail "power actions not attributed to local:root"
+	journalctl -u raptor-wings --no-pager -o cat | grep '"event":"server.power"' | grep '"user":"local:root"' >/dev/null || fail "power actions not attributed to local:root"
 	pass "unknown servers refused; power actions attributed to the Unix user"
 
 	# The server's user can read its machine-id (Wings runs with UMask=0077).
 	[ "$(docker exec "raptor-$ID" cat /etc/machine-id)" = "${ID//-/}" ] || fail "/etc/machine-id isn't the server ID without dashes, or isn't readable"
 	pass "/etc/machine-id: the server ID, readable by the server"
+
+	# Backups through the daemon's real worker: a transient scope started
+	# from inside the sandboxed service.
+	file=/var/lib/raptor/volumes/$ID/cli-backup.txt
+	docker exec "raptor-$ID" sh -c 'echo before > /home/container/cli-backup.txt'
+	out=$(raptor backup create $NAME 2>&1) || fail "backup create: $out"
+	BID=$(grep -o '^backup [0-9a-f]*' <<<"$out" | cut -d' ' -f2)
+	[ -n "$BID" ] || fail "backup create: $out"
+	out=$(viewer raptor backup list $NAME) && grep -Eq "^$BID +[0-9: -]+ +manual +ok" <<<"$out" || fail "backup list: $out"
+	out=$(viewer raptor backup create $NAME 2>&1) && fail "raptor group member could make a backup"
+	journalctl --no-pager -o cat | grep "Started run-.*scope - /usr/local/bin/raptor wings backup-worker" >/dev/null || fail "the backup worker didn't run in its own scope"
+	docker exec "raptor-$ID" sh -c 'echo after > /home/container/cli-backup.txt'
+	out=$(raptor backup restore $NAME "$BID" </dev/null 2>&1) && fail "restored without confirmation"
+	out=$(raptor backup restore $NAME "$BID" -yes 2>&1) || fail "backup restore: $out"
+	grep -q "safety backup" <<<"$out" || fail "no safety backup: $out"
+	[ "$(cat "$file")" = before ] || fail "restore didn't bring the file back: $(cat "$file")"
+	ready || fail "server didn't start again after the restore"
+	pass "backup create, list (read-only for the raptor group), restore with a safety backup, in the worker's scope"
 	started > /var/lib/raptor-e2e/host-t1
 	;;
 after-reboot)

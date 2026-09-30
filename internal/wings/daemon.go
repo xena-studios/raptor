@@ -335,6 +335,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.backups = bk
 	r.servers = mgr
 	r.svc.SetServers(mgr)
+	r.svc.SetBackups(bk, r.jobs)
 	r.rules = &rules
 	r.log.Info("runtime ready",
 		"network", nets.Server.Name, "subnet", nets.Server.Subnet,

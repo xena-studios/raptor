@@ -406,15 +406,23 @@ func TestOOM(t *testing.T) {
 	// OOM-killed, which ends the container.
 	command(t, m, id, `x=$(head -c 400m /dev/zero | tr '\0' a)`)
 	waitState(t, m, id, Crashed, time.Minute)
-	for len(events) > 0 {
-		if ev := <-events; ev.Type == EventCrashed {
+	// The crash event follows the state change, so wait for it rather than
+	// only reading what's already buffered.
+	timeout := time.After(10 * time.Second)
+	for {
+		select {
+		case ev := <-events:
+			if ev.Type != EventCrashed {
+				continue
+			}
 			if ev.Data["reason"] != "oom" {
 				t.Errorf("crash reason %v, want oom", ev.Data["reason"])
 			}
 			return
+		case <-timeout:
+			t.Fatal("no crash event")
 		}
 	}
-	t.Error("no crash event")
 }
 
 // Stopping Wings never stops servers; the next Wings adopts them with their

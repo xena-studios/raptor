@@ -51,6 +51,15 @@ const (
 	LocalServiceSendCommandProcedure = "/raptor.wings.local.v1.LocalService/SendCommand"
 	// LocalServiceTailLogsProcedure is the fully-qualified name of the LocalService's TailLogs RPC.
 	LocalServiceTailLogsProcedure = "/raptor.wings.local.v1.LocalService/TailLogs"
+	// LocalServiceListBackupsProcedure is the fully-qualified name of the LocalService's ListBackups
+	// RPC.
+	LocalServiceListBackupsProcedure = "/raptor.wings.local.v1.LocalService/ListBackups"
+	// LocalServiceCreateBackupProcedure is the fully-qualified name of the LocalService's CreateBackup
+	// RPC.
+	LocalServiceCreateBackupProcedure = "/raptor.wings.local.v1.LocalService/CreateBackup"
+	// LocalServiceRestoreBackupProcedure is the fully-qualified name of the LocalService's
+	// RestoreBackup RPC.
+	LocalServiceRestoreBackupProcedure = "/raptor.wings.local.v1.LocalService/RestoreBackup"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
@@ -76,6 +85,15 @@ type LocalServiceClient interface {
 	// TailLogs sends a server's output from Docker's log store, which goes
 	// back further than the console history, optionally following it.
 	TailLogs(context.Context, *v1.TailLogsRequest) (*connect.ServerStreamForClient[v1.TailLogsResponse], error)
+	// ListBackups lists a server's backups, newest first, or every backup on
+	// the node (including offsite backups of deleted servers).
+	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
+	// CreateBackup backs up a server to its destination. Root only.
+	CreateBackup(context.Context, *v1.CreateBackupRequest) (*v1.CreateBackupResponse, error)
+	// RestoreBackup replaces a server's files with one of its backups, after
+	// taking a safety backup of the current files. The server is stopped
+	// meanwhile and started again if it was meant to be running. Root only.
+	RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*v1.RestoreBackupResponse, error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -136,6 +154,25 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		listBackups: connect.NewClient[v1.ListBackupsRequest, v1.ListBackupsResponse](
+			httpClient,
+			baseURL+LocalServiceListBackupsProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ListBackups")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		createBackup: connect.NewClient[v1.CreateBackupRequest, v1.CreateBackupResponse](
+			httpClient,
+			baseURL+LocalServiceCreateBackupProcedure,
+			connect.WithSchema(localServiceMethods.ByName("CreateBackup")),
+			connect.WithClientOptions(opts...),
+		),
+		restoreBackup: connect.NewClient[v1.RestoreBackupRequest, v1.RestoreBackupResponse](
+			httpClient,
+			baseURL+LocalServiceRestoreBackupProcedure,
+			connect.WithSchema(localServiceMethods.ByName("RestoreBackup")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -148,6 +185,9 @@ type localServiceClient struct {
 	streamConsole   *connect.Client[v1.StreamConsoleRequest, v1.StreamConsoleResponse]
 	sendCommand     *connect.Client[v1.SendCommandRequest, v1.SendCommandResponse]
 	tailLogs        *connect.Client[v1.TailLogsRequest, v1.TailLogsResponse]
+	listBackups     *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
+	createBackup    *connect.Client[v1.CreateBackupRequest, v1.CreateBackupResponse]
+	restoreBackup   *connect.Client[v1.RestoreBackupRequest, v1.RestoreBackupResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -205,6 +245,33 @@ func (c *localServiceClient) TailLogs(ctx context.Context, req *v1.TailLogsReque
 	return c.tailLogs.CallServerStream(ctx, connect.NewRequest(req))
 }
 
+// ListBackups calls raptor.wings.local.v1.LocalService.ListBackups.
+func (c *localServiceClient) ListBackups(ctx context.Context, req *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {
+	response, err := c.listBackups.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CreateBackup calls raptor.wings.local.v1.LocalService.CreateBackup.
+func (c *localServiceClient) CreateBackup(ctx context.Context, req *v1.CreateBackupRequest) (*v1.CreateBackupResponse, error) {
+	response, err := c.createBackup.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RestoreBackup calls raptor.wings.local.v1.LocalService.RestoreBackup.
+func (c *localServiceClient) RestoreBackup(ctx context.Context, req *v1.RestoreBackupRequest) (*v1.RestoreBackupResponse, error) {
+	response, err := c.restoreBackup.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
@@ -228,6 +295,15 @@ type LocalServiceHandler interface {
 	// TailLogs sends a server's output from Docker's log store, which goes
 	// back further than the console history, optionally following it.
 	TailLogs(context.Context, *v1.TailLogsRequest, *connect.ServerStream[v1.TailLogsResponse]) error
+	// ListBackups lists a server's backups, newest first, or every backup on
+	// the node (including offsite backups of deleted servers).
+	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
+	// CreateBackup backs up a server to its destination. Root only.
+	CreateBackup(context.Context, *v1.CreateBackupRequest) (*v1.CreateBackupResponse, error)
+	// RestoreBackup replaces a server's files with one of its backups, after
+	// taking a safety backup of the current files. The server is stopped
+	// meanwhile and started again if it was meant to be running. Root only.
+	RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*v1.RestoreBackupResponse, error)
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -284,6 +360,25 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceListBackupsHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceListBackupsProcedure,
+		svc.ListBackups,
+		connect.WithSchema(localServiceMethods.ByName("ListBackups")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceCreateBackupHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceCreateBackupProcedure,
+		svc.CreateBackup,
+		connect.WithSchema(localServiceMethods.ByName("CreateBackup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceRestoreBackupHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceRestoreBackupProcedure,
+		svc.RestoreBackup,
+		connect.WithSchema(localServiceMethods.ByName("RestoreBackup")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
@@ -300,6 +395,12 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceSendCommandHandler.ServeHTTP(w, r)
 		case LocalServiceTailLogsProcedure:
 			localServiceTailLogsHandler.ServeHTTP(w, r)
+		case LocalServiceListBackupsProcedure:
+			localServiceListBackupsHandler.ServeHTTP(w, r)
+		case LocalServiceCreateBackupProcedure:
+			localServiceCreateBackupHandler.ServeHTTP(w, r)
+		case LocalServiceRestoreBackupProcedure:
+			localServiceRestoreBackupHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -335,4 +436,16 @@ func (UnimplementedLocalServiceHandler) SendCommand(context.Context, *v1.SendCom
 
 func (UnimplementedLocalServiceHandler) TailLogs(context.Context, *v1.TailLogsRequest, *connect.ServerStream[v1.TailLogsResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.TailLogs is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ListBackups is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) CreateBackup(context.Context, *v1.CreateBackupRequest) (*v1.CreateBackupResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.CreateBackup is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*v1.RestoreBackupResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.RestoreBackup is not implemented"))
 }

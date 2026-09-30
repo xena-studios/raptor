@@ -322,7 +322,9 @@ raptor ps [-json]                     servers: short ID, state, CPU, memory, dis
 raptor start|stop|restart|kill <server>   (root) stop waits for the egg's clean shutdown
 raptor console <server>               live console; typed or piped lines are sent as commands (root)
 raptor logs <server> [-n N] [-f] [-t] output from Docker's log store, further back than the console
-raptor backup list|create|restore <server> [id]
+raptor backup list [<server>]         backups of a server, or all (with deleted servers' offsite ones)
+raptor backup create <server> [-lock]  (root) back up now; waits and prints size and new data
+raptor backup restore <server> <id>   (root) asks for the server's name first (or -yes); safety backup first
 raptor jobs [logs <id>]
 raptor storage status|setup|grow        volume state; create the image volume; grow it online
 raptor support status|revoke          see / end active support access
@@ -333,18 +335,19 @@ raptor uninstall [--wipe-data]
 raptor tui
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `backup` (Phase 2), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
 - **`logs`** reads Docker's log store for the server's current container (it survives stops; each start replaces it), so it goes back further than the console's 1,000-line history. `-n -1` prints everything.
+- **`backup`**: backups are named by ID or its last 8 characters, as `list` shows them. `create` and `restore` wait until the job is done (`-no-wait` returns once it's queued). `restore` shows what it will replace and asks for the server's name; without a terminal it needs `-yes`. It isn't signed with a passkey like the Panel's restore: root on the box owns the box ([SECURITY-MODEL.md](SECURITY-MODEL.md#trust-boundaries)). Retention settings, locking, deleting backups, and destinations are Panel settings, so they aren't in the CLI.
 - Flags can go before or after the server (`raptor logs srv -f`).
 
 ### Local socket API
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, and `TailLogs`. The full planned set:
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, and `RestoreBackup`. The full planned set:
 
 | Method | Purpose |
 |---|---|
@@ -354,7 +357,7 @@ Methods are added to the proto as the features behind them are built, so the API
 | `Power` | Start, stop, restart, kill; returns when done (root only) |
 | `StreamConsole` (stream), `SendCommand` | Console history and live output; sending commands (root only) |
 | `TailLogs` (stream) | Server output from Docker's log store, optionally followed |
-| `ListBackups`, `CreateBackup`, `RestoreBackup` | Backups |
+| `ListBackups`, `CreateBackup`, `RestoreBackup` | Backups: listing for the `raptor` group; creating and restoring root only, optionally waiting for the job |
 | `ListJobs`, `TailJobLogs` (stream) | Jobs and their logs |
 | `RunDoctor`, `CreateBundle` | Diagnostics |
 | `GetSupportStatus`, `RevokeSupport` | Support access |

@@ -47,6 +47,8 @@ type Service struct {
 
 	mu      sync.RWMutex
 	servers Servers
+	backups Backups
+	jobs    Jobs
 }
 
 // SetServers makes the server manager available (it's created once the
