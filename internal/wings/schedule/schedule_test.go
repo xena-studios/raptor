@@ -555,7 +555,10 @@ func TestBackupStep(t *testing.T) {
 		t.Fatalf("the run went on before the backup finished: %q", got)
 	}
 	close(v.backups.release)
-	if j := v.waitRun(v.runs()[0].ID); j.Status != jobs.Succeeded || !slices.Equal(v.servers.got(), []string{"command say backed up"}) {
+	// The run, not the backup job it started: both are created in the same
+	// millisecond, so their order by ID is random.
+	i := slices.IndexFunc(v.runs(), func(j jobs.Job) bool { return j.Type == JobRun })
+	if j := v.waitRun(v.runs()[i].ID); j.Status != jobs.Succeeded || !slices.Equal(v.servers.got(), []string{"command say backed up"}) {
 		t.Fatalf("run: %+v, calls %q", j, v.servers.got())
 	}
 
