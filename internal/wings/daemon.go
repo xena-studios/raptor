@@ -22,6 +22,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
 	"github.com/xena-studios/raptor/internal/wings/events"
+	"github.com/xena-studios/raptor/internal/wings/files"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
@@ -160,6 +161,7 @@ type runtimeSetup struct {
 	servers        *server.Manager
 	sched          *schedule.Scheduler
 	backups        *backup.Manager
+	files          *files.Service
 	sftp           *sftp.Service
 	sftpKey        ssh.Signer
 	sftpKeys       *sftp.KeyCache
@@ -184,8 +186,9 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 		Store:  db,
 		LogDir: filepath.Join(cfg.Paths.Logs, "jobs"),
 		Log:    log,
-		// Schedule runs mostly wait, so many can run at once.
-		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32},
+		// Schedule runs mostly wait, so many can run at once. Archive jobs
+		// use CPU and disk beside the game servers.
+		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32, "files": 2},
 	})
 	r.commands = &command.Executor{DB: db, NodeID: cfg.NodeID, RP: rp, PanelKey: panelKey, Log: log}
 	// The host key exists from the first start, SFTP on or not, so its
@@ -227,6 +230,11 @@ func (r *runtimeSetup) prune(ctx context.Context) {
 	}
 	if _, err := r.sftpKeys.Prune(ctx); err != nil {
 		r.log.Error("pruning cached sftp keys failed", "err", err)
+	}
+	if r.files != nil {
+		if _, err := r.files.Prune(ctx); err != nil {
+			r.log.Error("pruning idle file transfers failed", "err", err)
+		}
 	}
 }
 
@@ -373,6 +381,8 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	})
 	actions.RegisterSchedules(r.commands, sched)
 	actions.RegisterBackups(r.commands, bk)
+	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
+	actions.RegisterFiles(r.commands, fsvc)
 	// Jobs start after reconcile, so interrupted installs resume against
 	// servers that are already loaded.
 	if err := r.jobs.Start(ctx); err != nil {
@@ -387,6 +397,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		r.log.Error("backup cleanup failed", "err", err)
 	}
 	r.backups = bk
+	r.files = fsvc
 	r.sftp = r.startSFTP(ctx, mgr, uid, gid)
 	r.servers = mgr
 	r.svc.SetServers(mgr)

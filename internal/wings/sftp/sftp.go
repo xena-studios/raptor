@@ -20,6 +20,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/xena-studios/raptor/internal/wings/events"
+	wfiles "github.com/xena-studios/raptor/internal/wings/files"
 )
 
 // EventLogin is recorded for every SFTP login, for the Panel's audit log.
@@ -289,7 +290,7 @@ func (s *Server) session(ctx context.Context, sess *session, ch ssh.Channel, req
 			_ = req.Reply(false, nil)
 			continue
 		}
-		root, err := s.openRoot(sess.login.ServerID)
+		fsys, err := wfiles.OpenServer(s.o.Servers, sess.login.ServerID, s.o.UID, s.o.GID)
 		if err != nil {
 			s.o.Log.Warn("sftp session refused", "server", sess.login.ServerID, "err", err)
 			_ = req.Reply(false, nil)
@@ -297,23 +298,15 @@ func (s *Server) session(ctx context.Context, sess *session, ch ssh.Channel, req
 		}
 		_ = req.Reply(true, nil)
 		go ssh.DiscardRequests(reqs)
-		h := &files{ctx: ctx, root: root, serverID: sess.login.ServerID, grant: sess.grant, servers: s.o.Servers, uid: s.o.UID, gid: s.o.GID}
+		h := &files{ctx: ctx, fs: fsys, serverID: sess.login.ServerID, grant: sess.grant, servers: s.o.Servers}
 		rs := sftp.NewRequestServer(ch, h.handlers())
 		if err := rs.Serve(); err != nil && !errors.Is(err, os.ErrClosed) {
 			s.o.Log.Debug("sftp session ended", "server", sess.login.ServerID, "err", err)
 		}
 		_ = rs.Close()
-		_ = root.Close()
+		_ = fsys.Close()
 		return
 	}
-}
-
-func (s *Server) openRoot(id string) (*os.Root, error) {
-	dir, err := s.o.Servers.FilesDir(id)
-	if err != nil {
-		return nil, err
-	}
-	return os.OpenRoot(dir)
 }
 
 // login parses and resolves the username. The error never says whether the

@@ -57,8 +57,10 @@ A server's directory is written by code Raptor doesn't trust: the egg's install 
 - **Quota tagging** opens files with `O_NOFOLLOW` through `os.Root` and skips symlinks; **disk usage** never follows symlinks.
 - **Delete** removes links, not their targets.
 - Edits happen only while the server is stopped, so nothing can swap a file between Wings checking it and writing it.
+- **Users' file access** (the web file manager and SFTP) goes through one `os.Root` layer: only regular files are opened (with `O_NONBLOCK`, and checked again once open, so a FIFO swapped in can't block), links are followed only inside the directory, deleting removes links, and new files belong to the servers' user with plain permission bits. **Archives** store links as links and never follow them out; extraction cleans each name, skips what would climb out and special files, drops setuid bits, replaces links in its way rather than writing through them, and is bounded by the server's disk limit. The server's own process can race these operations (swap a file for a link between a check and a use), but `os.Root` resolves every path at the moment of use, so a race can only reach another file inside the same directory.
+- **The egg's `file_denylist`** is enforced by Wings for the web file manager and SFTP, so a compromised or buggy Panel can't open the files an egg protects. Links are resolved before checking, so a link can't reach a denied file under another name, and a directory holding a denied file can't be moved or deleted.
 
-**Tested:** `TestPathSafety` (in `task e2e:runtime` and CI) uses a hostile egg that plants all of the above, including links to `/etc/passwd`, a root-only host file, and another server's files, then runs install, start, disk usage, reinstall, and delete, and checks that nothing outside the directory changed (content, mode, owner), nothing hung, and the other server still starts. The suite was checked against deliberately broken Wings builds: an ownership fix that follows symlinks, and config edits that resolve paths without `os.Root`. It failed on both. The config parsers' path handling is also fuzzed.
+**Tested:** `TestPathSafety` (in `task e2e:runtime` and CI) uses a hostile egg that plants all of the above, including links to `/etc/passwd`, `/etc`, `/usr`, a root-only host file, and another server's files, then runs install, start, disk usage, SFTP, the web file manager's operations, compressing everything and extracting a hostile archive, reinstall, and delete, and checks that nothing outside the directory changed (content, mode, and owner of the files, and mode and owner of the directories the links point at), nothing hung, and the other server still starts. The suite was checked against deliberately broken Wings builds: an ownership fix that follows symlinks, config edits that resolve paths without `os.Root`, and user file access that opens files without it. It failed on all three. The config parsers' path handling is also fuzzed.
 
 ### Enrollment and identity
 - Join tokens: single-use, 1-hour expiry, org-bound, stored hashed.
@@ -88,7 +90,7 @@ A WebAuthn passkey signs whatever challenge a site gives it. For dangerous actio
    - its `command_id` has never run (the `executed_commands` table);
    - the signature counter moved forward, when the authenticator keeps one.
 
-   Anything missing or invalid is rejected and logged, even though it came from the Panel.
+   Anything missing or invalid is rejected and logged, even though it came from the Panel. Read-only commands (listing, reading, and starting a download of files) skip the `executed_commands` record: running one twice changes nothing, and their results (file contents) shouldn't be stored.
 
 Verification takes about 0.1 ms on the node. The user's cost is one fingerprint or PIN tap, which replaces the re-authentication prompt these actions already needed. Bulk actions sign once (one signature over the list of servers), and the browser signs before sending, so there's no extra round trip.
 
@@ -102,7 +104,7 @@ Verification takes about 0.1 ms on the node. The user's cost is one fingerprint 
 - Changing the node's trusted keys
 - Removing the node
 
-**Not signed** (to keep everyday use fast): start/stop/restart/kill, console commands, a plain reinstall (it re-runs the egg the owner already approved), file browsing and editing, variables, schedules, and settings that don't change code or access. These still need the Panel's per-user grant. A compromised Panel could read files and the console and disrupt servers, but not destroy them, backdoor them through eggs or images, or quietly add access.
+**Not signed** (to keep everyday use fast): start/stop/restart/kill, console commands, a plain reinstall (it re-runs the egg the owner already approved), file browsing and editing, variables, schedules, and settings that don't change code or access. These still need the Panel's per-user grant. A compromised Panel could read files and the console and disrupt servers, but not wipe them beyond recovery, backdoor them through eggs or images, or quietly add access. It could still change or delete files through the unsigned file manager, including adding a plugin that runs code in the game: signing every edit would make the file manager unusable. What it can't do is make that stick: deleting, unlocking, or thinning out backups is signed, so the files can be restored from backups (on by default), and a node's own record of commands shows what it did.
 
 **Trusted keys: rooted on the node, not in the Panel**
 

@@ -12,6 +12,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/files"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/sftp"
@@ -44,6 +45,22 @@ const (
 	BackupDestinationDelete = "backup.destination.delete"
 
 	NodeSFTP = "node.sftp" // turn SFTP on or off
+
+	FilesList         = "files.list"
+	FilesStat         = "files.stat"
+	FilesRead         = "files.read"
+	FilesWrite        = "files.write"
+	FilesMkdir        = "files.mkdir"
+	FilesRename       = "files.rename"
+	FilesCopy         = "files.copy"
+	FilesDelete       = "files.delete"
+	FilesChmod        = "files.chmod"
+	FilesCompress     = "files.compress"
+	FilesDecompress   = "files.decompress"
+	FilesUpload       = "files.upload" // start an upload; chunks go over a transfer connection
+	FilesUploadStatus = "files.upload.status"
+	FilesUploadCancel = "files.upload.cancel"
+	FilesDownload     = "files.download" // start a download
 )
 
 // ServerConfig is a server's configuration as sent by the Panel.
@@ -404,6 +421,102 @@ func RegisterSFTP(x *command.Executor, s *sftp.Service) {
 		}
 		return s.SetEnabled(ctx, p.Enabled)
 	}})
+}
+
+// FilesParams are the params of the file actions; each uses the fields it
+// needs. Paths are from the server's directory; Dir is what Names, Moves,
+// and Changes are relative to.
+type FilesParams struct {
+	Path     string        `json:"path,omitempty"`
+	Dir      string        `json:"dir,omitempty"`
+	Names    []string      `json:"names,omitempty"`
+	Moves    []files.Move  `json:"moves,omitempty"`
+	Changes  []files.Chmod `json:"changes,omitempty"`
+	Data     []byte        `json:"data,omitempty"` // files.write (base64 in JSON)
+	Dest     string        `json:"dest,omitempty"` // files.decompress
+	Size     int64         `json:"size,omitempty"` // files.upload
+	UploadID string        `json:"upload_id,omitempty"`
+}
+
+// RegisterFiles adds the web file manager's actions
+// (docs/WINGS.md#files-and-sftp). None are signed: file browsing and editing
+// only need the Panel's grant (docs/SECURITY-MODEL.md#passkey-signed-commands),
+// and the egg's denylist is enforced here whatever the Panel sends. Reads
+// are read-only commands, so file contents aren't stored with the command.
+func RegisterFiles(x *command.Executor, s *files.Service) {
+	handler := func(readOnly bool, run func(context.Context, command.Envelope, FilesParams) (any, error)) command.Handler {
+		return command.Handler{Signed: command.Never, ReadOnly: readOnly, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+			if e.ServerID == "" {
+				return nil, errors.New("command needs a server_id")
+			}
+			var p FilesParams
+			if err := decode(e, &p); err != nil {
+				return nil, err
+			}
+			return run(ctx, e, p)
+		}}
+	}
+	jobResult := func(id string, err error) (any, error) {
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": id}, nil
+	}
+
+	x.Register(FilesList, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.List(ctx, e.ServerID, p.Path)
+	}))
+	x.Register(FilesStat, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.Stat(ctx, e.ServerID, p.Path)
+	}))
+	x.Register(FilesRead, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.Read(ctx, e.ServerID, p.Path)
+	}))
+	x.Register(FilesDownload, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.StartDownload(ctx, e.ServerID, p.Path)
+	}))
+	x.Register(FilesUploadStatus, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		up, err := s.UploadStatus(ctx, p.UploadID)
+		if err == nil && up.ServerID != e.ServerID {
+			return nil, files.ErrTransferNotFound
+		}
+		return up, err
+	}))
+
+	x.Register(FilesWrite, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.Write(ctx, e.ServerID, p.Path, p.Data)
+	}))
+	x.Register(FilesMkdir, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.Mkdir(ctx, e.ServerID, p.Path)
+	}))
+	x.Register(FilesRename, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.Rename(ctx, e.ServerID, p.Dir, p.Moves)
+	}))
+	x.Register(FilesCopy, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		name, err := s.Copy(ctx, e.ServerID, p.Path)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"path": name}, nil
+	}))
+	x.Register(FilesDelete, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.Delete(ctx, e.ServerID, p.Dir, p.Names)
+	}))
+	x.Register(FilesChmod, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.Chmod(ctx, e.ServerID, p.Dir, p.Changes)
+	}))
+	x.Register(FilesCompress, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return jobResult(s.Compress(ctx, e.ServerID, e.UserID, p.Dir, p.Names))
+	}))
+	x.Register(FilesDecompress, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return jobResult(s.Decompress(ctx, e.ServerID, e.UserID, p.Path, p.Dest))
+	}))
+	x.Register(FilesUpload, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.StartUpload(ctx, e.ServerID, e.UserID, p.Path, p.Size)
+	}))
+	x.Register(FilesUploadCancel, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.CancelUpload(ctx, e.ServerID, p.UploadID)
+	}))
 }
 
 func decode(e command.Envelope, v any) error {

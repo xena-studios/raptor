@@ -3,10 +3,14 @@
 package server
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"os"
@@ -19,6 +23,7 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
+	"github.com/xena-studios/raptor/internal/wings/files"
 	wsftp "github.com/xena-studios/raptor/internal/wings/sftp"
 )
 
@@ -50,7 +55,9 @@ func TestPathSafety(t *testing.T) {
 	if err := os.WriteFile(victimFile, []byte("server-port=2\nowner=victim\n"), 0o644); err != nil { //nolint:gosec // test file
 		t.Fatal(err)
 	}
-	guarded := []string{sentinel, victimFile, "/etc/passwd", "/etc/hosts", "/etc/hostname"}
+	// The directories links point at too: an ownership change through a
+	// link would chown them, not the files in them.
+	guarded := []string{sentinel, victimFile, "/etc/passwd", "/etc/hosts", "/etc/hostname", sentinelDir, victimDir, "/etc", "/usr"}
 	before := snapshot(t, guarded)
 
 	id := e.create(m, freePort(t), func(c *Config) {
@@ -114,6 +121,8 @@ func TestPathSafety(t *testing.T) {
 
 	sftpAttack(t, m, id)
 	check("sftp")
+	fileManagerAttack(t, m, id, sentinelDir)
+	check("web file manager")
 
 	if err := m.Kill(context.Background(), id); err != nil {
 		t.Fatal(err)
@@ -207,6 +216,119 @@ func sftpAttack(t *testing.T, m *Manager, id string) {
 	}
 }
 
+// fileManagerAttack does the same through the web file manager's
+// operations, and archives: compressing must not pull in what links point
+// at, and extracting must not write through them.
+func fileManagerAttack(t *testing.T, m *Manager, id, sentinelDir string) {
+	t.Helper()
+	ctx := context.Background()
+	svc := files.NewService(files.Options{Servers: m, Store: m.o.Store, UID: m.o.UID, GID: m.o.GID})
+	hostile := []string{
+		"passwd.properties", "relative.properties", "sentinel.properties", "sibling.properties",
+		"etc-link/hosts", "secrets-dir/secret.properties", "loop.properties", "fifo.properties",
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// Paths that try to leave the directory land inside it.
+		for _, name := range []string{"../../../etc/raptor-escape", "/etc/raptor-absolute"} {
+			if err := svc.Write(ctx, id, name, []byte("inside")); err != nil {
+				t.Errorf("file manager write %s: %v", name, err)
+			}
+			if b, err := os.ReadFile(filepath.Join(m.o.VolumesDir, id, "etc", filepath.Base(name))); err != nil || string(b) != "inside" {
+				t.Errorf("%s wasn't written inside the directory: %q, %v", name, b, err)
+			}
+		}
+		for _, name := range hostile {
+			if _, err := svc.Read(ctx, id, name); err == nil {
+				t.Errorf("file manager read %s", name)
+			}
+			if err := svc.Write(ctx, id, name, []byte("pwned")); err == nil {
+				t.Errorf("file manager wrote %s", name)
+			}
+			if _, err := svc.StartDownload(ctx, id, name); err == nil {
+				t.Errorf("file manager downloaded %s", name)
+			}
+			if _, err := svc.StartUpload(ctx, id, "u", name, 5); err == nil {
+				t.Errorf("file manager started an upload to %s", name)
+			}
+			_, _ = svc.Copy(ctx, id, name)
+			_ = svc.Chmod(ctx, id, "/", []files.Chmod{{Name: name, Mode: 0o777}})
+		}
+		_ = svc.Mkdir(ctx, id, "etc-link/new")
+		_ = svc.Rename(ctx, id, "/", []files.Move{{From: "real/inner.properties", To: "secrets-dir/moved"}})
+		if _, err := svc.List(ctx, id, "etc-link"); err == nil {
+			t.Error("file manager listed a directory outside")
+		}
+		if err := svc.Write(ctx, id, "inner.properties", []byte("edited=yes\n")); err != nil {
+			t.Errorf("file manager write through an internal symlink: %v", err)
+		}
+
+		fsys, err := files.OpenServer(m, id, m.o.UID, m.o.GID)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() { _ = fsys.Close() }()
+		entries, err := fsys.List("/")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		var names []string
+		for _, fi := range entries {
+			names = append(names, fi.Name())
+		}
+		res, err := fsys.Compress(ctx, "/", names, -1, time.Now())
+		if err != nil {
+			t.Errorf("compress: %v", err)
+			return
+		}
+		archive, err := os.ReadFile(filepath.Join(m.o.VolumesDir, id, res.Archive))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if len(archive) > 1<<20 {
+			t.Errorf("the archive is %d KiB: it followed a link out", len(archive)>>10)
+		}
+		zr, err := gzip.NewReader(bytes.NewReader(archive))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		content, _ := io.ReadAll(zr)
+		for _, leak := range []string{"do-not-touch", "owner=victim", "root:x:0:0"} {
+			if bytes.Contains(content, []byte(leak)) {
+				t.Errorf("the archive holds %q from outside the directory", leak)
+			}
+		}
+
+		var buf bytes.Buffer
+		tw := tar.NewWriter(&buf)
+		for _, name := range []string{"etc-link/raptor-pwned", "secrets-dir/raptor-pwned", "../../raptor-pwned", "sibling.properties", "passwd.properties"} {
+			_ = tw.WriteHeader(&tar.Header{Name: name, Typeflag: tar.TypeReg, Mode: 0o644, Size: 5})
+			_, _ = tw.Write([]byte("pwned"))
+		}
+		_ = tw.Close()
+		if err := os.WriteFile(filepath.Join(m.o.VolumesDir, id, "evil.tar"), buf.Bytes(), 0o644); err != nil { //nolint:gosec // test file
+			t.Error(err)
+			return
+		}
+		_, _ = fsys.Extract(ctx, "evil.tar", "", -1)
+		for _, p := range []string{"/etc/raptor-pwned", "/etc/raptor-escape", "/etc/raptor-absolute", filepath.Join(sentinelDir, "raptor-pwned")} {
+			if _, err := os.Lstat(p); err == nil {
+				t.Errorf("extracting wrote %s", p)
+			}
+		}
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Minute):
+		t.Fatal("the file manager hung on the planted files")
+	}
+}
+
 type allowAll struct{}
 
 func (allowAll) Password(context.Context, wsftp.Login, string) (wsftp.Grant, error) {
@@ -264,18 +386,21 @@ echo planted`, sentinel, victimFile, sentinelDir)
 	}`, mustJSON(files), install)
 }
 
-// snapshot fingerprints files: content, mode, and owner.
+// snapshot fingerprints files (content, mode, and owner) and directories
+// (mode and owner).
 func snapshot(t *testing.T, paths []string) string {
 	t.Helper()
 	var b strings.Builder
 	for _, p := range paths {
-		data, err := os.ReadFile(p) //nolint:gosec // test paths
-		if err != nil {
-			t.Fatalf("snapshot %s: %v", p, err)
-		}
 		fi, err := os.Stat(p)
 		if err != nil {
 			t.Fatal(err)
+		}
+		var data []byte // directories: mode and owner only
+		if !fi.IsDir() {
+			if data, err = os.ReadFile(p); err != nil { //nolint:gosec // test paths
+				t.Fatalf("snapshot %s: %v", p, err)
+			}
 		}
 		st := fi.Sys().(*syscall.Stat_t)
 		sum := sha256.Sum256(data)

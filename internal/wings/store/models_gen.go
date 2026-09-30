@@ -79,6 +79,16 @@ type ExecutedCommand struct {
 	FinishedAt  sql.NullInt64
 }
 
+type FileUpload struct {
+	ID        string
+	ServerID  string
+	UserID    string
+	Path      string
+	Size      int64
+	CreatedAt int64
+	TouchedAt int64
+}
+
 type Job struct {
 	ID          string
 	ServerID    string
