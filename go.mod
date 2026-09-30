@@ -3,6 +3,7 @@ module github.com/xena-studios/raptor
 go 1.27.1
 
 require (
+	aead.dev/minisign v0.3.0
 	connectrpc.com/connect v1.21.0
 	github.com/containerd/errdefs v1.0.0
 	github.com/go-webauthn/webauthn v0.18.2
@@ -16,6 +17,7 @@ require (
 	github.com/moby/profiles/seccomp v0.2.3
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/pressly/goose/v3 v3.28.0
+	golang.org/x/mod v0.41.0
 	golang.org/x/sys v0.48.0
 	golang.org/x/term v0.46.0
 	google.golang.org/protobuf v1.36.12

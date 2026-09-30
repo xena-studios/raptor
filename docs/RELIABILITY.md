@@ -28,8 +28,8 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 - The Docker package is held so unattended upgrades can't restart it.
 
 ### Updates can't break a node
-- Signature-verified download → atomic swap → restart → health check.
-- **Automatic rollback** if the new version doesn't start or doesn't reconnect within 5 minutes.
+- Signature-verified download → restart → the running version starts the new one on trial → atomic swap only once it's healthy ([WINGS.md](WINGS.md#updates)).
+- **Automatic rollback** if the new version crashes or isn't healthy within 5 minutes (Phase 3 adds: doesn't reconnect). The old version supervises the trial, so a broken new version can't block its own rollback.
 - Staged rollout (5% → 25% → 100%) with automatic halt if error rates rise.
 
 ### State durability

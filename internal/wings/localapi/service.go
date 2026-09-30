@@ -44,6 +44,7 @@ type Service struct {
 	StartedAt time.Time
 	Docker    DockerVersioner
 	Storage   *storage.Volume // nil in tests
+	Updates   Updates         // nil in tests
 
 	mu      sync.RWMutex
 	servers Servers
@@ -95,6 +96,7 @@ func (s *Service) GetStatus(ctx context.Context, _ *localv1.GetStatusRequest) (*
 		StartedAt: timestamppb.New(s.StartedAt),
 		Caller:    Caller(ctx),
 		Docker:    &localv1.DockerStatus{},
+		Update:    s.updateStatus(),
 	}
 	if v := s.Storage; v != nil {
 		resp.Storage = &localv1.StorageStatus{Path: v.Path, Quotas: !v.Soft, Ready: true}

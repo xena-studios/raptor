@@ -60,6 +60,14 @@ service LocalService {
   // taking a safety backup of the current files. The server is stopped
   // meanwhile and started again if it was meant to be running. Root only.
   rpc RestoreBackup(RestoreBackupRequest) returns (RestoreBackupResponse) {}
+
+  // Update installs another Wings version: the one asked for, else the
+  // pinned one, else the newest in the node's channel. Wings downloads and
+  // verifies it, then restarts to run it on trial (servers keep running); if
+  // it isn't healthy within 5 minutes, Wings rolls back. The reply comes
+  // before the restart: GetStatus reports how the update went. Checking is
+  // open to the raptor group; installing is root only.
+  rpc Update(UpdateRequest) returns (UpdateResponse) {}
 }
 
 // Servers are named in requests by full ID, the last 8 or more characters of
@@ -233,6 +241,19 @@ message GetStatusResponse {
   // Unset until the container runtime is ready.
   ServerCounts servers = 8;
   StorageStatus storage = 9;
+  // The last update; unset if there hasn't been one.
+  UpdateStatus update = 10;
+}
+
+message UpdateStatus {
+  // trial (installed, being tried), succeeded, or failed (rolled back).
+  string status = 1;
+  string from = 2;
+  string to = 3;
+  // Why it failed.
+  string error = 4;
+  google.protobuf.Timestamp started_at = 5;
+  google.protobuf.Timestamp finished_at = 6;
 }
 
 message ServerCounts {
@@ -255,4 +276,26 @@ message DockerStatus {
   bool reachable = 1;
   string version = 2;
   string error = 3;
+}
+
+message UpdateRequest {
+  // Only report what would be installed.
+  bool check = 1;
+  // A version like "1.4.2", instead of the pin or channel. It may be older
+  // than the running one.
+  string version = 2;
+}
+
+message UpdateResponse {
+  // The running version.
+  string current = 1;
+  // The version picked; the running one when it's up to date.
+  string target = 2;
+  // Where target came from: the channel ("stable" or "beta"), "pin", or
+  // "requested".
+  string channel = 3;
+  // target differs from the running version.
+  bool available = 4;
+  // Wings is restarting to run target on trial.
+  bool started = 5;
 }

@@ -158,7 +158,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] **Local metrics:** ~7 days, downsampled
 - [ ] **`doctor`:** all checks from [WINGS.md](WINGS.md#doctor), with fix messages; `--bundle`, `--upload`
 - [ ] **TUI** (Bubble Tea): server list, stats, console, power + backup keys
-- [ ] **Self-update:** channels, signature verification, atomic swap, rollback on failure
+- [x] **Self-update:** `raptor update [-check] [-version v]`: channels (`stable`, `beta`) and a pin from GitHub releases, minisign verification with the trusted comment bound to the tag, SHA-256 check, and a **trial**: the running version starts the new one as its child and only switches the `current` link once it's healthy; a crash, 5 minutes without becoming healthy, or 3 interrupted starts roll back. Outcomes are recorded as `node.update` events. `task e2e:update` and a CI job test it against the real systemd unit ([WINGS.md](WINGS.md#updates)). Updates are started by hand until the Panel drives staged rollouts (3.3); "can't reconnect" joins the health check with the node connection.
 - [ ] **Pterodactyl coexistence** CI test + **`raptor import pterodactyl`**
 - [ ] **Host disk protection:** refuse installs/pulls below the threshold
 - [ ] **Fault-injection suite:** drop the node connection, kill Wings/Docker mid-job, reboot, fill disks, unmount the volume, corrupt `state.db`
@@ -206,6 +206,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Signed short-lived grants attached to commands; Wings verification
 - [ ] Passkey-signed dangerous commands end to end: owner key pinned at enrollment (with fingerprint comparison), signed key additions, owner-signed delegations for sub-users
 - [ ] SFTP auth over the node connection + public key sync
+- [ ] Automatic Wings updates: the Panel starts updates in stages (5% → 25% → 100%, halted if failures rise) through a `node.update` command; the health check requires the node connection to come back
 
 **Exit criteria:** on fresh Debian 12, Debian 13, and Ubuntu 24.04 VMs (amd64 + arm64), one command links the node and it shows Connected; dropping node connections and redeploying the Panel both work without game impact; the mirror rebuilds correctly after being dropped.
 

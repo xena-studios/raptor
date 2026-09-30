@@ -192,7 +192,7 @@ Every node gets a hostname: **`n-<short-id>.raptornodes.net`**, e.g. `n-k7m2qx9d
 
 1. Owner clicks **Add Node**. The Panel creates a **join token**: single-use, org-bound, expires in 1 hour.
 2. Owner runs `curl -fsSL https://get.raptorpanel.net | sudo bash -s -- --token rpt_join_…`
-3. The bash script checks root, systemd, distro, and architecture, downloads the `raptor` binary, **verifies it against the SHA-256 embedded in the script** (the script is generated per release), and runs `raptor bootstrap`. All later updates are verified by the binary itself with minisign.
+3. The bash script checks root, systemd, distro, and architecture, downloads the `raptor` binary, **verifies it against the SHA-256 embedded in the script** (the script is generated per release), installs it as `/usr/local/lib/raptor/raptor-<version>` (linked from `/usr/local/bin/raptor`, [WINGS.md](WINGS.md#updates)), and runs `raptor bootstrap`. All later updates are verified by the binary itself with minisign.
 4. `raptor bootstrap` runs preflight checks, installs and configures Docker, sets up the quota volume, creates the `raptor` system user and directories, **generates a keypair locally**, and enrolls: it sends the public key, join token, and hardware facts.
 5. The Panel validates and burns the token, stores the node's public key, assigns a node ID and short ID, creates `n-<short-id>.raptornodes.net`, and returns them.
 6. Wings writes `/etc/raptor/config.yml`, installs `raptor-wings.service`, starts, and connects. The Panel UI flips to **Connected**.

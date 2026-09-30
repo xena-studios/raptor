@@ -60,6 +60,8 @@ const (
 	// LocalServiceRestoreBackupProcedure is the fully-qualified name of the LocalService's
 	// RestoreBackup RPC.
 	LocalServiceRestoreBackupProcedure = "/raptor.wings.local.v1.LocalService/RestoreBackup"
+	// LocalServiceUpdateProcedure is the fully-qualified name of the LocalService's Update RPC.
+	LocalServiceUpdateProcedure = "/raptor.wings.local.v1.LocalService/Update"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
@@ -94,6 +96,13 @@ type LocalServiceClient interface {
 	// taking a safety backup of the current files. The server is stopped
 	// meanwhile and started again if it was meant to be running. Root only.
 	RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*v1.RestoreBackupResponse, error)
+	// Update installs another Wings version: the one asked for, else the
+	// pinned one, else the newest in the node's channel. Wings downloads and
+	// verifies it, then restarts to run it on trial (servers keep running); if
+	// it isn't healthy within 5 minutes, Wings rolls back. The reply comes
+	// before the restart: GetStatus reports how the update went. Checking is
+	// open to the raptor group; installing is root only.
+	Update(context.Context, *v1.UpdateRequest) (*v1.UpdateResponse, error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -173,6 +182,12 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("RestoreBackup")),
 			connect.WithClientOptions(opts...),
 		),
+		update: connect.NewClient[v1.UpdateRequest, v1.UpdateResponse](
+			httpClient,
+			baseURL+LocalServiceUpdateProcedure,
+			connect.WithSchema(localServiceMethods.ByName("Update")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -188,6 +203,7 @@ type localServiceClient struct {
 	listBackups     *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
 	createBackup    *connect.Client[v1.CreateBackupRequest, v1.CreateBackupResponse]
 	restoreBackup   *connect.Client[v1.RestoreBackupRequest, v1.RestoreBackupResponse]
+	update          *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -272,6 +288,15 @@ func (c *localServiceClient) RestoreBackup(ctx context.Context, req *v1.RestoreB
 	return nil, err
 }
 
+// Update calls raptor.wings.local.v1.LocalService.Update.
+func (c *localServiceClient) Update(ctx context.Context, req *v1.UpdateRequest) (*v1.UpdateResponse, error) {
+	response, err := c.update.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
@@ -304,6 +329,13 @@ type LocalServiceHandler interface {
 	// taking a safety backup of the current files. The server is stopped
 	// meanwhile and started again if it was meant to be running. Root only.
 	RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*v1.RestoreBackupResponse, error)
+	// Update installs another Wings version: the one asked for, else the
+	// pinned one, else the newest in the node's channel. Wings downloads and
+	// verifies it, then restarts to run it on trial (servers keep running); if
+	// it isn't healthy within 5 minutes, Wings rolls back. The reply comes
+	// before the restart: GetStatus reports how the update went. Checking is
+	// open to the raptor group; installing is root only.
+	Update(context.Context, *v1.UpdateRequest) (*v1.UpdateResponse, error)
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -379,6 +411,12 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("RestoreBackup")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceUpdateHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceUpdateProcedure,
+		svc.Update,
+		connect.WithSchema(localServiceMethods.ByName("Update")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
@@ -401,6 +439,8 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceCreateBackupHandler.ServeHTTP(w, r)
 		case LocalServiceRestoreBackupProcedure:
 			localServiceRestoreBackupHandler.ServeHTTP(w, r)
+		case LocalServiceUpdateProcedure:
+			localServiceUpdateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -448,4 +488,8 @@ func (UnimplementedLocalServiceHandler) CreateBackup(context.Context, *v1.Create
 
 func (UnimplementedLocalServiceHandler) RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*v1.RestoreBackupResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.RestoreBackup is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) Update(context.Context, *v1.UpdateRequest) (*v1.UpdateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.Update is not implemented"))
 }

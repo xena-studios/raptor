@@ -134,7 +134,7 @@ Even if every one of these failed, each malicious action would still need a real
 
 ### Releases and supply chain
 - Wings releases are **signed** with minisign (Ed25519): the signature covers `checksums.txt`, which covers every binary. CI only builds **draft** releases; the maintainer signs and publishes locally. The private key is kept **offline** and never stored in the repository or CI.
-- The install script is generated per release with the binary's SHA-256 embedded, and verifies it before running anything. The binary verifies every later update's minisign signature with an embedded public key.
+- The install script is generated per release with the binary's SHA-256 embedded, and verifies it before running anything. The binary verifies every later update's minisign signature with an embedded public key, and the signed trusted comment must name the release being installed, so a validly signed older release can't be replayed as a newer one. A channel never moves a node to an older version; only the owner can, explicitly.
 - Dependencies pinned. CI runs `govulncheck`, `npm audit`, license checks, and secret scanning (gitleaks).
 - Egg imports show the image registry and install script before import.
 

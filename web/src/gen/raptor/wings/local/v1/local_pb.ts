@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/wings/local/v1/local.proto.
  */
 export const file_raptor_wings_local_v1_local: GenFile = /*@__PURE__*/
-  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIkChJMaXN0QmFja3Vwc1JlcXVlc3QSDgoGc2VydmVyGAEgASgJIkkKE0xpc3RCYWNrdXBzUmVzcG9uc2USMgoHYmFja3VwcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5CYWNrdXBJbmZvIpYDCgpCYWNrdXBJbmZvEgoKAmlkGAEgASgJEhEKCXNlcnZlcl9pZBgCIAEoCRITCgtzZXJ2ZXJfbmFtZRgDIAEoCRIWCg5kZXN0aW5hdGlvbl9pZBgEIAEoCRIMCgRraW5kGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIOCgZsb2NrZWQYByABKAgSEgoKc2l6ZV9ieXRlcxgIIAEoAxINCgVmaWxlcxgJIAEoAxIWCg51cGxvYWRlZF9ieXRlcxgKIAEoAxIPCgd3YXJuaW5nGAsgASgJEg0KBWVycm9yGAwgASgJEhIKCmNyZWF0ZWRfYnkYDSABKAkSLgoKY3JlYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmpvYl9pZBgRIAEoCSJDChNDcmVhdGVCYWNrdXBSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIOCgZsb2NrZWQYAiABKAgSDAoEd2FpdBgDIAEoCCJJChRDcmVhdGVCYWNrdXBSZXNwb25zZRIxCgZiYWNrdXAYASABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQmFja3VwSW5mbyJEChRSZXN0b3JlQmFja3VwUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDgoGYmFja3VwGAIgASgJEgwKBHdhaXQYAyABKAgiQQoVUmVzdG9yZUJhY2t1cFJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIYChBzYWZldHlfYmFja3VwX2lkGAIgASgJIhgKFlNodXRkb3duU2VydmVyc1JlcXVlc3QiOgoXU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2USDwoHc3RvcHBlZBgBIAEoBRIOCgZlcnJvcnMYAiADKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCK6AgoRR2V0U3RhdHVzUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRIOCgZjb21taXQYAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglwYW5lbF91cmwYBCABKAkSLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMwoGZG9ja2VyGAYgASgLMiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLkRvY2tlclN0YXR1cxIOCgZjYWxsZXIYByABKAkSNAoHc2VydmVycxgIIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZXJ2ZXJDb3VudHMSNQoHc3RvcmFnZRgJIAEoCzIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdG9yYWdlU3RhdHVzIikKDFNlcnZlckNvdW50cxINCgV0b3RhbBgBIAEoBRIKCgJ1cBgCIAEoBSJLCg1TdG9yYWdlU3RhdHVzEgwKBHBhdGgYASABKAkSDgoGcXVvdGFzGAIgASgIEg0KBXJlYWR5GAMgASgIEg0KBWVycm9yGAQgASgJIkEKDERvY2tlclN0YXR1cxIRCglyZWFjaGFibGUYASABKAgSDwoHdmVyc2lvbhgCIAEoCRINCgVlcnJvchgDIAEoCSqLAQoLUG93ZXJBY3Rpb24SHAoYUE9XRVJfQUNUSU9OX1VOU1BFQ0lGSUVEEAASFgoSUE9XRVJfQUNUSU9OX1NUQVJUEAESFQoRUE9XRVJfQUNUSU9OX1NUT1AQAhIYChRQT1dFUl9BQ1RJT05fUkVTVEFSVBADEhUKEVBPV0VSX0FDVElPTl9LSUxMEAQyrggKDExvY2FsU2VydmljZRJjCglHZXRTdGF0dXMSJy5yYXB0b3Iud2luZ3MubG9jYWwudjEuR2V0U3RhdHVzUmVxdWVzdBooLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXNwb25zZSIDkAIBEnUKD1NodXRkb3duU2VydmVycxItLnJhcHRvci53aW5ncy5sb2NhbC52MS5TaHV0ZG93blNlcnZlcnNSZXF1ZXN0Gi4ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNodXRkb3duU2VydmVyc1Jlc3BvbnNlIgOQAgISaQoLTGlzdFNlcnZlcnMSKS5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdFNlcnZlcnNSZXF1ZXN0GioucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RTZXJ2ZXJzUmVzcG9uc2UiA5ACARJUCgVQb3dlchIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5Qb3dlclJlcXVlc3QaJC5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJSZXNwb25zZSIAEnEKDVN0cmVhbUNvbnNvbGUSKy5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RyZWFtQ29uc29sZVJlcXVlc3QaLC5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RyZWFtQ29uc29sZVJlc3BvbnNlIgOQAgEwARJmCgtTZW5kQ29tbWFuZBIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZW5kQ29tbWFuZFJlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VuZENvbW1hbmRSZXNwb25zZSIAEmIKCFRhaWxMb2dzEiYucmFwdG9yLndpbmdzLmxvY2FsLnYxLlRhaWxMb2dzUmVxdWVzdBonLnJhcHRvci53aW5ncy5sb2NhbC52MS5UYWlsTG9nc1Jlc3BvbnNlIgOQAgEwARJpCgtMaXN0QmFja3VwcxIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0QmFja3Vwc1JlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdEJhY2t1cHNSZXNwb25zZSIDkAIBEmkKDENyZWF0ZUJhY2t1cBIqLnJhcHRvci53aW5ncy5sb2NhbC52MS5DcmVhdGVCYWNrdXBSZXF1ZXN0GisucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNyZWF0ZUJhY2t1cFJlc3BvbnNlIgASbAoNUmVzdG9yZUJhY2t1cBIrLnJhcHRvci53aW5ncy5sb2NhbC52MS5SZXN0b3JlQmFja3VwUmVxdWVzdBosLnJhcHRvci53aW5ncy5sb2NhbC52MS5SZXN0b3JlQmFja3VwUmVzcG9uc2UiAELvAQoZY29tLnJhcHRvci53aW5ncy5sb2NhbC52MUIKTG9jYWxQcm90b1ABWk9naXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci93aW5ncy9sb2NhbC92MTtsb2NhbHYxogIDUldMqgIVUmFwdG9yLldpbmdzLkxvY2FsLlYxygIVUmFwdG9yXFdpbmdzXExvY2FsXFYx4gIhUmFwdG9yXFdpbmdzXExvY2FsXFYxXEdQQk1ldGFkYXRh6gIYUmFwdG9yOjpXaW5nczo6TG9jYWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIkChJMaXN0QmFja3Vwc1JlcXVlc3QSDgoGc2VydmVyGAEgASgJIkkKE0xpc3RCYWNrdXBzUmVzcG9uc2USMgoHYmFja3VwcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5CYWNrdXBJbmZvIpYDCgpCYWNrdXBJbmZvEgoKAmlkGAEgASgJEhEKCXNlcnZlcl9pZBgCIAEoCRITCgtzZXJ2ZXJfbmFtZRgDIAEoCRIWCg5kZXN0aW5hdGlvbl9pZBgEIAEoCRIMCgRraW5kGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIOCgZsb2NrZWQYByABKAgSEgoKc2l6ZV9ieXRlcxgIIAEoAxINCgVmaWxlcxgJIAEoAxIWCg51cGxvYWRlZF9ieXRlcxgKIAEoAxIPCgd3YXJuaW5nGAsgASgJEg0KBWVycm9yGAwgASgJEhIKCmNyZWF0ZWRfYnkYDSABKAkSLgoKY3JlYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmpvYl9pZBgRIAEoCSJDChNDcmVhdGVCYWNrdXBSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIOCgZsb2NrZWQYAiABKAgSDAoEd2FpdBgDIAEoCCJJChRDcmVhdGVCYWNrdXBSZXNwb25zZRIxCgZiYWNrdXAYASABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQmFja3VwSW5mbyJEChRSZXN0b3JlQmFja3VwUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDgoGYmFja3VwGAIgASgJEgwKBHdhaXQYAyABKAgiQQoVUmVzdG9yZUJhY2t1cFJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIYChBzYWZldHlfYmFja3VwX2lkGAIgASgJIhgKFlNodXRkb3duU2VydmVyc1JlcXVlc3QiOgoXU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2USDwoHc3RvcHBlZBgBIAEoBRIOCgZlcnJvcnMYAiADKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCLvAgoRR2V0U3RhdHVzUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRIOCgZjb21taXQYAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglwYW5lbF91cmwYBCABKAkSLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMwoGZG9ja2VyGAYgASgLMiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLkRvY2tlclN0YXR1cxIOCgZjYWxsZXIYByABKAkSNAoHc2VydmVycxgIIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZXJ2ZXJDb3VudHMSNQoHc3RvcmFnZRgJIAEoCzIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdG9yYWdlU3RhdHVzEjMKBnVwZGF0ZRgKIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVTdGF0dXMiqAEKDFVwZGF0ZVN0YXR1cxIOCgZzdGF0dXMYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCRINCgVlcnJvchgEIAEoCRIuCgpzdGFydGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiKQoMU2VydmVyQ291bnRzEg0KBXRvdGFsGAEgASgFEgoKAnVwGAIgASgFIksKDVN0b3JhZ2VTdGF0dXMSDAoEcGF0aBgBIAEoCRIOCgZxdW90YXMYAiABKAgSDQoFcmVhZHkYAyABKAgSDQoFZXJyb3IYBCABKAkiQQoMRG9ja2VyU3RhdHVzEhEKCXJlYWNoYWJsZRgBIAEoCBIPCgd2ZXJzaW9uGAIgASgJEg0KBWVycm9yGAMgASgJIi8KDVVwZGF0ZVJlcXVlc3QSDQoFY2hlY2sYASABKAgSDwoHdmVyc2lvbhgCIAEoCSJmCg5VcGRhdGVSZXNwb25zZRIPCgdjdXJyZW50GAEgASgJEg4KBnRhcmdldBgCIAEoCRIPCgdjaGFubmVsGAMgASgJEhEKCWF2YWlsYWJsZRgEIAEoCBIPCgdzdGFydGVkGAUgASgIKosBCgtQb3dlckFjdGlvbhIcChhQT1dFUl9BQ1RJT05fVU5TUEVDSUZJRUQQABIWChJQT1dFUl9BQ1RJT05fU1RBUlQQARIVChFQT1dFUl9BQ1RJT05fU1RPUBACEhgKFFBPV0VSX0FDVElPTl9SRVNUQVJUEAMSFQoRUE9XRVJfQUNUSU9OX0tJTEwQBDKHCQoMTG9jYWxTZXJ2aWNlEmMKCUdldFN0YXR1cxInLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXF1ZXN0GigucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgOQAgESdQoPU2h1dGRvd25TZXJ2ZXJzEi0ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNodXRkb3duU2VydmVyc1JlcXVlc3QaLi5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2UiA5ACAhJpCgtMaXN0U2VydmVycxIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0U2VydmVyc1JlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdFNlcnZlcnNSZXNwb25zZSIDkAIBElQKBVBvd2VyEiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLlBvd2VyUmVxdWVzdBokLnJhcHRvci53aW5ncy5sb2NhbC52MS5Qb3dlclJlc3BvbnNlIgAScQoNU3RyZWFtQ29uc29sZRIrLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdHJlYW1Db25zb2xlUmVxdWVzdBosLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdHJlYW1Db25zb2xlUmVzcG9uc2UiA5ACATABEmYKC1NlbmRDb21tYW5kEikucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlbmRDb21tYW5kUmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZW5kQ29tbWFuZFJlc3BvbnNlIgASYgoIVGFpbExvZ3MSJi5yYXB0b3Iud2luZ3MubG9jYWwudjEuVGFpbExvZ3NSZXF1ZXN0GicucmFwdG9yLndpbmdzLmxvY2FsLnYxLlRhaWxMb2dzUmVzcG9uc2UiA5ACATABEmkKC0xpc3RCYWNrdXBzEikucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RCYWNrdXBzUmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0QmFja3Vwc1Jlc3BvbnNlIgOQAgESaQoMQ3JlYXRlQmFja3VwEioucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNyZWF0ZUJhY2t1cFJlcXVlc3QaKy5yYXB0b3Iud2luZ3MubG9jYWwudjEuQ3JlYXRlQmFja3VwUmVzcG9uc2UiABJsCg1SZXN0b3JlQmFja3VwEisucmFwdG9yLndpbmdzLmxvY2FsLnYxLlJlc3RvcmVCYWNrdXBSZXF1ZXN0GiwucmFwdG9yLndpbmdzLmxvY2FsLnYxLlJlc3RvcmVCYWNrdXBSZXNwb25zZSIAElcKBlVwZGF0ZRIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVSZXF1ZXN0GiUucmFwdG9yLndpbmdzLmxvY2FsLnYxLlVwZGF0ZVJlc3BvbnNlIgBC7wEKGWNvbS5yYXB0b3Iud2luZ3MubG9jYWwudjFCCkxvY2FsUHJvdG9QAVpPZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3Ivd2luZ3MvbG9jYWwvdjE7bG9jYWx2MaICA1JXTKoCFVJhcHRvci5XaW5ncy5Mb2NhbC5WMcoCFVJhcHRvclxXaW5nc1xMb2NhbFxWMeICIVJhcHRvclxXaW5nc1xMb2NhbFxWMVxHUEJNZXRhZGF0YeoCGFJhcHRvcjo6V2luZ3M6OkxvY2FsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.wings.local.v1.ListServersRequest
@@ -653,6 +653,13 @@ export type GetStatusResponse = Message<"raptor.wings.local.v1.GetStatusResponse
    * @generated from field: raptor.wings.local.v1.StorageStatus storage = 9;
    */
   storage?: StorageStatus | undefined;
+
+  /**
+   * The last update; unset if there hasn't been one.
+   *
+   * @generated from field: raptor.wings.local.v1.UpdateStatus update = 10;
+   */
+  update?: UpdateStatus | undefined;
 };
 
 /**
@@ -661,6 +668,52 @@ export type GetStatusResponse = Message<"raptor.wings.local.v1.GetStatusResponse
  */
 export const GetStatusResponseSchema: GenMessage<GetStatusResponse> = /*@__PURE__*/
   messageDesc(file_raptor_wings_local_v1_local, 21);
+
+/**
+ * @generated from message raptor.wings.local.v1.UpdateStatus
+ */
+export type UpdateStatus = Message<"raptor.wings.local.v1.UpdateStatus"> & {
+  /**
+   * trial (installed, being tried), succeeded, or failed (rolled back).
+   *
+   * @generated from field: string status = 1;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string from = 2;
+   */
+  from: string;
+
+  /**
+   * @generated from field: string to = 3;
+   */
+  to: string;
+
+  /**
+   * Why it failed.
+   *
+   * @generated from field: string error = 4;
+   */
+  error: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started_at = 5;
+   */
+  startedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp finished_at = 6;
+   */
+  finishedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.UpdateStatus.
+ * Use `create(UpdateStatusSchema)` to create a new message.
+ */
+export const UpdateStatusSchema: GenMessage<UpdateStatus> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 22);
 
 /**
  * @generated from message raptor.wings.local.v1.ServerCounts
@@ -684,7 +737,7 @@ export type ServerCounts = Message<"raptor.wings.local.v1.ServerCounts"> & {
  * Use `create(ServerCountsSchema)` to create a new message.
  */
 export const ServerCountsSchema: GenMessage<ServerCounts> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 22);
+  messageDesc(file_raptor_wings_local_v1_local, 23);
 
 /**
  * @generated from message raptor.wings.local.v1.StorageStatus
@@ -722,7 +775,7 @@ export type StorageStatus = Message<"raptor.wings.local.v1.StorageStatus"> & {
  * Use `create(StorageStatusSchema)` to create a new message.
  */
 export const StorageStatusSchema: GenMessage<StorageStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 23);
+  messageDesc(file_raptor_wings_local_v1_local, 24);
 
 /**
  * @generated from message raptor.wings.local.v1.DockerStatus
@@ -749,7 +802,82 @@ export type DockerStatus = Message<"raptor.wings.local.v1.DockerStatus"> & {
  * Use `create(DockerStatusSchema)` to create a new message.
  */
 export const DockerStatusSchema: GenMessage<DockerStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 24);
+  messageDesc(file_raptor_wings_local_v1_local, 25);
+
+/**
+ * @generated from message raptor.wings.local.v1.UpdateRequest
+ */
+export type UpdateRequest = Message<"raptor.wings.local.v1.UpdateRequest"> & {
+  /**
+   * Only report what would be installed.
+   *
+   * @generated from field: bool check = 1;
+   */
+  check: boolean;
+
+  /**
+   * A version like "1.4.2", instead of the pin or channel. It may be older
+   * than the running one.
+   *
+   * @generated from field: string version = 2;
+   */
+  version: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.UpdateRequest.
+ * Use `create(UpdateRequestSchema)` to create a new message.
+ */
+export const UpdateRequestSchema: GenMessage<UpdateRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 26);
+
+/**
+ * @generated from message raptor.wings.local.v1.UpdateResponse
+ */
+export type UpdateResponse = Message<"raptor.wings.local.v1.UpdateResponse"> & {
+  /**
+   * The running version.
+   *
+   * @generated from field: string current = 1;
+   */
+  current: string;
+
+  /**
+   * The version picked; the running one when it's up to date.
+   *
+   * @generated from field: string target = 2;
+   */
+  target: string;
+
+  /**
+   * Where target came from: the channel ("stable" or "beta"), "pin", or
+   * "requested".
+   *
+   * @generated from field: string channel = 3;
+   */
+  channel: string;
+
+  /**
+   * target differs from the running version.
+   *
+   * @generated from field: bool available = 4;
+   */
+  available: boolean;
+
+  /**
+   * Wings is restarting to run target on trial.
+   *
+   * @generated from field: bool started = 5;
+   */
+  started: boolean;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.UpdateResponse.
+ * Use `create(UpdateResponseSchema)` to create a new message.
+ */
+export const UpdateResponseSchema: GenMessage<UpdateResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 27);
 
 /**
  * @generated from enum raptor.wings.local.v1.PowerAction
@@ -905,6 +1033,21 @@ export const LocalService: GenService<{
     methodKind: "unary";
     input: typeof RestoreBackupRequestSchema;
     output: typeof RestoreBackupResponseSchema;
+  },
+  /**
+   * Update installs another Wings version: the one asked for, else the
+   * pinned one, else the newest in the node's channel. Wings downloads and
+   * verifies it, then restarts to run it on trial (servers keep running); if
+   * it isn't healthy within 5 minutes, Wings rolls back. The reply comes
+   * before the restart: GetStatus reports how the update went. Checking is
+   * open to the raptor group; installing is root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.Update
+   */
+  update: {
+    methodKind: "unary";
+    input: typeof UpdateRequestSchema;
+    output: typeof UpdateResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_wings_local_v1_local, 0);

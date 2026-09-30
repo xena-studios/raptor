@@ -13,7 +13,7 @@ Wings is the daemon that runs on the owner's box. It is the **source of truth** 
 
 ## Binary and processes
 
-One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/sqlite`).
+One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/sqlite`). It's a symlink to the active version in `/usr/local/lib/raptor` (see [Updates](#updates)).
 
 | Command | What |
 |---|---|
@@ -26,7 +26,8 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 
 | Resource | Value |
 |---|---|
-| Binary | `/usr/local/bin/raptor` |
+| Binary | `/usr/local/bin/raptor` → `/usr/local/lib/raptor/current` → `raptor-<version>` (the active version, plus the previous one for rollback) |
+| Update state | `/var/lib/raptor/update.json` (the last update and its outcome) |
 | Services | `raptor-wings.service`; `raptor-shutdown.service` (graceful stops on host shutdown) |
 | systemd drop-in | `/etc/systemd/system/docker-.scope.d/10-raptor.conf` (`Before=raptor-shutdown.service`): container scopes stop only after `raptor-shutdown` has stopped servers gracefully ([SERVERS.md](SERVERS.md#host-shutdown)) |
 | Config | `/etc/raptor/config.yml` |
@@ -54,7 +55,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 - `Restart=always`, `OOMScoreAdjust=-900`, `LimitNOFILE=65536`.
 - **Stopping or restarting the service never stops servers:** their containers live in Docker's cgroups, not the service's.
 - `UMask=0077`, and systemd creates `/var/lib/raptor`, `/var/log/raptor`, and `/etc/raptor` as `0700`. `/run/raptor` is `0755` so the `raptor` group can reach the socket.
-- Sandboxing: `ProtectSystem=strict` (writable: `/etc/raptor`, `/var/lib/raptor`, `/var/log/raptor`, `/run/raptor`), `ProtectHome`, `PrivateTmp`, `NoNewPrivileges`, kernel module/log/clock/hostname/cgroup protection, `RestrictNamespaces`, `RestrictSUIDSGID`, native syscalls only, and only `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK` sockets. `systemd-analyze security` rates it 5.9 (medium). Wings runs `nft` and `systemctl` itself (firewall and slice setup) and both work inside this sandbox. Wings needs root for Docker, quotas, and nftables, so it can't go much lower; this will be revisited as those features land.
+- Sandboxing: `ProtectSystem=strict` (writable: `/etc/raptor`, `/var/lib/raptor`, `/var/log/raptor`, `/run/raptor`, and `/usr/local/lib/raptor` for updates), `ProtectHome`, `PrivateTmp`, `NoNewPrivileges`, kernel module/log/clock/hostname/cgroup protection, `RestrictNamespaces`, `RestrictSUIDSGID`, native syscalls only, and only `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK` sockets. `systemd-analyze security` rates it 5.9 (medium). Wings runs `nft` and `systemctl` itself (firewall and slice setup) and both work inside this sandbox. Wings needs root for Docker, quotas, and nftables, so it can't go much lower; this will be revisited as those features land.
 - On shutdown Wings stops the local API (the socket is removed), detaches from servers (they keep running), and closes the database.
 - When the runtime is ready, Wings starts the server manager, which reconciles with Docker: it reattaches to running servers and starts those that should run ([SERVERS.md](SERVERS.md#after-a-reboot-or-wings-restart)). Server containers run as the `raptor` user's UID/GID, with the host's time zone as `TZ`.
 
@@ -95,7 +96,7 @@ storage:
   quotas: true                   # false = soft disk limits by scanning (tier 3)
 updates:
   channel: stable
-  pin: ""                        # e.g. "1.4.2" to pin a version
+  pin: ""                        # e.g. "1.4.2": install this version and stay on it
 log:
   level: info
 ```
@@ -316,7 +317,7 @@ The CLI keeps things running. **It never changes server configuration.** All set
 ```
 raptor status                         node health, Panel link, Docker, storage, server counts
 raptor doctor [--bundle [--upload]]   diagnose + fix suggestions; offline support bundle
-raptor update                         update Wings (and Docker, deliberately)
+raptor update [-check] [-version v]   update Wings (root; -check for anyone); Docker too, deliberately (planned)
 raptor link --token … | unlink | relink
 raptor ps [-json]                     servers: short ID, state, CPU, memory, disk, address, uptime
 raptor start|stop|restart|kill <server>   (root) stop waits for the egg's clean shutdown
@@ -335,7 +336,7 @@ raptor uninstall [--wipe-data]
 raptor tui
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `backup` (Phase 2), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
@@ -347,7 +348,7 @@ Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, and `RestoreBackup`. The full planned set:
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, and `Update`. The full planned set:
 
 | Method | Purpose |
 |---|---|
@@ -362,7 +363,7 @@ Methods are added to the proto as the features behind them are built, so the API
 | `RunDoctor`, `CreateBundle` | Diagnostics |
 | `GetSupportStatus`, `RevokeSupport` | Support access |
 | `Link`, `Unlink`, `Relink` | Panel linking |
-| `Update` | Self-update |
+| `Update` | Self-update: check (anyone with socket access) or install (root); `GetStatus` reports the outcome |
 
 - **Access:** Unix socket permissions: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens. Members of the `raptor` group can **look** (status, `ps`, console output, logs); anything that changes a server (power actions, console commands, shutting servers down) needs **root**, checked by Wings from the caller's Unix user.
 - **Attribution:** Wings reads the caller's Unix user from the socket (`SO_PEERCRED`). Every mutating call is recorded as an event with actor `local:<username>` (power actions as `server.power`, commands as `server.console.command`), so it appears in the Panel's audit log. Power actions from the Panel are recorded the same way with the Panel user.
@@ -386,11 +387,18 @@ Checks, each with **what's wrong, why it matters, and how to fix it**:
 
 ## Updates
 
-- Channels: `stable`, `beta`. Optional version pin.
-- Staged rollout controlled by the Panel (e.g. 5% → 25% → 100%).
-- Download `checksums.txt` + `checksums.txt.minisig` → **verify the signature** with the embedded public key → download the binary → **verify its SHA-256** → atomic binary swap → `systemctl restart raptor-wings` (servers unaffected) → health check.
-- **Automatic rollback** to the previous binary if the new version fails to start or can't reconnect within 5 minutes.
-- SQLite migrations never break the previous minor version's ability to read state (so rollback is safe), or they block rollback explicitly.
+`raptor update` (root) installs the newest release in the node's channel, the version pinned in `config.yml`, or the one given with `-version` (which can be older). `raptor update -check` shows what it would install. Until the Panel starts updates (Phase 3, staged 5% → 25% → 100%), they only happen when the owner runs it.
+
+- **Source:** the project's GitHub releases. `stable` has full releases, `beta` pre-releases too. A channel never moves a node backwards (switching from `beta` to `stable` waits for the next stable release); a pin or `-version` can.
+- **Verification**, before anything is run or installed: download `checksums.txt` and `checksums.txt.minisig` → **verify the signature** with the public key built into the binary (`release/minisign.pub`) → check the signature's trusted comment is `raptor <tag> checksums.txt`, so an old signed release can't be served as a new one → download `raptor_linux_<arch>` (at most 256 MiB) → **verify its SHA-256** → run it with `version` and check it's the version it should be.
+- **Layout:** versions live side by side as `/usr/local/lib/raptor/raptor-<version>`, with a `current` symlink to the active one; `/usr/local/bin/raptor` links to `current`. Switching versions is one atomic rename of `current`. The previous version is kept; older ones are removed.
+- **Trial:** Wings records the update in `/var/lib/raptor/update.json` and exits; systemd (`Restart=always`) starts it again. The version that's still current sees the pending update and **starts the new one as its child** instead of running itself. The child reports healthy once its local API is serving and the container runtime is ready; after another 30 seconds still running, the parent points `current` at it. From then on the new version starts directly, and the old one stays as a small parent process until the next Wings restart. Game servers keep running throughout: they belong to Docker.
+- **Automatic rollback:** if the new version exits before it's healthy, or isn't healthy within 5 minutes (the parent stops it), the parent records the failure, removes it, and carries on as Wings itself. `current` never pointed at it. A version that takes the whole box down is covered too: attempts are counted before each start, and after 3 the update is marked failed. Restarting Wings during a trial just starts the next attempt.
+- **Reporting:** `raptor update` follows the trial and prints the outcome; `raptor status` shows the last update; the next Wings start records it as a `node.update` event (`result`, `from`, `to`, `actor`, `error`).
+- **The trial protocol can never change**, since every version is started by an older one: the child gets `RAPTOR_UPDATE_TRIAL=1` and a pipe on fd 3, and writes `ready\n` to it.
+- **Requirements:** Wings must run from `/usr/local/lib/raptor` under systemd (a binary started any other way refuses to update), and the container runtime must be ready, since the new version couldn't be judged healthy otherwise. Only one update at a time.
+- SQLite migrations never break the previous minor version's ability to read state (so rollback is safe), or they block rollback explicitly. An older binary opens a database with newer migrations applied without complaint (goose ignores versions it doesn't know).
+- Planned: the health check also requires the node connection to come back (Phase 3).
 
 ## Pterodactyl import
 
