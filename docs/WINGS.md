@@ -209,7 +209,7 @@ How it works:
 - A mount unit can't turn on direct I/O, so Wings does it on every start.
 - **Wings refuses to install or start any server if the volume isn't mounted with project quotas.** This prevents writing into the empty mount point underneath, onto the host disk without limits. Wings itself keeps running and says why.
 - `raptor storage grow -size <size>` extends the image, refreshes the loop device, and runs `xfs_growfs`, all online. Setup and grow keep `limits.host_disk_min_free` free on the host.
-- `doctor` will check mount state and free space, and offer `xfs_repair` with servers stopped.
+- `doctor` checks mount state and free space. (Offering `xfs_repair` with servers stopped is still to come.)
 - Docker images stay on the host disk (`/var/lib/docker`); only server data lives on the quota volume.
 - Tested by `task e2e:quotas` (see [CONTRIBUTING.md](../CONTRIBUTING.md#runtime-end-to-end-tests)).
 
@@ -350,7 +350,7 @@ raptor uninstall [--wipe-data]
 raptor tui
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` with the Panel), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
@@ -386,18 +386,21 @@ Methods are added to the proto as the features behind them are built, so the API
 
 ## `doctor`
 
-Checks, each with **what's wrong, why it matters, and how to fix it**:
-- OS/kernel/arch supported, cgroups v2, systemd
-- Docker running, configured (`live-restore`, `userland-proxy`), version
-- Quota volume mounted, healthy, free space
-- Host disk free space (Docker images, SQLite)
-- Clock synced (NTP). Clock drift breaks connection signatures, grants, and schedules.
-- Panel reachable through Cloudflare (`wss://api.raptorpanel.net`), node key present
-- SFTP port bound (when enabled); node hostname resolves to this box's public IP
-- Pterodactyl coexistence
-- Security warnings (warn only, never change): password root SSH login, unattended upgrades off
+`raptor doctor` (as root) runs on the box without going through Wings, so it works when Wings is down, and asks Wings for its live state when it answers. It never changes anything. Each problem says **what's wrong, why it matters, and how to fix it**; the result is pass, warn (works, but should change), fail (broken, or will break servers), or skip (doesn't apply). It exits 1 if anything failed; `-json` prints the results for scripts and the Panel. Checks:
+- OS (Debian 12/13 and Ubuntu 24.04 are supported; others warn), kernel, arch; cgroups v2; systemd, `raptor-wings.service` active, `raptor-shutdown.service` enabled
+- The config file; Wings' local API answering and its container runtime ready
+- Docker reachable, version (24+), `live-restore` (fail if off: a Docker restart would stop every server), `userland-proxy` off, systemd cgroup driver
+- The server data volume mounted with quotas (or soft limits), and its free space
+- Host disk free space everywhere Wings and Docker keep state, against `limits.host_disk_min_free` (fail below it, warn below twice it)
+- Clock synchronized (NTP). Clock drift breaks connection signatures, grants, and schedules.
+- Wings' nftables table in place
+- Panel reachable and node key present (skipped until the node is linked; the connection check itself comes with the node connection in Phase 3)
+- SFTP answering as Raptor's SFTP on its port, when it's on (the node hostname check comes with node DNS in Phase 3)
+- Pterodactyl Wings on the same box: its Docker network doesn't overlap Raptor's, and its SFTP port isn't Raptor's
+- Security warnings (warn only, never changed): password root SSH login, unattended upgrades off
+- Wings installed in the self-update layout
 
-`--bundle` writes a redacted `.tar.gz` (doctor output, Wings logs, Docker info, system info, install log; **no server files, no secrets**). `--upload` sends it over HTTPS and prints a code like `RPT-7K2M`.
+`-bundle` writes a redacted `.tar.gz` to `/var/tmp` (root-only): doctor's results, the Wings, shutdown hook, and Docker logs, Docker's version, info, containers, and networks, system state (kernel, memory, disks, mounts, units, the nftables table, addresses), the config file, and the install log and last update if present. **No server files, no secrets:** keys (PEM blocks), values of fields named like secrets (password, token, key…), bearer tokens, and passwords in URLs are replaced with `[redacted]`. `-upload` will send it over HTTPS and print a code like `RPT-7K2M` once the Panel exists (Phase 3); until then it says so and the file has to be sent another way.
 
 ## Updates
 

@@ -420,6 +420,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.backups = bk
 	r.files = fsvc
 	r.sftp = r.startSFTP(ctx, mgr, uid, gid)
+	r.svc.SetSFTP(r.sftp)
 	r.servers = mgr
 	r.svc.SetServers(mgr)
 	r.svc.SetBackups(bk, r.jobs)

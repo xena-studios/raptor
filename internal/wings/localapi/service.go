@@ -17,6 +17,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 )
 
@@ -49,9 +50,22 @@ type Service struct {
 	Disk      *host.DiskGuard // nil in tests
 
 	mu      sync.RWMutex
+	sftp    SFTP
 	servers Servers
 	backups Backups
 	jobs    Jobs
+}
+
+// SFTP reports the node's SFTP server (*sftp.Service).
+type SFTP interface {
+	Status() sftp.Status
+}
+
+// SetSFTP makes SFTP's state available, once the runtime is ready.
+func (s *Service) SetSFTP(v SFTP) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sftp = v
 }
 
 // SetServers makes the server manager available (it's created once the
@@ -114,8 +128,12 @@ func (s *Service) GetStatus(ctx context.Context, _ *localv1.GetStatusRequest) (*
 		}
 	}
 	s.mu.RLock()
-	srv := s.servers
+	srv, sf := s.servers, s.sftp
 	s.mu.RUnlock()
+	if sf != nil {
+		st := sf.Status()
+		resp.Sftp = &localv1.SFTPStatus{Enabled: st.Enabled, Port: int32(st.Port), HostKeyFingerprint: st.Fingerprint} //nolint:gosec // a port
+	}
 	if srv != nil {
 		resp.Servers = &localv1.ServerCounts{}
 		for _, st := range srv.List() {
