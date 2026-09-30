@@ -101,3 +101,26 @@ func (m *Manager) AllocatedPorts(ctx context.Context) ([]int, error) {
 	}
 	return out, nil
 }
+
+// Denylist returns the file_denylist of a server's egg: files users may see
+// but not open or change (docs/WINGS.md#files-and-sftp).
+func (m *Manager) Denylist(id string) ([]string, error) {
+	srv, err := m.Get(context.Background(), id)
+	if err != nil {
+		return nil, err
+	}
+	return srv.Egg().FileDenylist, nil
+}
+
+// SpaceLeft returns how many more bytes a server may use under its disk
+// limit, or -1 if it has none.
+func (m *Manager) SpaceLeft(ctx context.Context, id string) (int64, error) {
+	u, err := m.DiskUsage(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+	if u.LimitBytes <= 0 {
+		return -1, nil
+	}
+	return max(u.LimitBytes-u.Bytes, 0), nil
+}

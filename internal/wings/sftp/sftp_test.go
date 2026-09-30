@@ -73,6 +73,13 @@ type servers struct {
 	mu       sync.Mutex
 	err      error // returned by CheckFiles
 	errWrite error // returned by CheckFiles for writes (over the disk limit)
+	deny     []string
+}
+
+func (s *servers) Denylist(string) ([]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.deny, nil
 }
 
 func (s *servers) Resolve(ref string) (string, error) {
@@ -415,6 +422,60 @@ func TestSpecialFiles(t *testing.T) {
 	case <-done:
 	case <-time.After(10 * time.Second):
 		t.Fatal("a FIFO blocked the session")
+	}
+}
+
+// The egg's file_denylist applies to SFTP as to the web file manager:
+// denied files are listed but can't be read, written, moved, or deleted,
+// under their own name or through a link.
+func TestDenylist(t *testing.T) {
+	e := newEnv(t)
+	e.servers.deny = []string{"server.jar", "secrets/"}
+	for name, data := range map[string]string{"server.jar": "jar", "secrets/token": "t", "ok.txt": "ok"} {
+		p := filepath.Join(e.dir, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cl := e.login()
+	if err := cl.Symlink("secrets/token", "/link"); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"/server.jar", "/secrets/token", "/link"} {
+		if _, err := cl.Open(name); err == nil {
+			t.Errorf("read %s", name)
+		}
+		if _, err := cl.OpenFile(name, os.O_WRONLY|os.O_TRUNC); err == nil {
+			t.Errorf("opened %s for writing", name)
+		}
+	}
+	if err := cl.Remove("/server.jar"); err == nil {
+		t.Error("removed server.jar")
+	}
+	if err := cl.Rename("/secrets", "/open"); err == nil {
+		t.Error("moved the denied directory")
+	}
+	if err := cl.Rename("/ok.txt", "/server.jar2"); err != nil {
+		t.Error(err)
+	}
+	if err := cl.PosixRename("/server.jar2", "/server.jar"); err == nil {
+		t.Error("replaced server.jar")
+	}
+	if err := cl.Chmod("/server.jar", 0o777); err == nil {
+		t.Error("changed server.jar's mode")
+	}
+	if _, err := cl.Create("/secrets/new"); err == nil {
+		t.Error("created a file in the denied directory")
+	}
+	// Listed, and the files are untouched.
+	if _, err := cl.Stat("/server.jar"); err != nil {
+		t.Error(err)
+	}
+	if b, err := os.ReadFile(filepath.Join(e.dir, "server.jar")); err != nil || string(b) != "jar" {
+		t.Errorf("server.jar = %q, %v", b, err)
 	}
 }
 

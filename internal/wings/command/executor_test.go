@@ -47,6 +47,7 @@ func newFixture(t *testing.T) *fixture {
 	f.x.Register("server.start", Handler{Signed: Never, Run: run})
 	f.x.Register("server.delete", Handler{Signed: Always, Run: run})
 	f.x.Register("server.reinstall", Handler{Signed: Always, Run: run})
+	f.x.Register("files.read", Handler{Signed: Never, ReadOnly: true, Run: run})
 	f.x.Register("server.explode", Handler{Signed: Never, Run: func(context.Context, Envelope) (any, error) { panic("boom") }})
 	return f
 }
@@ -111,6 +112,34 @@ func TestUnsignedCommandAndIdempotency(t *testing.T) {
 	e2.Grant = f.grant(e2)
 	if _, err := f.exec(e2); !errors.Is(err, ErrConflict) {
 		t.Fatalf("reused ID: %v", err)
+	}
+}
+
+// Read-only commands run every time and store nothing, but are checked
+// like any other.
+func TestReadOnly(t *testing.T) {
+	f := newFixture(t)
+	e := f.cmd("alice", "files.read", "s1", nil)
+	for range 2 {
+		res, err := f.exec(e)
+		if err != nil || res.Duplicate || string(res.Value) != `{"did":"files.read"}` {
+			t.Fatalf("read: %+v %v", res, err)
+		}
+	}
+	if f.runs.Load() != 2 {
+		t.Errorf("runs = %d", f.runs.Load())
+	}
+	if _, err := f.db.Read.GetCommand(context.Background(), e.CommandID); err == nil {
+		t.Error("a read-only command was stored")
+	}
+	forged := e
+	forged.Grant.Signature = make([]byte, ed25519.SignatureSize)
+	if _, err := f.exec(forged); !errors.Is(err, ErrBadGrant) {
+		t.Errorf("forged grant: %v", err)
+	}
+	f.now = f.now.Add(time.Hour)
+	if _, err := f.exec(e); !errors.Is(err, ErrExpired) {
+		t.Errorf("expired: %v", err)
 	}
 }
 

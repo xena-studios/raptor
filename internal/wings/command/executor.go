@@ -50,6 +50,10 @@ type Handler struct {
 	// changes the egg is signed; one that renames a server isn't).
 	Signed func(ctx context.Context, e Envelope) (bool, error)
 	Run    func(ctx context.Context, e Envelope) (result any, err error)
+	// ReadOnly actions change nothing (listing or reading files): they run
+	// each time they're sent before they expire, and neither the command ID
+	// nor the result is stored, since results can be large.
+	ReadOnly bool
 }
 
 // Always and Never are Signed functions.
@@ -138,8 +142,10 @@ func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 
 	// A retry of a command that already ran gets the stored result, even
 	// after the command expired.
-	if res, done, err := x.previous(ctx, e.CommandID, hash); done || err != nil {
-		return res, err
+	if !h.ReadOnly {
+		if res, done, err := x.previous(ctx, e.CommandID, hash); done || err != nil {
+			return res, err
+		}
 	}
 
 	now := x.now()
@@ -164,6 +170,15 @@ func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 			return Result{}, err
 		}
 		signer = e.Signature.CredentialID
+	}
+
+	if h.ReadOnly {
+		value, err := safeRun(ctx, h, e)
+		if err != nil || value == nil {
+			return Result{}, err
+		}
+		raw, err := json.Marshal(value)
+		return Result{Value: raw}, err
 	}
 
 	// Claim the command ID; a concurrent duplicate loses the race and gets
