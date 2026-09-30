@@ -159,7 +159,7 @@ func sftpAttack(t *testing.T, m *Manager, id string) {
 	go func() { _ = srv.Serve(ln) }()
 	defer func() { _ = srv.Close() }()
 	c, err := ssh.Dial("tcp", ln.Addr().String(), &ssh.ClientConfig{
-		User: "owner." + id[:8], Auth: []ssh.AuthMethod{ssh.Password("x")},
+		User: "owner." + id[len(id)-8:], Auth: []ssh.AuthMethod{ssh.Password("x")},
 		HostKeyCallback: ssh.FixedHostKey(hk.PublicKey()), Timeout: 10 * time.Second,
 	})
 	if err != nil {

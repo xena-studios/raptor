@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
-// shortIDLen is the length of a server's short ID: the first characters of
-// its UUID, as Pterodactyl uses in SFTP usernames.
+// shortIDLen is the length of a server's short ID: the last characters of
+// its ID, the same short ID `raptor ps` shows. Not the first ones, as in
+// Pterodactyl: IDs are UUIDv7, which start with a timestamp that servers
+// created within about a minute of each other share.
 const shortIDLen = 8
 
 // Resolve returns the ID of the server ref names: its full ID, or its short
@@ -24,7 +26,7 @@ func (m *Manager) Resolve(ref string) (string, error) {
 	}
 	found := ""
 	for id := range m.servers {
-		if strings.HasPrefix(id, ref) {
+		if strings.HasSuffix(id, ref) {
 			if found != "" {
 				return "", fmt.Errorf("%w: short ID %s matches more than one server; use the full ID", ErrNotFound, ref)
 			}

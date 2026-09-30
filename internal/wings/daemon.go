@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"golang.org/x/crypto/ssh"
 
+	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/wings/actions"
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/command"

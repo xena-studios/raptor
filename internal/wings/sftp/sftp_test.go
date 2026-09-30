@@ -76,7 +76,7 @@ type servers struct {
 }
 
 func (s *servers) Resolve(ref string) (string, error) {
-	if ref == srvID || ref == srvID[:8] {
+	if ref == srvID || ref == srvID[len(srvID)-8:] {
 		return srvID, nil
 	}
 	return "", errors.New("server not found")
@@ -454,7 +454,7 @@ func TestPermissions(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	e := newEnv(t)
-	for _, user := range []string{"alice." + srvID, "alice." + srvID[:8]} {
+	for _, user := range []string{"alice." + srvID, "alice." + srvID[len(srvID)-8:]} {
 		if _, err := e.dial(user, ssh.Password("hunter2")); err != nil {
 			t.Errorf("%s: %v", user, err)
 		}
