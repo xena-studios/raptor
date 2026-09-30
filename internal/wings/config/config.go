@@ -44,10 +44,12 @@ type Panel struct {
 }
 
 // Identity holds the node's key and the Panel's pinned signing key, both
-// written at enrollment (docs/ARCHITECTURE.md#node-connection).
+// written at enrollment (docs/ARCHITECTURE.md#node-connection), and the SFTP
+// host key, generated on first start.
 type Identity struct {
-	Key      string `yaml:"key"`       // the node's private key; never leaves the box
-	PanelKey string `yaml:"panel_key"` // the Panel's public signing key
+	Key         string `yaml:"key"`           // the node's private key; never leaves the box
+	PanelKey    string `yaml:"panel_key"`     // the Panel's public signing key
+	SFTPHostKey string `yaml:"sftp_host_key"` // never leaves the box
 }
 
 // Paths holds on-box locations.
@@ -112,8 +114,9 @@ func Default() Config {
 	return Config{
 		Panel: Panel{URL: "https://api.raptorpanel.net", AppURL: "https://app.raptorpanel.net"},
 		Identity: Identity{
-			Key:      "/etc/raptor/node.key",
-			PanelKey: "/etc/raptor/panel.pub",
+			Key:         "/etc/raptor/node.key",
+			PanelKey:    "/etc/raptor/panel.pub",
+			SFTPHostKey: "/etc/raptor/sftp_host_key",
 		},
 		Paths: Paths{
 			State:   "/var/lib/raptor/state.db",
@@ -187,7 +190,7 @@ func (c Config) Validate() error {
 	if c.Limits.BackupMemory < 256<<20 {
 		errs = append(errs, errors.New("limits.backup_memory: at least 256MiB"))
 	}
-	for name, p := range map[string]string{"paths.state": c.Paths.State, "paths.volumes": c.Paths.Volumes, "paths.backups": c.Paths.Backups, "paths.tmp": c.Paths.Tmp, "paths.logs": c.Paths.Logs, "paths.socket": c.Paths.Socket} {
+	for name, p := range map[string]string{"paths.state": c.Paths.State, "paths.volumes": c.Paths.Volumes, "paths.backups": c.Paths.Backups, "paths.tmp": c.Paths.Tmp, "paths.logs": c.Paths.Logs, "paths.socket": c.Paths.Socket, "identity.sftp_host_key": c.Identity.SFTPHostKey} {
 		if !strings.HasPrefix(p, "/") {
 			errs = append(errs, fmt.Errorf("%s %q: must be an absolute path", name, p))
 		}

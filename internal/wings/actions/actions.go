@@ -14,6 +14,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -41,6 +42,8 @@ const (
 	BackupPolicy            = "backup.policy.update"
 	BackupDestinationSave   = "backup.destination.save" // create or update
 	BackupDestinationDelete = "backup.destination.delete"
+
+	NodeSFTP = "node.sftp" // turn SFTP on or off
 )
 
 // ServerConfig is a server's configuration as sent by the Panel.
@@ -381,6 +384,25 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 			return nil, err
 		}
 		return nil, b.DeleteDestination(ctx, p.ID)
+	}})
+}
+
+// SFTPParams are the params of node.sftp.
+type SFTPParams struct {
+	Enabled bool `json:"enabled"`
+}
+
+// RegisterSFTP adds node.sftp. It isn't signed: SFTP logins still need the
+// Panel's grant (or a key it accepted), which is no more access than the web
+// file manager gives (docs/SECURITY-MODEL.md#passkey-signed-commands). The
+// result has the port and host key fingerprint to show users.
+func RegisterSFTP(x *command.Executor, s *sftp.Service) {
+	x.Register(NodeSFTP, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p SFTPParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return s.SetEnabled(ctx, p.Enabled)
 	}})
 }
 

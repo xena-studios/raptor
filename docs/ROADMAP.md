@@ -151,7 +151,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 - [x] **Scheduler:** cron + timezone (with defined DST behavior), multi-step runs (`command`, `wait`, `power`, `backup`), `only_when_online`, jitter, missed-run policy, runs that resume after a Wings restart ([WINGS.md](WINGS.md#scheduler))
 - [x] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + maintenance jobs, safety backup before restore, a low-priority worker process, on by default through a daily schedule ([WINGS.md](WINGS.md#backups)). `raptor backup list|create|restore`. Still to come: the final backup when deleting a server, and "wipe and reinstall".
-- [ ] **SFTP:** off by default, enabled per node; `x/crypto/ssh`, `user.serverid`, `os.Root` chroot, host key generated on the node, auth callback interface (stubbed), public key cache
+- [x] **SFTP:** off by default, enabled per node (`node.sftp`); `x/crypto/ssh` + `pkg/sftp`, `user.serverid` (full or short ID), `os.Root` chroot, host key generated on the node, auth callback interface (stubbed until the node connection), public key cache, per-address login limits ([WINGS.md](WINGS.md#files-and-sftp)). Still to come: the egg `file_denylist` (with the web file manager, which needs it too), Panel auth (3.x), the `doctor` port check.
 - [ ] **File operations for the web file manager:** list, read, write, rename, delete, archive, through `os.Root`; chunked, resumable uploads and downloads (chunks under 100 MB, 1 GB per-file cap) on a separate outbound connection per transfer. No HTTP server on the node.
 - [ ] **Notifications:** Discord + generic webhooks from Wings, including direct alerts for every signed dangerous action (configured on the node, not through the Panel)
 - [ ] **`raptor keys list|reset`** (pairing code shown on the box) and **`raptor audit`**
@@ -205,7 +205,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Node DNS: `n-<short-id>.raptornodes.net` created at enrollment, updated from the IP Wings reports, names never reused
 - [ ] Signed short-lived grants attached to commands; Wings verification
 - [ ] Passkey-signed dangerous commands end to end: owner key pinned at enrollment (with fingerprint comparison), signed key additions, owner-signed delegations for sub-users
-- [ ] SFTP auth over the node connection + public key sync
+- [ ] SFTP auth over the node connection + public key sync (Wings side: the `sftp.Authenticator` interface and key cache exist)
 - [ ] Automatic Wings updates: the Panel starts updates in stages (5% → 25% → 100%, halted if failures rise) through a `node.update` command; the health check requires the node connection to come back
 
 **Exit criteria:** on fresh Debian 12, Debian 13, and Ubuntu 24.04 VMs (amd64 + arm64), one command links the node and it shows Connected; dropping node connections and redeploying the Panel both work without game impact; the mirror rebuilds correctly after being dropped.

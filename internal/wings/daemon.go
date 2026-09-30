@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
+	"golang.org/x/crypto/ssh"
+
 	"github.com/xena-studios/raptor/internal/wings/actions"
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/command"
@@ -26,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
 	"github.com/xena-studios/raptor/internal/wings/update"
@@ -148,15 +151,19 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 // starts, so it's retried until it succeeds. Then it starts the server
 // manager, which reattaches to running servers and starts the rest.
 type runtimeSetup struct {
-	rt      containers.Runtime
-	cfg     config.Config
-	log     *slog.Logger
-	db      *store.DB
-	svc     *localapi.Service
-	rules   *firewall.Rules // set once setup succeeded
-	servers *server.Manager
-	sched   *schedule.Scheduler
-	backups *backup.Manager
+	rt             containers.Runtime
+	cfg            config.Config
+	log            *slog.Logger
+	db             *store.DB
+	svc            *localapi.Service
+	rules          *firewall.Rules // set once setup succeeded
+	servers        *server.Manager
+	sched          *schedule.Scheduler
+	backups        *backup.Manager
+	sftp           *sftp.Service
+	sftpKey        ssh.Signer
+	sftpKeys       *sftp.KeyCache
+	stopSFTPEvents func()
 
 	events   *events.Outbox
 	jobs     *jobs.Engine
@@ -181,12 +188,22 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32},
 	})
 	r.commands = &command.Executor{DB: db, NodeID: cfg.NodeID, RP: rp, PanelKey: panelKey, Log: log}
+	// The host key exists from the first start, SFTP on or not, so its
+	// fingerprint never changes when SFTP is turned on.
+	if r.sftpKey, err = sftp.LoadHostKey(cfg.Identity.SFTPHostKey); err != nil {
+		return nil, fmt.Errorf("sftp host key: %w", err)
+	}
+	r.sftpKeys = &sftp.KeyCache{DB: db}
 	return r, nil
 }
 
 // close stops schedules and jobs (running installs and schedule runs resume
 // on the next start) and detaches from servers without stopping them.
 func (r *runtimeSetup) close() {
+	if r.sftp != nil {
+		r.stopSFTPEvents()
+		r.sftp.Close()
+	}
 	if r.sched != nil {
 		r.sched.Close()
 	}
@@ -207,6 +224,9 @@ func (r *runtimeSetup) prune(ctx context.Context) {
 	}
 	if _, err := r.commands.Prune(ctx); err != nil {
 		r.log.Error("pruning executed commands failed", "err", err)
+	}
+	if _, err := r.sftpKeys.Prune(ctx); err != nil {
+		r.log.Error("pruning cached sftp keys failed", "err", err)
 	}
 }
 
@@ -367,6 +387,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		r.log.Error("backup cleanup failed", "err", err)
 	}
 	r.backups = bk
+	r.sftp = r.startSFTP(ctx, mgr, uid, gid)
 	r.servers = mgr
 	r.svc.SetServers(mgr)
 	r.svc.SetBackups(bk, r.jobs)
@@ -401,4 +422,44 @@ func reportUpdate(ctx context.Context, path string, o *events.Outbox, log *slog.
 	if err := update.WriteState(path, st); err != nil {
 		log.Error("can't record the update", "err", err)
 	}
+}
+
+// startSFTP resumes SFTP if it's enabled for the node. A port that can't be
+// bound doesn't stop Wings; turning SFTP off and on again retries.
+func (r *runtimeSetup) startSFTP(ctx context.Context, mgr *server.Manager, uid, gid int) *sftp.Service {
+	svc := sftp.NewService(sftp.ServiceOptions{
+		Options: sftp.Options{
+			HostKey: r.sftpKey,
+			Auth:    sftp.NoPanel{}, // the Panel checks logins over the node connection (Phase 3)
+			Keys:    r.sftpKeys,
+			Servers: mgr,
+			Events:  r.events,
+			UID:     uid,
+			GID:     gid,
+			Log:     r.log,
+		},
+		Store:     r.db,
+		Port:      r.cfg.Ports.SFTP,
+		Allocated: mgr.AllocatedPorts,
+	})
+	actions.RegisterSFTP(r.commands, svc)
+	if err := svc.Start(ctx); err != nil {
+		r.log.Error("sftp didn't start", "err", err)
+	}
+	// Sessions end when the files are deleted, or an install or restore
+	// starts over them: open handles would otherwise keep writing into files
+	// the install script or the restore is replacing.
+	evs, stop := mgr.Events()
+	r.stopSFTPEvents = stop
+	go func() {
+		for e := range evs {
+			restoring := e.Type == server.EventState && e.Data["state"] == string(server.Restoring)
+			if e.Type == server.EventDeleted || e.Type == server.EventInstallStarted || restoring {
+				if n := svc.Disconnect(e.ServerID); n > 0 {
+					r.log.Info("sftp sessions closed", "server", e.ServerID, "reason", e.Type, "count", n)
+				}
+			}
+		}
+	}()
+	return svc
 }
