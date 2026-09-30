@@ -57,6 +57,9 @@ type Config struct {
 	Subnet         netip.Prefix
 	InstallNetwork string
 	InstallSubnet  netip.Prefix
+	// DiskCheck, if set, returns an error while the host disk is too low
+	// for image pulls. Images already on the node are still used.
+	DiskCheck func() error
 }
 
 // Client is the Docker implementation of containers.Runtime.
@@ -106,6 +109,15 @@ func (c *Client) labels(serverID, role string) map[string]string {
 	return l
 }
 
+// RootDir returns Docker's data directory, where images live.
+func (c *Client) RootDir(ctx context.Context) (string, error) {
+	info, err := c.api.Info(ctx, client.InfoOptions{})
+	if err != nil {
+		return "", err
+	}
+	return info.Info.DockerRootDir, nil
+}
+
 // Close closes the connection to Docker.
 func (c *Client) Close() error { return c.api.Close() }
 
@@ -114,6 +126,20 @@ func (c *Client) Close() error { return c.api.Close() }
 func (c *Client) EnsureImage(ctx context.Context, ref string, progress io.Writer) error {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
+
+	// With the host disk low, nothing is pulled: a server whose image is
+	// here still starts, but new images wait for space.
+	if c.cfg.DiskCheck != nil {
+		if err := c.cfg.DiskCheck(); err != nil {
+			if _, ierr := c.api.ImageInspect(ctx, ref); ierr == nil {
+				if progress != nil {
+					_, _ = fmt.Fprintf(progress, "not pulling %s (%v); using the image already here\n", ref, err)
+				}
+				return nil
+			}
+			return fmt.Errorf("pull %s: %w", ref, err)
+		}
+	}
 
 	resp, err := c.api.ImagePull(ctx, ref, client.ImagePullOptions{})
 	if err == nil {

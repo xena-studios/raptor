@@ -160,7 +160,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] **TUI** (Bubble Tea): server list, stats, console, power + backup keys
 - [x] **Self-update:** `raptor update [-check] [-version v]`: channels (`stable`, `beta`) and a pin from GitHub releases, minisign verification with the trusted comment bound to the tag, SHA-256 check, and a **trial**: the running version starts the new one as its child and only switches the `current` link once it's healthy; a crash, 5 minutes without becoming healthy, or 3 interrupted starts roll back. Outcomes are recorded as `node.update` events. `task e2e:update` and a CI job test it against the real systemd unit ([WINGS.md](WINGS.md#updates)). Updates are started by hand until the Panel drives staged rollouts (3.3); "can't reconnect" joins the health check with the node connection.
 - [ ] **Pterodactyl coexistence** CI test + **`raptor import pterodactyl`**
-- [ ] **Host disk protection:** refuse installs/pulls below the threshold
+- [x] **Host disk protection:** below `limits.host_disk_min_free` on any path Wings or Docker keeps state on (Docker's data directory, `state.db`, logs, tmp, local backups), new servers, reinstalls, and pulls of images that aren't on the node are refused; servers whose image is here still start. `node.disk_low`/`node.disk_ok` events and `raptor status` show it ([RELIABILITY.md](RELIABILITY.md#state-durability))
 - [ ] **Fault-injection suite:** drop the node connection, kill Wings/Docker mid-job, reboot, fill disks, unmount the volume, corrupt `state.db`
 
 **Exit criteria:** fault-injection suite passes; a node survives a week-long soak test (scheduled restarts + backups + random Wings restarts) with no unexpected game downtime.

@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -819,4 +820,55 @@ func TestVolumeUnavailable(t *testing.T) {
 		t.Fatalf("start without the volume: %v", err)
 	}
 	t.Logf("refused: %v", err)
+}
+
+// With the host disk low, installs are refused (new servers, reinstalls,
+// and installs queued before it ran low), and existing servers still start.
+func TestLowHostDisk(t *testing.T) {
+	e := newEnv(t)
+	var check atomic.Pointer[func() error]
+	set := func(f func() error) { check.Store(&f) }
+	lowErr := func() error { return host.ErrLowDisk }
+	set(func() error { return nil })
+	e.opts.DiskCheck = func() error { return (*check.Load())() }
+	m := e.manager()
+	defer m.Close()
+	id := e.create(m, freePort(t))
+	set(lowErr)
+	cfg := Config{Name: "new", Egg: shellEgg("true"), Limits: containers.Limits{MemoryMiB: 128}, Settings: DefaultSettings(),
+		Allocations: []Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}}}
+	if _, err := m.Create(context.Background(), cfg, CreateOptions{}); !errors.Is(err, host.ErrLowDisk) {
+		t.Fatalf("create: %v", err)
+	}
+	if _, err := m.Install(context.Background(), id); !errors.Is(err, host.ErrLowDisk) {
+		t.Fatalf("reinstall: %v", err)
+	}
+	ready(t, m, id)
+	if err := m.Kill(context.Background(), id); err != nil {
+		t.Fatal(err)
+	}
+	waitState(t, m, id, Offline, 30*time.Second)
+
+	// Queued while there was space (the first check), run after it ran
+	// out: refused, and the server is left as it was.
+	var calls atomic.Int32
+	set(func() error {
+		if calls.Add(1) > 1 {
+			return host.ErrLowDisk
+		}
+		return nil
+	})
+	job, err := m.Install(context.Background(), id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	j, err := m.o.Jobs.Wait(context.Background(), job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j.Status != jobs.Failed || !strings.Contains(j.Error, "low on free space") {
+		t.Fatalf("install job: %s %s", j.Status, j.Error)
+	}
+	set(func() error { return nil })
+	ready(t, m, id)
 }

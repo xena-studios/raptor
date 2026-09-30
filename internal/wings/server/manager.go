@@ -81,6 +81,9 @@ type Options struct {
 	// returns the backup's ID ("" for an empty directory). Without it,
 	// wiping and final backups are refused.
 	JobBackup func(ctx context.Context, id, jobID, kind string, log io.Writer) (string, error)
+	// DiskCheck, if set, returns an error while the host disk is too low
+	// for installs (host.DiskGuard.Err).
+	DiskCheck func() error
 
 	// Crash policy overrides, for tests.
 	CrashWindow time.Duration
@@ -146,6 +149,14 @@ func New(o Options) *Manager {
 		Run:         m.deleteJob,
 	})
 	return m
+}
+
+// diskCheck returns an error while the host disk is too low for installs.
+func (m *Manager) diskCheck() error {
+	if m.o.DiskCheck == nil {
+		return nil
+	}
+	return m.o.DiskCheck()
 }
 
 // JobInstall is the install/reinstall job type.
@@ -315,6 +326,9 @@ type CreateOptions struct {
 // Create stores a new server and starts its install in the background.
 func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (string, error) {
 	if _, err := cfg.validate(m.o.ReservedPorts); err != nil {
+		return "", err
+	}
+	if err := m.diskCheck(); err != nil {
 		return "", err
 	}
 	id, err := uuid.NewV7()
@@ -488,6 +502,9 @@ func (m *Manager) Install(ctx context.Context, id string) (string, error) {
 func (m *Manager) Reinstall(ctx context.Context, id string, opts InstallOptions) (string, error) {
 	if opts.Wipe && m.o.JobBackup == nil {
 		return "", errors.New("backups aren't available on this node, so files can't be wiped")
+	}
+	if err := m.diskCheck(); err != nil {
+		return "", err
 	}
 	i, err := m.instance(id)
 	if err != nil {
