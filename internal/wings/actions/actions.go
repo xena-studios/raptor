@@ -104,6 +104,20 @@ type Defaults struct {
 	BackupSchedule func(ctx context.Context, q *store.Queries, serverID string) error
 }
 
+// DeleteParams are the params of server.delete.
+type DeleteParams struct {
+	// FinalBackup: back the server up to its backup destination first,
+	// and keep it if that fails. The deletion then runs as a job.
+	FinalBackup bool `json:"final_backup,omitempty"`
+}
+
+// ReinstallParams are the params of server.reinstall.
+type ReinstallParams struct {
+	// Wipe: remove every file (after a safety backup) before the install
+	// script runs.
+	Wipe bool `json:"wipe,omitempty"`
+}
+
 // CommandParams are the params of server.command.
 type CommandParams struct {
 	Command string `json:"command"`
@@ -169,21 +183,44 @@ func Register(x *command.Executor, m *server.Manager, d Defaults) {
 		if err := needServer(e); err != nil {
 			return nil, err
 		}
-		return nil, m.Delete(ctx, e.ServerID)
-	}})
-
-	// A plain reinstall re-runs the egg the owner already approved. ("Wipe
-	// and reinstall", when it exists, will be signed.)
-	x.Register(ServerReinstall, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
-		if err := needServer(e); err != nil {
+		var p DeleteParams
+		if err := decodeOptional(e, &p); err != nil {
 			return nil, err
 		}
-		job, err := m.Install(ctx, e.ServerID)
+		if !p.FinalBackup {
+			return nil, m.Delete(ctx, e.ServerID)
+		}
+		job, err := m.DeleteWithBackup(ctx, e.ServerID, e.UserID)
 		if err != nil {
 			return nil, err
 		}
 		return map[string]string{"job_id": job}, nil
 	}})
+
+	// A plain reinstall re-runs the egg the owner already approved. "Wipe
+	// and reinstall" deletes every file (after a safety backup), so it's
+	// signed.
+	x.Register(ServerReinstall, command.Handler{
+		Signed: func(_ context.Context, e command.Envelope) (bool, error) {
+			var p ReinstallParams
+			err := decodeOptional(e, &p)
+			return p.Wipe, err
+		},
+		Run: func(ctx context.Context, e command.Envelope) (any, error) {
+			if err := needServer(e); err != nil {
+				return nil, err
+			}
+			var p ReinstallParams
+			if err := decodeOptional(e, &p); err != nil {
+				return nil, err
+			}
+			job, err := m.Reinstall(ctx, e.ServerID, server.InstallOptions{Wipe: p.Wipe})
+			if err != nil {
+				return nil, err
+			}
+			return map[string]string{"job_id": job}, nil
+		},
+	})
 
 	x.Register(ServerStart, power(server.PowerStart))
 	x.Register(ServerStop, power(server.PowerStop))
@@ -322,17 +359,30 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 		}
 		return map[string]string{"backup_id": bk.ID, "job_id": bk.JobID}, nil
 	}})
-	x.Register(BackupRestore, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
-		p, err := backupParams(e, true)
-		if err != nil {
-			return nil, err
-		}
-		id, err := b.Restore(ctx, e.ServerID, p.BackupID, e.UserID)
-		if err != nil {
-			return nil, err
-		}
-		return jobResult(id), nil
-	}})
+	// Restoring a deleted server's backup (its final backup) onto another
+	// server needs an owner: a delegate for this server may never have had
+	// access to the deleted server's files.
+	x.Register(BackupRestore, command.Handler{
+		Signed: command.Always,
+		OwnerOnly: func(ctx context.Context, e command.Envelope) (bool, error) {
+			p, err := backupParams(e, true)
+			if err != nil {
+				return false, err
+			}
+			return b.FromDeletedServer(ctx, e.ServerID, p.BackupID)
+		},
+		Run: func(ctx context.Context, e command.Envelope) (any, error) {
+			p, err := backupParams(e, true)
+			if err != nil {
+				return nil, err
+			}
+			id, err := b.Restore(ctx, e.ServerID, p.BackupID, e.UserID)
+			if err != nil {
+				return nil, err
+			}
+			return jobResult(id), nil
+		},
+	})
 	x.Register(BackupDelete, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		p, err := backupParams(e, true)
 		if err != nil {
@@ -517,6 +567,17 @@ func RegisterFiles(x *command.Executor, s *files.Service) {
 	x.Register(FilesUploadCancel, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return nil, s.CancelUpload(ctx, e.ServerID, p.UploadID)
 	}))
+}
+
+// decodeOptional decodes params that may be left out entirely.
+func decodeOptional(e command.Envelope, v any) error {
+	if len(e.Params) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(e.Params, v); err != nil {
+		return fmt.Errorf("params: %w", err)
+	}
+	return nil
 }
 
 func decode(e command.Envelope, v any) error {

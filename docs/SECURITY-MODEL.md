@@ -96,7 +96,7 @@ Verification takes about 0.1 ms on the node. The user's cost is one fingerprint 
 
 **Which actions are signed** (anything that destroys data, changes what code runs, or changes who has access):
 - **Creating a server** (it chooses an egg, and so the install script and image that run)
-- Deleting a server; reinstalling with "wipe"; restoring a backup over current files
+- Deleting a server; reinstalling with "wipe"; restoring a backup over current files. Restoring a **deleted** server's backup onto another server needs an **owner's** key: a delegation for the new server isn't enough, since the delegate may never have had access to the old server's files.
 - Deleting a backup, unlocking one, or lowering backup retention (each deletes backups, directly or at the next retention run)
 - Changing the egg, install script, startup command, or Docker image (Wings compares the update with its own records to decide; the Panel can't mislabel it)
 - Granting support access

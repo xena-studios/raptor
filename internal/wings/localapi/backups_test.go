@@ -33,8 +33,10 @@ func newFakeBackups() *fakeBackups {
 		{ID: "01a0f000-0000-7000-8000-0000000b0001", ServerID: survival, Kind: backup.KindScheduled, Status: backup.StatusOK, CreatedAt: at},
 		{ID: "01a0f000-0000-7000-8000-0000000b0002", ServerID: survival, Kind: backup.KindManual, Status: backup.StatusOK, CreatedAt: at.Add(time.Hour)},
 		{ID: "01a0f000-0000-7000-8000-1000000b0002", ServerID: survival, Kind: backup.KindManual, Status: backup.StatusOK, CreatedAt: at.Add(2 * time.Hour)},
-		// An offsite backup of a deleted server.
-		{ID: "01a0f000-0000-7000-8000-0000000b0003", ServerID: "0190a1b2-0000-7000-8000-00000000dead", Kind: backup.KindManual, Status: backup.StatusOK, CreatedAt: at},
+		// A final backup of a deleted server.
+		{ID: "01a0f000-0000-7000-8000-0000000b0003", ServerID: "0190a1b2-0000-7000-8000-00000000dead", Kind: backup.KindFinal, Status: backup.StatusOK, CreatedAt: at},
+		// A backup of another server that still exists.
+		{ID: "01a0f000-0000-7000-8000-0000000b0004", ServerID: "0190a1b2-0000-7000-8000-00000000bbbb", Kind: backup.KindManual, Status: backup.StatusOK, CreatedAt: at},
 	}}
 }
 
@@ -111,7 +113,7 @@ func TestListBackups(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := len(res.GetBackups()); n != 4 || res.GetBackups()[3].GetServerName() != "" {
+	if n := len(res.GetBackups()); n != 5 || res.GetBackups()[3].GetServerName() != "" {
 		t.Fatalf("node list: %v", res.GetBackups())
 	}
 	if _, err := s.ListBackups(userCtx, &localv1.ListBackupsRequest{Server: "nope"}); connect.CodeOf(err) != connect.CodeNotFound {
@@ -144,7 +146,7 @@ func TestCreateAndRestoreBackup(t *testing.T) {
 		"":               connect.CodeInvalidArgument,
 		"b0001":          connect.CodeNotFound,        // suffixes need 8 characters
 		"000b0002":       connect.CodeInvalidArgument, // two backups end like this
-		"0000000b0003":   connect.CodeNotFound,        // another server's backup
+		"0000000b0004":   connect.CodeNotFound,        // another existing server's backup
 		"does-not-exist": connect.CodeNotFound,
 	} {
 		if _, err := s.RestoreBackup(rootCtx, &localv1.RestoreBackupRequest{Server: "survival", Backup: ref}); connect.CodeOf(err) != code {
@@ -157,6 +159,13 @@ func TestCreateAndRestoreBackup(t *testing.T) {
 	}
 	if !slices.Equal(f.restored, []string{survival + " 01a0f000-0000-7000-8000-0000000b0001 local:root"}) {
 		t.Fatalf("restored %q", f.restored)
+	}
+	// A deleted server's final backup restores onto another server.
+	if _, err := s.RestoreBackup(rootCtx, &localv1.RestoreBackupRequest{Server: "survival", Backup: "0000000b0003"}); err != nil {
+		t.Fatalf("restore a deleted server's backup: %v", err)
+	}
+	if got := f.restored[len(f.restored)-1]; got != survival+" 01a0f000-0000-7000-8000-0000000b0003 local:root" {
+		t.Fatalf("restored %q", got)
 	}
 
 	// A failed job is an error when waiting, and not when not.

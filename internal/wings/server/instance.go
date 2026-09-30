@@ -143,7 +143,7 @@ func (i *instance) send(cmd string) error {
 
 // runInstall installs the server. It runs as a job (installJob); out is the
 // job log.
-func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool, out io.Writer) error {
+func (m *Manager) runInstall(ctx context.Context, i *instance, jobID string, p installPayload, out io.Writer) error {
 	i.power.Lock()
 	defer i.power.Unlock()
 	if i.isUp() {
@@ -159,6 +159,17 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool, 
 	}
 
 	i.setState(Installing)
+	// A wipe that fails leaves the server as it was: installed, with its
+	// files, able to start.
+	if p.Wipe {
+		if err := m.wipe(ctx, i, jobID, dir, out); err != nil {
+			if !errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
+				i.setState(Offline)
+				i.console.Notice("wipe and reinstall failed: %v", err)
+			}
+			return err
+		}
+	}
 	if err := m.o.Store.Write.SetInstallState(ctx, store.SetInstallStateParams{InstallState: installInstalling, ID: i.id}); err != nil {
 		return err
 	}
@@ -189,7 +200,7 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, startAfter bool, 
 	if err := m.finishInstall(i, srv, res, err); err != nil {
 		return err
 	}
-	if startAfter {
+	if p.StartAfter {
 		return i.startLocked(ctx, true)
 	}
 	return nil
@@ -231,6 +242,8 @@ func (i *instance) startLocked(ctx context.Context, setDesired bool) error {
 		return nil
 	case Installing:
 		return ErrInstalling
+	case Deleting:
+		return ErrDeleting
 	}
 	m := i.m
 	srv, err := m.Get(ctx, i.id)

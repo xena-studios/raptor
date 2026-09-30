@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -67,62 +68,105 @@ const hookEgg = `{
 	"x-raptor": {"backup": {"pre": ["echo SAVE-OFF", "printf 'Saved%sthe game\\n' ' '"], "post": ["echo SAVE-ON"], "wait_for": "Saved the game"}}
 }`
 
-func TestBackupCommands(t *testing.T) {
+// backupEnv is a server manager with backups, schedules, and the command
+// path, as Wings wires them.
+type backupEnv struct {
+	m     *server.Manager
+	db    *store.DB
+	bk    *backup.Manager
+	sched *schedule.Scheduler
+	eng   *jobs.Engine
+	p     *panel
+	owner *commandtest.Authenticator
+	info  string // where the worker records its cgroup and OOM score
+}
+
+func newBackupEnv(t *testing.T) *backupEnv {
+	t.Helper()
 	ctx := context.Background()
 	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	info := filepath.Join(t.TempDir(), "worker")
-	var (
-		bk    *backup.Manager
-		sched *schedule.Scheduler
-		eng   *jobs.Engine
-	)
+	v := &backupEnv{info: filepath.Join(t.TempDir(), "worker")}
 	dir := t.TempDir()
-	m, db := newManagerWith(t, func(m *server.Manager, db *store.DB, e *jobs.Engine) {
-		eng = e
-		bk = backup.New(backup.Options{
+	v.m, v.db = newManagerWith(t, func(m *server.Manager, db *store.DB, e *jobs.Engine) {
+		v.eng = e
+		v.bk = backup.New(backup.Options{
 			Store: db, Jobs: e, Events: events.New(db), Servers: m,
 			Runner: backup.Process{
 				Command: []string{exe}, Slice: "raptor-backup.slice", MemoryMax: 1 << 30,
-				Env: []string{"RAPTOR_E2E_WORKER=1", "RAPTOR_E2E_WORKER_INFO=" + info},
+				Env: []string{"RAPTOR_E2E_WORKER=1", "RAPTOR_E2E_WORKER_INFO=" + v.info},
 			},
 			LocalPath: filepath.Join(dir, "backups"), StateDir: filepath.Join(dir, "kopia"),
 		})
-		sched = schedule.New(schedule.Options{Store: db, Jobs: e, Events: events.New(db), Servers: m, Backups: bk})
+		v.sched = schedule.New(schedule.Options{Store: db, Jobs: e, Events: events.New(db), Servers: m, Backups: v.bk})
 	}, func(o *server.Options) {
-		o.Deleted = func(ctx context.Context, id string) { bk.ServerDeleted(ctx, id) }
+		o.Deleted = func(ctx context.Context, id string) { v.bk.ServerDeleted(ctx, id) }
+		o.JobBackup = func(ctx context.Context, id, jobID, kind string, log io.Writer) (string, error) {
+			return v.bk.JobBackup(ctx, id, jobID, kind, log)
+		}
 	})
-	if err := bk.Start(ctx); err != nil {
+	if err := v.bk.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(bk.Close)
-	sched.Start()
-	t.Cleanup(sched.Close)
+	t.Cleanup(v.bk.Close)
+	v.sched.Start()
+	t.Cleanup(v.sched.Close)
 
 	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
-	x := &command.Executor{DB: db, NodeID: nodeID, RP: rp, PanelKey: pub}
-	Register(x, m, Defaults{BackupSchedule: func(ctx context.Context, q *store.Queries, id string) error {
-		_, err := sched.CreateTx(ctx, q, id, schedule.DefaultBackup("Europe/Berlin"))
+	x := &command.Executor{DB: v.db, NodeID: nodeID, RP: rp, PanelKey: pub}
+	Register(x, v.m, Defaults{BackupSchedule: func(ctx context.Context, q *store.Queries, id string) error {
+		_, err := v.sched.CreateTx(ctx, q, id, schedule.DefaultBackup("Europe/Berlin"))
 		return err
 	}})
-	RegisterSchedules(x, sched)
-	RegisterBackups(x, bk)
-	p := &panel{t: t, x: x, key: priv}
-	owner, err := commandtest.New("ES256", rp.Origin, rp.ID, nil)
+	RegisterSchedules(x, v.sched)
+	RegisterBackups(x, v.bk)
+	v.p = &panel{t: t, x: x, key: priv}
+	if v.owner, err = commandtest.New("ES256", rp.Origin, rp.ID, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := command.AddKey(ctx, v.db, command.KeyParams{CredentialID: v.owner.CredentialID, UserID: "alice", PublicKey: v.owner.COSE, Role: "owner"}, nil, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	return v
+}
+
+// waitJob waits for the job a command queued, which must succeed.
+func (v *backupEnv) waitJob(t *testing.T, res command.Result) jobs.Job {
+	t.Helper()
+	j := v.job(t, res)
+	if j.Status != jobs.Succeeded {
+		log, _ := v.eng.Log(j.ID)
+		t.Fatalf("job %s %s: %s\n%s", j.Type, j.Status, j.Error, log)
+	}
+	return j
+}
+
+// job waits for the job a command queued, however it ends.
+func (v *backupEnv) job(t *testing.T, res command.Result) jobs.Job {
+	t.Helper()
+	var r struct {
+		JobID string `json:"job_id"`
+	}
+	_ = json.Unmarshal(res.Value, &r)
+	wctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	j, err := v.eng.Wait(wctx, r.JobID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := command.AddKey(ctx, db, command.KeyParams{CredentialID: owner.CredentialID, UserID: "alice", PublicKey: owner.COSE, Role: "owner"}, nil, time.Now()); err != nil {
-		t.Fatal(err)
-	}
+	return j
+}
 
-	// A new server gets the daily backup schedule.
-	res, err := p.send("alice", ServerCreate, "", CreateParams{ServerConfig: ServerConfig{
-		Name: "smp", Egg: []byte(hookEgg), Limits: containers.Limits{MemoryMiB: 128},
+// create makes a server with the owner's signature and waits for its
+// install.
+func (v *backupEnv) create(t *testing.T, name string) string {
+	t.Helper()
+	res, err := v.p.send("alice", ServerCreate, "", CreateParams{ServerConfig: ServerConfig{
+		Name: name, Egg: []byte(hookEgg), Limits: containers.Limits{MemoryMiB: 128},
 		Allocations: []server.Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}},
-	}}, owner)
+	}}, v.owner)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,13 +175,27 @@ func TestBackupCommands(t *testing.T) {
 	}
 	_ = json.Unmarshal(res.Value, &created)
 	id := created.ServerID
-	t.Cleanup(func() { _ = m.Delete(context.Background(), id) })
+	t.Cleanup(func() { _ = v.m.Delete(context.Background(), id) })
+	waitState(t, v.m, id, server.Offline)
+	return id
+}
+
+func TestBackupCommands(t *testing.T) {
+	ctx := context.Background()
+	v := newBackupEnv(t)
+	m, bk, sched, p, owner, info := v.m, v.bk, v.sched, v.p, v.owner, v.info
+	waitJob := func(res command.Result) jobs.Job {
+		t.Helper()
+		return v.waitJob(t, res)
+	}
+
+	// A new server gets the daily backup schedule.
+	id := v.create(t, "smp")
 	schedules, err := sched.List(ctx, id)
 	if err != nil || len(schedules) != 1 || schedules[0].Steps[0].Type != schedule.StepBackup || schedules[0].NextRun.In(mustLoad(t, "Europe/Berlin")).Hour() != 4 {
 		t.Fatalf("default schedules: %+v, %v", schedules, err)
 	}
 
-	waitState(t, m, id, server.Offline)
 	start := func() {
 		t.Helper()
 		if err := m.Start(ctx, id); err != nil {
@@ -162,27 +220,8 @@ func TestBackupCommands(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	waitJob := func(res command.Result) jobs.Job {
-		t.Helper()
-		var r struct {
-			JobID string `json:"job_id"`
-		}
-		_ = json.Unmarshal(res.Value, &r)
-		wctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
-		defer cancel()
-		j, err := eng.Wait(wctx, r.JobID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if j.Status != jobs.Succeeded {
-			log, _ := eng.Log(j.ID)
-			t.Fatalf("job %s %s: %s\n%s", j.Type, j.Status, j.Error, log)
-		}
-		return j
-	}
-
 	// A manual backup runs the egg's hooks around the snapshot.
-	res, err = p.send("alice", BackupCreate, id, nil, nil)
+	res, err := p.send("alice", BackupCreate, id, nil, nil)
 	if err != nil {
 		t.Fatalf("backup.create (unsigned): %v", err)
 	}
@@ -332,6 +371,190 @@ func TestBackupCommands(t *testing.T) {
 	}
 	if len(list) == 0 || slices.ContainsFunc(list, func(b *backup.Backup) bool { return b.DestinationID != dest.DestinationID }) {
 		t.Fatalf("backups after deleting the server: %+v", list)
+	}
+}
+
+// Wipe and reinstall, and deleting a server with a final backup, through
+// the command path: both are signed, both back up before removing files,
+// and a deleted server's final backup restores onto another server with
+// the owner's passkey (not a delegate's).
+func TestWipeAndFinalBackup(t *testing.T) {
+	ctx := context.Background()
+	v := newBackupEnv(t)
+	id := v.create(t, "smp")
+	src, err := v.m.BackupSource(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plant := func(dir string) {
+		t.Helper()
+		for name, data := range map[string]string{"world/level.dat": "level", "mods/a.jar": "jar"} {
+			p := filepath.Join(dir, name)
+			if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil { //nolint:gosec // test directory
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(p, []byte(data), 0o644); err != nil { //nolint:gosec // test file
+				t.Fatal(err)
+			}
+		}
+		// A link out of the directory: wiping removes the link, not its target.
+		if err := os.Symlink("/etc", filepath.Join(dir, "etc-link")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	plant(src.Dir)
+
+	// A plain reinstall is unsigned and keeps the files; a wipe is signed.
+	res, err := v.p.send("alice", ServerReinstall, id, nil, nil)
+	if err != nil {
+		t.Fatalf("plain reinstall: %v", err)
+	}
+	v.waitJob(t, res)
+	if _, err := os.Stat(filepath.Join(src.Dir, "world/level.dat")); err != nil {
+		t.Fatalf("a plain reinstall removed files: %v", err)
+	}
+	if _, err := v.p.send("alice", ServerReinstall, id, ReinstallParams{Wipe: true}, nil); !errors.Is(err, command.ErrSignatureNeeded) {
+		t.Fatalf("unsigned wipe: %v", err)
+	}
+
+	// A destination that can't be reached: a wipe whose safety backup
+	// fails removes nothing, and the server stays installed.
+	res, err = v.p.send("alice", BackupDestinationSave, "", DestinationParams{backup.Destination{
+		Name: "Down", Type: engine.S3, S3: engine.S3Config{Endpoint: "http://127.0.0.1:1", Bucket: "raptor", AccessKey: "a", SecretKey: "b"},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var down struct {
+		DestinationID string `json:"destination_id"`
+	}
+	_ = json.Unmarshal(res.Value, &down)
+	setDest := func(dest string) {
+		t.Helper()
+		if _, err := v.p.send("alice", BackupPolicy, id, backup.Policy{DestinationID: dest, Retention: backup.DefaultRetention}, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	setDest(down.DestinationID)
+	res, err = v.p.send("alice", ServerReinstall, id, ReinstallParams{Wipe: true}, v.owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j := v.job(t, res); j.Status != jobs.Failed || !strings.Contains(j.Error, "no files were removed") {
+		t.Fatalf("wipe with a failing backup: %s %s", j.Status, j.Error)
+	}
+	if got, _ := os.ReadFile(filepath.Join(src.Dir, "world/level.dat")); string(got) != "level" {
+		t.Fatal("a wipe whose backup failed removed files")
+	}
+	if err := v.m.Start(ctx, id); err != nil {
+		t.Fatalf("start after the failed wipe: %v", err)
+	}
+	if err := v.m.Kill(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	waitState(t, v.m, id, server.Offline)
+	setDest(backup.LocalDestination)
+
+	res, err = v.p.send("alice", ServerReinstall, id, ReinstallParams{Wipe: true}, v.owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.waitJob(t, res)
+	if entries, _ := os.ReadDir(src.Dir); len(entries) != 0 {
+		t.Fatalf("files left after the wipe: %v", entries)
+	}
+	if _, err := os.Stat("/etc/hostname"); err != nil {
+		t.Fatalf("the wipe followed a link out: %v", err)
+	}
+	list, _ := v.bk.List(ctx, id)
+	list = slices.DeleteFunc(list, func(b *backup.Backup) bool { return b.Status == backup.StatusFailed })
+	if len(list) != 1 || list[0].Kind != backup.KindSafety || list[0].Files < 2 {
+		t.Fatalf("safety backup: %+v", list)
+	}
+	// The safety backup brings the files back.
+	res, err = v.p.send("alice", BackupRestore, id, BackupParams{BackupID: list[0].ID}, v.owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.waitJob(t, res)
+	if got, _ := os.ReadFile(filepath.Join(src.Dir, "world/level.dat")); string(got) != "level" {
+		t.Fatalf("level.dat = %q after restoring the safety backup", got)
+	}
+
+	// A final backup that fails keeps the server.
+	setDest(down.DestinationID)
+	if _, err := v.p.send("alice", ServerDelete, id, DeleteParams{FinalBackup: true}, nil); !errors.Is(err, command.ErrSignatureNeeded) {
+		t.Fatalf("unsigned delete: %v", err)
+	}
+	res, err = v.p.send("alice", ServerDelete, id, DeleteParams{FinalBackup: true}, v.owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j := v.job(t, res); j.Status != jobs.Failed || !strings.Contains(j.Error, "wasn't deleted") {
+		t.Fatalf("delete with a failing backup: %s %s", j.Status, j.Error)
+	}
+	if st, err := v.m.Status(id); err != nil || st.State != server.Offline {
+		t.Fatalf("server after the failed deletion: %+v, %v", st, err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(src.Dir, "world/level.dat")); string(got) != "level" {
+		t.Fatal("files changed after the failed deletion")
+	}
+
+	// With a working destination, the final backup is taken and kept.
+	setDest(backup.LocalDestination)
+	res, err = v.p.send("alice", ServerDelete, id, DeleteParams{FinalBackup: true}, v.owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var done struct {
+		FinalBackupID string `json:"final_backup_id"`
+	}
+	_ = json.Unmarshal(v.waitJob(t, res).Result, &done)
+	if _, err := v.m.Status(id); !errors.Is(err, server.ErrNotFound) {
+		t.Fatalf("server after deletion: %v", err)
+	}
+	if _, err := os.Stat(src.Dir); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("files after deletion: %v", err)
+	}
+	// Its other local backups (the safety backup) are deleted; the failed
+	// final backup expires like any failed backup.
+	time.Sleep(time.Second) // the deletion is queued
+	list, _ = v.bk.List(ctx, id)
+	list = slices.DeleteFunc(list, func(b *backup.Backup) bool { return b.Status == backup.StatusFailed })
+	if len(list) != 1 || list[0].ID != done.FinalBackupID || list[0].Kind != backup.KindFinal || list[0].ExpiresAt.IsZero() {
+		for _, b := range list {
+			t.Logf("left: %s %s %s %s", b.ID, b.Kind, b.Status, b.DestinationID)
+		}
+		t.Fatalf("backups after deleting with a final backup (final %s)", done.FinalBackupID)
+	}
+
+	// It restores onto another server: the owner may, a delegate for that
+	// server may not.
+	other := v.create(t, "new-home")
+	helper, err := commandtest.New("ES256", rp.Origin, rp.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := command.AddKey(ctx, v.db, command.KeyParams{
+		CredentialID: helper.CredentialID, UserID: "bob", PublicKey: helper.COSE, Role: "delegate",
+		ServerID: other, Actions: []string{BackupRestore}, ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}, v.owner.CredentialID, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := v.p.send("bob", BackupRestore, other, BackupParams{BackupID: done.FinalBackupID}, helper); !errors.Is(err, command.ErrUntrustedKey) {
+		t.Fatalf("delegate restoring a deleted server's backup: %v", err)
+	}
+	res, err = v.p.send("alice", BackupRestore, other, BackupParams{BackupID: done.FinalBackupID}, v.owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.waitJob(t, res)
+	otherSrc, err := v.m.BackupSource(ctx, other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(otherSrc.Dir, "mods/a.jar")); string(got) != "jar" {
+		t.Fatalf("a.jar = %q on the new server", got)
 	}
 }
 

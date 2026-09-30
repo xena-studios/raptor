@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/user"
@@ -344,6 +345,9 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	}
 	var bk *backup.Manager
 	opts.Deleted = func(ctx context.Context, id string) { bk.ServerDeleted(ctx, id) }
+	opts.JobBackup = func(ctx context.Context, id, jobID, kind string, log io.Writer) (string, error) {
+		return bk.JobBackup(ctx, id, jobID, kind, log)
+	}
 	mgr := server.New(opts) // registers the install job handler
 	if err := mgr.Reconcile(ctx); err != nil {
 		mgr.Close()
@@ -457,15 +461,17 @@ func (r *runtimeSetup) startSFTP(ctx context.Context, mgr *server.Manager, uid, 
 	if err := svc.Start(ctx); err != nil {
 		r.log.Error("sftp didn't start", "err", err)
 	}
-	// Sessions end when the files are deleted, or an install or restore
-	// starts over them: open handles would otherwise keep writing into files
+	// Sessions end when the files are deleted, or an install, wipe, restore,
+	// or final backup starts over them: open handles would otherwise keep writing into files
 	// the install script or the restore is replacing.
 	evs, stop := mgr.Events()
 	r.stopSFTPEvents = stop
 	go func() {
 		for e := range evs {
-			restoring := e.Type == server.EventState && e.Data["state"] == string(server.Restoring)
-			if e.Type == server.EventDeleted || e.Type == server.EventInstallStarted || restoring {
+			// Installing covers a wipe, which starts before the install does.
+			st, _ := e.Data["state"].(string)
+			taken := e.Type == server.EventState && (st == string(server.Restoring) || st == string(server.Installing) || st == string(server.Deleting))
+			if e.Type == server.EventDeleted || e.Type == server.EventInstallStarted || taken {
 				if n := svc.Disconnect(e.ServerID); n > 0 {
 					r.log.Info("sftp sessions closed", "server", e.ServerID, "reason", e.Type, "count", n)
 				}

@@ -135,10 +135,10 @@ Power actions take the server's lock, so they never overlap with installs, backu
 
 ## Deleting a server
 
-Implemented now: stop (kill after the stop timeout), remove the server and install containers, delete the files, free the allocations, clear the quota limit, drop the row. Local backups are deleted and offsite ones kept (step 5). The final backup is still to come.
+Implemented in Wings: all of the steps below except the Panel's prompt (step 1).
 
 1. The Panel requires the owner to type the server name and **sign the deletion with their passkey** (Wings rejects unsigned deletions). A **final backup** option is shown, on by default when a backup destination exists.
-2. Wings stops the server (kills it after the stop timeout), takes the final backup if requested, and removes the container.
+2. Wings stops the server (kills it after the stop timeout), takes the final backup if requested, and removes the container. With a final backup the deletion is a job, and the server is `deleting` until it's done; **if the final backup fails, the server isn't deleted** (it stays stopped, and the Panel is told why).
 3. Files are deleted and the server's quota project is cleared. **This can't be undone** except by restoring a backup onto a new server.
 4. Allocations are freed. The server's row is removed and a `server.deleted` event tells the Panel to drop it from the mirror.
-5. **Backups:** local backups are deleted with the server. Offsite backups (the owner's S3/B2 or Raptor hosted storage) are **kept** and listed in the Panel as orphaned. The owner deletes them or restores them onto another server. Orphaned hosted backups are deleted after 30 days, with email reminders beforehand.
+5. **Backups:** local backups are deleted with the server, except the final backup, which is kept for 30 days. Offsite backups (the owner's S3/B2 or Raptor hosted storage) are **kept** and listed in the Panel as orphaned. The owner deletes them or restores them onto another server (with their own passkey; a delegate can't restore a deleted server's backups). Orphaned hosted backups are deleted after 30 days, with email reminders beforehand.

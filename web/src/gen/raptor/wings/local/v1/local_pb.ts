@@ -59,7 +59,7 @@ export type ServerInfo = Message<"raptor.wings.local.v1.ServerInfo"> & {
   name: string;
 
   /**
-   * installing, install_failed, restoring, offline, starting, running, stopping, crashed
+   * installing, install_failed, restoring, deleting, offline, starting, running, stopping, crashed
    *
    * @generated from field: string state = 3;
    */

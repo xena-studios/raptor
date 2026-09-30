@@ -34,7 +34,8 @@ import (
 const (
 	KindManual    = "manual"
 	KindScheduled = "scheduled"
-	KindSafety    = "safety" // taken before a restore; expires after SafetyTTL
+	KindSafety    = "safety" // taken before a restore or a wipe; expires after SafetyTTL
+	KindFinal     = "final"  // taken before a server is deleted; kept (FinalTTL on the local destination)
 )
 
 // Backup statuses.
@@ -70,7 +71,10 @@ const LocalDestination = "local"
 
 // Timings.
 const (
-	SafetyTTL        = 7 * 24 * time.Hour
+	SafetyTTL = 7 * 24 * time.Hour
+	// FinalTTL is how long a deleted server's final backup stays on the
+	// local destination (host disk). Offsite ones are kept until deleted.
+	FinalTTL         = 30 * 24 * time.Hour
 	failedTTL        = 7 * 24 * time.Hour
 	maintainInterval = time.Hour
 	maxIgnore        = 100
@@ -366,6 +370,35 @@ func (b *Backup) eventData() map[string]any {
 	return d
 }
 
+// Restorable returns a backup that may be restored onto a server: one of
+// its own, or one of a server that no longer exists on this node (a final
+// backup, or an offsite backup kept after the deletion). Another existing
+// server's backups are refused, so access to one server never reaches
+// another's files. Restoring from a deleted server is the only way back
+// after a deletion; only owners may do it (docs/SECURITY-MODEL.md).
+func (m *Manager) Restorable(ctx context.Context, serverID, id string) (*Backup, error) {
+	r, err := m.o.Store.Read.GetBackup(ctx, id)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	if r.ServerID != serverID {
+		if _, err := m.o.Servers.Status(r.ServerID); err == nil {
+			return nil, ErrNotFound
+		}
+	}
+	return fromRow(r), nil
+}
+
+// FromDeletedServer reports whether restoring backup id onto serverID
+// restores another (deleted) server's files.
+func (m *Manager) FromDeletedServer(ctx context.Context, serverID, id string) (bool, error) {
+	b, err := m.Restorable(ctx, serverID, id)
+	if err != nil {
+		return false, err
+	}
+	return b.ServerID != serverID, nil
+}
+
 // Get returns a server's backup.
 func (m *Manager) Get(ctx context.Context, serverID, id string) (*Backup, error) {
 	r, err := m.o.Store.Read.GetBackup(ctx, id)
@@ -506,17 +539,20 @@ func (m *Manager) Delete(ctx context.Context, serverID, id string) (string, erro
 	return m.enqueueDelete(ctx, b.DestinationID, []string{id}, "deleted")
 }
 
-// ServerDeleted deletes a deleted server's local backups. Offsite ones are
-// kept: they're the only way back (docs/SERVERS.md#deletion).
+// ServerDeleted deletes a deleted server's local backups, except its final
+// backup (which expires after FinalTTL). Offsite ones are kept: they're the
+// only way back (docs/SERVERS.md#deleting-a-server).
 func (m *Manager) ServerDeleted(ctx context.Context, serverID string) {
 	rows, err := m.o.Store.Read.ListDestinationBackups(ctx, store.ListDestinationBackupsParams{DestinationID: LocalDestination, ServerID: serverID})
 	if err != nil {
 		m.log.Error("listing a deleted server's backups failed", "server", serverID, "err", err)
 		return
 	}
-	ids := make([]string, len(rows))
-	for i, r := range rows {
-		ids[i] = r.ID
+	var ids []string
+	for _, r := range rows {
+		if r.Kind != KindFinal {
+			ids = append(ids, r.ID)
+		}
 	}
 	if len(ids) == 0 {
 		return
@@ -535,9 +571,10 @@ func (m *Manager) enqueueDelete(ctx context.Context, destID string, ids []string
 }
 
 // Restore queues restoring a backup over a server's files. A safety backup
-// of the current files is taken first.
+// of the current files is taken first. The backup is the server's own, or
+// one of a deleted server (see Restorable).
 func (m *Manager) Restore(ctx context.Context, serverID, id, user string) (string, error) {
-	b, err := m.Get(ctx, serverID, id)
+	b, err := m.Restorable(ctx, serverID, id)
 	if err != nil {
 		return "", err
 	}

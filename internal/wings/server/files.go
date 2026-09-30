@@ -75,6 +75,8 @@ func (m *Manager) CheckFiles(ctx context.Context, id string, write bool) error {
 		return ErrInstalling
 	case state == Restoring:
 		return ErrRestoring
+	case state == Deleting:
+		return ErrDeleting
 	case !write || !over:
 		return nil
 	}

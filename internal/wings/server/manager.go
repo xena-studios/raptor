@@ -76,6 +76,11 @@ type Options struct {
 	// Deleted, if set, is called after a server was deleted (its local
 	// backups are deleted with it).
 	Deleted func(ctx context.Context, id string)
+	// JobBackup, if set, backs up a stopped server inside one of its jobs
+	// (kind BackupSafety before a wipe, BackupFinal before a deletion) and
+	// returns the backup's ID ("" for an empty directory). Without it,
+	// wiping and final backups are refused.
+	JobBackup func(ctx context.Context, id, jobID, kind string, log io.Writer) (string, error)
 
 	// Crash policy overrides, for tests.
 	CrashWindow time.Duration
@@ -133,6 +138,13 @@ func New(o Options) *Manager {
 		MaxAttempts: 3,
 		Run:         m.installJob,
 	})
+	o.Jobs.Register(JobDelete, jobs.Handler{
+		Class:       "backup",
+		ServerLock:  true,
+		Resumable:   true, // the final backup is found again, or retried
+		MaxAttempts: 3,
+		Run:         m.deleteJob,
+	})
 	return m
 }
 
@@ -141,6 +153,16 @@ const JobInstall = "server.install"
 
 type installPayload struct {
 	StartAfter bool `json:"start_after,omitempty"`
+	// Wipe: take a safety backup and remove every file before the script
+	// runs ("wipe and reinstall").
+	Wipe bool `json:"wipe,omitempty"`
+}
+
+// InstallOptions change a reinstall.
+type InstallOptions struct {
+	// Wipe removes every file before the script runs, after a safety
+	// backup.
+	Wipe bool
 }
 
 // oomKilled reports whether an unexplained SIGKILL was the OOM killer: the
@@ -458,6 +480,15 @@ func (m *Manager) checkHostPorts(allocs []Allocation) error {
 // existing files (docs/EGGS.md#install). The server must be stopped. It
 // returns the job ID.
 func (m *Manager) Install(ctx context.Context, id string) (string, error) {
+	return m.Reinstall(ctx, id, InstallOptions{})
+}
+
+// Reinstall queues an install over an existing server, optionally wiping
+// its files first (after a safety backup).
+func (m *Manager) Reinstall(ctx context.Context, id string, opts InstallOptions) (string, error) {
+	if opts.Wipe && m.o.JobBackup == nil {
+		return "", errors.New("backups aren't available on this node, so files can't be wiped")
+	}
 	i, err := m.instance(id)
 	if err != nil {
 		return "", err
@@ -468,7 +499,7 @@ func (m *Manager) Install(ctx context.Context, id string) (string, error) {
 	if active, err := m.o.Jobs.HasActive(ctx, id); err != nil || active {
 		return "", errors.Join(ErrInstalling, err)
 	}
-	return m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobInstall, ServerID: id, Payload: installPayload{}})
+	return m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobInstall, ServerID: id, Payload: installPayload{Wipe: opts.Wipe}})
 }
 
 // installJob is the job handler for installs.
@@ -481,7 +512,7 @@ func (m *Manager) installJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 	if err != nil {
 		return nil, err
 	}
-	return nil, m.runInstall(ctx, i, p.StartAfter, log)
+	return nil, m.runInstall(ctx, i, j.ID, p, log)
 }
 
 // Start starts a server. Starting a starting or running server does nothing.
@@ -552,12 +583,19 @@ func (m *Manager) SendCommand(id, user, cmd string) error {
 // Delete stops a server (killing it after its stop timeout), removes its
 // container and files, and frees its allocations. It can't be undone.
 func (m *Manager) Delete(ctx context.Context, id string) error {
+	return m.deleteNow(ctx, id, "", nil)
+}
+
+// deleteNow deletes a server; skipJob is the job doing it, if any, which
+// isn't cancelled with the server's other jobs. data goes in the
+// server.deleted event.
+func (m *Manager) deleteNow(ctx context.Context, id, skipJob string, data map[string]any) error {
 	i, err := m.instance(id)
 	if err != nil {
 		return err
 	}
 	// A pending or running install for a server being deleted is cancelled.
-	if err := m.cancelJobs(ctx, id); err != nil {
+	if err := m.cancelJobs(ctx, id, skipJob); err != nil {
 		return err
 	}
 	i.power.Lock()
@@ -587,7 +625,7 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 			m.log.Warn("clearing the disk limit failed", "server", id, "err", err)
 		}
 	}
-	deleted := newEvent(EventDeleted, id, 0, nil)
+	deleted := newEvent(EventDeleted, id, 0, data)
 	if err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
 		if err := q.DeleteServer(ctx, id); err != nil {
 			return err
@@ -607,14 +645,15 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// cancelJobs cancels a server's queued and running jobs and waits for them.
-func (m *Manager) cancelJobs(ctx context.Context, id string) error {
+// cancelJobs cancels a server's queued and running jobs (but skip) and
+// waits for them.
+func (m *Manager) cancelJobs(ctx context.Context, id, skip string) error {
 	list, err := m.o.Jobs.List(ctx, id, 100)
 	if err != nil {
 		return err
 	}
 	for _, j := range list {
-		if j.Status != jobs.Queued && j.Status != jobs.Running {
+		if j.ID == skip || (j.Status != jobs.Queued && j.Status != jobs.Running) {
 			continue
 		}
 		if err := m.o.Jobs.Cancel(ctx, j.ID); err != nil {

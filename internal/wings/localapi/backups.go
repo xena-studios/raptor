@@ -60,26 +60,31 @@ func backupErr(err error) error {
 	case errors.Is(err, backup.ErrInvalid):
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	case errors.Is(err, backup.ErrNotReady), errors.Is(err, backup.ErrLowDisk), errors.Is(err, backup.ErrDestination),
-		errors.Is(err, server.ErrRestoring):
+		errors.Is(err, server.ErrRestoring), errors.Is(err, server.ErrDeleting):
 		return connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	return connectErr(err)
 }
 
-// resolveBackup finds one of a server's backups by full ID or ID suffix
-// (at least shortID characters). Backup IDs are UUIDv7 like server IDs, so
-// their ends are the distinctive part.
-func resolveBackup(ctx context.Context, b Backups, serverID, ref string) (string, error) {
+// resolveBackup finds a backup to restore onto a server by full ID or ID
+// suffix (at least shortID characters): one of the server's own, or of a
+// server that was deleted (its final backup, or offsite backups kept after
+// the deletion). Backup IDs are UUIDv7 like server IDs, so their ends are
+// the distinctive part.
+func resolveBackup(ctx context.Context, b Backups, serverID, ref string, deleted func(serverID string) bool) (string, error) {
 	ref = strings.TrimSpace(ref)
 	if ref == "" {
 		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("no backup given"))
 	}
-	list, err := b.List(ctx, serverID)
+	list, err := b.List(ctx, "")
 	if err != nil {
 		return "", err
 	}
 	var matches []string
 	for _, bk := range list {
+		if bk.ServerID != serverID && !deleted(bk.ServerID) {
+			continue
+		}
 		if bk.ID == ref {
 			return bk.ID, nil
 		}
@@ -196,7 +201,11 @@ func (s *Service) RestoreBackup(ctx context.Context, req *localv1.RestoreBackupR
 	if err != nil {
 		return nil, err
 	}
-	bid, err := resolveBackup(ctx, b, id, req.GetBackup())
+	existing := srv.List()
+	bid, err := resolveBackup(ctx, b, id, req.GetBackup(), func(sid string) bool {
+		_, ok := existing[sid]
+		return !ok
+	})
 	if err != nil {
 		return nil, backupErr(err)
 	}

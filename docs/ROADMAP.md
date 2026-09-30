@@ -87,7 +87,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 ### 1.3 Egg engine ✅
 - [x] Parsers for `PTDL_v1`, `PTDL_v2`, `PLCN_v*`; reject unknown versions
 - [x] Variables: Laravel-style rule validation (every rule used by 606 surveyed community eggs), validated **before** substitution
-- [x] Install containers per [EGGS.md](EGGS.md#install): `/mnt/server` + read-only `/mnt/install`, hardening, limits, timeout, `raptor_install` network isolation, symlink-safe ownership fix, capped logs, failure behavior. "Wipe and reinstall" needs backups and moves to Phase 2.
+- [x] Install containers per [EGGS.md](EGGS.md#install): `/mnt/server` + read-only `/mnt/install`, hardening, limits, timeout, `raptor_install` network isolation, symlink-safe ownership fix, capped logs, failure behavior. "Wipe and reinstall" needed backups and came with them in Phase 2.
 - [x] Runtime environment matching Pterodactyl Wings exactly (from 1.0)
 - [x] Startup "done" detection, stop commands and signals, timeouts
 - [x] Config file parsers: properties, yaml, json, ini, xml, file, all through `os.Root`, editing in place
@@ -104,7 +104,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] **Reconcile on Wings start**: reattach running containers, start servers with `desired_state=running` (staggered), refill console from Docker logs; resume after Docker restarts
 - [x] `raptor-shutdown.service` for graceful stops on host shutdown, with container scopes ordered after it
 - [x] Crash policy: crash detection (incl. OOM and clean exit), backoff, crash-loop stop, crash events with last console lines
-- [x] Deletion: file cleanup and freed allocations. The final backup and orphaned offsite backups come with backups (Phase 2), quota cleanup with 1.6.
+- [x] Deletion: file cleanup and freed allocations. The final backup and orphaned offsite backups came with backups (Phase 2), quota cleanup with 1.6.
 - [x] `task e2e:host`: Wings restart, Docker restart, host shutdown, and reboot, against the real systemd units
 
 ### 1.5 Job engine ✅
@@ -150,7 +150,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 **Goal:** every node-side feature exists, tested against a stub Panel.
 
 - [x] **Scheduler:** cron + timezone (with defined DST behavior), multi-step runs (`command`, `wait`, `power`, `backup`), `only_when_online`, jitter, missed-run policy, runs that resume after a Wings restart ([WINGS.md](WINGS.md#scheduler))
-- [x] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + maintenance jobs, safety backup before restore, a low-priority worker process, on by default through a daily schedule ([WINGS.md](WINGS.md#backups)). `raptor backup list|create|restore`. Still to come: the final backup when deleting a server, and "wipe and reinstall".
+- [x] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + maintenance jobs, safety backup before restore, a low-priority worker process, on by default through a daily schedule ([WINGS.md](WINGS.md#backups)). `raptor backup list|create|restore`. Deleting a server can take a **final backup** first (the server is kept if it fails; a local one is kept 30 days), and restore it onto another server (owner only); signed **wipe and reinstall** takes a safety backup first.
 - [x] **SFTP:** off by default, enabled per node (`node.sftp`); `x/crypto/ssh` + `pkg/sftp`, `user.serverid` (full or short ID), `os.Root` chroot, host key generated on the node, auth callback interface (stubbed until the node connection), public key cache, per-address login limits ([WINGS.md](WINGS.md#files-and-sftp)). The egg's `file_denylist` applies to it as to the web file manager. Still to come: Panel auth (3.x), the `doctor` port check.
 - [x] **File operations for the web file manager:** list, stat, read and write (for the editor, up to 4 MiB), mkdir, rename, copy, delete, chmod, compress and decompress (zip, tar, .tar.gz, .tar.bz2, .tar.zst, .gz, as jobs), all through `os.Root` in a `files` package that SFTP now shares; the egg's `file_denylist` (`.gitignore` syntax, through symlinks, and for directories holding denied files) for both; chunked, resumable uploads (staged in the server's directory, resumed after a Wings restart) and downloads, in chunks of up to 64 MiB, 1 GB per file. Read-only commands aren't stored with executed commands. The hostile-egg suite goes after the planted links through all of it ([WINGS.md](WINGS.md#files-and-sftp)). No HTTP server on the node. Still to come: the separate outbound connection that carries transfer chunks (with the node connection, 3.0), and the UI (Phase 4).
 - [ ] **Notifications:** Discord + generic webhooks from Wings, including direct alerts for every signed dangerous action (configured on the node, not through the Panel)

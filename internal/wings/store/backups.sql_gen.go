@@ -205,6 +205,42 @@ func (q *Queries) GetBackupPolicy(ctx context.Context, serverID string) (BackupP
 	return i, err
 }
 
+const getJobBackup = `-- name: GetJobBackup :one
+SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at FROM backups WHERE job_id = ? AND kind = ? ORDER BY created_at DESC LIMIT 1
+`
+
+type GetJobBackupParams struct {
+	JobID string
+	Kind  string
+}
+
+// The backup a job takes for itself (a safety or final backup), so a
+// resumed job finds it again.
+func (q *Queries) GetJobBackup(ctx context.Context, arg GetJobBackupParams) (Backup, error) {
+	row := q.db.QueryRowContext(ctx, getJobBackup, arg.JobID, arg.Kind)
+	var i Backup
+	err := row.Scan(
+		&i.ID,
+		&i.ServerID,
+		&i.DestinationID,
+		&i.Kind,
+		&i.Status,
+		&i.Locked,
+		&i.SnapshotID,
+		&i.Size,
+		&i.Files,
+		&i.Uploaded,
+		&i.Warning,
+		&i.Error,
+		&i.JobID,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.FinishedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const insertBackup = `-- name: InsertBackup :exec
 INSERT INTO backups (id, server_id, destination_id, kind, locked, job_id, created_by, created_at, expires_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
