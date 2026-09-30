@@ -31,6 +31,9 @@ commands:
               live console; type commands to send them (root)
   logs <server> [-n lines] [-f] [-t]
               server output, further back than the console history
+  backup list|create|restore
+              list backups, back up now, or restore one (root for create
+              and restore)
   storage status|setup|grow
               show, create, or enlarge the server data volume (root for
               setup and grow)
@@ -68,6 +71,8 @@ func run(args []string) error {
 		return console(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "logs":
 		return logs(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "backup":
+		return backupCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "storage":
 		return storageCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":

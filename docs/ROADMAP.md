@@ -150,7 +150,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 **Goal:** every node-side feature exists, tested against a stub Panel.
 
 - [x] **Scheduler:** cron + timezone (with defined DST behavior), multi-step runs (`command`, `wait`, `power`, `backup`), `only_when_online`, jitter, missed-run policy, runs that resume after a Wings restart ([WINGS.md](WINGS.md#scheduler))
-- [x] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + maintenance jobs, safety backup before restore, a low-priority worker process, on by default through a daily schedule ([WINGS.md](WINGS.md#backups)). Still to come: `raptor backup list|create|restore`, the final backup when deleting a server, and "wipe and reinstall".
+- [x] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + maintenance jobs, safety backup before restore, a low-priority worker process, on by default through a daily schedule ([WINGS.md](WINGS.md#backups)). `raptor backup list|create|restore`. Still to come: the final backup when deleting a server, and "wipe and reinstall".
 - [ ] **SFTP:** off by default, enabled per node; `x/crypto/ssh`, `user.serverid`, `os.Root` chroot, host key generated on the node, auth callback interface (stubbed), public key cache
 - [ ] **File operations for the web file manager:** list, read, write, rename, delete, archive, through `os.Root`; chunked, resumable uploads and downloads (chunks under 100 MB, 1 GB per-file cap) on a separate outbound connection per transfer. No HTTP server on the node.
 - [ ] **Notifications:** Discord + generic webhooks from Wings, including direct alerts for every signed dangerous action (configured on the node, not through the Panel)

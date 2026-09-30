@@ -1,3 +1,5 @@
 # Wings config for the development VM (task wings:vm:install).
 log:
   level: debug
+limits:
+  host_disk_min_free: 1GiB # the dev VM's disk is small; real nodes keep 10GiB

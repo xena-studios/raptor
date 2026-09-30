@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/wings/local/v1/local.proto.
  */
 export const file_raptor_wings_local_v1_local: GenFile = /*@__PURE__*/
-  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIYChZTaHV0ZG93blNlcnZlcnNSZXF1ZXN0IjoKF1NodXRkb3duU2VydmVyc1Jlc3BvbnNlEg8KB3N0b3BwZWQYASABKAUSDgoGZXJyb3JzGAIgAygJIhIKEEdldFN0YXR1c1JlcXVlc3QiugIKEUdldFN0YXR1c1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAkSDgoGY29tbWl0GAIgASgJEg8KB25vZGVfaWQYAyABKAkSEQoJcGFuZWxfdXJsGAQgASgJEi4KCnN0YXJ0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKBmRvY2tlchgGIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5Eb2NrZXJTdGF0dXMSDgoGY2FsbGVyGAcgASgJEjQKB3NlcnZlcnMYCCABKAsyIy5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VydmVyQ291bnRzEjUKB3N0b3JhZ2UYCSABKAsyJC5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RvcmFnZVN0YXR1cyIpCgxTZXJ2ZXJDb3VudHMSDQoFdG90YWwYASABKAUSCgoCdXAYAiABKAUiSwoNU3RvcmFnZVN0YXR1cxIMCgRwYXRoGAEgASgJEg4KBnF1b3RhcxgCIAEoCBINCgVyZWFkeRgDIAEoCBINCgVlcnJvchgEIAEoCSJBCgxEb2NrZXJTdGF0dXMSEQoJcmVhY2hhYmxlGAEgASgIEg8KB3ZlcnNpb24YAiABKAkSDQoFZXJyb3IYAyABKAkqiwEKC1Bvd2VyQWN0aW9uEhwKGFBPV0VSX0FDVElPTl9VTlNQRUNJRklFRBAAEhYKElBPV0VSX0FDVElPTl9TVEFSVBABEhUKEVBPV0VSX0FDVElPTl9TVE9QEAISGAoUUE9XRVJfQUNUSU9OX1JFU1RBUlQQAxIVChFQT1dFUl9BQ1RJT05fS0lMTBAEMuoFCgxMb2NhbFNlcnZpY2USYwoJR2V0U3RhdHVzEicucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldFN0YXR1c1JlcXVlc3QaKC5yYXB0b3Iud2luZ3MubG9jYWwudjEuR2V0U3RhdHVzUmVzcG9uc2UiA5ACARJ1Cg9TaHV0ZG93blNlcnZlcnMSLS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2h1dGRvd25TZXJ2ZXJzUmVxdWVzdBouLnJhcHRvci53aW5ncy5sb2NhbC52MS5TaHV0ZG93blNlcnZlcnNSZXNwb25zZSIDkAICEmkKC0xpc3RTZXJ2ZXJzEikucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RTZXJ2ZXJzUmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0U2VydmVyc1Jlc3BvbnNlIgOQAgESVAoFUG93ZXISIy5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJSZXF1ZXN0GiQucmFwdG9yLndpbmdzLmxvY2FsLnYxLlBvd2VyUmVzcG9uc2UiABJxCg1TdHJlYW1Db25zb2xlEisucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0cmVhbUNvbnNvbGVSZXF1ZXN0GiwucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0cmVhbUNvbnNvbGVSZXNwb25zZSIDkAIBMAESZgoLU2VuZENvbW1hbmQSKS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VuZENvbW1hbmRSZXF1ZXN0GioucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlbmRDb21tYW5kUmVzcG9uc2UiABJiCghUYWlsTG9ncxImLnJhcHRvci53aW5ncy5sb2NhbC52MS5UYWlsTG9nc1JlcXVlc3QaJy5yYXB0b3Iud2luZ3MubG9jYWwudjEuVGFpbExvZ3NSZXNwb25zZSIDkAIBMAFC7wEKGWNvbS5yYXB0b3Iud2luZ3MubG9jYWwudjFCCkxvY2FsUHJvdG9QAVpPZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3Ivd2luZ3MvbG9jYWwvdjE7bG9jYWx2MaICA1JXTKoCFVJhcHRvci5XaW5ncy5Mb2NhbC5WMcoCFVJhcHRvclxXaW5nc1xMb2NhbFxWMeICIVJhcHRvclxXaW5nc1xMb2NhbFxWMVxHUEJNZXRhZGF0YeoCGFJhcHRvcjo6V2luZ3M6OkxvY2FsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIkChJMaXN0QmFja3Vwc1JlcXVlc3QSDgoGc2VydmVyGAEgASgJIkkKE0xpc3RCYWNrdXBzUmVzcG9uc2USMgoHYmFja3VwcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5CYWNrdXBJbmZvIpYDCgpCYWNrdXBJbmZvEgoKAmlkGAEgASgJEhEKCXNlcnZlcl9pZBgCIAEoCRITCgtzZXJ2ZXJfbmFtZRgDIAEoCRIWCg5kZXN0aW5hdGlvbl9pZBgEIAEoCRIMCgRraW5kGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIOCgZsb2NrZWQYByABKAgSEgoKc2l6ZV9ieXRlcxgIIAEoAxINCgVmaWxlcxgJIAEoAxIWCg51cGxvYWRlZF9ieXRlcxgKIAEoAxIPCgd3YXJuaW5nGAsgASgJEg0KBWVycm9yGAwgASgJEhIKCmNyZWF0ZWRfYnkYDSABKAkSLgoKY3JlYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmpvYl9pZBgRIAEoCSJDChNDcmVhdGVCYWNrdXBSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIOCgZsb2NrZWQYAiABKAgSDAoEd2FpdBgDIAEoCCJJChRDcmVhdGVCYWNrdXBSZXNwb25zZRIxCgZiYWNrdXAYASABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQmFja3VwSW5mbyJEChRSZXN0b3JlQmFja3VwUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDgoGYmFja3VwGAIgASgJEgwKBHdhaXQYAyABKAgiQQoVUmVzdG9yZUJhY2t1cFJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIYChBzYWZldHlfYmFja3VwX2lkGAIgASgJIhgKFlNodXRkb3duU2VydmVyc1JlcXVlc3QiOgoXU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2USDwoHc3RvcHBlZBgBIAEoBRIOCgZlcnJvcnMYAiADKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCK6AgoRR2V0U3RhdHVzUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRIOCgZjb21taXQYAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglwYW5lbF91cmwYBCABKAkSLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMwoGZG9ja2VyGAYgASgLMiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLkRvY2tlclN0YXR1cxIOCgZjYWxsZXIYByABKAkSNAoHc2VydmVycxgIIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZXJ2ZXJDb3VudHMSNQoHc3RvcmFnZRgJIAEoCzIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdG9yYWdlU3RhdHVzIikKDFNlcnZlckNvdW50cxINCgV0b3RhbBgBIAEoBRIKCgJ1cBgCIAEoBSJLCg1TdG9yYWdlU3RhdHVzEgwKBHBhdGgYASABKAkSDgoGcXVvdGFzGAIgASgIEg0KBXJlYWR5GAMgASgIEg0KBWVycm9yGAQgASgJIkEKDERvY2tlclN0YXR1cxIRCglyZWFjaGFibGUYASABKAgSDwoHdmVyc2lvbhgCIAEoCRINCgVlcnJvchgDIAEoCSqLAQoLUG93ZXJBY3Rpb24SHAoYUE9XRVJfQUNUSU9OX1VOU1BFQ0lGSUVEEAASFgoSUE9XRVJfQUNUSU9OX1NUQVJUEAESFQoRUE9XRVJfQUNUSU9OX1NUT1AQAhIYChRQT1dFUl9BQ1RJT05fUkVTVEFSVBADEhUKEVBPV0VSX0FDVElPTl9LSUxMEAQyrggKDExvY2FsU2VydmljZRJjCglHZXRTdGF0dXMSJy5yYXB0b3Iud2luZ3MubG9jYWwudjEuR2V0U3RhdHVzUmVxdWVzdBooLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXNwb25zZSIDkAIBEnUKD1NodXRkb3duU2VydmVycxItLnJhcHRvci53aW5ncy5sb2NhbC52MS5TaHV0ZG93blNlcnZlcnNSZXF1ZXN0Gi4ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNodXRkb3duU2VydmVyc1Jlc3BvbnNlIgOQAgISaQoLTGlzdFNlcnZlcnMSKS5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdFNlcnZlcnNSZXF1ZXN0GioucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RTZXJ2ZXJzUmVzcG9uc2UiA5ACARJUCgVQb3dlchIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5Qb3dlclJlcXVlc3QaJC5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJSZXNwb25zZSIAEnEKDVN0cmVhbUNvbnNvbGUSKy5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RyZWFtQ29uc29sZVJlcXVlc3QaLC5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RyZWFtQ29uc29sZVJlc3BvbnNlIgOQAgEwARJmCgtTZW5kQ29tbWFuZBIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZW5kQ29tbWFuZFJlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VuZENvbW1hbmRSZXNwb25zZSIAEmIKCFRhaWxMb2dzEiYucmFwdG9yLndpbmdzLmxvY2FsLnYxLlRhaWxMb2dzUmVxdWVzdBonLnJhcHRvci53aW5ncy5sb2NhbC52MS5UYWlsTG9nc1Jlc3BvbnNlIgOQAgEwARJpCgtMaXN0QmFja3VwcxIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0QmFja3Vwc1JlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdEJhY2t1cHNSZXNwb25zZSIDkAIBEmkKDENyZWF0ZUJhY2t1cBIqLnJhcHRvci53aW5ncy5sb2NhbC52MS5DcmVhdGVCYWNrdXBSZXF1ZXN0GisucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNyZWF0ZUJhY2t1cFJlc3BvbnNlIgASbAoNUmVzdG9yZUJhY2t1cBIrLnJhcHRvci53aW5ncy5sb2NhbC52MS5SZXN0b3JlQmFja3VwUmVxdWVzdBosLnJhcHRvci53aW5ncy5sb2NhbC52MS5SZXN0b3JlQmFja3VwUmVzcG9uc2UiAELvAQoZY29tLnJhcHRvci53aW5ncy5sb2NhbC52MUIKTG9jYWxQcm90b1ABWk9naXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci93aW5ncy9sb2NhbC92MTtsb2NhbHYxogIDUldMqgIVUmFwdG9yLldpbmdzLkxvY2FsLlYxygIVUmFwdG9yXFdpbmdzXExvY2FsXFYx4gIhUmFwdG9yXFdpbmdzXExvY2FsXFYxXEdQQk1ldGFkYXRh6gIYUmFwdG9yOjpXaW5nczo6TG9jYWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.wings.local.v1.ListServersRequest
@@ -295,6 +295,259 @@ export const TailLogsResponseSchema: GenMessage<TailLogsResponse> = /*@__PURE__*
   messageDesc(file_raptor_wings_local_v1_local, 10);
 
 /**
+ * @generated from message raptor.wings.local.v1.ListBackupsRequest
+ */
+export type ListBackupsRequest = Message<"raptor.wings.local.v1.ListBackupsRequest"> & {
+  /**
+   * Empty = every backup on the node.
+   *
+   * @generated from field: string server = 1;
+   */
+  server: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ListBackupsRequest.
+ * Use `create(ListBackupsRequestSchema)` to create a new message.
+ */
+export const ListBackupsRequestSchema: GenMessage<ListBackupsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 11);
+
+/**
+ * @generated from message raptor.wings.local.v1.ListBackupsResponse
+ */
+export type ListBackupsResponse = Message<"raptor.wings.local.v1.ListBackupsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.wings.local.v1.BackupInfo backups = 1;
+   */
+  backups: BackupInfo[];
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ListBackupsResponse.
+ * Use `create(ListBackupsResponseSchema)` to create a new message.
+ */
+export const ListBackupsResponseSchema: GenMessage<ListBackupsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 12);
+
+/**
+ * @generated from message raptor.wings.local.v1.BackupInfo
+ */
+export type BackupInfo = Message<"raptor.wings.local.v1.BackupInfo"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string server_id = 2;
+   */
+  serverId: string;
+
+  /**
+   * Empty if the server was deleted (its offsite backups are kept).
+   *
+   * @generated from field: string server_name = 3;
+   */
+  serverName: string;
+
+  /**
+   * @generated from field: string destination_id = 4;
+   */
+  destinationId: string;
+
+  /**
+   * manual, scheduled, or safety (taken before a restore).
+   *
+   * @generated from field: string kind = 5;
+   */
+  kind: string;
+
+  /**
+   * pending, running, ok, or failed.
+   *
+   * @generated from field: string status = 6;
+   */
+  status: string;
+
+  /**
+   * Never deleted by retention.
+   *
+   * @generated from field: bool locked = 7;
+   */
+  locked: boolean;
+
+  /**
+   * Total size of the files.
+   *
+   * @generated from field: int64 size_bytes = 8;
+   */
+  sizeBytes: bigint;
+
+  /**
+   * @generated from field: int64 files = 9;
+   */
+  files: bigint;
+
+  /**
+   * New data this backup added to the repository.
+   *
+   * @generated from field: int64 uploaded_bytes = 10;
+   */
+  uploadedBytes: bigint;
+
+  /**
+   * @generated from field: string warning = 11;
+   */
+  warning: string;
+
+  /**
+   * @generated from field: string error = 12;
+   */
+  error: string;
+
+  /**
+   * "local:<user>", "schedule:<id>", a Panel user ID, or "backup".
+   *
+   * @generated from field: string created_by = 13;
+   */
+  createdBy: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 14;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp finished_at = 15;
+   */
+  finishedAt?: Timestamp | undefined;
+
+  /**
+   * Safety backups expire.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 16;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: string job_id = 17;
+   */
+  jobId: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.BackupInfo.
+ * Use `create(BackupInfoSchema)` to create a new message.
+ */
+export const BackupInfoSchema: GenMessage<BackupInfo> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 13);
+
+/**
+ * @generated from message raptor.wings.local.v1.CreateBackupRequest
+ */
+export type CreateBackupRequest = Message<"raptor.wings.local.v1.CreateBackupRequest"> & {
+  /**
+   * @generated from field: string server = 1;
+   */
+  server: string;
+
+  /**
+   * Keep it until it's unlocked (in the Panel).
+   *
+   * @generated from field: bool locked = 2;
+   */
+  locked: boolean;
+
+  /**
+   * Return when the backup is finished instead of when it's queued. A
+   * failed backup is then an error.
+   *
+   * @generated from field: bool wait = 3;
+   */
+  wait: boolean;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.CreateBackupRequest.
+ * Use `create(CreateBackupRequestSchema)` to create a new message.
+ */
+export const CreateBackupRequestSchema: GenMessage<CreateBackupRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 14);
+
+/**
+ * @generated from message raptor.wings.local.v1.CreateBackupResponse
+ */
+export type CreateBackupResponse = Message<"raptor.wings.local.v1.CreateBackupResponse"> & {
+  /**
+   * @generated from field: raptor.wings.local.v1.BackupInfo backup = 1;
+   */
+  backup?: BackupInfo | undefined;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.CreateBackupResponse.
+ * Use `create(CreateBackupResponseSchema)` to create a new message.
+ */
+export const CreateBackupResponseSchema: GenMessage<CreateBackupResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 15);
+
+/**
+ * @generated from message raptor.wings.local.v1.RestoreBackupRequest
+ */
+export type RestoreBackupRequest = Message<"raptor.wings.local.v1.RestoreBackupRequest"> & {
+  /**
+   * @generated from field: string server = 1;
+   */
+  server: string;
+
+  /**
+   * @generated from field: string backup = 2;
+   */
+  backup: string;
+
+  /**
+   * Return when the restore is finished instead of when it's queued. A
+   * failed restore is then an error.
+   *
+   * @generated from field: bool wait = 3;
+   */
+  wait: boolean;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.RestoreBackupRequest.
+ * Use `create(RestoreBackupRequestSchema)` to create a new message.
+ */
+export const RestoreBackupRequestSchema: GenMessage<RestoreBackupRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 16);
+
+/**
+ * @generated from message raptor.wings.local.v1.RestoreBackupResponse
+ */
+export type RestoreBackupResponse = Message<"raptor.wings.local.v1.RestoreBackupResponse"> & {
+  /**
+   * @generated from field: string job_id = 1;
+   */
+  jobId: string;
+
+  /**
+   * The backup of the files the restore replaced (set when waiting; empty
+   * if the server's directory was empty).
+   *
+   * @generated from field: string safety_backup_id = 2;
+   */
+  safetyBackupId: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.RestoreBackupResponse.
+ * Use `create(RestoreBackupResponseSchema)` to create a new message.
+ */
+export const RestoreBackupResponseSchema: GenMessage<RestoreBackupResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 17);
+
+/**
  * @generated from message raptor.wings.local.v1.ShutdownServersRequest
  */
 export type ShutdownServersRequest = Message<"raptor.wings.local.v1.ShutdownServersRequest"> & {
@@ -305,7 +558,7 @@ export type ShutdownServersRequest = Message<"raptor.wings.local.v1.ShutdownServ
  * Use `create(ShutdownServersRequestSchema)` to create a new message.
  */
 export const ShutdownServersRequestSchema: GenMessage<ShutdownServersRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 11);
+  messageDesc(file_raptor_wings_local_v1_local, 18);
 
 /**
  * @generated from message raptor.wings.local.v1.ShutdownServersResponse
@@ -331,7 +584,7 @@ export type ShutdownServersResponse = Message<"raptor.wings.local.v1.ShutdownSer
  * Use `create(ShutdownServersResponseSchema)` to create a new message.
  */
 export const ShutdownServersResponseSchema: GenMessage<ShutdownServersResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 12);
+  messageDesc(file_raptor_wings_local_v1_local, 19);
 
 /**
  * @generated from message raptor.wings.local.v1.GetStatusRequest
@@ -344,7 +597,7 @@ export type GetStatusRequest = Message<"raptor.wings.local.v1.GetStatusRequest">
  * Use `create(GetStatusRequestSchema)` to create a new message.
  */
 export const GetStatusRequestSchema: GenMessage<GetStatusRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 13);
+  messageDesc(file_raptor_wings_local_v1_local, 20);
 
 /**
  * @generated from message raptor.wings.local.v1.GetStatusResponse
@@ -407,7 +660,7 @@ export type GetStatusResponse = Message<"raptor.wings.local.v1.GetStatusResponse
  * Use `create(GetStatusResponseSchema)` to create a new message.
  */
 export const GetStatusResponseSchema: GenMessage<GetStatusResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 14);
+  messageDesc(file_raptor_wings_local_v1_local, 21);
 
 /**
  * @generated from message raptor.wings.local.v1.ServerCounts
@@ -431,7 +684,7 @@ export type ServerCounts = Message<"raptor.wings.local.v1.ServerCounts"> & {
  * Use `create(ServerCountsSchema)` to create a new message.
  */
 export const ServerCountsSchema: GenMessage<ServerCounts> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 15);
+  messageDesc(file_raptor_wings_local_v1_local, 22);
 
 /**
  * @generated from message raptor.wings.local.v1.StorageStatus
@@ -469,7 +722,7 @@ export type StorageStatus = Message<"raptor.wings.local.v1.StorageStatus"> & {
  * Use `create(StorageStatusSchema)` to create a new message.
  */
 export const StorageStatusSchema: GenMessage<StorageStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 16);
+  messageDesc(file_raptor_wings_local_v1_local, 23);
 
 /**
  * @generated from message raptor.wings.local.v1.DockerStatus
@@ -496,7 +749,7 @@ export type DockerStatus = Message<"raptor.wings.local.v1.DockerStatus"> & {
  * Use `create(DockerStatusSchema)` to create a new message.
  */
 export const DockerStatusSchema: GenMessage<DockerStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 17);
+  messageDesc(file_raptor_wings_local_v1_local, 24);
 
 /**
  * @generated from enum raptor.wings.local.v1.PowerAction
@@ -619,6 +872,39 @@ export const LocalService: GenService<{
     methodKind: "server_streaming";
     input: typeof TailLogsRequestSchema;
     output: typeof TailLogsResponseSchema;
+  },
+  /**
+   * ListBackups lists a server's backups, newest first, or every backup on
+   * the node (including offsite backups of deleted servers).
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.ListBackups
+   */
+  listBackups: {
+    methodKind: "unary";
+    input: typeof ListBackupsRequestSchema;
+    output: typeof ListBackupsResponseSchema;
+  },
+  /**
+   * CreateBackup backs up a server to its destination. Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.CreateBackup
+   */
+  createBackup: {
+    methodKind: "unary";
+    input: typeof CreateBackupRequestSchema;
+    output: typeof CreateBackupResponseSchema;
+  },
+  /**
+   * RestoreBackup replaces a server's files with one of its backups, after
+   * taking a safety backup of the current files. The server is stopped
+   * meanwhile and started again if it was meant to be running. Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.RestoreBackup
+   */
+  restoreBackup: {
+    methodKind: "unary";
+    input: typeof RestoreBackupRequestSchema;
+    output: typeof RestoreBackupResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_wings_local_v1_local, 0);
