@@ -158,6 +158,13 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, jobID string, p i
 		return err
 	}
 
+	// Queued before the disk ran low: refused now, with the server as it
+	// was (an existing server keeps its files and can still start).
+	if err := m.diskCheck(); err != nil {
+		i.console.Notice("install refused: %v", err)
+		return err
+	}
+
 	i.setState(Installing)
 	// A wipe that fails leaves the server as it was: installed, with its
 	// files, able to start.

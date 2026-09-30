@@ -2,6 +2,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"flag"
@@ -9,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"slices"
 	"syscall"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings"
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/config"
+	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 	"github.com/xena-studios/raptor/internal/wings/update"
 )
@@ -163,6 +166,14 @@ func printStatus(s *localv1.GetStatusResponse) {
 			fmt.Printf("Storage  ✓ %s (%s)\n", st.GetPath(), limits)
 		} else {
 			fmt.Printf("Storage  ✗ %s (see raptor storage status)\n", st.GetError())
+		}
+	}
+	if hd := s.GetHostDisk(); hd != nil && len(hd.GetDisks()) > 0 {
+		lowest := slices.MinFunc(hd.GetDisks(), func(a, b *localv1.DiskSpace) int { return cmp.Compare(a.GetFree(), b.GetFree()) })
+		if hd.GetLow() {
+			fmt.Printf("Disk     ✗ %s free on %s, below %s: installs and image pulls are refused\n", host.Bytes(lowest.GetFree()), lowest.GetPath(), host.Bytes(hd.GetMinFree()))
+		} else {
+			fmt.Printf("Disk     ✓ %s free (least on %s)\n", host.Bytes(lowest.GetFree()), lowest.GetPath())
 		}
 	}
 	if u := s.GetUpdate(); u != nil {

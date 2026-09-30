@@ -36,7 +36,7 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 - SQLite in WAL mode, a single writer connection, `busy_timeout`, `synchronous=NORMAL`.
 - Hourly `VACUUM INTO` snapshots (last 24 kept), and a snapshot before every migration.
 - The latest snapshot is included in offsite backups.
-- **Host disk protection:** Wings watches free space on the host disk (where SQLite, Docker images, and logs live). Below a threshold it refuses new installs and image pulls and alerts, so the node's own state never ends up on a full disk.
+- **Host disk protection:** Wings watches free space everywhere it and Docker keep state (Docker's data directory, `state.db`, logs, tmp, and local backups), every minute and before each install or pull. Below `limits.host_disk_min_free` (default 10 GiB) on any of them, it refuses new servers, reinstalls (including installs queued before the disk ran low, which leave the server as it was), and pulls of images the node doesn't have, so the node's own state never ends up on a full disk. A server whose image is already here still starts on that image: refusing to start games would make a low disk worse, not better. Going low and recovering are `node.disk_low` and `node.disk_ok` events and log lines, and `raptor status` shows the free space. Local backups have the same floor (see [WINGS.md](WINGS.md#backups)).
 
 ### Game server performance
 - **CPU:** default to CPU **weight**, not hard CFS quotas. Hard quotas cause throttling stalls that show up as tick lag. A hard limit and CPU pinning are per-server options.

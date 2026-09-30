@@ -243,6 +243,24 @@ message GetStatusResponse {
   StorageStatus storage = 9;
   // The last update; unset if there hasn't been one.
   UpdateStatus update = 10;
+  // Free space where Wings and Docker keep their state; unset if the check
+  // is off (limits.host_disk_min_free: 0).
+  HostDiskStatus host_disk = 11;
+}
+
+// HostDiskStatus is free space on the host disk.
+message HostDiskStatus {
+  // Below min_free on any path: installs and image pulls are refused.
+  bool low = 1;
+  int64 min_free = 2;
+  repeated DiskSpace disks = 3;
+}
+
+// DiskSpace is one watched path's filesystem.
+message DiskSpace {
+  string path = 1;
+  int64 total = 2;
+  int64 free = 3;
 }
 
 message UpdateStatus {

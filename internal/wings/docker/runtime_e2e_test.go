@@ -635,3 +635,27 @@ func envOr(k, def string) string {
 	}
 	return def
 }
+
+// With the host disk low, images aren't pulled: one already here is used,
+// a missing one is refused (docs/RELIABILITY.md).
+func TestRuntimeLowDisk(t *testing.T) {
+	ctx := context.Background()
+	if err := newRuntime(t).EnsureImage(ctx, testImage, nil); err != nil {
+		t.Fatal(err)
+	}
+	dc, err := New(Config{Network: "raptor_nw", InstallNetwork: "raptor_install", DiskCheck: func() error { return host.ErrLowDisk }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = dc.Close() })
+	var progress strings.Builder
+	if err := dc.EnsureImage(ctx, testImage, &progress); err != nil || !strings.Contains(progress.String(), "using the image already here") {
+		t.Fatalf("image already here: %v, %q", err, progress.String())
+	}
+	if err := dc.EnsureImage(ctx, "busybox:1.21.0-never-pulled-by-raptor", nil); !errors.Is(err, host.ErrLowDisk) {
+		t.Fatalf("missing image: %v", err)
+	}
+	if root, err := dc.RootDir(ctx); err != nil || root == "" {
+		t.Fatalf("docker root: %q, %v", root, err)
+	}
+}

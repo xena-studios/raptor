@@ -15,6 +15,7 @@ import (
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 )
@@ -45,6 +46,7 @@ type Service struct {
 	Docker    DockerVersioner
 	Storage   *storage.Volume // nil in tests
 	Updates   Updates         // nil in tests
+	Disk      *host.DiskGuard // nil in tests
 
 	mu      sync.RWMutex
 	servers Servers
@@ -97,6 +99,13 @@ func (s *Service) GetStatus(ctx context.Context, _ *localv1.GetStatusRequest) (*
 		Caller:    Caller(ctx),
 		Docker:    &localv1.DockerStatus{},
 		Update:    s.updateStatus(),
+	}
+	if s.Disk != nil && s.Disk.MinFree > 0 {
+		low, spaces := s.Disk.Check()
+		resp.HostDisk = &localv1.HostDiskStatus{Low: low, MinFree: s.Disk.MinFree}
+		for _, d := range spaces {
+			resp.HostDisk.Disks = append(resp.HostDisk.Disks, &localv1.DiskSpace{Path: d.Path, Total: d.Total, Free: d.Free})
+		}
 	}
 	if v := s.Storage; v != nil {
 		resp.Storage = &localv1.StorageStatus{Path: v.Path, Quotas: !v.Soft, Ready: true}

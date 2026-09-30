@@ -66,6 +66,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	defer func() { _ = db.Close() }()
 
+	disk := newDiskGuard(cfg, db, log)
 	subnet, installSubnet := cfg.Docker.Subnets()
 	dc, err := docker.New(docker.Config{
 		NodeID:         cfg.NodeID,
@@ -73,6 +74,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Subnet:         subnet,
 		InstallNetwork: cfg.Docker.InstallNetwork,
 		InstallSubnet:  installSubnet,
+		DiskCheck:      disk.Err,
 	})
 	if err != nil {
 		return fmt.Errorf("docker client: %w", err)
@@ -102,7 +104,11 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Storage:   &storage.Volume{Path: cfg.Paths.Volumes, Soft: !cfg.Storage.Quotas},
 		Updates:   updates,
 	}
+	svc.Disk = disk
 	rt, err := newRuntimeSetup(dc, cfg, log, db, svc)
+	if err == nil {
+		rt.disk = disk
+	}
 	if err != nil {
 		return err
 	}
@@ -135,6 +141,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		case err := <-errc:
 			return fmt.Errorf("local api: %w", err)
 		case <-runtimeTicker.C:
+			disk.Check()
 			rt.check(ctx)
 			rt.ready()
 		case <-ticker.C:
@@ -170,6 +177,7 @@ type runtimeSetup struct {
 
 	events   *events.Outbox
 	jobs     *jobs.Engine
+	disk     *host.DiskGuard
 	commands *command.Executor // receives Panel commands (connected in Phase 3)
 }
 
@@ -286,6 +294,14 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// Docker's images are on the host disk too.
+	if d, ok := r.rt.(interface {
+		RootDir(ctx context.Context) (string, error)
+	}); ok && r.disk != nil {
+		if root, err := d.RootDir(ctx); err == nil {
+			r.disk.Watch(root)
+		}
+	}
 	rules := firewall.Rules{
 		ServerBridge:  nets.Server.Bridge,
 		InstallBridge: nets.Install.Bridge,
@@ -339,6 +355,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		ReservedPorts:   []int{r.cfg.Ports.SFTP},
 		Jobs:            r.jobs,
 		Events:          r.events,
+		DiskCheck:       r.disk.Err,
 	}
 	if nets.CgroupParent != "" {
 		opts.OOMKills = func() (int64, error) { return host.OOMKills(nets.CgroupParent) }
@@ -412,6 +429,37 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		"install_network", nets.Install.Name, "install_subnet", nets.Install.Subnet,
 		"dns_allowed", rules.DNS)
 	return nil
+}
+
+// Events recorded when the host disk goes below limits.host_disk_min_free
+// and when it recovers.
+const (
+	eventDiskLow = "node.disk_low"
+	eventDiskOK  = "node.disk_ok"
+)
+
+// newDiskGuard watches the host disk where Wings keeps its state, logs, and
+// local backups (Docker's directory is added once Docker is reachable).
+func newDiskGuard(cfg config.Config, db *store.DB, log *slog.Logger) *host.DiskGuard {
+	o := events.New(db)
+	g := &host.DiskGuard{
+		MinFree: int64(cfg.Limits.HostDiskMinFree),
+		Space:   storage.Space,
+		OnChange: func(low bool, spaces []host.DiskSpace) {
+			typ := eventDiskOK
+			if low {
+				typ = eventDiskLow
+				log.Warn("host disk low: installs and image pulls are refused until space is freed", "min_free", host.Bytes(int64(cfg.Limits.HostDiskMinFree)), "disks", spaces)
+			} else {
+				log.Info("host disk has enough free space again", "disks", spaces)
+			}
+			if _, err := o.Append(context.Background(), events.Event{Type: typ, Data: map[string]any{"disks": spaces, "min_free": int64(cfg.Limits.HostDiskMinFree)}}); err != nil {
+				log.Error("recording the host disk state failed", "err", err)
+			}
+		},
+	}
+	g.Watch(filepath.Dir(cfg.Paths.State), cfg.Paths.Logs, cfg.Paths.Tmp, cfg.Paths.Backups)
+	return g
 }
 
 // reportUpdate records how the last update went as a node.update event, once.
