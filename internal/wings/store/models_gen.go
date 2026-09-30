@@ -15,6 +15,48 @@ type Allocation struct {
 	IsPrimary int64
 }
 
+type Backup struct {
+	ID            string
+	ServerID      string
+	DestinationID string
+	Kind          string
+	Status        string
+	Locked        int64
+	SnapshotID    string
+	Size          int64
+	Files         int64
+	Uploaded      int64
+	Warning       string
+	Error         string
+	JobID         string
+	CreatedBy     string
+	CreatedAt     int64
+	FinishedAt    sql.NullInt64
+	ExpiresAt     sql.NullInt64
+}
+
+type BackupDestination struct {
+	ID        string
+	Name      string
+	Type      string
+	Config    string
+	Version   int64
+	CreatedAt int64
+	UpdatedAt int64
+}
+
+type BackupPolicy struct {
+	ServerID      string
+	DestinationID string
+	KeepLast      int64
+	KeepDaily     int64
+	KeepWeekly    int64
+	KeepMonthly   int64
+	Ignore        string
+	Version       int64
+	UpdatedAt     int64
+}
+
 type Event struct {
 	Seq      int64
 	Type     string

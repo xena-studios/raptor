@@ -94,6 +94,7 @@ Verification takes about 0.1 ms on the node. The user's cost is one fingerprint 
 **Which actions are signed** (anything that destroys data, changes what code runs, or changes who has access):
 - **Creating a server** (it chooses an egg, and so the install script and image that run)
 - Deleting a server; reinstalling with "wipe"; restoring a backup over current files
+- Deleting a backup, unlocking one, or lowering backup retention (each deletes backups, directly or at the next retention run)
 - Changing the egg, install script, startup command, or Docker image (Wings compares the update with its own records to decide; the Panel can't mislabel it)
 - Granting support access
 - Adding SSH/SFTP keys or sub-users, and delegating signed actions to them
@@ -156,7 +157,9 @@ Even if every one of these failed, each malicious action would still need a real
 
 ### Backups
 - Encrypted on the node before upload (Kopia).
-- Default key: per-node, stored **encrypted** in the Panel, so backups survive a dead box. Raptor's object storage alone can't read them.
+- Key: one random repository password per node, generated on the box and kept in its SQLite. By default a copy is stored **encrypted** in the Panel (once the node is linked), so backups survive a dead box. Raptor's object storage alone can't read them.
+- S3 credentials stay on the node; events and listings never include the secret key.
+- Kopia runs in a separate worker process with a memory cap, so a huge backup can't push the kernel into killing game servers or Wings (docs/WINGS.md#backups).
 - Optional owner-held key mode.
 
 ### Public repository

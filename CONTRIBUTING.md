@@ -86,7 +86,7 @@ When the fuzzer finds a failing input, it saves it under `testdata/fuzz/`. Fix t
 
 ### Runtime end-to-end tests
 
-The container runtime (networks, firewall isolation, resource limits, hardening, port checks), the server lifecycle (install, power actions, console, crashes, reconcile, resumed installs, events), the command path (Panel grants, passkey-signed commands), and schedules (a scheduled console command and restart) are tested against a real Docker:
+The container runtime (networks, firewall isolation, resource limits, hardening, port checks), the server lifecycle (install, power actions, console, crashes, reconcile, resumed installs, events), the command path (Panel grants, passkey-signed commands), schedules (a scheduled console command and restart), and backups (the egg's hooks, a signed restore, the worker's systemd scope, and an S3 destination on MinIO, pulled from `cgr.dev/chainguard/minio`) are tested against a real Docker:
 
 ```bash
 task e2e:runtime                          # all runtime and lifecycle tests in the VM
@@ -110,6 +110,6 @@ Releases are built as drafts by CI when a `v*` tag is pushed, then signed with t
 ## Ground rules
 
 - **Security issues:** don't open a public issue. See [SECURITY.md](SECURITY.md).
-- **Dependencies** must be AGPL-3.0-compatible (MIT, BSD, Apache-2.0, MPL-2.0, LGPL, GPL/AGPL). No SSPL, BSL, "Commons Clause", or proprietary licenses. CI enforces this.
+- **Dependencies** must be AGPL-3.0-compatible (MIT, BSD, ISC, Apache-2.0, MPL-2.0, CC0, LGPL, GPL/AGPL). No SSPL, BSL, "Commons Clause", or proprietary licenses. CI enforces this.
 - **No secrets in the repo.** CI runs secret scanning.
 - Large changes should start as an issue or discussion so the design can be agreed before code is written.

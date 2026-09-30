@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/actions"
+	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/containers"
@@ -41,7 +42,7 @@ const runtimeCheckInterval = time.Minute
 // Run starts the daemon and blocks until ctx is cancelled, then shuts down
 // gracefully. Stopping Wings never stops servers: they belong to Docker.
 func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
-	for _, dir := range []string{filepath.Dir(cfg.Paths.State), cfg.Paths.Volumes, cfg.Paths.Tmp, cfg.Paths.Logs} {
+	for _, dir := range []string{filepath.Dir(cfg.Paths.State), cfg.Paths.Volumes, cfg.Paths.Backups, cfg.Paths.Tmp, cfg.Paths.Logs} {
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
 		}
@@ -129,6 +130,7 @@ type runtimeSetup struct {
 	rules   *firewall.Rules // set once setup succeeded
 	servers *server.Manager
 	sched   *schedule.Scheduler
+	backups *backup.Manager
 
 	events   *events.Outbox
 	jobs     *jobs.Engine
@@ -162,6 +164,9 @@ func (r *runtimeSetup) close() {
 	if r.sched != nil {
 		r.sched.Close()
 	}
+	if r.backups != nil {
+		r.backups.Close()
+	}
 	if r.servers != nil {
 		r.servers.Close() // stops jobs first
 	}
@@ -177,6 +182,25 @@ func (r *runtimeSetup) prune(ctx context.Context) {
 	if _, err := r.commands.Prune(ctx); err != nil {
 		r.log.Error("pruning executed commands failed", "err", err)
 	}
+}
+
+// backupSlice holds backup workers: under raptor.slice, beside the game
+// servers, so its low weights compare against theirs.
+const backupSlice = "raptor-backup.slice"
+
+// backupRunner runs backups in worker processes: in their own low-weight
+// scope when containers run under systemd, and as plain child processes
+// otherwise.
+func (r *runtimeSetup) backupRunner(systemd bool) (backup.Runner, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("backup worker: %w", err)
+	}
+	p := backup.Process{Command: []string{exe, "wings", "backup-worker"}, MemoryMax: int64(r.cfg.Limits.BackupMemory)}
+	if systemd {
+		p.Slice = backupSlice
+	}
+	return p, nil
 }
 
 func (r *runtimeSetup) check(ctx context.Context) {
@@ -256,6 +280,8 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	if nets.CgroupParent != "" {
 		opts.OOMKills = func() (int64, error) { return host.OOMKills(nets.CgroupParent) }
 	}
+	var bk *backup.Manager
+	opts.Deleted = func(ctx context.Context, id string) { bk.ServerDeleted(ctx, id) }
 	mgr := server.New(opts) // registers the install job handler
 	if err := mgr.Reconcile(ctx); err != nil {
 		mgr.Close()
@@ -265,9 +291,34 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		mgr.Close()
 		return fmt.Errorf("commands: %w", err)
 	}
-	actions.Register(r.commands, mgr)
-	sched := schedule.New(schedule.Options{Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Log: r.log})
+	runner, err := r.backupRunner(nets.CgroupParent != "")
+	if err != nil {
+		mgr.Close()
+		return err
+	}
+	tz := host.Timezone()
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		loc = time.UTC
+	}
+	bk = backup.New(backup.Options{
+		Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Log: r.log, Runner: runner,
+		LocalPath: r.cfg.Paths.Backups, StateDir: filepath.Join(filepath.Dir(r.cfg.Paths.State), "kopia"),
+		Location: loc, MinFree: int64(r.cfg.Limits.HostDiskMinFree),
+		FreeSpace: func(path string) (int64, error) {
+			_, free, err := storage.Space(path)
+			return free, err
+		},
+	})
+	sched := schedule.New(schedule.Options{Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Backups: bk, Log: r.log})
+	actions.Register(r.commands, mgr, actions.Defaults{
+		BackupSchedule: func(ctx context.Context, q *store.Queries, id string) error {
+			_, err := sched.CreateTx(ctx, q, id, schedule.DefaultBackup(tz))
+			return err
+		},
+	})
 	actions.RegisterSchedules(r.commands, sched)
+	actions.RegisterBackups(r.commands, bk)
 	// Jobs start after reconcile, so interrupted installs resume against
 	// servers that are already loaded.
 	if err := r.jobs.Start(ctx); err != nil {
@@ -278,6 +329,10 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	// down are handled on the first tick.
 	sched.Start()
 	r.sched = sched
+	if err := bk.Start(ctx); err != nil {
+		r.log.Error("backup cleanup failed", "err", err)
+	}
+	r.backups = bk
 	r.servers = mgr
 	r.svc.SetServers(mgr)
 	r.rules = &rules

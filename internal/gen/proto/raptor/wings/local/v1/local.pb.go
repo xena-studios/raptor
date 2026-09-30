@@ -161,7 +161,7 @@ type ServerInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	// installing, install_failed, offline, starting, running, stopping, crashed
+	// installing, install_failed, restoring, offline, starting, running, stopping, crashed
 	State string `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
 	// Set while running.
 	RunningSince *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=running_since,json=runningSince,proto3" json:"running_since,omitempty"`

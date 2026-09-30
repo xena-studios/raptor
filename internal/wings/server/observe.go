@@ -40,8 +40,14 @@ func (m *Manager) Power(ctx context.Context, id string, a PowerAction, user stri
 	default:
 		return fmt.Errorf("%w: unknown power action %q", ErrInvalid, a)
 	}
-	if _, err := m.instance(id); err != nil {
+	i, err := m.instance(id)
+	if err != nil {
 		return err
+	}
+	// A restore holds the server for as long as it takes; say so rather
+	// than making the caller wait.
+	if i.getState() == Restoring {
+		return ErrRestoring
 	}
 	m.publish(EventPower, id, 0, map[string]any{"action": string(a), "user": user})
 	return fn(ctx, id)

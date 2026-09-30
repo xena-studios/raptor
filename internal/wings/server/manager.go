@@ -73,6 +73,10 @@ type Options struct {
 	// the OOM killer when this count went up.
 	OOMKills func() (int64, error)
 
+	// Deleted, if set, is called after a server was deleted (its local
+	// backups are deleted with it).
+	Deleted func(ctx context.Context, id string)
+
 	// Crash policy overrides, for tests.
 	CrashWindow time.Duration
 	CrashDelays []time.Duration
@@ -281,6 +285,9 @@ func (m *Manager) List() map[string]State {
 // CreateOptions control what happens after a server is created.
 type CreateOptions struct {
 	StartAfterInstall bool
+	// InTx, if set, runs in the transaction that stores the server, so what
+	// it adds (the default backup schedule) exists with it or not at all.
+	InTx func(ctx context.Context, q *store.Queries, id string) error
 }
 
 // Create stores a new server and starts its install in the background.
@@ -318,6 +325,11 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 		}
 		if err := publishTx(ctx, q, created); err != nil {
 			return err
+		}
+		if opts.InTx != nil {
+			if err := opts.InTx(ctx, q, sid); err != nil {
+				return err
+			}
 		}
 		_, err := m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobInstall, ServerID: sid, Payload: installPayload{StartAfter: opts.StartAfterInstall}})
 		return err
@@ -589,6 +601,9 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 	m.mu.Unlock()
 	i.setDeleted()
 	m.emit(deleted)
+	if m.o.Deleted != nil {
+		m.o.Deleted(ctx, id)
+	}
 	return nil
 }
 

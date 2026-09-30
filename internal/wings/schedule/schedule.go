@@ -28,6 +28,7 @@ const (
 	StepCommand = "command" // send a console command
 	StepWait    = "wait"    // wait before the next step
 	StepPower   = "power"   // start, stop, restart, or kill the server
+	StepBackup  = "backup"  // back up the server and wait for it to finish
 )
 
 // Missed-run policies: what happens to a run whose time passed while Wings
@@ -157,6 +158,7 @@ func (s Step) validate() error {
 		default:
 			return fmt.Errorf("unknown power action %q", s.Action)
 		}
+	case StepBackup:
 	default:
 		return fmt.Errorf("unknown step type %q", s.Type)
 	}
@@ -242,12 +244,29 @@ func boolInt(b bool) int64 {
 
 // Create adds a schedule to a server.
 func (s *Scheduler) Create(ctx context.Context, serverID string, d Definition) (*Schedule, error) {
+	if _, err := s.o.Servers.Status(serverID); err != nil {
+		return nil, err
+	}
+	var sc *Schedule
+	err := s.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		var err error
+		sc, err = s.CreateTx(ctx, q, serverID, d)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.changed()
+	return sc, nil
+}
+
+// CreateTx adds a schedule in a transaction (a new server's default backup
+// schedule, stored with the server). The scheduler notices it within
+// MaxSleep.
+func (s *Scheduler) CreateTx(ctx context.Context, q *store.Queries, serverID string, d Definition) (*Schedule, error) {
 	c, err := d.validate()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalid, err)
-	}
-	if _, err := s.o.Servers.Status(serverID); err != nil {
-		return nil, err
 	}
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -260,30 +279,34 @@ func (s *Scheduler) Create(ctx context.Context, serverID string, d Definition) (
 	if err != nil {
 		return nil, err
 	}
-	err = s.o.Store.WriteTx(ctx, func(q *store.Queries) error {
-		n, err := q.CountServerSchedules(ctx, serverID)
-		if err != nil {
-			return err
-		}
-		if n >= MaxPerServer {
-			return ErrTooMany
-		}
-		if err := q.InsertSchedule(ctx, store.InsertScheduleParams{
-			ID: sc.ID, ServerID: serverID, Name: d.Name, Cron: d.Cron, Timezone: d.Timezone,
-			Enabled: boolInt(d.Enabled), OnlyWhenOnline: boolInt(d.OnlyWhenOnline),
-			JitterS: int64(time.Duration(d.Jitter) / time.Second), Missed: d.Missed, Steps: string(steps),
-			NextRunAt: nullMillis(sc.NextRun), CreatedAt: now.UnixMilli(), UpdatedAt: now.UnixMilli(),
-		}); err != nil {
-			return err
-		}
-		_, err = events.AppendTx(ctx, q, events.Event{Type: EventCreated, ServerID: serverID, Data: sc.eventData()})
-		return err
-	})
+	n, err := q.CountServerSchedules(ctx, serverID)
 	if err != nil {
 		return nil, err
 	}
-	s.changed()
-	return sc, nil
+	if n >= MaxPerServer {
+		return nil, ErrTooMany
+	}
+	if err := q.InsertSchedule(ctx, store.InsertScheduleParams{
+		ID: sc.ID, ServerID: serverID, Name: d.Name, Cron: d.Cron, Timezone: d.Timezone,
+		Enabled: boolInt(d.Enabled), OnlyWhenOnline: boolInt(d.OnlyWhenOnline),
+		JitterS: int64(time.Duration(d.Jitter) / time.Second), Missed: d.Missed, Steps: string(steps),
+		NextRunAt: nullMillis(sc.NextRun), CreatedAt: now.UnixMilli(), UpdatedAt: now.UnixMilli(),
+	}); err != nil {
+		return nil, err
+	}
+	_, err = events.AppendTx(ctx, q, events.Event{Type: EventCreated, ServerID: serverID, Data: sc.eventData()})
+	return sc, err
+}
+
+// DefaultBackup is the schedule a new server gets unless it opts out: a
+// daily backup between 04:00 and 05:00 in tz (the jitter spreads a node's
+// servers over the hour), made up once if the node was off at the time,
+// and skipped while the server is offline (its files aren't changing).
+func DefaultBackup(tz string) Definition {
+	return Definition{
+		Name: "Daily backup", Cron: "0 4 * * *", Timezone: tz, Enabled: true, OnlyWhenOnline: true,
+		Jitter: server.Duration(time.Hour), Missed: MissedRunOnce, Steps: []Step{{Type: StepBackup}},
+	}
 }
 
 // Update replaces a schedule's definition. The next run is worked out again
