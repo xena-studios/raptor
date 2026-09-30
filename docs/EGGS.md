@@ -75,7 +75,7 @@ Nothing else from the host is mounted: no Docker socket, no host paths, no other
 **Failure and reinstall**
 - **What counts as failed:** a Docker error (image pull, container create/start) or the timeout. Like Pterodactyl, the script's **exit code does not decide success**: many community scripts end with a harmless failing command. A non-zero exit code is recorded and shown as a warning with the install log.
 - A failed install marks the server `install_failed`. Files are **kept** for debugging, and the server can't start until an install succeeds, unless the owner chooses **skip install script** (Pterodactyl has the same option).
-- **Reinstall** runs the script over the existing files by default (Pterodactyl behavior). The owner can instead choose **wipe and reinstall**, which always takes a safety backup first (still to come in Phase 2).
+- **Reinstall** runs the script over the existing files by default (Pterodactyl behavior). The owner can instead choose **wipe and reinstall** (signed with their passkey), which takes a safety backup first (kept 7 days), then removes every file before the script runs. If the backup fails, nothing is removed.
 - File ownership is fixed after a failed install too, so the owner can inspect or repair the files over SFTP.
 
 ### Runtime environment

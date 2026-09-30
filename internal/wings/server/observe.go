@@ -44,10 +44,13 @@ func (m *Manager) Power(ctx context.Context, id string, a PowerAction, user stri
 	if err != nil {
 		return err
 	}
-	// A restore holds the server for as long as it takes; say so rather
-	// than making the caller wait.
-	if i.getState() == Restoring {
+	// A restore or a final backup holds the server for as long as it
+	// takes; say so rather than making the caller wait.
+	switch i.getState() {
+	case Restoring:
 		return ErrRestoring
+	case Deleting:
+		return ErrDeleting
 	}
 	m.publish(EventPower, id, 0, map[string]any{"action": string(a), "user": user})
 	return fn(ctx, id)

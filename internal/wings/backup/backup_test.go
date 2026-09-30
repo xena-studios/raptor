@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -19,7 +20,10 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
-const srvID = "0199a000-0000-7000-8000-000000000001"
+const (
+	srvID   = "0199a000-0000-7000-8000-000000000001"
+	otherID = "0199a000-0000-7000-8000-000000000002" // another server on the node
+)
 
 // servers is a fake server manager around a real directory.
 type servers struct {
@@ -30,14 +34,16 @@ type servers struct {
 	confirm  bool // answer "save-all" with the egg's wait_for line
 	calls    []string
 	restores []bool // the start flag of each restore
+	deleted  bool   // srvID was deleted
+	other    bool   // otherID exists
 }
 
 func (f *servers) Status(id string) (server.Status, error) {
-	if id != srvID {
-		return server.Status{}, server.ErrNotFound
-	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if (id != srvID || f.deleted) && (id != otherID || !f.other) {
+		return server.Status{}, server.ErrNotFound
+	}
 	return server.Status{State: f.state, Console: f.console}, nil
 }
 
@@ -521,5 +527,91 @@ func TestCleanupInterrupted(t *testing.T) {
 	got, err := v.m.Get(ctx, srvID, b.ID)
 	if err != nil || got.Status != StatusFailed || got.Error != "interrupted" {
 		t.Fatalf("interrupted backup = %+v, %v", got, err)
+	}
+}
+
+// Backups a job takes for itself: a wipe's safety backup and a deletion's
+// final backup. A resumed job gets the same backup back.
+func TestJobBackups(t *testing.T) {
+	ctx := context.Background()
+	v := newEnv(t)
+	if id, err := v.m.JobBackup(ctx, srvID, "job-empty", KindFinal, io.Discard); err != nil || id != "" {
+		t.Fatalf("empty directory: %q, %v", id, err)
+	}
+	v.write("world/level.dat", "level")
+	if _, err := v.m.JobBackup(ctx, srvID, "job-x", KindManual, io.Discard); !errors.Is(err, ErrInvalid) {
+		t.Errorf("manual kind: %v", err)
+	}
+	final, err := v.m.JobBackup(ctx, srvID, "job-delete", KindFinal, io.Discard)
+	if err != nil || final == "" {
+		t.Fatalf("final backup: %q, %v", final, err)
+	}
+	again, err := v.m.JobBackup(ctx, srvID, "job-delete", KindFinal, io.Discard)
+	if err != nil || again != final {
+		t.Errorf("resumed job: %q, %v; want %q", again, err, final)
+	}
+	safety, err := v.m.JobBackup(ctx, srvID, "job-wipe", KindSafety, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := v.clock.now()
+	for id, want := range map[string]time.Time{final: now.Add(FinalTTL), safety: now.Add(SafetyTTL)} {
+		b, err := v.m.Get(ctx, srvID, id)
+		if err != nil || b.Status != StatusOK || !b.ExpiresAt.Equal(want) {
+			t.Errorf("backup %s: %+v, %v; want expiry %v", id, b, err, want)
+		}
+	}
+	if n := len(v.list()); n != 2 {
+		t.Errorf("%d backups, want 2", n)
+	}
+
+	// Deleting the server deletes its other local backups, not the final one.
+	manual := v.backup()
+	v.m.ServerDeleted(ctx, srvID)
+	deadline := time.Now().Add(10 * time.Second)
+	for len(v.list()) > 1 && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if l := v.list(); len(l) != 1 || l[0].ID != final {
+		t.Fatalf("after the server was deleted: %+v (manual %s)", l, manual.ID)
+	}
+}
+
+// A deleted server's backup restores onto another server; an existing
+// server's doesn't.
+func TestRestoreFromDeletedServer(t *testing.T) {
+	ctx := context.Background()
+	v := newEnv(t)
+	v.write("world/level.dat", "level")
+	final, err := v.m.JobBackup(ctx, srvID, "job-delete", KindFinal, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.servers.other = true
+	if _, err := v.m.Restore(ctx, otherID, final, "u1"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("restoring an existing server's backup onto another: %v", err)
+	}
+	if from, err := v.m.FromDeletedServer(ctx, srvID, final); err != nil || from {
+		t.Errorf("own backup: %v, %v", from, err)
+	}
+
+	v.servers.mu.Lock()
+	v.servers.deleted = true
+	v.servers.mu.Unlock()
+	if err := os.RemoveAll(filepath.Join(v.servers.src.Dir, "world")); err != nil {
+		t.Fatal(err)
+	}
+	if from, err := v.m.FromDeletedServer(ctx, otherID, final); err != nil || !from {
+		t.Errorf("deleted server's backup: %v, %v", from, err)
+	}
+	job, err := v.m.Restore(ctx, otherID, final, "u1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j := v.wait(job); j.Status != jobs.Succeeded {
+		t.Fatalf("restore: %s %s", j.Status, j.Error)
+	}
+	if got := v.read("world/level.dat"); got != "level" {
+		t.Errorf("restored file = %q", got)
 	}
 }

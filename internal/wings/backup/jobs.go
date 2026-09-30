@@ -261,7 +261,8 @@ func (m *Manager) fail(ctx context.Context, b *Backup, cause error) {
 }
 
 // retention deletes the server's backups on dest that no rule keeps.
-// Locked, safety, and unfinished backups are never counted or deleted.
+// Locked, safety, final, and unfinished backups are never counted or
+// deleted.
 func (m *Manager) retention(ctx context.Context, serverID, destID string, r Retention, log io.Writer) error {
 	rows, err := m.o.Store.Read.ListDestinationBackups(ctx, store.ListDestinationBackupsParams{DestinationID: destID, ServerID: serverID})
 	if err != nil {
@@ -269,7 +270,7 @@ func (m *Manager) retention(ctx context.Context, serverID, destID string, r Rete
 	}
 	var cands []candidate
 	for _, row := range rows {
-		if row.Status == StatusOK && row.Locked == 0 && row.Kind != KindSafety {
+		if row.Status == StatusOK && row.Locked == 0 && row.Kind != KindSafety && row.Kind != KindFinal {
 			cands = append(cands, candidate{ID: row.ID, At: time.UnixMilli(row.CreatedAt)})
 		}
 	}
@@ -408,6 +409,90 @@ func (m *Manager) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 	return map[string]any{"backup_id": b.ID, "safety_backup_id": cp.SafetyID, "files": res.Files, "size": res.Size}, nil
 }
 
+// JobBackup backs up a stopped server's files for a job that's about to
+// replace or delete them: a wipe's safety backup (KindSafety) or a
+// deletion's final backup (KindFinal). It runs inside that job rather than
+// as a backup job of its own, since the job holds the server's lock and a
+// separate job would wait for it forever. A resumed job gets the backup it
+// already finished, and retries one that was interrupted. An empty directory
+// needs none: "" and no error.
+func (m *Manager) JobBackup(ctx context.Context, serverID, jobID, kind string, log io.Writer) (string, error) {
+	if kind != KindSafety && kind != KindFinal {
+		return "", fmt.Errorf("%w: kind %q", ErrInvalid, kind)
+	}
+	var b *Backup
+	if r, err := m.o.Store.Write.GetJobBackup(ctx, store.GetJobBackupParams{JobID: jobID, Kind: kind}); err == nil {
+		b = fromRow(r)
+		if b.Status == StatusOK {
+			return b.ID, nil
+		}
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+	src, err := m.o.Servers.BackupSource(ctx, serverID)
+	if err != nil {
+		return "", err
+	}
+	if empty, err := isEmpty(src.Dir); err != nil || empty {
+		return "", err
+	}
+	pol, err := m.Policy(ctx, serverID)
+	if err != nil {
+		return "", err
+	}
+	if b == nil {
+		if err := m.checkSpace(pol.DestinationID); err != nil {
+			return "", err
+		}
+		id, err := newID()
+		if err != nil {
+			return "", err
+		}
+		now := m.o.Now()
+		b = &Backup{
+			ID: id, ServerID: serverID, DestinationID: pol.DestinationID, Kind: kind,
+			Status: StatusPending, JobID: jobID, CreatedBy: hookUser, CreatedAt: now,
+		}
+		switch {
+		case kind == KindSafety:
+			b.ExpiresAt = now.Add(SafetyTTL)
+		case pol.DestinationID == LocalDestination:
+			b.ExpiresAt = now.Add(FinalTTL)
+		}
+		if err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error { return m.insert(ctx, q, b) }); err != nil {
+			return "", err
+		}
+	}
+	if kind == KindFinal {
+		_, _ = fmt.Fprintf(log, "taking a final backup to %s\n", b.DestinationID)
+	} else {
+		_, _ = fmt.Fprintf(log, "taking a safety backup to %s\n", b.DestinationID)
+	}
+	return b.ID, m.snapshotInto(ctx, b, src.Dir, pol.Ignore, log)
+}
+
+// snapshotInto takes the snapshot for a backup row made by another job,
+// and records how it went.
+func (m *Manager) snapshotInto(ctx context.Context, b *Backup, dir string, ignore []string, log io.Writer) error {
+	if err := m.o.Store.Write.SetBackupRunning(ctx, b.ID); err != nil {
+		return err
+	}
+	out, err := m.run(ctx, b.DestinationID, request{Op: opSnapshot, Snapshot: &engine.SnapshotRequest{
+		ServerID: b.ServerID, BackupID: b.ID, Dir: dir, Ignore: ignore,
+	}}, progressLog(log), log)
+	if err != nil {
+		if !errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
+			m.fail(ctx, b, err)
+		}
+		return err
+	}
+	var res engine.SnapshotResult
+	if err := json.Unmarshal(out, &res); err != nil {
+		return err
+	}
+	return m.finish(ctx, b, res, "")
+}
+
 // safetyBackup backs up the stopped server's current files before a
 // restore replaces them. An empty directory needs none. The backup goes to
 // the same destination as the one being restored.
@@ -433,26 +518,10 @@ func (m *Manager) safetyBackup(ctx context.Context, j jobs.Job, cp *restoreCheck
 	} else if existing, err := m.row(ctx, b.ID); err == nil {
 		b = existing
 	}
-	if err := m.o.Store.Write.SetBackupRunning(ctx, b.ID); err != nil {
-		return "", err
-	}
 	_, _ = fmt.Fprintln(log, "taking a safety backup of the current files")
 	pol, err := m.Policy(ctx, j.ServerID)
 	if err != nil {
 		return "", err
 	}
-	out, err := m.run(ctx, b.DestinationID, request{Op: opSnapshot, Snapshot: &engine.SnapshotRequest{
-		ServerID: j.ServerID, BackupID: b.ID, Dir: dir, Ignore: pol.Ignore,
-	}}, progressLog(log), log)
-	if err != nil {
-		if !errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
-			m.fail(ctx, b, err)
-		}
-		return "", err
-	}
-	var res engine.SnapshotResult
-	if err := json.Unmarshal(out, &res); err != nil {
-		return "", err
-	}
-	return b.ID, m.finish(ctx, b, res, "")
+	return b.ID, m.snapshotInto(ctx, b, dir, pol.Ignore, log)
 }

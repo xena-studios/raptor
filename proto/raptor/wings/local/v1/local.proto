@@ -83,7 +83,7 @@ message ListServersResponse {
 message ServerInfo {
   string id = 1;
   string name = 2;
-  // installing, install_failed, restoring, offline, starting, running, stopping, crashed
+  // installing, install_failed, restoring, deleting, offline, starting, running, stopping, crashed
   string state = 3;
   // Set while running.
   google.protobuf.Timestamp running_since = 4;

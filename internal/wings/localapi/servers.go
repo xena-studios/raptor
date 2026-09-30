@@ -70,6 +70,7 @@ func connectErr(err error) error {
 	case errors.Is(err, server.ErrCommandRate):
 		return connect.NewError(connect.CodeResourceExhausted, err)
 	case errors.Is(err, server.ErrInstalling), errors.Is(err, server.ErrNotInstalled), errors.Is(err, server.ErrRunning),
+		errors.Is(err, server.ErrRestoring), errors.Is(err, server.ErrDeleting),
 		errors.Is(err, server.ErrDiskLimit), errors.Is(err, server.ErrConsoleNotReady):
 		return connect.NewError(connect.CodeFailedPrecondition, err)
 	case errors.Is(err, server.ErrClosed):

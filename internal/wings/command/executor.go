@@ -54,6 +54,11 @@ type Handler struct {
 	// each time they're sent before they expire, and neither the command ID
 	// nor the result is stored, since results can be large.
 	ReadOnly bool
+	// OwnerOnly, if set, reports whether this signed command needs an
+	// owner's key: a delegation, even one for this action and server, isn't
+	// enough (e.g. restoring a deleted server's backup, whose files the
+	// delegate may never have had access to).
+	OwnerOnly func(ctx context.Context, e Envelope) (bool, error)
 }
 
 // Always and Never are Signed functions.
@@ -166,7 +171,13 @@ func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 	}
 	var signer []byte
 	if signed {
-		if err := x.checkSignature(ctx, e, hash, now); err != nil {
+		owner := false
+		if h.OwnerOnly != nil {
+			if owner, err = h.OwnerOnly(ctx, e); err != nil {
+				return Result{}, err
+			}
+		}
+		if err := x.checkSignature(ctx, e, hash, now, owner); err != nil {
 			return Result{}, err
 		}
 		signer = e.Signature.CredentialID
@@ -264,7 +275,7 @@ func (x *Executor) checkGrant(e Envelope, now time.Time) error {
 
 // checkSignature verifies the user's passkey signature over the command and
 // that this node trusts that key for this action.
-func (x *Executor) checkSignature(ctx context.Context, e Envelope, hash []byte, now time.Time) error {
+func (x *Executor) checkSignature(ctx context.Context, e Envelope, hash []byte, now time.Time, ownerOnly bool) error {
 	if e.Signature == nil {
 		return ErrSignatureNeeded
 	}
@@ -293,6 +304,8 @@ func (x *Executor) checkSignature(ctx context.Context, e Envelope, hash []byte, 
 			return fmt.Errorf("%w: delegated for another server", ErrUntrustedKey)
 		case isKeyAction(e.Action):
 			return fmt.Errorf("%w: only owners manage keys", ErrUntrustedKey)
+		case ownerOnly:
+			return fmt.Errorf("%w: only owners may do this", ErrUntrustedKey)
 		}
 	}
 	counter, err := verifyAssertion(k.PublicKey, *e.Signature, hash, x.RP)

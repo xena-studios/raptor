@@ -47,6 +47,11 @@ func newFixture(t *testing.T) *fixture {
 	f.x.Register("server.start", Handler{Signed: Never, Run: run})
 	f.x.Register("server.delete", Handler{Signed: Always, Run: run})
 	f.x.Register("server.reinstall", Handler{Signed: Always, Run: run})
+	// Owners only when the params say so (like restoring a deleted
+	// server's backup).
+	f.x.Register("backup.restore", Handler{Signed: Always, Run: run, OwnerOnly: func(_ context.Context, e Envelope) (bool, error) {
+		return strings.Contains(string(e.Params), "other"), nil
+	}})
 	f.x.Register("files.read", Handler{Signed: Never, ReadOnly: true, Run: run})
 	f.x.Register("server.explode", Handler{Signed: Never, Run: func(context.Context, Envelope) (any, error) { panic("boom") }})
 	return f
@@ -312,6 +317,26 @@ func TestDelegation(t *testing.T) {
 	f.now = f.now.Add(2 * time.Hour)
 	if _, err := f.exec(f.sign(f.cmd("bob", "server.reinstall", "s1", nil), helper)); !errors.Is(err, ErrUntrustedKey) {
 		t.Errorf("expired delegation: %v", err)
+	}
+}
+
+// An owner-only command needs an owner's key, even from a delegate trusted
+// with that action on that server.
+func TestOwnerOnly(t *testing.T) {
+	f := newFixture(t)
+	owner := newAuthenticator(t, "ES256")
+	f.trust(owner, KeyParams{UserID: "alice"})
+	helper := newAuthenticator(t, "ES256")
+	f.trust(helper, KeyParams{UserID: "bob", Role: "delegate", ServerID: "s1", Actions: []string{"backup.restore"}, ExpiresAt: f.now.Add(time.Hour).Unix()})
+
+	if _, err := f.exec(f.sign(f.cmd("bob", "backup.restore", "s1", map[string]string{"backup_id": "own"}), helper)); err != nil {
+		t.Fatalf("delegated restore: %v", err)
+	}
+	if _, err := f.exec(f.sign(f.cmd("bob", "backup.restore", "s1", map[string]string{"backup_id": "other"}), helper)); !errors.Is(err, ErrUntrustedKey) {
+		t.Errorf("owner-only restore by a delegate: %v", err)
+	}
+	if _, err := f.exec(f.sign(f.cmd("alice", "backup.restore", "s1", map[string]string{"backup_id": "other"}), owner)); err != nil {
+		t.Errorf("owner-only restore by the owner: %v", err)
 	}
 }
 
