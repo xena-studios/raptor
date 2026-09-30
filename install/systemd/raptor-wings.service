@@ -2,6 +2,12 @@
 #
 # Stopping or restarting this service never stops game servers: their
 # containers belong to Docker, not to this service's cgroup.
+#
+# /usr/local/bin/raptor links to /usr/local/lib/raptor/current, the active
+# version. Self-update installs versions there, exits, and relies on
+# Restart=always to be started again; the running version then tries the new
+# one as its child and only switches "current" once it's healthy
+# (docs/WINGS.md#updates).
 
 [Unit]
 Description=Raptor Wings
@@ -38,7 +44,9 @@ ConfigurationDirectoryMode=0700
 # everything it doesn't need.
 NoNewPrivileges=yes
 ProtectSystem=strict
-ReadWritePaths=/etc/raptor /var/lib/raptor /var/log/raptor /run/raptor
+# Self-update writes versions to /usr/local/lib/raptor ("-": not fatal if
+# it's missing on an older install; updates then say they're unavailable).
+ReadWritePaths=/etc/raptor /var/lib/raptor /var/log/raptor /run/raptor -/usr/local/lib/raptor
 ProtectHome=yes
 PrivateTmp=yes
 ProtectKernelModules=yes

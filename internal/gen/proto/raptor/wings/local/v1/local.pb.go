@@ -1314,8 +1314,10 @@ type GetStatusResponse struct {
 	// The Unix user the request was attributed to, e.g. "root".
 	Caller string `protobuf:"bytes,7,opt,name=caller,proto3" json:"caller,omitempty"`
 	// Unset until the container runtime is ready.
-	Servers       *ServerCounts  `protobuf:"bytes,8,opt,name=servers,proto3" json:"servers,omitempty"`
-	Storage       *StorageStatus `protobuf:"bytes,9,opt,name=storage,proto3" json:"storage,omitempty"`
+	Servers *ServerCounts  `protobuf:"bytes,8,opt,name=servers,proto3" json:"servers,omitempty"`
+	Storage *StorageStatus `protobuf:"bytes,9,opt,name=storage,proto3" json:"storage,omitempty"`
+	// The last update; unset if there hasn't been one.
+	Update        *UpdateStatus `protobuf:"bytes,10,opt,name=update,proto3" json:"update,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1413,6 +1415,99 @@ func (x *GetStatusResponse) GetStorage() *StorageStatus {
 	return nil
 }
 
+func (x *GetStatusResponse) GetUpdate() *UpdateStatus {
+	if x != nil {
+		return x.Update
+	}
+	return nil
+}
+
+type UpdateStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// trial (installed, being tried), succeeded, or failed (rolled back).
+	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	From   string `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
+	To     string `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	// Why it failed.
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateStatus) Reset() {
+	*x = UpdateStatus{}
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateStatus) ProtoMessage() {}
+
+func (x *UpdateStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateStatus.ProtoReflect.Descriptor instead.
+func (*UpdateStatus) Descriptor() ([]byte, []int) {
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *UpdateStatus) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *UpdateStatus) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *UpdateStatus) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+func (x *UpdateStatus) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *UpdateStatus) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *UpdateStatus) GetFinishedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return nil
+}
+
 type ServerCounts struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Total int32                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
@@ -1424,7 +1519,7 @@ type ServerCounts struct {
 
 func (x *ServerCounts) Reset() {
 	*x = ServerCounts{}
-	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[22]
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1436,7 +1531,7 @@ func (x *ServerCounts) String() string {
 func (*ServerCounts) ProtoMessage() {}
 
 func (x *ServerCounts) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[22]
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1449,7 +1544,7 @@ func (x *ServerCounts) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerCounts.ProtoReflect.Descriptor instead.
 func (*ServerCounts) Descriptor() ([]byte, []int) {
-	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{22}
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ServerCounts) GetTotal() int32 {
@@ -1481,7 +1576,7 @@ type StorageStatus struct {
 
 func (x *StorageStatus) Reset() {
 	*x = StorageStatus{}
-	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[23]
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1493,7 +1588,7 @@ func (x *StorageStatus) String() string {
 func (*StorageStatus) ProtoMessage() {}
 
 func (x *StorageStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[23]
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1506,7 +1601,7 @@ func (x *StorageStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageStatus.ProtoReflect.Descriptor instead.
 func (*StorageStatus) Descriptor() ([]byte, []int) {
-	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{23}
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *StorageStatus) GetPath() string {
@@ -1548,7 +1643,7 @@ type DockerStatus struct {
 
 func (x *DockerStatus) Reset() {
 	*x = DockerStatus{}
-	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[24]
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1560,7 +1655,7 @@ func (x *DockerStatus) String() string {
 func (*DockerStatus) ProtoMessage() {}
 
 func (x *DockerStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[24]
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1573,7 +1668,7 @@ func (x *DockerStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerStatus.ProtoReflect.Descriptor instead.
 func (*DockerStatus) Descriptor() ([]byte, []int) {
-	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{24}
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *DockerStatus) GetReachable() bool {
@@ -1595,6 +1690,143 @@ func (x *DockerStatus) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+type UpdateRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Only report what would be installed.
+	Check bool `protobuf:"varint,1,opt,name=check,proto3" json:"check,omitempty"`
+	// A version like "1.4.2", instead of the pin or channel. It may be older
+	// than the running one.
+	Version       string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateRequest) Reset() {
+	*x = UpdateRequest{}
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateRequest) ProtoMessage() {}
+
+func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateRequest.ProtoReflect.Descriptor instead.
+func (*UpdateRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *UpdateRequest) GetCheck() bool {
+	if x != nil {
+		return x.Check
+	}
+	return false
+}
+
+func (x *UpdateRequest) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+type UpdateResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The running version.
+	Current string `protobuf:"bytes,1,opt,name=current,proto3" json:"current,omitempty"`
+	// The version picked; the running one when it's up to date.
+	Target string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	// Where target came from: the channel ("stable" or "beta"), "pin", or
+	// "requested".
+	Channel string `protobuf:"bytes,3,opt,name=channel,proto3" json:"channel,omitempty"`
+	// target differs from the running version.
+	Available bool `protobuf:"varint,4,opt,name=available,proto3" json:"available,omitempty"`
+	// Wings is restarting to run target on trial.
+	Started       bool `protobuf:"varint,5,opt,name=started,proto3" json:"started,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateResponse) Reset() {
+	*x = UpdateResponse{}
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateResponse) ProtoMessage() {}
+
+func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateResponse.ProtoReflect.Descriptor instead.
+func (*UpdateResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *UpdateResponse) GetCurrent() string {
+	if x != nil {
+		return x.Current
+	}
+	return ""
+}
+
+func (x *UpdateResponse) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *UpdateResponse) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *UpdateResponse) GetAvailable() bool {
+	if x != nil {
+		return x.Available
+	}
+	return false
+}
+
+func (x *UpdateResponse) GetStarted() bool {
+	if x != nil {
+		return x.Started
+	}
+	return false
 }
 
 var File_raptor_wings_local_v1_local_proto protoreflect.FileDescriptor
@@ -1689,7 +1921,7 @@ const file_raptor_wings_local_v1_local_proto_rawDesc = "" +
 	"\x17ShutdownServersResponse\x12\x18\n" +
 	"\astopped\x18\x01 \x01(\x05R\astopped\x12\x16\n" +
 	"\x06errors\x18\x02 \x03(\tR\x06errors\"\x12\n" +
-	"\x10GetStatusRequest\"\x8a\x03\n" +
+	"\x10GetStatusRequest\"\xc7\x03\n" +
 	"\x11GetStatusResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x16\n" +
 	"\x06commit\x18\x02 \x01(\tR\x06commit\x12\x17\n" +
@@ -1700,7 +1932,18 @@ const file_raptor_wings_local_v1_local_proto_rawDesc = "" +
 	"\x06docker\x18\x06 \x01(\v2#.raptor.wings.local.v1.DockerStatusR\x06docker\x12\x16\n" +
 	"\x06caller\x18\a \x01(\tR\x06caller\x12=\n" +
 	"\aservers\x18\b \x01(\v2#.raptor.wings.local.v1.ServerCountsR\aservers\x12>\n" +
-	"\astorage\x18\t \x01(\v2$.raptor.wings.local.v1.StorageStatusR\astorage\"4\n" +
+	"\astorage\x18\t \x01(\v2$.raptor.wings.local.v1.StorageStatusR\astorage\x12;\n" +
+	"\x06update\x18\n" +
+	" \x01(\v2#.raptor.wings.local.v1.UpdateStatusR\x06update\"\xd8\x01\n" +
+	"\fUpdateStatus\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x12\n" +
+	"\x04from\x18\x02 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x03 \x01(\tR\x02to\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x129\n" +
+	"\n" +
+	"started_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
+	"\vfinished_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"finishedAt\"4\n" +
 	"\fServerCounts\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x0e\n" +
 	"\x02up\x18\x02 \x01(\x05R\x02up\"g\n" +
@@ -1712,13 +1955,22 @@ const file_raptor_wings_local_v1_local_proto_rawDesc = "" +
 	"\fDockerStatus\x12\x1c\n" +
 	"\treachable\x18\x01 \x01(\bR\treachable\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error*\x8b\x01\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"?\n" +
+	"\rUpdateRequest\x12\x14\n" +
+	"\x05check\x18\x01 \x01(\bR\x05check\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\"\x94\x01\n" +
+	"\x0eUpdateResponse\x12\x18\n" +
+	"\acurrent\x18\x01 \x01(\tR\acurrent\x12\x16\n" +
+	"\x06target\x18\x02 \x01(\tR\x06target\x12\x18\n" +
+	"\achannel\x18\x03 \x01(\tR\achannel\x12\x1c\n" +
+	"\tavailable\x18\x04 \x01(\bR\tavailable\x12\x18\n" +
+	"\astarted\x18\x05 \x01(\bR\astarted*\x8b\x01\n" +
 	"\vPowerAction\x12\x1c\n" +
 	"\x18POWER_ACTION_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12POWER_ACTION_START\x10\x01\x12\x15\n" +
 	"\x11POWER_ACTION_STOP\x10\x02\x12\x18\n" +
 	"\x14POWER_ACTION_RESTART\x10\x03\x12\x15\n" +
-	"\x11POWER_ACTION_KILL\x10\x042\xae\b\n" +
+	"\x11POWER_ACTION_KILL\x10\x042\x87\t\n" +
 	"\fLocalService\x12c\n" +
 	"\tGetStatus\x12'.raptor.wings.local.v1.GetStatusRequest\x1a(.raptor.wings.local.v1.GetStatusResponse\"\x03\x90\x02\x01\x12u\n" +
 	"\x0fShutdownServers\x12-.raptor.wings.local.v1.ShutdownServersRequest\x1a..raptor.wings.local.v1.ShutdownServersResponse\"\x03\x90\x02\x02\x12i\n" +
@@ -1729,7 +1981,8 @@ const file_raptor_wings_local_v1_local_proto_rawDesc = "" +
 	"\bTailLogs\x12&.raptor.wings.local.v1.TailLogsRequest\x1a'.raptor.wings.local.v1.TailLogsResponse\"\x03\x90\x02\x010\x01\x12i\n" +
 	"\vListBackups\x12).raptor.wings.local.v1.ListBackupsRequest\x1a*.raptor.wings.local.v1.ListBackupsResponse\"\x03\x90\x02\x01\x12i\n" +
 	"\fCreateBackup\x12*.raptor.wings.local.v1.CreateBackupRequest\x1a+.raptor.wings.local.v1.CreateBackupResponse\"\x00\x12l\n" +
-	"\rRestoreBackup\x12+.raptor.wings.local.v1.RestoreBackupRequest\x1a,.raptor.wings.local.v1.RestoreBackupResponse\"\x00B\xef\x01\n" +
+	"\rRestoreBackup\x12+.raptor.wings.local.v1.RestoreBackupRequest\x1a,.raptor.wings.local.v1.RestoreBackupResponse\"\x00\x12W\n" +
+	"\x06Update\x12$.raptor.wings.local.v1.UpdateRequest\x1a%.raptor.wings.local.v1.UpdateResponse\"\x00B\xef\x01\n" +
 	"\x19com.raptor.wings.local.v1B\n" +
 	"LocalProtoP\x01ZOgithub.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1;localv1\xa2\x02\x03RWL\xaa\x02\x15Raptor.Wings.Local.V1\xca\x02\x15Raptor\\Wings\\Local\\V1\xe2\x02!Raptor\\Wings\\Local\\V1\\GPBMetadata\xea\x02\x18Raptor::Wings::Local::V1b\x06proto3"
 
@@ -1746,7 +1999,7 @@ func file_raptor_wings_local_v1_local_proto_rawDescGZIP() []byte {
 }
 
 var file_raptor_wings_local_v1_local_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_raptor_wings_local_v1_local_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_raptor_wings_local_v1_local_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_raptor_wings_local_v1_local_proto_goTypes = []any{
 	(PowerAction)(0),                // 0: raptor.wings.local.v1.PowerAction
 	(*ListServersRequest)(nil),      // 1: raptor.wings.local.v1.ListServersRequest
@@ -1771,50 +2024,58 @@ var file_raptor_wings_local_v1_local_proto_goTypes = []any{
 	(*ShutdownServersResponse)(nil), // 20: raptor.wings.local.v1.ShutdownServersResponse
 	(*GetStatusRequest)(nil),        // 21: raptor.wings.local.v1.GetStatusRequest
 	(*GetStatusResponse)(nil),       // 22: raptor.wings.local.v1.GetStatusResponse
-	(*ServerCounts)(nil),            // 23: raptor.wings.local.v1.ServerCounts
-	(*StorageStatus)(nil),           // 24: raptor.wings.local.v1.StorageStatus
-	(*DockerStatus)(nil),            // 25: raptor.wings.local.v1.DockerStatus
-	(*timestamppb.Timestamp)(nil),   // 26: google.protobuf.Timestamp
+	(*UpdateStatus)(nil),            // 23: raptor.wings.local.v1.UpdateStatus
+	(*ServerCounts)(nil),            // 24: raptor.wings.local.v1.ServerCounts
+	(*StorageStatus)(nil),           // 25: raptor.wings.local.v1.StorageStatus
+	(*DockerStatus)(nil),            // 26: raptor.wings.local.v1.DockerStatus
+	(*UpdateRequest)(nil),           // 27: raptor.wings.local.v1.UpdateRequest
+	(*UpdateResponse)(nil),          // 28: raptor.wings.local.v1.UpdateResponse
+	(*timestamppb.Timestamp)(nil),   // 29: google.protobuf.Timestamp
 }
 var file_raptor_wings_local_v1_local_proto_depIdxs = []int32{
 	3,  // 0: raptor.wings.local.v1.ListServersResponse.servers:type_name -> raptor.wings.local.v1.ServerInfo
-	26, // 1: raptor.wings.local.v1.ServerInfo.running_since:type_name -> google.protobuf.Timestamp
+	29, // 1: raptor.wings.local.v1.ServerInfo.running_since:type_name -> google.protobuf.Timestamp
 	0,  // 2: raptor.wings.local.v1.PowerRequest.action:type_name -> raptor.wings.local.v1.PowerAction
-	26, // 3: raptor.wings.local.v1.TailLogsResponse.time:type_name -> google.protobuf.Timestamp
+	29, // 3: raptor.wings.local.v1.TailLogsResponse.time:type_name -> google.protobuf.Timestamp
 	14, // 4: raptor.wings.local.v1.ListBackupsResponse.backups:type_name -> raptor.wings.local.v1.BackupInfo
-	26, // 5: raptor.wings.local.v1.BackupInfo.created_at:type_name -> google.protobuf.Timestamp
-	26, // 6: raptor.wings.local.v1.BackupInfo.finished_at:type_name -> google.protobuf.Timestamp
-	26, // 7: raptor.wings.local.v1.BackupInfo.expires_at:type_name -> google.protobuf.Timestamp
+	29, // 5: raptor.wings.local.v1.BackupInfo.created_at:type_name -> google.protobuf.Timestamp
+	29, // 6: raptor.wings.local.v1.BackupInfo.finished_at:type_name -> google.protobuf.Timestamp
+	29, // 7: raptor.wings.local.v1.BackupInfo.expires_at:type_name -> google.protobuf.Timestamp
 	14, // 8: raptor.wings.local.v1.CreateBackupResponse.backup:type_name -> raptor.wings.local.v1.BackupInfo
-	26, // 9: raptor.wings.local.v1.GetStatusResponse.started_at:type_name -> google.protobuf.Timestamp
-	25, // 10: raptor.wings.local.v1.GetStatusResponse.docker:type_name -> raptor.wings.local.v1.DockerStatus
-	23, // 11: raptor.wings.local.v1.GetStatusResponse.servers:type_name -> raptor.wings.local.v1.ServerCounts
-	24, // 12: raptor.wings.local.v1.GetStatusResponse.storage:type_name -> raptor.wings.local.v1.StorageStatus
-	21, // 13: raptor.wings.local.v1.LocalService.GetStatus:input_type -> raptor.wings.local.v1.GetStatusRequest
-	19, // 14: raptor.wings.local.v1.LocalService.ShutdownServers:input_type -> raptor.wings.local.v1.ShutdownServersRequest
-	1,  // 15: raptor.wings.local.v1.LocalService.ListServers:input_type -> raptor.wings.local.v1.ListServersRequest
-	4,  // 16: raptor.wings.local.v1.LocalService.Power:input_type -> raptor.wings.local.v1.PowerRequest
-	6,  // 17: raptor.wings.local.v1.LocalService.StreamConsole:input_type -> raptor.wings.local.v1.StreamConsoleRequest
-	8,  // 18: raptor.wings.local.v1.LocalService.SendCommand:input_type -> raptor.wings.local.v1.SendCommandRequest
-	10, // 19: raptor.wings.local.v1.LocalService.TailLogs:input_type -> raptor.wings.local.v1.TailLogsRequest
-	12, // 20: raptor.wings.local.v1.LocalService.ListBackups:input_type -> raptor.wings.local.v1.ListBackupsRequest
-	15, // 21: raptor.wings.local.v1.LocalService.CreateBackup:input_type -> raptor.wings.local.v1.CreateBackupRequest
-	17, // 22: raptor.wings.local.v1.LocalService.RestoreBackup:input_type -> raptor.wings.local.v1.RestoreBackupRequest
-	22, // 23: raptor.wings.local.v1.LocalService.GetStatus:output_type -> raptor.wings.local.v1.GetStatusResponse
-	20, // 24: raptor.wings.local.v1.LocalService.ShutdownServers:output_type -> raptor.wings.local.v1.ShutdownServersResponse
-	2,  // 25: raptor.wings.local.v1.LocalService.ListServers:output_type -> raptor.wings.local.v1.ListServersResponse
-	5,  // 26: raptor.wings.local.v1.LocalService.Power:output_type -> raptor.wings.local.v1.PowerResponse
-	7,  // 27: raptor.wings.local.v1.LocalService.StreamConsole:output_type -> raptor.wings.local.v1.StreamConsoleResponse
-	9,  // 28: raptor.wings.local.v1.LocalService.SendCommand:output_type -> raptor.wings.local.v1.SendCommandResponse
-	11, // 29: raptor.wings.local.v1.LocalService.TailLogs:output_type -> raptor.wings.local.v1.TailLogsResponse
-	13, // 30: raptor.wings.local.v1.LocalService.ListBackups:output_type -> raptor.wings.local.v1.ListBackupsResponse
-	16, // 31: raptor.wings.local.v1.LocalService.CreateBackup:output_type -> raptor.wings.local.v1.CreateBackupResponse
-	18, // 32: raptor.wings.local.v1.LocalService.RestoreBackup:output_type -> raptor.wings.local.v1.RestoreBackupResponse
-	23, // [23:33] is the sub-list for method output_type
-	13, // [13:23] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	29, // 9: raptor.wings.local.v1.GetStatusResponse.started_at:type_name -> google.protobuf.Timestamp
+	26, // 10: raptor.wings.local.v1.GetStatusResponse.docker:type_name -> raptor.wings.local.v1.DockerStatus
+	24, // 11: raptor.wings.local.v1.GetStatusResponse.servers:type_name -> raptor.wings.local.v1.ServerCounts
+	25, // 12: raptor.wings.local.v1.GetStatusResponse.storage:type_name -> raptor.wings.local.v1.StorageStatus
+	23, // 13: raptor.wings.local.v1.GetStatusResponse.update:type_name -> raptor.wings.local.v1.UpdateStatus
+	29, // 14: raptor.wings.local.v1.UpdateStatus.started_at:type_name -> google.protobuf.Timestamp
+	29, // 15: raptor.wings.local.v1.UpdateStatus.finished_at:type_name -> google.protobuf.Timestamp
+	21, // 16: raptor.wings.local.v1.LocalService.GetStatus:input_type -> raptor.wings.local.v1.GetStatusRequest
+	19, // 17: raptor.wings.local.v1.LocalService.ShutdownServers:input_type -> raptor.wings.local.v1.ShutdownServersRequest
+	1,  // 18: raptor.wings.local.v1.LocalService.ListServers:input_type -> raptor.wings.local.v1.ListServersRequest
+	4,  // 19: raptor.wings.local.v1.LocalService.Power:input_type -> raptor.wings.local.v1.PowerRequest
+	6,  // 20: raptor.wings.local.v1.LocalService.StreamConsole:input_type -> raptor.wings.local.v1.StreamConsoleRequest
+	8,  // 21: raptor.wings.local.v1.LocalService.SendCommand:input_type -> raptor.wings.local.v1.SendCommandRequest
+	10, // 22: raptor.wings.local.v1.LocalService.TailLogs:input_type -> raptor.wings.local.v1.TailLogsRequest
+	12, // 23: raptor.wings.local.v1.LocalService.ListBackups:input_type -> raptor.wings.local.v1.ListBackupsRequest
+	15, // 24: raptor.wings.local.v1.LocalService.CreateBackup:input_type -> raptor.wings.local.v1.CreateBackupRequest
+	17, // 25: raptor.wings.local.v1.LocalService.RestoreBackup:input_type -> raptor.wings.local.v1.RestoreBackupRequest
+	27, // 26: raptor.wings.local.v1.LocalService.Update:input_type -> raptor.wings.local.v1.UpdateRequest
+	22, // 27: raptor.wings.local.v1.LocalService.GetStatus:output_type -> raptor.wings.local.v1.GetStatusResponse
+	20, // 28: raptor.wings.local.v1.LocalService.ShutdownServers:output_type -> raptor.wings.local.v1.ShutdownServersResponse
+	2,  // 29: raptor.wings.local.v1.LocalService.ListServers:output_type -> raptor.wings.local.v1.ListServersResponse
+	5,  // 30: raptor.wings.local.v1.LocalService.Power:output_type -> raptor.wings.local.v1.PowerResponse
+	7,  // 31: raptor.wings.local.v1.LocalService.StreamConsole:output_type -> raptor.wings.local.v1.StreamConsoleResponse
+	9,  // 32: raptor.wings.local.v1.LocalService.SendCommand:output_type -> raptor.wings.local.v1.SendCommandResponse
+	11, // 33: raptor.wings.local.v1.LocalService.TailLogs:output_type -> raptor.wings.local.v1.TailLogsResponse
+	13, // 34: raptor.wings.local.v1.LocalService.ListBackups:output_type -> raptor.wings.local.v1.ListBackupsResponse
+	16, // 35: raptor.wings.local.v1.LocalService.CreateBackup:output_type -> raptor.wings.local.v1.CreateBackupResponse
+	18, // 36: raptor.wings.local.v1.LocalService.RestoreBackup:output_type -> raptor.wings.local.v1.RestoreBackupResponse
+	28, // 37: raptor.wings.local.v1.LocalService.Update:output_type -> raptor.wings.local.v1.UpdateResponse
+	27, // [27:38] is the sub-list for method output_type
+	16, // [16:27] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_raptor_wings_local_v1_local_proto_init() }
@@ -1828,7 +2089,7 @@ func file_raptor_wings_local_v1_local_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_wings_local_v1_local_proto_rawDesc), len(file_raptor_wings_local_v1_local_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   25,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

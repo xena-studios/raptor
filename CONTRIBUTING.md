@@ -54,7 +54,7 @@ Wings only runs on Linux. For development it runs in a Debian 12 VM:
 
 ```bash
 task wings:vm:up        # create/start the VM (first run downloads the image)
-task wings:vm:deploy    # build raptor for the VM and copy it to /usr/local/bin
+task wings:vm:deploy    # build raptor for the VM and install it as /usr/local/lib/raptor/raptor-dev
 task wings:vm:install   # deploy + systemd unit + dev config, then (re)start Wings
 task wings:vm:shell     # shell into the VM (then: sudo raptor status)
 ```
@@ -93,9 +93,10 @@ task e2e:runtime                          # all runtime and lifecycle tests in t
 task e2e:runtime RUN=TestCrashPolicy      # one test
 task e2e:host                             # Wings/Docker restarts, host shutdown, the CLI, and a real reboot
 task e2e:quotas                           # disk quotas on a real XFS loop volume, with a reboot
+task e2e:update                           # self-update: an update, two rollbacks, a restart mid-trial (needs minisign)
 ```
 
-`e2e:runtime` includes `TestPathSafety`, a hostile egg that plants symlinks, FIFOs, and links to host files (see [SECURITY-MODEL.md](docs/SECURITY-MODEL.md#server-files)); if you change how Wings touches server files, break the protection on purpose once and check that it fails. `e2e:host` installs Wings with its systemd units and a quota volume in the VM, seeds a running server, runs the CLI against it (as root and as a `raptor` group member, including a backup and restore through the daemon's real worker), and reboots the VM, so it takes a few minutes. `e2e:quotas` creates a loop volume under `/var/lib/raptor-gate` with Wings' own code, checks limits on the host and in containers (including the seccomp escape check) and in the server manager, reboots, and grows the volume online.
+`e2e:runtime` includes `TestPathSafety`, a hostile egg that plants symlinks, FIFOs, and links to host files (see [SECURITY-MODEL.md](docs/SECURITY-MODEL.md#server-files)); if you change how Wings touches server files, break the protection on purpose once and check that it fails. `e2e:host` installs Wings with its systemd units and a quota volume in the VM, seeds a running server, runs the CLI against it (as root and as a `raptor` group member, including a backup and restore through the daemon's real worker), and reboots the VM, so it takes a few minutes. `e2e:quotas` creates a loop volume under `/var/lib/raptor-gate` with Wings' own code, checks limits on the host and in containers (including the seccomp escape check) and in the server manager, reboots, and grows the volume online. `e2e:update` builds signed test releases with a throwaway key (`scripts/e2e-update-build.sh`; the `e2eupdate` build tag lets those binaries take the key, a local release server, and shorter trial timings from the environment, and build versions that crash or hang on purpose), then updates Wings through the real systemd unit with a server running. It takes about 3 minutes and leaves the VM on the dev build. Pass `VM=<name>` to any VM task to use a separate VM.
 
 They need root: they create Wings' networks, load its nftables table, and set up `raptor.slice`, exactly as the daemon does. CI runs them on every PR (the `e2e-runtime` job).
 
@@ -105,7 +106,7 @@ Releases are built as drafts by CI when a `v*` tag is pushed, then signed with t
 
 ## Pull requests
 
-`main` is protected. Every change lands through a pull request, and all CI jobs (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `pr`) must pass. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use conventional commit titles (`feat:`, `fix:`, `docs:`, …).
+`main` is protected. Every change lands through a pull request, and all CI jobs (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, `pr`) must pass. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use conventional commit titles (`feat:`, `fix:`, `docs:`, …).
 
 ## Ground rules
 

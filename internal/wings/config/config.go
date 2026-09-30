@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 )
 
@@ -95,10 +96,10 @@ type Storage struct {
 	Quotas bool `yaml:"quotas"`
 }
 
-// Updates controls self-update.
+// Updates controls self-update (docs/WINGS.md#updates).
 type Updates struct {
-	Channel string `yaml:"channel"`
-	Pin     string `yaml:"pin"`
+	Channel string `yaml:"channel"` // stable or beta
+	Pin     string `yaml:"pin"`     // a version to install and stay on, e.g. "1.4.2"
 }
 
 // Log controls logging.
@@ -170,6 +171,12 @@ func (c Config) Validate() error {
 	case "stable", "beta":
 	default:
 		errs = append(errs, fmt.Errorf("updates.channel %q: want stable or beta", c.Updates.Channel))
+	}
+	if pin := c.Updates.Pin; pin != "" {
+		tag := "v" + strings.TrimPrefix(pin, "v")
+		if semver.Canonical(tag) != tag {
+			errs = append(errs, fmt.Errorf("updates.pin %q: want a version like 1.4.2", pin))
+		}
 	}
 	if p := c.Ports.SFTP; p < 1 || p > 65535 {
 		errs = append(errs, fmt.Errorf("ports.sftp %d: out of range", p))

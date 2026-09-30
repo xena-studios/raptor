@@ -58,6 +58,7 @@ func TestParseRejects(t *testing.T) {
 		"relative path":  "paths:\n  state: state.db\n",
 		"bad size":       "limits:\n  host_disk_min_free: lots\n",
 		"bad channel":    "updates:\n  channel: nightly\n",
+		"bad pin":        "updates:\n  pin: \"1.4\"\n",
 		"bad subnet":     "docker:\n  subnet: 10.50.0.1/16\n",
 		"ipv6 subnet":    "docker:\n  subnet: fd00::/64\n",
 		"bad allow":      "docker:\n  install_allow: [lan]\n",

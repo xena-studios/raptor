@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/wings/actions"
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/command"
@@ -27,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
+	"github.com/xena-studios/raptor/internal/wings/update"
 )
 
 // Snapshot schedule for the state database (docs/WINGS.md#local-state-sqlite).
@@ -40,8 +42,13 @@ const (
 const runtimeCheckInterval = time.Minute
 
 // Run starts the daemon and blocks until ctx is cancelled, then shuts down
-// gracefully. Stopping Wings never stops servers: they belong to Docker.
+// gracefully. Stopping Wings never stops servers: they belong to Docker. It
+// also returns (with no error) when an update needs a restart, which systemd
+// does.
 func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
+	ctx, restart := context.WithCancel(ctx)
+	defer restart()
+
 	for _, dir := range []string{filepath.Dir(cfg.Paths.State), cfg.Paths.Volumes, cfg.Paths.Backups, cfg.Paths.Tmp, cfg.Paths.Logs} {
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
@@ -67,18 +74,35 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	defer func() { _ = dc.Close() }()
 
+	key, err := update.DefaultKey()
+	if err != nil {
+		return err
+	}
+	updates := &update.Updater{
+		Layout:    update.Layout{Dir: update.DefaultDir},
+		Source:    update.DefaultSource(),
+		Key:       key,
+		StatePath: update.StatePath(cfg.Paths.State),
+		Channel:   cfg.Updates.Channel,
+		Pin:       cfg.Updates.Pin,
+		Current:   buildinfo.Version,
+		Restart:   restart,
+		Log:       log,
+	}
 	svc := &localapi.Service{
 		NodeID:    cfg.NodeID,
 		PanelURL:  cfg.Panel.URL,
 		StartedAt: time.Now(),
 		Docker:    dc,
 		Storage:   &storage.Volume{Path: cfg.Paths.Volumes, Soft: !cfg.Storage.Quotas},
+		Updates:   updates,
 	}
 	rt, err := newRuntimeSetup(dc, cfg, log, db, svc)
 	if err != nil {
 		return err
 	}
 	defer rt.close()
+	reportUpdate(ctx, updates.StatePath, rt.events, log)
 	rt.check(ctx)
 
 	srv, err := localapi.Listen(ctx, cfg.Paths.Socket, localapi.Group, svc, log)
@@ -88,7 +112,8 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve() }()
 
-	log.Info("wings started", "socket", cfg.Paths.Socket, "state", cfg.Paths.State, "linked", cfg.NodeID != "")
+	log.Info("wings started", "version", buildinfo.Version, "socket", cfg.Paths.Socket, "state", cfg.Paths.State, "linked", cfg.NodeID != "")
+	rt.ready()
 
 	ticker := time.NewTicker(snapshotInterval)
 	defer ticker.Stop()
@@ -106,6 +131,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			return fmt.Errorf("local api: %w", err)
 		case <-runtimeTicker.C:
 			rt.check(ctx)
+			rt.ready()
 		case <-ticker.C:
 			rt.prune(ctx)
 			if path, err := db.Snapshot(ctx, "hourly", snapshotKeep); err != nil {
@@ -201,6 +227,14 @@ func (r *runtimeSetup) backupRunner(systemd bool) (backup.Runner, error) {
 		p.Slice = backupSlice
 	}
 	return p, nil
+}
+
+// ready tells an update's launcher that this version is healthy, once the
+// runtime is up (the local API is already serving).
+func (r *runtimeSetup) ready() {
+	if r.rules != nil {
+		update.Ready()
+	}
 }
 
 func (r *runtimeSetup) check(ctx context.Context) {
@@ -342,4 +376,29 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		"install_network", nets.Install.Name, "install_subnet", nets.Install.Subnet,
 		"dns_allowed", rules.DNS)
 	return nil
+}
+
+// reportUpdate records how the last update went as a node.update event, once.
+// The launcher that ran the trial can't: it doesn't open the database.
+func reportUpdate(ctx context.Context, path string, o *events.Outbox, log *slog.Logger) {
+	st, err := update.ReadState(path)
+	if err != nil {
+		log.Error("can't read the update state", "err", err)
+		return
+	}
+	if st.Reported || (st.Status != update.StatusSucceeded && st.Status != update.StatusFailed) {
+		return
+	}
+	data := map[string]any{"result": st.Status, "from": st.From, "to": st.To, "actor": st.Actor}
+	if st.Error != "" {
+		data["error"] = st.Error
+	}
+	if _, err := o.Append(ctx, events.Event{Type: "node.update", At: st.Finished, Data: data}); err != nil {
+		log.Error("can't record the update", "err", err)
+		return
+	}
+	st.Reported = true
+	if err := update.WriteState(path, st); err != nil {
+		log.Error("can't record the update", "err", err)
+	}
 }

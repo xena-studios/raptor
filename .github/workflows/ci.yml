@@ -84,6 +84,44 @@ jobs:
       - name: Run disk quota tests (XFS loop volume, seccomp escape check)
         run: sudo scripts/e2e-quotas.sh /tmp/storage-e2e /tmp/server-e2e
 
+  # Self-update against the real systemd unit: an update, rollbacks of a
+  # crashing and a hanging version, a restart during a trial, with a server
+  # that must keep running throughout.
+  e2e-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install nftables and minisign
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends nftables minisign
+      - name: Build releases and test binaries
+        run: |
+          scripts/e2e-update-build.sh "$(go env GOARCH)" /tmp/update-e2e
+          CGO_ENABLED=0 go build -o /tmp/raptor ./cmd/raptor
+          go test -c -tags e2e -o /tmp/server-e2e ./internal/wings/server
+      # Like the installer: the version layout, the unit, soft disk limits
+      # (quotas have their own tests).
+      - name: Install Wings
+        run: |
+          sudo bash -euc '
+            groupadd --system raptor
+            useradd --system --gid raptor --no-create-home --shell /usr/sbin/nologin raptor
+            install -d -m 0755 /usr/local/lib/raptor
+            install -m 0755 /tmp/raptor /usr/local/lib/raptor/raptor-dev
+            ln -sfn raptor-dev /usr/local/lib/raptor/current
+            ln -sfn /usr/local/lib/raptor/current /usr/local/bin/raptor
+            install -m 0644 install/systemd/raptor-wings.service /etc/systemd/system/raptor-wings.service
+            install -d -m 0700 /etc/raptor
+            printf "storage:\n  quotas: false\n" > /etc/raptor/config.yml
+            chmod 0600 /etc/raptor/config.yml
+            systemctl daemon-reload
+            systemctl start raptor-wings
+          '
+      - name: Run self-update tests
+        run: sudo scripts/e2e-update.sh /tmp/update-e2e /tmp/server-e2e
+
   pr:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

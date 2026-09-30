@@ -18,6 +18,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
+	"github.com/xena-studios/raptor/internal/wings/update"
 )
 
 const usage = `usage: raptor <command> [flags]
@@ -34,6 +35,10 @@ commands:
   backup list|create|restore
               list backups, back up now, or restore one (root for create
               and restore)
+  update [-check] [-version v]
+              install the newest Wings in the node's channel, or a given
+              version (root); servers keep running, and Wings rolls back
+              if the new version isn't healthy
   storage status|setup|grow
               show, create, or enlarge the server data volume (root for
               setup and grow)
@@ -73,6 +78,8 @@ func run(args []string) error {
 		return logs(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "backup":
 		return backupCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "update":
+		return updateCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "storage":
 		return storageCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
@@ -108,6 +115,12 @@ func wingsRun(ctx context.Context, args []string) error {
 		return err
 	}
 	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+	// An update waiting for its trial runs as this process's child; this
+	// version takes over again if it fails.
+	l := &update.Launcher{Layout: update.Layout{Dir: update.DefaultDir}, StatePath: update.StatePath(cfg.Paths.State), Args: os.Args[1:], Log: log}
+	if code, handled := l.Run(); handled {
+		os.Exit(code)
+	}
 	return wings.Run(ctx, cfg, log)
 }
 
@@ -150,6 +163,18 @@ func printStatus(s *localv1.GetStatusResponse) {
 			fmt.Printf("Storage  ✓ %s (%s)\n", st.GetPath(), limits)
 		} else {
 			fmt.Printf("Storage  ✗ %s (see raptor storage status)\n", st.GetError())
+		}
+	}
+	if u := s.GetUpdate(); u != nil {
+		switch u.GetStatus() {
+		case "trial":
+			fmt.Printf("Update   trying %s (from %s)\n", u.GetTo(), u.GetFrom())
+		case "succeeded":
+			fmt.Printf("Update   ✓ %s → %s, %s\n", u.GetFrom(), u.GetTo(), u.GetFinishedAt().AsTime().Local().Format(time.DateTime))
+		case "failed":
+			fmt.Printf("Update   ✗ %s → %s rolled back, %s: %s\n", u.GetFrom(), u.GetTo(), u.GetFinishedAt().AsTime().Local().Format(time.DateTime), u.GetError())
+		default:
+			fmt.Printf("Update   %s\n", u.GetError())
 		}
 	}
 	if n := s.GetServers(); n != nil {

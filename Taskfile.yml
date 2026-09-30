@@ -194,7 +194,7 @@ tasks:
       - limactl shell {{.VM}}
 
   wings:vm:deploy:
-    desc: Cross-compile raptor for the VM and copy it to /usr/local/bin
+    desc: Cross-compile raptor for the VM and install it as the current version, like the installer does
     cmds:
       - task: wings:vm:up
       - |
@@ -202,7 +202,13 @@ tasks:
         ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
         CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go build -o bin/raptor-linux-$ARCH ./cmd/raptor
         limactl copy bin/raptor-linux-$ARCH {{.VM}}:/tmp/raptor
-        limactl shell {{.VM}} sudo install -m 0755 /tmp/raptor /usr/local/bin/raptor
+        # The self-update layout (docs/WINGS.md#updates).
+        limactl shell {{.VM}} sudo bash -euc '
+          install -d -m 0755 /usr/local/lib/raptor
+          install -m 0755 /tmp/raptor /usr/local/lib/raptor/raptor-dev
+          ln -sfn raptor-dev /usr/local/lib/raptor/current
+          ln -sfn /usr/local/lib/raptor/current /usr/local/bin/raptor
+        '
         limactl shell {{.VM}} raptor version
 
   wings:vm:install:
@@ -332,6 +338,23 @@ tasks:
         limactl stop {{.VM}}
         limactl start --tty=false {{.VM}}
         limactl shell {{.VM}} sudo /var/lib/raptor-e2e/e2e-host.sh after-reboot
+
+  e2e:update:
+    desc: "Self-update in the Wings VM: an update, rollbacks of a crashing and a hanging version, a restart during a trial"
+    cmds:
+      - task: wings:vm:install
+      - |
+        set -eu
+        ARCH=$(limactl shell {{.VM}} dpkg --print-architecture)
+        scripts/e2e-update-build.sh $ARCH bin/update-e2e
+        tar --no-mac-metadata -C bin -czf bin/update-e2e.tgz update-e2e
+        # Seeds a running server, which updates must leave alone.
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/server-e2e-$ARCH ./internal/wings/server
+        limactl copy bin/server-e2e-$ARCH {{.VM}}:/tmp/server-e2e
+        limactl copy bin/update-e2e.tgz {{.VM}}:/tmp/update-e2e.tgz
+        limactl copy scripts/e2e-update.sh {{.VM}}:/tmp/e2e-update.sh
+        limactl shell {{.VM}} sudo bash -euc 'rm -rf /tmp/update-e2e && tar -C /tmp -xzf /tmp/update-e2e.tgz'
+        limactl shell {{.VM}} sudo bash /tmp/e2e-update.sh /tmp/update-e2e /tmp/server-e2e
 
   wings:vm:delete:
     desc: Delete the Wings VM

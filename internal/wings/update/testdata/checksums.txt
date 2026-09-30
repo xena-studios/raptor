@@ -1,0 +1,2 @@
+de3539db08d3cd28d6a566c7dfe305c2a161ebc41ee172ac779c3c90b63b079c  raptor_linux_amd64
+c140bc6b57ff1609dce530756701afd9bf803f18cdebabc4a5e776da70074d74  raptor_linux_arm64
