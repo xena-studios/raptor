@@ -369,10 +369,10 @@ raptor audit                          signed dangerous actions, from the node's 
 raptor notifications test             a test message to each notification target in config.yml
 raptor import pterodactyl             migrate servers from Pterodactyl Wings
 raptor uninstall [--wipe-data]
-raptor tui
+raptor tui                            servers, stats, history graphs, console; power, backup, and command keys (root)
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` with the Panel), `keys`, `audit`, and `notifications test` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` with the Panel), `keys`, `audit`, `notifications test`, and `tui` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
