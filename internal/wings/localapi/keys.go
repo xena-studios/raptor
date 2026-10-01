@@ -25,7 +25,7 @@ func (s *Service) executor() (*command.Executor, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.commands == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("Wings is still starting"))
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("wings is still starting"))
 	}
 	return s.commands, nil
 }
