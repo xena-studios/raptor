@@ -81,6 +81,8 @@ const (
 	// LocalServiceTestNotificationsProcedure is the fully-qualified name of the LocalService's
 	// TestNotifications RPC.
 	LocalServiceTestNotificationsProcedure = "/raptor.wings.local.v1.LocalService/TestNotifications"
+	// LocalServiceGetMetricsProcedure is the fully-qualified name of the LocalService's GetMetrics RPC.
+	LocalServiceGetMetricsProcedure = "/raptor.wings.local.v1.LocalService/GetMetrics"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
@@ -143,6 +145,8 @@ type LocalServiceClient interface {
 	// TestNotifications sends a test message to every notification target in
 	// config.yml and reports how each went. Root only.
 	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
+	// GetMetrics returns a server's resource history and its latest sample.
+	GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -272,6 +276,13 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("TestNotifications")),
 			connect.WithClientOptions(opts...),
 		),
+		getMetrics: connect.NewClient[v1.GetMetricsRequest, v1.GetMetricsResponse](
+			httpClient,
+			baseURL+LocalServiceGetMetricsProcedure,
+			connect.WithSchema(localServiceMethods.ByName("GetMetrics")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -295,6 +306,7 @@ type localServiceClient struct {
 	confirmKeyReset   *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
 	cancelKeyReset    *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
 	testNotifications *connect.Client[v1.TestNotificationsRequest, v1.TestNotificationsResponse]
+	getMetrics        *connect.Client[v1.GetMetricsRequest, v1.GetMetricsResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -451,6 +463,15 @@ func (c *localServiceClient) TestNotifications(ctx context.Context, req *v1.Test
 	return nil, err
 }
 
+// GetMetrics calls raptor.wings.local.v1.LocalService.GetMetrics.
+func (c *localServiceClient) GetMetrics(ctx context.Context, req *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error) {
+	response, err := c.getMetrics.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
@@ -511,6 +532,8 @@ type LocalServiceHandler interface {
 	// TestNotifications sends a test message to every notification target in
 	// config.yml and reports how each went. Root only.
 	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
+	// GetMetrics returns a server's resource history and its latest sample.
+	GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error)
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -636,6 +659,13 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("TestNotifications")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceGetMetricsHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceGetMetricsProcedure,
+		svc.GetMetrics,
+		connect.WithSchema(localServiceMethods.ByName("GetMetrics")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
@@ -674,6 +704,8 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceCancelKeyResetHandler.ServeHTTP(w, r)
 		case LocalServiceTestNotificationsProcedure:
 			localServiceTestNotificationsHandler.ServeHTTP(w, r)
+		case LocalServiceGetMetricsProcedure:
+			localServiceGetMetricsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -753,4 +785,8 @@ func (UnimplementedLocalServiceHandler) CancelKeyReset(context.Context, *v1.Canc
 
 func (UnimplementedLocalServiceHandler) TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.TestNotifications is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.GetMetrics is not implemented"))
 }

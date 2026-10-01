@@ -2978,6 +2978,250 @@ func (x *NotificationResult) GetError() string {
 	return ""
 }
 
+type GetMetricsRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Server string                 `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	// History since this time (default: the last hour). Older than a day is
+	// in 15-minute points; the last day in minute points.
+	Since         *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=since,proto3" json:"since,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMetricsRequest) Reset() {
+	*x = GetMetricsRequest{}
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMetricsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMetricsRequest) ProtoMessage() {}
+
+func (x *GetMetricsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMetricsRequest.ProtoReflect.Descriptor instead.
+func (*GetMetricsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *GetMetricsRequest) GetServer() string {
+	if x != nil {
+		return x.Server
+	}
+	return ""
+}
+
+func (x *GetMetricsRequest) GetSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Since
+	}
+	return nil
+}
+
+type GetMetricsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The last sample (every 10 seconds); traffic is per second.
+	Latest        *MetricPoint   `protobuf:"bytes,1,opt,name=latest,proto3" json:"latest,omitempty"`
+	Points        []*MetricPoint `protobuf:"bytes,2,rep,name=points,proto3" json:"points,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMetricsResponse) Reset() {
+	*x = GetMetricsResponse{}
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMetricsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMetricsResponse) ProtoMessage() {}
+
+func (x *GetMetricsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMetricsResponse.ProtoReflect.Descriptor instead.
+func (*GetMetricsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *GetMetricsResponse) GetLatest() *MetricPoint {
+	if x != nil {
+		return x.Latest
+	}
+	return nil
+}
+
+func (x *GetMetricsResponse) GetPoints() []*MetricPoint {
+	if x != nil {
+		return x.Points
+	}
+	return nil
+}
+
+// MetricPoint is a server's resources over one bucket.
+type MetricPoint struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	At    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=at,proto3" json:"at,omitempty"`
+	// Seconds the point covers: 60 or 900; 0 for a live sample.
+	Resolution int32 `protobuf:"varint,2,opt,name=resolution,proto3" json:"resolution,omitempty"`
+	// Samples taken while the server ran (0: it was stopped).
+	Samples int32 `protobuf:"varint,3,opt,name=samples,proto3" json:"samples,omitempty"`
+	// Percent of one core.
+	CpuAvg    float64 `protobuf:"fixed64,4,opt,name=cpu_avg,json=cpuAvg,proto3" json:"cpu_avg,omitempty"`
+	CpuMax    float64 `protobuf:"fixed64,5,opt,name=cpu_max,json=cpuMax,proto3" json:"cpu_max,omitempty"`
+	MemoryAvg int64   `protobuf:"varint,6,opt,name=memory_avg,json=memoryAvg,proto3" json:"memory_avg,omitempty"`
+	MemoryMax int64   `protobuf:"varint,7,opt,name=memory_max,json=memoryMax,proto3" json:"memory_max,omitempty"`
+	RxBytes   int64   `protobuf:"varint,8,opt,name=rx_bytes,json=rxBytes,proto3" json:"rx_bytes,omitempty"`
+	TxBytes   int64   `protobuf:"varint,9,opt,name=tx_bytes,json=txBytes,proto3" json:"tx_bytes,omitempty"`
+	DiskBytes int64   `protobuf:"varint,10,opt,name=disk_bytes,json=diskBytes,proto3" json:"disk_bytes,omitempty"`
+	// Unset when the game isn't queried, or didn't answer.
+	PlayersAvg    *float64 `protobuf:"fixed64,11,opt,name=players_avg,json=playersAvg,proto3,oneof" json:"players_avg,omitempty"`
+	PlayersMax    *int32   `protobuf:"varint,12,opt,name=players_max,json=playersMax,proto3,oneof" json:"players_max,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetricPoint) Reset() {
+	*x = MetricPoint{}
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricPoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricPoint) ProtoMessage() {}
+
+func (x *MetricPoint) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_wings_local_v1_local_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricPoint.ProtoReflect.Descriptor instead.
+func (*MetricPoint) Descriptor() ([]byte, []int) {
+	return file_raptor_wings_local_v1_local_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *MetricPoint) GetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.At
+	}
+	return nil
+}
+
+func (x *MetricPoint) GetResolution() int32 {
+	if x != nil {
+		return x.Resolution
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetSamples() int32 {
+	if x != nil {
+		return x.Samples
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetCpuAvg() float64 {
+	if x != nil {
+		return x.CpuAvg
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetCpuMax() float64 {
+	if x != nil {
+		return x.CpuMax
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetMemoryAvg() int64 {
+	if x != nil {
+		return x.MemoryAvg
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetMemoryMax() int64 {
+	if x != nil {
+		return x.MemoryMax
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetRxBytes() int64 {
+	if x != nil {
+		return x.RxBytes
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetTxBytes() int64 {
+	if x != nil {
+		return x.TxBytes
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetDiskBytes() int64 {
+	if x != nil {
+		return x.DiskBytes
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetPlayersAvg() float64 {
+	if x != nil && x.PlayersAvg != nil {
+		return *x.PlayersAvg
+	}
+	return 0
+}
+
+func (x *MetricPoint) GetPlayersMax() int32 {
+	if x != nil && x.PlayersMax != nil {
+		return *x.PlayersMax
+	}
+	return 0
+}
+
 var File_raptor_wings_local_v1_local_proto protoreflect.FileDescriptor
 
 const file_raptor_wings_local_v1_local_proto_rawDesc = "" +
@@ -3191,13 +3435,42 @@ const file_raptor_wings_local_v1_local_proto_rawDesc = "" +
 	"\aresults\x18\x01 \x03(\v2).raptor.wings.local.v1.NotificationResultR\aresults\"B\n" +
 	"\x12NotificationResult\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error*\x8b\x01\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"]\n" +
+	"\x11GetMetricsRequest\x12\x16\n" +
+	"\x06server\x18\x01 \x01(\tR\x06server\x120\n" +
+	"\x05since\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x05since\"\x8c\x01\n" +
+	"\x12GetMetricsResponse\x12:\n" +
+	"\x06latest\x18\x01 \x01(\v2\".raptor.wings.local.v1.MetricPointR\x06latest\x12:\n" +
+	"\x06points\x18\x02 \x03(\v2\".raptor.wings.local.v1.MetricPointR\x06points\"\xa4\x03\n" +
+	"\vMetricPoint\x12*\n" +
+	"\x02at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12\x1e\n" +
+	"\n" +
+	"resolution\x18\x02 \x01(\x05R\n" +
+	"resolution\x12\x18\n" +
+	"\asamples\x18\x03 \x01(\x05R\asamples\x12\x17\n" +
+	"\acpu_avg\x18\x04 \x01(\x01R\x06cpuAvg\x12\x17\n" +
+	"\acpu_max\x18\x05 \x01(\x01R\x06cpuMax\x12\x1d\n" +
+	"\n" +
+	"memory_avg\x18\x06 \x01(\x03R\tmemoryAvg\x12\x1d\n" +
+	"\n" +
+	"memory_max\x18\a \x01(\x03R\tmemoryMax\x12\x19\n" +
+	"\brx_bytes\x18\b \x01(\x03R\arxBytes\x12\x19\n" +
+	"\btx_bytes\x18\t \x01(\x03R\atxBytes\x12\x1d\n" +
+	"\n" +
+	"disk_bytes\x18\n" +
+	" \x01(\x03R\tdiskBytes\x12$\n" +
+	"\vplayers_avg\x18\v \x01(\x01H\x00R\n" +
+	"playersAvg\x88\x01\x01\x12$\n" +
+	"\vplayers_max\x18\f \x01(\x05H\x01R\n" +
+	"playersMax\x88\x01\x01B\x0e\n" +
+	"\f_players_avgB\x0e\n" +
+	"\f_players_max*\x8b\x01\n" +
 	"\vPowerAction\x12\x1c\n" +
 	"\x18POWER_ACTION_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12POWER_ACTION_START\x10\x01\x12\x15\n" +
 	"\x11POWER_ACTION_STOP\x10\x02\x12\x18\n" +
 	"\x14POWER_ACTION_RESTART\x10\x03\x12\x15\n" +
-	"\x11POWER_ACTION_KILL\x10\x042\x83\x0f\n" +
+	"\x11POWER_ACTION_KILL\x10\x042\xeb\x0f\n" +
 	"\fLocalService\x12c\n" +
 	"\tGetStatus\x12'.raptor.wings.local.v1.GetStatusRequest\x1a(.raptor.wings.local.v1.GetStatusResponse\"\x03\x90\x02\x01\x12u\n" +
 	"\x0fShutdownServers\x12-.raptor.wings.local.v1.ShutdownServersRequest\x1a..raptor.wings.local.v1.ShutdownServersResponse\"\x03\x90\x02\x02\x12i\n" +
@@ -3216,7 +3489,9 @@ const file_raptor_wings_local_v1_local_proto_rawDesc = "" +
 	"\vGetKeyReset\x12).raptor.wings.local.v1.GetKeyResetRequest\x1a*.raptor.wings.local.v1.GetKeyResetResponse\"\x00\x12r\n" +
 	"\x0fConfirmKeyReset\x12-.raptor.wings.local.v1.ConfirmKeyResetRequest\x1a..raptor.wings.local.v1.ConfirmKeyResetResponse\"\x00\x12o\n" +
 	"\x0eCancelKeyReset\x12,.raptor.wings.local.v1.CancelKeyResetRequest\x1a-.raptor.wings.local.v1.CancelKeyResetResponse\"\x00\x12x\n" +
-	"\x11TestNotifications\x12/.raptor.wings.local.v1.TestNotificationsRequest\x1a0.raptor.wings.local.v1.TestNotificationsResponse\"\x00B\xef\x01\n" +
+	"\x11TestNotifications\x12/.raptor.wings.local.v1.TestNotificationsRequest\x1a0.raptor.wings.local.v1.TestNotificationsResponse\"\x00\x12f\n" +
+	"\n" +
+	"GetMetrics\x12(.raptor.wings.local.v1.GetMetricsRequest\x1a).raptor.wings.local.v1.GetMetricsResponse\"\x03\x90\x02\x01B\xef\x01\n" +
 	"\x19com.raptor.wings.local.v1B\n" +
 	"LocalProtoP\x01ZOgithub.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1;localv1\xa2\x02\x03RWL\xaa\x02\x15Raptor.Wings.Local.V1\xca\x02\x15Raptor\\Wings\\Local\\V1\xe2\x02!Raptor\\Wings\\Local\\V1\\GPBMetadata\xea\x02\x18Raptor::Wings::Local::V1b\x06proto3"
 
@@ -3233,7 +3508,7 @@ func file_raptor_wings_local_v1_local_proto_rawDescGZIP() []byte {
 }
 
 var file_raptor_wings_local_v1_local_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_raptor_wings_local_v1_local_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
+var file_raptor_wings_local_v1_local_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
 var file_raptor_wings_local_v1_local_proto_goTypes = []any{
 	(PowerAction)(0),                  // 0: raptor.wings.local.v1.PowerAction
 	(*ListServersRequest)(nil),        // 1: raptor.wings.local.v1.ListServersRequest
@@ -3284,19 +3559,22 @@ var file_raptor_wings_local_v1_local_proto_goTypes = []any{
 	(*TestNotificationsRequest)(nil),  // 46: raptor.wings.local.v1.TestNotificationsRequest
 	(*TestNotificationsResponse)(nil), // 47: raptor.wings.local.v1.TestNotificationsResponse
 	(*NotificationResult)(nil),        // 48: raptor.wings.local.v1.NotificationResult
-	(*timestamppb.Timestamp)(nil),     // 49: google.protobuf.Timestamp
+	(*GetMetricsRequest)(nil),         // 49: raptor.wings.local.v1.GetMetricsRequest
+	(*GetMetricsResponse)(nil),        // 50: raptor.wings.local.v1.GetMetricsResponse
+	(*MetricPoint)(nil),               // 51: raptor.wings.local.v1.MetricPoint
+	(*timestamppb.Timestamp)(nil),     // 52: google.protobuf.Timestamp
 }
 var file_raptor_wings_local_v1_local_proto_depIdxs = []int32{
 	3,  // 0: raptor.wings.local.v1.ListServersResponse.servers:type_name -> raptor.wings.local.v1.ServerInfo
-	49, // 1: raptor.wings.local.v1.ServerInfo.running_since:type_name -> google.protobuf.Timestamp
+	52, // 1: raptor.wings.local.v1.ServerInfo.running_since:type_name -> google.protobuf.Timestamp
 	0,  // 2: raptor.wings.local.v1.PowerRequest.action:type_name -> raptor.wings.local.v1.PowerAction
-	49, // 3: raptor.wings.local.v1.TailLogsResponse.time:type_name -> google.protobuf.Timestamp
+	52, // 3: raptor.wings.local.v1.TailLogsResponse.time:type_name -> google.protobuf.Timestamp
 	14, // 4: raptor.wings.local.v1.ListBackupsResponse.backups:type_name -> raptor.wings.local.v1.BackupInfo
-	49, // 5: raptor.wings.local.v1.BackupInfo.created_at:type_name -> google.protobuf.Timestamp
-	49, // 6: raptor.wings.local.v1.BackupInfo.finished_at:type_name -> google.protobuf.Timestamp
-	49, // 7: raptor.wings.local.v1.BackupInfo.expires_at:type_name -> google.protobuf.Timestamp
+	52, // 5: raptor.wings.local.v1.BackupInfo.created_at:type_name -> google.protobuf.Timestamp
+	52, // 6: raptor.wings.local.v1.BackupInfo.finished_at:type_name -> google.protobuf.Timestamp
+	52, // 7: raptor.wings.local.v1.BackupInfo.expires_at:type_name -> google.protobuf.Timestamp
 	14, // 8: raptor.wings.local.v1.CreateBackupResponse.backup:type_name -> raptor.wings.local.v1.BackupInfo
-	49, // 9: raptor.wings.local.v1.GetStatusResponse.started_at:type_name -> google.protobuf.Timestamp
+	52, // 9: raptor.wings.local.v1.GetStatusResponse.started_at:type_name -> google.protobuf.Timestamp
 	29, // 10: raptor.wings.local.v1.GetStatusResponse.docker:type_name -> raptor.wings.local.v1.DockerStatus
 	27, // 11: raptor.wings.local.v1.GetStatusResponse.servers:type_name -> raptor.wings.local.v1.ServerCounts
 	28, // 12: raptor.wings.local.v1.GetStatusResponse.storage:type_name -> raptor.wings.local.v1.StorageStatus
@@ -3304,58 +3582,64 @@ var file_raptor_wings_local_v1_local_proto_depIdxs = []int32{
 	24, // 14: raptor.wings.local.v1.GetStatusResponse.host_disk:type_name -> raptor.wings.local.v1.HostDiskStatus
 	23, // 15: raptor.wings.local.v1.GetStatusResponse.sftp:type_name -> raptor.wings.local.v1.SFTPStatus
 	25, // 16: raptor.wings.local.v1.HostDiskStatus.disks:type_name -> raptor.wings.local.v1.DiskSpace
-	49, // 17: raptor.wings.local.v1.UpdateStatus.started_at:type_name -> google.protobuf.Timestamp
-	49, // 18: raptor.wings.local.v1.UpdateStatus.finished_at:type_name -> google.protobuf.Timestamp
+	52, // 17: raptor.wings.local.v1.UpdateStatus.started_at:type_name -> google.protobuf.Timestamp
+	52, // 18: raptor.wings.local.v1.UpdateStatus.finished_at:type_name -> google.protobuf.Timestamp
 	34, // 19: raptor.wings.local.v1.ListKeysResponse.keys:type_name -> raptor.wings.local.v1.TrustedKey
-	49, // 20: raptor.wings.local.v1.TrustedKey.expires_at:type_name -> google.protobuf.Timestamp
-	49, // 21: raptor.wings.local.v1.TrustedKey.added_at:type_name -> google.protobuf.Timestamp
-	49, // 22: raptor.wings.local.v1.ListAuditRequest.since:type_name -> google.protobuf.Timestamp
+	52, // 20: raptor.wings.local.v1.TrustedKey.expires_at:type_name -> google.protobuf.Timestamp
+	52, // 21: raptor.wings.local.v1.TrustedKey.added_at:type_name -> google.protobuf.Timestamp
+	52, // 22: raptor.wings.local.v1.ListAuditRequest.since:type_name -> google.protobuf.Timestamp
 	37, // 23: raptor.wings.local.v1.ListAuditResponse.entries:type_name -> raptor.wings.local.v1.AuditEntry
-	49, // 24: raptor.wings.local.v1.AuditEntry.at:type_name -> google.protobuf.Timestamp
-	49, // 25: raptor.wings.local.v1.StartKeyResetResponse.expires_at:type_name -> google.protobuf.Timestamp
-	49, // 26: raptor.wings.local.v1.GetKeyResetResponse.expires_at:type_name -> google.protobuf.Timestamp
+	52, // 24: raptor.wings.local.v1.AuditEntry.at:type_name -> google.protobuf.Timestamp
+	52, // 25: raptor.wings.local.v1.StartKeyResetResponse.expires_at:type_name -> google.protobuf.Timestamp
+	52, // 26: raptor.wings.local.v1.GetKeyResetResponse.expires_at:type_name -> google.protobuf.Timestamp
 	48, // 27: raptor.wings.local.v1.TestNotificationsResponse.results:type_name -> raptor.wings.local.v1.NotificationResult
-	21, // 28: raptor.wings.local.v1.LocalService.GetStatus:input_type -> raptor.wings.local.v1.GetStatusRequest
-	19, // 29: raptor.wings.local.v1.LocalService.ShutdownServers:input_type -> raptor.wings.local.v1.ShutdownServersRequest
-	1,  // 30: raptor.wings.local.v1.LocalService.ListServers:input_type -> raptor.wings.local.v1.ListServersRequest
-	4,  // 31: raptor.wings.local.v1.LocalService.Power:input_type -> raptor.wings.local.v1.PowerRequest
-	6,  // 32: raptor.wings.local.v1.LocalService.StreamConsole:input_type -> raptor.wings.local.v1.StreamConsoleRequest
-	8,  // 33: raptor.wings.local.v1.LocalService.SendCommand:input_type -> raptor.wings.local.v1.SendCommandRequest
-	10, // 34: raptor.wings.local.v1.LocalService.TailLogs:input_type -> raptor.wings.local.v1.TailLogsRequest
-	12, // 35: raptor.wings.local.v1.LocalService.ListBackups:input_type -> raptor.wings.local.v1.ListBackupsRequest
-	15, // 36: raptor.wings.local.v1.LocalService.CreateBackup:input_type -> raptor.wings.local.v1.CreateBackupRequest
-	17, // 37: raptor.wings.local.v1.LocalService.RestoreBackup:input_type -> raptor.wings.local.v1.RestoreBackupRequest
-	30, // 38: raptor.wings.local.v1.LocalService.Update:input_type -> raptor.wings.local.v1.UpdateRequest
-	32, // 39: raptor.wings.local.v1.LocalService.ListKeys:input_type -> raptor.wings.local.v1.ListKeysRequest
-	35, // 40: raptor.wings.local.v1.LocalService.ListAudit:input_type -> raptor.wings.local.v1.ListAuditRequest
-	38, // 41: raptor.wings.local.v1.LocalService.StartKeyReset:input_type -> raptor.wings.local.v1.StartKeyResetRequest
-	40, // 42: raptor.wings.local.v1.LocalService.GetKeyReset:input_type -> raptor.wings.local.v1.GetKeyResetRequest
-	42, // 43: raptor.wings.local.v1.LocalService.ConfirmKeyReset:input_type -> raptor.wings.local.v1.ConfirmKeyResetRequest
-	44, // 44: raptor.wings.local.v1.LocalService.CancelKeyReset:input_type -> raptor.wings.local.v1.CancelKeyResetRequest
-	46, // 45: raptor.wings.local.v1.LocalService.TestNotifications:input_type -> raptor.wings.local.v1.TestNotificationsRequest
-	22, // 46: raptor.wings.local.v1.LocalService.GetStatus:output_type -> raptor.wings.local.v1.GetStatusResponse
-	20, // 47: raptor.wings.local.v1.LocalService.ShutdownServers:output_type -> raptor.wings.local.v1.ShutdownServersResponse
-	2,  // 48: raptor.wings.local.v1.LocalService.ListServers:output_type -> raptor.wings.local.v1.ListServersResponse
-	5,  // 49: raptor.wings.local.v1.LocalService.Power:output_type -> raptor.wings.local.v1.PowerResponse
-	7,  // 50: raptor.wings.local.v1.LocalService.StreamConsole:output_type -> raptor.wings.local.v1.StreamConsoleResponse
-	9,  // 51: raptor.wings.local.v1.LocalService.SendCommand:output_type -> raptor.wings.local.v1.SendCommandResponse
-	11, // 52: raptor.wings.local.v1.LocalService.TailLogs:output_type -> raptor.wings.local.v1.TailLogsResponse
-	13, // 53: raptor.wings.local.v1.LocalService.ListBackups:output_type -> raptor.wings.local.v1.ListBackupsResponse
-	16, // 54: raptor.wings.local.v1.LocalService.CreateBackup:output_type -> raptor.wings.local.v1.CreateBackupResponse
-	18, // 55: raptor.wings.local.v1.LocalService.RestoreBackup:output_type -> raptor.wings.local.v1.RestoreBackupResponse
-	31, // 56: raptor.wings.local.v1.LocalService.Update:output_type -> raptor.wings.local.v1.UpdateResponse
-	33, // 57: raptor.wings.local.v1.LocalService.ListKeys:output_type -> raptor.wings.local.v1.ListKeysResponse
-	36, // 58: raptor.wings.local.v1.LocalService.ListAudit:output_type -> raptor.wings.local.v1.ListAuditResponse
-	39, // 59: raptor.wings.local.v1.LocalService.StartKeyReset:output_type -> raptor.wings.local.v1.StartKeyResetResponse
-	41, // 60: raptor.wings.local.v1.LocalService.GetKeyReset:output_type -> raptor.wings.local.v1.GetKeyResetResponse
-	43, // 61: raptor.wings.local.v1.LocalService.ConfirmKeyReset:output_type -> raptor.wings.local.v1.ConfirmKeyResetResponse
-	45, // 62: raptor.wings.local.v1.LocalService.CancelKeyReset:output_type -> raptor.wings.local.v1.CancelKeyResetResponse
-	47, // 63: raptor.wings.local.v1.LocalService.TestNotifications:output_type -> raptor.wings.local.v1.TestNotificationsResponse
-	46, // [46:64] is the sub-list for method output_type
-	28, // [28:46] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	52, // 28: raptor.wings.local.v1.GetMetricsRequest.since:type_name -> google.protobuf.Timestamp
+	51, // 29: raptor.wings.local.v1.GetMetricsResponse.latest:type_name -> raptor.wings.local.v1.MetricPoint
+	51, // 30: raptor.wings.local.v1.GetMetricsResponse.points:type_name -> raptor.wings.local.v1.MetricPoint
+	52, // 31: raptor.wings.local.v1.MetricPoint.at:type_name -> google.protobuf.Timestamp
+	21, // 32: raptor.wings.local.v1.LocalService.GetStatus:input_type -> raptor.wings.local.v1.GetStatusRequest
+	19, // 33: raptor.wings.local.v1.LocalService.ShutdownServers:input_type -> raptor.wings.local.v1.ShutdownServersRequest
+	1,  // 34: raptor.wings.local.v1.LocalService.ListServers:input_type -> raptor.wings.local.v1.ListServersRequest
+	4,  // 35: raptor.wings.local.v1.LocalService.Power:input_type -> raptor.wings.local.v1.PowerRequest
+	6,  // 36: raptor.wings.local.v1.LocalService.StreamConsole:input_type -> raptor.wings.local.v1.StreamConsoleRequest
+	8,  // 37: raptor.wings.local.v1.LocalService.SendCommand:input_type -> raptor.wings.local.v1.SendCommandRequest
+	10, // 38: raptor.wings.local.v1.LocalService.TailLogs:input_type -> raptor.wings.local.v1.TailLogsRequest
+	12, // 39: raptor.wings.local.v1.LocalService.ListBackups:input_type -> raptor.wings.local.v1.ListBackupsRequest
+	15, // 40: raptor.wings.local.v1.LocalService.CreateBackup:input_type -> raptor.wings.local.v1.CreateBackupRequest
+	17, // 41: raptor.wings.local.v1.LocalService.RestoreBackup:input_type -> raptor.wings.local.v1.RestoreBackupRequest
+	30, // 42: raptor.wings.local.v1.LocalService.Update:input_type -> raptor.wings.local.v1.UpdateRequest
+	32, // 43: raptor.wings.local.v1.LocalService.ListKeys:input_type -> raptor.wings.local.v1.ListKeysRequest
+	35, // 44: raptor.wings.local.v1.LocalService.ListAudit:input_type -> raptor.wings.local.v1.ListAuditRequest
+	38, // 45: raptor.wings.local.v1.LocalService.StartKeyReset:input_type -> raptor.wings.local.v1.StartKeyResetRequest
+	40, // 46: raptor.wings.local.v1.LocalService.GetKeyReset:input_type -> raptor.wings.local.v1.GetKeyResetRequest
+	42, // 47: raptor.wings.local.v1.LocalService.ConfirmKeyReset:input_type -> raptor.wings.local.v1.ConfirmKeyResetRequest
+	44, // 48: raptor.wings.local.v1.LocalService.CancelKeyReset:input_type -> raptor.wings.local.v1.CancelKeyResetRequest
+	46, // 49: raptor.wings.local.v1.LocalService.TestNotifications:input_type -> raptor.wings.local.v1.TestNotificationsRequest
+	49, // 50: raptor.wings.local.v1.LocalService.GetMetrics:input_type -> raptor.wings.local.v1.GetMetricsRequest
+	22, // 51: raptor.wings.local.v1.LocalService.GetStatus:output_type -> raptor.wings.local.v1.GetStatusResponse
+	20, // 52: raptor.wings.local.v1.LocalService.ShutdownServers:output_type -> raptor.wings.local.v1.ShutdownServersResponse
+	2,  // 53: raptor.wings.local.v1.LocalService.ListServers:output_type -> raptor.wings.local.v1.ListServersResponse
+	5,  // 54: raptor.wings.local.v1.LocalService.Power:output_type -> raptor.wings.local.v1.PowerResponse
+	7,  // 55: raptor.wings.local.v1.LocalService.StreamConsole:output_type -> raptor.wings.local.v1.StreamConsoleResponse
+	9,  // 56: raptor.wings.local.v1.LocalService.SendCommand:output_type -> raptor.wings.local.v1.SendCommandResponse
+	11, // 57: raptor.wings.local.v1.LocalService.TailLogs:output_type -> raptor.wings.local.v1.TailLogsResponse
+	13, // 58: raptor.wings.local.v1.LocalService.ListBackups:output_type -> raptor.wings.local.v1.ListBackupsResponse
+	16, // 59: raptor.wings.local.v1.LocalService.CreateBackup:output_type -> raptor.wings.local.v1.CreateBackupResponse
+	18, // 60: raptor.wings.local.v1.LocalService.RestoreBackup:output_type -> raptor.wings.local.v1.RestoreBackupResponse
+	31, // 61: raptor.wings.local.v1.LocalService.Update:output_type -> raptor.wings.local.v1.UpdateResponse
+	33, // 62: raptor.wings.local.v1.LocalService.ListKeys:output_type -> raptor.wings.local.v1.ListKeysResponse
+	36, // 63: raptor.wings.local.v1.LocalService.ListAudit:output_type -> raptor.wings.local.v1.ListAuditResponse
+	39, // 64: raptor.wings.local.v1.LocalService.StartKeyReset:output_type -> raptor.wings.local.v1.StartKeyResetResponse
+	41, // 65: raptor.wings.local.v1.LocalService.GetKeyReset:output_type -> raptor.wings.local.v1.GetKeyResetResponse
+	43, // 66: raptor.wings.local.v1.LocalService.ConfirmKeyReset:output_type -> raptor.wings.local.v1.ConfirmKeyResetResponse
+	45, // 67: raptor.wings.local.v1.LocalService.CancelKeyReset:output_type -> raptor.wings.local.v1.CancelKeyResetResponse
+	47, // 68: raptor.wings.local.v1.LocalService.TestNotifications:output_type -> raptor.wings.local.v1.TestNotificationsResponse
+	50, // 69: raptor.wings.local.v1.LocalService.GetMetrics:output_type -> raptor.wings.local.v1.GetMetricsResponse
+	51, // [51:70] is the sub-list for method output_type
+	32, // [32:51] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_raptor_wings_local_v1_local_proto_init() }
@@ -3363,13 +3647,14 @@ func file_raptor_wings_local_v1_local_proto_init() {
 	if File_raptor_wings_local_v1_local_proto != nil {
 		return
 	}
+	file_raptor_wings_local_v1_local_proto_msgTypes[50].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_wings_local_v1_local_proto_rawDesc), len(file_raptor_wings_local_v1_local_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   48,
+			NumMessages:   51,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

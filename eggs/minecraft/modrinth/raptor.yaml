@@ -7,6 +7,8 @@ source:
 license: MIT
 certified: false
 arch: [amd64, arm64]
+players:
+  query: minecraft
 test:
   tier: fast
   # The egg defaults to Java 8; the pack is for Minecraft 1.21.1 (Java 21).

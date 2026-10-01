@@ -116,7 +116,12 @@ type Extension struct {
 		Protocol string `yaml:"protocol"`
 	} `yaml:"health"`
 	Players struct {
+		// Query is how to ask the game for its player count: "minecraft"
+		// (Java edition status) or "source" (A2S_INFO, most Steam games).
 		Query string `yaml:"query"`
+		// Port is where it answers: empty = the primary port, "+1" an
+		// offset from it, or a variable's name (QUERY_PORT).
+		Port string `yaml:"port"`
 	} `yaml:"players"`
 	Certified bool `yaml:"certified"`
 }
@@ -274,6 +279,11 @@ func Parse(data []byte) (*Egg, error) {
 			if n := normalizeArch(a); n != "amd64" && n != "arm64" {
 				return nil, fmt.Errorf("egg: x-raptor.arch %q: want amd64 or arm64", a)
 			}
+		}
+		switch q := e.Raptor.Players.Query; q {
+		case "", "minecraft", "source":
+		default:
+			return nil, fmt.Errorf("egg: x-raptor.players.query %q: want minecraft or source", q)
 		}
 	}
 

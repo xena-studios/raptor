@@ -320,7 +320,10 @@ notifications:
 
 ## Local metrics
 
-~7 days of CPU/RAM/disk/network/player history per server in SQLite, downsampled over time. Streamed live to the Panel only while someone is watching.
+`internal/wings/metrics`: every server is sampled every 10 seconds: CPU (percent of one core), memory (without reclaimable page cache), network traffic, disk use, and players. History is kept in SQLite (`metrics`): one row per minute (average and peak CPU and memory, traffic in the minute, disk at its end, average and peak players) for a day, rolled up into 15-minute rows kept for a week. A stopped server still gets rows (0 samples, its disk). The minute in progress is written when Wings stops, and continued after it starts.
+
+- **Players** come from the game itself, when its egg has `x-raptor.players` ([EGGS.md](EGGS.md#raptor-extensions)): the Minecraft Java status ping or Source's A2S_INFO, every 30 seconds, on the primary port or the one the egg names, with a 2-second timeout. A game that doesn't answer has no count rather than a stale one. Catalog eggs declare it in their `raptor.yaml`; the conformance suite checks it against the real game.
+- `GetMetrics` on the local socket returns a server's history (15-minute points older than a day, minute points after) and its latest sample (traffic per second). Streaming to the Panel while someone is watching comes with the node connection (Phase 3).
 
 ## Files and SFTP
 
@@ -381,7 +384,7 @@ Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, `Update`, `ListKeys`, `ListAudit`, the key reset (`StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset`), and `TestNotifications`. `doctor` runs in the CLI itself rather than through the API, so it works while Wings is down. The full planned set:
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, `Update`, `ListKeys`, `ListAudit`, the key reset (`StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset`), `TestNotifications`, and `GetMetrics`. `doctor` runs in the CLI itself rather than through the API, so it works while Wings is down. The full planned set:
 
 | Method | Purpose |
 |---|---|
@@ -399,6 +402,7 @@ Methods are added to the proto as the features behind them are built, so the API
 | `Update` | Self-update: check (anyone with socket access) or install (root); `GetStatus` reports the outcome |
 | `ListKeys`, `ListAudit` | Trusted passkeys and delegations; signed actions and key resets (for the `raptor` group) |
 | `TestNotifications` | A test message to every notification target (root only) |
+| `GetMetrics` | A server's resource history and latest sample (for the `raptor` group) |
 | `StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset` | Re-pairing the owner's passkey from the box (root only) |
 
 - **Access:** Unix socket permissions: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens. Members of the `raptor` group can **look** (status, `ps`, console output, logs); anything that changes a server (power actions, console commands, shutting servers down) needs **root**, checked by Wings from the caller's Unix user.

@@ -3,6 +3,9 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/containers"
@@ -115,6 +118,77 @@ func (m *Manager) Usage(ctx context.Context, id string) (Usage, error) {
 		u.CPUPercent = float64(b.CPUNanos-a.CPUNanos) / float64(dt.Nanoseconds()) * 100
 	}
 	return u, nil
+}
+
+// Sample is a server's raw counters at one moment, for metrics.
+type Sample struct {
+	At      time.Time
+	State   State
+	Running bool // the container is up; the counters below are set
+	containers.Stats
+	DiskBytes int64
+	// QueryAddr is where to ask the game for its players ("" = the egg
+	// doesn't say how), and Query the protocol.
+	Query, QueryAddr string
+}
+
+// Sample reads a server's counters without waiting (unlike Usage, which
+// measures CPU over an interval): rates come from two samples.
+func (m *Manager) Sample(ctx context.Context, id string) (Sample, error) {
+	i, err := m.instance(id)
+	if err != nil {
+		return Sample{}, err
+	}
+	i.mu.Lock()
+	s := Sample{At: time.Now(), State: i.state, DiskBytes: i.lastScan.Bytes}
+	cid := i.containerID
+	i.mu.Unlock()
+	if !m.o.Storage.Soft {
+		if d, err := m.DiskUsage(ctx, id); err == nil {
+			s.DiskBytes = d.Bytes
+		}
+	}
+	if cid == "" || (s.State != Running && s.State != Starting && s.State != Stopping) {
+		return s, nil
+	}
+	st, err := m.o.Runtime.Stats(ctx, cid)
+	if err != nil {
+		return s, nil //nolint:nilerr // stopped meanwhile, or Docker is restarting
+	}
+	s.Stats, s.Running = st, true
+	if srv, err := m.Get(ctx, id); err == nil {
+		s.Query, s.QueryAddr = queryAddr(srv)
+	}
+	return s, nil
+}
+
+// queryAddr is where the game answers player queries: the primary
+// allocation's port, moved by the egg's x-raptor.players.port ("+1", or a
+// variable such as QUERY_PORT).
+func queryAddr(srv *Server) (string, string) {
+	p := srv.Egg().Raptor.Players
+	if p.Query == "" {
+		return "", ""
+	}
+	a := srv.Primary()
+	port := a.Port
+	switch v := strings.TrimSpace(p.Port); {
+	case v == "":
+	case strings.HasPrefix(v, "+") || strings.HasPrefix(v, "-"):
+		if n, err := strconv.Atoi(v); err == nil {
+			port += n
+		}
+	default:
+		name := strings.Trim(v, "{} ")
+		if n, err := strconv.Atoi(srv.Variables[name]); err == nil {
+			port = n
+		}
+	}
+	ip := a.IP
+	if ip == "" || ip == "0.0.0.0" || ip == "::" {
+		ip = "127.0.0.1"
+	}
+	return p.Query, net.JoinHostPort(ip, strconv.Itoa(port))
 }
 
 // Logs streams a server's output from Docker's log store: the last tail

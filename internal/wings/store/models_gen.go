@@ -126,6 +126,22 @@ type Kv struct {
 	UpdatedAt int64
 }
 
+type Metric struct {
+	ServerID   string
+	Resolution int64
+	At         int64
+	Samples    int64
+	CpuAvg     float64
+	CpuMax     float64
+	MemoryAvg  int64
+	MemoryMax  int64
+	RxBytes    int64
+	TxBytes    int64
+	DiskBytes  int64
+	PlayersAvg sql.NullFloat64
+	PlayersMax sql.NullInt64
+}
+
 type Schedule struct {
 	ID             string
 	ServerID       string

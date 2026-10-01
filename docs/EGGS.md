@@ -209,7 +209,7 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
 }
 ```
 
-`x-raptor` is validated when the egg is parsed: `install.timeout` must be a positive duration (`90m`, `3h`), and `arch` entries must be `amd64` or `arm64` (`x86_64` and `aarch64` are accepted as aliases). An invalid block rejects the egg rather than being half-applied.
+`x-raptor` is validated when the egg is parsed: `install.timeout` must be a positive duration (`90m`, `3h`), `arch` entries must be `amd64` or `arm64` (`x86_64` and `aarch64` are accepted as aliases), and `players.query` must be `minecraft` (the Java edition's status ping) or `source` (Valve's A2S_INFO, which most Steam games answer). `players.port` says where the game answers queries when it isn't the primary port: an offset (`"+1"`) or a variable's name (`QUERY_PORT`). An invalid block rejects the egg rather than being half-applied.
 
 ## Egg sources
 
@@ -230,6 +230,8 @@ source:
 license: MIT
 certified: true
 arch: [amd64, arm64]
+players:            # optional: how to ask the game for its player count
+  query: minecraft  # added to the egg's x-raptor when the Panel creates a server from the catalog
 test:
   tier: fast                # fast | slow | manual (manual needs a reason)
   image: ""                 # the user's image choice, if not the egg's default

@@ -7,6 +7,8 @@ source:
 license: MIT
 certified: false
 arch: [amd64, arm64]
+players:
+  query: minecraft
 test:
   tier: fast
   # The egg defaults to Java 8; current Minecraft needs Java 25.
