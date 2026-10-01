@@ -350,7 +350,7 @@ raptor uninstall [--wipe-data]
 raptor tui
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` with the Panel), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` with the Panel), `keys` and `audit` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
@@ -362,7 +362,7 @@ Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, and `Update`. The full planned set:
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, `Update`, `ListKeys`, `ListAudit`, and the key reset (`StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset`). `doctor` runs in the CLI itself rather than through the API, so it works while Wings is down. The full planned set:
 
 | Method | Purpose |
 |---|---|
@@ -378,6 +378,8 @@ Methods are added to the proto as the features behind them are built, so the API
 | `GetSupportStatus`, `RevokeSupport` | Support access |
 | `Link`, `Unlink`, `Relink` | Panel linking |
 | `Update` | Self-update: check (anyone with socket access) or install (root); `GetStatus` reports the outcome |
+| `ListKeys`, `ListAudit` | Trusted passkeys and delegations; signed actions and key resets (for the `raptor` group) |
+| `StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset` | Re-pairing the owner's passkey from the box (root only) |
 
 - **Access:** Unix socket permissions: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens. Members of the `raptor` group can **look** (status, `ps`, console output, logs); anything that changes a server (power actions, console commands, shutting servers down) needs **root**, checked by Wings from the caller's Unix user.
 - **Attribution:** Wings reads the caller's Unix user from the socket (`SO_PEERCRED`). Every mutating call is recorded as an event with actor `local:<username>` (power actions as `server.power`, commands as `server.console.command`), so it appears in the Panel's audit log. Power actions from the Panel are recorded the same way with the Panel user.

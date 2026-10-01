@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/wings/local/v1/local.proto.
  */
 export const file_raptor_wings_local_v1_local: GenFile = /*@__PURE__*/
-  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIkChJMaXN0QmFja3Vwc1JlcXVlc3QSDgoGc2VydmVyGAEgASgJIkkKE0xpc3RCYWNrdXBzUmVzcG9uc2USMgoHYmFja3VwcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5CYWNrdXBJbmZvIpYDCgpCYWNrdXBJbmZvEgoKAmlkGAEgASgJEhEKCXNlcnZlcl9pZBgCIAEoCRITCgtzZXJ2ZXJfbmFtZRgDIAEoCRIWCg5kZXN0aW5hdGlvbl9pZBgEIAEoCRIMCgRraW5kGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIOCgZsb2NrZWQYByABKAgSEgoKc2l6ZV9ieXRlcxgIIAEoAxINCgVmaWxlcxgJIAEoAxIWCg51cGxvYWRlZF9ieXRlcxgKIAEoAxIPCgd3YXJuaW5nGAsgASgJEg0KBWVycm9yGAwgASgJEhIKCmNyZWF0ZWRfYnkYDSABKAkSLgoKY3JlYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmpvYl9pZBgRIAEoCSJDChNDcmVhdGVCYWNrdXBSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIOCgZsb2NrZWQYAiABKAgSDAoEd2FpdBgDIAEoCCJJChRDcmVhdGVCYWNrdXBSZXNwb25zZRIxCgZiYWNrdXAYASABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQmFja3VwSW5mbyJEChRSZXN0b3JlQmFja3VwUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDgoGYmFja3VwGAIgASgJEgwKBHdhaXQYAyABKAgiQQoVUmVzdG9yZUJhY2t1cFJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIYChBzYWZldHlfYmFja3VwX2lkGAIgASgJIhgKFlNodXRkb3duU2VydmVyc1JlcXVlc3QiOgoXU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2USDwoHc3RvcHBlZBgBIAEoBRIOCgZlcnJvcnMYAiADKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCLaAwoRR2V0U3RhdHVzUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRIOCgZjb21taXQYAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglwYW5lbF91cmwYBCABKAkSLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMwoGZG9ja2VyGAYgASgLMiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLkRvY2tlclN0YXR1cxIOCgZjYWxsZXIYByABKAkSNAoHc2VydmVycxgIIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZXJ2ZXJDb3VudHMSNQoHc3RvcmFnZRgJIAEoCzIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdG9yYWdlU3RhdHVzEjMKBnVwZGF0ZRgKIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVTdGF0dXMSOAoJaG9zdF9kaXNrGAsgASgLMiUucmFwdG9yLndpbmdzLmxvY2FsLnYxLkhvc3REaXNrU3RhdHVzEi8KBHNmdHAYDCABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU0ZUUFN0YXR1cyJJCgpTRlRQU3RhdHVzEg8KB2VuYWJsZWQYASABKAgSDAoEcG9ydBgCIAEoBRIcChRob3N0X2tleV9maW5nZXJwcmludBgDIAEoCSJgCg5Ib3N0RGlza1N0YXR1cxILCgNsb3cYASABKAgSEAoIbWluX2ZyZWUYAiABKAMSLwoFZGlza3MYAyADKAsyIC5yYXB0b3Iud2luZ3MubG9jYWwudjEuRGlza1NwYWNlIjYKCURpc2tTcGFjZRIMCgRwYXRoGAEgASgJEg0KBXRvdGFsGAIgASgDEgwKBGZyZWUYAyABKAMiqAEKDFVwZGF0ZVN0YXR1cxIOCgZzdGF0dXMYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCRINCgVlcnJvchgEIAEoCRIuCgpzdGFydGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiKQoMU2VydmVyQ291bnRzEg0KBXRvdGFsGAEgASgFEgoKAnVwGAIgASgFIksKDVN0b3JhZ2VTdGF0dXMSDAoEcGF0aBgBIAEoCRIOCgZxdW90YXMYAiABKAgSDQoFcmVhZHkYAyABKAgSDQoFZXJyb3IYBCABKAkiQQoMRG9ja2VyU3RhdHVzEhEKCXJlYWNoYWJsZRgBIAEoCBIPCgd2ZXJzaW9uGAIgASgJEg0KBWVycm9yGAMgASgJIi8KDVVwZGF0ZVJlcXVlc3QSDQoFY2hlY2sYASABKAgSDwoHdmVyc2lvbhgCIAEoCSJmCg5VcGRhdGVSZXNwb25zZRIPCgdjdXJyZW50GAEgASgJEg4KBnRhcmdldBgCIAEoCRIPCgdjaGFubmVsGAMgASgJEhEKCWF2YWlsYWJsZRgEIAEoCBIPCgdzdGFydGVkGAUgASgIKosBCgtQb3dlckFjdGlvbhIcChhQT1dFUl9BQ1RJT05fVU5TUEVDSUZJRUQQABIWChJQT1dFUl9BQ1RJT05fU1RBUlQQARIVChFQT1dFUl9BQ1RJT05fU1RPUBACEhgKFFBPV0VSX0FDVElPTl9SRVNUQVJUEAMSFQoRUE9XRVJfQUNUSU9OX0tJTEwQBDKHCQoMTG9jYWxTZXJ2aWNlEmMKCUdldFN0YXR1cxInLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXF1ZXN0GigucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgOQAgESdQoPU2h1dGRvd25TZXJ2ZXJzEi0ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNodXRkb3duU2VydmVyc1JlcXVlc3QaLi5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2UiA5ACAhJpCgtMaXN0U2VydmVycxIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0U2VydmVyc1JlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdFNlcnZlcnNSZXNwb25zZSIDkAIBElQKBVBvd2VyEiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLlBvd2VyUmVxdWVzdBokLnJhcHRvci53aW5ncy5sb2NhbC52MS5Qb3dlclJlc3BvbnNlIgAScQoNU3RyZWFtQ29uc29sZRIrLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdHJlYW1Db25zb2xlUmVxdWVzdBosLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdHJlYW1Db25zb2xlUmVzcG9uc2UiA5ACATABEmYKC1NlbmRDb21tYW5kEikucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlbmRDb21tYW5kUmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZW5kQ29tbWFuZFJlc3BvbnNlIgASYgoIVGFpbExvZ3MSJi5yYXB0b3Iud2luZ3MubG9jYWwudjEuVGFpbExvZ3NSZXF1ZXN0GicucmFwdG9yLndpbmdzLmxvY2FsLnYxLlRhaWxMb2dzUmVzcG9uc2UiA5ACATABEmkKC0xpc3RCYWNrdXBzEikucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RCYWNrdXBzUmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0QmFja3Vwc1Jlc3BvbnNlIgOQAgESaQoMQ3JlYXRlQmFja3VwEioucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNyZWF0ZUJhY2t1cFJlcXVlc3QaKy5yYXB0b3Iud2luZ3MubG9jYWwudjEuQ3JlYXRlQmFja3VwUmVzcG9uc2UiABJsCg1SZXN0b3JlQmFja3VwEisucmFwdG9yLndpbmdzLmxvY2FsLnYxLlJlc3RvcmVCYWNrdXBSZXF1ZXN0GiwucmFwdG9yLndpbmdzLmxvY2FsLnYxLlJlc3RvcmVCYWNrdXBSZXNwb25zZSIAElcKBlVwZGF0ZRIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVSZXF1ZXN0GiUucmFwdG9yLndpbmdzLmxvY2FsLnYxLlVwZGF0ZVJlc3BvbnNlIgBC7wEKGWNvbS5yYXB0b3Iud2luZ3MubG9jYWwudjFCCkxvY2FsUHJvdG9QAVpPZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3Ivd2luZ3MvbG9jYWwvdjE7bG9jYWx2MaICA1JXTKoCFVJhcHRvci5XaW5ncy5Mb2NhbC5WMcoCFVJhcHRvclxXaW5nc1xMb2NhbFxWMeICIVJhcHRvclxXaW5nc1xMb2NhbFxWMVxHUEJNZXRhZGF0YeoCGFJhcHRvcjo6V2luZ3M6OkxvY2FsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIkChJMaXN0QmFja3Vwc1JlcXVlc3QSDgoGc2VydmVyGAEgASgJIkkKE0xpc3RCYWNrdXBzUmVzcG9uc2USMgoHYmFja3VwcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5CYWNrdXBJbmZvIpYDCgpCYWNrdXBJbmZvEgoKAmlkGAEgASgJEhEKCXNlcnZlcl9pZBgCIAEoCRITCgtzZXJ2ZXJfbmFtZRgDIAEoCRIWCg5kZXN0aW5hdGlvbl9pZBgEIAEoCRIMCgRraW5kGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIOCgZsb2NrZWQYByABKAgSEgoKc2l6ZV9ieXRlcxgIIAEoAxINCgVmaWxlcxgJIAEoAxIWCg51cGxvYWRlZF9ieXRlcxgKIAEoAxIPCgd3YXJuaW5nGAsgASgJEg0KBWVycm9yGAwgASgJEhIKCmNyZWF0ZWRfYnkYDSABKAkSLgoKY3JlYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmpvYl9pZBgRIAEoCSJDChNDcmVhdGVCYWNrdXBSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIOCgZsb2NrZWQYAiABKAgSDAoEd2FpdBgDIAEoCCJJChRDcmVhdGVCYWNrdXBSZXNwb25zZRIxCgZiYWNrdXAYASABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQmFja3VwSW5mbyJEChRSZXN0b3JlQmFja3VwUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDgoGYmFja3VwGAIgASgJEgwKBHdhaXQYAyABKAgiQQoVUmVzdG9yZUJhY2t1cFJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIYChBzYWZldHlfYmFja3VwX2lkGAIgASgJIhgKFlNodXRkb3duU2VydmVyc1JlcXVlc3QiOgoXU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2USDwoHc3RvcHBlZBgBIAEoBRIOCgZlcnJvcnMYAiADKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCLaAwoRR2V0U3RhdHVzUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRIOCgZjb21taXQYAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglwYW5lbF91cmwYBCABKAkSLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMwoGZG9ja2VyGAYgASgLMiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLkRvY2tlclN0YXR1cxIOCgZjYWxsZXIYByABKAkSNAoHc2VydmVycxgIIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZXJ2ZXJDb3VudHMSNQoHc3RvcmFnZRgJIAEoCzIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdG9yYWdlU3RhdHVzEjMKBnVwZGF0ZRgKIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVTdGF0dXMSOAoJaG9zdF9kaXNrGAsgASgLMiUucmFwdG9yLndpbmdzLmxvY2FsLnYxLkhvc3REaXNrU3RhdHVzEi8KBHNmdHAYDCABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU0ZUUFN0YXR1cyJJCgpTRlRQU3RhdHVzEg8KB2VuYWJsZWQYASABKAgSDAoEcG9ydBgCIAEoBRIcChRob3N0X2tleV9maW5nZXJwcmludBgDIAEoCSJgCg5Ib3N0RGlza1N0YXR1cxILCgNsb3cYASABKAgSEAoIbWluX2ZyZWUYAiABKAMSLwoFZGlza3MYAyADKAsyIC5yYXB0b3Iud2luZ3MubG9jYWwudjEuRGlza1NwYWNlIjYKCURpc2tTcGFjZRIMCgRwYXRoGAEgASgJEg0KBXRvdGFsGAIgASgDEgwKBGZyZWUYAyABKAMiqAEKDFVwZGF0ZVN0YXR1cxIOCgZzdGF0dXMYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCRINCgVlcnJvchgEIAEoCRIuCgpzdGFydGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiKQoMU2VydmVyQ291bnRzEg0KBXRvdGFsGAEgASgFEgoKAnVwGAIgASgFIksKDVN0b3JhZ2VTdGF0dXMSDAoEcGF0aBgBIAEoCRIOCgZxdW90YXMYAiABKAgSDQoFcmVhZHkYAyABKAgSDQoFZXJyb3IYBCABKAkiQQoMRG9ja2VyU3RhdHVzEhEKCXJlYWNoYWJsZRgBIAEoCBIPCgd2ZXJzaW9uGAIgASgJEg0KBWVycm9yGAMgASgJIi8KDVVwZGF0ZVJlcXVlc3QSDQoFY2hlY2sYASABKAgSDwoHdmVyc2lvbhgCIAEoCSJmCg5VcGRhdGVSZXNwb25zZRIPCgdjdXJyZW50GAEgASgJEg4KBnRhcmdldBgCIAEoCRIPCgdjaGFubmVsGAMgASgJEhEKCWF2YWlsYWJsZRgEIAEoCBIPCgdzdGFydGVkGAUgASgIIhEKD0xpc3RLZXlzUmVxdWVzdCJDChBMaXN0S2V5c1Jlc3BvbnNlEi8KBGtleXMYASADKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuVHJ1c3RlZEtleSLiAQoKVHJ1c3RlZEtleRITCgtmaW5nZXJwcmludBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEcm9sZRgEIAEoCRIRCglzZXJ2ZXJfaWQYBSABKAkSDwoHYWN0aW9ucxgGIAMoCRIuCgpleHBpcmVzX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghhZGRlZF9ieRgIIAEoCRIsCghhZGRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiTAoQTGlzdEF1ZGl0UmVxdWVzdBINCgVsaW1pdBgBIAEoBRIpCgVzaW5jZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiRwoRTGlzdEF1ZGl0UmVzcG9uc2USMgoHZW50cmllcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5BdWRpdEVudHJ5IuoBCgpBdWRpdEVudHJ5EgoKAmlkGAEgASgDEiYKAmF0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIOCgZhY3Rpb24YAyABKAkSEQoJc2VydmVyX2lkGAQgASgJEg8KB3VzZXJfaWQYBSABKAkSEAoIa2V5X25hbWUYBiABKAkSFwoPa2V5X2ZpbmdlcnByaW50GAcgASgJEg8KB291dGNvbWUYCCABKAkSDgoGZGV0YWlsGAkgASgJEhIKCmNvbW1hbmRfaWQYCiABKAkSFAoMY29tbWFuZF9oYXNoGAsgASgJIhYKFFN0YXJ0S2V5UmVzZXRSZXF1ZXN0ImcKFVN0YXJ0S2V5UmVzZXRSZXNwb25zZRIQCghyZXNldF9pZBgBIAEoCRIMCgRjb2RlGAIgASgJEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIiYKEkdldEtleVJlc2V0UmVxdWVzdBIQCghyZXNldF9pZBgBIAEoCSKIAQoTR2V0S2V5UmVzZXRSZXNwb25zZRINCgVzdGF0ZRgBIAEoCRIuCgpleHBpcmVzX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtmaW5nZXJwcmludBgDIAEoCRIPCgd1c2VyX2lkGAQgASgJEgwKBG5hbWUYBSABKAkiPwoWQ29uZmlybUtleVJlc2V0UmVxdWVzdBIQCghyZXNldF9pZBgBIAEoCRITCgtmaW5nZXJwcmludBgCIAEoCSIZChdDb25maXJtS2V5UmVzZXRSZXNwb25zZSIpChVDYW5jZWxLZXlSZXNldFJlcXVlc3QSEAoIcmVzZXRfaWQYASABKAkiGAoWQ2FuY2VsS2V5UmVzZXRSZXNwb25zZSqLAQoLUG93ZXJBY3Rpb24SHAoYUE9XRVJfQUNUSU9OX1VOU1BFQ0lGSUVEEAASFgoSUE9XRVJfQUNUSU9OX1NUQVJUEAESFQoRUE9XRVJfQUNUSU9OX1NUT1AQAhIYChRQT1dFUl9BQ1RJT05fUkVTVEFSVBADEhUKEVBPV0VSX0FDVElPTl9LSUxMEAQyiQ4KDExvY2FsU2VydmljZRJjCglHZXRTdGF0dXMSJy5yYXB0b3Iud2luZ3MubG9jYWwudjEuR2V0U3RhdHVzUmVxdWVzdBooLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXNwb25zZSIDkAIBEnUKD1NodXRkb3duU2VydmVycxItLnJhcHRvci53aW5ncy5sb2NhbC52MS5TaHV0ZG93blNlcnZlcnNSZXF1ZXN0Gi4ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNodXRkb3duU2VydmVyc1Jlc3BvbnNlIgOQAgISaQoLTGlzdFNlcnZlcnMSKS5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdFNlcnZlcnNSZXF1ZXN0GioucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RTZXJ2ZXJzUmVzcG9uc2UiA5ACARJUCgVQb3dlchIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5Qb3dlclJlcXVlc3QaJC5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJSZXNwb25zZSIAEnEKDVN0cmVhbUNvbnNvbGUSKy5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RyZWFtQ29uc29sZVJlcXVlc3QaLC5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RyZWFtQ29uc29sZVJlc3BvbnNlIgOQAgEwARJmCgtTZW5kQ29tbWFuZBIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZW5kQ29tbWFuZFJlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VuZENvbW1hbmRSZXNwb25zZSIAEmIKCFRhaWxMb2dzEiYucmFwdG9yLndpbmdzLmxvY2FsLnYxLlRhaWxMb2dzUmVxdWVzdBonLnJhcHRvci53aW5ncy5sb2NhbC52MS5UYWlsTG9nc1Jlc3BvbnNlIgOQAgEwARJpCgtMaXN0QmFja3VwcxIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0QmFja3Vwc1JlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdEJhY2t1cHNSZXNwb25zZSIDkAIBEmkKDENyZWF0ZUJhY2t1cBIqLnJhcHRvci53aW5ncy5sb2NhbC52MS5DcmVhdGVCYWNrdXBSZXF1ZXN0GisucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNyZWF0ZUJhY2t1cFJlc3BvbnNlIgASbAoNUmVzdG9yZUJhY2t1cBIrLnJhcHRvci53aW5ncy5sb2NhbC52MS5SZXN0b3JlQmFja3VwUmVxdWVzdBosLnJhcHRvci53aW5ncy5sb2NhbC52MS5SZXN0b3JlQmFja3VwUmVzcG9uc2UiABJXCgZVcGRhdGUSJC5yYXB0b3Iud2luZ3MubG9jYWwudjEuVXBkYXRlUmVxdWVzdBolLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVSZXNwb25zZSIAEmAKCExpc3RLZXlzEiYucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RLZXlzUmVxdWVzdBonLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0S2V5c1Jlc3BvbnNlIgOQAgESYwoJTGlzdEF1ZGl0EicucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RBdWRpdFJlcXVlc3QaKC5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdEF1ZGl0UmVzcG9uc2UiA5ACARJsCg1TdGFydEtleVJlc2V0EisucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0YXJ0S2V5UmVzZXRSZXF1ZXN0GiwucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0YXJ0S2V5UmVzZXRSZXNwb25zZSIAEmYKC0dldEtleVJlc2V0EikucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldEtleVJlc2V0UmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRLZXlSZXNldFJlc3BvbnNlIgAScgoPQ29uZmlybUtleVJlc2V0Ei0ucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNvbmZpcm1LZXlSZXNldFJlcXVlc3QaLi5yYXB0b3Iud2luZ3MubG9jYWwudjEuQ29uZmlybUtleVJlc2V0UmVzcG9uc2UiABJvCg5DYW5jZWxLZXlSZXNldBIsLnJhcHRvci53aW5ncy5sb2NhbC52MS5DYW5jZWxLZXlSZXNldFJlcXVlc3QaLS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQ2FuY2VsS2V5UmVzZXRSZXNwb25zZSIAQu8BChljb20ucmFwdG9yLndpbmdzLmxvY2FsLnYxQgpMb2NhbFByb3RvUAFaT2dpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3dpbmdzL2xvY2FsL3YxO2xvY2FsdjGiAgNSV0yqAhVSYXB0b3IuV2luZ3MuTG9jYWwuVjHKAhVSYXB0b3JcV2luZ3NcTG9jYWxcVjHiAiFSYXB0b3JcV2luZ3NcTG9jYWxcVjFcR1BCTWV0YWRhdGHqAhhSYXB0b3I6OldpbmdzOjpMb2NhbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.wings.local.v1.ListServersRequest
@@ -986,6 +986,394 @@ export const UpdateResponseSchema: GenMessage<UpdateResponse> = /*@__PURE__*/
   messageDesc(file_raptor_wings_local_v1_local, 30);
 
 /**
+ * @generated from message raptor.wings.local.v1.ListKeysRequest
+ */
+export type ListKeysRequest = Message<"raptor.wings.local.v1.ListKeysRequest"> & {
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ListKeysRequest.
+ * Use `create(ListKeysRequestSchema)` to create a new message.
+ */
+export const ListKeysRequestSchema: GenMessage<ListKeysRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 31);
+
+/**
+ * @generated from message raptor.wings.local.v1.ListKeysResponse
+ */
+export type ListKeysResponse = Message<"raptor.wings.local.v1.ListKeysResponse"> & {
+  /**
+   * @generated from field: repeated raptor.wings.local.v1.TrustedKey keys = 1;
+   */
+  keys: TrustedKey[];
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ListKeysResponse.
+ * Use `create(ListKeysResponseSchema)` to create a new message.
+ */
+export const ListKeysResponseSchema: GenMessage<ListKeysResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 32);
+
+/**
+ * TrustedKey is a passkey the node trusts.
+ *
+ * @generated from message raptor.wings.local.v1.TrustedKey
+ */
+export type TrustedKey = Message<"raptor.wings.local.v1.TrustedKey"> & {
+  /**
+   * @generated from field: string fingerprint = 1;
+   */
+  fingerprint: string;
+
+  /**
+   * @generated from field: string user_id = 2;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * "owner" (every signed action) or "delegate" (the actions below).
+   *
+   * @generated from field: string role = 4;
+   */
+  role: string;
+
+  /**
+   * Delegates: the server ("" = every server) and actions.
+   *
+   * @generated from field: string server_id = 5;
+   */
+  serverId: string;
+
+  /**
+   * @generated from field: repeated string actions = 6;
+   */
+  actions: string[];
+
+  /**
+   * Delegates: unset = never.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 7;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * The fingerprint of the key that added this one; empty if it was pinned
+   * on the box (enrollment or a key reset).
+   *
+   * @generated from field: string added_by = 8;
+   */
+  addedBy: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp added_at = 9;
+   */
+  addedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.TrustedKey.
+ * Use `create(TrustedKeySchema)` to create a new message.
+ */
+export const TrustedKeySchema: GenMessage<TrustedKey> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 33);
+
+/**
+ * @generated from message raptor.wings.local.v1.ListAuditRequest
+ */
+export type ListAuditRequest = Message<"raptor.wings.local.v1.ListAuditRequest"> & {
+  /**
+   * At most this many (default 50, at most 10000).
+   *
+   * @generated from field: int32 limit = 1;
+   */
+  limit: number;
+
+  /**
+   * Only entries since this time.
+   *
+   * @generated from field: google.protobuf.Timestamp since = 2;
+   */
+  since?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ListAuditRequest.
+ * Use `create(ListAuditRequestSchema)` to create a new message.
+ */
+export const ListAuditRequestSchema: GenMessage<ListAuditRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 34);
+
+/**
+ * @generated from message raptor.wings.local.v1.ListAuditResponse
+ */
+export type ListAuditResponse = Message<"raptor.wings.local.v1.ListAuditResponse"> & {
+  /**
+   * @generated from field: repeated raptor.wings.local.v1.AuditEntry entries = 1;
+   */
+  entries: AuditEntry[];
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ListAuditResponse.
+ * Use `create(ListAuditResponseSchema)` to create a new message.
+ */
+export const ListAuditResponseSchema: GenMessage<ListAuditResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 35);
+
+/**
+ * AuditEntry is one signed action or key reset.
+ *
+ * @generated from message raptor.wings.local.v1.AuditEntry
+ */
+export type AuditEntry = Message<"raptor.wings.local.v1.AuditEntry"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp at = 2;
+   */
+  at?: Timestamp | undefined;
+
+  /**
+   * @generated from field: string action = 3;
+   */
+  action: string;
+
+  /**
+   * @generated from field: string server_id = 4;
+   */
+  serverId: string;
+
+  /**
+   * The Panel user, or local:<unix user> on the box.
+   *
+   * @generated from field: string user_id = 5;
+   */
+  userId: string;
+
+  /**
+   * The signing key: its name and fingerprint while it's still trusted.
+   *
+   * @generated from field: string key_name = 6;
+   */
+  keyName: string;
+
+  /**
+   * @generated from field: string key_fingerprint = 7;
+   */
+  keyFingerprint: string;
+
+  /**
+   * running, ok, failed, or rejected.
+   *
+   * @generated from field: string outcome = 8;
+   */
+  outcome: string;
+
+  /**
+   * The error, or why it was rejected.
+   *
+   * @generated from field: string detail = 9;
+   */
+  detail: string;
+
+  /**
+   * @generated from field: string command_id = 10;
+   */
+  commandId: string;
+
+  /**
+   * Hex SHA-256 of the canonical command: what the passkey signed.
+   *
+   * @generated from field: string command_hash = 11;
+   */
+  commandHash: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.AuditEntry.
+ * Use `create(AuditEntrySchema)` to create a new message.
+ */
+export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 36);
+
+/**
+ * @generated from message raptor.wings.local.v1.StartKeyResetRequest
+ */
+export type StartKeyResetRequest = Message<"raptor.wings.local.v1.StartKeyResetRequest"> & {
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.StartKeyResetRequest.
+ * Use `create(StartKeyResetRequestSchema)` to create a new message.
+ */
+export const StartKeyResetRequestSchema: GenMessage<StartKeyResetRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 37);
+
+/**
+ * @generated from message raptor.wings.local.v1.StartKeyResetResponse
+ */
+export type StartKeyResetResponse = Message<"raptor.wings.local.v1.StartKeyResetResponse"> & {
+  /**
+   * @generated from field: string reset_id = 1;
+   */
+  resetId: string;
+
+  /**
+   * "XXXXX-XXXXX"; shown only on the box.
+   *
+   * @generated from field: string code = 2;
+   */
+  code: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expires_at = 3;
+   */
+  expiresAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.StartKeyResetResponse.
+ * Use `create(StartKeyResetResponseSchema)` to create a new message.
+ */
+export const StartKeyResetResponseSchema: GenMessage<StartKeyResetResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 38);
+
+/**
+ * @generated from message raptor.wings.local.v1.GetKeyResetRequest
+ */
+export type GetKeyResetRequest = Message<"raptor.wings.local.v1.GetKeyResetRequest"> & {
+  /**
+   * @generated from field: string reset_id = 1;
+   */
+  resetId: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.GetKeyResetRequest.
+ * Use `create(GetKeyResetRequestSchema)` to create a new message.
+ */
+export const GetKeyResetRequestSchema: GenMessage<GetKeyResetRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 39);
+
+/**
+ * @generated from message raptor.wings.local.v1.GetKeyResetResponse
+ */
+export type GetKeyResetResponse = Message<"raptor.wings.local.v1.GetKeyResetResponse"> & {
+  /**
+   * waiting, pending (a key paired and waits for confirmation), done, or
+   * expired (also after cancelling or too many wrong codes).
+   *
+   * @generated from field: string state = 1;
+   */
+  state: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expires_at = 2;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * pending: the key that paired.
+   *
+   * @generated from field: string fingerprint = 3;
+   */
+  fingerprint: string;
+
+  /**
+   * @generated from field: string user_id = 4;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string name = 5;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.GetKeyResetResponse.
+ * Use `create(GetKeyResetResponseSchema)` to create a new message.
+ */
+export const GetKeyResetResponseSchema: GenMessage<GetKeyResetResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 40);
+
+/**
+ * @generated from message raptor.wings.local.v1.ConfirmKeyResetRequest
+ */
+export type ConfirmKeyResetRequest = Message<"raptor.wings.local.v1.ConfirmKeyResetRequest"> & {
+  /**
+   * @generated from field: string reset_id = 1;
+   */
+  resetId: string;
+
+  /**
+   * The fingerprint root was shown and compared with the browser.
+   *
+   * @generated from field: string fingerprint = 2;
+   */
+  fingerprint: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ConfirmKeyResetRequest.
+ * Use `create(ConfirmKeyResetRequestSchema)` to create a new message.
+ */
+export const ConfirmKeyResetRequestSchema: GenMessage<ConfirmKeyResetRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 41);
+
+/**
+ * @generated from message raptor.wings.local.v1.ConfirmKeyResetResponse
+ */
+export type ConfirmKeyResetResponse = Message<"raptor.wings.local.v1.ConfirmKeyResetResponse"> & {
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ConfirmKeyResetResponse.
+ * Use `create(ConfirmKeyResetResponseSchema)` to create a new message.
+ */
+export const ConfirmKeyResetResponseSchema: GenMessage<ConfirmKeyResetResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 42);
+
+/**
+ * @generated from message raptor.wings.local.v1.CancelKeyResetRequest
+ */
+export type CancelKeyResetRequest = Message<"raptor.wings.local.v1.CancelKeyResetRequest"> & {
+  /**
+   * @generated from field: string reset_id = 1;
+   */
+  resetId: string;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.CancelKeyResetRequest.
+ * Use `create(CancelKeyResetRequestSchema)` to create a new message.
+ */
+export const CancelKeyResetRequestSchema: GenMessage<CancelKeyResetRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 43);
+
+/**
+ * @generated from message raptor.wings.local.v1.CancelKeyResetResponse
+ */
+export type CancelKeyResetResponse = Message<"raptor.wings.local.v1.CancelKeyResetResponse"> & {
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.CancelKeyResetResponse.
+ * Use `create(CancelKeyResetResponseSchema)` to create a new message.
+ */
+export const CancelKeyResetResponseSchema: GenMessage<CancelKeyResetResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 44);
+
+/**
  * @generated from enum raptor.wings.local.v1.PowerAction
  */
 export enum PowerAction {
@@ -1154,6 +1542,72 @@ export const LocalService: GenService<{
     methodKind: "unary";
     input: typeof UpdateRequestSchema;
     output: typeof UpdateResponseSchema;
+  },
+  /**
+   * ListKeys lists the passkeys this node trusts for signed actions, and
+   * delegations.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.ListKeys
+   */
+  listKeys: {
+    methodKind: "unary";
+    input: typeof ListKeysRequestSchema;
+    output: typeof ListKeysResponseSchema;
+  },
+  /**
+   * ListAudit lists signed dangerous actions (run or rejected) and key
+   * resets, newest first, from the node's own records.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.ListAudit
+   */
+  listAudit: {
+    methodKind: "unary";
+    input: typeof ListAuditRequestSchema;
+    output: typeof ListAuditResponseSchema;
+  },
+  /**
+   * StartKeyReset begins re-pairing the node's owner passkey: it returns a
+   * one-time code for the owner to enter in the Panel. Nothing changes until
+   * ConfirmKeyReset. Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.StartKeyReset
+   */
+  startKeyReset: {
+    methodKind: "unary";
+    input: typeof StartKeyResetRequestSchema;
+    output: typeof StartKeyResetResponseSchema;
+  },
+  /**
+   * GetKeyReset reports a key reset's state: waiting for the Panel, or a
+   * key waiting for root to confirm its fingerprint. Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.GetKeyReset
+   */
+  getKeyReset: {
+    methodKind: "unary";
+    input: typeof GetKeyResetRequestSchema;
+    output: typeof GetKeyResetResponseSchema;
+  },
+  /**
+   * ConfirmKeyReset pins the key that paired as the node's only owner key,
+   * removing every other trusted key and delegation. Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.ConfirmKeyReset
+   */
+  confirmKeyReset: {
+    methodKind: "unary";
+    input: typeof ConfirmKeyResetRequestSchema;
+    output: typeof ConfirmKeyResetResponseSchema;
+  },
+  /**
+   * CancelKeyReset ends a key reset without changing any key. Root only.
+   *
+   * @generated from rpc raptor.wings.local.v1.LocalService.CancelKeyReset
+   */
+  cancelKeyReset: {
+    methodKind: "unary";
+    input: typeof CancelKeyResetRequestSchema;
+    output: typeof CancelKeyResetResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_wings_local_v1_local, 0);

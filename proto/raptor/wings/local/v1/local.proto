@@ -68,6 +68,34 @@ service LocalService {
   // before the restart: GetStatus reports how the update went. Checking is
   // open to the raptor group; installing is root only.
   rpc Update(UpdateRequest) returns (UpdateResponse) {}
+
+  // ListKeys lists the passkeys this node trusts for signed actions, and
+  // delegations.
+  rpc ListKeys(ListKeysRequest) returns (ListKeysResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ListAudit lists signed dangerous actions (run or rejected) and key
+  // resets, newest first, from the node's own records.
+  rpc ListAudit(ListAuditRequest) returns (ListAuditResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // StartKeyReset begins re-pairing the node's owner passkey: it returns a
+  // one-time code for the owner to enter in the Panel. Nothing changes until
+  // ConfirmKeyReset. Root only.
+  rpc StartKeyReset(StartKeyResetRequest) returns (StartKeyResetResponse) {}
+
+  // GetKeyReset reports a key reset's state: waiting for the Panel, or a
+  // key waiting for root to confirm its fingerprint. Root only.
+  rpc GetKeyReset(GetKeyResetRequest) returns (GetKeyResetResponse) {}
+
+  // ConfirmKeyReset pins the key that paired as the node's only owner key,
+  // removing every other trusted key and delegation. Root only.
+  rpc ConfirmKeyReset(ConfirmKeyResetRequest) returns (ConfirmKeyResetResponse) {}
+
+  // CancelKeyReset ends a key reset without changing any key. Root only.
+  rpc CancelKeyReset(CancelKeyResetRequest) returns (CancelKeyResetResponse) {}
 }
 
 // Servers are named in requests by full ID, the last 8 or more characters of
@@ -327,3 +355,96 @@ message UpdateResponse {
   // Wings is restarting to run target on trial.
   bool started = 5;
 }
+
+message ListKeysRequest {}
+
+message ListKeysResponse {
+  repeated TrustedKey keys = 1;
+}
+
+// TrustedKey is a passkey the node trusts.
+message TrustedKey {
+  string fingerprint = 1;
+  string user_id = 2;
+  string name = 3;
+  // "owner" (every signed action) or "delegate" (the actions below).
+  string role = 4;
+  // Delegates: the server ("" = every server) and actions.
+  string server_id = 5;
+  repeated string actions = 6;
+  // Delegates: unset = never.
+  google.protobuf.Timestamp expires_at = 7;
+  // The fingerprint of the key that added this one; empty if it was pinned
+  // on the box (enrollment or a key reset).
+  string added_by = 8;
+  google.protobuf.Timestamp added_at = 9;
+}
+
+message ListAuditRequest {
+  // At most this many (default 50, at most 10000).
+  int32 limit = 1;
+  // Only entries since this time.
+  google.protobuf.Timestamp since = 2;
+}
+
+message ListAuditResponse {
+  repeated AuditEntry entries = 1;
+}
+
+// AuditEntry is one signed action or key reset.
+message AuditEntry {
+  int64 id = 1;
+  google.protobuf.Timestamp at = 2;
+  string action = 3;
+  string server_id = 4;
+  // The Panel user, or local:<unix user> on the box.
+  string user_id = 5;
+  // The signing key: its name and fingerprint while it's still trusted.
+  string key_name = 6;
+  string key_fingerprint = 7;
+  // running, ok, failed, or rejected.
+  string outcome = 8;
+  // The error, or why it was rejected.
+  string detail = 9;
+  string command_id = 10;
+  // Hex SHA-256 of the canonical command: what the passkey signed.
+  string command_hash = 11;
+}
+
+message StartKeyResetRequest {}
+
+message StartKeyResetResponse {
+  string reset_id = 1;
+  // "XXXXX-XXXXX"; shown only on the box.
+  string code = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message GetKeyResetRequest {
+  string reset_id = 1;
+}
+
+message GetKeyResetResponse {
+  // waiting, pending (a key paired and waits for confirmation), done, or
+  // expired (also after cancelling or too many wrong codes).
+  string state = 1;
+  google.protobuf.Timestamp expires_at = 2;
+  // pending: the key that paired.
+  string fingerprint = 3;
+  string user_id = 4;
+  string name = 5;
+}
+
+message ConfirmKeyResetRequest {
+  string reset_id = 1;
+  // The fingerprint root was shown and compared with the browser.
+  string fingerprint = 2;
+}
+
+message ConfirmKeyResetResponse {}
+
+message CancelKeyResetRequest {
+  string reset_id = 1;
+}
+
+message CancelKeyResetResponse {}
