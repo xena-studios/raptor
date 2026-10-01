@@ -339,6 +339,21 @@ tasks:
         limactl start --tty=false {{.VM}}
         limactl shell {{.VM}} sudo /var/lib/raptor-e2e/e2e-host.sh after-reboot
 
+  e2e:faults:
+    desc: "Fault injection in a throwaway VM (FAULTS_VM, default raptor-faults): kills Wings and Docker, fills disks, unmounts the volume, corrupts state.db"
+    vars:
+      FVM: '{{.FAULTS_VM | default "raptor-faults"}}'
+    cmds:
+      # Its own VM, never the shared one: these faults are destructive.
+      - task VM={{.FVM}} wings:vm:install
+      - |
+        set -eu
+        ARCH=$(limactl shell {{.FVM}} dpkg --print-architecture)
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/server-e2e-$ARCH ./internal/wings/server
+        limactl copy bin/server-e2e-$ARCH {{.FVM}}:/tmp/server-e2e
+        limactl copy scripts/e2e-faults.sh {{.FVM}}:/tmp/e2e-faults.sh
+        limactl shell {{.FVM}} sudo bash /tmp/e2e-faults.sh
+
   e2e:update:
     desc: "Self-update in the Wings VM: an update, rollbacks of a crashing and a hanging version, a restart during a trial"
     cmds:

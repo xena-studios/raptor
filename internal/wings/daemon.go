@@ -67,6 +67,17 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return fmt.Errorf("open state: %w", err)
 	}
 	defer func() { _ = db.Close() }()
+	if r := db.Recovered; r != nil {
+		// Changes since the snapshot are lost (at most an hour's); the
+		// running servers are reattached as usual.
+		log.Error("the state database was corrupt and was replaced by its newest good snapshot",
+			"snapshot", r.Snapshot, "corrupt_copy", r.Corrupt, "problem", r.Problem)
+		if _, err := events.New(db).Append(ctx, events.Event{Type: eventStateRestored, Data: map[string]any{
+			"snapshot": filepath.Base(r.Snapshot), "corrupt_copy": r.Corrupt, "problem": r.Problem,
+		}}); err != nil {
+			log.Error("recording the state restore failed", "err", err)
+		}
+	}
 
 	disk := newDiskGuard(cfg, db, log)
 	subnet, installSubnet := cfg.Docker.Subnets()
@@ -145,6 +156,12 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		select {
 		case <-ctx.Done():
 			log.Info("wings stopping")
+			// The freshest copy for recovering from a corrupt database.
+			if path, err := db.Snapshot(context.WithoutCancel(ctx), "shutdown", 3); err != nil {
+				log.Error("shutdown snapshot failed", "err", err)
+			} else {
+				log.Debug("state snapshot written", "path", path)
+			}
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			return errors.Join(srv.Shutdown(shutdownCtx), <-errc)
@@ -473,6 +490,10 @@ func newNotifier(cfg config.Config, db *store.DB, log *slog.Logger) *notify.Noti
 	name, _ := os.Hostname()
 	return &notify.Notifier{Targets: cfg.Notifications, DB: db, Outbox: events.New(db), Node: name, NodeID: cfg.NodeID, Log: log}
 }
+
+// eventStateRestored is recorded when a corrupt state database was replaced
+// by a snapshot.
+const eventStateRestored = "node.state_restored"
 
 // Events recorded when the host disk goes below limits.host_disk_min_free
 // and when it recovers.

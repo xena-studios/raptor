@@ -93,6 +93,9 @@ func FromEvent(e events.Event) (Message, bool) {
 	case "node.disk_low":
 		m.Category, m.Level, m.Title = "disk", Critical, "Host disk low"
 		m.Text = fmt.Sprintf("Below %s free: installs and image pulls are refused until space is freed.", host.Bytes(num(d, "min_free")))
+	case "node.state_restored":
+		m.Category, m.Level, m.Title = "disk", Critical, "Wings' state database was corrupt and was restored from a snapshot"
+		m.Text = fmt.Sprintf("Restored %s; changes after it were lost (at most an hour). The damaged copy is at %s. Check the disk's health.", str(d, "snapshot"), str(d, "corrupt_copy"))
 	case "node.disk_ok":
 		m.Category, m.Level, m.Title = "disk", Info, "Host disk has enough free space again"
 	case "node.update":

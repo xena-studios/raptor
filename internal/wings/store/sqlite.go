@@ -28,10 +28,20 @@ type DB struct {
 	writer *sql.DB
 	reader *sql.DB
 	path   string
+
+	// Recovered is set when the database was corrupt and was replaced by a
+	// snapshot as it was opened.
+	Recovered *Recovery
 }
 
-// Open opens (creating if needed) the state database at path and applies migrations.
+// Open opens (creating if needed) the state database at path and applies
+// migrations. A corrupt database is replaced by its newest good snapshot
+// (see Recovered).
 func Open(ctx context.Context, path string) (*DB, error) {
+	recovered, err := recoverIfCorrupt(ctx, path)
+	if err != nil {
+		return nil, err
+	}
 	// SQLite creates database files as 0644 regardless of the umask, and gives
 	// its -wal/-shm files the main file's mode. Creating the file first as 0600
 	// keeps all of them private.
@@ -60,11 +70,12 @@ func Open(ctx context.Context, path string) (*DB, error) {
 	reader.SetMaxOpenConns(max(4, runtime.NumCPU()))
 
 	return &DB{
-		Write:  New(writer),
-		Read:   New(reader),
-		writer: writer,
-		reader: reader,
-		path:   path,
+		Write:     New(writer),
+		Read:      New(reader),
+		writer:    writer,
+		reader:    reader,
+		path:      path,
+		Recovered: recovered,
 	}, nil
 }
 
