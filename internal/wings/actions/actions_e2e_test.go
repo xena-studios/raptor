@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"slices"
@@ -26,6 +25,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/command/commandtest"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/e2etest"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
@@ -358,11 +358,4 @@ func waitState(t *testing.T, m *server.Manager, id string, want server.State) {
 	t.Fatalf("server %s: %s, want %s", id, st.State, want)
 }
 
-func freePort(t *testing.T) int {
-	l, err := net.Listen("tcp", "0.0.0.0:0") //nolint:noctx // test listener
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = l.Close() }()
-	return l.Addr().(*net.TCPAddr).Port
-}
+func freePort(t *testing.T) int { return e2etest.FreePort(t) }

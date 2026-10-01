@@ -31,6 +31,7 @@ import (
 
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/e2etest"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/install"
@@ -575,22 +576,7 @@ func hostIP(t *testing.T) string {
 	return c.LocalAddr().(*net.UDPAddr).IP.String()
 }
 
-func freePort(t *testing.T) int {
-	t.Helper()
-	for range 20 {
-		l, err := net.Listen("tcp", "0.0.0.0:0") //nolint:noctx // test listener
-		if err != nil {
-			t.Fatal(err)
-		}
-		p := l.Addr().(*net.TCPAddr).Port
-		_ = l.Close()
-		if containers.CheckPorts([]containers.Port{{Port: p}}) == nil {
-			return p
-		}
-	}
-	t.Fatal("no free port")
-	return 0
-}
+func freePort(t *testing.T) int { return e2etest.FreePort(t) }
 
 func testDir(t *testing.T) string {
 	t.Helper()

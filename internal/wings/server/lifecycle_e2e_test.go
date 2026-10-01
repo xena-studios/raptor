@@ -26,6 +26,7 @@ import (
 
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/e2etest"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
@@ -228,15 +229,7 @@ func (e *env) startedAt(id string) time.Time {
 	return st.StartedAt
 }
 
-func freePort(t *testing.T) int {
-	t.Helper()
-	l, err := net.Listen("tcp", "0.0.0.0:0") //nolint:noctx // test listener
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = l.Close() }()
-	return l.Addr().(*net.TCPAddr).Port
-}
+func freePort(t *testing.T) int { return e2etest.FreePort(t) }
 
 func envOr(k, def string) string {
 	if v := os.Getenv(k); v != "" {

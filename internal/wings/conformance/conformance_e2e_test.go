@@ -29,7 +29,6 @@ package conformance
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -45,6 +44,7 @@ import (
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/e2etest"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
@@ -570,15 +570,7 @@ var ansi = regexp.MustCompile(`\x1b\[[0-9;?]*[ -/]*[@-~]`)
 
 func stripANSI(s string) string { return strings.TrimRight(ansi.ReplaceAllString(s, ""), "\r") }
 
-func freePort(t *testing.T) int {
-	t.Helper()
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = l.Close() }()
-	return l.Addr().(*net.TCPAddr).Port
-}
+func freePort(t *testing.T) int { return e2etest.FreePort(t) }
 
 func envOr(k, def string) string {
 	if v := os.Getenv(k); v != "" {
