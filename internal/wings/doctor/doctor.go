@@ -65,11 +65,12 @@ type Docker interface {
 
 // Env is what the checks run against.
 type Env struct {
-	Config    config.Config
-	ConfigErr error // loading config.yml failed (Config holds the defaults)
-	System    System
-	Docker    Docker // nil if Docker isn't reachable
-	DockerErr error
+	Config     config.Config
+	ConfigPath string
+	ConfigErr  error // loading config.yml failed (Config holds the defaults)
+	System     System
+	Docker     Docker // nil if Docker isn't reachable
+	DockerErr  error
 	// Status is Wings' own report (nil if Wings isn't answering, with
 	// StatusErr).
 	Status    *localv1.GetStatusResponse

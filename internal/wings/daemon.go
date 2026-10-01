@@ -28,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
+	"github.com/xena-studios/raptor/internal/wings/notify"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/sftp"
@@ -105,9 +106,17 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Updates:   updates,
 	}
 	svc.Disk = disk
+	notifier := newNotifier(cfg, db, log)
+	if notifier != nil {
+		svc.Notify = notifier
+		go notifier.Run(ctx)
+	}
 	rt, err := newRuntimeSetup(dc, cfg, log, db, svc)
 	if err == nil {
 		rt.disk = disk
+		if notifier != nil {
+			rt.commands.OnAudit = func(command.AuditEntry) { notifier.Wake() }
+		}
 	}
 	if err != nil {
 		return err
@@ -431,6 +440,16 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		"install_network", nets.Install.Name, "install_subnet", nets.Install.Subnet,
 		"dns_allowed", rules.DNS)
 	return nil
+}
+
+// newNotifier sends notifications straight from the node to the targets in
+// config.yml (nil if there are none).
+func newNotifier(cfg config.Config, db *store.DB, log *slog.Logger) *notify.Notifier {
+	if len(cfg.Notifications) == 0 {
+		return nil
+	}
+	name, _ := os.Hostname()
+	return &notify.Notifier{Targets: cfg.Notifications, DB: db, Outbox: events.New(db), Node: name, NodeID: cfg.NodeID, Log: log}
 }
 
 // Events recorded when the host disk goes below limits.host_disk_min_free

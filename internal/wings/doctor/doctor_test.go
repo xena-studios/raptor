@@ -23,6 +23,7 @@ import (
 type fakeSystem struct {
 	files  map[string]string
 	exists map[string]bool
+	modes  map[string]fs.FileMode
 	links  map[string]string
 	cmds   map[string]string // "name arg…" → output; missing = not installed
 	dial   map[string]string // addr → banner
@@ -38,11 +39,23 @@ func (f *fakeSystem) ReadFile(p string) ([]byte, error) {
 }
 
 func (f *fakeSystem) Stat(p string) (fs.FileInfo, error) {
+	if m, ok := f.modes[p]; ok {
+		return fakeInfo{m}, nil
+	}
 	if f.exists[p] {
 		return nil, nil
 	}
 	return nil, fs.ErrNotExist
 }
+
+type fakeInfo struct{ mode fs.FileMode }
+
+func (i fakeInfo) Name() string       { return "" }
+func (i fakeInfo) Size() int64        { return 0 }
+func (i fakeInfo) Mode() fs.FileMode  { return i.mode }
+func (i fakeInfo) ModTime() time.Time { return time.Time{} }
+func (i fakeInfo) IsDir() bool        { return false }
+func (i fakeInfo) Sys() any           { return nil }
 
 func (f *fakeSystem) Readlink(p string) (string, error) {
 	if t, ok := f.links[p]; ok {
@@ -174,6 +187,11 @@ func TestProblems(t *testing.T) {
 			s.cmds["systemctl is-enabled raptor-shutdown.service"] = "disabled\n"
 		}},
 		{"Config file", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) { e.ConfigErr = errors.New("limits: bad size") }},
+		{"Config file", Warn, func(e *Env, s *fakeSystem, _ *fakeDocker) {
+			e.ConfigPath = "/etc/raptor/config.yml"
+			e.Config.Notifications = []config.Notification{{Type: "discord", URL: "https://discord.com/api/webhooks/1/x"}}
+			s.modes = map[string]fs.FileMode{e.ConfigPath: 0o644}
+		}},
 		{"Wings", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) { e.Status, e.StatusErr = nil, errors.New("no such file") }},
 		{"Wings", Warn, func(e *Env, _ *fakeSystem, _ *fakeDocker) { e.Status.Servers = nil }},
 		{"Docker", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) {

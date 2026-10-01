@@ -49,6 +49,7 @@ type Service struct {
 	Storage   *storage.Volume // nil in tests
 	Updates   Updates         // nil in tests
 	Disk      *host.DiskGuard // nil in tests
+	Notify    Notifications   // nil if none are configured
 
 	mu       sync.RWMutex
 	commands *command.Executor

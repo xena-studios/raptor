@@ -152,6 +152,50 @@ func (q *Queries) ListAudit(ctx context.Context, arg ListAuditParams) ([]AuditLo
 	return items, nil
 }
 
+const listAuditAfter = `-- name: ListAuditAfter :many
+SELECT id, at, command_id, "action", server_id, user_id, credential_id, key_name, command_hash, outcome, detail FROM audit_log WHERE id > ? ORDER BY id LIMIT ?
+`
+
+type ListAuditAfterParams struct {
+	ID    int64
+	Limit int64
+}
+
+func (q *Queries) ListAuditAfter(ctx context.Context, arg ListAuditAfterParams) ([]AuditLog, error) {
+	rows, err := q.db.QueryContext(ctx, listAuditAfter, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AuditLog
+	for rows.Next() {
+		var i AuditLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.At,
+			&i.CommandID,
+			&i.Action,
+			&i.ServerID,
+			&i.UserID,
+			&i.CredentialID,
+			&i.KeyName,
+			&i.CommandHash,
+			&i.Outcome,
+			&i.Detail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const pruneAudit = `-- name: PruneAudit :execrows
 DELETE FROM audit_log WHERE at < ?
 `

@@ -63,12 +63,36 @@ func TestParseRejects(t *testing.T) {
 		"ipv6 subnet":    "docker:\n  subnet: fd00::/64\n",
 		"bad allow":      "docker:\n  install_allow: [lan]\n",
 		"same networks":  "docker:\n  install_network: raptor_nw\n",
+		"notify type":    "notifications:\n  - type: slack\n    url: https://hooks.slack.com/x\n",
+		"notify url":     "notifications:\n  - type: webhook\n    url: not a url\n",
+		"notify discord": "notifications:\n  - type: discord\n    url: https://evil.example/api/webhooks/1/x\n",
+		"notify http":    "notifications:\n  - type: discord\n    url: http://discord.com/api/webhooks/1/x\n",
+		"notify event":   "notifications:\n  - type: webhook\n    url: https://example.com/hook\n    events: [everything]\n",
+		"notify secret":  "notifications:\n  - type: discord\n    url: https://discord.com/api/webhooks/1/x\n    secret: s\n",
 	} {
 		if _, err := Parse([]byte(in)); err == nil {
 			t.Errorf("%s: expected error", name)
 		} else if name == "unknown key" && !strings.Contains(err.Error(), "nodeid") {
 			t.Errorf("error doesn't name the key: %v", err)
 		}
+	}
+}
+
+func TestParseNotifications(t *testing.T) {
+	cfg, err := Parse([]byte(`notifications:
+  - name: ops
+    type: discord
+    url: https://discord.com/api/webhooks/123/abc
+    events: [security, crash]
+  - type: webhook
+    url: http://10.0.0.5:8080/raptor
+    secret: s3cret
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Notifications) != 2 || cfg.Notifications[0].Events[1] != "crash" || cfg.Notifications[1].Secret != "s3cret" {
+		t.Fatalf("notifications: %+v", cfg.Notifications)
 	}
 }
 
