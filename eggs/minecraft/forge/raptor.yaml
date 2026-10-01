@@ -7,6 +7,8 @@ source:
 license: MIT
 certified: true
 arch: [amd64, arm64]
+players:
+  query: minecraft
 test:
   tier: fast
   memory_mib: 2048

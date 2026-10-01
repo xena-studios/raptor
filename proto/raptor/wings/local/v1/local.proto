@@ -100,6 +100,11 @@ service LocalService {
   // TestNotifications sends a test message to every notification target in
   // config.yml and reports how each went. Root only.
   rpc TestNotifications(TestNotificationsRequest) returns (TestNotificationsResponse) {}
+
+  // GetMetrics returns a server's resource history and its latest sample.
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 // Servers are named in requests by full ID, the last 8 or more characters of
@@ -464,4 +469,37 @@ message NotificationResult {
   string target = 1;
   // Empty if it was delivered.
   string error = 2;
+}
+
+message GetMetricsRequest {
+  string server = 1;
+  // History since this time (default: the last hour). Older than a day is
+  // in 15-minute points; the last day in minute points.
+  google.protobuf.Timestamp since = 2;
+}
+
+message GetMetricsResponse {
+  // The last sample (every 10 seconds); traffic is per second.
+  MetricPoint latest = 1;
+  repeated MetricPoint points = 2;
+}
+
+// MetricPoint is a server's resources over one bucket.
+message MetricPoint {
+  google.protobuf.Timestamp at = 1;
+  // Seconds the point covers: 60 or 900; 0 for a live sample.
+  int32 resolution = 2;
+  // Samples taken while the server ran (0: it was stopped).
+  int32 samples = 3;
+  // Percent of one core.
+  double cpu_avg = 4;
+  double cpu_max = 5;
+  int64 memory_avg = 6;
+  int64 memory_max = 7;
+  int64 rx_bytes = 8;
+  int64 tx_bytes = 9;
+  int64 disk_bytes = 10;
+  // Unset when the game isn't queried, or didn't answer.
+  optional double players_avg = 11;
+  optional int32 players_max = 12;
 }

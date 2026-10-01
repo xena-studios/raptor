@@ -99,6 +99,9 @@ type Stats struct {
 	Time        time.Time
 	CPUNanos    uint64 // cumulative CPU time used, across all cores
 	MemoryBytes int64  // in use, not counting reclaimable page cache
+	// Cumulative network traffic over every interface (reset when the
+	// container restarts).
+	RxBytes, TxBytes uint64
 }
 
 // Network is one of Wings' container networks.

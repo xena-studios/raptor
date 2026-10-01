@@ -46,7 +46,14 @@ type Meta struct {
 	Certified bool   `yaml:"certified"`
 	// Arch lists the CPU architectures the game itself supports.
 	Arch []string `yaml:"arch"`
-	Test Test     `yaml:"test"`
+	// Players says how to ask the game for its player count (the egg's
+	// x-raptor.players, which upstream eggs don't have): the Panel adds it
+	// to the egg when it creates a server from the catalog.
+	Players struct {
+		Query string `yaml:"query"` // minecraft or source
+		Port  string `yaml:"port"`  // "" = the primary port, "+1", or a variable's name
+	} `yaml:"players"`
+	Test Test `yaml:"test"`
 }
 
 // Tier says when the conformance suite runs an egg.
@@ -174,6 +181,11 @@ func (e *Entry) validate() error {
 		return errors.New("license is required")
 	case len(e.Arch) == 0:
 		return errors.New("arch is required")
+	}
+	switch e.Players.Query {
+	case "", "minecraft", "source":
+	default:
+		return fmt.Errorf("players.query %q: want minecraft or source", e.Players.Query)
 	}
 	for _, a := range e.Arch {
 		if a != "amd64" && a != "arm64" {

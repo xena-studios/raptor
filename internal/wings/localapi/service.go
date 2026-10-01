@@ -54,6 +54,7 @@ type Service struct {
 	mu       sync.RWMutex
 	commands *command.Executor
 	sftp     SFTP
+	metrics  Metrics
 	servers  Servers
 	backups  Backups
 	jobs     Jobs

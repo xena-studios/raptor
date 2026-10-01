@@ -49,6 +49,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
+	"github.com/xena-studios/raptor/internal/wings/metrics"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -163,6 +164,9 @@ func (r *run) lifecycle() {
 
 	r.step("start", func() { r.start() })
 	r.checkConfig(port)
+	if q := e.Players.Query; q != "" {
+		r.step("players", func() { r.players(q, port) })
+	}
 	if e.Test.Command != "" {
 		r.step("command", func() { r.command(e.Test.Command) })
 	}
@@ -410,6 +414,25 @@ func (r *run) restartWings() {
 }
 
 // checkConfig checks files the egg's config parsers must have written.
+// players asks the running game for its player count the way metrics do,
+// checking the catalog's players.query against the real game.
+func (r *run) players(query string, port int) {
+	r.t.Helper()
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	var err error
+	for range 15 { // the game may still be opening its query port
+		var p metrics.Players
+		if p, err = metrics.QueryPlayers(context.Background(), query, addr); err == nil {
+			if p.Max <= 0 || p.Online != 0 {
+				r.fail("player query (%s): %d of %d players on a new server", query, p.Online, p.Max)
+			}
+			return
+		}
+		time.Sleep(2 * time.Second)
+	}
+	r.fail("player query (%s) on %s: %v", query, addr, err)
+}
+
 func (r *run) checkConfig(port int) {
 	r.t.Helper()
 	for file, want := range r.e.Test.Config {

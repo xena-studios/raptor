@@ -144,9 +144,14 @@ func (c *Client) Stats(ctx context.Context, id string) (containers.Stats, error)
 	if cache := s.MemoryStats.Stats["inactive_file"]; cache < mem {
 		mem -= cache
 	}
-	return containers.Stats{
+	out := containers.Stats{
 		Time:        s.Read,
 		CPUNanos:    s.CPUStats.CPUUsage.TotalUsage,
 		MemoryBytes: int64(min(mem, math.MaxInt64)), //nolint:gosec // bounded above
-	}, nil
+	}
+	for _, n := range s.Networks {
+		out.RxBytes += n.RxBytes
+		out.TxBytes += n.TxBytes
+	}
+	return out, nil
 }

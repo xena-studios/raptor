@@ -28,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
+	"github.com/xena-studios/raptor/internal/wings/metrics"
 	"github.com/xena-studios/raptor/internal/wings/notify"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
@@ -179,6 +180,9 @@ type runtimeSetup struct {
 	sched          *schedule.Scheduler
 	backups        *backup.Manager
 	files          *files.Service
+	metrics        *metrics.Collector
+	stopMetrics    context.CancelFunc
+	metricsDone    chan struct{}
 	sftp           *sftp.Service
 	sftpKey        ssh.Signer
 	sftpKeys       *sftp.KeyCache
@@ -221,7 +225,24 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 
 // close stops schedules and jobs (running installs and schedule runs resume
 // on the next start) and detaches from servers without stopping them.
+// startMetrics samples every server's resources for local history
+// (docs/WINGS.md#local-metrics).
+func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
+	r.metrics = &metrics.Collector{Servers: mgr, DB: r.db, Log: r.log}
+	ctx, cancel := context.WithCancel(context.Background())
+	r.stopMetrics, r.metricsDone = cancel, make(chan struct{})
+	go func() {
+		defer close(r.metricsDone)
+		r.metrics.Run(ctx)
+	}()
+	r.svc.SetMetrics(r.metrics)
+}
+
 func (r *runtimeSetup) close() {
+	if r.stopMetrics != nil {
+		r.stopMetrics() // writes the minutes in progress
+		<-r.metricsDone
+	}
 	if r.sftp != nil {
 		r.stopSFTPEvents()
 		r.sftp.Close()
@@ -430,6 +451,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.backups = bk
 	r.files = fsvc
 	r.sftp = r.startSFTP(ctx, mgr, uid, gid)
+	r.startMetrics(mgr)
 	r.svc.SetSFTP(r.sftp)
 	r.servers = mgr
 	r.svc.SetServers(mgr)
