@@ -50,6 +50,8 @@ func (x *Executor) keyHandlers() map[string]Handler {
 			}
 			return nil, AddKey(ctx, x.DB, p, e.Signature.CredentialID, x.now())
 		}},
+		// Pairing proves possession of the new key instead (see pair).
+		ActionKeysPair: {Signed: Never, Run: x.pair},
 		ActionKeysRemove: {Signed: Always, Run: func(ctx context.Context, e Envelope) (any, error) {
 			var p RemoveKeyParams
 			if err := json.Unmarshal(e.Params, &p); err != nil {
@@ -64,6 +66,11 @@ func (x *Executor) keyHandlers() map[string]Handler {
 // addition, or nil when root pins a key locally (enrollment, `raptor keys
 // reset`).
 func AddKey(ctx context.Context, db *store.DB, p KeyParams, addedBy []byte, now time.Time) error {
+	return db.WriteTx(ctx, func(q *store.Queries) error { return addKey(ctx, q, p, addedBy, now) })
+}
+
+// validateKey checks a key before it's trusted.
+func validateKey(p KeyParams) error {
 	if len(p.CredentialID) == 0 || len(p.CredentialID) > 1023 || p.UserID == "" {
 		return errors.New("key needs a credential ID and a user")
 	}
@@ -85,6 +92,13 @@ func AddKey(ctx context.Context, db *store.DB, p KeyParams, addedBy []byte, now 
 	default:
 		return fmt.Errorf("unknown role %q", p.Role)
 	}
+	return nil
+}
+
+func addKey(ctx context.Context, q *store.Queries, p KeyParams, addedBy []byte, now time.Time) error {
+	if err := validateKey(p); err != nil {
+		return err
+	}
 	actions, _ := json.Marshal(p.Actions)
 	if p.Actions == nil {
 		actions = []byte("[]")
@@ -93,7 +107,7 @@ func AddKey(ctx context.Context, db *store.DB, p KeyParams, addedBy []byte, now 
 	if p.ExpiresAt > 0 {
 		exp = sql.NullInt64{Int64: p.ExpiresAt * 1000, Valid: true}
 	}
-	return db.Write.InsertTrustedKey(ctx, store.InsertTrustedKeyParams{
+	return q.InsertTrustedKey(ctx, store.InsertTrustedKeyParams{
 		CredentialID: p.CredentialID, UserID: p.UserID, PublicKey: p.PublicKey, Role: p.Role,
 		ServerID: p.ServerID, Actions: string(actions), Name: p.Name, ExpiresAt: exp,
 		AddedBy: addedBy, AddedAt: now.UnixMilli(),

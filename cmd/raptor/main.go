@@ -45,6 +45,11 @@ commands:
   storage status|setup|grow
               show, create, or enlarge the server data volume (root for
               setup and grow)
+  keys list | keys reset
+              passkeys trusted for signed actions; reset re-pairs the
+              owner's passkey from the box (root)
+  audit [-n N] [-since 72h]
+              signed actions and key resets, from the node's own records
   doctor [-json] [-bundle]
               check the node and say how to fix what's wrong (as root);
               -bundle writes a redacted diagnostics file for support
@@ -92,6 +97,10 @@ func run(args []string) error {
 		return storageCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "doctor":
 		return doctorCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "keys":
+		return keysCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "audit":
+		return auditCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
 		return wingsRun(ctx, args[2:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "backup-worker":

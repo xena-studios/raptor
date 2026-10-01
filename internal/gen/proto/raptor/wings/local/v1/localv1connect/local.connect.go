@@ -62,6 +62,22 @@ const (
 	LocalServiceRestoreBackupProcedure = "/raptor.wings.local.v1.LocalService/RestoreBackup"
 	// LocalServiceUpdateProcedure is the fully-qualified name of the LocalService's Update RPC.
 	LocalServiceUpdateProcedure = "/raptor.wings.local.v1.LocalService/Update"
+	// LocalServiceListKeysProcedure is the fully-qualified name of the LocalService's ListKeys RPC.
+	LocalServiceListKeysProcedure = "/raptor.wings.local.v1.LocalService/ListKeys"
+	// LocalServiceListAuditProcedure is the fully-qualified name of the LocalService's ListAudit RPC.
+	LocalServiceListAuditProcedure = "/raptor.wings.local.v1.LocalService/ListAudit"
+	// LocalServiceStartKeyResetProcedure is the fully-qualified name of the LocalService's
+	// StartKeyReset RPC.
+	LocalServiceStartKeyResetProcedure = "/raptor.wings.local.v1.LocalService/StartKeyReset"
+	// LocalServiceGetKeyResetProcedure is the fully-qualified name of the LocalService's GetKeyReset
+	// RPC.
+	LocalServiceGetKeyResetProcedure = "/raptor.wings.local.v1.LocalService/GetKeyReset"
+	// LocalServiceConfirmKeyResetProcedure is the fully-qualified name of the LocalService's
+	// ConfirmKeyReset RPC.
+	LocalServiceConfirmKeyResetProcedure = "/raptor.wings.local.v1.LocalService/ConfirmKeyReset"
+	// LocalServiceCancelKeyResetProcedure is the fully-qualified name of the LocalService's
+	// CancelKeyReset RPC.
+	LocalServiceCancelKeyResetProcedure = "/raptor.wings.local.v1.LocalService/CancelKeyReset"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
@@ -103,6 +119,24 @@ type LocalServiceClient interface {
 	// before the restart: GetStatus reports how the update went. Checking is
 	// open to the raptor group; installing is root only.
 	Update(context.Context, *v1.UpdateRequest) (*v1.UpdateResponse, error)
+	// ListKeys lists the passkeys this node trusts for signed actions, and
+	// delegations.
+	ListKeys(context.Context, *v1.ListKeysRequest) (*v1.ListKeysResponse, error)
+	// ListAudit lists signed dangerous actions (run or rejected) and key
+	// resets, newest first, from the node's own records.
+	ListAudit(context.Context, *v1.ListAuditRequest) (*v1.ListAuditResponse, error)
+	// StartKeyReset begins re-pairing the node's owner passkey: it returns a
+	// one-time code for the owner to enter in the Panel. Nothing changes until
+	// ConfirmKeyReset. Root only.
+	StartKeyReset(context.Context, *v1.StartKeyResetRequest) (*v1.StartKeyResetResponse, error)
+	// GetKeyReset reports a key reset's state: waiting for the Panel, or a
+	// key waiting for root to confirm its fingerprint. Root only.
+	GetKeyReset(context.Context, *v1.GetKeyResetRequest) (*v1.GetKeyResetResponse, error)
+	// ConfirmKeyReset pins the key that paired as the node's only owner key,
+	// removing every other trusted key and delegation. Root only.
+	ConfirmKeyReset(context.Context, *v1.ConfirmKeyResetRequest) (*v1.ConfirmKeyResetResponse, error)
+	// CancelKeyReset ends a key reset without changing any key. Root only.
+	CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -188,6 +222,44 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("Update")),
 			connect.WithClientOptions(opts...),
 		),
+		listKeys: connect.NewClient[v1.ListKeysRequest, v1.ListKeysResponse](
+			httpClient,
+			baseURL+LocalServiceListKeysProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ListKeys")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		listAudit: connect.NewClient[v1.ListAuditRequest, v1.ListAuditResponse](
+			httpClient,
+			baseURL+LocalServiceListAuditProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ListAudit")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		startKeyReset: connect.NewClient[v1.StartKeyResetRequest, v1.StartKeyResetResponse](
+			httpClient,
+			baseURL+LocalServiceStartKeyResetProcedure,
+			connect.WithSchema(localServiceMethods.ByName("StartKeyReset")),
+			connect.WithClientOptions(opts...),
+		),
+		getKeyReset: connect.NewClient[v1.GetKeyResetRequest, v1.GetKeyResetResponse](
+			httpClient,
+			baseURL+LocalServiceGetKeyResetProcedure,
+			connect.WithSchema(localServiceMethods.ByName("GetKeyReset")),
+			connect.WithClientOptions(opts...),
+		),
+		confirmKeyReset: connect.NewClient[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse](
+			httpClient,
+			baseURL+LocalServiceConfirmKeyResetProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ConfirmKeyReset")),
+			connect.WithClientOptions(opts...),
+		),
+		cancelKeyReset: connect.NewClient[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse](
+			httpClient,
+			baseURL+LocalServiceCancelKeyResetProcedure,
+			connect.WithSchema(localServiceMethods.ByName("CancelKeyReset")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -204,6 +276,12 @@ type localServiceClient struct {
 	createBackup    *connect.Client[v1.CreateBackupRequest, v1.CreateBackupResponse]
 	restoreBackup   *connect.Client[v1.RestoreBackupRequest, v1.RestoreBackupResponse]
 	update          *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
+	listKeys        *connect.Client[v1.ListKeysRequest, v1.ListKeysResponse]
+	listAudit       *connect.Client[v1.ListAuditRequest, v1.ListAuditResponse]
+	startKeyReset   *connect.Client[v1.StartKeyResetRequest, v1.StartKeyResetResponse]
+	getKeyReset     *connect.Client[v1.GetKeyResetRequest, v1.GetKeyResetResponse]
+	confirmKeyReset *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
+	cancelKeyReset  *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -297,6 +375,60 @@ func (c *localServiceClient) Update(ctx context.Context, req *v1.UpdateRequest) 
 	return nil, err
 }
 
+// ListKeys calls raptor.wings.local.v1.LocalService.ListKeys.
+func (c *localServiceClient) ListKeys(ctx context.Context, req *v1.ListKeysRequest) (*v1.ListKeysResponse, error) {
+	response, err := c.listKeys.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListAudit calls raptor.wings.local.v1.LocalService.ListAudit.
+func (c *localServiceClient) ListAudit(ctx context.Context, req *v1.ListAuditRequest) (*v1.ListAuditResponse, error) {
+	response, err := c.listAudit.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// StartKeyReset calls raptor.wings.local.v1.LocalService.StartKeyReset.
+func (c *localServiceClient) StartKeyReset(ctx context.Context, req *v1.StartKeyResetRequest) (*v1.StartKeyResetResponse, error) {
+	response, err := c.startKeyReset.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetKeyReset calls raptor.wings.local.v1.LocalService.GetKeyReset.
+func (c *localServiceClient) GetKeyReset(ctx context.Context, req *v1.GetKeyResetRequest) (*v1.GetKeyResetResponse, error) {
+	response, err := c.getKeyReset.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ConfirmKeyReset calls raptor.wings.local.v1.LocalService.ConfirmKeyReset.
+func (c *localServiceClient) ConfirmKeyReset(ctx context.Context, req *v1.ConfirmKeyResetRequest) (*v1.ConfirmKeyResetResponse, error) {
+	response, err := c.confirmKeyReset.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CancelKeyReset calls raptor.wings.local.v1.LocalService.CancelKeyReset.
+func (c *localServiceClient) CancelKeyReset(ctx context.Context, req *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error) {
+	response, err := c.cancelKeyReset.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
@@ -336,6 +468,24 @@ type LocalServiceHandler interface {
 	// before the restart: GetStatus reports how the update went. Checking is
 	// open to the raptor group; installing is root only.
 	Update(context.Context, *v1.UpdateRequest) (*v1.UpdateResponse, error)
+	// ListKeys lists the passkeys this node trusts for signed actions, and
+	// delegations.
+	ListKeys(context.Context, *v1.ListKeysRequest) (*v1.ListKeysResponse, error)
+	// ListAudit lists signed dangerous actions (run or rejected) and key
+	// resets, newest first, from the node's own records.
+	ListAudit(context.Context, *v1.ListAuditRequest) (*v1.ListAuditResponse, error)
+	// StartKeyReset begins re-pairing the node's owner passkey: it returns a
+	// one-time code for the owner to enter in the Panel. Nothing changes until
+	// ConfirmKeyReset. Root only.
+	StartKeyReset(context.Context, *v1.StartKeyResetRequest) (*v1.StartKeyResetResponse, error)
+	// GetKeyReset reports a key reset's state: waiting for the Panel, or a
+	// key waiting for root to confirm its fingerprint. Root only.
+	GetKeyReset(context.Context, *v1.GetKeyResetRequest) (*v1.GetKeyResetResponse, error)
+	// ConfirmKeyReset pins the key that paired as the node's only owner key,
+	// removing every other trusted key and delegation. Root only.
+	ConfirmKeyReset(context.Context, *v1.ConfirmKeyResetRequest) (*v1.ConfirmKeyResetResponse, error)
+	// CancelKeyReset ends a key reset without changing any key. Root only.
+	CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error)
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -417,6 +567,44 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("Update")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceListKeysHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceListKeysProcedure,
+		svc.ListKeys,
+		connect.WithSchema(localServiceMethods.ByName("ListKeys")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceListAuditHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceListAuditProcedure,
+		svc.ListAudit,
+		connect.WithSchema(localServiceMethods.ByName("ListAudit")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceStartKeyResetHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceStartKeyResetProcedure,
+		svc.StartKeyReset,
+		connect.WithSchema(localServiceMethods.ByName("StartKeyReset")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceGetKeyResetHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceGetKeyResetProcedure,
+		svc.GetKeyReset,
+		connect.WithSchema(localServiceMethods.ByName("GetKeyReset")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceConfirmKeyResetHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceConfirmKeyResetProcedure,
+		svc.ConfirmKeyReset,
+		connect.WithSchema(localServiceMethods.ByName("ConfirmKeyReset")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceCancelKeyResetHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceCancelKeyResetProcedure,
+		svc.CancelKeyReset,
+		connect.WithSchema(localServiceMethods.ByName("CancelKeyReset")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
@@ -441,6 +629,18 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceRestoreBackupHandler.ServeHTTP(w, r)
 		case LocalServiceUpdateProcedure:
 			localServiceUpdateHandler.ServeHTTP(w, r)
+		case LocalServiceListKeysProcedure:
+			localServiceListKeysHandler.ServeHTTP(w, r)
+		case LocalServiceListAuditProcedure:
+			localServiceListAuditHandler.ServeHTTP(w, r)
+		case LocalServiceStartKeyResetProcedure:
+			localServiceStartKeyResetHandler.ServeHTTP(w, r)
+		case LocalServiceGetKeyResetProcedure:
+			localServiceGetKeyResetHandler.ServeHTTP(w, r)
+		case LocalServiceConfirmKeyResetProcedure:
+			localServiceConfirmKeyResetHandler.ServeHTTP(w, r)
+		case LocalServiceCancelKeyResetProcedure:
+			localServiceCancelKeyResetHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -492,4 +692,28 @@ func (UnimplementedLocalServiceHandler) RestoreBackup(context.Context, *v1.Resto
 
 func (UnimplementedLocalServiceHandler) Update(context.Context, *v1.UpdateRequest) (*v1.UpdateResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.Update is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ListKeys(context.Context, *v1.ListKeysRequest) (*v1.ListKeysResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ListKeys is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ListAudit(context.Context, *v1.ListAuditRequest) (*v1.ListAuditResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ListAudit is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) StartKeyReset(context.Context, *v1.StartKeyResetRequest) (*v1.StartKeyResetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.StartKeyReset is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) GetKeyReset(context.Context, *v1.GetKeyResetRequest) (*v1.GetKeyResetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.GetKeyReset is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ConfirmKeyReset(context.Context, *v1.ConfirmKeyResetRequest) (*v1.ConfirmKeyResetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ConfirmKeyReset is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.CancelKeyReset is not implemented"))
 }
