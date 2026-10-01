@@ -15,6 +15,20 @@ type Allocation struct {
 	IsPrimary int64
 }
 
+type AuditLog struct {
+	ID           int64
+	At           int64
+	CommandID    string
+	Action       string
+	ServerID     string
+	UserID       string
+	CredentialID []byte
+	KeyName      string
+	CommandHash  []byte
+	Outcome      string
+	Detail       string
+}
+
 type Backup struct {
 	ID            string
 	ServerID      string

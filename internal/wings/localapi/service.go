@@ -14,6 +14,7 @@ import (
 
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
+	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/server"
@@ -49,11 +50,12 @@ type Service struct {
 	Updates   Updates         // nil in tests
 	Disk      *host.DiskGuard // nil in tests
 
-	mu      sync.RWMutex
-	sftp    SFTP
-	servers Servers
-	backups Backups
-	jobs    Jobs
+	mu       sync.RWMutex
+	commands *command.Executor
+	sftp     SFTP
+	servers  Servers
+	backups  Backups
+	jobs     Jobs
 }
 
 // SFTP reports the node's SFTP server (*sftp.Service).

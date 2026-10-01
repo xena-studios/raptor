@@ -75,6 +75,12 @@ type Executor struct {
 	PanelKey ed25519.PublicKey // nil until the node is linked
 	Log      *slog.Logger
 	Now      func() time.Time
+	// Pairing is the key reset in progress (`raptor keys reset`), if any.
+	Pairing *Pairing
+	// OnAudit, if set, is called with every finished audit entry: signed
+	// commands (run or rejected), pairings, and key resets. Notifications
+	// send these straight from the node.
+	OnAudit func(AuditEntry)
 
 	handlers map[string]Handler
 }
@@ -109,12 +115,19 @@ func (x *Executor) log() *slog.Logger {
 
 // Start marks commands that were running when Wings stopped as failed.
 func (x *Executor) Start(ctx context.Context) error {
+	if _, err := x.DB.Write.InterruptedAudit(ctx); err != nil {
+		return err
+	}
 	_, err := x.DB.Write.InterruptedCommands(ctx, sql.NullInt64{Int64: x.now().UnixMilli(), Valid: true})
 	return err
 }
 
-// Prune forgets executed commands older than the retention window.
+// Prune forgets executed commands older than the retention window, and
+// audit entries older than a year.
 func (x *Executor) Prune(ctx context.Context) (int64, error) {
+	if _, err := x.DB.Write.PruneAudit(ctx, x.now().Add(-keepAudit).UnixMilli()); err != nil {
+		return 0, err
+	}
 	return x.DB.Write.PruneCommands(ctx, x.now().Add(-keepCommands).UnixMilli())
 }
 
@@ -177,7 +190,11 @@ func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 				return Result{}, err
 			}
 		}
+		// A signed command that fails its checks is recorded: a tampered
+		// or forged dangerous action gets noticed on the node even if the
+		// Panel hides it.
 		if err := x.checkSignature(ctx, e, hash, now, owner); err != nil {
+			x.audit(ctx, e, hash, AuditRejected, err.Error())
 			return Result{}, err
 		}
 		signer = e.Signature.CredentialID
@@ -205,7 +222,14 @@ func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 		return res, err
 	}
 
+	var auditID int64
+	if signed {
+		auditID = x.audit(ctx, e, hash, AuditRunning, "")
+	}
 	value, runErr := safeRun(ctx, h, e)
+	if signed {
+		x.finishAudit(ctx, auditID, runErr)
+	}
 	fin := store.FinishCommandParams{Status: "succeeded", FinishedAt: sql.NullInt64{Int64: x.now().UnixMilli(), Valid: true}, CommandID: e.CommandID}
 	var raw json.RawMessage
 	if runErr != nil {
