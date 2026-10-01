@@ -119,6 +119,21 @@ func ListAudit(ctx context.Context, db *store.DB, since time.Time, limit int) ([
 	return out, nil
 }
 
+// ListAuditAfter returns entries after an ID, oldest first (for
+// notifications, which keep a cursor).
+func ListAuditAfter(ctx context.Context, db *store.DB, after int64, limit int) ([]AuditEntry, error) {
+	rows, err := db.Write.ListAuditAfter(ctx, store.ListAuditAfterParams{ID: after, Limit: int64(limit)})
+	if err != nil {
+		return nil, err
+	}
+	fp := fingerprints(ctx, db)
+	out := make([]AuditEntry, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, auditEntry(r, fp))
+	}
+	return out, nil
+}
+
 // fingerprints maps trusted keys' credential IDs to their fingerprints.
 func fingerprints(ctx context.Context, db *store.DB) map[string]string {
 	fp := map[string]string{}

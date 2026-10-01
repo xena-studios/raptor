@@ -123,7 +123,7 @@ If the Panel simply told Wings which keys to trust, a compromised Panel would se
 - A **strict Content Security Policy** (no inline scripts, no third-party scripts, `script-src` limited to the app's own hashed bundles, Trusted Types).
 - **Reproducible builds:** each release publishes the bundle hashes, so anyone can check that the deployed app matches the public source.
 - **The domain accounts are part of this boundary:** whoever controls DNS or the static host controls the app. The registrar and Cloudflare accounts use hardware-key 2FA, the domains have registrar lock, and API tokens are scoped so the Panel servers can't change DNS or the web app.
-- **Alerts straight from the node:** Wings reports every signed dangerous action to the owner through a channel configured on the node (Discord webhook or email), not through the Panel, and `raptor audit` lists them from the node's own records. A tampered action gets noticed even if the Panel hides it.
+- **Alerts straight from the node:** Wings reports every signed dangerous action (including rejected attempts) to the owner through a channel configured on the node in `config.yml` (a Discord or generic webhook; see [WINGS.md](WINGS.md#notifications)), not through the Panel, and `raptor audit` lists them from the node's own records. A tampered action gets noticed even if the Panel hides it.
 
 Even if every one of these failed, each malicious action would still need a real person's passkey at that moment, bound to one command. That turns "one Panel breach controls every node" into "an attacker must trick specific users, one action at a time".
 

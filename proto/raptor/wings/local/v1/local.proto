@@ -96,6 +96,10 @@ service LocalService {
 
   // CancelKeyReset ends a key reset without changing any key. Root only.
   rpc CancelKeyReset(CancelKeyResetRequest) returns (CancelKeyResetResponse) {}
+
+  // TestNotifications sends a test message to every notification target in
+  // config.yml and reports how each went. Root only.
+  rpc TestNotifications(TestNotificationsRequest) returns (TestNotificationsResponse) {}
 }
 
 // Servers are named in requests by full ID, the last 8 or more characters of
@@ -448,3 +452,16 @@ message CancelKeyResetRequest {
 }
 
 message CancelKeyResetResponse {}
+
+message TestNotificationsRequest {}
+
+message TestNotificationsResponse {
+  repeated NotificationResult results = 1;
+}
+
+// NotificationResult is how a test message went for one target.
+message NotificationResult {
+  string target = 1;
+  // Empty if it was delivered.
+  string error = 2;
+}

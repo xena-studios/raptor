@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
+	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -31,7 +33,26 @@ type Config struct {
 	Storage  Storage  `yaml:"storage"`
 	Updates  Updates  `yaml:"updates"`
 	Log      Log      `yaml:"log"`
+	// Notifications are sent straight from the node (docs/WINGS.md#notifications).
+	// They're set here, on the box, and never by the Panel, so a compromised
+	// Panel can't silence alerts about signed actions.
+	Notifications []Notification `yaml:"notifications"`
 }
+
+// Notification is where to send notifications, and which.
+type Notification struct {
+	Name string `yaml:"name"` // shown in logs and raptor notifications test
+	Type string `yaml:"type"` // discord or webhook
+	URL  string `yaml:"url"`
+	// Secret signs webhook bodies (HMAC-SHA256 in X-Raptor-Signature).
+	Secret string `yaml:"secret"`
+	// Events are the categories to send (see NotificationCategories);
+	// empty = all of them.
+	Events []string `yaml:"events"`
+}
+
+// NotificationCategories are what notifications can be about.
+var NotificationCategories = []string{"security", "crash", "backup", "disk", "install", "update"}
 
 // Panel is where Wings connects (a WebSocket to the Panel URL). Never
 // hardcoded in Wings.
@@ -208,8 +229,42 @@ func (c Config) Validate() error {
 			errs = append(errs, fmt.Errorf("docker.install_allow %q: want a CIDR like 192.168.1.10/32", v))
 		}
 	}
+	for i, n := range c.Notifications {
+		errs = append(errs, n.validate(i))
+	}
 	if c.Docker.Network == "" || c.Docker.InstallNetwork == "" || c.Docker.Network == c.Docker.InstallNetwork {
 		errs = append(errs, errors.New("docker: network and install_network must be set and different"))
+	}
+	return errors.Join(errs...)
+}
+
+func (n Notification) validate(i int) error {
+	name := fmt.Sprintf("notifications[%d]", i)
+	if n.Name != "" {
+		name += " (" + n.Name + ")"
+	}
+	var errs []error
+	u, err := url.Parse(n.URL)
+	switch {
+	case err != nil || u.Host == "":
+		errs = append(errs, fmt.Errorf("%s: url %q isn't a URL", name, n.URL))
+	case n.Type == "discord" && (u.Scheme != "https" || (u.Hostname() != "discord.com" && u.Hostname() != "discordapp.com")):
+		errs = append(errs, fmt.Errorf("%s: a Discord webhook URL starts with https://discord.com/api/webhooks/", name))
+	case n.Type == "webhook" && u.Scheme != "https" && u.Scheme != "http":
+		errs = append(errs, fmt.Errorf("%s: url must be http or https", name))
+	}
+	switch n.Type {
+	case "discord", "webhook":
+	default:
+		errs = append(errs, fmt.Errorf("%s: type %q: want discord or webhook", name, n.Type))
+	}
+	if n.Secret != "" && n.Type != "webhook" {
+		errs = append(errs, fmt.Errorf("%s: secret is only for webhooks", name))
+	}
+	for _, e := range n.Events {
+		if !slices.Contains(NotificationCategories, e) {
+			errs = append(errs, fmt.Errorf("%s: event %q: want one of %s", name, e, strings.Join(NotificationCategories, ", ")))
+		}
 	}
 	return errors.Join(errs...)
 }

@@ -209,3 +209,30 @@ func printProtoJSON(m proto.Message) error {
 	_, err = fmt.Println(string(b))
 	return err
 }
+
+func notificationsCmd(ctx context.Context, args []string) error {
+	if len(args) == 0 || args[0] != "test" {
+		return errors.New("usage: raptor notifications test")
+	}
+	c, _, err := dial("notifications test", args[1:], nil)
+	if err != nil {
+		return err
+	}
+	res, err := c.TestNotifications(ctx, &localv1.TestNotificationsRequest{})
+	if err != nil {
+		return rpcErr(err)
+	}
+	failed := 0
+	for _, r := range res.GetResults() {
+		if r.GetError() == "" {
+			fmt.Printf("✓ %s: delivered\n", r.GetTarget())
+		} else {
+			failed++
+			fmt.Printf("✗ %s: %s\n", r.GetTarget(), r.GetError())
+		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("%d of %d targets failed", failed, len(res.GetResults()))
+	}
+	return nil
+}

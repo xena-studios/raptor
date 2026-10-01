@@ -43,7 +43,7 @@ func doctorCmd(ctx context.Context, args []string) error {
 		cfg = config.Default()
 	}
 	e := &doctor.Env{
-		Config: cfg, ConfigErr: cfgErr,
+		Config: cfg, ConfigPath: *path, ConfigErr: cfgErr,
 		System:      doctor.OS{SpaceFunc: storage.Space},
 		VolumeCheck: (&storage.Volume{Path: cfg.Paths.Volumes, Soft: !cfg.Storage.Quotas}).Check,
 		Firewall:    firewall.Present,

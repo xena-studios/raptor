@@ -131,6 +131,13 @@ func checkConfig(_ context.Context, e *Env) []Result {
 			"Wings won't start with a config file it can't read.",
 			"Fix the file (see docs/WINGS.md#config-file) and run raptor doctor again.")
 	}
+	if len(e.Config.Notifications) > 0 && e.ConfigPath != "" {
+		if fi, err := e.System.Stat(e.ConfigPath); err == nil && fi != nil && fi.Mode().Perm()&0o077 != 0 {
+			return warn(fmt.Sprintf("valid, but other users can read it (%v)", fi.Mode().Perm()),
+				"It holds notification webhook URLs and secrets: anyone with a Discord webhook URL can post to the channel.",
+				"chmod 600 "+e.ConfigPath)
+		}
+	}
 	return pass("valid")
 }
 

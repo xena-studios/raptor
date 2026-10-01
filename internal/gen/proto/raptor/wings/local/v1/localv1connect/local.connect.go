@@ -78,6 +78,9 @@ const (
 	// LocalServiceCancelKeyResetProcedure is the fully-qualified name of the LocalService's
 	// CancelKeyReset RPC.
 	LocalServiceCancelKeyResetProcedure = "/raptor.wings.local.v1.LocalService/CancelKeyReset"
+	// LocalServiceTestNotificationsProcedure is the fully-qualified name of the LocalService's
+	// TestNotifications RPC.
+	LocalServiceTestNotificationsProcedure = "/raptor.wings.local.v1.LocalService/TestNotifications"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
@@ -137,6 +140,9 @@ type LocalServiceClient interface {
 	ConfirmKeyReset(context.Context, *v1.ConfirmKeyResetRequest) (*v1.ConfirmKeyResetResponse, error)
 	// CancelKeyReset ends a key reset without changing any key. Root only.
 	CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error)
+	// TestNotifications sends a test message to every notification target in
+	// config.yml and reports how each went. Root only.
+	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -260,28 +266,35 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("CancelKeyReset")),
 			connect.WithClientOptions(opts...),
 		),
+		testNotifications: connect.NewClient[v1.TestNotificationsRequest, v1.TestNotificationsResponse](
+			httpClient,
+			baseURL+LocalServiceTestNotificationsProcedure,
+			connect.WithSchema(localServiceMethods.ByName("TestNotifications")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // localServiceClient implements LocalServiceClient.
 type localServiceClient struct {
-	getStatus       *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	shutdownServers *connect.Client[v1.ShutdownServersRequest, v1.ShutdownServersResponse]
-	listServers     *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
-	power           *connect.Client[v1.PowerRequest, v1.PowerResponse]
-	streamConsole   *connect.Client[v1.StreamConsoleRequest, v1.StreamConsoleResponse]
-	sendCommand     *connect.Client[v1.SendCommandRequest, v1.SendCommandResponse]
-	tailLogs        *connect.Client[v1.TailLogsRequest, v1.TailLogsResponse]
-	listBackups     *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
-	createBackup    *connect.Client[v1.CreateBackupRequest, v1.CreateBackupResponse]
-	restoreBackup   *connect.Client[v1.RestoreBackupRequest, v1.RestoreBackupResponse]
-	update          *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
-	listKeys        *connect.Client[v1.ListKeysRequest, v1.ListKeysResponse]
-	listAudit       *connect.Client[v1.ListAuditRequest, v1.ListAuditResponse]
-	startKeyReset   *connect.Client[v1.StartKeyResetRequest, v1.StartKeyResetResponse]
-	getKeyReset     *connect.Client[v1.GetKeyResetRequest, v1.GetKeyResetResponse]
-	confirmKeyReset *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
-	cancelKeyReset  *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
+	getStatus         *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	shutdownServers   *connect.Client[v1.ShutdownServersRequest, v1.ShutdownServersResponse]
+	listServers       *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
+	power             *connect.Client[v1.PowerRequest, v1.PowerResponse]
+	streamConsole     *connect.Client[v1.StreamConsoleRequest, v1.StreamConsoleResponse]
+	sendCommand       *connect.Client[v1.SendCommandRequest, v1.SendCommandResponse]
+	tailLogs          *connect.Client[v1.TailLogsRequest, v1.TailLogsResponse]
+	listBackups       *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
+	createBackup      *connect.Client[v1.CreateBackupRequest, v1.CreateBackupResponse]
+	restoreBackup     *connect.Client[v1.RestoreBackupRequest, v1.RestoreBackupResponse]
+	update            *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
+	listKeys          *connect.Client[v1.ListKeysRequest, v1.ListKeysResponse]
+	listAudit         *connect.Client[v1.ListAuditRequest, v1.ListAuditResponse]
+	startKeyReset     *connect.Client[v1.StartKeyResetRequest, v1.StartKeyResetResponse]
+	getKeyReset       *connect.Client[v1.GetKeyResetRequest, v1.GetKeyResetResponse]
+	confirmKeyReset   *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
+	cancelKeyReset    *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
+	testNotifications *connect.Client[v1.TestNotificationsRequest, v1.TestNotificationsResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -429,6 +442,15 @@ func (c *localServiceClient) CancelKeyReset(ctx context.Context, req *v1.CancelK
 	return nil, err
 }
 
+// TestNotifications calls raptor.wings.local.v1.LocalService.TestNotifications.
+func (c *localServiceClient) TestNotifications(ctx context.Context, req *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {
+	response, err := c.testNotifications.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
@@ -486,6 +508,9 @@ type LocalServiceHandler interface {
 	ConfirmKeyReset(context.Context, *v1.ConfirmKeyResetRequest) (*v1.ConfirmKeyResetResponse, error)
 	// CancelKeyReset ends a key reset without changing any key. Root only.
 	CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error)
+	// TestNotifications sends a test message to every notification target in
+	// config.yml and reports how each went. Root only.
+	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -605,6 +630,12 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("CancelKeyReset")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceTestNotificationsHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceTestNotificationsProcedure,
+		svc.TestNotifications,
+		connect.WithSchema(localServiceMethods.ByName("TestNotifications")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
@@ -641,6 +672,8 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceConfirmKeyResetHandler.ServeHTTP(w, r)
 		case LocalServiceCancelKeyResetProcedure:
 			localServiceCancelKeyResetHandler.ServeHTTP(w, r)
+		case LocalServiceTestNotificationsProcedure:
+			localServiceTestNotificationsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -716,4 +749,8 @@ func (UnimplementedLocalServiceHandler) ConfirmKeyReset(context.Context, *v1.Con
 
 func (UnimplementedLocalServiceHandler) CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.CancelKeyReset is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.TestNotifications is not implemented"))
 }
