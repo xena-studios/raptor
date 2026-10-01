@@ -23,12 +23,14 @@ import (
 )
 
 // soakEgg starts by itself (the yolk runs its startup, which prints the done
-// line), so a scheduled restart needs no one at the console, like a real
-// game.
+// line), so a scheduled restart needs no one at the console. It stops with
+// SIGKILL: the yolk's entrypoint is PID 1, which ignores SIGINT and
+// SIGTERM, so a gentler signal would make every restart wait out the stop
+// timeout.
 const soakEgg = `{
 	"meta": {"version": "PTDL_v2"}, "name": "Soak",
 	"docker_images": {"Debian": "ghcr.io/pterodactyl/yolks:debian"}, "startup": "tail -n +1 -f ready.txt",
-	"config": {"files": "{}", "startup": "{\"done\": \"READY\"}", "stop": "^C"},
+	"config": {"files": "{}", "startup": "{\"done\": \"READY\"}", "stop": "^KILL"},
 	"scripts": {"installation": {"script": "echo READY > /mnt/server/ready.txt", "container": "busybox:1", "entrypoint": "sh"}},
 	"variables": []
 }`

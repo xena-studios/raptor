@@ -62,8 +62,10 @@ report)
 		# Container (re)starts the monitor saw, after the first.
 		starts=$(grep " $id true " "$D/monitor.log" | awk '{print $4}' | uniq | wc -l)
 		observed=$((starts > 0 ? starts - 1 : 0))
-		# Restarts the server's schedule asked for (power actions by schedule:).
-		scheduled=$(grep '"event":"server.power"' <<<"$journal" | grep "\"server\":\"$id\"" | grep -c '"user":"schedule:' || true)
+		# Restarts the server's schedule asked for: its Restart schedule's runs
+		# (not power actions: a run resumed after a Wings restart repeats one
+		# that hadn't finished).
+		scheduled=$(grep '"msg":"schedule fired"' <<<"$journal" | grep "\"server\":\"$id\"" | grep -c '"name":"Restart"' || true)
 		backups=$(raptor backup list "$id" 2>/dev/null | awk 'NR>1')
 		ok=$(grep -c ' ok ' <<<"$backups" || true)
 		bad=$(grep -c ' failed ' <<<"$backups" || true)
