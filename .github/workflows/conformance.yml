@@ -97,7 +97,7 @@ jobs:
       - name: Start Pterodactyl
         run: sudo bash scripts/pterodactyl/setup.sh internal/wings/conformance/testdata/*.json
       - name: Compare
-        run: sudo /tmp/conformance-e2e -test.v -test.timeout 50m -test.run 'TestPterodactylDiff'
+        run: sudo /tmp/conformance-e2e -test.v -test.timeout 50m -test.run 'TestPterodactylDiff|TestPterodactylImport'
         working-directory: internal/wings/conformance
 
   slow:

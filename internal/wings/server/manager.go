@@ -318,6 +318,10 @@ func (m *Manager) List() map[string]State {
 // CreateOptions control what happens after a server is created.
 type CreateOptions struct {
 	StartAfterInstall bool
+	// Import, if set, fills the new server's directory instead of the
+	// egg's install script (a server moved from another panel): the server
+	// is created installed. If it fails, the server is removed again.
+	Import func(ctx context.Context, dir string) error
 	// InTx, if set, runs in the transaction that stores the server, so what
 	// it adds (the default backup schedule) exists with it or not at all.
 	InTx func(ctx context.Context, q *store.Queries, id string) error
@@ -367,6 +371,9 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 				return err
 			}
 		}
+		if opts.Import != nil {
+			return nil
+		}
 		_, err := m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobInstall, ServerID: sid, Payload: installPayload{StartAfter: opts.StartAfterInstall}})
 		return err
 	})
@@ -379,8 +386,47 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 	m.servers[sid] = i
 	m.mu.Unlock()
 	m.emit(created)
+	if opts.Import != nil {
+		if err := m.importFiles(ctx, i, opts.Import); err != nil {
+			if derr := m.Delete(context.WithoutCancel(ctx), sid); derr != nil {
+				m.log.Error("removing a server whose import failed", "server", sid, "err", derr)
+			}
+			return "", fmt.Errorf("import: %w", err)
+		}
+		return sid, nil
+	}
 	m.o.Jobs.Wake()
 	return sid, nil
+}
+
+// importFiles prepares an imported server's storage, fills it, and marks
+// it installed. The server stays Installing meanwhile, so nothing else
+// touches its files.
+func (m *Manager) importFiles(ctx context.Context, i *instance, fill func(ctx context.Context, dir string) error) error {
+	i.power.Lock()
+	defer i.power.Unlock()
+	srv, err := m.Get(ctx, i.id)
+	if err != nil {
+		return err
+	}
+	if err := m.prepareStorage(ctx, srv); err != nil {
+		return fmt.Errorf("prepare storage: %w", err)
+	}
+	dir, err := m.serverDir(i.id)
+	if err != nil {
+		return err
+	}
+	i.console.Notice("importing files")
+	if err := fill(ctx, dir); err != nil {
+		return err
+	}
+	if err := m.o.Store.Write.SetInstallState(ctx, store.SetInstallStateParams{InstallState: installInstalled, ID: i.id}); err != nil {
+		return err
+	}
+	i.setState(Offline)
+	i.console.Notice("imported")
+	m.publish(EventInstallDone, i.id, srv.Version, map[string]any{"imported": true})
+	return nil
 }
 
 // Update changes a server's configuration. It's applied on the next start.

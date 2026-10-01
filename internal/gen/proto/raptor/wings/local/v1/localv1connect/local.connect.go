@@ -81,6 +81,9 @@ const (
 	// LocalServiceTestNotificationsProcedure is the fully-qualified name of the LocalService's
 	// TestNotifications RPC.
 	LocalServiceTestNotificationsProcedure = "/raptor.wings.local.v1.LocalService/TestNotifications"
+	// LocalServiceImportServerProcedure is the fully-qualified name of the LocalService's ImportServer
+	// RPC.
+	LocalServiceImportServerProcedure = "/raptor.wings.local.v1.LocalService/ImportServer"
 	// LocalServiceGetMetricsProcedure is the fully-qualified name of the LocalService's GetMetrics RPC.
 	LocalServiceGetMetricsProcedure = "/raptor.wings.local.v1.LocalService/GetMetrics"
 )
@@ -145,6 +148,10 @@ type LocalServiceClient interface {
 	// TestNotifications sends a test message to every notification target in
 	// config.yml and reports how each went. Root only.
 	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
+	// ImportServer creates a server from another panel's (raptor import):
+	// its configuration, and a copy of its directory. The original is left
+	// as it was. Root only.
+	ImportServer(context.Context, *v1.ImportServerRequest) (*v1.ImportServerResponse, error)
 	// GetMetrics returns a server's resource history and its latest sample.
 	GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error)
 }
@@ -276,6 +283,12 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("TestNotifications")),
 			connect.WithClientOptions(opts...),
 		),
+		importServer: connect.NewClient[v1.ImportServerRequest, v1.ImportServerResponse](
+			httpClient,
+			baseURL+LocalServiceImportServerProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ImportServer")),
+			connect.WithClientOptions(opts...),
+		),
 		getMetrics: connect.NewClient[v1.GetMetricsRequest, v1.GetMetricsResponse](
 			httpClient,
 			baseURL+LocalServiceGetMetricsProcedure,
@@ -306,6 +319,7 @@ type localServiceClient struct {
 	confirmKeyReset   *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
 	cancelKeyReset    *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
 	testNotifications *connect.Client[v1.TestNotificationsRequest, v1.TestNotificationsResponse]
+	importServer      *connect.Client[v1.ImportServerRequest, v1.ImportServerResponse]
 	getMetrics        *connect.Client[v1.GetMetricsRequest, v1.GetMetricsResponse]
 }
 
@@ -463,6 +477,15 @@ func (c *localServiceClient) TestNotifications(ctx context.Context, req *v1.Test
 	return nil, err
 }
 
+// ImportServer calls raptor.wings.local.v1.LocalService.ImportServer.
+func (c *localServiceClient) ImportServer(ctx context.Context, req *v1.ImportServerRequest) (*v1.ImportServerResponse, error) {
+	response, err := c.importServer.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // GetMetrics calls raptor.wings.local.v1.LocalService.GetMetrics.
 func (c *localServiceClient) GetMetrics(ctx context.Context, req *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error) {
 	response, err := c.getMetrics.CallUnary(ctx, connect.NewRequest(req))
@@ -532,6 +555,10 @@ type LocalServiceHandler interface {
 	// TestNotifications sends a test message to every notification target in
 	// config.yml and reports how each went. Root only.
 	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
+	// ImportServer creates a server from another panel's (raptor import):
+	// its configuration, and a copy of its directory. The original is left
+	// as it was. Root only.
+	ImportServer(context.Context, *v1.ImportServerRequest) (*v1.ImportServerResponse, error)
 	// GetMetrics returns a server's resource history and its latest sample.
 	GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error)
 }
@@ -659,6 +686,12 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("TestNotifications")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceImportServerHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceImportServerProcedure,
+		svc.ImportServer,
+		connect.WithSchema(localServiceMethods.ByName("ImportServer")),
+		connect.WithHandlerOptions(opts...),
+	)
 	localServiceGetMetricsHandler := connect.NewUnaryHandlerSimple(
 		LocalServiceGetMetricsProcedure,
 		svc.GetMetrics,
@@ -704,6 +737,8 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceCancelKeyResetHandler.ServeHTTP(w, r)
 		case LocalServiceTestNotificationsProcedure:
 			localServiceTestNotificationsHandler.ServeHTTP(w, r)
+		case LocalServiceImportServerProcedure:
+			localServiceImportServerHandler.ServeHTTP(w, r)
 		case LocalServiceGetMetricsProcedure:
 			localServiceGetMetricsHandler.ServeHTTP(w, r)
 		default:
@@ -785,6 +820,10 @@ func (UnimplementedLocalServiceHandler) CancelKeyReset(context.Context, *v1.Canc
 
 func (UnimplementedLocalServiceHandler) TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.TestNotifications is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ImportServer(context.Context, *v1.ImportServerRequest) (*v1.ImportServerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ImportServer is not implemented"))
 }
 
 func (UnimplementedLocalServiceHandler) GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error) {

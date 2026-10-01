@@ -50,6 +50,9 @@ commands:
               owner's passkey from the box (root)
   audit [-n N] [-since 72h]
               signed actions and key resets, from the node's own records
+  import pterodactyl -key <ptla_…> [-server s] [-dry-run] [-start]
+              move servers from Pterodactyl on this box (root); their
+              files are copied, Pterodactyl's are left as they were
   tui         a terminal view of the servers: stats, console, power and
               backup keys (actions as root)
   notifications test
@@ -105,6 +108,8 @@ func run(args []string) error {
 		return keysCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "audit":
 		return auditCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "import":
+		return importCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "tui":
 		return tuiCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "notifications":

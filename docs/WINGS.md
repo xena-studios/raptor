@@ -372,7 +372,7 @@ raptor uninstall [--wipe-data]
 raptor tui                            servers, stats, history graphs, console; power, backup, and command keys (root)
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` with the Panel), `keys`, `audit`, `notifications test`, and `tui` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` with the Panel), `keys`, `audit`, `notifications test`, `tui`, and `import pterodactyl` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
@@ -384,7 +384,7 @@ Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, `Update`, `ListKeys`, `ListAudit`, the key reset (`StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset`), `TestNotifications`, and `GetMetrics`. `doctor` runs in the CLI itself rather than through the API, so it works while Wings is down. The full planned set:
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, `Update`, `ListKeys`, `ListAudit`, the key reset (`StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset`), `TestNotifications`, `GetMetrics`, and `ImportServer`. `doctor` runs in the CLI itself rather than through the API, so it works while Wings is down. The full planned set:
 
 | Method | Purpose |
 |---|---|
@@ -403,6 +403,7 @@ Methods are added to the proto as the features behind them are built, so the API
 | `ListKeys`, `ListAudit` | Trusted passkeys and delegations; signed actions and key resets (for the `raptor` group) |
 | `TestNotifications` | A test message to every notification target (root only) |
 | `GetMetrics` | A server's resource history and latest sample (for the `raptor` group) |
+| `ImportServer` | A server from another panel, its files copied in (root only) |
 | `StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset` | Re-pairing the owner's passkey from the box (root only) |
 
 - **Access:** Unix socket permissions: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens. Members of the `raptor` group can **look** (status, `ps`, console output, logs); anything that changes a server (power actions, console commands, shutting servers down) needs **root**, checked by Wings from the caller's Unix user.
@@ -445,7 +446,8 @@ Methods are added to the proto as the features behind them are built, so the API
 
 ## Pterodactyl import
 
-`raptor import pterodactyl`:
-1. Reads `/etc/pterodactyl/config.yml` and the Pterodactyl Panel's server list (via the owner's Pterodactyl API key).
-2. For each server: stop in Pterodactyl → move files (same filesystem) or copy into Raptor's volume → create in Raptor with the same egg, variables, and allocation → start → verify.
-3. After the last server, offer to disable `wings.service`. **Never deletes** Pterodactyl's config or data.
+`raptor import pterodactyl -key <ptla_…>` (root) moves servers from Pterodactyl on the same box:
+1. Reads `/etc/pterodactyl/config.yml` (this node's UUID, Wings' token and API port, the data directory, the Panel's URL), finds the node in the Pterodactyl Panel, and lists its servers through the Panel's application API, with the owner's application key (`-key`, or `$RAPTOR_PTERODACTYL_KEY`; never stored). `-server` picks servers (UUID, short ID, or name); `-dry-run` only lists.
+2. For each server: rebuild its egg as a PTDL_v2 file from the API (with what it inherits from its parent egg), stop it through Pterodactyl's Wings (killed after 2 minutes), then `ImportServer` on the local socket: Wings creates it **installed** (the install script doesn't run) with the same egg, image, startup, variables, limits, and allocations, and **copies** its directory in through `os.Root` (links kept as links, special files skipped, setuid dropped, everything owned by the servers' user). If the copy fails, the half-made server is removed. `-start` starts it afterwards.
+3. The server is then **suspended** in Pterodactyl, so it isn't started there again by mistake (`-no-suspend` skips this; unsuspending it in Pterodactyl undoes it). Pterodactyl's config and files are **never changed or deleted**: copying rather than moving keeps the way back open, at the cost of the disk space until the owner removes the originals. At the end it says how to stop Pterodactyl's Wings.
+- Raptor and Pterodactyl coexist on one box (#26): separate networks, ports, labels, and unit names; Raptor never lists or touches containers without its label. `TestPterodactylImport` (in the CI Pterodactyl job) runs a server in the real Pterodactyl beside one in Raptor, restarts Raptor and checks Pterodactyl's server wasn't touched, then imports it and starts it in Raptor on its original port.

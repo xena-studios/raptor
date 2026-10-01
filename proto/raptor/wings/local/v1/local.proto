@@ -101,6 +101,11 @@ service LocalService {
   // config.yml and reports how each went. Root only.
   rpc TestNotifications(TestNotificationsRequest) returns (TestNotificationsResponse) {}
 
+  // ImportServer creates a server from another panel's (raptor import):
+  // its configuration, and a copy of its directory. The original is left
+  // as it was. Root only.
+  rpc ImportServer(ImportServerRequest) returns (ImportServerResponse) {}
+
   // GetMetrics returns a server's resource history and its latest sample.
   rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
@@ -502,4 +507,44 @@ message MetricPoint {
   // Unset when the game isn't queried, or didn't answer.
   optional double players_avg = 11;
   optional int32 players_max = 12;
+}
+
+message ImportServerRequest {
+  string name = 1;
+  // The egg file (JSON or YAML).
+  bytes egg = 2;
+  // Where the egg came from, e.g. "pterodactyl:1/5".
+  string egg_source = 3;
+  string image = 4;
+  string startup = 5;
+  map<string, string> variables = 6;
+  ImportLimits limits = 7;
+  repeated ImportAllocation allocations = 8;
+  // The server's directory on this box, copied into Raptor's volume.
+  string source_dir = 9;
+}
+
+// ImportLimits are a server's limits; 0 = none.
+message ImportLimits {
+  int64 memory_mib = 1;
+  int64 swap_mib = 2;
+  int64 disk_mib = 3;
+  // 100 = one core.
+  int64 cpu_percent = 4;
+  string cpuset = 5;
+}
+
+// ImportAllocation is an IP and port.
+message ImportAllocation {
+  string ip = 1;
+  int32 port = 2;
+  bool primary = 3;
+}
+
+message ImportServerResponse {
+  string server_id = 1;
+  int64 files = 2;
+  int64 bytes = 3;
+  // Special files (FIFOs, devices) left out.
+  int64 skipped = 4;
 }
