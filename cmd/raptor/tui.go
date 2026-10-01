@@ -27,7 +27,9 @@ func tuiCmd(ctx context.Context, args []string) error {
 }
 
 // tuiBackend is the TUI's view of the local API.
-type tuiBackend struct{ c localv1connect.LocalServiceClient }
+type tuiBackend struct {
+	c localv1connect.LocalServiceClient
+}
 
 func (b tuiBackend) Servers(ctx context.Context) ([]*localv1.ServerInfo, error) {
 	res, err := b.c.ListServers(ctx, &localv1.ListServersRequest{})
