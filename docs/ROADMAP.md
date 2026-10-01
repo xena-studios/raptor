@@ -156,7 +156,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] **Notifications:** Discord + generic webhooks from Wings, including direct alerts for every signed dangerous action (configured on the node, not through the Panel)
 - [ ] **`raptor keys list|reset`** (pairing code shown on the box) and **`raptor audit`**
 - [ ] **Local metrics:** ~7 days, downsampled
-- [ ] **`doctor`:** all checks from [WINGS.md](WINGS.md#doctor), with fix messages; `--bundle`, `--upload`
+- [x] **`doctor`:** all checks from [WINGS.md](WINGS.md#doctor), with fix messages (runs without Wings; `-json`); `-bundle` (redacted). `-upload`, the Panel reachability check, and the node hostname check need the Panel and move to 3.3.
 - [ ] **TUI** (Bubble Tea): server list, stats, console, power + backup keys
 - [x] **Self-update:** `raptor update [-check] [-version v]`: channels (`stable`, `beta`) and a pin from GitHub releases, minisign verification with the trusted comment bound to the tag, SHA-256 check, and a **trial**: the running version starts the new one as its child and only switches the `current` link once it's healthy; a crash, 5 minutes without becoming healthy, or 3 interrupted starts roll back. Outcomes are recorded as `node.update` events. `task e2e:update` and a CI job test it against the real systemd unit ([WINGS.md](WINGS.md#updates)). Updates are started by hand until the Panel drives staged rollouts (3.3); "can't reconnect" joins the health check with the node connection.
 - [ ] **Pterodactyl coexistence** CI test + **`raptor import pterodactyl`**
@@ -205,6 +205,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Node DNS: `n-<short-id>.raptornodes.net` created at enrollment, updated from the IP Wings reports, names never reused
 - [ ] Signed short-lived grants attached to commands; Wings verification
 - [ ] Passkey-signed dangerous commands end to end: owner key pinned at enrollment (with fingerprint comparison), signed key additions, owner-signed delegations for sub-users
+- [ ] `raptor doctor -upload` (bundles to object storage, with a support code), the Panel connection check through Cloudflare, and the node hostname check
 - [ ] SFTP auth over the node connection + public key sync (Wings side: the `sftp.Authenticator` interface and key cache exist)
 - [ ] Automatic Wings updates: the Panel starts updates in stages (5% → 25% → 100%, halted if failures rise) through a `node.update` command; the health check requires the node connection to come back
 

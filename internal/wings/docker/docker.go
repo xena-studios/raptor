@@ -109,6 +109,41 @@ func (c *Client) labels(serverID, role string) map[string]string {
 	return l
 }
 
+// Info is what doctor checks about the Docker daemon.
+type Info struct {
+	Version      string
+	LiveRestore  bool
+	CgroupDriver string
+	RootDir      string
+}
+
+// Info describes the Docker daemon.
+func (c *Client) Info(ctx context.Context) (Info, error) {
+	res, err := c.api.Info(ctx, client.InfoOptions{})
+	if err != nil {
+		return Info{}, err
+	}
+	i := res.Info
+	return Info{Version: i.ServerVersion, LiveRestore: i.LiveRestoreEnabled, CgroupDriver: i.CgroupDriver, RootDir: i.DockerRootDir}, nil
+}
+
+// NetworkSubnets returns the subnets of a Docker network (nil if it
+// doesn't exist).
+func (c *Client) NetworkSubnets(ctx context.Context, name string) ([]netip.Prefix, error) {
+	res, err := c.api.NetworkInspect(ctx, name, client.NetworkInspectOptions{})
+	if cerrdefs.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var out []netip.Prefix
+	for _, cfg := range res.Network.IPAM.Config {
+		out = append(out, cfg.Subnet)
+	}
+	return out, nil
+}
+
 // RootDir returns Docker's data directory, where images live.
 func (c *Client) RootDir(ctx context.Context) (string, error) {
 	info, err := c.api.Info(ctx, client.InfoOptions{})

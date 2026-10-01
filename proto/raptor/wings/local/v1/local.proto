@@ -246,6 +246,16 @@ message GetStatusResponse {
   // Free space where Wings and Docker keep their state; unset if the check
   // is off (limits.host_disk_min_free: 0).
   HostDiskStatus host_disk = 11;
+  // Unset until the container runtime is ready.
+  SFTPStatus sftp = 12;
+}
+
+// SFTPStatus is the node's SFTP server.
+message SFTPStatus {
+  bool enabled = 1;
+  // 0 while off.
+  int32 port = 2;
+  string host_key_fingerprint = 3;
 }
 
 // HostDiskStatus is free space on the host disk.

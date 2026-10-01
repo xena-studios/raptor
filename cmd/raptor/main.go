@@ -45,6 +45,9 @@ commands:
   storage status|setup|grow
               show, create, or enlarge the server data volume (root for
               setup and grow)
+  doctor [-json] [-bundle]
+              check the node and say how to fix what's wrong (as root);
+              -bundle writes a redacted diagnostics file for support
   wings run   run the Wings daemon
   wings shutdown-servers
               gracefully stop every server for a host shutdown (root; used
@@ -56,7 +59,9 @@ Run "raptor <command> -h" for a command's flags.`
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "raptor:", err)
+		if !errors.Is(err, errDoctorFailed) {
+			fmt.Fprintln(os.Stderr, "raptor:", err)
+		}
 		os.Exit(1)
 	}
 }
@@ -85,6 +90,8 @@ func run(args []string) error {
 		return updateCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "storage":
 		return storageCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "doctor":
+		return doctorCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
 		return wingsRun(ctx, args[2:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "backup-worker":

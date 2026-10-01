@@ -17,10 +17,12 @@ mkdir -p /var/lib/raptor-e2e # survives the reboot, unlike /tmp
 
 case "${1:-}" in
 seed)
-	# Docker's live-restore keeps containers running while Docker restarts
-	# (the installer sets it; see docs/WINGS.md).
-	if ! docker info -f '{{.LiveRestoreEnabled}}' | grep -q true; then
-		echo '{"live-restore": true}' > /etc/docker/daemon.json
+	# Docker's settings as the installer sets them (docs/WINGS.md#docker):
+	# live-restore keeps containers running while Docker restarts, and no
+	# userland proxy in front of published ports.
+	if ! grep -q '"userland-proxy": false' /etc/docker/daemon.json 2>/dev/null ||
+		! docker info -f '{{.LiveRestoreEnabled}}' | grep -q true; then
+		echo '{"live-restore": true, "userland-proxy": false}' > /etc/docker/daemon.json
 		systemctl restart docker
 	fi
 	systemctl stop raptor-wings
