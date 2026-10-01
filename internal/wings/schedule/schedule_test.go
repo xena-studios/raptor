@@ -27,6 +27,18 @@ type servers struct {
 	state server.State
 	calls []string
 	sent  chan string
+	// The container, for ContainerStarted.
+	started time.Time
+	running bool
+	// hold: Power blocks until its context ends (an action in progress
+	// when Wings stops).
+	hold bool
+}
+
+func (f *servers) ContainerStarted(context.Context, string) (time.Time, bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.started, f.running, nil
 }
 
 func (f *servers) Status(id string) (server.Status, error) {
@@ -38,8 +50,15 @@ func (f *servers) Status(id string) (server.Status, error) {
 	return server.Status{State: f.state}, nil
 }
 
-func (f *servers) Power(_ context.Context, _ string, a server.PowerAction, user string) error {
+func (f *servers) Power(ctx context.Context, _ string, a server.PowerAction, user string) error {
 	f.record("power " + string(a) + " by " + user)
+	f.mu.Lock()
+	hold := f.hold
+	f.mu.Unlock()
+	if hold {
+		<-ctx.Done()
+		return ctx.Err()
+	}
 	return nil
 }
 
@@ -525,6 +544,41 @@ func TestResumeAfterRestart(t *testing.T) {
 	want := []string{"command say restarting in 2s", "power restart by schedule:" + sc.ID}
 	if j.Status != jobs.Succeeded || j.Attempts != 2 || !slices.Equal(v.servers.got(), want) {
 		t.Fatalf("resumed run: %s (attempts %d), calls %q", j.Status, j.Attempts, v.servers.got())
+	}
+}
+
+// A power step interrupted by a Wings stop isn't done again if it already
+// took effect, and is if it didn't.
+func TestPowerStepResume(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		happened bool
+		calls    int
+	}{{"restart happened", true, 1}, {"restart didn't happen", false, 2}} {
+		t.Run(tt.name, func(t *testing.T) {
+			v := newEnv(t)
+			v.servers.mu.Lock()
+			v.servers.hold, v.servers.running, v.servers.started = true, true, t0
+			v.servers.mu.Unlock()
+			v.create(every5(power(server.PowerRestart)))
+			v.tickAt(t0.Add(3 * time.Minute))
+			<-v.servers.sent // the restart is in progress
+			v.servers.mu.Lock()
+			if tt.happened {
+				v.servers.started = v.clock.now().Add(time.Second) // the new container
+			}
+			v.servers.hold = false
+			v.servers.mu.Unlock()
+			v.jobs.Close()
+
+			v.clock.set(v.clock.now().Add(30 * time.Second))
+			v.start()
+			v.s.tick(context.Background())
+			j := v.waitRun(v.runs()[0].ID)
+			if j.Status != jobs.Succeeded || len(v.servers.got()) != tt.calls {
+				t.Fatalf("resumed run: %s %s, calls %q", j.Status, j.Error, v.servers.got())
+			}
+		})
 	}
 }
 

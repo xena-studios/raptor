@@ -47,6 +47,10 @@ type Servers interface {
 	Status(id string) (server.Status, error)
 	Power(ctx context.Context, id string, a server.PowerAction, user string) error
 	SendCommand(id, user, cmd string) error
+	// ContainerStarted reports when the server's container last started,
+	// and whether it's running (Docker's own record, which survives Wings
+	// restarts).
+	ContainerStarted(ctx context.Context, id string) (time.Time, bool, error)
 }
 
 // Options configure a Scheduler.
@@ -335,6 +339,7 @@ type checkpoint struct {
 	Next      int          `json:"next"`                 // the step to run next
 	WaitUntil int64        `json:"wait_until,omitempty"` // unix ms, while step Next is a wait
 	Job       string       `json:"job,omitempty"`        // the backup job, while step Next is a backup
+	PowerAt   int64        `json:"power_at,omitempty"`   // unix ms, when step Next (power) began
 	Results   []StepResult `json:"results"`
 }
 
@@ -388,7 +393,7 @@ func (s *Scheduler) run(ctx context.Context, j jobs.Job, log io.Writer) (any, er
 			_, _ = fmt.Fprintf(log, "  failed: %v\n", err)
 		}
 		cp.Results = append(cp.Results, res)
-		cp.Next, cp.WaitUntil, cp.Job = i+1, 0, ""
+		cp.Next, cp.WaitUntil, cp.Job, cp.PowerAt = i+1, 0, "", 0
 		if cerr := s.o.Jobs.Checkpoint(ctx, j.ID, cp); cerr != nil {
 			s.log.Warn("saving schedule run progress failed", "job", j.ID, "err", cerr)
 		}
@@ -406,6 +411,16 @@ func (s *Scheduler) step(ctx context.Context, j jobs.Job, cp *checkpoint, i int,
 	case StepCommand:
 		return s.o.Servers.SendCommand(j.ServerID, user, st.Command)
 	case StepPower:
+		// Interrupted by a Wings stop: the action may have happened (the
+		// restart finished, or reconcile started the server). Doing it
+		// again would restart the game a second time.
+		if cp.PowerAt != 0 && s.powerDone(ctx, j.ServerID, st.Action, time.UnixMilli(cp.PowerAt)) {
+			return nil
+		}
+		cp.PowerAt = s.now().UnixMilli()
+		if err := s.o.Jobs.Checkpoint(ctx, j.ID, cp); err != nil {
+			s.log.Warn("saving schedule run progress failed", "job", j.ID, "err", err)
+		}
 		return s.o.Servers.Power(ctx, j.ServerID, st.Action, user)
 	case StepWait:
 		if cp.WaitUntil == 0 {
@@ -426,6 +441,23 @@ func (s *Scheduler) step(ctx context.Context, j jobs.Job, cp *checkpoint, i int,
 		return s.backup(ctx, j, cp, user)
 	}
 	return fmt.Errorf("unknown step type %q (step %d)", st.Type, i+1)
+}
+
+// powerDone reports whether an interrupted power step already took effect:
+// a start or restart if the container started after the step began, a stop
+// or kill if it isn't running.
+func (s *Scheduler) powerDone(ctx context.Context, id string, a server.PowerAction, began time.Time) bool {
+	started, running, err := s.o.Servers.ContainerStarted(ctx, id)
+	if err != nil {
+		return false
+	}
+	switch a {
+	case server.PowerStart, server.PowerRestart:
+		return running && started.After(began)
+	case server.PowerStop, server.PowerKill:
+		return !running
+	}
+	return false
 }
 
 // backup queues a backup and waits for it. The job ID is saved first, so a
