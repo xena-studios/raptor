@@ -34,7 +34,8 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 
 ### State durability
 - SQLite in WAL mode, a single writer connection, `busy_timeout`, `synchronous=NORMAL`.
-- Hourly `VACUUM INTO` snapshots (last 24 kept), and a snapshot before every migration.
+- Hourly `VACUUM INTO` snapshots (last 24 kept), one on every clean Wings stop (last 3), and one before every migration.
+- **A corrupt `state.db` is replaced automatically:** Wings runs SQLite's `quick_check` when it opens the database; if it fails (or the file isn't a database), the damaged file and its WAL are moved aside (`state.db.corrupt-<time>`, never deleted), the newest snapshot that passes the check is restored, and Wings starts on it with a `node.state_restored` event and a critical notification. Changes since that snapshot are lost: at most an hour's, nothing after a clean stop. Running servers are reattached as usual. If no snapshot passes, Wings refuses to start with a clear error rather than start empty and forget servers whose containers are still running.
 - The latest snapshot is included in offsite backups.
 - **Host disk protection:** Wings watches free space everywhere it and Docker keep state (Docker's data directory, `state.db`, logs, tmp, and local backups), every minute and before each install or pull. Below `limits.host_disk_min_free` (default 10 GiB) on any of them, it refuses new servers, reinstalls (including installs queued before the disk ran low, which leave the server as it was), and pulls of images the node doesn't have, so the node's own state never ends up on a full disk. A server whose image is already here still starts on that image: refusing to start games would make a low disk worse, not better. Going low and recovering are `node.disk_low` and `node.disk_ok` events and log lines, and `raptor status` shows the free space. Local backups have the same floor (see [WINGS.md](WINGS.md#backups)).
 
@@ -96,7 +97,7 @@ Reliability you can't see isn't reliability.
 
 ## Testing for reliability
 
-- **Fault-injection tests:** drop the node connection mid-command, kill Wings mid-job, kill Docker, reboot the VM, fill the host disk, fill the quota volume, unmount the quota volume, corrupt `state.db`. Expected behavior is asserted, not assumed.
+- **Fault-injection tests** (`task e2e:faults`, in a throwaway VM): kill Wings (SIGKILL) mid-backup (the job resumes and finishes; the server never restarts), kill Docker (the server keeps running under live-restore; Wings reattaches its console), fill the host disk to below the threshold and then completely (backups refused, Wings and servers keep running, recovered after freeing it), fill a server's quota (its writes fail; Wings unaffected), unmount the data volume (starts refused with a clear error, nothing written underneath, recovered on remount), corrupt `state.db` (restored from the shutdown snapshot; the server keeps running and is still known). Expected behavior is asserted, not assumed. Reboots are in `e2e:host`; dropping the node connection mid-command comes with the connection (Phase 3).
 - **Load tests:** a fake-Wings simulator opening thousands of node connections through Cloudflare and streaming events, run against the Panel before launch and before major releases.
 - **Install matrix:** Debian 12, Debian 13, Ubuntu 24.04 × amd64/arm64, full install end to end in CI on real VMs.
 - **Upgrade tests:** upgrade from each supported previous Wings version, then roll back.

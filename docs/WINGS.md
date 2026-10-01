@@ -111,7 +111,7 @@ notifications: []                # see Notifications below
 
 - **WAL mode**, `synchronous=NORMAL`, `busy_timeout` set, **one writer connection** + a pool of readers.
 - Forward-only migrations, applied automatically on upgrade, **after** a `VACUUM INTO` snapshot of `state.db` (`snapshots/pre-migrate-*.db`, last 5 kept).
-- Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept), plus the latest snapshot is included in offsite backups.
+- Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept) and one on every clean stop (`snapshots/shutdown-*.db`, last 3), plus the latest snapshot is included in offsite backups. A corrupt database is replaced by the newest good snapshot when Wings starts ([RELIABILITY.md](RELIABILITY.md#state-durability)).
 - **Private files:** SQLite creates database files as 0644 regardless of the umask, and gives its `-wal`/`-shm` files the same mode. Wings creates `state.db` as 0600 before SQLite opens it, so all three stay root-only.
 
 Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `schedules` (Phase 2, steps stored in it as JSON); `backups`, `backup_destinations`, and `backup_policies` (Phase 2); `sftp_key_cache` (Phase 2); `kv` (node config, the backup repository password, and whether SFTP is on and its port). Still to come with their features: `grant_cache`, `metrics_rollup`.

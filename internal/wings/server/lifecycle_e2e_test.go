@@ -643,6 +643,7 @@ func TestSeedRealDaemon(t *testing.T) {
 	if path == "" {
 		t.Skip("RAPTOR_E2E_SEED_DB not set")
 	}
+	diskMiB, _ := strconv.ParseInt(os.Getenv("RAPTOR_E2E_SEED_DISK_MIB"), 10, 64) // 0 = none
 	ctx := context.Background()
 	rt, err := docker.New(docker.Config{Network: "raptor_nw", InstallNetwork: "raptor_install"})
 	if err != nil {
@@ -677,7 +678,7 @@ func TestSeedRealDaemon(t *testing.T) {
 	}
 	id, err := m.Create(ctx, Config{
 		Name: cmp.Or(os.Getenv("RAPTOR_E2E_SEED_NAME"), "host-test"), Egg: shellEgg("echo installed > /mnt/server/installed.txt"),
-		Limits: containers.Limits{MemoryMiB: 128}, Settings: DefaultSettings(),
+		Limits: containers.Limits{MemoryMiB: 128, DiskMiB: diskMiB}, Settings: DefaultSettings(),
 		Allocations: []Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}},
 	}, CreateOptions{StartAfterInstall: true})
 	if err != nil {
