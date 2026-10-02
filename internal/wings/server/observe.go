@@ -201,3 +201,17 @@ func (m *Manager) Logs(ctx context.Context, id string, tail int, follow bool) (<
 	lines, errc := m.o.Runtime.Logs(ctx, containerName(id), containers.LogOptions{Follow: follow, Tail: tail})
 	return lines, errc, nil
 }
+
+// ContainerStarted reports when the server's container last started, and
+// whether it's running, from Docker's own record (unlike Usage's
+// RunningSince, which restarts when Wings reattaches).
+func (m *Manager) ContainerStarted(ctx context.Context, id string) (time.Time, bool, error) {
+	if _, err := m.instance(id); err != nil {
+		return time.Time{}, false, err
+	}
+	st, err := m.o.Runtime.Inspect(ctx, containerName(id))
+	if err != nil {
+		return time.Time{}, false, err
+	}
+	return st.StartedAt, st.Running, nil
+}
