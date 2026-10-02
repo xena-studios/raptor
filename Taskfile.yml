@@ -354,6 +354,31 @@ tasks:
         limactl copy scripts/e2e-faults.sh {{.FVM}}:/tmp/e2e-faults.sh
         limactl shell {{.FVM}} sudo bash /tmp/e2e-faults.sh
 
+  soak:start:
+    desc: "Start the soak test in its own VM (SOAK_VM, default raptor-soak): servers with scheduled restarts and backups, random Wings restarts. Runs until soak:stop"
+    vars:
+      SVM: '{{.SOAK_VM | default "raptor-soak"}}'
+    cmds:
+      - task VM={{.SVM}} wings:vm:install
+      - |
+        set -eu
+        ARCH=$(limactl shell {{.SVM}} dpkg --print-architecture)
+        CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go test -c -tags e2e -o bin/actions-e2e-$ARCH ./internal/wings/actions
+        limactl copy bin/actions-e2e-$ARCH {{.SVM}}:/tmp/actions-e2e
+        limactl copy scripts/soak.sh {{.SVM}}:/tmp/soak.sh
+        limactl shell {{.SVM}} sudo install -D -m 0755 /tmp/soak.sh /var/lib/raptor-soak/soak.sh
+        limactl shell {{.SVM}} sudo env SOAK_SERVERS="{{.SOAK_SERVERS}}" SOAK_RESTART="{{.SOAK_RESTART}}" SOAK_BACKUP="{{.SOAK_BACKUP}}" SOAK_CHAOS_MIN="{{.SOAK_CHAOS_MIN}}" SOAK_CHAOS_MAX="{{.SOAK_CHAOS_MAX}}" /var/lib/raptor-soak/soak.sh start
+
+  soak:report:
+    desc: "How the soak test is going (fails on unexpected downtime)"
+    cmds:
+      - limactl shell {{.SOAK_VM | default "raptor-soak"}} sudo /var/lib/raptor-soak/soak.sh report
+
+  soak:stop:
+    desc: "Stop the soak test's chaos and monitor"
+    cmds:
+      - limactl shell {{.SOAK_VM | default "raptor-soak"}} sudo /var/lib/raptor-soak/soak.sh stop
+
   e2e:update:
     desc: "Self-update in the Wings VM: an update, rollbacks of a crashing and a hanging version, a restart during a trial"
     cmds:
