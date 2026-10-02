@@ -165,6 +165,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 **Exit criteria:** fault-injection suite passes; a node survives a week-long soak test (scheduled restarts + backups + random Wings restarts) with no unexpected game downtime.
 
+**Status:** every feature is built. The fault-injection suite passes (the node-connection fault comes with the connection in 3.0). The soak harness works (fast runs: no unexpected downtime through a dozen random Wings restarts), but the week-long run hasn't been done yet: `task soak:start`, then `soak:report` after a week.
+
 ---
 
 ## Phase 3 · Panel core
