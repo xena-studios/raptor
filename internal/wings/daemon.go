@@ -218,6 +218,7 @@ type runtimeSetup struct {
 
 	events        *events.Outbox
 	commandsReady atomic.Bool // every command is registered
+	transfers     atomic.Pointer[files.Service]
 	jobs          *jobs.Engine
 	disk          *host.DiskGuard
 	commands      *command.Executor // receives Panel commands (connected in Phase 3)
@@ -486,6 +487,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.svc.SetServers(mgr)
 	r.svc.SetBackups(bk, r.jobs)
 	r.rules = &rules
+	r.transfers.Store(fsvc)
 	r.commandsReady.Store(true)
 	r.log.Info("runtime ready",
 		"network", nets.Server.Name, "subnet", nets.Server.Subnet,
@@ -516,6 +518,12 @@ func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
 		PanelURL: cfg.Panel.URL, NodeID: cfg.NodeID, NodeKey: nodeKey, PanelKey: rt.commands.PanelKey,
 		Software: buildinfo.Version, Commands: rt.commands, CommandsReady: rt.commandsReady.Load,
 		Events: rt.events, Log: log,
+		Transfers: func() link.Transfers {
+			if f := rt.transfers.Load(); f != nil {
+				return f
+			}
+			return nil
+		},
 	})
 }
 

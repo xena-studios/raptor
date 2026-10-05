@@ -38,7 +38,8 @@ type Hub struct {
 	cancel  context.CancelFunc
 	mu      sync.Mutex
 	conns   map[string]*Conn
-	changed chan struct{} // closed and replaced when a node connects
+	changed chan struct{}                     // closed and replaced when a node connects
+	pending map[string]chan *nodelink.Session // transfers being opened, by node/transfer
 }
 
 // Conn is a connected node.
@@ -69,11 +70,15 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.Log.Info("node connection refused", "remote", r.RemoteAddr, "err", err)
 		return
 	}
-	defer func() { _ = s.Close() }()
-	if s.Hello.Purpose != nodelink.PurposeControl {
-		h.Log.Info("unexpected connection purpose", "node", s.Hello.NodeID, "purpose", s.Hello.Purpose)
+	if id, ok := nodelink.TransferID(s.Hello.Purpose); ok {
+		// The transfer's owner closes it.
+		if !h.acceptTransfer(s, id) {
+			h.Log.Info("unrequested transfer connection", "node", s.Hello.NodeID, "transfer", id)
+			_ = s.Close()
+		}
 		return
 	}
+	defer func() { _ = s.Close() }()
 	c := &Conn{
 		NodeID: s.Hello.NodeID, Hello: s.Hello, Since: time.Now(), Session: s,
 		Node: nodev1connect.NewNodeServiceClient(s.Client(), nodelink.BaseURL),

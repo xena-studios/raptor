@@ -142,6 +142,18 @@ func (s *Service) upload(ctx context.Context, uploadID string) (store.FileUpload
 	return row, nil
 }
 
+// HasTransfer reports whether id is an upload or download in progress.
+func (s *Service) HasTransfer(ctx context.Context, id string) bool {
+	s.mu.Lock()
+	_, ok := s.downloads[id]
+	s.mu.Unlock()
+	if ok {
+		return true
+	}
+	_, err := s.upload(ctx, id)
+	return err == nil
+}
+
 // UploadStatus returns how much of an upload has arrived, to resume it.
 func (s *Service) UploadStatus(ctx context.Context, uploadID string) (Upload, error) {
 	row, err := s.upload(ctx, uploadID)
