@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/wings/local/v1/local.proto.
  */
 export const file_raptor_wings_local_v1_local: GenFile = /*@__PURE__*/
-  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIkChJMaXN0QmFja3Vwc1JlcXVlc3QSDgoGc2VydmVyGAEgASgJIkkKE0xpc3RCYWNrdXBzUmVzcG9uc2USMgoHYmFja3VwcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5CYWNrdXBJbmZvIpYDCgpCYWNrdXBJbmZvEgoKAmlkGAEgASgJEhEKCXNlcnZlcl9pZBgCIAEoCRITCgtzZXJ2ZXJfbmFtZRgDIAEoCRIWCg5kZXN0aW5hdGlvbl9pZBgEIAEoCRIMCgRraW5kGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIOCgZsb2NrZWQYByABKAgSEgoKc2l6ZV9ieXRlcxgIIAEoAxINCgVmaWxlcxgJIAEoAxIWCg51cGxvYWRlZF9ieXRlcxgKIAEoAxIPCgd3YXJuaW5nGAsgASgJEg0KBWVycm9yGAwgASgJEhIKCmNyZWF0ZWRfYnkYDSABKAkSLgoKY3JlYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmpvYl9pZBgRIAEoCSJDChNDcmVhdGVCYWNrdXBSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIOCgZsb2NrZWQYAiABKAgSDAoEd2FpdBgDIAEoCCJJChRDcmVhdGVCYWNrdXBSZXNwb25zZRIxCgZiYWNrdXAYASABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQmFja3VwSW5mbyJEChRSZXN0b3JlQmFja3VwUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDgoGYmFja3VwGAIgASgJEgwKBHdhaXQYAyABKAgiQQoVUmVzdG9yZUJhY2t1cFJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIYChBzYWZldHlfYmFja3VwX2lkGAIgASgJIhgKFlNodXRkb3duU2VydmVyc1JlcXVlc3QiOgoXU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2USDwoHc3RvcHBlZBgBIAEoBRIOCgZlcnJvcnMYAiADKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCLaAwoRR2V0U3RhdHVzUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRIOCgZjb21taXQYAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglwYW5lbF91cmwYBCABKAkSLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMwoGZG9ja2VyGAYgASgLMiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLkRvY2tlclN0YXR1cxIOCgZjYWxsZXIYByABKAkSNAoHc2VydmVycxgIIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZXJ2ZXJDb3VudHMSNQoHc3RvcmFnZRgJIAEoCzIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdG9yYWdlU3RhdHVzEjMKBnVwZGF0ZRgKIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVTdGF0dXMSOAoJaG9zdF9kaXNrGAsgASgLMiUucmFwdG9yLndpbmdzLmxvY2FsLnYxLkhvc3REaXNrU3RhdHVzEi8KBHNmdHAYDCABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU0ZUUFN0YXR1cyJJCgpTRlRQU3RhdHVzEg8KB2VuYWJsZWQYASABKAgSDAoEcG9ydBgCIAEoBRIcChRob3N0X2tleV9maW5nZXJwcmludBgDIAEoCSJgCg5Ib3N0RGlza1N0YXR1cxILCgNsb3cYASABKAgSEAoIbWluX2ZyZWUYAiABKAMSLwoFZGlza3MYAyADKAsyIC5yYXB0b3Iud2luZ3MubG9jYWwudjEuRGlza1NwYWNlIjYKCURpc2tTcGFjZRIMCgRwYXRoGAEgASgJEg0KBXRvdGFsGAIgASgDEgwKBGZyZWUYAyABKAMiqAEKDFVwZGF0ZVN0YXR1cxIOCgZzdGF0dXMYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCRINCgVlcnJvchgEIAEoCRIuCgpzdGFydGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiKQoMU2VydmVyQ291bnRzEg0KBXRvdGFsGAEgASgFEgoKAnVwGAIgASgFIksKDVN0b3JhZ2VTdGF0dXMSDAoEcGF0aBgBIAEoCRIOCgZxdW90YXMYAiABKAgSDQoFcmVhZHkYAyABKAgSDQoFZXJyb3IYBCABKAkiQQoMRG9ja2VyU3RhdHVzEhEKCXJlYWNoYWJsZRgBIAEoCBIPCgd2ZXJzaW9uGAIgASgJEg0KBWVycm9yGAMgASgJIi8KDVVwZGF0ZVJlcXVlc3QSDQoFY2hlY2sYASABKAgSDwoHdmVyc2lvbhgCIAEoCSJmCg5VcGRhdGVSZXNwb25zZRIPCgdjdXJyZW50GAEgASgJEg4KBnRhcmdldBgCIAEoCRIPCgdjaGFubmVsGAMgASgJEhEKCWF2YWlsYWJsZRgEIAEoCBIPCgdzdGFydGVkGAUgASgIIhEKD0xpc3RLZXlzUmVxdWVzdCJDChBMaXN0S2V5c1Jlc3BvbnNlEi8KBGtleXMYASADKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuVHJ1c3RlZEtleSLiAQoKVHJ1c3RlZEtleRITCgtmaW5nZXJwcmludBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEcm9sZRgEIAEoCRIRCglzZXJ2ZXJfaWQYBSABKAkSDwoHYWN0aW9ucxgGIAMoCRIuCgpleHBpcmVzX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghhZGRlZF9ieRgIIAEoCRIsCghhZGRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiTAoQTGlzdEF1ZGl0UmVxdWVzdBINCgVsaW1pdBgBIAEoBRIpCgVzaW5jZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiRwoRTGlzdEF1ZGl0UmVzcG9uc2USMgoHZW50cmllcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5BdWRpdEVudHJ5IuoBCgpBdWRpdEVudHJ5EgoKAmlkGAEgASgDEiYKAmF0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIOCgZhY3Rpb24YAyABKAkSEQoJc2VydmVyX2lkGAQgASgJEg8KB3VzZXJfaWQYBSABKAkSEAoIa2V5X25hbWUYBiABKAkSFwoPa2V5X2ZpbmdlcnByaW50GAcgASgJEg8KB291dGNvbWUYCCABKAkSDgoGZGV0YWlsGAkgASgJEhIKCmNvbW1hbmRfaWQYCiABKAkSFAoMY29tbWFuZF9oYXNoGAsgASgJIhYKFFN0YXJ0S2V5UmVzZXRSZXF1ZXN0ImcKFVN0YXJ0S2V5UmVzZXRSZXNwb25zZRIQCghyZXNldF9pZBgBIAEoCRIMCgRjb2RlGAIgASgJEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIiYKEkdldEtleVJlc2V0UmVxdWVzdBIQCghyZXNldF9pZBgBIAEoCSKIAQoTR2V0S2V5UmVzZXRSZXNwb25zZRINCgVzdGF0ZRgBIAEoCRIuCgpleHBpcmVzX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtmaW5nZXJwcmludBgDIAEoCRIPCgd1c2VyX2lkGAQgASgJEgwKBG5hbWUYBSABKAkiPwoWQ29uZmlybUtleVJlc2V0UmVxdWVzdBIQCghyZXNldF9pZBgBIAEoCRITCgtmaW5nZXJwcmludBgCIAEoCSIZChdDb25maXJtS2V5UmVzZXRSZXNwb25zZSIpChVDYW5jZWxLZXlSZXNldFJlcXVlc3QSEAoIcmVzZXRfaWQYASABKAkiGAoWQ2FuY2VsS2V5UmVzZXRSZXNwb25zZSIaChhUZXN0Tm90aWZpY2F0aW9uc1JlcXVlc3QiVwoZVGVzdE5vdGlmaWNhdGlvbnNSZXNwb25zZRI6CgdyZXN1bHRzGAEgAygLMikucmFwdG9yLndpbmdzLmxvY2FsLnYxLk5vdGlmaWNhdGlvblJlc3VsdCIzChJOb3RpZmljYXRpb25SZXN1bHQSDgoGdGFyZ2V0GAEgASgJEg0KBWVycm9yGAIgASgJIk4KEUdldE1ldHJpY3NSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIpCgVzaW5jZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAifAoSR2V0TWV0cmljc1Jlc3BvbnNlEjIKBmxhdGVzdBgBIAEoCzIiLnJhcHRvci53aW5ncy5sb2NhbC52MS5NZXRyaWNQb2ludBIyCgZwb2ludHMYAiADKAsyIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuTWV0cmljUG9pbnQisAIKC01ldHJpY1BvaW50EiYKAmF0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpyZXNvbHV0aW9uGAIgASgFEg8KB3NhbXBsZXMYAyABKAUSDwoHY3B1X2F2ZxgEIAEoARIPCgdjcHVfbWF4GAUgASgBEhIKCm1lbW9yeV9hdmcYBiABKAMSEgoKbWVtb3J5X21heBgHIAEoAxIQCghyeF9ieXRlcxgIIAEoAxIQCgh0eF9ieXRlcxgJIAEoAxISCgpkaXNrX2J5dGVzGAogASgDEhgKC3BsYXllcnNfYXZnGAsgASgBSACIAQESGAoLcGxheWVyc19tYXgYDCABKAVIAYgBAUIOCgxfcGxheWVyc19hdmdCDgoMX3BsYXllcnNfbWF4IusCChNJbXBvcnRTZXJ2ZXJSZXF1ZXN0EgwKBG5hbWUYASABKAkSCwoDZWdnGAIgASgMEhIKCmVnZ19zb3VyY2UYAyABKAkSDQoFaW1hZ2UYBCABKAkSDwoHc3RhcnR1cBgFIAEoCRJMCgl2YXJpYWJsZXMYBiADKAsyOS5yYXB0b3Iud2luZ3MubG9jYWwudjEuSW1wb3J0U2VydmVyUmVxdWVzdC5WYXJpYWJsZXNFbnRyeRIzCgZsaW1pdHMYByABKAsyIy5yYXB0b3Iud2luZ3MubG9jYWwudjEuSW1wb3J0TGltaXRzEjwKC2FsbG9jYXRpb25zGAggAygLMicucmFwdG9yLndpbmdzLmxvY2FsLnYxLkltcG9ydEFsbG9jYXRpb24SEgoKc291cmNlX2RpchgJIAEoCRowCg5WYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImsKDEltcG9ydExpbWl0cxISCgptZW1vcnlfbWliGAEgASgDEhAKCHN3YXBfbWliGAIgASgDEhAKCGRpc2tfbWliGAMgASgDEhMKC2NwdV9wZXJjZW50GAQgASgDEg4KBmNwdXNldBgFIAEoCSI9ChBJbXBvcnRBbGxvY2F0aW9uEgoKAmlwGAEgASgJEgwKBHBvcnQYAiABKAUSDwoHcHJpbWFyeRgDIAEoCCJYChRJbXBvcnRTZXJ2ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFZmlsZXMYAiABKAMSDQoFYnl0ZXMYAyABKAMSDwoHc2tpcHBlZBgEIAEoAyqLAQoLUG93ZXJBY3Rpb24SHAoYUE9XRVJfQUNUSU9OX1VOU1BFQ0lGSUVEEAASFgoSUE9XRVJfQUNUSU9OX1NUQVJUEAESFQoRUE9XRVJfQUNUSU9OX1NUT1AQAhIYChRQT1dFUl9BQ1RJT05fUkVTVEFSVBADEhUKEVBPV0VSX0FDVElPTl9LSUxMEAQy1hAKDExvY2FsU2VydmljZRJjCglHZXRTdGF0dXMSJy5yYXB0b3Iud2luZ3MubG9jYWwudjEuR2V0U3RhdHVzUmVxdWVzdBooLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRTdGF0dXNSZXNwb25zZSIDkAIBEnUKD1NodXRkb3duU2VydmVycxItLnJhcHRvci53aW5ncy5sb2NhbC52MS5TaHV0ZG93blNlcnZlcnNSZXF1ZXN0Gi4ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNodXRkb3duU2VydmVyc1Jlc3BvbnNlIgOQAgISaQoLTGlzdFNlcnZlcnMSKS5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdFNlcnZlcnNSZXF1ZXN0GioucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RTZXJ2ZXJzUmVzcG9uc2UiA5ACARJUCgVQb3dlchIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5Qb3dlclJlcXVlc3QaJC5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJSZXNwb25zZSIAEnEKDVN0cmVhbUNvbnNvbGUSKy5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RyZWFtQ29uc29sZVJlcXVlc3QaLC5yYXB0b3Iud2luZ3MubG9jYWwudjEuU3RyZWFtQ29uc29sZVJlc3BvbnNlIgOQAgEwARJmCgtTZW5kQ29tbWFuZBIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZW5kQ29tbWFuZFJlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VuZENvbW1hbmRSZXNwb25zZSIAEmIKCFRhaWxMb2dzEiYucmFwdG9yLndpbmdzLmxvY2FsLnYxLlRhaWxMb2dzUmVxdWVzdBonLnJhcHRvci53aW5ncy5sb2NhbC52MS5UYWlsTG9nc1Jlc3BvbnNlIgOQAgEwARJpCgtMaXN0QmFja3VwcxIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0QmFja3Vwc1JlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdEJhY2t1cHNSZXNwb25zZSIDkAIBEmkKDENyZWF0ZUJhY2t1cBIqLnJhcHRvci53aW5ncy5sb2NhbC52MS5DcmVhdGVCYWNrdXBSZXF1ZXN0GisucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNyZWF0ZUJhY2t1cFJlc3BvbnNlIgASbAoNUmVzdG9yZUJhY2t1cBIrLnJhcHRvci53aW5ncy5sb2NhbC52MS5SZXN0b3JlQmFja3VwUmVxdWVzdBosLnJhcHRvci53aW5ncy5sb2NhbC52MS5SZXN0b3JlQmFja3VwUmVzcG9uc2UiABJXCgZVcGRhdGUSJC5yYXB0b3Iud2luZ3MubG9jYWwudjEuVXBkYXRlUmVxdWVzdBolLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVSZXNwb25zZSIAEmAKCExpc3RLZXlzEiYucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RLZXlzUmVxdWVzdBonLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0S2V5c1Jlc3BvbnNlIgOQAgESYwoJTGlzdEF1ZGl0EicucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RBdWRpdFJlcXVlc3QaKC5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdEF1ZGl0UmVzcG9uc2UiA5ACARJsCg1TdGFydEtleVJlc2V0EisucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0YXJ0S2V5UmVzZXRSZXF1ZXN0GiwucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0YXJ0S2V5UmVzZXRSZXNwb25zZSIAEmYKC0dldEtleVJlc2V0EikucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldEtleVJlc2V0UmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRLZXlSZXNldFJlc3BvbnNlIgAScgoPQ29uZmlybUtleVJlc2V0Ei0ucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNvbmZpcm1LZXlSZXNldFJlcXVlc3QaLi5yYXB0b3Iud2luZ3MubG9jYWwudjEuQ29uZmlybUtleVJlc2V0UmVzcG9uc2UiABJvCg5DYW5jZWxLZXlSZXNldBIsLnJhcHRvci53aW5ncy5sb2NhbC52MS5DYW5jZWxLZXlSZXNldFJlcXVlc3QaLS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQ2FuY2VsS2V5UmVzZXRSZXNwb25zZSIAEngKEVRlc3ROb3RpZmljYXRpb25zEi8ucmFwdG9yLndpbmdzLmxvY2FsLnYxLlRlc3ROb3RpZmljYXRpb25zUmVxdWVzdBowLnJhcHRvci53aW5ncy5sb2NhbC52MS5UZXN0Tm90aWZpY2F0aW9uc1Jlc3BvbnNlIgASaQoMSW1wb3J0U2VydmVyEioucmFwdG9yLndpbmdzLmxvY2FsLnYxLkltcG9ydFNlcnZlclJlcXVlc3QaKy5yYXB0b3Iud2luZ3MubG9jYWwudjEuSW1wb3J0U2VydmVyUmVzcG9uc2UiABJmCgpHZXRNZXRyaWNzEigucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldE1ldHJpY3NSZXF1ZXN0GikucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldE1ldHJpY3NSZXNwb25zZSIDkAIBQu8BChljb20ucmFwdG9yLndpbmdzLmxvY2FsLnYxQgpMb2NhbFByb3RvUAFaT2dpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3dpbmdzL2xvY2FsL3YxO2xvY2FsdjGiAgNSV0yqAhVSYXB0b3IuV2luZ3MuTG9jYWwuVjHKAhVSYXB0b3JcV2luZ3NcTG9jYWxcVjHiAiFSYXB0b3JcV2luZ3NcTG9jYWxcVjFcR1BCTWV0YWRhdGHqAhhSYXB0b3I6OldpbmdzOjpMb2NhbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("CiFyYXB0b3Ivd2luZ3MvbG9jYWwvdjEvbG9jYWwucHJvdG8SFXJhcHRvci53aW5ncy5sb2NhbC52MSIUChJMaXN0U2VydmVyc1JlcXVlc3QiSQoTTGlzdFNlcnZlcnNSZXNwb25zZRIyCgdzZXJ2ZXJzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlcnZlckluZm8ihQIKClNlcnZlckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIxCg1ydW5uaW5nX3NpbmNlGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtjcHVfcGVyY2VudBgFIAEoARIUCgxtZW1vcnlfYnl0ZXMYBiABKAMSGgoSbWVtb3J5X2xpbWl0X2J5dGVzGAcgASgDEhIKCmRpc2tfYnl0ZXMYCCABKAMSGAoQZGlza19saW1pdF9ieXRlcxgJIAEoAxIPCgdhZGRyZXNzGAogASgJEhUKDWluc3RhbGxfZXJyb3IYCyABKAkiUgoMUG93ZXJSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIyCgZhY3Rpb24YAiABKA4yIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJBY3Rpb24iMQoNUG93ZXJSZXNwb25zZRIRCglzZXJ2ZXJfaWQYASABKAkSDQoFc3RhdGUYAiABKAkiJgoUU3RyZWFtQ29uc29sZVJlcXVlc3QSDgoGc2VydmVyGAEgASgJIiUKFVN0cmVhbUNvbnNvbGVSZXNwb25zZRIMCgR0ZXh0GAEgASgJIjUKElNlbmRDb21tYW5kUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDwoHY29tbWFuZBgCIAEoCSIVChNTZW5kQ29tbWFuZFJlc3BvbnNlIkAKD1RhaWxMb2dzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDQoFbGluZXMYAiABKAUSDgoGZm9sbG93GAMgASgIIkoKEFRhaWxMb2dzUmVzcG9uc2USKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEdGV4dBgCIAEoCSIkChJMaXN0QmFja3Vwc1JlcXVlc3QSDgoGc2VydmVyGAEgASgJIkkKE0xpc3RCYWNrdXBzUmVzcG9uc2USMgoHYmFja3VwcxgBIAMoCzIhLnJhcHRvci53aW5ncy5sb2NhbC52MS5CYWNrdXBJbmZvIpYDCgpCYWNrdXBJbmZvEgoKAmlkGAEgASgJEhEKCXNlcnZlcl9pZBgCIAEoCRITCgtzZXJ2ZXJfbmFtZRgDIAEoCRIWCg5kZXN0aW5hdGlvbl9pZBgEIAEoCRIMCgRraW5kGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIOCgZsb2NrZWQYByABKAgSEgoKc2l6ZV9ieXRlcxgIIAEoAxINCgVmaWxlcxgJIAEoAxIWCg51cGxvYWRlZF9ieXRlcxgKIAEoAxIPCgd3YXJuaW5nGAsgASgJEg0KBWVycm9yGAwgASgJEhIKCmNyZWF0ZWRfYnkYDSABKAkSLgoKY3JlYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmpvYl9pZBgRIAEoCSJDChNDcmVhdGVCYWNrdXBSZXF1ZXN0Eg4KBnNlcnZlchgBIAEoCRIOCgZsb2NrZWQYAiABKAgSDAoEd2FpdBgDIAEoCCJJChRDcmVhdGVCYWNrdXBSZXNwb25zZRIxCgZiYWNrdXAYASABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQmFja3VwSW5mbyJEChRSZXN0b3JlQmFja3VwUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSDgoGYmFja3VwGAIgASgJEgwKBHdhaXQYAyABKAgiQQoVUmVzdG9yZUJhY2t1cFJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIYChBzYWZldHlfYmFja3VwX2lkGAIgASgJIhgKFlNodXRkb3duU2VydmVyc1JlcXVlc3QiOgoXU2h1dGRvd25TZXJ2ZXJzUmVzcG9uc2USDwoHc3RvcHBlZBgBIAEoBRIOCgZlcnJvcnMYAiADKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCKXBAoRR2V0U3RhdHVzUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoCRIOCgZjb21taXQYAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglwYW5lbF91cmwYBCABKAkSLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMwoGZG9ja2VyGAYgASgLMiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLkRvY2tlclN0YXR1cxIOCgZjYWxsZXIYByABKAkSNAoHc2VydmVycxgIIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5TZXJ2ZXJDb3VudHMSNQoHc3RvcmFnZRgJIAEoCzIkLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdG9yYWdlU3RhdHVzEjMKBnVwZGF0ZRgKIAEoCzIjLnJhcHRvci53aW5ncy5sb2NhbC52MS5VcGRhdGVTdGF0dXMSOAoJaG9zdF9kaXNrGAsgASgLMiUucmFwdG9yLndpbmdzLmxvY2FsLnYxLkhvc3REaXNrU3RhdHVzEi8KBHNmdHAYDCABKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU0ZUUFN0YXR1cxI7Cgpjb25uZWN0aW9uGA0gASgLMicucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNvbm5lY3Rpb25TdGF0dXMihAEKEENvbm5lY3Rpb25TdGF0dXMSDQoFc3RhdGUYASABKAkSKQoFc2luY2UYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmxhc3RfZXJyb3IYAyABKAkSEgoKcmVjb25uZWN0cxgEIAEoBRIOCgZydHRfbXMYBSABKAMiSQoKU0ZUUFN0YXR1cxIPCgdlbmFibGVkGAEgASgIEgwKBHBvcnQYAiABKAUSHAoUaG9zdF9rZXlfZmluZ2VycHJpbnQYAyABKAkiYAoOSG9zdERpc2tTdGF0dXMSCwoDbG93GAEgASgIEhAKCG1pbl9mcmVlGAIgASgDEi8KBWRpc2tzGAMgAygLMiAucmFwdG9yLndpbmdzLmxvY2FsLnYxLkRpc2tTcGFjZSI2CglEaXNrU3BhY2USDAoEcGF0aBgBIAEoCRINCgV0b3RhbBgCIAEoAxIMCgRmcmVlGAMgASgDIqgBCgxVcGRhdGVTdGF0dXMSDgoGc3RhdHVzGAEgASgJEgwKBGZyb20YAiABKAkSCgoCdG8YAyABKAkSDQoFZXJyb3IYBCABKAkSLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIikKDFNlcnZlckNvdW50cxINCgV0b3RhbBgBIAEoBRIKCgJ1cBgCIAEoBSJLCg1TdG9yYWdlU3RhdHVzEgwKBHBhdGgYASABKAkSDgoGcXVvdGFzGAIgASgIEg0KBXJlYWR5GAMgASgIEg0KBWVycm9yGAQgASgJIkEKDERvY2tlclN0YXR1cxIRCglyZWFjaGFibGUYASABKAgSDwoHdmVyc2lvbhgCIAEoCRINCgVlcnJvchgDIAEoCSIvCg1VcGRhdGVSZXF1ZXN0Eg0KBWNoZWNrGAEgASgIEg8KB3ZlcnNpb24YAiABKAkiZgoOVXBkYXRlUmVzcG9uc2USDwoHY3VycmVudBgBIAEoCRIOCgZ0YXJnZXQYAiABKAkSDwoHY2hhbm5lbBgDIAEoCRIRCglhdmFpbGFibGUYBCABKAgSDwoHc3RhcnRlZBgFIAEoCCIRCg9MaXN0S2V5c1JlcXVlc3QiQwoQTGlzdEtleXNSZXNwb25zZRIvCgRrZXlzGAEgAygLMiEucmFwdG9yLndpbmdzLmxvY2FsLnYxLlRydXN0ZWRLZXki4gEKClRydXN0ZWRLZXkSEwoLZmluZ2VycHJpbnQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHJvbGUYBCABKAkSEQoJc2VydmVyX2lkGAUgASgJEg8KB2FjdGlvbnMYBiADKAkSLgoKZXhwaXJlc19hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIYWRkZWRfYnkYCCABKAkSLAoIYWRkZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkwKEExpc3RBdWRpdFJlcXVlc3QSDQoFbGltaXQYASABKAUSKQoFc2luY2UYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkcKEUxpc3RBdWRpdFJlc3BvbnNlEjIKB2VudHJpZXMYASADKAsyIS5yYXB0b3Iud2luZ3MubG9jYWwudjEuQXVkaXRFbnRyeSLqAQoKQXVkaXRFbnRyeRIKCgJpZBgBIAEoAxImCgJhdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGYWN0aW9uGAMgASgJEhEKCXNlcnZlcl9pZBgEIAEoCRIPCgd1c2VyX2lkGAUgASgJEhAKCGtleV9uYW1lGAYgASgJEhcKD2tleV9maW5nZXJwcmludBgHIAEoCRIPCgdvdXRjb21lGAggASgJEg4KBmRldGFpbBgJIAEoCRISCgpjb21tYW5kX2lkGAogASgJEhQKDGNvbW1hbmRfaGFzaBgLIAEoCSIWChRTdGFydEtleVJlc2V0UmVxdWVzdCJnChVTdGFydEtleVJlc2V0UmVzcG9uc2USEAoIcmVzZXRfaWQYASABKAkSDAoEY29kZRgCIAEoCRIuCgpleHBpcmVzX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCImChJHZXRLZXlSZXNldFJlcXVlc3QSEAoIcmVzZXRfaWQYASABKAkiiAEKE0dldEtleVJlc2V0UmVzcG9uc2USDQoFc3RhdGUYASABKAkSLgoKZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEwoLZmluZ2VycHJpbnQYAyABKAkSDwoHdXNlcl9pZBgEIAEoCRIMCgRuYW1lGAUgASgJIj8KFkNvbmZpcm1LZXlSZXNldFJlcXVlc3QSEAoIcmVzZXRfaWQYASABKAkSEwoLZmluZ2VycHJpbnQYAiABKAkiGQoXQ29uZmlybUtleVJlc2V0UmVzcG9uc2UiKQoVQ2FuY2VsS2V5UmVzZXRSZXF1ZXN0EhAKCHJlc2V0X2lkGAEgASgJIhgKFkNhbmNlbEtleVJlc2V0UmVzcG9uc2UiGgoYVGVzdE5vdGlmaWNhdGlvbnNSZXF1ZXN0IlcKGVRlc3ROb3RpZmljYXRpb25zUmVzcG9uc2USOgoHcmVzdWx0cxgBIAMoCzIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5Ob3RpZmljYXRpb25SZXN1bHQiMwoSTm90aWZpY2F0aW9uUmVzdWx0Eg4KBnRhcmdldBgBIAEoCRINCgVlcnJvchgCIAEoCSJOChFHZXRNZXRyaWNzUmVxdWVzdBIOCgZzZXJ2ZXIYASABKAkSKQoFc2luY2UYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wInwKEkdldE1ldHJpY3NSZXNwb25zZRIyCgZsYXRlc3QYASABKAsyIi5yYXB0b3Iud2luZ3MubG9jYWwudjEuTWV0cmljUG9pbnQSMgoGcG9pbnRzGAIgAygLMiIucmFwdG9yLndpbmdzLmxvY2FsLnYxLk1ldHJpY1BvaW50IrACCgtNZXRyaWNQb2ludBImCgJhdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKcmVzb2x1dGlvbhgCIAEoBRIPCgdzYW1wbGVzGAMgASgFEg8KB2NwdV9hdmcYBCABKAESDwoHY3B1X21heBgFIAEoARISCgptZW1vcnlfYXZnGAYgASgDEhIKCm1lbW9yeV9tYXgYByABKAMSEAoIcnhfYnl0ZXMYCCABKAMSEAoIdHhfYnl0ZXMYCSABKAMSEgoKZGlza19ieXRlcxgKIAEoAxIYCgtwbGF5ZXJzX2F2ZxgLIAEoAUgAiAEBEhgKC3BsYXllcnNfbWF4GAwgASgFSAGIAQFCDgoMX3BsYXllcnNfYXZnQg4KDF9wbGF5ZXJzX21heCLrAgoTSW1wb3J0U2VydmVyUmVxdWVzdBIMCgRuYW1lGAEgASgJEgsKA2VnZxgCIAEoDBISCgplZ2dfc291cmNlGAMgASgJEg0KBWltYWdlGAQgASgJEg8KB3N0YXJ0dXAYBSABKAkSTAoJdmFyaWFibGVzGAYgAygLMjkucmFwdG9yLndpbmdzLmxvY2FsLnYxLkltcG9ydFNlcnZlclJlcXVlc3QuVmFyaWFibGVzRW50cnkSMwoGbGltaXRzGAcgASgLMiMucmFwdG9yLndpbmdzLmxvY2FsLnYxLkltcG9ydExpbWl0cxI8CgthbGxvY2F0aW9ucxgIIAMoCzInLnJhcHRvci53aW5ncy5sb2NhbC52MS5JbXBvcnRBbGxvY2F0aW9uEhIKCnNvdXJjZV9kaXIYCSABKAkaMAoOVmFyaWFibGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJrCgxJbXBvcnRMaW1pdHMSEgoKbWVtb3J5X21pYhgBIAEoAxIQCghzd2FwX21pYhgCIAEoAxIQCghkaXNrX21pYhgDIAEoAxITCgtjcHVfcGVyY2VudBgEIAEoAxIOCgZjcHVzZXQYBSABKAkiPQoQSW1wb3J0QWxsb2NhdGlvbhIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFEg8KB3ByaW1hcnkYAyABKAgiWAoUSW1wb3J0U2VydmVyUmVzcG9uc2USEQoJc2VydmVyX2lkGAEgASgJEg0KBWZpbGVzGAIgASgDEg0KBWJ5dGVzGAMgASgDEg8KB3NraXBwZWQYBCABKAMqiwEKC1Bvd2VyQWN0aW9uEhwKGFBPV0VSX0FDVElPTl9VTlNQRUNJRklFRBAAEhYKElBPV0VSX0FDVElPTl9TVEFSVBABEhUKEVBPV0VSX0FDVElPTl9TVE9QEAISGAoUUE9XRVJfQUNUSU9OX1JFU1RBUlQQAxIVChFQT1dFUl9BQ1RJT05fS0lMTBAEMtYQCgxMb2NhbFNlcnZpY2USYwoJR2V0U3RhdHVzEicucmFwdG9yLndpbmdzLmxvY2FsLnYxLkdldFN0YXR1c1JlcXVlc3QaKC5yYXB0b3Iud2luZ3MubG9jYWwudjEuR2V0U3RhdHVzUmVzcG9uc2UiA5ACARJ1Cg9TaHV0ZG93blNlcnZlcnMSLS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2h1dGRvd25TZXJ2ZXJzUmVxdWVzdBouLnJhcHRvci53aW5ncy5sb2NhbC52MS5TaHV0ZG93blNlcnZlcnNSZXNwb25zZSIDkAICEmkKC0xpc3RTZXJ2ZXJzEikucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RTZXJ2ZXJzUmVxdWVzdBoqLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0U2VydmVyc1Jlc3BvbnNlIgOQAgESVAoFUG93ZXISIy5yYXB0b3Iud2luZ3MubG9jYWwudjEuUG93ZXJSZXF1ZXN0GiQucmFwdG9yLndpbmdzLmxvY2FsLnYxLlBvd2VyUmVzcG9uc2UiABJxCg1TdHJlYW1Db25zb2xlEisucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0cmVhbUNvbnNvbGVSZXF1ZXN0GiwucmFwdG9yLndpbmdzLmxvY2FsLnYxLlN0cmVhbUNvbnNvbGVSZXNwb25zZSIDkAIBMAESZgoLU2VuZENvbW1hbmQSKS5yYXB0b3Iud2luZ3MubG9jYWwudjEuU2VuZENvbW1hbmRSZXF1ZXN0GioucmFwdG9yLndpbmdzLmxvY2FsLnYxLlNlbmRDb21tYW5kUmVzcG9uc2UiABJiCghUYWlsTG9ncxImLnJhcHRvci53aW5ncy5sb2NhbC52MS5UYWlsTG9nc1JlcXVlc3QaJy5yYXB0b3Iud2luZ3MubG9jYWwudjEuVGFpbExvZ3NSZXNwb25zZSIDkAIBMAESaQoLTGlzdEJhY2t1cHMSKS5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdEJhY2t1cHNSZXF1ZXN0GioucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RCYWNrdXBzUmVzcG9uc2UiA5ACARJpCgxDcmVhdGVCYWNrdXASKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuQ3JlYXRlQmFja3VwUmVxdWVzdBorLnJhcHRvci53aW5ncy5sb2NhbC52MS5DcmVhdGVCYWNrdXBSZXNwb25zZSIAEmwKDVJlc3RvcmVCYWNrdXASKy5yYXB0b3Iud2luZ3MubG9jYWwudjEuUmVzdG9yZUJhY2t1cFJlcXVlc3QaLC5yYXB0b3Iud2luZ3MubG9jYWwudjEuUmVzdG9yZUJhY2t1cFJlc3BvbnNlIgASVwoGVXBkYXRlEiQucmFwdG9yLndpbmdzLmxvY2FsLnYxLlVwZGF0ZVJlcXVlc3QaJS5yYXB0b3Iud2luZ3MubG9jYWwudjEuVXBkYXRlUmVzcG9uc2UiABJgCghMaXN0S2V5cxImLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0S2V5c1JlcXVlc3QaJy5yYXB0b3Iud2luZ3MubG9jYWwudjEuTGlzdEtleXNSZXNwb25zZSIDkAIBEmMKCUxpc3RBdWRpdBInLnJhcHRvci53aW5ncy5sb2NhbC52MS5MaXN0QXVkaXRSZXF1ZXN0GigucmFwdG9yLndpbmdzLmxvY2FsLnYxLkxpc3RBdWRpdFJlc3BvbnNlIgOQAgESbAoNU3RhcnRLZXlSZXNldBIrLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdGFydEtleVJlc2V0UmVxdWVzdBosLnJhcHRvci53aW5ncy5sb2NhbC52MS5TdGFydEtleVJlc2V0UmVzcG9uc2UiABJmCgtHZXRLZXlSZXNldBIpLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRLZXlSZXNldFJlcXVlc3QaKi5yYXB0b3Iud2luZ3MubG9jYWwudjEuR2V0S2V5UmVzZXRSZXNwb25zZSIAEnIKD0NvbmZpcm1LZXlSZXNldBItLnJhcHRvci53aW5ncy5sb2NhbC52MS5Db25maXJtS2V5UmVzZXRSZXF1ZXN0Gi4ucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNvbmZpcm1LZXlSZXNldFJlc3BvbnNlIgASbwoOQ2FuY2VsS2V5UmVzZXQSLC5yYXB0b3Iud2luZ3MubG9jYWwudjEuQ2FuY2VsS2V5UmVzZXRSZXF1ZXN0Gi0ucmFwdG9yLndpbmdzLmxvY2FsLnYxLkNhbmNlbEtleVJlc2V0UmVzcG9uc2UiABJ4ChFUZXN0Tm90aWZpY2F0aW9ucxIvLnJhcHRvci53aW5ncy5sb2NhbC52MS5UZXN0Tm90aWZpY2F0aW9uc1JlcXVlc3QaMC5yYXB0b3Iud2luZ3MubG9jYWwudjEuVGVzdE5vdGlmaWNhdGlvbnNSZXNwb25zZSIAEmkKDEltcG9ydFNlcnZlchIqLnJhcHRvci53aW5ncy5sb2NhbC52MS5JbXBvcnRTZXJ2ZXJSZXF1ZXN0GisucmFwdG9yLndpbmdzLmxvY2FsLnYxLkltcG9ydFNlcnZlclJlc3BvbnNlIgASZgoKR2V0TWV0cmljcxIoLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRNZXRyaWNzUmVxdWVzdBopLnJhcHRvci53aW5ncy5sb2NhbC52MS5HZXRNZXRyaWNzUmVzcG9uc2UiA5ACAULvAQoZY29tLnJhcHRvci53aW5ncy5sb2NhbC52MUIKTG9jYWxQcm90b1ABWk9naXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci93aW5ncy9sb2NhbC92MTtsb2NhbHYxogIDUldMqgIVUmFwdG9yLldpbmdzLkxvY2FsLlYxygIVUmFwdG9yXFdpbmdzXExvY2FsXFYx4gIhUmFwdG9yXFdpbmdzXExvY2FsXFYxXEdQQk1ldGFkYXRh6gIYUmFwdG9yOjpXaW5nczo6TG9jYWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.wings.local.v1.ListServersRequest
@@ -675,6 +675,13 @@ export type GetStatusResponse = Message<"raptor.wings.local.v1.GetStatusResponse
    * @generated from field: raptor.wings.local.v1.SFTPStatus sftp = 12;
    */
   sftp?: SFTPStatus | undefined;
+
+  /**
+   * The node connection; unset if the node isn't linked.
+   *
+   * @generated from field: raptor.wings.local.v1.ConnectionStatus connection = 13;
+   */
+  connection?: ConnectionStatus | undefined;
 };
 
 /**
@@ -683,6 +690,53 @@ export type GetStatusResponse = Message<"raptor.wings.local.v1.GetStatusResponse
  */
 export const GetStatusResponseSchema: GenMessage<GetStatusResponse> = /*@__PURE__*/
   messageDesc(file_raptor_wings_local_v1_local, 21);
+
+/**
+ * ConnectionStatus is the node connection to the Panel.
+ *
+ * @generated from message raptor.wings.local.v1.ConnectionStatus
+ */
+export type ConnectionStatus = Message<"raptor.wings.local.v1.ConnectionStatus"> & {
+  /**
+   * "connecting", "connected", or "disconnected" (waiting to retry).
+   *
+   * @generated from field: string state = 1;
+   */
+  state: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp since = 2;
+   */
+  since?: Timestamp | undefined;
+
+  /**
+   * Why the last attempt failed, if it did.
+   *
+   * @generated from field: string last_error = 3;
+   */
+  lastError: string;
+
+  /**
+   * Connections made after the first since Wings started.
+   *
+   * @generated from field: int32 reconnects = 4;
+   */
+  reconnects: number;
+
+  /**
+   * The last ping's round trip, in milliseconds.
+   *
+   * @generated from field: int64 rtt_ms = 5;
+   */
+  rttMs: bigint;
+};
+
+/**
+ * Describes the message raptor.wings.local.v1.ConnectionStatus.
+ * Use `create(ConnectionStatusSchema)` to create a new message.
+ */
+export const ConnectionStatusSchema: GenMessage<ConnectionStatus> = /*@__PURE__*/
+  messageDesc(file_raptor_wings_local_v1_local, 22);
 
 /**
  * SFTPStatus is the node's SFTP server.
@@ -713,7 +767,7 @@ export type SFTPStatus = Message<"raptor.wings.local.v1.SFTPStatus"> & {
  * Use `create(SFTPStatusSchema)` to create a new message.
  */
 export const SFTPStatusSchema: GenMessage<SFTPStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 22);
+  messageDesc(file_raptor_wings_local_v1_local, 23);
 
 /**
  * HostDiskStatus is free space on the host disk.
@@ -744,7 +798,7 @@ export type HostDiskStatus = Message<"raptor.wings.local.v1.HostDiskStatus"> & {
  * Use `create(HostDiskStatusSchema)` to create a new message.
  */
 export const HostDiskStatusSchema: GenMessage<HostDiskStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 23);
+  messageDesc(file_raptor_wings_local_v1_local, 24);
 
 /**
  * DiskSpace is one watched path's filesystem.
@@ -773,7 +827,7 @@ export type DiskSpace = Message<"raptor.wings.local.v1.DiskSpace"> & {
  * Use `create(DiskSpaceSchema)` to create a new message.
  */
 export const DiskSpaceSchema: GenMessage<DiskSpace> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 24);
+  messageDesc(file_raptor_wings_local_v1_local, 25);
 
 /**
  * @generated from message raptor.wings.local.v1.UpdateStatus
@@ -819,7 +873,7 @@ export type UpdateStatus = Message<"raptor.wings.local.v1.UpdateStatus"> & {
  * Use `create(UpdateStatusSchema)` to create a new message.
  */
 export const UpdateStatusSchema: GenMessage<UpdateStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 25);
+  messageDesc(file_raptor_wings_local_v1_local, 26);
 
 /**
  * @generated from message raptor.wings.local.v1.ServerCounts
@@ -843,7 +897,7 @@ export type ServerCounts = Message<"raptor.wings.local.v1.ServerCounts"> & {
  * Use `create(ServerCountsSchema)` to create a new message.
  */
 export const ServerCountsSchema: GenMessage<ServerCounts> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 26);
+  messageDesc(file_raptor_wings_local_v1_local, 27);
 
 /**
  * @generated from message raptor.wings.local.v1.StorageStatus
@@ -881,7 +935,7 @@ export type StorageStatus = Message<"raptor.wings.local.v1.StorageStatus"> & {
  * Use `create(StorageStatusSchema)` to create a new message.
  */
 export const StorageStatusSchema: GenMessage<StorageStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 27);
+  messageDesc(file_raptor_wings_local_v1_local, 28);
 
 /**
  * @generated from message raptor.wings.local.v1.DockerStatus
@@ -908,7 +962,7 @@ export type DockerStatus = Message<"raptor.wings.local.v1.DockerStatus"> & {
  * Use `create(DockerStatusSchema)` to create a new message.
  */
 export const DockerStatusSchema: GenMessage<DockerStatus> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 28);
+  messageDesc(file_raptor_wings_local_v1_local, 29);
 
 /**
  * @generated from message raptor.wings.local.v1.UpdateRequest
@@ -935,7 +989,7 @@ export type UpdateRequest = Message<"raptor.wings.local.v1.UpdateRequest"> & {
  * Use `create(UpdateRequestSchema)` to create a new message.
  */
 export const UpdateRequestSchema: GenMessage<UpdateRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 29);
+  messageDesc(file_raptor_wings_local_v1_local, 30);
 
 /**
  * @generated from message raptor.wings.local.v1.UpdateResponse
@@ -983,7 +1037,7 @@ export type UpdateResponse = Message<"raptor.wings.local.v1.UpdateResponse"> & {
  * Use `create(UpdateResponseSchema)` to create a new message.
  */
 export const UpdateResponseSchema: GenMessage<UpdateResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 30);
+  messageDesc(file_raptor_wings_local_v1_local, 31);
 
 /**
  * @generated from message raptor.wings.local.v1.ListKeysRequest
@@ -996,7 +1050,7 @@ export type ListKeysRequest = Message<"raptor.wings.local.v1.ListKeysRequest"> &
  * Use `create(ListKeysRequestSchema)` to create a new message.
  */
 export const ListKeysRequestSchema: GenMessage<ListKeysRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 31);
+  messageDesc(file_raptor_wings_local_v1_local, 32);
 
 /**
  * @generated from message raptor.wings.local.v1.ListKeysResponse
@@ -1013,7 +1067,7 @@ export type ListKeysResponse = Message<"raptor.wings.local.v1.ListKeysResponse">
  * Use `create(ListKeysResponseSchema)` to create a new message.
  */
 export const ListKeysResponseSchema: GenMessage<ListKeysResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 32);
+  messageDesc(file_raptor_wings_local_v1_local, 33);
 
 /**
  * TrustedKey is a passkey the node trusts.
@@ -1081,7 +1135,7 @@ export type TrustedKey = Message<"raptor.wings.local.v1.TrustedKey"> & {
  * Use `create(TrustedKeySchema)` to create a new message.
  */
 export const TrustedKeySchema: GenMessage<TrustedKey> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 33);
+  messageDesc(file_raptor_wings_local_v1_local, 34);
 
 /**
  * @generated from message raptor.wings.local.v1.ListAuditRequest
@@ -1107,7 +1161,7 @@ export type ListAuditRequest = Message<"raptor.wings.local.v1.ListAuditRequest">
  * Use `create(ListAuditRequestSchema)` to create a new message.
  */
 export const ListAuditRequestSchema: GenMessage<ListAuditRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 34);
+  messageDesc(file_raptor_wings_local_v1_local, 35);
 
 /**
  * @generated from message raptor.wings.local.v1.ListAuditResponse
@@ -1124,7 +1178,7 @@ export type ListAuditResponse = Message<"raptor.wings.local.v1.ListAuditResponse
  * Use `create(ListAuditResponseSchema)` to create a new message.
  */
 export const ListAuditResponseSchema: GenMessage<ListAuditResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 35);
+  messageDesc(file_raptor_wings_local_v1_local, 36);
 
 /**
  * AuditEntry is one signed action or key reset.
@@ -1203,7 +1257,7 @@ export type AuditEntry = Message<"raptor.wings.local.v1.AuditEntry"> & {
  * Use `create(AuditEntrySchema)` to create a new message.
  */
 export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 36);
+  messageDesc(file_raptor_wings_local_v1_local, 37);
 
 /**
  * @generated from message raptor.wings.local.v1.StartKeyResetRequest
@@ -1216,7 +1270,7 @@ export type StartKeyResetRequest = Message<"raptor.wings.local.v1.StartKeyResetR
  * Use `create(StartKeyResetRequestSchema)` to create a new message.
  */
 export const StartKeyResetRequestSchema: GenMessage<StartKeyResetRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 37);
+  messageDesc(file_raptor_wings_local_v1_local, 38);
 
 /**
  * @generated from message raptor.wings.local.v1.StartKeyResetResponse
@@ -1245,7 +1299,7 @@ export type StartKeyResetResponse = Message<"raptor.wings.local.v1.StartKeyReset
  * Use `create(StartKeyResetResponseSchema)` to create a new message.
  */
 export const StartKeyResetResponseSchema: GenMessage<StartKeyResetResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 38);
+  messageDesc(file_raptor_wings_local_v1_local, 39);
 
 /**
  * @generated from message raptor.wings.local.v1.GetKeyResetRequest
@@ -1262,7 +1316,7 @@ export type GetKeyResetRequest = Message<"raptor.wings.local.v1.GetKeyResetReque
  * Use `create(GetKeyResetRequestSchema)` to create a new message.
  */
 export const GetKeyResetRequestSchema: GenMessage<GetKeyResetRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 39);
+  messageDesc(file_raptor_wings_local_v1_local, 40);
 
 /**
  * @generated from message raptor.wings.local.v1.GetKeyResetResponse
@@ -1304,7 +1358,7 @@ export type GetKeyResetResponse = Message<"raptor.wings.local.v1.GetKeyResetResp
  * Use `create(GetKeyResetResponseSchema)` to create a new message.
  */
 export const GetKeyResetResponseSchema: GenMessage<GetKeyResetResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 40);
+  messageDesc(file_raptor_wings_local_v1_local, 41);
 
 /**
  * @generated from message raptor.wings.local.v1.ConfirmKeyResetRequest
@@ -1328,7 +1382,7 @@ export type ConfirmKeyResetRequest = Message<"raptor.wings.local.v1.ConfirmKeyRe
  * Use `create(ConfirmKeyResetRequestSchema)` to create a new message.
  */
 export const ConfirmKeyResetRequestSchema: GenMessage<ConfirmKeyResetRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 41);
+  messageDesc(file_raptor_wings_local_v1_local, 42);
 
 /**
  * @generated from message raptor.wings.local.v1.ConfirmKeyResetResponse
@@ -1341,7 +1395,7 @@ export type ConfirmKeyResetResponse = Message<"raptor.wings.local.v1.ConfirmKeyR
  * Use `create(ConfirmKeyResetResponseSchema)` to create a new message.
  */
 export const ConfirmKeyResetResponseSchema: GenMessage<ConfirmKeyResetResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 42);
+  messageDesc(file_raptor_wings_local_v1_local, 43);
 
 /**
  * @generated from message raptor.wings.local.v1.CancelKeyResetRequest
@@ -1358,7 +1412,7 @@ export type CancelKeyResetRequest = Message<"raptor.wings.local.v1.CancelKeyRese
  * Use `create(CancelKeyResetRequestSchema)` to create a new message.
  */
 export const CancelKeyResetRequestSchema: GenMessage<CancelKeyResetRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 43);
+  messageDesc(file_raptor_wings_local_v1_local, 44);
 
 /**
  * @generated from message raptor.wings.local.v1.CancelKeyResetResponse
@@ -1371,7 +1425,7 @@ export type CancelKeyResetResponse = Message<"raptor.wings.local.v1.CancelKeyRes
  * Use `create(CancelKeyResetResponseSchema)` to create a new message.
  */
 export const CancelKeyResetResponseSchema: GenMessage<CancelKeyResetResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 44);
+  messageDesc(file_raptor_wings_local_v1_local, 45);
 
 /**
  * @generated from message raptor.wings.local.v1.TestNotificationsRequest
@@ -1384,7 +1438,7 @@ export type TestNotificationsRequest = Message<"raptor.wings.local.v1.TestNotifi
  * Use `create(TestNotificationsRequestSchema)` to create a new message.
  */
 export const TestNotificationsRequestSchema: GenMessage<TestNotificationsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 45);
+  messageDesc(file_raptor_wings_local_v1_local, 46);
 
 /**
  * @generated from message raptor.wings.local.v1.TestNotificationsResponse
@@ -1401,7 +1455,7 @@ export type TestNotificationsResponse = Message<"raptor.wings.local.v1.TestNotif
  * Use `create(TestNotificationsResponseSchema)` to create a new message.
  */
 export const TestNotificationsResponseSchema: GenMessage<TestNotificationsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 46);
+  messageDesc(file_raptor_wings_local_v1_local, 47);
 
 /**
  * NotificationResult is how a test message went for one target.
@@ -1427,7 +1481,7 @@ export type NotificationResult = Message<"raptor.wings.local.v1.NotificationResu
  * Use `create(NotificationResultSchema)` to create a new message.
  */
 export const NotificationResultSchema: GenMessage<NotificationResult> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 47);
+  messageDesc(file_raptor_wings_local_v1_local, 48);
 
 /**
  * @generated from message raptor.wings.local.v1.GetMetricsRequest
@@ -1452,7 +1506,7 @@ export type GetMetricsRequest = Message<"raptor.wings.local.v1.GetMetricsRequest
  * Use `create(GetMetricsRequestSchema)` to create a new message.
  */
 export const GetMetricsRequestSchema: GenMessage<GetMetricsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 48);
+  messageDesc(file_raptor_wings_local_v1_local, 49);
 
 /**
  * @generated from message raptor.wings.local.v1.GetMetricsResponse
@@ -1476,7 +1530,7 @@ export type GetMetricsResponse = Message<"raptor.wings.local.v1.GetMetricsRespon
  * Use `create(GetMetricsResponseSchema)` to create a new message.
  */
 export const GetMetricsResponseSchema: GenMessage<GetMetricsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 49);
+  messageDesc(file_raptor_wings_local_v1_local, 50);
 
 /**
  * MetricPoint is a server's resources over one bucket.
@@ -1558,7 +1612,7 @@ export type MetricPoint = Message<"raptor.wings.local.v1.MetricPoint"> & {
  * Use `create(MetricPointSchema)` to create a new message.
  */
 export const MetricPointSchema: GenMessage<MetricPoint> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 50);
+  messageDesc(file_raptor_wings_local_v1_local, 51);
 
 /**
  * @generated from message raptor.wings.local.v1.ImportServerRequest
@@ -1621,7 +1675,7 @@ export type ImportServerRequest = Message<"raptor.wings.local.v1.ImportServerReq
  * Use `create(ImportServerRequestSchema)` to create a new message.
  */
 export const ImportServerRequestSchema: GenMessage<ImportServerRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 51);
+  messageDesc(file_raptor_wings_local_v1_local, 52);
 
 /**
  * ImportLimits are a server's limits; 0 = none.
@@ -1662,7 +1716,7 @@ export type ImportLimits = Message<"raptor.wings.local.v1.ImportLimits"> & {
  * Use `create(ImportLimitsSchema)` to create a new message.
  */
 export const ImportLimitsSchema: GenMessage<ImportLimits> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 52);
+  messageDesc(file_raptor_wings_local_v1_local, 53);
 
 /**
  * ImportAllocation is an IP and port.
@@ -1691,7 +1745,7 @@ export type ImportAllocation = Message<"raptor.wings.local.v1.ImportAllocation">
  * Use `create(ImportAllocationSchema)` to create a new message.
  */
 export const ImportAllocationSchema: GenMessage<ImportAllocation> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 53);
+  messageDesc(file_raptor_wings_local_v1_local, 54);
 
 /**
  * @generated from message raptor.wings.local.v1.ImportServerResponse
@@ -1725,7 +1779,7 @@ export type ImportServerResponse = Message<"raptor.wings.local.v1.ImportServerRe
  * Use `create(ImportServerResponseSchema)` to create a new message.
  */
 export const ImportServerResponseSchema: GenMessage<ImportServerResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_wings_local_v1_local, 54);
+  messageDesc(file_raptor_wings_local_v1_local, 55);
 
 /**
  * @generated from enum raptor.wings.local.v1.PowerAction

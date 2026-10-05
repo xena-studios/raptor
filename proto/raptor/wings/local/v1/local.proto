@@ -290,6 +290,21 @@ message GetStatusResponse {
   HostDiskStatus host_disk = 11;
   // Unset until the container runtime is ready.
   SFTPStatus sftp = 12;
+  // The node connection; unset if the node isn't linked.
+  ConnectionStatus connection = 13;
+}
+
+// ConnectionStatus is the node connection to the Panel.
+message ConnectionStatus {
+  // "connecting", "connected", or "disconnected" (waiting to retry).
+  string state = 1;
+  google.protobuf.Timestamp since = 2;
+  // Why the last attempt failed, if it did.
+  string last_error = 3;
+  // Connections made after the first since Wings started.
+  int32 reconnects = 4;
+  // The last ping's round trip, in milliseconds.
+  int64 rtt_ms = 5;
 }
 
 // SFTPStatus is the node's SFTP server.

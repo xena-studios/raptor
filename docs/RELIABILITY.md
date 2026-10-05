@@ -54,7 +54,8 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 
 ## Node connection
 
-- One WebSocket per node through Cloudflare, multiplexed with yamux. Ping every 30 s (Cloudflare closes WebSockets idle for ~100 s); dead after 90 s without a reply.
+- One WebSocket per node through Cloudflare, multiplexed with yamux. Ping every 30 s (Cloudflare closes WebSockets idle for ~100 s); dead after 90 s without a reply, on both sides.
+- A command whose connection drops keeps running on the node; the Panel retries it with the same `command_id` on the next connection and gets its result. Tested by cutting the connection mid-command (`internal/wings/link`), and a silently dead route by a proxy that stops forwarding (`internal/shared/nodelink`).
 - **Reconnect with full jitter** (1 s → 60 s cap) so thousands of nodes don't reconnect at the same moment. Reconnects are routine: every Panel deploy and Cloudflare's own maintenance drop long-lived WebSockets.
 - **Head-of-line blocking:** all streams share one TCP connection, so a large transfer could delay console and control traffic. Rules:
   - File transfers never use the main connection: Wings opens a **separate short-lived outbound connection** per transfer.

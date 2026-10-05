@@ -178,6 +178,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Kill the connection mid-RPC → reconnect with jitter → retry with the same `command_id` → no duplicate execution
 - [ ] Hold connections idle for hours (ping keeps them alive), survive Cloudflare dropping them, and measure console latency while a 1 GB upload runs on its separate transfer connection
 - **Gate:** RPCs work both ways through Cloudflare, retries are idempotent, idle connections stay up, console latency stays acceptable during a transfer. This becomes the real connection code.
+- **Status:** the connection code is built and tested locally: the handshake (`internal/shared/nodelink`), Wings' side with reconnects and pings (`internal/wings/link`, started by Wings on a linked node), and the Panel's (`internal/panel/nodes`, a hub with retries); commands and events in both directions; cutting the connection mid-command (the command runs once and the retry gets its result) and a connection that silently stops passing bytes (closed on both sides). Still to do: the transfer connection, and the runs through Cloudflare.
 
 ### 3.1 Infrastructure
 - [ ] Server #1 (primary) + #2 (Postgres replica); Docker Compose; Caddy

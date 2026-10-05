@@ -185,6 +185,19 @@ func printStatus(s *localv1.GetStatusResponse) {
 	uptime := time.Since(s.GetStartedAt().AsTime()).Round(time.Second)
 	fmt.Printf("Wings    %s (%s), up %s\n", s.GetVersion(), s.GetCommit(), uptime)
 	fmt.Printf("Panel    %s\n", linked)
+	if c := s.GetConnection(); c != nil {
+		since := time.Since(c.GetSince().AsTime()).Round(time.Second)
+		switch c.GetState() {
+		case "connected":
+			fmt.Printf("         ✓ connected for %s (ping %d ms, %d reconnects)\n", since, c.GetRttMs(), c.GetReconnects())
+		default:
+			msg := "✗ " + c.GetState() + " for " + since.String()
+			if e := c.GetLastError(); e != "" {
+				msg += ": " + e
+			}
+			fmt.Printf("         %s\n", msg)
+		}
+	}
 	fmt.Printf("Docker   %s\n", docker)
 	if st := s.GetStorage(); st != nil {
 		limits := "quotas"

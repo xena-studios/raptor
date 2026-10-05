@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package raptor.node.v1;
+
+// The node connection (docs/ARCHITECTURE.md#node-connection): one WebSocket
+// that Wings opens to the Panel, with yamux inside. Each side serves one of
+// these services and calls the other's, each call on its own yamux stream.
+
+// NodeService is served by Wings and called by the Panel.
+service NodeService {
+  // Execute runs a command at most once (docs/ARCHITECTURE.md#commands-are-idempotent).
+  // A retry with the same command_id returns the stored outcome, so the
+  // Panel retries until it gets an answer. Errors are the command being
+  // refused (bad grant, signature, expired, ...); a command that ran and
+  // failed answers with error set. ABORTED means it's still running from an
+  // earlier attempt: try again shortly.
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
+
+  // Events returns events after after_seq, oldest first, and records that
+  // the Panel has everything up to after_seq. FAILED_PRECONDITION means
+  // events after after_seq were already pruned: the Panel needs a snapshot.
+  rpc Events(EventsRequest) returns (EventsResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
+}
+
+message ExecuteRequest {
+  // The command envelope as JSON (internal/wings/command.Envelope): the
+  // grant and passkey signature cover its canonical form, so it travels
+  // as the Panel built it.
+  bytes envelope = 1;
+}
+
+message ExecuteResponse {
+  // The command's result as JSON, if it has one.
+  bytes result = 1;
+  // The command had already run; this is the stored outcome.
+  bool duplicate = 2;
+  // The command ran and failed.
+  string error = 3;
+}
+
+message EventsRequest {
+  int64 after_seq = 1;
+  int32 limit = 2;
+}
+
+message EventsResponse {
+  repeated Event events = 1;
+  // The newest event's sequence number on the node.
+  int64 last_seq = 2;
+}
+
+message Event {
+  int64 seq = 1;
+  string type = 2;
+  string server_id = 3;
+  int64 version = 4;
+  // Unix milliseconds.
+  int64 at = 5;
+  // JSON object.
+  bytes data = 6;
+}
+
+// PanelService is served by the Panel and called by Wings.
+service PanelService {
+  // EventsAvailable tells the Panel the node has events up to last_seq, so
+  // it pulls them (Events) without polling.
+  rpc EventsAvailable(EventsAvailableRequest) returns (EventsAvailableResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
+}
+
+message EventsAvailableRequest {
+  int64 last_seq = 1;
+}
+
+message EventsAvailableResponse {}

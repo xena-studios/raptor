@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -27,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
+	"github.com/xena-studios/raptor/internal/wings/link"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 	"github.com/xena-studios/raptor/internal/wings/metrics"
 	"github.com/xena-studios/raptor/internal/wings/notify"
@@ -137,6 +139,14 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	reportUpdate(ctx, updates.StatePath, rt.events, log)
 	rt.check(ctx)
 
+	linkDone := make(chan struct{})
+	if lk := newLink(cfg, rt, log); lk != nil {
+		svc.Link = lk
+		go func() { _ = lk.Run(ctx); close(linkDone) }()
+	} else {
+		close(linkDone)
+	}
+
 	srv, err := localapi.Listen(ctx, cfg.Paths.Socket, localapi.Group, svc, log)
 	if err != nil {
 		return fmt.Errorf("local api: %w", err)
@@ -164,6 +174,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			}
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
+			<-linkDone
 			return errors.Join(srv.Shutdown(shutdownCtx), <-errc)
 		case err := <-errc:
 			return fmt.Errorf("local api: %w", err)
@@ -205,10 +216,11 @@ type runtimeSetup struct {
 	sftpKeys       *sftp.KeyCache
 	stopSFTPEvents func()
 
-	events   *events.Outbox
-	jobs     *jobs.Engine
-	disk     *host.DiskGuard
-	commands *command.Executor // receives Panel commands (connected in Phase 3)
+	events        *events.Outbox
+	commandsReady atomic.Bool // every command is registered
+	jobs          *jobs.Engine
+	disk          *host.DiskGuard
+	commands      *command.Executor // receives Panel commands (connected in Phase 3)
 }
 
 func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger, db *store.DB, svc *localapi.Service) (*runtimeSetup, error) {
@@ -474,11 +486,37 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.svc.SetServers(mgr)
 	r.svc.SetBackups(bk, r.jobs)
 	r.rules = &rules
+	r.commandsReady.Store(true)
 	r.log.Info("runtime ready",
 		"network", nets.Server.Name, "subnet", nets.Server.Subnet,
 		"install_network", nets.Install.Name, "install_subnet", nets.Install.Subnet,
 		"dns_allowed", rules.DNS)
 	return nil
+}
+
+// newLink connects a linked node to the Panel (nil if it isn't linked, or
+// its keys are missing: Wings runs the same without the Panel).
+func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
+	if cfg.NodeID == "" {
+		return nil
+	}
+	nodeKey, err := link.LoadNodeKey(cfg.Identity.Key)
+	if err == nil && nodeKey == nil {
+		err = errors.New("missing")
+	}
+	if err != nil {
+		log.Error("not connecting to the Panel: node key "+cfg.Identity.Key, "err", err)
+		return nil
+	}
+	if rt.commands.PanelKey == nil {
+		log.Error("not connecting to the Panel: Panel key " + cfg.Identity.PanelKey + " is missing")
+		return nil
+	}
+	return link.New(link.Config{
+		PanelURL: cfg.Panel.URL, NodeID: cfg.NodeID, NodeKey: nodeKey, PanelKey: rt.commands.PanelKey,
+		Software: buildinfo.Version, Commands: rt.commands, CommandsReady: rt.commandsReady.Load,
+		Events: rt.events, Log: log,
+	})
 }
 
 // newNotifier sends notifications straight from the node to the targets in

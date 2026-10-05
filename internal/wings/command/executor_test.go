@@ -378,12 +378,24 @@ func TestKeyManagement(t *testing.T) {
 func TestPanicAndInterrupted(t *testing.T) {
 	f := newFixture(t)
 	e := f.cmd("alice", "server.explode", "s1", nil)
-	if _, err := f.exec(e); err == nil || !strings.Contains(err.Error(), "panicked") {
+	var run *RunError
+	if _, err := f.exec(e); !errors.As(err, &run) || !strings.Contains(err.Error(), "panicked") {
 		t.Fatalf("panic: %v", err)
 	}
-	// The ID isn't stuck "running".
-	if _, err := f.exec(e); err == nil || errors.Is(err, ErrInProgress) {
+	// The ID isn't stuck "running", and a retry gets the same failure, as
+	// a command that ran (not one that was refused).
+	if res, err := f.exec(e); !errors.As(err, &run) || !res.Duplicate {
 		t.Fatalf("after panic: %v", err)
+	}
+	// A refusal isn't a RunError.
+	f.now = f.now.Add(time.Hour)
+	if _, err := f.exec(f.cmd("alice", "server.start", "s1", nil)); err != nil {
+		t.Fatal(err)
+	}
+	stale := f.cmd("alice", "server.start", "s1", nil)
+	stale.ExpiresAt = f.now.Add(-time.Minute).Unix()
+	if _, err := f.exec(stale); !errors.Is(err, ErrExpired) || errors.As(err, &run) {
+		t.Fatalf("expired: %v", err)
 	}
 
 	// A command left running by a Wings crash is marked failed on start.
