@@ -379,6 +379,11 @@ tasks:
     cmds:
       - limactl shell {{.SOAK_VM | default "raptor-soak"}} sudo /var/lib/raptor-soak/soak.sh stop
 
+  gate:link:
+    desc: "The node connection through Cloudflare (Phase 3.0 gate): a quick tunnel, then rpc, cut, transfer; ARGS='-idle 4h' holds it idle too (needs cloudflared)"
+    cmds:
+      - go run ./dev/linkgate {{.ARGS}}
+
   e2e:update:
     desc: "Self-update in the Wings VM: an update, rollbacks of a crashing and a hanging version, a restart during a trial"
     cmds:
