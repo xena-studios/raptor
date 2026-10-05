@@ -27,9 +27,33 @@ const (
 	HandshakeTimeout = 30 * time.Second
 )
 
-// maxMessage bounds one WebSocket message. yamux sends a frame's header and
-// body as separate writes, and a body is at most a stream's window.
-const maxMessage = 1 << 20
+// maxMessage bounds one WebSocket message; writes are split into messages of
+// at most maxWrite, so a large yamux frame never exceeds it.
+const (
+	maxMessage = 1 << 20
+	maxWrite   = 256 << 10
+)
+
+// transferWindow is a transfer connection's yamux stream window: big enough
+// that a chunk isn't throttled by the round trip (yamux's default, 256 KiB,
+// allows about 5 MB/s at 50 ms).
+const transferWindow = 16 << 20
+
+// splitConn splits writes into WebSocket messages of at most maxWrite.
+type splitConn struct{ net.Conn }
+
+func (c splitConn) Write(b []byte) (int, error) {
+	n := 0
+	for len(b) > 0 {
+		m, err := c.Conn.Write(b[:min(len(b), maxWrite)])
+		n += m
+		if err != nil {
+			return n, err
+		}
+		b = b[m:]
+	}
+	return n, nil
+}
 
 // BaseURL is the URL Connect clients on a session use. Requests never leave
 // the session, so the host is only a label.
@@ -57,8 +81,11 @@ type Keepalive struct {
 	Ping, Dead time.Duration
 }
 
-func yamuxConfig() *yamux.Config {
+func yamuxConfig(purpose string) *yamux.Config {
 	c := yamux.DefaultConfig()
+	if _, ok := TransferID(purpose); ok {
+		c.MaxStreamWindowSize = transferWindow
+	}
 	c.EnableKeepAlive = false // our own ping, with the dead-after rule
 	c.ConnectionWriteTimeout = 30 * time.Second
 	c.LogOutput = io.Discard
@@ -67,13 +94,13 @@ func yamuxConfig() *yamux.Config {
 
 func newSession(ctx context.Context, c *websocket.Conn, h Hello, server bool, ka Keepalive) (*Session, error) {
 	ctx, cancel := context.WithCancel(ctx)
-	conn := websocket.NetConn(ctx, c, websocket.MessageBinary)
+	conn := splitConn{websocket.NetConn(ctx, c, websocket.MessageBinary)}
 	var mux *yamux.Session
 	var err error
 	if server {
-		mux, err = yamux.Server(conn, yamuxConfig())
+		mux, err = yamux.Server(conn, yamuxConfig(h.Purpose))
 	} else {
-		mux, err = yamux.Client(conn, yamuxConfig())
+		mux, err = yamux.Client(conn, yamuxConfig(h.Purpose))
 	}
 	if err != nil {
 		cancel()

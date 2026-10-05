@@ -39,6 +39,9 @@ const (
 	NodeServiceExecuteProcedure = "/raptor.node.v1.NodeService/Execute"
 	// NodeServiceEventsProcedure is the fully-qualified name of the NodeService's Events RPC.
 	NodeServiceEventsProcedure = "/raptor.node.v1.NodeService/Events"
+	// NodeServiceOpenTransferProcedure is the fully-qualified name of the NodeService's OpenTransfer
+	// RPC.
+	NodeServiceOpenTransferProcedure = "/raptor.node.v1.NodeService/OpenTransfer"
 	// PanelServiceEventsAvailableProcedure is the fully-qualified name of the PanelService's
 	// EventsAvailable RPC.
 	PanelServiceEventsAvailableProcedure = "/raptor.node.v1.PanelService/EventsAvailable"
@@ -57,6 +60,12 @@ type NodeServiceClient interface {
 	// the Panel has everything up to after_seq. FAILED_PRECONDITION means
 	// events after after_seq were already pruned: the Panel needs a snapshot.
 	Events(context.Context, *v1.EventsRequest) (*v1.EventsResponse, error)
+	// OpenTransfer asks Wings to open a transfer connection for an upload or
+	// download started by a files.upload or files.download command. It
+	// returns once the connection is up. The connection carries that
+	// transfer's chunks only, so a large file never slows this one
+	// (docs/ARCHITECTURE.md#files-and-sftp).
+	OpenTransfer(context.Context, *v1.OpenTransferRequest) (*v1.OpenTransferResponse, error)
 }
 
 // NewNodeServiceClient constructs a client for the raptor.node.v1.NodeService service. By default,
@@ -84,13 +93,21 @@ func NewNodeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
+		openTransfer: connect.NewClient[v1.OpenTransferRequest, v1.OpenTransferResponse](
+			httpClient,
+			baseURL+NodeServiceOpenTransferProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("OpenTransfer")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // nodeServiceClient implements NodeServiceClient.
 type nodeServiceClient struct {
-	execute *connect.Client[v1.ExecuteRequest, v1.ExecuteResponse]
-	events  *connect.Client[v1.EventsRequest, v1.EventsResponse]
+	execute      *connect.Client[v1.ExecuteRequest, v1.ExecuteResponse]
+	events       *connect.Client[v1.EventsRequest, v1.EventsResponse]
+	openTransfer *connect.Client[v1.OpenTransferRequest, v1.OpenTransferResponse]
 }
 
 // Execute calls raptor.node.v1.NodeService.Execute.
@@ -111,6 +128,15 @@ func (c *nodeServiceClient) Events(ctx context.Context, req *v1.EventsRequest) (
 	return nil, err
 }
 
+// OpenTransfer calls raptor.node.v1.NodeService.OpenTransfer.
+func (c *nodeServiceClient) OpenTransfer(ctx context.Context, req *v1.OpenTransferRequest) (*v1.OpenTransferResponse, error) {
+	response, err := c.openTransfer.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // NodeServiceHandler is an implementation of the raptor.node.v1.NodeService service.
 type NodeServiceHandler interface {
 	// Execute runs a command at most once (docs/ARCHITECTURE.md#commands-are-idempotent).
@@ -124,6 +150,12 @@ type NodeServiceHandler interface {
 	// the Panel has everything up to after_seq. FAILED_PRECONDITION means
 	// events after after_seq were already pruned: the Panel needs a snapshot.
 	Events(context.Context, *v1.EventsRequest) (*v1.EventsResponse, error)
+	// OpenTransfer asks Wings to open a transfer connection for an upload or
+	// download started by a files.upload or files.download command. It
+	// returns once the connection is up. The connection carries that
+	// transfer's chunks only, so a large file never slows this one
+	// (docs/ARCHITECTURE.md#files-and-sftp).
+	OpenTransfer(context.Context, *v1.OpenTransferRequest) (*v1.OpenTransferResponse, error)
 }
 
 // NewNodeServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -147,12 +179,21 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
+	nodeServiceOpenTransferHandler := connect.NewUnaryHandlerSimple(
+		NodeServiceOpenTransferProcedure,
+		svc.OpenTransfer,
+		connect.WithSchema(nodeServiceMethods.ByName("OpenTransfer")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.node.v1.NodeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NodeServiceExecuteProcedure:
 			nodeServiceExecuteHandler.ServeHTTP(w, r)
 		case NodeServiceEventsProcedure:
 			nodeServiceEventsHandler.ServeHTTP(w, r)
+		case NodeServiceOpenTransferProcedure:
+			nodeServiceOpenTransferHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -168,6 +209,10 @@ func (UnimplementedNodeServiceHandler) Execute(context.Context, *v1.ExecuteReque
 
 func (UnimplementedNodeServiceHandler) Events(context.Context, *v1.EventsRequest) (*v1.EventsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.NodeService.Events is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) OpenTransfer(context.Context, *v1.OpenTransferRequest) (*v1.OpenTransferResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.NodeService.OpenTransfer is not implemented"))
 }
 
 // PanelServiceClient is a client for the raptor.node.v1.PanelService service.

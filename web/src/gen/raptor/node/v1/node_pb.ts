@@ -10,7 +10,39 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/node/v1/node.proto.
  */
 export const file_raptor_node_v1_node: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3Ivbm9kZS92MS9ub2RlLnByb3RvEg5yYXB0b3Iubm9kZS52MSIiCg5FeGVjdXRlUmVxdWVzdBIQCghlbnZlbG9wZRgBIAEoDCJDCg9FeGVjdXRlUmVzcG9uc2USDgoGcmVzdWx0GAEgASgMEhEKCWR1cGxpY2F0ZRgCIAEoCBINCgVlcnJvchgDIAEoCSIxCg1FdmVudHNSZXF1ZXN0EhEKCWFmdGVyX3NlcRgBIAEoAxINCgVsaW1pdBgCIAEoBSJJCg5FdmVudHNSZXNwb25zZRIlCgZldmVudHMYASADKAsyFS5yYXB0b3Iubm9kZS52MS5FdmVudBIQCghsYXN0X3NlcRgCIAEoAyJgCgVFdmVudBILCgNzZXEYASABKAMSDAoEdHlwZRgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkSDwoHdmVyc2lvbhgEIAEoAxIKCgJhdBgFIAEoAxIMCgRkYXRhGAYgASgMIioKFkV2ZW50c0F2YWlsYWJsZVJlcXVlc3QSEAoIbGFzdF9zZXEYASABKAMiGQoXRXZlbnRzQXZhaWxhYmxlUmVzcG9uc2UyrAEKC05vZGVTZXJ2aWNlEk8KB0V4ZWN1dGUSHi5yYXB0b3Iubm9kZS52MS5FeGVjdXRlUmVxdWVzdBofLnJhcHRvci5ub2RlLnYxLkV4ZWN1dGVSZXNwb25zZSIDkAICEkwKBkV2ZW50cxIdLnJhcHRvci5ub2RlLnYxLkV2ZW50c1JlcXVlc3QaHi5yYXB0b3Iubm9kZS52MS5FdmVudHNSZXNwb25zZSIDkAICMncKDFBhbmVsU2VydmljZRJnCg9FdmVudHNBdmFpbGFibGUSJi5yYXB0b3Iubm9kZS52MS5FdmVudHNBdmFpbGFibGVSZXF1ZXN0GicucmFwdG9yLm5vZGUudjEuRXZlbnRzQXZhaWxhYmxlUmVzcG9uc2UiA5ACAkLCAQoSY29tLnJhcHRvci5ub2RlLnYxQglOb2RlUHJvdG9QAVpHZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3Ivbm9kZS92MTtub2RldjGiAgNSTliqAg5SYXB0b3IuTm9kZS5WMcoCDlJhcHRvclxOb2RlXFYx4gIaUmFwdG9yXE5vZGVcVjFcR1BCTWV0YWRhdGHqAhBSYXB0b3I6Ok5vZGU6OlYxYgZwcm90bzM");
+  fileDesc("ChlyYXB0b3Ivbm9kZS92MS9ub2RlLnByb3RvEg5yYXB0b3Iubm9kZS52MSIqChNPcGVuVHJhbnNmZXJSZXF1ZXN0EhMKC3RyYW5zZmVyX2lkGAEgASgJIhYKFE9wZW5UcmFuc2ZlclJlc3BvbnNlIiIKDkV4ZWN1dGVSZXF1ZXN0EhAKCGVudmVsb3BlGAEgASgMIkMKD0V4ZWN1dGVSZXNwb25zZRIOCgZyZXN1bHQYASABKAwSEQoJZHVwbGljYXRlGAIgASgIEg0KBWVycm9yGAMgASgJIjEKDUV2ZW50c1JlcXVlc3QSEQoJYWZ0ZXJfc2VxGAEgASgDEg0KBWxpbWl0GAIgASgFIkkKDkV2ZW50c1Jlc3BvbnNlEiUKBmV2ZW50cxgBIAMoCzIVLnJhcHRvci5ub2RlLnYxLkV2ZW50EhAKCGxhc3Rfc2VxGAIgASgDImAKBUV2ZW50EgsKA3NlcRgBIAEoAxIMCgR0eXBlGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRIPCgd2ZXJzaW9uGAQgASgDEgoKAmF0GAUgASgDEgwKBGRhdGEYBiABKAwiKgoWRXZlbnRzQXZhaWxhYmxlUmVxdWVzdBIQCghsYXN0X3NlcRgBIAEoAyIZChdFdmVudHNBdmFpbGFibGVSZXNwb25zZTKMAgoLTm9kZVNlcnZpY2USTwoHRXhlY3V0ZRIeLnJhcHRvci5ub2RlLnYxLkV4ZWN1dGVSZXF1ZXN0Gh8ucmFwdG9yLm5vZGUudjEuRXhlY3V0ZVJlc3BvbnNlIgOQAgISTAoGRXZlbnRzEh0ucmFwdG9yLm5vZGUudjEuRXZlbnRzUmVxdWVzdBoeLnJhcHRvci5ub2RlLnYxLkV2ZW50c1Jlc3BvbnNlIgOQAgISXgoMT3BlblRyYW5zZmVyEiMucmFwdG9yLm5vZGUudjEuT3BlblRyYW5zZmVyUmVxdWVzdBokLnJhcHRvci5ub2RlLnYxLk9wZW5UcmFuc2ZlclJlc3BvbnNlIgOQAgIydwoMUGFuZWxTZXJ2aWNlEmcKD0V2ZW50c0F2YWlsYWJsZRImLnJhcHRvci5ub2RlLnYxLkV2ZW50c0F2YWlsYWJsZVJlcXVlc3QaJy5yYXB0b3Iubm9kZS52MS5FdmVudHNBdmFpbGFibGVSZXNwb25zZSIDkAICQsIBChJjb20ucmFwdG9yLm5vZGUudjFCCU5vZGVQcm90b1ABWkdnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9ub2RlL3YxO25vZGV2MaICA1JOWKoCDlJhcHRvci5Ob2RlLlYxygIOUmFwdG9yXE5vZGVcVjHiAhpSYXB0b3JcTm9kZVxWMVxHUEJNZXRhZGF0YeoCEFJhcHRvcjo6Tm9kZTo6VjFiBnByb3RvMw");
+
+/**
+ * @generated from message raptor.node.v1.OpenTransferRequest
+ */
+export type OpenTransferRequest = Message<"raptor.node.v1.OpenTransferRequest"> & {
+  /**
+   * The upload_id or download_id.
+   *
+   * @generated from field: string transfer_id = 1;
+   */
+  transferId: string;
+};
+
+/**
+ * Describes the message raptor.node.v1.OpenTransferRequest.
+ * Use `create(OpenTransferRequestSchema)` to create a new message.
+ */
+export const OpenTransferRequestSchema: GenMessage<OpenTransferRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_node_v1_node, 0);
+
+/**
+ * @generated from message raptor.node.v1.OpenTransferResponse
+ */
+export type OpenTransferResponse = Message<"raptor.node.v1.OpenTransferResponse"> & {
+};
+
+/**
+ * Describes the message raptor.node.v1.OpenTransferResponse.
+ * Use `create(OpenTransferResponseSchema)` to create a new message.
+ */
+export const OpenTransferResponseSchema: GenMessage<OpenTransferResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_node_v1_node, 1);
 
 /**
  * @generated from message raptor.node.v1.ExecuteRequest
@@ -31,7 +63,7 @@ export type ExecuteRequest = Message<"raptor.node.v1.ExecuteRequest"> & {
  * Use `create(ExecuteRequestSchema)` to create a new message.
  */
 export const ExecuteRequestSchema: GenMessage<ExecuteRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 0);
+  messageDesc(file_raptor_node_v1_node, 2);
 
 /**
  * @generated from message raptor.node.v1.ExecuteResponse
@@ -64,7 +96,7 @@ export type ExecuteResponse = Message<"raptor.node.v1.ExecuteResponse"> & {
  * Use `create(ExecuteResponseSchema)` to create a new message.
  */
 export const ExecuteResponseSchema: GenMessage<ExecuteResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 1);
+  messageDesc(file_raptor_node_v1_node, 3);
 
 /**
  * @generated from message raptor.node.v1.EventsRequest
@@ -86,7 +118,7 @@ export type EventsRequest = Message<"raptor.node.v1.EventsRequest"> & {
  * Use `create(EventsRequestSchema)` to create a new message.
  */
 export const EventsRequestSchema: GenMessage<EventsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 2);
+  messageDesc(file_raptor_node_v1_node, 4);
 
 /**
  * @generated from message raptor.node.v1.EventsResponse
@@ -110,7 +142,7 @@ export type EventsResponse = Message<"raptor.node.v1.EventsResponse"> & {
  * Use `create(EventsResponseSchema)` to create a new message.
  */
 export const EventsResponseSchema: GenMessage<EventsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 3);
+  messageDesc(file_raptor_node_v1_node, 5);
 
 /**
  * @generated from message raptor.node.v1.Event
@@ -156,7 +188,7 @@ export type Event = Message<"raptor.node.v1.Event"> & {
  * Use `create(EventSchema)` to create a new message.
  */
 export const EventSchema: GenMessage<Event> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 4);
+  messageDesc(file_raptor_node_v1_node, 6);
 
 /**
  * @generated from message raptor.node.v1.EventsAvailableRequest
@@ -173,7 +205,7 @@ export type EventsAvailableRequest = Message<"raptor.node.v1.EventsAvailableRequ
  * Use `create(EventsAvailableRequestSchema)` to create a new message.
  */
 export const EventsAvailableRequestSchema: GenMessage<EventsAvailableRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 5);
+  messageDesc(file_raptor_node_v1_node, 7);
 
 /**
  * @generated from message raptor.node.v1.EventsAvailableResponse
@@ -186,7 +218,7 @@ export type EventsAvailableResponse = Message<"raptor.node.v1.EventsAvailableRes
  * Use `create(EventsAvailableResponseSchema)` to create a new message.
  */
 export const EventsAvailableResponseSchema: GenMessage<EventsAvailableResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 6);
+  messageDesc(file_raptor_node_v1_node, 8);
 
 /**
  * NodeService is served by Wings and called by the Panel.
@@ -220,6 +252,20 @@ export const NodeService: GenService<{
     methodKind: "unary";
     input: typeof EventsRequestSchema;
     output: typeof EventsResponseSchema;
+  },
+  /**
+   * OpenTransfer asks Wings to open a transfer connection for an upload or
+   * download started by a files.upload or files.download command. It
+   * returns once the connection is up. The connection carries that
+   * transfer's chunks only, so a large file never slows this one
+   * (docs/ARCHITECTURE.md#files-and-sftp).
+   *
+   * @generated from rpc raptor.node.v1.NodeService.OpenTransfer
+   */
+  openTransfer: {
+    methodKind: "unary";
+    input: typeof OpenTransferRequestSchema;
+    output: typeof OpenTransferResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_node_v1_node, 0);

@@ -24,7 +24,23 @@ service NodeService {
   rpc Events(EventsRequest) returns (EventsResponse) {
     option idempotency_level = IDEMPOTENT;
   }
+
+  // OpenTransfer asks Wings to open a transfer connection for an upload or
+  // download started by a files.upload or files.download command. It
+  // returns once the connection is up. The connection carries that
+  // transfer's chunks only, so a large file never slows this one
+  // (docs/ARCHITECTURE.md#files-and-sftp).
+  rpc OpenTransfer(OpenTransferRequest) returns (OpenTransferResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
 }
+
+message OpenTransferRequest {
+  // The upload_id or download_id.
+  string transfer_id = 1;
+}
+
+message OpenTransferResponse {}
 
 message ExecuteRequest {
   // The command envelope as JSON (internal/wings/command.Envelope): the

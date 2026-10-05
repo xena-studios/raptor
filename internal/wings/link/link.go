@@ -44,7 +44,9 @@ type Config struct {
 	// UNAVAILABLE and the Panel retries.
 	CommandsReady func() bool
 	Events        *events.Outbox
-	Log           *slog.Logger
+	// Transfers returns the file service once it's ready (nil before).
+	Transfers func() Transfers
+	Log       *slog.Logger
 
 	// For tests.
 	HTTPClient             *http.Client

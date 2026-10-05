@@ -1,14 +1,18 @@
 package link
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,6 +26,7 @@ import (
 	"github.com/xena-studios/raptor/internal/shared/nodelink/nodelinktest"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/events"
+	"github.com/xena-studios/raptor/internal/wings/files"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -40,6 +45,9 @@ type fixture struct {
 	started  chan struct{} // a slow command started
 	release  chan struct{} // let it finish
 	announce chan int64
+	files    *fakeFiles
+	nodeKey  ed25519.PrivateKey
+	panelPub ed25519.PublicKey
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -86,10 +94,13 @@ func newFixture(t *testing.T) *fixture {
 	t.Cleanup(f.hub.Close)
 	f.proxy = nodelinktest.NewProxy(t, strings.TrimPrefix(srv.URL, "http://"))
 
+	f.files = &fakeFiles{uploads: map[string][]byte{}, sizes: map[string]int64{}, downloads: map[string][]byte{}}
 	f.link = New(Config{
 		PanelURL: "http://" + f.proxy.Addr, NodeID: nodeID, NodeKey: nodePriv, PanelKey: panelPub,
 		Commands: x, Events: f.outbox, MinBackoff: 10 * time.Millisecond, MaxBackoff: 50 * time.Millisecond,
+		Transfers: func() Transfers { return f.files },
 	})
+	f.nodeKey, f.panelPub = nodePriv, panelPub
 	done := make(chan struct{})
 	go func() { _ = f.link.Run(ctx); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
@@ -273,5 +284,130 @@ func TestNodeKey(t *testing.T) {
 	_ = os.Chmod(p, 0o644)
 	if _, err := LoadNodeKey(p); err == nil {
 		t.Error("loaded a world-readable key")
+	}
+}
+
+// fakeFiles is the file service's transfer side, in memory.
+type fakeFiles struct {
+	mu        sync.Mutex
+	uploads   map[string][]byte
+	sizes     map[string]int64
+	downloads map[string][]byte
+}
+
+func (f *fakeFiles) HasTransfer(_ context.Context, id string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	_, up := f.sizes[id]
+	_, down := f.downloads[id]
+	return up || down
+}
+
+func (f *fakeFiles) WriteChunk(_ context.Context, id string, offset int64, r io.Reader) (files.Upload, error) {
+	f.mu.Lock()
+	got, size := f.uploads[id], f.sizes[id]
+	f.mu.Unlock()
+	up := files.Upload{ID: id, Size: size, Received: int64(len(got))}
+	if offset != up.Received {
+		return up, files.ErrOffset
+	}
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return up, err // a chunk cut short is dropped, as Wings does
+	}
+	f.mu.Lock()
+	f.uploads[id] = append(got, b...)
+	up.Received = int64(len(f.uploads[id]))
+	f.mu.Unlock()
+	up.Done = up.Received == size
+	return up, nil
+}
+
+func (f *fakeFiles) ReadChunk(_ context.Context, id string, offset, n int64, w io.Writer) (int64, error) {
+	f.mu.Lock()
+	b, ok := f.downloads[id]
+	f.mu.Unlock()
+	if !ok {
+		return 0, files.ErrTransferNotFound
+	}
+	m, err := w.Write(b[offset:min(offset+n, int64(len(b)))])
+	return int64(m), err
+}
+
+func TestTransfer(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	if _, err := f.hub.Wait(ctx, nodeID); err != nil {
+		t.Fatal(err)
+	}
+	data := make([]byte, 5<<20)
+	_, _ = rand.Read(data)
+	f.files.sizes["up-1"] = int64(len(data))
+	f.files.downloads["down-1"] = data
+
+	// An upload in chunks; the control connection keeps answering.
+	tr, err := f.hub.OpenTransfer(ctx, nodeID, "up-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const chunk = 2 << 20
+	var st nodes.UploadState
+	for off := int64(0); off < int64(len(data)); off += chunk {
+		end := min(off+chunk, int64(len(data)))
+		if st, err = tr.Upload(ctx, off, bytes.NewReader(data[off:end])); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !st.Done || !bytes.Equal(f.files.uploads["up-1"], data) {
+		t.Fatalf("upload: %+v", st)
+	}
+	// A chunk at the wrong offset is refused with where to resume.
+	if st, err := tr.Upload(ctx, 1, bytes.NewReader([]byte("x"))); !errors.Is(err, nodes.ErrTransfer) || st.Received != int64(len(data)) {
+		t.Errorf("wrong offset: %+v, %v", st, err)
+	}
+	_ = tr.Close()
+
+	// A download, resumed from an offset on a new connection.
+	var out bytes.Buffer
+	tr, err = f.hub.OpenTransfer(ctx, nodeID, "down-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tr.Download(ctx, 0, 3<<20, int64(len(data)), &out); err != nil {
+		t.Fatal(err)
+	}
+	_ = tr.Close()
+	tr, err = f.hub.OpenTransfer(ctx, nodeID, "down-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tr.Close() }()
+	if _, err := tr.Download(ctx, int64(out.Len()), 3<<20, int64(len(data)), &out); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(out.Bytes(), data) {
+		t.Error("download differs")
+	}
+
+	// Only transfers that exist get a connection.
+	if _, err := f.hub.OpenTransfer(ctx, nodeID, "nope"); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("unknown transfer: %v", err)
+	}
+}
+
+// A transfer connection the Panel didn't ask for is closed: a node can't
+// open one on its own.
+func TestUnrequestedTransfer(t *testing.T) {
+	f := newFixture(t)
+	s, err := nodelink.Dial(context.Background(), nodelink.DialConfig{
+		URL: "http://" + f.proxy.Addr, NodeID: nodeID, NodeKey: f.nodeKey, PanelKey: f.panelPub, Purpose: nodelink.TransferPurpose("up-1"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-s.Done():
+	case <-time.After(5 * time.Second):
+		t.Fatal("the Panel kept an unrequested transfer connection")
 	}
 }

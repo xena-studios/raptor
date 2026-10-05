@@ -21,6 +21,87 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type OpenTransferRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The upload_id or download_id.
+	TransferId    string `protobuf:"bytes,1,opt,name=transfer_id,json=transferId,proto3" json:"transfer_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenTransferRequest) Reset() {
+	*x = OpenTransferRequest{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenTransferRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenTransferRequest) ProtoMessage() {}
+
+func (x *OpenTransferRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenTransferRequest.ProtoReflect.Descriptor instead.
+func (*OpenTransferRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *OpenTransferRequest) GetTransferId() string {
+	if x != nil {
+		return x.TransferId
+	}
+	return ""
+}
+
+type OpenTransferResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenTransferResponse) Reset() {
+	*x = OpenTransferResponse{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenTransferResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenTransferResponse) ProtoMessage() {}
+
+func (x *OpenTransferResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenTransferResponse.ProtoReflect.Descriptor instead.
+func (*OpenTransferResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{1}
+}
+
 type ExecuteRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The command envelope as JSON (internal/wings/command.Envelope): the
@@ -33,7 +114,7 @@ type ExecuteRequest struct {
 
 func (x *ExecuteRequest) Reset() {
 	*x = ExecuteRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[0]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -45,7 +126,7 @@ func (x *ExecuteRequest) String() string {
 func (*ExecuteRequest) ProtoMessage() {}
 
 func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[0]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -58,7 +139,7 @@ func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteRequest.ProtoReflect.Descriptor instead.
 func (*ExecuteRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{0}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ExecuteRequest) GetEnvelope() []byte {
@@ -82,7 +163,7 @@ type ExecuteResponse struct {
 
 func (x *ExecuteResponse) Reset() {
 	*x = ExecuteResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[1]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -94,7 +175,7 @@ func (x *ExecuteResponse) String() string {
 func (*ExecuteResponse) ProtoMessage() {}
 
 func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[1]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -107,7 +188,7 @@ func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteResponse.ProtoReflect.Descriptor instead.
 func (*ExecuteResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{1}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ExecuteResponse) GetResult() []byte {
@@ -141,7 +222,7 @@ type EventsRequest struct {
 
 func (x *EventsRequest) Reset() {
 	*x = EventsRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[2]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -153,7 +234,7 @@ func (x *EventsRequest) String() string {
 func (*EventsRequest) ProtoMessage() {}
 
 func (x *EventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[2]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -166,7 +247,7 @@ func (x *EventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsRequest.ProtoReflect.Descriptor instead.
 func (*EventsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{2}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EventsRequest) GetAfterSeq() int64 {
@@ -194,7 +275,7 @@ type EventsResponse struct {
 
 func (x *EventsResponse) Reset() {
 	*x = EventsResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[3]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -206,7 +287,7 @@ func (x *EventsResponse) String() string {
 func (*EventsResponse) ProtoMessage() {}
 
 func (x *EventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[3]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,7 +300,7 @@ func (x *EventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsResponse.ProtoReflect.Descriptor instead.
 func (*EventsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{3}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *EventsResponse) GetEvents() []*Event {
@@ -252,7 +333,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[4]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -264,7 +345,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[4]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +358,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{4}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Event) GetSeq() int64 {
@@ -331,7 +412,7 @@ type EventsAvailableRequest struct {
 
 func (x *EventsAvailableRequest) Reset() {
 	*x = EventsAvailableRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[5]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -343,7 +424,7 @@ func (x *EventsAvailableRequest) String() string {
 func (*EventsAvailableRequest) ProtoMessage() {}
 
 func (x *EventsAvailableRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[5]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -356,7 +437,7 @@ func (x *EventsAvailableRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsAvailableRequest.ProtoReflect.Descriptor instead.
 func (*EventsAvailableRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{5}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EventsAvailableRequest) GetLastSeq() int64 {
@@ -374,7 +455,7 @@ type EventsAvailableResponse struct {
 
 func (x *EventsAvailableResponse) Reset() {
 	*x = EventsAvailableResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[6]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -386,7 +467,7 @@ func (x *EventsAvailableResponse) String() string {
 func (*EventsAvailableResponse) ProtoMessage() {}
 
 func (x *EventsAvailableResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[6]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -399,14 +480,18 @@ func (x *EventsAvailableResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsAvailableResponse.ProtoReflect.Descriptor instead.
 func (*EventsAvailableResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{6}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{8}
 }
 
 var File_raptor_node_v1_node_proto protoreflect.FileDescriptor
 
 const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\n" +
-	"\x19raptor/node/v1/node.proto\x12\x0eraptor.node.v1\",\n" +
+	"\x19raptor/node/v1/node.proto\x12\x0eraptor.node.v1\"6\n" +
+	"\x13OpenTransferRequest\x12\x1f\n" +
+	"\vtransfer_id\x18\x01 \x01(\tR\n" +
+	"transferId\"\x16\n" +
+	"\x14OpenTransferResponse\",\n" +
 	"\x0eExecuteRequest\x12\x1a\n" +
 	"\benvelope\x18\x01 \x01(\fR\benvelope\"]\n" +
 	"\x0fExecuteResponse\x12\x16\n" +
@@ -428,10 +513,11 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\x04data\x18\x06 \x01(\fR\x04data\"3\n" +
 	"\x16EventsAvailableRequest\x12\x19\n" +
 	"\blast_seq\x18\x01 \x01(\x03R\alastSeq\"\x19\n" +
-	"\x17EventsAvailableResponse2\xac\x01\n" +
+	"\x17EventsAvailableResponse2\x8c\x02\n" +
 	"\vNodeService\x12O\n" +
 	"\aExecute\x12\x1e.raptor.node.v1.ExecuteRequest\x1a\x1f.raptor.node.v1.ExecuteResponse\"\x03\x90\x02\x02\x12L\n" +
-	"\x06Events\x12\x1d.raptor.node.v1.EventsRequest\x1a\x1e.raptor.node.v1.EventsResponse\"\x03\x90\x02\x022w\n" +
+	"\x06Events\x12\x1d.raptor.node.v1.EventsRequest\x1a\x1e.raptor.node.v1.EventsResponse\"\x03\x90\x02\x02\x12^\n" +
+	"\fOpenTransfer\x12#.raptor.node.v1.OpenTransferRequest\x1a$.raptor.node.v1.OpenTransferResponse\"\x03\x90\x02\x022w\n" +
 	"\fPanelService\x12g\n" +
 	"\x0fEventsAvailable\x12&.raptor.node.v1.EventsAvailableRequest\x1a'.raptor.node.v1.EventsAvailableResponse\"\x03\x90\x02\x02B\xc2\x01\n" +
 	"\x12com.raptor.node.v1B\tNodeProtoP\x01ZGgithub.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1;nodev1\xa2\x02\x03RNX\xaa\x02\x0eRaptor.Node.V1\xca\x02\x0eRaptor\\Node\\V1\xe2\x02\x1aRaptor\\Node\\V1\\GPBMetadata\xea\x02\x10Raptor::Node::V1b\x06proto3"
@@ -448,26 +534,30 @@ func file_raptor_node_v1_node_proto_rawDescGZIP() []byte {
 	return file_raptor_node_v1_node_proto_rawDescData
 }
 
-var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_raptor_node_v1_node_proto_goTypes = []any{
-	(*ExecuteRequest)(nil),          // 0: raptor.node.v1.ExecuteRequest
-	(*ExecuteResponse)(nil),         // 1: raptor.node.v1.ExecuteResponse
-	(*EventsRequest)(nil),           // 2: raptor.node.v1.EventsRequest
-	(*EventsResponse)(nil),          // 3: raptor.node.v1.EventsResponse
-	(*Event)(nil),                   // 4: raptor.node.v1.Event
-	(*EventsAvailableRequest)(nil),  // 5: raptor.node.v1.EventsAvailableRequest
-	(*EventsAvailableResponse)(nil), // 6: raptor.node.v1.EventsAvailableResponse
+	(*OpenTransferRequest)(nil),     // 0: raptor.node.v1.OpenTransferRequest
+	(*OpenTransferResponse)(nil),    // 1: raptor.node.v1.OpenTransferResponse
+	(*ExecuteRequest)(nil),          // 2: raptor.node.v1.ExecuteRequest
+	(*ExecuteResponse)(nil),         // 3: raptor.node.v1.ExecuteResponse
+	(*EventsRequest)(nil),           // 4: raptor.node.v1.EventsRequest
+	(*EventsResponse)(nil),          // 5: raptor.node.v1.EventsResponse
+	(*Event)(nil),                   // 6: raptor.node.v1.Event
+	(*EventsAvailableRequest)(nil),  // 7: raptor.node.v1.EventsAvailableRequest
+	(*EventsAvailableResponse)(nil), // 8: raptor.node.v1.EventsAvailableResponse
 }
 var file_raptor_node_v1_node_proto_depIdxs = []int32{
-	4, // 0: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
-	0, // 1: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
-	2, // 2: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
-	5, // 3: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
-	1, // 4: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
-	3, // 5: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
-	6, // 6: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	6, // 0: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
+	2, // 1: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
+	4, // 2: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
+	0, // 3: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
+	7, // 4: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
+	3, // 5: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
+	5, // 6: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
+	1, // 7: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
+	8, // 8: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -484,7 +574,7 @@ func file_raptor_node_v1_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_node_v1_node_proto_rawDesc), len(file_raptor_node_v1_node_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
