@@ -17,6 +17,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/host"
+	"github.com/xena-studios/raptor/internal/wings/link"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/storage"
@@ -50,6 +51,7 @@ type Service struct {
 	Updates   Updates         // nil in tests
 	Disk      *host.DiskGuard // nil in tests
 	Notify    Notifications   // nil if none are configured
+	Link      Link            // nil if the node isn't linked
 
 	mu       sync.RWMutex
 	commands *command.Executor
@@ -58,6 +60,11 @@ type Service struct {
 	servers  Servers
 	backups  Backups
 	jobs     Jobs
+}
+
+// Link reports the node connection (*link.Link).
+type Link interface {
+	Status() link.Status
 }
 
 // SFTP reports the node's SFTP server (*sftp.Service).
@@ -129,6 +136,13 @@ func (s *Service) GetStatus(ctx context.Context, _ *localv1.GetStatusRequest) (*
 		resp.Storage = &localv1.StorageStatus{Path: v.Path, Quotas: !v.Soft, Ready: true}
 		if err := v.Check(); err != nil {
 			resp.Storage.Ready, resp.Storage.Error = false, err.Error()
+		}
+	}
+	if s.Link != nil {
+		st := s.Link.Status()
+		resp.Connection = &localv1.ConnectionStatus{
+			State: string(st.State), Since: timestamppb.New(st.Since), LastError: st.LastError,
+			Reconnects: int32(min(st.Reconnects, math.MaxInt32)), RttMs: st.RTT.Milliseconds(), //nolint:gosec // capped
 		}
 	}
 	s.mu.RLock()

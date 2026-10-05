@@ -64,8 +64,8 @@ A server's directory is written by code Raptor doesn't trust: the egg's install 
 
 ### Enrollment and identity
 - Join tokens: single-use, 1-hour expiry, org-bound, stored hashed.
-- **Keys are generated on the node and never leave it.** The Panel stores only the public key. The node proves itself on every connection by signing a fresh challenge (bound to a timestamp and the connection's purpose, so it can't be replayed).
-- **The Panel proves itself** with its signing key, which Wings pins at enrollment. TLS terminates at Cloudflare, so the TLS certificate alone doesn't prove the Panel's identity to Wings.
+- **Keys are generated on the node and never leave it.** The Panel stores only the public key. The node proves itself on every connection by signing a fresh challenge (the Panel's random nonce and its own, the node ID, the connection's purpose, and a timestamp, so it can't be replayed or used for another connection).
+- **The Panel proves itself** with its signing key, which Wings pins at enrollment, by signing the node's nonce the same way. Wings checks it before signing anything, so an impostor never gets a node signature. TLS terminates at Cloudflare, so the TLS certificate alone doesn't prove the Panel's identity to Wings. Each signature names its signer, so one side's can't pass as the other's, and handshake signatures can't pass as command grants (different fields).
 - Node removal revokes the node's key and drops its connection immediately.
 - SFTP host keys are generated on the node; the fingerprint is reported to the Panel over the authenticated connection and shown to users.
 - **SFTP** is off by default. When on, it serves only the `sftp` subsystem (no shell, commands, or forwarding), refuses FIFOs and device nodes, never sets setuid bits or ownership, limits failed logins per address, and ends sessions when an install or a backup restore starts. Cached keys stop working once the Panel rejects them or hasn't confirmed them in 30 days. See [WINGS.md](WINGS.md#files-and-sftp).

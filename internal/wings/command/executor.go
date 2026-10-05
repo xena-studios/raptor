@@ -43,6 +43,13 @@ var (
 	ErrSignatureInvalid = errBadAssertion
 )
 
+// RunError is a command that ran and failed (as opposed to one that was
+// refused before running).
+type RunError struct{ Err error }
+
+func (e *RunError) Error() string { return e.Err.Error() }
+func (e *RunError) Unwrap() error { return e.Err }
+
 // Handler runs one action.
 type Handler struct {
 	// Signed reports whether this command must carry a passkey signature.
@@ -247,7 +254,10 @@ func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 	if signed {
 		x.log().Info("signed command executed", "command", e.CommandID, "action", e.Action, "user", e.UserID, "server", e.ServerID, "ok", runErr == nil)
 	}
-	return Result{Value: raw}, runErr
+	if runErr != nil {
+		return Result{Value: raw}, &RunError{Err: runErr}
+	}
+	return Result{Value: raw}, nil
 }
 
 // previous returns the stored outcome of a command that was already seen.
@@ -266,7 +276,7 @@ func (x *Executor) previous(ctx context.Context, id string, hash []byte) (Result
 	case "running":
 		return Result{}, true, ErrInProgress
 	case "failed":
-		return Result{Duplicate: true}, true, errors.New(row.Error)
+		return Result{Duplicate: true}, true, &RunError{Err: errors.New(row.Error)}
 	}
 	var raw json.RawMessage
 	if row.Result != "" {

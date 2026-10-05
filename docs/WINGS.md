@@ -68,7 +68,7 @@ node_id: 0192f0a4-...            # assigned at enrollment
 panel:
   url: https://api.raptorpanel.net  # never hardcoded in Wings
   app_url: https://app.raptorpanel.net  # passkey origin and RP ID for signed commands
-identity:                        # written at enrollment (Phase 3), root-only 0600
+identity:                        # written at enrollment, root-only 0600
   key: /etc/raptor/node.key      # the node's private key; generated on the box, never leaves it
   panel_key: /etc/raptor/panel.pub  # the Panel's signing key, pinned at enrollment
   sftp_host_key: /etc/raptor/sftp_host_key  # Ed25519, generated on first start, never leaves the box
@@ -238,12 +238,20 @@ Every change on the node is appended to `events` with a **monotonic sequence num
 
 ## Commands from the Panel
 
-`internal/wings/command` receives commands (the transport arrives in Phase 3) and decides whether to run them. See [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands).
+`internal/wings/command` receives commands (over the [node connection](#node-connection)) and decides whether to run them. See [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands).
 - **Envelope:** `command_id` (UUIDv7), node, user, action, server, params, and an expiry at most 10 minutes out.
 - **Panel grant:** an Ed25519 signature by the Panel's pinned key over the user, node, command ID, action, and server. Bound to one command, so it can't be reused. No Panel key (not linked yet) means every command is refused.
 - **Passkey signature** for dangerous actions, verified by Wings itself.
 - **Exactly once:** each `command_id` runs at most once. A retry of the same command returns the stored result (even after it expired); the same ID with different content is refused. Records are kept 7 days. Commands left running by a Wings crash are marked failed on start.
 - **Actions** (`internal/wings/actions`): `server.create` (signed), `server.update` (signed when it changes the egg, image, or startup command, decided by Wings from its own records), `server.delete` (signed), `server.reinstall`, `server.start`/`stop`/`restart`/`kill`, `server.command`, `schedule.create`/`update`/`delete`/`run` (unsigned: a schedule can only do what the user could already do unsigned), `backup.create`, `backup.restore` (signed), `backup.delete` (signed), `backup.lock` (signed to unlock), `backup.policy.update` (signed when it lowers any keep value), `backup.destination.save`/`delete`, and `keys.add`/`keys.remove` (signed by an owner key).
+
+## Node connection
+
+`internal/wings/link` keeps the node connected to the Panel ([ARCHITECTURE.md](ARCHITECTURE.md#node-connection)); the wire protocol, shared with the Panel, is `internal/shared/nodelink`.
+- **Only a linked node connects:** `node_id` set, the node key (`identity.key`: the base64 Ed25519 seed, generated on the box, mode `0600`; Wings won't use one other users can read) and the pinned Panel key present. If one is missing, Wings logs why and runs without the Panel.
+- **Always reconnecting, never required:** full-jitter backoff from 1 s to 60 s; servers, schedules, and backups don't notice the connection at all.
+- **What the Panel can call:** `Execute` (a command, through the executor above) and `Events` (the [outbox](#event-outbox), which it acknowledges by asking for what comes after). Wings calls `EventsAvailable` on the Panel whenever there are new events.
+- `raptor status` shows the connection: connected for how long, the last ping's round trip, and reconnects; or why it isn't connected.
 
 ## Scheduler
 
