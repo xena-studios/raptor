@@ -11,6 +11,34 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteMirrorBackups = `-- name: DeleteMirrorBackups :exec
+DELETE FROM m_backups WHERE node_id = $1 AND server_id = $2
+`
+
+type DeleteMirrorBackupsParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) DeleteMirrorBackups(ctx context.Context, arg DeleteMirrorBackupsParams) error {
+	_, err := q.db.Exec(ctx, deleteMirrorBackups, arg.NodeID, arg.ServerID)
+	return err
+}
+
+const deleteMirrorSchedules = `-- name: DeleteMirrorSchedules :exec
+DELETE FROM m_schedules WHERE node_id = $1 AND server_id = $2
+`
+
+type DeleteMirrorSchedulesParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) DeleteMirrorSchedules(ctx context.Context, arg DeleteMirrorSchedulesParams) error {
+	_, err := q.db.Exec(ctx, deleteMirrorSchedules, arg.NodeID, arg.ServerID)
+	return err
+}
+
 const deleteMirrorServer = `-- name: DeleteMirrorServer :exec
 DELETE FROM m_servers WHERE node_id = $1 AND server_id = $2
 `
@@ -43,6 +71,167 @@ func (q *Queries) GetNodeAcked(ctx context.Context, id pgtype.UUID) (int64, erro
 	var last_acked_seq int64
 	err := row.Scan(&last_acked_seq)
 	return last_acked_seq, err
+}
+
+const insertMirrorBackup = `-- name: InsertMirrorBackup :exec
+INSERT INTO m_backups (node_id, server_id, backup_id, kind, status, locked, size, files, destination_id,
+                       error, warning, created_by, created_at, finished_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+`
+
+type InsertMirrorBackupParams struct {
+	NodeID        pgtype.UUID
+	ServerID      string
+	BackupID      string
+	Kind          string
+	Status        string
+	Locked        bool
+	Size          int64
+	Files         int64
+	DestinationID string
+	Error         string
+	Warning       string
+	CreatedBy     string
+	CreatedAt     pgtype.Timestamptz
+	FinishedAt    pgtype.Timestamptz
+	ExpiresAt     pgtype.Timestamptz
+}
+
+func (q *Queries) InsertMirrorBackup(ctx context.Context, arg InsertMirrorBackupParams) error {
+	_, err := q.db.Exec(ctx, insertMirrorBackup,
+		arg.NodeID,
+		arg.ServerID,
+		arg.BackupID,
+		arg.Kind,
+		arg.Status,
+		arg.Locked,
+		arg.Size,
+		arg.Files,
+		arg.DestinationID,
+		arg.Error,
+		arg.Warning,
+		arg.CreatedBy,
+		arg.CreatedAt,
+		arg.FinishedAt,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const insertMirrorSchedule = `-- name: InsertMirrorSchedule :exec
+INSERT INTO m_schedules (node_id, server_id, schedule_id, name, enabled, version, next_run, last_run, definition)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type InsertMirrorScheduleParams struct {
+	NodeID     pgtype.UUID
+	ServerID   string
+	ScheduleID string
+	Name       string
+	Enabled    bool
+	Version    int64
+	NextRun    pgtype.Timestamptz
+	LastRun    pgtype.Timestamptz
+	Definition []byte
+}
+
+func (q *Queries) InsertMirrorSchedule(ctx context.Context, arg InsertMirrorScheduleParams) error {
+	_, err := q.db.Exec(ctx, insertMirrorSchedule,
+		arg.NodeID,
+		arg.ServerID,
+		arg.ScheduleID,
+		arg.Name,
+		arg.Enabled,
+		arg.Version,
+		arg.NextRun,
+		arg.LastRun,
+		arg.Definition,
+	)
+	return err
+}
+
+const listMirrorBackups = `-- name: ListMirrorBackups :many
+SELECT node_id, server_id, backup_id, kind, status, locked, size, files, destination_id, error, warning, created_by, created_at, finished_at, expires_at FROM m_backups WHERE node_id = $1 AND server_id = $2 ORDER BY created_at DESC, backup_id
+`
+
+type ListMirrorBackupsParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) ListMirrorBackups(ctx context.Context, arg ListMirrorBackupsParams) ([]MBackup, error) {
+	rows, err := q.db.Query(ctx, listMirrorBackups, arg.NodeID, arg.ServerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MBackup
+	for rows.Next() {
+		var i MBackup
+		if err := rows.Scan(
+			&i.NodeID,
+			&i.ServerID,
+			&i.BackupID,
+			&i.Kind,
+			&i.Status,
+			&i.Locked,
+			&i.Size,
+			&i.Files,
+			&i.DestinationID,
+			&i.Error,
+			&i.Warning,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.FinishedAt,
+			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMirrorSchedules = `-- name: ListMirrorSchedules :many
+SELECT node_id, server_id, schedule_id, name, enabled, version, next_run, last_run, definition FROM m_schedules WHERE node_id = $1 AND server_id = $2 ORDER BY name, schedule_id
+`
+
+type ListMirrorSchedulesParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) ListMirrorSchedules(ctx context.Context, arg ListMirrorSchedulesParams) ([]MSchedule, error) {
+	rows, err := q.db.Query(ctx, listMirrorSchedules, arg.NodeID, arg.ServerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MSchedule
+	for rows.Next() {
+		var i MSchedule
+		if err := rows.Scan(
+			&i.NodeID,
+			&i.ServerID,
+			&i.ScheduleID,
+			&i.Name,
+			&i.Enabled,
+			&i.Version,
+			&i.NextRun,
+			&i.LastRun,
+			&i.Definition,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listMirrorServers = `-- name: ListMirrorServers :many

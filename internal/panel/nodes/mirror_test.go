@@ -15,8 +15,10 @@ import (
 
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
+	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/link"
+	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	wstore "github.com/xena-studios/raptor/internal/wings/store"
 )
@@ -63,6 +65,29 @@ func (f *fakeServers) set(id, name string, version int64, st server.State) {
 	f.servers[id], f.states[id] = s, st
 }
 
+// fakeChildren is the node's schedules and backups.
+type fakeChildren struct {
+	mu        sync.Mutex
+	schedules map[string][]*schedule.Schedule
+	backups   map[string][]*backup.Backup
+}
+
+func (f *fakeChildren) ListSchedules(_ context.Context, sid string) ([]*schedule.Schedule, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.schedules[sid], nil
+}
+
+func (f *fakeChildren) ListBackups(_ context.Context, sid string) ([]*backup.Backup, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.backups[sid], nil
+}
+
+type listFunc[T any] func(context.Context, string) ([]T, error)
+
+func (l listFunc[T]) List(ctx context.Context, sid string) ([]T, error) { return l(ctx, sid) }
+
 func (f *fakeServers) remove(id string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -102,9 +127,12 @@ func TestMirror(t *testing.T) {
 	outbox := events.New(db)
 	fs := &fakeServers{servers: map[string]*server.Server{}, states: map[string]server.State{}}
 	fs.set("s1", "Survival", 1, server.Running)
+	kids := &fakeChildren{schedules: map[string][]*schedule.Schedule{}, backups: map[string][]*backup.Backup{}}
 	l := link.New(link.Config{
 		PanelURL: srv.URL, NodeID: nodeID, NodeKey: nodeKey, PanelKey: res.GetPanelKey(),
 		Events: outbox, Servers: func() link.Servers { return fs },
+		Schedules: func() link.Schedules { return listFunc[*schedule.Schedule](kids.ListSchedules) },
+		Backups:   func() link.Backups { return listFunc[*backup.Backup](kids.ListBackups) },
 	})
 	go func() { _ = l.Run(ctx) }()
 
@@ -153,6 +181,51 @@ func TestMirror(t *testing.T) {
 	waitFor("updated", func(m map[string]row) bool { return m["s1"].name == "Survival 2" })
 	appendEvent("server.state", "s2", map[string]any{"state": "running"})
 	waitFor("state", func(m map[string]row) bool { return m["s2"].state == "running" })
+	// A schedule and a backup on s2, then the backup finishing.
+	kids.mu.Lock()
+	sc := &schedule.Schedule{ID: "sc1", ServerID: "s2", Version: 1, NextRun: time.Now().Add(time.Hour)}
+	sc.Name, sc.Cron, sc.Enabled = "Restart", "0 4 * * *", true
+	kids.schedules["s2"] = []*schedule.Schedule{sc}
+	kids.backups["s2"] = []*backup.Backup{{ID: "b1", ServerID: "s2", Kind: "manual", Status: "running", CreatedAt: time.Now()}}
+	kids.mu.Unlock()
+	appendEvent("schedule.created", "s2", nil)
+	children := func() (int, string) {
+		id, _ := uuid.Parse(nodeID)
+		scs, err := store.New(r.DB).ListMirrorSchedules(ctx, store.ListMirrorSchedulesParams{NodeID: pgUUID(id), ServerID: "s2"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		bks, err := store.New(r.DB).ListMirrorBackups(ctx, store.ListMirrorBackupsParams{NodeID: pgUUID(id), ServerID: "s2"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		status := ""
+		if len(bks) == 1 {
+			status = bks[0].Status
+		}
+		return len(scs), status
+	}
+	waitChildren := func(what string, wantSchedules int, wantBackup string) {
+		t.Helper()
+		deadline := time.Now().Add(10 * time.Second)
+		for {
+			n, st := children()
+			if n == wantSchedules && st == wantBackup {
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("%s: %d schedules, backup %q", what, n, st)
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+	waitChildren("schedule and backup", 1, "running")
+	kids.mu.Lock()
+	kids.backups["s2"][0].Status = "ok"
+	kids.mu.Unlock()
+	appendEvent("backup.finished", "s2", nil)
+	waitChildren("backup finished", 1, "ok")
+
 	fs.remove("s1")
 	appendEvent("server.deleted", "s1", nil)
 	waitFor("deleted", func(m map[string]row) bool { _, ok := m["s1"]; return !ok && len(m) == 1 })

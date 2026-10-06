@@ -75,6 +75,40 @@ message Server {
   // Unix milliseconds.
   int64 created_at = 11;
   int64 updated_at = 12;
+  repeated Schedule schedules = 13;
+  // Backups of this server (a deleted server's final backup isn't here).
+  repeated Backup backups = 14;
+}
+
+message Schedule {
+  string id = 1;
+  string name = 2;
+  bool enabled = 3;
+  int64 version = 4;
+  // Unix milliseconds; 0 when disabled / never ran.
+  int64 next_run = 5;
+  int64 last_run = 6;
+  // The full definition as JSON (cron, timezone, steps, ...).
+  bytes definition = 7;
+}
+
+message Backup {
+  string id = 1;
+  // "manual", "scheduled", "safety", "final", ...
+  string kind = 2;
+  // "pending", "running", "ok", "failed"
+  string status = 3;
+  bool locked = 4;
+  int64 size = 5;
+  int64 files = 6;
+  string destination_id = 7;
+  string error = 8;
+  string warning = 9;
+  string created_by = 10;
+  // Unix milliseconds; 0 if not set.
+  int64 created_at = 11;
+  int64 finished_at = 12;
+  int64 expires_at = 13;
 }
 
 message OpenTransferRequest {

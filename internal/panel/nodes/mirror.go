@@ -206,6 +206,9 @@ func applyServers(ctx context.Context, q *store.Queries, node pgtype.UUID, res *
 		if err != nil {
 			return err
 		}
+		if err := applyChildren(ctx, q, node, s); err != nil {
+			return err
+		}
 	}
 	for _, id := range res.GetMissing() {
 		if err := q.DeleteMirrorServer(ctx, store.DeleteMirrorServerParams{NodeID: node, ServerID: id}); err != nil {
@@ -215,8 +218,50 @@ func applyServers(ctx context.Context, q *store.Queries, node pgtype.UUID, res *
 	return nil
 }
 
+// applyChildren replaces a server's schedules and backups with the node's.
+func applyChildren(ctx context.Context, q *store.Queries, node pgtype.UUID, s *nodev1.Server) error {
+	sid := s.GetId()
+	if err := q.DeleteMirrorSchedules(ctx, store.DeleteMirrorSchedulesParams{NodeID: node, ServerID: sid}); err != nil {
+		return err
+	}
+	for _, sc := range s.GetSchedules() {
+		def := sc.GetDefinition()
+		if !json.Valid(def) {
+			return errors.New("node sent a schedule definition that isn't JSON")
+		}
+		if err := q.InsertMirrorSchedule(ctx, store.InsertMirrorScheduleParams{
+			NodeID: node, ServerID: sid, ScheduleID: sc.GetId(), Name: sc.GetName(), Enabled: sc.GetEnabled(),
+			Version: sc.GetVersion(), NextRun: optMillis(sc.GetNextRun()), LastRun: optMillis(sc.GetLastRun()), Definition: def,
+		}); err != nil {
+			return err
+		}
+	}
+	if err := q.DeleteMirrorBackups(ctx, store.DeleteMirrorBackupsParams{NodeID: node, ServerID: sid}); err != nil {
+		return err
+	}
+	for _, b := range s.GetBackups() {
+		if err := q.InsertMirrorBackup(ctx, store.InsertMirrorBackupParams{
+			NodeID: node, ServerID: sid, BackupID: b.GetId(), Kind: b.GetKind(), Status: b.GetStatus(), Locked: b.GetLocked(),
+			Size: b.GetSize(), Files: b.GetFiles(), DestinationID: b.GetDestinationId(), Error: b.GetError(),
+			Warning: b.GetWarning(), CreatedBy: b.GetCreatedBy(), CreatedAt: optMillis(b.GetCreatedAt()),
+			FinishedAt: optMillis(b.GetFinishedAt()), ExpiresAt: optMillis(b.GetExpiresAt()),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func millis(ms int64) pgtype.Timestamptz {
 	return pgtype.Timestamptz{Time: time.UnixMilli(ms), Valid: true}
+}
+
+// optMillis is a nullable time: 0 is unset.
+func optMillis(ms int64) pgtype.Timestamptz {
+	if ms == 0 {
+		return pgtype.Timestamptz{}
+	}
+	return millis(ms)
 }
 
 // Reset drops a node's mirror; the next sync rebuilds it from a snapshot.
