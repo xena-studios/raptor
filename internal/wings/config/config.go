@@ -123,6 +123,9 @@ type Storage struct {
 type Updates struct {
 	Channel string `yaml:"channel"` // stable or beta
 	Pin     string `yaml:"pin"`     // a version to install and stay on, e.g. "1.4.2"
+	// Automatic lets the Panel's staged rollouts update the node (default
+	// on). Off, the node only updates when its owner runs raptor update.
+	Automatic bool `yaml:"automatic"`
 }
 
 // Log controls logging.
@@ -154,7 +157,7 @@ func Default() Config {
 		Ports:   Ports{SFTP: 2022},
 		Limits:  Limits{ConcurrentInstalls: 2, ConcurrentBackups: 2, HostDiskMinFree: 10 << 30, BackupMemory: 1 << 30},
 		Storage: Storage{Quotas: true},
-		Updates: Updates{Channel: "stable"},
+		Updates: Updates{Channel: "stable", Automatic: true},
 		Log:     Log{Level: "info"},
 	}
 }
