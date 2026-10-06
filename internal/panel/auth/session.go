@@ -44,7 +44,7 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 	}
 	if _, err := q.CreateSession(ctx, store.CreateSessionParams{
 		UserID: user.ID, TokenHash: hash(token), ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(SessionMax), Valid: true},
-		Ip: ip, UserAgent: ua, Reauthed: reauthed,
+		Ip: ip, UserAgent: ua, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: reauthed},
 	}); err != nil {
 		return err
 	}
@@ -55,8 +55,14 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 }
 
 func setCookie(h http.Header, token string, maxAge time.Duration) {
+	setNamedCookie(h, CookieName, token, maxAge)
+}
+
+// setNamedCookie sets a host-only, script-proof cookie (an empty token
+// clears it).
+func setNamedCookie(h http.Header, name, token string, maxAge time.Duration) {
 	c := &http.Cookie{
-		Name: CookieName, Value: token, Path: "/", MaxAge: int(maxAge.Seconds()),
+		Name: name, Value: token, Path: "/", MaxAge: int(maxAge.Seconds()),
 		Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode,
 	}
 	if maxAge <= 0 {
@@ -66,9 +72,11 @@ func setCookie(h http.Header, token string, maxAge time.Duration) {
 }
 
 // cookieToken reads the session token from a request's headers.
-func cookieToken(h http.Header) string {
+func cookieToken(h http.Header) string { return namedCookie(h, CookieName) }
+
+func namedCookie(h http.Header, name string) string {
 	r := http.Request{Header: h}
-	c, err := r.Cookie(CookieName)
+	c, err := r.Cookie(name)
 	if err != nil {
 		return ""
 	}

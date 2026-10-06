@@ -75,6 +75,20 @@ const (
 	// AuthServiceFinishReauthProcedure is the fully-qualified name of the AuthService's FinishReauth
 	// RPC.
 	AuthServiceFinishReauthProcedure = "/raptor.panel.v1.AuthService/FinishReauth"
+	// AuthServiceFinishSecondFactorProcedure is the fully-qualified name of the AuthService's
+	// FinishSecondFactor RPC.
+	AuthServiceFinishSecondFactorProcedure = "/raptor.panel.v1.AuthService/FinishSecondFactor"
+	// AuthServiceBeginTOTPSetupProcedure is the fully-qualified name of the AuthService's
+	// BeginTOTPSetup RPC.
+	AuthServiceBeginTOTPSetupProcedure = "/raptor.panel.v1.AuthService/BeginTOTPSetup"
+	// AuthServiceFinishTOTPSetupProcedure is the fully-qualified name of the AuthService's
+	// FinishTOTPSetup RPC.
+	AuthServiceFinishTOTPSetupProcedure = "/raptor.panel.v1.AuthService/FinishTOTPSetup"
+	// AuthServiceDisableTOTPProcedure is the fully-qualified name of the AuthService's DisableTOTP RPC.
+	AuthServiceDisableTOTPProcedure = "/raptor.panel.v1.AuthService/DisableTOTP"
+	// AuthServiceRegenerateRecoveryCodesProcedure is the fully-qualified name of the AuthService's
+	// RegenerateRecoveryCodes RPC.
+	AuthServiceRegenerateRecoveryCodesProcedure = "/raptor.panel.v1.AuthService/RegenerateRecoveryCodes"
 )
 
 // AuthServiceClient is a client for the raptor.panel.v1.AuthService service.
@@ -116,9 +130,25 @@ type AuthServiceClient interface {
 	// account change: with a passkey if the account has one, otherwise with a
 	// code emailed to them.
 	BeginReauth(context.Context, *v1.BeginReauthRequest) (*v1.BeginReauthResponse, error)
-	// FinishReauth checks the passkey's answer or the emailed code. A
-	// re-authentication lasts 5 minutes.
+	// FinishReauth checks the passkey's answer, the authenticator app's code,
+	// or the emailed code. A re-authentication lasts 5 minutes.
 	FinishReauth(context.Context, *v1.FinishReauthRequest) (*v1.FinishReauthResponse, error)
+	// FinishSecondFactor finishes a sign-in that needed a second factor (an
+	// email sign-in to an account with TOTP), with an authenticator app's code
+	// or a recovery code. The pending sign-in is in a cookie.
+	FinishSecondFactor(context.Context, *v1.FinishSecondFactorRequest) (*v1.FinishSecondFactorResponse, error)
+	// BeginTOTPSetup makes a new authenticator app secret. Needs a recent
+	// re-authentication.
+	BeginTOTPSetup(context.Context, *v1.BeginTOTPSetupRequest) (*v1.BeginTOTPSetupResponse, error)
+	// FinishTOTPSetup turns TOTP on once a code from the app checks out, and
+	// returns new recovery codes (shown once).
+	FinishTOTPSetup(context.Context, *v1.FinishTOTPSetupRequest) (*v1.FinishTOTPSetupResponse, error)
+	// DisableTOTP turns TOTP off and deletes the recovery codes. Needs a
+	// recent re-authentication.
+	DisableTOTP(context.Context, *v1.DisableTOTPRequest) (*v1.DisableTOTPResponse, error)
+	// RegenerateRecoveryCodes replaces the recovery codes. Needs a recent
+	// re-authentication.
+	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the raptor.panel.v1.AuthService service. By default,
@@ -225,6 +255,36 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("FinishReauth")),
 			connect.WithClientOptions(opts...),
 		),
+		finishSecondFactor: connect.NewClient[v1.FinishSecondFactorRequest, v1.FinishSecondFactorResponse](
+			httpClient,
+			baseURL+AuthServiceFinishSecondFactorProcedure,
+			connect.WithSchema(authServiceMethods.ByName("FinishSecondFactor")),
+			connect.WithClientOptions(opts...),
+		),
+		beginTOTPSetup: connect.NewClient[v1.BeginTOTPSetupRequest, v1.BeginTOTPSetupResponse](
+			httpClient,
+			baseURL+AuthServiceBeginTOTPSetupProcedure,
+			connect.WithSchema(authServiceMethods.ByName("BeginTOTPSetup")),
+			connect.WithClientOptions(opts...),
+		),
+		finishTOTPSetup: connect.NewClient[v1.FinishTOTPSetupRequest, v1.FinishTOTPSetupResponse](
+			httpClient,
+			baseURL+AuthServiceFinishTOTPSetupProcedure,
+			connect.WithSchema(authServiceMethods.ByName("FinishTOTPSetup")),
+			connect.WithClientOptions(opts...),
+		),
+		disableTOTP: connect.NewClient[v1.DisableTOTPRequest, v1.DisableTOTPResponse](
+			httpClient,
+			baseURL+AuthServiceDisableTOTPProcedure,
+			connect.WithSchema(authServiceMethods.ByName("DisableTOTP")),
+			connect.WithClientOptions(opts...),
+		),
+		regenerateRecoveryCodes: connect.NewClient[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse](
+			httpClient,
+			baseURL+AuthServiceRegenerateRecoveryCodesProcedure,
+			connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -245,6 +305,11 @@ type authServiceClient struct {
 	deletePasskey             *connect.Client[v1.DeletePasskeyRequest, v1.DeletePasskeyResponse]
 	beginReauth               *connect.Client[v1.BeginReauthRequest, v1.BeginReauthResponse]
 	finishReauth              *connect.Client[v1.FinishReauthRequest, v1.FinishReauthResponse]
+	finishSecondFactor        *connect.Client[v1.FinishSecondFactorRequest, v1.FinishSecondFactorResponse]
+	beginTOTPSetup            *connect.Client[v1.BeginTOTPSetupRequest, v1.BeginTOTPSetupResponse]
+	finishTOTPSetup           *connect.Client[v1.FinishTOTPSetupRequest, v1.FinishTOTPSetupResponse]
+	disableTOTP               *connect.Client[v1.DisableTOTPRequest, v1.DisableTOTPResponse]
+	regenerateRecoveryCodes   *connect.Client[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse]
 }
 
 // StartEmailSignIn calls raptor.panel.v1.AuthService.StartEmailSignIn.
@@ -382,6 +447,51 @@ func (c *authServiceClient) FinishReauth(ctx context.Context, req *v1.FinishReau
 	return nil, err
 }
 
+// FinishSecondFactor calls raptor.panel.v1.AuthService.FinishSecondFactor.
+func (c *authServiceClient) FinishSecondFactor(ctx context.Context, req *v1.FinishSecondFactorRequest) (*v1.FinishSecondFactorResponse, error) {
+	response, err := c.finishSecondFactor.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// BeginTOTPSetup calls raptor.panel.v1.AuthService.BeginTOTPSetup.
+func (c *authServiceClient) BeginTOTPSetup(ctx context.Context, req *v1.BeginTOTPSetupRequest) (*v1.BeginTOTPSetupResponse, error) {
+	response, err := c.beginTOTPSetup.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// FinishTOTPSetup calls raptor.panel.v1.AuthService.FinishTOTPSetup.
+func (c *authServiceClient) FinishTOTPSetup(ctx context.Context, req *v1.FinishTOTPSetupRequest) (*v1.FinishTOTPSetupResponse, error) {
+	response, err := c.finishTOTPSetup.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DisableTOTP calls raptor.panel.v1.AuthService.DisableTOTP.
+func (c *authServiceClient) DisableTOTP(ctx context.Context, req *v1.DisableTOTPRequest) (*v1.DisableTOTPResponse, error) {
+	response, err := c.disableTOTP.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RegenerateRecoveryCodes calls raptor.panel.v1.AuthService.RegenerateRecoveryCodes.
+func (c *authServiceClient) RegenerateRecoveryCodes(ctx context.Context, req *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error) {
+	response, err := c.regenerateRecoveryCodes.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthServiceHandler is an implementation of the raptor.panel.v1.AuthService service.
 type AuthServiceHandler interface {
 	// StartEmailSignIn emails a 6-digit code and a sign-in link for the
@@ -421,9 +531,25 @@ type AuthServiceHandler interface {
 	// account change: with a passkey if the account has one, otherwise with a
 	// code emailed to them.
 	BeginReauth(context.Context, *v1.BeginReauthRequest) (*v1.BeginReauthResponse, error)
-	// FinishReauth checks the passkey's answer or the emailed code. A
-	// re-authentication lasts 5 minutes.
+	// FinishReauth checks the passkey's answer, the authenticator app's code,
+	// or the emailed code. A re-authentication lasts 5 minutes.
 	FinishReauth(context.Context, *v1.FinishReauthRequest) (*v1.FinishReauthResponse, error)
+	// FinishSecondFactor finishes a sign-in that needed a second factor (an
+	// email sign-in to an account with TOTP), with an authenticator app's code
+	// or a recovery code. The pending sign-in is in a cookie.
+	FinishSecondFactor(context.Context, *v1.FinishSecondFactorRequest) (*v1.FinishSecondFactorResponse, error)
+	// BeginTOTPSetup makes a new authenticator app secret. Needs a recent
+	// re-authentication.
+	BeginTOTPSetup(context.Context, *v1.BeginTOTPSetupRequest) (*v1.BeginTOTPSetupResponse, error)
+	// FinishTOTPSetup turns TOTP on once a code from the app checks out, and
+	// returns new recovery codes (shown once).
+	FinishTOTPSetup(context.Context, *v1.FinishTOTPSetupRequest) (*v1.FinishTOTPSetupResponse, error)
+	// DisableTOTP turns TOTP off and deletes the recovery codes. Needs a
+	// recent re-authentication.
+	DisableTOTP(context.Context, *v1.DisableTOTPRequest) (*v1.DisableTOTPResponse, error)
+	// RegenerateRecoveryCodes replaces the recovery codes. Needs a recent
+	// re-authentication.
+	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -526,6 +652,36 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("FinishReauth")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceFinishSecondFactorHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceFinishSecondFactorProcedure,
+		svc.FinishSecondFactor,
+		connect.WithSchema(authServiceMethods.ByName("FinishSecondFactor")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceBeginTOTPSetupHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceBeginTOTPSetupProcedure,
+		svc.BeginTOTPSetup,
+		connect.WithSchema(authServiceMethods.ByName("BeginTOTPSetup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceFinishTOTPSetupHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceFinishTOTPSetupProcedure,
+		svc.FinishTOTPSetup,
+		connect.WithSchema(authServiceMethods.ByName("FinishTOTPSetup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceDisableTOTPHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceDisableTOTPProcedure,
+		svc.DisableTOTP,
+		connect.WithSchema(authServiceMethods.ByName("DisableTOTP")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceRegenerateRecoveryCodesHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceRegenerateRecoveryCodesProcedure,
+		svc.RegenerateRecoveryCodes,
+		connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceStartEmailSignInProcedure:
@@ -558,6 +714,16 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceBeginReauthHandler.ServeHTTP(w, r)
 		case AuthServiceFinishReauthProcedure:
 			authServiceFinishReauthHandler.ServeHTTP(w, r)
+		case AuthServiceFinishSecondFactorProcedure:
+			authServiceFinishSecondFactorHandler.ServeHTTP(w, r)
+		case AuthServiceBeginTOTPSetupProcedure:
+			authServiceBeginTOTPSetupHandler.ServeHTTP(w, r)
+		case AuthServiceFinishTOTPSetupProcedure:
+			authServiceFinishTOTPSetupHandler.ServeHTTP(w, r)
+		case AuthServiceDisableTOTPProcedure:
+			authServiceDisableTOTPHandler.ServeHTTP(w, r)
+		case AuthServiceRegenerateRecoveryCodesProcedure:
+			authServiceRegenerateRecoveryCodesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -625,4 +791,24 @@ func (UnimplementedAuthServiceHandler) BeginReauth(context.Context, *v1.BeginRea
 
 func (UnimplementedAuthServiceHandler) FinishReauth(context.Context, *v1.FinishReauthRequest) (*v1.FinishReauthResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.FinishReauth is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) FinishSecondFactor(context.Context, *v1.FinishSecondFactorRequest) (*v1.FinishSecondFactorResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.FinishSecondFactor is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) BeginTOTPSetup(context.Context, *v1.BeginTOTPSetupRequest) (*v1.BeginTOTPSetupResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.BeginTOTPSetup is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) FinishTOTPSetup(context.Context, *v1.FinishTOTPSetupRequest) (*v1.FinishTOTPSetupResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.FinishTOTPSetup is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) DisableTOTP(context.Context, *v1.DisableTOTPRequest) (*v1.DisableTOTPResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.DisableTOTP is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.RegenerateRecoveryCodes is not implemented"))
 }

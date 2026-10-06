@@ -91,10 +91,13 @@ func loadWAUser(ctx context.Context, q *store.Queries, user store.User) (*waUser
 	return u, ids, nil
 }
 
-// hasStrongMethod says whether the account has a sign-in method stronger
-// than its inbox (a passkey; TOTP once it exists).
-func hasStrongMethod(ctx context.Context, q *store.Queries, user pgtype.UUID) (bool, error) {
-	n, err := q.CountPasskeys(ctx, user)
+// hasStrongMethod says whether the account has something stronger than its
+// inbox: a passkey or TOTP.
+func hasStrongMethod(ctx context.Context, q *store.Queries, user store.User) (bool, error) {
+	if user.TotpEnabledAt.Valid {
+		return true, nil
+	}
+	n, err := q.CountPasskeys(ctx, user.ID)
 	return n > 0, err
 }
 

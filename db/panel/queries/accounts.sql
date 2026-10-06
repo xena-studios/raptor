@@ -12,11 +12,11 @@ UPDATE users SET email_verified_at = now() WHERE id = $1 AND email_verified_at I
 
 -- name: CreateSession :one
 INSERT INTO sessions (user_id, token_hash, expires_at, ip, user_agent, reauth_at)
-VALUES ($1, $2, $3, $4, $5, CASE WHEN @reauthed::bool THEN now() END)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: SetSessionReauth :exec
-UPDATE sessions SET reauth_at = now() WHERE id = $1;
+UPDATE sessions SET reauth_at = $2 WHERE id = $1;
 
 -- name: SessionByToken :one
 SELECT * FROM sessions WHERE token_hash = $1;

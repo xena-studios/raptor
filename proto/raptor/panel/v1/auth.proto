@@ -65,9 +65,30 @@ service AuthService {
   // code emailed to them.
   rpc BeginReauth(BeginReauthRequest) returns (BeginReauthResponse) {}
 
-  // FinishReauth checks the passkey's answer or the emailed code. A
-  // re-authentication lasts 5 minutes.
+  // FinishReauth checks the passkey's answer, the authenticator app's code,
+  // or the emailed code. A re-authentication lasts 5 minutes.
   rpc FinishReauth(FinishReauthRequest) returns (FinishReauthResponse) {}
+
+  // FinishSecondFactor finishes a sign-in that needed a second factor (an
+  // email sign-in to an account with TOTP), with an authenticator app's code
+  // or a recovery code. The pending sign-in is in a cookie.
+  rpc FinishSecondFactor(FinishSecondFactorRequest) returns (FinishSecondFactorResponse) {}
+
+  // BeginTOTPSetup makes a new authenticator app secret. Needs a recent
+  // re-authentication.
+  rpc BeginTOTPSetup(BeginTOTPSetupRequest) returns (BeginTOTPSetupResponse) {}
+
+  // FinishTOTPSetup turns TOTP on once a code from the app checks out, and
+  // returns new recovery codes (shown once).
+  rpc FinishTOTPSetup(FinishTOTPSetupRequest) returns (FinishTOTPSetupResponse) {}
+
+  // DisableTOTP turns TOTP off and deletes the recovery codes. Needs a
+  // recent re-authentication.
+  rpc DisableTOTP(DisableTOTPRequest) returns (DisableTOTPResponse) {}
+
+  // RegenerateRecoveryCodes replaces the recovery codes. Needs a recent
+  // re-authentication.
+  rpc RegenerateRecoveryCodes(RegenerateRecoveryCodesRequest) returns (RegenerateRecoveryCodesResponse) {}
 }
 
 message StartEmailSignInRequest {
@@ -95,12 +116,16 @@ message FinishEmailSignInResponse {
   User user = 1;
   // The account was created by this sign-in.
   bool new_account = 2;
+  // The account has TOTP: the sign-in isn't finished until
+  // FinishSecondFactor (user is unset until then).
+  bool second_factor_required = 3;
 }
 
 message User {
   string id = 1;
   string email = 2;
   string name = 3;
+  bool totp_enabled = 4;
 }
 
 message GetSessionRequest {}
@@ -108,6 +133,8 @@ message GetSessionRequest {}
 message GetSessionResponse {
   User user = 1;
   Session session = 2;
+  // Unused recovery codes (0 without TOTP).
+  int32 recovery_codes_left = 3;
 }
 
 message Session {
@@ -222,18 +249,62 @@ message BeginReauthResponse {
   oneof method {
     // The account has passkeys: one of them must answer this.
     PasskeyChallenge passkey = 1;
-    // The account has no passkeys: a 6-digit code was emailed.
+    // The account has no passkeys or TOTP: a 6-digit code was emailed.
     bool email_sent = 2;
   }
+  // The account has TOTP, so a code from the authenticator app works too
+  // (or alone, if method is unset).
+  bool totp_allowed = 3;
 }
 
 message FinishReauthRequest {
   oneof proof {
     PasskeyAnswer passkey = 1;
     string email_code = 2;
+    string totp_code = 3;
   }
 }
 
 message FinishReauthResponse {
   google.protobuf.Timestamp reauth_until = 1;
+}
+
+message FinishSecondFactorRequest {
+  oneof proof {
+    string totp_code = 1;
+    string recovery_code = 2;
+  }
+}
+
+message FinishSecondFactorResponse {
+  User user = 1;
+  // Unused recovery codes left (when one was used).
+  int32 recovery_codes_left = 2;
+}
+
+message BeginTOTPSetupRequest {}
+
+message BeginTOTPSetupResponse {
+  // Base32, for typing into the app.
+  string secret = 1;
+  // otpauth:// URL, for a QR code.
+  string url = 2;
+}
+
+message FinishTOTPSetupRequest {
+  string code = 1;
+}
+
+message FinishTOTPSetupResponse {
+  repeated string recovery_codes = 1;
+}
+
+message DisableTOTPRequest {}
+
+message DisableTOTPResponse {}
+
+message RegenerateRecoveryCodesRequest {}
+
+message RegenerateRecoveryCodesResponse {
+  repeated string recovery_codes = 1;
 }

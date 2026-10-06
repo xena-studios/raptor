@@ -191,8 +191,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Deploy pipeline: zero-downtime deploys, with node connections drained and reconnected with jitter
 
 ### 3.2 Accounts
-- [ ] Passwordless auth in the Panel ([PANEL.md](PANEL.md#auth)): passkeys, OAuth (Google, Discord, GitHub), email codes + links, TOTP + recovery codes, safe OAuth account linking (email codes, links, and passkeys done; TOTP and OAuth next)
-- [ ] Sessions: hashed tokens in a `__Host-` cookie on `api.`, device list, revocation, re-auth for dangerous actions; `Origin` checks against sibling subdomains; rate limits + Turnstile on email codes; security notification emails (done but the TOTP parts, which come with TOTP; passkeys and email codes re-authenticate, and adding or removing a passkey emails the user)
+- [ ] Passwordless auth in the Panel ([PANEL.md](PANEL.md#auth)): passkeys, OAuth (Google, Discord, GitHub), email codes + links, TOTP + recovery codes, safe OAuth account linking (email codes, links, passkeys, TOTP, and recovery codes done; OAuth next)
+- [ ] Sessions: hashed tokens in a `__Host-` cookie on `api.`, device list, revocation, re-auth for dangerous actions; `Origin` checks against sibling subdomains; rate limits + Turnstile on email codes; security notification emails (done: passkeys, TOTP, or email codes re-authenticate, and changes to passkeys, TOTP, and recovery codes email the user; new-device emails come with the audit log)
 - [ ] Transactional email provider on its own sending subdomain (DNS: SPF, DKIM, DMARC)
 - [ ] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks)
 - [ ] Orgs, members, roles, invitations

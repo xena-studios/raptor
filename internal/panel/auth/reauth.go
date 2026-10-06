@@ -10,6 +10,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
@@ -58,6 +59,10 @@ func (s *Service) BeginReauth(ctx context.Context, _ *panelv1.BeginReauthRequest
 	if err != nil {
 		return nil, err
 	}
+	totpOn := sess.User.TotpEnabledAt.Valid
+	if len(u.creds) == 0 && totpOn {
+		return &panelv1.BeginReauthResponse{TotpAllowed: true}, nil
+	}
 	if len(u.creds) == 0 {
 		if err := s.limit(ctx, "send:email:"+sess.User.Email, limitSendPerEmail); err != nil {
 			return nil, err
@@ -79,7 +84,7 @@ func (s *Service) BeginReauth(ctx context.Context, _ *panelv1.BeginReauthRequest
 	if err != nil {
 		return nil, err
 	}
-	return &panelv1.BeginReauthResponse{Method: &panelv1.BeginReauthResponse_Passkey{Passkey: ch}}, nil
+	return &panelv1.BeginReauthResponse{Method: &panelv1.BeginReauthResponse_Passkey{Passkey: ch}, TotpAllowed: totpOn}, nil
 }
 
 // FinishReauth implements AuthService.
@@ -97,6 +102,8 @@ func (s *Service) FinishReauth(ctx context.Context, req *panelv1.FinishReauthReq
 		failure, err = s.reauthPasskey(ctx, sess, p.Passkey)
 	case *panelv1.FinishReauthRequest_EmailCode:
 		failure, err = s.reauthEmail(ctx, sess, p.EmailCode)
+	case *panelv1.FinishReauthRequest_TotpCode:
+		failure, err = s.reauthTOTP(ctx, sess, p.TotpCode)
 	default:
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a passkey or a code is needed"))
 	}
@@ -150,7 +157,7 @@ func (s *Service) reauthPasskey(ctx context.Context, sess *Session, a *panelv1.P
 			}
 			return err
 		}
-		return q.SetSessionReauth(ctx, sess.ID)
+		return q.SetSessionReauth(ctx, store.SetSessionReauthParams{ID: sess.ID, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: true}})
 	})
 	return failure, err
 }
@@ -159,12 +166,12 @@ func (s *Service) reauthEmail(ctx context.Context, sess *Session, code string) (
 	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		// Only for accounts with nothing stronger than the inbox.
-		strong, err := hasStrongMethod(ctx, q, sess.UserID)
+		strong, err := hasStrongMethod(ctx, q, sess.User)
 		if err != nil {
 			return err
 		}
 		if strong {
-			failure = connect.NewError(connect.CodeFailedPrecondition, errors.New("this account has a passkey: confirm with it instead"))
+			failure = connect.NewError(connect.CodeFailedPrecondition, errors.New("this account has a passkey or an authenticator app: confirm with it instead"))
 			return nil
 		}
 		_, f, err := checkEmailCode(ctx, q, s.now(), sess.User.Email, purposeReauth, code)
@@ -172,7 +179,23 @@ func (s *Service) reauthEmail(ctx context.Context, sess *Session, code string) (
 			failure = f
 			return err
 		}
-		return q.SetSessionReauth(ctx, sess.ID)
+		return q.SetSessionReauth(ctx, store.SetSessionReauthParams{ID: sess.ID, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: true}})
+	})
+	return failure, err
+}
+
+func (s *Service) reauthTOTP(ctx context.Context, sess *Session, code string) (failure, err error) {
+	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		ok, err := s.checkTOTP(ctx, q, sess.UserID, code)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			failure = errBadTOTP
+			return nil
+		}
+		return q.SetSessionReauth(ctx, store.SetSessionReauthParams{ID: sess.ID, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: true}})
 	})
 	return failure, err
 }

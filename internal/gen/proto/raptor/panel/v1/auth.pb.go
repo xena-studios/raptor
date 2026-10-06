@@ -250,9 +250,12 @@ type FinishEmailSignInResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	User  *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	// The account was created by this sign-in.
-	NewAccount    bool `protobuf:"varint,2,opt,name=new_account,json=newAccount,proto3" json:"new_account,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	NewAccount bool `protobuf:"varint,2,opt,name=new_account,json=newAccount,proto3" json:"new_account,omitempty"`
+	// The account has TOTP: the sign-in isn't finished until
+	// FinishSecondFactor (user is unset until then).
+	SecondFactorRequired bool `protobuf:"varint,3,opt,name=second_factor_required,json=secondFactorRequired,proto3" json:"second_factor_required,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *FinishEmailSignInResponse) Reset() {
@@ -299,11 +302,19 @@ func (x *FinishEmailSignInResponse) GetNewAccount() bool {
 	return false
 }
 
+func (x *FinishEmailSignInResponse) GetSecondFactorRequired() bool {
+	if x != nil {
+		return x.SecondFactorRequired
+	}
+	return false
+}
+
 type User struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	TotpEnabled   bool                   `protobuf:"varint,4,opt,name=totp_enabled,json=totpEnabled,proto3" json:"totp_enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -359,6 +370,13 @@ func (x *User) GetName() string {
 	return ""
 }
 
+func (x *User) GetTotpEnabled() bool {
+	if x != nil {
+		return x.TotpEnabled
+	}
+	return false
+}
+
 type GetSessionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -396,11 +414,13 @@ func (*GetSessionRequest) Descriptor() ([]byte, []int) {
 }
 
 type GetSessionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Session       *Session               `protobuf:"bytes,2,opt,name=session,proto3" json:"session,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	User    *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Session *Session               `protobuf:"bytes,2,opt,name=session,proto3" json:"session,omitempty"`
+	// Unused recovery codes (0 without TOTP).
+	RecoveryCodesLeft int32 `protobuf:"varint,3,opt,name=recovery_codes_left,json=recoveryCodesLeft,proto3" json:"recovery_codes_left,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetSessionResponse) Reset() {
@@ -445,6 +465,13 @@ func (x *GetSessionResponse) GetSession() *Session {
 		return x.Session
 	}
 	return nil
+}
+
+func (x *GetSessionResponse) GetRecoveryCodesLeft() int32 {
+	if x != nil {
+		return x.RecoveryCodesLeft
+	}
+	return 0
 }
 
 type Session struct {
@@ -1634,7 +1661,10 @@ type BeginReauthResponse struct {
 	//
 	//	*BeginReauthResponse_Passkey
 	//	*BeginReauthResponse_EmailSent
-	Method        isBeginReauthResponse_Method `protobuf_oneof:"method"`
+	Method isBeginReauthResponse_Method `protobuf_oneof:"method"`
+	// The account has TOTP, so a code from the authenticator app works too
+	// (or alone, if method is unset).
+	TotpAllowed   bool `protobuf:"varint,3,opt,name=totp_allowed,json=totpAllowed,proto3" json:"totp_allowed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1694,6 +1724,13 @@ func (x *BeginReauthResponse) GetEmailSent() bool {
 	return false
 }
 
+func (x *BeginReauthResponse) GetTotpAllowed() bool {
+	if x != nil {
+		return x.TotpAllowed
+	}
+	return false
+}
+
 type isBeginReauthResponse_Method interface {
 	isBeginReauthResponse_Method()
 }
@@ -1704,7 +1741,7 @@ type BeginReauthResponse_Passkey struct {
 }
 
 type BeginReauthResponse_EmailSent struct {
-	// The account has no passkeys: a 6-digit code was emailed.
+	// The account has no passkeys or TOTP: a 6-digit code was emailed.
 	EmailSent bool `protobuf:"varint,2,opt,name=email_sent,json=emailSent,proto3,oneof"`
 }
 
@@ -1718,6 +1755,7 @@ type FinishReauthRequest struct {
 	//
 	//	*FinishReauthRequest_Passkey
 	//	*FinishReauthRequest_EmailCode
+	//	*FinishReauthRequest_TotpCode
 	Proof         isFinishReauthRequest_Proof `protobuf_oneof:"proof"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1778,6 +1816,15 @@ func (x *FinishReauthRequest) GetEmailCode() string {
 	return ""
 }
 
+func (x *FinishReauthRequest) GetTotpCode() string {
+	if x != nil {
+		if x, ok := x.Proof.(*FinishReauthRequest_TotpCode); ok {
+			return x.TotpCode
+		}
+	}
+	return ""
+}
+
 type isFinishReauthRequest_Proof interface {
 	isFinishReauthRequest_Proof()
 }
@@ -1790,9 +1837,15 @@ type FinishReauthRequest_EmailCode struct {
 	EmailCode string `protobuf:"bytes,2,opt,name=email_code,json=emailCode,proto3,oneof"`
 }
 
+type FinishReauthRequest_TotpCode struct {
+	TotpCode string `protobuf:"bytes,3,opt,name=totp_code,json=totpCode,proto3,oneof"`
+}
+
 func (*FinishReauthRequest_Passkey) isFinishReauthRequest_Proof() {}
 
 func (*FinishReauthRequest_EmailCode) isFinishReauthRequest_Proof() {}
+
+func (*FinishReauthRequest_TotpCode) isFinishReauthRequest_Proof() {}
 
 type FinishReauthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1838,6 +1891,471 @@ func (x *FinishReauthResponse) GetReauthUntil() *timestamppb.Timestamp {
 	return nil
 }
 
+type FinishSecondFactorRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Proof:
+	//
+	//	*FinishSecondFactorRequest_TotpCode
+	//	*FinishSecondFactorRequest_RecoveryCode
+	Proof         isFinishSecondFactorRequest_Proof `protobuf_oneof:"proof"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishSecondFactorRequest) Reset() {
+	*x = FinishSecondFactorRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishSecondFactorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishSecondFactorRequest) ProtoMessage() {}
+
+func (x *FinishSecondFactorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishSecondFactorRequest.ProtoReflect.Descriptor instead.
+func (*FinishSecondFactorRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *FinishSecondFactorRequest) GetProof() isFinishSecondFactorRequest_Proof {
+	if x != nil {
+		return x.Proof
+	}
+	return nil
+}
+
+func (x *FinishSecondFactorRequest) GetTotpCode() string {
+	if x != nil {
+		if x, ok := x.Proof.(*FinishSecondFactorRequest_TotpCode); ok {
+			return x.TotpCode
+		}
+	}
+	return ""
+}
+
+func (x *FinishSecondFactorRequest) GetRecoveryCode() string {
+	if x != nil {
+		if x, ok := x.Proof.(*FinishSecondFactorRequest_RecoveryCode); ok {
+			return x.RecoveryCode
+		}
+	}
+	return ""
+}
+
+type isFinishSecondFactorRequest_Proof interface {
+	isFinishSecondFactorRequest_Proof()
+}
+
+type FinishSecondFactorRequest_TotpCode struct {
+	TotpCode string `protobuf:"bytes,1,opt,name=totp_code,json=totpCode,proto3,oneof"`
+}
+
+type FinishSecondFactorRequest_RecoveryCode struct {
+	RecoveryCode string `protobuf:"bytes,2,opt,name=recovery_code,json=recoveryCode,proto3,oneof"`
+}
+
+func (*FinishSecondFactorRequest_TotpCode) isFinishSecondFactorRequest_Proof() {}
+
+func (*FinishSecondFactorRequest_RecoveryCode) isFinishSecondFactorRequest_Proof() {}
+
+type FinishSecondFactorResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	User  *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	// Unused recovery codes left (when one was used).
+	RecoveryCodesLeft int32 `protobuf:"varint,2,opt,name=recovery_codes_left,json=recoveryCodesLeft,proto3" json:"recovery_codes_left,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *FinishSecondFactorResponse) Reset() {
+	*x = FinishSecondFactorResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishSecondFactorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishSecondFactorResponse) ProtoMessage() {}
+
+func (x *FinishSecondFactorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishSecondFactorResponse.ProtoReflect.Descriptor instead.
+func (*FinishSecondFactorResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *FinishSecondFactorResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+func (x *FinishSecondFactorResponse) GetRecoveryCodesLeft() int32 {
+	if x != nil {
+		return x.RecoveryCodesLeft
+	}
+	return 0
+}
+
+type BeginTOTPSetupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginTOTPSetupRequest) Reset() {
+	*x = BeginTOTPSetupRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginTOTPSetupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginTOTPSetupRequest) ProtoMessage() {}
+
+func (x *BeginTOTPSetupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginTOTPSetupRequest.ProtoReflect.Descriptor instead.
+func (*BeginTOTPSetupRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{38}
+}
+
+type BeginTOTPSetupResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Base32, for typing into the app.
+	Secret string `protobuf:"bytes,1,opt,name=secret,proto3" json:"secret,omitempty"`
+	// otpauth:// URL, for a QR code.
+	Url           string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginTOTPSetupResponse) Reset() {
+	*x = BeginTOTPSetupResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginTOTPSetupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginTOTPSetupResponse) ProtoMessage() {}
+
+func (x *BeginTOTPSetupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginTOTPSetupResponse.ProtoReflect.Descriptor instead.
+func (*BeginTOTPSetupResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *BeginTOTPSetupResponse) GetSecret() string {
+	if x != nil {
+		return x.Secret
+	}
+	return ""
+}
+
+func (x *BeginTOTPSetupResponse) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type FinishTOTPSetupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishTOTPSetupRequest) Reset() {
+	*x = FinishTOTPSetupRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishTOTPSetupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishTOTPSetupRequest) ProtoMessage() {}
+
+func (x *FinishTOTPSetupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishTOTPSetupRequest.ProtoReflect.Descriptor instead.
+func (*FinishTOTPSetupRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *FinishTOTPSetupRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type FinishTOTPSetupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes,proto3" json:"recovery_codes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishTOTPSetupResponse) Reset() {
+	*x = FinishTOTPSetupResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishTOTPSetupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishTOTPSetupResponse) ProtoMessage() {}
+
+func (x *FinishTOTPSetupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishTOTPSetupResponse.ProtoReflect.Descriptor instead.
+func (*FinishTOTPSetupResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *FinishTOTPSetupResponse) GetRecoveryCodes() []string {
+	if x != nil {
+		return x.RecoveryCodes
+	}
+	return nil
+}
+
+type DisableTOTPRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisableTOTPRequest) Reset() {
+	*x = DisableTOTPRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisableTOTPRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisableTOTPRequest) ProtoMessage() {}
+
+func (x *DisableTOTPRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisableTOTPRequest.ProtoReflect.Descriptor instead.
+func (*DisableTOTPRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{42}
+}
+
+type DisableTOTPResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisableTOTPResponse) Reset() {
+	*x = DisableTOTPResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisableTOTPResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisableTOTPResponse) ProtoMessage() {}
+
+func (x *DisableTOTPResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisableTOTPResponse.ProtoReflect.Descriptor instead.
+func (*DisableTOTPResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{43}
+}
+
+type RegenerateRecoveryCodesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegenerateRecoveryCodesRequest) Reset() {
+	*x = RegenerateRecoveryCodesRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegenerateRecoveryCodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegenerateRecoveryCodesRequest) ProtoMessage() {}
+
+func (x *RegenerateRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegenerateRecoveryCodesRequest.ProtoReflect.Descriptor instead.
+func (*RegenerateRecoveryCodesRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{44}
+}
+
+type RegenerateRecoveryCodesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes,proto3" json:"recovery_codes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegenerateRecoveryCodesResponse) Reset() {
+	*x = RegenerateRecoveryCodesResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegenerateRecoveryCodesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegenerateRecoveryCodesResponse) ProtoMessage() {}
+
+func (x *RegenerateRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegenerateRecoveryCodesResponse.ProtoReflect.Descriptor instead.
+func (*RegenerateRecoveryCodesResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *RegenerateRecoveryCodesResponse) GetRecoveryCodes() []string {
+	if x != nil {
+		return x.RecoveryCodes
+	}
+	return nil
+}
+
 var File_raptor_panel_v1_auth_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_auth_proto_rawDesc = "" +
@@ -1854,19 +2372,22 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x05proof\"5\n" +
 	"\tEmailCode\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"g\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\"\x9d\x01\n" +
 	"\x19FinishEmailSignInResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x12\x1f\n" +
 	"\vnew_account\x18\x02 \x01(\bR\n" +
-	"newAccount\"@\n" +
+	"newAccount\x124\n" +
+	"\x16second_factor_required\x18\x03 \x01(\bR\x14secondFactorRequired\"c\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\"\x13\n" +
-	"\x11GetSessionRequest\"s\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
+	"\ftotp_enabled\x18\x04 \x01(\bR\vtotpEnabled\"\x13\n" +
+	"\x11GetSessionRequest\"\xa3\x01\n" +
 	"\x12GetSessionResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x122\n" +
-	"\asession\x18\x02 \x01(\v2\x18.raptor.panel.v1.SessionR\asession\"\x9a\x02\n" +
+	"\asession\x18\x02 \x01(\v2\x18.raptor.panel.v1.SessionR\asession\x12.\n" +
+	"\x13recovery_codes_left\x18\x03 \x01(\x05R\x11recoveryCodesLeft\"\x9a\x02\n" +
 	"\aSession\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +
@@ -1930,19 +2451,41 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x14DeletePasskeyRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
 	"\x15DeletePasskeyResponse\"\x14\n" +
-	"\x12BeginReauthRequest\"\x7f\n" +
+	"\x12BeginReauthRequest\"\xa2\x01\n" +
 	"\x13BeginReauthResponse\x12=\n" +
 	"\apasskey\x18\x01 \x01(\v2!.raptor.panel.v1.PasskeyChallengeH\x00R\apasskey\x12\x1f\n" +
 	"\n" +
-	"email_sent\x18\x02 \x01(\bH\x00R\temailSentB\b\n" +
-	"\x06method\"{\n" +
+	"email_sent\x18\x02 \x01(\bH\x00R\temailSent\x12!\n" +
+	"\ftotp_allowed\x18\x03 \x01(\bR\vtotpAllowedB\b\n" +
+	"\x06method\"\x9a\x01\n" +
 	"\x13FinishReauthRequest\x12:\n" +
 	"\apasskey\x18\x01 \x01(\v2\x1e.raptor.panel.v1.PasskeyAnswerH\x00R\apasskey\x12\x1f\n" +
 	"\n" +
-	"email_code\x18\x02 \x01(\tH\x00R\temailCodeB\a\n" +
+	"email_code\x18\x02 \x01(\tH\x00R\temailCode\x12\x1d\n" +
+	"\ttotp_code\x18\x03 \x01(\tH\x00R\btotpCodeB\a\n" +
 	"\x05proof\"U\n" +
 	"\x14FinishReauthResponse\x12=\n" +
-	"\freauth_until\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vreauthUntil2\xa7\f\n" +
+	"\freauth_until\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vreauthUntil\"j\n" +
+	"\x19FinishSecondFactorRequest\x12\x1d\n" +
+	"\ttotp_code\x18\x01 \x01(\tH\x00R\btotpCode\x12%\n" +
+	"\rrecovery_code\x18\x02 \x01(\tH\x00R\frecoveryCodeB\a\n" +
+	"\x05proof\"w\n" +
+	"\x1aFinishSecondFactorResponse\x12)\n" +
+	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x12.\n" +
+	"\x13recovery_codes_left\x18\x02 \x01(\x05R\x11recoveryCodesLeft\"\x17\n" +
+	"\x15BeginTOTPSetupRequest\"B\n" +
+	"\x16BeginTOTPSetupResponse\x12\x16\n" +
+	"\x06secret\x18\x01 \x01(\tR\x06secret\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\",\n" +
+	"\x16FinishTOTPSetupRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"@\n" +
+	"\x17FinishTOTPSetupResponse\x12%\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"\x14\n" +
+	"\x12DisableTOTPRequest\"\x15\n" +
+	"\x13DisableTOTPResponse\" \n" +
+	"\x1eRegenerateRecoveryCodesRequest\"H\n" +
+	"\x1fRegenerateRecoveryCodesResponse\x12%\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes2\xc1\x10\n" +
 	"\vAuthService\x12i\n" +
 	"\x10StartEmailSignIn\x12(.raptor.panel.v1.StartEmailSignInRequest\x1a).raptor.panel.v1.StartEmailSignInResponse\"\x00\x12l\n" +
 	"\x11FinishEmailSignIn\x12).raptor.panel.v1.FinishEmailSignInRequest\x1a*.raptor.panel.v1.FinishEmailSignInResponse\"\x00\x12Z\n" +
@@ -1959,7 +2502,12 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\rRenamePasskey\x12%.raptor.panel.v1.RenamePasskeyRequest\x1a&.raptor.panel.v1.RenamePasskeyResponse\"\x00\x12`\n" +
 	"\rDeletePasskey\x12%.raptor.panel.v1.DeletePasskeyRequest\x1a&.raptor.panel.v1.DeletePasskeyResponse\"\x00\x12Z\n" +
 	"\vBeginReauth\x12#.raptor.panel.v1.BeginReauthRequest\x1a$.raptor.panel.v1.BeginReauthResponse\"\x00\x12]\n" +
-	"\fFinishReauth\x12$.raptor.panel.v1.FinishReauthRequest\x1a%.raptor.panel.v1.FinishReauthResponse\"\x00B\xc9\x01\n" +
+	"\fFinishReauth\x12$.raptor.panel.v1.FinishReauthRequest\x1a%.raptor.panel.v1.FinishReauthResponse\"\x00\x12o\n" +
+	"\x12FinishSecondFactor\x12*.raptor.panel.v1.FinishSecondFactorRequest\x1a+.raptor.panel.v1.FinishSecondFactorResponse\"\x00\x12c\n" +
+	"\x0eBeginTOTPSetup\x12&.raptor.panel.v1.BeginTOTPSetupRequest\x1a'.raptor.panel.v1.BeginTOTPSetupResponse\"\x00\x12f\n" +
+	"\x0fFinishTOTPSetup\x12'.raptor.panel.v1.FinishTOTPSetupRequest\x1a(.raptor.panel.v1.FinishTOTPSetupResponse\"\x00\x12Z\n" +
+	"\vDisableTOTP\x12#.raptor.panel.v1.DisableTOTPRequest\x1a$.raptor.panel.v1.DisableTOTPResponse\"\x00\x12~\n" +
+	"\x17RegenerateRecoveryCodes\x12/.raptor.panel.v1.RegenerateRecoveryCodesRequest\x1a0.raptor.panel.v1.RegenerateRecoveryCodesResponse\"\x00B\xc9\x01\n" +
 	"\x13com.raptor.panel.v1B\tAuthProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
 var (
@@ -1974,7 +2522,7 @@ func file_raptor_panel_v1_auth_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_auth_proto_rawDescData
 }
 
-var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*StartEmailSignInRequest)(nil),           // 0: raptor.panel.v1.StartEmailSignInRequest
 	(*StartEmailSignInResponse)(nil),          // 1: raptor.panel.v1.StartEmailSignInResponse
@@ -2012,16 +2560,26 @@ var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*BeginReauthResponse)(nil),               // 33: raptor.panel.v1.BeginReauthResponse
 	(*FinishReauthRequest)(nil),               // 34: raptor.panel.v1.FinishReauthRequest
 	(*FinishReauthResponse)(nil),              // 35: raptor.panel.v1.FinishReauthResponse
-	(*timestamppb.Timestamp)(nil),             // 36: google.protobuf.Timestamp
+	(*FinishSecondFactorRequest)(nil),         // 36: raptor.panel.v1.FinishSecondFactorRequest
+	(*FinishSecondFactorResponse)(nil),        // 37: raptor.panel.v1.FinishSecondFactorResponse
+	(*BeginTOTPSetupRequest)(nil),             // 38: raptor.panel.v1.BeginTOTPSetupRequest
+	(*BeginTOTPSetupResponse)(nil),            // 39: raptor.panel.v1.BeginTOTPSetupResponse
+	(*FinishTOTPSetupRequest)(nil),            // 40: raptor.panel.v1.FinishTOTPSetupRequest
+	(*FinishTOTPSetupResponse)(nil),           // 41: raptor.panel.v1.FinishTOTPSetupResponse
+	(*DisableTOTPRequest)(nil),                // 42: raptor.panel.v1.DisableTOTPRequest
+	(*DisableTOTPResponse)(nil),               // 43: raptor.panel.v1.DisableTOTPResponse
+	(*RegenerateRecoveryCodesRequest)(nil),    // 44: raptor.panel.v1.RegenerateRecoveryCodesRequest
+	(*RegenerateRecoveryCodesResponse)(nil),   // 45: raptor.panel.v1.RegenerateRecoveryCodesResponse
+	(*timestamppb.Timestamp)(nil),             // 46: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: raptor.panel.v1.FinishEmailSignInRequest.code:type_name -> raptor.panel.v1.EmailCode
 	5,  // 1: raptor.panel.v1.FinishEmailSignInResponse.user:type_name -> raptor.panel.v1.User
 	5,  // 2: raptor.panel.v1.GetSessionResponse.user:type_name -> raptor.panel.v1.User
 	8,  // 3: raptor.panel.v1.GetSessionResponse.session:type_name -> raptor.panel.v1.Session
-	36, // 4: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
-	36, // 5: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
-	36, // 6: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
+	46, // 4: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
+	46, // 5: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
+	46, // 6: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
 	8,  // 7: raptor.panel.v1.ListSessionsResponse.sessions:type_name -> raptor.panel.v1.Session
 	15, // 8: raptor.panel.v1.BeginPasskeySignInResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 9: raptor.panel.v1.FinishPasskeySignInRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
@@ -2029,47 +2587,58 @@ var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	15, // 11: raptor.panel.v1.BeginPasskeyRegistrationResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 12: raptor.panel.v1.FinishPasskeyRegistrationRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
 	25, // 13: raptor.panel.v1.FinishPasskeyRegistrationResponse.passkey:type_name -> raptor.panel.v1.Passkey
-	36, // 14: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
-	36, // 15: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
+	46, // 14: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
+	46, // 15: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
 	25, // 16: raptor.panel.v1.ListPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
 	15, // 17: raptor.panel.v1.BeginReauthResponse.passkey:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 18: raptor.panel.v1.FinishReauthRequest.passkey:type_name -> raptor.panel.v1.PasskeyAnswer
-	36, // 19: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
-	0,  // 20: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
-	2,  // 21: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
-	6,  // 22: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
-	9,  // 23: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
-	11, // 24: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
-	13, // 25: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
-	17, // 26: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
-	19, // 27: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
-	21, // 28: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
-	23, // 29: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
-	26, // 30: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
-	28, // 31: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
-	30, // 32: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
-	32, // 33: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
-	34, // 34: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
-	1,  // 35: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
-	4,  // 36: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
-	7,  // 37: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
-	10, // 38: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
-	12, // 39: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
-	14, // 40: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
-	18, // 41: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
-	20, // 42: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
-	22, // 43: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
-	24, // 44: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
-	27, // 45: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
-	29, // 46: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
-	31, // 47: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
-	33, // 48: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
-	35, // 49: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
-	35, // [35:50] is the sub-list for method output_type
-	20, // [20:35] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	46, // 19: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
+	5,  // 20: raptor.panel.v1.FinishSecondFactorResponse.user:type_name -> raptor.panel.v1.User
+	0,  // 21: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
+	2,  // 22: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
+	6,  // 23: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
+	9,  // 24: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
+	11, // 25: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
+	13, // 26: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
+	17, // 27: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
+	19, // 28: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
+	21, // 29: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
+	23, // 30: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
+	26, // 31: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
+	28, // 32: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
+	30, // 33: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
+	32, // 34: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
+	34, // 35: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
+	36, // 36: raptor.panel.v1.AuthService.FinishSecondFactor:input_type -> raptor.panel.v1.FinishSecondFactorRequest
+	38, // 37: raptor.panel.v1.AuthService.BeginTOTPSetup:input_type -> raptor.panel.v1.BeginTOTPSetupRequest
+	40, // 38: raptor.panel.v1.AuthService.FinishTOTPSetup:input_type -> raptor.panel.v1.FinishTOTPSetupRequest
+	42, // 39: raptor.panel.v1.AuthService.DisableTOTP:input_type -> raptor.panel.v1.DisableTOTPRequest
+	44, // 40: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:input_type -> raptor.panel.v1.RegenerateRecoveryCodesRequest
+	1,  // 41: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
+	4,  // 42: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
+	7,  // 43: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
+	10, // 44: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
+	12, // 45: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
+	14, // 46: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
+	18, // 47: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
+	20, // 48: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
+	22, // 49: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
+	24, // 50: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
+	27, // 51: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
+	29, // 52: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
+	31, // 53: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
+	33, // 54: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
+	35, // 55: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
+	37, // 56: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
+	39, // 57: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
+	41, // 58: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
+	43, // 59: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
+	45, // 60: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
+	41, // [41:61] is the sub-list for method output_type
+	21, // [21:41] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_auth_proto_init() }
@@ -2092,6 +2661,11 @@ func file_raptor_panel_v1_auth_proto_init() {
 	file_raptor_panel_v1_auth_proto_msgTypes[34].OneofWrappers = []any{
 		(*FinishReauthRequest_Passkey)(nil),
 		(*FinishReauthRequest_EmailCode)(nil),
+		(*FinishReauthRequest_TotpCode)(nil),
+	}
+	file_raptor_panel_v1_auth_proto_msgTypes[36].OneofWrappers = []any{
+		(*FinishSecondFactorRequest_TotpCode)(nil),
+		(*FinishSecondFactorRequest_RecoveryCode)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2099,7 +2673,7 @@ func file_raptor_panel_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_auth_proto_rawDesc), len(file_raptor_panel_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   36,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

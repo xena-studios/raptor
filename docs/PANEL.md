@@ -37,7 +37,9 @@ Configured by environment: `PANEL_DATABASE_URL`, `PANEL_SIGNING_KEY` (the file w
 
 ```
 users            id, email, email_verified_at, name, webauthn_handle, totp_secret (encrypted),
-                 created_at
+                 totp_enabled_at, totp_last_step, created_at
+totp_setups      user_id, secret (encrypted), expires_at
+pending_signins  id, user_id, token_hash, attempts, expires_at
 passkeys         id, user_id, credential_id, credential (public key, counter, flags,
                  transports), name, created_at, last_used_at
 webauthn_ceremonies  id, purpose (register|signin|reauth), session_id, data, expires_at
@@ -45,7 +47,7 @@ oauth_accounts   id, user_id, provider (google|discord|github), subject, email,
                  email_verified, created_at
 email_codes      id, email, code_hash, link_token_hash, purpose, attempts,
                  expires_at, used_at
-recovery_codes   id, user_id, code_hash, used_at
+recovery_codes   id, user_id, code_hash, used_at, created_at
 sessions         id, user_id, token_hash, created_at, last_seen_at, expires_at,
                  reauth_at, ip, user_agent, revoked_at
 orgs             id, name, slug, created_at
@@ -95,6 +97,8 @@ How passkeys work (`internal/panel/auth`, `go-webauthn/webauthn`): every passkey
 - **TOTP** (authenticator apps) with **one-time recovery codes** given at setup.
 - Required after **email and OAuth** sign-ins when enabled. Those are only as strong as the user's inbox or Google/Discord/GitHub account. Passkey sign-ins skip it, since they're already two factors.
 - The Panel encourages every account that owns nodes to have a passkey or TOTP.
+
+How TOTP works (`internal/panel/auth`, `pquerna/otp`): 30-second, 6-digit, SHA-1 codes, which is what every authenticator app does, accepted one step either side for drifting clocks. The step a code used is stored, so no code works twice, even in another sign-in. The secret is encrypted with AES-256-GCM under `PANEL_DATA_KEY`, bound to the user's ID; without that key TOTP is off. It's turned on only after a code from the app checks out, which also gives 10 recovery codes (80 random bits each, stored hashed, shown once, single use). After an email sign-in to an account with TOTP, the pending sign-in sits in its own `__Host-raptor_signin` cookie for 10 minutes and 5 tries, and `FinishSecondFactor` takes an app code or a recovery code. Turning TOTP on or off, making new recovery codes, and using one all email the user.
 
 **Accounts**
 - Users are keyed by our own ID; email is unique. An OAuth login is **linked to an existing account only if the provider says the email is verified**, otherwise someone could create an OAuth account with a victim's unverified email and take over their Raptor account. Discord and GitHub report whether the email is verified; unverified ones are treated as a new, separate identity.

@@ -166,10 +166,15 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 				return err
 			}
 		}
+		// With TOTP on, the email is only the first factor.
+		if user.TotpEnabledAt.Valid {
+			out = &panelv1.FinishEmailSignInResponse{SecondFactorRequired: true}
+			return s.startPending(ctx, q, user)
+		}
 		// An email proves the inbox, which is enough for sensitive changes
 		// only on accounts with nothing stronger: otherwise someone who
 		// got into the inbox could sign in and remove the passkeys.
-		strong, err := hasStrongMethod(ctx, q, user.ID)
+		strong, err := hasStrongMethod(ctx, q, user)
 		if err != nil {
 			return err
 		}
@@ -189,7 +194,7 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 }
 
 func userProto(u store.User) *panelv1.User {
-	return &panelv1.User{Id: uuid.UUID(u.ID.Bytes).String(), Email: u.Email, Name: u.Name}
+	return &panelv1.User{Id: uuid.UUID(u.ID.Bytes).String(), Email: u.Email, Name: u.Name, TotpEnabled: u.TotpEnabledAt.Valid}
 }
 
 func sessionProto(sess store.Session, current pgtype.UUID) *panelv1.Session {
@@ -213,7 +218,15 @@ func (s *Service) GetSession(ctx context.Context, _ *panelv1.GetSessionRequest) 
 	if until := s.reauthUntil(sess); !until.IsZero() {
 		out.ReauthUntil = timestamppb.New(until)
 	}
-	return &panelv1.GetSessionResponse{User: userProto(sess.User), Session: out}, nil
+	res := &panelv1.GetSessionResponse{User: userProto(sess.User), Session: out}
+	if sess.User.TotpEnabledAt.Valid {
+		n, err := s.q().CountRecoveryCodes(ctx, sess.UserID)
+		if err != nil {
+			return nil, err
+		}
+		res.RecoveryCodesLeft = int32(n) //nolint:gosec // at most RecoveryCodeCount
+	}
+	return res, nil
 }
 
 // SignOut ends this session and clears the cookie.

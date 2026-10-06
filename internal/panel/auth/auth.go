@@ -42,8 +42,11 @@ type Service struct {
 	// WebAuthn is the passkey relying party (NewWebAuthn); nil turns
 	// passkeys off.
 	WebAuthn *webauthn.WebAuthn
-	Log      *slog.Logger
-	Now      func() time.Time
+	// DataKey encrypts TOTP secrets (32 bytes, from PANEL_DATA_KEY); nil
+	// turns TOTP off.
+	DataKey []byte
+	Log     *slog.Logger
+	Now     func() time.Time
 }
 
 func (s *Service) q() *store.Queries { return store.New(s.DB) }
@@ -152,4 +155,6 @@ var (
 	errBadPasskey = connect.NewError(connect.CodePermissionDenied, errors.New("that passkey didn't work; try again"))
 	errNoPasskey  = connect.NewError(connect.CodeNotFound, errors.New("no such passkey"))
 	errReauth     = connect.NewError(connect.CodeFailedPrecondition, errors.New("confirm it's you first"))
+	errBadTOTP    = connect.NewError(connect.CodePermissionDenied, errors.New("that code is wrong; check the time on your phone and try the next one"))
+	errNoPending  = connect.NewError(connect.CodeUnauthenticated, errors.New("that sign-in expired; start again"))
 )

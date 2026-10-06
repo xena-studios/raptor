@@ -41,10 +41,12 @@ tasks:
     env:
       PANEL_DATABASE_URL: "{{.DEV_DATABASE_URL}}"
       PANEL_SIGNING_KEY: .dev/panel-signing.key
+      PANEL_DATA_KEY: .dev/panel-data.key
       PANEL_APP_URL: http://localhost:5173
       PANEL_MAIL_LOG: "1"
     cmds:
       - test -f .dev/panel-signing.key || go run ./cmd/panel keygen .dev/panel-signing.key
+      - test -f .dev/panel-data.key || go run ./cmd/panel keygen .dev/panel-data.key
       - go run ./cmd/panel serve api
 
   dev:join-token:

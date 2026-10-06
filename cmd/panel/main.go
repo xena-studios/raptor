@@ -29,7 +29,8 @@ const usage = `usage: panel <command>
 commands:
   serve api                 run the Panel (API, browser and node connections)
   migrate                   apply database migrations (PANEL_DATABASE_URL)
-  keygen <path>             create the Panel's signing key (PANEL_SIGNING_KEY)
+  keygen <path>             create a key file: the signing key (PANEL_SIGNING_KEY)
+                            or the data key (PANEL_DATA_KEY); make them separately
   org create <name>         add an org (until accounts exist)
   join-token <org-id> [name]  a single-use token that links one node (1 hour)
   rollout start <version>   update nodes' Wings in stages (5%, 25%, all)
@@ -39,6 +40,8 @@ commands:
 environment:
   PANEL_DATABASE_URL   Postgres; without it, serve api has no node routes
   PANEL_SIGNING_KEY    the signing key file (nodes pin its public key)
+  PANEL_DATA_KEY       the key file that encrypts TOTP secrets; without it,
+                       two-factor authentication is off
   PANEL_API_ADDR       listen address (default :8080)
   PANEL_APP_URL                the web app's origin (default https://app.raptorpanel.net);
                                the only origin browsers may call the API from
@@ -75,7 +78,7 @@ func run(args []string, log *slog.Logger) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("signing key written to %s\npublic key: %s\n", args[1], base64.StdEncoding.EncodeToString(pub))
+		fmt.Printf("key written to %s\npublic key (if it is the signing key): %s\n", args[1], base64.StdEncoding.EncodeToString(pub))
 		return nil
 	case len(args) == 3 && args[0] == "org" && args[1] == "create":
 		return withRegistry(ctx, func(r *nodes.Registry) error {
@@ -156,6 +159,19 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			return fmt.Errorf("PANEL_APP_URL: %w", err)
 		}
 		cfg.Auth.WebAuthn = wa
+		if path := os.Getenv("PANEL_DATA_KEY"); path != "" {
+			key, err := nodelink.LoadKey(path)
+			if err != nil {
+				return fmt.Errorf("PANEL_DATA_KEY: %w", err)
+			}
+			if key == nil {
+				return fmt.Errorf("%s doesn't exist (create it with panel keygen)", path)
+			}
+			// The file is 32 random bytes, in the signing key's format.
+			cfg.Auth.DataKey = key.Seed()
+		} else {
+			log.Warn("PANEL_DATA_KEY is not set: two-factor authentication is off")
+		}
 		go cfg.Auth.RunJanitor(ctx, time.Hour)
 		if os.Getenv("PANEL_MAIL_LOG") == "1" {
 			// Development: sign-in emails (with their codes) go to the log.
