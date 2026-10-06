@@ -120,3 +120,25 @@ type PanelInstance struct {
 	StartedAt pgtype.Timestamptz
 	SeenAt    pgtype.Timestamptz
 }
+
+type RolloutNode struct {
+	RolloutID   pgtype.UUID
+	NodeID      pgtype.UUID
+	Stage       int32
+	Status      string
+	FromVersion string
+	Error       string
+	SentAt      pgtype.Timestamptz
+	FinishedAt  pgtype.Timestamptz
+}
+
+type WingsRollout struct {
+	ID             pgtype.UUID
+	Version        string
+	State          string
+	Stage          int32
+	StageStartedAt pgtype.Timestamptz
+	Reason         string
+	CreatedAt      pgtype.Timestamptz
+	FinishedAt     pgtype.Timestamptz
+}
