@@ -317,7 +317,32 @@ func checkPanel(ctx context.Context, e *Env) []Result {
 			"Servers keep running, but the node can't be managed from the Panel.",
 			"Check DNS and outbound HTTPS (port 443) from this box: curl -I "+c.Panel.URL)
 	}
-	return pass(c.Panel.URL + " reachable")
+	// The connection itself, as Wings reports it.
+	conn := e.Status.GetConnection()
+	if conn == nil {
+		return pass(c.Panel.URL + " reachable")
+	}
+	switch conn.GetState() {
+	case "connected":
+		return pass(fmt.Sprintf("%s reachable, connected (%d reconnects)", c.Panel.URL, conn.GetReconnects()))
+	case "connecting":
+		return warn(c.Panel.URL+" reachable, connecting",
+			"Wings is connecting to the Panel; until it's connected the node can't be managed from it.",
+			"Run raptor doctor again in a minute.")
+	}
+	why := "Servers keep running, but the node can't be managed from the Panel."
+	fix := "journalctl -u raptor-wings | grep 'node connection' shows each attempt."
+	last := conn.GetLastError()
+	switch {
+	case strings.Contains(last, "revoked"), strings.Contains(last, "unknown or removed"):
+		fix = "The Panel doesn't accept this node any more: make a join token in the Panel and run raptor relink -token …"
+	case strings.Contains(last, "clocks disagree"):
+		fix = "Fix the clock (the Clock check above), then Wings reconnects on its own."
+	case strings.Contains(last, "isn't the Panel the node was linked to"):
+		why = "Something answering at " + c.Panel.URL + " can't prove it's the Panel this node was linked to, so Wings refuses it."
+		fix = "Check panel.url in the config and DNS for its host. If the Panel's key really changed, link again: raptor relink -token …"
+	}
+	return fail(fmt.Sprintf("%s reachable, but not connected: %s", c.Panel.URL, last), why, fix)
 }
 
 func checkSFTP(ctx context.Context, e *Env) []Result {
