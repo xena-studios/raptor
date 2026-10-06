@@ -34,7 +34,7 @@ tasks:
 
   dev:run:
     internal: true
-    deps: [dev:api, dev:web]
+    deps: [dev:api, dev:web, dev:verify]
 
   dev:api:
     internal: true
@@ -45,6 +45,8 @@ tasks:
       PANEL_APP_URL: http://localhost:5173
       PANEL_MAIL_LOG: "1"
       PANEL_MAIL_LOG_FILE: .dev/mail.txt
+      # Cloudflare's Turnstile test secret: every check passes.
+      PANEL_TURNSTILE_SECRET: 1x0000000000000000000000000000000AA
     cmds:
       - test -f .dev/panel-signing.key || go run ./cmd/panel keygen .dev/panel-signing.key
       - test -f .dev/panel-data.key || go run ./cmd/panel keygen .dev/panel-data.key
@@ -76,8 +78,18 @@ tasks:
   dev:web:
     internal: true
     dir: web
+    env:
+      # The verify page on its own origin, and Cloudflare's test site key.
+      VITE_TURNSTILE_URL: http://localhost:5174/
+      VITE_TURNSTILE_SITEKEY: 1x00000000000000000000AA
     cmds:
       - pnpm dev
+
+  dev:verify:
+    internal: true
+    dir: web
+    cmds:
+      - pnpm exec vite verify --port 5174 --strictPort
 
   migrate:
     desc: Apply Panel migrations to the dev database

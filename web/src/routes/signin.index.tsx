@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { KeyRound, Mail } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useCallback, useRef, useState } from "react";
 
+import { Turnstile, type TurnstileHandle, turnstileOn } from "@/components/turnstile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,9 @@ function SignIn() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstile = useRef<TurnstileHandle>(null);
+  const onToken = useCallback((t: string) => setTurnstileToken(t), []);
   const [error, setError] = useState(
     callbackError ? (callbackErrors[callbackError] ?? callbackErrors.oauth_failed) : "",
   );
@@ -68,10 +72,13 @@ function SignIn() {
     e.preventDefault();
     setError("");
     try {
-      await start.mutateAsync({ email });
+      await start.mutateAsync({ email, turnstileToken });
       setSent(true);
     } catch (err) {
       setError(message(err));
+    } finally {
+      // A token works once.
+      turnstile.current?.reset();
     }
   }
 
@@ -167,7 +174,12 @@ function SignIn() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
-                  <Button type="submit" variant="secondary" disabled={start.isPending}>
+                  <Turnstile ref={turnstile} onToken={onToken} />
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    disabled={start.isPending || (turnstileOn && !turnstileToken)}
+                  >
                     <Mail /> Email me a code
                   </Button>
                 </form>

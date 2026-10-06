@@ -131,7 +131,7 @@ How TOTP works (`internal/panel/auth`, `pquerna/otp`): 30-second, 6-digit, SHA-1
 
 **Abuse protection**
 - Rate limits per IP, per email address, and per account on sending codes and on every verification step.
-- Cloudflare Turnstile on "email me a code", so the Panel can't be used to spam inboxes or run up the email bill.
+- Cloudflare Turnstile on "email me a code", so the Panel can't be used to spam inboxes or run up the email bill. Its script never runs on the app's origin: the form embeds `verify.raptorpanel.net` (`web/verify`, a separate static page) in an iframe with no permissions, which passes the token back by `postMessage` to `https://app.raptorpanel.net` only, and the Panel checks the token was solved on that hostname (`PANEL_TURNSTILE_HOSTNAME`). `task dev` uses Cloudflare's always-pass test keys, with the page on `localhost:5174`.
 - Every sign-in, failure, and change to sign-in methods goes to the audit log, and security changes (new passkey, TOTP disabled, new device) are emailed to the user.
 
 **Staff** accounts are separate from customer accounts and must use hardware security keys (passkeys on a physical key).
