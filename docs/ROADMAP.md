@@ -207,7 +207,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Command routing to the instance holding the node, with `command_id`
 - [ ] Event ingestion (batched) + mirror + snapshot rebuild (servers, schedules, and backups done: synced on every announcement, rebuilt from a snapshot when dropped or out of step; jobs come with the UI that shows them)
 - [ ] Node DNS: `n-<short-id>.raptornodes.net` created at enrollment, updated from the IP Wings reports, names never reused (done against a fake Cloudflare API: the record follows the address a node connects from, public addresses only; needs the zone and token from 3.1, and removing records with the node comes with node removal in the UI)
-- [ ] Signed short-lived grants attached to commands; Wings verification
+- [x] Signed short-lived grants attached to commands; Wings verification (Wings since 1.5; the Panel side: per-server grants for members, a permission for every Wings action, and `CommandService` sending users' commands with a grant for each)
 - [ ] Passkey-signed dangerous commands end to end: owner key pinned at enrollment (with fingerprint comparison), signed key additions, owner-signed delegations for sub-users
 - [ ] `raptor doctor -upload` (bundles to object storage, with a support code), the Panel connection check through Cloudflare, and the node hostname check (the connection check done: doctor reports Wings' node connection and explains the usual failures)
 - [ ] SFTP auth over the node connection + public key sync (Wings side: the `sftp.Authenticator` interface and key cache exist)

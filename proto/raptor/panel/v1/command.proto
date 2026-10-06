@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+// CommandService sends commands to nodes for the signed-in user
+// (docs/PANEL.md#permissions). The Panel checks the user may run the
+// action (their org role, or their grants on the server), signs a grant
+// for exactly this command, and delivers it to the node; Wings checks the
+// grant, and for dangerous actions the user's passkey signature too.
+service CommandService {
+  // Execute runs one command and returns its result.
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse) {}
+}
+
+message ExecuteRequest {
+  string node_id = 1;
+  // A Wings action: "server.start", "files.read", ...
+  string action = 2;
+  string server_id = 3;
+  // The action's parameters, as a JSON object.
+  string params_json = 4;
+  // For passkey-signed commands the browser picks these, since they're part
+  // of what the passkey signs: a lowercase UUIDv7, and an expiry (unix
+  // seconds) at most 10 minutes away. Otherwise leave them empty.
+  string command_id = 5;
+  int64 expires_at = 6;
+  CommandSignature signature = 7;
+}
+
+// A WebAuthn assertion over the command's hash
+// (docs/SECURITY-MODEL.md#passkey-signed-commands).
+message CommandSignature {
+  bytes credential_id = 1;
+  bytes authenticator_data = 2;
+  bytes client_data_json = 3;
+  bytes signature = 4;
+}
+
+message ExecuteResponse {
+  string command_id = 1;
+  // The result, as JSON (empty if the action has none).
+  string result_json = 2;
+  // The node had already run this command; this is its stored result.
+  bool duplicate = 3;
+}

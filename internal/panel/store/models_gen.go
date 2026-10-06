@@ -231,6 +231,16 @@ type RolloutNode struct {
 	FinishedAt  pgtype.Timestamptz
 }
 
+type ServerGrant struct {
+	OrgID       pgtype.UUID
+	UserID      pgtype.UUID
+	NodeID      pgtype.UUID
+	ServerID    string
+	Permissions []string
+	GrantedBy   pgtype.UUID
+	UpdatedAt   pgtype.Timestamptz
+}
+
 type Session struct {
 	ID         pgtype.UUID
 	UserID     pgtype.UUID

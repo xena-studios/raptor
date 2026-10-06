@@ -102,24 +102,10 @@ func orgName(n string) (string, error) {
 	return n, nil
 }
 
-// asUser runs fn in a transaction as the signed-in user: as the database
-// role raptor_app with raptor.user_id set, so row-level security only shows
-// their orgs (db/panel/migrations/00013_rls.sql) even if a check here is
-// missing.
+// asUser runs fn as the signed-in user, under row-level security
+// (auth.Service.AsUser).
 func (s *Service) asUser(ctx context.Context, fn func(sess *auth.Session, q *store.Queries) error) error {
-	sess, err := s.Auth.Current(ctx)
-	if err != nil {
-		return err
-	}
-	return pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, "SET LOCAL ROLE raptor_app"); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, "SELECT set_config('raptor.user_id', $1, true)", idString(sess.UserID)); err != nil {
-			return err
-		}
-		return fn(sess, store.New(tx))
-	})
+	return s.Auth.AsUser(ctx, fn)
 }
 
 // member checks the user is in org with at least role min. Outsiders get

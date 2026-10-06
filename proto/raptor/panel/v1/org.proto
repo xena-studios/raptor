@@ -57,6 +57,16 @@ service OrgService {
   // root, so adding one is a sensitive change.
   rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse) {}
 
+  // SetServerAccess sets what a member may do on one server (no
+  // permissions removes their access). Admins and owners. Admins and owners
+  // themselves can always do everything.
+  rpc SetServerAccess(SetServerAccessRequest) returns (SetServerAccessResponse) {}
+
+  // ListServerAccess lists who has access to a server. Admins and owners.
+  rpc ListServerAccess(ListServerAccessRequest) returns (ListServerAccessResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // ListAuditLog lists the org's audit log, newest first, 50 at a time.
   // Admins and owners.
   rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse) {
@@ -193,4 +203,32 @@ message ListAuditLogRequest {
 message ListAuditLogResponse {
   repeated AuditEvent events = 1;
   string next_page_token = 2;
+}
+
+message SetServerAccessRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+  string user_id = 4;
+  // "console.write", "power", "files.read", "files.write", "backups",
+  // "schedules", "startup", "reinstall", "sftp".
+  repeated string permissions = 5;
+}
+
+message SetServerAccessResponse {}
+
+message ListServerAccessRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+}
+
+message ServerAccess {
+  string user_id = 1;
+  string email = 2;
+  repeated string permissions = 3;
+}
+
+message ListServerAccessResponse {
+  repeated ServerAccess access = 1;
 }
