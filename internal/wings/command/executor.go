@@ -150,7 +150,7 @@ func (x *Executor) Execute(ctx context.Context, e Envelope) (Result, error) {
 }
 
 func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
-	if err := e.validate(x.NodeID); err != nil {
+	if err := e.Validate(x.NodeID); err != nil {
 		return Result{}, err
 	}
 	h, ok := x.handlers[e.Action]

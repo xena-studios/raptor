@@ -15,7 +15,7 @@ The Panel **never stores**: game files, backup contents, live console, raw logs.
 One Go binary, one role (see [ARCHITECTURE.md](ARCHITECTURE.md#panel)):
 - `panel serve api`: Connect API, WebSockets for browsers and nodes, River jobs. Several instances can run; requests for a node held by another instance are forwarded through Postgres `LISTEN/NOTIFY`.
 
-Configured by environment: `PANEL_DATABASE_URL`, `PANEL_SIGNING_KEY` (the file with the Panel's Ed25519 signing key, kept apart from other secrets; nodes pin its public key), `PANEL_API_ADDR`. Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, until accounts exist (3.2), `panel org create <name>` and `panel join-token <org-id>`.
+Configured by environment: `PANEL_DATABASE_URL`, `PANEL_SIGNING_KEY` (the file with the Panel's Ed25519 signing key, kept apart from other secrets; nodes pin its public key), `PANEL_API_ADDR`. Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, until accounts exist (3.2), `panel org create <name>` and `panel join-token <org-id>`. `panel rollout start <version>` (and `status`, `pause`, `resume`, `cancel`) runs a staged Wings update ([WINGS.md](WINGS.md#updates)).
 
 ## Stack
 

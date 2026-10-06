@@ -10,12 +10,14 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/xena-studios/raptor/internal/panel/api"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
+	"github.com/xena-studios/raptor/internal/panel/rollout"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
@@ -29,6 +31,8 @@ commands:
   keygen <path>             create the Panel's signing key (PANEL_SIGNING_KEY)
   org create <name>         add an org (until accounts exist)
   join-token <org-id> [name]  a single-use token that links one node (1 hour)
+  rollout start <version>   update nodes' Wings in stages (5%, 25%, all)
+  rollout status|pause|resume|cancel
   version                   print version
 
 environment:
@@ -76,6 +80,8 @@ func run(args []string, log *slog.Logger) error {
 			}
 			return err
 		})
+	case len(args) >= 2 && args[0] == "rollout":
+		return rolloutCmd(ctx, args[1:])
 	case (len(args) == 2 || len(args) == 3) && args[0] == "join-token":
 		return withRegistry(ctx, func(r *nodes.Registry) error {
 			name := ""
@@ -131,6 +137,8 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			return fmt.Errorf("panel instance: %w", err)
 		}
 		cfg.Router = router
+		updates := &rollout.Engine{DB: pool, Sender: router, PanelKey: reg.PanelKey, Log: log}
+		go updates.Run(ctx, 30*time.Second)
 		log.Info("panel instance", "id", router.ID)
 		reg.KeyChanged = cfg.Hub.Disconnect
 		addrs := &nodes.Addresses{Store: reg, Domain: envOr("PANEL_NODE_DOMAIN", "raptornodes.net"), Log: log}
@@ -163,6 +171,41 @@ func registry(pool *pgxpool.Pool) (*nodes.Registry, error) {
 		return nil, fmt.Errorf("%s doesn't exist (create it with panel keygen)", path)
 	}
 	return &nodes.Registry{DB: pool, PanelKey: key}, nil
+}
+
+func rolloutCmd(ctx context.Context, args []string) error {
+	url := os.Getenv("PANEL_DATABASE_URL")
+	if url == "" {
+		return errors.New("PANEL_DATABASE_URL is not set")
+	}
+	pool, err := store.Open(ctx, url)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	e := &rollout.Engine{DB: pool}
+	switch {
+	case args[0] == "start" && len(args) == 2:
+		r, err := e.Start(ctx, args[1])
+		if err != nil {
+			return err
+		}
+		fmt.Printf("rolling out %s: 5%% of nodes first; the Panel advances it (panel rollout status)\n", r.Version)
+		return nil
+	case args[0] == "status":
+		s, err := e.Status(ctx)
+		if err == nil {
+			fmt.Println(s)
+		}
+		return err
+	case args[0] == "pause":
+		return e.SetState(ctx, "paused")
+	case args[0] == "resume":
+		return e.SetState(ctx, "running")
+	case args[0] == "cancel":
+		return e.SetState(ctx, "cancelled")
+	}
+	return errors.New("usage: panel rollout start <version> | status | pause | resume | cancel")
 }
 
 func withRegistry(ctx context.Context, fn func(*nodes.Registry) error) error {
