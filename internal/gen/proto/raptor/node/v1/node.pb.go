@@ -21,6 +21,251 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type GetServersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ids           []string               `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServersRequest) Reset() {
+	*x = GetServersRequest{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServersRequest) ProtoMessage() {}
+
+func (x *GetServersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServersRequest.ProtoReflect.Descriptor instead.
+func (*GetServersRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *GetServersRequest) GetIds() []string {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+type GetServersResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Servers []*Server              `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
+	// Named servers that don't exist (deleted).
+	Missing       []string `protobuf:"bytes,2,rep,name=missing,proto3" json:"missing,omitempty"`
+	LastSeq       int64    `protobuf:"varint,3,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServersResponse) Reset() {
+	*x = GetServersResponse{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServersResponse) ProtoMessage() {}
+
+func (x *GetServersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServersResponse.ProtoReflect.Descriptor instead.
+func (*GetServersResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetServersResponse) GetServers() []*Server {
+	if x != nil {
+		return x.Servers
+	}
+	return nil
+}
+
+func (x *GetServersResponse) GetMissing() []string {
+	if x != nil {
+		return x.Missing
+	}
+	return nil
+}
+
+func (x *GetServersResponse) GetLastSeq() int64 {
+	if x != nil {
+		return x.LastSeq
+	}
+	return 0
+}
+
+// Server is a server as Wings has it.
+type Server struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Bumped on every configuration change.
+	Version int64 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	// Runtime state: installing, install_failed, offline, starting, running,
+	// stopping, crashed.
+	State string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	// "running" or "stopped": what Wings keeps it at.
+	DesiredState string `protobuf:"bytes,5,opt,name=desired_state,json=desiredState,proto3" json:"desired_state,omitempty"`
+	InstallState string `protobuf:"bytes,6,opt,name=install_state,json=installState,proto3" json:"install_state,omitempty"`
+	InstallError string `protobuf:"bytes,7,opt,name=install_error,json=installError,proto3" json:"install_error,omitempty"`
+	EggName      string `protobuf:"bytes,8,opt,name=egg_name,json=eggName,proto3" json:"egg_name,omitempty"`
+	EggSource    string `protobuf:"bytes,9,opt,name=egg_source,json=eggSource,proto3" json:"egg_source,omitempty"`
+	// The rest of the configuration as JSON: image, startup, variables,
+	// limits, settings, host_network, allocations.
+	Config []byte `protobuf:"bytes,10,opt,name=config,proto3" json:"config,omitempty"`
+	// Unix milliseconds.
+	CreatedAt     int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     int64 `protobuf:"varint,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Server) Reset() {
+	*x = Server{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Server) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Server) ProtoMessage() {}
+
+func (x *Server) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Server.ProtoReflect.Descriptor instead.
+func (*Server) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Server) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Server) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Server) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *Server) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *Server) GetDesiredState() string {
+	if x != nil {
+		return x.DesiredState
+	}
+	return ""
+}
+
+func (x *Server) GetInstallState() string {
+	if x != nil {
+		return x.InstallState
+	}
+	return ""
+}
+
+func (x *Server) GetInstallError() string {
+	if x != nil {
+		return x.InstallError
+	}
+	return ""
+}
+
+func (x *Server) GetEggName() string {
+	if x != nil {
+		return x.EggName
+	}
+	return ""
+}
+
+func (x *Server) GetEggSource() string {
+	if x != nil {
+		return x.EggSource
+	}
+	return ""
+}
+
+func (x *Server) GetConfig() []byte {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+func (x *Server) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *Server) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
 type OpenTransferRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The upload_id or download_id.
@@ -31,7 +276,7 @@ type OpenTransferRequest struct {
 
 func (x *OpenTransferRequest) Reset() {
 	*x = OpenTransferRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[0]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +288,7 @@ func (x *OpenTransferRequest) String() string {
 func (*OpenTransferRequest) ProtoMessage() {}
 
 func (x *OpenTransferRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[0]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +301,7 @@ func (x *OpenTransferRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenTransferRequest.ProtoReflect.Descriptor instead.
 func (*OpenTransferRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{0}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *OpenTransferRequest) GetTransferId() string {
@@ -74,7 +319,7 @@ type OpenTransferResponse struct {
 
 func (x *OpenTransferResponse) Reset() {
 	*x = OpenTransferResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[1]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -86,7 +331,7 @@ func (x *OpenTransferResponse) String() string {
 func (*OpenTransferResponse) ProtoMessage() {}
 
 func (x *OpenTransferResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[1]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -99,7 +344,7 @@ func (x *OpenTransferResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenTransferResponse.ProtoReflect.Descriptor instead.
 func (*OpenTransferResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{1}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{4}
 }
 
 type ExecuteRequest struct {
@@ -114,7 +359,7 @@ type ExecuteRequest struct {
 
 func (x *ExecuteRequest) Reset() {
 	*x = ExecuteRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[2]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -126,7 +371,7 @@ func (x *ExecuteRequest) String() string {
 func (*ExecuteRequest) ProtoMessage() {}
 
 func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[2]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -139,7 +384,7 @@ func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteRequest.ProtoReflect.Descriptor instead.
 func (*ExecuteRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{2}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ExecuteRequest) GetEnvelope() []byte {
@@ -163,7 +408,7 @@ type ExecuteResponse struct {
 
 func (x *ExecuteResponse) Reset() {
 	*x = ExecuteResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[3]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +420,7 @@ func (x *ExecuteResponse) String() string {
 func (*ExecuteResponse) ProtoMessage() {}
 
 func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[3]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +433,7 @@ func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteResponse.ProtoReflect.Descriptor instead.
 func (*ExecuteResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{3}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ExecuteResponse) GetResult() []byte {
@@ -222,7 +467,7 @@ type EventsRequest struct {
 
 func (x *EventsRequest) Reset() {
 	*x = EventsRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[4]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -234,7 +479,7 @@ func (x *EventsRequest) String() string {
 func (*EventsRequest) ProtoMessage() {}
 
 func (x *EventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[4]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -247,7 +492,7 @@ func (x *EventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsRequest.ProtoReflect.Descriptor instead.
 func (*EventsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{4}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EventsRequest) GetAfterSeq() int64 {
@@ -275,7 +520,7 @@ type EventsResponse struct {
 
 func (x *EventsResponse) Reset() {
 	*x = EventsResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[5]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -287,7 +532,7 @@ func (x *EventsResponse) String() string {
 func (*EventsResponse) ProtoMessage() {}
 
 func (x *EventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[5]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,7 +545,7 @@ func (x *EventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsResponse.ProtoReflect.Descriptor instead.
 func (*EventsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{5}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *EventsResponse) GetEvents() []*Event {
@@ -333,7 +578,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[6]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +590,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[6]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +603,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{6}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Event) GetSeq() int64 {
@@ -412,7 +657,7 @@ type EventsAvailableRequest struct {
 
 func (x *EventsAvailableRequest) Reset() {
 	*x = EventsAvailableRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[7]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -424,7 +669,7 @@ func (x *EventsAvailableRequest) String() string {
 func (*EventsAvailableRequest) ProtoMessage() {}
 
 func (x *EventsAvailableRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[7]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -437,7 +682,7 @@ func (x *EventsAvailableRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsAvailableRequest.ProtoReflect.Descriptor instead.
 func (*EventsAvailableRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{7}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *EventsAvailableRequest) GetLastSeq() int64 {
@@ -455,7 +700,7 @@ type EventsAvailableResponse struct {
 
 func (x *EventsAvailableResponse) Reset() {
 	*x = EventsAvailableResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[8]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +712,7 @@ func (x *EventsAvailableResponse) String() string {
 func (*EventsAvailableResponse) ProtoMessage() {}
 
 func (x *EventsAvailableResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[8]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +725,7 @@ func (x *EventsAvailableResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsAvailableResponse.ProtoReflect.Descriptor instead.
 func (*EventsAvailableResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{8}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{11}
 }
 
 type EnrollRequest struct {
@@ -506,7 +751,7 @@ type EnrollRequest struct {
 
 func (x *EnrollRequest) Reset() {
 	*x = EnrollRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[9]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -518,7 +763,7 @@ func (x *EnrollRequest) String() string {
 func (*EnrollRequest) ProtoMessage() {}
 
 func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[9]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -531,7 +776,7 @@ func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollRequest.ProtoReflect.Descriptor instead.
 func (*EnrollRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{9}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *EnrollRequest) GetToken() string {
@@ -597,7 +842,7 @@ type NodeFacts struct {
 
 func (x *NodeFacts) Reset() {
 	*x = NodeFacts{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[10]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -609,7 +854,7 @@ func (x *NodeFacts) String() string {
 func (*NodeFacts) ProtoMessage() {}
 
 func (x *NodeFacts) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[10]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -622,7 +867,7 @@ func (x *NodeFacts) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeFacts.ProtoReflect.Descriptor instead.
 func (*NodeFacts) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{10}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *NodeFacts) GetOs() string {
@@ -673,7 +918,7 @@ type EnrollResponse struct {
 
 func (x *EnrollResponse) Reset() {
 	*x = EnrollResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[11]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +930,7 @@ func (x *EnrollResponse) String() string {
 func (*EnrollResponse) ProtoMessage() {}
 
 func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[11]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +943,7 @@ func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollResponse.ProtoReflect.Descriptor instead.
 func (*EnrollResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{11}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *EnrollResponse) GetNodeId() string {
@@ -726,7 +971,30 @@ var File_raptor_node_v1_node_proto protoreflect.FileDescriptor
 
 const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\n" +
-	"\x19raptor/node/v1/node.proto\x12\x0eraptor.node.v1\"6\n" +
+	"\x19raptor/node/v1/node.proto\x12\x0eraptor.node.v1\"%\n" +
+	"\x11GetServersRequest\x12\x10\n" +
+	"\x03ids\x18\x01 \x03(\tR\x03ids\"{\n" +
+	"\x12GetServersResponse\x120\n" +
+	"\aservers\x18\x01 \x03(\v2\x16.raptor.node.v1.ServerR\aservers\x12\x18\n" +
+	"\amissing\x18\x02 \x03(\tR\amissing\x12\x19\n" +
+	"\blast_seq\x18\x03 \x01(\x03R\alastSeq\"\xdb\x02\n" +
+	"\x06Server\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x03R\aversion\x12\x14\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x12#\n" +
+	"\rdesired_state\x18\x05 \x01(\tR\fdesiredState\x12#\n" +
+	"\rinstall_state\x18\x06 \x01(\tR\finstallState\x12#\n" +
+	"\rinstall_error\x18\a \x01(\tR\finstallError\x12\x19\n" +
+	"\begg_name\x18\b \x01(\tR\aeggName\x12\x1d\n" +
+	"\n" +
+	"egg_source\x18\t \x01(\tR\teggSource\x12\x16\n" +
+	"\x06config\x18\n" +
+	" \x01(\fR\x06config\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\f \x01(\x03R\tupdatedAt\"6\n" +
 	"\x13OpenTransferRequest\x12\x1f\n" +
 	"\vtransfer_id\x18\x01 \x01(\tR\n" +
 	"transferId\"\x16\n" +
@@ -771,11 +1039,13 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\x0eEnrollResponse\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x19\n" +
 	"\bshort_id\x18\x02 \x01(\tR\ashortId\x12\x1b\n" +
-	"\tpanel_key\x18\x03 \x01(\fR\bpanelKey2\x8c\x02\n" +
+	"\tpanel_key\x18\x03 \x01(\fR\bpanelKey2\xe6\x02\n" +
 	"\vNodeService\x12O\n" +
 	"\aExecute\x12\x1e.raptor.node.v1.ExecuteRequest\x1a\x1f.raptor.node.v1.ExecuteResponse\"\x03\x90\x02\x02\x12L\n" +
 	"\x06Events\x12\x1d.raptor.node.v1.EventsRequest\x1a\x1e.raptor.node.v1.EventsResponse\"\x03\x90\x02\x02\x12^\n" +
-	"\fOpenTransfer\x12#.raptor.node.v1.OpenTransferRequest\x1a$.raptor.node.v1.OpenTransferResponse\"\x03\x90\x02\x022w\n" +
+	"\fOpenTransfer\x12#.raptor.node.v1.OpenTransferRequest\x1a$.raptor.node.v1.OpenTransferResponse\"\x03\x90\x02\x02\x12X\n" +
+	"\n" +
+	"GetServers\x12!.raptor.node.v1.GetServersRequest\x1a\".raptor.node.v1.GetServersResponse\"\x03\x90\x02\x012w\n" +
 	"\fPanelService\x12g\n" +
 	"\x0fEventsAvailable\x12&.raptor.node.v1.EventsAvailableRequest\x1a'.raptor.node.v1.EventsAvailableResponse\"\x03\x90\x02\x022a\n" +
 	"\x11EnrollmentService\x12L\n" +
@@ -794,39 +1064,45 @@ func file_raptor_node_v1_node_proto_rawDescGZIP() []byte {
 	return file_raptor_node_v1_node_proto_rawDescData
 }
 
-var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_raptor_node_v1_node_proto_goTypes = []any{
-	(*OpenTransferRequest)(nil),     // 0: raptor.node.v1.OpenTransferRequest
-	(*OpenTransferResponse)(nil),    // 1: raptor.node.v1.OpenTransferResponse
-	(*ExecuteRequest)(nil),          // 2: raptor.node.v1.ExecuteRequest
-	(*ExecuteResponse)(nil),         // 3: raptor.node.v1.ExecuteResponse
-	(*EventsRequest)(nil),           // 4: raptor.node.v1.EventsRequest
-	(*EventsResponse)(nil),          // 5: raptor.node.v1.EventsResponse
-	(*Event)(nil),                   // 6: raptor.node.v1.Event
-	(*EventsAvailableRequest)(nil),  // 7: raptor.node.v1.EventsAvailableRequest
-	(*EventsAvailableResponse)(nil), // 8: raptor.node.v1.EventsAvailableResponse
-	(*EnrollRequest)(nil),           // 9: raptor.node.v1.EnrollRequest
-	(*NodeFacts)(nil),               // 10: raptor.node.v1.NodeFacts
-	(*EnrollResponse)(nil),          // 11: raptor.node.v1.EnrollResponse
+	(*GetServersRequest)(nil),       // 0: raptor.node.v1.GetServersRequest
+	(*GetServersResponse)(nil),      // 1: raptor.node.v1.GetServersResponse
+	(*Server)(nil),                  // 2: raptor.node.v1.Server
+	(*OpenTransferRequest)(nil),     // 3: raptor.node.v1.OpenTransferRequest
+	(*OpenTransferResponse)(nil),    // 4: raptor.node.v1.OpenTransferResponse
+	(*ExecuteRequest)(nil),          // 5: raptor.node.v1.ExecuteRequest
+	(*ExecuteResponse)(nil),         // 6: raptor.node.v1.ExecuteResponse
+	(*EventsRequest)(nil),           // 7: raptor.node.v1.EventsRequest
+	(*EventsResponse)(nil),          // 8: raptor.node.v1.EventsResponse
+	(*Event)(nil),                   // 9: raptor.node.v1.Event
+	(*EventsAvailableRequest)(nil),  // 10: raptor.node.v1.EventsAvailableRequest
+	(*EventsAvailableResponse)(nil), // 11: raptor.node.v1.EventsAvailableResponse
+	(*EnrollRequest)(nil),           // 12: raptor.node.v1.EnrollRequest
+	(*NodeFacts)(nil),               // 13: raptor.node.v1.NodeFacts
+	(*EnrollResponse)(nil),          // 14: raptor.node.v1.EnrollResponse
 }
 var file_raptor_node_v1_node_proto_depIdxs = []int32{
-	6,  // 0: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
-	10, // 1: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
-	2,  // 2: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
-	4,  // 3: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
-	0,  // 4: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
-	7,  // 5: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
-	9,  // 6: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
-	3,  // 7: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
-	5,  // 8: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
-	1,  // 9: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
-	8,  // 10: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
-	11, // 11: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
-	7,  // [7:12] is the sub-list for method output_type
-	2,  // [2:7] is the sub-list for method input_type
-	2,  // [2:2] is the sub-list for extension type_name
-	2,  // [2:2] is the sub-list for extension extendee
-	0,  // [0:2] is the sub-list for field type_name
+	2,  // 0: raptor.node.v1.GetServersResponse.servers:type_name -> raptor.node.v1.Server
+	9,  // 1: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
+	13, // 2: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
+	5,  // 3: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
+	7,  // 4: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
+	3,  // 5: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
+	0,  // 6: raptor.node.v1.NodeService.GetServers:input_type -> raptor.node.v1.GetServersRequest
+	10, // 7: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
+	12, // 8: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
+	6,  // 9: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
+	8,  // 10: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
+	4,  // 11: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
+	1,  // 12: raptor.node.v1.NodeService.GetServers:output_type -> raptor.node.v1.GetServersResponse
+	11, // 13: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
+	14, // 14: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
+	9,  // [9:15] is the sub-list for method output_type
+	3,  // [3:9] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_raptor_node_v1_node_proto_init() }
@@ -840,7 +1116,7 @@ func file_raptor_node_v1_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_node_v1_node_proto_rawDesc), len(file_raptor_node_v1_node_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

@@ -118,6 +118,8 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			},
 		}
 		reg.KeyChanged = cfg.Hub.Disconnect
+		mirror := &nodes.Mirror{DB: pool, Hub: cfg.Hub, Log: log}
+		cfg.Hub.EventsAvailable = func(_ context.Context, id string, _ int64) { mirror.Notify(id) }
 
 	} else {
 		log.Warn("PANEL_DATABASE_URL is not set: nodes can't enroll or connect")

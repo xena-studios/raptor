@@ -205,7 +205,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] `raptor link` / `unlink` / `relink`
 - [ ] Node connections in `serve api`: connection registry, version negotiation, pings, drain, forwarding between instances via `LISTEN/NOTIFY` (registry, versions, and pings done: `serve api` accepts nodes checked against the database and records their versions and last contact; drain and forwarding to come)
 - [ ] Command routing to the instance holding the node, with `command_id`
-- [ ] Event ingestion (batched) + mirror + snapshot rebuild
+- [ ] Event ingestion (batched) + mirror + snapshot rebuild (servers done: `m_servers`, synced on every announcement, rebuilt from a snapshot when dropped or out of step; schedules and backups to come)
 - [ ] Node DNS: `n-<short-id>.raptornodes.net` created at enrollment, updated from the IP Wings reports, names never reused
 - [ ] Signed short-lived grants attached to commands; Wings verification
 - [ ] Passkey-signed dangerous commands end to end: owner key pinned at enrollment (with fingerprint comparison), signed key additions, owner-signed delegations for sub-users
