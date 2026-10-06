@@ -67,7 +67,7 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 
 ### Deploys
 The Panel is one process role (`serve api`), deployed with zero downtime for browsers (start new → health check → shift traffic → drain old).
-- Node connections move to the new instances during the drain: the old instance asks its nodes to reconnect, spread over a short window, before it exits. Open consoles reconnect the same way.
+- Node connections move to the new instances during the drain: on SIGTERM the old instance stops claiming its nodes (so commands go elsewhere at once), turns new node connections away (503), and closes the ones it has spread evenly over 20 seconds, so they reconnect to the other instances a few at a time. Open consoles reconnect the same way. Tested with two instances on one database (`TestRouter`): commands through either reach the node, and draining one moves the node to the other without a command running twice.
 - **Accepted trade-off:** every deploy briefly reconnects every node. Game servers are never affected (they don't depend on the connection), and jittered reconnects avoid a storm. This replaced the separate `tunnel` process of the original design (decision 72).
 
 ### Database

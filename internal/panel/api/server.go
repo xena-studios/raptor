@@ -24,6 +24,11 @@ type Config struct {
 	// (no database configured) those routes don't exist.
 	Nodes *nodes.Registry
 	Hub   *nodes.Hub
+	// Router is this instance's place among others (nil: a single
+	// instance, as in tests).
+	Router *nodes.Router
+	// DrainWindow spreads node reconnects on shutdown (default 20 s).
+	DrainWindow time.Duration
 }
 
 // Handler returns the API's HTTP handler.
@@ -70,9 +75,20 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	case <-ctx.Done():
 	}
 
-	// Node connections are hijacked, so Shutdown doesn't wait for them; they
-	// reconnect to another instance with jitter.
+	// Node connections are hijacked, so Shutdown doesn't wait for them.
+	// They're handed to the other instances a few at a time: this one stops
+	// accepting nodes, stops claiming the ones it has, and closes them over
+	// the drain window.
 	if cfg.Hub != nil {
+		window := cfg.DrainWindow
+		if window == 0 {
+			window = 20 * time.Second
+		}
+		if cfg.Router != nil {
+			cfg.Router.Stop(context.Background())
+		}
+		log.Info("draining node connections", "window", window.String())
+		cfg.Hub.Drain(context.Background(), window)
 		cfg.Hub.Close()
 	}
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
