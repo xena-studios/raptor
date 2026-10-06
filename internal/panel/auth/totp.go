@@ -307,19 +307,19 @@ func (s *Service) startPending(ctx context.Context, q *store.Queries, user store
 	}); err != nil {
 		return err
 	}
-	if ci, ok := connect.CallInfoForHandlerContext(ctx); ok {
-		setNamedCookie(ci.ResponseHeader(), pendingCookie, token, PendingSigninTTL)
+	if c, ok := callOf(ctx); ok {
+		setNamedCookie(c.resp, pendingCookie, token, PendingSigninTTL)
 	}
 	return nil
 }
 
 // FinishSecondFactor implements AuthService.
 func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSecondFactorRequest) (*panelv1.FinishSecondFactorResponse, error) {
-	ci, ok := connect.CallInfoForHandlerContext(ctx)
+	c, ok := callOf(ctx)
 	if !ok {
 		return nil, errNoPending
 	}
-	token := namedCookie(ci.RequestHeader(), pendingCookie)
+	token := namedCookie(c.req, pendingCookie)
 	if token == "" {
 		return nil, errNoPending
 	}
@@ -389,7 +389,7 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 	if failure != nil {
 		return nil, failure
 	}
-	setNamedCookie(ci.ResponseHeader(), pendingCookie, "", 0)
+	setNamedCookie(c.resp, pendingCookie, "", 0)
 	if recovered {
 		s.notify(ctx, user, "A recovery code was used on your Raptor account",
 			fmt.Sprintf("Someone signed in to your Raptor account with a recovery code. %d are left.\n\nIf this wasn't you, sign out every device from your account settings and make new recovery codes right away.\n", out.GetRecoveryCodesLeft()))

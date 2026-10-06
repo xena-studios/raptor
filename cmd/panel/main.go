@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -45,6 +46,10 @@ environment:
   PANEL_API_ADDR       listen address (default :8080)
   PANEL_APP_URL                the web app's origin (default https://app.raptorpanel.net);
                                the only origin browsers may call the API from
+  PANEL_API_URL                the API's public origin (default https://api.raptorpanel.net),
+                               for OAuth callbacks (<url>/oauth/<provider>/callback)
+  PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID, _CLIENT_SECRET
+                               OAuth apps; each provider is offered once both are set
   PANEL_TURNSTILE_SECRET       Cloudflare Turnstile secret for the email sign-in form
   PANEL_MAIL_LOG=1             development only: write sign-in emails to the log
   PANEL_CLIENT_IP_HEADER       header with the client's address (CF-Connecting-IP);
@@ -172,6 +177,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		} else {
 			log.Warn("PANEL_DATA_KEY is not set: two-factor authentication is off")
 		}
+		cfg.Auth.OAuth = oauthProviders(envOr("PANEL_API_URL", "https://api.raptorpanel.net"), log)
 		go cfg.Auth.RunJanitor(ctx, time.Hour)
 		if os.Getenv("PANEL_MAIL_LOG") == "1" {
 			// Development: sign-in emails (with their codes) go to the log.
@@ -192,6 +198,25 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		log.Warn("PANEL_DATABASE_URL is not set: nodes can't enroll or connect")
 	}
 	return api.Run(ctx, cfg, log)
+}
+
+// oauthProviders are the OAuth apps configured in the environment.
+func oauthProviders(apiURL string, log *slog.Logger) map[string]auth.OAuthProvider {
+	out := map[string]auth.OAuthProvider{}
+	for name, newProvider := range map[string]func(id, secret, redirect string) auth.OAuthProvider{
+		"google":  func(id, secret, redirect string) auth.OAuthProvider { return auth.Google(id, secret, redirect) },
+		"github":  func(id, secret, redirect string) auth.OAuthProvider { return auth.NewGitHub(id, secret, redirect) },
+		"discord": func(id, secret, redirect string) auth.OAuthProvider { return auth.NewDiscord(id, secret, redirect) },
+	} {
+		env := "PANEL_" + strings.ToUpper(name)
+		id, secret := os.Getenv(env+"_CLIENT_ID"), os.Getenv(env+"_CLIENT_SECRET")
+		if id == "" || secret == "" {
+			continue
+		}
+		out[name] = newProvider(id, secret, strings.TrimSuffix(apiURL, "/")+"/oauth/"+name+"/callback")
+		log.Info("oauth sign-in on", "provider", name)
+	}
+	return out
 }
 
 func registry(pool *pgxpool.Pool) (*nodes.Registry, error) {

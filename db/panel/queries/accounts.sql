@@ -68,3 +68,6 @@ DELETE FROM email_codes WHERE expires_at < now() - interval '1 day';
 
 -- name: PruneSessions :exec
 DELETE FROM sessions WHERE expires_at < now() - interval '30 days' OR revoked_at < now() - interval '30 days';
+
+-- name: GetSession :one
+SELECT * FROM sessions WHERE id = $1;

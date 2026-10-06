@@ -89,6 +89,30 @@ service AuthService {
   // RegenerateRecoveryCodes replaces the recovery codes. Needs a recent
   // re-authentication.
   rpc RegenerateRecoveryCodes(RegenerateRecoveryCodesRequest) returns (RegenerateRecoveryCodesResponse) {}
+
+  // GetSignInMethods says which ways to sign in this Panel offers, for the
+  // sign-in page.
+  rpc GetSignInMethods(GetSignInMethodsRequest) returns (GetSignInMethodsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // BeginOAuth starts signing in with (or, signed in, linking) a Google,
+  // GitHub, or Discord account. It sets a short-lived state cookie and
+  // returns the provider's URL, which the web app navigates to; the
+  // provider sends the browser back to the API's /oauth/<provider>/callback,
+  // which redirects to the web app. Linking needs a recent
+  // re-authentication.
+  rpc BeginOAuth(BeginOAuthRequest) returns (BeginOAuthResponse) {}
+
+  // ListOAuthAccounts lists the Google, GitHub, and Discord accounts that
+  // can sign in to this account.
+  rpc ListOAuthAccounts(ListOAuthAccountsRequest) returns (ListOAuthAccountsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // UnlinkOAuthAccount stops one signing in. Needs a recent
+  // re-authentication.
+  rpc UnlinkOAuthAccount(UnlinkOAuthAccountRequest) returns (UnlinkOAuthAccountResponse) {}
 }
 
 message StartEmailSignInRequest {
@@ -308,3 +332,43 @@ message RegenerateRecoveryCodesRequest {}
 message RegenerateRecoveryCodesResponse {
   repeated string recovery_codes = 1;
 }
+
+message GetSignInMethodsRequest {}
+
+message GetSignInMethodsResponse {
+  bool email = 1;
+  bool passkeys = 2;
+  // "google", "github", "discord": the ones set up on this Panel.
+  repeated string oauth_providers = 3;
+}
+
+message BeginOAuthRequest {
+  string provider = 1;
+  // Link the provider's account to the signed-in account instead of
+  // signing in.
+  bool link = 2;
+}
+
+message BeginOAuthResponse {
+  string url = 1;
+}
+
+message OAuthAccount {
+  string id = 1;
+  string provider = 2;
+  string email = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp last_used_at = 5;
+}
+
+message ListOAuthAccountsRequest {}
+
+message ListOAuthAccountsResponse {
+  repeated OAuthAccount accounts = 1;
+}
+
+message UnlinkOAuthAccountRequest {
+  string id = 1;
+}
+
+message UnlinkOAuthAccountResponse {}
