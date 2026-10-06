@@ -54,7 +54,7 @@ func (s *Service) allow(ctx context.Context, key string, l Limit) (bool, error) 
 // ceremonies, and sessions long past their end.
 func (s *Service) Prune(ctx context.Context) error {
 	q := s.q()
-	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions} {
+	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups} {
 		if err := f(ctx); err != nil {
 			return err
 		}

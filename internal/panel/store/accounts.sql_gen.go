@@ -71,7 +71,7 @@ func (q *Queries) CreateEmailCode(ctx context.Context, arg CreateEmailCodeParams
 
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (user_id, token_hash, expires_at, ip, user_agent, reauth_at)
-VALUES ($1, $2, $3, $4, $5, CASE WHEN $6::bool THEN now() END)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at
 `
 
@@ -81,7 +81,7 @@ type CreateSessionParams struct {
 	ExpiresAt pgtype.Timestamptz
 	Ip        *netip.Addr
 	UserAgent string
-	Reauthed  bool
+	ReauthAt  pgtype.Timestamptz
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
@@ -91,7 +91,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		arg.ExpiresAt,
 		arg.Ip,
 		arg.UserAgent,
-		arg.Reauthed,
+		arg.ReauthAt,
 	)
 	var i Session
 	err := row.Scan(
@@ -110,7 +110,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle
+INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step
 `
 
 func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
@@ -123,6 +123,9 @@ func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
 		&i.Name,
 		&i.CreatedAt,
 		&i.WebauthnHandle,
+		&i.TotpSecret,
+		&i.TotpEnabledAt,
+		&i.TotpLastStep,
 	)
 	return i, err
 }
@@ -150,7 +153,7 @@ func (q *Queries) EmailCodeByLink(ctx context.Context, linkTokenHash []byte) (Em
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle FROM users WHERE id = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -163,12 +166,15 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.Name,
 		&i.CreatedAt,
 		&i.WebauthnHandle,
+		&i.TotpSecret,
+		&i.TotpEnabledAt,
+		&i.TotpLastStep,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle FROM users WHERE email = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -181,6 +187,9 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Name,
 		&i.CreatedAt,
 		&i.WebauthnHandle,
+		&i.TotpSecret,
+		&i.TotpEnabledAt,
+		&i.TotpLastStep,
 	)
 	return i, err
 }
@@ -329,11 +338,16 @@ func (q *Queries) SessionByToken(ctx context.Context, tokenHash []byte) (Session
 }
 
 const setSessionReauth = `-- name: SetSessionReauth :exec
-UPDATE sessions SET reauth_at = now() WHERE id = $1
+UPDATE sessions SET reauth_at = $2 WHERE id = $1
 `
 
-func (q *Queries) SetSessionReauth(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, setSessionReauth, id)
+type SetSessionReauthParams struct {
+	ID       pgtype.UUID
+	ReauthAt pgtype.Timestamptz
+}
+
+func (q *Queries) SetSessionReauth(ctx context.Context, arg SetSessionReauthParams) error {
+	_, err := q.db.Exec(ctx, setSessionReauth, arg.ID, arg.ReauthAt)
 	return err
 }
 

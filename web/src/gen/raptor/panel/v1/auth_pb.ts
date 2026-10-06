@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/auth.proto.
  */
 export const file_raptor_panel_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChpyYXB0b3IvcGFuZWwvdjEvYXV0aC5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIkEKF1N0YXJ0RW1haWxTaWduSW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhcKD3R1cm5zdGlsZV90b2tlbhgCIAEoCSIaChhTdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiZQoYRmluaXNoRW1haWxTaWduSW5SZXF1ZXN0EioKBGNvZGUYASABKAsyGi5yYXB0b3IucGFuZWwudjEuRW1haWxDb2RlSAASFAoKbGlua190b2tlbhgCIAEoCUgAQgcKBXByb29mIigKCUVtYWlsQ29kZRINCgVlbWFpbBgBIAEoCRIMCgRjb2RlGAIgASgJIlUKGUZpbmlzaEVtYWlsU2lnbkluUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEhMKC25ld19hY2NvdW50GAIgASgIIi8KBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCSITChFHZXRTZXNzaW9uUmVxdWVzdCJkChJHZXRTZXNzaW9uUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEikKB3Nlc3Npb24YAiABKAsyGC5yYXB0b3IucGFuZWwudjEuU2Vzc2lvbiLaAQoHU2Vzc2lvbhIKCgJpZBgBIAEoCRIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3NlZW5fYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAmlwGAQgASgJEhIKCnVzZXJfYWdlbnQYBSABKAkSDwoHY3VycmVudBgGIAEoCBIwCgxyZWF1dGhfdW50aWwYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhAKDlNpZ25PdXRSZXF1ZXN0IhEKD1NpZ25PdXRSZXNwb25zZSIVChNMaXN0U2Vzc2lvbnNSZXF1ZXN0IkIKFExpc3RTZXNzaW9uc1Jlc3BvbnNlEioKCHNlc3Npb25zGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlNlc3Npb24iRAoUUmV2b2tlU2Vzc2lvblJlcXVlc3QSDAoCaWQYASABKAlIABIUCgphbGxfb3RoZXJzGAIgASgISABCCAoGdGFyZ2V0IhcKFVJldm9rZVNlc3Npb25SZXNwb25zZSI9ChBQYXNza2V5Q2hhbGxlbmdlEhMKC2NlcmVtb255X2lkGAEgASgJEhQKDG9wdGlvbnNfanNvbhgCIAEoCSI9Cg1QYXNza2V5QW5zd2VyEhMKC2NlcmVtb255X2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCSIbChlCZWdpblBhc3NrZXlTaWduSW5SZXF1ZXN0IlIKGkJlZ2luUGFzc2tleVNpZ25JblJlc3BvbnNlEjQKCWNoYWxsZW5nZRgBIAEoCzIhLnJhcHRvci5wYW5lbC52MS5QYXNza2V5Q2hhbGxlbmdlIkwKGkZpbmlzaFBhc3NrZXlTaWduSW5SZXF1ZXN0Ei4KBmFuc3dlchgBIAEoCzIeLnJhcHRvci5wYW5lbC52MS5QYXNza2V5QW5zd2VyIkIKG0ZpbmlzaFBhc3NrZXlTaWduSW5SZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXIiIQofQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdCJYCiBCZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRI0CgljaGFsbGVuZ2UYASABKAsyIS5yYXB0b3IucGFuZWwudjEuUGFzc2tleUNoYWxsZW5nZSJgCiBGaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBIuCgZhbnN3ZXIYASABKAsyHi5yYXB0b3IucGFuZWwudjEuUGFzc2tleUFuc3dlchIMCgRuYW1lGAIgASgJIk4KIUZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRIpCgdwYXNza2V5GAEgASgLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkilQEKB1Bhc3NrZXkSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3VzZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBnN5bmNlZBgFIAEoCCIVChNMaXN0UGFzc2tleXNSZXF1ZXN0IkIKFExpc3RQYXNza2V5c1Jlc3BvbnNlEioKCHBhc3NrZXlzGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkiMAoUUmVuYW1lUGFzc2tleVJlcXVlc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSIXChVSZW5hbWVQYXNza2V5UmVzcG9uc2UiIgoURGVsZXRlUGFzc2tleVJlcXVlc3QSCgoCaWQYASABKAkiFwoVRGVsZXRlUGFzc2tleVJlc3BvbnNlIhQKEkJlZ2luUmVhdXRoUmVxdWVzdCJrChNCZWdpblJlYXV0aFJlc3BvbnNlEjQKB3Bhc3NrZXkYASABKAsyIS5yYXB0b3IucGFuZWwudjEuUGFzc2tleUNoYWxsZW5nZUgAEhQKCmVtYWlsX3NlbnQYAiABKAhIAEIICgZtZXRob2QiZwoTRmluaXNoUmVhdXRoUmVxdWVzdBIxCgdwYXNza2V5GAEgASgLMh4ucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXlBbnN3ZXJIABIUCgplbWFpbF9jb2RlGAIgASgJSABCBwoFcHJvb2YiSAoURmluaXNoUmVhdXRoUmVzcG9uc2USMAoMcmVhdXRoX3VudGlsGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcDKnDAoLQXV0aFNlcnZpY2USaQoQU3RhcnRFbWFpbFNpZ25JbhIoLnJhcHRvci5wYW5lbC52MS5TdGFydEVtYWlsU2lnbkluUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5TdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiABJsChFGaW5pc2hFbWFpbFNpZ25JbhIpLnJhcHRvci5wYW5lbC52MS5GaW5pc2hFbWFpbFNpZ25JblJlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuRmluaXNoRW1haWxTaWduSW5SZXNwb25zZSIAEloKCkdldFNlc3Npb24SIi5yYXB0b3IucGFuZWwudjEuR2V0U2Vzc2lvblJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuR2V0U2Vzc2lvblJlc3BvbnNlIgOQAgESTgoHU2lnbk91dBIfLnJhcHRvci5wYW5lbC52MS5TaWduT3V0UmVxdWVzdBogLnJhcHRvci5wYW5lbC52MS5TaWduT3V0UmVzcG9uc2UiABJgCgxMaXN0U2Vzc2lvbnMSJC5yYXB0b3IucGFuZWwudjEuTGlzdFNlc3Npb25zUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5MaXN0U2Vzc2lvbnNSZXNwb25zZSIDkAIBEmAKDVJldm9rZVNlc3Npb24SJS5yYXB0b3IucGFuZWwudjEuUmV2b2tlU2Vzc2lvblJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuUmV2b2tlU2Vzc2lvblJlc3BvbnNlIgASbwoSQmVnaW5QYXNza2V5U2lnbkluEioucmFwdG9yLnBhbmVsLnYxLkJlZ2luUGFzc2tleVNpZ25JblJlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuQmVnaW5QYXNza2V5U2lnbkluUmVzcG9uc2UiABJyChNGaW5pc2hQYXNza2V5U2lnbkluEisucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlTaWduSW5SZXF1ZXN0GiwucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlTaWduSW5SZXNwb25zZSIAEoEBChhCZWdpblBhc3NrZXlSZWdpc3RyYXRpb24SMC5yYXB0b3IucGFuZWwudjEuQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBoxLnJhcHRvci5wYW5lbC52MS5CZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZSIAEoQBChlGaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uEjEucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXF1ZXN0GjIucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZSIAEmAKDExpc3RQYXNza2V5cxIkLnJhcHRvci5wYW5lbC52MS5MaXN0UGFzc2tleXNSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkxpc3RQYXNza2V5c1Jlc3BvbnNlIgOQAgESYAoNUmVuYW1lUGFzc2tleRIlLnJhcHRvci5wYW5lbC52MS5SZW5hbWVQYXNza2V5UmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5SZW5hbWVQYXNza2V5UmVzcG9uc2UiABJgCg1EZWxldGVQYXNza2V5EiUucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZVBhc3NrZXlSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZVBhc3NrZXlSZXNwb25zZSIAEloKC0JlZ2luUmVhdXRoEiMucmFwdG9yLnBhbmVsLnYxLkJlZ2luUmVhdXRoUmVxdWVzdBokLnJhcHRvci5wYW5lbC52MS5CZWdpblJlYXV0aFJlc3BvbnNlIgASXQoMRmluaXNoUmVhdXRoEiQucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFJlYXV0aFJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuRmluaXNoUmVhdXRoUmVzcG9uc2UiAELJAQoTY29tLnJhcHRvci5wYW5lbC52MUIJQXV0aFByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChpyYXB0b3IvcGFuZWwvdjEvYXV0aC5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIkEKF1N0YXJ0RW1haWxTaWduSW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhcKD3R1cm5zdGlsZV90b2tlbhgCIAEoCSIaChhTdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiZQoYRmluaXNoRW1haWxTaWduSW5SZXF1ZXN0EioKBGNvZGUYASABKAsyGi5yYXB0b3IucGFuZWwudjEuRW1haWxDb2RlSAASFAoKbGlua190b2tlbhgCIAEoCUgAQgcKBXByb29mIigKCUVtYWlsQ29kZRINCgVlbWFpbBgBIAEoCRIMCgRjb2RlGAIgASgJInUKGUZpbmlzaEVtYWlsU2lnbkluUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEhMKC25ld19hY2NvdW50GAIgASgIEh4KFnNlY29uZF9mYWN0b3JfcmVxdWlyZWQYAyABKAgiRQoEVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRuYW1lGAMgASgJEhQKDHRvdHBfZW5hYmxlZBgEIAEoCCITChFHZXRTZXNzaW9uUmVxdWVzdCKBAQoSR2V0U2Vzc2lvblJlc3BvbnNlEiMKBHVzZXIYASABKAsyFS5yYXB0b3IucGFuZWwudjEuVXNlchIpCgdzZXNzaW9uGAIgASgLMhgucmFwdG9yLnBhbmVsLnYxLlNlc3Npb24SGwoTcmVjb3ZlcnlfY29kZXNfbGVmdBgDIAEoBSLaAQoHU2Vzc2lvbhIKCgJpZBgBIAEoCRIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3NlZW5fYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAmlwGAQgASgJEhIKCnVzZXJfYWdlbnQYBSABKAkSDwoHY3VycmVudBgGIAEoCBIwCgxyZWF1dGhfdW50aWwYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhAKDlNpZ25PdXRSZXF1ZXN0IhEKD1NpZ25PdXRSZXNwb25zZSIVChNMaXN0U2Vzc2lvbnNSZXF1ZXN0IkIKFExpc3RTZXNzaW9uc1Jlc3BvbnNlEioKCHNlc3Npb25zGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlNlc3Npb24iRAoUUmV2b2tlU2Vzc2lvblJlcXVlc3QSDAoCaWQYASABKAlIABIUCgphbGxfb3RoZXJzGAIgASgISABCCAoGdGFyZ2V0IhcKFVJldm9rZVNlc3Npb25SZXNwb25zZSI9ChBQYXNza2V5Q2hhbGxlbmdlEhMKC2NlcmVtb255X2lkGAEgASgJEhQKDG9wdGlvbnNfanNvbhgCIAEoCSI9Cg1QYXNza2V5QW5zd2VyEhMKC2NlcmVtb255X2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCSIbChlCZWdpblBhc3NrZXlTaWduSW5SZXF1ZXN0IlIKGkJlZ2luUGFzc2tleVNpZ25JblJlc3BvbnNlEjQKCWNoYWxsZW5nZRgBIAEoCzIhLnJhcHRvci5wYW5lbC52MS5QYXNza2V5Q2hhbGxlbmdlIkwKGkZpbmlzaFBhc3NrZXlTaWduSW5SZXF1ZXN0Ei4KBmFuc3dlchgBIAEoCzIeLnJhcHRvci5wYW5lbC52MS5QYXNza2V5QW5zd2VyIkIKG0ZpbmlzaFBhc3NrZXlTaWduSW5SZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXIiIQofQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdCJYCiBCZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRI0CgljaGFsbGVuZ2UYASABKAsyIS5yYXB0b3IucGFuZWwudjEuUGFzc2tleUNoYWxsZW5nZSJgCiBGaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBIuCgZhbnN3ZXIYASABKAsyHi5yYXB0b3IucGFuZWwudjEuUGFzc2tleUFuc3dlchIMCgRuYW1lGAIgASgJIk4KIUZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRIpCgdwYXNza2V5GAEgASgLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkilQEKB1Bhc3NrZXkSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3VzZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBnN5bmNlZBgFIAEoCCIVChNMaXN0UGFzc2tleXNSZXF1ZXN0IkIKFExpc3RQYXNza2V5c1Jlc3BvbnNlEioKCHBhc3NrZXlzGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkiMAoUUmVuYW1lUGFzc2tleVJlcXVlc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSIXChVSZW5hbWVQYXNza2V5UmVzcG9uc2UiIgoURGVsZXRlUGFzc2tleVJlcXVlc3QSCgoCaWQYASABKAkiFwoVRGVsZXRlUGFzc2tleVJlc3BvbnNlIhQKEkJlZ2luUmVhdXRoUmVxdWVzdCKBAQoTQmVnaW5SZWF1dGhSZXNwb25zZRI0CgdwYXNza2V5GAEgASgLMiEucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXlDaGFsbGVuZ2VIABIUCgplbWFpbF9zZW50GAIgASgISAASFAoMdG90cF9hbGxvd2VkGAMgASgIQggKBm1ldGhvZCJ8ChNGaW5pc2hSZWF1dGhSZXF1ZXN0EjEKB3Bhc3NrZXkYASABKAsyHi5yYXB0b3IucGFuZWwudjEuUGFzc2tleUFuc3dlckgAEhQKCmVtYWlsX2NvZGUYAiABKAlIABITCgl0b3RwX2NvZGUYAyABKAlIAEIHCgVwcm9vZiJIChRGaW5pc2hSZWF1dGhSZXNwb25zZRIwCgxyZWF1dGhfdW50aWwYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlIKGUZpbmlzaFNlY29uZEZhY3RvclJlcXVlc3QSEwoJdG90cF9jb2RlGAEgASgJSAASFwoNcmVjb3ZlcnlfY29kZRgCIAEoCUgAQgcKBXByb29mIl4KGkZpbmlzaFNlY29uZEZhY3RvclJlc3BvbnNlEiMKBHVzZXIYASABKAsyFS5yYXB0b3IucGFuZWwudjEuVXNlchIbChNyZWNvdmVyeV9jb2Rlc19sZWZ0GAIgASgFIhcKFUJlZ2luVE9UUFNldHVwUmVxdWVzdCI1ChZCZWdpblRPVFBTZXR1cFJlc3BvbnNlEg4KBnNlY3JldBgBIAEoCRILCgN1cmwYAiABKAkiJgoWRmluaXNoVE9UUFNldHVwUmVxdWVzdBIMCgRjb2RlGAEgASgJIjEKF0ZpbmlzaFRPVFBTZXR1cFJlc3BvbnNlEhYKDnJlY292ZXJ5X2NvZGVzGAEgAygJIhQKEkRpc2FibGVUT1RQUmVxdWVzdCIVChNEaXNhYmxlVE9UUFJlc3BvbnNlIiAKHlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdCI5Ch9SZWdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1Jlc3BvbnNlEhYKDnJlY292ZXJ5X2NvZGVzGAEgAygJMsEQCgtBdXRoU2VydmljZRJpChBTdGFydEVtYWlsU2lnbkluEigucmFwdG9yLnBhbmVsLnYxLlN0YXJ0RW1haWxTaWduSW5SZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLlN0YXJ0RW1haWxTaWduSW5SZXNwb25zZSIAEmwKEUZpbmlzaEVtYWlsU2lnbkluEikucmFwdG9yLnBhbmVsLnYxLkZpbmlzaEVtYWlsU2lnbkluUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5GaW5pc2hFbWFpbFNpZ25JblJlc3BvbnNlIgASWgoKR2V0U2Vzc2lvbhIiLnJhcHRvci5wYW5lbC52MS5HZXRTZXNzaW9uUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5HZXRTZXNzaW9uUmVzcG9uc2UiA5ACARJOCgdTaWduT3V0Eh8ucmFwdG9yLnBhbmVsLnYxLlNpZ25PdXRSZXF1ZXN0GiAucmFwdG9yLnBhbmVsLnYxLlNpZ25PdXRSZXNwb25zZSIAEmAKDExpc3RTZXNzaW9ucxIkLnJhcHRvci5wYW5lbC52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXNzaW9uc1Jlc3BvbnNlIgOQAgESYAoNUmV2b2tlU2Vzc2lvbhIlLnJhcHRvci5wYW5lbC52MS5SZXZva2VTZXNzaW9uUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5SZXZva2VTZXNzaW9uUmVzcG9uc2UiABJvChJCZWdpblBhc3NrZXlTaWduSW4SKi5yYXB0b3IucGFuZWwudjEuQmVnaW5QYXNza2V5U2lnbkluUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5CZWdpblBhc3NrZXlTaWduSW5SZXNwb25zZSIAEnIKE0ZpbmlzaFBhc3NrZXlTaWduSW4SKy5yYXB0b3IucGFuZWwudjEuRmluaXNoUGFzc2tleVNpZ25JblJlcXVlc3QaLC5yYXB0b3IucGFuZWwudjEuRmluaXNoUGFzc2tleVNpZ25JblJlc3BvbnNlIgASgQEKGEJlZ2luUGFzc2tleVJlZ2lzdHJhdGlvbhIwLnJhcHRvci5wYW5lbC52MS5CZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXF1ZXN0GjEucmFwdG9yLnBhbmVsLnYxLkJlZ2luUGFzc2tleVJlZ2lzdHJhdGlvblJlc3BvbnNlIgAShAEKGUZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb24SMS5yYXB0b3IucGFuZWwudjEuRmluaXNoUGFzc2tleVJlZ2lzdHJhdGlvblJlcXVlc3QaMi5yYXB0b3IucGFuZWwudjEuRmluaXNoUGFzc2tleVJlZ2lzdHJhdGlvblJlc3BvbnNlIgASYAoMTGlzdFBhc3NrZXlzEiQucmFwdG9yLnBhbmVsLnYxLkxpc3RQYXNza2V5c1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuTGlzdFBhc3NrZXlzUmVzcG9uc2UiA5ACARJgCg1SZW5hbWVQYXNza2V5EiUucmFwdG9yLnBhbmVsLnYxLlJlbmFtZVBhc3NrZXlSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLlJlbmFtZVBhc3NrZXlSZXNwb25zZSIAEmAKDURlbGV0ZVBhc3NrZXkSJS5yYXB0b3IucGFuZWwudjEuRGVsZXRlUGFzc2tleVJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuRGVsZXRlUGFzc2tleVJlc3BvbnNlIgASWgoLQmVnaW5SZWF1dGgSIy5yYXB0b3IucGFuZWwudjEuQmVnaW5SZWF1dGhSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLkJlZ2luUmVhdXRoUmVzcG9uc2UiABJdCgxGaW5pc2hSZWF1dGgSJC5yYXB0b3IucGFuZWwudjEuRmluaXNoUmVhdXRoUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5GaW5pc2hSZWF1dGhSZXNwb25zZSIAEm8KEkZpbmlzaFNlY29uZEZhY3RvchIqLnJhcHRvci5wYW5lbC52MS5GaW5pc2hTZWNvbmRGYWN0b3JSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFNlY29uZEZhY3RvclJlc3BvbnNlIgASYwoOQmVnaW5UT1RQU2V0dXASJi5yYXB0b3IucGFuZWwudjEuQmVnaW5UT1RQU2V0dXBSZXF1ZXN0GicucmFwdG9yLnBhbmVsLnYxLkJlZ2luVE9UUFNldHVwUmVzcG9uc2UiABJmCg9GaW5pc2hUT1RQU2V0dXASJy5yYXB0b3IucGFuZWwudjEuRmluaXNoVE9UUFNldHVwUmVxdWVzdBooLnJhcHRvci5wYW5lbC52MS5GaW5pc2hUT1RQU2V0dXBSZXNwb25zZSIAEloKC0Rpc2FibGVUT1RQEiMucmFwdG9yLnBhbmVsLnYxLkRpc2FibGVUT1RQUmVxdWVzdBokLnJhcHRvci5wYW5lbC52MS5EaXNhYmxlVE9UUFJlc3BvbnNlIgASfgoXUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXMSLy5yYXB0b3IucGFuZWwudjEuUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXF1ZXN0GjAucmFwdG9yLnBhbmVsLnYxLlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVzcG9uc2UiAELJAQoTY29tLnJhcHRvci5wYW5lbC52MUIJQXV0aFByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.StartEmailSignInRequest
@@ -119,6 +119,14 @@ export type FinishEmailSignInResponse = Message<"raptor.panel.v1.FinishEmailSign
    * @generated from field: bool new_account = 2;
    */
   newAccount: boolean;
+
+  /**
+   * The account has TOTP: the sign-in isn't finished until
+   * FinishSecondFactor (user is unset until then).
+   *
+   * @generated from field: bool second_factor_required = 3;
+   */
+  secondFactorRequired: boolean;
 };
 
 /**
@@ -146,6 +154,11 @@ export type User = Message<"raptor.panel.v1.User"> & {
    * @generated from field: string name = 3;
    */
   name: string;
+
+  /**
+   * @generated from field: bool totp_enabled = 4;
+   */
+  totpEnabled: boolean;
 };
 
 /**
@@ -181,6 +194,13 @@ export type GetSessionResponse = Message<"raptor.panel.v1.GetSessionResponse"> &
    * @generated from field: raptor.panel.v1.Session session = 2;
    */
   session?: Session | undefined;
+
+  /**
+   * Unused recovery codes (0 without TOTP).
+   *
+   * @generated from field: int32 recovery_codes_left = 3;
+   */
+  recoveryCodesLeft: number;
 };
 
 /**
@@ -692,13 +712,21 @@ export type BeginReauthResponse = Message<"raptor.panel.v1.BeginReauthResponse">
     case: "passkey";
   } | {
     /**
-     * The account has no passkeys: a 6-digit code was emailed.
+     * The account has no passkeys or TOTP: a 6-digit code was emailed.
      *
      * @generated from field: bool email_sent = 2;
      */
     value: boolean;
     case: "emailSent";
   } | { case: undefined; value?: undefined };
+
+  /**
+   * The account has TOTP, so a code from the authenticator app works too
+   * (or alone, if method is unset).
+   *
+   * @generated from field: bool totp_allowed = 3;
+   */
+  totpAllowed: boolean;
 };
 
 /**
@@ -727,6 +755,12 @@ export type FinishReauthRequest = Message<"raptor.panel.v1.FinishReauthRequest">
      */
     value: string;
     case: "emailCode";
+  } | {
+    /**
+     * @generated from field: string totp_code = 3;
+     */
+    value: string;
+    case: "totpCode";
   } | { case: undefined; value?: undefined };
 };
 
@@ -753,6 +787,188 @@ export type FinishReauthResponse = Message<"raptor.panel.v1.FinishReauthResponse
  */
 export const FinishReauthResponseSchema: GenMessage<FinishReauthResponse> = /*@__PURE__*/
   messageDesc(file_raptor_panel_v1_auth, 35);
+
+/**
+ * @generated from message raptor.panel.v1.FinishSecondFactorRequest
+ */
+export type FinishSecondFactorRequest = Message<"raptor.panel.v1.FinishSecondFactorRequest"> & {
+  /**
+   * @generated from oneof raptor.panel.v1.FinishSecondFactorRequest.proof
+   */
+  proof: {
+    /**
+     * @generated from field: string totp_code = 1;
+     */
+    value: string;
+    case: "totpCode";
+  } | {
+    /**
+     * @generated from field: string recovery_code = 2;
+     */
+    value: string;
+    case: "recoveryCode";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishSecondFactorRequest.
+ * Use `create(FinishSecondFactorRequestSchema)` to create a new message.
+ */
+export const FinishSecondFactorRequestSchema: GenMessage<FinishSecondFactorRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 36);
+
+/**
+ * @generated from message raptor.panel.v1.FinishSecondFactorResponse
+ */
+export type FinishSecondFactorResponse = Message<"raptor.panel.v1.FinishSecondFactorResponse"> & {
+  /**
+   * @generated from field: raptor.panel.v1.User user = 1;
+   */
+  user?: User | undefined;
+
+  /**
+   * Unused recovery codes left (when one was used).
+   *
+   * @generated from field: int32 recovery_codes_left = 2;
+   */
+  recoveryCodesLeft: number;
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishSecondFactorResponse.
+ * Use `create(FinishSecondFactorResponseSchema)` to create a new message.
+ */
+export const FinishSecondFactorResponseSchema: GenMessage<FinishSecondFactorResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 37);
+
+/**
+ * @generated from message raptor.panel.v1.BeginTOTPSetupRequest
+ */
+export type BeginTOTPSetupRequest = Message<"raptor.panel.v1.BeginTOTPSetupRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.BeginTOTPSetupRequest.
+ * Use `create(BeginTOTPSetupRequestSchema)` to create a new message.
+ */
+export const BeginTOTPSetupRequestSchema: GenMessage<BeginTOTPSetupRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 38);
+
+/**
+ * @generated from message raptor.panel.v1.BeginTOTPSetupResponse
+ */
+export type BeginTOTPSetupResponse = Message<"raptor.panel.v1.BeginTOTPSetupResponse"> & {
+  /**
+   * Base32, for typing into the app.
+   *
+   * @generated from field: string secret = 1;
+   */
+  secret: string;
+
+  /**
+   * otpauth:// URL, for a QR code.
+   *
+   * @generated from field: string url = 2;
+   */
+  url: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.BeginTOTPSetupResponse.
+ * Use `create(BeginTOTPSetupResponseSchema)` to create a new message.
+ */
+export const BeginTOTPSetupResponseSchema: GenMessage<BeginTOTPSetupResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 39);
+
+/**
+ * @generated from message raptor.panel.v1.FinishTOTPSetupRequest
+ */
+export type FinishTOTPSetupRequest = Message<"raptor.panel.v1.FinishTOTPSetupRequest"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishTOTPSetupRequest.
+ * Use `create(FinishTOTPSetupRequestSchema)` to create a new message.
+ */
+export const FinishTOTPSetupRequestSchema: GenMessage<FinishTOTPSetupRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 40);
+
+/**
+ * @generated from message raptor.panel.v1.FinishTOTPSetupResponse
+ */
+export type FinishTOTPSetupResponse = Message<"raptor.panel.v1.FinishTOTPSetupResponse"> & {
+  /**
+   * @generated from field: repeated string recovery_codes = 1;
+   */
+  recoveryCodes: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishTOTPSetupResponse.
+ * Use `create(FinishTOTPSetupResponseSchema)` to create a new message.
+ */
+export const FinishTOTPSetupResponseSchema: GenMessage<FinishTOTPSetupResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 41);
+
+/**
+ * @generated from message raptor.panel.v1.DisableTOTPRequest
+ */
+export type DisableTOTPRequest = Message<"raptor.panel.v1.DisableTOTPRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.DisableTOTPRequest.
+ * Use `create(DisableTOTPRequestSchema)` to create a new message.
+ */
+export const DisableTOTPRequestSchema: GenMessage<DisableTOTPRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 42);
+
+/**
+ * @generated from message raptor.panel.v1.DisableTOTPResponse
+ */
+export type DisableTOTPResponse = Message<"raptor.panel.v1.DisableTOTPResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.DisableTOTPResponse.
+ * Use `create(DisableTOTPResponseSchema)` to create a new message.
+ */
+export const DisableTOTPResponseSchema: GenMessage<DisableTOTPResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 43);
+
+/**
+ * @generated from message raptor.panel.v1.RegenerateRecoveryCodesRequest
+ */
+export type RegenerateRecoveryCodesRequest = Message<"raptor.panel.v1.RegenerateRecoveryCodesRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.RegenerateRecoveryCodesRequest.
+ * Use `create(RegenerateRecoveryCodesRequestSchema)` to create a new message.
+ */
+export const RegenerateRecoveryCodesRequestSchema: GenMessage<RegenerateRecoveryCodesRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 44);
+
+/**
+ * @generated from message raptor.panel.v1.RegenerateRecoveryCodesResponse
+ */
+export type RegenerateRecoveryCodesResponse = Message<"raptor.panel.v1.RegenerateRecoveryCodesResponse"> & {
+  /**
+   * @generated from field: repeated string recovery_codes = 1;
+   */
+  recoveryCodes: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.RegenerateRecoveryCodesResponse.
+ * Use `create(RegenerateRecoveryCodesResponseSchema)` to create a new message.
+ */
+export const RegenerateRecoveryCodesResponseSchema: GenMessage<RegenerateRecoveryCodesResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 45);
 
 /**
  * AuthService signs people in and out of the Panel (docs/PANEL.md#auth).
@@ -912,8 +1128,8 @@ export const AuthService: GenService<{
     output: typeof BeginReauthResponseSchema;
   },
   /**
-   * FinishReauth checks the passkey's answer or the emailed code. A
-   * re-authentication lasts 5 minutes.
+   * FinishReauth checks the passkey's answer, the authenticator app's code,
+   * or the emailed code. A re-authentication lasts 5 minutes.
    *
    * @generated from rpc raptor.panel.v1.AuthService.FinishReauth
    */
@@ -921,6 +1137,62 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof FinishReauthRequestSchema;
     output: typeof FinishReauthResponseSchema;
+  },
+  /**
+   * FinishSecondFactor finishes a sign-in that needed a second factor (an
+   * email sign-in to an account with TOTP), with an authenticator app's code
+   * or a recovery code. The pending sign-in is in a cookie.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.FinishSecondFactor
+   */
+  finishSecondFactor: {
+    methodKind: "unary";
+    input: typeof FinishSecondFactorRequestSchema;
+    output: typeof FinishSecondFactorResponseSchema;
+  },
+  /**
+   * BeginTOTPSetup makes a new authenticator app secret. Needs a recent
+   * re-authentication.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.BeginTOTPSetup
+   */
+  beginTOTPSetup: {
+    methodKind: "unary";
+    input: typeof BeginTOTPSetupRequestSchema;
+    output: typeof BeginTOTPSetupResponseSchema;
+  },
+  /**
+   * FinishTOTPSetup turns TOTP on once a code from the app checks out, and
+   * returns new recovery codes (shown once).
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.FinishTOTPSetup
+   */
+  finishTOTPSetup: {
+    methodKind: "unary";
+    input: typeof FinishTOTPSetupRequestSchema;
+    output: typeof FinishTOTPSetupResponseSchema;
+  },
+  /**
+   * DisableTOTP turns TOTP off and deletes the recovery codes. Needs a
+   * recent re-authentication.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.DisableTOTP
+   */
+  disableTOTP: {
+    methodKind: "unary";
+    input: typeof DisableTOTPRequestSchema;
+    output: typeof DisableTOTPResponseSchema;
+  },
+  /**
+   * RegenerateRecoveryCodes replaces the recovery codes. Needs a recent
+   * re-authentication.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.RegenerateRecoveryCodes
+   */
+  regenerateRecoveryCodes: {
+    methodKind: "unary";
+    input: typeof RegenerateRecoveryCodesRequestSchema;
+    output: typeof RegenerateRecoveryCodesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_auth, 0);

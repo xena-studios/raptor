@@ -143,9 +143,26 @@ type Passkey struct {
 	LastUsedAt   pgtype.Timestamptz
 }
 
+type PendingSignin struct {
+	ID        pgtype.UUID
+	UserID    pgtype.UUID
+	TokenHash []byte
+	Attempts  int32
+	ExpiresAt pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+}
+
 type RateEvent struct {
 	Key string
 	At  pgtype.Timestamptz
+}
+
+type RecoveryCode struct {
+	ID        pgtype.UUID
+	UserID    pgtype.UUID
+	CodeHash  []byte
+	UsedAt    pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
 }
 
 type RolloutNode struct {
@@ -172,6 +189,12 @@ type Session struct {
 	RevokedAt  pgtype.Timestamptz
 }
 
+type TotpSetup struct {
+	UserID    pgtype.UUID
+	Secret    []byte
+	ExpiresAt pgtype.Timestamptz
+}
+
 type User struct {
 	ID              pgtype.UUID
 	Email           string
@@ -179,6 +202,9 @@ type User struct {
 	Name            string
 	CreatedAt       pgtype.Timestamptz
 	WebauthnHandle  []byte
+	TotpSecret      []byte
+	TotpEnabledAt   pgtype.Timestamptz
+	TotpLastStep    int64
 }
 
 type WebauthnCeremony struct {

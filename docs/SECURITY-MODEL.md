@@ -13,7 +13,7 @@ The strongest of them: **destructive and code-changing actions must be signed by
 3. Backups
 4. User accounts and sessions
 5. The Wings release signing key
-6. The Panel's signing key (proves the Panel to nodes and signs per-user command grants)
+6. The Panel's signing key (proves the Panel to nodes and signs per-user command grants), and its data key (encrypts TOTP secrets)
 7. The trusted passkey keys pinned on each node (they authorize destructive and code-changing actions)
 8. The web app bundle (it's what asks users' passkeys to sign)
 
@@ -70,6 +70,7 @@ A server's directory is written by code Raptor doesn't trust: the egg's install 
 - SFTP host keys are generated on the node; the fingerprint is reported to the Panel over the authenticated connection and shown to users.
 - **SFTP** is off by default. When on, it serves only the `sftp` subsystem (no shell, commands, or forwarding), refuses FIFOs and device nodes, never sets setuid bits or ownership, limits failed logins per address, and ends sessions when an install or a backup restore starts. Cached keys stop working once the Panel rejects them or hasn't confirmed them in 30 days. See [WINGS.md](WINGS.md#files-and-sftp).
 - **The Panel's signing key** is kept separate from the Panel's application secrets, ideally in an HSM or KMS later, at minimum a separate encrypted secret with restricted access.
+- **The Panel's data key** (`PANEL_DATA_KEY`) is a separate file from the signing key, so either can be rotated without the other. A database leak without it doesn't reveal TOTP secrets. Losing it turns off every account's authenticator app (recovery codes and passkeys still work, and decrypting fails closed), so it's backed up with the same care as the signing key.
 - The Panel origin only accepts connections from Cloudflare, and trusts `CF-Connecting-IP` only on those.
 - **Cloudflare can read Panel traffic** (it terminates TLS): console, commands, and web file transfers. Disclosed in the privacy policy; SFTP is direct to the node.
 
