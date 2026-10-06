@@ -56,6 +56,7 @@ environment:
   PANEL_RESEND_API_KEY         Resend API key (sending access only) for the Panel's email
   PANEL_MAIL_FROM              the sender, e.g. Raptor <no-reply@mail.raptorpanel.net>
   PANEL_MAIL_LOG=1             development only: write emails (codes included) to the log
+  PANEL_MAIL_LOG_FILE          with PANEL_MAIL_LOG, also append them to this file as plain text
   PANEL_CLIENT_IP_HEADER       header with the client's address (CF-Connecting-IP);
                                only when the origin accepts nothing but Cloudflare
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
@@ -222,7 +223,7 @@ func mailer(log *slog.Logger) (auth.Mailer, error) {
 		return auth.NewResend(key, from), nil
 	case toLog:
 		log.Warn("PANEL_MAIL_LOG=1: emails, with their sign-in codes, go to the log (development only)")
-		return auth.LogMailer{Log: log}, nil
+		return auth.LogMailer{Log: log, File: os.Getenv("PANEL_MAIL_LOG_FILE")}, nil
 	}
 	log.Warn("no email: set PANEL_RESEND_API_KEY and PANEL_MAIL_FROM; email sign-in and invitations are off")
 	return nil, nil

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -18,14 +19,29 @@ type Mailer interface {
 	Send(ctx context.Context, to, subject, text string) error
 }
 
-// LogMailer writes emails to the log instead of sending them: development
-// only, since the codes and links in them sign people in.
-type LogMailer struct{ Log *slog.Logger }
+// LogMailer writes emails to the log instead of sending them, and to File
+// as plain text if set (task dev:mail shows it): development only, since
+// the codes and links in them sign people in.
+type LogMailer struct {
+	Log  *slog.Logger
+	File string
+}
 
 // Send implements Mailer.
 func (m LogMailer) Send(_ context.Context, to, subject, text string) error {
 	m.Log.Warn("email (not sent: development mailer)", "to", to, "subject", subject, "text", text)
-	return nil
+	if m.File == "" {
+		return nil
+	}
+	f, err := os.OpenFile(m.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // path from config
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(f, "──── %s ────\nTo: %s\nSubject: %s\n\n%s\n", time.Now().Format(time.TimeOnly), to, subject, text)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 // Verifier checks a bot challenge's token.
