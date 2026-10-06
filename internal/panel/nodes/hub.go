@@ -168,6 +168,14 @@ func (h *Hub) Wait(ctx context.Context, nodeID string) (*Conn, error) {
 	}
 }
 
+// Disconnect drops a node's connection, if it has one (its key was
+// replaced or revoked). A node with a valid key reconnects.
+func (h *Hub) Disconnect(nodeID string) {
+	if c, ok := h.Conn(nodeID); ok {
+		_ = c.Session.Close()
+	}
+}
+
 // Close drops every node connection and refuses new ones.
 func (h *Hub) Close() {
 	h.init()

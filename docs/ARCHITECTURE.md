@@ -205,7 +205,9 @@ Every step is idempotent. Re-running the command after a failure resumes.
 
 **Enrolling** is `raptor link --token` (bootstrap's last step, and usable on its own on a box that already runs Wings): it creates the node key if there's none, signs the token together with its public key (proving it holds the key it enrolls), and calls `EnrollmentService.Enroll` on the Panel's API over HTTPS. The Panel burns the token in the same transaction that creates the node, and remembers which node used it, so repeating an enrollment whose answer was lost, with the same token and key, returns the same node; anyone else with a used token is refused. The answer carries the Panel's signing key, which the node pins: this one call is trust on first use, protected by TLS to the Panel's hostname, and everything after it is verified against the pinned key. `raptor link` writes the key, then `node_id` and `panel.url` into `config.yml` (comments kept), and restarts Wings (servers keep running), which connects.
 
-**Re-linking:** a node whose key was revoked, or that was removed from the Panel, runs `raptor relink` with a new join token (or proves its identity with its old key if it's still trusted) and **keeps its node ID, hostname, and servers**. Node keys don't expire on their own, so a node that was simply offline for a long time reconnects by itself.
+**Re-linking:** a node whose key was revoked, that was removed from the Panel, or that was unlinked runs `raptor relink` with a new join token from **its own org**, and **keeps its node ID, hostname, and servers**. It always gets a new key (the old one may be why it was revoked), which replaces the old one on the box only once the Panel has it; the Panel drops any connection still using the old key. Node keys don't expire on their own, so a node that was simply offline for a long time reconnects by itself.
+
+**Unlinking:** `raptor unlink` removes the node ID, the node key, and the Panel's key from the box and restarts Wings. Servers keep running and the CLI still works; remote commands are refused. The node stays in the Panel, shown offline, until it's removed there or re-linked.
 
 ## Failure modes
 

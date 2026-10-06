@@ -117,6 +117,8 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 				}
 			},
 		}
+		reg.KeyChanged = cfg.Hub.Disconnect
+
 	} else {
 		log.Warn("PANEL_DATABASE_URL is not set: nodes can't enroll or connect")
 	}

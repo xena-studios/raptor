@@ -493,9 +493,13 @@ type EnrollRequest struct {
 	// proving the node holds the key it's enrolling.
 	Signature []byte `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
 	// A name for the node (its hostname), shown in the Panel.
-	Name          string     `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	WingsVersion  string     `protobuf:"bytes,5,opt,name=wings_version,json=wingsVersion,proto3" json:"wings_version,omitempty"`
-	Facts         *NodeFacts `protobuf:"bytes,6,opt,name=facts,proto3" json:"facts,omitempty"`
+	Name         string     `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	WingsVersion string     `protobuf:"bytes,5,opt,name=wings_version,json=wingsVersion,proto3" json:"wings_version,omitempty"`
+	Facts        *NodeFacts `protobuf:"bytes,6,opt,name=facts,proto3" json:"facts,omitempty"`
+	// Set to re-link an existing node (`raptor relink`): one whose key was
+	// revoked or that was removed in the Panel. It keeps its ID and hostname
+	// and takes the new key; the token must be from the node's org.
+	NodeId        string `protobuf:"bytes,7,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -570,6 +574,13 @@ func (x *EnrollRequest) GetFacts() *NodeFacts {
 		return x.Facts
 	}
 	return nil
+}
+
+func (x *EnrollRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
 }
 
 // NodeFacts describe the box, for the Panel to show.
@@ -741,7 +752,7 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\x04data\x18\x06 \x01(\fR\x04data\"3\n" +
 	"\x16EventsAvailableRequest\x12\x19\n" +
 	"\blast_seq\x18\x01 \x01(\x03R\alastSeq\"\x19\n" +
-	"\x17EventsAvailableResponse\"\xcc\x01\n" +
+	"\x17EventsAvailableResponse\"\xe5\x01\n" +
 	"\rEnrollRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
 	"\n" +
@@ -749,7 +760,8 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\tsignature\x18\x03 \x01(\fR\tsignature\x12\x12\n" +
 	"\x04name\x18\x04 \x01(\tR\x04name\x12#\n" +
 	"\rwings_version\x18\x05 \x01(\tR\fwingsVersion\x12/\n" +
-	"\x05facts\x18\x06 \x01(\v2\x19.raptor.node.v1.NodeFactsR\x05facts\"~\n" +
+	"\x05facts\x18\x06 \x01(\v2\x19.raptor.node.v1.NodeFactsR\x05facts\x12\x17\n" +
+	"\anode_id\x18\a \x01(\tR\x06nodeId\"~\n" +
 	"\tNodeFacts\x12\x0e\n" +
 	"\x02os\x18\x01 \x01(\tR\x02os\x12\x12\n" +
 	"\x04arch\x18\x02 \x01(\tR\x04arch\x12\x16\n" +

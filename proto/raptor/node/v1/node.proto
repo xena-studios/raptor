@@ -119,6 +119,10 @@ message EnrollRequest {
   string name = 4;
   string wings_version = 5;
   NodeFacts facts = 6;
+  // Set to re-link an existing node (`raptor relink`): one whose key was
+  // revoked or that was removed in the Panel. It keeps its ID and hostname
+  // and takes the new key; the token must be from the node's org.
+  string node_id = 7;
 }
 
 // NodeFacts describe the box, for the Panel to show.

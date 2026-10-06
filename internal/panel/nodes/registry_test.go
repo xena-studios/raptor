@@ -133,3 +133,60 @@ func TestShortID(t *testing.T) {
 		seen[s] = true
 	}
 }
+
+func TestRelink(t *testing.T) {
+	r := newRegistry(t)
+	ctx := context.Background()
+	org, _ := r.CreateOrg(ctx, "org")
+	token, _ := r.CreateJoinToken(ctx, org, "")
+	_, oldKey, _ := ed25519.GenerateKey(nil)
+	res, err := r.Enroll(ctx, enrollReq(t, token, oldKey))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.DB.Exec(ctx, "UPDATE nodes SET key_revoked_at = now(), deleted_at = now() WHERE id = $1", res.GetNodeId()); err != nil {
+		t.Fatal(err)
+	}
+	var changed []string
+	r.KeyChanged = func(id string) { changed = append(changed, id) }
+
+	// Another org's token can't take the node.
+	other, _ := r.CreateOrg(ctx, "other org")
+	foreign, _ := r.CreateJoinToken(ctx, other, "")
+	_, newKey, _ := ed25519.GenerateKey(nil)
+	req := enrollReq(t, foreign, newKey)
+	req.NodeId = res.GetNodeId()
+	if _, err := r.Enroll(ctx, req); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Fatalf("another org's token: %v", err)
+	}
+
+	// Its own org's token re-links it: same ID and hostname, the new key,
+	// no longer revoked or removed.
+	fresh, _ := r.CreateJoinToken(ctx, org, "")
+	req = enrollReq(t, fresh, newKey)
+	req.NodeId = res.GetNodeId()
+	again, err := r.Enroll(ctx, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.GetNodeId() != res.GetNodeId() || again.GetShortId() != res.GetShortId() {
+		t.Errorf("relinked as %v, was %v", again, res)
+	}
+	key, err := r.NodeKey(ctx, res.GetNodeId())
+	if err != nil || !key.Equal(newKey.Public()) {
+		t.Errorf("key after relink: %v", err)
+	}
+	if len(changed) != 1 || changed[0] != res.GetNodeId() {
+		t.Errorf("connections with the old key weren't dropped: %v", changed)
+	}
+	// Repeating it (a lost answer) works; the same token for another node doesn't.
+	if _, err := r.Enroll(ctx, req); err != nil {
+		t.Errorf("repeat: %v", err)
+	}
+	other2, _ := r.CreateJoinToken(ctx, org, "")
+	n2, _ := r.Enroll(ctx, enrollReq(t, other2, oldKey))
+	req.NodeId = n2.GetNodeId()
+	if _, err := r.Enroll(ctx, req); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("used token on another node: %v", err)
+	}
+}

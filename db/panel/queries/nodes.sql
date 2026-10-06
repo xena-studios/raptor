@@ -26,5 +26,11 @@ UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3
 -- name: NodeSeen :exec
 UPDATE nodes SET last_seen_at = now() WHERE id = $1;
 
+-- name: RelinkNode :one
+UPDATE nodes
+SET public_key = $2, wings_version = $3, facts = $4, key_revoked_at = NULL, deleted_at = NULL
+WHERE id = $1
+RETURNING *;
+
 -- name: ShortIDTaken :one
 SELECT EXISTS (SELECT 1 FROM nodes WHERE short_id = $1);
