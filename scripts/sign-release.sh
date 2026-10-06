@@ -24,7 +24,12 @@ gh release download "$tag" -R "$repo" -D "$dir"
 minisign -S -s "$key" -m "$dir/checksums.txt" -t "raptor $tag checksums.txt"
 minisign -V -p "$pub" -m "$dir/checksums.txt"
 
-gh release upload "$tag" -R "$repo" "$dir/checksums.txt.minisig"
+# The install script, with the SHA-256 of the binaries just verified
+# (get.raptorpanel.net serves the latest stable release's).
+scripts/make-install-script.sh "$tag" "$dir/checksums.txt" >"$dir/install.sh"
+bash -n "$dir/install.sh"
+
+gh release upload "$tag" -R "$repo" "$dir/checksums.txt.minisig" "$dir/install.sh"
 
 read -r -p "Publish $tag? [y/N] " ok
 [ "$ok" = "y" ] && gh release edit "$tag" -R "$repo" --draft=false && echo "published $tag"

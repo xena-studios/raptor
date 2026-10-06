@@ -1,6 +1,7 @@
 #!/bin/bash
-# raptor bootstrap on a fresh VM (task e2e:bootstrap): one command takes a
-# bare box to a linked node, running it again changes nothing, doctor
+# The install script and raptor bootstrap on a fresh VM (task e2e:bootstrap):
+# the script, piped to sudo bash as owners run it, takes a bare box to a
+# linked node, running it again changes nothing, doctor
 # passes, and after a reboot the volume is mounted and the node reconnects.
 # Needs the dev Panel on this machine (task dev, or panel serve api on :8080).
 #
@@ -30,16 +31,41 @@ token() { PANEL_DATABASE_URL=$DB go run ./cmd/panel join-token "$(cat .dev/org)"
 if ! limactl list -q | grep -qx "$VM"; then
 	limactl start --name="$VM" --tty=false --mount-none "template://$TEMPLATE" >/dev/null
 fi
-ARCH=$(limactl shell "$VM" dpkg --print-architecture)
-CGO_ENABLED=0 GOOS=linux GOARCH="$ARCH" go build -o "bin/raptor-linux-$ARCH" ./cmd/raptor
-limactl copy "bin/raptor-linux-$ARCH" "$VM:/tmp/raptor"
+# A release as the install script sees it: both binaries, their checksums,
+# the generated script, served from this machine.
+TAG=v0.0.0-e2e
+REL=$(mktemp -d)
+trap 'rm -rf "$REL"; [ -n "${SERVER:-}" ] && kill "$SERVER" 2>/dev/null' EXIT
+for a in amd64 arm64; do
+	CGO_ENABLED=0 GOOS=linux GOARCH=$a go build -trimpath \
+		-ldflags "-X github.com/xena-studios/raptor/internal/shared/buildinfo.Version=${TAG#v}" \
+		-o "$REL/raptor_linux_$a" ./cmd/raptor
+done
+(cd "$REL" && shasum -a 256 raptor_linux_* >checksums.txt)
+scripts/make-install-script.sh "$TAG" "$REL/checksums.txt" >"$REL/install.sh"
+PORT=$((20000 + RANDOM % 10000))
+python3 -m http.server "$PORT" --bind 0.0.0.0 --directory "$REL" >/dev/null 2>&1 &
+SERVER=$!
+sleep 1
+install_sh() { limactl shell "$VM" sudo env RAPTOR_DOWNLOAD_BASE="http://host.lima.internal:$PORT" bash -s -- "$@" <"$REL/install.sh"; }
 
-limactl shell "$VM" sudo /tmp/raptor bootstrap -token "$(token)" -panel "$PANEL" -yes -size 4GiB || fail "bootstrap"
+# A tampered binary is refused before anything runs.
+for a in amd64 arm64; do cp "$REL/raptor_linux_$a" "$REL/good_$a" && echo tampered >>"$REL/raptor_linux_$a"; done
+if install_sh -token x >/tmp/e2e-tampered.log 2>&1; then
+	fail "a tampered binary was installed"
+fi
+grep -q "doesn't match" /tmp/e2e-tampered.log || fail "tampered: $(cat /tmp/e2e-tampered.log)"
+limactl shell "$VM" test ! -e /usr/local/bin/raptor || fail "something was installed from the tampered download"
+for a in amd64 arm64; do mv "$REL/good_$a" "$REL/raptor_linux_$a"; done
+pass "install script: a tampered download is refused"
+
+install_sh -token "$(token)" -panel "$PANEL" -yes -size 4GiB || fail "install script and bootstrap"
 wait_for 30 connected || fail "not connected after bootstrap: $(status)"
-pass "bootstrap: a fresh $TEMPLATE box linked and connected"
+limactl shell "$VM" readlink /usr/local/lib/raptor/current | grep -qx "raptor-${TAG#v}" || fail "layout: $(limactl shell "$VM" ls -l /usr/local/lib/raptor)"
+pass "install script + bootstrap: a fresh $TEMPLATE box linked and connected"
 
 started=$(limactl shell "$VM" systemctl show -p ActiveEnterTimestampMonotonic --value raptor-wings)
-limactl shell "$VM" sudo /tmp/raptor bootstrap -token unused -yes >/tmp/e2e-bootstrap-rerun.log 2>&1 || fail "rerun: $(cat /tmp/e2e-bootstrap-rerun.log)"
+limactl shell "$VM" sudo raptor bootstrap -token unused -yes >/tmp/e2e-bootstrap-rerun.log 2>&1 || fail "rerun: $(cat /tmp/e2e-bootstrap-rerun.log)"
 grep -q "already linked" /tmp/e2e-bootstrap-rerun.log || fail "rerun didn't see the link"
 [ "$(limactl shell "$VM" systemctl show -p ActiveEnterTimestampMonotonic --value raptor-wings)" = "$started" ] || fail "rerun restarted Wings"
 pass "rerun: nothing changed, Wings not restarted"
