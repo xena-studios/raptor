@@ -238,6 +238,7 @@ func (s *Service) FinishTOTPSetup(ctx context.Context, req *panelv1.FinishTOTPSe
 	if failure != nil {
 		return nil, failure
 	}
+	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "totp.enable"})
 	s.notify(ctx, sess.User, "Two-factor authentication is on for your Raptor account",
 		"Signing in to your Raptor account by email now also needs a code from your authenticator app, or one of your recovery codes.\n\nIf this wasn't you, sign out every device from your account settings right away.\n")
 	return &panelv1.FinishTOTPSetupResponse{RecoveryCodes: codes}, nil
@@ -265,6 +266,7 @@ func (s *Service) DisableTOTP(ctx context.Context, _ *panelv1.DisableTOTPRequest
 	if err != nil {
 		return nil, err
 	}
+	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "totp.disable"})
 	s.notify(ctx, sess.User, "Two-factor authentication is off for your Raptor account",
 		"Two-factor authentication was turned off, and your recovery codes no longer work.\n\nIf this wasn't you, sign out every device from your account settings and turn it back on right away.\n")
 	return &panelv1.DisableTOTPResponse{}, nil
@@ -291,6 +293,7 @@ func (s *Service) RegenerateRecoveryCodes(ctx context.Context, _ *panelv1.Regene
 	if err != nil {
 		return nil, err
 	}
+	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "recovery_codes.regenerate"})
 	s.notify(ctx, sess.User, "New recovery codes for your Raptor account",
 		"New recovery codes were made for your Raptor account, and the old ones no longer work.\n\nIf this wasn't you, sign out every device from your account settings right away.\n")
 	return &panelv1.RegenerateRecoveryCodesResponse{RecoveryCodes: codes}, nil
@@ -299,12 +302,16 @@ func (s *Service) RegenerateRecoveryCodes(ctx context.Context, _ *panelv1.Regene
 // pendingCookie holds a sign-in waiting for its second factor.
 const pendingCookie = "__Host-raptor_signin"
 
-// startPending starts a sign-in that needs a second factor.
-func (s *Service) startPending(ctx context.Context, q *store.Queries, user store.User) error {
+// startPending starts a sign-in that needs a second factor (method is the
+// first: "email", "google", ...).
+func (s *Service) startPending(ctx context.Context, q *store.Queries, user store.User, method string) error {
 	token := newToken()
 	if err := q.CreatePendingSignin(ctx, store.CreatePendingSigninParams{
 		UserID: user.ID, TokenHash: hash(token), ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(PendingSigninTTL), Valid: true},
 	}); err != nil {
+		return err
+	}
+	if err := s.Audit(ctx, q, Event{User: user.ID, Action: "signin.first_factor", Meta: map[string]any{"method": method}}); err != nil {
 		return err
 	}
 	if c, ok := callOf(ctx); ok {
@@ -330,6 +337,7 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 	var failure error
 	var user store.User
 	recovered := false
+	after := func() {}
 	err := pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		p, err := q.PendingSigninByToken(ctx, hash(token))
@@ -345,13 +353,14 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 			return nil
 		}
 		var good bool
+		method := "totp"
 		switch c := req.GetProof().(type) {
 		case *panelv1.FinishSecondFactorRequest_TotpCode:
 			good, err = s.checkTOTP(ctx, q, p.UserID, c.TotpCode)
 		case *panelv1.FinishSecondFactorRequest_RecoveryCode:
 			var n int64
 			n, err = q.UseRecoveryCode(ctx, store.UseRecoveryCodeParams{UserID: p.UserID, CodeHash: recoveryHash(p.UserID, c.RecoveryCode)})
-			good, recovered = n == 1, n == 1
+			good, recovered, method = n == 1, n == 1, "recovery_code"
 		default:
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("a code is needed"))
 		}
@@ -360,6 +369,9 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 		}
 		if !good {
 			failure = errBadTOTP
+			if err := s.Audit(ctx, q, Event{User: p.UserID, Action: "signin.failed", Meta: map[string]any{"method": method}}); err != nil {
+				return err
+			}
 			return q.CountPendingSigninAttempt(ctx, p.ID)
 		}
 		if err := q.DeletePendingSignin(ctx, p.ID); err != nil {
@@ -370,7 +382,7 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 		}
 		// Both factors: it counts as a re-authentication, which someone who
 		// lost their phone needs to set TOTP up again.
-		if err := s.startSession(ctx, q, user, true); err != nil {
+		if after, err = s.startSession(ctx, q, user, true, method); err != nil {
 			return err
 		}
 		left, err := q.CountRecoveryCodes(ctx, user.ID)
@@ -390,6 +402,7 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 		return nil, failure
 	}
 	setNamedCookie(c.resp, pendingCookie, "", 0)
+	after()
 	if recovered {
 		s.notify(ctx, user, "A recovery code was used on your Raptor account",
 			fmt.Sprintf("Someone signed in to your Raptor account with a recovery code. %d are left.\n\nIf this wasn't you, sign out every device from your account settings and make new recovery codes right away.\n", out.GetRecoveryCodesLeft()))

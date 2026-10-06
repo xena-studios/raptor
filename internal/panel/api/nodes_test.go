@@ -5,7 +5,6 @@ import (
 	"crypto/ed25519"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
-	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/paneltest"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/link"
 )
@@ -22,20 +21,9 @@ import (
 // A node enrolls through the API with a join token and then connects with
 // the identity it got, as `raptor link` and Wings do.
 func TestEnrollAndConnect(t *testing.T) {
-	url := os.Getenv("PANEL_TEST_DATABASE_URL")
-	if url == "" {
-		t.Skip("PANEL_TEST_DATABASE_URL not set")
-	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	pool, err := store.Open(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer pool.Close()
-	if err := store.Migrate(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
+	pool := paneltest.NewDB(t)
 	_, panelKey, _ := ed25519.GenerateKey(nil)
 	reg := &nodes.Registry{DB: pool, PanelKey: panelKey}
 	hub := &nodes.Hub{

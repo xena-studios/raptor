@@ -10,6 +10,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AuditLog struct {
+	ID        pgtype.UUID
+	OrgID     pgtype.UUID
+	UserID    pgtype.UUID
+	Actor     string
+	ActorID   pgtype.UUID
+	Action    string
+	Target    string
+	Ip        *netip.Addr
+	UserAgent string
+	Metadata  []byte
+	At        pgtype.Timestamptz
+}
+
 type EmailCode struct {
 	ID            pgtype.UUID
 	Email         string

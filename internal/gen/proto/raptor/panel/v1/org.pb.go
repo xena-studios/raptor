@@ -1297,11 +1297,116 @@ func (x *CreateJoinTokenResponse) GetExpiresAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type ListAuditLogRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// next_page_token from the previous page.
+	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditLogRequest) Reset() {
+	*x = ListAuditLogRequest{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditLogRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditLogRequest) ProtoMessage() {}
+
+func (x *ListAuditLogRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditLogRequest.ProtoReflect.Descriptor instead.
+func (*ListAuditLogRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ListAuditLogRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListAuditLogResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Events        []*AuditEvent          `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditLogResponse) Reset() {
+	*x = ListAuditLogResponse{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditLogResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditLogResponse) ProtoMessage() {}
+
+func (x *ListAuditLogResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditLogResponse.ProtoReflect.Descriptor instead.
+func (*ListAuditLogResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListAuditLogResponse) GetEvents() []*AuditEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+func (x *ListAuditLogResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 var File_raptor_panel_v1_org_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\n" +
-	"\x19raptor/panel/v1/org.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8f\x01\n" +
+	"\x19raptor/panel/v1/org.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1braptor/panel/v1/audit.proto\"\x8f\x01\n" +
 	"\x03Org\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x129\n" +
@@ -1373,14 +1478,21 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x17CreateJoinTokenResponse\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x129\n" +
 	"\n" +
-	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt*M\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"K\n" +
+	"\x13ListAuditLogRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\"s\n" +
+	"\x14ListAuditLogResponse\x123\n" +
+	"\x06events\x18\x01 \x03(\v2\x1b.raptor.panel.v1.AuditEventR\x06events\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken*M\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vROLE_MEMBER\x10\x01\x12\x0e\n" +
 	"\n" +
 	"ROLE_ADMIN\x10\x02\x12\x0e\n" +
 	"\n" +
-	"ROLE_OWNER\x10\x032\xb6\b\n" +
+	"ROLE_OWNER\x10\x032\x98\t\n" +
 	"\n" +
 	"OrgService\x12T\n" +
 	"\tCreateOrg\x12!.raptor.panel.v1.CreateOrgRequest\x1a\".raptor.panel.v1.CreateOrgResponse\"\x00\x12T\n" +
@@ -1393,7 +1505,8 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x0fListInvitations\x12'.raptor.panel.v1.ListInvitationsRequest\x1a(.raptor.panel.v1.ListInvitationsResponse\"\x03\x90\x02\x01\x12i\n" +
 	"\x10RevokeInvitation\x12(.raptor.panel.v1.RevokeInvitationRequest\x1a).raptor.panel.v1.RevokeInvitationResponse\"\x00\x12i\n" +
 	"\x10AcceptInvitation\x12(.raptor.panel.v1.AcceptInvitationRequest\x1a).raptor.panel.v1.AcceptInvitationResponse\"\x00\x12f\n" +
-	"\x0fCreateJoinToken\x12'.raptor.panel.v1.CreateJoinTokenRequest\x1a(.raptor.panel.v1.CreateJoinTokenResponse\"\x00B\xc8\x01\n" +
+	"\x0fCreateJoinToken\x12'.raptor.panel.v1.CreateJoinTokenRequest\x1a(.raptor.panel.v1.CreateJoinTokenResponse\"\x00\x12`\n" +
+	"\fListAuditLog\x12$.raptor.panel.v1.ListAuditLogRequest\x1a%.raptor.panel.v1.ListAuditLogResponse\"\x03\x90\x02\x01B\xc8\x01\n" +
 	"\x13com.raptor.panel.v1B\bOrgProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
 var (
@@ -1409,7 +1522,7 @@ func file_raptor_panel_v1_org_proto_rawDescGZIP() []byte {
 }
 
 var file_raptor_panel_v1_org_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_raptor_panel_v1_org_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_raptor_panel_v1_org_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_raptor_panel_v1_org_proto_goTypes = []any{
 	(Role)(0),                        // 0: raptor.panel.v1.Role
 	(*Org)(nil),                      // 1: raptor.panel.v1.Org
@@ -1437,52 +1550,58 @@ var file_raptor_panel_v1_org_proto_goTypes = []any{
 	(*AcceptInvitationResponse)(nil), // 23: raptor.panel.v1.AcceptInvitationResponse
 	(*CreateJoinTokenRequest)(nil),   // 24: raptor.panel.v1.CreateJoinTokenRequest
 	(*CreateJoinTokenResponse)(nil),  // 25: raptor.panel.v1.CreateJoinTokenResponse
-	(*timestamppb.Timestamp)(nil),    // 26: google.protobuf.Timestamp
+	(*ListAuditLogRequest)(nil),      // 26: raptor.panel.v1.ListAuditLogRequest
+	(*ListAuditLogResponse)(nil),     // 27: raptor.panel.v1.ListAuditLogResponse
+	(*timestamppb.Timestamp)(nil),    // 28: google.protobuf.Timestamp
+	(*AuditEvent)(nil),               // 29: raptor.panel.v1.AuditEvent
 }
 var file_raptor_panel_v1_org_proto_depIdxs = []int32{
-	26, // 0: raptor.panel.v1.Org.created_at:type_name -> google.protobuf.Timestamp
+	28, // 0: raptor.panel.v1.Org.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: raptor.panel.v1.Org.role:type_name -> raptor.panel.v1.Role
 	1,  // 2: raptor.panel.v1.CreateOrgResponse.org:type_name -> raptor.panel.v1.Org
 	1,  // 3: raptor.panel.v1.ListOrgsResponse.orgs:type_name -> raptor.panel.v1.Org
 	0,  // 4: raptor.panel.v1.Member.role:type_name -> raptor.panel.v1.Role
-	26, // 5: raptor.panel.v1.Member.joined_at:type_name -> google.protobuf.Timestamp
+	28, // 5: raptor.panel.v1.Member.joined_at:type_name -> google.protobuf.Timestamp
 	8,  // 6: raptor.panel.v1.ListMembersResponse.members:type_name -> raptor.panel.v1.Member
 	0,  // 7: raptor.panel.v1.SetMemberRoleRequest.role:type_name -> raptor.panel.v1.Role
 	0,  // 8: raptor.panel.v1.Invitation.role:type_name -> raptor.panel.v1.Role
-	26, // 9: raptor.panel.v1.Invitation.created_at:type_name -> google.protobuf.Timestamp
-	26, // 10: raptor.panel.v1.Invitation.expires_at:type_name -> google.protobuf.Timestamp
+	28, // 9: raptor.panel.v1.Invitation.created_at:type_name -> google.protobuf.Timestamp
+	28, // 10: raptor.panel.v1.Invitation.expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 11: raptor.panel.v1.InviteMemberRequest.role:type_name -> raptor.panel.v1.Role
 	15, // 12: raptor.panel.v1.InviteMemberResponse.invitation:type_name -> raptor.panel.v1.Invitation
 	15, // 13: raptor.panel.v1.ListInvitationsResponse.invitations:type_name -> raptor.panel.v1.Invitation
 	1,  // 14: raptor.panel.v1.AcceptInvitationResponse.org:type_name -> raptor.panel.v1.Org
-	26, // 15: raptor.panel.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
-	2,  // 16: raptor.panel.v1.OrgService.CreateOrg:input_type -> raptor.panel.v1.CreateOrgRequest
-	4,  // 17: raptor.panel.v1.OrgService.ListOrgs:input_type -> raptor.panel.v1.ListOrgsRequest
-	6,  // 18: raptor.panel.v1.OrgService.RenameOrg:input_type -> raptor.panel.v1.RenameOrgRequest
-	9,  // 19: raptor.panel.v1.OrgService.ListMembers:input_type -> raptor.panel.v1.ListMembersRequest
-	11, // 20: raptor.panel.v1.OrgService.SetMemberRole:input_type -> raptor.panel.v1.SetMemberRoleRequest
-	13, // 21: raptor.panel.v1.OrgService.RemoveMember:input_type -> raptor.panel.v1.RemoveMemberRequest
-	16, // 22: raptor.panel.v1.OrgService.InviteMember:input_type -> raptor.panel.v1.InviteMemberRequest
-	18, // 23: raptor.panel.v1.OrgService.ListInvitations:input_type -> raptor.panel.v1.ListInvitationsRequest
-	20, // 24: raptor.panel.v1.OrgService.RevokeInvitation:input_type -> raptor.panel.v1.RevokeInvitationRequest
-	22, // 25: raptor.panel.v1.OrgService.AcceptInvitation:input_type -> raptor.panel.v1.AcceptInvitationRequest
-	24, // 26: raptor.panel.v1.OrgService.CreateJoinToken:input_type -> raptor.panel.v1.CreateJoinTokenRequest
-	3,  // 27: raptor.panel.v1.OrgService.CreateOrg:output_type -> raptor.panel.v1.CreateOrgResponse
-	5,  // 28: raptor.panel.v1.OrgService.ListOrgs:output_type -> raptor.panel.v1.ListOrgsResponse
-	7,  // 29: raptor.panel.v1.OrgService.RenameOrg:output_type -> raptor.panel.v1.RenameOrgResponse
-	10, // 30: raptor.panel.v1.OrgService.ListMembers:output_type -> raptor.panel.v1.ListMembersResponse
-	12, // 31: raptor.panel.v1.OrgService.SetMemberRole:output_type -> raptor.panel.v1.SetMemberRoleResponse
-	14, // 32: raptor.panel.v1.OrgService.RemoveMember:output_type -> raptor.panel.v1.RemoveMemberResponse
-	17, // 33: raptor.panel.v1.OrgService.InviteMember:output_type -> raptor.panel.v1.InviteMemberResponse
-	19, // 34: raptor.panel.v1.OrgService.ListInvitations:output_type -> raptor.panel.v1.ListInvitationsResponse
-	21, // 35: raptor.panel.v1.OrgService.RevokeInvitation:output_type -> raptor.panel.v1.RevokeInvitationResponse
-	23, // 36: raptor.panel.v1.OrgService.AcceptInvitation:output_type -> raptor.panel.v1.AcceptInvitationResponse
-	25, // 37: raptor.panel.v1.OrgService.CreateJoinToken:output_type -> raptor.panel.v1.CreateJoinTokenResponse
-	27, // [27:38] is the sub-list for method output_type
-	16, // [16:27] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	28, // 15: raptor.panel.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
+	29, // 16: raptor.panel.v1.ListAuditLogResponse.events:type_name -> raptor.panel.v1.AuditEvent
+	2,  // 17: raptor.panel.v1.OrgService.CreateOrg:input_type -> raptor.panel.v1.CreateOrgRequest
+	4,  // 18: raptor.panel.v1.OrgService.ListOrgs:input_type -> raptor.panel.v1.ListOrgsRequest
+	6,  // 19: raptor.panel.v1.OrgService.RenameOrg:input_type -> raptor.panel.v1.RenameOrgRequest
+	9,  // 20: raptor.panel.v1.OrgService.ListMembers:input_type -> raptor.panel.v1.ListMembersRequest
+	11, // 21: raptor.panel.v1.OrgService.SetMemberRole:input_type -> raptor.panel.v1.SetMemberRoleRequest
+	13, // 22: raptor.panel.v1.OrgService.RemoveMember:input_type -> raptor.panel.v1.RemoveMemberRequest
+	16, // 23: raptor.panel.v1.OrgService.InviteMember:input_type -> raptor.panel.v1.InviteMemberRequest
+	18, // 24: raptor.panel.v1.OrgService.ListInvitations:input_type -> raptor.panel.v1.ListInvitationsRequest
+	20, // 25: raptor.panel.v1.OrgService.RevokeInvitation:input_type -> raptor.panel.v1.RevokeInvitationRequest
+	22, // 26: raptor.panel.v1.OrgService.AcceptInvitation:input_type -> raptor.panel.v1.AcceptInvitationRequest
+	24, // 27: raptor.panel.v1.OrgService.CreateJoinToken:input_type -> raptor.panel.v1.CreateJoinTokenRequest
+	26, // 28: raptor.panel.v1.OrgService.ListAuditLog:input_type -> raptor.panel.v1.ListAuditLogRequest
+	3,  // 29: raptor.panel.v1.OrgService.CreateOrg:output_type -> raptor.panel.v1.CreateOrgResponse
+	5,  // 30: raptor.panel.v1.OrgService.ListOrgs:output_type -> raptor.panel.v1.ListOrgsResponse
+	7,  // 31: raptor.panel.v1.OrgService.RenameOrg:output_type -> raptor.panel.v1.RenameOrgResponse
+	10, // 32: raptor.panel.v1.OrgService.ListMembers:output_type -> raptor.panel.v1.ListMembersResponse
+	12, // 33: raptor.panel.v1.OrgService.SetMemberRole:output_type -> raptor.panel.v1.SetMemberRoleResponse
+	14, // 34: raptor.panel.v1.OrgService.RemoveMember:output_type -> raptor.panel.v1.RemoveMemberResponse
+	17, // 35: raptor.panel.v1.OrgService.InviteMember:output_type -> raptor.panel.v1.InviteMemberResponse
+	19, // 36: raptor.panel.v1.OrgService.ListInvitations:output_type -> raptor.panel.v1.ListInvitationsResponse
+	21, // 37: raptor.panel.v1.OrgService.RevokeInvitation:output_type -> raptor.panel.v1.RevokeInvitationResponse
+	23, // 38: raptor.panel.v1.OrgService.AcceptInvitation:output_type -> raptor.panel.v1.AcceptInvitationResponse
+	25, // 39: raptor.panel.v1.OrgService.CreateJoinToken:output_type -> raptor.panel.v1.CreateJoinTokenResponse
+	27, // 40: raptor.panel.v1.OrgService.ListAuditLog:output_type -> raptor.panel.v1.ListAuditLogResponse
+	29, // [29:41] is the sub-list for method output_type
+	17, // [17:29] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_org_proto_init() }
@@ -1490,13 +1609,14 @@ func file_raptor_panel_v1_org_proto_init() {
 	if File_raptor_panel_v1_org_proto != nil {
 		return
 	}
+	file_raptor_panel_v1_audit_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_org_proto_rawDesc), len(file_raptor_panel_v1_org_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   25,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

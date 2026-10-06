@@ -3,6 +3,7 @@ syntax = "proto3";
 package raptor.panel.v1;
 
 import "google/protobuf/timestamp.proto";
+import "raptor/panel/v1/audit.proto";
 
 // OrgService manages orgs, their members, and invitations
 // (docs/PANEL.md#permissions). Roles: owners can do everything, including
@@ -55,6 +56,12 @@ service OrgService {
   // Admins and owners, with a recent re-authentication: a node runs as
   // root, so adding one is a sensitive change.
   rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse) {}
+
+  // ListAuditLog lists the org's audit log, newest first, 50 at a time.
+  // Admins and owners.
+  rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 enum Role {
@@ -175,4 +182,15 @@ message CreateJoinTokenRequest {
 message CreateJoinTokenResponse {
   string token = 1;
   google.protobuf.Timestamp expires_at = 2;
+}
+
+message ListAuditLogRequest {
+  string org_id = 1;
+  // next_page_token from the previous page.
+  string page_token = 2;
+}
+
+message ListAuditLogResponse {
+  repeated AuditEvent events = 1;
+  string next_page_token = 2;
 }

@@ -192,12 +192,12 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 ### 3.2 Accounts
 - [ ] Passwordless auth in the Panel ([PANEL.md](PANEL.md#auth)): passkeys, OAuth (Google, Discord, GitHub), email codes + links, TOTP + recovery codes, safe OAuth account linking (done in code; OAuth needs the OAuth apps registered, with callbacks at `https://api.raptorpanel.net/oauth/<provider>/callback`)
-- [ ] Sessions: hashed tokens in a `__Host-` cookie on `api.`, device list, revocation, re-auth for dangerous actions; `Origin` checks against sibling subdomains; rate limits + Turnstile on email codes; security notification emails (done: passkeys, TOTP, or email codes re-authenticate, and changes to passkeys, TOTP, and recovery codes email the user; new-device emails come with the audit log)
+- [ ] Sessions: hashed tokens in a `__Host-` cookie on `api.`, device list, revocation, re-auth for dangerous actions; `Origin` checks against sibling subdomains; rate limits + Turnstile on email codes; security notification emails (done: passkeys, TOTP, or email codes re-authenticate, and changes to passkeys, TOTP, and recovery codes email the user; new-device emails done)
 - [ ] Transactional email provider on its own sending subdomain (DNS: SPF, DKIM, DMARC)
 - [ ] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks)
 - [x] Orgs, members, roles, invitations (`OrgService`; join tokens from the API, with re-auth)
 - [x] Postgres RLS by `org_id` (requests for a user run as `raptor_app`; the Panel's own work as the owner)
-- [ ] Audit log
+- [x] Audit log (account activity and org logs; new-device emails)
 
 ### 3.3 Nodes
 - [x] Node keys: enrollment stores the node's public key; challenge signing; Panel signing key (separate storage) pinned by Wings; revocation (refused at connect; the Panel UI to revoke comes with Phase 4)

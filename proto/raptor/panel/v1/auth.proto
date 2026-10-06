@@ -3,6 +3,7 @@ syntax = "proto3";
 package raptor.panel.v1;
 
 import "google/protobuf/timestamp.proto";
+import "raptor/panel/v1/audit.proto";
 
 // AuthService signs people in and out of the Panel (docs/PANEL.md#auth).
 // The session is a host-only __Host- cookie the Panel sets; nothing here
@@ -113,6 +114,12 @@ service AuthService {
   // UnlinkOAuthAccount stops one signing in. Needs a recent
   // re-authentication.
   rpc UnlinkOAuthAccount(UnlinkOAuthAccountRequest) returns (UnlinkOAuthAccountResponse) {}
+
+  // ListActivity lists the account's sign-ins, failed attempts, and
+  // security changes, newest first, 50 at a time.
+  rpc ListActivity(ListActivityRequest) returns (ListActivityResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 message StartEmailSignInRequest {
@@ -372,3 +379,13 @@ message UnlinkOAuthAccountRequest {
 }
 
 message UnlinkOAuthAccountResponse {}
+
+message ListActivityRequest {
+  // next_page_token from the previous page.
+  string page_token = 1;
+}
+
+message ListActivityResponse {
+  repeated AuditEvent events = 1;
+  string next_page_token = 2;
+}

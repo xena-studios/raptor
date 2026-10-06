@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// An entry in the audit log.
+message AuditEvent {
+  string id = 1;
+  google.protobuf.Timestamp at = 2;
+  // What happened: "signin.email", "passkey.add", "member.role", ...
+  // (docs/PANEL.md#audit-log).
+  string action = 3;
+  // "user", "staff", or "system".
+  string actor = 4;
+  // Who did it, for org events (empty if they're no longer visible).
+  string actor_email = 5;
+  // What it was done to: a session, passkey, member, or invitation ID.
+  string target = 6;
+  string ip = 7;
+  string user_agent = 8;
+  // Details, as a JSON object.
+  string metadata_json = 9;
+}

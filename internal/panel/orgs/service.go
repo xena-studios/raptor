@@ -169,6 +169,9 @@ func (s *Service) CreateOrg(ctx context.Context, req *panelv1.CreateOrgRequest) 
 		if err := q.AddOrgMember(ctx, store.AddOrgMemberParams{OrgID: o.ID, UserID: sess.UserID, Role: "owner"}); err != nil {
 			return err
 		}
+		if err := s.audit(ctx, q, sess, o.ID, "org.create", "", nil, map[string]any{"name": name}); err != nil {
+			return err
+		}
 		out = &panelv1.Org{Id: idString(o.ID), Name: o.Name, CreatedAt: timestamppb.New(o.CreatedAt.Time), Role: panelv1.Role_ROLE_OWNER}
 		return nil
 	})
@@ -205,7 +208,10 @@ func (s *Service) RenameOrg(ctx context.Context, req *panelv1.RenameOrgRequest) 
 		if err != nil {
 			return err
 		}
-		return q.RenameOrg(ctx, store.RenameOrgParams{ID: org, Name: name})
+		if err := q.RenameOrg(ctx, store.RenameOrgParams{ID: org, Name: name}); err != nil {
+			return err
+		}
+		return s.audit(ctx, q, sess, org, "org.rename", "", nil, map[string]any{"name": name})
 	})
 	if err != nil {
 		return nil, err
@@ -277,7 +283,7 @@ func (s *Service) SetMemberRole(ctx context.Context, req *panelv1.SetMemberRoleR
 		if n == 0 {
 			return connect.NewError(connect.CodeNotFound, errors.New("they're not in this org"))
 		}
-		return nil
+		return s.audit(ctx, q, sess, org, "member.role", idString(user), &user, map[string]any{"role": role})
 	})
 	if err != nil {
 		return nil, err
@@ -312,6 +318,15 @@ func (s *Service) RemoveMember(ctx context.Context, req *panelv1.RemoveMemberReq
 			if err := keepsOwner(ctx, q, org, user); err != nil {
 				return err
 			}
+		}
+		// Recorded first: someone leaving can't write to the org's log once
+		// they're out of it.
+		action := "member.remove"
+		if user == sess.UserID {
+			action = "member.leave"
+		}
+		if err := s.audit(ctx, q, sess, org, action, idString(user), &user, map[string]any{"role": target.Role}); err != nil {
+			return err
 		}
 		_, err = q.RemoveOrgMember(ctx, store.RemoveOrgMemberParams{OrgID: org, UserID: user})
 		return err
@@ -372,7 +387,10 @@ func (s *Service) InviteMember(ctx context.Context, req *panelv1.InviteMemberReq
 			OrgID: org, Email: email, Role: role, TokenHash: auth.HashToken(token), InvitedBy: sess.UserID,
 			ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(InvitationTTL), Valid: true},
 		})
-		return err
+		if err != nil {
+			return err
+		}
+		return s.audit(ctx, q, sess, org, "invitation.create", idString(inv.ID), nil, map[string]any{"email": email, "role": role})
 	})
 	if err != nil {
 		return nil, err
@@ -429,7 +447,10 @@ func (s *Service) RevokeInvitation(ctx context.Context, req *panelv1.RevokeInvit
 		if err == nil && n == 0 {
 			return connect.NewError(connect.CodeNotFound, errors.New("no such pending invitation"))
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		return s.audit(ctx, q, sess, org, "invitation.revoke", idString(id), nil, nil)
 	})
 	if err != nil {
 		return nil, err
@@ -485,6 +506,9 @@ func (s *Service) AcceptInvitation(ctx context.Context, req *panelv1.AcceptInvit
 		if err != nil {
 			return err
 		}
+		if err := s.audit(ctx, q, sess, inv.OrgID, "invitation.accept", idString(inv.ID), &sess.UserID, map[string]any{"role": m.Role}); err != nil {
+			return err
+		}
 		out = &panelv1.Org{Id: idString(o.ID), Name: o.Name, CreatedAt: timestamppb.New(o.CreatedAt.Time), Role: roleProto(m.Role)}
 		return nil
 	})
@@ -524,5 +548,43 @@ func (s *Service) CreateJoinToken(ctx context.Context, req *panelv1.CreateJoinTo
 	if err != nil {
 		return nil, err
 	}
+	_ = s.audit(ctx, nil, sess, org, "join_token.create", "", nil, map[string]any{"name": name})
 	return &panelv1.CreateJoinTokenResponse{Token: token, ExpiresAt: timestamppb.New(s.now().Add(nodes.JoinTokenTTL))}, nil
+}
+
+// audit records an org event by the signed-in user, in q (the request's
+// transaction; nil for its own). about is the member it concerns, if any.
+func (s *Service) audit(ctx context.Context, q *store.Queries, sess *auth.Session, org pgtype.UUID, action, target string, about *pgtype.UUID, meta map[string]any) error {
+	ev := auth.Event{Org: org, Actor: sess.UserID, Action: action, Target: target, Meta: meta}
+	if about != nil {
+		ev.User = *about
+	}
+	return s.Auth.Audit(ctx, q, ev)
+}
+
+// ListAuditLog implements OrgService.
+func (s *Service) ListAuditLog(ctx context.Context, req *panelv1.ListAuditLogRequest) (*panelv1.ListAuditLogResponse, error) {
+	before, err := auth.PageToken(req.GetPageToken())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	out := &panelv1.ListAuditLogResponse{}
+	err = s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "admin")
+		if err != nil {
+			return err
+		}
+		rows, err := q.OrgAuditLog(ctx, store.OrgAuditLogParams{OrgID: org, Before: before, Lim: auth.PageSize})
+		for _, r := range rows {
+			out.Events = append(out.Events, auth.AuditProto(r.ID, r.At, r.Actor, r.ActorEmail.String, r.Action, r.Target, r.Ip, r.UserAgent, r.Metadata))
+		}
+		if len(rows) == auth.PageSize {
+			out.NextPageToken = idString(rows[len(rows)-1].ID)
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }

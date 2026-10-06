@@ -116,6 +116,7 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 	}
 	var out *panelv1.FinishEmailSignInResponse
 	var failure error
+	after := func() {}
 	err := pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		var row store.EmailCode
@@ -127,9 +128,17 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 			}
 			var f error
 			row, f, err = checkEmailCode(ctx, q, s.now(), email, purposeSignIn, p.Code.GetCode())
-			if err != nil || f != nil {
-				failure = f
+			if err != nil {
 				return err
+			}
+			if f != nil {
+				failure = f
+				// A wrong code for an account goes in its activity.
+				ev := Event{Action: "signin.failed", Meta: map[string]any{"method": "email", "reason": "code"}}
+				if u, err := q.GetUserByEmail(ctx, email); err == nil {
+					ev.User = u.ID
+				}
+				return s.Audit(ctx, q, ev)
 			}
 		case *panelv1.FinishEmailSignInRequest_LinkToken:
 			var err error
@@ -169,7 +178,7 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 		// With TOTP on, the email is only the first factor.
 		if user.TotpEnabledAt.Valid {
 			out = &panelv1.FinishEmailSignInResponse{SecondFactorRequired: true}
-			return s.startPending(ctx, q, user)
+			return s.startPending(ctx, q, user, "email")
 		}
 		// An email proves the inbox, which is enough for sensitive changes
 		// only on accounts with nothing stronger: otherwise someone who
@@ -178,7 +187,7 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 		if err != nil {
 			return err
 		}
-		if err := s.startSession(ctx, q, user, !strong); err != nil {
+		if after, err = s.startSession(ctx, q, user, !strong, "email"); err != nil {
 			return err
 		}
 		out = &panelv1.FinishEmailSignInResponse{User: userProto(user), NewAccount: created}
@@ -190,6 +199,7 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 	if failure != nil {
 		return nil, failure
 	}
+	after()
 	return out, nil
 }
 
@@ -235,6 +245,7 @@ func (s *Service) SignOut(ctx context.Context, _ *panelv1.SignOutRequest) (*pane
 		if err := s.q().RevokeSession(ctx, store.RevokeSessionParams{ID: sess.ID, UserID: sess.UserID}); err != nil {
 			return nil, err
 		}
+		_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "session.signout", Target: uuid.UUID(sess.ID.Bytes).String()})
 	}
 	if c, ok := callOf(ctx); ok {
 		setCookie(c.resp, "", 0)
@@ -285,5 +296,10 @@ func (s *Service) RevokeSession(ctx context.Context, req *panelv1.RevokeSessionR
 	if err != nil {
 		return nil, err
 	}
+	target := "all_others"
+	if t, ok := req.GetTarget().(*panelv1.RevokeSessionRequest_Id); ok {
+		target = t.Id
+	}
+	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "session.revoke", Target: target})
 	return &panelv1.RevokeSessionResponse{}, nil
 }
