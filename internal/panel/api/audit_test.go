@@ -34,6 +34,7 @@ func newBrowserUA(t *testing.T, srv *httptest.Server, ua string) *browser {
 		http: &c,
 		auth: panelv1connect.NewAuthServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(headers)),
 		orgs: panelv1connect.NewOrgServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(headers)),
+		cmds: panelv1connect.NewCommandServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(headers)),
 	}
 }
 

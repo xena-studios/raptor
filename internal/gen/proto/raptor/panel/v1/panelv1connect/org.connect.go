@@ -60,6 +60,12 @@ const (
 	// OrgServiceCreateJoinTokenProcedure is the fully-qualified name of the OrgService's
 	// CreateJoinToken RPC.
 	OrgServiceCreateJoinTokenProcedure = "/raptor.panel.v1.OrgService/CreateJoinToken"
+	// OrgServiceSetServerAccessProcedure is the fully-qualified name of the OrgService's
+	// SetServerAccess RPC.
+	OrgServiceSetServerAccessProcedure = "/raptor.panel.v1.OrgService/SetServerAccess"
+	// OrgServiceListServerAccessProcedure is the fully-qualified name of the OrgService's
+	// ListServerAccess RPC.
+	OrgServiceListServerAccessProcedure = "/raptor.panel.v1.OrgService/ListServerAccess"
 	// OrgServiceListAuditLogProcedure is the fully-qualified name of the OrgService's ListAuditLog RPC.
 	OrgServiceListAuditLogProcedure = "/raptor.panel.v1.OrgService/ListAuditLog"
 )
@@ -95,6 +101,12 @@ type OrgServiceClient interface {
 	// Admins and owners, with a recent re-authentication: a node runs as
 	// root, so adding one is a sensitive change.
 	CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error)
+	// SetServerAccess sets what a member may do on one server (no
+	// permissions removes their access). Admins and owners. Admins and owners
+	// themselves can always do everything.
+	SetServerAccess(context.Context, *v1.SetServerAccessRequest) (*v1.SetServerAccessResponse, error)
+	// ListServerAccess lists who has access to a server. Admins and owners.
+	ListServerAccess(context.Context, *v1.ListServerAccessRequest) (*v1.ListServerAccessResponse, error)
 	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
 	// Admins and owners.
 	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
@@ -180,6 +192,19 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("CreateJoinToken")),
 			connect.WithClientOptions(opts...),
 		),
+		setServerAccess: connect.NewClient[v1.SetServerAccessRequest, v1.SetServerAccessResponse](
+			httpClient,
+			baseURL+OrgServiceSetServerAccessProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("SetServerAccess")),
+			connect.WithClientOptions(opts...),
+		),
+		listServerAccess: connect.NewClient[v1.ListServerAccessRequest, v1.ListServerAccessResponse](
+			httpClient,
+			baseURL+OrgServiceListServerAccessProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListServerAccess")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		listAuditLog: connect.NewClient[v1.ListAuditLogRequest, v1.ListAuditLogResponse](
 			httpClient,
 			baseURL+OrgServiceListAuditLogProcedure,
@@ -203,6 +228,8 @@ type orgServiceClient struct {
 	revokeInvitation *connect.Client[v1.RevokeInvitationRequest, v1.RevokeInvitationResponse]
 	acceptInvitation *connect.Client[v1.AcceptInvitationRequest, v1.AcceptInvitationResponse]
 	createJoinToken  *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
+	setServerAccess  *connect.Client[v1.SetServerAccessRequest, v1.SetServerAccessResponse]
+	listServerAccess *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
 	listAuditLog     *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
 }
 
@@ -305,6 +332,24 @@ func (c *orgServiceClient) CreateJoinToken(ctx context.Context, req *v1.CreateJo
 	return nil, err
 }
 
+// SetServerAccess calls raptor.panel.v1.OrgService.SetServerAccess.
+func (c *orgServiceClient) SetServerAccess(ctx context.Context, req *v1.SetServerAccessRequest) (*v1.SetServerAccessResponse, error) {
+	response, err := c.setServerAccess.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListServerAccess calls raptor.panel.v1.OrgService.ListServerAccess.
+func (c *orgServiceClient) ListServerAccess(ctx context.Context, req *v1.ListServerAccessRequest) (*v1.ListServerAccessResponse, error) {
+	response, err := c.listServerAccess.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListAuditLog calls raptor.panel.v1.OrgService.ListAuditLog.
 func (c *orgServiceClient) ListAuditLog(ctx context.Context, req *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {
 	response, err := c.listAuditLog.CallUnary(ctx, connect.NewRequest(req))
@@ -345,6 +390,12 @@ type OrgServiceHandler interface {
 	// Admins and owners, with a recent re-authentication: a node runs as
 	// root, so adding one is a sensitive change.
 	CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error)
+	// SetServerAccess sets what a member may do on one server (no
+	// permissions removes their access). Admins and owners. Admins and owners
+	// themselves can always do everything.
+	SetServerAccess(context.Context, *v1.SetServerAccessRequest) (*v1.SetServerAccessResponse, error)
+	// ListServerAccess lists who has access to a server. Admins and owners.
+	ListServerAccess(context.Context, *v1.ListServerAccessRequest) (*v1.ListServerAccessResponse, error)
 	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
 	// Admins and owners.
 	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
@@ -426,6 +477,19 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("CreateJoinToken")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceSetServerAccessHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceSetServerAccessProcedure,
+		svc.SetServerAccess,
+		connect.WithSchema(orgServiceMethods.ByName("SetServerAccess")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceListServerAccessHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListServerAccessProcedure,
+		svc.ListServerAccess,
+		connect.WithSchema(orgServiceMethods.ByName("ListServerAccess")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceListAuditLogHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceListAuditLogProcedure,
 		svc.ListAuditLog,
@@ -457,6 +521,10 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceAcceptInvitationHandler.ServeHTTP(w, r)
 		case OrgServiceCreateJoinTokenProcedure:
 			orgServiceCreateJoinTokenHandler.ServeHTTP(w, r)
+		case OrgServiceSetServerAccessProcedure:
+			orgServiceSetServerAccessHandler.ServeHTTP(w, r)
+		case OrgServiceListServerAccessProcedure:
+			orgServiceListServerAccessHandler.ServeHTTP(w, r)
 		case OrgServiceListAuditLogProcedure:
 			orgServiceListAuditLogHandler.ServeHTTP(w, r)
 		default:
@@ -510,6 +578,14 @@ func (UnimplementedOrgServiceHandler) AcceptInvitation(context.Context, *v1.Acce
 
 func (UnimplementedOrgServiceHandler) CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.CreateJoinToken is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) SetServerAccess(context.Context, *v1.SetServerAccessRequest) (*v1.SetServerAccessResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.SetServerAccess is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListServerAccess(context.Context, *v1.ListServerAccessRequest) (*v1.ListServerAccessResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListServerAccess is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {

@@ -17,6 +17,7 @@ import (
 
 	"github.com/xena-studios/raptor/internal/panel/api"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
@@ -183,6 +184,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.Auth.OAuth = oauthProviders(envOr("PANEL_API_URL", "https://api.raptorpanel.net"), log)
 		go cfg.Auth.RunJanitor(ctx, time.Hour)
 		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg}
+		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, PanelKey: reg.PanelKey}
 		mailer, err := mailer(log)
 		if err != nil {
 			return err

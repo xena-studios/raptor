@@ -148,9 +148,17 @@ func TestRowLevelSecurity(t *testing.T) {
 		}
 	})
 	// A member can't do what owners and admins do, even in their own org.
+	var acmeNode string
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box2', 'efgh5678', decode(repeat('00', 32), 'hex')) RETURNING id`, acme).Scan(&acmeNode); err != nil {
+		t.Fatal(err)
+	}
 	as(bob, func(tx pgx.Tx) {
 		if n := exec(tx, "UPDATE orgs SET name = 'mine' WHERE id = $1", acme); n > 0 {
 			t.Error("member renamed the org")
+		}
+		// Server access: a member can't grant it, least of all to themselves.
+		if n := exec(tx, "INSERT INTO server_grants (org_id, user_id, node_id, server_id, permissions) VALUES ($1, $2, $3, 's1', '{power}')", acme, bob, acmeNode); n >= 0 {
+			t.Error("member granted themselves access")
 		}
 		if n := exec(tx, "UPDATE org_members SET role = 'owner' WHERE user_id = $1", bob); n > 0 {
 			t.Error("member made themselves owner")
@@ -171,6 +179,12 @@ func TestRowLevelSecurity(t *testing.T) {
 	})
 	// The owner can.
 	as(alice, func(tx pgx.Tx) {
+		if n := exec(tx, "INSERT INTO server_grants (org_id, user_id, node_id, server_id, permissions) VALUES ($1, $2, $3, 's1', '{power}')", acme, bob, acmeNode); n != 1 {
+			t.Errorf("owner granting access: %d", n)
+		}
+		if n := exec(tx, "INSERT INTO server_grants (org_id, user_id, node_id, server_id, permissions) VALUES ($1, $2, $3, 's1', '{root}')", acme, bob, acmeNode); n >= 0 {
+			t.Error("an unknown permission was stored")
+		}
 		if n := exec(tx, "UPDATE orgs SET name = 'Acme 2' WHERE id = $1", acme); n != 1 {
 			t.Errorf("owner renaming: %d", n)
 		}

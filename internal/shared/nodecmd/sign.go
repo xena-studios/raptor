@@ -30,11 +30,18 @@ func New(panelKey ed25519.PrivateKey, nodeID, userID, action, serverID string, p
 		CommandID: id.String(), NodeID: nodeID, UserID: userID, Action: action, ServerID: serverID,
 		Params: raw, ExpiresAt: time.Now().Add(min(ttl, MaxLifetime)).Unix(),
 	}
-	e.Grant = Grant{UserID: userID, NodeID: nodeID, CommandID: e.CommandID, Action: action, ServerID: serverID, ExpiresAt: e.ExpiresAt}
+	return e, SignGrant(panelKey, &e)
+}
+
+// SignGrant adds the Panel's grant to a command whose fields are already
+// set: by New, or by the browser, which picks the ID and expiry itself so
+// its passkey can sign the command before sending it.
+func SignGrant(panelKey ed25519.PrivateKey, e *Envelope) error {
+	e.Grant = Grant{UserID: e.UserID, NodeID: e.NodeID, CommandID: e.CommandID, Action: e.Action, ServerID: e.ServerID, ExpiresAt: e.ExpiresAt}
 	p, err := e.Grant.Payload()
 	if err != nil {
-		return Envelope{}, err
+		return err
 	}
 	e.Grant.Signature = ed25519.Sign(panelKey, p)
-	return e, nil
+	return nil
 }
