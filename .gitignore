@@ -8,6 +8,9 @@ node_modules/
 *.db-shm
 *.tsbuildinfo
 bin/
+# go build ./cmd/... at the root
+/panel
+/raptor
 .task/
 
 # Local dev state (Panel signing key)
