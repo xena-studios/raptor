@@ -10,6 +10,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type EmailCode struct {
+	ID            pgtype.UUID
+	Email         string
+	CodeHash      []byte
+	LinkTokenHash []byte
+	Purpose       string
+	Attempts      int32
+	ExpiresAt     pgtype.Timestamptz
+	UsedAt        pgtype.Timestamptz
+	CreatedAt     pgtype.Timestamptz
+}
+
 type JoinToken struct {
 	ID        pgtype.UUID
 	OrgID     pgtype.UUID
@@ -121,6 +133,11 @@ type PanelInstance struct {
 	SeenAt    pgtype.Timestamptz
 }
 
+type RateEvent struct {
+	Key string
+	At  pgtype.Timestamptz
+}
+
 type RolloutNode struct {
 	RolloutID   pgtype.UUID
 	NodeID      pgtype.UUID
@@ -130,6 +147,27 @@ type RolloutNode struct {
 	Error       string
 	SentAt      pgtype.Timestamptz
 	FinishedAt  pgtype.Timestamptz
+}
+
+type Session struct {
+	ID         pgtype.UUID
+	UserID     pgtype.UUID
+	TokenHash  []byte
+	CreatedAt  pgtype.Timestamptz
+	LastSeenAt pgtype.Timestamptz
+	ExpiresAt  pgtype.Timestamptz
+	ReauthAt   pgtype.Timestamptz
+	Ip         *netip.Addr
+	UserAgent  string
+	RevokedAt  pgtype.Timestamptz
+}
+
+type User struct {
+	ID              pgtype.UUID
+	Email           string
+	EmailVerifiedAt pgtype.Timestamptz
+	Name            string
+	CreatedAt       pgtype.Timestamptz
 }
 
 type WingsRollout struct {

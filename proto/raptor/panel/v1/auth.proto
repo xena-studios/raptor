@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// AuthService signs people in and out of the Panel (docs/PANEL.md#auth).
+// The session is a host-only __Host- cookie the Panel sets; nothing here
+// returns a token to scripts.
+service AuthService {
+  // StartEmailSignIn emails a 6-digit code and a sign-in link for the
+  // address (signing up if it's new). The answer is the same whether or not
+  // an account exists.
+  rpc StartEmailSignIn(StartEmailSignInRequest) returns (StartEmailSignInResponse) {}
+
+  // FinishEmailSignIn checks a code (with its email) or a link token, and
+  // starts a session.
+  rpc FinishEmailSignIn(FinishEmailSignInRequest) returns (FinishEmailSignInResponse) {}
+
+  // GetSession returns who's signed in. UNAUTHENTICATED if no one is.
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // SignOut ends this session.
+  rpc SignOut(SignOutRequest) returns (SignOutResponse) {}
+
+  // ListSessions lists the user's devices.
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // RevokeSession signs one of the user's devices out (or all but this one).
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse) {}
+}
+
+message StartEmailSignInRequest {
+  string email = 1;
+  // Cloudflare Turnstile's token from the form.
+  string turnstile_token = 2;
+}
+
+message StartEmailSignInResponse {}
+
+message FinishEmailSignInRequest {
+  oneof proof {
+    EmailCode code = 1;
+    // The token from the emailed link.
+    string link_token = 2;
+  }
+}
+
+message EmailCode {
+  string email = 1;
+  string code = 2;
+}
+
+message FinishEmailSignInResponse {
+  User user = 1;
+  // The account was created by this sign-in.
+  bool new_account = 2;
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+}
+
+message GetSessionRequest {}
+
+message GetSessionResponse {
+  User user = 1;
+  Session session = 2;
+}
+
+message Session {
+  string id = 1;
+  google.protobuf.Timestamp created_at = 2;
+  google.protobuf.Timestamp last_seen_at = 3;
+  string ip = 4;
+  string user_agent = 5;
+  // This is the session making the request.
+  bool current = 6;
+}
+
+message SignOutRequest {}
+
+message SignOutResponse {}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message RevokeSessionRequest {
+  oneof target {
+    string id = 1;
+    // Every session but the current one.
+    bool all_others = 2;
+  }
+}
+
+message RevokeSessionResponse {}

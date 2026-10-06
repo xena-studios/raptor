@@ -85,6 +85,8 @@ Built into the Panel, **passwordless**. There are no passwords to store, leak, o
 | **OAuth** | Google (OpenID Connect), Discord, GitHub. |
 | **Email code or link** | One email with a **6-digit code and a sign-in link**; either works. Codes work across devices (read on the phone, type on the PC), and links can be used up by email scanners that open links automatically, so both are sent. 10-minute expiry, single use, 5 attempts. Also used to sign up and to verify the address. |
 
+How email sign-in works (`internal/panel/auth`): the code and link are one row, stored hashed (the code bound to that row), and either uses it up. The link's token is after `#` (`/signin/link#…`), so it never reaches a server log; the web app reads it and sends it to `FinishEmailSignIn`. Wrong codes count against the row's 5 attempts. Sending is limited to 5 emails an hour per address and 20 per IP, and checking to 50 tries an hour per IP; the counts are in Postgres, so every instance shares them. The answer to "email me a code" is the same whether or not the address has an account. Until the email provider is set up, sign-in emails go nowhere, except in development, where `PANEL_MAIL_LOG=1` writes them (codes and all) to the log.
+
 **Two-factor authentication**
 - **TOTP** (authenticator apps) with **one-time recovery codes** given at setup.
 - Required after **email and OAuth** sign-ins when enabled. Those are only as strong as the user's inbox or Google/Discord/GitHub account. Passkey sign-ins skip it, since they're already two factors.

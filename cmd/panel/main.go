@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/xena-studios/raptor/internal/panel/api"
+	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
@@ -39,6 +40,10 @@ environment:
   PANEL_DATABASE_URL   Postgres; without it, serve api has no node routes
   PANEL_SIGNING_KEY    the signing key file (nodes pin its public key)
   PANEL_API_ADDR       listen address (default :8080)
+  PANEL_APP_URL                the web app's origin (default https://app.raptorpanel.net);
+                               the only origin browsers may call the API from
+  PANEL_TURNSTILE_SECRET       Cloudflare Turnstile secret for the email sign-in form
+  PANEL_MAIL_LOG=1             development only: write sign-in emails to the log
   PANEL_CLIENT_IP_HEADER       header with the client's address (CF-Connecting-IP);
                                only when the origin accepts nothing but Cloudflare
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
@@ -141,6 +146,15 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		go updates.Run(ctx, 30*time.Second)
 		log.Info("panel instance", "id", router.ID)
 		reg.KeyChanged = cfg.Hub.Disconnect
+		cfg.AppOrigin = envOr("PANEL_APP_URL", "https://app.raptorpanel.net")
+		cfg.Auth = &auth.Service{DB: pool, AppURL: cfg.AppOrigin, ClientIPHeader: os.Getenv("PANEL_CLIENT_IP_HEADER"), Log: log}
+		if secret := os.Getenv("PANEL_TURNSTILE_SECRET"); secret != "" {
+			cfg.Auth.Turnstile = auth.Turnstile{Secret: secret}
+		}
+		if os.Getenv("PANEL_MAIL_LOG") == "1" {
+			// Development: sign-in emails (with their codes) go to the log.
+			cfg.Auth.Mailer = auth.LogMailer{Log: log}
+		}
 		addrs := &nodes.Addresses{Store: reg, Domain: envOr("PANEL_NODE_DOMAIN", "raptornodes.net"), Log: log}
 		if tok := os.Getenv("PANEL_CLOUDFLARE_DNS_TOKEN"); tok != "" {
 			addrs.DNS = &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}

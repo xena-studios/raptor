@@ -10,6 +10,8 @@ import (
 
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/meta/v1/metav1connect"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
+	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
+	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
@@ -29,6 +31,11 @@ type Config struct {
 	Router *nodes.Router
 	// DrainWindow spreads node reconnects on shutdown (default 20 s).
 	DrainWindow time.Duration
+	// Auth signs people in (nil without a database).
+	Auth *auth.Service
+	// AppOrigin is the only origin browsers may call the API from
+	// (https://app.raptorpanel.net; http://localhost:5173 in development).
+	AppOrigin string
 }
 
 // Handler returns the API's HTTP handler.
@@ -38,8 +45,18 @@ func Handler(cfg Config) http.Handler {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	api := http.NewServeMux()
 	path, handler := metav1connect.NewMetaServiceHandler(metaService{})
-	mux.Handle(apiPrefix+path, http.StripPrefix(apiPrefix, handler))
+	api.Handle(path, handler)
+	if cfg.Auth != nil {
+		path, handler := panelv1connect.NewAuthServiceHandler(cfg.Auth)
+		api.Handle(path, handler)
+	}
+	appOrigin := cfg.AppOrigin
+	if appOrigin == "" {
+		appOrigin = "https://app.raptorpanel.net"
+	}
+	mux.Handle(apiPrefix+"/", http.StripPrefix(apiPrefix, browserGuard(appOrigin, api)))
 
 	if cfg.Nodes != nil {
 		path, handler := nodev1connect.NewEnrollmentServiceHandler(cfg.Nodes)
