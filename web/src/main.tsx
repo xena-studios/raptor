@@ -4,6 +4,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { ReauthProvider } from "@/components/reauth";
 import { transport } from "@/lib/transport";
 import { routeTree } from "@/routeTree.gen";
 import "@/index.css";
@@ -24,7 +25,9 @@ createRoot(root).render(
   <StrictMode>
     <TransportProvider transport={transport}>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <ReauthProvider>
+          <RouterProvider router={router} />
+        </ReauthProvider>
       </QueryClientProvider>
     </TransportProvider>
   </StrictMode>,

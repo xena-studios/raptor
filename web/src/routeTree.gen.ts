@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as SigninIndexRouteImport } from './routes/signin.index'
 import { Route as SigninLinkRouteImport } from './routes/signin.link'
 import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-factor'
@@ -17,6 +18,11 @@ import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-f
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
+  id: '/settings/security',
+  path: '/settings/security',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SigninIndexRoute = SigninIndexRouteImport.update({
@@ -37,12 +43,14 @@ const SigninSecondFactorRoute = SigninSecondFactorRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin/': typeof SigninIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin': typeof SigninIndexRoute
@@ -50,20 +58,38 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin/': typeof SigninIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/signin/link' | '/signin/second-factor' | '/signin/'
+  fullPaths:
+    | '/'
+    | '/settings/security'
+    | '/signin/link'
+    | '/signin/second-factor'
+    | '/signin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/signin/link' | '/signin/second-factor' | '/signin'
-  id: '__root__' | '/' | '/signin/link' | '/signin/second-factor' | '/signin/'
+  to:
+    | '/'
+    | '/settings/security'
+    | '/signin/link'
+    | '/signin/second-factor'
+    | '/signin'
+  id:
+    | '__root__'
+    | '/'
+    | '/settings/security'
+    | '/signin/link'
+    | '/signin/second-factor'
+    | '/signin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SettingsSecurityRoute: typeof SettingsSecurityRoute
   SigninLinkRoute: typeof SigninLinkRoute
   SigninSecondFactorRoute: typeof SigninSecondFactorRoute
   SigninIndexRoute: typeof SigninIndexRoute
@@ -76,6 +102,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/security': {
+      id: '/settings/security'
+      path: '/settings/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof SettingsSecurityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signin/': {
@@ -104,6 +137,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SettingsSecurityRoute: SettingsSecurityRoute,
   SigninLinkRoute: SigninLinkRoute,
   SigninSecondFactorRoute: SigninSecondFactorRoute,
   SigninIndexRoute: SigninIndexRoute,
