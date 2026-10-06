@@ -44,7 +44,8 @@ passkeys         id, user_id, credential_id, credential (public key, counter, fl
                  transports), name, created_at, last_used_at
 webauthn_ceremonies  id, purpose (register|signin|reauth), session_id, data, expires_at
 oauth_accounts   id, user_id, provider (google|discord|github), subject, email,
-                 email_verified, created_at
+                 email_verified, created_at, last_used_at
+oauth_flows      id, state_hash, provider, verifier, nonce, session_id, expires_at
 email_codes      id, email, code_hash, link_token_hash, purpose, attempts,
                  expires_at, used_at
 recovery_codes   id, user_id, code_hash, used_at, created_at
@@ -93,6 +94,8 @@ How email sign-in works (`internal/panel/auth`): the code and link are one row, 
 
 How passkeys work (`internal/panel/auth`, `go-webauthn/webauthn`): every passkey must be discoverable and verify the user (fingerprint, face, or PIN), so signing in needs no email and a passkey counts as two factors. Each ceremony's challenge is stored in `webauthn_ceremonies` and used once, even if the answer is wrong; registration and re-authentication ceremonies are bound to the session that started them. The user handle stored in passkeys is 32 random bytes, not the account's ID. A passkey whose counter goes backwards is refused as a possible copy (synced passkeys report 0 and are exempt). The RP ID and origin come from `PANEL_APP_URL`. Adding or removing a passkey emails the user.
 
+How OAuth works (`internal/panel/auth`, `golang.org/x/oauth2`, `coreos/go-oidc`): the web app calls `BeginOAuth`, which stores the flow (PKCE verifier, OpenID nonce, and for linking the session that asked), sets the state in a `SameSite=Lax` `__Host-raptor_oauth` cookie for 10 minutes, and returns the provider's URL. The provider sends the browser back to `https://api.raptorpanel.net/oauth/<provider>/callback`, outside `/api` because it's a navigation with no `Origin`. There the state in the URL must match the cookie (no login CSRF), the flow is used up, and the code is exchanged with the PKCE verifier. Google's ID token is checked against Google's keys, this client ID, and the nonce; GitHub's primary email and Discord's email come from their APIs with their verified flags. Then the browser is redirected to the web app: `/` with a session, `/signin/second-factor` if the account has TOTP, `/settings/security?linked=<provider>` after linking, or `/signin?error=<code>`. Each provider is on once `PANEL_<PROVIDER>_CLIENT_ID` and `_CLIENT_SECRET` are set; the OAuth app's callback URL is `PANEL_API_URL/oauth/<provider>/callback`. A provider joining an existing account by its email, linking, and unlinking all email the user.
+
 **Two-factor authentication**
 - **TOTP** (authenticator apps) with **one-time recovery codes** given at setup.
 - Required after **email and OAuth** sign-ins when enabled. Those are only as strong as the user's inbox or Google/Discord/GitHub account. Passkey sign-ins skip it, since they're already two factors.
@@ -101,7 +104,7 @@ How passkeys work (`internal/panel/auth`, `go-webauthn/webauthn`): every passkey
 How TOTP works (`internal/panel/auth`, `pquerna/otp`): 30-second, 6-digit, SHA-1 codes, which is what every authenticator app does, accepted one step either side for drifting clocks. The step a code used is stored, so no code works twice, even in another sign-in. The secret is encrypted with AES-256-GCM under `PANEL_DATA_KEY`, bound to the user's ID; without that key TOTP is off. It's turned on only after a code from the app checks out, which also gives 10 recovery codes (80 random bits each, stored hashed, shown once, single use). After an email sign-in to an account with TOTP, the pending sign-in sits in its own `__Host-raptor_signin` cookie for 10 minutes and 5 tries, and `FinishSecondFactor` takes an app code or a recovery code. Turning TOTP on or off, making new recovery codes, and using one all email the user.
 
 **Accounts**
-- Users are keyed by our own ID; email is unique. An OAuth login is **linked to an existing account only if the provider says the email is verified**, otherwise someone could create an OAuth account with a victim's unverified email and take over their Raptor account. Discord and GitHub report whether the email is verified; unverified ones are treated as a new, separate identity.
+- Users are keyed by our own ID; email is unique. An OAuth login is **linked to an existing account only if the provider says the email is verified**, otherwise someone could create an OAuth account with a victim's unverified email and take over their Raptor account. Google, Discord, and GitHub all report whether the email is verified; a new login with an unverified one is refused ("verify your email with them first"), since an account needs a unique address and an unverified one proves nothing. Once linked (from account settings, after re-authenticating), a provider account signs in whatever its email says.
 - Users can add and remove passkeys, OAuth logins, and TOTP, but never remove their last way to sign in.
 - **Recovery:** recovery codes (if TOTP is on), or an email code. Someone who controls the inbox can get in unless 2FA or passkeys-only is set, which is the honest limit of any passwordless system. For people who lose everything, there's a support process with identity checks.
 

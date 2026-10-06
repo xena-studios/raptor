@@ -54,6 +54,9 @@ func Handler(cfg Config) http.Handler {
 		// Nothing auth takes is big; passkey answers are a few kilobytes.
 		path, handler := panelv1connect.NewAuthServiceHandler(cfg.Auth, connect.WithReadMaxBytes(256<<10))
 		api.Handle(path, handler)
+		// Outside /api: browsers arrive here from the provider's site, by
+		// navigation, without an Origin to check.
+		mux.Handle("GET /oauth/{provider}/callback", cfg.Auth.OAuthCallback())
 	}
 	appOrigin := cfg.AppOrigin
 	if appOrigin == "" {

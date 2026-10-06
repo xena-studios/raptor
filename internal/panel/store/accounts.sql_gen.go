@@ -152,6 +152,28 @@ func (q *Queries) EmailCodeByLink(ctx context.Context, linkTokenHash []byte) (Em
 	return i, err
 }
 
+const getSession = `-- name: GetSession :one
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at FROM sessions WHERE id = $1
+`
+
+func (q *Queries) GetSession(ctx context.Context, id pgtype.UUID) (Session, error) {
+	row := q.db.QueryRow(ctx, getSession, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.ExpiresAt,
+		&i.ReauthAt,
+		&i.Ip,
+		&i.UserAgent,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step FROM users WHERE id = $1
 `

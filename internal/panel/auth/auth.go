@@ -14,6 +14,7 @@ import (
 	"errors"
 	"log/slog"
 	"net"
+	"net/http"
 	"net/netip"
 	"strings"
 	"time"
@@ -45,8 +46,11 @@ type Service struct {
 	// DataKey encrypts TOTP secrets (32 bytes, from PANEL_DATA_KEY); nil
 	// turns TOTP off.
 	DataKey []byte
-	Log     *slog.Logger
-	Now     func() time.Time
+	// OAuth are the providers people can sign in with, by name ("google",
+	// "github", "discord").
+	OAuth map[string]OAuthProvider
+	Log   *slog.Logger
+	Now   func() time.Time
 }
 
 func (s *Service) q() *store.Queries { return store.New(s.DB) }
@@ -125,21 +129,43 @@ func normalizeEmail(e string) (string, error) {
 	return e, nil
 }
 
+// call is the HTTP exchange being served: a Connect call, or a plain
+// request (the OAuth callback), so cookies work the same in both.
+type call struct {
+	req, resp http.Header
+	peer      string
+}
+
+type httpCallKey struct{}
+
+// withHTTPCall makes a plain request's headers available to callOf.
+func withHTTPCall(ctx context.Context, w http.ResponseWriter, r *http.Request) context.Context {
+	return context.WithValue(ctx, httpCallKey{}, call{req: r.Header, resp: w.Header(), peer: r.RemoteAddr})
+}
+
+func callOf(ctx context.Context) (call, bool) {
+	if ci, ok := connect.CallInfoForHandlerContext(ctx); ok {
+		return call{req: ci.RequestHeader(), resp: ci.ResponseHeader(), peer: ci.Peer().Addr}, true
+	}
+	c, ok := ctx.Value(httpCallKey{}).(call)
+	return c, ok
+}
+
 // clientIP is the caller's address: the trusted header if configured,
 // otherwise the TCP peer.
 func (s *Service) clientIP(ctx context.Context) netip.Addr {
-	ci, ok := connect.CallInfoForHandlerContext(ctx)
+	c, ok := callOf(ctx)
 	if !ok {
 		return netip.Addr{}
 	}
 	if s.ClientIPHeader != "" {
-		if a, err := netip.ParseAddr(strings.TrimSpace(ci.RequestHeader().Get(s.ClientIPHeader))); err == nil {
+		if a, err := netip.ParseAddr(strings.TrimSpace(c.req.Get(s.ClientIPHeader))); err == nil {
 			return a.Unmap()
 		}
 	}
-	host, _, err := net.SplitHostPort(ci.Peer().Addr)
+	host, _, err := net.SplitHostPort(c.peer)
 	if err != nil {
-		host = ci.Peer().Addr
+		host = c.peer
 	}
 	a, _ := netip.ParseAddr(host)
 	return a.Unmap()

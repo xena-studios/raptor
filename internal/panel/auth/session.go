@@ -7,7 +7,6 @@ import (
 	"net/netip"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -35,9 +34,9 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 		ip = &a
 	}
 	ua := ""
-	ci, ok := connect.CallInfoForHandlerContext(ctx)
+	c, ok := callOf(ctx)
 	if ok {
-		ua = ci.RequestHeader().Get("User-Agent")
+		ua = c.req.Get("User-Agent")
 		if len(ua) > 256 {
 			ua = ua[:256]
 		}
@@ -49,7 +48,7 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 		return err
 	}
 	if ok {
-		setCookie(ci.ResponseHeader(), token, SessionMax)
+		setCookie(c.resp, token, SessionMax)
 	}
 	return nil
 }
@@ -86,11 +85,11 @@ func namedCookie(h http.Header, name string) string {
 // Current returns the request's session, or UNAUTHENTICATED. Other services
 // call it first thing.
 func (s *Service) Current(ctx context.Context) (*Session, error) {
-	ci, ok := connect.CallInfoForHandlerContext(ctx)
+	c, ok := callOf(ctx)
 	if !ok {
 		return nil, errSignedOut
 	}
-	return s.lookup(ctx, cookieToken(ci.RequestHeader()))
+	return s.lookup(ctx, cookieToken(c.req))
 }
 
 func (s *Service) lookup(ctx context.Context, token string) (*Session, error) {

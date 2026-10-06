@@ -89,6 +89,17 @@ const (
 	// AuthServiceRegenerateRecoveryCodesProcedure is the fully-qualified name of the AuthService's
 	// RegenerateRecoveryCodes RPC.
 	AuthServiceRegenerateRecoveryCodesProcedure = "/raptor.panel.v1.AuthService/RegenerateRecoveryCodes"
+	// AuthServiceGetSignInMethodsProcedure is the fully-qualified name of the AuthService's
+	// GetSignInMethods RPC.
+	AuthServiceGetSignInMethodsProcedure = "/raptor.panel.v1.AuthService/GetSignInMethods"
+	// AuthServiceBeginOAuthProcedure is the fully-qualified name of the AuthService's BeginOAuth RPC.
+	AuthServiceBeginOAuthProcedure = "/raptor.panel.v1.AuthService/BeginOAuth"
+	// AuthServiceListOAuthAccountsProcedure is the fully-qualified name of the AuthService's
+	// ListOAuthAccounts RPC.
+	AuthServiceListOAuthAccountsProcedure = "/raptor.panel.v1.AuthService/ListOAuthAccounts"
+	// AuthServiceUnlinkOAuthAccountProcedure is the fully-qualified name of the AuthService's
+	// UnlinkOAuthAccount RPC.
+	AuthServiceUnlinkOAuthAccountProcedure = "/raptor.panel.v1.AuthService/UnlinkOAuthAccount"
 )
 
 // AuthServiceClient is a client for the raptor.panel.v1.AuthService service.
@@ -149,6 +160,22 @@ type AuthServiceClient interface {
 	// RegenerateRecoveryCodes replaces the recovery codes. Needs a recent
 	// re-authentication.
 	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
+	// GetSignInMethods says which ways to sign in this Panel offers, for the
+	// sign-in page.
+	GetSignInMethods(context.Context, *v1.GetSignInMethodsRequest) (*v1.GetSignInMethodsResponse, error)
+	// BeginOAuth starts signing in with (or, signed in, linking) a Google,
+	// GitHub, or Discord account. It sets a short-lived state cookie and
+	// returns the provider's URL, which the web app navigates to; the
+	// provider sends the browser back to the API's /oauth/<provider>/callback,
+	// which redirects to the web app. Linking needs a recent
+	// re-authentication.
+	BeginOAuth(context.Context, *v1.BeginOAuthRequest) (*v1.BeginOAuthResponse, error)
+	// ListOAuthAccounts lists the Google, GitHub, and Discord accounts that
+	// can sign in to this account.
+	ListOAuthAccounts(context.Context, *v1.ListOAuthAccountsRequest) (*v1.ListOAuthAccountsResponse, error)
+	// UnlinkOAuthAccount stops one signing in. Needs a recent
+	// re-authentication.
+	UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the raptor.panel.v1.AuthService service. By default,
@@ -285,6 +312,32 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
 			connect.WithClientOptions(opts...),
 		),
+		getSignInMethods: connect.NewClient[v1.GetSignInMethodsRequest, v1.GetSignInMethodsResponse](
+			httpClient,
+			baseURL+AuthServiceGetSignInMethodsProcedure,
+			connect.WithSchema(authServiceMethods.ByName("GetSignInMethods")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		beginOAuth: connect.NewClient[v1.BeginOAuthRequest, v1.BeginOAuthResponse](
+			httpClient,
+			baseURL+AuthServiceBeginOAuthProcedure,
+			connect.WithSchema(authServiceMethods.ByName("BeginOAuth")),
+			connect.WithClientOptions(opts...),
+		),
+		listOAuthAccounts: connect.NewClient[v1.ListOAuthAccountsRequest, v1.ListOAuthAccountsResponse](
+			httpClient,
+			baseURL+AuthServiceListOAuthAccountsProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListOAuthAccounts")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		unlinkOAuthAccount: connect.NewClient[v1.UnlinkOAuthAccountRequest, v1.UnlinkOAuthAccountResponse](
+			httpClient,
+			baseURL+AuthServiceUnlinkOAuthAccountProcedure,
+			connect.WithSchema(authServiceMethods.ByName("UnlinkOAuthAccount")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -310,6 +363,10 @@ type authServiceClient struct {
 	finishTOTPSetup           *connect.Client[v1.FinishTOTPSetupRequest, v1.FinishTOTPSetupResponse]
 	disableTOTP               *connect.Client[v1.DisableTOTPRequest, v1.DisableTOTPResponse]
 	regenerateRecoveryCodes   *connect.Client[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse]
+	getSignInMethods          *connect.Client[v1.GetSignInMethodsRequest, v1.GetSignInMethodsResponse]
+	beginOAuth                *connect.Client[v1.BeginOAuthRequest, v1.BeginOAuthResponse]
+	listOAuthAccounts         *connect.Client[v1.ListOAuthAccountsRequest, v1.ListOAuthAccountsResponse]
+	unlinkOAuthAccount        *connect.Client[v1.UnlinkOAuthAccountRequest, v1.UnlinkOAuthAccountResponse]
 }
 
 // StartEmailSignIn calls raptor.panel.v1.AuthService.StartEmailSignIn.
@@ -492,6 +549,42 @@ func (c *authServiceClient) RegenerateRecoveryCodes(ctx context.Context, req *v1
 	return nil, err
 }
 
+// GetSignInMethods calls raptor.panel.v1.AuthService.GetSignInMethods.
+func (c *authServiceClient) GetSignInMethods(ctx context.Context, req *v1.GetSignInMethodsRequest) (*v1.GetSignInMethodsResponse, error) {
+	response, err := c.getSignInMethods.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// BeginOAuth calls raptor.panel.v1.AuthService.BeginOAuth.
+func (c *authServiceClient) BeginOAuth(ctx context.Context, req *v1.BeginOAuthRequest) (*v1.BeginOAuthResponse, error) {
+	response, err := c.beginOAuth.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListOAuthAccounts calls raptor.panel.v1.AuthService.ListOAuthAccounts.
+func (c *authServiceClient) ListOAuthAccounts(ctx context.Context, req *v1.ListOAuthAccountsRequest) (*v1.ListOAuthAccountsResponse, error) {
+	response, err := c.listOAuthAccounts.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UnlinkOAuthAccount calls raptor.panel.v1.AuthService.UnlinkOAuthAccount.
+func (c *authServiceClient) UnlinkOAuthAccount(ctx context.Context, req *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error) {
+	response, err := c.unlinkOAuthAccount.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthServiceHandler is an implementation of the raptor.panel.v1.AuthService service.
 type AuthServiceHandler interface {
 	// StartEmailSignIn emails a 6-digit code and a sign-in link for the
@@ -550,6 +643,22 @@ type AuthServiceHandler interface {
 	// RegenerateRecoveryCodes replaces the recovery codes. Needs a recent
 	// re-authentication.
 	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
+	// GetSignInMethods says which ways to sign in this Panel offers, for the
+	// sign-in page.
+	GetSignInMethods(context.Context, *v1.GetSignInMethodsRequest) (*v1.GetSignInMethodsResponse, error)
+	// BeginOAuth starts signing in with (or, signed in, linking) a Google,
+	// GitHub, or Discord account. It sets a short-lived state cookie and
+	// returns the provider's URL, which the web app navigates to; the
+	// provider sends the browser back to the API's /oauth/<provider>/callback,
+	// which redirects to the web app. Linking needs a recent
+	// re-authentication.
+	BeginOAuth(context.Context, *v1.BeginOAuthRequest) (*v1.BeginOAuthResponse, error)
+	// ListOAuthAccounts lists the Google, GitHub, and Discord accounts that
+	// can sign in to this account.
+	ListOAuthAccounts(context.Context, *v1.ListOAuthAccountsRequest) (*v1.ListOAuthAccountsResponse, error)
+	// UnlinkOAuthAccount stops one signing in. Needs a recent
+	// re-authentication.
+	UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -682,6 +791,32 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceGetSignInMethodsHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceGetSignInMethodsProcedure,
+		svc.GetSignInMethods,
+		connect.WithSchema(authServiceMethods.ByName("GetSignInMethods")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceBeginOAuthHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceBeginOAuthProcedure,
+		svc.BeginOAuth,
+		connect.WithSchema(authServiceMethods.ByName("BeginOAuth")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceListOAuthAccountsHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceListOAuthAccountsProcedure,
+		svc.ListOAuthAccounts,
+		connect.WithSchema(authServiceMethods.ByName("ListOAuthAccounts")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceUnlinkOAuthAccountHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceUnlinkOAuthAccountProcedure,
+		svc.UnlinkOAuthAccount,
+		connect.WithSchema(authServiceMethods.ByName("UnlinkOAuthAccount")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceStartEmailSignInProcedure:
@@ -724,6 +859,14 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceDisableTOTPHandler.ServeHTTP(w, r)
 		case AuthServiceRegenerateRecoveryCodesProcedure:
 			authServiceRegenerateRecoveryCodesHandler.ServeHTTP(w, r)
+		case AuthServiceGetSignInMethodsProcedure:
+			authServiceGetSignInMethodsHandler.ServeHTTP(w, r)
+		case AuthServiceBeginOAuthProcedure:
+			authServiceBeginOAuthHandler.ServeHTTP(w, r)
+		case AuthServiceListOAuthAccountsProcedure:
+			authServiceListOAuthAccountsHandler.ServeHTTP(w, r)
+		case AuthServiceUnlinkOAuthAccountProcedure:
+			authServiceUnlinkOAuthAccountHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -811,4 +954,20 @@ func (UnimplementedAuthServiceHandler) DisableTOTP(context.Context, *v1.DisableT
 
 func (UnimplementedAuthServiceHandler) RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.RegenerateRecoveryCodes is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) GetSignInMethods(context.Context, *v1.GetSignInMethodsRequest) (*v1.GetSignInMethodsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.GetSignInMethods is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) BeginOAuth(context.Context, *v1.BeginOAuthRequest) (*v1.BeginOAuthResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.BeginOAuth is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListOAuthAccounts(context.Context, *v1.ListOAuthAccountsRequest) (*v1.ListOAuthAccountsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.ListOAuthAccounts is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.UnlinkOAuthAccount is not implemented"))
 }

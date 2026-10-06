@@ -121,6 +121,27 @@ type NodeRequest struct {
 	DoneAt    pgtype.Timestamptz
 }
 
+type OauthAccount struct {
+	ID            pgtype.UUID
+	UserID        pgtype.UUID
+	Provider      string
+	Subject       string
+	Email         string
+	EmailVerified bool
+	CreatedAt     pgtype.Timestamptz
+	LastUsedAt    pgtype.Timestamptz
+}
+
+type OauthFlow struct {
+	ID        pgtype.UUID
+	StateHash []byte
+	Provider  string
+	Verifier  string
+	Nonce     string
+	SessionID pgtype.UUID
+	ExpiresAt pgtype.Timestamptz
+}
+
 type Org struct {
 	ID        pgtype.UUID
 	Name      string

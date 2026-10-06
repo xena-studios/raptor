@@ -236,8 +236,8 @@ func (s *Service) SignOut(ctx context.Context, _ *panelv1.SignOutRequest) (*pane
 			return nil, err
 		}
 	}
-	if ci, ok := connect.CallInfoForHandlerContext(ctx); ok {
-		setCookie(ci.ResponseHeader(), "", 0)
+	if c, ok := callOf(ctx); ok {
+		setCookie(c.resp, "", 0)
 	}
 	return &panelv1.SignOutResponse{}, nil
 }
