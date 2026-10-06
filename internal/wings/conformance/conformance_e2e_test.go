@@ -123,6 +123,10 @@ type run struct {
 
 func (r *run) fail(format string, a ...any) {
 	r.t.Helper()
+	// What the game printed is usually the explanation.
+	if r.m != nil && r.id != "" {
+		r.dumpConsole()
+	}
 	r.failure = fmt.Sprintf(format, a...)
 	r.t.Fatal(r.failure)
 }
@@ -296,7 +300,6 @@ func (r *run) start() {
 	select {
 	case <-ready:
 	case <-time.After(timeout):
-		r.dumpConsole()
 		r.fail("never ready: no console line matching %q", r.e.Test.Ready)
 	}
 }
@@ -328,12 +331,10 @@ func (r *run) waitState(want server.State, timeout time.Duration) {
 		}
 		if st.State == server.Crashed || (want == server.Running && st.State == server.Offline) {
 			r.logInstall() // a start failing is often an install that didn't do its job
-			r.dumpConsole()
 			r.fail("server %s while waiting for %s", st.State, want)
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
-	r.dumpConsole()
 	st, _ := r.m.Status(r.id)
 	r.fail("state %s after %s, want %s", st.State, timeout, want)
 }
@@ -372,7 +373,6 @@ func (r *run) command(cmd string) {
 				return
 			}
 		case <-timeout:
-			r.dumpConsole()
 			r.fail("no reply to %q matching %q within %s", cmd, r.e.Test.Expect, replyTimeout)
 		}
 	}
@@ -405,7 +405,6 @@ func (r *run) restartWings() {
 	deadline := time.Now().Add(10 * time.Second)
 	for !slices.ContainsFunc(r.console(), func(l string) bool { return expect.MatchString(stripANSI(l)) }) {
 		if time.Now().After(deadline) {
-			r.dumpConsole()
 			r.fail("console history lost across the Wings restart")
 		}
 		time.Sleep(200 * time.Millisecond)
