@@ -22,7 +22,19 @@ var (
 	// Starting a passkey ceremony stores a challenge.
 	limitCeremonyPerIP = Limit{100, time.Hour}
 	limitReauthPerUser = Limit{20, time.Hour}
+	// Wrong email codes per address, whichever IPs they come from: each code
+	// allows 5 tries and an address can be sent 5 codes an hour, so without
+	// this a distributed guesser gets 600 tries a day at one account.
+	limitFailedCodesPerEmail = Limit{20, 24 * time.Hour}
 )
+
+// over reports whether key already has l.Max events in the window, without
+// counting one (for limits that only count failures; add them with
+// s.q().AddRateEvent).
+func (s *Service) over(ctx context.Context, key string, l Limit) (bool, error) {
+	n, err := s.q().CountRateEvents(ctx, store.CountRateEventsParams{Key: key, WindowSecs: l.Window.Seconds()})
+	return n >= l.Max, err
+}
 
 // limit is allow as an error: RESOURCE_EXHAUSTED when over.
 func (s *Service) limit(ctx context.Context, key string, l Limit) error {

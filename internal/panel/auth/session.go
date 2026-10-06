@@ -46,6 +46,15 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 			ua = ua[:256]
 		}
 	}
+	// Signing in again in a browser ends the session it had: the old token
+	// shouldn't outlive the cookie that held it.
+	if ok {
+		if old := cookieToken(c.req); old != "" {
+			if err := q.RevokeSessionByToken(ctx, hash(old)); err != nil {
+				return nil, err
+			}
+		}
+	}
 	seen, err := q.SessionsWithUserAgent(ctx, store.SessionsWithUserAgentParams{UserID: user.ID, UserAgent: ua})
 	if err != nil {
 		return nil, err

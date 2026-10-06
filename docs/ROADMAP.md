@@ -194,7 +194,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Passwordless auth in the Panel ([PANEL.md](PANEL.md#auth)): passkeys, OAuth (Google, Discord, GitHub), email codes + links, TOTP + recovery codes, safe OAuth account linking (done in code; OAuth needs the OAuth apps registered, with callbacks at `https://api.raptorpanel.net/oauth/<provider>/callback`)
 - [ ] Sessions: hashed tokens in a `__Host-` cookie on `api.`, device list, revocation, re-auth for dangerous actions; `Origin` checks against sibling subdomains; rate limits + Turnstile on email codes; security notification emails (done: passkeys, TOTP, or email codes re-authenticate, and changes to passkeys, TOTP, and recovery codes email the user; new-device emails done)
 - [ ] Transactional email provider on its own sending subdomain (DNS: SPF, DKIM, DMARC)
-- [ ] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks)
+- [x] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks): fuzzers for passkey sign-in and registration, TOTP matching, email addresses, and recovery codes; the review added a per-address limit on wrong codes and ends a browser's old session when it signs in again. OAuth callbacks are covered by the fake-provider tests (login CSRF, replay, nonce, audience, PKCE) rather than fuzzing. An outside review is still wanted before launch.
 - [x] Orgs, members, roles, invitations (`OrgService`; join tokens from the API, with re-auth)
 - [x] Postgres RLS by `org_id` (requests for a user run as `raptor_app`; the Panel's own work as the owner)
 - [x] Audit log (account activity and org logs; new-device emails)

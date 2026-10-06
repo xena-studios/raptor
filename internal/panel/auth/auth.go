@@ -18,6 +18,8 @@ import (
 	"net/netip"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"connectrpc.com/connect"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -119,12 +121,27 @@ func itoa(n int) string {
 	return string(b)
 }
 
-// normalizeEmail lowercases and checks an address enough to send to it.
+// normalizeEmail lowercases and checks an address enough to send to it:
+// something@a.domain, with no spaces, control characters, or characters
+// that mean something in a mail header.
 func normalizeEmail(e string) (string, error) {
 	e = strings.ToLower(strings.TrimSpace(e))
+	bad := connect.NewError(connect.CodeInvalidArgument, errors.New("that doesn't look like an email address"))
 	at := strings.LastIndex(e, "@")
-	if len(e) > 254 || at < 1 || at == len(e)-1 || strings.ContainsAny(e, " \t\r\n<>,;\"") || !strings.Contains(e[at:], ".") {
-		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("that doesn't look like an email address"))
+	if len(e) > 254 || at < 1 || !utf8.ValidString(e) ||
+		strings.ContainsFunc(e, func(r rune) bool {
+			return unicode.IsSpace(r) || unicode.IsControl(r) || strings.ContainsRune("<>,;:\"()[]\\", r)
+		}) {
+		return "", bad
+	}
+	labels := strings.Split(e[at+1:], ".")
+	if len(labels) < 2 || strings.Contains(e[:at], "@") {
+		return "", bad
+	}
+	for _, l := range labels {
+		if l == "" {
+			return "", bad
+		}
 	}
 	return e, nil
 }

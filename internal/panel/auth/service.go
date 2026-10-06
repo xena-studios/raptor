@@ -126,6 +126,12 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 			if err != nil {
 				return err
 			}
+			if over, err := s.over(ctx, "fail:email:"+email, limitFailedCodesPerEmail); err != nil {
+				return err
+			} else if over {
+				failure = errRateLimit
+				return nil
+			}
 			var f error
 			row, f, err = checkEmailCode(ctx, q, s.now(), email, purposeSignIn, p.Code.GetCode())
 			if err != nil {
@@ -133,6 +139,9 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 			}
 			if f != nil {
 				failure = f
+				if err := s.q().AddRateEvent(ctx, "fail:email:"+email); err != nil {
+					return err
+				}
 				// A wrong code for an account goes in its activity.
 				ev := Event{Action: "signin.failed", Meta: map[string]any{"method": "email", "reason": "code"}}
 				if u, err := q.GetUserByEmail(ctx, email); err == nil {
