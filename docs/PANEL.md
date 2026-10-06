@@ -21,7 +21,7 @@ Configured by environment (`panel` with no arguments lists them all):
 - `PANEL_DATA_KEY`: the file whose key encrypts TOTP secrets; without it, two-factor authentication is off. Back it up like the signing key.
 - `PANEL_APP_URL` (the web app's origin, the only one browsers may call from, and the passkey RP ID) and `PANEL_API_URL` (for OAuth callbacks).
 - `PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID` and `_CLIENT_SECRET`, `PANEL_TURNSTILE_SECRET`, `PANEL_CLIENT_IP_HEADER`, `PANEL_NODE_DOMAIN`, `PANEL_CLOUDFLARE_DNS_TOKEN`, `PANEL_CLOUDFLARE_ZONE_ID`.
-- `PANEL_MAIL_LOG=1`, development only: emails (codes included) go to the log.
+- `PANEL_RESEND_API_KEY` and `PANEL_MAIL_FROM` (as `Raptor <no-reply@mail.raptorpanel.net>`): email through Resend. `PANEL_MAIL_LOG=1`, development only, sends emails (codes included) to the log instead; setting both is an error, and with neither, email sign-in and invitations are off.
 
 Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, for development and operators, `panel org create <name>` (an org with no members) and `panel join-token <org-id>`; users make orgs and join tokens through the API (`OrgService`). `panel rollout start <version>` (and `status`, `pause`, `resume`, `cancel`) runs a staged Wings update ([WINGS.md](WINGS.md#updates)).
 
@@ -35,7 +35,7 @@ Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, 
 | Jobs | River (Postgres-backed) |
 | Pub/sub | Postgres `LISTEN/NOTIFY` |
 | Auth | Built into the Panel, passwordless: passkeys (`go-webauthn/webauthn`), OAuth (`golang.org/x/oauth2`, `coreos/go-oidc`), email codes, TOTP (`pquerna/otp`) |
-| Email | Transactional email provider (login codes, notifications) |
+| Email | **Resend** (`resend-go`), from its own sending subdomain: sign-in codes, invitations, security notices |
 | Billing | Polar |
 | Object storage | S3-compatible object storage (hosted backups, doctor bundles) |
 | Frontend | React, TypeScript, Vite, TanStack Router + Query, shadcn/ui, Tailwind, xterm.js, Monaco |
@@ -101,7 +101,7 @@ Built into the Panel, **passwordless**. There are no passwords to store, leak, o
 | **OAuth** | Google (OpenID Connect), Discord, GitHub. |
 | **Email code or link** | One email with a **6-digit code and a sign-in link**; either works. Codes work across devices (read on the phone, type on the PC), and links can be used up by email scanners that open links automatically, so both are sent. 10-minute expiry, single use, 5 attempts. Also used to sign up and to verify the address. |
 
-How email sign-in works (`internal/panel/auth`): the code and link are one row, stored hashed (the code bound to that row), and either uses it up. The link's token is after `#` (`/signin/link#…`), so it never reaches a server log; the web app reads it and sends it to `FinishEmailSignIn`. Wrong codes count against the row's 5 attempts, and an address takes at most 20 wrong codes a day, whichever IPs they come from (otherwise 5 codes an hour × 5 tries is 600 guesses a day at one account). Sending is limited to 5 emails an hour per address and 20 per IP, and checking to 50 tries an hour per IP; the counts are in Postgres, so every instance shares them. The answer to "email me a code" is the same whether or not the address has an account. Until the email provider is set up, sign-in emails go nowhere, except in development, where `PANEL_MAIL_LOG=1` writes them (codes and all) to the log.
+How email sign-in works (`internal/panel/auth`): the code and link are one row, stored hashed (the code bound to that row), and either uses it up. The link's token is after `#` (`/signin/link#…`), so it never reaches a server log; the web app reads it and sends it to `FinishEmailSignIn`. Wrong codes count against the row's 5 attempts, and an address takes at most 20 wrong codes a day, whichever IPs they come from (otherwise 5 codes an hour × 5 tries is 600 guesses a day at one account). Sending is limited to 5 emails an hour per address and 20 per IP, and checking to 50 tries an hour per IP; the counts are in Postgres, so every instance shares them. The answer to "email me a code" is the same whether or not the address has an account. Emails go through Resend (`auth.Resend`): plain text, an idempotency key per email, and one retry with the same key after a rate limit or network error, so a send whose answer was lost isn't delivered twice. Without Resend configured, they go nowhere (the API says email isn't set up), except in development, where `PANEL_MAIL_LOG=1` writes them (codes and all) to the log.
 
 How passkeys work (`internal/panel/auth`, `go-webauthn/webauthn`): every passkey must be discoverable and verify the user (fingerprint, face, or PIN), so signing in needs no email and a passkey counts as two factors. Each ceremony's challenge is stored in `webauthn_ceremonies` and used once, even if the answer is wrong; registration and re-authentication ceremonies are bound to the session that started them. The user handle stored in passkeys is 32 random bytes, not the account's ID. A passkey whose counter goes backwards is refused as a possible copy (synced passkeys report 0 and are exempt). The RP ID and origin come from `PANEL_APP_URL`. Adding or removing a passkey emails the user.
 

@@ -52,7 +52,9 @@ environment:
   PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID, _CLIENT_SECRET
                                OAuth apps; each provider is offered once both are set
   PANEL_TURNSTILE_SECRET       Cloudflare Turnstile secret for the email sign-in form
-  PANEL_MAIL_LOG=1             development only: write sign-in emails to the log
+  PANEL_RESEND_API_KEY         Resend API key (sending access only) for the Panel's email
+  PANEL_MAIL_FROM              the sender, e.g. Raptor <no-reply@mail.raptorpanel.net>
+  PANEL_MAIL_LOG=1             development only: write emails (codes included) to the log
   PANEL_CLIENT_IP_HEADER       header with the client's address (CF-Connecting-IP);
                                only when the origin accepts nothing but Cloudflare
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
@@ -181,10 +183,11 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.Auth.OAuth = oauthProviders(envOr("PANEL_API_URL", "https://api.raptorpanel.net"), log)
 		go cfg.Auth.RunJanitor(ctx, time.Hour)
 		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg}
-		if os.Getenv("PANEL_MAIL_LOG") == "1" {
-			// Development: sign-in emails (with their codes) go to the log.
-			cfg.Auth.Mailer = auth.LogMailer{Log: log}
+		mailer, err := mailer(log)
+		if err != nil {
+			return err
 		}
+		cfg.Auth.Mailer = mailer
 		addrs := &nodes.Addresses{Store: reg, Domain: envOr("PANEL_NODE_DOMAIN", "raptornodes.net"), Log: log}
 		if tok := os.Getenv("PANEL_CLOUDFLARE_DNS_TOKEN"); tok != "" {
 			addrs.DNS = &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}
@@ -200,6 +203,27 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		log.Warn("PANEL_DATABASE_URL is not set: nodes can't enroll or connect")
 	}
 	return api.Run(ctx, cfg, log)
+}
+
+// mailer is how the Panel sends email: Resend, or in development the log.
+// Without either, nothing that needs email works (it says so) rather than
+// codes going anywhere unexpected.
+func mailer(log *slog.Logger) (auth.Mailer, error) {
+	key, from, toLog := os.Getenv("PANEL_RESEND_API_KEY"), os.Getenv("PANEL_MAIL_FROM"), os.Getenv("PANEL_MAIL_LOG") == "1"
+	switch {
+	case key != "" && toLog:
+		return nil, errors.New("set PANEL_RESEND_API_KEY or PANEL_MAIL_LOG, not both")
+	case key != "" && from == "":
+		return nil, errors.New("PANEL_MAIL_FROM is needed with PANEL_RESEND_API_KEY")
+	case key != "":
+		log.Info("email through resend", "from", from)
+		return auth.NewResend(key, from), nil
+	case toLog:
+		log.Warn("PANEL_MAIL_LOG=1: emails, with their sign-in codes, go to the log (development only)")
+		return auth.LogMailer{Log: log}, nil
+	}
+	log.Warn("no email: set PANEL_RESEND_API_KEY and PANEL_MAIL_FROM; email sign-in and invitations are off")
+	return nil, nil
 }
 
 // oauthProviders are the OAuth apps configured in the environment.

@@ -63,7 +63,7 @@ The landing page (`raptorpanel.net`) is an **Astro** site in `site/`, and the do
 | `docs.raptorpanel.net` | Docs site | Static |
 | `get.raptorpanel.net` | Install script | Static |
 | `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |
-| Mail sending subdomain | SPF/DKIM for transactional email | Email provider |
+| Mail sending subdomain | SPF/DKIM for transactional email | Resend |
 | `n-<short-id>.raptornodes.net`, `<name>.raptornodes.net` | Node hostnames and player subdomains | DNS-only; the apex redirects to `raptorpanel.net` |
 
 ### Wings
@@ -218,7 +218,7 @@ Every step is idempotent. Re-running the command after a failure resumes.
 | Panel redeployed | Every node disconnects briefly and reconnects with jitter. Servers unaffected. |
 | Cloudflare outage | Same as Panel API down: nodes look offline, the web UI is unavailable, games keep running. |
 | Postgres down | Panel down (above). Nodes unaffected. |
-| Email provider down | Email-code sign-ins fail; passkeys, OAuth, and existing sessions keep working. |
+| Email provider (Resend) down | Email-code sign-ins, invitations, and security notices fail; passkeys, OAuth, and existing sessions keep working. |
 | Google / Discord / GitHub down | That provider's sign-in fails; other methods and existing sessions work. |
 | Polar down | Billing actions fail. Nothing else is affected. |
 | Node connection drops mid-command | The command is retried with the same `command_id`. No duplicates. |
