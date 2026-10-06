@@ -55,6 +55,7 @@ func (b *inbox) last(t *testing.T) (code, link string) {
 type browser struct {
 	http *http.Client
 	auth panelv1connect.AuthServiceClient
+	orgs panelv1connect.OrgServiceClient
 }
 
 func newBrowser(t *testing.T, srv *httptest.Server, origin string) *browser {
@@ -67,7 +68,11 @@ func newBrowser(t *testing.T, srv *httptest.Server, origin string) *browser {
 			return next(ctx, req)
 		}
 	})
-	return &browser{http: &c, auth: panelv1connect.NewAuthServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin))}
+	return &browser{
+		http: &c,
+		auth: panelv1connect.NewAuthServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
+		orgs: panelv1connect.NewOrgServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
+	}
 }
 
 func TestEmailSignIn(t *testing.T) {

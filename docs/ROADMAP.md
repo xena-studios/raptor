@@ -195,7 +195,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Sessions: hashed tokens in a `__Host-` cookie on `api.`, device list, revocation, re-auth for dangerous actions; `Origin` checks against sibling subdomains; rate limits + Turnstile on email codes; security notification emails (done: passkeys, TOTP, or email codes re-authenticate, and changes to passkeys, TOTP, and recovery codes email the user; new-device emails come with the audit log)
 - [ ] Transactional email provider on its own sending subdomain (DNS: SPF, DKIM, DMARC)
 - [ ] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks)
-- [ ] Orgs, members, roles, invitations
+- [x] Orgs, members, roles, invitations (`OrgService`; join tokens from the API, with re-auth)
 - [ ] Postgres RLS by `org_id`
 - [ ] Audit log
 

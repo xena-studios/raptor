@@ -51,8 +51,10 @@ email_codes      id, email, code_hash, link_token_hash, purpose, attempts,
 recovery_codes   id, user_id, code_hash, used_at, created_at
 sessions         id, user_id, token_hash, created_at, last_seen_at, expires_at,
                  reauth_at, ip, user_agent, revoked_at
-orgs             id, name, slug, created_at
-org_members      org_id, user_id, role (owner|admin|member)
+orgs             id, name, created_at
+org_members      org_id, user_id, role (owner|admin|member), created_at
+org_invitations  id, org_id, email, role, token_hash, invited_by, expires_at,
+                 accepted_at, revoked_at
 nodes            id, org_id, name, short_id, public_key, public_ipv4, public_ipv6,
                  status, key_revoked_at, sftp_enabled,
                  wings_version, protocol_version, last_seen_at, last_acked_seq,
@@ -125,7 +127,12 @@ How TOTP works (`internal/panel/auth`, `pquerna/otp`): 30-second, 6-digit, SHA-1
 
 ## Permissions
 
-- Org roles: `owner`, `admin`, `member`.
+- Org roles (`internal/panel/orgs`, `OrgService`):
+  - **Owners** can do everything, and only they change roles. An org always keeps an owner; the check locks the owners' rows, so two owners stepping down at once still leave one.
+  - **Admins** rename the org, invite admins and members, remove members, and make join tokens (with a recent re-authentication, since a node runs as root).
+  - **Members** see the org and its members; what they can do on servers comes from their grants.
+  - Anyone can leave, except the last owner. Orgs someone isn't in are `NOT_FOUND` to them, so IDs reveal nothing.
+- **Invitations** are emailed with a link (`/invite#<token>`, the token hashed in the database), last 7 days, and work only for someone signed in with the invited address. Accepting when already a member keeps the higher role. Each org can send 50 a day and have 100 pending.
 - Per-server grants for sub-users (e.g. `console.read`, `console.write`, `power`, `files.read`, `files.write`, `backups`, `schedules`, `startup`, `sftp`, …).
 - When a user acts on a node, the Panel sends a **signed, short-lived grant** (≤ 5 min, bound to user + server + action) with the command. Wings verifies the signature and expiry locally.
 - **Dangerous actions** additionally need the user's passkey signature over the exact command. Owners' keys are trusted by the node directly; sub-users need a **delegation signed by an owner's passkey** for each dangerous action they're allowed. The Panel stores and displays delegations but can't create them.

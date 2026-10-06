@@ -19,6 +19,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
+	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
@@ -179,6 +180,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		}
 		cfg.Auth.OAuth = oauthProviders(envOr("PANEL_API_URL", "https://api.raptorpanel.net"), log)
 		go cfg.Auth.RunJanitor(ctx, time.Hour)
+		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg}
 		if os.Getenv("PANEL_MAIL_LOG") == "1" {
 			// Development: sign-in emails (with their codes) go to the log.
 			cfg.Auth.Mailer = auth.LogMailer{Log: log}

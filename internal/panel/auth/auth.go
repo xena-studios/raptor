@@ -184,3 +184,24 @@ var (
 	errBadTOTP    = connect.NewError(connect.CodePermissionDenied, errors.New("that code is wrong; check the time on your phone and try the next one"))
 	errNoPending  = connect.NewError(connect.CodeUnauthenticated, errors.New("that sign-in expired; start again"))
 )
+
+// For other Panel services.
+
+// RequireReauth refuses a sensitive change unless the session
+// re-authenticated in the last 5 minutes (FAILED_PRECONDITION).
+func (s *Service) RequireReauth(sess *Session) error { return s.requireReauth(sess) }
+
+// RateLimit counts an event for key and refuses (RESOURCE_EXHAUSTED) once
+// there are more than max in window, across every Panel instance.
+func (s *Service) RateLimit(ctx context.Context, key string, max int64, window time.Duration) error {
+	return s.limit(ctx, key, Limit{max, window})
+}
+
+// NormalizeEmail lowercases and checks an address (INVALID_ARGUMENT).
+func NormalizeEmail(e string) (string, error) { return normalizeEmail(e) }
+
+// NewToken is 32 random bytes, base64url; HashToken is how to store one.
+func NewToken() string { return newToken() }
+
+// HashToken hashes a token for storage.
+func HashToken(t string) []byte { return hash(t) }

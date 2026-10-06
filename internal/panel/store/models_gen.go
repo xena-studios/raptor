@@ -148,6 +148,26 @@ type Org struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type OrgInvitation struct {
+	ID         pgtype.UUID
+	OrgID      pgtype.UUID
+	Email      string
+	Role       string
+	TokenHash  []byte
+	InvitedBy  pgtype.UUID
+	ExpiresAt  pgtype.Timestamptz
+	AcceptedAt pgtype.Timestamptz
+	RevokedAt  pgtype.Timestamptz
+	CreatedAt  pgtype.Timestamptz
+}
+
+type OrgMember struct {
+	OrgID     pgtype.UUID
+	UserID    pgtype.UUID
+	Role      string
+	CreatedAt pgtype.Timestamptz
+}
+
 type PanelInstance struct {
 	ID        string
 	StartedAt pgtype.Timestamptz
