@@ -33,7 +33,7 @@ commands:
   migrate                   apply database migrations (PANEL_DATABASE_URL)
   keygen <path>             create a key file: the signing key (PANEL_SIGNING_KEY)
                             or the data key (PANEL_DATA_KEY); make them separately
-  org create <name>         add an org (until accounts exist)
+  org create <name>         add an org with no members (development; users use OrgService)
   join-token <org-id> [name]  a single-use token that links one node (1 hour)
   rollout start <version>   update nodes' Wings in stages (5%, 25%, all)
   rollout status|pause|resume|cancel
