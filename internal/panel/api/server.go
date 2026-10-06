@@ -15,6 +15,7 @@ import (
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
+	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
@@ -35,6 +36,8 @@ type Config struct {
 	DrainWindow time.Duration
 	// Auth signs people in (nil without a database).
 	Auth *auth.Service
+	// Orgs manages orgs, members, and invitations (nil without a database).
+	Orgs *orgs.Service
 	// AppOrigin is the only origin browsers may call the API from
 	// (https://app.raptorpanel.net; http://localhost:5173 in development).
 	AppOrigin string
@@ -57,6 +60,10 @@ func Handler(cfg Config) http.Handler {
 		// Outside /api: browsers arrive here from the provider's site, by
 		// navigation, without an Origin to check.
 		mux.Handle("GET /oauth/{provider}/callback", cfg.Auth.OAuthCallback())
+	}
+	if cfg.Orgs != nil {
+		path, handler := panelv1connect.NewOrgServiceHandler(cfg.Orgs, connect.WithReadMaxBytes(64<<10))
+		api.Handle(path, handler)
 	}
 	appOrigin := cfg.AppOrigin
 	if appOrigin == "" {

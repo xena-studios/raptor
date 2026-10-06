@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// OrgService manages orgs, their members, and invitations
+// (docs/PANEL.md#permissions). Roles: owners can do everything, including
+// changing roles; admins manage members, invitations, and nodes; members
+// see the org and what their server grants allow. Orgs someone isn't in
+// are NOT_FOUND to them.
+service OrgService {
+  // CreateOrg makes an org with the caller as its owner.
+  rpc CreateOrg(CreateOrgRequest) returns (CreateOrgResponse) {}
+
+  // ListOrgs lists the caller's orgs and their role in each.
+  rpc ListOrgs(ListOrgsRequest) returns (ListOrgsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // RenameOrg renames an org. Admins and owners.
+  rpc RenameOrg(RenameOrgRequest) returns (RenameOrgResponse) {}
+
+  // ListMembers lists an org's members. Any member.
+  rpc ListMembers(ListMembersRequest) returns (ListMembersResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // SetMemberRole changes a member's role. Owners only; an org always keeps
+  // an owner.
+  rpc SetMemberRole(SetMemberRoleRequest) returns (SetMemberRoleResponse) {}
+
+  // RemoveMember removes someone from an org: owners remove anyone, admins
+  // remove members, and anyone can leave. An org always keeps an owner.
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse) {}
+
+  // InviteMember emails an invitation for 7 days. Admins invite admins and
+  // members; owners invite anyone.
+  rpc InviteMember(InviteMemberRequest) returns (InviteMemberResponse) {}
+
+  // ListInvitations lists an org's pending invitations. Admins and owners.
+  rpc ListInvitations(ListInvitationsRequest) returns (ListInvitationsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // RevokeInvitation cancels a pending invitation. Admins and owners.
+  rpc RevokeInvitation(RevokeInvitationRequest) returns (RevokeInvitationResponse) {}
+
+  // AcceptInvitation joins the org, if the caller is signed in with the
+  // address the invitation was sent to.
+  rpc AcceptInvitation(AcceptInvitationRequest) returns (AcceptInvitationResponse) {}
+
+  // CreateJoinToken makes a single-use token that links one node to the org
+  // (raptor link / raptor bootstrap), valid for an hour and shown once.
+  // Admins and owners, with a recent re-authentication: a node runs as
+  // root, so adding one is a sensitive change.
+  rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse) {}
+}
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_MEMBER = 1;
+  ROLE_ADMIN = 2;
+  ROLE_OWNER = 3;
+}
+
+message Org {
+  string id = 1;
+  string name = 2;
+  google.protobuf.Timestamp created_at = 3;
+  // The caller's role.
+  Role role = 4;
+}
+
+message CreateOrgRequest {
+  string name = 1;
+}
+
+message CreateOrgResponse {
+  Org org = 1;
+}
+
+message ListOrgsRequest {}
+
+message ListOrgsResponse {
+  repeated Org orgs = 1;
+}
+
+message RenameOrgRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message RenameOrgResponse {}
+
+message Member {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+  Role role = 4;
+  google.protobuf.Timestamp joined_at = 5;
+}
+
+message ListMembersRequest {
+  string org_id = 1;
+}
+
+message ListMembersResponse {
+  repeated Member members = 1;
+}
+
+message SetMemberRoleRequest {
+  string org_id = 1;
+  string user_id = 2;
+  Role role = 3;
+}
+
+message SetMemberRoleResponse {}
+
+message RemoveMemberRequest {
+  string org_id = 1;
+  string user_id = 2;
+}
+
+message RemoveMemberResponse {}
+
+message Invitation {
+  string id = 1;
+  string email = 2;
+  Role role = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+message InviteMemberRequest {
+  string org_id = 1;
+  string email = 2;
+  Role role = 3;
+}
+
+message InviteMemberResponse {
+  Invitation invitation = 1;
+}
+
+message ListInvitationsRequest {
+  string org_id = 1;
+}
+
+message ListInvitationsResponse {
+  repeated Invitation invitations = 1;
+}
+
+message RevokeInvitationRequest {
+  string org_id = 1;
+  string invitation_id = 2;
+}
+
+message RevokeInvitationResponse {}
+
+message AcceptInvitationRequest {
+  // The token from the emailed link (after # in /invite#<token>).
+  string token = 1;
+}
+
+message AcceptInvitationResponse {
+  Org org = 1;
+}
+
+message CreateJoinTokenRequest {
+  string org_id = 1;
+  // What to call the node until it reports its hostname.
+  string name = 2;
+}
+
+message CreateJoinTokenResponse {
+  string token = 1;
+  google.protobuf.Timestamp expires_at = 2;
+}
