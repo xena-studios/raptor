@@ -47,7 +47,7 @@ func (q *Queries) CountRateEvents(ctx context.Context, arg CountRateEventsParams
 }
 
 const createEmailCode = `-- name: CreateEmailCode :exec
-INSERT INTO email_codes (email, code_hash, link_token_hash, expires_at) VALUES ($1, $2, $3, $4)
+INSERT INTO email_codes (email, code_hash, link_token_hash, expires_at, purpose) VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateEmailCodeParams struct {
@@ -55,6 +55,7 @@ type CreateEmailCodeParams struct {
 	CodeHash      []byte
 	LinkTokenHash []byte
 	ExpiresAt     pgtype.Timestamptz
+	Purpose       string
 }
 
 func (q *Queries) CreateEmailCode(ctx context.Context, arg CreateEmailCodeParams) error {
@@ -63,13 +64,14 @@ func (q *Queries) CreateEmailCode(ctx context.Context, arg CreateEmailCodeParams
 		arg.CodeHash,
 		arg.LinkTokenHash,
 		arg.ExpiresAt,
+		arg.Purpose,
 	)
 	return err
 }
 
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (user_id, token_hash, expires_at, ip, user_agent, reauth_at)
-VALUES ($1, $2, $3, $4, $5, now())
+VALUES ($1, $2, $3, $4, $5, CASE WHEN $6::bool THEN now() END)
 RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at
 `
 
@@ -79,6 +81,7 @@ type CreateSessionParams struct {
 	ExpiresAt pgtype.Timestamptz
 	Ip        *netip.Addr
 	UserAgent string
+	Reauthed  bool
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
@@ -88,6 +91,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		arg.ExpiresAt,
 		arg.Ip,
 		arg.UserAgent,
+		arg.Reauthed,
 	)
 	var i Session
 	err := row.Scan(
@@ -106,7 +110,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at
+INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle
 `
 
 func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
@@ -118,14 +122,16 @@ func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
 		&i.EmailVerifiedAt,
 		&i.Name,
 		&i.CreatedAt,
+		&i.WebauthnHandle,
 	)
 	return i, err
 }
 
 const emailCodeByLink = `-- name: EmailCodeByLink :one
-SELECT id, email, code_hash, link_token_hash, purpose, attempts, expires_at, used_at, created_at FROM email_codes WHERE link_token_hash = $1 FOR UPDATE
+SELECT id, email, code_hash, link_token_hash, purpose, attempts, expires_at, used_at, created_at FROM email_codes WHERE link_token_hash = $1 AND purpose = 'signin' FOR UPDATE
 `
 
+// Only sign-in emails have links.
 func (q *Queries) EmailCodeByLink(ctx context.Context, linkTokenHash []byte) (EmailCode, error) {
 	row := q.db.QueryRow(ctx, emailCodeByLink, linkTokenHash)
 	var i EmailCode
@@ -144,7 +150,7 @@ func (q *Queries) EmailCodeByLink(ctx context.Context, linkTokenHash []byte) (Em
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, email_verified_at, name, created_at FROM users WHERE id = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -156,12 +162,13 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.EmailVerifiedAt,
 		&i.Name,
 		&i.CreatedAt,
+		&i.WebauthnHandle,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, email_verified_at, name, created_at FROM users WHERE email = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -173,19 +180,25 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.EmailVerifiedAt,
 		&i.Name,
 		&i.CreatedAt,
+		&i.WebauthnHandle,
 	)
 	return i, err
 }
 
 const latestEmailCode = `-- name: LatestEmailCode :one
-SELECT id, email, code_hash, link_token_hash, purpose, attempts, expires_at, used_at, created_at FROM email_codes WHERE email = $1 AND used_at IS NULL
+SELECT id, email, code_hash, link_token_hash, purpose, attempts, expires_at, used_at, created_at FROM email_codes WHERE email = $1 AND purpose = $2 AND used_at IS NULL
 ORDER BY created_at DESC LIMIT 1
 FOR UPDATE
 `
 
-// The newest unused code for an address, locked for checking.
-func (q *Queries) LatestEmailCode(ctx context.Context, email string) (EmailCode, error) {
-	row := q.db.QueryRow(ctx, latestEmailCode, email)
+type LatestEmailCodeParams struct {
+	Email   string
+	Purpose string
+}
+
+// The newest unused code for an address and purpose, locked for checking.
+func (q *Queries) LatestEmailCode(ctx context.Context, arg LatestEmailCodeParams) (EmailCode, error) {
+	row := q.db.QueryRow(ctx, latestEmailCode, arg.Email, arg.Purpose)
 	var i EmailCode
 	err := row.Scan(
 		&i.ID,
@@ -238,12 +251,30 @@ func (q *Queries) ListUserSessions(ctx context.Context, userID pgtype.UUID) ([]S
 	return items, nil
 }
 
+const pruneEmailCodes = `-- name: PruneEmailCodes :exec
+DELETE FROM email_codes WHERE expires_at < now() - interval '1 day'
+`
+
+func (q *Queries) PruneEmailCodes(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pruneEmailCodes)
+	return err
+}
+
 const pruneRateEvents = `-- name: PruneRateEvents :exec
 DELETE FROM rate_events WHERE at < now() - interval '1 day'
 `
 
 func (q *Queries) PruneRateEvents(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, pruneRateEvents)
+	return err
+}
+
+const pruneSessions = `-- name: PruneSessions :exec
+DELETE FROM sessions WHERE expires_at < now() - interval '30 days' OR revoked_at < now() - interval '30 days'
+`
+
+func (q *Queries) PruneSessions(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pruneSessions)
 	return err
 }
 
@@ -295,6 +326,15 @@ func (q *Queries) SessionByToken(ctx context.Context, tokenHash []byte) (Session
 		&i.RevokedAt,
 	)
 	return i, err
+}
+
+const setSessionReauth = `-- name: SetSessionReauth :exec
+UPDATE sessions SET reauth_at = now() WHERE id = $1
+`
+
+func (q *Queries) SetSessionReauth(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, setSessionReauth, id)
+	return err
 }
 
 const touchSession = `-- name: TouchSession :exec

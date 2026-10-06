@@ -26,8 +26,9 @@ type Session struct {
 }
 
 // startSession creates a session for a user and sets its cookie on the
-// response. A new token every time: signing in never reuses one.
-func (s *Service) startSession(ctx context.Context, q *store.Queries, user store.User) error {
+// response. A new token every time: signing in never reuses one. reauthed
+// says whether the sign-in also counts as a re-authentication.
+func (s *Service) startSession(ctx context.Context, q *store.Queries, user store.User, reauthed bool) error {
 	token := newToken()
 	var ip *netip.Addr
 	if a := s.clientIP(ctx); a.IsValid() {
@@ -43,7 +44,7 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 	}
 	if _, err := q.CreateSession(ctx, store.CreateSessionParams{
 		UserID: user.ID, TokenHash: hash(token), ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(SessionMax), Valid: true},
-		Ip: ip, UserAgent: ua,
+		Ip: ip, UserAgent: ua, Reauthed: reauthed,
 	}); err != nil {
 		return err
 	}

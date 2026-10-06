@@ -36,9 +36,11 @@ Configured by environment: `PANEL_DATABASE_URL`, `PANEL_SIGNING_KEY` (the file w
 ## Data model (sketch)
 
 ```
-users            id, email, email_verified_at, name, totp_secret (encrypted), created_at
-passkeys         id, user_id, credential_id, public_key, sign_count, aaguid, name,
-                 created_at, last_used_at
+users            id, email, email_verified_at, name, webauthn_handle, totp_secret (encrypted),
+                 created_at
+passkeys         id, user_id, credential_id, credential (public key, counter, flags,
+                 transports), name, created_at, last_used_at
+webauthn_ceremonies  id, purpose (register|signin|reauth), session_id, data, expires_at
 oauth_accounts   id, user_id, provider (google|discord|github), subject, email,
                  email_verified, created_at
 email_codes      id, email, code_hash, link_token_hash, purpose, attempts,
@@ -87,6 +89,8 @@ Built into the Panel, **passwordless**. There are no passwords to store, leak, o
 
 How email sign-in works (`internal/panel/auth`): the code and link are one row, stored hashed (the code bound to that row), and either uses it up. The link's token is after `#` (`/signin/link#…`), so it never reaches a server log; the web app reads it and sends it to `FinishEmailSignIn`. Wrong codes count against the row's 5 attempts. Sending is limited to 5 emails an hour per address and 20 per IP, and checking to 50 tries an hour per IP; the counts are in Postgres, so every instance shares them. The answer to "email me a code" is the same whether or not the address has an account. Until the email provider is set up, sign-in emails go nowhere, except in development, where `PANEL_MAIL_LOG=1` writes them (codes and all) to the log.
 
+How passkeys work (`internal/panel/auth`, `go-webauthn/webauthn`): every passkey must be discoverable and verify the user (fingerprint, face, or PIN), so signing in needs no email and a passkey counts as two factors. Each ceremony's challenge is stored in `webauthn_ceremonies` and used once, even if the answer is wrong; registration and re-authentication ceremonies are bound to the session that started them. The user handle stored in passkeys is 32 random bytes, not the account's ID. A passkey whose counter goes backwards is refused as a possible copy (synced passkeys report 0 and are exempt). The RP ID and origin come from `PANEL_APP_URL`. Adding or removing a passkey emails the user.
+
 **Two-factor authentication**
 - **TOTP** (authenticator apps) with **one-time recovery codes** given at setup.
 - Required after **email and OAuth** sign-ins when enabled. Those are only as strong as the user's inbox or Google/Discord/GitHub account. Passkey sign-ins skip it, since they're already two factors.
@@ -103,7 +107,7 @@ How email sign-in works (`internal/panel/auth`): the code and link are one row, 
 - **Passkeys use the RP ID `app.raptorpanel.net`**, not `raptorpanel.net`, so no other subdomain can ask for signatures from them. Passkeys are bound to their RP ID permanently.
 - Sessions expire after 30 days of inactivity and 90 days at most. Users see their devices and can log out one or all of them. Signing in rotates the session token.
 - **Actions on nodes that destroy data, change code, or change access** (deleting servers, wiping reinstalls, changing eggs/images/startup, granting support access, adding SSH keys or sub-users, removing nodes) are **signed by the user's passkey and verified by Wings itself**, so the Panel can't forge them ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)). They require a passkey.
-- **Re-authentication for sensitive account actions** that stay in the Panel (billing changes, adding a node, adding or removing passkeys/OAuth/TOTP, changing the email): a passkey or TOTP (or an email code if neither is set up) within the last 5 minutes.
+- **Re-authentication for sensitive account actions** that stay in the Panel (billing changes, adding a node, adding or removing passkeys/OAuth/TOTP, changing the email): a passkey or TOTP (or an email code if neither is set up) within the last 5 minutes. Signing in with a passkey counts; signing in by email counts only on accounts with no passkey or TOTP, so someone who gets into the inbox can't sign in and remove the passkeys. The API answers `FAILED_PRECONDITION` when one is needed, and the web app runs `BeginReauth`/`FinishReauth` and retries.
 
 **Abuse protection**
 - Rate limits per IP, per email address, and per account on sending codes and on every verification step.

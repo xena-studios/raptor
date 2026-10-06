@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"connectrpc.com/connect"
+
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/meta/v1/metav1connect"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
@@ -49,7 +51,8 @@ func Handler(cfg Config) http.Handler {
 	path, handler := metav1connect.NewMetaServiceHandler(metaService{})
 	api.Handle(path, handler)
 	if cfg.Auth != nil {
-		path, handler := panelv1connect.NewAuthServiceHandler(cfg.Auth)
+		// Nothing auth takes is big; passkey answers are a few kilobytes.
+		path, handler := panelv1connect.NewAuthServiceHandler(cfg.Auth, connect.WithReadMaxBytes(256<<10))
 		api.Handle(path, handler)
 	}
 	appOrigin := cfg.AppOrigin
