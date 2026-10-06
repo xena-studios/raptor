@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"errors"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -12,28 +11,15 @@ import (
 	"connectrpc.com/connect"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
-	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/paneltest"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
-// newRegistry needs a disposable database: PANEL_TEST_DATABASE_URL.
+// newRegistry is a Registry on a database of the test's own.
 func newRegistry(t *testing.T) *Registry {
 	t.Helper()
-	url := os.Getenv("PANEL_TEST_DATABASE_URL")
-	if url == "" {
-		t.Skip("PANEL_TEST_DATABASE_URL not set")
-	}
-	ctx := context.Background()
-	pool, err := store.Open(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(pool.Close)
-	if err := store.Migrate(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
 	_, key, _ := ed25519.GenerateKey(nil)
-	return &Registry{DB: pool, PanelKey: key}
+	return &Registry{DB: paneltest.NewDB(t), PanelKey: key}
 }
 
 func enrollReq(t *testing.T, token string, key ed25519.PrivateKey) *nodev1.EnrollRequest {
