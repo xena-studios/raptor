@@ -47,7 +47,7 @@ task build     # binaries into bin/, web app into web/dist
 task --list    # everything else
 ```
 
-To sign in to the dev Panel, ask for a code in the web app: `task dev` writes sign-in emails to the API's log (`PANEL_MAIL_LOG=1`), code and link included. The dev Panel's signing key, data key (for TOTP), and org live in `.dev/` (ignored by git). After `task dev:link`, `raptor status` in the VM shows the connection; `task wings:vm:install` puts the dev config back, which unlinks the VM.
+To sign in to the dev Panel, open http://localhost:5173 and ask for a code: `task dev` writes sign-in emails to the API's log (`PANEL_MAIL_LOG=1`), code and link included. Passkeys work there too (the RP ID is `localhost`), in browsers that allow them on `http://localhost`. The dev Panel's signing key, data key (for TOTP), and org live in `.dev/` (ignored by git). After `task dev:link`, `raptor status` in the VM shows the connection; `task wings:vm:install` puts the dev config back, which unlinks the VM.
 
 Generated code is committed. After changing anything in `proto/`, `db/`, or `web/src/routes/`, run `task gen` and commit the result.
 

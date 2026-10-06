@@ -1,30 +1,39 @@
-import { useQuery } from "@connectrpc/connect-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { useMutation } from "@connectrpc/connect-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
-import { MetaService } from "@/gen/raptor/meta/v1/meta_pb";
+import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
+import { requireSession } from "@/lib/session";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  beforeLoad: ({ location }) => requireSession(location),
+  component: Home,
 });
 
-function Index() {
-  const { data, error, isPending, refetch, isFetching } = useQuery(
-    MetaService.method.getVersion,
-    {},
-  );
+function Home() {
+  const session = Route.useRouteContext();
+  const navigate = useNavigate();
+  const signOut = useMutation(AuthService.method.signOut);
 
   return (
-    <main className="mx-auto max-w-xl p-8">
-      <h1 className="font-heading text-2xl font-semibold">Raptor</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {isPending && "Connecting to the Panel…"}
-        {error && `Panel unreachable: ${error.message}`}
-        {data && `Panel ${data.version} (${data.commit})`}
-      </p>
-      <Button className="mt-4" variant="outline" disabled={isFetching} onClick={() => refetch()}>
-        Refresh
-      </Button>
+    <main className="mx-auto max-w-3xl p-8">
+      <header className="flex items-center justify-between">
+        <h1 className="font-heading text-2xl font-semibold">Raptor</h1>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-muted-foreground">{session.user?.email}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={signOut.isPending}
+            onClick={async () => {
+              await signOut.mutateAsync({});
+              await navigate({ to: "/signin" });
+            }}
+          >
+            Sign out
+          </Button>
+        </div>
+      </header>
     </main>
   );
 }

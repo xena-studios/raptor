@@ -221,7 +221,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 **Goal:** the full user-facing product.
 
-- [ ] App shell: auth flows, org switcher, navigation, live/stale/pending/failed states
+- [ ] App shell: auth flows, org switcher, navigation, live/stale/pending/failed states (sign-in done: passkey, email code and link, OAuth buttons, the second factor, and a route guard; Turnstile on the email form is open, since its script would be the app's only third-party one, against #84)
 - [ ] Signing prompts for dangerous actions (one signature per bulk action), trusted key and delegation management, fingerprint display at enrollment
 - [ ] Web app hosted separately from the API on `app.raptorpanel.net`, strict CSP (kept in the repo and tested in CI), no third-party scripts, reproducible build with published bundle hashes
 - [ ] **Nodes:** add node (command + live enrollment progress), node list, node health page (doctor warnings), settings, remove
