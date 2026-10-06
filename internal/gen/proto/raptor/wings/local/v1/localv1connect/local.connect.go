@@ -78,6 +78,9 @@ const (
 	// LocalServiceCancelKeyResetProcedure is the fully-qualified name of the LocalService's
 	// CancelKeyReset RPC.
 	LocalServiceCancelKeyResetProcedure = "/raptor.wings.local.v1.LocalService/CancelKeyReset"
+	// LocalServicePinOwnerKeyProcedure is the fully-qualified name of the LocalService's PinOwnerKey
+	// RPC.
+	LocalServicePinOwnerKeyProcedure = "/raptor.wings.local.v1.LocalService/PinOwnerKey"
 	// LocalServiceTestNotificationsProcedure is the fully-qualified name of the LocalService's
 	// TestNotifications RPC.
 	LocalServiceTestNotificationsProcedure = "/raptor.wings.local.v1.LocalService/TestNotifications"
@@ -145,6 +148,11 @@ type LocalServiceClient interface {
 	ConfirmKeyReset(context.Context, *v1.ConfirmKeyResetRequest) (*v1.ConfirmKeyResetResponse, error)
 	// CancelKeyReset ends a key reset without changing any key. Root only.
 	CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error)
+	// PinOwnerKey trusts the owner passkey the Panel handed over at enrollment
+	// (raptor link, raptor bootstrap), after checking its signature and that
+	// it names the join token used. Only while the node trusts no owner key.
+	// Root only.
+	PinOwnerKey(context.Context, *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error)
 	// TestNotifications sends a test message to every notification target in
 	// config.yml and reports how each went. Root only.
 	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
@@ -277,6 +285,12 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("CancelKeyReset")),
 			connect.WithClientOptions(opts...),
 		),
+		pinOwnerKey: connect.NewClient[v1.PinOwnerKeyRequest, v1.PinOwnerKeyResponse](
+			httpClient,
+			baseURL+LocalServicePinOwnerKeyProcedure,
+			connect.WithSchema(localServiceMethods.ByName("PinOwnerKey")),
+			connect.WithClientOptions(opts...),
+		),
 		testNotifications: connect.NewClient[v1.TestNotificationsRequest, v1.TestNotificationsResponse](
 			httpClient,
 			baseURL+LocalServiceTestNotificationsProcedure,
@@ -318,6 +332,7 @@ type localServiceClient struct {
 	getKeyReset       *connect.Client[v1.GetKeyResetRequest, v1.GetKeyResetResponse]
 	confirmKeyReset   *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
 	cancelKeyReset    *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
+	pinOwnerKey       *connect.Client[v1.PinOwnerKeyRequest, v1.PinOwnerKeyResponse]
 	testNotifications *connect.Client[v1.TestNotificationsRequest, v1.TestNotificationsResponse]
 	importServer      *connect.Client[v1.ImportServerRequest, v1.ImportServerResponse]
 	getMetrics        *connect.Client[v1.GetMetricsRequest, v1.GetMetricsResponse]
@@ -468,6 +483,15 @@ func (c *localServiceClient) CancelKeyReset(ctx context.Context, req *v1.CancelK
 	return nil, err
 }
 
+// PinOwnerKey calls raptor.wings.local.v1.LocalService.PinOwnerKey.
+func (c *localServiceClient) PinOwnerKey(ctx context.Context, req *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error) {
+	response, err := c.pinOwnerKey.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // TestNotifications calls raptor.wings.local.v1.LocalService.TestNotifications.
 func (c *localServiceClient) TestNotifications(ctx context.Context, req *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {
 	response, err := c.testNotifications.CallUnary(ctx, connect.NewRequest(req))
@@ -552,6 +576,11 @@ type LocalServiceHandler interface {
 	ConfirmKeyReset(context.Context, *v1.ConfirmKeyResetRequest) (*v1.ConfirmKeyResetResponse, error)
 	// CancelKeyReset ends a key reset without changing any key. Root only.
 	CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error)
+	// PinOwnerKey trusts the owner passkey the Panel handed over at enrollment
+	// (raptor link, raptor bootstrap), after checking its signature and that
+	// it names the join token used. Only while the node trusts no owner key.
+	// Root only.
+	PinOwnerKey(context.Context, *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error)
 	// TestNotifications sends a test message to every notification target in
 	// config.yml and reports how each went. Root only.
 	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
@@ -680,6 +709,12 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("CancelKeyReset")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServicePinOwnerKeyHandler := connect.NewUnaryHandlerSimple(
+		LocalServicePinOwnerKeyProcedure,
+		svc.PinOwnerKey,
+		connect.WithSchema(localServiceMethods.ByName("PinOwnerKey")),
+		connect.WithHandlerOptions(opts...),
+	)
 	localServiceTestNotificationsHandler := connect.NewUnaryHandlerSimple(
 		LocalServiceTestNotificationsProcedure,
 		svc.TestNotifications,
@@ -735,6 +770,8 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceConfirmKeyResetHandler.ServeHTTP(w, r)
 		case LocalServiceCancelKeyResetProcedure:
 			localServiceCancelKeyResetHandler.ServeHTTP(w, r)
+		case LocalServicePinOwnerKeyProcedure:
+			localServicePinOwnerKeyHandler.ServeHTTP(w, r)
 		case LocalServiceTestNotificationsProcedure:
 			localServiceTestNotificationsHandler.ServeHTTP(w, r)
 		case LocalServiceImportServerProcedure:
@@ -816,6 +853,10 @@ func (UnimplementedLocalServiceHandler) ConfirmKeyReset(context.Context, *v1.Con
 
 func (UnimplementedLocalServiceHandler) CancelKeyReset(context.Context, *v1.CancelKeyResetRequest) (*v1.CancelKeyResetResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.CancelKeyReset is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) PinOwnerKey(context.Context, *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.PinOwnerKey is not implemented"))
 }
 
 func (UnimplementedLocalServiceHandler) TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {

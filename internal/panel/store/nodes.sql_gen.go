@@ -15,7 +15,7 @@ import (
 const createJoinToken = `-- name: CreateJoinToken :one
 INSERT INTO join_tokens (org_id, token_hash, name, expires_at)
 VALUES ($1, $2, $3, $4)
-RETURNING id, org_id, token_hash, name, expires_at, used_at, node_id, created_at
+RETURNING id, org_id, token_hash, name, expires_at, used_at, node_id, created_at, owner_pin
 `
 
 type CreateJoinTokenParams struct {
@@ -42,6 +42,7 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 		&i.UsedAt,
 		&i.NodeID,
 		&i.CreatedAt,
+		&i.OwnerPin,
 	)
 	return i, err
 }
@@ -105,7 +106,7 @@ func (q *Queries) CreateOrg(ctx context.Context, name string) (Org, error) {
 }
 
 const getJoinTokenForUpdate = `-- name: GetJoinTokenForUpdate :one
-SELECT id, org_id, token_hash, name, expires_at, used_at, node_id, created_at FROM join_tokens WHERE token_hash = $1 FOR UPDATE
+SELECT id, org_id, token_hash, name, expires_at, used_at, node_id, created_at, owner_pin FROM join_tokens WHERE token_hash = $1 FOR UPDATE
 `
 
 func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (JoinToken, error) {
@@ -120,6 +121,7 @@ func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (
 		&i.UsedAt,
 		&i.NodeID,
 		&i.CreatedAt,
+		&i.OwnerPin,
 	)
 	return i, err
 }
@@ -244,6 +246,26 @@ func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, e
 		&i.DnsIpv6,
 	)
 	return i, err
+}
+
+const setJoinTokenPin = `-- name: SetJoinTokenPin :execrows
+UPDATE join_tokens SET owner_pin = $3
+WHERE token_hash = $1 AND org_id = $2 AND used_at IS NULL AND expires_at > now() AND owner_pin IS NULL
+`
+
+type SetJoinTokenPinParams struct {
+	TokenHash []byte
+	OrgID     pgtype.UUID
+	OwnerPin  []byte
+}
+
+// Only on an org's own unused, unexpired token, and only once.
+func (q *Queries) SetJoinTokenPin(ctx context.Context, arg SetJoinTokenPinParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setJoinTokenPin, arg.TokenHash, arg.OrgID, arg.OwnerPin)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const setNodeDNS = `-- name: SetNodeDNS :exec

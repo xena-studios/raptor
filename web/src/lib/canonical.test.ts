@@ -9,6 +9,8 @@ import {
   commandCanonical,
   commandHash,
   keyFingerprint,
+  pinCanonical,
+  pinHash,
   uuidv7,
 } from "./canonical.ts";
 
@@ -54,4 +56,23 @@ test("uuidv7 has the version and time", () => {
 test("fingerprints match Wings' KeyFingerprint", async () => {
   // command.KeyFingerprint([]byte{1, 2, 3}) in Go.
   assert.equal(await keyFingerprint(new Uint8Array([1, 2, 3])), "AOIF-RRXS-YDFU-SLCT-HMFE");
+});
+
+// internal/shared/nodecmd/pin_test.go has the same vector.
+test("owner pins match Go's", async () => {
+  const p = {
+    joinToken: "rpt_join_test",
+    credentialId: new Uint8Array([1, 2, 3]),
+    publicKey: new Uint8Array([4, 5, 6]),
+    userId: "01a112a3-ad95-7cb7-a446-b83928bfafa6",
+    name: 'MacBook "1P"',
+  };
+  assert.equal(
+    await pinCanonical(p),
+    '{"credential_id":"AQID","join_token_hash":"5RLhqpfOiOoOUEV5qGPFsGQt3QQrqEBf1MO+ceGZul8=","name":"MacBook \\"1P\\"","public_key":"BAUG","purpose":"raptor.owner_pin.v1","user_id":"01a112a3-ad95-7cb7-a446-b83928bfafa6"}', // gitleaks:allow (a hash of the test token)
+  );
+  assert.equal(
+    Buffer.from(await pinHash(p)).toString("hex"),
+    "f334df45f8e1b7511db88b2616fd63c72c8cfc91586796d2adbd8c94fb8932e9",
+  );
 });

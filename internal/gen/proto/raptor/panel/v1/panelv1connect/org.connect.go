@@ -70,6 +70,8 @@ const (
 	OrgServiceListNodesProcedure = "/raptor.panel.v1.OrgService/ListNodes"
 	// OrgServiceListServersProcedure is the fully-qualified name of the OrgService's ListServers RPC.
 	OrgServiceListServersProcedure = "/raptor.panel.v1.OrgService/ListServers"
+	// OrgServicePinJoinTokenProcedure is the fully-qualified name of the OrgService's PinJoinToken RPC.
+	OrgServicePinJoinTokenProcedure = "/raptor.panel.v1.OrgService/PinJoinToken"
 	// OrgServiceListAuditLogProcedure is the fully-qualified name of the OrgService's ListAuditLog RPC.
 	OrgServiceListAuditLogProcedure = "/raptor.panel.v1.OrgService/ListAuditLog"
 )
@@ -118,6 +120,11 @@ type OrgServiceClient interface {
 	// what the caller may do on each. Members see only the servers they have
 	// access to.
 	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
+	// PinJoinToken attaches the owner's passkey, signed in the browser over
+	// the token (nodecmd.OwnerPin), to a new join token: the node that links
+	// with it checks the signature and trusts that passkey from the start.
+	// Admins and owners, for one of their own passkeys.
+	PinJoinToken(context.Context, *v1.PinJoinTokenRequest) (*v1.PinJoinTokenResponse, error)
 	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
 	// Admins and owners.
 	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
@@ -230,6 +237,12 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		pinJoinToken: connect.NewClient[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse](
+			httpClient,
+			baseURL+OrgServicePinJoinTokenProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("PinJoinToken")),
+			connect.WithClientOptions(opts...),
+		),
 		listAuditLog: connect.NewClient[v1.ListAuditLogRequest, v1.ListAuditLogResponse](
 			httpClient,
 			baseURL+OrgServiceListAuditLogProcedure,
@@ -257,6 +270,7 @@ type orgServiceClient struct {
 	listServerAccess *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
 	listNodes        *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
 	listServers      *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
+	pinJoinToken     *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
 	listAuditLog     *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
 }
 
@@ -395,6 +409,15 @@ func (c *orgServiceClient) ListServers(ctx context.Context, req *v1.ListServersR
 	return nil, err
 }
 
+// PinJoinToken calls raptor.panel.v1.OrgService.PinJoinToken.
+func (c *orgServiceClient) PinJoinToken(ctx context.Context, req *v1.PinJoinTokenRequest) (*v1.PinJoinTokenResponse, error) {
+	response, err := c.pinJoinToken.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListAuditLog calls raptor.panel.v1.OrgService.ListAuditLog.
 func (c *orgServiceClient) ListAuditLog(ctx context.Context, req *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {
 	response, err := c.listAuditLog.CallUnary(ctx, connect.NewRequest(req))
@@ -448,6 +471,11 @@ type OrgServiceHandler interface {
 	// what the caller may do on each. Members see only the servers they have
 	// access to.
 	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
+	// PinJoinToken attaches the owner's passkey, signed in the browser over
+	// the token (nodecmd.OwnerPin), to a new join token: the node that links
+	// with it checks the signature and trusts that passkey from the start.
+	// Admins and owners, for one of their own passkeys.
+	PinJoinToken(context.Context, *v1.PinJoinTokenRequest) (*v1.PinJoinTokenResponse, error)
 	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
 	// Admins and owners.
 	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
@@ -556,6 +584,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServicePinJoinTokenHandler := connect.NewUnaryHandlerSimple(
+		OrgServicePinJoinTokenProcedure,
+		svc.PinJoinToken,
+		connect.WithSchema(orgServiceMethods.ByName("PinJoinToken")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceListAuditLogHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceListAuditLogProcedure,
 		svc.ListAuditLog,
@@ -595,6 +629,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListNodesHandler.ServeHTTP(w, r)
 		case OrgServiceListServersProcedure:
 			orgServiceListServersHandler.ServeHTTP(w, r)
+		case OrgServicePinJoinTokenProcedure:
+			orgServicePinJoinTokenHandler.ServeHTTP(w, r)
 		case OrgServiceListAuditLogProcedure:
 			orgServiceListAuditLogHandler.ServeHTTP(w, r)
 		default:
@@ -664,6 +700,10 @@ func (UnimplementedOrgServiceHandler) ListNodes(context.Context, *v1.ListNodesRe
 
 func (UnimplementedOrgServiceHandler) ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListServers is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) PinJoinToken(context.Context, *v1.PinJoinTokenRequest) (*v1.PinJoinTokenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.PinJoinToken is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {

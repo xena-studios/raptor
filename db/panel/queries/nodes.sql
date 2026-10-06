@@ -46,3 +46,8 @@ SELECT short_id, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6 FROM nodes WHERE i
 
 -- name: SetNodeDNS :exec
 UPDATE nodes SET dns_ipv4 = $2, dns_ipv6 = $3 WHERE id = $1;
+
+-- name: SetJoinTokenPin :execrows
+-- Only on an org's own unused, unexpired token, and only once.
+UPDATE join_tokens SET owner_pin = $3
+WHERE token_hash = $1 AND org_id = $2 AND used_at IS NULL AND expires_at > now() AND owner_pin IS NULL;

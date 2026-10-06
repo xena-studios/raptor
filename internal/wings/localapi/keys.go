@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
+	"github.com/xena-studios/raptor/internal/shared/nodecmd"
 	"github.com/xena-studios/raptor/internal/wings/command"
 )
 
@@ -161,4 +163,27 @@ func (s *Service) CancelKeyReset(ctx context.Context, req *localv1.CancelKeyRese
 	}
 	x.Pairing.Cancel(req.GetResetId())
 	return &localv1.CancelKeyResetResponse{}, nil
+}
+
+// PinOwnerKey implements LocalService. Root only.
+func (s *Service) PinOwnerKey(ctx context.Context, req *localv1.PinOwnerKeyRequest) (*localv1.PinOwnerKeyResponse, error) {
+	if err := requireRoot(ctx, "pin the owner's passkey"); err != nil {
+		return nil, err
+	}
+	x, err := s.executor()
+	if err != nil {
+		return nil, err
+	}
+	var pin nodecmd.OwnerPin
+	if err := json.Unmarshal(req.GetPin(), &pin); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("owner key: %w", err))
+	}
+	fp, err := x.PinOwner(ctx, pin, req.GetJoinToken())
+	if errors.Is(err, command.ErrAlreadyOwned) {
+		return nil, connect.NewError(connect.CodeAlreadyExists, err)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, err)
+	}
+	return &localv1.PinOwnerKeyResponse{Fingerprint: fp, Name: pin.Name}, nil
 }

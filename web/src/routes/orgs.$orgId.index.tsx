@@ -12,11 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { isAdmin, roleNames, when } from "@/lib/format";
 import { requireSession } from "@/lib/session";
+import { signPin } from "@/lib/signed";
 import { orgClient } from "@/lib/transport";
+import { passkeyCancelled } from "@/lib/webauthn";
 
 export const Route = createFileRoute("/orgs/$orgId/")({
   beforeLoad: ({ location }) => requireSession(location),
@@ -46,7 +49,7 @@ function OrgPage() {
           {admin && <TabsTrigger value="log">Log</TabsTrigger>}
         </TabsList>
         <TabsContent value="nodes">
-          <Nodes orgId={orgId} admin={admin} />
+          <Nodes orgId={orgId} admin={admin} userId={session.user?.id ?? ""} />
         </TabsContent>
         <TabsContent value="members">
           <Members orgId={orgId} myRole={org?.role} myId={session.user?.id ?? ""} />
@@ -61,17 +64,40 @@ function OrgPage() {
   );
 }
 
-function Nodes({ orgId, admin }: { orgId: string; admin: boolean }) {
+function Nodes({ orgId, admin, userId }: { orgId: string; admin: boolean; userId: string }) {
   const nodes = useQuery(OrgService.method.listNodes, { orgId }, { refetchInterval: 10_000 });
+  const passkeys = useQuery(AuthService.method.listPasskeys, {});
   const withReauth = useReauth();
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // The passkey the new node will trust: its fingerprint once signed, or
+  // "skipped".
+  const [pinned, setPinned] = useState<{ fingerprint: string; name: string } | "skipped" | null>(
+    null,
+  );
+
+  async function trustPasskey() {
+    if (!token) return;
+    setError("");
+    try {
+      const pin = await signPin({
+        joinToken: token,
+        userId,
+        passkeys: passkeys.data?.passkeys ?? [],
+      });
+      await orgClient.pinJoinToken({ orgId, token, pinJson: pin.pinJson });
+      setPinned({ fingerprint: pin.fingerprint, name: pin.name });
+    } catch (err) {
+      if (!passkeyCancelled(err)) setError(message(err));
+    }
+  }
 
   async function addNode() {
     setError("");
     try {
       const res = await withReauth(() => orgClient.createJoinToken({ orgId }));
       setToken(res.token);
+      setPinned((passkeys.data?.passkeys.length ?? 0) > 0 ? null : "skipped");
     } catch (err) {
       setError(message(err));
     }
@@ -108,7 +134,26 @@ function Nodes({ orgId, admin }: { orgId: string; admin: boolean }) {
         </Button>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {token && (
+      {token && pinned === null && (
+        <Alert>
+          <AlertDescription className="flex flex-col gap-2">
+            <p>
+              First, sign with your passkey so the new node trusts it from the start: deleting
+              servers and other dangerous actions need a passkey the node trusts. Your password
+              manager asks twice: once to pick the passkey, once to sign.
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={trustPasskey}>
+                Sign with a passkey
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setPinned("skipped")}>
+                Skip
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      {token && pinned !== null && (
         <Alert>
           <AlertDescription className="flex flex-col gap-2">
             <p>
@@ -118,6 +163,17 @@ function Nodes({ orgId, admin }: { orgId: string; admin: boolean }) {
             <code className="break-all rounded bg-muted p-2 text-xs">
               curl -fsSL https://get.raptorpanel.net | sudo bash -s -- -token {token}
             </code>
+            {pinned === "skipped" ? (
+              <p className="text-xs text-muted-foreground">
+                No passkey will be trusted on it yet: pair one later with{" "}
+                <code>sudo raptor keys reset</code> on the node.
+              </p>
+            ) : (
+              <p className="text-xs">
+                It will trust your passkey "{pinned.name}". When it links, it prints a fingerprint:
+                check it's <code className="font-semibold">{pinned.fingerprint}</code>.
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               The node shows up here as soon as it connects.
             </p>

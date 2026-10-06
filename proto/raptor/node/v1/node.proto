@@ -216,4 +216,8 @@ message EnrollResponse {
   string short_id = 2;
   // The Panel's Ed25519 signing key, which the node pins.
   bytes panel_key = 3;
+  // The owner's passkey, signed when they made the join token
+  // (nodecmd.OwnerPin as JSON); empty if they didn't. The node checks it
+  // and pins the key (LocalService.PinOwnerKey).
+  bytes owner_pin = 4;
 }
