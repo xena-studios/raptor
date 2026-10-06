@@ -71,3 +71,6 @@ DELETE FROM sessions WHERE expires_at < now() - interval '30 days' OR revoked_at
 
 -- name: GetSession :one
 SELECT * FROM sessions WHERE id = $1;
+
+-- name: RevokeSessionByToken :exec
+UPDATE sessions SET revoked_at = now() WHERE token_hash = $1 AND revoked_at IS NULL;

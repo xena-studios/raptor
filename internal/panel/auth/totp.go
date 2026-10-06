@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -131,13 +132,15 @@ func (s *Service) checkTOTP(ctx context.Context, q *store.Queries, user pgtype.U
 // them: there's nothing to guess offline.
 var recoveryEncoding = base32.StdEncoding.WithPadding(base32.NoPadding)
 
+// normalizeRecoveryCode drops dashes and whitespace and uppercases, so
+// however a code is typed or pasted, it's the same code.
 func normalizeRecoveryCode(c string) string {
 	return strings.Map(func(r rune) rune {
-		if r == '-' || r == ' ' {
+		if r == '-' || unicode.IsSpace(r) {
 			return -1
 		}
 		return r
-	}, strings.ToUpper(strings.TrimSpace(c)))
+	}, strings.ToUpper(c))
 }
 
 func recoveryHash(user pgtype.UUID, code string) []byte {

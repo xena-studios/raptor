@@ -183,10 +183,20 @@ func (s *Service) reauthEmail(ctx context.Context, sess *Session, code string) (
 			failure = connect.NewError(connect.CodeFailedPrecondition, errors.New("this account has a passkey or an authenticator app: confirm with it instead"))
 			return nil
 		}
-		_, f, err := checkEmailCode(ctx, q, s.now(), sess.User.Email, purposeReauth, code)
-		if err != nil || f != nil {
-			failure = f
+		key := "fail:email:" + sess.User.Email
+		if over, err := s.over(ctx, key, limitFailedCodesPerEmail); err != nil {
 			return err
+		} else if over {
+			failure = errRateLimit
+			return nil
+		}
+		_, f, err := checkEmailCode(ctx, q, s.now(), sess.User.Email, purposeReauth, code)
+		if err != nil {
+			return err
+		}
+		if f != nil {
+			failure = f
+			return s.q().AddRateEvent(ctx, key)
 		}
 		return q.SetSessionReauth(ctx, store.SetSessionReauthParams{ID: sess.ID, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: true}})
 	})
