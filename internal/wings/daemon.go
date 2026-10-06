@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
+	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/actions"
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/command"
@@ -502,7 +503,7 @@ func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
 	if cfg.NodeID == "" {
 		return nil
 	}
-	nodeKey, err := link.LoadNodeKey(cfg.Identity.Key)
+	nodeKey, err := nodelink.LoadKey(cfg.Identity.Key)
 	if err == nil && nodeKey == nil {
 		err = errors.New("missing")
 	}

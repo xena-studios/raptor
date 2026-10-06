@@ -3,3 +3,40 @@
 //   sqlc v1.31.1
 
 package store
+
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type JoinToken struct {
+	ID        pgtype.UUID
+	OrgID     pgtype.UUID
+	TokenHash []byte
+	Name      string
+	ExpiresAt pgtype.Timestamptz
+	UsedAt    pgtype.Timestamptz
+	NodeID    pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
+type Node struct {
+	ID              pgtype.UUID
+	OrgID           pgtype.UUID
+	Name            string
+	ShortID         string
+	PublicKey       []byte
+	Facts           []byte
+	WingsVersion    string
+	ProtocolVersion int32
+	LastSeenAt      pgtype.Timestamptz
+	LastAckedSeq    int64
+	KeyRevokedAt    pgtype.Timestamptz
+	DeletedAt       pgtype.Timestamptz
+	CreatedAt       pgtype.Timestamptz
+}
+
+type Org struct {
+	ID        pgtype.UUID
+	Name      string
+	CreatedAt pgtype.Timestamptz
+}

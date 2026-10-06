@@ -37,6 +37,7 @@ Dev tools (buf, sqlc, protoc plugins, golangci-lint, govulncheck, go-licenses) a
 ```bash
 task setup     # install web deps, start Postgres
 task dev       # Postgres + Panel API (:8080) + web dev server (:5173)
+task dev:link  # link the dev VM's Wings to that Panel (a dev org and join token)
 task test      # all tests, including Postgres-backed ones
 task gen       # regenerate protobuf, sqlc, and route tree code
 task lint      # golangci-lint, buf lint, Biome
@@ -45,6 +46,8 @@ task check     # everything CI runs: lint, generated code, tests, licenses, vuln
 task build     # binaries into bin/, web app into web/dist
 task --list    # everything else
 ```
+
+The dev Panel's signing key and org live in `.dev/` (ignored by git). After `task dev:link`, `raptor status` in the VM shows the connection; `task wings:vm:install` puts the dev config back, which unlinks the VM.
 
 Generated code is committed. After changing anything in `proto/`, `db/`, or `web/src/routes/`, run `task gen` and commit the result.
 

@@ -199,10 +199,10 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Audit log
 
 ### 3.3 Nodes
-- [ ] Node keys: enrollment stores the node's public key; challenge signing; Panel signing key (separate storage) pinned by Wings; revocation
+- [x] Node keys: enrollment stores the node's public key; challenge signing; Panel signing key (separate storage) pinned by Wings; revocation (refused at connect; the Panel UI to revoke comes with Phase 4)
 - [ ] Join tokens; **install script** at `get.raptorpanel.net` (generated per release with the binary's SHA-256 embedded); `raptor bootstrap` preflight + setup + enroll; storage setup explains the tier 2 fsync cost and offers a data disk (tier 1) or soft limits (tier 3)
-- [ ] `raptor link` / `unlink` / `relink`
-- [ ] Node connections in `serve api`: connection registry, version negotiation, pings, drain, forwarding between instances via `LISTEN/NOTIFY`
+- [ ] `raptor link` / `unlink` / `relink` (`link` done: enrolls with a join token, pins the Panel key, restarts Wings, waits for the connection)
+- [ ] Node connections in `serve api`: connection registry, version negotiation, pings, drain, forwarding between instances via `LISTEN/NOTIFY` (registry, versions, and pings done: `serve api` accepts nodes checked against the database and records their versions and last contact; drain and forwarding to come)
 - [ ] Command routing to the instance holding the node, with `command_id`
 - [ ] Event ingestion (batched) + mirror + snapshot rebuild
 - [ ] Node DNS: `n-<short-id>.raptornodes.net` created at enrollment, updated from the IP Wings reports, names never reused

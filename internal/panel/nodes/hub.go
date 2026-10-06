@@ -30,8 +30,12 @@ type Hub struct {
 	// EventsAvailable is called when a node says it has events up to
 	// lastSeq; the Panel pulls them with Conn.Node.Events.
 	EventsAvailable func(ctx context.Context, nodeID string, lastSeq int64)
-	Log             *slog.Logger
-	Keepalive       nodelink.Keepalive // for tests
+	// OnConnect and OnDisconnect are called as a node's main connection
+	// comes and goes.
+	OnConnect    func(ctx context.Context, h nodelink.Hello)
+	OnDisconnect func(ctx context.Context, nodeID string)
+	Log          *slog.Logger
+	Keepalive    nodelink.Keepalive // for tests
 
 	once    sync.Once
 	ctx     context.Context
@@ -84,8 +88,16 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Node: nodev1connect.NewNodeServiceClient(s.Client(), nodelink.BaseURL),
 	}
 	h.register(c)
-	defer h.unregister(c)
+	defer func() {
+		h.unregister(c)
+		if h.OnDisconnect != nil {
+			h.OnDisconnect(context.WithoutCancel(r.Context()), c.NodeID)
+		}
+	}()
 	h.Log.Info("node connected", "node", c.NodeID, "version", s.Hello.Software)
+	if h.OnConnect != nil {
+		h.OnConnect(context.WithoutCancel(r.Context()), s.Hello)
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle(nodev1connect.NewPanelServiceHandler(&panelService{h: h}))

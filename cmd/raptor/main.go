@@ -28,6 +28,9 @@ const usage = `usage: raptor <command> [flags]
 
 commands:
   status      show node status (talks to the running daemon)
+  link -token <rpt_join_…> [-panel url]
+              link this node to the Panel with a join token (root); Wings
+              restarts and connects, servers keep running
   ps          list servers with their state and resource usage
   start|stop|restart|kill <server>
               power actions (root); stop waits for a clean shutdown
@@ -112,6 +115,8 @@ func run(args []string) error {
 		return importCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "tui":
 		return tuiCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "link":
+		return linkCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "notifications":
 		return notificationsCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
@@ -189,7 +194,15 @@ func printStatus(s *localv1.GetStatusResponse) {
 		since := time.Since(c.GetSince().AsTime()).Round(time.Second)
 		switch c.GetState() {
 		case "connected":
-			fmt.Printf("         ✓ connected for %s (ping %d ms, %d reconnects)\n", since, c.GetRttMs(), c.GetReconnects())
+			ping := fmt.Sprintf("ping %d ms", c.GetRttMs())
+			switch {
+			case c.GetRttMs() > 0:
+			case since < 31*time.Second: // the first ping is 30 s in
+				ping = "no ping yet"
+			default:
+				ping = "ping <1 ms"
+			}
+			fmt.Printf("         ✓ connected for %s (%s, %d reconnects)\n", since, ping, c.GetReconnects())
 		default:
 			msg := "✗ " + c.GetState() + " for " + since.String()
 			if e := c.GetLastError(); e != "" {

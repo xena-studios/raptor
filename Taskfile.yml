@@ -40,8 +40,27 @@ tasks:
     internal: true
     env:
       PANEL_DATABASE_URL: "{{.DEV_DATABASE_URL}}"
+      PANEL_SIGNING_KEY: .dev/panel-signing.key
     cmds:
+      - test -f .dev/panel-signing.key || go run ./cmd/panel keygen .dev/panel-signing.key
       - go run ./cmd/panel serve api
+
+  dev:join-token:
+    desc: "A join token for the dev Panel (making a dev org the first time); link the dev VM with: task dev:link"
+    env:
+      PANEL_DATABASE_URL: "{{.DEV_DATABASE_URL}}"
+    cmds:
+      - |
+        mkdir -p .dev
+        test -s .dev/org || go run ./cmd/panel org create "Dev org" > .dev/org
+        go run ./cmd/panel join-token "$(cat .dev/org)" dev
+
+  dev:link:
+    desc: "Link the dev VM's Wings to the dev Panel on this machine (task dev running)"
+    cmds:
+      - mkdir -p .dev
+      - task dev:join-token > .dev/token
+      - limactl shell {{.VM}} sudo raptor link -token "$(tail -1 .dev/token)" -panel http://host.lima.internal:8080
 
   dev:web:
     internal: true

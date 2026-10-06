@@ -1,4 +1,4 @@
-package link
+package nodelink
 
 import (
 	"crypto/ed25519"
@@ -11,14 +11,14 @@ import (
 	"strings"
 )
 
-// The node key (identity.key) proves the node to the Panel on every
-// connection (docs/SECURITY-MODEL.md#enrollment-and-identity). It's generated on the
-// box and never leaves it: the file holds the base64 Ed25519 seed, readable
-// by root only.
+// Private key files: the node key (identity.key, which proves the node to
+// the Panel on every connection; docs/SECURITY-MODEL.md#enrollment-and-identity)
+// and the Panel's signing key. Each holds a base64 Ed25519 seed, readable by
+// its owner only.
 
-// LoadNodeKey reads the node's private key. A missing file means the node
-// isn't linked yet: nil, and Wings doesn't connect.
-func LoadNodeKey(path string) (ed25519.PrivateKey, error) {
+// LoadKey reads a private key. A missing file is nil, no error (for the node
+// key: the node isn't linked yet, and Wings doesn't connect).
+func LoadKey(path string) (ed25519.PrivateKey, error) {
 	fi, err := os.Stat(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -40,9 +40,9 @@ func LoadNodeKey(path string) (ed25519.PrivateKey, error) {
 	return ed25519.NewKeyFromSeed(seed), nil
 }
 
-// GenerateNodeKey writes a new node key, refusing to replace one, and
+// GenerateKey writes a new private key, refusing to replace one, and
 // returns its public key.
-func GenerateNodeKey(path string) (ed25519.PublicKey, error) {
+func GenerateKey(path string) (ed25519.PublicKey, error) {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err

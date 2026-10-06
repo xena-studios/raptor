@@ -483,6 +483,234 @@ func (*EventsAvailableResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{8}
 }
 
+type EnrollRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// rpt_join_…
+	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	// The node's Ed25519 public key, generated on the box.
+	PublicKey []byte `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// The node key's signature over the enrollment (nodelink.EnrollPayload),
+	// proving the node holds the key it's enrolling.
+	Signature []byte `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
+	// A name for the node (its hostname), shown in the Panel.
+	Name          string     `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	WingsVersion  string     `protobuf:"bytes,5,opt,name=wings_version,json=wingsVersion,proto3" json:"wings_version,omitempty"`
+	Facts         *NodeFacts `protobuf:"bytes,6,opt,name=facts,proto3" json:"facts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnrollRequest) Reset() {
+	*x = EnrollRequest{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnrollRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnrollRequest) ProtoMessage() {}
+
+func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnrollRequest.ProtoReflect.Descriptor instead.
+func (*EnrollRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *EnrollRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *EnrollRequest) GetPublicKey() []byte {
+	if x != nil {
+		return x.PublicKey
+	}
+	return nil
+}
+
+func (x *EnrollRequest) GetSignature() []byte {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+func (x *EnrollRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EnrollRequest) GetWingsVersion() string {
+	if x != nil {
+		return x.WingsVersion
+	}
+	return ""
+}
+
+func (x *EnrollRequest) GetFacts() *NodeFacts {
+	if x != nil {
+		return x.Facts
+	}
+	return nil
+}
+
+// NodeFacts describe the box, for the Panel to show.
+type NodeFacts struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Os            string                 `protobuf:"bytes,1,opt,name=os,proto3" json:"os,omitempty"`
+	Arch          string                 `protobuf:"bytes,2,opt,name=arch,proto3" json:"arch,omitempty"`
+	Kernel        string                 `protobuf:"bytes,3,opt,name=kernel,proto3" json:"kernel,omitempty"`
+	Cpus          int32                  `protobuf:"varint,4,opt,name=cpus,proto3" json:"cpus,omitempty"`
+	MemoryBytes   int64                  `protobuf:"varint,5,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeFacts) Reset() {
+	*x = NodeFacts{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeFacts) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeFacts) ProtoMessage() {}
+
+func (x *NodeFacts) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeFacts.ProtoReflect.Descriptor instead.
+func (*NodeFacts) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *NodeFacts) GetOs() string {
+	if x != nil {
+		return x.Os
+	}
+	return ""
+}
+
+func (x *NodeFacts) GetArch() string {
+	if x != nil {
+		return x.Arch
+	}
+	return ""
+}
+
+func (x *NodeFacts) GetKernel() string {
+	if x != nil {
+		return x.Kernel
+	}
+	return ""
+}
+
+func (x *NodeFacts) GetCpus() int32 {
+	if x != nil {
+		return x.Cpus
+	}
+	return 0
+}
+
+func (x *NodeFacts) GetMemoryBytes() int64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+type EnrollResponse struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	NodeId string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// The node's hostname is n-<short_id>.raptornodes.net.
+	ShortId string `protobuf:"bytes,2,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
+	// The Panel's Ed25519 signing key, which the node pins.
+	PanelKey      []byte `protobuf:"bytes,3,opt,name=panel_key,json=panelKey,proto3" json:"panel_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnrollResponse) Reset() {
+	*x = EnrollResponse{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnrollResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnrollResponse) ProtoMessage() {}
+
+func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnrollResponse.ProtoReflect.Descriptor instead.
+func (*EnrollResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *EnrollResponse) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *EnrollResponse) GetShortId() string {
+	if x != nil {
+		return x.ShortId
+	}
+	return ""
+}
+
+func (x *EnrollResponse) GetPanelKey() []byte {
+	if x != nil {
+		return x.PanelKey
+	}
+	return nil
+}
+
 var File_raptor_node_v1_node_proto protoreflect.FileDescriptor
 
 const file_raptor_node_v1_node_proto_rawDesc = "" +
@@ -513,13 +741,33 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\x04data\x18\x06 \x01(\fR\x04data\"3\n" +
 	"\x16EventsAvailableRequest\x12\x19\n" +
 	"\blast_seq\x18\x01 \x01(\x03R\alastSeq\"\x19\n" +
-	"\x17EventsAvailableResponse2\x8c\x02\n" +
+	"\x17EventsAvailableResponse\"\xcc\x01\n" +
+	"\rEnrollRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x02 \x01(\fR\tpublicKey\x12\x1c\n" +
+	"\tsignature\x18\x03 \x01(\fR\tsignature\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12#\n" +
+	"\rwings_version\x18\x05 \x01(\tR\fwingsVersion\x12/\n" +
+	"\x05facts\x18\x06 \x01(\v2\x19.raptor.node.v1.NodeFactsR\x05facts\"~\n" +
+	"\tNodeFacts\x12\x0e\n" +
+	"\x02os\x18\x01 \x01(\tR\x02os\x12\x12\n" +
+	"\x04arch\x18\x02 \x01(\tR\x04arch\x12\x16\n" +
+	"\x06kernel\x18\x03 \x01(\tR\x06kernel\x12\x12\n" +
+	"\x04cpus\x18\x04 \x01(\x05R\x04cpus\x12!\n" +
+	"\fmemory_bytes\x18\x05 \x01(\x03R\vmemoryBytes\"a\n" +
+	"\x0eEnrollResponse\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x19\n" +
+	"\bshort_id\x18\x02 \x01(\tR\ashortId\x12\x1b\n" +
+	"\tpanel_key\x18\x03 \x01(\fR\bpanelKey2\x8c\x02\n" +
 	"\vNodeService\x12O\n" +
 	"\aExecute\x12\x1e.raptor.node.v1.ExecuteRequest\x1a\x1f.raptor.node.v1.ExecuteResponse\"\x03\x90\x02\x02\x12L\n" +
 	"\x06Events\x12\x1d.raptor.node.v1.EventsRequest\x1a\x1e.raptor.node.v1.EventsResponse\"\x03\x90\x02\x02\x12^\n" +
 	"\fOpenTransfer\x12#.raptor.node.v1.OpenTransferRequest\x1a$.raptor.node.v1.OpenTransferResponse\"\x03\x90\x02\x022w\n" +
 	"\fPanelService\x12g\n" +
-	"\x0fEventsAvailable\x12&.raptor.node.v1.EventsAvailableRequest\x1a'.raptor.node.v1.EventsAvailableResponse\"\x03\x90\x02\x02B\xc2\x01\n" +
+	"\x0fEventsAvailable\x12&.raptor.node.v1.EventsAvailableRequest\x1a'.raptor.node.v1.EventsAvailableResponse\"\x03\x90\x02\x022a\n" +
+	"\x11EnrollmentService\x12L\n" +
+	"\x06Enroll\x12\x1d.raptor.node.v1.EnrollRequest\x1a\x1e.raptor.node.v1.EnrollResponse\"\x03\x90\x02\x02B\xc2\x01\n" +
 	"\x12com.raptor.node.v1B\tNodeProtoP\x01ZGgithub.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1;nodev1\xa2\x02\x03RNX\xaa\x02\x0eRaptor.Node.V1\xca\x02\x0eRaptor\\Node\\V1\xe2\x02\x1aRaptor\\Node\\V1\\GPBMetadata\xea\x02\x10Raptor::Node::V1b\x06proto3"
 
 var (
@@ -534,7 +782,7 @@ func file_raptor_node_v1_node_proto_rawDescGZIP() []byte {
 	return file_raptor_node_v1_node_proto_rawDescData
 }
 
-var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_raptor_node_v1_node_proto_goTypes = []any{
 	(*OpenTransferRequest)(nil),     // 0: raptor.node.v1.OpenTransferRequest
 	(*OpenTransferResponse)(nil),    // 1: raptor.node.v1.OpenTransferResponse
@@ -545,22 +793,28 @@ var file_raptor_node_v1_node_proto_goTypes = []any{
 	(*Event)(nil),                   // 6: raptor.node.v1.Event
 	(*EventsAvailableRequest)(nil),  // 7: raptor.node.v1.EventsAvailableRequest
 	(*EventsAvailableResponse)(nil), // 8: raptor.node.v1.EventsAvailableResponse
+	(*EnrollRequest)(nil),           // 9: raptor.node.v1.EnrollRequest
+	(*NodeFacts)(nil),               // 10: raptor.node.v1.NodeFacts
+	(*EnrollResponse)(nil),          // 11: raptor.node.v1.EnrollResponse
 }
 var file_raptor_node_v1_node_proto_depIdxs = []int32{
-	6, // 0: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
-	2, // 1: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
-	4, // 2: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
-	0, // 3: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
-	7, // 4: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
-	3, // 5: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
-	5, // 6: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
-	1, // 7: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
-	8, // 8: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6,  // 0: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
+	10, // 1: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
+	2,  // 2: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
+	4,  // 3: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
+	0,  // 4: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
+	7,  // 5: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
+	9,  // 6: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
+	3,  // 7: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
+	5,  // 8: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
+	1,  // 9: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
+	8,  // 10: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
+	11, // 11: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_raptor_node_v1_node_proto_init() }
@@ -574,9 +828,9 @@ func file_raptor_node_v1_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_node_v1_node_proto_rawDesc), len(file_raptor_node_v1_node_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_raptor_node_v1_node_proto_goTypes,
 		DependencyIndexes: file_raptor_node_v1_node_proto_depIdxs,

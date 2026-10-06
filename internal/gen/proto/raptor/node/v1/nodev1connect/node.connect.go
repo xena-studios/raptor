@@ -25,6 +25,8 @@ const (
 	NodeServiceName = "raptor.node.v1.NodeService"
 	// PanelServiceName is the fully-qualified name of the PanelService service.
 	PanelServiceName = "raptor.node.v1.PanelService"
+	// EnrollmentServiceName is the fully-qualified name of the EnrollmentService service.
+	EnrollmentServiceName = "raptor.node.v1.EnrollmentService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -45,6 +47,9 @@ const (
 	// PanelServiceEventsAvailableProcedure is the fully-qualified name of the PanelService's
 	// EventsAvailable RPC.
 	PanelServiceEventsAvailableProcedure = "/raptor.node.v1.PanelService/EventsAvailable"
+	// EnrollmentServiceEnrollProcedure is the fully-qualified name of the EnrollmentService's Enroll
+	// RPC.
+	EnrollmentServiceEnrollProcedure = "/raptor.node.v1.EnrollmentService/Enroll"
 )
 
 // NodeServiceClient is a client for the raptor.node.v1.NodeService service.
@@ -293,4 +298,86 @@ type UnimplementedPanelServiceHandler struct{}
 
 func (UnimplementedPanelServiceHandler) EventsAvailable(context.Context, *v1.EventsAvailableRequest) (*v1.EventsAvailableResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.PanelService.EventsAvailable is not implemented"))
+}
+
+// EnrollmentServiceClient is a client for the raptor.node.v1.EnrollmentService service.
+type EnrollmentServiceClient interface {
+	// Enroll trades a join token for a node identity. The token is single use,
+	// but repeating an enrollment with the same token and key (its answer was
+	// lost) returns the same node.
+	Enroll(context.Context, *v1.EnrollRequest) (*v1.EnrollResponse, error)
+}
+
+// NewEnrollmentServiceClient constructs a client for the raptor.node.v1.EnrollmentService service.
+// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
+// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewEnrollmentServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) EnrollmentServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	enrollmentServiceMethods := v1.File_raptor_node_v1_node_proto.Services().ByName("EnrollmentService").Methods()
+	return &enrollmentServiceClient{
+		enroll: connect.NewClient[v1.EnrollRequest, v1.EnrollResponse](
+			httpClient,
+			baseURL+EnrollmentServiceEnrollProcedure,
+			connect.WithSchema(enrollmentServiceMethods.ByName("Enroll")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// enrollmentServiceClient implements EnrollmentServiceClient.
+type enrollmentServiceClient struct {
+	enroll *connect.Client[v1.EnrollRequest, v1.EnrollResponse]
+}
+
+// Enroll calls raptor.node.v1.EnrollmentService.Enroll.
+func (c *enrollmentServiceClient) Enroll(ctx context.Context, req *v1.EnrollRequest) (*v1.EnrollResponse, error) {
+	response, err := c.enroll.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// EnrollmentServiceHandler is an implementation of the raptor.node.v1.EnrollmentService service.
+type EnrollmentServiceHandler interface {
+	// Enroll trades a join token for a node identity. The token is single use,
+	// but repeating an enrollment with the same token and key (its answer was
+	// lost) returns the same node.
+	Enroll(context.Context, *v1.EnrollRequest) (*v1.EnrollResponse, error)
+}
+
+// NewEnrollmentServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewEnrollmentServiceHandler(svc EnrollmentServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	enrollmentServiceMethods := v1.File_raptor_node_v1_node_proto.Services().ByName("EnrollmentService").Methods()
+	enrollmentServiceEnrollHandler := connect.NewUnaryHandlerSimple(
+		EnrollmentServiceEnrollProcedure,
+		svc.Enroll,
+		connect.WithSchema(enrollmentServiceMethods.ByName("Enroll")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/raptor.node.v1.EnrollmentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case EnrollmentServiceEnrollProcedure:
+			enrollmentServiceEnrollHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedEnrollmentServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedEnrollmentServiceHandler struct{}
+
+func (UnimplementedEnrollmentServiceHandler) Enroll(context.Context, *v1.EnrollRequest) (*v1.EnrollResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.EnrollmentService.Enroll is not implemented"))
 }

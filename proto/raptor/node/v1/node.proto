@@ -94,3 +94,46 @@ message EventsAvailableRequest {
 }
 
 message EventsAvailableResponse {}
+
+// EnrollmentService is served by the Panel at its API URL (plain HTTPS,
+// before the node has a connection): `raptor link --token` calls it once
+// (docs/ARCHITECTURE.md#enrollment).
+service EnrollmentService {
+  // Enroll trades a join token for a node identity. The token is single use,
+  // but repeating an enrollment with the same token and key (its answer was
+  // lost) returns the same node.
+  rpc Enroll(EnrollRequest) returns (EnrollResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
+}
+
+message EnrollRequest {
+  // rpt_join_…
+  string token = 1;
+  // The node's Ed25519 public key, generated on the box.
+  bytes public_key = 2;
+  // The node key's signature over the enrollment (nodelink.EnrollPayload),
+  // proving the node holds the key it's enrolling.
+  bytes signature = 3;
+  // A name for the node (its hostname), shown in the Panel.
+  string name = 4;
+  string wings_version = 5;
+  NodeFacts facts = 6;
+}
+
+// NodeFacts describe the box, for the Panel to show.
+message NodeFacts {
+  string os = 1;
+  string arch = 2;
+  string kernel = 3;
+  int32 cpus = 4;
+  int64 memory_bytes = 5;
+}
+
+message EnrollResponse {
+  string node_id = 1;
+  // The node's hostname is n-<short_id>.raptornodes.net.
+  string short_id = 2;
+  // The Panel's Ed25519 signing key, which the node pins.
+  bytes panel_key = 3;
+}

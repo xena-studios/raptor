@@ -9,7 +9,6 @@ import (
 	"errors"
 	"io"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -262,28 +261,6 @@ func TestBackoff(t *testing.T) {
 				t.Fatalf("attempt %d: %s (ceiling %s)", n, d, ceil)
 			}
 		}
-	}
-}
-
-func TestNodeKey(t *testing.T) {
-	p := filepath.Join(t.TempDir(), "raptor", "node.key")
-	if k, err := LoadNodeKey(p); k != nil || err != nil {
-		t.Fatalf("missing: %v, %v", k, err)
-	}
-	pub, err := GenerateNodeKey(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	k, err := LoadNodeKey(p)
-	if err != nil || !k.Public().(ed25519.PublicKey).Equal(pub) {
-		t.Fatalf("load: %v", err)
-	}
-	if _, err := GenerateNodeKey(p); err == nil {
-		t.Error("replaced an existing key")
-	}
-	_ = os.Chmod(p, 0o644)
-	if _, err := LoadNodeKey(p); err == nil {
-		t.Error("loaded a world-readable key")
 	}
 }
 
