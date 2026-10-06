@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/xena-studios/raptor/internal/panel/api"
+	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
@@ -33,7 +34,12 @@ commands:
 environment:
   PANEL_DATABASE_URL   Postgres; without it, serve api has no node routes
   PANEL_SIGNING_KEY    the signing key file (nodes pin its public key)
-  PANEL_API_ADDR       listen address (default :8080)`
+  PANEL_API_ADDR       listen address (default :8080)
+  PANEL_CLIENT_IP_HEADER       header with the client's address (CF-Connecting-IP);
+                               only when the origin accepts nothing but Cloudflare
+  PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
+  PANEL_CLOUDFLARE_DNS_TOKEN   Cloudflare API token that can edit that zone's DNS
+  PANEL_CLOUDFLARE_ZONE_ID     the zone's ID`
 
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stderr, nil))
@@ -127,6 +133,14 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.Router = router
 		log.Info("panel instance", "id", router.ID)
 		reg.KeyChanged = cfg.Hub.Disconnect
+		addrs := &nodes.Addresses{Store: reg, Domain: envOr("PANEL_NODE_DOMAIN", "raptornodes.net"), Log: log}
+		if tok := os.Getenv("PANEL_CLOUDFLARE_DNS_TOKEN"); tok != "" {
+			addrs.DNS = &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}
+		} else {
+			log.Warn("PANEL_CLOUDFLARE_DNS_TOKEN is not set: node hostnames aren't updated")
+		}
+		cfg.Hub.ClientIPHeader = os.Getenv("PANEL_CLIENT_IP_HEADER")
+		cfg.Hub.OnAddress = addrs.Seen
 		mirror := &nodes.Mirror{DB: pool, Hub: cfg.Hub, Log: log}
 		cfg.Hub.EventsAvailable = func(_ context.Context, id string, _ int64) { mirror.Notify(id) }
 

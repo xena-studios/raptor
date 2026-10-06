@@ -5,6 +5,8 @@
 package store
 
 import (
+	"net/netip"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -80,6 +82,10 @@ type Node struct {
 	KeyRevokedAt    pgtype.Timestamptz
 	DeletedAt       pgtype.Timestamptz
 	CreatedAt       pgtype.Timestamptz
+	PublicIpv4      *netip.Addr
+	PublicIpv6      *netip.Addr
+	DnsIpv4         *netip.Addr
+	DnsIpv6         *netip.Addr
 }
 
 type NodeConnection struct {

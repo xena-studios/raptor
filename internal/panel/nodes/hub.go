@@ -10,6 +10,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,10 +34,14 @@ type Hub struct {
 	EventsAvailable func(ctx context.Context, nodeID string, lastSeq int64)
 	// OnConnect and OnDisconnect are called as a node's main connection
 	// comes and goes.
-	OnConnect    func(ctx context.Context, h nodelink.Hello)
-	OnDisconnect func(ctx context.Context, nodeID string)
-	Log          *slog.Logger
-	Keepalive    nodelink.Keepalive // for tests
+	OnConnect func(ctx context.Context, h nodelink.Hello)
+	// OnAddress is called with the address a node connected from
+	// (ClientIP, with ClientIPHeader).
+	OnAddress      func(ctx context.Context, h nodelink.Hello, addr netip.Addr)
+	ClientIPHeader string
+	OnDisconnect   func(ctx context.Context, nodeID string)
+	Log            *slog.Logger
+	Keepalive      nodelink.Keepalive // for tests
 
 	once     sync.Once
 	ctx      context.Context
@@ -106,6 +111,9 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.Log.Info("node connected", "node", c.NodeID, "version", s.Hello.Software)
 	if h.OnConnect != nil {
 		h.OnConnect(context.WithoutCancel(r.Context()), s.Hello)
+	}
+	if h.OnAddress != nil {
+		h.OnAddress(context.WithoutCancel(r.Context()), s.Hello, ClientIP(r, h.ClientIPHeader))
 	}
 
 	mux := http.NewServeMux()
