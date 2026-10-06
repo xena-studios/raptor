@@ -108,19 +108,17 @@ export type Assertion = {
 
 // signChallenge asks a passkey to sign a challenge the app made itself
 // (a command's hash), with the app's hostname as the RP ID and the user
-// verifying (fingerprint, face, or PIN). allow limits it to the user's
-// passkeys, or to one.
-export async function signChallenge(
-  challenge: Uint8Array,
-  allow: Uint8Array[],
-): Promise<Assertion> {
+// verifying (fingerprint, face, or PIN). It names no credentials: password
+// managers like 1Password step aside when given a list (allowCredentials),
+// leaving only the browser's phone and security key options, so the
+// passkey says which one it is and callers check it.
+export async function signChallenge(challenge: Uint8Array): Promise<Assertion> {
   const cred = (await navigator.credentials.get({
     publicKey: {
       challenge: challenge.slice().buffer,
       rpId: window.location.hostname,
       userVerification: "required",
       timeout: 5 * 60_000,
-      allowCredentials: allow.map((id) => ({ type: "public-key" as const, id: id.slice().buffer })),
     },
   })) as PublicKeyCredential | null;
   if (!cred) throw new Error("No passkey answered.");

@@ -15,8 +15,9 @@ export async function sendSigned(opts: {
   action: string;
   serverId?: string;
   params?: Record<string, unknown>;
-  // The passkeys that may sign (the user's; one, to pair it).
-  allow: Uint8Array[];
+  // The passkey that must sign (to pair it); any otherwise, and Wings
+  // refuses keys it doesn't trust.
+  expect?: Uint8Array;
 }) {
   const fields: CommandFields = {
     action: opts.action,
@@ -27,7 +28,10 @@ export async function sendSigned(opts: {
     serverId: opts.serverId ?? "",
     userId: opts.userId,
   };
-  const signature = await signChallenge(await commandHash(fields), opts.allow);
+  const signature = await signChallenge(await commandHash(fields));
+  if (opts.expect && !sameBytes(signature.credentialId, opts.expect)) {
+    throw new Error("A different passkey answered. Pick the same one both times.");
+  }
   return commandClient.execute({
     nodeId: fields.nodeId,
     action: fields.action,
@@ -37,4 +41,16 @@ export async function sendSigned(opts: {
     expiresAt: BigInt(fields.expiresAt),
     signature,
   });
+}
+
+export function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+// whichPasskey asks the user's password manager for a passkey and returns
+// the credential ID that answered: a signature over random bytes, used for
+// nothing else.
+export async function whichPasskey(): Promise<Uint8Array> {
+  const a = await signChallenge(crypto.getRandomValues(new Uint8Array(32)));
+  return a.credentialId;
 }
