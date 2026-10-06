@@ -168,6 +168,46 @@ func (q *Queries) NodeSeen(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const relinkNode = `-- name: RelinkNode :one
+UPDATE nodes
+SET public_key = $2, wings_version = $3, facts = $4, key_revoked_at = NULL, deleted_at = NULL
+WHERE id = $1
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at
+`
+
+type RelinkNodeParams struct {
+	ID           pgtype.UUID
+	PublicKey    []byte
+	WingsVersion string
+	Facts        []byte
+}
+
+func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, error) {
+	row := q.db.QueryRow(ctx, relinkNode,
+		arg.ID,
+		arg.PublicKey,
+		arg.WingsVersion,
+		arg.Facts,
+	)
+	var i Node
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.ShortID,
+		&i.PublicKey,
+		&i.Facts,
+		&i.WingsVersion,
+		&i.ProtocolVersion,
+		&i.LastSeenAt,
+		&i.LastAckedSeq,
+		&i.KeyRevokedAt,
+		&i.DeletedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const shortIDTaken = `-- name: ShortIDTaken :one
 SELECT EXISTS (SELECT 1 FROM nodes WHERE short_id = $1)
 `

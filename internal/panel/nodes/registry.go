@@ -35,6 +35,9 @@ type Registry struct {
 	DB       *pgxpool.Pool
 	PanelKey ed25519.PrivateKey
 	Now      func() time.Time
+	// KeyChanged is called after a node's key is replaced (re-linking), to
+	// drop connections made with the old one.
+	KeyChanged func(nodeID string)
 }
 
 func (r *Registry) now() time.Time {
@@ -134,6 +137,14 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 	if err != nil {
 		return nil, err
 	}
+	var relink pgtype.UUID
+	if req.GetNodeId() != "" {
+		id, err := uuid.Parse(req.GetNodeId())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("bad node ID"))
+		}
+		relink = pgUUID(id)
+	}
 
 	var node store.Node
 	err = pgx.BeginFunc(ctx, r.DB, func(tx pgx.Tx) error {
@@ -147,7 +158,7 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 		}
 		if jt.UsedAt.Valid {
 			// The same node asking again (its first answer was lost).
-			if jt.NodeID.Valid {
+			if jt.NodeID.Valid && (!relink.Valid || relink == jt.NodeID) {
 				n, err := q.GetNode(ctx, jt.NodeID)
 				if err == nil && bytes.Equal(n.PublicKey, key) && !n.DeletedAt.Valid {
 					node = n
@@ -158,6 +169,24 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 		}
 		if !jt.ExpiresAt.Time.After(r.now()) {
 			return connect.NewError(connect.CodePermissionDenied, ErrBadToken)
+		}
+		if relink.Valid {
+			// Re-linking keeps the node's ID and hostname and takes the new
+			// key, revoked or removed before or not. Only its own org's
+			// tokens can do it.
+			n, err := q.GetNode(ctx, relink)
+			if errors.Is(err, pgx.ErrNoRows) || err == nil && n.OrgID != jt.OrgID {
+				return connect.NewError(connect.CodeNotFound, errors.New("no such node in the token's org: link it as a new node (raptor link)"))
+			}
+			if err != nil {
+				return err
+			}
+			if node, err = q.RelinkNode(ctx, store.RelinkNodeParams{
+				ID: n.ID, PublicKey: key, WingsVersion: truncate(req.GetWingsVersion(), 64), Facts: facts,
+			}); err != nil {
+				return err
+			}
+			return q.UseJoinToken(ctx, store.UseJoinTokenParams{ID: jt.ID, NodeID: node.ID})
 		}
 		for range 10 {
 			short, err := newShortID()
@@ -184,6 +213,9 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 	})
 	if err != nil {
 		return nil, err
+	}
+	if relink.Valid && r.KeyChanged != nil {
+		r.KeyChanged(UUIDString(node.ID))
 	}
 	return &nodev1.EnrollResponse{
 		NodeId: UUIDString(node.ID), ShortId: node.ShortID, PanelKey: r.PanelKey.Public().(ed25519.PublicKey),

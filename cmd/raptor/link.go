@@ -32,20 +32,32 @@ import (
 // it creates the node key if there's none, trades the token for a node ID,
 // pins the Panel's signing key, records both in config.yml, and restarts
 // Wings, which then connects. Servers keep running through the restart.
-func linkCmd(ctx context.Context, args []string) error {
-	fs := flag.NewFlagSet("link", flag.ContinueOnError)
+//
+// With relink, the node keeps its ID and hostname (its key was revoked, or
+// it was removed in the Panel, or it was unlinked): it always gets a new key,
+// and the old one is replaced only once the Panel has the new one.
+func linkCmd(ctx context.Context, args []string, relink bool) error {
+	name := "link"
+	if relink {
+		name = "relink"
+	}
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	token := fs.String("token", "", "join token from the Panel (rpt_join_…)")
 	panelURL := fs.String("panel", "", "Panel URL (default: panel.url in the config)")
 	cfgPath := fs.String("config", config.DefaultPath, "Wings config file")
 	noRestart := fs.Bool("no-restart", false, "don't restart Wings afterwards")
+	var nodeID *string
+	if relink {
+		nodeID = fs.String("node", "", "the node's ID (default: node_id in the config)")
+	}
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if *token == "" {
-		return errors.New("usage: raptor link --token rpt_join_… (make a token in the Panel: Add Node)")
+		return fmt.Errorf("usage: raptor %s -token rpt_join_… (make a token in the Panel: Add Node)", name)
 	}
 	if os.Geteuid() != 0 {
-		return errors.New("raptor link must run as root")
+		return fmt.Errorf("raptor %s must run as root", name)
 	}
 	cfg, err := config.Load(*cfgPath)
 	if errors.Is(err, os.ErrNotExist) {
@@ -53,23 +65,36 @@ func linkCmd(ctx context.Context, args []string) error {
 	} else if err != nil {
 		return err
 	}
-	if cfg.NodeID != "" {
+	switch {
+	case !relink && cfg.NodeID != "":
 		return fmt.Errorf("this node is already linked (as %s); to link it again, run raptor relink", cfg.NodeID)
+	case relink && *nodeID == "":
+		*nodeID = cfg.NodeID
+		if *nodeID == "" {
+			return errors.New("this node isn't linked: give its ID with -node, or link it as a new node (raptor link)")
+		}
 	}
 	if *panelURL == "" {
 		*panelURL = cfg.Panel.URL
 	}
 	*panelURL = strings.TrimSuffix(*panelURL, "/")
 
-	key, err := nodelink.LoadKey(cfg.Identity.Key)
+	// The key: the existing one when linking, a new one when re-linking
+	// (written beside the old one until the Panel has it).
+	keyPath := cfg.Identity.Key
+	if relink {
+		keyPath += ".new"
+		_ = os.Remove(keyPath)
+	}
+	key, err := nodelink.LoadKey(keyPath)
 	if err != nil {
 		return err
 	}
 	if key == nil {
-		if _, err := nodelink.GenerateKey(cfg.Identity.Key); err != nil {
+		if _, err := nodelink.GenerateKey(keyPath); err != nil {
 			return fmt.Errorf("creating the node key: %w", err)
 		}
-		if key, err = nodelink.LoadKey(cfg.Identity.Key); err != nil {
+		if key, err = nodelink.LoadKey(keyPath); err != nil {
 			return err
 		}
 	}
@@ -78,23 +103,32 @@ func linkCmd(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	name, _ := os.Hostname()
+	req := &nodev1.EnrollRequest{
+		Token: *token, PublicKey: pub, Signature: ed25519.Sign(key, payload),
+		WingsVersion: buildinfo.Version, Facts: facts(),
+	}
+	req.Name, _ = os.Hostname()
+	if relink {
+		req.NodeId = *nodeID
+	}
 	ectx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 	client := nodev1connect.NewEnrollmentServiceClient(&http.Client{Timeout: time.Minute}, *panelURL+"/api")
-	res, err := client.Enroll(ectx, &nodev1.EnrollRequest{
-		Token: *token, PublicKey: pub, Signature: ed25519.Sign(key, payload), Name: name,
-		WingsVersion: buildinfo.Version, Facts: facts(),
-	})
+	res, err := client.Enroll(ectx, req)
 	if err != nil {
 		var ce *connect.Error
-		if errors.As(err, &ce) && (ce.Code() == connect.CodePermissionDenied || ce.Code() == connect.CodeInvalidArgument) {
+		if errors.As(err, &ce) && ce.Code() != connect.CodeUnavailable && ce.Code() != connect.CodeUnknown {
 			return errors.New(ce.Message())
 		}
 		return fmt.Errorf("enrolling with %s: %w", *panelURL, err)
 	}
 	if len(res.GetPanelKey()) != ed25519.PublicKeySize {
 		return errors.New("the Panel's answer has no valid signing key")
+	}
+	if relink {
+		if err := os.Rename(keyPath, cfg.Identity.Key); err != nil {
+			return fmt.Errorf("installing the new node key: %w", err)
+		}
 	}
 	// The Panel's key first: a config with a node ID but no Panel key would
 	// leave Wings unable to connect.
@@ -104,16 +138,69 @@ func linkCmd(ctx context.Context, args []string) error {
 	if err := config.SetLink(*cfgPath, res.GetNodeId(), *panelURL); err != nil {
 		return fmt.Errorf("writing %s: %w", *cfgPath, err)
 	}
-	fmt.Printf("Linked as node %s (n-%s.raptornodes.net)\n", res.GetNodeId(), res.GetShortId())
+	verb := "Linked"
+	if relink {
+		verb = "Re-linked"
+	}
+	fmt.Printf("%s as node %s (n-%s.raptornodes.net)\n", verb, res.GetNodeId(), res.GetShortId())
 	fmt.Printf("Panel key pinned: %s\n", base64.StdEncoding.EncodeToString(res.GetPanelKey()))
 	if *noRestart {
 		fmt.Println("Restart Wings to connect: systemctl restart raptor-wings")
 		return nil
 	}
+	if err := restartWings(ctx); err != nil {
+		return err
+	}
+	return waitConnected(ctx, cfg.Paths.Socket)
+}
+
+// unlinkCmd stops the node connecting to the Panel: it forgets its node ID,
+// its key, and the Panel's key, and restarts Wings. Servers keep running and are
+// managed from the box; remote commands are refused. The node stays in the
+// Panel (shown offline) and can come back with raptor relink.
+func unlinkCmd(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("unlink", flag.ContinueOnError)
+	cfgPath := fs.String("config", config.DefaultPath, "Wings config file")
+	yes := fs.Bool("yes", false, "don't ask")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if os.Geteuid() != 0 {
+		return errors.New("raptor unlink must run as root")
+	}
+	cfg, err := config.Load(*cfgPath)
+	if err != nil {
+		return err
+	}
+	if cfg.NodeID == "" {
+		return errors.New("this node isn't linked")
+	}
+	if !*yes {
+		fmt.Printf("Unlink node %s from %s? Servers keep running; the Panel can't reach them until you relink. [y/N] ", cfg.NodeID, cfg.Panel.URL)
+		answer, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+		if a := strings.ToLower(strings.TrimSpace(answer)); a != "y" && a != "yes" {
+			return errors.New("not unlinked")
+		}
+	}
+	if err := config.SetLink(*cfgPath, "", ""); err != nil {
+		return err
+	}
+	// The node key goes too: relinking makes a new one, and a later link as
+	// a new node shouldn't reuse the old node's identity.
+	for _, p := range []string{cfg.Identity.PanelKey, cfg.Identity.Key} {
+		if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	fmt.Printf("Unlinked (was node %s). To link it again: raptor relink -node %s -token …\n", cfg.NodeID, cfg.NodeID)
+	return restartWings(ctx)
+}
+
+func restartWings(ctx context.Context) error {
 	if out, err := exec.CommandContext(ctx, "systemctl", "restart", "raptor-wings").CombinedOutput(); err != nil {
 		return fmt.Errorf("restarting Wings (systemctl restart raptor-wings): %w: %s", err, bytes.TrimSpace(out))
 	}
-	return waitConnected(ctx, cfg.Paths.Socket)
+	return nil
 }
 
 // waitConnected waits for Wings to report the node connection up.

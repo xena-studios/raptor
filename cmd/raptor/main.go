@@ -31,6 +31,11 @@ commands:
   link -token <rpt_join_…> [-panel url]
               link this node to the Panel with a join token (root); Wings
               restarts and connects, servers keep running
+  relink -token <rpt_join_…> [-node id]
+              link again as the same node, with a new key (its key was
+              revoked, or it was removed or unlinked) (root)
+  unlink [-yes]
+              stop connecting to the Panel; servers keep running (root)
   ps          list servers with their state and resource usage
   start|stop|restart|kill <server>
               power actions (root); stop waits for a clean shutdown
@@ -116,7 +121,11 @@ func run(args []string) error {
 	case len(args) >= 1 && args[0] == "tui":
 		return tuiCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "link":
-		return linkCmd(ctx, args[1:])
+		return linkCmd(ctx, args[1:], false)
+	case len(args) >= 1 && args[0] == "relink":
+		return linkCmd(ctx, args[1:], true)
+	case len(args) >= 1 && args[0] == "unlink":
+		return unlinkCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "notifications":
 		return notificationsCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
