@@ -34,3 +34,15 @@ RETURNING *;
 
 -- name: ShortIDTaken :one
 SELECT EXISTS (SELECT 1 FROM nodes WHERE short_id = $1);
+
+-- name: SetNodeIPv4 :exec
+UPDATE nodes SET public_ipv4 = $2 WHERE id = $1;
+
+-- name: SetNodeIPv6 :exec
+UPDATE nodes SET public_ipv6 = $2 WHERE id = $1;
+
+-- name: NodeDNS :one
+SELECT short_id, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6 FROM nodes WHERE id = $1;
+
+-- name: SetNodeDNS :exec
+UPDATE nodes SET dns_ipv4 = $2, dns_ipv6 = $3 WHERE id = $1;

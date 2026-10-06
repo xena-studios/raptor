@@ -7,6 +7,7 @@ package store
 
 import (
 	"context"
+	"net/netip"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -48,7 +49,7 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 const createNode = `-- name: CreateNode :one
 INSERT INTO nodes (org_id, name, short_id, public_key, facts, wings_version)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6
 `
 
 type CreateNodeParams struct {
@@ -84,6 +85,10 @@ func (q *Queries) CreateNode(ctx context.Context, arg CreateNodeParams) (Node, e
 		&i.KeyRevokedAt,
 		&i.DeletedAt,
 		&i.CreatedAt,
+		&i.PublicIpv4,
+		&i.PublicIpv6,
+		&i.DnsIpv4,
+		&i.DnsIpv6,
 	)
 	return i, err
 }
@@ -120,7 +125,7 @@ func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (
 }
 
 const getNode = `-- name: GetNode :one
-SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at FROM nodes WHERE id = $1
+SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6 FROM nodes WHERE id = $1
 `
 
 func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
@@ -140,6 +145,10 @@ func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
 		&i.KeyRevokedAt,
 		&i.DeletedAt,
 		&i.CreatedAt,
+		&i.PublicIpv4,
+		&i.PublicIpv6,
+		&i.DnsIpv4,
+		&i.DnsIpv6,
 	)
 	return i, err
 }
@@ -159,6 +168,31 @@ func (q *Queries) NodeConnected(ctx context.Context, arg NodeConnectedParams) er
 	return err
 }
 
+const nodeDNS = `-- name: NodeDNS :one
+SELECT short_id, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6 FROM nodes WHERE id = $1
+`
+
+type NodeDNSRow struct {
+	ShortID    string
+	PublicIpv4 *netip.Addr
+	PublicIpv6 *netip.Addr
+	DnsIpv4    *netip.Addr
+	DnsIpv6    *netip.Addr
+}
+
+func (q *Queries) NodeDNS(ctx context.Context, id pgtype.UUID) (NodeDNSRow, error) {
+	row := q.db.QueryRow(ctx, nodeDNS, id)
+	var i NodeDNSRow
+	err := row.Scan(
+		&i.ShortID,
+		&i.PublicIpv4,
+		&i.PublicIpv6,
+		&i.DnsIpv4,
+		&i.DnsIpv6,
+	)
+	return i, err
+}
+
 const nodeSeen = `-- name: NodeSeen :exec
 UPDATE nodes SET last_seen_at = now() WHERE id = $1
 `
@@ -172,7 +206,7 @@ const relinkNode = `-- name: RelinkNode :one
 UPDATE nodes
 SET public_key = $2, wings_version = $3, facts = $4, key_revoked_at = NULL, deleted_at = NULL
 WHERE id = $1
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6
 `
 
 type RelinkNodeParams struct {
@@ -204,8 +238,55 @@ func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, e
 		&i.KeyRevokedAt,
 		&i.DeletedAt,
 		&i.CreatedAt,
+		&i.PublicIpv4,
+		&i.PublicIpv6,
+		&i.DnsIpv4,
+		&i.DnsIpv6,
 	)
 	return i, err
+}
+
+const setNodeDNS = `-- name: SetNodeDNS :exec
+UPDATE nodes SET dns_ipv4 = $2, dns_ipv6 = $3 WHERE id = $1
+`
+
+type SetNodeDNSParams struct {
+	ID      pgtype.UUID
+	DnsIpv4 *netip.Addr
+	DnsIpv6 *netip.Addr
+}
+
+func (q *Queries) SetNodeDNS(ctx context.Context, arg SetNodeDNSParams) error {
+	_, err := q.db.Exec(ctx, setNodeDNS, arg.ID, arg.DnsIpv4, arg.DnsIpv6)
+	return err
+}
+
+const setNodeIPv4 = `-- name: SetNodeIPv4 :exec
+UPDATE nodes SET public_ipv4 = $2 WHERE id = $1
+`
+
+type SetNodeIPv4Params struct {
+	ID         pgtype.UUID
+	PublicIpv4 *netip.Addr
+}
+
+func (q *Queries) SetNodeIPv4(ctx context.Context, arg SetNodeIPv4Params) error {
+	_, err := q.db.Exec(ctx, setNodeIPv4, arg.ID, arg.PublicIpv4)
+	return err
+}
+
+const setNodeIPv6 = `-- name: SetNodeIPv6 :exec
+UPDATE nodes SET public_ipv6 = $2 WHERE id = $1
+`
+
+type SetNodeIPv6Params struct {
+	ID         pgtype.UUID
+	PublicIpv6 *netip.Addr
+}
+
+func (q *Queries) SetNodeIPv6(ctx context.Context, arg SetNodeIPv6Params) error {
+	_, err := q.db.Exec(ctx, setNodeIPv6, arg.ID, arg.PublicIpv6)
+	return err
 }
 
 const shortIDTaken = `-- name: ShortIDTaken :one
