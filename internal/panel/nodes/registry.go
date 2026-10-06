@@ -148,9 +148,13 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 	}
 
 	var node store.Node
+	var pin []byte
 	err = pgx.BeginFunc(ctx, r.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		jt, err := q.GetJoinTokenForUpdate(ctx, hashToken(req.GetToken()))
+		if err == nil {
+			pin = jt.OwnerPin
+		}
 		if errors.Is(err, pgx.ErrNoRows) {
 			return connect.NewError(connect.CodePermissionDenied, ErrBadToken)
 		}
@@ -220,6 +224,7 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 	}
 	return &nodev1.EnrollResponse{
 		NodeId: UUIDString(node.ID), ShortId: node.ShortID, PanelKey: r.PanelKey.Public().(ed25519.PublicKey),
+		OwnerPin: pin,
 	}, nil
 }
 

@@ -3,7 +3,9 @@
 package orgs
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -22,6 +24,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/shared/nodecmd"
 )
 
 // Limits.
@@ -573,4 +576,58 @@ func (s *Service) ListAuditLog(ctx context.Context, req *panelv1.ListAuditLogReq
 		return nil, err
 	}
 	return out, nil
+}
+
+// PinJoinToken implements OrgService.
+func (s *Service) PinJoinToken(ctx context.Context, req *panelv1.PinJoinTokenRequest) (*panelv1.PinJoinTokenResponse, error) {
+	var pin nodecmd.OwnerPin
+	if err := json.Unmarshal([]byte(req.GetPinJson()), &pin); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("pin: %w", err))
+	}
+	if err := pin.Check(req.GetToken()); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	var sess *auth.Session
+	var org pgtype.UUID
+	err := s.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
+		var err error
+		sess = se
+		org, _, err = member(ctx, q, se, req.GetOrgId(), "admin")
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	// One of the caller's own passkeys, exactly as registered: the node
+	// would refuse anything else anyway, but this says so now.
+	if pin.UserID != idString(sess.UserID) {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("the passkey must be yours"))
+	}
+	q := store.New(s.DB)
+	keys, err := q.ListPasskeys(ctx, sess.UserID)
+	if err != nil {
+		return nil, err
+	}
+	mine := false
+	for _, k := range keys {
+		var c struct {
+			ID        []byte `json:"id"`
+			PublicKey []byte `json:"publicKey"`
+		}
+		if json.Unmarshal(k.Credential, &c) == nil && bytes.Equal(c.ID, pin.CredentialID) && bytes.Equal(c.PublicKey, pin.PublicKey) {
+			mine = true
+		}
+	}
+	if !mine {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("that passkey isn't one of yours"))
+	}
+	n, err := q.SetJoinTokenPin(ctx, store.SetJoinTokenPinParams{TokenHash: nodecmd.JoinTokenHash(req.GetToken()), OrgID: org, OwnerPin: []byte(req.GetPinJson())})
+	if err != nil {
+		return nil, err
+	}
+	if n == 0 {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("that join token is used, expired, already has a passkey, or isn't this org's"))
+	}
+	_ = s.audit(ctx, nil, sess, org, "join_token.pin", "", nil, map[string]any{"passkey": pin.Name})
+	return &panelv1.PinJoinTokenResponse{}, nil
 }

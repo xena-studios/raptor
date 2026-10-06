@@ -1165,7 +1165,11 @@ type EnrollResponse struct {
 	// The node's hostname is n-<short_id>.raptornodes.net.
 	ShortId string `protobuf:"bytes,2,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
 	// The Panel's Ed25519 signing key, which the node pins.
-	PanelKey      []byte `protobuf:"bytes,3,opt,name=panel_key,json=panelKey,proto3" json:"panel_key,omitempty"`
+	PanelKey []byte `protobuf:"bytes,3,opt,name=panel_key,json=panelKey,proto3" json:"panel_key,omitempty"`
+	// The owner's passkey, signed when they made the join token
+	// (nodecmd.OwnerPin as JSON); empty if they didn't. The node checks it
+	// and pins the key (LocalService.PinOwnerKey).
+	OwnerPin      []byte `protobuf:"bytes,4,opt,name=owner_pin,json=ownerPin,proto3" json:"owner_pin,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1217,6 +1221,13 @@ func (x *EnrollResponse) GetShortId() string {
 func (x *EnrollResponse) GetPanelKey() []byte {
 	if x != nil {
 		return x.PanelKey
+	}
+	return nil
+}
+
+func (x *EnrollResponse) GetOwnerPin() []byte {
+	if x != nil {
+		return x.OwnerPin
 	}
 	return nil
 }
@@ -1320,11 +1331,12 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\x04arch\x18\x02 \x01(\tR\x04arch\x12\x16\n" +
 	"\x06kernel\x18\x03 \x01(\tR\x06kernel\x12\x12\n" +
 	"\x04cpus\x18\x04 \x01(\x05R\x04cpus\x12!\n" +
-	"\fmemory_bytes\x18\x05 \x01(\x03R\vmemoryBytes\"a\n" +
+	"\fmemory_bytes\x18\x05 \x01(\x03R\vmemoryBytes\"~\n" +
 	"\x0eEnrollResponse\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x19\n" +
 	"\bshort_id\x18\x02 \x01(\tR\ashortId\x12\x1b\n" +
-	"\tpanel_key\x18\x03 \x01(\fR\bpanelKey2\xe6\x02\n" +
+	"\tpanel_key\x18\x03 \x01(\fR\bpanelKey\x12\x1b\n" +
+	"\towner_pin\x18\x04 \x01(\fR\bownerPin2\xe6\x02\n" +
 	"\vNodeService\x12O\n" +
 	"\aExecute\x12\x1e.raptor.node.v1.ExecuteRequest\x1a\x1f.raptor.node.v1.ExecuteResponse\"\x03\x90\x02\x02\x12L\n" +
 	"\x06Events\x12\x1d.raptor.node.v1.EventsRequest\x1a\x1e.raptor.node.v1.EventsResponse\"\x03\x90\x02\x02\x12^\n" +

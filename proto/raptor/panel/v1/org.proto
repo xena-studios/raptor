@@ -80,6 +80,12 @@ service OrgService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // PinJoinToken attaches the owner's passkey, signed in the browser over
+  // the token (nodecmd.OwnerPin), to a new join token: the node that links
+  // with it checks the signature and trusts that passkey from the start.
+  // Admins and owners, for one of their own passkeys.
+  rpc PinJoinToken(PinJoinTokenRequest) returns (PinJoinTokenResponse) {}
+
   // ListAuditLog lists the org's audit log, newest first, 50 at a time.
   // Admins and owners.
   rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse) {
@@ -283,3 +289,13 @@ message Server {
 message ListServersResponse {
   repeated Server servers = 1;
 }
+
+message PinJoinTokenRequest {
+  string org_id = 1;
+  // The rpt_join_… token, as CreateJoinToken returned it.
+  string token = 2;
+  // nodecmd.OwnerPin, as JSON.
+  string pin_json = 3;
+}
+
+message PinJoinTokenResponse {}

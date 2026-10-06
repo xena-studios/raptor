@@ -97,6 +97,12 @@ service LocalService {
   // CancelKeyReset ends a key reset without changing any key. Root only.
   rpc CancelKeyReset(CancelKeyResetRequest) returns (CancelKeyResetResponse) {}
 
+  // PinOwnerKey trusts the owner passkey the Panel handed over at enrollment
+  // (raptor link, raptor bootstrap), after checking its signature and that
+  // it names the join token used. Only while the node trusts no owner key.
+  // Root only.
+  rpc PinOwnerKey(PinOwnerKeyRequest) returns (PinOwnerKeyResponse) {}
+
   // TestNotifications sends a test message to every notification target in
   // config.yml and reports how each went. Root only.
   rpc TestNotifications(TestNotificationsRequest) returns (TestNotificationsResponse) {}
@@ -562,4 +568,16 @@ message ImportServerResponse {
   int64 bytes = 3;
   // Special files (FIFOs, devices) left out.
   int64 skipped = 4;
+}
+
+message PinOwnerKeyRequest {
+  // The signed statement (nodecmd.OwnerPin), as the Panel sent it.
+  bytes pin = 1;
+  // The join token this node enrolled with.
+  string join_token = 2;
+}
+
+message PinOwnerKeyResponse {
+  string fingerprint = 1;
+  string name = 2;
 }

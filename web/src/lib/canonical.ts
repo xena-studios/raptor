@@ -78,3 +78,35 @@ export async function keyFingerprint(cose: Uint8Array): Promise<string> {
   }
   return (out.slice(0, 20).match(/.{4}/g) ?? []).join("-");
 }
+
+const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+
+export type PinFields = {
+  joinToken: string;
+  credentialId: Uint8Array;
+  publicKey: Uint8Array;
+  userId: string;
+  name: string;
+};
+
+// pinCanonical is what the owner's passkey signs to be trusted by a node
+// that links with joinToken (nodecmd.OwnerPin): byte fields in standard
+// base64, as Go writes them.
+export async function pinCanonical(p: PinFields): Promise<string> {
+  const tokenHash = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(p.joinToken)),
+  );
+  return canonicalJSON({
+    purpose: "raptor.owner_pin.v1",
+    join_token_hash: b64(tokenHash),
+    credential_id: b64(p.credentialId),
+    public_key: b64(p.publicKey),
+    user_id: p.userId,
+    name: p.name,
+  });
+}
+
+export async function pinHash(p: PinFields): Promise<Uint8Array> {
+  const bytes = new TextEncoder().encode(await pinCanonical(p));
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+}

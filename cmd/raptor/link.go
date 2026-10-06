@@ -166,12 +166,52 @@ func doLink(ctx context.Context, o linkOptions) error {
 	fmt.Printf("Panel key pinned: %s\n", base64.StdEncoding.EncodeToString(res.GetPanelKey()))
 	if *noRestart {
 		fmt.Println("Restart Wings to connect: systemctl restart raptor-wings")
-		return nil
+		return pinOwner(ctx, cfg.Paths.Socket, res.GetOwnerPin(), *token)
 	}
 	if err := restartWings(ctx); err != nil {
 		return err
 	}
-	return waitConnected(ctx, cfg.Paths.Socket)
+	if err := waitConnected(ctx, cfg.Paths.Socket); err != nil {
+		return err
+	}
+	return pinOwner(ctx, cfg.Paths.Socket, res.GetOwnerPin(), *token)
+}
+
+// pinOwner has Wings trust the owner passkey that signed the join token,
+// and shows its fingerprint for the owner to compare with the Panel's
+// (docs/SECURITY-MODEL.md#passkey-signed-commands).
+func pinOwner(ctx context.Context, socket string, pin []byte, token string) error {
+	if len(pin) == 0 {
+		fmt.Println("No passkey is trusted on this node yet, so dangerous actions (deleting servers, wiping")
+		fmt.Println("reinstalls, …) are refused until one is. Pair one with: sudo raptor keys reset")
+		return nil
+	}
+	var res *localv1.PinOwnerKeyResponse
+	var err error
+	// Wings may still be starting.
+	for range 30 {
+		sctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		res, err = localapi.Dial(socket).PinOwnerKey(sctx, &localv1.PinOwnerKeyRequest{Pin: pin, JoinToken: token})
+		cancel()
+		if code := connect.CodeOf(err); err == nil || (code != connect.CodeUnavailable && code != connect.CodeUnknown) {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
+	switch {
+	case connect.CodeOf(err) == connect.CodeAlreadyExists:
+		fmt.Println("This node already trusts an owner passkey; left as it is.")
+		return nil
+	case err != nil:
+		return fmt.Errorf("the owner passkey the Panel sent wasn't trusted: %w (pair one with: sudo raptor keys reset)", err)
+	}
+	fmt.Printf("Trusted owner passkey %q, fingerprint %s\n", res.GetName(), res.GetFingerprint())
+	fmt.Println("Check it matches the fingerprint the Panel showed when you made the token. If it doesn't, run: sudo raptor keys reset")
+	return nil
 }
 
 // unlinkCmd stops the node connecting to the Panel: it forgets its node ID,
