@@ -80,6 +80,11 @@ func (s *Service) BeginReauth(ctx context.Context, _ *panelv1.BeginReauthRequest
 	if err != nil {
 		return nil, err
 	}
+	// The browser isn't told which passkeys are the user's: password
+	// managers like 1Password step aside when given a list, leaving only
+	// the browser's phone and security key options. The ceremony still
+	// remembers the list, so a passkey that isn't the user's is refused.
+	assertion.Response.AllowedCredentials = nil
 	ch, err := s.saveCeremony(ctx, "reauth", sess.ID, data, assertion.Response)
 	if err != nil {
 		return nil, err

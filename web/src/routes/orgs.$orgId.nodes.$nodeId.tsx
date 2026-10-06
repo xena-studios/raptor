@@ -17,7 +17,7 @@ import { keyFingerprint } from "@/lib/canonical";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
 import { requireSession } from "@/lib/session";
-import { sendSigned } from "@/lib/signed";
+import { sameBytes, sendSigned, whichPasskey } from "@/lib/signed";
 import { commandClient, orgClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
 
@@ -99,7 +99,6 @@ function ServerCard({
   admin: boolean;
   userId: string;
 }) {
-  const passkeys = useQuery(AuthService.method.listPasskeys, {});
   const client = useQueryClient();
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -120,7 +119,6 @@ function ServerCard({
         nodeId,
         action: "server.delete",
         serverId: server.id,
-        allow: (passkeys.data?.passkeys ?? []).map((p) => p.credentialId),
       });
       await client.invalidateQueries();
     } catch (err) {
@@ -273,19 +271,23 @@ const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
 function PairKey({ nodeId, userId }: { nodeId: string; userId: string }) {
   const passkeys = useQuery(AuthService.method.listPasskeys, {});
   const [code, setCode] = useState("");
-  const [chosen, setChosen] = useState("");
   const [fingerprint, setFingerprint] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const list = passkeys.data?.passkeys ?? [];
-  const key: Passkey | undefined = list.find((p) => p.id === chosen) ?? list[0];
 
   async function pair(e: FormEvent) {
     e.preventDefault();
-    if (!key) return;
     setError("");
     setBusy(true);
     try {
+      // First the password manager says which passkey (no list of allowed
+      // ones: 1Password and others step aside when given one), then that
+      // passkey signs the pairing, which names it.
+      const id = await whichPasskey();
+      const key: Passkey | undefined = list.find((p) => sameBytes(p.credentialId, id));
+      if (!key)
+        throw new Error("That passkey isn't on your Raptor account. Add it under Security first.");
       // The fingerprint comes from the key this page signs with, so a
       // Panel that swapped in its own key can't make them match.
       const mine = await keyFingerprint(key.publicKey);
@@ -300,7 +302,7 @@ function PairKey({ nodeId, userId }: { nodeId: string; userId: string }) {
           user_id: userId,
           name: key.name,
         },
-        allow: [key.credentialId],
+        expect: key.credentialId,
       });
       const theirs = (JSON.parse(res.resultJson || "{}") as { fingerprint?: string }).fingerprint;
       if (theirs && theirs !== mine)
@@ -322,7 +324,8 @@ function PairKey({ nodeId, userId }: { nodeId: string; userId: string }) {
         </CardTitle>
         <CardDescription>
           Deleting servers and other dangerous actions must be signed by a passkey the node trusts.
-          On the node, run <code>sudo raptor keys reset</code>, then enter the code it shows.
+          On the node, run <code>sudo raptor keys reset</code>, then enter the code it shows. Your
+          password manager asks twice: once to pick the passkey, once to sign.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -346,21 +349,8 @@ function PairKey({ nodeId, userId }: { nodeId: string; userId: string }) {
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
-            <Label htmlFor="pair-key">Passkey</Label>
-            <select
-              id="pair-key"
-              className="rounded-md border bg-background px-2 py-1.5 text-sm"
-              value={key?.id}
-              onChange={(e) => setChosen(e.target.value)}
-            >
-              {list.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
             <Button type="submit" className="self-start" disabled={busy}>
-              Sign with this passkey
+              Sign with a passkey
             </Button>
           </form>
         )}

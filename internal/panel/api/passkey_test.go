@@ -264,6 +264,11 @@ func TestPasskeys(t *testing.T) {
 	if err != nil || re.GetPasskey() == nil {
 		t.Fatalf("reauth: %v, %v", re, err)
 	}
+	// The browser isn't given the list of the user's passkeys (password
+	// managers step aside when given one); the Panel still checks it.
+	if strings.Contains(re.GetPasskey().GetOptionsJson(), "allowCredentials") {
+		t.Errorf("reauth options name credentials: %s", re.GetPasskey().GetOptionsJson())
+	}
 	if _, err := b3.auth.FinishReauth(ctx, &panelv1.FinishReauthRequest{Proof: &panelv1.FinishReauthRequest_EmailCode{EmailCode: "123456"}}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Errorf("email re-auth with a passkey: %v", err)
 	}
