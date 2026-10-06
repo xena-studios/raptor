@@ -52,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
         set: [certified, community]
     name: fast ${{ matrix.set }} (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
@@ -83,7 +83,7 @@ jobs:
       github.event_name == 'pull_request' || github.event_name == 'push' ||
       github.event.schedule == '17 4 * * *' ||
       (github.event_name == 'workflow_dispatch' && inputs.tier != 'slow')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -115,7 +115,7 @@ jobs:
           - { set: community, shard: 2/4 }
           - { set: community, shard: 3/4 }
     name: slow ${{ matrix.set }} ${{ matrix.shard }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     continue-on-error: ${{ matrix.set == 'community' }}
     timeout-minutes: 360
     steps:
