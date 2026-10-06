@@ -44,6 +44,8 @@ const (
 	// NodeServiceOpenTransferProcedure is the fully-qualified name of the NodeService's OpenTransfer
 	// RPC.
 	NodeServiceOpenTransferProcedure = "/raptor.node.v1.NodeService/OpenTransfer"
+	// NodeServiceGetServersProcedure is the fully-qualified name of the NodeService's GetServers RPC.
+	NodeServiceGetServersProcedure = "/raptor.node.v1.NodeService/GetServers"
 	// PanelServiceEventsAvailableProcedure is the fully-qualified name of the PanelService's
 	// EventsAvailable RPC.
 	PanelServiceEventsAvailableProcedure = "/raptor.node.v1.PanelService/EventsAvailable"
@@ -71,6 +73,11 @@ type NodeServiceClient interface {
 	// transfer's chunks only, so a large file never slows this one
 	// (docs/ARCHITECTURE.md#files-and-sftp).
 	OpenTransfer(context.Context, *v1.OpenTransferRequest) (*v1.OpenTransferResponse, error)
+	// GetServers returns servers as they are now, for the Panel's mirror
+	// (docs/ARCHITECTURE.md#mirror-sync): the ones named, or every server if
+	// none are (a snapshot). last_seq is the newest event when it was read, so
+	// the result reflects at least every event up to it.
+	GetServers(context.Context, *v1.GetServersRequest) (*v1.GetServersResponse, error)
 }
 
 // NewNodeServiceClient constructs a client for the raptor.node.v1.NodeService service. By default,
@@ -105,6 +112,13 @@ func NewNodeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
+		getServers: connect.NewClient[v1.GetServersRequest, v1.GetServersResponse](
+			httpClient,
+			baseURL+NodeServiceGetServersProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("GetServers")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -113,6 +127,7 @@ type nodeServiceClient struct {
 	execute      *connect.Client[v1.ExecuteRequest, v1.ExecuteResponse]
 	events       *connect.Client[v1.EventsRequest, v1.EventsResponse]
 	openTransfer *connect.Client[v1.OpenTransferRequest, v1.OpenTransferResponse]
+	getServers   *connect.Client[v1.GetServersRequest, v1.GetServersResponse]
 }
 
 // Execute calls raptor.node.v1.NodeService.Execute.
@@ -142,6 +157,15 @@ func (c *nodeServiceClient) OpenTransfer(ctx context.Context, req *v1.OpenTransf
 	return nil, err
 }
 
+// GetServers calls raptor.node.v1.NodeService.GetServers.
+func (c *nodeServiceClient) GetServers(ctx context.Context, req *v1.GetServersRequest) (*v1.GetServersResponse, error) {
+	response, err := c.getServers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // NodeServiceHandler is an implementation of the raptor.node.v1.NodeService service.
 type NodeServiceHandler interface {
 	// Execute runs a command at most once (docs/ARCHITECTURE.md#commands-are-idempotent).
@@ -161,6 +185,11 @@ type NodeServiceHandler interface {
 	// transfer's chunks only, so a large file never slows this one
 	// (docs/ARCHITECTURE.md#files-and-sftp).
 	OpenTransfer(context.Context, *v1.OpenTransferRequest) (*v1.OpenTransferResponse, error)
+	// GetServers returns servers as they are now, for the Panel's mirror
+	// (docs/ARCHITECTURE.md#mirror-sync): the ones named, or every server if
+	// none are (a snapshot). last_seq is the newest event when it was read, so
+	// the result reflects at least every event up to it.
+	GetServers(context.Context, *v1.GetServersRequest) (*v1.GetServersResponse, error)
 }
 
 // NewNodeServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -191,6 +220,13 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
+	nodeServiceGetServersHandler := connect.NewUnaryHandlerSimple(
+		NodeServiceGetServersProcedure,
+		svc.GetServers,
+		connect.WithSchema(nodeServiceMethods.ByName("GetServers")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.node.v1.NodeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NodeServiceExecuteProcedure:
@@ -199,6 +235,8 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 			nodeServiceEventsHandler.ServeHTTP(w, r)
 		case NodeServiceOpenTransferProcedure:
 			nodeServiceOpenTransferHandler.ServeHTTP(w, r)
+		case NodeServiceGetServersProcedure:
+			nodeServiceGetServersHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -218,6 +256,10 @@ func (UnimplementedNodeServiceHandler) Events(context.Context, *v1.EventsRequest
 
 func (UnimplementedNodeServiceHandler) OpenTransfer(context.Context, *v1.OpenTransferRequest) (*v1.OpenTransferResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.NodeService.OpenTransfer is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) GetServers(context.Context, *v1.GetServersRequest) (*v1.GetServersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.NodeService.GetServers is not implemented"))
 }
 
 // PanelServiceClient is a client for the raptor.node.v1.PanelService service.

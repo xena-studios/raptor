@@ -46,7 +46,9 @@ type Config struct {
 	Events        *events.Outbox
 	// Transfers returns the file service once it's ready (nil before).
 	Transfers func() Transfers
-	Log       *slog.Logger
+	// Servers returns the server manager once it's ready (nil before).
+	Servers func() Servers
+	Log     *slog.Logger
 
 	// For tests.
 	HTTPClient             *http.Client

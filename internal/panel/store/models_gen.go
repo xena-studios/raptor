@@ -19,6 +19,23 @@ type JoinToken struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type MServer struct {
+	NodeID       pgtype.UUID
+	ServerID     string
+	Name         string
+	Version      int64
+	State        string
+	DesiredState string
+	InstallState string
+	InstallError string
+	EggName      string
+	EggSource    string
+	Config       []byte
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+	SyncedAt     pgtype.Timestamptz
+}
+
 type Node struct {
 	ID              pgtype.UUID
 	OrgID           pgtype.UUID
