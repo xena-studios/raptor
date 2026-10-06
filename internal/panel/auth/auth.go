@@ -1,0 +1,148 @@
+// Package auth signs people in to the Panel (docs/PANEL.md#auth):
+// passwordless, with sessions in a host-only cookie. Any session can send
+// commands to nodes where Wings runs as root, so this is the most sensitive
+// code in the Panel: everything is rate limited, single use, short-lived,
+// and stored hashed.
+package auth
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
+	"errors"
+	"log/slog"
+	"net"
+	"net/netip"
+	"strings"
+	"time"
+
+	"connectrpc.com/connect"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/xena-studios/raptor/internal/panel/store"
+)
+
+// Service is the AuthService handler and the session check other services
+// use.
+type Service struct {
+	DB     *pgxpool.Pool
+	Mailer Mailer
+	// Turnstile checks the "email me a code" form (nil: not checked, as in
+	// development).
+	Turnstile Verifier
+	// AppURL is the web app's origin, for sign-in links
+	// (https://app.raptorpanel.net).
+	AppURL string
+	// ClientIPHeader is trusted for the client's address when set (see
+	// nodes.ClientIP).
+	ClientIPHeader string
+	Log            *slog.Logger
+	Now            func() time.Time
+}
+
+func (s *Service) q() *store.Queries { return store.New(s.DB) }
+
+func (s *Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
+}
+
+func (s *Service) log() *slog.Logger {
+	if s.Log == nil {
+		return slog.New(slog.DiscardHandler)
+	}
+	return s.Log
+}
+
+// Lifetimes.
+const (
+	CodeTTL      = 10 * time.Minute
+	CodeAttempts = 5
+	SessionIdle  = 30 * 24 * time.Hour
+	SessionMax   = 90 * 24 * time.Hour
+)
+
+// newToken is 32 random bytes, base64url.
+func newToken() string {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func hash(parts ...string) []byte {
+	h := sha256.New()
+	for _, p := range parts {
+		_, _ = h.Write([]byte(p))
+		_, _ = h.Write([]byte{0})
+	}
+	return h.Sum(nil)
+}
+
+// newCode is a uniformly random 6-digit code.
+func newCode() string {
+	const n = 1_000_000
+	limit := ^uint32(0) - ^uint32(0)%n
+	for {
+		var b [4]byte
+		_, _ = rand.Read(b[:])
+		v := binary.BigEndian.Uint32(b[:])
+		if v < limit {
+			s := "000000" + itoa(int(v%n))
+			return s[len(s)-6:]
+		}
+	}
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var b []byte
+	for ; n > 0; n /= 10 {
+		b = append([]byte{byte('0' + n%10)}, b...)
+	}
+	return string(b)
+}
+
+// normalizeEmail lowercases and checks an address enough to send to it.
+func normalizeEmail(e string) (string, error) {
+	e = strings.ToLower(strings.TrimSpace(e))
+	at := strings.LastIndex(e, "@")
+	if len(e) > 254 || at < 1 || at == len(e)-1 || strings.ContainsAny(e, " \t\r\n<>,;\"") || !strings.Contains(e[at:], ".") {
+		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("that doesn't look like an email address"))
+	}
+	return e, nil
+}
+
+// clientIP is the caller's address: the trusted header if configured,
+// otherwise the TCP peer.
+func (s *Service) clientIP(ctx context.Context) netip.Addr {
+	ci, ok := connect.CallInfoForHandlerContext(ctx)
+	if !ok {
+		return netip.Addr{}
+	}
+	if s.ClientIPHeader != "" {
+		if a, err := netip.ParseAddr(strings.TrimSpace(ci.RequestHeader().Get(s.ClientIPHeader))); err == nil {
+			return a.Unmap()
+		}
+	}
+	host, _, err := net.SplitHostPort(ci.Peer().Addr)
+	if err != nil {
+		host = ci.Peer().Addr
+	}
+	a, _ := netip.ParseAddr(host)
+	return a.Unmap()
+}
+
+// Errors people see.
+var (
+	errSignedOut  = connect.NewError(connect.CodeUnauthenticated, errors.New("signed out"))
+	errRateLimit  = connect.NewError(connect.CodeResourceExhausted, errors.New("too many attempts; wait a while and try again"))
+	errBadCode    = connect.NewError(connect.CodePermissionDenied, errors.New("that code is wrong or expired; ask for a new one"))
+	errBadLink    = connect.NewError(connect.CodePermissionDenied, errors.New("that link is used or expired; ask for a new one"))
+	errChallenged = connect.NewError(connect.CodePermissionDenied, errors.New("the security check failed; reload the page and try again"))
+)

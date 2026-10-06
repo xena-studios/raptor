@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -17,46 +16,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
+	"github.com/xena-studios/raptor/internal/panel/paneltest"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
 )
-
-// freshDB is a database of its own, so other packages' tests (which share
-// the test database) don't add nodes to the rollout.
-func freshDB(t *testing.T) *pgxpool.Pool {
-	t.Helper()
-	url := os.Getenv("PANEL_TEST_DATABASE_URL")
-	if url == "" {
-		t.Skip("PANEL_TEST_DATABASE_URL not set")
-	}
-	ctx := context.Background()
-	admin, err := store.Open(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(admin.Close)
-	name := "rollout_" + strings.ReplaceAll(uuid.NewString(), "-", "")[:12]
-	if _, err := admin.Exec(ctx, "CREATE DATABASE "+name); err != nil {
-		t.Fatal(err)
-	}
-	cfg, err := pgxpool.ParseConfig(url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg.ConnConfig.Database = name
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		pool.Close()
-		_, _ = admin.Exec(context.Background(), "DROP DATABASE "+name+" WITH (FORCE)")
-	})
-	if err := store.Migrate(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
-	return pool
-}
 
 // fakeNodes are nodes that update when told (or don't).
 type fakeNodes struct {
@@ -94,7 +57,7 @@ func (f *fakeNodes) Execute(ctx context.Context, nodeID string, envelope []byte)
 }
 
 func TestRollout(t *testing.T) {
-	db := freshDB(t)
+	db := paneltest.NewDB(t)
 	ctx := context.Background()
 	var org string
 	if err := db.QueryRow(ctx, "INSERT INTO orgs (name) VALUES ('o') RETURNING id::text").Scan(&org); err != nil {
@@ -217,7 +180,7 @@ func TestRollout(t *testing.T) {
 
 // Updates that work all the way through finish the rollout.
 func TestRolloutDone(t *testing.T) {
-	db := freshDB(t)
+	db := paneltest.NewDB(t)
 	ctx := context.Background()
 	var org string
 	_ = db.QueryRow(ctx, "INSERT INTO orgs (name) VALUES ('o') RETURNING id::text").Scan(&org)
