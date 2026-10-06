@@ -138,6 +138,10 @@ func TestCommands(t *testing.T) {
 		t.Errorf("outsider: %v", err)
 	}
 
+	if nodes, err := bob.orgs.ListNodes(ctx, &panelv1.ListNodesRequest{OrgId: org}); err != nil || len(nodes.GetNodes()) != 0 {
+		t.Errorf("member without access sees nodes: %v, %v", nodes, err)
+	}
+
 	// Granting: admins and owners only, real permissions, members only.
 	set := func(b *browser, server, user string, perms ...string) error {
 		_, err := b.orgs.SetServerAccess(ctx, &panelv1.SetServerAccessRequest{OrgId: org, NodeId: nodeID, ServerId: server, UserId: user, Permissions: perms})
@@ -161,6 +165,28 @@ func TestCommands(t *testing.T) {
 	access, err := alice.orgs.ListServerAccess(ctx, &panelv1.ListServerAccessRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"})
 	if err != nil || len(access.GetAccess()) != 1 || strings.Join(access.GetAccess()[0].GetPermissions(), ",") != "files.read,power" {
 		t.Fatalf("access: %v, %v", access, err)
+	}
+
+	// What each of them sees: admins and owners everything, members only
+	// the servers they have access to (and the nodes those are on).
+	if _, err := db.Exec(ctx, "INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'test')", nodeID); err != nil {
+		t.Fatal(err)
+	}
+	nodes, err := alice.orgs.ListNodes(ctx, &panelv1.ListNodesRequest{OrgId: org})
+	if err != nil || len(nodes.GetNodes()) != 1 || !nodes.GetNodes()[0].GetConnected() || nodes.GetNodes()[0].GetShortId() != "abcd1234" {
+		t.Fatalf("owner's nodes: %v, %v", nodes, err)
+	}
+	servers, err := alice.orgs.ListServers(ctx, &panelv1.ListServersRequest{OrgId: org, NodeId: nodeID})
+	if err != nil || len(servers.GetServers()) != 2 || servers.GetServers()[0].GetPermissions()[0] != "*" {
+		t.Fatalf("owner's servers: %v, %v", servers, err)
+	}
+	servers, err = bob.orgs.ListServers(ctx, &panelv1.ListServersRequest{OrgId: org, NodeId: nodeID})
+	if err != nil || len(servers.GetServers()) != 1 || servers.GetServers()[0].GetId() != "s1" ||
+		strings.Join(servers.GetServers()[0].GetPermissions(), ",") != "files.read,power" {
+		t.Fatalf("member's servers: %v, %v", servers, err)
+	}
+	if _, err := dave.orgs.ListNodes(ctx, &panelv1.ListNodesRequest{OrgId: org}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("outsider listing nodes: %v", err)
 	}
 
 	// The grant allows exactly what it says, on exactly that server.

@@ -10,14 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InviteRouteImport } from './routes/invite'
 import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as SigninIndexRouteImport } from './routes/signin.index'
 import { Route as SigninLinkRouteImport } from './routes/signin.link'
 import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-factor'
+import { Route as OrgsOrgIdIndexRouteImport } from './routes/orgs.$orgId.index'
+import { Route as OrgsOrgIdNodesNodeIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteRoute = InviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
@@ -40,59 +48,90 @@ const SigninSecondFactorRoute = SigninSecondFactorRouteImport.update({
   path: '/signin/second-factor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgsOrgIdIndexRoute = OrgsOrgIdIndexRouteImport.update({
+  id: '/orgs/$orgId/',
+  path: '/orgs/$orgId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgsOrgIdNodesNodeIdRoute = OrgsOrgIdNodesNodeIdRouteImport.update({
+  id: '/orgs/$orgId/nodes/$nodeId',
+  path: '/orgs/$orgId/nodes/$nodeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/invite': typeof InviteRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin/': typeof SigninIndexRoute
+  '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
+  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/invite': typeof InviteRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin': typeof SigninIndexRoute
+  '/orgs/$orgId': typeof OrgsOrgIdIndexRoute
+  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/invite': typeof InviteRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin/': typeof SigninIndexRoute
+  '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
+  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/invite'
     | '/settings/security'
     | '/signin/link'
     | '/signin/second-factor'
     | '/signin/'
+    | '/orgs/$orgId/'
+    | '/orgs/$orgId/nodes/$nodeId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/invite'
     | '/settings/security'
     | '/signin/link'
     | '/signin/second-factor'
     | '/signin'
+    | '/orgs/$orgId'
+    | '/orgs/$orgId/nodes/$nodeId'
   id:
     | '__root__'
     | '/'
+    | '/invite'
     | '/settings/security'
     | '/signin/link'
     | '/signin/second-factor'
     | '/signin/'
+    | '/orgs/$orgId/'
+    | '/orgs/$orgId/nodes/$nodeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  InviteRoute: typeof InviteRoute
   SettingsSecurityRoute: typeof SettingsSecurityRoute
   SigninLinkRoute: typeof SigninLinkRoute
   SigninSecondFactorRoute: typeof SigninSecondFactorRoute
   SigninIndexRoute: typeof SigninIndexRoute
+  OrgsOrgIdIndexRoute: typeof OrgsOrgIdIndexRoute
+  OrgsOrgIdNodesNodeIdRoute: typeof OrgsOrgIdNodesNodeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -102,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite': {
+      id: '/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof InviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/security': {
@@ -132,15 +178,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SigninSecondFactorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orgs/$orgId/': {
+      id: '/orgs/$orgId/'
+      path: '/orgs/$orgId'
+      fullPath: '/orgs/$orgId/'
+      preLoaderRoute: typeof OrgsOrgIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orgs/$orgId/nodes/$nodeId': {
+      id: '/orgs/$orgId/nodes/$nodeId'
+      path: '/orgs/$orgId/nodes/$nodeId'
+      fullPath: '/orgs/$orgId/nodes/$nodeId'
+      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  InviteRoute: InviteRoute,
   SettingsSecurityRoute: SettingsSecurityRoute,
   SigninLinkRoute: SigninLinkRoute,
   SigninSecondFactorRoute: SigninSecondFactorRoute,
   SigninIndexRoute: SigninIndexRoute,
+  OrgsOrgIdIndexRoute: OrgsOrgIdIndexRoute,
+  OrgsOrgIdNodesNodeIdRoute: OrgsOrgIdNodesNodeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

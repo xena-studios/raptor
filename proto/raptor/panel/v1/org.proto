@@ -67,6 +67,19 @@ service OrgService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // ListNodes lists the org's nodes. Admins and owners see all of them;
+  // members see the ones with servers they have access to.
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ListServers lists a node's servers as the Panel's mirror has them, with
+  // what the caller may do on each. Members see only the servers they have
+  // access to.
+  rpc ListServers(ListServersRequest) returns (ListServersResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // ListAuditLog lists the org's audit log, newest first, 50 at a time.
   // Admins and owners.
   rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse) {
@@ -231,4 +244,42 @@ message ServerAccess {
 
 message ListServerAccessResponse {
   repeated ServerAccess access = 1;
+}
+
+message ListNodesRequest {
+  string org_id = 1;
+}
+
+message Node {
+  string id = 1;
+  string name = 2;
+  // n-<short_id>.raptornodes.net
+  string short_id = 3;
+  string wings_version = 4;
+  bool connected = 5;
+  google.protobuf.Timestamp last_seen_at = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message ListNodesResponse {
+  repeated Node nodes = 1;
+}
+
+message ListServersRequest {
+  string org_id = 1;
+  string node_id = 2;
+}
+
+message Server {
+  string id = 1;
+  string name = 2;
+  // "running", "offline", "starting", ...
+  string state = 3;
+  string egg_name = 4;
+  // What the caller may do on it ("*" for admins and owners: everything).
+  repeated string permissions = 5;
+}
+
+message ListServersResponse {
+  repeated Server servers = 1;
 }

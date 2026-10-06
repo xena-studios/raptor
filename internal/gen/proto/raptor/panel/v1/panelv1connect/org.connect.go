@@ -66,6 +66,10 @@ const (
 	// OrgServiceListServerAccessProcedure is the fully-qualified name of the OrgService's
 	// ListServerAccess RPC.
 	OrgServiceListServerAccessProcedure = "/raptor.panel.v1.OrgService/ListServerAccess"
+	// OrgServiceListNodesProcedure is the fully-qualified name of the OrgService's ListNodes RPC.
+	OrgServiceListNodesProcedure = "/raptor.panel.v1.OrgService/ListNodes"
+	// OrgServiceListServersProcedure is the fully-qualified name of the OrgService's ListServers RPC.
+	OrgServiceListServersProcedure = "/raptor.panel.v1.OrgService/ListServers"
 	// OrgServiceListAuditLogProcedure is the fully-qualified name of the OrgService's ListAuditLog RPC.
 	OrgServiceListAuditLogProcedure = "/raptor.panel.v1.OrgService/ListAuditLog"
 )
@@ -107,6 +111,13 @@ type OrgServiceClient interface {
 	SetServerAccess(context.Context, *v1.SetServerAccessRequest) (*v1.SetServerAccessResponse, error)
 	// ListServerAccess lists who has access to a server. Admins and owners.
 	ListServerAccess(context.Context, *v1.ListServerAccessRequest) (*v1.ListServerAccessResponse, error)
+	// ListNodes lists the org's nodes. Admins and owners see all of them;
+	// members see the ones with servers they have access to.
+	ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error)
+	// ListServers lists a node's servers as the Panel's mirror has them, with
+	// what the caller may do on each. Members see only the servers they have
+	// access to.
+	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
 	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
 	// Admins and owners.
 	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
@@ -205,6 +216,20 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		listNodes: connect.NewClient[v1.ListNodesRequest, v1.ListNodesResponse](
+			httpClient,
+			baseURL+OrgServiceListNodesProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListNodes")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		listServers: connect.NewClient[v1.ListServersRequest, v1.ListServersResponse](
+			httpClient,
+			baseURL+OrgServiceListServersProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListServers")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		listAuditLog: connect.NewClient[v1.ListAuditLogRequest, v1.ListAuditLogResponse](
 			httpClient,
 			baseURL+OrgServiceListAuditLogProcedure,
@@ -230,6 +255,8 @@ type orgServiceClient struct {
 	createJoinToken  *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
 	setServerAccess  *connect.Client[v1.SetServerAccessRequest, v1.SetServerAccessResponse]
 	listServerAccess *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
+	listNodes        *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
+	listServers      *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
 	listAuditLog     *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
 }
 
@@ -350,6 +377,24 @@ func (c *orgServiceClient) ListServerAccess(ctx context.Context, req *v1.ListSer
 	return nil, err
 }
 
+// ListNodes calls raptor.panel.v1.OrgService.ListNodes.
+func (c *orgServiceClient) ListNodes(ctx context.Context, req *v1.ListNodesRequest) (*v1.ListNodesResponse, error) {
+	response, err := c.listNodes.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListServers calls raptor.panel.v1.OrgService.ListServers.
+func (c *orgServiceClient) ListServers(ctx context.Context, req *v1.ListServersRequest) (*v1.ListServersResponse, error) {
+	response, err := c.listServers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListAuditLog calls raptor.panel.v1.OrgService.ListAuditLog.
 func (c *orgServiceClient) ListAuditLog(ctx context.Context, req *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {
 	response, err := c.listAuditLog.CallUnary(ctx, connect.NewRequest(req))
@@ -396,6 +441,13 @@ type OrgServiceHandler interface {
 	SetServerAccess(context.Context, *v1.SetServerAccessRequest) (*v1.SetServerAccessResponse, error)
 	// ListServerAccess lists who has access to a server. Admins and owners.
 	ListServerAccess(context.Context, *v1.ListServerAccessRequest) (*v1.ListServerAccessResponse, error)
+	// ListNodes lists the org's nodes. Admins and owners see all of them;
+	// members see the ones with servers they have access to.
+	ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error)
+	// ListServers lists a node's servers as the Panel's mirror has them, with
+	// what the caller may do on each. Members see only the servers they have
+	// access to.
+	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
 	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
 	// Admins and owners.
 	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
@@ -490,6 +542,20 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceListNodesHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListNodesProcedure,
+		svc.ListNodes,
+		connect.WithSchema(orgServiceMethods.ByName("ListNodes")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceListServersHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListServersProcedure,
+		svc.ListServers,
+		connect.WithSchema(orgServiceMethods.ByName("ListServers")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceListAuditLogHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceListAuditLogProcedure,
 		svc.ListAuditLog,
@@ -525,6 +591,10 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceSetServerAccessHandler.ServeHTTP(w, r)
 		case OrgServiceListServerAccessProcedure:
 			orgServiceListServerAccessHandler.ServeHTTP(w, r)
+		case OrgServiceListNodesProcedure:
+			orgServiceListNodesHandler.ServeHTTP(w, r)
+		case OrgServiceListServersProcedure:
+			orgServiceListServersHandler.ServeHTTP(w, r)
 		case OrgServiceListAuditLogProcedure:
 			orgServiceListAuditLogHandler.ServeHTTP(w, r)
 		default:
@@ -586,6 +656,14 @@ func (UnimplementedOrgServiceHandler) SetServerAccess(context.Context, *v1.SetSe
 
 func (UnimplementedOrgServiceHandler) ListServerAccess(context.Context, *v1.ListServerAccessRequest) (*v1.ListServerAccessResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListServerAccess is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListNodes is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListServers is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {

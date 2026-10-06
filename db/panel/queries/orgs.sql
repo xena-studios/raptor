@@ -60,3 +60,17 @@ UPDATE org_invitations SET accepted_at = now() WHERE id = $1;
 -- name: RevokeInvitation :execrows
 UPDATE org_invitations SET revoked_at = now()
 WHERE id = $1 AND org_id = $2 AND accepted_at IS NULL AND revoked_at IS NULL;
+
+-- name: OrgNodes :many
+SELECT n.id, n.name, n.short_id, n.wings_version, n.last_seen_at, n.created_at,
+       (c.node_id IS NOT NULL)::bool AS connected
+FROM nodes n LEFT JOIN node_connections c ON c.node_id = n.id
+WHERE n.org_id = $1 AND n.deleted_at IS NULL
+ORDER BY n.created_at;
+
+-- name: NodeServers :many
+SELECT server_id, name, state, egg_name FROM m_servers WHERE node_id = $1 ORDER BY name, server_id;
+
+-- name: UserGrantsInOrg :many
+-- A member's server grants in an org.
+SELECT node_id, server_id, permissions FROM server_grants WHERE org_id = $1 AND user_id = $2;

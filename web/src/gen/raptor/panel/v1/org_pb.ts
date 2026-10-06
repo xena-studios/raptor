@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/org.proto.
  */
 export const file_raptor_panel_v1_org: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvb3JnLnByb3RvEg9yYXB0b3IucGFuZWwudjEidAoDT3JnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSLgoKY3JlYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIiAKEENyZWF0ZU9yZ1JlcXVlc3QSDAoEbmFtZRgBIAEoCSI2ChFDcmVhdGVPcmdSZXNwb25zZRIhCgNvcmcYASABKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIhEKD0xpc3RPcmdzUmVxdWVzdCI2ChBMaXN0T3Jnc1Jlc3BvbnNlEiIKBG9yZ3MYASADKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIjAKEFJlbmFtZU9yZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBG5hbWUYAiABKAkiEwoRUmVuYW1lT3JnUmVzcG9uc2UiigEKBk1lbWJlchIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlEi0KCWpvaW5lZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiJAoSTGlzdE1lbWJlcnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSI/ChNMaXN0TWVtYmVyc1Jlc3BvbnNlEigKB21lbWJlcnMYASADKAsyFy5yYXB0b3IucGFuZWwudjEuTWVtYmVyIlwKFFNldE1lbWJlclJvbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEiMKBHJvbGUYAyABKA4yFS5yYXB0b3IucGFuZWwudjEuUm9sZSIXChVTZXRNZW1iZXJSb2xlUmVzcG9uc2UiNgoTUmVtb3ZlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCSIWChRSZW1vdmVNZW1iZXJSZXNwb25zZSKsAQoKSW52aXRhdGlvbhIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIjCgRyb2xlGAMgASgOMhUucmFwdG9yLnBhbmVsLnYxLlJvbGUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWQoTSW52aXRlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFZW1haWwYAiABKAkSIwoEcm9sZRgDIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIkcKFEludml0ZU1lbWJlclJlc3BvbnNlEi8KCmludml0YXRpb24YASABKAsyGy5yYXB0b3IucGFuZWwudjEuSW52aXRhdGlvbiIoChZMaXN0SW52aXRhdGlvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSJLChdMaXN0SW52aXRhdGlvbnNSZXNwb25zZRIwCgtpbnZpdGF0aW9ucxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5JbnZpdGF0aW9uIkAKF1Jldm9rZUludml0YXRpb25SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIVCg1pbnZpdGF0aW9uX2lkGAIgASgJIhoKGFJldm9rZUludml0YXRpb25SZXNwb25zZSIoChdBY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBINCgV0b2tlbhgBIAEoCSI9ChhBY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2USIQoDb3JnGAEgASgLMhQucmFwdG9yLnBhbmVsLnYxLk9yZyI2ChZDcmVhdGVKb2luVG9rZW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJIlgKF0NyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjkKE0xpc3RBdWRpdExvZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkiXAoUTGlzdEF1ZGl0TG9nUmVzcG9uc2USKwoGZXZlbnRzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkF1ZGl0RXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJInIKFlNldFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJEg8KB3VzZXJfaWQYBCABKAkSEwoLcGVybWlzc2lvbnMYBSADKAkiGQoXU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiTQoXTGlzdFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIkMKDFNlcnZlckFjY2VzcxIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEhMKC3Blcm1pc3Npb25zGAMgAygJIkkKGExpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZRItCgZhY2Nlc3MYASADKAsyHS5yYXB0b3IucGFuZWwudjEuU2VydmVyQWNjZXNzKk0KBFJvbGUSFAoQUk9MRV9VTlNQRUNJRklFRBAAEg8KC1JPTEVfTUVNQkVSEAESDgoKUk9MRV9BRE1JThACEg4KClJPTEVfT1dORVIQAzLuCgoKT3JnU2VydmljZRJUCglDcmVhdGVPcmcSIS5yYXB0b3IucGFuZWwudjEuQ3JlYXRlT3JnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5DcmVhdGVPcmdSZXNwb25zZSIAElQKCExpc3RPcmdzEiAucmFwdG9yLnBhbmVsLnYxLkxpc3RPcmdzUmVxdWVzdBohLnJhcHRvci5wYW5lbC52MS5MaXN0T3Jnc1Jlc3BvbnNlIgOQAgESVAoJUmVuYW1lT3JnEiEucmFwdG9yLnBhbmVsLnYxLlJlbmFtZU9yZ1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuUmVuYW1lT3JnUmVzcG9uc2UiABJdCgtMaXN0TWVtYmVycxIjLnJhcHRvci5wYW5lbC52MS5MaXN0TWVtYmVyc1JlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuTGlzdE1lbWJlcnNSZXNwb25zZSIDkAIBEmAKDVNldE1lbWJlclJvbGUSJS5yYXB0b3IucGFuZWwudjEuU2V0TWVtYmVyUm9sZVJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuU2V0TWVtYmVyUm9sZVJlc3BvbnNlIgASXQoMUmVtb3ZlTWVtYmVyEiQucmFwdG9yLnBhbmVsLnYxLlJlbW92ZU1lbWJlclJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTWVtYmVyUmVzcG9uc2UiABJdCgxJbnZpdGVNZW1iZXISJC5yYXB0b3IucGFuZWwudjEuSW52aXRlTWVtYmVyUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5JbnZpdGVNZW1iZXJSZXNwb25zZSIAEmkKD0xpc3RJbnZpdGF0aW9ucxInLnJhcHRvci5wYW5lbC52MS5MaXN0SW52aXRhdGlvbnNSZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkxpc3RJbnZpdGF0aW9uc1Jlc3BvbnNlIgOQAgESaQoQUmV2b2tlSW52aXRhdGlvbhIoLnJhcHRvci5wYW5lbC52MS5SZXZva2VJbnZpdGF0aW9uUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5SZXZva2VJbnZpdGF0aW9uUmVzcG9uc2UiABJpChBBY2NlcHRJbnZpdGF0aW9uEigucmFwdG9yLnBhbmVsLnYxLkFjY2VwdEludml0YXRpb25SZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLkFjY2VwdEludml0YXRpb25SZXNwb25zZSIAEmYKD0NyZWF0ZUpvaW5Ub2tlbhInLnJhcHRvci5wYW5lbC52MS5DcmVhdGVKb2luVG9rZW5SZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlIgASZgoPU2V0U2VydmVyQWNjZXNzEicucmFwdG9yLnBhbmVsLnYxLlNldFNlcnZlckFjY2Vzc1JlcXVlc3QaKC5yYXB0b3IucGFuZWwudjEuU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiABJsChBMaXN0U2VydmVyQWNjZXNzEigucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJBY2Nlc3NSZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZSIDkAIBEmAKDExpc3RBdWRpdExvZxIkLnJhcHRvci5wYW5lbC52MS5MaXN0QXVkaXRMb2dSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkxpc3RBdWRpdExvZ1Jlc3BvbnNlIgOQAgFCyAEKE2NvbS5yYXB0b3IucGFuZWwudjFCCE9yZ1Byb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_raptor_panel_v1_audit]);
+  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvb3JnLnByb3RvEg9yYXB0b3IucGFuZWwudjEidAoDT3JnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSLgoKY3JlYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIiAKEENyZWF0ZU9yZ1JlcXVlc3QSDAoEbmFtZRgBIAEoCSI2ChFDcmVhdGVPcmdSZXNwb25zZRIhCgNvcmcYASABKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIhEKD0xpc3RPcmdzUmVxdWVzdCI2ChBMaXN0T3Jnc1Jlc3BvbnNlEiIKBG9yZ3MYASADKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIjAKEFJlbmFtZU9yZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBG5hbWUYAiABKAkiEwoRUmVuYW1lT3JnUmVzcG9uc2UiigEKBk1lbWJlchIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlEi0KCWpvaW5lZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiJAoSTGlzdE1lbWJlcnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSI/ChNMaXN0TWVtYmVyc1Jlc3BvbnNlEigKB21lbWJlcnMYASADKAsyFy5yYXB0b3IucGFuZWwudjEuTWVtYmVyIlwKFFNldE1lbWJlclJvbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEiMKBHJvbGUYAyABKA4yFS5yYXB0b3IucGFuZWwudjEuUm9sZSIXChVTZXRNZW1iZXJSb2xlUmVzcG9uc2UiNgoTUmVtb3ZlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCSIWChRSZW1vdmVNZW1iZXJSZXNwb25zZSKsAQoKSW52aXRhdGlvbhIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIjCgRyb2xlGAMgASgOMhUucmFwdG9yLnBhbmVsLnYxLlJvbGUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWQoTSW52aXRlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFZW1haWwYAiABKAkSIwoEcm9sZRgDIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIkcKFEludml0ZU1lbWJlclJlc3BvbnNlEi8KCmludml0YXRpb24YASABKAsyGy5yYXB0b3IucGFuZWwudjEuSW52aXRhdGlvbiIoChZMaXN0SW52aXRhdGlvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSJLChdMaXN0SW52aXRhdGlvbnNSZXNwb25zZRIwCgtpbnZpdGF0aW9ucxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5JbnZpdGF0aW9uIkAKF1Jldm9rZUludml0YXRpb25SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIVCg1pbnZpdGF0aW9uX2lkGAIgASgJIhoKGFJldm9rZUludml0YXRpb25SZXNwb25zZSIoChdBY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBINCgV0b2tlbhgBIAEoCSI9ChhBY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2USIQoDb3JnGAEgASgLMhQucmFwdG9yLnBhbmVsLnYxLk9yZyI2ChZDcmVhdGVKb2luVG9rZW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJIlgKF0NyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjkKE0xpc3RBdWRpdExvZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkiXAoUTGlzdEF1ZGl0TG9nUmVzcG9uc2USKwoGZXZlbnRzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkF1ZGl0RXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJInIKFlNldFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJEg8KB3VzZXJfaWQYBCABKAkSEwoLcGVybWlzc2lvbnMYBSADKAkiGQoXU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiTQoXTGlzdFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIkMKDFNlcnZlckFjY2VzcxIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEhMKC3Blcm1pc3Npb25zGAMgAygJIkkKGExpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZRItCgZhY2Nlc3MYASADKAsyHS5yYXB0b3IucGFuZWwudjEuU2VydmVyQWNjZXNzIiIKEExpc3ROb2Rlc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJIr4BCgROb2RlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIc2hvcnRfaWQYAyABKAkSFQoNd2luZ3NfdmVyc2lvbhgEIAEoCRIRCgljb25uZWN0ZWQYBSABKAgSMAoMbGFzdF9zZWVuX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCI5ChFMaXN0Tm9kZXNSZXNwb25zZRIkCgVub2RlcxgBIAMoCzIVLnJhcHRvci5wYW5lbC52MS5Ob2RlIjUKEkxpc3RTZXJ2ZXJzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCSJYCgZTZXJ2ZXISCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghlZ2dfbmFtZRgEIAEoCRITCgtwZXJtaXNzaW9ucxgFIAMoCSI/ChNMaXN0U2VydmVyc1Jlc3BvbnNlEigKB3NlcnZlcnMYASADKAsyFy5yYXB0b3IucGFuZWwudjEuU2VydmVyKk0KBFJvbGUSFAoQUk9MRV9VTlNQRUNJRklFRBAAEg8KC1JPTEVfTUVNQkVSEAESDgoKUk9MRV9BRE1JThACEg4KClJPTEVfT1dORVIQAzKmDAoKT3JnU2VydmljZRJUCglDcmVhdGVPcmcSIS5yYXB0b3IucGFuZWwudjEuQ3JlYXRlT3JnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5DcmVhdGVPcmdSZXNwb25zZSIAElQKCExpc3RPcmdzEiAucmFwdG9yLnBhbmVsLnYxLkxpc3RPcmdzUmVxdWVzdBohLnJhcHRvci5wYW5lbC52MS5MaXN0T3Jnc1Jlc3BvbnNlIgOQAgESVAoJUmVuYW1lT3JnEiEucmFwdG9yLnBhbmVsLnYxLlJlbmFtZU9yZ1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuUmVuYW1lT3JnUmVzcG9uc2UiABJdCgtMaXN0TWVtYmVycxIjLnJhcHRvci5wYW5lbC52MS5MaXN0TWVtYmVyc1JlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuTGlzdE1lbWJlcnNSZXNwb25zZSIDkAIBEmAKDVNldE1lbWJlclJvbGUSJS5yYXB0b3IucGFuZWwudjEuU2V0TWVtYmVyUm9sZVJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuU2V0TWVtYmVyUm9sZVJlc3BvbnNlIgASXQoMUmVtb3ZlTWVtYmVyEiQucmFwdG9yLnBhbmVsLnYxLlJlbW92ZU1lbWJlclJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTWVtYmVyUmVzcG9uc2UiABJdCgxJbnZpdGVNZW1iZXISJC5yYXB0b3IucGFuZWwudjEuSW52aXRlTWVtYmVyUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5JbnZpdGVNZW1iZXJSZXNwb25zZSIAEmkKD0xpc3RJbnZpdGF0aW9ucxInLnJhcHRvci5wYW5lbC52MS5MaXN0SW52aXRhdGlvbnNSZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkxpc3RJbnZpdGF0aW9uc1Jlc3BvbnNlIgOQAgESaQoQUmV2b2tlSW52aXRhdGlvbhIoLnJhcHRvci5wYW5lbC52MS5SZXZva2VJbnZpdGF0aW9uUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5SZXZva2VJbnZpdGF0aW9uUmVzcG9uc2UiABJpChBBY2NlcHRJbnZpdGF0aW9uEigucmFwdG9yLnBhbmVsLnYxLkFjY2VwdEludml0YXRpb25SZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLkFjY2VwdEludml0YXRpb25SZXNwb25zZSIAEmYKD0NyZWF0ZUpvaW5Ub2tlbhInLnJhcHRvci5wYW5lbC52MS5DcmVhdGVKb2luVG9rZW5SZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlIgASZgoPU2V0U2VydmVyQWNjZXNzEicucmFwdG9yLnBhbmVsLnYxLlNldFNlcnZlckFjY2Vzc1JlcXVlc3QaKC5yYXB0b3IucGFuZWwudjEuU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiABJsChBMaXN0U2VydmVyQWNjZXNzEigucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJBY2Nlc3NSZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZSIDkAIBElcKCUxpc3ROb2RlcxIhLnJhcHRvci5wYW5lbC52MS5MaXN0Tm9kZXNSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkxpc3ROb2Rlc1Jlc3BvbnNlIgOQAgESXQoLTGlzdFNlcnZlcnMSIy5yYXB0b3IucGFuZWwudjEuTGlzdFNlcnZlcnNSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJzUmVzcG9uc2UiA5ACARJgCgxMaXN0QXVkaXRMb2cSJC5yYXB0b3IucGFuZWwudjEuTGlzdEF1ZGl0TG9nUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5MaXN0QXVkaXRMb2dSZXNwb25zZSIDkAIBQsgBChNjb20ucmFwdG9yLnBhbmVsLnYxQghPcmdQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_raptor_panel_v1_audit]);
 
 /**
  * @generated from message raptor.panel.v1.Org
@@ -698,6 +698,169 @@ export const ListServerAccessResponseSchema: GenMessage<ListServerAccessResponse
   messageDesc(file_raptor_panel_v1_org, 31);
 
 /**
+ * @generated from message raptor.panel.v1.ListNodesRequest
+ */
+export type ListNodesRequest = Message<"raptor.panel.v1.ListNodesRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListNodesRequest.
+ * Use `create(ListNodesRequestSchema)` to create a new message.
+ */
+export const ListNodesRequestSchema: GenMessage<ListNodesRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 32);
+
+/**
+ * @generated from message raptor.panel.v1.Node
+ */
+export type Node = Message<"raptor.panel.v1.Node"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * n-<short_id>.raptornodes.net
+   *
+   * @generated from field: string short_id = 3;
+   */
+  shortId: string;
+
+  /**
+   * @generated from field: string wings_version = 4;
+   */
+  wingsVersion: string;
+
+  /**
+   * @generated from field: bool connected = 5;
+   */
+  connected: boolean;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp last_seen_at = 6;
+   */
+  lastSeenAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 7;
+   */
+  createdAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.Node.
+ * Use `create(NodeSchema)` to create a new message.
+ */
+export const NodeSchema: GenMessage<Node> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 33);
+
+/**
+ * @generated from message raptor.panel.v1.ListNodesResponse
+ */
+export type ListNodesResponse = Message<"raptor.panel.v1.ListNodesResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.Node nodes = 1;
+   */
+  nodes: Node[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListNodesResponse.
+ * Use `create(ListNodesResponseSchema)` to create a new message.
+ */
+export const ListNodesResponseSchema: GenMessage<ListNodesResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 34);
+
+/**
+ * @generated from message raptor.panel.v1.ListServersRequest
+ */
+export type ListServersRequest = Message<"raptor.panel.v1.ListServersRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListServersRequest.
+ * Use `create(ListServersRequestSchema)` to create a new message.
+ */
+export const ListServersRequestSchema: GenMessage<ListServersRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 35);
+
+/**
+ * @generated from message raptor.panel.v1.Server
+ */
+export type Server = Message<"raptor.panel.v1.Server"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * "running", "offline", "starting", ...
+   *
+   * @generated from field: string state = 3;
+   */
+  state: string;
+
+  /**
+   * @generated from field: string egg_name = 4;
+   */
+  eggName: string;
+
+  /**
+   * What the caller may do on it ("*" for admins and owners: everything).
+   *
+   * @generated from field: repeated string permissions = 5;
+   */
+  permissions: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.Server.
+ * Use `create(ServerSchema)` to create a new message.
+ */
+export const ServerSchema: GenMessage<Server> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 36);
+
+/**
+ * @generated from message raptor.panel.v1.ListServersResponse
+ */
+export type ListServersResponse = Message<"raptor.panel.v1.ListServersResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.Server servers = 1;
+   */
+  servers: Server[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListServersResponse.
+ * Use `create(ListServersResponseSchema)` to create a new message.
+ */
+export const ListServersResponseSchema: GenMessage<ListServersResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 37);
+
+/**
  * @generated from enum raptor.panel.v1.Role
  */
 export enum Role {
@@ -876,6 +1039,29 @@ export const OrgService: GenService<{
     methodKind: "unary";
     input: typeof ListServerAccessRequestSchema;
     output: typeof ListServerAccessResponseSchema;
+  },
+  /**
+   * ListNodes lists the org's nodes. Admins and owners see all of them;
+   * members see the ones with servers they have access to.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.ListNodes
+   */
+  listNodes: {
+    methodKind: "unary";
+    input: typeof ListNodesRequestSchema;
+    output: typeof ListNodesResponseSchema;
+  },
+  /**
+   * ListServers lists a node's servers as the Panel's mirror has them, with
+   * what the caller may do on each. Members see only the servers they have
+   * access to.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.ListServers
+   */
+  listServers: {
+    methodKind: "unary";
+    input: typeof ListServersRequestSchema;
+    output: typeof ListServersResponseSchema;
   },
   /**
    * ListAuditLog lists the org's audit log, newest first, 50 at a time.

@@ -2,6 +2,7 @@ import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
+import { CommandService } from "@/gen/raptor/panel/v1/command_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 
 // The API: https://api.raptorpanel.net/api in production (VITE_API_URL, a
@@ -18,3 +19,4 @@ export const transport = createConnectTransport({
 // Plain clients, for code outside React components (route guards).
 export const authClient = createClient(AuthService, transport);
 export const orgClient = createClient(OrgService, transport);
+export const commandClient = createClient(CommandService, transport);
