@@ -53,6 +53,7 @@ environment:
   PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID, _CLIENT_SECRET
                                OAuth apps; each provider is offered once both are set
   PANEL_TURNSTILE_SECRET       Cloudflare Turnstile secret for the email sign-in form
+  PANEL_TURNSTILE_HOSTNAME     where the widget must be solved (verify.raptorpanel.net)
   PANEL_RESEND_API_KEY         Resend API key (sending access only) for the Panel's email
   PANEL_MAIL_FROM              the sender, e.g. Raptor <no-reply@mail.raptorpanel.net>
   PANEL_MAIL_LOG=1             development only: write emails (codes included) to the log
@@ -162,7 +163,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.AppOrigin = envOr("PANEL_APP_URL", "https://app.raptorpanel.net")
 		cfg.Auth = &auth.Service{DB: pool, AppURL: cfg.AppOrigin, ClientIPHeader: os.Getenv("PANEL_CLIENT_IP_HEADER"), Log: log}
 		if secret := os.Getenv("PANEL_TURNSTILE_SECRET"); secret != "" {
-			cfg.Auth.Turnstile = auth.Turnstile{Secret: secret}
+			cfg.Auth.Turnstile = auth.Turnstile{Secret: secret, Hostname: os.Getenv("PANEL_TURNSTILE_HOSTNAME")}
 		}
 		wa, err := auth.NewWebAuthn(cfg.AppOrigin)
 		if err != nil {

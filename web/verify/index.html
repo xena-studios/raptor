@@ -1,0 +1,26 @@
+<!doctype html>
+<!--
+  Cloudflare Turnstile for the email sign-in form (docs/DECISIONS.md #192).
+  Served from its own hostname (verify.raptorpanel.net), never the app's:
+  Turnstile's script is the only third-party code in the sign-in flow, and
+  here it runs in a different origin from the one passkeys belong to
+  (app.raptorpanel.net), in an iframe that isn't allowed to use them. It
+  only hands the app a token, by postMessage.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Raptor verification</title>
+    <style>
+      html, body { margin: 0; background: transparent; }
+      #widget { display: flex; justify-content: center; }
+    </style>
+  </head>
+  <body>
+    <div id="widget"></div>
+    <script src="./verify.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&amp;render=explicit" async defer></script>
+  </body>
+</html>

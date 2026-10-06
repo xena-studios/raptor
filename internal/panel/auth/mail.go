@@ -52,6 +52,12 @@ type Verifier interface {
 // Turnstile is Cloudflare Turnstile's server-side check.
 type Turnstile struct {
 	Secret string
+	// Hostname, if set, is where the widget must have been solved: the
+	// separate verify page (docs/DECISIONS.md #192), so a token from a widget
+	// on some other site with our site key isn't accepted.
+	Hostname string
+	// URL is siteverify's (Cloudflare's, unless testing).
+	URL    string
 	Client *http.Client
 }
 
@@ -64,7 +70,11 @@ func (t Turnstile) Verify(ctx context.Context, token, ip string) error {
 	if ip != "" {
 		form.Set("remoteip", ip)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://challenges.cloudflare.com/turnstile/v0/siteverify", bytes.NewBufferString(form.Encode()))
+	endpoint := t.URL
+	if endpoint == "" {
+		endpoint = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBufferString(form.Encode())) //nolint:gosec // Cloudflare's, or a test's
 	if err != nil {
 		return err
 	}
@@ -79,14 +89,18 @@ func (t Turnstile) Verify(ctx context.Context, token, ip string) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	var r struct {
-		Success bool     `json:"success"`
-		Errors  []string `json:"error-codes"`
+		Success  bool     `json:"success"`
+		Errors   []string `json:"error-codes"`
+		Hostname string   `json:"hostname"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
 		return err
 	}
 	if !r.Success {
 		return fmt.Errorf("turnstile: %v", r.Errors)
+	}
+	if t.Hostname != "" && r.Hostname != t.Hostname {
+		return fmt.Errorf("turnstile: solved on %q, not %q", r.Hostname, t.Hostname)
 	}
 	return nil
 }

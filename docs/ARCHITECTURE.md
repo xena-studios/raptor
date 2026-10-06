@@ -62,6 +62,7 @@ The landing page (`raptorpanel.net`) is an **Astro** site in `site/`, and the do
 | `api.raptorpanel.net` | `panel serve api`: Connect API, browser WebSockets, node connections | Panel servers, Cloudflare proxy |
 | `docs.raptorpanel.net` | Docs site | Static |
 | `get.raptorpanel.net` | Install script | Static |
+| `verify.raptorpanel.net` | The Turnstile page the sign-in form embeds (`web/verify`), apart from the app's origin | Static |
 | `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |
 | Mail sending subdomain | SPF/DKIM for transactional email | Resend |
 | `n-<short-id>.raptornodes.net`, `<name>.raptornodes.net` | Node hostnames and player subdomains | DNS-only; the apex redirects to `raptorpanel.net` |
