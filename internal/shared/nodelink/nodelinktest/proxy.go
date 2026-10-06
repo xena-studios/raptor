@@ -26,19 +26,31 @@ type Proxy struct {
 
 // NewProxy listens on localhost and forwards to target until the test ends.
 func NewProxy(t *testing.T, target string) *Proxy {
-	ln, err := new(net.ListenConfig).Listen(context.Background(), "tcp", "127.0.0.1:0")
+	p, err := Listen(target)
 	if err != nil {
 		t.Fatal(err)
+	}
+	t.Cleanup(p.Close)
+	return p
+}
+
+// Listen starts a proxy on localhost that forwards to target.
+func Listen(target string) (*Proxy, error) {
+	ln, err := new(net.ListenConfig).Listen(context.Background(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, err
 	}
 	p := &Proxy{Addr: ln.Addr().String(), ln: ln, target: target}
 	p.gate = sync.NewCond(&p.mu)
 	go p.serve()
-	t.Cleanup(func() {
-		_ = ln.Close()
-		p.Thaw()
-		p.Cut()
-	})
-	return p
+	return p, nil
+}
+
+// Close stops the proxy and closes its connections.
+func (p *Proxy) Close() {
+	_ = p.ln.Close()
+	p.Thaw()
+	p.Cut()
 }
 
 func (p *Proxy) serve() {
