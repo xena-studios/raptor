@@ -104,19 +104,28 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			return err
 		}
 		cfg.Nodes = reg
+		router := &nodes.Router{DB: pool, ID: nodes.NewInstanceID(), Log: log}
 		cfg.Hub = &nodes.Hub{
 			PanelKey: reg.PanelKey, NodeKey: reg.NodeKey, Log: log,
 			OnConnect: func(ctx context.Context, h nodelink.Hello) {
+				router.Connected(ctx, h)
 				if err := reg.Connected(ctx, h); err != nil {
 					log.Error("recording a node connection", "node", h.NodeID, "err", err)
 				}
 			},
 			OnDisconnect: func(ctx context.Context, id string) {
+				router.Disconnected(ctx, id)
 				if err := reg.Disconnected(ctx, id); err != nil {
 					log.Error("recording a node disconnection", "node", id, "err", err)
 				}
 			},
 		}
+		router.Hub = cfg.Hub
+		if err := router.Start(ctx); err != nil {
+			return fmt.Errorf("panel instance: %w", err)
+		}
+		cfg.Router = router
+		log.Info("panel instance", "id", router.ID)
 		reg.KeyChanged = cfg.Hub.Disconnect
 		mirror := &nodes.Mirror{DB: pool, Hub: cfg.Hub, Log: log}
 		cfg.Hub.EventsAvailable = func(_ context.Context, id string, _ int64) { mirror.Notify(id) }

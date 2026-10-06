@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -37,13 +38,14 @@ type Hub struct {
 	Log          *slog.Logger
 	Keepalive    nodelink.Keepalive // for tests
 
-	once    sync.Once
-	ctx     context.Context
-	cancel  context.CancelFunc
-	mu      sync.Mutex
-	conns   map[string]*Conn
-	changed chan struct{}                     // closed and replaced when a node connects
-	pending map[string]chan *nodelink.Session // transfers being opened, by node/transfer
+	once     sync.Once
+	ctx      context.Context
+	cancel   context.CancelFunc
+	mu       sync.Mutex
+	conns    map[string]*Conn
+	changed  chan struct{}                     // closed and replaced when a node connects
+	pending  map[string]chan *nodelink.Session // transfers being opened, by node/transfer
+	draining atomic.Bool
 }
 
 // Conn is a connected node.
@@ -69,6 +71,13 @@ func (h *Hub) init() {
 // ServeHTTP accepts a node connection and serves it until it drops.
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.init()
+	if h.draining.Load() {
+		// This instance is shutting down; the node retries and lands on
+		// another one.
+		w.Header().Set("Retry-After", "1")
+		http.Error(w, "this Panel instance is shutting down", http.StatusServiceUnavailable)
+		return
+	}
 	s, err := nodelink.Accept(h.ctx, w, r, nodelink.AcceptConfig{PanelKey: h.PanelKey, NodeKey: h.NodeKey, Keepalive: h.Keepalive})
 	if err != nil {
 		h.Log.Info("node connection refused", "remote", r.RemoteAddr, "err", err)
@@ -172,6 +181,34 @@ func (h *Hub) Wait(ctx context.Context, nodeID string) (*Conn, error) {
 // replaced or revoked). A node with a valid key reconnects.
 func (h *Hub) Disconnect(nodeID string) {
 	if c, ok := h.Conn(nodeID); ok {
+		_ = c.Session.Close()
+	}
+}
+
+// Drain hands this instance's nodes to the others before it stops: it refuses
+// new node connections, then closes the ones it has spread evenly over
+// window, so the nodes reconnect (to another instance) a few at a time
+// instead of all at once (docs/RELIABILITY.md#deploys).
+func (h *Hub) Drain(ctx context.Context, window time.Duration) {
+	h.init()
+	h.draining.Store(true)
+	h.mu.Lock()
+	conns := make([]*Conn, 0, len(h.conns))
+	for _, c := range h.conns {
+		conns = append(conns, c)
+	}
+	h.mu.Unlock()
+	if len(conns) == 0 {
+		return
+	}
+	gap := window / time.Duration(len(conns))
+	for i, c := range conns {
+		if i > 0 {
+			select {
+			case <-time.After(gap):
+			case <-ctx.Done():
+			}
+		}
 		_ = c.Session.Close()
 	}
 }

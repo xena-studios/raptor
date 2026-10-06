@@ -59,7 +59,10 @@ func (p *Proxy) serve() {
 		if err != nil {
 			return
 		}
-		u, err := new(net.Dialer).DialContext(context.Background(), "tcp", p.target)
+		p.mu.Lock()
+		target := p.target
+		p.mu.Unlock()
+		u, err := new(net.Dialer).DialContext(context.Background(), "tcp", target)
 		if err != nil {
 			_ = c.Close()
 			continue
@@ -94,6 +97,13 @@ func (p *Proxy) pipe(dst, src net.Conn) {
 		}
 	}
 	_ = dst.Close()
+}
+
+// SetTarget points new connections somewhere else (existing ones stay).
+func (p *Proxy) SetTarget(target string) {
+	p.mu.Lock()
+	p.target = target
+	p.mu.Unlock()
 }
 
 // Cut closes every connection through the proxy.

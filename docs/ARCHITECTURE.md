@@ -39,7 +39,7 @@
 A single Go binary, `panel serve api`: the HTTP/Connect API, WebSockets for browsers **and for nodes**, background jobs (River), and billing webhooks. It runs behind the **Cloudflare proxy** on its own origin, `api.raptorpanel.net`, and can run as several instances.
 
 - There's no separate tunnel process. A deploy disconnects every node for a moment; Wings reconnects on its own with random delays (see [Node connection](#node-connection)), and servers are never affected.
-- With several instances, a request may land on an instance that doesn't hold the target node's connection. It's forwarded to the instance that does through Postgres `LISTEN/NOTIFY`.
+- With several instances, a request may land on an instance that doesn't hold the target node's connection. It's forwarded to the instance that does through Postgres (`internal/panel/nodes.Router`): each instance records the nodes it holds (`node_connections`) and says it's alive every 5 seconds (`panel_instances`; one silent for 20 seconds is ignored). A forwarded command is a row in `node_requests` (unlogged); `NOTIFY` on the holder's channel says it's there, and on the sender's that it's answered, with a poll every 2 seconds in case a notification is missed. The holder claims a request before running it, so it runs once; if the holder goes away, the sender retries with the same `command_id` wherever the node reconnects. File transfers still need the instance holding the node (forwarding them comes with the web file manager).
 
 The only infrastructure is **Postgres**. No Redis, no NATS, no message broker.
 

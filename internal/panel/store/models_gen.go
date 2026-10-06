@@ -82,8 +82,35 @@ type Node struct {
 	CreatedAt       pgtype.Timestamptz
 }
 
+type NodeConnection struct {
+	NodeID      pgtype.UUID
+	InstanceID  string
+	ConnectedAt pgtype.Timestamptz
+}
+
+type NodeRequest struct {
+	ID        int64
+	NodeID    pgtype.UUID
+	Origin    string
+	Target    string
+	Method    string
+	Request   []byte
+	Response  []byte
+	ErrorCode string
+	Error     string
+	CreatedAt pgtype.Timestamptz
+	ClaimedAt pgtype.Timestamptz
+	DoneAt    pgtype.Timestamptz
+}
+
 type Org struct {
 	ID        pgtype.UUID
 	Name      string
 	CreatedAt pgtype.Timestamptz
+}
+
+type PanelInstance struct {
+	ID        string
+	StartedAt pgtype.Timestamptz
+	SeenAt    pgtype.Timestamptz
 }
