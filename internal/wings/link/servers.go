@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"connectrpc.com/connect"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
+	"github.com/xena-studios/raptor/internal/wings/backup"
+	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 )
 
@@ -17,6 +20,16 @@ type Servers interface {
 	List() map[string]server.State
 	Get(ctx context.Context, id string) (*server.Server, error)
 	Status(id string) (server.Status, error)
+}
+
+// Schedules lists a server's schedules (*schedule.Scheduler).
+type Schedules interface {
+	List(ctx context.Context, serverID string) ([]*schedule.Schedule, error)
+}
+
+// Backups lists a server's backups (*backup.Manager).
+type Backups interface {
+	List(ctx context.Context, serverID string) ([]*backup.Backup, error)
 }
 
 // maxServersPerCall bounds GetServers with named IDs.
@@ -63,6 +76,9 @@ func (s *service) GetServers(ctx context.Context, req *nodev1.GetServersRequest)
 		if err != nil {
 			return nil, err
 		}
+		if err := s.addSchedulesAndBackups(ctx, pb); err != nil {
+			return nil, err
+		}
 		out.Servers = append(out.Servers, pb)
 	}
 	return out, nil
@@ -91,4 +107,48 @@ func serverProto(s *server.Server, state string) (*nodev1.Server, error) {
 		InstallState: s.InstallState, InstallError: s.InstallError, EggName: egg, EggSource: s.EggSource,
 		Config: cfg, CreatedAt: s.CreatedAt.UnixMilli(), UpdatedAt: s.UpdatedAt.UnixMilli(),
 	}, nil
+}
+
+func (s *service) addSchedulesAndBackups(ctx context.Context, pb *nodev1.Server) error {
+	if s.l.cfg.Schedules != nil {
+		if sch := s.l.cfg.Schedules(); sch != nil {
+			list, err := sch.List(ctx, pb.GetId())
+			if err != nil {
+				return err
+			}
+			for _, sc := range list {
+				def, err := json.Marshal(sc.Definition)
+				if err != nil {
+					return err
+				}
+				pb.Schedules = append(pb.Schedules, &nodev1.Schedule{
+					Id: sc.ID, Name: sc.Name, Enabled: sc.Enabled, Version: sc.Version,
+					NextRun: unixMilli(sc.NextRun), LastRun: unixMilli(sc.LastRun), Definition: def,
+				})
+			}
+		}
+	}
+	if s.l.cfg.Backups != nil {
+		if bk := s.l.cfg.Backups(); bk != nil {
+			list, err := bk.List(ctx, pb.GetId())
+			if err != nil {
+				return err
+			}
+			for _, b := range list {
+				pb.Backups = append(pb.Backups, &nodev1.Backup{
+					Id: b.ID, Kind: b.Kind, Status: b.Status, Locked: b.Locked, Size: b.Size, Files: b.Files,
+					DestinationId: b.DestinationID, Error: b.Error, Warning: b.Warning, CreatedBy: b.CreatedBy,
+					CreatedAt: unixMilli(b.CreatedAt), FinishedAt: unixMilli(b.FinishedAt), ExpiresAt: unixMilli(b.ExpiresAt),
+				})
+			}
+		}
+	}
+	return nil
+}
+
+func unixMilli(t time.Time) int64 {
+	if t.IsZero() {
+		return 0
+	}
+	return t.UnixMilli()
 }

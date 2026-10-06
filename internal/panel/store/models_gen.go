@@ -19,6 +19,36 @@ type JoinToken struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type MBackup struct {
+	NodeID        pgtype.UUID
+	ServerID      string
+	BackupID      string
+	Kind          string
+	Status        string
+	Locked        bool
+	Size          int64
+	Files         int64
+	DestinationID string
+	Error         string
+	Warning       string
+	CreatedBy     string
+	CreatedAt     pgtype.Timestamptz
+	FinishedAt    pgtype.Timestamptz
+	ExpiresAt     pgtype.Timestamptz
+}
+
+type MSchedule struct {
+	NodeID     pgtype.UUID
+	ServerID   string
+	ScheduleID string
+	Name       string
+	Enabled    bool
+	Version    int64
+	NextRun    pgtype.Timestamptz
+	LastRun    pgtype.Timestamptz
+	Definition []byte
+}
+
 type MServer struct {
 	NodeID       pgtype.UUID
 	ServerID     string
