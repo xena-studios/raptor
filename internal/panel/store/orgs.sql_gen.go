@@ -158,6 +158,42 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID pgtype.UUID) ([]pgtyp
 	return items, nil
 }
 
+const nodeServers = `-- name: NodeServers :many
+SELECT server_id, name, state, egg_name FROM m_servers WHERE node_id = $1 ORDER BY name, server_id
+`
+
+type NodeServersRow struct {
+	ServerID string
+	Name     string
+	State    string
+	EggName  string
+}
+
+func (q *Queries) NodeServers(ctx context.Context, nodeID pgtype.UUID) ([]NodeServersRow, error) {
+	rows, err := q.db.Query(ctx, nodeServers, nodeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []NodeServersRow
+	for rows.Next() {
+		var i NodeServersRow
+		if err := rows.Scan(
+			&i.ServerID,
+			&i.Name,
+			&i.State,
+			&i.EggName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const orgMember = `-- name: OrgMember :one
 SELECT org_id, user_id, role, created_at FROM org_members WHERE org_id = $1 AND user_id = $2
 `
@@ -209,6 +245,52 @@ func (q *Queries) OrgMembers(ctx context.Context, orgID pgtype.UUID) ([]OrgMembe
 			&i.CreatedAt,
 			&i.Email,
 			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const orgNodes = `-- name: OrgNodes :many
+SELECT n.id, n.name, n.short_id, n.wings_version, n.last_seen_at, n.created_at,
+       (c.node_id IS NOT NULL)::bool AS connected
+FROM nodes n LEFT JOIN node_connections c ON c.node_id = n.id
+WHERE n.org_id = $1 AND n.deleted_at IS NULL
+ORDER BY n.created_at
+`
+
+type OrgNodesRow struct {
+	ID           pgtype.UUID
+	Name         string
+	ShortID      string
+	WingsVersion string
+	LastSeenAt   pgtype.Timestamptz
+	CreatedAt    pgtype.Timestamptz
+	Connected    bool
+}
+
+func (q *Queries) OrgNodes(ctx context.Context, orgID pgtype.UUID) ([]OrgNodesRow, error) {
+	rows, err := q.db.Query(ctx, orgNodes, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrgNodesRow
+	for rows.Next() {
+		var i OrgNodesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ShortID,
+			&i.WingsVersion,
+			&i.LastSeenAt,
+			&i.CreatedAt,
+			&i.Connected,
 		); err != nil {
 			return nil, err
 		}
@@ -322,6 +404,42 @@ func (q *Queries) SetOrgMemberRole(ctx context.Context, arg SetOrgMemberRolePara
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const userGrantsInOrg = `-- name: UserGrantsInOrg :many
+SELECT node_id, server_id, permissions FROM server_grants WHERE org_id = $1 AND user_id = $2
+`
+
+type UserGrantsInOrgParams struct {
+	OrgID  pgtype.UUID
+	UserID pgtype.UUID
+}
+
+type UserGrantsInOrgRow struct {
+	NodeID      pgtype.UUID
+	ServerID    string
+	Permissions []string
+}
+
+// A member's server grants in an org.
+func (q *Queries) UserGrantsInOrg(ctx context.Context, arg UserGrantsInOrgParams) ([]UserGrantsInOrgRow, error) {
+	rows, err := q.db.Query(ctx, userGrantsInOrg, arg.OrgID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserGrantsInOrgRow
+	for rows.Next() {
+		var i UserGrantsInOrgRow
+		if err := rows.Scan(&i.NodeID, &i.ServerID, &i.Permissions); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const userOrgs = `-- name: UserOrgs :many
