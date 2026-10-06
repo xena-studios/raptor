@@ -196,7 +196,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Transactional email provider on its own sending subdomain (DNS: SPF, DKIM, DMARC)
 - [ ] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks)
 - [x] Orgs, members, roles, invitations (`OrgService`; join tokens from the API, with re-auth)
-- [ ] Postgres RLS by `org_id`
+- [x] Postgres RLS by `org_id` (requests for a user run as `raptor_app`; the Panel's own work as the owner)
 - [ ] Audit log
 
 ### 3.3 Nodes

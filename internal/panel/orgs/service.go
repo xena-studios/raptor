@@ -102,28 +102,44 @@ func orgName(n string) (string, error) {
 	return n, nil
 }
 
-// member checks the caller is in org with at least role min. Outsiders get
-// NOT_FOUND, so org IDs reveal nothing.
-func (s *Service) member(ctx context.Context, q *store.Queries, orgID string, min string) (*auth.Session, pgtype.UUID, string, error) {
+// asUser runs fn in a transaction as the signed-in user: as the database
+// role raptor_app with raptor.user_id set, so row-level security only shows
+// their orgs (db/panel/migrations/00013_rls.sql) even if a check here is
+// missing.
+func (s *Service) asUser(ctx context.Context, fn func(sess *auth.Session, q *store.Queries) error) error {
 	sess, err := s.Auth.Current(ctx)
 	if err != nil {
-		return nil, pgtype.UUID{}, "", err
+		return err
 	}
+	return pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE raptor_app"); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, "SELECT set_config('raptor.user_id', $1, true)", idString(sess.UserID)); err != nil {
+			return err
+		}
+		return fn(sess, store.New(tx))
+	})
+}
+
+// member checks the user is in org with at least role min. Outsiders get
+// NOT_FOUND, so org IDs reveal nothing.
+func member(ctx context.Context, q *store.Queries, sess *auth.Session, orgID, min string) (pgtype.UUID, string, error) {
 	org, err := parseID(orgID, "org")
 	if err != nil {
-		return nil, org, "", err
+		return org, "", err
 	}
 	m, err := q.OrgMember(ctx, store.OrgMemberParams{OrgID: org, UserID: sess.UserID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, org, "", errNotFound
+		return org, "", errNotFound
 	}
 	if err != nil {
-		return nil, org, "", err
+		return org, "", err
 	}
 	if roleRank[m.Role] < roleRank[min] {
-		return nil, org, "", errDenied
+		return org, "", errDenied
 	}
-	return sess, org, m.Role, nil
+	return org, m.Role, nil
 }
 
 // CreateOrg implements OrgService.
@@ -164,33 +180,34 @@ func (s *Service) CreateOrg(ctx context.Context, req *panelv1.CreateOrgRequest) 
 
 // ListOrgs implements OrgService.
 func (s *Service) ListOrgs(ctx context.Context, _ *panelv1.ListOrgsRequest) (*panelv1.ListOrgsResponse, error) {
-	sess, err := s.Auth.Current(ctx)
-	if err != nil {
-		return nil, err
-	}
-	rows, err := store.New(s.DB).UserOrgs(ctx, sess.UserID)
-	if err != nil {
-		return nil, err
-	}
 	out := &panelv1.ListOrgsResponse{}
-	for _, r := range rows {
-		out.Orgs = append(out.Orgs, &panelv1.Org{Id: idString(r.ID), Name: r.Name, CreatedAt: timestamppb.New(r.CreatedAt.Time), Role: roleProto(r.Role)})
+	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		rows, err := q.UserOrgs(ctx, sess.UserID)
+		for _, r := range rows {
+			out.Orgs = append(out.Orgs, &panelv1.Org{Id: idString(r.ID), Name: r.Name, CreatedAt: timestamppb.New(r.CreatedAt.Time), Role: roleProto(r.Role)})
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
 	}
 	return out, nil
 }
 
 // RenameOrg implements OrgService.
 func (s *Service) RenameOrg(ctx context.Context, req *panelv1.RenameOrgRequest) (*panelv1.RenameOrgResponse, error) {
-	q := store.New(s.DB)
-	_, org, _, err := s.member(ctx, q, req.GetOrgId(), "admin")
-	if err != nil {
-		return nil, err
-	}
 	name, err := orgName(req.GetName())
 	if err != nil {
 		return nil, err
 	}
-	if err := q.RenameOrg(ctx, store.RenameOrgParams{ID: org, Name: name}); err != nil {
+	err = s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "admin")
+		if err != nil {
+			return err
+		}
+		return q.RenameOrg(ctx, store.RenameOrgParams{ID: org, Name: name})
+	})
+	if err != nil {
 		return nil, err
 	}
 	return &panelv1.RenameOrgResponse{}, nil
@@ -198,20 +215,22 @@ func (s *Service) RenameOrg(ctx context.Context, req *panelv1.RenameOrgRequest) 
 
 // ListMembers implements OrgService.
 func (s *Service) ListMembers(ctx context.Context, req *panelv1.ListMembersRequest) (*panelv1.ListMembersResponse, error) {
-	q := store.New(s.DB)
-	_, org, _, err := s.member(ctx, q, req.GetOrgId(), "member")
-	if err != nil {
-		return nil, err
-	}
-	rows, err := q.OrgMembers(ctx, org)
-	if err != nil {
-		return nil, err
-	}
 	out := &panelv1.ListMembersResponse{}
-	for _, r := range rows {
-		out.Members = append(out.Members, &panelv1.Member{
-			UserId: idString(r.UserID), Email: r.Email, Name: r.Name, Role: roleProto(r.Role), JoinedAt: timestamppb.New(r.CreatedAt.Time),
-		})
+	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "member")
+		if err != nil {
+			return err
+		}
+		rows, err := q.OrgMembers(ctx, org)
+		for _, r := range rows {
+			out.Members = append(out.Members, &panelv1.Member{
+				UserId: idString(r.UserID), Email: r.Email, Name: r.Name, Role: roleProto(r.Role), JoinedAt: timestamppb.New(r.CreatedAt.Time),
+			})
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -241,9 +260,8 @@ func (s *Service) SetMemberRole(ctx context.Context, req *panelv1.SetMemberRoleR
 	if err != nil {
 		return nil, err
 	}
-	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		_, org, _, err := s.member(ctx, q, req.GetOrgId(), "owner")
+	err = s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "owner")
 		if err != nil {
 			return err
 		}
@@ -273,9 +291,8 @@ func (s *Service) RemoveMember(ctx context.Context, req *panelv1.RemoveMemberReq
 	if err != nil {
 		return nil, err
 	}
-	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		sess, org, myRole, err := s.member(ctx, q, req.GetOrgId(), "member")
+	err = s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, myRole, err := member(ctx, q, sess, req.GetOrgId(), "member")
 		if err != nil {
 			return err
 		}
@@ -314,17 +331,9 @@ func invitationProto(i store.OrgInvitation) *panelv1.Invitation {
 
 // InviteMember implements OrgService.
 func (s *Service) InviteMember(ctx context.Context, req *panelv1.InviteMemberRequest) (*panelv1.InviteMemberResponse, error) {
-	q := store.New(s.DB)
-	sess, org, myRole, err := s.member(ctx, q, req.GetOrgId(), "admin")
-	if err != nil {
-		return nil, err
-	}
 	role, err := roleName(req.GetRole())
 	if err != nil {
 		return nil, err
-	}
-	if roleRank[role] > roleRank[myRole] {
-		return nil, errDenied
 	}
 	email, err := auth.NormalizeEmail(req.GetEmail())
 	if err != nil {
@@ -333,24 +342,37 @@ func (s *Service) InviteMember(ctx context.Context, req *panelv1.InviteMemberReq
 	if s.Auth.Mailer == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("email isn't set up on this Panel"))
 	}
-	// Invitations send email on the org's behalf, so they're limited like
-	// sign-in codes are.
-	if err := s.Auth.RateLimit(ctx, "invite:org:"+idString(org), invitesPerDay, 24*time.Hour); err != nil {
-		return nil, err
-	}
-	if n, err := q.CountPendingInvitations(ctx, org); err != nil {
-		return nil, err
-	} else if n >= MaxPending {
-		return nil, connect.NewError(connect.CodeResourceExhausted, fmt.Errorf("an org can have up to %d pending invitations", MaxPending))
-	}
-	o, err := q.GetOrg(ctx, org)
-	if err != nil {
-		return nil, err
-	}
 	token := auth.NewToken()
-	inv, err := q.CreateInvitation(ctx, store.CreateInvitationParams{
-		OrgID: org, Email: email, Role: role, TokenHash: auth.HashToken(token), InvitedBy: sess.UserID,
-		ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(InvitationTTL), Valid: true},
+	var inv store.OrgInvitation
+	var orgName, inviter string
+	err = s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, myRole, err := member(ctx, q, sess, req.GetOrgId(), "admin")
+		if err != nil {
+			return err
+		}
+		if roleRank[role] > roleRank[myRole] {
+			return errDenied
+		}
+		// Invitations send email on the org's behalf, so they're limited
+		// like sign-in codes are.
+		if err := s.Auth.RateLimit(ctx, "invite:org:"+idString(org), invitesPerDay, 24*time.Hour); err != nil {
+			return err
+		}
+		if n, err := q.CountPendingInvitations(ctx, org); err != nil {
+			return err
+		} else if n >= MaxPending {
+			return connect.NewError(connect.CodeResourceExhausted, fmt.Errorf("an org can have up to %d pending invitations", MaxPending))
+		}
+		o, err := q.GetOrg(ctx, org)
+		if err != nil {
+			return err
+		}
+		orgName, inviter = o.Name, sess.User.Email
+		inv, err = q.CreateInvitation(ctx, store.CreateInvitationParams{
+			OrgID: org, Email: email, Role: role, TokenHash: auth.HashToken(token), InvitedBy: sess.UserID,
+			ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(InvitationTTL), Valid: true},
+		})
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -358,8 +380,8 @@ func (s *Service) InviteMember(ctx context.Context, req *panelv1.InviteMemberReq
 	// The token goes after #, like sign-in links, so it stays out of logs.
 	link := strings.TrimSuffix(s.Auth.AppURL, "/") + "/invite#" + token
 	body := fmt.Sprintf("%s invited you to join %q on Raptor as %s.\n\nAccept the invitation, signed in as %s:\n%s\n\nIt works for 7 days. If you weren't expecting it, ignore it.\n",
-		sess.User.Email, o.Name, articled(role), email, link)
-	if err := s.Auth.Mailer.Send(ctx, email, fmt.Sprintf("Join %s on Raptor", o.Name), body); err != nil {
+		inviter, orgName, articled(role), email, link)
+	if err := s.Auth.Mailer.Send(ctx, email, fmt.Sprintf("Join %s on Raptor", orgName), body); err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("couldn't send the email; try again in a minute"))
 	}
 	return &panelv1.InviteMemberResponse{Invitation: invitationProto(inv)}, nil
@@ -374,39 +396,43 @@ func articled(role string) string {
 
 // ListInvitations implements OrgService.
 func (s *Service) ListInvitations(ctx context.Context, req *panelv1.ListInvitationsRequest) (*panelv1.ListInvitationsResponse, error) {
-	q := store.New(s.DB)
-	_, org, _, err := s.member(ctx, q, req.GetOrgId(), "admin")
-	if err != nil {
-		return nil, err
-	}
-	rows, err := q.PendingInvitations(ctx, org)
-	if err != nil {
-		return nil, err
-	}
 	out := &panelv1.ListInvitationsResponse{}
-	for _, r := range rows {
-		out.Invitations = append(out.Invitations, invitationProto(r))
+	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "admin")
+		if err != nil {
+			return err
+		}
+		rows, err := q.PendingInvitations(ctx, org)
+		for _, r := range rows {
+			out.Invitations = append(out.Invitations, invitationProto(r))
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
 	}
 	return out, nil
 }
 
 // RevokeInvitation implements OrgService.
 func (s *Service) RevokeInvitation(ctx context.Context, req *panelv1.RevokeInvitationRequest) (*panelv1.RevokeInvitationResponse, error) {
-	q := store.New(s.DB)
-	_, org, _, err := s.member(ctx, q, req.GetOrgId(), "admin")
-	if err != nil {
-		return nil, err
-	}
 	id, err := parseID(req.GetInvitationId(), "invitation")
 	if err != nil {
 		return nil, err
 	}
-	n, err := q.RevokeInvitation(ctx, store.RevokeInvitationParams{ID: id, OrgID: org})
+	err = s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "admin")
+		if err != nil {
+			return err
+		}
+		n, err := q.RevokeInvitation(ctx, store.RevokeInvitationParams{ID: id, OrgID: org})
+		if err == nil && n == 0 {
+			return connect.NewError(connect.CodeNotFound, errors.New("no such pending invitation"))
+		}
+		return err
+	})
 	if err != nil {
 		return nil, err
-	}
-	if n == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("no such pending invitation"))
 	}
 	return &panelv1.RevokeInvitationResponse{}, nil
 }
@@ -473,7 +499,14 @@ func (s *Service) CreateJoinToken(ctx context.Context, req *panelv1.CreateJoinTo
 	if s.Registry == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("nodes can't be linked to this Panel"))
 	}
-	sess, org, _, err := s.member(ctx, store.New(s.DB), req.GetOrgId(), "admin")
+	var sess *auth.Session
+	var org pgtype.UUID
+	err := s.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
+		var err error
+		sess = se
+		org, _, err = member(ctx, q, se, req.GetOrgId(), "admin")
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
