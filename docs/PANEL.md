@@ -21,7 +21,7 @@ Configured by environment (`panel` with no arguments lists them all):
 - `PANEL_DATA_KEY`: the file whose key encrypts TOTP secrets; without it, two-factor authentication is off. Back it up like the signing key.
 - `PANEL_APP_URL` (the web app's origin, the only one browsers may call from, and the passkey RP ID) and `PANEL_API_URL` (for OAuth callbacks).
 - `PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID` and `_CLIENT_SECRET`, `PANEL_TURNSTILE_SECRET`, `PANEL_CLIENT_IP_HEADER`, `PANEL_NODE_DOMAIN`, `PANEL_CLOUDFLARE_DNS_TOKEN`, `PANEL_CLOUDFLARE_ZONE_ID`.
-- `PANEL_RESEND_API_KEY` and `PANEL_MAIL_FROM` (as `Raptor <no-reply@mail.raptorpanel.net>`): email through Resend. `PANEL_MAIL_LOG=1`, development only, sends emails (codes included) to the log instead; setting both is an error, and with neither, email sign-in and invitations are off.
+- `PANEL_RESEND_API_KEY` and `PANEL_MAIL_FROM` (as `Raptor <no-reply@mail.raptorpanel.net>`): email through Resend. `PANEL_MAIL_LOG=1`, development only, sends emails (codes included) to the log instead, and to `PANEL_MAIL_LOG_FILE` as plain text if set (`task dev:mail` shows them); setting both is an error, and with neither, email sign-in and invitations are off.
 
 Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, for development and operators, `panel org create <name>` (an org with no members) and `panel join-token <org-id>`; users make orgs and join tokens through the API (`OrgService`). `panel rollout start <version>` (and `status`, `pause`, `resume`, `cancel`) runs a staged Wings update ([WINGS.md](WINGS.md#updates)).
 

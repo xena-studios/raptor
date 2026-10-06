@@ -44,10 +44,17 @@ tasks:
       PANEL_DATA_KEY: .dev/panel-data.key
       PANEL_APP_URL: http://localhost:5173
       PANEL_MAIL_LOG: "1"
+      PANEL_MAIL_LOG_FILE: .dev/mail.txt
     cmds:
       - test -f .dev/panel-signing.key || go run ./cmd/panel keygen .dev/panel-signing.key
       - test -f .dev/panel-data.key || go run ./cmd/panel keygen .dev/panel-data.key
       - go run ./cmd/panel serve api
+
+  dev:mail:
+    desc: "Show the dev Panel's emails (sign-in codes, invitations) as they arrive"
+    cmds:
+      - mkdir -p .dev && touch .dev/mail.txt
+      - tail -n 40 -F .dev/mail.txt
 
   dev:join-token:
     desc: "A join token for the dev Panel (making a dev org the first time); link the dev VM with: task dev:link"
