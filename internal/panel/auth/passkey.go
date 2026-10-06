@@ -450,6 +450,7 @@ func passkeyProto(r store.Passkey) *panelv1.Passkey {
 	var c webauthn.Credential
 	if json.Unmarshal(r.Credential, &c) == nil {
 		out.Synced = c.Flags.BackupEligible
+		out.CredentialId, out.PublicKey = c.ID, c.PublicKey
 	}
 	return out
 }

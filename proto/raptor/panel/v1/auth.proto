@@ -253,6 +253,11 @@ message Passkey {
   // The passkey is synced between devices (iCloud Keychain, Google Password
   // Manager) rather than bound to one device or security key.
   bool synced = 5;
+  // For trusting it on a node (keys.pair, keys.add): its WebAuthn
+  // credential ID and COSE public key. The browser computes the fingerprint
+  // it shows from the key it signs with, not from anything the Panel says.
+  bytes credential_id = 6;
+  bytes public_key = 7;
 }
 
 message ListPasskeysRequest {}

@@ -1,18 +1,25 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Play, RotateCw, Square, Users } from "lucide-react";
-import { useState } from "react";
+import { KeyRound, Play, RotateCw, Square, Trash2, Users } from "lucide-react";
+import { type FormEvent, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AuthService, type Passkey } from "@/gen/raptor/panel/v1/auth_pb";
 import { OrgService, Role, type Server } from "@/gen/raptor/panel/v1/org_pb";
+import { keyFingerprint } from "@/lib/canonical";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
 import { requireSession } from "@/lib/session";
+import { sendSigned } from "@/lib/signed";
 import { commandClient, orgClient } from "@/lib/transport";
+import { passkeyCancelled } from "@/lib/webauthn";
 
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId")({
   beforeLoad: ({ location }) => requireSession(location),
@@ -70,8 +77,10 @@ function NodePage() {
             orgId={orgId}
             nodeId={nodeId}
             admin={isAdmin(org?.role)}
+            userId={session.user?.id ?? ""}
           />
         ))}
+        {isAdmin(org?.role) && <PairKey nodeId={nodeId} userId={session.user?.id ?? ""} />}
       </div>
     </AppShell>
   );
@@ -82,17 +91,44 @@ function ServerCard({
   orgId,
   nodeId,
   admin,
+  userId,
 }: {
   server: Server;
   orgId: string;
   nodeId: string;
   admin: boolean;
+  userId: string;
 }) {
+  const passkeys = useQuery(AuthService.method.listPasskeys, {});
   const client = useQueryClient();
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [sharing, setSharing] = useState(false);
   const can = (p: string) => server.permissions.includes("*") || server.permissions.includes(p);
+
+  // Deleting is signed by the user's passkey; Wings checks the signature.
+  async function remove() {
+    const typed = window.prompt(
+      `Delete "${server.name}" and all its files? Type its name to confirm.`,
+    );
+    if (typed !== server.name) return;
+    setBusy("server.delete");
+    setError("");
+    try {
+      await sendSigned({
+        userId,
+        nodeId,
+        action: "server.delete",
+        serverId: server.id,
+        allow: (passkeys.data?.passkeys ?? []).map((p) => p.credentialId),
+      });
+      await client.invalidateQueries();
+    } catch (err) {
+      if (!passkeyCancelled(err)) setError(message(err));
+    } finally {
+      setBusy("");
+    }
+  }
 
   async function power(action: string) {
     setBusy(action);
@@ -144,6 +180,17 @@ function ServerCard({
                 <Square /> Stop
               </Button>
             </>
+          )}
+          {admin && (
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={`Delete ${server.name}`}
+              disabled={!!busy}
+              onClick={remove}
+            >
+              <Trash2 />
+            </Button>
           )}
           {admin && (
             <Button
@@ -215,5 +262,109 @@ function Access({ orgId, nodeId, serverId }: { orgId: string; nodeId: string; se
         </div>
       ))}
     </div>
+  );
+}
+
+const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+
+// PairKey trusts one of the user's passkeys on this node after root ran
+// `raptor keys reset` there: the passkey signs keys.pair with the code
+// from the box, and root confirms the fingerprint shown here on the box.
+function PairKey({ nodeId, userId }: { nodeId: string; userId: string }) {
+  const passkeys = useQuery(AuthService.method.listPasskeys, {});
+  const [code, setCode] = useState("");
+  const [chosen, setChosen] = useState("");
+  const [fingerprint, setFingerprint] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const list = passkeys.data?.passkeys ?? [];
+  const key: Passkey | undefined = list.find((p) => p.id === chosen) ?? list[0];
+
+  async function pair(e: FormEvent) {
+    e.preventDefault();
+    if (!key) return;
+    setError("");
+    setBusy(true);
+    try {
+      // The fingerprint comes from the key this page signs with, so a
+      // Panel that swapped in its own key can't make them match.
+      const mine = await keyFingerprint(key.publicKey);
+      const res = await sendSigned({
+        userId,
+        nodeId,
+        action: "keys.pair",
+        params: {
+          code,
+          credential_id: b64(key.credentialId),
+          public_key: b64(key.publicKey),
+          user_id: userId,
+          name: key.name,
+        },
+        allow: [key.credentialId],
+      });
+      const theirs = (JSON.parse(res.resultJson || "{}") as { fingerprint?: string }).fingerprint;
+      if (theirs && theirs !== mine)
+        throw new Error("The node reports a different key. Don't confirm it on the node.");
+      setFingerprint(mine);
+      setCode("");
+    } catch (err) {
+      if (!passkeyCancelled(err)) setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <KeyRound className="size-4" /> Trust a passkey on this node
+        </CardTitle>
+        <CardDescription>
+          Deleting servers and other dangerous actions must be signed by a passkey the node trusts.
+          On the node, run <code>sudo raptor keys reset</code>, then enter the code it shows.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {fingerprint ? (
+          <Alert>
+            <AlertDescription>
+              Now confirm on the node that it shows this fingerprint, and only then: <br />
+              <code className="text-base font-semibold">{fingerprint}</code>
+            </AlertDescription>
+          </Alert>
+        ) : list.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Add a passkey in Security first.</p>
+        ) : (
+          <form onSubmit={pair} className="flex flex-col gap-2">
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Label htmlFor="pair-code">Pairing code</Label>
+            <Input
+              id="pair-code"
+              required
+              autoComplete="off"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            <Label htmlFor="pair-key">Passkey</Label>
+            <select
+              id="pair-key"
+              className="rounded-md border bg-background px-2 py-1.5 text-sm"
+              value={key?.id}
+              onChange={(e) => setChosen(e.target.value)}
+            >
+              {list.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <Button type="submit" className="self-start" disabled={busy}>
+              Sign with this passkey
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
   );
 }

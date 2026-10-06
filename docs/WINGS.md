@@ -67,7 +67,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 node_id: 0192f0a4-...            # assigned at enrollment
 panel:
   url: https://api.raptorpanel.net  # never hardcoded in Wings
-  app_url: https://app.raptorpanel.net  # passkey origin and RP ID for signed commands
+  app_url: https://app.raptorpanel.net  # passkey origin and RP ID for signed commands (https; http only for localhost, a dev web app)
 identity:                        # written at enrollment, root-only 0600
   key: /etc/raptor/node.key      # the node's private key; generated on the box, never leaves it
   panel_key: /etc/raptor/panel.pub  # the Panel's signing key, pinned at enrollment

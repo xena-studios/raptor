@@ -394,8 +394,11 @@ func LoadPanelKey(path string) (ed25519.PublicKey, error) {
 // subdomain can obtain signatures (docs/DECISIONS.md #82).
 func RelyingPartyFor(appURL string) (RelyingParty, error) {
 	u, err := url.Parse(appURL)
-	if err != nil || u.Scheme != "https" || u.Hostname() == "" || (u.Path != "" && u.Path != "/") {
+	// http only for localhost: a development web app, which browsers treat
+	// as a secure context for passkeys.
+	secure := u != nil && (u.Scheme == "https" || (u.Scheme == "http" && u.Hostname() == "localhost"))
+	if err != nil || !secure || u.Hostname() == "" || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.User != nil {
 		return RelyingParty{}, fmt.Errorf("panel.app_url %q must be an https origin like https://app.raptorpanel.net", appURL)
 	}
-	return RelyingParty{Origin: "https://" + u.Host, ID: u.Hostname()}, nil
+	return RelyingParty{Origin: u.Scheme + "://" + u.Host, ID: u.Hostname()}, nil
 }

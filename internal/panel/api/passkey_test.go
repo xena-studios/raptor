@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -240,6 +241,9 @@ func TestPasskeys(t *testing.T) {
 	list, err := b3.auth.ListPasskeys(ctx, &panelv1.ListPasskeysRequest{})
 	if err != nil || len(list.GetPasskeys()) != 1 || list.GetPasskeys()[0].GetLastUsedAt() == nil {
 		t.Fatalf("list: %v, %v", list, err)
+	}
+	if pk := list.GetPasskeys()[0]; !bytes.Equal(pk.GetCredentialId(), laptop.CredentialID) || !bytes.Equal(pk.GetPublicKey(), laptop.COSE) {
+		t.Errorf("credential ID and public key: %x %x", pk.GetCredentialId(), pk.GetPublicKey())
 	}
 	id := list.GetPasskeys()[0].GetId()
 	if _, err := b3.auth.BeginPasskeyRegistration(ctx, &panelv1.BeginPasskeyRegistrationRequest{}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
