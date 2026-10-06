@@ -140,9 +140,13 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	reportUpdate(ctx, updates.StatePath, rt.events, log)
 	rt.check(ctx)
 
+	actions.RegisterUpdates(rt.commands, updates, actions.UpdatePolicy{
+		Automatic: cfg.Updates.Automatic, Pin: cfg.Updates.Pin, Current: buildinfo.Version,
+	})
 	linkDone := make(chan struct{})
 	if lk := newLink(cfg, rt, log); lk != nil {
 		svc.Link = lk
+		rt.link = lk
 		go func() { _ = lk.Run(ctx); close(linkDone) }()
 	} else {
 		close(linkDone)
@@ -219,6 +223,7 @@ type runtimeSetup struct {
 
 	events         *events.Outbox
 	commandsReady  atomic.Bool // every command is registered
+	link           *link.Link  // nil if the node isn't linked
 	transfers      atomic.Pointer[files.Service]
 	serversReady   atomic.Pointer[server.Manager]
 	schedulesReady atomic.Pointer[schedule.Scheduler]
@@ -333,10 +338,19 @@ func (r *runtimeSetup) backupRunner(systemd bool) (backup.Runner, error) {
 
 // ready tells an update's launcher that this version is healthy, once the
 // runtime is up (the local API is already serving).
+// ready tells an update trial that this version works: its container runtime
+// is ready and, on a linked node, it got its node connection back
+// (docs/WINGS.md#updates).
 func (r *runtimeSetup) ready() {
-	if r.rules != nil {
-		update.Ready()
+	// commandsReady, not rules: this is also called from the link's
+	// goroutine, and it's set once setup is done.
+	if !r.commandsReady.Load() {
+		return
 	}
+	if r.link != nil && r.link.Status().State != link.Connected {
+		return
+	}
+	update.Ready()
 }
 
 func (r *runtimeSetup) check(ctx context.Context) {
@@ -525,6 +539,8 @@ func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
 		PanelURL: cfg.Panel.URL, NodeID: cfg.NodeID, NodeKey: nodeKey, PanelKey: rt.commands.PanelKey,
 		Software: buildinfo.Version, Commands: rt.commands, CommandsReady: rt.commandsReady.Load,
 		Events: rt.events, Log: log,
+		// A version on trial is healthy only once it's connected again.
+		OnConnected: rt.ready,
 		Servers: func() link.Servers {
 			if m := rt.serversReady.Load(); m != nil {
 				return m

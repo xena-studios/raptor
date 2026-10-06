@@ -98,6 +98,7 @@ storage:
 updates:
   channel: stable
   pin: ""                        # e.g. "1.4.2": install this version and stay on it
+  automatic: true                # the Panel's staged rollouts may update this node
 log:
   level: info
 notifications: []                # see Notifications below
@@ -243,7 +244,7 @@ Every change on the node is appended to `events` with a **monotonic sequence num
 - **Panel grant:** an Ed25519 signature by the Panel's pinned key over the user, node, command ID, action, and server. Bound to one command, so it can't be reused. No Panel key (not linked yet) means every command is refused.
 - **Passkey signature** for dangerous actions, verified by Wings itself.
 - **Exactly once:** each `command_id` runs at most once. A retry of the same command returns the stored result (even after it expired); the same ID with different content is refused. Records are kept 7 days. Commands left running by a Wings crash are marked failed on start.
-- **Actions** (`internal/wings/actions`): `server.create` (signed), `server.update` (signed when it changes the egg, image, or startup command, decided by Wings from its own records), `server.delete` (signed), `server.reinstall`, `server.start`/`stop`/`restart`/`kill`, `server.command`, `schedule.create`/`update`/`delete`/`run` (unsigned: a schedule can only do what the user could already do unsigned), `backup.create`, `backup.restore` (signed), `backup.delete` (signed), `backup.lock` (signed to unlock), `backup.policy.update` (signed when it lowers any keep value), `backup.destination.save`/`delete`, and `keys.add`/`keys.remove` (signed by an owner key).
+- **Actions** (`internal/wings/actions`): `server.create` (signed), `server.update` (signed when it changes the egg, image, or startup command, decided by Wings from its own records), `server.delete` (signed), `server.reinstall`, `server.start`/`stop`/`restart`/`kill`, `server.command`, `schedule.create`/`update`/`delete`/`run` (unsigned: a schedule can only do what the user could already do unsigned), `backup.create`, `backup.restore` (signed), `backup.delete` (signed), `backup.lock` (signed to unlock), `backup.policy.update` (signed when it lowers any keep value), `backup.destination.save`/`delete`, `keys.add`/`keys.remove` (signed by an owner key), and `node.update` (unsigned, see [Updates](#updates)).
 
 ## Node connection
 
@@ -439,7 +440,9 @@ Methods are added to the proto as the features behind them are built, so the API
 
 ## Updates
 
-`raptor update` (root) installs the newest release in the node's channel, the version pinned in `config.yml`, or the one given with `-version` (which can be older). `raptor update -check` shows what it would install. Until the Panel starts updates (Phase 3, staged 5% → 25% → 100%), they only happen when the owner runs it.
+`raptor update` (root) installs the newest release in the node's channel, the version pinned in `config.yml`, or the one given with `-version` (which can be older). `raptor update -check` shows what it would install.
+
+The Panel's staged rollouts (5% → 25% → 100%) send **`node.update`** with a version. It's unsigned, because a rollout has no user to sign it, so what it can do is narrow: the same signed-release checks as `raptor update`, only a version **newer** than the running one, and not at all on a node with `updates.automatic: false` or a pinned version, or a development build.
 
 - **Source:** the project's GitHub releases. `stable` has full releases, `beta` pre-releases too. A channel never moves a node backwards (switching from `beta` to `stable` waits for the next stable release); a pin or `-version` can.
 - **Verification**, before anything is run or installed: download `checksums.txt` and `checksums.txt.minisig` → **verify the signature** with the public key built into the binary (`release/minisign.pub`) → check the signature's trusted comment is `raptor <tag> checksums.txt`, so an old signed release can't be served as a new one → download `raptor_linux_<arch>` (at most 256 MiB) → **verify its SHA-256** → run it with `version` and check it's the version it should be.
@@ -450,7 +453,7 @@ Methods are added to the proto as the features behind them are built, so the API
 - **The trial protocol can never change**, since every version is started by an older one: the child gets `RAPTOR_UPDATE_TRIAL=1` and a pipe on fd 3, and writes `ready\n` to it.
 - **Requirements:** Wings must run from `/usr/local/lib/raptor` under systemd (a binary started any other way refuses to update), and the container runtime must be ready, since the new version couldn't be judged healthy otherwise. Only one update at a time.
 - SQLite migrations never break the previous minor version's ability to read state (so rollback is safe), or they block rollback explicitly. An older binary opens a database with newer migrations applied without complaint (goose ignores versions it doesn't know).
-- Planned: the health check also requires the node connection to come back (Phase 3).
+- On a linked node, the trial's health check also requires the **node connection to come back**: a version that can't reach the Panel is rolled back like one that crashes.
 
 ## Pterodactyl import
 

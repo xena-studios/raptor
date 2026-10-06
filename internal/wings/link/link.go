@@ -44,6 +44,8 @@ type Config struct {
 	// UNAVAILABLE and the Panel retries.
 	CommandsReady func() bool
 	Events        *events.Outbox
+	// OnConnected is called each time the connection comes up.
+	OnConnected func()
 	// Transfers returns the file service once it's ready (nil before).
 	Transfers func() Transfers
 	// Servers, Schedules, and Backups return the services once they're
@@ -191,6 +193,9 @@ func (l *Link) connect(ctx context.Context) error {
 	l.mu.Unlock()
 	l.setState(Connected, nil)
 	l.log.Info("connected to the Panel")
+	if l.cfg.OnConnected != nil {
+		l.cfg.OnConnected()
+	}
 	defer func() {
 		_ = s.Close()
 		l.mu.Lock()
