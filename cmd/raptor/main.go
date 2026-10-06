@@ -28,6 +28,9 @@ const usage = `usage: raptor <command> [flags]
 
 commands:
   status      show node status (talks to the running daemon)
+  bootstrap -token <rpt_join_…> [-storage image|disk|soft] [-size s] [-yes]
+              set up this box as a node and link it (root): Docker, the
+              raptor user, services, the server data volume, then link
   link -token <rpt_join_…> [-panel url]
               link this node to the Panel with a join token (root); Wings
               restarts and connects, servers keep running
@@ -120,6 +123,8 @@ func run(args []string) error {
 		return importCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "tui":
 		return tuiCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "bootstrap":
+		return bootstrapCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "link":
 		return linkCmd(ctx, args[1:], false)
 	case len(args) >= 1 && args[0] == "relink":

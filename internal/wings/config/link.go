@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -15,6 +16,30 @@ import (
 // the file, comments included, is kept. The result must still be a valid
 // config.
 func SetLink(path, nodeID, panelURL string) error {
+	return edit(path, func(root *yaml.Node) {
+		if nodeID == "" {
+			removeKey(root, "node_id")
+		} else {
+			setKey(root, "node_id", nodeID)
+		}
+		if panelURL != "" {
+			setKey(child(root, "panel"), "url", panelURL)
+		}
+	})
+}
+
+// SetQuotas sets storage.quotas (off: soft limits) in the config file.
+func SetQuotas(path string, on bool) error {
+	return edit(path, func(root *yaml.Node) {
+		s := child(root, "storage")
+		setKey(s, "quotas", strconv.FormatBool(on))
+		s.Content[find(s, "quotas")+1].Tag = "!!bool"
+	})
+}
+
+// edit changes the config file at path, keeping the rest of it (comments
+// included). The result must still be a valid config.
+func edit(path string, change func(root *yaml.Node)) error {
 	data, err := os.ReadFile(path) //nolint:gosec // path is operator-provided
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
@@ -32,15 +57,7 @@ func SetLink(path, nodeID, panelURL string) error {
 	if root.Kind != yaml.MappingNode {
 		return errors.New("config: not a mapping")
 	}
-	if nodeID == "" {
-		removeKey(root, "node_id")
-	} else {
-		setKey(root, "node_id", nodeID)
-	}
-	if panelURL != "" {
-		panel := child(root, "panel")
-		setKey(panel, "url", panelURL)
-	}
+	change(root)
 	var out bytes.Buffer
 	enc := yaml.NewEncoder(&out)
 	enc.SetIndent(2)
