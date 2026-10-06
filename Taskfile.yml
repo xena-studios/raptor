@@ -398,6 +398,11 @@ tasks:
     cmds:
       - limactl shell {{.SOAK_VM | default "raptor-soak"}} sudo /var/lib/raptor-soak/soak.sh stop
 
+  e2e:bootstrap:
+    desc: "raptor bootstrap on a fresh VM (BOOT_VM, default raptor-boot; DISTRO: debian-12, debian-13, ubuntu-24.04): bootstrap, rerun, doctor, reboot. Needs task dev running"
+    cmds:
+      - scripts/e2e-bootstrap.sh {{.BOOT_VM | default "raptor-boot"}} {{.DISTRO | default "debian-12"}}
+
   gate:link:
     desc: "The node connection through Cloudflare (Phase 3.0 gate): a quick tunnel, then rpc, cut, transfer; ARGS='-idle 4h' holds it idle too (needs cloudflared)"
     cmds:

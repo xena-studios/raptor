@@ -47,3 +47,21 @@ func TestSetLink(t *testing.T) {
 		t.Errorf("new file: %+v, %v", cfg, err)
 	}
 }
+
+func TestSetQuotas(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(p, []byte("# mine\nlog:\n  level: info\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetQuotas(p, false); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(p)
+	if err != nil || cfg.Storage.Quotas {
+		t.Fatalf("quotas: %+v, %v", cfg.Storage, err)
+	}
+	b, _ := os.ReadFile(p)
+	if !strings.Contains(string(b), "# mine") || !strings.Contains(string(b), "quotas: false") {
+		t.Errorf("file:\n%s", b)
+	}
+}

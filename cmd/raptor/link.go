@@ -53,6 +53,26 @@ func linkCmd(ctx context.Context, args []string, relink bool) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	o := linkOptions{token: *token, panelURL: *panelURL, cfgPath: *cfgPath, noRestart: *noRestart, relink: relink}
+	if nodeID != nil {
+		o.nodeID = *nodeID
+	}
+	return doLink(ctx, o)
+}
+
+type linkOptions struct {
+	token, panelURL, cfgPath, nodeID string
+	noRestart, relink                bool
+}
+
+// doLink is link and relink (and bootstrap's last step).
+func doLink(ctx context.Context, o linkOptions) error {
+	name := "link"
+	if o.relink {
+		name = "relink"
+	}
+	relink := o.relink
+	token, panelURL, cfgPath, noRestart, nodeID := &o.token, &o.panelURL, &o.cfgPath, &o.noRestart, &o.nodeID
 	if *token == "" {
 		return fmt.Errorf("usage: raptor %s -token rpt_join_… (make a token in the Panel: Add Node)", name)
 	}
