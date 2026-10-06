@@ -49,6 +49,32 @@ const (
 	// AuthServiceRevokeSessionProcedure is the fully-qualified name of the AuthService's RevokeSession
 	// RPC.
 	AuthServiceRevokeSessionProcedure = "/raptor.panel.v1.AuthService/RevokeSession"
+	// AuthServiceBeginPasskeySignInProcedure is the fully-qualified name of the AuthService's
+	// BeginPasskeySignIn RPC.
+	AuthServiceBeginPasskeySignInProcedure = "/raptor.panel.v1.AuthService/BeginPasskeySignIn"
+	// AuthServiceFinishPasskeySignInProcedure is the fully-qualified name of the AuthService's
+	// FinishPasskeySignIn RPC.
+	AuthServiceFinishPasskeySignInProcedure = "/raptor.panel.v1.AuthService/FinishPasskeySignIn"
+	// AuthServiceBeginPasskeyRegistrationProcedure is the fully-qualified name of the AuthService's
+	// BeginPasskeyRegistration RPC.
+	AuthServiceBeginPasskeyRegistrationProcedure = "/raptor.panel.v1.AuthService/BeginPasskeyRegistration"
+	// AuthServiceFinishPasskeyRegistrationProcedure is the fully-qualified name of the AuthService's
+	// FinishPasskeyRegistration RPC.
+	AuthServiceFinishPasskeyRegistrationProcedure = "/raptor.panel.v1.AuthService/FinishPasskeyRegistration"
+	// AuthServiceListPasskeysProcedure is the fully-qualified name of the AuthService's ListPasskeys
+	// RPC.
+	AuthServiceListPasskeysProcedure = "/raptor.panel.v1.AuthService/ListPasskeys"
+	// AuthServiceRenamePasskeyProcedure is the fully-qualified name of the AuthService's RenamePasskey
+	// RPC.
+	AuthServiceRenamePasskeyProcedure = "/raptor.panel.v1.AuthService/RenamePasskey"
+	// AuthServiceDeletePasskeyProcedure is the fully-qualified name of the AuthService's DeletePasskey
+	// RPC.
+	AuthServiceDeletePasskeyProcedure = "/raptor.panel.v1.AuthService/DeletePasskey"
+	// AuthServiceBeginReauthProcedure is the fully-qualified name of the AuthService's BeginReauth RPC.
+	AuthServiceBeginReauthProcedure = "/raptor.panel.v1.AuthService/BeginReauth"
+	// AuthServiceFinishReauthProcedure is the fully-qualified name of the AuthService's FinishReauth
+	// RPC.
+	AuthServiceFinishReauthProcedure = "/raptor.panel.v1.AuthService/FinishReauth"
 )
 
 // AuthServiceClient is a client for the raptor.panel.v1.AuthService service.
@@ -68,6 +94,31 @@ type AuthServiceClient interface {
 	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
 	// RevokeSession signs one of the user's devices out (or all but this one).
 	RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error)
+	// BeginPasskeySignIn starts a passkey sign-in. The browser passes
+	// options_json to navigator.credentials.get; no email is needed, since
+	// passkeys know their account.
+	BeginPasskeySignIn(context.Context, *v1.BeginPasskeySignInRequest) (*v1.BeginPasskeySignInResponse, error)
+	// FinishPasskeySignIn checks the passkey's answer and starts a session.
+	FinishPasskeySignIn(context.Context, *v1.FinishPasskeySignInRequest) (*v1.FinishPasskeySignInResponse, error)
+	// BeginPasskeyRegistration starts adding a passkey to the signed-in
+	// account. Needs a recent re-authentication.
+	BeginPasskeyRegistration(context.Context, *v1.BeginPasskeyRegistrationRequest) (*v1.BeginPasskeyRegistrationResponse, error)
+	// FinishPasskeyRegistration checks the new passkey and saves it.
+	FinishPasskeyRegistration(context.Context, *v1.FinishPasskeyRegistrationRequest) (*v1.FinishPasskeyRegistrationResponse, error)
+	// ListPasskeys lists the account's passkeys.
+	ListPasskeys(context.Context, *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error)
+	// RenamePasskey renames one of the account's passkeys.
+	RenamePasskey(context.Context, *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error)
+	// DeletePasskey removes one of the account's passkeys. Needs a recent
+	// re-authentication.
+	DeletePasskey(context.Context, *v1.DeletePasskeyRequest) (*v1.DeletePasskeyResponse, error)
+	// BeginReauth starts confirming it's really the user, before a sensitive
+	// account change: with a passkey if the account has one, otherwise with a
+	// code emailed to them.
+	BeginReauth(context.Context, *v1.BeginReauthRequest) (*v1.BeginReauthResponse, error)
+	// FinishReauth checks the passkey's answer or the emailed code. A
+	// re-authentication lasts 5 minutes.
+	FinishReauth(context.Context, *v1.FinishReauthRequest) (*v1.FinishReauthResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the raptor.panel.v1.AuthService service. By default,
@@ -119,17 +170,81 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("RevokeSession")),
 			connect.WithClientOptions(opts...),
 		),
+		beginPasskeySignIn: connect.NewClient[v1.BeginPasskeySignInRequest, v1.BeginPasskeySignInResponse](
+			httpClient,
+			baseURL+AuthServiceBeginPasskeySignInProcedure,
+			connect.WithSchema(authServiceMethods.ByName("BeginPasskeySignIn")),
+			connect.WithClientOptions(opts...),
+		),
+		finishPasskeySignIn: connect.NewClient[v1.FinishPasskeySignInRequest, v1.FinishPasskeySignInResponse](
+			httpClient,
+			baseURL+AuthServiceFinishPasskeySignInProcedure,
+			connect.WithSchema(authServiceMethods.ByName("FinishPasskeySignIn")),
+			connect.WithClientOptions(opts...),
+		),
+		beginPasskeyRegistration: connect.NewClient[v1.BeginPasskeyRegistrationRequest, v1.BeginPasskeyRegistrationResponse](
+			httpClient,
+			baseURL+AuthServiceBeginPasskeyRegistrationProcedure,
+			connect.WithSchema(authServiceMethods.ByName("BeginPasskeyRegistration")),
+			connect.WithClientOptions(opts...),
+		),
+		finishPasskeyRegistration: connect.NewClient[v1.FinishPasskeyRegistrationRequest, v1.FinishPasskeyRegistrationResponse](
+			httpClient,
+			baseURL+AuthServiceFinishPasskeyRegistrationProcedure,
+			connect.WithSchema(authServiceMethods.ByName("FinishPasskeyRegistration")),
+			connect.WithClientOptions(opts...),
+		),
+		listPasskeys: connect.NewClient[v1.ListPasskeysRequest, v1.ListPasskeysResponse](
+			httpClient,
+			baseURL+AuthServiceListPasskeysProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListPasskeys")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		renamePasskey: connect.NewClient[v1.RenamePasskeyRequest, v1.RenamePasskeyResponse](
+			httpClient,
+			baseURL+AuthServiceRenamePasskeyProcedure,
+			connect.WithSchema(authServiceMethods.ByName("RenamePasskey")),
+			connect.WithClientOptions(opts...),
+		),
+		deletePasskey: connect.NewClient[v1.DeletePasskeyRequest, v1.DeletePasskeyResponse](
+			httpClient,
+			baseURL+AuthServiceDeletePasskeyProcedure,
+			connect.WithSchema(authServiceMethods.ByName("DeletePasskey")),
+			connect.WithClientOptions(opts...),
+		),
+		beginReauth: connect.NewClient[v1.BeginReauthRequest, v1.BeginReauthResponse](
+			httpClient,
+			baseURL+AuthServiceBeginReauthProcedure,
+			connect.WithSchema(authServiceMethods.ByName("BeginReauth")),
+			connect.WithClientOptions(opts...),
+		),
+		finishReauth: connect.NewClient[v1.FinishReauthRequest, v1.FinishReauthResponse](
+			httpClient,
+			baseURL+AuthServiceFinishReauthProcedure,
+			connect.WithSchema(authServiceMethods.ByName("FinishReauth")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	startEmailSignIn  *connect.Client[v1.StartEmailSignInRequest, v1.StartEmailSignInResponse]
-	finishEmailSignIn *connect.Client[v1.FinishEmailSignInRequest, v1.FinishEmailSignInResponse]
-	getSession        *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
-	signOut           *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
-	listSessions      *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
-	revokeSession     *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
+	startEmailSignIn          *connect.Client[v1.StartEmailSignInRequest, v1.StartEmailSignInResponse]
+	finishEmailSignIn         *connect.Client[v1.FinishEmailSignInRequest, v1.FinishEmailSignInResponse]
+	getSession                *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
+	signOut                   *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
+	listSessions              *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	revokeSession             *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
+	beginPasskeySignIn        *connect.Client[v1.BeginPasskeySignInRequest, v1.BeginPasskeySignInResponse]
+	finishPasskeySignIn       *connect.Client[v1.FinishPasskeySignInRequest, v1.FinishPasskeySignInResponse]
+	beginPasskeyRegistration  *connect.Client[v1.BeginPasskeyRegistrationRequest, v1.BeginPasskeyRegistrationResponse]
+	finishPasskeyRegistration *connect.Client[v1.FinishPasskeyRegistrationRequest, v1.FinishPasskeyRegistrationResponse]
+	listPasskeys              *connect.Client[v1.ListPasskeysRequest, v1.ListPasskeysResponse]
+	renamePasskey             *connect.Client[v1.RenamePasskeyRequest, v1.RenamePasskeyResponse]
+	deletePasskey             *connect.Client[v1.DeletePasskeyRequest, v1.DeletePasskeyResponse]
+	beginReauth               *connect.Client[v1.BeginReauthRequest, v1.BeginReauthResponse]
+	finishReauth              *connect.Client[v1.FinishReauthRequest, v1.FinishReauthResponse]
 }
 
 // StartEmailSignIn calls raptor.panel.v1.AuthService.StartEmailSignIn.
@@ -186,6 +301,87 @@ func (c *authServiceClient) RevokeSession(ctx context.Context, req *v1.RevokeSes
 	return nil, err
 }
 
+// BeginPasskeySignIn calls raptor.panel.v1.AuthService.BeginPasskeySignIn.
+func (c *authServiceClient) BeginPasskeySignIn(ctx context.Context, req *v1.BeginPasskeySignInRequest) (*v1.BeginPasskeySignInResponse, error) {
+	response, err := c.beginPasskeySignIn.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// FinishPasskeySignIn calls raptor.panel.v1.AuthService.FinishPasskeySignIn.
+func (c *authServiceClient) FinishPasskeySignIn(ctx context.Context, req *v1.FinishPasskeySignInRequest) (*v1.FinishPasskeySignInResponse, error) {
+	response, err := c.finishPasskeySignIn.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// BeginPasskeyRegistration calls raptor.panel.v1.AuthService.BeginPasskeyRegistration.
+func (c *authServiceClient) BeginPasskeyRegistration(ctx context.Context, req *v1.BeginPasskeyRegistrationRequest) (*v1.BeginPasskeyRegistrationResponse, error) {
+	response, err := c.beginPasskeyRegistration.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// FinishPasskeyRegistration calls raptor.panel.v1.AuthService.FinishPasskeyRegistration.
+func (c *authServiceClient) FinishPasskeyRegistration(ctx context.Context, req *v1.FinishPasskeyRegistrationRequest) (*v1.FinishPasskeyRegistrationResponse, error) {
+	response, err := c.finishPasskeyRegistration.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListPasskeys calls raptor.panel.v1.AuthService.ListPasskeys.
+func (c *authServiceClient) ListPasskeys(ctx context.Context, req *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error) {
+	response, err := c.listPasskeys.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RenamePasskey calls raptor.panel.v1.AuthService.RenamePasskey.
+func (c *authServiceClient) RenamePasskey(ctx context.Context, req *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error) {
+	response, err := c.renamePasskey.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DeletePasskey calls raptor.panel.v1.AuthService.DeletePasskey.
+func (c *authServiceClient) DeletePasskey(ctx context.Context, req *v1.DeletePasskeyRequest) (*v1.DeletePasskeyResponse, error) {
+	response, err := c.deletePasskey.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// BeginReauth calls raptor.panel.v1.AuthService.BeginReauth.
+func (c *authServiceClient) BeginReauth(ctx context.Context, req *v1.BeginReauthRequest) (*v1.BeginReauthResponse, error) {
+	response, err := c.beginReauth.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// FinishReauth calls raptor.panel.v1.AuthService.FinishReauth.
+func (c *authServiceClient) FinishReauth(ctx context.Context, req *v1.FinishReauthRequest) (*v1.FinishReauthResponse, error) {
+	response, err := c.finishReauth.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthServiceHandler is an implementation of the raptor.panel.v1.AuthService service.
 type AuthServiceHandler interface {
 	// StartEmailSignIn emails a 6-digit code and a sign-in link for the
@@ -203,6 +399,31 @@ type AuthServiceHandler interface {
 	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
 	// RevokeSession signs one of the user's devices out (or all but this one).
 	RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error)
+	// BeginPasskeySignIn starts a passkey sign-in. The browser passes
+	// options_json to navigator.credentials.get; no email is needed, since
+	// passkeys know their account.
+	BeginPasskeySignIn(context.Context, *v1.BeginPasskeySignInRequest) (*v1.BeginPasskeySignInResponse, error)
+	// FinishPasskeySignIn checks the passkey's answer and starts a session.
+	FinishPasskeySignIn(context.Context, *v1.FinishPasskeySignInRequest) (*v1.FinishPasskeySignInResponse, error)
+	// BeginPasskeyRegistration starts adding a passkey to the signed-in
+	// account. Needs a recent re-authentication.
+	BeginPasskeyRegistration(context.Context, *v1.BeginPasskeyRegistrationRequest) (*v1.BeginPasskeyRegistrationResponse, error)
+	// FinishPasskeyRegistration checks the new passkey and saves it.
+	FinishPasskeyRegistration(context.Context, *v1.FinishPasskeyRegistrationRequest) (*v1.FinishPasskeyRegistrationResponse, error)
+	// ListPasskeys lists the account's passkeys.
+	ListPasskeys(context.Context, *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error)
+	// RenamePasskey renames one of the account's passkeys.
+	RenamePasskey(context.Context, *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error)
+	// DeletePasskey removes one of the account's passkeys. Needs a recent
+	// re-authentication.
+	DeletePasskey(context.Context, *v1.DeletePasskeyRequest) (*v1.DeletePasskeyResponse, error)
+	// BeginReauth starts confirming it's really the user, before a sensitive
+	// account change: with a passkey if the account has one, otherwise with a
+	// code emailed to them.
+	BeginReauth(context.Context, *v1.BeginReauthRequest) (*v1.BeginReauthResponse, error)
+	// FinishReauth checks the passkey's answer or the emailed code. A
+	// re-authentication lasts 5 minutes.
+	FinishReauth(context.Context, *v1.FinishReauthRequest) (*v1.FinishReauthResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -250,6 +471,61 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("RevokeSession")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceBeginPasskeySignInHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceBeginPasskeySignInProcedure,
+		svc.BeginPasskeySignIn,
+		connect.WithSchema(authServiceMethods.ByName("BeginPasskeySignIn")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceFinishPasskeySignInHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceFinishPasskeySignInProcedure,
+		svc.FinishPasskeySignIn,
+		connect.WithSchema(authServiceMethods.ByName("FinishPasskeySignIn")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceBeginPasskeyRegistrationHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceBeginPasskeyRegistrationProcedure,
+		svc.BeginPasskeyRegistration,
+		connect.WithSchema(authServiceMethods.ByName("BeginPasskeyRegistration")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceFinishPasskeyRegistrationHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceFinishPasskeyRegistrationProcedure,
+		svc.FinishPasskeyRegistration,
+		connect.WithSchema(authServiceMethods.ByName("FinishPasskeyRegistration")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceListPasskeysHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceListPasskeysProcedure,
+		svc.ListPasskeys,
+		connect.WithSchema(authServiceMethods.ByName("ListPasskeys")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceRenamePasskeyHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceRenamePasskeyProcedure,
+		svc.RenamePasskey,
+		connect.WithSchema(authServiceMethods.ByName("RenamePasskey")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceDeletePasskeyHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceDeletePasskeyProcedure,
+		svc.DeletePasskey,
+		connect.WithSchema(authServiceMethods.ByName("DeletePasskey")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceBeginReauthHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceBeginReauthProcedure,
+		svc.BeginReauth,
+		connect.WithSchema(authServiceMethods.ByName("BeginReauth")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceFinishReauthHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceFinishReauthProcedure,
+		svc.FinishReauth,
+		connect.WithSchema(authServiceMethods.ByName("FinishReauth")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceStartEmailSignInProcedure:
@@ -264,6 +540,24 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceListSessionsHandler.ServeHTTP(w, r)
 		case AuthServiceRevokeSessionProcedure:
 			authServiceRevokeSessionHandler.ServeHTTP(w, r)
+		case AuthServiceBeginPasskeySignInProcedure:
+			authServiceBeginPasskeySignInHandler.ServeHTTP(w, r)
+		case AuthServiceFinishPasskeySignInProcedure:
+			authServiceFinishPasskeySignInHandler.ServeHTTP(w, r)
+		case AuthServiceBeginPasskeyRegistrationProcedure:
+			authServiceBeginPasskeyRegistrationHandler.ServeHTTP(w, r)
+		case AuthServiceFinishPasskeyRegistrationProcedure:
+			authServiceFinishPasskeyRegistrationHandler.ServeHTTP(w, r)
+		case AuthServiceListPasskeysProcedure:
+			authServiceListPasskeysHandler.ServeHTTP(w, r)
+		case AuthServiceRenamePasskeyProcedure:
+			authServiceRenamePasskeyHandler.ServeHTTP(w, r)
+		case AuthServiceDeletePasskeyProcedure:
+			authServiceDeletePasskeyHandler.ServeHTTP(w, r)
+		case AuthServiceBeginReauthProcedure:
+			authServiceBeginReauthHandler.ServeHTTP(w, r)
+		case AuthServiceFinishReauthProcedure:
+			authServiceFinishReauthHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -295,4 +589,40 @@ func (UnimplementedAuthServiceHandler) ListSessions(context.Context, *v1.ListSes
 
 func (UnimplementedAuthServiceHandler) RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.RevokeSession is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) BeginPasskeySignIn(context.Context, *v1.BeginPasskeySignInRequest) (*v1.BeginPasskeySignInResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.BeginPasskeySignIn is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) FinishPasskeySignIn(context.Context, *v1.FinishPasskeySignInRequest) (*v1.FinishPasskeySignInResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.FinishPasskeySignIn is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) BeginPasskeyRegistration(context.Context, *v1.BeginPasskeyRegistrationRequest) (*v1.BeginPasskeyRegistrationResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.BeginPasskeyRegistration is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) FinishPasskeyRegistration(context.Context, *v1.FinishPasskeyRegistrationRequest) (*v1.FinishPasskeyRegistrationResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.FinishPasskeyRegistration is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListPasskeys(context.Context, *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.ListPasskeys is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) RenamePasskey(context.Context, *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.RenamePasskey is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) DeletePasskey(context.Context, *v1.DeletePasskeyRequest) (*v1.DeletePasskeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.DeletePasskey is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) BeginReauth(context.Context, *v1.BeginReauthRequest) (*v1.BeginReauthResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.BeginReauth is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) FinishReauth(context.Context, *v1.FinishReauthRequest) (*v1.FinishReauthResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.FinishReauth is not implemented"))
 }

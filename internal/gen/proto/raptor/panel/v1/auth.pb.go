@@ -455,7 +455,10 @@ type Session struct {
 	Ip         string                 `protobuf:"bytes,4,opt,name=ip,proto3" json:"ip,omitempty"`
 	UserAgent  string                 `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
 	// This is the session making the request.
-	Current       bool `protobuf:"varint,6,opt,name=current,proto3" json:"current,omitempty"`
+	Current bool `protobuf:"varint,6,opt,name=current,proto3" json:"current,omitempty"`
+	// Sensitive account changes are allowed until then (the current session
+	// only; unset if they need a re-authentication).
+	ReauthUntil   *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=reauth_until,json=reauthUntil,proto3" json:"reauth_until,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -530,6 +533,13 @@ func (x *Session) GetCurrent() bool {
 		return x.Current
 	}
 	return false
+}
+
+func (x *Session) GetReauthUntil() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ReauthUntil
+	}
+	return nil
 }
 
 type SignOutRequest struct {
@@ -803,6 +813,1031 @@ func (*RevokeSessionResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{14}
 }
 
+// A WebAuthn ceremony the browser runs: options_json is the "publicKey"
+// options in WebAuthn's JSON form (for PublicKeyCredential.parse*OptionsFromJSON),
+// and ceremony_id comes back with the answer.
+type PasskeyChallenge struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CeremonyId    string                 `protobuf:"bytes,1,opt,name=ceremony_id,json=ceremonyId,proto3" json:"ceremony_id,omitempty"`
+	OptionsJson   string                 `protobuf:"bytes,2,opt,name=options_json,json=optionsJson,proto3" json:"options_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PasskeyChallenge) Reset() {
+	*x = PasskeyChallenge{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasskeyChallenge) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasskeyChallenge) ProtoMessage() {}
+
+func (x *PasskeyChallenge) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasskeyChallenge.ProtoReflect.Descriptor instead.
+func (*PasskeyChallenge) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *PasskeyChallenge) GetCeremonyId() string {
+	if x != nil {
+		return x.CeremonyId
+	}
+	return ""
+}
+
+func (x *PasskeyChallenge) GetOptionsJson() string {
+	if x != nil {
+		return x.OptionsJson
+	}
+	return ""
+}
+
+// The browser's answer: PublicKeyCredential.toJSON().
+type PasskeyAnswer struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CeremonyId     string                 `protobuf:"bytes,1,opt,name=ceremony_id,json=ceremonyId,proto3" json:"ceremony_id,omitempty"`
+	CredentialJson string                 `protobuf:"bytes,2,opt,name=credential_json,json=credentialJson,proto3" json:"credential_json,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PasskeyAnswer) Reset() {
+	*x = PasskeyAnswer{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasskeyAnswer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasskeyAnswer) ProtoMessage() {}
+
+func (x *PasskeyAnswer) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasskeyAnswer.ProtoReflect.Descriptor instead.
+func (*PasskeyAnswer) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *PasskeyAnswer) GetCeremonyId() string {
+	if x != nil {
+		return x.CeremonyId
+	}
+	return ""
+}
+
+func (x *PasskeyAnswer) GetCredentialJson() string {
+	if x != nil {
+		return x.CredentialJson
+	}
+	return ""
+}
+
+type BeginPasskeySignInRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginPasskeySignInRequest) Reset() {
+	*x = BeginPasskeySignInRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginPasskeySignInRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginPasskeySignInRequest) ProtoMessage() {}
+
+func (x *BeginPasskeySignInRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginPasskeySignInRequest.ProtoReflect.Descriptor instead.
+func (*BeginPasskeySignInRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{17}
+}
+
+type BeginPasskeySignInResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Challenge     *PasskeyChallenge      `protobuf:"bytes,1,opt,name=challenge,proto3" json:"challenge,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginPasskeySignInResponse) Reset() {
+	*x = BeginPasskeySignInResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginPasskeySignInResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginPasskeySignInResponse) ProtoMessage() {}
+
+func (x *BeginPasskeySignInResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginPasskeySignInResponse.ProtoReflect.Descriptor instead.
+func (*BeginPasskeySignInResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *BeginPasskeySignInResponse) GetChallenge() *PasskeyChallenge {
+	if x != nil {
+		return x.Challenge
+	}
+	return nil
+}
+
+type FinishPasskeySignInRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Answer        *PasskeyAnswer         `protobuf:"bytes,1,opt,name=answer,proto3" json:"answer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishPasskeySignInRequest) Reset() {
+	*x = FinishPasskeySignInRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishPasskeySignInRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishPasskeySignInRequest) ProtoMessage() {}
+
+func (x *FinishPasskeySignInRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishPasskeySignInRequest.ProtoReflect.Descriptor instead.
+func (*FinishPasskeySignInRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *FinishPasskeySignInRequest) GetAnswer() *PasskeyAnswer {
+	if x != nil {
+		return x.Answer
+	}
+	return nil
+}
+
+type FinishPasskeySignInResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishPasskeySignInResponse) Reset() {
+	*x = FinishPasskeySignInResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishPasskeySignInResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishPasskeySignInResponse) ProtoMessage() {}
+
+func (x *FinishPasskeySignInResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishPasskeySignInResponse.ProtoReflect.Descriptor instead.
+func (*FinishPasskeySignInResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *FinishPasskeySignInResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+type BeginPasskeyRegistrationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginPasskeyRegistrationRequest) Reset() {
+	*x = BeginPasskeyRegistrationRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginPasskeyRegistrationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginPasskeyRegistrationRequest) ProtoMessage() {}
+
+func (x *BeginPasskeyRegistrationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginPasskeyRegistrationRequest.ProtoReflect.Descriptor instead.
+func (*BeginPasskeyRegistrationRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{21}
+}
+
+type BeginPasskeyRegistrationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Challenge     *PasskeyChallenge      `protobuf:"bytes,1,opt,name=challenge,proto3" json:"challenge,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginPasskeyRegistrationResponse) Reset() {
+	*x = BeginPasskeyRegistrationResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginPasskeyRegistrationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginPasskeyRegistrationResponse) ProtoMessage() {}
+
+func (x *BeginPasskeyRegistrationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginPasskeyRegistrationResponse.ProtoReflect.Descriptor instead.
+func (*BeginPasskeyRegistrationResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *BeginPasskeyRegistrationResponse) GetChallenge() *PasskeyChallenge {
+	if x != nil {
+		return x.Challenge
+	}
+	return nil
+}
+
+type FinishPasskeyRegistrationRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Answer *PasskeyAnswer         `protobuf:"bytes,1,opt,name=answer,proto3" json:"answer,omitempty"`
+	// What the user calls it ("Phone", "YubiKey"). Up to 64 characters.
+	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishPasskeyRegistrationRequest) Reset() {
+	*x = FinishPasskeyRegistrationRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishPasskeyRegistrationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishPasskeyRegistrationRequest) ProtoMessage() {}
+
+func (x *FinishPasskeyRegistrationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishPasskeyRegistrationRequest.ProtoReflect.Descriptor instead.
+func (*FinishPasskeyRegistrationRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *FinishPasskeyRegistrationRequest) GetAnswer() *PasskeyAnswer {
+	if x != nil {
+		return x.Answer
+	}
+	return nil
+}
+
+func (x *FinishPasskeyRegistrationRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type FinishPasskeyRegistrationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Passkey       *Passkey               `protobuf:"bytes,1,opt,name=passkey,proto3" json:"passkey,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishPasskeyRegistrationResponse) Reset() {
+	*x = FinishPasskeyRegistrationResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishPasskeyRegistrationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishPasskeyRegistrationResponse) ProtoMessage() {}
+
+func (x *FinishPasskeyRegistrationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishPasskeyRegistrationResponse.ProtoReflect.Descriptor instead.
+func (*FinishPasskeyRegistrationResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *FinishPasskeyRegistrationResponse) GetPasskey() *Passkey {
+	if x != nil {
+		return x.Passkey
+	}
+	return nil
+}
+
+type Passkey struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name       string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	CreatedAt  *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
+	// The passkey is synced between devices (iCloud Keychain, Google Password
+	// Manager) rather than bound to one device or security key.
+	Synced        bool `protobuf:"varint,5,opt,name=synced,proto3" json:"synced,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Passkey) Reset() {
+	*x = Passkey{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Passkey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Passkey) ProtoMessage() {}
+
+func (x *Passkey) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Passkey.ProtoReflect.Descriptor instead.
+func (*Passkey) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *Passkey) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Passkey) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Passkey) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Passkey) GetLastUsedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastUsedAt
+	}
+	return nil
+}
+
+func (x *Passkey) GetSynced() bool {
+	if x != nil {
+		return x.Synced
+	}
+	return false
+}
+
+type ListPasskeysRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPasskeysRequest) Reset() {
+	*x = ListPasskeysRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPasskeysRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPasskeysRequest) ProtoMessage() {}
+
+func (x *ListPasskeysRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPasskeysRequest.ProtoReflect.Descriptor instead.
+func (*ListPasskeysRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{26}
+}
+
+type ListPasskeysResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Passkeys      []*Passkey             `protobuf:"bytes,1,rep,name=passkeys,proto3" json:"passkeys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPasskeysResponse) Reset() {
+	*x = ListPasskeysResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPasskeysResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPasskeysResponse) ProtoMessage() {}
+
+func (x *ListPasskeysResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPasskeysResponse.ProtoReflect.Descriptor instead.
+func (*ListPasskeysResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListPasskeysResponse) GetPasskeys() []*Passkey {
+	if x != nil {
+		return x.Passkeys
+	}
+	return nil
+}
+
+type RenamePasskeyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenamePasskeyRequest) Reset() {
+	*x = RenamePasskeyRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenamePasskeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenamePasskeyRequest) ProtoMessage() {}
+
+func (x *RenamePasskeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenamePasskeyRequest.ProtoReflect.Descriptor instead.
+func (*RenamePasskeyRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *RenamePasskeyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RenamePasskeyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type RenamePasskeyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenamePasskeyResponse) Reset() {
+	*x = RenamePasskeyResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenamePasskeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenamePasskeyResponse) ProtoMessage() {}
+
+func (x *RenamePasskeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenamePasskeyResponse.ProtoReflect.Descriptor instead.
+func (*RenamePasskeyResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{29}
+}
+
+type DeletePasskeyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePasskeyRequest) Reset() {
+	*x = DeletePasskeyRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePasskeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePasskeyRequest) ProtoMessage() {}
+
+func (x *DeletePasskeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePasskeyRequest.ProtoReflect.Descriptor instead.
+func (*DeletePasskeyRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *DeletePasskeyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeletePasskeyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePasskeyResponse) Reset() {
+	*x = DeletePasskeyResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePasskeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePasskeyResponse) ProtoMessage() {}
+
+func (x *DeletePasskeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePasskeyResponse.ProtoReflect.Descriptor instead.
+func (*DeletePasskeyResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{31}
+}
+
+type BeginReauthRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginReauthRequest) Reset() {
+	*x = BeginReauthRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginReauthRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginReauthRequest) ProtoMessage() {}
+
+func (x *BeginReauthRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginReauthRequest.ProtoReflect.Descriptor instead.
+func (*BeginReauthRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{32}
+}
+
+type BeginReauthResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Method:
+	//
+	//	*BeginReauthResponse_Passkey
+	//	*BeginReauthResponse_EmailSent
+	Method        isBeginReauthResponse_Method `protobuf_oneof:"method"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginReauthResponse) Reset() {
+	*x = BeginReauthResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginReauthResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginReauthResponse) ProtoMessage() {}
+
+func (x *BeginReauthResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginReauthResponse.ProtoReflect.Descriptor instead.
+func (*BeginReauthResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *BeginReauthResponse) GetMethod() isBeginReauthResponse_Method {
+	if x != nil {
+		return x.Method
+	}
+	return nil
+}
+
+func (x *BeginReauthResponse) GetPasskey() *PasskeyChallenge {
+	if x != nil {
+		if x, ok := x.Method.(*BeginReauthResponse_Passkey); ok {
+			return x.Passkey
+		}
+	}
+	return nil
+}
+
+func (x *BeginReauthResponse) GetEmailSent() bool {
+	if x != nil {
+		if x, ok := x.Method.(*BeginReauthResponse_EmailSent); ok {
+			return x.EmailSent
+		}
+	}
+	return false
+}
+
+type isBeginReauthResponse_Method interface {
+	isBeginReauthResponse_Method()
+}
+
+type BeginReauthResponse_Passkey struct {
+	// The account has passkeys: one of them must answer this.
+	Passkey *PasskeyChallenge `protobuf:"bytes,1,opt,name=passkey,proto3,oneof"`
+}
+
+type BeginReauthResponse_EmailSent struct {
+	// The account has no passkeys: a 6-digit code was emailed.
+	EmailSent bool `protobuf:"varint,2,opt,name=email_sent,json=emailSent,proto3,oneof"`
+}
+
+func (*BeginReauthResponse_Passkey) isBeginReauthResponse_Method() {}
+
+func (*BeginReauthResponse_EmailSent) isBeginReauthResponse_Method() {}
+
+type FinishReauthRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Proof:
+	//
+	//	*FinishReauthRequest_Passkey
+	//	*FinishReauthRequest_EmailCode
+	Proof         isFinishReauthRequest_Proof `protobuf_oneof:"proof"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishReauthRequest) Reset() {
+	*x = FinishReauthRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishReauthRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishReauthRequest) ProtoMessage() {}
+
+func (x *FinishReauthRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishReauthRequest.ProtoReflect.Descriptor instead.
+func (*FinishReauthRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *FinishReauthRequest) GetProof() isFinishReauthRequest_Proof {
+	if x != nil {
+		return x.Proof
+	}
+	return nil
+}
+
+func (x *FinishReauthRequest) GetPasskey() *PasskeyAnswer {
+	if x != nil {
+		if x, ok := x.Proof.(*FinishReauthRequest_Passkey); ok {
+			return x.Passkey
+		}
+	}
+	return nil
+}
+
+func (x *FinishReauthRequest) GetEmailCode() string {
+	if x != nil {
+		if x, ok := x.Proof.(*FinishReauthRequest_EmailCode); ok {
+			return x.EmailCode
+		}
+	}
+	return ""
+}
+
+type isFinishReauthRequest_Proof interface {
+	isFinishReauthRequest_Proof()
+}
+
+type FinishReauthRequest_Passkey struct {
+	Passkey *PasskeyAnswer `protobuf:"bytes,1,opt,name=passkey,proto3,oneof"`
+}
+
+type FinishReauthRequest_EmailCode struct {
+	EmailCode string `protobuf:"bytes,2,opt,name=email_code,json=emailCode,proto3,oneof"`
+}
+
+func (*FinishReauthRequest_Passkey) isFinishReauthRequest_Proof() {}
+
+func (*FinishReauthRequest_EmailCode) isFinishReauthRequest_Proof() {}
+
+type FinishReauthResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReauthUntil   *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=reauth_until,json=reauthUntil,proto3" json:"reauth_until,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishReauthResponse) Reset() {
+	*x = FinishReauthResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishReauthResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishReauthResponse) ProtoMessage() {}
+
+func (x *FinishReauthResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishReauthResponse.ProtoReflect.Descriptor instead.
+func (*FinishReauthResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *FinishReauthResponse) GetReauthUntil() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ReauthUntil
+	}
+	return nil
+}
+
 var File_raptor_panel_v1_auth_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_auth_proto_rawDesc = "" +
@@ -831,7 +1866,7 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x11GetSessionRequest\"s\n" +
 	"\x12GetSessionResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x122\n" +
-	"\asession\x18\x02 \x01(\v2\x18.raptor.panel.v1.SessionR\asession\"\xdb\x01\n" +
+	"\asession\x18\x02 \x01(\v2\x18.raptor.panel.v1.SessionR\asession\"\x9a\x02\n" +
 	"\aSession\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +
@@ -841,7 +1876,8 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x02ip\x18\x04 \x01(\tR\x02ip\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\x05 \x01(\tR\tuserAgent\x12\x18\n" +
-	"\acurrent\x18\x06 \x01(\bR\acurrent\"\x10\n" +
+	"\acurrent\x18\x06 \x01(\bR\acurrent\x12=\n" +
+	"\freauth_until\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vreauthUntil\"\x10\n" +
 	"\x0eSignOutRequest\"\x11\n" +
 	"\x0fSignOutResponse\"\x15\n" +
 	"\x13ListSessionsRequest\"L\n" +
@@ -852,7 +1888,61 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"all_others\x18\x02 \x01(\bH\x00R\tallOthersB\b\n" +
 	"\x06target\"\x17\n" +
-	"\x15RevokeSessionResponse2\xd6\x04\n" +
+	"\x15RevokeSessionResponse\"V\n" +
+	"\x10PasskeyChallenge\x12\x1f\n" +
+	"\vceremony_id\x18\x01 \x01(\tR\n" +
+	"ceremonyId\x12!\n" +
+	"\foptions_json\x18\x02 \x01(\tR\voptionsJson\"Y\n" +
+	"\rPasskeyAnswer\x12\x1f\n" +
+	"\vceremony_id\x18\x01 \x01(\tR\n" +
+	"ceremonyId\x12'\n" +
+	"\x0fcredential_json\x18\x02 \x01(\tR\x0ecredentialJson\"\x1b\n" +
+	"\x19BeginPasskeySignInRequest\"]\n" +
+	"\x1aBeginPasskeySignInResponse\x12?\n" +
+	"\tchallenge\x18\x01 \x01(\v2!.raptor.panel.v1.PasskeyChallengeR\tchallenge\"T\n" +
+	"\x1aFinishPasskeySignInRequest\x126\n" +
+	"\x06answer\x18\x01 \x01(\v2\x1e.raptor.panel.v1.PasskeyAnswerR\x06answer\"H\n" +
+	"\x1bFinishPasskeySignInResponse\x12)\n" +
+	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\"!\n" +
+	"\x1fBeginPasskeyRegistrationRequest\"c\n" +
+	" BeginPasskeyRegistrationResponse\x12?\n" +
+	"\tchallenge\x18\x01 \x01(\v2!.raptor.panel.v1.PasskeyChallengeR\tchallenge\"n\n" +
+	" FinishPasskeyRegistrationRequest\x126\n" +
+	"\x06answer\x18\x01 \x01(\v2\x1e.raptor.panel.v1.PasskeyAnswerR\x06answer\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"W\n" +
+	"!FinishPasskeyRegistrationResponse\x122\n" +
+	"\apasskey\x18\x01 \x01(\v2\x18.raptor.panel.v1.PasskeyR\apasskey\"\xbe\x01\n" +
+	"\aPasskey\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x129\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
+	"\flast_used_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"lastUsedAt\x12\x16\n" +
+	"\x06synced\x18\x05 \x01(\bR\x06synced\"\x15\n" +
+	"\x13ListPasskeysRequest\"L\n" +
+	"\x14ListPasskeysResponse\x124\n" +
+	"\bpasskeys\x18\x01 \x03(\v2\x18.raptor.panel.v1.PasskeyR\bpasskeys\":\n" +
+	"\x14RenamePasskeyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\x17\n" +
+	"\x15RenamePasskeyResponse\"&\n" +
+	"\x14DeletePasskeyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
+	"\x15DeletePasskeyResponse\"\x14\n" +
+	"\x12BeginReauthRequest\"\x7f\n" +
+	"\x13BeginReauthResponse\x12=\n" +
+	"\apasskey\x18\x01 \x01(\v2!.raptor.panel.v1.PasskeyChallengeH\x00R\apasskey\x12\x1f\n" +
+	"\n" +
+	"email_sent\x18\x02 \x01(\bH\x00R\temailSentB\b\n" +
+	"\x06method\"{\n" +
+	"\x13FinishReauthRequest\x12:\n" +
+	"\apasskey\x18\x01 \x01(\v2\x1e.raptor.panel.v1.PasskeyAnswerH\x00R\apasskey\x12\x1f\n" +
+	"\n" +
+	"email_code\x18\x02 \x01(\tH\x00R\temailCodeB\a\n" +
+	"\x05proof\"U\n" +
+	"\x14FinishReauthResponse\x12=\n" +
+	"\freauth_until\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vreauthUntil2\xa7\f\n" +
 	"\vAuthService\x12i\n" +
 	"\x10StartEmailSignIn\x12(.raptor.panel.v1.StartEmailSignInRequest\x1a).raptor.panel.v1.StartEmailSignInResponse\"\x00\x12l\n" +
 	"\x11FinishEmailSignIn\x12).raptor.panel.v1.FinishEmailSignInRequest\x1a*.raptor.panel.v1.FinishEmailSignInResponse\"\x00\x12Z\n" +
@@ -860,7 +1950,16 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"GetSession\x12\".raptor.panel.v1.GetSessionRequest\x1a#.raptor.panel.v1.GetSessionResponse\"\x03\x90\x02\x01\x12N\n" +
 	"\aSignOut\x12\x1f.raptor.panel.v1.SignOutRequest\x1a .raptor.panel.v1.SignOutResponse\"\x00\x12`\n" +
 	"\fListSessions\x12$.raptor.panel.v1.ListSessionsRequest\x1a%.raptor.panel.v1.ListSessionsResponse\"\x03\x90\x02\x01\x12`\n" +
-	"\rRevokeSession\x12%.raptor.panel.v1.RevokeSessionRequest\x1a&.raptor.panel.v1.RevokeSessionResponse\"\x00B\xc9\x01\n" +
+	"\rRevokeSession\x12%.raptor.panel.v1.RevokeSessionRequest\x1a&.raptor.panel.v1.RevokeSessionResponse\"\x00\x12o\n" +
+	"\x12BeginPasskeySignIn\x12*.raptor.panel.v1.BeginPasskeySignInRequest\x1a+.raptor.panel.v1.BeginPasskeySignInResponse\"\x00\x12r\n" +
+	"\x13FinishPasskeySignIn\x12+.raptor.panel.v1.FinishPasskeySignInRequest\x1a,.raptor.panel.v1.FinishPasskeySignInResponse\"\x00\x12\x81\x01\n" +
+	"\x18BeginPasskeyRegistration\x120.raptor.panel.v1.BeginPasskeyRegistrationRequest\x1a1.raptor.panel.v1.BeginPasskeyRegistrationResponse\"\x00\x12\x84\x01\n" +
+	"\x19FinishPasskeyRegistration\x121.raptor.panel.v1.FinishPasskeyRegistrationRequest\x1a2.raptor.panel.v1.FinishPasskeyRegistrationResponse\"\x00\x12`\n" +
+	"\fListPasskeys\x12$.raptor.panel.v1.ListPasskeysRequest\x1a%.raptor.panel.v1.ListPasskeysResponse\"\x03\x90\x02\x01\x12`\n" +
+	"\rRenamePasskey\x12%.raptor.panel.v1.RenamePasskeyRequest\x1a&.raptor.panel.v1.RenamePasskeyResponse\"\x00\x12`\n" +
+	"\rDeletePasskey\x12%.raptor.panel.v1.DeletePasskeyRequest\x1a&.raptor.panel.v1.DeletePasskeyResponse\"\x00\x12Z\n" +
+	"\vBeginReauth\x12#.raptor.panel.v1.BeginReauthRequest\x1a$.raptor.panel.v1.BeginReauthResponse\"\x00\x12]\n" +
+	"\fFinishReauth\x12$.raptor.panel.v1.FinishReauthRequest\x1a%.raptor.panel.v1.FinishReauthResponse\"\x00B\xc9\x01\n" +
 	"\x13com.raptor.panel.v1B\tAuthProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
 var (
@@ -875,50 +1974,102 @@ func file_raptor_panel_v1_auth_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_auth_proto_rawDescData
 }
 
-var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_raptor_panel_v1_auth_proto_goTypes = []any{
-	(*StartEmailSignInRequest)(nil),   // 0: raptor.panel.v1.StartEmailSignInRequest
-	(*StartEmailSignInResponse)(nil),  // 1: raptor.panel.v1.StartEmailSignInResponse
-	(*FinishEmailSignInRequest)(nil),  // 2: raptor.panel.v1.FinishEmailSignInRequest
-	(*EmailCode)(nil),                 // 3: raptor.panel.v1.EmailCode
-	(*FinishEmailSignInResponse)(nil), // 4: raptor.panel.v1.FinishEmailSignInResponse
-	(*User)(nil),                      // 5: raptor.panel.v1.User
-	(*GetSessionRequest)(nil),         // 6: raptor.panel.v1.GetSessionRequest
-	(*GetSessionResponse)(nil),        // 7: raptor.panel.v1.GetSessionResponse
-	(*Session)(nil),                   // 8: raptor.panel.v1.Session
-	(*SignOutRequest)(nil),            // 9: raptor.panel.v1.SignOutRequest
-	(*SignOutResponse)(nil),           // 10: raptor.panel.v1.SignOutResponse
-	(*ListSessionsRequest)(nil),       // 11: raptor.panel.v1.ListSessionsRequest
-	(*ListSessionsResponse)(nil),      // 12: raptor.panel.v1.ListSessionsResponse
-	(*RevokeSessionRequest)(nil),      // 13: raptor.panel.v1.RevokeSessionRequest
-	(*RevokeSessionResponse)(nil),     // 14: raptor.panel.v1.RevokeSessionResponse
-	(*timestamppb.Timestamp)(nil),     // 15: google.protobuf.Timestamp
+	(*StartEmailSignInRequest)(nil),           // 0: raptor.panel.v1.StartEmailSignInRequest
+	(*StartEmailSignInResponse)(nil),          // 1: raptor.panel.v1.StartEmailSignInResponse
+	(*FinishEmailSignInRequest)(nil),          // 2: raptor.panel.v1.FinishEmailSignInRequest
+	(*EmailCode)(nil),                         // 3: raptor.panel.v1.EmailCode
+	(*FinishEmailSignInResponse)(nil),         // 4: raptor.panel.v1.FinishEmailSignInResponse
+	(*User)(nil),                              // 5: raptor.panel.v1.User
+	(*GetSessionRequest)(nil),                 // 6: raptor.panel.v1.GetSessionRequest
+	(*GetSessionResponse)(nil),                // 7: raptor.panel.v1.GetSessionResponse
+	(*Session)(nil),                           // 8: raptor.panel.v1.Session
+	(*SignOutRequest)(nil),                    // 9: raptor.panel.v1.SignOutRequest
+	(*SignOutResponse)(nil),                   // 10: raptor.panel.v1.SignOutResponse
+	(*ListSessionsRequest)(nil),               // 11: raptor.panel.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),              // 12: raptor.panel.v1.ListSessionsResponse
+	(*RevokeSessionRequest)(nil),              // 13: raptor.panel.v1.RevokeSessionRequest
+	(*RevokeSessionResponse)(nil),             // 14: raptor.panel.v1.RevokeSessionResponse
+	(*PasskeyChallenge)(nil),                  // 15: raptor.panel.v1.PasskeyChallenge
+	(*PasskeyAnswer)(nil),                     // 16: raptor.panel.v1.PasskeyAnswer
+	(*BeginPasskeySignInRequest)(nil),         // 17: raptor.panel.v1.BeginPasskeySignInRequest
+	(*BeginPasskeySignInResponse)(nil),        // 18: raptor.panel.v1.BeginPasskeySignInResponse
+	(*FinishPasskeySignInRequest)(nil),        // 19: raptor.panel.v1.FinishPasskeySignInRequest
+	(*FinishPasskeySignInResponse)(nil),       // 20: raptor.panel.v1.FinishPasskeySignInResponse
+	(*BeginPasskeyRegistrationRequest)(nil),   // 21: raptor.panel.v1.BeginPasskeyRegistrationRequest
+	(*BeginPasskeyRegistrationResponse)(nil),  // 22: raptor.panel.v1.BeginPasskeyRegistrationResponse
+	(*FinishPasskeyRegistrationRequest)(nil),  // 23: raptor.panel.v1.FinishPasskeyRegistrationRequest
+	(*FinishPasskeyRegistrationResponse)(nil), // 24: raptor.panel.v1.FinishPasskeyRegistrationResponse
+	(*Passkey)(nil),                           // 25: raptor.panel.v1.Passkey
+	(*ListPasskeysRequest)(nil),               // 26: raptor.panel.v1.ListPasskeysRequest
+	(*ListPasskeysResponse)(nil),              // 27: raptor.panel.v1.ListPasskeysResponse
+	(*RenamePasskeyRequest)(nil),              // 28: raptor.panel.v1.RenamePasskeyRequest
+	(*RenamePasskeyResponse)(nil),             // 29: raptor.panel.v1.RenamePasskeyResponse
+	(*DeletePasskeyRequest)(nil),              // 30: raptor.panel.v1.DeletePasskeyRequest
+	(*DeletePasskeyResponse)(nil),             // 31: raptor.panel.v1.DeletePasskeyResponse
+	(*BeginReauthRequest)(nil),                // 32: raptor.panel.v1.BeginReauthRequest
+	(*BeginReauthResponse)(nil),               // 33: raptor.panel.v1.BeginReauthResponse
+	(*FinishReauthRequest)(nil),               // 34: raptor.panel.v1.FinishReauthRequest
+	(*FinishReauthResponse)(nil),              // 35: raptor.panel.v1.FinishReauthResponse
+	(*timestamppb.Timestamp)(nil),             // 36: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: raptor.panel.v1.FinishEmailSignInRequest.code:type_name -> raptor.panel.v1.EmailCode
 	5,  // 1: raptor.panel.v1.FinishEmailSignInResponse.user:type_name -> raptor.panel.v1.User
 	5,  // 2: raptor.panel.v1.GetSessionResponse.user:type_name -> raptor.panel.v1.User
 	8,  // 3: raptor.panel.v1.GetSessionResponse.session:type_name -> raptor.panel.v1.Session
-	15, // 4: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
-	15, // 5: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
-	8,  // 6: raptor.panel.v1.ListSessionsResponse.sessions:type_name -> raptor.panel.v1.Session
-	0,  // 7: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
-	2,  // 8: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
-	6,  // 9: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
-	9,  // 10: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
-	11, // 11: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
-	13, // 12: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
-	1,  // 13: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
-	4,  // 14: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
-	7,  // 15: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
-	10, // 16: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
-	12, // 17: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
-	14, // 18: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
-	13, // [13:19] is the sub-list for method output_type
-	7,  // [7:13] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	36, // 4: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
+	36, // 5: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
+	36, // 6: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
+	8,  // 7: raptor.panel.v1.ListSessionsResponse.sessions:type_name -> raptor.panel.v1.Session
+	15, // 8: raptor.panel.v1.BeginPasskeySignInResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
+	16, // 9: raptor.panel.v1.FinishPasskeySignInRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
+	5,  // 10: raptor.panel.v1.FinishPasskeySignInResponse.user:type_name -> raptor.panel.v1.User
+	15, // 11: raptor.panel.v1.BeginPasskeyRegistrationResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
+	16, // 12: raptor.panel.v1.FinishPasskeyRegistrationRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
+	25, // 13: raptor.panel.v1.FinishPasskeyRegistrationResponse.passkey:type_name -> raptor.panel.v1.Passkey
+	36, // 14: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
+	36, // 15: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
+	25, // 16: raptor.panel.v1.ListPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
+	15, // 17: raptor.panel.v1.BeginReauthResponse.passkey:type_name -> raptor.panel.v1.PasskeyChallenge
+	16, // 18: raptor.panel.v1.FinishReauthRequest.passkey:type_name -> raptor.panel.v1.PasskeyAnswer
+	36, // 19: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
+	0,  // 20: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
+	2,  // 21: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
+	6,  // 22: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
+	9,  // 23: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
+	11, // 24: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
+	13, // 25: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
+	17, // 26: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
+	19, // 27: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
+	21, // 28: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
+	23, // 29: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
+	26, // 30: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
+	28, // 31: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
+	30, // 32: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
+	32, // 33: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
+	34, // 34: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
+	1,  // 35: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
+	4,  // 36: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
+	7,  // 37: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
+	10, // 38: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
+	12, // 39: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
+	14, // 40: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
+	18, // 41: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
+	20, // 42: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
+	22, // 43: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
+	24, // 44: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
+	27, // 45: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
+	29, // 46: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
+	31, // 47: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
+	33, // 48: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
+	35, // 49: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
+	35, // [35:50] is the sub-list for method output_type
+	20, // [20:35] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_auth_proto_init() }
@@ -934,13 +2085,21 @@ func file_raptor_panel_v1_auth_proto_init() {
 		(*RevokeSessionRequest_Id)(nil),
 		(*RevokeSessionRequest_AllOthers)(nil),
 	}
+	file_raptor_panel_v1_auth_proto_msgTypes[33].OneofWrappers = []any{
+		(*BeginReauthResponse_Passkey)(nil),
+		(*BeginReauthResponse_EmailSent)(nil),
+	}
+	file_raptor_panel_v1_auth_proto_msgTypes[34].OneofWrappers = []any{
+		(*FinishReauthRequest_Passkey)(nil),
+		(*FinishReauthRequest_EmailCode)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_auth_proto_rawDesc), len(file_raptor_panel_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

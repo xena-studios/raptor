@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/xena-studios/raptor/internal/panel/store"
@@ -38,8 +39,11 @@ type Service struct {
 	// ClientIPHeader is trusted for the client's address when set (see
 	// nodes.ClientIP).
 	ClientIPHeader string
-	Log            *slog.Logger
-	Now            func() time.Time
+	// WebAuthn is the passkey relying party (NewWebAuthn); nil turns
+	// passkeys off.
+	WebAuthn *webauthn.WebAuthn
+	Log      *slog.Logger
+	Now      func() time.Time
 }
 
 func (s *Service) q() *store.Queries { return store.New(s.DB) }
@@ -145,4 +149,7 @@ var (
 	errBadCode    = connect.NewError(connect.CodePermissionDenied, errors.New("that code is wrong or expired; ask for a new one"))
 	errBadLink    = connect.NewError(connect.CodePermissionDenied, errors.New("that link is used or expired; ask for a new one"))
 	errChallenged = connect.NewError(connect.CodePermissionDenied, errors.New("the security check failed; reload the page and try again"))
+	errBadPasskey = connect.NewError(connect.CodePermissionDenied, errors.New("that passkey didn't work; try again"))
+	errNoPasskey  = connect.NewError(connect.CodeNotFound, errors.New("no such passkey"))
+	errReauth     = connect.NewError(connect.CodeFailedPrecondition, errors.New("confirm it's you first"))
 )

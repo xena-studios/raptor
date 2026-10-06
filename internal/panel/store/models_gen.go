@@ -133,6 +133,16 @@ type PanelInstance struct {
 	SeenAt    pgtype.Timestamptz
 }
 
+type Passkey struct {
+	ID           pgtype.UUID
+	UserID       pgtype.UUID
+	CredentialID []byte
+	Credential   []byte
+	Name         string
+	CreatedAt    pgtype.Timestamptz
+	LastUsedAt   pgtype.Timestamptz
+}
+
 type RateEvent struct {
 	Key string
 	At  pgtype.Timestamptz
@@ -168,6 +178,15 @@ type User struct {
 	EmailVerifiedAt pgtype.Timestamptz
 	Name            string
 	CreatedAt       pgtype.Timestamptz
+	WebauthnHandle  []byte
+}
+
+type WebauthnCeremony struct {
+	ID        pgtype.UUID
+	Purpose   string
+	SessionID pgtype.UUID
+	Data      []byte
+	ExpiresAt pgtype.Timestamptz
 }
 
 type WingsRollout struct {

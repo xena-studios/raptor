@@ -123,3 +123,24 @@ func (a *Authenticator) Assert(challenge []byte) (authData, clientData, sig []by
 	sig = a.sign(append(append([]byte(nil), authData...), cdHash[:]...))
 	return authData, clientData, sig
 }
+
+// FlagAttested marks authenticator data that carries a new credential.
+const FlagAttested = 0x40
+
+// Register creates the credential the way navigator.credentials.create
+// does, with "none" attestation, and returns the attestation object and
+// clientDataJSON.
+func (a *Authenticator) Register(challenge []byte) (attestationObject, clientData []byte) {
+	rp := sha256.Sum256([]byte(a.RPID))
+	authData := append(rp[:], a.Flags|FlagAttested)
+	authData = binary.BigEndian.AppendUint32(authData, a.Counter)
+	authData = append(authData, make([]byte, 16)...)                                // AAGUID: none
+	authData = binary.BigEndian.AppendUint16(authData, uint16(len(a.CredentialID))) //nolint:gosec // credential IDs are 16 bytes
+	authData = append(authData, a.CredentialID...)
+	authData = append(authData, a.COSE...)
+	clientData, _ = json.Marshal(map[string]any{
+		"type": "webauthn.create", "challenge": base64.RawURLEncoding.EncodeToString(challenge), "origin": a.Origin, "crossOrigin": a.CrossOrigin,
+	})
+	attestationObject, _ = webauthncbor.Marshal(map[string]any{"fmt": "none", "attStmt": map[string]any{}, "authData": authData})
+	return attestationObject, clientData
+}

@@ -12,8 +12,11 @@ UPDATE users SET email_verified_at = now() WHERE id = $1 AND email_verified_at I
 
 -- name: CreateSession :one
 INSERT INTO sessions (user_id, token_hash, expires_at, ip, user_agent, reauth_at)
-VALUES ($1, $2, $3, $4, $5, now())
+VALUES ($1, $2, $3, $4, $5, CASE WHEN @reauthed::bool THEN now() END)
 RETURNING *;
+
+-- name: SetSessionReauth :exec
+UPDATE sessions SET reauth_at = now() WHERE id = $1;
 
 -- name: SessionByToken :one
 SELECT * FROM sessions WHERE token_hash = $1;
@@ -33,16 +36,17 @@ WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
 ORDER BY last_seen_at DESC;
 
 -- name: CreateEmailCode :exec
-INSERT INTO email_codes (email, code_hash, link_token_hash, expires_at) VALUES ($1, $2, $3, $4);
+INSERT INTO email_codes (email, code_hash, link_token_hash, expires_at, purpose) VALUES ($1, $2, $3, $4, $5);
 
 -- name: LatestEmailCode :one
--- The newest unused code for an address, locked for checking.
-SELECT * FROM email_codes WHERE email = $1 AND used_at IS NULL
+-- The newest unused code for an address and purpose, locked for checking.
+SELECT * FROM email_codes WHERE email = $1 AND purpose = $2 AND used_at IS NULL
 ORDER BY created_at DESC LIMIT 1
 FOR UPDATE;
 
 -- name: EmailCodeByLink :one
-SELECT * FROM email_codes WHERE link_token_hash = $1 FOR UPDATE;
+-- Only sign-in emails have links.
+SELECT * FROM email_codes WHERE link_token_hash = $1 AND purpose = 'signin' FOR UPDATE;
 
 -- name: CountEmailCodeAttempt :exec
 UPDATE email_codes SET attempts = attempts + 1 WHERE id = $1;
@@ -58,3 +62,9 @@ SELECT count(*) FROM rate_events WHERE key = $1 AND at > now() - make_interval(s
 
 -- name: PruneRateEvents :exec
 DELETE FROM rate_events WHERE at < now() - interval '1 day';
+
+-- name: PruneEmailCodes :exec
+DELETE FROM email_codes WHERE expires_at < now() - interval '1 day';
+
+-- name: PruneSessions :exec
+DELETE FROM sessions WHERE expires_at < now() - interval '30 days' OR revoked_at < now() - interval '30 days';

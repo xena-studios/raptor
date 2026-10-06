@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/auth.proto.
  */
 export const file_raptor_panel_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChpyYXB0b3IvcGFuZWwvdjEvYXV0aC5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIkEKF1N0YXJ0RW1haWxTaWduSW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhcKD3R1cm5zdGlsZV90b2tlbhgCIAEoCSIaChhTdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiZQoYRmluaXNoRW1haWxTaWduSW5SZXF1ZXN0EioKBGNvZGUYASABKAsyGi5yYXB0b3IucGFuZWwudjEuRW1haWxDb2RlSAASFAoKbGlua190b2tlbhgCIAEoCUgAQgcKBXByb29mIigKCUVtYWlsQ29kZRINCgVlbWFpbBgBIAEoCRIMCgRjb2RlGAIgASgJIlUKGUZpbmlzaEVtYWlsU2lnbkluUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEhMKC25ld19hY2NvdW50GAIgASgIIi8KBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCSITChFHZXRTZXNzaW9uUmVxdWVzdCJkChJHZXRTZXNzaW9uUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEikKB3Nlc3Npb24YAiABKAsyGC5yYXB0b3IucGFuZWwudjEuU2Vzc2lvbiKoAQoHU2Vzc2lvbhIKCgJpZBgBIAEoCRIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3NlZW5fYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAmlwGAQgASgJEhIKCnVzZXJfYWdlbnQYBSABKAkSDwoHY3VycmVudBgGIAEoCCIQCg5TaWduT3V0UmVxdWVzdCIRCg9TaWduT3V0UmVzcG9uc2UiFQoTTGlzdFNlc3Npb25zUmVxdWVzdCJCChRMaXN0U2Vzc2lvbnNSZXNwb25zZRIqCghzZXNzaW9ucxgBIAMoCzIYLnJhcHRvci5wYW5lbC52MS5TZXNzaW9uIkQKFFJldm9rZVNlc3Npb25SZXF1ZXN0EgwKAmlkGAEgASgJSAASFAoKYWxsX290aGVycxgCIAEoCEgAQggKBnRhcmdldCIXChVSZXZva2VTZXNzaW9uUmVzcG9uc2Uy1gQKC0F1dGhTZXJ2aWNlEmkKEFN0YXJ0RW1haWxTaWduSW4SKC5yYXB0b3IucGFuZWwudjEuU3RhcnRFbWFpbFNpZ25JblJlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuU3RhcnRFbWFpbFNpZ25JblJlc3BvbnNlIgASbAoRRmluaXNoRW1haWxTaWduSW4SKS5yYXB0b3IucGFuZWwudjEuRmluaXNoRW1haWxTaWduSW5SZXF1ZXN0GioucmFwdG9yLnBhbmVsLnYxLkZpbmlzaEVtYWlsU2lnbkluUmVzcG9uc2UiABJaCgpHZXRTZXNzaW9uEiIucmFwdG9yLnBhbmVsLnYxLkdldFNlc3Npb25SZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkdldFNlc3Npb25SZXNwb25zZSIDkAIBEk4KB1NpZ25PdXQSHy5yYXB0b3IucGFuZWwudjEuU2lnbk91dFJlcXVlc3QaIC5yYXB0b3IucGFuZWwudjEuU2lnbk91dFJlc3BvbnNlIgASYAoMTGlzdFNlc3Npb25zEiQucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXNzaW9uc1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuTGlzdFNlc3Npb25zUmVzcG9uc2UiA5ACARJgCg1SZXZva2VTZXNzaW9uEiUucmFwdG9yLnBhbmVsLnYxLlJldm9rZVNlc3Npb25SZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLlJldm9rZVNlc3Npb25SZXNwb25zZSIAQskBChNjb20ucmFwdG9yLnBhbmVsLnYxQglBdXRoUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChpyYXB0b3IvcGFuZWwvdjEvYXV0aC5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIkEKF1N0YXJ0RW1haWxTaWduSW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhcKD3R1cm5zdGlsZV90b2tlbhgCIAEoCSIaChhTdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiZQoYRmluaXNoRW1haWxTaWduSW5SZXF1ZXN0EioKBGNvZGUYASABKAsyGi5yYXB0b3IucGFuZWwudjEuRW1haWxDb2RlSAASFAoKbGlua190b2tlbhgCIAEoCUgAQgcKBXByb29mIigKCUVtYWlsQ29kZRINCgVlbWFpbBgBIAEoCRIMCgRjb2RlGAIgASgJIlUKGUZpbmlzaEVtYWlsU2lnbkluUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEhMKC25ld19hY2NvdW50GAIgASgIIi8KBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCSITChFHZXRTZXNzaW9uUmVxdWVzdCJkChJHZXRTZXNzaW9uUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEikKB3Nlc3Npb24YAiABKAsyGC5yYXB0b3IucGFuZWwudjEuU2Vzc2lvbiLaAQoHU2Vzc2lvbhIKCgJpZBgBIAEoCRIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3NlZW5fYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAmlwGAQgASgJEhIKCnVzZXJfYWdlbnQYBSABKAkSDwoHY3VycmVudBgGIAEoCBIwCgxyZWF1dGhfdW50aWwYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhAKDlNpZ25PdXRSZXF1ZXN0IhEKD1NpZ25PdXRSZXNwb25zZSIVChNMaXN0U2Vzc2lvbnNSZXF1ZXN0IkIKFExpc3RTZXNzaW9uc1Jlc3BvbnNlEioKCHNlc3Npb25zGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlNlc3Npb24iRAoUUmV2b2tlU2Vzc2lvblJlcXVlc3QSDAoCaWQYASABKAlIABIUCgphbGxfb3RoZXJzGAIgASgISABCCAoGdGFyZ2V0IhcKFVJldm9rZVNlc3Npb25SZXNwb25zZSI9ChBQYXNza2V5Q2hhbGxlbmdlEhMKC2NlcmVtb255X2lkGAEgASgJEhQKDG9wdGlvbnNfanNvbhgCIAEoCSI9Cg1QYXNza2V5QW5zd2VyEhMKC2NlcmVtb255X2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCSIbChlCZWdpblBhc3NrZXlTaWduSW5SZXF1ZXN0IlIKGkJlZ2luUGFzc2tleVNpZ25JblJlc3BvbnNlEjQKCWNoYWxsZW5nZRgBIAEoCzIhLnJhcHRvci5wYW5lbC52MS5QYXNza2V5Q2hhbGxlbmdlIkwKGkZpbmlzaFBhc3NrZXlTaWduSW5SZXF1ZXN0Ei4KBmFuc3dlchgBIAEoCzIeLnJhcHRvci5wYW5lbC52MS5QYXNza2V5QW5zd2VyIkIKG0ZpbmlzaFBhc3NrZXlTaWduSW5SZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXIiIQofQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdCJYCiBCZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRI0CgljaGFsbGVuZ2UYASABKAsyIS5yYXB0b3IucGFuZWwudjEuUGFzc2tleUNoYWxsZW5nZSJgCiBGaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBIuCgZhbnN3ZXIYASABKAsyHi5yYXB0b3IucGFuZWwudjEuUGFzc2tleUFuc3dlchIMCgRuYW1lGAIgASgJIk4KIUZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRIpCgdwYXNza2V5GAEgASgLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkilQEKB1Bhc3NrZXkSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3VzZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBnN5bmNlZBgFIAEoCCIVChNMaXN0UGFzc2tleXNSZXF1ZXN0IkIKFExpc3RQYXNza2V5c1Jlc3BvbnNlEioKCHBhc3NrZXlzGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkiMAoUUmVuYW1lUGFzc2tleVJlcXVlc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSIXChVSZW5hbWVQYXNza2V5UmVzcG9uc2UiIgoURGVsZXRlUGFzc2tleVJlcXVlc3QSCgoCaWQYASABKAkiFwoVRGVsZXRlUGFzc2tleVJlc3BvbnNlIhQKEkJlZ2luUmVhdXRoUmVxdWVzdCJrChNCZWdpblJlYXV0aFJlc3BvbnNlEjQKB3Bhc3NrZXkYASABKAsyIS5yYXB0b3IucGFuZWwudjEuUGFzc2tleUNoYWxsZW5nZUgAEhQKCmVtYWlsX3NlbnQYAiABKAhIAEIICgZtZXRob2QiZwoTRmluaXNoUmVhdXRoUmVxdWVzdBIxCgdwYXNza2V5GAEgASgLMh4ucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXlBbnN3ZXJIABIUCgplbWFpbF9jb2RlGAIgASgJSABCBwoFcHJvb2YiSAoURmluaXNoUmVhdXRoUmVzcG9uc2USMAoMcmVhdXRoX3VudGlsGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcDKnDAoLQXV0aFNlcnZpY2USaQoQU3RhcnRFbWFpbFNpZ25JbhIoLnJhcHRvci5wYW5lbC52MS5TdGFydEVtYWlsU2lnbkluUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5TdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiABJsChFGaW5pc2hFbWFpbFNpZ25JbhIpLnJhcHRvci5wYW5lbC52MS5GaW5pc2hFbWFpbFNpZ25JblJlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuRmluaXNoRW1haWxTaWduSW5SZXNwb25zZSIAEloKCkdldFNlc3Npb24SIi5yYXB0b3IucGFuZWwudjEuR2V0U2Vzc2lvblJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuR2V0U2Vzc2lvblJlc3BvbnNlIgOQAgESTgoHU2lnbk91dBIfLnJhcHRvci5wYW5lbC52MS5TaWduT3V0UmVxdWVzdBogLnJhcHRvci5wYW5lbC52MS5TaWduT3V0UmVzcG9uc2UiABJgCgxMaXN0U2Vzc2lvbnMSJC5yYXB0b3IucGFuZWwudjEuTGlzdFNlc3Npb25zUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5MaXN0U2Vzc2lvbnNSZXNwb25zZSIDkAIBEmAKDVJldm9rZVNlc3Npb24SJS5yYXB0b3IucGFuZWwudjEuUmV2b2tlU2Vzc2lvblJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuUmV2b2tlU2Vzc2lvblJlc3BvbnNlIgASbwoSQmVnaW5QYXNza2V5U2lnbkluEioucmFwdG9yLnBhbmVsLnYxLkJlZ2luUGFzc2tleVNpZ25JblJlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuQmVnaW5QYXNza2V5U2lnbkluUmVzcG9uc2UiABJyChNGaW5pc2hQYXNza2V5U2lnbkluEisucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlTaWduSW5SZXF1ZXN0GiwucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlTaWduSW5SZXNwb25zZSIAEoEBChhCZWdpblBhc3NrZXlSZWdpc3RyYXRpb24SMC5yYXB0b3IucGFuZWwudjEuQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBoxLnJhcHRvci5wYW5lbC52MS5CZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZSIAEoQBChlGaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uEjEucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXF1ZXN0GjIucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZSIAEmAKDExpc3RQYXNza2V5cxIkLnJhcHRvci5wYW5lbC52MS5MaXN0UGFzc2tleXNSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkxpc3RQYXNza2V5c1Jlc3BvbnNlIgOQAgESYAoNUmVuYW1lUGFzc2tleRIlLnJhcHRvci5wYW5lbC52MS5SZW5hbWVQYXNza2V5UmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5SZW5hbWVQYXNza2V5UmVzcG9uc2UiABJgCg1EZWxldGVQYXNza2V5EiUucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZVBhc3NrZXlSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZVBhc3NrZXlSZXNwb25zZSIAEloKC0JlZ2luUmVhdXRoEiMucmFwdG9yLnBhbmVsLnYxLkJlZ2luUmVhdXRoUmVxdWVzdBokLnJhcHRvci5wYW5lbC52MS5CZWdpblJlYXV0aFJlc3BvbnNlIgASXQoMRmluaXNoUmVhdXRoEiQucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFJlYXV0aFJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuRmluaXNoUmVhdXRoUmVzcG9uc2UiAELJAQoTY29tLnJhcHRvci5wYW5lbC52MUIJQXV0aFByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.StartEmailSignInRequest
@@ -225,6 +225,14 @@ export type Session = Message<"raptor.panel.v1.Session"> & {
    * @generated from field: bool current = 6;
    */
   current: boolean;
+
+  /**
+   * Sensitive account changes are allowed until then (the current session
+   * only; unset if they need a re-authentication).
+   *
+   * @generated from field: google.protobuf.Timestamp reauth_until = 7;
+   */
+  reauthUntil?: Timestamp | undefined;
 };
 
 /**
@@ -335,6 +343,418 @@ export const RevokeSessionResponseSchema: GenMessage<RevokeSessionResponse> = /*
   messageDesc(file_raptor_panel_v1_auth, 14);
 
 /**
+ * A WebAuthn ceremony the browser runs: options_json is the "publicKey"
+ * options in WebAuthn's JSON form (for PublicKeyCredential.parse*OptionsFromJSON),
+ * and ceremony_id comes back with the answer.
+ *
+ * @generated from message raptor.panel.v1.PasskeyChallenge
+ */
+export type PasskeyChallenge = Message<"raptor.panel.v1.PasskeyChallenge"> & {
+  /**
+   * @generated from field: string ceremony_id = 1;
+   */
+  ceremonyId: string;
+
+  /**
+   * @generated from field: string options_json = 2;
+   */
+  optionsJson: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.PasskeyChallenge.
+ * Use `create(PasskeyChallengeSchema)` to create a new message.
+ */
+export const PasskeyChallengeSchema: GenMessage<PasskeyChallenge> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 15);
+
+/**
+ * The browser's answer: PublicKeyCredential.toJSON().
+ *
+ * @generated from message raptor.panel.v1.PasskeyAnswer
+ */
+export type PasskeyAnswer = Message<"raptor.panel.v1.PasskeyAnswer"> & {
+  /**
+   * @generated from field: string ceremony_id = 1;
+   */
+  ceremonyId: string;
+
+  /**
+   * @generated from field: string credential_json = 2;
+   */
+  credentialJson: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.PasskeyAnswer.
+ * Use `create(PasskeyAnswerSchema)` to create a new message.
+ */
+export const PasskeyAnswerSchema: GenMessage<PasskeyAnswer> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 16);
+
+/**
+ * @generated from message raptor.panel.v1.BeginPasskeySignInRequest
+ */
+export type BeginPasskeySignInRequest = Message<"raptor.panel.v1.BeginPasskeySignInRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.BeginPasskeySignInRequest.
+ * Use `create(BeginPasskeySignInRequestSchema)` to create a new message.
+ */
+export const BeginPasskeySignInRequestSchema: GenMessage<BeginPasskeySignInRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 17);
+
+/**
+ * @generated from message raptor.panel.v1.BeginPasskeySignInResponse
+ */
+export type BeginPasskeySignInResponse = Message<"raptor.panel.v1.BeginPasskeySignInResponse"> & {
+  /**
+   * @generated from field: raptor.panel.v1.PasskeyChallenge challenge = 1;
+   */
+  challenge?: PasskeyChallenge | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.BeginPasskeySignInResponse.
+ * Use `create(BeginPasskeySignInResponseSchema)` to create a new message.
+ */
+export const BeginPasskeySignInResponseSchema: GenMessage<BeginPasskeySignInResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 18);
+
+/**
+ * @generated from message raptor.panel.v1.FinishPasskeySignInRequest
+ */
+export type FinishPasskeySignInRequest = Message<"raptor.panel.v1.FinishPasskeySignInRequest"> & {
+  /**
+   * @generated from field: raptor.panel.v1.PasskeyAnswer answer = 1;
+   */
+  answer?: PasskeyAnswer | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishPasskeySignInRequest.
+ * Use `create(FinishPasskeySignInRequestSchema)` to create a new message.
+ */
+export const FinishPasskeySignInRequestSchema: GenMessage<FinishPasskeySignInRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 19);
+
+/**
+ * @generated from message raptor.panel.v1.FinishPasskeySignInResponse
+ */
+export type FinishPasskeySignInResponse = Message<"raptor.panel.v1.FinishPasskeySignInResponse"> & {
+  /**
+   * @generated from field: raptor.panel.v1.User user = 1;
+   */
+  user?: User | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishPasskeySignInResponse.
+ * Use `create(FinishPasskeySignInResponseSchema)` to create a new message.
+ */
+export const FinishPasskeySignInResponseSchema: GenMessage<FinishPasskeySignInResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 20);
+
+/**
+ * @generated from message raptor.panel.v1.BeginPasskeyRegistrationRequest
+ */
+export type BeginPasskeyRegistrationRequest = Message<"raptor.panel.v1.BeginPasskeyRegistrationRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.BeginPasskeyRegistrationRequest.
+ * Use `create(BeginPasskeyRegistrationRequestSchema)` to create a new message.
+ */
+export const BeginPasskeyRegistrationRequestSchema: GenMessage<BeginPasskeyRegistrationRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 21);
+
+/**
+ * @generated from message raptor.panel.v1.BeginPasskeyRegistrationResponse
+ */
+export type BeginPasskeyRegistrationResponse = Message<"raptor.panel.v1.BeginPasskeyRegistrationResponse"> & {
+  /**
+   * @generated from field: raptor.panel.v1.PasskeyChallenge challenge = 1;
+   */
+  challenge?: PasskeyChallenge | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.BeginPasskeyRegistrationResponse.
+ * Use `create(BeginPasskeyRegistrationResponseSchema)` to create a new message.
+ */
+export const BeginPasskeyRegistrationResponseSchema: GenMessage<BeginPasskeyRegistrationResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 22);
+
+/**
+ * @generated from message raptor.panel.v1.FinishPasskeyRegistrationRequest
+ */
+export type FinishPasskeyRegistrationRequest = Message<"raptor.panel.v1.FinishPasskeyRegistrationRequest"> & {
+  /**
+   * @generated from field: raptor.panel.v1.PasskeyAnswer answer = 1;
+   */
+  answer?: PasskeyAnswer | undefined;
+
+  /**
+   * What the user calls it ("Phone", "YubiKey"). Up to 64 characters.
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishPasskeyRegistrationRequest.
+ * Use `create(FinishPasskeyRegistrationRequestSchema)` to create a new message.
+ */
+export const FinishPasskeyRegistrationRequestSchema: GenMessage<FinishPasskeyRegistrationRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 23);
+
+/**
+ * @generated from message raptor.panel.v1.FinishPasskeyRegistrationResponse
+ */
+export type FinishPasskeyRegistrationResponse = Message<"raptor.panel.v1.FinishPasskeyRegistrationResponse"> & {
+  /**
+   * @generated from field: raptor.panel.v1.Passkey passkey = 1;
+   */
+  passkey?: Passkey | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishPasskeyRegistrationResponse.
+ * Use `create(FinishPasskeyRegistrationResponseSchema)` to create a new message.
+ */
+export const FinishPasskeyRegistrationResponseSchema: GenMessage<FinishPasskeyRegistrationResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 24);
+
+/**
+ * @generated from message raptor.panel.v1.Passkey
+ */
+export type Passkey = Message<"raptor.panel.v1.Passkey"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 3;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp last_used_at = 4;
+   */
+  lastUsedAt?: Timestamp | undefined;
+
+  /**
+   * The passkey is synced between devices (iCloud Keychain, Google Password
+   * Manager) rather than bound to one device or security key.
+   *
+   * @generated from field: bool synced = 5;
+   */
+  synced: boolean;
+};
+
+/**
+ * Describes the message raptor.panel.v1.Passkey.
+ * Use `create(PasskeySchema)` to create a new message.
+ */
+export const PasskeySchema: GenMessage<Passkey> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 25);
+
+/**
+ * @generated from message raptor.panel.v1.ListPasskeysRequest
+ */
+export type ListPasskeysRequest = Message<"raptor.panel.v1.ListPasskeysRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListPasskeysRequest.
+ * Use `create(ListPasskeysRequestSchema)` to create a new message.
+ */
+export const ListPasskeysRequestSchema: GenMessage<ListPasskeysRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 26);
+
+/**
+ * @generated from message raptor.panel.v1.ListPasskeysResponse
+ */
+export type ListPasskeysResponse = Message<"raptor.panel.v1.ListPasskeysResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.Passkey passkeys = 1;
+   */
+  passkeys: Passkey[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListPasskeysResponse.
+ * Use `create(ListPasskeysResponseSchema)` to create a new message.
+ */
+export const ListPasskeysResponseSchema: GenMessage<ListPasskeysResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 27);
+
+/**
+ * @generated from message raptor.panel.v1.RenamePasskeyRequest
+ */
+export type RenamePasskeyRequest = Message<"raptor.panel.v1.RenamePasskeyRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.RenamePasskeyRequest.
+ * Use `create(RenamePasskeyRequestSchema)` to create a new message.
+ */
+export const RenamePasskeyRequestSchema: GenMessage<RenamePasskeyRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 28);
+
+/**
+ * @generated from message raptor.panel.v1.RenamePasskeyResponse
+ */
+export type RenamePasskeyResponse = Message<"raptor.panel.v1.RenamePasskeyResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.RenamePasskeyResponse.
+ * Use `create(RenamePasskeyResponseSchema)` to create a new message.
+ */
+export const RenamePasskeyResponseSchema: GenMessage<RenamePasskeyResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 29);
+
+/**
+ * @generated from message raptor.panel.v1.DeletePasskeyRequest
+ */
+export type DeletePasskeyRequest = Message<"raptor.panel.v1.DeletePasskeyRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.DeletePasskeyRequest.
+ * Use `create(DeletePasskeyRequestSchema)` to create a new message.
+ */
+export const DeletePasskeyRequestSchema: GenMessage<DeletePasskeyRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 30);
+
+/**
+ * @generated from message raptor.panel.v1.DeletePasskeyResponse
+ */
+export type DeletePasskeyResponse = Message<"raptor.panel.v1.DeletePasskeyResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.DeletePasskeyResponse.
+ * Use `create(DeletePasskeyResponseSchema)` to create a new message.
+ */
+export const DeletePasskeyResponseSchema: GenMessage<DeletePasskeyResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 31);
+
+/**
+ * @generated from message raptor.panel.v1.BeginReauthRequest
+ */
+export type BeginReauthRequest = Message<"raptor.panel.v1.BeginReauthRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.BeginReauthRequest.
+ * Use `create(BeginReauthRequestSchema)` to create a new message.
+ */
+export const BeginReauthRequestSchema: GenMessage<BeginReauthRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 32);
+
+/**
+ * @generated from message raptor.panel.v1.BeginReauthResponse
+ */
+export type BeginReauthResponse = Message<"raptor.panel.v1.BeginReauthResponse"> & {
+  /**
+   * @generated from oneof raptor.panel.v1.BeginReauthResponse.method
+   */
+  method: {
+    /**
+     * The account has passkeys: one of them must answer this.
+     *
+     * @generated from field: raptor.panel.v1.PasskeyChallenge passkey = 1;
+     */
+    value: PasskeyChallenge;
+    case: "passkey";
+  } | {
+    /**
+     * The account has no passkeys: a 6-digit code was emailed.
+     *
+     * @generated from field: bool email_sent = 2;
+     */
+    value: boolean;
+    case: "emailSent";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message raptor.panel.v1.BeginReauthResponse.
+ * Use `create(BeginReauthResponseSchema)` to create a new message.
+ */
+export const BeginReauthResponseSchema: GenMessage<BeginReauthResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 33);
+
+/**
+ * @generated from message raptor.panel.v1.FinishReauthRequest
+ */
+export type FinishReauthRequest = Message<"raptor.panel.v1.FinishReauthRequest"> & {
+  /**
+   * @generated from oneof raptor.panel.v1.FinishReauthRequest.proof
+   */
+  proof: {
+    /**
+     * @generated from field: raptor.panel.v1.PasskeyAnswer passkey = 1;
+     */
+    value: PasskeyAnswer;
+    case: "passkey";
+  } | {
+    /**
+     * @generated from field: string email_code = 2;
+     */
+    value: string;
+    case: "emailCode";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishReauthRequest.
+ * Use `create(FinishReauthRequestSchema)` to create a new message.
+ */
+export const FinishReauthRequestSchema: GenMessage<FinishReauthRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 34);
+
+/**
+ * @generated from message raptor.panel.v1.FinishReauthResponse
+ */
+export type FinishReauthResponse = Message<"raptor.panel.v1.FinishReauthResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp reauth_until = 1;
+   */
+  reauthUntil?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.FinishReauthResponse.
+ * Use `create(FinishReauthResponseSchema)` to create a new message.
+ */
+export const FinishReauthResponseSchema: GenMessage<FinishReauthResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 35);
+
+/**
  * AuthService signs people in and out of the Panel (docs/PANEL.md#auth).
  * The session is a host-only __Host- cookie the Panel sets; nothing here
  * returns a token to scripts.
@@ -404,6 +824,103 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof RevokeSessionRequestSchema;
     output: typeof RevokeSessionResponseSchema;
+  },
+  /**
+   * BeginPasskeySignIn starts a passkey sign-in. The browser passes
+   * options_json to navigator.credentials.get; no email is needed, since
+   * passkeys know their account.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.BeginPasskeySignIn
+   */
+  beginPasskeySignIn: {
+    methodKind: "unary";
+    input: typeof BeginPasskeySignInRequestSchema;
+    output: typeof BeginPasskeySignInResponseSchema;
+  },
+  /**
+   * FinishPasskeySignIn checks the passkey's answer and starts a session.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.FinishPasskeySignIn
+   */
+  finishPasskeySignIn: {
+    methodKind: "unary";
+    input: typeof FinishPasskeySignInRequestSchema;
+    output: typeof FinishPasskeySignInResponseSchema;
+  },
+  /**
+   * BeginPasskeyRegistration starts adding a passkey to the signed-in
+   * account. Needs a recent re-authentication.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.BeginPasskeyRegistration
+   */
+  beginPasskeyRegistration: {
+    methodKind: "unary";
+    input: typeof BeginPasskeyRegistrationRequestSchema;
+    output: typeof BeginPasskeyRegistrationResponseSchema;
+  },
+  /**
+   * FinishPasskeyRegistration checks the new passkey and saves it.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.FinishPasskeyRegistration
+   */
+  finishPasskeyRegistration: {
+    methodKind: "unary";
+    input: typeof FinishPasskeyRegistrationRequestSchema;
+    output: typeof FinishPasskeyRegistrationResponseSchema;
+  },
+  /**
+   * ListPasskeys lists the account's passkeys.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.ListPasskeys
+   */
+  listPasskeys: {
+    methodKind: "unary";
+    input: typeof ListPasskeysRequestSchema;
+    output: typeof ListPasskeysResponseSchema;
+  },
+  /**
+   * RenamePasskey renames one of the account's passkeys.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.RenamePasskey
+   */
+  renamePasskey: {
+    methodKind: "unary";
+    input: typeof RenamePasskeyRequestSchema;
+    output: typeof RenamePasskeyResponseSchema;
+  },
+  /**
+   * DeletePasskey removes one of the account's passkeys. Needs a recent
+   * re-authentication.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.DeletePasskey
+   */
+  deletePasskey: {
+    methodKind: "unary";
+    input: typeof DeletePasskeyRequestSchema;
+    output: typeof DeletePasskeyResponseSchema;
+  },
+  /**
+   * BeginReauth starts confirming it's really the user, before a sensitive
+   * account change: with a passkey if the account has one, otherwise with a
+   * code emailed to them.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.BeginReauth
+   */
+  beginReauth: {
+    methodKind: "unary";
+    input: typeof BeginReauthRequestSchema;
+    output: typeof BeginReauthResponseSchema;
+  },
+  /**
+   * FinishReauth checks the passkey's answer or the emailed code. A
+   * re-authentication lasts 5 minutes.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.FinishReauth
+   */
+  finishReauth: {
+    methodKind: "unary";
+    input: typeof FinishReauthRequestSchema;
+    output: typeof FinishReauthResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_auth, 0);

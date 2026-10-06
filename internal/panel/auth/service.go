@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -34,54 +35,88 @@ func (s *Service) StartEmailSignIn(ctx context.Context, req *panelv1.StartEmailS
 			return nil, errChallenged
 		}
 	}
-	for _, c := range []struct {
-		key string
-		l   Limit
-	}{{"send:ip:" + ip.String(), limitSendPerIP}, {"send:email:" + email, limitSendPerEmail}} {
-		ok, err := s.allow(ctx, c.key, c.l)
-		if err != nil {
-			return nil, err
-		}
-		if !ok {
-			return nil, errRateLimit
-		}
+	if err := s.limit(ctx, "send:ip:"+ip.String(), limitSendPerIP); err != nil {
+		return nil, err
 	}
+	if err := s.limit(ctx, "send:email:"+email, limitSendPerEmail); err != nil {
+		return nil, err
+	}
+	if err := s.sendEmailCode(ctx, email, purposeSignIn); err != nil {
+		return nil, err
+	}
+	return &panelv1.StartEmailSignInResponse{}, nil
+}
+
+// Email code purposes: a sign-in code can't confirm a sensitive change, and a
+// re-authentication code can't sign in.
+const (
+	purposeSignIn = "signin"
+	purposeReauth = "reauth"
+)
+
+// sendEmailCode emails a code (and, for signing in, a link).
+func (s *Service) sendEmailCode(ctx context.Context, email, purpose string) error {
 	if s.Mailer == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("signing in by email isn't set up on this Panel"))
+		return connect.NewError(connect.CodeUnavailable, errors.New("email isn't set up on this Panel"))
 	}
 	code, link := newCode(), newToken()
 	linkHash := hash(link)
 	if err := s.q().CreateEmailCode(ctx, store.CreateEmailCodeParams{
 		Email: email, CodeHash: hash(string(linkHash), code), LinkTokenHash: linkHash,
-		ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(CodeTTL), Valid: true},
+		ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(CodeTTL), Valid: true}, Purpose: purpose,
 	}); err != nil {
-		return nil, err
+		return err
 	}
-	// The token goes after #, so it never reaches a server's logs.
-	url := strings.TrimSuffix(s.AppURL, "/") + "/signin/link#" + link
-	body := fmt.Sprintf("Your Raptor sign-in code is %s\n\nOr sign in with this link:\n%s\n\nBoth work once, for %d minutes. If you didn't ask for this, ignore it: nobody can sign in without the code.\n",
-		code, url, int(CodeTTL.Minutes()))
-	if err := s.Mailer.Send(ctx, email, "Your Raptor sign-in code: "+code, body); err != nil {
-		s.log().Error("sending a sign-in email failed", "err", err)
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("couldn't send the email; try again in a minute"))
+	var subject, body string
+	if purpose == purposeSignIn {
+		// The token goes after #, so it never reaches a server's logs.
+		url := strings.TrimSuffix(s.AppURL, "/") + "/signin/link#" + link
+		subject = "Your Raptor sign-in code: " + code
+		body = fmt.Sprintf("Your Raptor sign-in code is %s\n\nOr sign in with this link:\n%s\n\nBoth work once, for %d minutes. If you didn't ask for this, ignore it: nobody can sign in without the code.\n",
+			code, url, int(CodeTTL.Minutes()))
+	} else {
+		subject = "Your Raptor confirmation code: " + code
+		body = fmt.Sprintf("Your Raptor confirmation code is %s\n\nSomeone signed in to your account is changing how it's secured, and asked to confirm it's you. The code works once, for %d minutes. If this wasn't you, sign out every device from your account settings.\n",
+			code, int(CodeTTL.Minutes()))
 	}
-	return &panelv1.StartEmailSignInResponse{}, nil
+	if err := s.Mailer.Send(ctx, email, subject, body); err != nil {
+		s.log().Error("sending an email failed", "purpose", purpose, "err", err)
+		return connect.NewError(connect.CodeUnavailable, errors.New("couldn't send the email; try again in a minute"))
+	}
+	return nil
+}
+
+// checkEmailCode checks a code against the newest one sent to email for
+// purpose and uses it up. A wrong code counts against its attempts; failure
+// is the error the user sees.
+func checkEmailCode(ctx context.Context, q *store.Queries, now time.Time, email, purpose, code string) (row store.EmailCode, failure, err error) {
+	row, err = q.LatestEmailCode(ctx, store.LatestEmailCodeParams{Email: email, Purpose: purpose})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return row, errBadCode, nil
+	}
+	if err != nil {
+		return row, nil, err
+	}
+	if row.Attempts >= CodeAttempts || !row.ExpiresAt.Time.After(now) {
+		return row, errBadCode, nil
+	}
+	given := hash(string(row.LinkTokenHash), strings.TrimSpace(code))
+	if subtle.ConstantTimeCompare(given, row.CodeHash) != 1 {
+		// The attempt counts even though the answer is "wrong".
+		return row, errBadCode, q.CountEmailCodeAttempt(ctx, row.ID)
+	}
+	return row, nil, q.UseEmailCode(ctx, row.ID)
 }
 
 // FinishEmailSignIn checks a code or a link and starts a session, creating
 // the account the first time (the code proves the address).
 func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmailSignInRequest) (*panelv1.FinishEmailSignInResponse, error) {
-	ip := s.clientIP(ctx)
-	ok, err := s.allow(ctx, "check:ip:"+ip.String(), limitCheckPerIP)
-	if err != nil {
+	if err := s.limit(ctx, "check:ip:"+s.clientIP(ctx).String(), limitCheckPerIP); err != nil {
 		return nil, err
-	}
-	if !ok {
-		return nil, errRateLimit
 	}
 	var out *panelv1.FinishEmailSignInResponse
 	var failure error
-	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
+	err := pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		var row store.EmailCode
 		switch p := req.GetProof().(type) {
@@ -90,25 +125,14 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 			if err != nil {
 				return err
 			}
-			row, err = q.LatestEmailCode(ctx, email)
-			if errors.Is(err, pgx.ErrNoRows) {
-				failure = errBadCode
-				return nil
-			}
-			if err != nil {
+			var f error
+			row, f, err = checkEmailCode(ctx, q, s.now(), email, purposeSignIn, p.Code.GetCode())
+			if err != nil || f != nil {
+				failure = f
 				return err
 			}
-			if row.Attempts >= CodeAttempts || !row.ExpiresAt.Time.After(s.now()) {
-				failure = errBadCode
-				return nil
-			}
-			given := hash(string(row.LinkTokenHash), strings.TrimSpace(p.Code.GetCode()))
-			if subtle.ConstantTimeCompare(given, row.CodeHash) != 1 {
-				failure = errBadCode
-				// The attempt counts even though the answer is "wrong".
-				return q.CountEmailCodeAttempt(ctx, row.ID)
-			}
 		case *panelv1.FinishEmailSignInRequest_LinkToken:
+			var err error
 			row, err = q.EmailCodeByLink(ctx, hash(p.LinkToken))
 			if errors.Is(err, pgx.ErrNoRows) {
 				failure = errBadLink
@@ -121,11 +145,11 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 				failure = errBadLink
 				return nil
 			}
+			if err := q.UseEmailCode(ctx, row.ID); err != nil {
+				return err
+			}
 		default:
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("a code or a link is needed"))
-		}
-		if err := q.UseEmailCode(ctx, row.ID); err != nil {
-			return err
 		}
 		user, err := q.GetUserByEmail(ctx, row.Email)
 		created := false
@@ -142,7 +166,14 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 				return err
 			}
 		}
-		if err := s.startSession(ctx, q, user); err != nil {
+		// An email proves the inbox, which is enough for sensitive changes
+		// only on accounts with nothing stronger: otherwise someone who
+		// got into the inbox could sign in and remove the passkeys.
+		strong, err := hasStrongMethod(ctx, q, user.ID)
+		if err != nil {
+			return err
+		}
+		if err := s.startSession(ctx, q, user, !strong); err != nil {
 			return err
 		}
 		out = &panelv1.FinishEmailSignInResponse{User: userProto(user), NewAccount: created}
@@ -178,7 +209,11 @@ func (s *Service) GetSession(ctx context.Context, _ *panelv1.GetSessionRequest) 
 	if err != nil {
 		return nil, err
 	}
-	return &panelv1.GetSessionResponse{User: userProto(sess.User), Session: sessionProto(sess.Session, sess.ID)}, nil
+	out := sessionProto(sess.Session, sess.ID)
+	if until := s.reauthUntil(sess); !until.IsZero() {
+		out.ReauthUntil = timestamppb.New(until)
+	}
+	return &panelv1.GetSessionResponse{User: userProto(sess.User), Session: out}, nil
 }
 
 // SignOut ends this session and clears the cookie.

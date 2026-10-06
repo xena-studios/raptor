@@ -32,6 +32,42 @@ service AuthService {
 
   // RevokeSession signs one of the user's devices out (or all but this one).
   rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse) {}
+
+  // BeginPasskeySignIn starts a passkey sign-in. The browser passes
+  // options_json to navigator.credentials.get; no email is needed, since
+  // passkeys know their account.
+  rpc BeginPasskeySignIn(BeginPasskeySignInRequest) returns (BeginPasskeySignInResponse) {}
+
+  // FinishPasskeySignIn checks the passkey's answer and starts a session.
+  rpc FinishPasskeySignIn(FinishPasskeySignInRequest) returns (FinishPasskeySignInResponse) {}
+
+  // BeginPasskeyRegistration starts adding a passkey to the signed-in
+  // account. Needs a recent re-authentication.
+  rpc BeginPasskeyRegistration(BeginPasskeyRegistrationRequest) returns (BeginPasskeyRegistrationResponse) {}
+
+  // FinishPasskeyRegistration checks the new passkey and saves it.
+  rpc FinishPasskeyRegistration(FinishPasskeyRegistrationRequest) returns (FinishPasskeyRegistrationResponse) {}
+
+  // ListPasskeys lists the account's passkeys.
+  rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // RenamePasskey renames one of the account's passkeys.
+  rpc RenamePasskey(RenamePasskeyRequest) returns (RenamePasskeyResponse) {}
+
+  // DeletePasskey removes one of the account's passkeys. Needs a recent
+  // re-authentication.
+  rpc DeletePasskey(DeletePasskeyRequest) returns (DeletePasskeyResponse) {}
+
+  // BeginReauth starts confirming it's really the user, before a sensitive
+  // account change: with a passkey if the account has one, otherwise with a
+  // code emailed to them.
+  rpc BeginReauth(BeginReauthRequest) returns (BeginReauthResponse) {}
+
+  // FinishReauth checks the passkey's answer or the emailed code. A
+  // re-authentication lasts 5 minutes.
+  rpc FinishReauth(FinishReauthRequest) returns (FinishReauthResponse) {}
 }
 
 message StartEmailSignInRequest {
@@ -82,6 +118,9 @@ message Session {
   string user_agent = 5;
   // This is the session making the request.
   bool current = 6;
+  // Sensitive account changes are allowed until then (the current session
+  // only; unset if they need a re-authentication).
+  google.protobuf.Timestamp reauth_until = 7;
 }
 
 message SignOutRequest {}
@@ -103,3 +142,98 @@ message RevokeSessionRequest {
 }
 
 message RevokeSessionResponse {}
+
+// A WebAuthn ceremony the browser runs: options_json is the "publicKey"
+// options in WebAuthn's JSON form (for PublicKeyCredential.parse*OptionsFromJSON),
+// and ceremony_id comes back with the answer.
+message PasskeyChallenge {
+  string ceremony_id = 1;
+  string options_json = 2;
+}
+
+// The browser's answer: PublicKeyCredential.toJSON().
+message PasskeyAnswer {
+  string ceremony_id = 1;
+  string credential_json = 2;
+}
+
+message BeginPasskeySignInRequest {}
+
+message BeginPasskeySignInResponse {
+  PasskeyChallenge challenge = 1;
+}
+
+message FinishPasskeySignInRequest {
+  PasskeyAnswer answer = 1;
+}
+
+message FinishPasskeySignInResponse {
+  User user = 1;
+}
+
+message BeginPasskeyRegistrationRequest {}
+
+message BeginPasskeyRegistrationResponse {
+  PasskeyChallenge challenge = 1;
+}
+
+message FinishPasskeyRegistrationRequest {
+  PasskeyAnswer answer = 1;
+  // What the user calls it ("Phone", "YubiKey"). Up to 64 characters.
+  string name = 2;
+}
+
+message FinishPasskeyRegistrationResponse {
+  Passkey passkey = 1;
+}
+
+message Passkey {
+  string id = 1;
+  string name = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp last_used_at = 4;
+  // The passkey is synced between devices (iCloud Keychain, Google Password
+  // Manager) rather than bound to one device or security key.
+  bool synced = 5;
+}
+
+message ListPasskeysRequest {}
+
+message ListPasskeysResponse {
+  repeated Passkey passkeys = 1;
+}
+
+message RenamePasskeyRequest {
+  string id = 1;
+  string name = 2;
+}
+
+message RenamePasskeyResponse {}
+
+message DeletePasskeyRequest {
+  string id = 1;
+}
+
+message DeletePasskeyResponse {}
+
+message BeginReauthRequest {}
+
+message BeginReauthResponse {
+  oneof method {
+    // The account has passkeys: one of them must answer this.
+    PasskeyChallenge passkey = 1;
+    // The account has no passkeys: a 6-digit code was emailed.
+    bool email_sent = 2;
+  }
+}
+
+message FinishReauthRequest {
+  oneof proof {
+    PasskeyAnswer passkey = 1;
+    string email_code = 2;
+  }
+}
+
+message FinishReauthResponse {
+  google.protobuf.Timestamp reauth_until = 1;
+}

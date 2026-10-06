@@ -151,6 +151,12 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		if secret := os.Getenv("PANEL_TURNSTILE_SECRET"); secret != "" {
 			cfg.Auth.Turnstile = auth.Turnstile{Secret: secret}
 		}
+		wa, err := auth.NewWebAuthn(cfg.AppOrigin)
+		if err != nil {
+			return fmt.Errorf("PANEL_APP_URL: %w", err)
+		}
+		cfg.Auth.WebAuthn = wa
+		go cfg.Auth.RunJanitor(ctx, time.Hour)
 		if os.Getenv("PANEL_MAIL_LOG") == "1" {
 			// Development: sign-in emails (with their codes) go to the log.
 			cfg.Auth.Mailer = auth.LogMailer{Log: log}
