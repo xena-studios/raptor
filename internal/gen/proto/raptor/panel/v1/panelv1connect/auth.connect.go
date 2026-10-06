@@ -100,6 +100,9 @@ const (
 	// AuthServiceUnlinkOAuthAccountProcedure is the fully-qualified name of the AuthService's
 	// UnlinkOAuthAccount RPC.
 	AuthServiceUnlinkOAuthAccountProcedure = "/raptor.panel.v1.AuthService/UnlinkOAuthAccount"
+	// AuthServiceListActivityProcedure is the fully-qualified name of the AuthService's ListActivity
+	// RPC.
+	AuthServiceListActivityProcedure = "/raptor.panel.v1.AuthService/ListActivity"
 )
 
 // AuthServiceClient is a client for the raptor.panel.v1.AuthService service.
@@ -176,6 +179,9 @@ type AuthServiceClient interface {
 	// UnlinkOAuthAccount stops one signing in. Needs a recent
 	// re-authentication.
 	UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error)
+	// ListActivity lists the account's sign-ins, failed attempts, and
+	// security changes, newest first, 50 at a time.
+	ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the raptor.panel.v1.AuthService service. By default,
@@ -338,6 +344,13 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("UnlinkOAuthAccount")),
 			connect.WithClientOptions(opts...),
 		),
+		listActivity: connect.NewClient[v1.ListActivityRequest, v1.ListActivityResponse](
+			httpClient,
+			baseURL+AuthServiceListActivityProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListActivity")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -367,6 +380,7 @@ type authServiceClient struct {
 	beginOAuth                *connect.Client[v1.BeginOAuthRequest, v1.BeginOAuthResponse]
 	listOAuthAccounts         *connect.Client[v1.ListOAuthAccountsRequest, v1.ListOAuthAccountsResponse]
 	unlinkOAuthAccount        *connect.Client[v1.UnlinkOAuthAccountRequest, v1.UnlinkOAuthAccountResponse]
+	listActivity              *connect.Client[v1.ListActivityRequest, v1.ListActivityResponse]
 }
 
 // StartEmailSignIn calls raptor.panel.v1.AuthService.StartEmailSignIn.
@@ -585,6 +599,15 @@ func (c *authServiceClient) UnlinkOAuthAccount(ctx context.Context, req *v1.Unli
 	return nil, err
 }
 
+// ListActivity calls raptor.panel.v1.AuthService.ListActivity.
+func (c *authServiceClient) ListActivity(ctx context.Context, req *v1.ListActivityRequest) (*v1.ListActivityResponse, error) {
+	response, err := c.listActivity.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthServiceHandler is an implementation of the raptor.panel.v1.AuthService service.
 type AuthServiceHandler interface {
 	// StartEmailSignIn emails a 6-digit code and a sign-in link for the
@@ -659,6 +682,9 @@ type AuthServiceHandler interface {
 	// UnlinkOAuthAccount stops one signing in. Needs a recent
 	// re-authentication.
 	UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error)
+	// ListActivity lists the account's sign-ins, failed attempts, and
+	// security changes, newest first, 50 at a time.
+	ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -817,6 +843,13 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("UnlinkOAuthAccount")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceListActivityHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceListActivityProcedure,
+		svc.ListActivity,
+		connect.WithSchema(authServiceMethods.ByName("ListActivity")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceStartEmailSignInProcedure:
@@ -867,6 +900,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceListOAuthAccountsHandler.ServeHTTP(w, r)
 		case AuthServiceUnlinkOAuthAccountProcedure:
 			authServiceUnlinkOAuthAccountHandler.ServeHTTP(w, r)
+		case AuthServiceListActivityProcedure:
+			authServiceListActivityHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -970,4 +1005,8 @@ func (UnimplementedAuthServiceHandler) ListOAuthAccounts(context.Context, *v1.Li
 
 func (UnimplementedAuthServiceHandler) UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.UnlinkOAuthAccount is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.ListActivity is not implemented"))
 }

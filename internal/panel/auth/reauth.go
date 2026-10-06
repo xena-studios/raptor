@@ -97,12 +97,16 @@ func (s *Service) FinishReauth(ctx context.Context, req *panelv1.FinishReauthReq
 		return nil, err
 	}
 	var failure error
+	var method string
 	switch p := req.GetProof().(type) {
 	case *panelv1.FinishReauthRequest_Passkey:
+		method = "passkey"
 		failure, err = s.reauthPasskey(ctx, sess, p.Passkey)
 	case *panelv1.FinishReauthRequest_EmailCode:
+		method = "email"
 		failure, err = s.reauthEmail(ctx, sess, p.EmailCode)
 	case *panelv1.FinishReauthRequest_TotpCode:
+		method = "totp"
 		failure, err = s.reauthTOTP(ctx, sess, p.TotpCode)
 	default:
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a passkey or a code is needed"))
@@ -110,6 +114,11 @@ func (s *Service) FinishReauth(ctx context.Context, req *panelv1.FinishReauthReq
 	if err != nil {
 		return nil, err
 	}
+	ev := Event{User: sess.UserID, Action: "reauth", Target: uuid.UUID(sess.ID.Bytes).String(), Meta: map[string]any{"method": method}}
+	if failure != nil {
+		ev.Action = "reauth.failed"
+	}
+	_ = s.Audit(ctx, nil, ev)
 	if failure != nil {
 		return nil, failure
 	}

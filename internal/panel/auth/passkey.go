@@ -222,6 +222,8 @@ func (s *Service) FinishPasskeySignIn(ctx context.Context, req *panelv1.FinishPa
 		return nil, err
 	}
 	var out *panelv1.FinishPasskeySignInResponse
+	var who pgtype.UUID // the account whose passkey answered, if known
+	after := func() {}
 	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		var row store.Passkey
@@ -234,6 +236,7 @@ func (s *Service) FinishPasskeySignIn(ctx context.Context, req *panelv1.FinishPa
 			if user, err = q.GetUser(ctx, row.UserID); err != nil {
 				return nil, err
 			}
+			who = user.ID
 			if !bytes.Equal(user.WebauthnHandle, handle) {
 				return nil, errors.New("user handle doesn't match")
 			}
@@ -248,15 +251,19 @@ func (s *Service) FinishPasskeySignIn(ctx context.Context, req *panelv1.FinishPa
 		if err := s.usePasskey(ctx, q, row, cred); err != nil {
 			return err
 		}
-		if err := s.startSession(ctx, q, user, true); err != nil {
+		if after, err = s.startSession(ctx, q, user, true, "passkey"); err != nil {
 			return err
 		}
 		out = &panelv1.FinishPasskeySignInResponse{User: userProto(user)}
 		return nil
 	})
+	if errors.Is(err, errBadPasskey) {
+		_ = s.Audit(ctx, nil, Event{User: who, Action: "signin.failed", Meta: map[string]any{"method": "passkey"}})
+	}
 	if err != nil {
 		return nil, err
 	}
+	after()
 	return out, nil
 }
 
@@ -360,6 +367,7 @@ func (s *Service) FinishPasskeyRegistration(ctx context.Context, req *panelv1.Fi
 	if err != nil {
 		return nil, err
 	}
+	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "passkey.add", Target: uuid.UUID(row.ID.Bytes).String(), Meta: map[string]any{"name": name}})
 	s.notify(ctx, sess.User, "A passkey was added to your Raptor account",
 		fmt.Sprintf("A passkey named %q was added to your Raptor account. It can sign in without a code.\n\nIf this wasn't you, sign out every device and remove it from your account settings right away.\n", name))
 	return &panelv1.FinishPasskeyRegistrationResponse{Passkey: passkeyProto(row)}, nil
@@ -403,6 +411,7 @@ func (s *Service) RenamePasskey(ctx context.Context, req *panelv1.RenamePasskeyR
 	if n == 0 {
 		return nil, errNoPasskey
 	}
+	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "passkey.rename", Target: req.GetId(), Meta: map[string]any{"name": name}})
 	return &panelv1.RenamePasskeyResponse{}, nil
 }
 
@@ -427,6 +436,7 @@ func (s *Service) DeletePasskey(ctx context.Context, req *panelv1.DeletePasskeyR
 	if err != nil {
 		return nil, err
 	}
+	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "passkey.remove", Target: req.GetId(), Meta: map[string]any{"name": row.Name}})
 	s.notify(ctx, sess.User, "A passkey was removed from your Raptor account",
 		fmt.Sprintf("The passkey named %q was removed from your Raptor account.\n\nIf this wasn't you, sign out every device from your account settings right away.\n", row.Name))
 	return &panelv1.DeletePasskeyResponse{}, nil

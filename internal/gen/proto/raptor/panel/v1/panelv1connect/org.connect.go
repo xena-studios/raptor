@@ -60,6 +60,8 @@ const (
 	// OrgServiceCreateJoinTokenProcedure is the fully-qualified name of the OrgService's
 	// CreateJoinToken RPC.
 	OrgServiceCreateJoinTokenProcedure = "/raptor.panel.v1.OrgService/CreateJoinToken"
+	// OrgServiceListAuditLogProcedure is the fully-qualified name of the OrgService's ListAuditLog RPC.
+	OrgServiceListAuditLogProcedure = "/raptor.panel.v1.OrgService/ListAuditLog"
 )
 
 // OrgServiceClient is a client for the raptor.panel.v1.OrgService service.
@@ -93,6 +95,9 @@ type OrgServiceClient interface {
 	// Admins and owners, with a recent re-authentication: a node runs as
 	// root, so adding one is a sensitive change.
 	CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error)
+	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
+	// Admins and owners.
+	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
 }
 
 // NewOrgServiceClient constructs a client for the raptor.panel.v1.OrgService service. By default,
@@ -175,6 +180,13 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("CreateJoinToken")),
 			connect.WithClientOptions(opts...),
 		),
+		listAuditLog: connect.NewClient[v1.ListAuditLogRequest, v1.ListAuditLogResponse](
+			httpClient,
+			baseURL+OrgServiceListAuditLogProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListAuditLog")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -191,6 +203,7 @@ type orgServiceClient struct {
 	revokeInvitation *connect.Client[v1.RevokeInvitationRequest, v1.RevokeInvitationResponse]
 	acceptInvitation *connect.Client[v1.AcceptInvitationRequest, v1.AcceptInvitationResponse]
 	createJoinToken  *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
+	listAuditLog     *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
 }
 
 // CreateOrg calls raptor.panel.v1.OrgService.CreateOrg.
@@ -292,6 +305,15 @@ func (c *orgServiceClient) CreateJoinToken(ctx context.Context, req *v1.CreateJo
 	return nil, err
 }
 
+// ListAuditLog calls raptor.panel.v1.OrgService.ListAuditLog.
+func (c *orgServiceClient) ListAuditLog(ctx context.Context, req *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {
+	response, err := c.listAuditLog.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // OrgServiceHandler is an implementation of the raptor.panel.v1.OrgService service.
 type OrgServiceHandler interface {
 	// CreateOrg makes an org with the caller as its owner.
@@ -323,6 +345,9 @@ type OrgServiceHandler interface {
 	// Admins and owners, with a recent re-authentication: a node runs as
 	// root, so adding one is a sensitive change.
 	CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error)
+	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
+	// Admins and owners.
+	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
 }
 
 // NewOrgServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -401,6 +426,13 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("CreateJoinToken")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceListAuditLogHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListAuditLogProcedure,
+		svc.ListAuditLog,
+		connect.WithSchema(orgServiceMethods.ByName("ListAuditLog")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.OrgService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrgServiceCreateOrgProcedure:
@@ -425,6 +457,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceAcceptInvitationHandler.ServeHTTP(w, r)
 		case OrgServiceCreateJoinTokenProcedure:
 			orgServiceCreateJoinTokenHandler.ServeHTTP(w, r)
+		case OrgServiceListAuditLogProcedure:
+			orgServiceListAuditLogHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -476,4 +510,8 @@ func (UnimplementedOrgServiceHandler) AcceptInvitation(context.Context, *v1.Acce
 
 func (UnimplementedOrgServiceHandler) CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.CreateJoinToken is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListAuditLog is not implemented"))
 }

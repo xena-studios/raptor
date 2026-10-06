@@ -64,7 +64,8 @@ server_grants    user_id, node_id, server_id, permissions[]
 support_grants   id, node_id, staff_id, level, reason, ticket_ref,
                  approved_by, expires_at, revoked_at
 ssh_keys         id, user_id, public_key, fingerprint
-audit_log        id, org_id, actor (user|staff|system), action, target, metadata, at
+audit_log        id, org_id, user_id, actor (user|staff|system), actor_id, action, target,
+                 ip, user_agent, metadata, at
 
 -- mirror (rebuilt from Wings events)
 m_servers        node_id, server_id, name, egg_ref, status, config jsonb, version
@@ -137,6 +138,15 @@ How TOTP works (`internal/panel/auth`, `pquerna/otp`): 30-second, 6-digit, SHA-1
 - Per-server grants for sub-users (e.g. `console.read`, `console.write`, `power`, `files.read`, `files.write`, `backups`, `schedules`, `startup`, `sftp`, …).
 - When a user acts on a node, the Panel sends a **signed, short-lived grant** (≤ 5 min, bound to user + server + action) with the command. Wings verifies the signature and expiry locally.
 - **Dangerous actions** additionally need the user's passkey signature over the exact command. Owners' keys are trusted by the node directly; sub-users need a **delegation signed by an owner's passkey** for each dangerous action they're allowed. The Panel stores and displays delegations but can't create them.
+
+## Audit log
+
+One table (`audit_log`) for account and org events, with the IP address and browser of the request, kept a year. Users see their account's events (`AuthService.ListActivity`); admins and owners see their org's (`OrgService.ListAuditLog`), 50 at a time, newest first.
+
+- **Account:** `signin` (method: `email`, `passkey`, `totp`, `recovery_code`, `google`, `github`, `discord`; whether it's a new device), `signin.first_factor` (waiting for TOTP), `signin.failed` (a wrong code, a refused passkey, an unverified provider email), `reauth`, `reauth.failed`, `session.signout`, `session.revoke`, `passkey.add|remove|rename`, `totp.enable|disable`, `recovery_codes.regenerate`, `oauth.link|unlink`.
+- **Org:** `org.create|rename`, `member.role|remove|leave`, `invitation.create|revoke|accept`, `join_token.create`.
+
+Sign-ins and org changes are written in the same transaction as the change, so neither happens without the other. Org events are written under row-level security as the user (they can add their own org's events, never change or delete any), and a former member's address isn't shown on their old events once nobody shares an org with them. A sign-in from a browser (by user agent) the account hasn't used before emails the user.
 
 ## Billing (Polar)
 

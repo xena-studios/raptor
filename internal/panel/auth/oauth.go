@@ -130,6 +130,7 @@ func (s *Service) oauthCallback(ctx context.Context, r *http.Request) string {
 	id, err := p.Identify(ctx, q.Get("code"), flow.Verifier, flow.Nonce)
 	if err != nil {
 		s.log().Info("oauth sign-in failed", "provider", provider, "err", err)
+		_ = s.Audit(ctx, nil, Event{Action: "signin.failed", Meta: map[string]any{"method": provider, "reason": "provider"}})
 		return "/signin?error=oauth_failed"
 	}
 	if flow.SessionID.Valid {
@@ -141,6 +142,7 @@ func (s *Service) oauthCallback(ctx context.Context, r *http.Request) string {
 func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity) string {
 	var dest string
 	var linked *store.User
+	after := func() {}
 	err := pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		var user store.User
@@ -177,8 +179,15 @@ func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity)
 				}
 				linked = &user
 			}
-			if _, err := q.CreateOAuthAccount(ctx, store.CreateOAuthAccountParams{
+			acct, err := q.CreateOAuthAccount(ctx, store.CreateOAuthAccountParams{
 				UserID: user.ID, Provider: provider, Subject: id.Subject, Email: email, EmailVerified: true,
+			})
+			if err != nil {
+				return err
+			}
+			if err := s.Audit(ctx, q, Event{
+				User: user.ID, Action: "oauth.link", Target: uuid.UUID(acct.ID.Bytes).String(),
+				Meta: map[string]any{"provider": provider, "by_email": linked != nil},
 			}); err != nil {
 				return err
 			}
@@ -190,19 +199,24 @@ func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity)
 		// that have something stronger.
 		if user.TotpEnabledAt.Valid {
 			dest = "/signin/second-factor"
-			return s.startPending(ctx, q, user)
+			return s.startPending(ctx, q, user, provider)
 		}
 		strong, err := hasStrongMethod(ctx, q, user)
 		if err != nil {
 			return err
 		}
 		dest = "/"
-		return s.startSession(ctx, q, user, !strong)
+		after, err = s.startSession(ctx, q, user, !strong, provider)
+		return err
 	})
 	if err != nil {
 		s.log().Error("oauth sign-in failed", "provider", provider, "err", err)
 		return "/signin?error=oauth_failed"
 	}
+	if dest == "/signin?error=oauth_unverified" {
+		_ = s.Audit(ctx, nil, Event{Action: "signin.failed", Meta: map[string]any{"method": provider, "reason": "unverified_email"}})
+	}
+	after()
 	if linked != nil {
 		s.notify(ctx, *linked, providerNames[provider]+" sign-in was added to your Raptor account",
 			fmt.Sprintf("Someone signed in to your Raptor account with a %s account that has your verified email address, so it can now sign in to your account.\n\nIf this wasn't you, remove it from your account settings and sign out every device right away.\n", providerNames[provider]))
@@ -232,7 +246,7 @@ func (s *Service) oauthLink(ctx context.Context, provider string, session pgtype
 		return settings + "?linked=" + url.QueryEscape(provider)
 	}
 	email, _ := normalizeEmail(id.Email)
-	_, err = q.CreateOAuthAccount(ctx, store.CreateOAuthAccountParams{
+	acct, err := q.CreateOAuthAccount(ctx, store.CreateOAuthAccountParams{
 		UserID: user.ID, Provider: provider, Subject: id.Subject, Email: email, EmailVerified: id.EmailVerified,
 	})
 	if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -242,6 +256,7 @@ func (s *Service) oauthLink(ctx context.Context, provider string, session pgtype
 		s.log().Error("linking an oauth account failed", "provider", provider, "err", err)
 		return settings + "?error=oauth_failed"
 	}
+	_ = s.Audit(ctx, nil, Event{User: user.ID, Action: "oauth.link", Target: uuid.UUID(acct.ID.Bytes).String(), Meta: map[string]any{"provider": provider}})
 	s.notify(ctx, user, providerNames[provider]+" sign-in was added to your Raptor account",
 		fmt.Sprintf("A %s account can now sign in to your Raptor account.\n\nIf this wasn't you, remove it from your account settings and sign out every device right away.\n", providerNames[provider]))
 	return settings + "?linked=" + url.QueryEscape(provider)
@@ -295,6 +310,7 @@ func (s *Service) UnlinkOAuthAccount(ctx context.Context, req *panelv1.UnlinkOAu
 	if err != nil {
 		return nil, err
 	}
+	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "oauth.unlink", Target: req.GetId(), Meta: map[string]any{"provider": row.Provider}})
 	s.notify(ctx, sess.User, providerNames[row.Provider]+" sign-in was removed from your Raptor account",
 		fmt.Sprintf("A %s account can no longer sign in to your Raptor account.\n\nIf this wasn't you, sign out every device from your account settings right away.\n", providerNames[row.Provider]))
 	return &panelv1.UnlinkOAuthAccountResponse{}, nil

@@ -38,6 +38,15 @@ func TestRowLevelSecurity(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	for _, o := range []string{acme, globex} {
+		if _, err := db.Exec(ctx, "INSERT INTO audit_log (org_id, actor, action) VALUES ($1, 'user', 'org.create')", o); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec(ctx, "INSERT INTO audit_log (user_id, actor, action) VALUES ($1, 'user', 'signin')", carol); err != nil {
+		t.Fatal(err)
+	}
+
 	// as runs fn as raptor_app for user ("" for nobody), rolled back after.
 	as := func(user string, fn func(tx pgx.Tx)) {
 		t.Helper()
@@ -120,6 +129,23 @@ func TestRowLevelSecurity(t *testing.T) {
 		if n := exec(tx, "SELECT 1 FROM join_tokens"); n > 0 {
 			t.Errorf("alice sees join tokens")
 		}
+		// The audit log: her org's, not Globex's or carol's account events,
+		// and nothing can be changed or written for another org.
+		if n := count(tx, "SELECT count(*) FROM audit_log"); n != 1 {
+			t.Errorf("alice sees %d audit events, want Acme's one", n)
+		}
+		if n := exec(tx, "INSERT INTO audit_log (org_id, actor, actor_id, action) VALUES ($1, 'user', $2, 'x')", globex, alice); n >= 0 {
+			t.Error("alice wrote to Globex's log")
+		}
+		if n := exec(tx, "INSERT INTO audit_log (org_id, actor, actor_id, action) VALUES ($1, 'user', $2, 'x')", acme, bob); n >= 0 {
+			t.Error("alice wrote an event as bob")
+		}
+		if n := exec(tx, "UPDATE audit_log SET action = 'nothing'"); n >= 0 {
+			t.Error("alice rewrote the log")
+		}
+		if n := exec(tx, "DELETE FROM audit_log"); n >= 0 {
+			t.Error("alice deleted from the log")
+		}
 	})
 	// A member can't do what owners and admins do, even in their own org.
 	as(bob, func(tx pgx.Tx) {
@@ -134,6 +160,9 @@ func TestRowLevelSecurity(t *testing.T) {
 		}
 		if n := exec(tx, "INSERT INTO org_invitations (org_id, email, role, token_hash, expires_at) VALUES ($1, 'x@example.com', 'member', 'x', now())", acme); n >= 0 {
 			t.Error("member invited someone")
+		}
+		if n := count(tx, "SELECT count(*) FROM audit_log"); n != 0 {
+			t.Errorf("a member sees %d audit events", n)
 		}
 		// Leaving is allowed.
 		if n := exec(tx, "DELETE FROM org_members WHERE user_id = $1", bob); n != 1 {

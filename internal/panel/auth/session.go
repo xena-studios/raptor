@@ -3,10 +3,12 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/netip"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -24,10 +26,13 @@ type Session struct {
 	User store.User
 }
 
-// startSession creates a session for a user and sets its cookie on the
-// response. A new token every time: signing in never reuses one. reauthed
-// says whether the sign-in also counts as a re-authentication.
-func (s *Service) startSession(ctx context.Context, q *store.Queries, user store.User, reauthed bool) error {
+// startSession creates a session for a user, records the sign-in (method:
+// "email", "passkey", "google", ...), and sets the cookie on the response.
+// A new token every time: signing in never reuses one. reauthed says
+// whether the sign-in also counts as a re-authentication. If the account
+// hasn't been used from this browser before, after is the email that says
+// so, for the caller to send once the transaction commits.
+func (s *Service) startSession(ctx context.Context, q *store.Queries, user store.User, reauthed bool, method string) (after func(), err error) {
 	token := newToken()
 	var ip *netip.Addr
 	if a := s.clientIP(ctx); a.IsValid() {
@@ -41,16 +46,38 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 			ua = ua[:256]
 		}
 	}
-	if _, err := q.CreateSession(ctx, store.CreateSessionParams{
+	seen, err := q.SessionsWithUserAgent(ctx, store.SessionsWithUserAgentParams{UserID: user.ID, UserAgent: ua})
+	if err != nil {
+		return nil, err
+	}
+	newDevice := seen.Total > 0 && seen.Same == 0
+	sess, err := q.CreateSession(ctx, store.CreateSessionParams{
 		UserID: user.ID, TokenHash: hash(token), ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(SessionMax), Valid: true},
 		Ip: ip, UserAgent: ua, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: reauthed},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := s.Audit(ctx, q, Event{
+		User: user.ID, Action: "signin", Target: uuid.UUID(sess.ID.Bytes).String(),
+		Meta: map[string]any{"method": method, "new_device": newDevice},
 	}); err != nil {
-		return err
+		return nil, err
 	}
 	if ok {
 		setCookie(c.resp, token, SessionMax)
 	}
-	return nil
+	if !newDevice {
+		return func() {}, nil
+	}
+	where := "an unknown address"
+	if ip != nil {
+		where = ip.String()
+	}
+	return func() {
+		s.notify(ctx, user, "New sign-in to your Raptor account",
+			fmt.Sprintf("Your Raptor account was just signed in to from a device or browser it hasn't used before:\n\n%s\nfrom %s\n\nIf this was you, there's nothing to do. If it wasn't, sign out every device from your account settings and check your sign-in methods right away.\n", ua, where))
+	}, nil
 }
 
 func setCookie(h http.Header, token string, maxAge time.Duration) {
