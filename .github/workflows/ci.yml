@@ -14,28 +14,28 @@ concurrency:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - run: task lint
 
   generated:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - run: task check:gen
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - run: task test
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
@@ -47,7 +47,7 @@ jobs:
           done
 
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -60,7 +60,7 @@ jobs:
   # The container runtime against a real Docker: networks, firewall isolation,
   # limits, hardening. Needs root, so it runs the compiled test binary with sudo.
   e2e-runtime:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -88,7 +88,7 @@ jobs:
   # crashing and a hanging version, a restart during a trial, with a server
   # that must keep running throughout.
   e2e-update:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -124,7 +124,7 @@ jobs:
 
   pr:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
