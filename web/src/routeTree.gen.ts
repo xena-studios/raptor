@@ -10,33 +10,63 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SigninIndexRouteImport } from './routes/signin.index'
+import { Route as SigninLinkRouteImport } from './routes/signin.link'
+import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-factor'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SigninIndexRoute = SigninIndexRouteImport.update({
+  id: '/signin/',
+  path: '/signin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigninLinkRoute = SigninLinkRouteImport.update({
+  id: '/signin/link',
+  path: '/signin/link',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigninSecondFactorRoute = SigninSecondFactorRouteImport.update({
+  id: '/signin/second-factor',
+  path: '/signin/second-factor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/signin/link': typeof SigninLinkRoute
+  '/signin/second-factor': typeof SigninSecondFactorRoute
+  '/signin/': typeof SigninIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/signin/link': typeof SigninLinkRoute
+  '/signin/second-factor': typeof SigninSecondFactorRoute
+  '/signin': typeof SigninIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/signin/link': typeof SigninLinkRoute
+  '/signin/second-factor': typeof SigninSecondFactorRoute
+  '/signin/': typeof SigninIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/signin/link' | '/signin/second-factor' | '/signin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/signin/link' | '/signin/second-factor' | '/signin'
+  id: '__root__' | '/' | '/signin/link' | '/signin/second-factor' | '/signin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SigninLinkRoute: typeof SigninLinkRoute
+  SigninSecondFactorRoute: typeof SigninSecondFactorRoute
+  SigninIndexRoute: typeof SigninIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +78,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signin/': {
+      id: '/signin/'
+      path: '/signin'
+      fullPath: '/signin/'
+      preLoaderRoute: typeof SigninIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signin/link': {
+      id: '/signin/link'
+      path: '/signin/link'
+      fullPath: '/signin/link'
+      preLoaderRoute: typeof SigninLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signin/second-factor': {
+      id: '/signin/second-factor'
+      path: '/signin/second-factor'
+      fullPath: '/signin/second-factor'
+      preLoaderRoute: typeof SigninSecondFactorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SigninLinkRoute: SigninLinkRoute,
+  SigninSecondFactorRoute: SigninSecondFactorRoute,
+  SigninIndexRoute: SigninIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
