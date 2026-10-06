@@ -59,7 +59,8 @@ func hashToken(token string) []byte {
 	return h[:]
 }
 
-// CreateOrg adds an org (until accounts exist, from `panel org create`).
+// CreateOrg adds an org with no members (`panel org create`, for
+// development; users make orgs through OrgService).
 func (r *Registry) CreateOrg(ctx context.Context, name string) (string, error) {
 	o, err := r.q().CreateOrg(ctx, name)
 	if err != nil {

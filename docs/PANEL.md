@@ -15,7 +15,15 @@ The Panel **never stores**: game files, backup contents, live console, raw logs.
 One Go binary, one role (see [ARCHITECTURE.md](ARCHITECTURE.md#panel)):
 - `panel serve api`: Connect API, WebSockets for browsers and nodes, River jobs. Several instances can run; requests for a node held by another instance are forwarded through Postgres `LISTEN/NOTIFY`.
 
-Configured by environment: `PANEL_DATABASE_URL`, `PANEL_SIGNING_KEY` (the file with the Panel's Ed25519 signing key, kept apart from other secrets; nodes pin its public key), `PANEL_API_ADDR`. Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, until accounts exist (3.2), `panel org create <name>` and `panel join-token <org-id>`. `panel rollout start <version>` (and `status`, `pause`, `resume`, `cancel`) runs a staged Wings update ([WINGS.md](WINGS.md#updates)).
+Configured by environment (`panel` with no arguments lists them all):
+- `PANEL_DATABASE_URL`, `PANEL_API_ADDR`.
+- `PANEL_SIGNING_KEY`: the file with the Panel's Ed25519 signing key, kept apart from other secrets; nodes pin its public key.
+- `PANEL_DATA_KEY`: the file whose key encrypts TOTP secrets; without it, two-factor authentication is off. Back it up like the signing key.
+- `PANEL_APP_URL` (the web app's origin, the only one browsers may call from, and the passkey RP ID) and `PANEL_API_URL` (for OAuth callbacks).
+- `PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID` and `_CLIENT_SECRET`, `PANEL_TURNSTILE_SECRET`, `PANEL_CLIENT_IP_HEADER`, `PANEL_NODE_DOMAIN`, `PANEL_CLOUDFLARE_DNS_TOKEN`, `PANEL_CLOUDFLARE_ZONE_ID`.
+- `PANEL_MAIL_LOG=1`, development only: emails (codes included) go to the log.
+
+Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, for development and operators, `panel org create <name>` (an org with no members) and `panel join-token <org-id>`; users make orgs and join tokens through the API (`OrgService`). `panel rollout start <version>` (and `status`, `pause`, `resume`, `cancel`) runs a staged Wings update ([WINGS.md](WINGS.md#updates)).
 
 ## Stack
 
