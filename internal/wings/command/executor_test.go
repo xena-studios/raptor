@@ -448,7 +448,15 @@ func TestRelyingPartyFor(t *testing.T) {
 	if err != nil || rp.Origin != "https://app.raptorpanel.net" || rp.ID != "app.raptorpanel.net" {
 		t.Fatalf("%+v %v", rp, err)
 	}
-	for _, bad := range []string{"http://app.raptorpanel.net", "https://app.raptorpanel.net/login", "app.raptorpanel.net", ""} {
+	// A development web app on localhost.
+	rp, err = RelyingPartyFor("http://localhost:5173")
+	if err != nil || rp.Origin != "http://localhost:5173" || rp.ID != "localhost" {
+		t.Fatalf("localhost: %+v %v", rp, err)
+	}
+	for _, bad := range []string{
+		"http://app.raptorpanel.net", "https://app.raptorpanel.net/login", "app.raptorpanel.net", "",
+		"http://127.0.0.1:5173", "http://localhost.evil.test", "http://localhost:5173/?x=1", "https://u:p@app.raptorpanel.net",
+	} {
 		if _, err := RelyingPartyFor(bad); err == nil {
 			t.Errorf("%q accepted", bad)
 		}

@@ -1301,7 +1301,12 @@ type Passkey struct {
 	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
 	// The passkey is synced between devices (iCloud Keychain, Google Password
 	// Manager) rather than bound to one device or security key.
-	Synced        bool `protobuf:"varint,5,opt,name=synced,proto3" json:"synced,omitempty"`
+	Synced bool `protobuf:"varint,5,opt,name=synced,proto3" json:"synced,omitempty"`
+	// For trusting it on a node (keys.pair, keys.add): its WebAuthn
+	// credential ID and COSE public key. The browser computes the fingerprint
+	// it shows from the key it signs with, not from anything the Panel says.
+	CredentialId  []byte `protobuf:"bytes,6,opt,name=credential_id,json=credentialId,proto3" json:"credential_id,omitempty"`
+	PublicKey     []byte `protobuf:"bytes,7,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1369,6 +1374,20 @@ func (x *Passkey) GetSynced() bool {
 		return x.Synced
 	}
 	return false
+}
+
+func (x *Passkey) GetCredentialId() []byte {
+	if x != nil {
+		return x.CredentialId
+	}
+	return nil
+}
+
+func (x *Passkey) GetPublicKey() []byte {
+	if x != nil {
+		return x.PublicKey
+	}
+	return nil
 }
 
 type ListPasskeysRequest struct {
@@ -2960,7 +2979,7 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x06answer\x18\x01 \x01(\v2\x1e.raptor.panel.v1.PasskeyAnswerR\x06answer\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"W\n" +
 	"!FinishPasskeyRegistrationResponse\x122\n" +
-	"\apasskey\x18\x01 \x01(\v2\x18.raptor.panel.v1.PasskeyR\apasskey\"\xbe\x01\n" +
+	"\apasskey\x18\x01 \x01(\v2\x18.raptor.panel.v1.PasskeyR\apasskey\"\x82\x02\n" +
 	"\aPasskey\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x129\n" +
@@ -2968,7 +2987,10 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
 	"\flast_used_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastUsedAt\x12\x16\n" +
-	"\x06synced\x18\x05 \x01(\bR\x06synced\"\x15\n" +
+	"\x06synced\x18\x05 \x01(\bR\x06synced\x12#\n" +
+	"\rcredential_id\x18\x06 \x01(\fR\fcredentialId\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\a \x01(\fR\tpublicKey\"\x15\n" +
 	"\x13ListPasskeysRequest\"L\n" +
 	"\x14ListPasskeysResponse\x124\n" +
 	"\bpasskeys\x18\x01 \x03(\v2\x18.raptor.panel.v1.PasskeyR\bpasskeys\":\n" +

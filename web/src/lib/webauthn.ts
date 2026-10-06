@@ -98,3 +98,37 @@ export function passkeyCancelled(err: unknown): boolean {
     err instanceof DOMException && (err.name === "NotAllowedError" || err.name === "AbortError")
   );
 }
+
+export type Assertion = {
+  credentialId: Uint8Array;
+  authenticatorData: Uint8Array;
+  clientDataJson: Uint8Array;
+  signature: Uint8Array;
+};
+
+// signChallenge asks a passkey to sign a challenge the app made itself
+// (a command's hash), with the app's hostname as the RP ID and the user
+// verifying (fingerprint, face, or PIN). allow limits it to the user's
+// passkeys, or to one.
+export async function signChallenge(
+  challenge: Uint8Array,
+  allow: Uint8Array[],
+): Promise<Assertion> {
+  const cred = (await navigator.credentials.get({
+    publicKey: {
+      challenge: challenge.slice().buffer,
+      rpId: window.location.hostname,
+      userVerification: "required",
+      timeout: 5 * 60_000,
+      allowCredentials: allow.map((id) => ({ type: "public-key" as const, id: id.slice().buffer })),
+    },
+  })) as PublicKeyCredential | null;
+  if (!cred) throw new Error("No passkey answered.");
+  const r = cred.response as AuthenticatorAssertionResponse;
+  return {
+    credentialId: new Uint8Array(cred.rawId),
+    authenticatorData: new Uint8Array(r.authenticatorData),
+    clientDataJson: new Uint8Array(r.clientDataJSON),
+    signature: new Uint8Array(r.signature),
+  };
+}

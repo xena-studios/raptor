@@ -1,5 +1,8 @@
 # Wings config for the development VM (task wings:vm:install).
 log:
   level: debug
+panel:
+  # The dev web app (task dev): passkey signatures are made there.
+  app_url: http://localhost:5173
 limits:
   host_disk_min_free: 1GiB # the dev VM's disk is small; real nodes keep 10GiB
