@@ -429,7 +429,7 @@ Methods are added to the proto as the features behind them are built, so the API
 - Host disk free space everywhere Wings and Docker keep state, against `limits.host_disk_min_free` (fail below it, warn below twice it)
 - Clock synchronized (NTP). Clock drift breaks connection signatures, grants, and schedules.
 - Wings' nftables table in place
-- Panel reachable and node key present (skipped until the node is linked; the connection check itself comes with the node connection in Phase 3)
+- Panel reachable, node key present, and the node connection up (skipped until the node is linked): connecting is a warning, disconnected a failure with Wings' last error and a fix for the usual causes (key revoked or node removed: `raptor relink`; clocks apart; something at the Panel's URL that can't prove it's the Panel)
 - SFTP answering as Raptor's SFTP on its port, when it's on (the node hostname check comes with node DNS in Phase 3)
 - Pterodactyl Wings on the same box: its Docker network doesn't overlap Raptor's, and its SFTP port isn't Raptor's
 - Security warnings (warn only, never changed): password root SSH login, unattended upgrades off

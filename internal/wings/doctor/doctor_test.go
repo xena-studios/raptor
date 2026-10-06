@@ -217,6 +217,16 @@ func TestProblems(t *testing.T) {
 			e.HTTPGet = func(context.Context, string) error { return errors.New("no such host") }
 		}},
 		{"Panel", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) { e.Config.NodeID = "node-1" }}, // key missing
+		{"Panel", Fail, func(e *Env, s *fakeSystem, _ *fakeDocker) {
+			e.Config.NodeID = "node-1"
+			s.exists[e.Config.Identity.Key] = true
+			e.Status.Connection = &localv1.ConnectionStatus{State: "disconnected", LastError: "the Panel refused the connection: this node's key was revoked in the Panel"}
+		}},
+		{"Panel", Warn, func(e *Env, s *fakeSystem, _ *fakeDocker) {
+			e.Config.NodeID = "node-1"
+			s.exists[e.Config.Identity.Key] = true
+			e.Status.Connection = &localv1.ConnectionStatus{State: "connecting"}
+		}},
 		{"SFTP", Fail, func(_ *Env, s *fakeSystem, _ *fakeDocker) { delete(s.dial, "127.0.0.1:2022") }},
 		{"SFTP", Fail, func(_ *Env, s *fakeSystem, _ *fakeDocker) { s.dial["127.0.0.1:2022"] = "SSH-2.0-OpenSSH_9.2" }},
 		{"Pterodactyl", Fail, func(_ *Env, s *fakeSystem, d *fakeDocker) {

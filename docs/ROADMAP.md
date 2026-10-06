@@ -209,7 +209,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [ ] Node DNS: `n-<short-id>.raptornodes.net` created at enrollment, updated from the IP Wings reports, names never reused
 - [ ] Signed short-lived grants attached to commands; Wings verification
 - [ ] Passkey-signed dangerous commands end to end: owner key pinned at enrollment (with fingerprint comparison), signed key additions, owner-signed delegations for sub-users
-- [ ] `raptor doctor -upload` (bundles to object storage, with a support code), the Panel connection check through Cloudflare, and the node hostname check
+- [ ] `raptor doctor -upload` (bundles to object storage, with a support code), the Panel connection check through Cloudflare, and the node hostname check (the connection check done: doctor reports Wings' node connection and explains the usual failures)
 - [ ] SFTP auth over the node connection + public key sync (Wings side: the `sftp.Authenticator` interface and key cache exist)
 - [ ] Automatic Wings updates: the Panel starts updates in stages (5% → 25% → 100%, halted if failures rise) through a `node.update` command; the health check requires the node connection to come back
 
