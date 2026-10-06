@@ -1,0 +1,63 @@
+#!/bin/bash
+# Raptor installer, raptor __VERSION__ (https://github.com/xena-studios/raptor).
+# Generated per release with the binaries' SHA-256 below; read it before you
+# run it:
+#
+#   curl -fsSL https://get.raptorpanel.net | sudo bash -s -- -token rpt_join_…
+#
+# It checks the box, downloads raptor, verifies it against the checksum in
+# this file, installs it in /usr/local/lib/raptor, and runs
+# `raptor bootstrap` with your arguments, which does the rest (and verifies
+# every later update with the release signing key).
+set -euo pipefail
+
+RAPTOR_VERSION="__VERSION__"
+RAPTOR_TAG="__TAG__"
+RAPTOR_SHA256_amd64="__SHA256_AMD64__"
+RAPTOR_SHA256_arm64="__SHA256_ARM64__"
+RAPTOR_BASE="${RAPTOR_DOWNLOAD_BASE:-https://github.com/xena-studios/raptor/releases/download/$RAPTOR_TAG}"
+
+# Everything runs from main, called on the last line, so a download cut
+# short runs nothing.
+main() {
+	fail() { echo "raptor installer: $*" >&2; exit 1; }
+	[ "$(uname -s)" = Linux ] || fail "Raptor runs on Linux"
+	[ "$(id -u)" = 0 ] || fail "run it as root: curl -fsSL https://get.raptorpanel.net | sudo bash -s -- -token …"
+	[ -d /run/systemd/system ] || fail "systemd isn't running; Raptor needs it"
+	local arch sha
+	case "$(uname -m)" in
+	x86_64 | amd64) arch=amd64 sha=$RAPTOR_SHA256_amd64 ;;
+	aarch64 | arm64) arch=arm64 sha=$RAPTOR_SHA256_arm64 ;;
+	*) fail "$(uname -m) isn't supported (amd64 and arm64 are)" ;;
+	esac
+	# In a subshell: os-release sets VERSION, ID, and others.
+	case "$(. /etc/os-release 2>/dev/null && echo "${ID:-}-${VERSION_ID:-}")" in
+	debian-12 | debian-13 | ubuntu-24.04) ;;
+	*) echo "raptor installer: this system isn't supported yet; bootstrap stops unless you add -force" >&2 ;;
+	esac
+	command -v sha256sum >/dev/null || fail "sha256sum is missing"
+
+	local tmp
+	tmp=$(mktemp -d)
+	trap 'rm -rf "$tmp"' EXIT
+	echo "==> Downloading raptor $RAPTOR_VERSION ($arch)"
+	if command -v curl >/dev/null; then
+		curl -fsSL --retry 3 -o "$tmp/raptor" "$RAPTOR_BASE/raptor_linux_$arch"
+	elif command -v wget >/dev/null; then
+		wget -q -O "$tmp/raptor" "$RAPTOR_BASE/raptor_linux_$arch"
+	else
+		fail "curl or wget is needed"
+	fi
+	echo "$sha  $tmp/raptor" | sha256sum -c --quiet - || fail "the download doesn't match this release's checksum; not installing it"
+
+	install -d -m 0755 /usr/local/lib/raptor
+	install -m 0755 "$tmp/raptor" "/usr/local/lib/raptor/raptor-$RAPTOR_VERSION.tmp"
+	mv -f "/usr/local/lib/raptor/raptor-$RAPTOR_VERSION.tmp" "/usr/local/lib/raptor/raptor-$RAPTOR_VERSION"
+	if [ ! -e /usr/local/lib/raptor/current ]; then
+		ln -sfn "raptor-$RAPTOR_VERSION" /usr/local/lib/raptor/current
+	fi
+	ln -sfn /usr/local/lib/raptor/current /usr/local/bin/raptor
+	exec "/usr/local/lib/raptor/raptor-$RAPTOR_VERSION" bootstrap "$@"
+}
+
+main "$@"
