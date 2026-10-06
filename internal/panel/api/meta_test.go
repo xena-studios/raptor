@@ -14,7 +14,7 @@ import (
 )
 
 func TestGetVersion(t *testing.T) {
-	srv := httptest.NewServer(Handler())
+	srv := httptest.NewServer(Handler(Config{}))
 	defer srv.Close()
 
 	for name, opt := range map[string]connect.ClientOption{

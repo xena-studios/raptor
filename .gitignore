@@ -9,3 +9,6 @@ node_modules/
 *.tsbuildinfo
 bin/
 .task/
+
+# Local dev state (Panel signing key)
+/.dev/

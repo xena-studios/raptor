@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/node/v1/node.proto.
  */
 export const file_raptor_node_v1_node: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3Ivbm9kZS92MS9ub2RlLnByb3RvEg5yYXB0b3Iubm9kZS52MSIqChNPcGVuVHJhbnNmZXJSZXF1ZXN0EhMKC3RyYW5zZmVyX2lkGAEgASgJIhYKFE9wZW5UcmFuc2ZlclJlc3BvbnNlIiIKDkV4ZWN1dGVSZXF1ZXN0EhAKCGVudmVsb3BlGAEgASgMIkMKD0V4ZWN1dGVSZXNwb25zZRIOCgZyZXN1bHQYASABKAwSEQoJZHVwbGljYXRlGAIgASgIEg0KBWVycm9yGAMgASgJIjEKDUV2ZW50c1JlcXVlc3QSEQoJYWZ0ZXJfc2VxGAEgASgDEg0KBWxpbWl0GAIgASgFIkkKDkV2ZW50c1Jlc3BvbnNlEiUKBmV2ZW50cxgBIAMoCzIVLnJhcHRvci5ub2RlLnYxLkV2ZW50EhAKCGxhc3Rfc2VxGAIgASgDImAKBUV2ZW50EgsKA3NlcRgBIAEoAxIMCgR0eXBlGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRIPCgd2ZXJzaW9uGAQgASgDEgoKAmF0GAUgASgDEgwKBGRhdGEYBiABKAwiKgoWRXZlbnRzQXZhaWxhYmxlUmVxdWVzdBIQCghsYXN0X3NlcRgBIAEoAyIZChdFdmVudHNBdmFpbGFibGVSZXNwb25zZTKMAgoLTm9kZVNlcnZpY2USTwoHRXhlY3V0ZRIeLnJhcHRvci5ub2RlLnYxLkV4ZWN1dGVSZXF1ZXN0Gh8ucmFwdG9yLm5vZGUudjEuRXhlY3V0ZVJlc3BvbnNlIgOQAgISTAoGRXZlbnRzEh0ucmFwdG9yLm5vZGUudjEuRXZlbnRzUmVxdWVzdBoeLnJhcHRvci5ub2RlLnYxLkV2ZW50c1Jlc3BvbnNlIgOQAgISXgoMT3BlblRyYW5zZmVyEiMucmFwdG9yLm5vZGUudjEuT3BlblRyYW5zZmVyUmVxdWVzdBokLnJhcHRvci5ub2RlLnYxLk9wZW5UcmFuc2ZlclJlc3BvbnNlIgOQAgIydwoMUGFuZWxTZXJ2aWNlEmcKD0V2ZW50c0F2YWlsYWJsZRImLnJhcHRvci5ub2RlLnYxLkV2ZW50c0F2YWlsYWJsZVJlcXVlc3QaJy5yYXB0b3Iubm9kZS52MS5FdmVudHNBdmFpbGFibGVSZXNwb25zZSIDkAICQsIBChJjb20ucmFwdG9yLm5vZGUudjFCCU5vZGVQcm90b1ABWkdnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9ub2RlL3YxO25vZGV2MaICA1JOWKoCDlJhcHRvci5Ob2RlLlYxygIOUmFwdG9yXE5vZGVcVjHiAhpSYXB0b3JcTm9kZVxWMVxHUEJNZXRhZGF0YeoCEFJhcHRvcjo6Tm9kZTo6VjFiBnByb3RvMw");
+  fileDesc("ChlyYXB0b3Ivbm9kZS92MS9ub2RlLnByb3RvEg5yYXB0b3Iubm9kZS52MSIqChNPcGVuVHJhbnNmZXJSZXF1ZXN0EhMKC3RyYW5zZmVyX2lkGAEgASgJIhYKFE9wZW5UcmFuc2ZlclJlc3BvbnNlIiIKDkV4ZWN1dGVSZXF1ZXN0EhAKCGVudmVsb3BlGAEgASgMIkMKD0V4ZWN1dGVSZXNwb25zZRIOCgZyZXN1bHQYASABKAwSEQoJZHVwbGljYXRlGAIgASgIEg0KBWVycm9yGAMgASgJIjEKDUV2ZW50c1JlcXVlc3QSEQoJYWZ0ZXJfc2VxGAEgASgDEg0KBWxpbWl0GAIgASgFIkkKDkV2ZW50c1Jlc3BvbnNlEiUKBmV2ZW50cxgBIAMoCzIVLnJhcHRvci5ub2RlLnYxLkV2ZW50EhAKCGxhc3Rfc2VxGAIgASgDImAKBUV2ZW50EgsKA3NlcRgBIAEoAxIMCgR0eXBlGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRIPCgd2ZXJzaW9uGAQgASgDEgoKAmF0GAUgASgDEgwKBGRhdGEYBiABKAwiKgoWRXZlbnRzQXZhaWxhYmxlUmVxdWVzdBIQCghsYXN0X3NlcRgBIAEoAyIZChdFdmVudHNBdmFpbGFibGVSZXNwb25zZSKUAQoNRW5yb2xsUmVxdWVzdBINCgV0b2tlbhgBIAEoCRISCgpwdWJsaWNfa2V5GAIgASgMEhEKCXNpZ25hdHVyZRgDIAEoDBIMCgRuYW1lGAQgASgJEhUKDXdpbmdzX3ZlcnNpb24YBSABKAkSKAoFZmFjdHMYBiABKAsyGS5yYXB0b3Iubm9kZS52MS5Ob2RlRmFjdHMiWQoJTm9kZUZhY3RzEgoKAm9zGAEgASgJEgwKBGFyY2gYAiABKAkSDgoGa2VybmVsGAMgASgJEgwKBGNwdXMYBCABKAUSFAoMbWVtb3J5X2J5dGVzGAUgASgDIkYKDkVucm9sbFJlc3BvbnNlEg8KB25vZGVfaWQYASABKAkSEAoIc2hvcnRfaWQYAiABKAkSEQoJcGFuZWxfa2V5GAMgASgMMowCCgtOb2RlU2VydmljZRJPCgdFeGVjdXRlEh4ucmFwdG9yLm5vZGUudjEuRXhlY3V0ZVJlcXVlc3QaHy5yYXB0b3Iubm9kZS52MS5FeGVjdXRlUmVzcG9uc2UiA5ACAhJMCgZFdmVudHMSHS5yYXB0b3Iubm9kZS52MS5FdmVudHNSZXF1ZXN0Gh4ucmFwdG9yLm5vZGUudjEuRXZlbnRzUmVzcG9uc2UiA5ACAhJeCgxPcGVuVHJhbnNmZXISIy5yYXB0b3Iubm9kZS52MS5PcGVuVHJhbnNmZXJSZXF1ZXN0GiQucmFwdG9yLm5vZGUudjEuT3BlblRyYW5zZmVyUmVzcG9uc2UiA5ACAjJ3CgxQYW5lbFNlcnZpY2USZwoPRXZlbnRzQXZhaWxhYmxlEiYucmFwdG9yLm5vZGUudjEuRXZlbnRzQXZhaWxhYmxlUmVxdWVzdBonLnJhcHRvci5ub2RlLnYxLkV2ZW50c0F2YWlsYWJsZVJlc3BvbnNlIgOQAgIyYQoRRW5yb2xsbWVudFNlcnZpY2USTAoGRW5yb2xsEh0ucmFwdG9yLm5vZGUudjEuRW5yb2xsUmVxdWVzdBoeLnJhcHRvci5ub2RlLnYxLkVucm9sbFJlc3BvbnNlIgOQAgJCwgEKEmNvbS5yYXB0b3Iubm9kZS52MUIJTm9kZVByb3RvUAFaR2dpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL25vZGUvdjE7bm9kZXYxogIDUk5YqgIOUmFwdG9yLk5vZGUuVjHKAg5SYXB0b3JcTm9kZVxWMeICGlJhcHRvclxOb2RlXFYxXEdQQk1ldGFkYXRh6gIQUmFwdG9yOjpOb2RlOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message raptor.node.v1.OpenTransferRequest
@@ -221,6 +221,127 @@ export const EventsAvailableResponseSchema: GenMessage<EventsAvailableResponse> 
   messageDesc(file_raptor_node_v1_node, 8);
 
 /**
+ * @generated from message raptor.node.v1.EnrollRequest
+ */
+export type EnrollRequest = Message<"raptor.node.v1.EnrollRequest"> & {
+  /**
+   * rpt_join_…
+   *
+   * @generated from field: string token = 1;
+   */
+  token: string;
+
+  /**
+   * The node's Ed25519 public key, generated on the box.
+   *
+   * @generated from field: bytes public_key = 2;
+   */
+  publicKey: Uint8Array;
+
+  /**
+   * The node key's signature over the enrollment (nodelink.EnrollPayload),
+   * proving the node holds the key it's enrolling.
+   *
+   * @generated from field: bytes signature = 3;
+   */
+  signature: Uint8Array;
+
+  /**
+   * A name for the node (its hostname), shown in the Panel.
+   *
+   * @generated from field: string name = 4;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string wings_version = 5;
+   */
+  wingsVersion: string;
+
+  /**
+   * @generated from field: raptor.node.v1.NodeFacts facts = 6;
+   */
+  facts?: NodeFacts | undefined;
+};
+
+/**
+ * Describes the message raptor.node.v1.EnrollRequest.
+ * Use `create(EnrollRequestSchema)` to create a new message.
+ */
+export const EnrollRequestSchema: GenMessage<EnrollRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_node_v1_node, 9);
+
+/**
+ * NodeFacts describe the box, for the Panel to show.
+ *
+ * @generated from message raptor.node.v1.NodeFacts
+ */
+export type NodeFacts = Message<"raptor.node.v1.NodeFacts"> & {
+  /**
+   * @generated from field: string os = 1;
+   */
+  os: string;
+
+  /**
+   * @generated from field: string arch = 2;
+   */
+  arch: string;
+
+  /**
+   * @generated from field: string kernel = 3;
+   */
+  kernel: string;
+
+  /**
+   * @generated from field: int32 cpus = 4;
+   */
+  cpus: number;
+
+  /**
+   * @generated from field: int64 memory_bytes = 5;
+   */
+  memoryBytes: bigint;
+};
+
+/**
+ * Describes the message raptor.node.v1.NodeFacts.
+ * Use `create(NodeFactsSchema)` to create a new message.
+ */
+export const NodeFactsSchema: GenMessage<NodeFacts> = /*@__PURE__*/
+  messageDesc(file_raptor_node_v1_node, 10);
+
+/**
+ * @generated from message raptor.node.v1.EnrollResponse
+ */
+export type EnrollResponse = Message<"raptor.node.v1.EnrollResponse"> & {
+  /**
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
+
+  /**
+   * The node's hostname is n-<short_id>.raptornodes.net.
+   *
+   * @generated from field: string short_id = 2;
+   */
+  shortId: string;
+
+  /**
+   * The Panel's Ed25519 signing key, which the node pins.
+   *
+   * @generated from field: bytes panel_key = 3;
+   */
+  panelKey: Uint8Array;
+};
+
+/**
+ * Describes the message raptor.node.v1.EnrollResponse.
+ * Use `create(EnrollResponseSchema)` to create a new message.
+ */
+export const EnrollResponseSchema: GenMessage<EnrollResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_node_v1_node, 11);
+
+/**
  * NodeService is served by Wings and called by the Panel.
  *
  * @generated from service raptor.node.v1.NodeService
@@ -289,4 +410,27 @@ export const PanelService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_node_v1_node, 1);
+
+/**
+ * EnrollmentService is served by the Panel at its API URL (plain HTTPS,
+ * before the node has a connection): `raptor link --token` calls it once
+ * (docs/ARCHITECTURE.md#enrollment).
+ *
+ * @generated from service raptor.node.v1.EnrollmentService
+ */
+export const EnrollmentService: GenService<{
+  /**
+   * Enroll trades a join token for a node identity. The token is single use,
+   * but repeating an enrollment with the same token and key (its answer was
+   * lost) returns the same node.
+   *
+   * @generated from rpc raptor.node.v1.EnrollmentService.Enroll
+   */
+  enroll: {
+    methodKind: "unary";
+    input: typeof EnrollRequestSchema;
+    output: typeof EnrollResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_raptor_node_v1_node, 2);
 
