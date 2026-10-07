@@ -81,6 +81,10 @@ type Env struct {
 	Firewall func(ctx context.Context) bool
 	// HTTPGet fetches a URL (for the Panel check).
 	HTTPGet func(ctx context.Context, url string) error
+	// LookupHost resolves a name (for the hostname check).
+	LookupHost func(ctx context.Context, host string) ([]string, error)
+	// PublicAddr asks the Panel which address this node reaches it from.
+	PublicAddr func(ctx context.Context) (string, error)
 }
 
 // Check is one diagnosis. Run returns one or more results.

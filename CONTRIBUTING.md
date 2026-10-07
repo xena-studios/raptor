@@ -38,7 +38,7 @@ Dev tools (buf, sqlc, protoc plugins, golangci-lint, govulncheck, go-licenses) a
 task setup     # install web deps, start Postgres
 task dev       # Postgres + Panel API (:8080) + web dev server (:5173)
 task dev:link  # link the dev VM's Wings to that Panel (a dev org and join token)
-task test      # all tests, including Postgres-backed ones
+task test      # all tests, including Postgres- and MinIO-backed ones
 task gen       # regenerate protobuf, sqlc, and route tree code
 task lint      # golangci-lint, buf lint, Biome
 task fmt       # format Go and web code
@@ -47,7 +47,7 @@ task build     # binaries into bin/, web app into web/dist
 task --list    # everything else
 ```
 
-To sign in to the dev Panel, open http://localhost:5173 and ask for a code, then read it with `task dev:mail` in another terminal: in development, emails (codes, links, invitations) aren't sent but written to `.dev/mail.txt` and the API's log. To send real email through Resend instead, put a development key (sending access, the `mail.raptorpanel.net` domain only) in `.dev/resend.env` as `PANEL_RESEND_API_KEY=…`, `PANEL_MAIL_FROM="Raptor <account@mail.raptorpanel.net>"`, and `PANEL_MAIL_REPLY_TO=…`, and run `RESEND=1 task dev`; for Google, GitHub, or Discord sign-in, register a separate development OAuth app with the redirect URI `http://localhost:8080/oauth/<provider>/callback` and put its `PANEL_<PROVIDER>_CLIENT_ID` and `_CLIENT_SECRET` in `.dev/oauth.env`; sign in with real addresses only, since bounces from made-up ones hurt the domain's reputation. Passkeys work there too (the RP ID is `localhost`), in browsers that allow them on `http://localhost`. The dev Panel's signing key, data key (for TOTP), and org live in `.dev/` (ignored by git). After `task dev:link`, `raptor status` in the VM shows the connection; `task wings:vm:install` puts the dev config back, which unlinks the VM.
+To sign in to the dev Panel, open http://localhost:5173 and ask for a code, then read it with `task dev:mail` in another terminal: in development, emails (codes, links, invitations) aren't sent but written to `.dev/mail.txt` and the API's log. To send real email through Resend instead, put a development key (sending access, the `mail.raptorpanel.net` domain only) in `.dev/resend.env` as `PANEL_RESEND_API_KEY=…`, `PANEL_MAIL_FROM="Raptor <account@mail.raptorpanel.net>"`, and `PANEL_MAIL_REPLY_TO=…`, and run `RESEND=1 task dev`; for Google, GitHub, or Discord sign-in, register a separate development OAuth app with the redirect URI `http://localhost:8080/oauth/<provider>/callback` and put its `PANEL_<PROVIDER>_CLIENT_ID` and `_CLIENT_SECRET` in `.dev/oauth.env`; sign in with real addresses only, since bounces from made-up ones hurt the domain's reputation. Passkeys work there too (the RP ID is `localhost`), in browsers that allow them on `http://localhost`. The dev Panel's signing key, data key (for TOTP), and org live in `.dev/` (ignored by git). After `task dev:link`, `raptor status` in the VM shows the connection, and `raptor doctor -upload` there files its bundle in `.dev/bundles`; `task wings:vm:install` puts the dev config back, which unlinks the VM.
 
 Generated code is committed. After changing anything in `proto/`, `db/`, or `web/src/routes/`, run `task gen` and commit the result.
 

@@ -25,6 +25,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/support"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
@@ -66,7 +67,11 @@ environment:
                                only when the origin accepts nothing but Cloudflare
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
   PANEL_CLOUDFLARE_DNS_TOKEN   Cloudflare API token that can edit that zone's DNS
-  PANEL_CLOUDFLARE_ZONE_ID     the zone's ID`
+  PANEL_CLOUDFLARE_ZONE_ID     the zone's ID
+  PANEL_SUPPORT_S3_ENDPOINT, _REGION, _BUCKET, _ACCESS_KEY, _SECRET_KEY
+                               where nodes' support bundles go (doctor -upload); the
+                               key should only be able to upload
+  PANEL_SUPPORT_DIR            development only: put support bundles in this directory`
 
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stderr, nil))
@@ -209,11 +214,38 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		mirror := &nodes.Mirror{DB: pool, Hub: cfg.Hub, Log: log}
 		cfg.Hub.EventsAvailable = func(_ context.Context, id string, _ int64) { mirror.Notify(id) }
 		cfg.Hub.SFTPLogin = cfg.Auth.SFTPLogin
+		bundles, err := supportStore(log)
+		if err != nil {
+			return err
+		}
+		if bundles != nil {
+			cfg.Support = &support.Service{DB: pool, Store: bundles, Limiter: cfg.Auth, ClientIPHeader: os.Getenv("PANEL_CLIENT_IP_HEADER"), Log: log}
+		}
 
 	} else {
 		log.Warn("PANEL_DATABASE_URL is not set: nodes can't enroll or connect")
 	}
 	return api.Run(ctx, cfg, log)
+}
+
+// supportStore is where nodes' support bundles go: a bucket, or in
+// development a directory. Without either, doctor -upload is refused.
+func supportStore(log *slog.Logger) (support.Store, error) {
+	if dir := os.Getenv("PANEL_SUPPORT_DIR"); dir != "" {
+		log.Warn("support bundles go to a local directory (development only)", "dir", dir)
+		return support.Dir(dir), nil
+	}
+	endpoint := os.Getenv("PANEL_SUPPORT_S3_ENDPOINT")
+	if endpoint == "" {
+		log.Warn("PANEL_SUPPORT_S3_ENDPOINT is not set: nodes can't upload support bundles")
+		return nil, nil
+	}
+	s, err := support.NewS3(endpoint, os.Getenv("PANEL_SUPPORT_S3_REGION"), os.Getenv("PANEL_SUPPORT_S3_BUCKET"),
+		os.Getenv("PANEL_SUPPORT_S3_ACCESS_KEY"), os.Getenv("PANEL_SUPPORT_S3_SECRET_KEY"))
+	if err != nil {
+		return nil, fmt.Errorf("PANEL_SUPPORT_S3_ENDPOINT: %w", err)
+	}
+	return s, nil
 }
 
 // mailer is how the Panel sends email: Resend, or in development the log.
@@ -270,7 +302,7 @@ func registry(pool *pgxpool.Pool) (*nodes.Registry, error) {
 	if key == nil {
 		return nil, fmt.Errorf("%s doesn't exist (create it with panel keygen)", path)
 	}
-	return &nodes.Registry{DB: pool, PanelKey: key}, nil
+	return &nodes.Registry{DB: pool, PanelKey: key, Domain: envOr("PANEL_NODE_DOMAIN", "raptornodes.net")}, nil
 }
 
 func rolloutCmd(ctx context.Context, args []string) error {

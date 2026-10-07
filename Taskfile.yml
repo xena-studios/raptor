@@ -45,6 +45,8 @@ tasks:
       PANEL_APP_URL: http://localhost:5173
       PANEL_MAIL_LOG: "1"
       PANEL_MAIL_LOG_FILE: .dev/mail.txt
+      # raptor doctor -upload from the dev VM lands here.
+      PANEL_SUPPORT_DIR: .dev/bundles
       # Cloudflare's Turnstile test secret: every check passes.
       PANEL_TURNSTILE_SECRET: 1x0000000000000000000000000000000AA
       # OAuth callbacks come straight to the dev API (the "Raptor
@@ -123,6 +125,7 @@ tasks:
     deps: [db:up, web:install]
     env:
       PANEL_TEST_DATABASE_URL: "{{.TEST_DATABASE_URL}}"
+      PANEL_TEST_S3: http://raptor:raptor-test@127.0.0.1:54322/bundles
     cmds:
       - go test -race ./...
       - pnpm --dir web typecheck

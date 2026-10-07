@@ -35,6 +35,8 @@ type Registry struct {
 	DB       *pgxpool.Pool
 	PanelKey ed25519.PrivateKey
 	Now      func() time.Time
+	// Domain is node hostnames' domain (default raptornodes.net).
+	Domain string
 	// KeyChanged is called after a node's key is replaced (re-linking), to
 	// drop connections made with the old one.
 	KeyChanged func(nodeID string)
@@ -224,8 +226,16 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 	}
 	return &nodev1.EnrollResponse{
 		NodeId: UUIDString(node.ID), ShortId: node.ShortID, PanelKey: r.PanelKey.Public().(ed25519.PublicKey),
-		OwnerPin: pin,
+		OwnerPin: pin, Hostname: Hostname(node.ShortID, r.Domain),
 	}, nil
+}
+
+// Hostname is a node's hostname: n-<short ID>.<domain>.
+func Hostname(shortID, domain string) string {
+	if domain == "" {
+		domain = "raptornodes.net"
+	}
+	return "n-" + shortID + "." + domain
 }
 
 func truncate(s string, n int) string {

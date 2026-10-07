@@ -115,7 +115,7 @@ func (a *Addresses) Sync(ctx context.Context, nodeID string) error {
 	if err != nil {
 		return err
 	}
-	name := "n-" + n.ShortID + "." + a.Domain
+	name := Hostname(n.ShortID, a.Domain)
 	v4, v6 := n.DnsIpv4, n.DnsIpv6
 	changed := false
 	for _, r := range []struct {

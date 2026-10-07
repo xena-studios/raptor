@@ -60,6 +60,7 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `GitHub OAuth` | `client_id`, `client_secret` | The production app (callback `https://api.raptorpanel.net/oauth/github/callback`). |
 | `Google OAuth`, `Discord OAuth` | `client_id`, `client_secret` | When you've made them. **Until then, delete their lines from `deploy/secrets/panel.env.tpl` on the servers**: `op inject` fails on a missing item. A provider is offered once both its values are set. |
 | `Cloudflare raptornodes.net DNS` | `token`, `zone_id` | [Below](#raptornodesnet). |
+| `Support bundles storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key` | [Below](#support-bundles). |
 
 Rotate anything that was ever pasted in a chat or a terminal history.
 
@@ -256,6 +257,17 @@ docker compose -f /opt/raptor/deploy/primary/compose.yaml exec -u postgres postg
 ```
 
 One row, `streaming`. The slot means server #1 keeps WAL the replica hasn't received yet: if server #2 is gone for long, server #1's disk fills. Watch it ([Monitoring](#monitoring)), and if server #2 is gone for good, drop the slot: `SELECT pg_drop_replication_slot('replica1')`.
+
+## Support bundles
+
+`raptor doctor -upload` sends a node's diagnostics bundle to the Panel, which stores it in a bucket and gives the owner a code like `RPT-7K2M-QX9D` for support. Bundles are redacted, but they're still logs from people's machines, so:
+
+- **A bucket of its own**, not the backup bucket (it can be at the same provider). Private.
+- **The Panel's key can only upload**: `PutObject` on that bucket and nothing else, no listing, reading, or deleting. A compromised Panel then can't read anyone's bundles. On Backblaze B2, make an application key with **write-only** access to the bucket; on S3, a policy allowing only `s3:PutObject` on `arn:aws:s3:::<bucket>/bundles/*`. Its values go in the vault item `Support bundles storage`.
+- **Support reads them with a different key** (read-only), kept by whoever does support, not on the servers. A bundle is at `bundles/<date>/<code>.tar.gz`, with the node ID (if it was signed), the uploader's address, and its SHA-256 in the object's metadata.
+- **A lifecycle rule deleting bundles after 90 days** (B2: bucket settings → lifecycle → keep only for 90 days; S3: an expiration rule on `bundles/`). Support doesn't need them longer, and the less there is, the less can leak.
+
+The Panel caps uploads at 32 MB, 10 a day per linked node, 3 a day per address for unlinked ones, and 1,000 a day overall.
 
 ## Static sites
 

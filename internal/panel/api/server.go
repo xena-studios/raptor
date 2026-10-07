@@ -4,6 +4,7 @@ package api
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"sync/atomic"
@@ -47,6 +48,8 @@ type Config struct {
 	// Commands sends users' commands to their nodes (nil without a
 	// database).
 	Commands *commands.Service
+	// Support takes nodes' support bundles (nil: not configured).
+	Support http.Handler
 	// AppOrigin is the only origin browsers may call the API from
 	// (https://app.raptorpanel.net; http://localhost:5173 in development).
 	AppOrigin string
@@ -94,6 +97,16 @@ func Handler(cfg Config) http.Handler {
 	}
 	if cfg.Hub != nil {
 		mux.Handle("GET "+nodelink.Path, cfg.Hub)
+		header := cfg.Hub.ClientIPHeader
+		mux.HandleFunc("GET "+nodelink.AddressPath, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			_, _ = io.WriteString(w, nodes.ClientIP(r, header).String()+"\n") //nolint:gosec // a parsed address, as text/plain
+		})
+	}
+	if cfg.Support != nil {
+		// From raptor doctor, not browsers: no Origin check or cookies.
+		mux.Handle("POST "+nodelink.BundlePath, cfg.Support)
 	}
 	return mux
 }

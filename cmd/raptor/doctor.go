@@ -5,11 +5,16 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
+	"net/netip"
 	"os"
+	"strings"
 	"time"
 
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
+	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/docker"
 	"github.com/xena-studios/raptor/internal/wings/doctor"
@@ -26,13 +31,13 @@ func doctorCmd(ctx context.Context, args []string) error {
 	path := fs.String("config", config.DefaultPath, "config file")
 	asJSON := fs.Bool("json", false, "print the results as JSON")
 	bundle := fs.Bool("bundle", false, "also write a redacted diagnostics bundle (.tar.gz) for support")
-	upload := fs.Bool("upload", false, "upload the bundle to Raptor support (with -bundle)")
+	upload := fs.Bool("upload", false, "write the bundle and upload it to Raptor support; prints a support code")
 	dir := fs.String("dir", "/var/tmp", "where -bundle writes the bundle")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *upload && !*bundle {
-		return errors.New("-upload needs -bundle")
+	if *upload {
+		*bundle = true
 	}
 
 	cfg, cfgErr := config.Load(*path)
@@ -48,6 +53,10 @@ func doctorCmd(ctx context.Context, args []string) error {
 		VolumeCheck: (&storage.Volume{Path: cfg.Paths.Volumes, Soft: !cfg.Storage.Quotas}).Check,
 		Firewall:    firewall.Present,
 		HTTPGet:     httpReachable,
+		LookupHost:  net.DefaultResolver.LookupHost,
+		PublicAddr: func(ctx context.Context) (string, error) {
+			return panelSeesMe(ctx, cfg.Panel.URL)
+		},
 	}
 	if dc, err := docker.New(docker.Config{}); err != nil {
 		e.DockerErr = err
@@ -82,7 +91,19 @@ func doctorCmd(ctx context.Context, args []string) error {
 		}
 		fmt.Fprintf(os.Stderr, "\nBundle written to %s (redacted: logs and system state, no server files or secrets).\n", p)
 		if *upload {
-			return errors.New("uploading bundles comes with the Panel; for now, send the file to support another way")
+			// Signed with the node key when the node is linked; an
+			// unreadable key just means an anonymous upload.
+			key, kerr := nodelink.LoadKey(cfg.Identity.Key)
+			if kerr != nil {
+				key = nil
+			}
+			uctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+			code, err := doctor.Upload(uctx, &http.Client{}, cfg.Panel.URL, p, cfg.NodeID, key, time.Now())
+			cancel()
+			if err != nil {
+				return fmt.Errorf("upload: %w (the bundle is still at %s: send it to support another way)", err, p)
+			}
+			fmt.Fprintf(os.Stderr, "Uploaded. Your support code is %s: give it to Raptor support.\n", code)
 		}
 	}
 	if doctor.Failed(results) {
@@ -104,4 +125,26 @@ func httpReachable(ctx context.Context, url string) error {
 		return err
 	}
 	return res.Body.Close()
+}
+
+// panelSeesMe asks the Panel which address this node reaches it from.
+func panelSeesMe(ctx context.Context, panelURL string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSuffix(panelURL, "/")+nodelink.AddressPath, nil)
+	if err != nil {
+		return "", err
+	}
+	res, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = res.Body.Close() }()
+	b, err := io.ReadAll(io.LimitReader(res.Body, 256))
+	if err != nil {
+		return "", err
+	}
+	a, err := netip.ParseAddr(strings.TrimSpace(string(b)))
+	if res.StatusCode != http.StatusOK || err != nil {
+		return "", fmt.Errorf("the Panel answered %s", res.Status)
+	}
+	return a.String(), nil
 }
