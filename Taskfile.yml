@@ -47,6 +47,9 @@ tasks:
       PANEL_MAIL_LOG_FILE: .dev/mail.txt
       # Cloudflare's Turnstile test secret: every check passes.
       PANEL_TURNSTILE_SECRET: 1x0000000000000000000000000000000AA
+      # OAuth callbacks come straight to the dev API (the "Raptor
+      # (Development)" OAuth apps' redirect URIs).
+      PANEL_API_URL: http://localhost:8080
     cmds:
       - test -f .dev/panel-signing.key || go run ./cmd/panel keygen .dev/panel-signing.key
       - test -f .dev/panel-data.key || go run ./cmd/panel keygen .dev/panel-data.key
@@ -54,6 +57,9 @@ tasks:
       # development) instead of writing it to .dev/mail.txt. Use real
       # addresses then: bounces from made-up ones hurt the domain.
       - |
+        # OAuth apps for development (git-ignored): PANEL_GITHUB_CLIENT_ID=…
+        # and PANEL_GITHUB_CLIENT_SECRET=…, and the same for Google and Discord.
+        if [ -f .dev/oauth.env ]; then set -a; . .dev/oauth.env; set +a; fi
         if [ "${RESEND:-}" = 1 ]; then
           [ -f .dev/resend.env ] || { echo "RESEND=1 needs .dev/resend.env (see CONTRIBUTING.md)"; exit 1; }
           set -a; . .dev/resend.env; set +a
