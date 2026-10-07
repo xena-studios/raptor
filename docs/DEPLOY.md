@@ -290,15 +290,62 @@ Both carry their own headers (`web/public/_headers`, `web/verify/_headers`): a C
 
 ## Deploying
 
-Tag a release (`git tag v0.x.y && git push --tags`); the release workflow builds and pushes the images. Then, on server #1:
+Tag a release from `main`, and it deploys itself:
 
 ```bash
-/opt/raptor/deploy/scripts/deploy.sh v0.x.y
+git checkout main && git pull
+git tag v0.x.y && git push origin v0.x.y
 ```
 
-Migrations run first, and they must work with the version still running (add columns, backfill, and drop in a later release; never rename in one step). Then one Panel at a time is replaced. A Panel shutting down answers 503 to Caddy's health check, stops getting new requests, and hands its node connections to the other over 20 seconds; nodes reconnect with jitter. Browsers see nothing; game servers never notice. If the new version doesn't become healthy, the script stops with the old one still serving the other half: fix it or deploy the previous tag.
+The release workflow builds and pushes the images. Then, for a stable tag (`vX.Y.Z`, not `-rc.1` and the like), it deploys the Panel to server #1 and the web app to Pages, in that order. The Wings binaries in the same release still wait for you to sign them (`task release:sign`). Nodes only update from signed releases, and the signing key never goes near CI.
 
-Keep `/opt/raptor` itself in step: `git -C /opt/raptor pull` before deploying when `deploy/` changed.
+On the server, `deploy.sh` runs the migrations first. They must work with the version still running: add columns, backfill, and drop in a later release; never rename in one step. Then it replaces one Panel at a time. A Panel shutting down answers 503 to Caddy's health check, stops getting new requests, and hands its node connections to the other over 20 seconds; nodes reconnect with jitter. Browsers see nothing; game servers never notice. If the new version doesn't become healthy, the job fails with the old one still serving the other half. Fix it and tag a new version, or redeploy the previous one by hand (below). A failed deploy stops before the web app, so the web app never runs ahead of the API.
+
+### Automatic deploys
+
+Set up once, after server #1 is running:
+
+1. **A deploy user on server #1** that can run one script as root and nothing else:
+
+   ```bash
+   useradd --system --create-home --shell /bin/bash deploy
+   echo 'deploy ALL=(root) NOPASSWD: /opt/raptor/deploy/scripts/deploy-from-ci.sh *' > /etc/sudoers.d/raptor-deploy
+   chmod 0440 /etc/sudoers.d/raptor-deploy && visudo -c
+   ```
+
+2. **Its key**, made on your Mac and kept only in GitHub and 1Password:
+
+   ```bash
+   ssh-keygen -t ed25519 -N '' -C raptor-deploy -f /tmp/raptor-deploy
+   ```
+
+   On server #1, put the public key in `/home/deploy/.ssh/authorized_keys` (owned by `deploy`, mode 0600) with its command forced:
+
+   ```
+   restrict,command="sudo /opt/raptor/deploy/scripts/deploy-from-ci.sh \"$SSH_ORIGINAL_COMMAND\"" ssh-ed25519 AAAA… raptor-deploy
+   ```
+
+   Whatever the workflow sends becomes one argument to `deploy-from-ci.sh`. The script accepts only a `vX.Y.Z` tag that exists on GitHub and is on `main`, checks out that tag's `deploy/` files, and runs `deploy.sh`. With this key someone can redeploy a release you already made, and nothing else.
+
+3. **GitHub:** Settings → Environments → new environment **`production`**. Allow deployments from tags only (`v*`). Add these secrets:
+   - `DEPLOY_SSH_KEY`: the private key file's contents. Then `rm -P /tmp/raptor-deploy*`.
+   - `DEPLOY_HOST`: server #1's public address.
+   - `DEPLOY_KNOWN_HOSTS`: the output of `ssh-keyscan -t ed25519 <server #1's address>`. Check its fingerprint against `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the server.
+   - `CLOUDFLARE_PAGES_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`: the Pages-only token from [Static sites](#static-sites).
+
+   If you want a final check before production, add yourself as a required reviewer on the environment: every deploy then waits for one click.
+4. Settings → Variables → **`DEPLOY_ENABLED`** = `true`. Until it's set, releases build and stop there.
+
+SSH stays open to the internet (GitHub's runners have no fixed addresses). It takes keys only, and this key can do nothing but the above.
+
+### By hand
+
+To roll back, or if GitHub is down. On server #1:
+
+```bash
+git -C /opt/raptor fetch --tags && git -C /opt/raptor checkout --detach v0.x.y
+/opt/raptor/deploy/scripts/deploy.sh v0.x.y
+```
 
 ## Backups
 
