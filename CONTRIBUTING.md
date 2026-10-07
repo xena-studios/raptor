@@ -109,7 +109,7 @@ They need root: they create Wings' networks, load its nftables table, and set up
 
 ### Releases
 
-Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md). The same tag publishes the Panel's server images to GHCR (`raptor-panel`, `raptor-postgres`).
+Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md). The same tag publishes the Panel's server images to GHCR (`raptor-panel`, `raptor-postgres`). A stable tag (`vX.Y.Z`) on `main` then deploys the Panel and the web app to production by itself ([DEPLOY.md](docs/DEPLOY.md#deploying)). Since every release goes live, Panel migrations must work with the version before them: add, backfill, and drop in a later release; never rename in one step.
 
 ### The Panel's servers
 

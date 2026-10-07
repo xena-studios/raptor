@@ -11,6 +11,10 @@ git tag v0.1.0 && git push origin v0.1.0   # CI builds a draft release
 task release:sign TAG=v0.1.0                 # sign, verify, upload signature, publish
 ```
 
+Pushing a stable tag (`vX.Y.Z`) also deploys the Panel and the web app to
+production right away ([DEPLOY.md](../docs/DEPLOY.md#deploying)); only the Wings
+binaries wait for the signature.
+
 `task release:sign` also generates `install.sh` (the install script served at
 `get.raptorpanel.net`) from the verified `checksums.txt`, so the script carries
 each binary's SHA-256 and refuses anything else.
