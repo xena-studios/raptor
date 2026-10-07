@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/xena-studios/raptor/internal/panel/api"
 	"github.com/xena-studios/raptor/internal/panel/auth"
@@ -26,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/rollout"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/panel/support"
+	"github.com/xena-studios/raptor/internal/panel/telemetry"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
@@ -71,7 +74,10 @@ environment:
   PANEL_SUPPORT_S3_ENDPOINT, _REGION, _BUCKET, _ACCESS_KEY, _SECRET_KEY
                                where nodes' support bundles go (doctor -upload); the
                                key should only be able to upload
-  PANEL_SUPPORT_DIR            development only: put support bundles in this directory`
+  PANEL_SUPPORT_DIR            development only: put support bundles in this directory
+  OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS
+                               send metrics and traces (10% of requests;
+                               OTEL_TRACES_SAMPLER_ARG) over OTLP; off without an endpoint`
 
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stderr, nil))
@@ -135,6 +141,18 @@ func run(args []string, log *slog.Logger) error {
 // their connections, which needs the signing key.
 func serveAPI(ctx context.Context, log *slog.Logger) error {
 	cfg := api.Config{Addr: envOr("PANEL_API_ADDR", ":8080")}
+	host, _ := os.Hostname()
+	stopTelemetry, err := telemetry.Setup(ctx, buildinfo.Version, host, log)
+	if err != nil {
+		return fmt.Errorf("telemetry: %w", err)
+	}
+	defer func() {
+		sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		if err := stopTelemetry(sctx); err != nil {
+			log.Warn("flushing telemetry", "err", err)
+		}
+	}()
 	if url := os.Getenv("PANEL_DATABASE_URL"); url != "" {
 		pool, err := store.Open(ctx, url)
 		if err != nil {
@@ -163,6 +181,12 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			},
 		}
 		router.Hub = cfg.Hub
+		if err := cfg.Hub.ObserveMetrics(); err != nil {
+			return err
+		}
+		if err := telemetry.Postgres(pool); err != nil {
+			return err
+		}
 		if err := router.Start(ctx); err != nil {
 			return fmt.Errorf("panel instance: %w", err)
 		}
@@ -202,7 +226,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		if err != nil {
 			return err
 		}
-		cfg.Auth.Mailer = mailer
+		cfg.Auth.Mailer = countEmails(mailer)
 		addrs := &nodes.Addresses{Store: reg, Domain: envOr("PANEL_NODE_DOMAIN", "raptornodes.net"), Log: log}
 		if tok := os.Getenv("PANEL_CLOUDFLARE_DNS_TOKEN"); tok != "" {
 			addrs.DNS = &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}
@@ -246,6 +270,31 @@ func supportStore(log *slog.Logger) (support.Store, error) {
 		return nil, fmt.Errorf("PANEL_SUPPORT_S3_ENDPOINT: %w", err)
 	}
 	return s, nil
+}
+
+// countEmails counts the Panel's emails by result (raptor.emails): a jump
+// in failures means codes aren't reaching people.
+func countEmails(m auth.Mailer) auth.Mailer {
+	if m == nil {
+		return nil
+	}
+	c, _ := telemetry.Meter.Int64Counter("raptor.emails", metric.WithDescription("Emails sent, by result"))
+	return countingMailer{m, c}
+}
+
+type countingMailer struct {
+	auth.Mailer
+	sent metric.Int64Counter
+}
+
+func (m countingMailer) Send(ctx context.Context, to, subject, body string) error {
+	err := m.Mailer.Send(ctx, to, subject, body)
+	result := "sent"
+	if err != nil {
+		result = "failed"
+	}
+	m.sent.Add(ctx, 1, metric.WithAttributes(attribute.String("result", result)))
+	return err
 }
 
 // mailer is how the Panel sends email: Resend, or in development the log.

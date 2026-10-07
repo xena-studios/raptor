@@ -123,6 +123,9 @@ done
 [ "$(rq "SELECT count(*) FROM orgs WHERE name = 'rehearsal'")" = 1 ] || fail "the replica didn't get the new row"
 echo "replication: $(pq "SELECT application_name || ' ' || state || ' ' || sync_state FROM pg_stat_replication")"
 [ "$(rq "SELECT pg_is_in_recovery()")" = t ] || fail "the replica isn't a standby"
+# The Panel reports replication and archive health (pg_monitor).
+[ "$(pq "SET ROLE panel; SELECT state FROM pg_stat_replication")" = streaming ] || fail "the Panel's role can't see replication"
+pq "SET ROLE panel; SELECT sum(size) FROM pg_ls_waldir()" >/dev/null || fail "the Panel's role can't see the WAL"
 
 step "backups: a full backup to object storage, then a restore test"
 COMPOSE_PROJECT_NAME=raptor-rehearsal-primary COMPOSE_FILE=compose.yaml:../rehearsal/primary.yaml scripts/backup.sh full | tail -n 12

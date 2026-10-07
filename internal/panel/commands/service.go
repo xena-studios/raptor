@@ -18,6 +18,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
@@ -25,6 +27,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/perms"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/telemetry"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
 )
 
@@ -60,6 +63,10 @@ func (s *Service) now() time.Time {
 	}
 	return time.Now()
 }
+
+// Commands sent to nodes (raptor.commands), by action and outcome: ok, failed
+// (ran and failed), or unreached. Only known actions get this far.
+var executed, _ = telemetry.Meter.Int64Counter("raptor.commands", metric.WithDescription("Commands sent to nodes, by action and outcome"))
 
 var (
 	errNotFound = connect.NewError(connect.CodeNotFound, errors.New("no such server"))
@@ -175,6 +182,14 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	cctx, cancel := context.WithTimeout(ctx, executeTimeout)
 	defer cancel()
 	res, err := s.Sender.Execute(cctx, env.NodeID, raw)
+	outcome := "ok"
+	switch {
+	case err != nil:
+		outcome = "unreached" // offline, or the node refused it
+	case res.GetError() != "":
+		outcome = "failed"
+	}
+	executed.Add(ctx, 1, metric.WithAttributes(attribute.String("action", env.Action), attribute.String("outcome", outcome)))
 
 	if !perms.Read(env.Action) {
 		meta := map[string]any{"action": env.Action, "node": env.NodeID, "command_id": env.CommandID, "signed": env.Signature != nil}

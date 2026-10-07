@@ -15,9 +15,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel/metric"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/telemetry"
 )
 
 // Mirror keeps the Panel's copy of each node's servers
@@ -63,6 +65,10 @@ func (m *Mirror) Notify(nodeID string) {
 	}
 }
 
+// Mirror syncs that failed (raptor.mirror.sync_failures): pages show stale
+// data until a later sync works.
+var syncFailures, _ = telemetry.Meter.Int64Counter("raptor.mirror.sync_failures", metric.WithDescription("Mirror syncs that failed"))
+
 func (m *Mirror) worker(nodeID string, ch chan struct{}) {
 	for {
 		select {
@@ -80,6 +86,7 @@ func (m *Mirror) worker(nodeID string, ch chan struct{}) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		if err := m.Sync(ctx, nodeID); err != nil {
 			m.Log.Warn("mirror sync failed", "node", nodeID, "err", err)
+			syncFailures.Add(context.Background(), 1)
 		}
 		cancel()
 	}

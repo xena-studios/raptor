@@ -16,9 +16,11 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"go.opentelemetry.io/otel/metric"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
+	"github.com/xena-studios/raptor/internal/panel/telemetry"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
@@ -125,9 +127,30 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.Log.Info("node disconnected", "node", c.NodeID)
 }
 
+// Node connections made (raptor.nodes.connects): its rate is the reconnect
+// rate, which jumps after deploys and when something between nodes and
+// the Panel is failing.
+var connects, _ = telemetry.Meter.Int64Counter("raptor.nodes.connects", metric.WithDescription("Node connections made to this instance"))
+
+// ObserveMetrics reports how many nodes are connected to this instance
+// (raptor.nodes.connected).
+func (h *Hub) ObserveMetrics() error {
+	_, err := telemetry.Meter.Int64ObservableGauge("raptor.nodes.connected",
+		metric.WithDescription("Nodes connected to this instance"),
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			h.mu.Lock()
+			n := len(h.conns)
+			h.mu.Unlock()
+			o.Observe(int64(n))
+			return nil
+		}))
+	return err
+}
+
 // register makes c the node's connection; a node has one, so an older one
 // (a reconnect that beat the old connection's timeout) is closed.
 func (h *Hub) register(c *Conn) {
+	connects.Add(context.Background(), 1)
 	h.mu.Lock()
 	old := h.conns[c.NodeID]
 	h.conns[c.NodeID] = c
