@@ -38,7 +38,8 @@ func (n wingsNode) Execute(ctx context.Context, _ string, raw []byte) (*nodev1.E
 	}
 	res, err := n.x.Execute(ctx, e)
 	if err != nil {
-		return &nodev1.ExecuteResponse{Error: err.Error()}, nil
+		// Refused or failed on the node: an answer, as the link sends it.
+		return &nodev1.ExecuteResponse{Error: err.Error()}, nil //nolint:nilerr // the node's answer, not a transport error
 	}
 	return &nodev1.ExecuteResponse{Result: res.Value, Duplicate: res.Duplicate}, nil
 }
