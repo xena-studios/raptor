@@ -7,10 +7,12 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
 	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/meta/v1/metav1connect"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
@@ -66,23 +68,31 @@ func Handler(cfg Config) http.Handler {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	// Every RPC's latency and result (rpc.server.duration with the code),
+	// through the global providers: nothing is sent unless telemetry is on.
+	var traced []connect.HandlerOption
+	if ic, err := otelconnect.NewInterceptor(); err == nil {
+		traced = append(traced, connect.WithInterceptors(ic))
+	}
+	opts := func(o ...connect.HandlerOption) []connect.HandlerOption { return append(slices.Clone(traced), o...) }
+
 	api := http.NewServeMux()
-	path, handler := metav1connect.NewMetaServiceHandler(metaService{})
+	path, handler := metav1connect.NewMetaServiceHandler(metaService{}, opts()...)
 	api.Handle(path, handler)
 	if cfg.Auth != nil {
 		// Nothing auth takes is big; passkey answers are a few kilobytes.
-		path, handler := panelv1connect.NewAuthServiceHandler(cfg.Auth, connect.WithReadMaxBytes(256<<10))
+		path, handler := panelv1connect.NewAuthServiceHandler(cfg.Auth, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 		// Outside /api: browsers arrive here from the provider's site, by
 		// navigation, without an Origin to check.
 		mux.Handle("GET /oauth/{provider}/callback", cfg.Auth.OAuthCallback())
 	}
 	if cfg.Commands != nil {
-		path, handler := panelv1connect.NewCommandServiceHandler(cfg.Commands, connect.WithReadMaxBytes(512<<10))
+		path, handler := panelv1connect.NewCommandServiceHandler(cfg.Commands, opts(connect.WithReadMaxBytes(512<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {
-		path, handler := panelv1connect.NewOrgServiceHandler(cfg.Orgs, connect.WithReadMaxBytes(64<<10))
+		path, handler := panelv1connect.NewOrgServiceHandler(cfg.Orgs, opts(connect.WithReadMaxBytes(64<<10))...)
 		api.Handle(path, handler)
 	}
 	appOrigin := cfg.AppOrigin
@@ -92,7 +102,7 @@ func Handler(cfg Config) http.Handler {
 	mux.Handle(apiPrefix+"/", http.StripPrefix(apiPrefix, browserGuard(appOrigin, api)))
 
 	if cfg.Nodes != nil {
-		path, handler := nodev1connect.NewEnrollmentServiceHandler(cfg.Nodes)
+		path, handler := nodev1connect.NewEnrollmentServiceHandler(cfg.Nodes, opts()...)
 		mux.Handle(apiPrefix+path, http.StripPrefix(apiPrefix, handler))
 	}
 	if cfg.Hub != nil {

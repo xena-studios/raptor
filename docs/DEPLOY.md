@@ -61,6 +61,7 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `Google OAuth`, `Discord OAuth` | `client_id`, `client_secret` | When you've made them. **Until then, delete their lines from `deploy/secrets/panel.env.tpl` on the servers**: `op inject` fails on a missing item. A provider is offered once both its values are set. |
 | `Cloudflare raptornodes.net DNS` | `token`, `zone_id` | [Below](#raptornodesnet). |
 | `Support bundles storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key` | [Below](#support-bundles). |
+| `Grafana Cloud OTLP` | `endpoint`, `headers` | [Below](#monitoring). |
 
 Rotate anything that was ever pasted in a chat or a terminal history.
 
@@ -346,12 +347,30 @@ The rehearsal does steps 2–5 and checks the API answers and the promoted datab
 
 ## Monitoring
 
-Not built yet (ROADMAP 3.1: OpenTelemetry, Grafana, alerts). Until it is, at least:
+The Panel sends metrics and a sample of traces (10% of requests) over OpenTelemetry when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Grafana Cloud's free tier holds more than launch needs.
 
-- An uptime check on `https://api.raptorpanel.net/healthz` from outside Cloudflare's account (UptimeRobot or Better Stack, free), alerting your phone.
-- Failed timers: `systemctl list-units --failed` (or `OnFailure=` on the backup units to send an email).
-- Disk space on server #1 (WAL kept for the replica, and the archive's spool if the bucket is unreachable).
-- Replication: `replay_lag` in `pg_stat_replication`, above.
+1. Grafana Cloud → your stack → **OpenTelemetry** → configure: make a token, and copy the endpoint (`https://otlp-gateway-<region>.grafana.net/otlp`) and the `Authorization=Basic%20…` header it shows. Put them in the vault item **`Grafana Cloud OTLP`** as `endpoint` and `headers`. `panel.env.tpl` already reads them.
+2. Deploy. Both Panels report as `raptor-panel`, each with its container's hostname as the instance.
+3. **Synthetic Monitoring** (in the same stack, free): an HTTP check on `https://api.raptorpanel.net/healthz` every minute from three locations. This is the "API is down" alarm, and it works when the Panel can't report anything.
+4. **healthchecks.io** (free): two checks, *Raptor backup* (daily, 2 h grace) and *Raptor restore test* (monthly, 1 day grace). Put their ping URLs in `/etc/raptor/stack.env` on whichever server runs the backups, as `BACKUP_PING_URL=…` and `RESTORE_TEST_PING_URL=…`. The scripts ping only when they succeed, so a failed run and a timer that never fired both alert.
+5. **Alerts** (Grafana → Alerting), with a contact point that reaches your phone. Metric names as Grafana shows them, after OTLP's dots become underscores:
+
+   | Alert | Rule | Why |
+   |---|---|---|
+   | API down | the synthetic check fails from 2 of 3 locations | Nobody can sign in or manage anything |
+   | API errors | `rpc_server_duration_milliseconds_count` with `rpc_connect_rpc_error_code` in `internal`, `unknown`, or `unavailable`, over 5% of all requests for 5 min | Something is broken behind the API |
+   | Nodes dropped | `sum(raptor_nodes_connected)` falls by 30% within 5 min | Cloudflare, the network, or the Panel is failing nodes |
+   | Reconnect storm | `rate(raptor_nodes_connects_total[5m])` over 3× its usual level for 15 min, outside deploys | Connections keep failing and retrying |
+   | Replica gone | `raptor_postgres_replicas` < 1 for 5 min | No failover target, and WAL piles up for the replica's slot |
+   | Replica behind | `raptor_postgres_replica_lag_seconds` > 60 for 10 min | A failover would lose that much |
+   | Archive failing | `raptor_postgres_archive_failures` increased in the last 15 min | Point-in-time recovery has a hole until it's fixed |
+   | WAL piling up | `raptor_postgres_wal_size_bytes` > 10 GB | The disk fills next; usually a dead replica's slot or the archive |
+   | Email failing | `raptor_emails_total{result="failed"}` > 0 for 10 min | Sign-in codes aren't arriving |
+   | Mirror failing | `rate(raptor_mirror_sync_failures_total[10m])` > 0 for 30 min | Pages show stale servers |
+
+   `raptor_commands_total` (by action and outcome) is for dashboards: a rise in `unreached` usually goes with a node drop.
+
+Also watch, outside Grafana: the provider's disk and CPU alerts on both servers (set them in its console), and the `support@` inbox.
 
 ## Rehearsal
 

@@ -55,3 +55,6 @@ if [ -z "$restored" ] || [ "$restored" != "$primary" ]; then
   exit 1
 fi
 echo "restore-test: OK"
+# A dead man's switch (docs/DEPLOY.md#monitoring): it alerts when the pings
+# stop, which catches a timer that never ran as well as a run that failed.
+if [ -n "${RESTORE_TEST_PING_URL:-}" ]; then curl -fsS -m 10 --retry 3 "$RESTORE_TEST_PING_URL" >/dev/null || true; fi

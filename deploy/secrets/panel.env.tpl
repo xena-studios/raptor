@@ -12,6 +12,9 @@ PANEL_DISCORD_CLIENT_ID={{ op://Raptor production/Discord OAuth/client_id }}
 PANEL_DISCORD_CLIENT_SECRET={{ op://Raptor production/Discord OAuth/client_secret }}
 PANEL_CLOUDFLARE_DNS_TOKEN={{ op://Raptor production/Cloudflare raptornodes.net DNS/token }}
 PANEL_CLOUDFLARE_ZONE_ID={{ op://Raptor production/Cloudflare raptornodes.net DNS/zone_id }}
+# Metrics and traces to Grafana Cloud (docs/DEPLOY.md#monitoring).
+OTEL_EXPORTER_OTLP_ENDPOINT={{ op://Raptor production/Grafana Cloud OTLP/endpoint }}
+OTEL_EXPORTER_OTLP_HEADERS={{ op://Raptor production/Grafana Cloud OTLP/headers }}
 PANEL_SUPPORT_S3_ENDPOINT={{ op://Raptor production/Support bundles storage/endpoint }}
 PANEL_SUPPORT_S3_REGION={{ op://Raptor production/Support bundles storage/region }}
 PANEL_SUPPORT_S3_BUCKET={{ op://Raptor production/Support bundles storage/bucket }}
