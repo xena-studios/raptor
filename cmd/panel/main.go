@@ -55,7 +55,8 @@ environment:
   PANEL_TURNSTILE_SECRET       Cloudflare Turnstile secret for the email sign-in form
   PANEL_TURNSTILE_HOSTNAME     where the widget must be solved (verify.raptorpanel.net)
   PANEL_RESEND_API_KEY         Resend API key (sending access only) for the Panel's email
-  PANEL_MAIL_FROM              the sender, e.g. Raptor <no-reply@mail.raptorpanel.net>
+  PANEL_MAIL_FROM              the sender, e.g. Raptor <account@mail.raptorpanel.net>
+  PANEL_MAIL_REPLY_TO          where replies go, e.g. support@raptorpanel.net
   PANEL_MAIL_LOG=1             development only: write emails (codes included) to the log
   PANEL_MAIL_LOG_FILE          with PANEL_MAIL_LOG, also append them to this file as plain text
   PANEL_CLIENT_IP_HEADER       header with the client's address (CF-Connecting-IP);
@@ -222,7 +223,9 @@ func mailer(log *slog.Logger) (auth.Mailer, error) {
 		return nil, errors.New("PANEL_MAIL_FROM is needed with PANEL_RESEND_API_KEY")
 	case key != "":
 		log.Info("email through resend", "from", from)
-		return auth.NewResend(key, from), nil
+		r := auth.NewResend(key, from)
+		r.ReplyTo = os.Getenv("PANEL_MAIL_REPLY_TO")
+		return r, nil
 	case toLog:
 		log.Warn("PANEL_MAIL_LOG=1: emails, with their sign-in codes, go to the log (development only)")
 		return auth.LogMailer{Log: log, File: os.Getenv("PANEL_MAIL_LOG_FILE")}, nil

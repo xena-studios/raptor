@@ -16,8 +16,12 @@ import (
 // sending subdomain (docs/DECISIONS.md #80).
 type Resend struct {
 	Client *resend.Client
-	// From is the sender, as "Raptor <no-reply@mail.raptorpanel.net>".
+	// From is the sender, as "Raptor <account@mail.raptorpanel.net>": a
+	// real-looking address, not no-reply, which costs trust.
 	From string
+	// ReplyTo is where answers go (support@raptorpanel.net), so someone
+	// writing back "this wasn't me" reaches a person; empty: the sender.
+	ReplyTo string
 }
 
 // NewResend is a Resend mailer with an API key that can only send.
@@ -29,7 +33,7 @@ func NewResend(apiKey, from string) *Resend {
 // with the same idempotency key, so a send whose answer was lost isn't
 // delivered twice.
 func (r *Resend) Send(ctx context.Context, to, subject, text string) error {
-	req := &resend.SendEmailRequest{From: r.From, To: []string{to}, Subject: subject, Text: text}
+	req := &resend.SendEmailRequest{From: r.From, To: []string{to}, Subject: subject, Text: text, ReplyTo: r.ReplyTo}
 	opts := &resend.SendEmailOptions{IdempotencyKey: newToken()}
 	_, err := r.Client.Emails.SendWithOptions(ctx, req, opts)
 	if err == nil || !retryable(err) {
