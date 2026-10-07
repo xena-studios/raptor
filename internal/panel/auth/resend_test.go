@@ -49,7 +49,7 @@ func newFakeResend(t *testing.T, statuses ...int) (*Resend, *fakeResend) {
 	f := &fakeResend{statuses: statuses}
 	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
-	r := NewResend("re_test", "Raptor <no-reply@mail.example.test>")
+	r := NewResend("re_test", "Raptor <account@mail.example.test>")
 	r.Client.BaseURL, _ = url.Parse(srv.URL + "/")
 	return r, f
 }
@@ -57,11 +57,12 @@ func newFakeResend(t *testing.T, statuses ...int) (*Resend, *fakeResend) {
 func TestResend(t *testing.T) {
 	ctx := context.Background()
 	r, f := newFakeResend(t)
+	r.ReplyTo = "support@example.test"
 	if err := r.Send(ctx, "alice@example.com", "Your code", "123456"); err != nil {
 		t.Fatal(err)
 	}
 	b := f.bodies[0]
-	if b["from"] != "Raptor <no-reply@mail.example.test>" || b["subject"] != "Your code" || b["text"] != "123456" {
+	if b["from"] != "Raptor <account@mail.example.test>" || b["subject"] != "Your code" || b["text"] != "123456" || b["reply_to"] != "support@example.test" {
 		t.Errorf("body: %v", b)
 	}
 	if to, _ := b["to"].([]any); len(to) != 1 || to[0] != "alice@example.com" {
