@@ -20,7 +20,24 @@ import (
 const (
 	ActionKeysAdd    = "keys.add"
 	ActionKeysRemove = "keys.remove"
+	// ActionKeysList lists them, for the Panel to show: public keys and
+	// fingerprints only, so it isn't signed.
+	ActionKeysList = "keys.list"
 )
+
+// ListedKey is a trusted key as keys.list reports it.
+type ListedKey struct {
+	CredentialID []byte   `json:"credential_id"`
+	Fingerprint  string   `json:"fingerprint"`
+	UserID       string   `json:"user_id"`
+	Name         string   `json:"name"`
+	Role         string   `json:"role"`
+	ServerID     string   `json:"server_id,omitempty"`
+	Actions      []string `json:"actions,omitempty"`
+	ExpiresAt    int64    `json:"expires_at,omitempty"` // unix seconds
+	AddedBy      string   `json:"added_by,omitempty"`   // fingerprint; "" = pinned on the box or at enrollment
+	AddedAt      int64    `json:"added_at"`
+}
 
 func isKeyAction(a string) bool { return strings.HasPrefix(a, "keys.") }
 
@@ -52,6 +69,25 @@ func (x *Executor) keyHandlers() map[string]Handler {
 		}},
 		// Pairing proves possession of the new key instead (see pair).
 		ActionKeysPair: {Signed: Never, Run: x.pair},
+		ActionKeysList: {Signed: Never, ReadOnly: true, Run: func(ctx context.Context, _ Envelope) (any, error) {
+			keys, err := ListKeys(ctx, x.DB)
+			if err != nil {
+				return nil, err
+			}
+			out := make([]ListedKey, 0, len(keys))
+			for _, k := range keys {
+				l := ListedKey{
+					CredentialID: k.CredentialID, Fingerprint: k.Fingerprint, UserID: k.UserID, Name: k.Name, Role: k.Role,
+					ServerID: k.ServerID, AddedBy: k.AddedBy, AddedAt: k.AddedAt.Unix(),
+				}
+				_ = json.Unmarshal([]byte(k.Actions), &l.Actions)
+				if !k.ExpiresAt.IsZero() {
+					l.ExpiresAt = k.ExpiresAt.Unix()
+				}
+				out = append(out, l)
+			}
+			return map[string]any{"keys": out}, nil
+		}},
 		ActionKeysRemove: {Signed: Always, Run: func(ctx context.Context, e Envelope) (any, error) {
 			var p RemoveKeyParams
 			if err := json.Unmarshal(e.Params, &p); err != nil {

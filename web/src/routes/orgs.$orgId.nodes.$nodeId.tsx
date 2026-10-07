@@ -5,6 +5,7 @@ import { KeyRound, Play, RotateCw, Square, Trash2, Users } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { TrustedKeys } from "@/components/trusted-keys";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,14 @@ function NodePage() {
             userId={session.user?.id ?? ""}
           />
         ))}
+        {isAdmin(org?.role) && (
+          <TrustedKeys
+            orgId={orgId}
+            nodeId={nodeId}
+            userId={session.user?.id ?? ""}
+            servers={servers.data?.servers ?? []}
+          />
+        )}
         {isAdmin(org?.role) && <PairKey nodeId={nodeId} userId={session.user?.id ?? ""} />}
       </div>
     </AppShell>

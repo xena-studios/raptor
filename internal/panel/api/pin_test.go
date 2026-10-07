@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -124,6 +125,25 @@ func TestOwnerPin(t *testing.T) {
 	}
 	if err := pin(alice, signPin(t, laptop, token, aliceID), token); connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Errorf("pinned twice: %v", err)
+	}
+
+	// An owner can see a member's passkeys (to delegate to one), not an
+	// outsider's, and members can't.
+	listKeys := func(b *browser, user string) (*panelv1.ListMemberPasskeysResponse, error) {
+		return b.orgs.ListMemberPasskeys(ctx, &panelv1.ListMemberPasskeysRequest{OrgId: org, UserId: user})
+	}
+	if _, err := listKeys(alice, bobID); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("an outsider's passkeys: %v", err)
+	}
+	if _, err := db.Exec(ctx, "INSERT INTO org_members (org_id, user_id, role) VALUES ($1, $2, 'member')", org, bobID); err != nil {
+		t.Fatal(err)
+	}
+	memberKeys, err := listKeys(alice, bobID)
+	if err != nil || len(memberKeys.GetPasskeys()) != 1 || !bytes.Equal(memberKeys.GetPasskeys()[0].GetPublicKey(), bobKey.COSE) {
+		t.Fatalf("member's passkeys: %v, %v", memberKeys, err)
+	}
+	if _, err := listKeys(bob, aliceID); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("a member listing passkeys: %v", err)
 	}
 
 	// The node enrolls and gets the pin back.

@@ -4,6 +4,7 @@ package raptor.panel.v1;
 
 import "google/protobuf/timestamp.proto";
 import "raptor/panel/v1/audit.proto";
+import "raptor/panel/v1/auth.proto";
 
 // OrgService manages orgs, their members, and invitations
 // (docs/PANEL.md#permissions). Roles: owners can do everything, including
@@ -85,6 +86,13 @@ service OrgService {
   // with it checks the signature and trusts that passkey from the start.
   // Admins and owners, for one of their own passkeys.
   rpc PinJoinToken(PinJoinTokenRequest) returns (PinJoinTokenResponse) {}
+
+  // ListMemberPasskeys lists a member's passkeys (names and public keys),
+  // for an owner to let one of them sign dangerous actions on a node (a
+  // delegation, which the owner's own passkey signs). Admins and owners.
+  rpc ListMemberPasskeys(ListMemberPasskeysRequest) returns (ListMemberPasskeysResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 
   // ListAuditLog lists the org's audit log, newest first, 50 at a time.
   // Admins and owners.
@@ -299,3 +307,13 @@ message PinJoinTokenRequest {
 }
 
 message PinJoinTokenResponse {}
+
+message ListMemberPasskeysRequest {
+  string org_id = 1;
+  string user_id = 2;
+}
+
+message ListMemberPasskeysResponse {
+  // name, credential_id, public_key, and created_at are set.
+  repeated Passkey passkeys = 1;
+}

@@ -3,7 +3,7 @@ import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { KeyRound, Smartphone, Trash2 } from "lucide-react";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { renderSVG } from "uqr";
 
 import { AppShell } from "@/components/app-shell";
@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
+import { keyFingerprint } from "@/lib/canonical";
 import { message } from "@/lib/errors";
 import { requireSession } from "@/lib/session";
 import { authClient } from "@/lib/transport";
@@ -177,7 +178,8 @@ function Passkeys() {
                 {p.name}
               </button>
               <p className="text-xs text-muted-foreground">
-                Added {when(p.createdAt)} · last used {when(p.lastUsedAt)}
+                Added {when(p.createdAt)} · last used {when(p.lastUsedAt)} ·{" "}
+                <Fingerprint publicKey={p.publicKey} />
               </p>
             </div>
             {p.synced && <Badge variant="secondary">Synced</Badge>}
@@ -561,4 +563,14 @@ function ActivityPage({
       )}
     </>
   );
+}
+
+// Fingerprint shows a passkey's fingerprint as nodes print it, computed
+// here from its public key.
+function Fingerprint({ publicKey }: { publicKey: Uint8Array }) {
+  const [fp, setFp] = useState("");
+  useEffect(() => {
+    keyFingerprint(publicKey).then(setFp);
+  }, [publicKey]);
+  return <code>{fp}</code>;
 }

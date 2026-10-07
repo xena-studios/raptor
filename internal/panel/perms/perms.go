@@ -74,6 +74,7 @@ var actions = map[string]string{
 	"keys.add":                  adminOnly,
 	"keys.remove":               adminOnly,
 	"keys.pair":                 adminOnly,
+	"keys.list":                 adminOnly,
 }
 
 // For returns what running action needs: a server permission, or
@@ -104,7 +105,7 @@ func Valid(p string) bool {
 // audit log.
 func Read(action string) bool {
 	switch action {
-	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status":
+	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list":
 		return true
 	}
 	return false
