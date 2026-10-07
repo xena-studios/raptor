@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"time"
 
 	"connectrpc.com/connect"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/wings/backup"
+	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 )
@@ -31,6 +33,14 @@ type Schedules interface {
 type Backups interface {
 	List(ctx context.Context, serverID string) ([]*backup.Backup, error)
 }
+
+// Jobs lists a server's jobs (jobs.Engine).
+type Jobs interface {
+	List(ctx context.Context, serverID string, limit int) ([]jobs.Job, error)
+}
+
+// jobsPerServer is how many of a server's recent jobs the Panel mirrors.
+const jobsPerServer = 50
 
 // maxServersPerCall bounds GetServers with named IDs.
 const maxServersPerCall = 1000
@@ -141,6 +151,18 @@ func (s *service) addSchedulesAndBackups(ctx context.Context, pb *nodev1.Server)
 					CreatedAt: unixMilli(b.CreatedAt), FinishedAt: unixMilli(b.FinishedAt), ExpiresAt: unixMilli(b.ExpiresAt),
 				})
 			}
+		}
+	}
+	if s.l.cfg.Jobs != nil {
+		list, err := s.l.cfg.Jobs.List(ctx, pb.GetId(), jobsPerServer)
+		if err != nil {
+			return err
+		}
+		for _, j := range list {
+			pb.Jobs = append(pb.Jobs, &nodev1.Job{
+				Id: j.ID, Type: j.Type, Status: j.Status, Attempts: int32(min(j.Attempts, math.MaxInt32)), Error: j.Error, //nolint:gosec // bounded
+				CreatedAt: unixMilli(j.CreatedAt), StartedAt: unixMilli(j.StartedAt), FinishedAt: unixMilli(j.FinishedAt),
+			})
 		}
 	}
 	return nil

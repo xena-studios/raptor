@@ -19,6 +19,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -103,9 +104,15 @@ func (r retryable) Unwrap() error { return r.err }
 // Retryable marks an error as worth retrying later.
 func Retryable(err error) error { return retryable{err} }
 
+// EventStatus is recorded whenever a server's job changes status, so the
+// Panel's mirror fetches the server's jobs again.
+const EventStatus = "job.status"
+
 // Options configure the engine.
 type Options struct {
-	Store  *store.DB
+	Store *store.DB
+	// Events, if set, gets EventStatus for every change to a server's job.
+	Events *events.Outbox
 	LogDir string // job logs: <LogDir>/<job-id>.log
 	Log    *slog.Logger
 	// Limits per class; unlisted classes (and "") use DefaultLimit.
@@ -223,11 +230,50 @@ func (e *Engine) EnqueueTx(ctx context.Context, q *store.Queries, s Spec) (strin
 		ID: id.String(), ServerID: s.ServerID, Type: s.Type, Payload: string(payload),
 		MaxAttempts: int64(h.MaxAttempts), RunAfter: runAfter.UnixMilli(), CreatedAt: now.UnixMilli(),
 	})
-	return id.String(), err
+	if err != nil {
+		return "", err
+	}
+	return id.String(), e.statusTx(ctx, q, id.String(), s.ServerID, s.Type, Queued)
 }
 
-// Wake makes the engine check the queue now.
+// statusTx records a server's job's new status, in the transaction that
+// changes it.
+func (e *Engine) statusTx(ctx context.Context, q *store.Queries, id, serverID, typ, status string) error {
+	if e.o.Events == nil || serverID == "" {
+		return nil
+	}
+	_, err := events.AppendTx(ctx, q, events.Event{Type: EventStatus, ServerID: serverID, Data: map[string]any{
+		"job_id": id, "type": typ, "status": status,
+	}})
+	return err
+}
+
+// transition makes a change to a job (change reports whether it applied)
+// and records the job's new status with it.
+func (e *Engine) transition(ctx context.Context, id, serverID, typ, status string, change func(q *store.Queries) (bool, error)) (bool, error) {
+	var applied bool
+	err := e.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		var err error
+		if applied, err = change(q); err != nil || !applied {
+			return err
+		}
+		return e.statusTx(ctx, q, id, serverID, typ, status)
+	})
+	if err == nil && applied && e.o.Events != nil && serverID != "" {
+		e.o.Events.Wake()
+	}
+	return applied, err
+}
+
+// done wraps a change that always applies.
+func done(err error) (bool, error) { return err == nil, err }
+
+// Wake makes the engine check the queue now, and tells event readers about
+// jobs enqueued with EnqueueTx.
 func (e *Engine) Wake() {
+	if e.o.Events != nil {
+		e.o.Events.Wake()
+	}
 	select {
 	case e.wake <- struct{}{}:
 	default:
@@ -250,10 +296,14 @@ func (e *Engine) Start(ctx context.Context) error {
 		switch {
 		case known && h.Resumable && r.Attempts < r.MaxAttempts:
 			e.log.Info("resuming job interrupted by a Wings stop", "job", r.ID, "type", r.Type, "server", r.ServerID)
-			err = e.o.Store.Write.RequeueJob(ctx, store.RequeueJobParams{Error: "interrupted by a Wings stop; resuming", RunAfter: now, ID: r.ID})
+			_, err = e.transition(ctx, r.ID, r.ServerID, r.Type, Queued, func(q *store.Queries) (bool, error) {
+				return done(q.RequeueJob(ctx, store.RequeueJobParams{Error: "interrupted by a Wings stop; resuming", RunAfter: now, ID: r.ID}))
+			})
 		default:
 			e.log.Warn("job interrupted by a Wings stop", "job", r.ID, "type", r.Type, "server", r.ServerID)
-			err = e.o.Store.Write.FinishJob(ctx, store.FinishJobParams{Status: Failed, Error: "interrupted: Wings stopped while it was running", FinishedAt: sqlInt(now), ID: r.ID})
+			_, err = e.transition(ctx, r.ID, r.ServerID, r.Type, Failed, func(q *store.Queries) (bool, error) {
+				return done(q.FinishJob(ctx, store.FinishJobParams{Status: Failed, Error: "interrupted: Wings stopped while it was running", FinishedAt: sqlInt(now), ID: r.ID}))
+			})
 		}
 		if err != nil {
 			return err
@@ -306,7 +356,9 @@ func (e *Engine) dispatch() {
 	for _, r := range rows {
 		h, ok := e.handlers[r.Type]
 		if !ok {
-			_ = e.o.Store.Write.FinishJob(e.ctx, store.FinishJobParams{Status: Failed, Error: "unknown job type " + r.Type, FinishedAt: sqlInt(time.Now().UnixMilli()), ID: r.ID})
+			_, _ = e.transition(e.ctx, r.ID, r.ServerID, r.Type, Failed, func(q *store.Queries) (bool, error) {
+				return done(q.FinishJob(e.ctx, store.FinishJobParams{Status: Failed, Error: "unknown job type " + r.Type, FinishedAt: sqlInt(time.Now().UnixMilli()), ID: r.ID}))
+			})
 			continue
 		}
 		e.mu.Lock()
@@ -326,8 +378,11 @@ func (e *Engine) dispatch() {
 		if !free {
 			continue
 		}
-		n, err := e.o.Store.Write.MarkJobRunning(e.ctx, store.MarkJobRunningParams{StartedAt: sqlInt(time.Now().UnixMilli()), ID: r.ID})
-		if err != nil || n == 0 { // cancelled meanwhile, or shutting down
+		ok, err := e.transition(e.ctx, r.ID, r.ServerID, r.Type, Running, func(q *store.Queries) (bool, error) {
+			n, err := q.MarkJobRunning(e.ctx, store.MarkJobRunningParams{StartedAt: sqlInt(time.Now().UnixMilli()), ID: r.ID})
+			return n > 0, err
+		})
+		if err != nil || !ok { // cancelled meanwhile, or shutting down
 			e.release(h, r.ServerID)
 			continue
 		}
@@ -404,7 +459,9 @@ func (e *Engine) finish(ctx context.Context, h Handler, j Job, maxAttempts int64
 	now := time.Now().UnixMilli()
 	if runErr == nil {
 		res, _ := json.Marshal(result)
-		if err := e.o.Store.Write.FinishJob(db, store.FinishJobParams{Status: Succeeded, Result: string(res), FinishedAt: sqlInt(now), ID: j.ID}); err != nil {
+		if _, err := e.transition(db, j.ID, j.ServerID, j.Type, Succeeded, func(q *store.Queries) (bool, error) {
+			return done(q.FinishJob(db, store.FinishJobParams{Status: Succeeded, Result: string(res), FinishedAt: sqlInt(now), ID: j.ID}))
+		}); err != nil {
 			e.log.Error("saving job result failed", "job", j.ID, "err", err)
 		}
 		return
@@ -417,10 +474,14 @@ func (e *Engine) finish(ctx context.Context, h Handler, j Job, maxAttempts int64
 	if status == Failed && errors.As(runErr, &rt) && int64(j.Attempts) < maxAttempts {
 		delay := min(e.o.BackoffBase<<(j.Attempts-1), e.o.BackoffMax)
 		e.log.Warn("job failed; retrying", "job", j.ID, "type", j.Type, "attempt", j.Attempts, "retry_in", delay.String(), "err", runErr)
-		_ = e.o.Store.Write.RequeueJob(db, store.RequeueJobParams{Error: runErr.Error(), RunAfter: time.Now().Add(delay).UnixMilli(), ID: j.ID})
+		_, _ = e.transition(db, j.ID, j.ServerID, j.Type, Queued, func(q *store.Queries) (bool, error) {
+			return done(q.RequeueJob(db, store.RequeueJobParams{Error: runErr.Error(), RunAfter: time.Now().Add(delay).UnixMilli(), ID: j.ID}))
+		})
 		return
 	}
-	if err := e.o.Store.Write.FinishJob(db, store.FinishJobParams{Status: status, Error: runErr.Error(), FinishedAt: sqlInt(now), ID: j.ID}); err != nil {
+	if _, err := e.transition(db, j.ID, j.ServerID, j.Type, status, func(q *store.Queries) (bool, error) {
+		return done(q.FinishJob(db, store.FinishJobParams{Status: status, Error: runErr.Error(), FinishedAt: sqlInt(now), ID: j.ID}))
+	}); err != nil {
 		e.log.Error("saving job failure failed", "job", j.ID, "err", err)
 	}
 }
@@ -434,14 +495,18 @@ func (e *Engine) Cancel(ctx context.Context, id string) error {
 		r.cancel(ErrCancelled)
 		return nil
 	}
-	n, err := e.o.Store.Write.CancelQueuedJob(ctx, store.CancelQueuedJobParams{FinishedAt: sqlInt(time.Now().UnixMilli()), ID: id})
+	j, err := e.Get(ctx, id)
 	if err != nil {
 		return err
 	}
-	if n == 0 {
-		if _, err := e.Get(ctx, id); err != nil {
-			return err
-		}
+	ok, err := e.transition(ctx, id, j.ServerID, j.Type, Cancelled, func(q *store.Queries) (bool, error) {
+		n, err := q.CancelQueuedJob(ctx, store.CancelQueuedJobParams{FinishedAt: sqlInt(time.Now().UnixMilli()), ID: id})
+		return n > 0, err
+	})
+	if err != nil {
+		return err
+	}
+	if !ok {
 		return errors.New("job already finished")
 	}
 	return nil

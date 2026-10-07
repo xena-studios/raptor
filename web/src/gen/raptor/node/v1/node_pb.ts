@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/node/v1/node.proto.
  */
 export const file_raptor_node_v1_node: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3Ivbm9kZS92MS9ub2RlLnByb3RvEg5yYXB0b3Iubm9kZS52MSIgChFHZXRTZXJ2ZXJzUmVxdWVzdBILCgNpZHMYASADKAkiYAoSR2V0U2VydmVyc1Jlc3BvbnNlEicKB3NlcnZlcnMYASADKAsyFi5yYXB0b3Iubm9kZS52MS5TZXJ2ZXISDwoHbWlzc2luZxgCIAMoCRIQCghsYXN0X3NlcRgDIAEoAyK7AgoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHdmVyc2lvbhgDIAEoAxINCgVzdGF0ZRgEIAEoCRIVCg1kZXNpcmVkX3N0YXRlGAUgASgJEhUKDWluc3RhbGxfc3RhdGUYBiABKAkSFQoNaW5zdGFsbF9lcnJvchgHIAEoCRIQCghlZ2dfbmFtZRgIIAEoCRISCgplZ2dfc291cmNlGAkgASgJEg4KBmNvbmZpZxgKIAEoDBISCgpjcmVhdGVkX2F0GAsgASgDEhIKCnVwZGF0ZWRfYXQYDCABKAMSKwoJc2NoZWR1bGVzGA0gAygLMhgucmFwdG9yLm5vZGUudjEuU2NoZWR1bGUSJwoHYmFja3VwcxgOIAMoCzIWLnJhcHRvci5ub2RlLnYxLkJhY2t1cCJ+CghTY2hlZHVsZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg8KB2VuYWJsZWQYAyABKAgSDwoHdmVyc2lvbhgEIAEoAxIQCghuZXh0X3J1bhgFIAEoAxIQCghsYXN0X3J1bhgGIAEoAxISCgpkZWZpbml0aW9uGAcgASgMIugBCgZCYWNrdXASCgoCaWQYASABKAkSDAoEa2luZBgCIAEoCRIOCgZzdGF0dXMYAyABKAkSDgoGbG9ja2VkGAQgASgIEgwKBHNpemUYBSABKAMSDQoFZmlsZXMYBiABKAMSFgoOZGVzdGluYXRpb25faWQYByABKAkSDQoFZXJyb3IYCCABKAkSDwoHd2FybmluZxgJIAEoCRISCgpjcmVhdGVkX2J5GAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAMSEwoLZmluaXNoZWRfYXQYDCABKAMSEgoKZXhwaXJlc19hdBgNIAEoAyIqChNPcGVuVHJhbnNmZXJSZXF1ZXN0EhMKC3RyYW5zZmVyX2lkGAEgASgJIhYKFE9wZW5UcmFuc2ZlclJlc3BvbnNlIiIKDkV4ZWN1dGVSZXF1ZXN0EhAKCGVudmVsb3BlGAEgASgMIkMKD0V4ZWN1dGVSZXNwb25zZRIOCgZyZXN1bHQYASABKAwSEQoJZHVwbGljYXRlGAIgASgIEg0KBWVycm9yGAMgASgJIjEKDUV2ZW50c1JlcXVlc3QSEQoJYWZ0ZXJfc2VxGAEgASgDEg0KBWxpbWl0GAIgASgFIkkKDkV2ZW50c1Jlc3BvbnNlEiUKBmV2ZW50cxgBIAMoCzIVLnJhcHRvci5ub2RlLnYxLkV2ZW50EhAKCGxhc3Rfc2VxGAIgASgDImAKBUV2ZW50EgsKA3NlcRgBIAEoAxIMCgR0eXBlGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRIPCgd2ZXJzaW9uGAQgASgDEgoKAmF0GAUgASgDEgwKBGRhdGEYBiABKAwiSwoQU0ZUUExvZ2luUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIRCglzZXJ2ZXJfaWQYAiABKAkSEgoKcHVibGljX2tleRgDIAEoDCI5ChFTRlRQTG9naW5SZXNwb25zZRIPCgd1c2VyX2lkGAEgASgJEhMKC3Blcm1pc3Npb25zGAIgAygJIioKFkV2ZW50c0F2YWlsYWJsZVJlcXVlc3QSEAoIbGFzdF9zZXEYASABKAMiGQoXRXZlbnRzQXZhaWxhYmxlUmVzcG9uc2UipQEKDUVucm9sbFJlcXVlc3QSDQoFdG9rZW4YASABKAkSEgoKcHVibGljX2tleRgCIAEoDBIRCglzaWduYXR1cmUYAyABKAwSDAoEbmFtZRgEIAEoCRIVCg13aW5nc192ZXJzaW9uGAUgASgJEigKBWZhY3RzGAYgASgLMhkucmFwdG9yLm5vZGUudjEuTm9kZUZhY3RzEg8KB25vZGVfaWQYByABKAkiWQoJTm9kZUZhY3RzEgoKAm9zGAEgASgJEgwKBGFyY2gYAiABKAkSDgoGa2VybmVsGAMgASgJEgwKBGNwdXMYBCABKAUSFAoMbWVtb3J5X2J5dGVzGAUgASgDImsKDkVucm9sbFJlc3BvbnNlEg8KB25vZGVfaWQYASABKAkSEAoIc2hvcnRfaWQYAiABKAkSEQoJcGFuZWxfa2V5GAMgASgMEhEKCW93bmVyX3BpbhgEIAEoDBIQCghob3N0bmFtZRgFIAEoCTLmAgoLTm9kZVNlcnZpY2USTwoHRXhlY3V0ZRIeLnJhcHRvci5ub2RlLnYxLkV4ZWN1dGVSZXF1ZXN0Gh8ucmFwdG9yLm5vZGUudjEuRXhlY3V0ZVJlc3BvbnNlIgOQAgISTAoGRXZlbnRzEh0ucmFwdG9yLm5vZGUudjEuRXZlbnRzUmVxdWVzdBoeLnJhcHRvci5ub2RlLnYxLkV2ZW50c1Jlc3BvbnNlIgOQAgISXgoMT3BlblRyYW5zZmVyEiMucmFwdG9yLm5vZGUudjEuT3BlblRyYW5zZmVyUmVxdWVzdBokLnJhcHRvci5ub2RlLnYxLk9wZW5UcmFuc2ZlclJlc3BvbnNlIgOQAgISWAoKR2V0U2VydmVycxIhLnJhcHRvci5ub2RlLnYxLkdldFNlcnZlcnNSZXF1ZXN0GiIucmFwdG9yLm5vZGUudjEuR2V0U2VydmVyc1Jlc3BvbnNlIgOQAgEyzgEKDFBhbmVsU2VydmljZRJnCg9FdmVudHNBdmFpbGFibGUSJi5yYXB0b3Iubm9kZS52MS5FdmVudHNBdmFpbGFibGVSZXF1ZXN0GicucmFwdG9yLm5vZGUudjEuRXZlbnRzQXZhaWxhYmxlUmVzcG9uc2UiA5ACAhJVCglTRlRQTG9naW4SIC5yYXB0b3Iubm9kZS52MS5TRlRQTG9naW5SZXF1ZXN0GiEucmFwdG9yLm5vZGUudjEuU0ZUUExvZ2luUmVzcG9uc2UiA5ACATJhChFFbnJvbGxtZW50U2VydmljZRJMCgZFbnJvbGwSHS5yYXB0b3Iubm9kZS52MS5FbnJvbGxSZXF1ZXN0Gh4ucmFwdG9yLm5vZGUudjEuRW5yb2xsUmVzcG9uc2UiA5ACAkLCAQoSY29tLnJhcHRvci5ub2RlLnYxQglOb2RlUHJvdG9QAVpHZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3Ivbm9kZS92MTtub2RldjGiAgNSTliqAg5SYXB0b3IuTm9kZS5WMcoCDlJhcHRvclxOb2RlXFYx4gIaUmFwdG9yXE5vZGVcVjFcR1BCTWV0YWRhdGHqAhBSYXB0b3I6Ok5vZGU6OlYxYgZwcm90bzM");
+  fileDesc("ChlyYXB0b3Ivbm9kZS92MS9ub2RlLnByb3RvEg5yYXB0b3Iubm9kZS52MSIgChFHZXRTZXJ2ZXJzUmVxdWVzdBILCgNpZHMYASADKAkiYAoSR2V0U2VydmVyc1Jlc3BvbnNlEicKB3NlcnZlcnMYASADKAsyFi5yYXB0b3Iubm9kZS52MS5TZXJ2ZXISDwoHbWlzc2luZxgCIAMoCRIQCghsYXN0X3NlcRgDIAEoAyLeAgoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHdmVyc2lvbhgDIAEoAxINCgVzdGF0ZRgEIAEoCRIVCg1kZXNpcmVkX3N0YXRlGAUgASgJEhUKDWluc3RhbGxfc3RhdGUYBiABKAkSFQoNaW5zdGFsbF9lcnJvchgHIAEoCRIQCghlZ2dfbmFtZRgIIAEoCRISCgplZ2dfc291cmNlGAkgASgJEg4KBmNvbmZpZxgKIAEoDBISCgpjcmVhdGVkX2F0GAsgASgDEhIKCnVwZGF0ZWRfYXQYDCABKAMSKwoJc2NoZWR1bGVzGA0gAygLMhgucmFwdG9yLm5vZGUudjEuU2NoZWR1bGUSJwoHYmFja3VwcxgOIAMoCzIWLnJhcHRvci5ub2RlLnYxLkJhY2t1cBIhCgRqb2JzGA8gAygLMhMucmFwdG9yLm5vZGUudjEuSm9iIo0BCgNKb2ISCgoCaWQYASABKAkSDAoEdHlwZRgCIAEoCRIOCgZzdGF0dXMYAyABKAkSEAoIYXR0ZW1wdHMYBCABKAUSDQoFZXJyb3IYBSABKAkSEgoKY3JlYXRlZF9hdBgGIAEoAxISCgpzdGFydGVkX2F0GAcgASgDEhMKC2ZpbmlzaGVkX2F0GAggASgDIn4KCFNjaGVkdWxlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHZW5hYmxlZBgDIAEoCBIPCgd2ZXJzaW9uGAQgASgDEhAKCG5leHRfcnVuGAUgASgDEhAKCGxhc3RfcnVuGAYgASgDEhIKCmRlZmluaXRpb24YByABKAwi6AEKBkJhY2t1cBIKCgJpZBgBIAEoCRIMCgRraW5kGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIOCgZsb2NrZWQYBCABKAgSDAoEc2l6ZRgFIAEoAxINCgVmaWxlcxgGIAEoAxIWCg5kZXN0aW5hdGlvbl9pZBgHIAEoCRINCgVlcnJvchgIIAEoCRIPCgd3YXJuaW5nGAkgASgJEhIKCmNyZWF0ZWRfYnkYCiABKAkSEgoKY3JlYXRlZF9hdBgLIAEoAxITCgtmaW5pc2hlZF9hdBgMIAEoAxISCgpleHBpcmVzX2F0GA0gASgDIioKE09wZW5UcmFuc2ZlclJlcXVlc3QSEwoLdHJhbnNmZXJfaWQYASABKAkiFgoUT3BlblRyYW5zZmVyUmVzcG9uc2UiIgoORXhlY3V0ZVJlcXVlc3QSEAoIZW52ZWxvcGUYASABKAwiQwoPRXhlY3V0ZVJlc3BvbnNlEg4KBnJlc3VsdBgBIAEoDBIRCglkdXBsaWNhdGUYAiABKAgSDQoFZXJyb3IYAyABKAkiMQoNRXZlbnRzUmVxdWVzdBIRCglhZnRlcl9zZXEYASABKAMSDQoFbGltaXQYAiABKAUiSQoORXZlbnRzUmVzcG9uc2USJQoGZXZlbnRzGAEgAygLMhUucmFwdG9yLm5vZGUudjEuRXZlbnQSEAoIbGFzdF9zZXEYAiABKAMiYAoFRXZlbnQSCwoDc2VxGAEgASgDEgwKBHR5cGUYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJEg8KB3ZlcnNpb24YBCABKAMSCgoCYXQYBSABKAMSDAoEZGF0YRgGIAEoDCJLChBTRlRQTG9naW5SZXF1ZXN0EhAKCHVzZXJuYW1lGAEgASgJEhEKCXNlcnZlcl9pZBgCIAEoCRISCgpwdWJsaWNfa2V5GAMgASgMIjkKEVNGVFBMb2dpblJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkSEwoLcGVybWlzc2lvbnMYAiADKAkiKgoWRXZlbnRzQXZhaWxhYmxlUmVxdWVzdBIQCghsYXN0X3NlcRgBIAEoAyIZChdFdmVudHNBdmFpbGFibGVSZXNwb25zZSKlAQoNRW5yb2xsUmVxdWVzdBINCgV0b2tlbhgBIAEoCRISCgpwdWJsaWNfa2V5GAIgASgMEhEKCXNpZ25hdHVyZRgDIAEoDBIMCgRuYW1lGAQgASgJEhUKDXdpbmdzX3ZlcnNpb24YBSABKAkSKAoFZmFjdHMYBiABKAsyGS5yYXB0b3Iubm9kZS52MS5Ob2RlRmFjdHMSDwoHbm9kZV9pZBgHIAEoCSJZCglOb2RlRmFjdHMSCgoCb3MYASABKAkSDAoEYXJjaBgCIAEoCRIOCgZrZXJuZWwYAyABKAkSDAoEY3B1cxgEIAEoBRIUCgxtZW1vcnlfYnl0ZXMYBSABKAMiawoORW5yb2xsUmVzcG9uc2USDwoHbm9kZV9pZBgBIAEoCRIQCghzaG9ydF9pZBgCIAEoCRIRCglwYW5lbF9rZXkYAyABKAwSEQoJb3duZXJfcGluGAQgASgMEhAKCGhvc3RuYW1lGAUgASgJMuYCCgtOb2RlU2VydmljZRJPCgdFeGVjdXRlEh4ucmFwdG9yLm5vZGUudjEuRXhlY3V0ZVJlcXVlc3QaHy5yYXB0b3Iubm9kZS52MS5FeGVjdXRlUmVzcG9uc2UiA5ACAhJMCgZFdmVudHMSHS5yYXB0b3Iubm9kZS52MS5FdmVudHNSZXF1ZXN0Gh4ucmFwdG9yLm5vZGUudjEuRXZlbnRzUmVzcG9uc2UiA5ACAhJeCgxPcGVuVHJhbnNmZXISIy5yYXB0b3Iubm9kZS52MS5PcGVuVHJhbnNmZXJSZXF1ZXN0GiQucmFwdG9yLm5vZGUudjEuT3BlblRyYW5zZmVyUmVzcG9uc2UiA5ACAhJYCgpHZXRTZXJ2ZXJzEiEucmFwdG9yLm5vZGUudjEuR2V0U2VydmVyc1JlcXVlc3QaIi5yYXB0b3Iubm9kZS52MS5HZXRTZXJ2ZXJzUmVzcG9uc2UiA5ACATLOAQoMUGFuZWxTZXJ2aWNlEmcKD0V2ZW50c0F2YWlsYWJsZRImLnJhcHRvci5ub2RlLnYxLkV2ZW50c0F2YWlsYWJsZVJlcXVlc3QaJy5yYXB0b3Iubm9kZS52MS5FdmVudHNBdmFpbGFibGVSZXNwb25zZSIDkAICElUKCVNGVFBMb2dpbhIgLnJhcHRvci5ub2RlLnYxLlNGVFBMb2dpblJlcXVlc3QaIS5yYXB0b3Iubm9kZS52MS5TRlRQTG9naW5SZXNwb25zZSIDkAIBMmEKEUVucm9sbG1lbnRTZXJ2aWNlEkwKBkVucm9sbBIdLnJhcHRvci5ub2RlLnYxLkVucm9sbFJlcXVlc3QaHi5yYXB0b3Iubm9kZS52MS5FbnJvbGxSZXNwb25zZSIDkAICQsIBChJjb20ucmFwdG9yLm5vZGUudjFCCU5vZGVQcm90b1ABWkdnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9ub2RlL3YxO25vZGV2MaICA1JOWKoCDlJhcHRvci5Ob2RlLlYxygIOUmFwdG9yXE5vZGVcVjHiAhpSYXB0b3JcTm9kZVxWMVxHUEJNZXRhZGF0YeoCEFJhcHRvcjo6Tm9kZTo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message raptor.node.v1.GetServersRequest
@@ -147,6 +147,14 @@ export type Server = Message<"raptor.node.v1.Server"> & {
    * @generated from field: repeated raptor.node.v1.Backup backups = 14;
    */
   backups: Backup[];
+
+  /**
+   * The server's 50 most recent jobs (installs, backups, archives,
+   * schedule runs), newest first.
+   *
+   * @generated from field: repeated raptor.node.v1.Job jobs = 15;
+   */
+  jobs: Job[];
 };
 
 /**
@@ -155,6 +163,66 @@ export type Server = Message<"raptor.node.v1.Server"> & {
  */
 export const ServerSchema: GenMessage<Server> = /*@__PURE__*/
   messageDesc(file_raptor_node_v1_node, 2);
+
+/**
+ * @generated from message raptor.node.v1.Job
+ */
+export type Job = Message<"raptor.node.v1.Job"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "server.install", "backup.create", "files.compress", ...
+   *
+   * @generated from field: string type = 2;
+   */
+  type: string;
+
+  /**
+   * "queued", "running", "succeeded", "failed", "cancelled"
+   *
+   * @generated from field: string status = 3;
+   */
+  status: string;
+
+  /**
+   * @generated from field: int32 attempts = 4;
+   */
+  attempts: number;
+
+  /**
+   * Why it failed, or why the last attempt did if it's queued for a retry.
+   *
+   * @generated from field: string error = 5;
+   */
+  error: string;
+
+  /**
+   * Unix milliseconds; 0 if not set.
+   *
+   * @generated from field: int64 created_at = 6;
+   */
+  createdAt: bigint;
+
+  /**
+   * @generated from field: int64 started_at = 7;
+   */
+  startedAt: bigint;
+
+  /**
+   * @generated from field: int64 finished_at = 8;
+   */
+  finishedAt: bigint;
+};
+
+/**
+ * Describes the message raptor.node.v1.Job.
+ * Use `create(JobSchema)` to create a new message.
+ */
+export const JobSchema: GenMessage<Job> = /*@__PURE__*/
+  messageDesc(file_raptor_node_v1_node, 3);
 
 /**
  * @generated from message raptor.node.v1.Schedule
@@ -205,7 +273,7 @@ export type Schedule = Message<"raptor.node.v1.Schedule"> & {
  * Use `create(ScheduleSchema)` to create a new message.
  */
 export const ScheduleSchema: GenMessage<Schedule> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 3);
+  messageDesc(file_raptor_node_v1_node, 4);
 
 /**
  * @generated from message raptor.node.v1.Backup
@@ -288,7 +356,7 @@ export type Backup = Message<"raptor.node.v1.Backup"> & {
  * Use `create(BackupSchema)` to create a new message.
  */
 export const BackupSchema: GenMessage<Backup> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 4);
+  messageDesc(file_raptor_node_v1_node, 5);
 
 /**
  * @generated from message raptor.node.v1.OpenTransferRequest
@@ -307,7 +375,7 @@ export type OpenTransferRequest = Message<"raptor.node.v1.OpenTransferRequest"> 
  * Use `create(OpenTransferRequestSchema)` to create a new message.
  */
 export const OpenTransferRequestSchema: GenMessage<OpenTransferRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 5);
+  messageDesc(file_raptor_node_v1_node, 6);
 
 /**
  * @generated from message raptor.node.v1.OpenTransferResponse
@@ -320,7 +388,7 @@ export type OpenTransferResponse = Message<"raptor.node.v1.OpenTransferResponse"
  * Use `create(OpenTransferResponseSchema)` to create a new message.
  */
 export const OpenTransferResponseSchema: GenMessage<OpenTransferResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 6);
+  messageDesc(file_raptor_node_v1_node, 7);
 
 /**
  * @generated from message raptor.node.v1.ExecuteRequest
@@ -341,7 +409,7 @@ export type ExecuteRequest = Message<"raptor.node.v1.ExecuteRequest"> & {
  * Use `create(ExecuteRequestSchema)` to create a new message.
  */
 export const ExecuteRequestSchema: GenMessage<ExecuteRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 7);
+  messageDesc(file_raptor_node_v1_node, 8);
 
 /**
  * @generated from message raptor.node.v1.ExecuteResponse
@@ -374,7 +442,7 @@ export type ExecuteResponse = Message<"raptor.node.v1.ExecuteResponse"> & {
  * Use `create(ExecuteResponseSchema)` to create a new message.
  */
 export const ExecuteResponseSchema: GenMessage<ExecuteResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 8);
+  messageDesc(file_raptor_node_v1_node, 9);
 
 /**
  * @generated from message raptor.node.v1.EventsRequest
@@ -396,7 +464,7 @@ export type EventsRequest = Message<"raptor.node.v1.EventsRequest"> & {
  * Use `create(EventsRequestSchema)` to create a new message.
  */
 export const EventsRequestSchema: GenMessage<EventsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 9);
+  messageDesc(file_raptor_node_v1_node, 10);
 
 /**
  * @generated from message raptor.node.v1.EventsResponse
@@ -420,7 +488,7 @@ export type EventsResponse = Message<"raptor.node.v1.EventsResponse"> & {
  * Use `create(EventsResponseSchema)` to create a new message.
  */
 export const EventsResponseSchema: GenMessage<EventsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 10);
+  messageDesc(file_raptor_node_v1_node, 11);
 
 /**
  * @generated from message raptor.node.v1.Event
@@ -466,7 +534,7 @@ export type Event = Message<"raptor.node.v1.Event"> & {
  * Use `create(EventSchema)` to create a new message.
  */
 export const EventSchema: GenMessage<Event> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 11);
+  messageDesc(file_raptor_node_v1_node, 12);
 
 /**
  * @generated from message raptor.node.v1.SFTPLoginRequest
@@ -499,7 +567,7 @@ export type SFTPLoginRequest = Message<"raptor.node.v1.SFTPLoginRequest"> & {
  * Use `create(SFTPLoginRequestSchema)` to create a new message.
  */
 export const SFTPLoginRequestSchema: GenMessage<SFTPLoginRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 12);
+  messageDesc(file_raptor_node_v1_node, 13);
 
 /**
  * @generated from message raptor.node.v1.SFTPLoginResponse
@@ -523,7 +591,7 @@ export type SFTPLoginResponse = Message<"raptor.node.v1.SFTPLoginResponse"> & {
  * Use `create(SFTPLoginResponseSchema)` to create a new message.
  */
 export const SFTPLoginResponseSchema: GenMessage<SFTPLoginResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 13);
+  messageDesc(file_raptor_node_v1_node, 14);
 
 /**
  * @generated from message raptor.node.v1.EventsAvailableRequest
@@ -540,7 +608,7 @@ export type EventsAvailableRequest = Message<"raptor.node.v1.EventsAvailableRequ
  * Use `create(EventsAvailableRequestSchema)` to create a new message.
  */
 export const EventsAvailableRequestSchema: GenMessage<EventsAvailableRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 14);
+  messageDesc(file_raptor_node_v1_node, 15);
 
 /**
  * @generated from message raptor.node.v1.EventsAvailableResponse
@@ -553,7 +621,7 @@ export type EventsAvailableResponse = Message<"raptor.node.v1.EventsAvailableRes
  * Use `create(EventsAvailableResponseSchema)` to create a new message.
  */
 export const EventsAvailableResponseSchema: GenMessage<EventsAvailableResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 15);
+  messageDesc(file_raptor_node_v1_node, 16);
 
 /**
  * @generated from message raptor.node.v1.EnrollRequest
@@ -613,7 +681,7 @@ export type EnrollRequest = Message<"raptor.node.v1.EnrollRequest"> & {
  * Use `create(EnrollRequestSchema)` to create a new message.
  */
 export const EnrollRequestSchema: GenMessage<EnrollRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 16);
+  messageDesc(file_raptor_node_v1_node, 17);
 
 /**
  * NodeFacts describe the box, for the Panel to show.
@@ -652,7 +720,7 @@ export type NodeFacts = Message<"raptor.node.v1.NodeFacts"> & {
  * Use `create(NodeFactsSchema)` to create a new message.
  */
 export const NodeFactsSchema: GenMessage<NodeFacts> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 17);
+  messageDesc(file_raptor_node_v1_node, 18);
 
 /**
  * @generated from message raptor.node.v1.EnrollResponse
@@ -700,7 +768,7 @@ export type EnrollResponse = Message<"raptor.node.v1.EnrollResponse"> & {
  * Use `create(EnrollResponseSchema)` to create a new message.
  */
 export const EnrollResponseSchema: GenMessage<EnrollResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 18);
+  messageDesc(file_raptor_node_v1_node, 19);
 
 /**
  * NodeService is served by Wings and called by the Panel.

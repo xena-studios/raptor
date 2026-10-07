@@ -25,6 +25,20 @@ func (q *Queries) DeleteMirrorBackups(ctx context.Context, arg DeleteMirrorBacku
 	return err
 }
 
+const deleteMirrorJobs = `-- name: DeleteMirrorJobs :exec
+DELETE FROM m_jobs WHERE node_id = $1 AND server_id = $2
+`
+
+type DeleteMirrorJobsParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) DeleteMirrorJobs(ctx context.Context, arg DeleteMirrorJobsParams) error {
+	_, err := q.db.Exec(ctx, deleteMirrorJobs, arg.NodeID, arg.ServerID)
+	return err
+}
+
 const deleteMirrorSchedules = `-- name: DeleteMirrorSchedules :exec
 DELETE FROM m_schedules WHERE node_id = $1 AND server_id = $2
 `
@@ -118,6 +132,40 @@ func (q *Queries) InsertMirrorBackup(ctx context.Context, arg InsertMirrorBackup
 	return err
 }
 
+const insertMirrorJob = `-- name: InsertMirrorJob :exec
+INSERT INTO m_jobs (node_id, server_id, job_id, type, status, attempts, error, created_at, started_at, finished_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+`
+
+type InsertMirrorJobParams struct {
+	NodeID     pgtype.UUID
+	ServerID   string
+	JobID      string
+	Type       string
+	Status     string
+	Attempts   int32
+	Error      string
+	CreatedAt  pgtype.Timestamptz
+	StartedAt  pgtype.Timestamptz
+	FinishedAt pgtype.Timestamptz
+}
+
+func (q *Queries) InsertMirrorJob(ctx context.Context, arg InsertMirrorJobParams) error {
+	_, err := q.db.Exec(ctx, insertMirrorJob,
+		arg.NodeID,
+		arg.ServerID,
+		arg.JobID,
+		arg.Type,
+		arg.Status,
+		arg.Attempts,
+		arg.Error,
+		arg.CreatedAt,
+		arg.StartedAt,
+		arg.FinishedAt,
+	)
+	return err
+}
+
 const insertMirrorSchedule = `-- name: InsertMirrorSchedule :exec
 INSERT INTO m_schedules (node_id, server_id, schedule_id, name, enabled, version, next_run, last_run, definition)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -184,6 +232,46 @@ func (q *Queries) ListMirrorBackups(ctx context.Context, arg ListMirrorBackupsPa
 			&i.CreatedAt,
 			&i.FinishedAt,
 			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMirrorJobs = `-- name: ListMirrorJobs :many
+SELECT node_id, server_id, job_id, type, status, attempts, error, created_at, started_at, finished_at FROM m_jobs WHERE node_id = $1 AND server_id = $2 ORDER BY created_at DESC, job_id
+`
+
+type ListMirrorJobsParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) ListMirrorJobs(ctx context.Context, arg ListMirrorJobsParams) ([]MJob, error) {
+	rows, err := q.db.Query(ctx, listMirrorJobs, arg.NodeID, arg.ServerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MJob
+	for rows.Next() {
+		var i MJob
+		if err := rows.Scan(
+			&i.NodeID,
+			&i.ServerID,
+			&i.JobID,
+			&i.Type,
+			&i.Status,
+			&i.Attempts,
+			&i.Error,
+			&i.CreatedAt,
+			&i.StartedAt,
+			&i.FinishedAt,
 		); err != nil {
 			return nil, err
 		}
