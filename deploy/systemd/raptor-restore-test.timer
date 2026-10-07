@@ -1,0 +1,10 @@
+# Monthly, on the 1st at 05:00 UTC (docs/RELIABILITY.md: restores are tested monthly).
+[Unit]
+Description=Monthly Raptor restore test
+
+[Timer]
+OnCalendar=*-*-01 05:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

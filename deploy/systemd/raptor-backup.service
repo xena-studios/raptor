@@ -1,0 +1,8 @@
+[Unit]
+Description=Raptor Postgres backup (pgBackRest)
+After=raptor-stack.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/raptor/stack.env
+ExecStart=/opt/raptor/deploy/scripts/backup.sh

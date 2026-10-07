@@ -1,0 +1,90 @@
+# Server #2 (docs/DEPLOY.md): a streaming replica of server #1's Postgres,
+# and, after a failover (docs/DEPLOY.md#failover), the same Caddy and Panels
+# as server #1: `docker compose --profile failover up -d`.
+name: raptor
+
+x-panel: &panel
+  image: ${PANEL_IMAGE:-ghcr.io/xena-studios/raptor-panel:latest}
+  restart: unless-stopped
+  profiles: [failover]
+  env_file: ["${RAPTOR_RUN:-/run/raptor}/panel.env"]
+  environment:
+    PANEL_API_ADDR: ":8080"
+    PANEL_SIGNING_KEY: /keys/signing.key
+    PANEL_DATA_KEY: /keys/data.key
+    PANEL_APP_URL: ${PANEL_APP_URL:-https://app.raptorpanel.net}
+    PANEL_API_URL: ${PANEL_API_URL:-https://api.raptorpanel.net}
+    PANEL_CLIENT_IP_HEADER: CF-Connecting-IP
+    PANEL_TURNSTILE_HOSTNAME: verify.raptorpanel.net
+    PANEL_MAIL_FROM: "Raptor <account@mail.raptorpanel.net>"
+    PANEL_MAIL_REPLY_TO: support@raptorpanel.net
+    PANEL_NODE_DOMAIN: raptornodes.net
+  volumes:
+    - ${RAPTOR_RUN:-/run/raptor}/keys:/keys:ro
+  depends_on:
+    postgres: { condition: service_healthy }
+  healthcheck:
+    test: ["CMD", "/usr/local/bin/panel", "health"]
+    interval: 5s
+    timeout: 3s
+    retries: 3
+    start_period: 15s
+  stop_grace_period: 60s
+  read_only: true
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-ghcr.io/xena-studios/raptor-postgres:18}
+    restart: unless-stopped
+    env_file: ["${RAPTOR_RUN:-/run/raptor}/postgres.env"]
+    environment:
+      PRIMARY_HOST: ${PRIMARY_PRIVATE_IP:?the primary's private address}
+    # First start: copies the primary (pg_basebackup) and follows it.
+    entrypoint: ["/etc/raptor/replica-entrypoint.sh"]
+    command: ["postgres", "-c", "config_file=/etc/raptor/postgresql.conf", "-c", "hba_file=/etc/raptor/pg_hba.conf"]
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ../primary/postgresql.conf:/etc/raptor/postgresql.conf:ro
+      - ../primary/pg_hba.conf:/etc/raptor/pg_hba.conf:ro
+      - ../primary/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./replica-entrypoint.sh:/etc/raptor/replica-entrypoint.sh:ro
+    ports:
+      - "${PRIVATE_IP:-127.0.0.1}:${PG_PORT:-5432}:5432"
+    shm_size: 256mb
+    stop_grace_period: 120s
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  panel-a: *panel
+  panel-b: *panel
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    profiles: [failover]
+    ports:
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ../primary/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${RAPTOR_TLS:-/etc/raptor/tls}:/etc/raptor/tls:ro
+      - caddy-data:/data
+    environment:
+      API_HOST: ${API_HOST:-api.raptorpanel.net}
+    depends_on: [panel-a, panel-b]
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  pgdata:
+  caddy-data:
+
+# A fixed subnet, so pg_hba.conf can admit the Panels and nothing else.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${STACK_SUBNET:-172.30.0.0/24}

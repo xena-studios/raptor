@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -38,6 +40,7 @@ commands:
   join-token <org-id> [name]  a single-use token that links one node (1 hour)
   rollout start <version>   update nodes' Wings in stages (5%, 25%, all)
   rollout status|pause|resume|cancel
+  health                    exit 0 if this Panel answers /healthz (for Docker's health check)
   version                   print version
 
 environment:
@@ -78,6 +81,8 @@ func run(args []string, log *slog.Logger) error {
 	defer stop()
 
 	switch {
+	case len(args) == 1 && args[0] == "health":
+		return health(envOr("PANEL_API_ADDR", ":8080"))
 	case len(args) == 1 && args[0] == "version":
 		fmt.Println(buildinfo.String())
 		return nil
@@ -339,4 +344,31 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// health asks this container's Panel whether it's serving: Docker's health
+// check (the image has no shell or curl). A draining Panel answers 503.
+func health(addr string) error {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return err
+	}
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		host = "127.0.0.1"
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+net.JoinHostPort(host, port)+"/healthz", nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("healthz: %s", resp.Status)
+	}
+	return nil
 }

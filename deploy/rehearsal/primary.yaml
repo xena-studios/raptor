@@ -1,0 +1,11 @@
+# Rehearsal (scripts/rehearse.sh): server #1's stack on one machine, with
+# local images and a shared network standing in for the private one.
+services:
+  postgres:
+    networks:
+      default: {}
+      rehearsal: { aliases: [primary-db] }
+networks:
+  rehearsal:
+    external: true
+    name: raptor-rehearsal

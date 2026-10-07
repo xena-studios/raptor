@@ -46,6 +46,22 @@ jobs:
             CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -o /tmp/raptor-$arch ./cmd/raptor
           done
 
+  # The Panel's server images and compose files (deploy/) still build and
+  # parse; the full rehearsal is local: task deploy:rehearse.
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -q -f deploy/images/panel.Dockerfile -t panel:ci .
+      - run: docker build -q -f deploy/images/postgres.Dockerfile -t postgres:ci deploy
+      - name: Compose files
+        working-directory: deploy
+        run: |
+          mkdir -p /tmp/run && touch /tmp/run/panel.env /tmp/run/postgres.env
+          RAPTOR_RUN=/tmp/run docker compose -f primary/compose.yaml config -q
+          RAPTOR_RUN=/tmp/run PRIMARY_PRIVATE_IP=10.0.0.1 docker compose -f replica/compose.yaml --profile failover config -q
+      - run: shellcheck deploy/scripts/*.sh deploy/primary/initdb/*.sh deploy/replica/*.sh
+
   security:
     runs-on: ubuntu-24.04
     steps:

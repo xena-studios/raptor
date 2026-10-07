@@ -66,13 +66,14 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 ## Panel
 
 ### Deploys
-The Panel is one process role (`serve api`), deployed with zero downtime for browsers (start new → health check → shift traffic → drain old).
+The Panel is one process role (`serve api`), deployed with zero downtime for browsers (start new → health check → shift traffic → drain old). Server #1 runs two instances behind Caddy, and `deploy/scripts/deploy.sh` runs migrations (always compatible with the running version), then replaces one instance at a time, waiting for each to be healthy. A Panel shutting down answers 503 on `/healthz` first, so Caddy stops sending it requests while it drains. The rehearsal (`task deploy:rehearse`) probes the API every 100 ms through a deploy and fails on one error.
 - Node connections move to the new instances during the drain: on SIGTERM the old instance stops claiming its nodes (so commands go elsewhere at once), turns new node connections away (503), and closes the ones it has spread evenly over 20 seconds, so they reconnect to the other instances a few at a time. Open consoles reconnect the same way. Tested with two instances on one database (`TestRouter`): commands through either reach the node, and draining one moves the node to the other without a command running twice.
 - **Accepted trade-off:** every deploy briefly reconnects every node. Game servers are never affected (they don't depend on the connection), and jittered reconnects avoid a storm. This replaced the separate `tunnel` process of the original design (decision 72).
 
 ### Database
 - **Streaming replica on a second server from launch.** A single Postgres box is a single point of failure for logins and management. Promoting a replica takes minutes; restoring from a WAL archive can take much longer. A second box is cheap compared to the cost of a long outage.
-- WAL archiving (pgBackRest) to object storage **in a different location**. Restores are **tested monthly**.
+- WAL archiving (pgBackRest) to object storage **in a different location**. Restores are **tested monthly**, by a timer: the latest backup is restored into a scratch container and compared with the primary (`deploy/scripts/restore-test.sh`).
+- **Failover is manual** (#205): promote the replica, start the Panels on server #2, move the `api` record ([DEPLOY.md](DEPLOY.md#failover)). Automatic failover with two database servers can't tell a dead primary from a split network, and two primaries is worse than a few minutes down.
 - Connection pooling via `pgxpool`. Every query has a context timeout.
 - Event ingestion from Wings is **batched** (multi-row inserts / `COPY`), not one transaction per event.
 - No live stats in Postgres. Only downsampled summaries.

@@ -67,6 +67,11 @@ tasks:
         fi
         exec go run ./cmd/panel serve api
 
+  deploy:rehearse:
+    desc: "Rehearse the production setup locally (deploy/): Caddy with client certs, two Panels, streaming replica, pgBackRest to MinIO, restore test, zero-downtime deploy"
+    cmds:
+      - deploy/scripts/rehearse.sh
+
   dev:mail:
     desc: "Show the dev Panel's emails (sign-in codes, invitations) as they arrive"
     cmds:

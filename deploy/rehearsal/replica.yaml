@@ -1,0 +1,9 @@
+services:
+  postgres:
+    networks:
+      default: {}
+      rehearsal: {}
+networks:
+  rehearsal:
+    external: true
+    name: raptor-rehearsal

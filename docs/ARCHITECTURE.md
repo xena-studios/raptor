@@ -249,7 +249,8 @@ raptor/
   db/
     panel/            # Postgres migrations + sqlc queries
     wings/            # SQLite migrations + sqlc queries
-  web/                # React app (src/gen = generated TS protobuf)
+  web/                # React app (src/gen = generated TS protobuf); web/verify: the Turnstile page
+  deploy/             # the Panel's servers: images, Compose, Caddy, Postgres, scripts (docs/DEPLOY.md)
   site/               # Astro landing page (planned)
   docs-site/          # Astro Starlight docs (planned)
   install/            # get.raptorpanel.net bash script

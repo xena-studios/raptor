@@ -1,0 +1,24 @@
+# Starts the stack at boot: secrets from 1Password into memory, then Compose
+# (docs/DEPLOY.md), which reads the server's settings from <role>/.env. On
+# server #2, /etc/raptor/stack.env says ROLE=replica (and, after a failover,
+# COMPOSE_PROFILES=failover as well).
+[Unit]
+Description=Raptor (Panel, Postgres, Caddy)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=-/etc/raptor/stack.env
+Environment=ROLE=primary
+WorkingDirectory=/opt/raptor/deploy
+ExecStartPre=/opt/raptor/deploy/scripts/secrets.sh
+ExecStart=/bin/sh -c 'cd "$ROLE" && docker compose up -d'
+ExecStop=/bin/sh -c 'cd "$ROLE" && docker compose stop'
+TimeoutStartSec=300
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target
