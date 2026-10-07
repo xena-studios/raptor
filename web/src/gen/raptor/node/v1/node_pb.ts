@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/node/v1/node.proto.
  */
 export const file_raptor_node_v1_node: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3Ivbm9kZS92MS9ub2RlLnByb3RvEg5yYXB0b3Iubm9kZS52MSIgChFHZXRTZXJ2ZXJzUmVxdWVzdBILCgNpZHMYASADKAkiYAoSR2V0U2VydmVyc1Jlc3BvbnNlEicKB3NlcnZlcnMYASADKAsyFi5yYXB0b3Iubm9kZS52MS5TZXJ2ZXISDwoHbWlzc2luZxgCIAMoCRIQCghsYXN0X3NlcRgDIAEoAyK7AgoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHdmVyc2lvbhgDIAEoAxINCgVzdGF0ZRgEIAEoCRIVCg1kZXNpcmVkX3N0YXRlGAUgASgJEhUKDWluc3RhbGxfc3RhdGUYBiABKAkSFQoNaW5zdGFsbF9lcnJvchgHIAEoCRIQCghlZ2dfbmFtZRgIIAEoCRISCgplZ2dfc291cmNlGAkgASgJEg4KBmNvbmZpZxgKIAEoDBISCgpjcmVhdGVkX2F0GAsgASgDEhIKCnVwZGF0ZWRfYXQYDCABKAMSKwoJc2NoZWR1bGVzGA0gAygLMhgucmFwdG9yLm5vZGUudjEuU2NoZWR1bGUSJwoHYmFja3VwcxgOIAMoCzIWLnJhcHRvci5ub2RlLnYxLkJhY2t1cCJ+CghTY2hlZHVsZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg8KB2VuYWJsZWQYAyABKAgSDwoHdmVyc2lvbhgEIAEoAxIQCghuZXh0X3J1bhgFIAEoAxIQCghsYXN0X3J1bhgGIAEoAxISCgpkZWZpbml0aW9uGAcgASgMIugBCgZCYWNrdXASCgoCaWQYASABKAkSDAoEa2luZBgCIAEoCRIOCgZzdGF0dXMYAyABKAkSDgoGbG9ja2VkGAQgASgIEgwKBHNpemUYBSABKAMSDQoFZmlsZXMYBiABKAMSFgoOZGVzdGluYXRpb25faWQYByABKAkSDQoFZXJyb3IYCCABKAkSDwoHd2FybmluZxgJIAEoCRISCgpjcmVhdGVkX2J5GAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAMSEwoLZmluaXNoZWRfYXQYDCABKAMSEgoKZXhwaXJlc19hdBgNIAEoAyIqChNPcGVuVHJhbnNmZXJSZXF1ZXN0EhMKC3RyYW5zZmVyX2lkGAEgASgJIhYKFE9wZW5UcmFuc2ZlclJlc3BvbnNlIiIKDkV4ZWN1dGVSZXF1ZXN0EhAKCGVudmVsb3BlGAEgASgMIkMKD0V4ZWN1dGVSZXNwb25zZRIOCgZyZXN1bHQYASABKAwSEQoJZHVwbGljYXRlGAIgASgIEg0KBWVycm9yGAMgASgJIjEKDUV2ZW50c1JlcXVlc3QSEQoJYWZ0ZXJfc2VxGAEgASgDEg0KBWxpbWl0GAIgASgFIkkKDkV2ZW50c1Jlc3BvbnNlEiUKBmV2ZW50cxgBIAMoCzIVLnJhcHRvci5ub2RlLnYxLkV2ZW50EhAKCGxhc3Rfc2VxGAIgASgDImAKBUV2ZW50EgsKA3NlcRgBIAEoAxIMCgR0eXBlGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRIPCgd2ZXJzaW9uGAQgASgDEgoKAmF0GAUgASgDEgwKBGRhdGEYBiABKAwiKgoWRXZlbnRzQXZhaWxhYmxlUmVxdWVzdBIQCghsYXN0X3NlcRgBIAEoAyIZChdFdmVudHNBdmFpbGFibGVSZXNwb25zZSKlAQoNRW5yb2xsUmVxdWVzdBINCgV0b2tlbhgBIAEoCRISCgpwdWJsaWNfa2V5GAIgASgMEhEKCXNpZ25hdHVyZRgDIAEoDBIMCgRuYW1lGAQgASgJEhUKDXdpbmdzX3ZlcnNpb24YBSABKAkSKAoFZmFjdHMYBiABKAsyGS5yYXB0b3Iubm9kZS52MS5Ob2RlRmFjdHMSDwoHbm9kZV9pZBgHIAEoCSJZCglOb2RlRmFjdHMSCgoCb3MYASABKAkSDAoEYXJjaBgCIAEoCRIOCgZrZXJuZWwYAyABKAkSDAoEY3B1cxgEIAEoBRIUCgxtZW1vcnlfYnl0ZXMYBSABKAMiWQoORW5yb2xsUmVzcG9uc2USDwoHbm9kZV9pZBgBIAEoCRIQCghzaG9ydF9pZBgCIAEoCRIRCglwYW5lbF9rZXkYAyABKAwSEQoJb3duZXJfcGluGAQgASgMMuYCCgtOb2RlU2VydmljZRJPCgdFeGVjdXRlEh4ucmFwdG9yLm5vZGUudjEuRXhlY3V0ZVJlcXVlc3QaHy5yYXB0b3Iubm9kZS52MS5FeGVjdXRlUmVzcG9uc2UiA5ACAhJMCgZFdmVudHMSHS5yYXB0b3Iubm9kZS52MS5FdmVudHNSZXF1ZXN0Gh4ucmFwdG9yLm5vZGUudjEuRXZlbnRzUmVzcG9uc2UiA5ACAhJeCgxPcGVuVHJhbnNmZXISIy5yYXB0b3Iubm9kZS52MS5PcGVuVHJhbnNmZXJSZXF1ZXN0GiQucmFwdG9yLm5vZGUudjEuT3BlblRyYW5zZmVyUmVzcG9uc2UiA5ACAhJYCgpHZXRTZXJ2ZXJzEiEucmFwdG9yLm5vZGUudjEuR2V0U2VydmVyc1JlcXVlc3QaIi5yYXB0b3Iubm9kZS52MS5HZXRTZXJ2ZXJzUmVzcG9uc2UiA5ACATJ3CgxQYW5lbFNlcnZpY2USZwoPRXZlbnRzQXZhaWxhYmxlEiYucmFwdG9yLm5vZGUudjEuRXZlbnRzQXZhaWxhYmxlUmVxdWVzdBonLnJhcHRvci5ub2RlLnYxLkV2ZW50c0F2YWlsYWJsZVJlc3BvbnNlIgOQAgIyYQoRRW5yb2xsbWVudFNlcnZpY2USTAoGRW5yb2xsEh0ucmFwdG9yLm5vZGUudjEuRW5yb2xsUmVxdWVzdBoeLnJhcHRvci5ub2RlLnYxLkVucm9sbFJlc3BvbnNlIgOQAgJCwgEKEmNvbS5yYXB0b3Iubm9kZS52MUIJTm9kZVByb3RvUAFaR2dpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL25vZGUvdjE7bm9kZXYxogIDUk5YqgIOUmFwdG9yLk5vZGUuVjHKAg5SYXB0b3JcTm9kZVxWMeICGlJhcHRvclxOb2RlXFYxXEdQQk1ldGFkYXRh6gIQUmFwdG9yOjpOb2RlOjpWMWIGcHJvdG8z");
+  fileDesc("ChlyYXB0b3Ivbm9kZS92MS9ub2RlLnByb3RvEg5yYXB0b3Iubm9kZS52MSIgChFHZXRTZXJ2ZXJzUmVxdWVzdBILCgNpZHMYASADKAkiYAoSR2V0U2VydmVyc1Jlc3BvbnNlEicKB3NlcnZlcnMYASADKAsyFi5yYXB0b3Iubm9kZS52MS5TZXJ2ZXISDwoHbWlzc2luZxgCIAMoCRIQCghsYXN0X3NlcRgDIAEoAyK7AgoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHdmVyc2lvbhgDIAEoAxINCgVzdGF0ZRgEIAEoCRIVCg1kZXNpcmVkX3N0YXRlGAUgASgJEhUKDWluc3RhbGxfc3RhdGUYBiABKAkSFQoNaW5zdGFsbF9lcnJvchgHIAEoCRIQCghlZ2dfbmFtZRgIIAEoCRISCgplZ2dfc291cmNlGAkgASgJEg4KBmNvbmZpZxgKIAEoDBISCgpjcmVhdGVkX2F0GAsgASgDEhIKCnVwZGF0ZWRfYXQYDCABKAMSKwoJc2NoZWR1bGVzGA0gAygLMhgucmFwdG9yLm5vZGUudjEuU2NoZWR1bGUSJwoHYmFja3VwcxgOIAMoCzIWLnJhcHRvci5ub2RlLnYxLkJhY2t1cCJ+CghTY2hlZHVsZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg8KB2VuYWJsZWQYAyABKAgSDwoHdmVyc2lvbhgEIAEoAxIQCghuZXh0X3J1bhgFIAEoAxIQCghsYXN0X3J1bhgGIAEoAxISCgpkZWZpbml0aW9uGAcgASgMIugBCgZCYWNrdXASCgoCaWQYASABKAkSDAoEa2luZBgCIAEoCRIOCgZzdGF0dXMYAyABKAkSDgoGbG9ja2VkGAQgASgIEgwKBHNpemUYBSABKAMSDQoFZmlsZXMYBiABKAMSFgoOZGVzdGluYXRpb25faWQYByABKAkSDQoFZXJyb3IYCCABKAkSDwoHd2FybmluZxgJIAEoCRISCgpjcmVhdGVkX2J5GAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAMSEwoLZmluaXNoZWRfYXQYDCABKAMSEgoKZXhwaXJlc19hdBgNIAEoAyIqChNPcGVuVHJhbnNmZXJSZXF1ZXN0EhMKC3RyYW5zZmVyX2lkGAEgASgJIhYKFE9wZW5UcmFuc2ZlclJlc3BvbnNlIiIKDkV4ZWN1dGVSZXF1ZXN0EhAKCGVudmVsb3BlGAEgASgMIkMKD0V4ZWN1dGVSZXNwb25zZRIOCgZyZXN1bHQYASABKAwSEQoJZHVwbGljYXRlGAIgASgIEg0KBWVycm9yGAMgASgJIjEKDUV2ZW50c1JlcXVlc3QSEQoJYWZ0ZXJfc2VxGAEgASgDEg0KBWxpbWl0GAIgASgFIkkKDkV2ZW50c1Jlc3BvbnNlEiUKBmV2ZW50cxgBIAMoCzIVLnJhcHRvci5ub2RlLnYxLkV2ZW50EhAKCGxhc3Rfc2VxGAIgASgDImAKBUV2ZW50EgsKA3NlcRgBIAEoAxIMCgR0eXBlGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRIPCgd2ZXJzaW9uGAQgASgDEgoKAmF0GAUgASgDEgwKBGRhdGEYBiABKAwiSwoQU0ZUUExvZ2luUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIRCglzZXJ2ZXJfaWQYAiABKAkSEgoKcHVibGljX2tleRgDIAEoDCI5ChFTRlRQTG9naW5SZXNwb25zZRIPCgd1c2VyX2lkGAEgASgJEhMKC3Blcm1pc3Npb25zGAIgAygJIioKFkV2ZW50c0F2YWlsYWJsZVJlcXVlc3QSEAoIbGFzdF9zZXEYASABKAMiGQoXRXZlbnRzQXZhaWxhYmxlUmVzcG9uc2UipQEKDUVucm9sbFJlcXVlc3QSDQoFdG9rZW4YASABKAkSEgoKcHVibGljX2tleRgCIAEoDBIRCglzaWduYXR1cmUYAyABKAwSDAoEbmFtZRgEIAEoCRIVCg13aW5nc192ZXJzaW9uGAUgASgJEigKBWZhY3RzGAYgASgLMhkucmFwdG9yLm5vZGUudjEuTm9kZUZhY3RzEg8KB25vZGVfaWQYByABKAkiWQoJTm9kZUZhY3RzEgoKAm9zGAEgASgJEgwKBGFyY2gYAiABKAkSDgoGa2VybmVsGAMgASgJEgwKBGNwdXMYBCABKAUSFAoMbWVtb3J5X2J5dGVzGAUgASgDIlkKDkVucm9sbFJlc3BvbnNlEg8KB25vZGVfaWQYASABKAkSEAoIc2hvcnRfaWQYAiABKAkSEQoJcGFuZWxfa2V5GAMgASgMEhEKCW93bmVyX3BpbhgEIAEoDDLmAgoLTm9kZVNlcnZpY2USTwoHRXhlY3V0ZRIeLnJhcHRvci5ub2RlLnYxLkV4ZWN1dGVSZXF1ZXN0Gh8ucmFwdG9yLm5vZGUudjEuRXhlY3V0ZVJlc3BvbnNlIgOQAgISTAoGRXZlbnRzEh0ucmFwdG9yLm5vZGUudjEuRXZlbnRzUmVxdWVzdBoeLnJhcHRvci5ub2RlLnYxLkV2ZW50c1Jlc3BvbnNlIgOQAgISXgoMT3BlblRyYW5zZmVyEiMucmFwdG9yLm5vZGUudjEuT3BlblRyYW5zZmVyUmVxdWVzdBokLnJhcHRvci5ub2RlLnYxLk9wZW5UcmFuc2ZlclJlc3BvbnNlIgOQAgISWAoKR2V0U2VydmVycxIhLnJhcHRvci5ub2RlLnYxLkdldFNlcnZlcnNSZXF1ZXN0GiIucmFwdG9yLm5vZGUudjEuR2V0U2VydmVyc1Jlc3BvbnNlIgOQAgEyzgEKDFBhbmVsU2VydmljZRJnCg9FdmVudHNBdmFpbGFibGUSJi5yYXB0b3Iubm9kZS52MS5FdmVudHNBdmFpbGFibGVSZXF1ZXN0GicucmFwdG9yLm5vZGUudjEuRXZlbnRzQXZhaWxhYmxlUmVzcG9uc2UiA5ACAhJVCglTRlRQTG9naW4SIC5yYXB0b3Iubm9kZS52MS5TRlRQTG9naW5SZXF1ZXN0GiEucmFwdG9yLm5vZGUudjEuU0ZUUExvZ2luUmVzcG9uc2UiA5ACATJhChFFbnJvbGxtZW50U2VydmljZRJMCgZFbnJvbGwSHS5yYXB0b3Iubm9kZS52MS5FbnJvbGxSZXF1ZXN0Gh4ucmFwdG9yLm5vZGUudjEuRW5yb2xsUmVzcG9uc2UiA5ACAkLCAQoSY29tLnJhcHRvci5ub2RlLnYxQglOb2RlUHJvdG9QAVpHZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3Ivbm9kZS92MTtub2RldjGiAgNSTliqAg5SYXB0b3IuTm9kZS5WMcoCDlJhcHRvclxOb2RlXFYx4gIaUmFwdG9yXE5vZGVcVjFcR1BCTWV0YWRhdGHqAhBSYXB0b3I6Ok5vZGU6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message raptor.node.v1.GetServersRequest
@@ -469,6 +469,63 @@ export const EventSchema: GenMessage<Event> = /*@__PURE__*/
   messageDesc(file_raptor_node_v1_node, 11);
 
 /**
+ * @generated from message raptor.node.v1.SFTPLoginRequest
+ */
+export type SFTPLoginRequest = Message<"raptor.node.v1.SFTPLoginRequest"> & {
+  /**
+   * The part of the SFTP username before the last dot.
+   *
+   * @generated from field: string username = 1;
+   */
+  username: string;
+
+  /**
+   * The server's full ID (Wings resolved the short one).
+   *
+   * @generated from field: string server_id = 2;
+   */
+  serverId: string;
+
+  /**
+   * The SSH public key, in wire format.
+   *
+   * @generated from field: bytes public_key = 3;
+   */
+  publicKey: Uint8Array;
+};
+
+/**
+ * Describes the message raptor.node.v1.SFTPLoginRequest.
+ * Use `create(SFTPLoginRequestSchema)` to create a new message.
+ */
+export const SFTPLoginRequestSchema: GenMessage<SFTPLoginRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_node_v1_node, 12);
+
+/**
+ * @generated from message raptor.node.v1.SFTPLoginResponse
+ */
+export type SFTPLoginResponse = Message<"raptor.node.v1.SFTPLoginResponse"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * Of "sftp", "files.read", "files.write".
+   *
+   * @generated from field: repeated string permissions = 2;
+   */
+  permissions: string[];
+};
+
+/**
+ * Describes the message raptor.node.v1.SFTPLoginResponse.
+ * Use `create(SFTPLoginResponseSchema)` to create a new message.
+ */
+export const SFTPLoginResponseSchema: GenMessage<SFTPLoginResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_node_v1_node, 13);
+
+/**
  * @generated from message raptor.node.v1.EventsAvailableRequest
  */
 export type EventsAvailableRequest = Message<"raptor.node.v1.EventsAvailableRequest"> & {
@@ -483,7 +540,7 @@ export type EventsAvailableRequest = Message<"raptor.node.v1.EventsAvailableRequ
  * Use `create(EventsAvailableRequestSchema)` to create a new message.
  */
 export const EventsAvailableRequestSchema: GenMessage<EventsAvailableRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 12);
+  messageDesc(file_raptor_node_v1_node, 14);
 
 /**
  * @generated from message raptor.node.v1.EventsAvailableResponse
@@ -496,7 +553,7 @@ export type EventsAvailableResponse = Message<"raptor.node.v1.EventsAvailableRes
  * Use `create(EventsAvailableResponseSchema)` to create a new message.
  */
 export const EventsAvailableResponseSchema: GenMessage<EventsAvailableResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 13);
+  messageDesc(file_raptor_node_v1_node, 15);
 
 /**
  * @generated from message raptor.node.v1.EnrollRequest
@@ -556,7 +613,7 @@ export type EnrollRequest = Message<"raptor.node.v1.EnrollRequest"> & {
  * Use `create(EnrollRequestSchema)` to create a new message.
  */
 export const EnrollRequestSchema: GenMessage<EnrollRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 14);
+  messageDesc(file_raptor_node_v1_node, 16);
 
 /**
  * NodeFacts describe the box, for the Panel to show.
@@ -595,7 +652,7 @@ export type NodeFacts = Message<"raptor.node.v1.NodeFacts"> & {
  * Use `create(NodeFactsSchema)` to create a new message.
  */
 export const NodeFactsSchema: GenMessage<NodeFacts> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 15);
+  messageDesc(file_raptor_node_v1_node, 17);
 
 /**
  * @generated from message raptor.node.v1.EnrollResponse
@@ -635,7 +692,7 @@ export type EnrollResponse = Message<"raptor.node.v1.EnrollResponse"> & {
  * Use `create(EnrollResponseSchema)` to create a new message.
  */
 export const EnrollResponseSchema: GenMessage<EnrollResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_node_v1_node, 16);
+  messageDesc(file_raptor_node_v1_node, 18);
 
 /**
  * NodeService is served by Wings and called by the Panel.
@@ -716,6 +773,17 @@ export const PanelService: GenService<{
     methodKind: "unary";
     input: typeof EventsAvailableRequestSchema;
     output: typeof EventsAvailableResponseSchema;
+  },
+  /**
+   * SFTPLogin asks whether an SSH key may log in to a server on this node
+   * over SFTP, and with which permissions. PERMISSION_DENIED if not.
+   *
+   * @generated from rpc raptor.node.v1.PanelService.SFTPLogin
+   */
+  sFTPLogin: {
+    methodKind: "unary";
+    input: typeof SFTPLoginRequestSchema;
+    output: typeof SFTPLoginResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_node_v1_node, 1);

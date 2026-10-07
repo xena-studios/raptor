@@ -32,6 +32,9 @@ type Hub struct {
 	// EventsAvailable is called when a node says it has events up to
 	// lastSeq; the Panel pulls them with Conn.Node.Events.
 	EventsAvailable func(ctx context.Context, nodeID string, lastSeq int64)
+	// SFTPLogin answers a node checking an SFTP login (auth.Service.SFTPLogin);
+	// nil refuses every login.
+	SFTPLogin func(ctx context.Context, nodeID string, req *nodev1.SFTPLoginRequest) (*nodev1.SFTPLoginResponse, error)
 	// OnConnect and OnDisconnect are called as a node's main connection
 	// comes and goes.
 	OnConnect func(ctx context.Context, h nodelink.Hello)
@@ -286,4 +289,17 @@ func (p *panelService) EventsAvailable(ctx context.Context, req *nodev1.EventsAv
 		p.h.EventsAvailable(ctx, s.Hello.NodeID, req.GetLastSeq())
 	}
 	return &nodev1.EventsAvailableResponse{}, nil
+}
+
+func (p *panelService) SFTPLogin(ctx context.Context, req *nodev1.SFTPLoginRequest) (*nodev1.SFTPLoginResponse, error) {
+	s := nodelink.FromContext(ctx)
+	if s == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("no session"))
+	}
+	if p.h.SFTPLogin == nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("sftp logins aren't set up on this Panel"))
+	}
+	// The node is the one this connection proved it is: a node can only ask
+	// about its own servers.
+	return p.h.SFTPLogin(ctx, s.Hello.NodeID, req)
 }

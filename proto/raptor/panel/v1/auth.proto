@@ -115,6 +115,19 @@ service AuthService {
   // re-authentication.
   rpc UnlinkOAuthAccount(UnlinkOAuthAccountRequest) returns (UnlinkOAuthAccountResponse) {}
 
+  // ListSSHKeys lists the account's SSH keys, for SFTP.
+  rpc ListSSHKeys(ListSSHKeysRequest) returns (ListSSHKeysResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // AddSSHKey adds an SSH public key for SFTP, giving the account its SFTP
+  // username the first time. Needs a recent re-authentication: a key opens
+  // the files of every server the account can reach.
+  rpc AddSSHKey(AddSSHKeyRequest) returns (AddSSHKeyResponse) {}
+
+  // DeleteSSHKey removes one. Needs a recent re-authentication.
+  rpc DeleteSSHKey(DeleteSSHKeyRequest) returns (DeleteSSHKeyResponse) {}
+
   // ListActivity lists the account's sign-ins, failed attempts, and
   // security changes, newest first, 50 at a time.
   rpc ListActivity(ListActivityRequest) returns (ListActivityResponse) {
@@ -157,6 +170,9 @@ message User {
   string email = 2;
   string name = 3;
   bool totp_enabled = 4;
+  // For SFTP: log in as <sftp_username>.<server short ID> (empty until the
+  // first SSH key is added).
+  string sftp_username = 5;
 }
 
 message GetSessionRequest {}
@@ -394,3 +410,39 @@ message ListActivityResponse {
   repeated AuditEvent events = 1;
   string next_page_token = 2;
 }
+
+message SSHKey {
+  string id = 1;
+  string name = 2;
+  // SHA256:… as ssh-keygen -l shows it.
+  string fingerprint = 3;
+  // ssh-ed25519, ssh-rsa, ...
+  string type = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp last_used_at = 6;
+}
+
+message ListSSHKeysRequest {}
+
+message ListSSHKeysResponse {
+  repeated SSHKey keys = 1;
+  string sftp_username = 2;
+}
+
+message AddSSHKeyRequest {
+  // One line of an authorized_keys file ("ssh-ed25519 AAAA… comment").
+  string public_key = 1;
+  // Defaults to the key's comment.
+  string name = 2;
+}
+
+message AddSSHKeyResponse {
+  SSHKey key = 1;
+  string sftp_username = 2;
+}
+
+message DeleteSSHKeyRequest {
+  string id = 1;
+}
+
+message DeleteSSHKeyResponse {}

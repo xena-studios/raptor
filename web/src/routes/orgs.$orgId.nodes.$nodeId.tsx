@@ -156,7 +156,8 @@ function ServerCard({
         <div>
           <CardTitle>{server.name}</CardTitle>
           <CardDescription>
-            {server.eggName || "—"} · {server.state || "unknown"}
+            {server.eggName || "—"} · {server.state || "unknown"} · SFTP ID{" "}
+            <code>{server.id.slice(-8)}</code>
           </CardDescription>
         </div>
         <div className="flex items-center gap-1">

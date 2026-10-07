@@ -71,7 +71,8 @@ join_tokens      id, org_id, token_hash, expires_at, used_at
 server_grants    org_id, user_id, node_id, server_id, permissions[], granted_by, updated_at
 support_grants   id, node_id, staff_id, level, reason, ticket_ref,
                  approved_by, expires_at, revoked_at
-ssh_keys         id, user_id, public_key, fingerprint
+ssh_keys         id, user_id, name, public_key, fingerprint, created_at, last_used_at
+                 (users.sftp_username: the SFTP login's first part)
 audit_log        id, org_id, user_id, actor (user|staff|system), actor_id, action, target,
                  ip, user_agent, metadata, at
 

@@ -49,6 +49,8 @@ const (
 	// PanelServiceEventsAvailableProcedure is the fully-qualified name of the PanelService's
 	// EventsAvailable RPC.
 	PanelServiceEventsAvailableProcedure = "/raptor.node.v1.PanelService/EventsAvailable"
+	// PanelServiceSFTPLoginProcedure is the fully-qualified name of the PanelService's SFTPLogin RPC.
+	PanelServiceSFTPLoginProcedure = "/raptor.node.v1.PanelService/SFTPLogin"
 	// EnrollmentServiceEnrollProcedure is the fully-qualified name of the EnrollmentService's Enroll
 	// RPC.
 	EnrollmentServiceEnrollProcedure = "/raptor.node.v1.EnrollmentService/Enroll"
@@ -267,6 +269,9 @@ type PanelServiceClient interface {
 	// EventsAvailable tells the Panel the node has events up to last_seq, so
 	// it pulls them (Events) without polling.
 	EventsAvailable(context.Context, *v1.EventsAvailableRequest) (*v1.EventsAvailableResponse, error)
+	// SFTPLogin asks whether an SSH key may log in to a server on this node
+	// over SFTP, and with which permissions. PERMISSION_DENIED if not.
+	SFTPLogin(context.Context, *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error)
 }
 
 // NewPanelServiceClient constructs a client for the raptor.node.v1.PanelService service. By
@@ -287,12 +292,20 @@ func NewPanelServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
+		sFTPLogin: connect.NewClient[v1.SFTPLoginRequest, v1.SFTPLoginResponse](
+			httpClient,
+			baseURL+PanelServiceSFTPLoginProcedure,
+			connect.WithSchema(panelServiceMethods.ByName("SFTPLogin")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // panelServiceClient implements PanelServiceClient.
 type panelServiceClient struct {
 	eventsAvailable *connect.Client[v1.EventsAvailableRequest, v1.EventsAvailableResponse]
+	sFTPLogin       *connect.Client[v1.SFTPLoginRequest, v1.SFTPLoginResponse]
 }
 
 // EventsAvailable calls raptor.node.v1.PanelService.EventsAvailable.
@@ -304,11 +317,23 @@ func (c *panelServiceClient) EventsAvailable(ctx context.Context, req *v1.Events
 	return nil, err
 }
 
+// SFTPLogin calls raptor.node.v1.PanelService.SFTPLogin.
+func (c *panelServiceClient) SFTPLogin(ctx context.Context, req *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error) {
+	response, err := c.sFTPLogin.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // PanelServiceHandler is an implementation of the raptor.node.v1.PanelService service.
 type PanelServiceHandler interface {
 	// EventsAvailable tells the Panel the node has events up to last_seq, so
 	// it pulls them (Events) without polling.
 	EventsAvailable(context.Context, *v1.EventsAvailableRequest) (*v1.EventsAvailableResponse, error)
+	// SFTPLogin asks whether an SSH key may log in to a server on this node
+	// over SFTP, and with which permissions. PERMISSION_DENIED if not.
+	SFTPLogin(context.Context, *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error)
 }
 
 // NewPanelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -325,10 +350,19 @@ func NewPanelServiceHandler(svc PanelServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
+	panelServiceSFTPLoginHandler := connect.NewUnaryHandlerSimple(
+		PanelServiceSFTPLoginProcedure,
+		svc.SFTPLogin,
+		connect.WithSchema(panelServiceMethods.ByName("SFTPLogin")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.node.v1.PanelService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PanelServiceEventsAvailableProcedure:
 			panelServiceEventsAvailableHandler.ServeHTTP(w, r)
+		case PanelServiceSFTPLoginProcedure:
+			panelServiceSFTPLoginHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -340,6 +374,10 @@ type UnimplementedPanelServiceHandler struct{}
 
 func (UnimplementedPanelServiceHandler) EventsAvailable(context.Context, *v1.EventsAvailableRequest) (*v1.EventsAvailableResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.PanelService.EventsAvailable is not implemented"))
+}
+
+func (UnimplementedPanelServiceHandler) SFTPLogin(context.Context, *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.PanelService.SFTPLogin is not implemented"))
 }
 
 // EnrollmentServiceClient is a client for the raptor.node.v1.EnrollmentService service.

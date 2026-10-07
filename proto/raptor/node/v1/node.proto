@@ -163,6 +163,27 @@ service PanelService {
   rpc EventsAvailable(EventsAvailableRequest) returns (EventsAvailableResponse) {
     option idempotency_level = IDEMPOTENT;
   }
+
+  // SFTPLogin asks whether an SSH key may log in to a server on this node
+  // over SFTP, and with which permissions. PERMISSION_DENIED if not.
+  rpc SFTPLogin(SFTPLoginRequest) returns (SFTPLoginResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message SFTPLoginRequest {
+  // The part of the SFTP username before the last dot.
+  string username = 1;
+  // The server's full ID (Wings resolved the short one).
+  string server_id = 2;
+  // The SSH public key, in wire format.
+  bytes public_key = 3;
+}
+
+message SFTPLoginResponse {
+  string user_id = 1;
+  // Of "sftp", "files.read", "files.write".
+  repeated string permissions = 2;
 }
 
 message EventsAvailableRequest {
