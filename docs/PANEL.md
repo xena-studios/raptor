@@ -195,10 +195,11 @@ The Panel footer links to the **exact source commit** that is deployed. All depe
 
 ## Hosting
 
-- A primary server, deployed with Docker Compose. The hosting provider is an operational choice and is intentionally not fixed in these docs.
+- A primary server, deployed with Docker Compose: Caddy and two Panel instances, so deploys replace one at a time (#200). The hosting provider is an operational choice and is intentionally not fixed in these docs. The files are in `deploy/`, and [DEPLOY.md](DEPLOY.md) is the step-by-step guide.
 - Postgres with WAL archiving via pgBackRest to **object storage in a different location**, plus a **streaming replica on a second server** at launch (see [RELIABILITY.md](RELIABILITY.md)).
-- Hostnames are listed in [ARCHITECTURE.md](ARCHITECTURE.md#hostnames). `api.raptorpanel.net` is behind the **Cloudflare proxy** (browsers and node connections alike); the origin only accepts traffic from Cloudflare (Authenticated Origin Pulls or an IP allowlist). Caddy terminates TLS at the origin.
-- The web app, landing page, and docs are static sites on separate hosting from the Panel servers; the web app's deploy credentials are separate from everything else.
+- Hostnames are listed in [ARCHITECTURE.md](ARCHITECTURE.md#hostnames). `api.raptorpanel.net` is behind the **Cloudflare proxy** (browsers and node connections alike); the origin only accepts traffic from Cloudflare (per-hostname Authenticated Origin Pulls with our own certificate, and a firewall admitting Cloudflare's addresses; #201). Caddy terminates TLS at the origin.
+- The web app, landing page, and docs are static sites on separate hosting from the Panel servers (Cloudflare Pages; #203); the web app's deploy credentials are separate from everything else. The app and the Turnstile page send strict Content-Security-Policy headers (#206).
+- Secrets are in 1Password only, written to memory at boot by a read-only service account (#202).
 - `raptornodes.net` is **DNS-only**, on a plan sized for the record count, and on the Public Suffix List (see [ARCHITECTURE.md](ARCHITECTURE.md#node-dns)). Nothing of ours is hosted on it.
 - The status page (`status.raptorpanel.net`) is hosted with a different provider than the Panel, and its DNS doesn't depend on Cloudflare.
-- **Account security:** the registrar and Cloudflare accounts use hardware-key 2FA with no SMS recovery, the domains have registrar lock, and API tokens are scoped (the web app's deploy token can only deploy it; the Panel servers hold no Cloudflare token). Whoever controls DNS or the static host controls the code users run.
+- **Account security:** the registrar and Cloudflare accounts use hardware-key 2FA with no SMS recovery, the domains have registrar lock, and API tokens are scoped (the web app's deploy token can only deploy Pages; the Panel servers hold one Cloudflare token, which can only edit `raptornodes.net`'s DNS records, from the servers' addresses). Whoever controls DNS or the static host controls the code users run.

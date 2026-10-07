@@ -109,7 +109,11 @@ They need root: they create Wings' networks, load its nftables table, and set up
 
 ### Releases
 
-Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md).
+Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md). The same tag publishes the Panel's server images to GHCR (`raptor-panel`, `raptor-postgres`).
+
+### The Panel's servers
+
+`deploy/` holds everything the production servers run, and [DEPLOY.md](docs/DEPLOY.md) is the guide to setting them up. `task deploy:rehearse` runs the guide on your machine with Docker (about three minutes): both servers' stacks, Caddy's client-certificate check, the streaming replica, a backup to MinIO and a restore test, a rolling deploy that must not drop a request, and a failover. Run it after changing anything in `deploy/`; CI only checks that the images build, the Compose files parse, and the scripts pass shellcheck.
 
 ## Pull requests
 

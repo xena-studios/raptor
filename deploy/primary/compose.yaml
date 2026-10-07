@@ -1,0 +1,93 @@
+# Server #1 (docs/DEPLOY.md): Caddy at the origin, two Panel instances, and
+# the Postgres primary with pgBackRest. Secrets come from /run/raptor
+# (scripts/secrets.sh, from 1Password at boot); nothing secret is in this file.
+name: raptor
+
+x-panel: &panel
+  image: ${PANEL_IMAGE:-ghcr.io/xena-studios/raptor-panel:latest}
+  restart: unless-stopped
+  env_file: ["${RAPTOR_RUN:-/run/raptor}/panel.env"]
+  environment:
+    PANEL_API_ADDR: ":8080"
+    PANEL_SIGNING_KEY: /keys/signing.key
+    PANEL_DATA_KEY: /keys/data.key
+    PANEL_APP_URL: ${PANEL_APP_URL:-https://app.raptorpanel.net}
+    PANEL_API_URL: ${PANEL_API_URL:-https://api.raptorpanel.net}
+    # Only Cloudflare can reach Caddy (Authenticated Origin Pulls), so its
+    # header is the client's real address.
+    PANEL_CLIENT_IP_HEADER: CF-Connecting-IP
+    PANEL_TURNSTILE_HOSTNAME: verify.raptorpanel.net
+    PANEL_MAIL_FROM: "Raptor <account@mail.raptorpanel.net>"
+    PANEL_MAIL_REPLY_TO: support@raptorpanel.net
+    PANEL_NODE_DOMAIN: raptornodes.net
+  volumes:
+    - ${RAPTOR_RUN:-/run/raptor}/keys:/keys:ro
+  depends_on:
+    postgres: { condition: service_healthy }
+  # Shutting down drains node connections over 20 s (nodes.Hub.Drain).
+  healthcheck:
+    test: ["CMD", "/usr/local/bin/panel", "health"]
+    interval: 5s
+    timeout: 3s
+    retries: 3
+    start_period: 15s
+  stop_grace_period: 60s
+  read_only: true
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+services:
+  # Two instances: a deploy restarts one at a time while the other serves,
+  # and nodes move between them (docs/ARCHITECTURE.md#node-connection).
+  panel-a: *panel
+  panel-b: *panel
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${RAPTOR_TLS:-/etc/raptor/tls}:/etc/raptor/tls:ro
+      - caddy-data:/data
+    environment:
+      API_HOST: ${API_HOST:-api.raptorpanel.net}
+    depends_on: [panel-a, panel-b]
+    security_opt: ["no-new-privileges:true"]
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-ghcr.io/xena-studios/raptor-postgres:18}
+    restart: unless-stopped
+    env_file: ["${RAPTOR_RUN:-/run/raptor}/postgres.env"]
+    environment:
+      POSTGRES_DB: raptor
+      POSTGRES_USER: postgres
+    command: ["postgres", "-c", "config_file=/etc/raptor/postgresql.conf", "-c", "hba_file=/etc/raptor/pg_hba.conf"]
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./postgresql.conf:/etc/raptor/postgresql.conf:ro
+      - ./pg_hba.conf:/etc/raptor/pg_hba.conf:ro
+      - ./pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    # Replication only on the private network to server #2 (never public).
+    ports:
+      - "${PRIVATE_IP:-127.0.0.1}:${PG_PORT:-5432}:5432"
+    shm_size: 256mb
+    stop_grace_period: 120s
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "raptor"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata:
+  caddy-data:
+
+# A fixed subnet, so pg_hba.conf can admit the Panels and nothing else.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${STACK_SUBNET:-172.30.0.0/24}

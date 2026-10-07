@@ -1,0 +1,38 @@
+# The origin for api.raptorpanel.net (docs/DEPLOY.md). Only Cloudflare can
+# connect: it must present the client certificate we gave Cloudflare for
+# this hostname (per-hostname Authenticated Origin Pulls, signed by our own
+# CA, origin-pull-ca.pem; docs/DEPLOY.md#cloudflare), and the firewall only
+# admits Cloudflare's IPs.
+{
+	# Certificates come from Cloudflare's Origin CA; nothing to issue here.
+	auto_https off
+	admin off
+}
+
+{$API_HOST}:443 {
+	tls /etc/raptor/tls/origin.pem /etc/raptor/tls/origin-key.pem {
+		client_auth {
+			mode require_and_verify
+			trust_pool file /etc/raptor/tls/origin-pull-ca.pem
+		}
+	}
+
+	reverse_proxy panel-a:8080 panel-b:8080 {
+		# A Panel shutting down answers 503 here and stops getting traffic
+		# while it hands its nodes to the other one.
+		health_uri /healthz
+		health_interval 2s
+		health_timeout 2s
+		lb_policy least_conn
+		lb_try_duration 10s
+		lb_try_interval 250ms
+		# Console and node connections stream.
+		flush_interval -1
+	}
+
+	header -Server
+	log {
+		output stdout
+		format json
+	}
+}

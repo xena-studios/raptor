@@ -1,0 +1,11 @@
+# Daily at 04:15 UTC: full on Sundays, differential otherwise.
+[Unit]
+Description=Daily Raptor Postgres backup
+
+[Timer]
+OnCalendar=*-*-* 04:15:00 UTC
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
