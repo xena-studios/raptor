@@ -29,7 +29,9 @@ curl -fsS -o /dev/null http://127.0.0.1:8080/healthz || fail "the dev Panel isn'
 token() { PANEL_DATABASE_URL=$DB go run ./cmd/panel join-token "$(cat .dev/org)" "e2e-$TEMPLATE"; }
 
 if ! limactl list -q | grep -qx "$VM"; then
-	limactl start --name="$VM" --tty=false --mount-none "template://$TEMPLATE" >/dev/null
+	# No containerd (Lima's templates add it; a fresh server has none), and
+	# time for slow CI runners to boot.
+	limactl start --name="$VM" --tty=false --mount-none --containerd=none --timeout=20m "template://$TEMPLATE" >/dev/null
 fi
 # A release as the install script sees it: both binaries, their checksums,
 # the generated script, served from this machine.
@@ -74,7 +76,7 @@ limactl shell "$VM" sudo raptor doctor >/tmp/e2e-bootstrap-doctor.log 2>&1 || fa
 pass "doctor: $(tail -1 /tmp/e2e-bootstrap-doctor.log)"
 
 limactl stop "$VM" >/dev/null 2>&1
-limactl start "$VM" --tty=false >/dev/null 2>&1
+limactl start "$VM" --tty=false --timeout=20m >/dev/null 2>&1
 wait_for 60 connected || fail "not connected after a reboot: $(status)"
 status | grep -q 'Storage  ✓' || fail "volume after a reboot: $(status)"
 pass "reboot: volume mounted, node reconnected"
