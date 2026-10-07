@@ -50,7 +50,16 @@ tasks:
     cmds:
       - test -f .dev/panel-signing.key || go run ./cmd/panel keygen .dev/panel-signing.key
       - test -f .dev/panel-data.key || go run ./cmd/panel keygen .dev/panel-data.key
-      - go run ./cmd/panel serve api
+      # RESEND=1 sends real email with .dev/resend.env (a Resend key for
+      # development) instead of writing it to .dev/mail.txt. Use real
+      # addresses then: bounces from made-up ones hurt the domain.
+      - |
+        if [ "${RESEND:-}" = 1 ]; then
+          [ -f .dev/resend.env ] || { echo "RESEND=1 needs .dev/resend.env (see CONTRIBUTING.md)"; exit 1; }
+          set -a; . .dev/resend.env; set +a
+          unset PANEL_MAIL_LOG PANEL_MAIL_LOG_FILE
+        fi
+        exec go run ./cmd/panel serve api
 
   dev:mail:
     desc: "Show the dev Panel's emails (sign-in codes, invitations) as they arrive"
