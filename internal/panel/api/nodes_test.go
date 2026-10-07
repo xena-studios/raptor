@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"crypto/ed25519"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -72,5 +73,29 @@ func TestEnrollAndConnect(t *testing.T) {
 	}
 	if !seen.Valid || version != "9.9.9" {
 		t.Errorf("node record: seen %v, version %q", seen, version)
+	}
+}
+
+// A node asks which address it reaches the Panel from (raptor doctor's
+// hostname check): the trusted header's, behind Cloudflare.
+func TestNodeAddress(t *testing.T) {
+	hub := &nodes.Hub{ClientIPHeader: "CF-Connecting-IP"}
+	defer hub.Close()
+	srv := httptest.NewServer(Handler(Config{Hub: hub}))
+	defer srv.Close()
+	for header, want := range map[string]string{"203.0.113.7": "203.0.113.7\n", "": "127.0.0.1\n", "2001:db8::1": "2001:db8::1\n"} {
+		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+nodelink.AddressPath, nil)
+		if header != "" {
+			req.Header.Set("CF-Connecting-IP", header)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(res.Body)
+		_ = res.Body.Close()
+		if string(b) != want {
+			t.Errorf("header %q: %q, want %q", header, b, want)
+		}
 	}
 }

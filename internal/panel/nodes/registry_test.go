@@ -54,7 +54,8 @@ func TestEnroll(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.GetShortId()) != 8 || !ed25519.PublicKey(res.GetPanelKey()).Equal(r.PanelKey.Public()) {
+	if len(res.GetShortId()) != 8 || !ed25519.PublicKey(res.GetPanelKey()).Equal(r.PanelKey.Public()) ||
+		res.GetHostname() != "n-"+res.GetShortId()+".raptornodes.net" {
 		t.Errorf("enrolled: %v", res)
 	}
 	got, err := r.NodeKey(ctx, res.GetNodeId())

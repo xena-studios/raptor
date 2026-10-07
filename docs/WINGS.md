@@ -360,7 +360,7 @@ The CLI keeps things running. **It never changes server configuration.** All set
 
 ```
 raptor status                         node health, Panel link, Docker, storage, server counts
-raptor doctor [--bundle [--upload]]   diagnose + fix suggestions; offline support bundle
+raptor doctor [--bundle] [--upload]   diagnose + fix suggestions; support bundle, uploaded for a support code
 raptor update [-check] [-version v]   update Wings (root; -check for anyone); Docker too, deliberately (planned)
 raptor link --token … | unlink | relink
 raptor ps [-json]                     servers: short ID, state, CPU, memory, disk, address, uptime
@@ -381,7 +381,7 @@ raptor uninstall [--wipe-data]
 raptor tui                            servers, stats, history graphs, console; power, backup, and command keys (root)
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` with the Panel), `keys`, `audit`, `notifications test`, `tui`, and `import pterodactyl` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` and the hostname check in Phase 3), `keys`, `audit`, `notifications test`, `tui`, and `import pterodactyl` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
@@ -431,12 +431,13 @@ Methods are added to the proto as the features behind them are built, so the API
 - Clock synchronized (NTP). Clock drift breaks connection signatures, grants, and schedules.
 - Wings' nftables table in place
 - Panel reachable, node key present, and the node connection up (skipped until the node is linked): connecting is a warning, disconnected a failure with Wings' last error and a fix for the usual causes (key revoked or node removed: `raptor relink`; clocks apart; something at the Panel's URL that can't prove it's the Panel)
-- SFTP answering as Raptor's SFTP on its port, when it's on (the node hostname check comes with node DNS in Phase 3)
+- The node's hostname (`n-<short id>.raptornodes.net`, saved in `config.yml` when the node links) resolves, and to the address the Panel sees the node connect from (`GET /nodes/address` on the Panel); missing or pointing elsewhere is a warning (skipped on nodes linked by a version that didn't save the hostname)
+- SFTP answering as Raptor's SFTP on its port, when it's on
 - Pterodactyl Wings on the same box: its Docker network doesn't overlap Raptor's, and its SFTP port isn't Raptor's
 - Security warnings (warn only, never changed): password root SSH login, unattended upgrades off
 - Wings installed in the self-update layout
 
-`-bundle` writes a redacted `.tar.gz` to `/var/tmp` (root-only): doctor's results, the Wings, shutdown hook, and Docker logs, Docker's version, info, containers, and networks, system state (kernel, memory, disks, mounts, units, the nftables table, addresses), the config file, and the install log and last update if present. **No server files, no secrets:** keys (PEM blocks), values of fields named like secrets (password, token, key…), bearer tokens, and passwords in URLs are replaced with `[redacted]`. `-upload` will send it over HTTPS and print a code like `RPT-7K2M` once the Panel exists (Phase 3); until then it says so and the file has to be sent another way.
+`-bundle` writes a redacted `.tar.gz` to `/var/tmp` (root-only): doctor's results, the Wings, shutdown hook, and Docker logs, Docker's version, info, containers, and networks, system state (kernel, memory, disks, mounts, units, the nftables table, addresses), the config file, and the install log and last update if present. **No server files, no secrets:** keys (PEM blocks), values of fields named like secrets (password, token, key…), bearer tokens, and passwords in URLs are replaced with `[redacted]`. `-upload` (which implies `-bundle`) sends it to the Panel over HTTPS (`POST /support/bundles`) and prints a support code like `RPT-7K2M-QX9D` to give to support. A linked node signs the upload with its node key, so support sees which node it's from; nodes that aren't linked, often the ones that need help, can upload too, with tighter limits (#207). If the upload fails, the bundle is still on disk to send another way.
 
 ## Updates
 

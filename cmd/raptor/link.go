@@ -155,14 +155,18 @@ func doLink(ctx context.Context, o linkOptions) error {
 	if err := writeFileAtomic(cfg.Identity.PanelKey, []byte(base64.StdEncoding.EncodeToString(res.GetPanelKey())+"\n"), 0o644); err != nil {
 		return fmt.Errorf("pinning the Panel's key: %w", err)
 	}
-	if err := config.SetLink(*cfgPath, res.GetNodeId(), *panelURL); err != nil {
+	if err := config.SetLink(*cfgPath, res.GetNodeId(), *panelURL, res.GetHostname()); err != nil {
 		return fmt.Errorf("writing %s: %w", *cfgPath, err)
 	}
 	verb := "Linked"
 	if relink {
 		verb = "Re-linked"
 	}
-	fmt.Printf("%s as node %s (n-%s.raptornodes.net)\n", verb, res.GetNodeId(), res.GetShortId())
+	host := res.GetHostname()
+	if host == "" { // a Panel from before hostnames were sent
+		host = "n-" + res.GetShortId() + ".raptornodes.net"
+	}
+	fmt.Printf("%s as node %s (%s)\n", verb, res.GetNodeId(), host)
 	fmt.Printf("Panel key pinned: %s\n", base64.StdEncoding.EncodeToString(res.GetPanelKey()))
 	if *noRestart {
 		fmt.Println("Restart Wings to connect: systemctl restart raptor-wings")
@@ -242,7 +246,7 @@ func unlinkCmd(ctx context.Context, args []string) error {
 			return errors.New("not unlinked")
 		}
 	}
-	if err := config.SetLink(*cfgPath, "", ""); err != nil {
+	if err := config.SetLink(*cfgPath, "", "", ""); err != nil {
 		return err
 	}
 	// The node key goes too: relinking makes a new one, and a later link as

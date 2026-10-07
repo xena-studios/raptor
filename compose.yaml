@@ -34,5 +34,17 @@ services:
       timeout: 5s
       retries: 15
 
+  # S3-compatible storage for tests (support bundles): in-memory.
+  minio-test:
+    image: cgr.dev/chainguard/minio:latest
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: raptor
+      MINIO_ROOT_PASSWORD: raptor-test
+    ports:
+      - "127.0.0.1:54322:9000"
+    tmpfs:
+      - /data
+
 volumes:
   pgdata:

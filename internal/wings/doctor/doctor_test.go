@@ -141,6 +141,33 @@ func healthy() (*Env, *fakeSystem, *fakeDocker) {
 	return e, sys, dk
 }
 
+// linked makes the node linked, with its hostname pointing at it.
+func linked(e *Env) {
+	e.Config.NodeID, e.Config.Hostname = "node-1", "n-abcd1234.raptornodes.net"
+	e.LookupHost = func(_ context.Context, host string) ([]string, error) {
+		if host != "n-abcd1234.raptornodes.net" {
+			return nil, errors.New("no such host")
+		}
+		return []string{"203.0.113.7"}, nil
+	}
+	e.PublicAddr = func(context.Context) (string, error) { return "203.0.113.7", nil }
+}
+
+func TestHostname(t *testing.T) {
+	e, s, _ := healthy()
+	linked(e)
+	s.exists[e.Config.Identity.Key] = true
+	got := byTitle(Run(context.Background(), e))["Node hostname"]
+	if got.Status != Pass || !strings.Contains(got.Detail, "n-abcd1234.raptornodes.net → 203.0.113.7") {
+		t.Errorf("pointing at the node: %+v", got)
+	}
+	// Linked by an older version: nothing to check.
+	e.Config.Hostname = ""
+	if got := byTitle(Run(context.Background(), e))["Node hostname"]; got.Status != Skip {
+		t.Errorf("no hostname: %+v", got)
+	}
+}
+
 func byTitle(results []Result) map[string]Result {
 	m := map[string]Result{}
 	for _, r := range results {
@@ -226,6 +253,14 @@ func TestProblems(t *testing.T) {
 			e.Config.NodeID = "node-1"
 			s.exists[e.Config.Identity.Key] = true
 			e.Status.Connection = &localv1.ConnectionStatus{State: "connecting"}
+		}},
+		{"Node hostname", Warn, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
+			linked(e)
+			e.LookupHost = func(context.Context, string) ([]string, error) { return nil, errors.New("no such host") }
+		}},
+		{"Node hostname", Warn, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
+			linked(e)
+			e.PublicAddr = func(context.Context) (string, error) { return "198.51.100.9", nil } // moved
 		}},
 		{"SFTP", Fail, func(_ *Env, s *fakeSystem, _ *fakeDocker) { delete(s.dial, "127.0.0.1:2022") }},
 		{"SFTP", Fail, func(_ *Env, s *fakeSystem, _ *fakeDocker) { s.dial["127.0.0.1:2022"] = "SSH-2.0-OpenSSH_9.2" }},

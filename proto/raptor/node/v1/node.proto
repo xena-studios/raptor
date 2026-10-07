@@ -241,4 +241,7 @@ message EnrollResponse {
   // (nodecmd.OwnerPin as JSON); empty if they didn't. The node checks it
   // and pins the key (LocalService.PinOwnerKey).
   bytes owner_pin = 4;
+  // The node's full hostname, n-<short_id>.<the Panel's node domain>,
+  // which the node keeps for raptor doctor's hostname check.
+  string hostname = 5;
 }

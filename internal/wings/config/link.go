@@ -15,12 +15,17 @@ import (
 // and panel.url (an empty node ID removes it, for unlinking). The rest of
 // the file, comments included, is kept. The result must still be a valid
 // config.
-func SetLink(path, nodeID, panelURL string) error {
+func SetLink(path, nodeID, panelURL, hostname string) error {
 	return edit(path, func(root *yaml.Node) {
 		if nodeID == "" {
 			removeKey(root, "node_id")
 		} else {
 			setKey(root, "node_id", nodeID)
+		}
+		if hostname == "" {
+			removeKey(root, "hostname")
+		} else {
+			setKey(root, "hostname", hostname)
 		}
 		if panelURL != "" {
 			setKey(child(root, "panel"), "url", panelURL)

@@ -23,7 +23,10 @@ const DefaultPath = "/etc/raptor/config.yml"
 
 // Config is the parsed config file.
 type Config struct {
-	NodeID   string   `yaml:"node_id"`
+	NodeID string `yaml:"node_id"`
+	// Hostname is the node's name in DNS (n-<short id>.raptornodes.net),
+	// set when it links; the Panel keeps the record pointed at the node.
+	Hostname string   `yaml:"hostname"`
 	Panel    Panel    `yaml:"panel"`
 	Identity Identity `yaml:"identity"`
 	Paths    Paths    `yaml:"paths"`

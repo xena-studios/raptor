@@ -37,6 +37,7 @@ func Checks() []Check {
 		{ID: "clock", Title: "Clock", Run: checkClock},
 		{ID: "firewall", Title: "Firewall rules", Run: checkFirewall},
 		{ID: "panel", Title: "Panel", Run: checkPanel},
+		{ID: "hostname", Title: "Node hostname", Run: checkHostname},
 		{ID: "sftp", Title: "SFTP", Run: checkSFTP},
 		{ID: "pterodactyl", Title: "Pterodactyl", Run: checkPterodactyl},
 		{ID: "ssh", Title: "SSH logins", Run: checkSSH},
@@ -343,6 +344,37 @@ func checkPanel(ctx context.Context, e *Env) []Result {
 		fix = "Check panel.url in the config and DNS for its host. If the Panel's key really changed, link again: raptor relink -token …"
 	}
 	return fail(fmt.Sprintf("%s reachable, but not connected: %s", c.Panel.URL, last), why, fix)
+}
+
+// checkHostname checks the node's DNS name points where the Panel sees the
+// node: the Panel updates the record whenever the node connects from a new
+// address (docs/ARCHITECTURE.md#node-dns).
+func checkHostname(ctx context.Context, e *Env) []Result {
+	c := e.Config
+	switch {
+	case c.NodeID == "":
+		return skip("not linked to a Panel yet")
+	case c.Hostname == "":
+		return skip("unknown: this node was linked by an older version of Raptor")
+	case e.LookupHost == nil || e.PublicAddr == nil:
+		return skip("can't check")
+	}
+	addrs, err := e.LookupHost(ctx, c.Hostname)
+	if err != nil || len(addrs) == 0 {
+		return warn(c.Hostname+" doesn't resolve yet",
+			"The Panel creates the record once the node connects from a public address; until then, players and SFTP clients need the IP.",
+			"If the Panel check above says connected and this stays for more than a few minutes, run raptor doctor -upload and contact support.")
+	}
+	seen, err := e.PublicAddr(ctx)
+	if err != nil {
+		return pass(fmt.Sprintf("%s → %s (couldn't ask the Panel which address this node has: %v)", c.Hostname, strings.Join(addrs, ", "), err))
+	}
+	if slices.Contains(addrs, seen) {
+		return pass(c.Hostname + " → " + seen)
+	}
+	return warn(fmt.Sprintf("%s points at %s, but this node reaches the Panel from %s", c.Hostname, strings.Join(addrs, ", "), seen),
+		"Players and SFTP clients using the hostname are sent to the old address.",
+		"The Panel updates the record when Wings reconnects from a new address, and resolvers may keep the old one for a minute. If the Panel check says connected and this stays wrong, run raptor doctor -upload and contact support.")
 }
 
 func checkSFTP(ctx context.Context, e *Env) []Result {

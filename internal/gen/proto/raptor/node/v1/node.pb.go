@@ -1285,7 +1285,10 @@ type EnrollResponse struct {
 	// The owner's passkey, signed when they made the join token
 	// (nodecmd.OwnerPin as JSON); empty if they didn't. The node checks it
 	// and pins the key (LocalService.PinOwnerKey).
-	OwnerPin      []byte `protobuf:"bytes,4,opt,name=owner_pin,json=ownerPin,proto3" json:"owner_pin,omitempty"`
+	OwnerPin []byte `protobuf:"bytes,4,opt,name=owner_pin,json=ownerPin,proto3" json:"owner_pin,omitempty"`
+	// The node's full hostname, n-<short_id>.<the Panel's node domain>,
+	// which the node keeps for raptor doctor's hostname check.
+	Hostname      string `protobuf:"bytes,5,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1346,6 +1349,13 @@ func (x *EnrollResponse) GetOwnerPin() []byte {
 		return x.OwnerPin
 	}
 	return nil
+}
+
+func (x *EnrollResponse) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
 }
 
 var File_raptor_node_v1_node_proto protoreflect.FileDescriptor
@@ -1455,12 +1465,13 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\x04arch\x18\x02 \x01(\tR\x04arch\x12\x16\n" +
 	"\x06kernel\x18\x03 \x01(\tR\x06kernel\x12\x12\n" +
 	"\x04cpus\x18\x04 \x01(\x05R\x04cpus\x12!\n" +
-	"\fmemory_bytes\x18\x05 \x01(\x03R\vmemoryBytes\"~\n" +
+	"\fmemory_bytes\x18\x05 \x01(\x03R\vmemoryBytes\"\x9a\x01\n" +
 	"\x0eEnrollResponse\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x19\n" +
 	"\bshort_id\x18\x02 \x01(\tR\ashortId\x12\x1b\n" +
 	"\tpanel_key\x18\x03 \x01(\fR\bpanelKey\x12\x1b\n" +
-	"\towner_pin\x18\x04 \x01(\fR\bownerPin2\xe6\x02\n" +
+	"\towner_pin\x18\x04 \x01(\fR\bownerPin\x12\x1a\n" +
+	"\bhostname\x18\x05 \x01(\tR\bhostname2\xe6\x02\n" +
 	"\vNodeService\x12O\n" +
 	"\aExecute\x12\x1e.raptor.node.v1.ExecuteRequest\x1a\x1f.raptor.node.v1.ExecuteResponse\"\x03\x90\x02\x02\x12L\n" +
 	"\x06Events\x12\x1d.raptor.node.v1.EventsRequest\x1a\x1e.raptor.node.v1.EventsResponse\"\x03\x90\x02\x02\x12^\n" +
