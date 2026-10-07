@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -59,6 +60,16 @@ func TestPinOwner(t *testing.T) {
 	}
 	if fp != KeyFingerprint(owner.COSE) {
 		t.Errorf("fingerprint %s", fp)
+	}
+	// The Panel can list it (unsigned: public keys and fingerprints only).
+	res, err := f.x.Execute(ctx, f.cmd("alice", ActionKeysList, "", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var listed struct{ Keys []ListedKey }
+	if err := json.Unmarshal(res.Value, &listed); err != nil || len(listed.Keys) != 1 ||
+		listed.Keys[0].Fingerprint != fp || listed.Keys[0].Role != "owner" || listed.Keys[0].UserID != "alice" {
+		t.Fatalf("keys.list: %s, %v", res.Value, err)
 	}
 	// The pinned key now signs dangerous commands.
 	e := f.sign(f.cmd("alice", "server.delete", "s1", nil), owner)

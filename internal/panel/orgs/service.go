@@ -631,3 +631,42 @@ func (s *Service) PinJoinToken(ctx context.Context, req *panelv1.PinJoinTokenReq
 	_ = s.audit(ctx, nil, sess, org, "join_token.pin", "", nil, map[string]any{"passkey": pin.Name})
 	return &panelv1.PinJoinTokenResponse{}, nil
 }
+
+// ListMemberPasskeys implements OrgService.
+func (s *Service) ListMemberPasskeys(ctx context.Context, req *panelv1.ListMemberPasskeysRequest) (*panelv1.ListMemberPasskeysResponse, error) {
+	user, err := parseID(req.GetUserId(), "user")
+	if err != nil {
+		return nil, err
+	}
+	err = s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "admin")
+		if err != nil {
+			return err
+		}
+		if _, err := q.OrgMember(ctx, store.OrgMemberParams{OrgID: org, UserID: user}); err != nil {
+			return connect.NewError(connect.CodeNotFound, errors.New("they're not in this org"))
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	rows, err := store.New(s.DB).ListPasskeys(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	out := &panelv1.ListMemberPasskeysResponse{}
+	for _, r := range rows {
+		var c struct {
+			ID        []byte `json:"id"`
+			PublicKey []byte `json:"publicKey"`
+		}
+		if json.Unmarshal(r.Credential, &c) != nil {
+			continue
+		}
+		out.Passkeys = append(out.Passkeys, &panelv1.Passkey{
+			Id: idString(r.ID), Name: r.Name, CredentialId: c.ID, PublicKey: c.PublicKey, CreatedAt: timestamppb.New(r.CreatedAt.Time),
+		})
+	}
+	return out, nil
+}
