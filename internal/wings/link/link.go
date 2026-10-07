@@ -53,7 +53,9 @@ type Config struct {
 	Servers   func() Servers
 	Schedules func() Schedules
 	Backups   func() Backups
-	Log       *slog.Logger
+	// Jobs lists servers' jobs for the Panel's mirror.
+	Jobs Jobs
+	Log  *slog.Logger
 
 	// For tests.
 	HTTPClient             *http.Client

@@ -66,6 +66,19 @@ type MBackup struct {
 	ExpiresAt     pgtype.Timestamptz
 }
 
+type MJob struct {
+	NodeID     pgtype.UUID
+	ServerID   string
+	JobID      string
+	Type       string
+	Status     string
+	Attempts   int32
+	Error      string
+	CreatedAt  pgtype.Timestamptz
+	StartedAt  pgtype.Timestamptz
+	FinishedAt pgtype.Timestamptz
+}
+
 type MSchedule struct {
 	NodeID     pgtype.UUID
 	ServerID   string

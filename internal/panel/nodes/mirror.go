@@ -218,7 +218,7 @@ func applyServers(ctx context.Context, q *store.Queries, node pgtype.UUID, res *
 	return nil
 }
 
-// applyChildren replaces a server's schedules and backups with the node's.
+// applyChildren replaces a server's schedules, backups, and jobs with the node's.
 func applyChildren(ctx context.Context, q *store.Queries, node pgtype.UUID, s *nodev1.Server) error {
 	sid := s.GetId()
 	if err := q.DeleteMirrorSchedules(ctx, store.DeleteMirrorSchedulesParams{NodeID: node, ServerID: sid}); err != nil {
@@ -245,6 +245,18 @@ func applyChildren(ctx context.Context, q *store.Queries, node pgtype.UUID, s *n
 			Size: b.GetSize(), Files: b.GetFiles(), DestinationID: b.GetDestinationId(), Error: b.GetError(),
 			Warning: b.GetWarning(), CreatedBy: b.GetCreatedBy(), CreatedAt: optMillis(b.GetCreatedAt()),
 			FinishedAt: optMillis(b.GetFinishedAt()), ExpiresAt: optMillis(b.GetExpiresAt()),
+		}); err != nil {
+			return err
+		}
+	}
+	if err := q.DeleteMirrorJobs(ctx, store.DeleteMirrorJobsParams{NodeID: node, ServerID: sid}); err != nil {
+		return err
+	}
+	for _, j := range s.GetJobs() {
+		if err := q.InsertMirrorJob(ctx, store.InsertMirrorJobParams{
+			NodeID: node, ServerID: sid, JobID: j.GetId(), Type: j.GetType(), Status: j.GetStatus(), Attempts: j.GetAttempts(),
+			Error: j.GetError(), CreatedAt: optMillis(j.GetCreatedAt()), StartedAt: optMillis(j.GetStartedAt()),
+			FinishedAt: optMillis(j.GetFinishedAt()),
 		}); err != nil {
 			return err
 		}

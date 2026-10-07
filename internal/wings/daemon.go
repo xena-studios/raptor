@@ -249,6 +249,7 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 	r := &runtimeSetup{rt: rt, cfg: cfg, log: log, db: db, svc: svc, events: events.New(db)}
 	r.jobs = jobs.New(jobs.Options{
 		Store:  db,
+		Events: r.events,
 		LogDir: filepath.Join(cfg.Paths.Logs, "jobs"),
 		Log:    log,
 		// Schedule runs mostly wait, so many can run at once. Archive jobs
@@ -542,7 +543,7 @@ func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
 	return link.New(link.Config{
 		PanelURL: cfg.Panel.URL, NodeID: cfg.NodeID, NodeKey: nodeKey, PanelKey: rt.commands.PanelKey,
 		Software: buildinfo.Version, Commands: rt.commands, CommandsReady: rt.commandsReady.Load,
-		Events: rt.events, Log: log,
+		Events: rt.events, Jobs: rt.jobs, Log: log,
 		// A version on trial is healthy only once it's connected again.
 		OnConnected: rt.ready,
 		Servers: func() link.Servers {

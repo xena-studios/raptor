@@ -3,6 +3,7 @@ package nodes
 import (
 	"context"
 	"crypto/ed25519"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/events"
+	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/link"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
@@ -128,11 +130,18 @@ func TestMirror(t *testing.T) {
 	fs := &fakeServers{servers: map[string]*server.Server{}, states: map[string]server.State{}}
 	fs.set("s1", "Survival", 1, server.Running)
 	kids := &fakeChildren{schedules: map[string][]*schedule.Schedule{}, backups: map[string][]*backup.Backup{}}
+	engine := jobs.New(jobs.Options{Store: db, Events: outbox, LogDir: t.TempDir(), Poll: 50 * time.Millisecond})
+	engine.Register("files.compress", jobs.Handler{Run: func(context.Context, jobs.Job, io.Writer) (any, error) { return nil, nil }})
+	if err := engine.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer engine.Close()
 	l := link.New(link.Config{
 		PanelURL: srv.URL, NodeID: nodeID, NodeKey: nodeKey, PanelKey: res.GetPanelKey(),
 		Events: outbox, Servers: func() link.Servers { return fs },
 		Schedules: func() link.Schedules { return listFunc[*schedule.Schedule](kids.ListSchedules) },
 		Backups:   func() link.Backups { return listFunc[*backup.Backup](kids.ListBackups) },
+		Jobs:      engine,
 	})
 	go func() { _ = l.Run(ctx) }()
 
@@ -226,6 +235,31 @@ func TestMirror(t *testing.T) {
 	appendEvent("backup.finished", "s2", nil)
 	waitChildren("backup finished", 1, "ok")
 
+	// A job on s2: its status changes are events, and the mirror follows
+	// them to the end.
+	job, err := engine.Enqueue(ctx, jobs.Spec{Type: "files.compress", ServerID: "s2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mirroredJob := func() string {
+		id, _ := uuid.Parse(nodeID)
+		list, err := store.New(r.DB).ListMirrorJobs(ctx, store.ListMirrorJobsParams{NodeID: pgUUID(id), ServerID: "s2"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, j := range list {
+			if j.JobID == job {
+				return j.Type + " " + j.Status
+			}
+		}
+		return ""
+	}
+	for deadline := time.Now().Add(10 * time.Second); mirroredJob() != "files.compress succeeded"; time.Sleep(50 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatalf("job: mirrored as %q", mirroredJob())
+		}
+	}
+
 	fs.remove("s1")
 	appendEvent("server.deleted", "s1", nil)
 	waitFor("deleted", func(m map[string]row) bool { _, ok := m["s1"]; return !ok && len(m) == 1 })
@@ -256,5 +290,8 @@ func TestMirror(t *testing.T) {
 	waitFor("resynced", func(m map[string]row) bool { _, ok := m["s4"]; return ok })
 	if acked, _ := store.New(r.DB).GetNodeAcked(ctx, pgUUID(id)); acked == 9999 {
 		t.Error("acked wasn't reset by the snapshot")
+	}
+	if mirroredJob() != "files.compress succeeded" {
+		t.Errorf("job after the snapshots: %q", mirroredJob())
 	}
 }

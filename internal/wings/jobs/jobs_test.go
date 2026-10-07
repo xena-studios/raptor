@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -267,4 +268,69 @@ func TestLogLimit(t *testing.T) {
 	if len(b) > LogLimit+128 || !strings.HasSuffix(string(b), "THE END\n") || !strings.HasPrefix(string(b), "[raptor] earlier output was dropped") {
 		t.Fatalf("log is %d bytes, ends %q", len(b), b[len(b)-20:])
 	}
+}
+
+// Every status a server's job goes through is an event, recorded with the
+// change, so the Panel's mirror follows it; node-wide jobs aren't.
+func TestStatusEvents(t *testing.T) {
+	v := newEnv(t)
+	out := events.New(v.db)
+	var calls atomic.Int32
+	e := New(Options{Store: v.db, Events: out, LogDir: v.logs, BackoffBase: 10 * time.Millisecond, Poll: 50 * time.Millisecond})
+	e.Register("flaky", Handler{MaxAttempts: 2, Run: func(context.Context, Job, io.Writer) (any, error) {
+		if calls.Add(1) == 1 {
+			return nil, Retryable(errors.New("registry timeout"))
+		}
+		return nil, nil
+	}})
+	e.Register("later", Handler{Run: func(context.Context, Job, io.Writer) (any, error) { return nil, nil }})
+	if err := e.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer e.Close()
+	ctx := context.Background()
+
+	changed := out.Changed()
+	flaky, _ := e.Enqueue(ctx, Spec{Type: "flaky", ServerID: "s1"})
+	select {
+	case <-changed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("readers weren't woken")
+	}
+	wait(t, e, flaky)
+	later, _ := e.Enqueue(ctx, Spec{Type: "later", ServerID: "s2", RunAfter: time.Now().Add(time.Hour)})
+	if err := e.Cancel(ctx, later); err != nil {
+		t.Fatal(err)
+	}
+	wait(t, e, mustEnqueue(t, e, Spec{Type: "later"})) // node-wide: no events
+
+	evs, err := out.Since(ctx, 0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string][]string{}
+	for _, ev := range evs {
+		if ev.Type != EventStatus {
+			continue
+		}
+		id, _ := ev.Data["job_id"].(string)
+		status, _ := ev.Data["status"].(string)
+		got[ev.ServerID+" "+id] = append(got[ev.ServerID+" "+id], status)
+	}
+	want := map[string][]string{
+		"s1 " + flaky: {Queued, Running, Queued, Running, Succeeded},
+		"s2 " + later: {Queued, Cancelled},
+	}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Errorf("events: %v, want %v", got, want)
+	}
+}
+
+func mustEnqueue(t *testing.T, e *Engine, s Spec) string {
+	t.Helper()
+	id, err := e.Enqueue(context.Background(), s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
 }

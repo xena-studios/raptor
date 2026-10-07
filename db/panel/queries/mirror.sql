@@ -50,3 +50,13 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);
 
 -- name: ListMirrorBackups :many
 SELECT * FROM m_backups WHERE node_id = $1 AND server_id = $2 ORDER BY created_at DESC, backup_id;
+
+-- name: DeleteMirrorJobs :exec
+DELETE FROM m_jobs WHERE node_id = $1 AND server_id = $2;
+
+-- name: InsertMirrorJob :exec
+INSERT INTO m_jobs (node_id, server_id, job_id, type, status, attempts, error, created_at, started_at, finished_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+
+-- name: ListMirrorJobs :many
+SELECT * FROM m_jobs WHERE node_id = $1 AND server_id = $2 ORDER BY created_at DESC, job_id;
