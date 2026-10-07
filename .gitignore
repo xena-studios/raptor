@@ -1,6 +1,8 @@
 .DS_Store
 .env
 .env.*
+# The web app's production build settings: public, so committed.
+!web/.env.production
 dist/
 node_modules/
 *.db
