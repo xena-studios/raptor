@@ -1,0 +1,73 @@
+name: Bootstrap (amd64)
+
+# The install script and raptor bootstrap on fresh amd64 VMs, against a
+# Panel started in the job (scripts/e2e-bootstrap.sh, as task e2e:bootstrap
+# runs it on arm64 locally): a tampered download refused, one command to a
+# linked node, a rerun that changes nothing, doctor, and a reboot. The VMs
+# run under Lima with KVM, which GitHub's Linux runners have. Too slow for
+# every PR: it runs on PRs that touch the install path, nightly, and on
+# demand.
+on:
+  pull_request:
+    paths:
+      - install/**
+      - cmd/raptor/bootstrap*.go
+      - cmd/raptor/link.go
+      - internal/wings/storage/**
+      - internal/wings/update/**
+      - internal/panel/nodes/registry.go
+      - scripts/e2e-bootstrap.sh
+      - scripts/make-install-script.sh
+      - .github/workflows/bootstrap.yml
+  schedule:
+    - cron: "29 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bootstrap:
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [debian-12, debian-13, ubuntu-24.04]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - name: KVM, QEMU, and Lima
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo apt-get update -q
+          sudo apt-get install -y -q qemu-system-x86 qemu-utils
+          curl -fsSL https://github.com/lima-vm/lima/releases/download/v2.2.0/lima-2.2.0-Linux-x86_64.tar.gz | sudo tar -C /usr/local -xz
+          limactl --version
+      - name: The Panel
+        env:
+          PANEL_DATABASE_URL: postgres://raptor:raptor@127.0.0.1:54320/raptor
+        run: |
+          task db:up migrate
+          mkdir -p .dev
+          go run ./cmd/panel keygen .dev/panel-signing.key
+          go build -o /tmp/panel ./cmd/panel
+          PANEL_SIGNING_KEY=.dev/panel-signing.key PANEL_APP_URL=http://localhost:5173 \
+            nohup /tmp/panel serve api >/tmp/panel.log 2>&1 &
+          for _ in $(seq 1 30); do curl -fsS -o /dev/null http://127.0.0.1:8080/healthz && exit 0; sleep 1; done
+          cat /tmp/panel.log
+          exit 1
+      - run: scripts/e2e-bootstrap.sh raptor-boot ${{ matrix.distro }}
+      - name: Logs
+        if: failure()
+        run: |
+          tail -n 100 /tmp/panel.log
+          limactl list
+          limactl shell raptor-boot sudo journalctl -u raptor-wings -n 100 --no-pager || true
+          limactl shell raptor-boot sudo cat /var/log/raptor/install.log || true
