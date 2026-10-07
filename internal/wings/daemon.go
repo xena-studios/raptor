@@ -16,6 +16,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/actions"
@@ -147,6 +148,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if lk := newLink(cfg, rt, log); lk != nil {
 		svc.Link = lk
 		rt.link = lk
+		rt.panelLink.Store(lk)
 		go func() { _ = lk.Run(ctx); close(linkDone) }()
 	} else {
 		close(linkDone)
@@ -203,22 +205,24 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 // starts, so it's retried until it succeeds. Then it starts the server
 // manager, which reattaches to running servers and starts the rest.
 type runtimeSetup struct {
-	rt             containers.Runtime
-	cfg            config.Config
-	log            *slog.Logger
-	db             *store.DB
-	svc            *localapi.Service
-	rules          *firewall.Rules // set once setup succeeded
-	servers        *server.Manager
-	sched          *schedule.Scheduler
-	backups        *backup.Manager
-	files          *files.Service
-	metrics        *metrics.Collector
-	stopMetrics    context.CancelFunc
-	metricsDone    chan struct{}
-	sftp           *sftp.Service
-	sftpKey        ssh.Signer
-	sftpKeys       *sftp.KeyCache
+	rt          containers.Runtime
+	cfg         config.Config
+	log         *slog.Logger
+	db          *store.DB
+	svc         *localapi.Service
+	rules       *firewall.Rules // set once setup succeeded
+	servers     *server.Manager
+	sched       *schedule.Scheduler
+	backups     *backup.Manager
+	files       *files.Service
+	metrics     *metrics.Collector
+	stopMetrics context.CancelFunc
+	metricsDone chan struct{}
+	sftp        *sftp.Service
+	sftpKey     ssh.Signer
+	sftpKeys    *sftp.KeyCache
+	// panelLink is the node connection, for SFTP logins (set after SFTP starts).
+	panelLink      atomic.Pointer[link.Link]
 	stopSFTPEvents func()
 
 	events         *events.Outbox
@@ -638,13 +642,25 @@ func reportUpdate(ctx context.Context, path string, o *events.Outbox, log *slog.
 	}
 }
 
+// sftpAuth checks SFTP logins with the Panel over the node connection. SFTP
+// starts before the link, so the link is looked up at each login; while
+// there's none (not linked, or disconnected), only cached keys log in.
+func (r *runtimeSetup) sftpAuth() sftp.Authenticator {
+	return sftp.PanelAuth{Panel: func() nodev1connect.PanelServiceClient {
+		if lk := r.panelLink.Load(); lk != nil {
+			return lk.Panel()
+		}
+		return nil
+	}}
+}
+
 // startSFTP resumes SFTP if it's enabled for the node. A port that can't be
 // bound doesn't stop Wings; turning SFTP off and on again retries.
 func (r *runtimeSetup) startSFTP(ctx context.Context, mgr *server.Manager, uid, gid int) *sftp.Service {
 	svc := sftp.NewService(sftp.ServiceOptions{
 		Options: sftp.Options{
 			HostKey: r.sftpKey,
-			Auth:    sftp.NoPanel{}, // the Panel checks logins over the node connection (Phase 3)
+			Auth:    r.sftpAuth(),
 			Keys:    r.sftpKeys,
 			Servers: mgr,
 			Events:  r.events,

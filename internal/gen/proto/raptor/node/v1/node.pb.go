@@ -902,6 +902,122 @@ func (x *Event) GetData() []byte {
 	return nil
 }
 
+type SFTPLoginRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The part of the SFTP username before the last dot.
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	// The server's full ID (Wings resolved the short one).
+	ServerId string `protobuf:"bytes,2,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	// The SSH public key, in wire format.
+	PublicKey     []byte `protobuf:"bytes,3,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SFTPLoginRequest) Reset() {
+	*x = SFTPLoginRequest{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SFTPLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SFTPLoginRequest) ProtoMessage() {}
+
+func (x *SFTPLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SFTPLoginRequest.ProtoReflect.Descriptor instead.
+func (*SFTPLoginRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SFTPLoginRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *SFTPLoginRequest) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+func (x *SFTPLoginRequest) GetPublicKey() []byte {
+	if x != nil {
+		return x.PublicKey
+	}
+	return nil
+}
+
+type SFTPLoginResponse struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Of "sftp", "files.read", "files.write".
+	Permissions   []string `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SFTPLoginResponse) Reset() {
+	*x = SFTPLoginResponse{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SFTPLoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SFTPLoginResponse) ProtoMessage() {}
+
+func (x *SFTPLoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SFTPLoginResponse.ProtoReflect.Descriptor instead.
+func (*SFTPLoginResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *SFTPLoginResponse) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *SFTPLoginResponse) GetPermissions() []string {
+	if x != nil {
+		return x.Permissions
+	}
+	return nil
+}
+
 type EventsAvailableRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LastSeq       int64                  `protobuf:"varint,1,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`
@@ -911,7 +1027,7 @@ type EventsAvailableRequest struct {
 
 func (x *EventsAvailableRequest) Reset() {
 	*x = EventsAvailableRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[12]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -923,7 +1039,7 @@ func (x *EventsAvailableRequest) String() string {
 func (*EventsAvailableRequest) ProtoMessage() {}
 
 func (x *EventsAvailableRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[12]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -936,7 +1052,7 @@ func (x *EventsAvailableRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsAvailableRequest.ProtoReflect.Descriptor instead.
 func (*EventsAvailableRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{12}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *EventsAvailableRequest) GetLastSeq() int64 {
@@ -954,7 +1070,7 @@ type EventsAvailableResponse struct {
 
 func (x *EventsAvailableResponse) Reset() {
 	*x = EventsAvailableResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[13]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -966,7 +1082,7 @@ func (x *EventsAvailableResponse) String() string {
 func (*EventsAvailableResponse) ProtoMessage() {}
 
 func (x *EventsAvailableResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[13]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -979,7 +1095,7 @@ func (x *EventsAvailableResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsAvailableResponse.ProtoReflect.Descriptor instead.
 func (*EventsAvailableResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{13}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{15}
 }
 
 type EnrollRequest struct {
@@ -1005,7 +1121,7 @@ type EnrollRequest struct {
 
 func (x *EnrollRequest) Reset() {
 	*x = EnrollRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[14]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1017,7 +1133,7 @@ func (x *EnrollRequest) String() string {
 func (*EnrollRequest) ProtoMessage() {}
 
 func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[14]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1030,7 +1146,7 @@ func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollRequest.ProtoReflect.Descriptor instead.
 func (*EnrollRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{14}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *EnrollRequest) GetToken() string {
@@ -1096,7 +1212,7 @@ type NodeFacts struct {
 
 func (x *NodeFacts) Reset() {
 	*x = NodeFacts{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[15]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1108,7 +1224,7 @@ func (x *NodeFacts) String() string {
 func (*NodeFacts) ProtoMessage() {}
 
 func (x *NodeFacts) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[15]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1121,7 +1237,7 @@ func (x *NodeFacts) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeFacts.ProtoReflect.Descriptor instead.
 func (*NodeFacts) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{15}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *NodeFacts) GetOs() string {
@@ -1176,7 +1292,7 @@ type EnrollResponse struct {
 
 func (x *EnrollResponse) Reset() {
 	*x = EnrollResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[16]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1188,7 +1304,7 @@ func (x *EnrollResponse) String() string {
 func (*EnrollResponse) ProtoMessage() {}
 
 func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[16]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1201,7 +1317,7 @@ func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollResponse.ProtoReflect.Descriptor instead.
 func (*EnrollResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{16}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *EnrollResponse) GetNodeId() string {
@@ -1313,7 +1429,15 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\tserver_id\x18\x03 \x01(\tR\bserverId\x12\x18\n" +
 	"\aversion\x18\x04 \x01(\x03R\aversion\x12\x0e\n" +
 	"\x02at\x18\x05 \x01(\x03R\x02at\x12\x12\n" +
-	"\x04data\x18\x06 \x01(\fR\x04data\"3\n" +
+	"\x04data\x18\x06 \x01(\fR\x04data\"j\n" +
+	"\x10SFTPLoginRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x1b\n" +
+	"\tserver_id\x18\x02 \x01(\tR\bserverId\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x03 \x01(\fR\tpublicKey\"N\n" +
+	"\x11SFTPLoginResponse\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
+	"\vpermissions\x18\x02 \x03(\tR\vpermissions\"3\n" +
 	"\x16EventsAvailableRequest\x12\x19\n" +
 	"\blast_seq\x18\x01 \x01(\x03R\alastSeq\"\x19\n" +
 	"\x17EventsAvailableResponse\"\xe5\x01\n" +
@@ -1342,9 +1466,10 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\x06Events\x12\x1d.raptor.node.v1.EventsRequest\x1a\x1e.raptor.node.v1.EventsResponse\"\x03\x90\x02\x02\x12^\n" +
 	"\fOpenTransfer\x12#.raptor.node.v1.OpenTransferRequest\x1a$.raptor.node.v1.OpenTransferResponse\"\x03\x90\x02\x02\x12X\n" +
 	"\n" +
-	"GetServers\x12!.raptor.node.v1.GetServersRequest\x1a\".raptor.node.v1.GetServersResponse\"\x03\x90\x02\x012w\n" +
+	"GetServers\x12!.raptor.node.v1.GetServersRequest\x1a\".raptor.node.v1.GetServersResponse\"\x03\x90\x02\x012\xce\x01\n" +
 	"\fPanelService\x12g\n" +
-	"\x0fEventsAvailable\x12&.raptor.node.v1.EventsAvailableRequest\x1a'.raptor.node.v1.EventsAvailableResponse\"\x03\x90\x02\x022a\n" +
+	"\x0fEventsAvailable\x12&.raptor.node.v1.EventsAvailableRequest\x1a'.raptor.node.v1.EventsAvailableResponse\"\x03\x90\x02\x02\x12U\n" +
+	"\tSFTPLogin\x12 .raptor.node.v1.SFTPLoginRequest\x1a!.raptor.node.v1.SFTPLoginResponse\"\x03\x90\x02\x012a\n" +
 	"\x11EnrollmentService\x12L\n" +
 	"\x06Enroll\x12\x1d.raptor.node.v1.EnrollRequest\x1a\x1e.raptor.node.v1.EnrollResponse\"\x03\x90\x02\x02B\xc2\x01\n" +
 	"\x12com.raptor.node.v1B\tNodeProtoP\x01ZGgithub.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1;nodev1\xa2\x02\x03RNX\xaa\x02\x0eRaptor.Node.V1\xca\x02\x0eRaptor\\Node\\V1\xe2\x02\x1aRaptor\\Node\\V1\\GPBMetadata\xea\x02\x10Raptor::Node::V1b\x06proto3"
@@ -1361,7 +1486,7 @@ func file_raptor_node_v1_node_proto_rawDescGZIP() []byte {
 	return file_raptor_node_v1_node_proto_rawDescData
 }
 
-var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_raptor_node_v1_node_proto_goTypes = []any{
 	(*GetServersRequest)(nil),       // 0: raptor.node.v1.GetServersRequest
 	(*GetServersResponse)(nil),      // 1: raptor.node.v1.GetServersResponse
@@ -1375,32 +1500,36 @@ var file_raptor_node_v1_node_proto_goTypes = []any{
 	(*EventsRequest)(nil),           // 9: raptor.node.v1.EventsRequest
 	(*EventsResponse)(nil),          // 10: raptor.node.v1.EventsResponse
 	(*Event)(nil),                   // 11: raptor.node.v1.Event
-	(*EventsAvailableRequest)(nil),  // 12: raptor.node.v1.EventsAvailableRequest
-	(*EventsAvailableResponse)(nil), // 13: raptor.node.v1.EventsAvailableResponse
-	(*EnrollRequest)(nil),           // 14: raptor.node.v1.EnrollRequest
-	(*NodeFacts)(nil),               // 15: raptor.node.v1.NodeFacts
-	(*EnrollResponse)(nil),          // 16: raptor.node.v1.EnrollResponse
+	(*SFTPLoginRequest)(nil),        // 12: raptor.node.v1.SFTPLoginRequest
+	(*SFTPLoginResponse)(nil),       // 13: raptor.node.v1.SFTPLoginResponse
+	(*EventsAvailableRequest)(nil),  // 14: raptor.node.v1.EventsAvailableRequest
+	(*EventsAvailableResponse)(nil), // 15: raptor.node.v1.EventsAvailableResponse
+	(*EnrollRequest)(nil),           // 16: raptor.node.v1.EnrollRequest
+	(*NodeFacts)(nil),               // 17: raptor.node.v1.NodeFacts
+	(*EnrollResponse)(nil),          // 18: raptor.node.v1.EnrollResponse
 }
 var file_raptor_node_v1_node_proto_depIdxs = []int32{
 	2,  // 0: raptor.node.v1.GetServersResponse.servers:type_name -> raptor.node.v1.Server
 	3,  // 1: raptor.node.v1.Server.schedules:type_name -> raptor.node.v1.Schedule
 	4,  // 2: raptor.node.v1.Server.backups:type_name -> raptor.node.v1.Backup
 	11, // 3: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
-	15, // 4: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
+	17, // 4: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
 	7,  // 5: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
 	9,  // 6: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
 	5,  // 7: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
 	0,  // 8: raptor.node.v1.NodeService.GetServers:input_type -> raptor.node.v1.GetServersRequest
-	12, // 9: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
-	14, // 10: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
-	8,  // 11: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
-	10, // 12: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
-	6,  // 13: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
-	1,  // 14: raptor.node.v1.NodeService.GetServers:output_type -> raptor.node.v1.GetServersResponse
-	13, // 15: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
-	16, // 16: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
-	11, // [11:17] is the sub-list for method output_type
-	5,  // [5:11] is the sub-list for method input_type
+	14, // 9: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
+	12, // 10: raptor.node.v1.PanelService.SFTPLogin:input_type -> raptor.node.v1.SFTPLoginRequest
+	16, // 11: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
+	8,  // 12: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
+	10, // 13: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
+	6,  // 14: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
+	1,  // 15: raptor.node.v1.NodeService.GetServers:output_type -> raptor.node.v1.GetServersResponse
+	15, // 16: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
+	13, // 17: raptor.node.v1.PanelService.SFTPLogin:output_type -> raptor.node.v1.SFTPLoginResponse
+	18, // 18: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
+	12, // [12:19] is the sub-list for method output_type
+	5,  // [5:12] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -1417,7 +1546,7 @@ func file_raptor_node_v1_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_node_v1_node_proto_rawDesc), len(file_raptor_node_v1_node_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

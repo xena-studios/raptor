@@ -173,7 +173,7 @@ Browser ◄─WS─► panel api ◄─(LISTEN/NOTIFY if another instance)─►
 - **The transfer connection:** the Panel calls `OpenTransfer` with the ID of an upload or download a `files.upload` or `files.download` command started; Wings checks it exists, then opens a second WebSocket with the same handshake and the purpose `transfer:<id>`, and answers that transfer's chunks on it (`PUT /upload?offset=`, `GET /download?offset=&n=`, streamed, not buffered) and nothing else. The Panel closes connections it didn't ask for, so a node can't open one on its own. Its yamux window is 16 MiB (the default 256 KiB would cap a transfer at about 5 MB/s at 50 ms), and Wings closes it after 10 minutes unused.
 - The cap exists because every byte through the Panel costs bandwidth twice and Cloudflare discourages relaying large non-web files. SFTP has no such cost.
 - **SFTP is off by default** and enabled per node in the Panel. With it off, a node has no ports open besides its game servers. It uses SSH host keys, so **nodes need no TLS certificates**.
-- **SFTP auth:** Wings asks the Panel over the node connection. Wings **caches users' SSH public keys and SFTP permissions** so key-based SFTP keeps working while the Panel is unreachable. Passwords are never cached (the SFTP setup screen says so).
+- **SFTP auth:** SSH keys only (accounts have no passwords). Users add keys in their Security settings and log in as `<sftp username>.<server short ID>`. Wings asks the Panel over the node connection (`PanelService.SFTPLogin`, answered for the node the connection proved it is). Wings **caches the keys the Panel accepts, with their permissions**, so SFTP keeps working while the Panel is unreachable.
 
 ## Node DNS
 

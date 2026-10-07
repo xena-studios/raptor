@@ -219,3 +219,15 @@ func (l *Link) connect(ctx context.Context) error {
 	}
 	return nil
 }
+
+// Panel returns a client for calling the Panel over the current connection,
+// or nil while disconnected.
+func (l *Link) Panel() nodev1connect.PanelServiceClient {
+	l.mu.Lock()
+	s := l.session
+	l.mu.Unlock()
+	if s == nil {
+		return nil
+	}
+	return nodev1connect.NewPanelServiceClient(s.Client(), nodelink.BaseURL)
+}
