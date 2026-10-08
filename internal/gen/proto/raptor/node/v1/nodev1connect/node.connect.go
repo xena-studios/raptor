@@ -46,6 +46,8 @@ const (
 	NodeServiceOpenTransferProcedure = "/raptor.node.v1.NodeService/OpenTransfer"
 	// NodeServiceGetServersProcedure is the fully-qualified name of the NodeService's GetServers RPC.
 	NodeServiceGetServersProcedure = "/raptor.node.v1.NodeService/GetServers"
+	// NodeServiceConsoleProcedure is the fully-qualified name of the NodeService's Console RPC.
+	NodeServiceConsoleProcedure = "/raptor.node.v1.NodeService/Console"
 	// PanelServiceEventsAvailableProcedure is the fully-qualified name of the PanelService's
 	// EventsAvailable RPC.
 	PanelServiceEventsAvailableProcedure = "/raptor.node.v1.PanelService/EventsAvailable"
@@ -80,6 +82,10 @@ type NodeServiceClient interface {
 	// none are (a snapshot). last_seq is the newest event when it was read, so
 	// the result reflects at least every event up to it.
 	GetServers(context.Context, *v1.GetServersRequest) (*v1.GetServersResponse, error)
+	// Console streams a server's console: its history, then new lines as
+	// they come, until the Panel hangs up. The request is an envelope for
+	// "server.console" with the Panel's grant, checked like a command's.
+	Console(context.Context, *v1.ConsoleRequest) (*connect.ServerStreamForClient[v1.ConsoleResponse], error)
 }
 
 // NewNodeServiceClient constructs a client for the raptor.node.v1.NodeService service. By default,
@@ -121,6 +127,12 @@ func NewNodeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		console: connect.NewClient[v1.ConsoleRequest, v1.ConsoleResponse](
+			httpClient,
+			baseURL+NodeServiceConsoleProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("Console")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -130,6 +142,7 @@ type nodeServiceClient struct {
 	events       *connect.Client[v1.EventsRequest, v1.EventsResponse]
 	openTransfer *connect.Client[v1.OpenTransferRequest, v1.OpenTransferResponse]
 	getServers   *connect.Client[v1.GetServersRequest, v1.GetServersResponse]
+	console      *connect.Client[v1.ConsoleRequest, v1.ConsoleResponse]
 }
 
 // Execute calls raptor.node.v1.NodeService.Execute.
@@ -168,6 +181,11 @@ func (c *nodeServiceClient) GetServers(ctx context.Context, req *v1.GetServersRe
 	return nil, err
 }
 
+// Console calls raptor.node.v1.NodeService.Console.
+func (c *nodeServiceClient) Console(ctx context.Context, req *v1.ConsoleRequest) (*connect.ServerStreamForClient[v1.ConsoleResponse], error) {
+	return c.console.CallServerStream(ctx, connect.NewRequest(req))
+}
+
 // NodeServiceHandler is an implementation of the raptor.node.v1.NodeService service.
 type NodeServiceHandler interface {
 	// Execute runs a command at most once (docs/ARCHITECTURE.md#commands-are-idempotent).
@@ -192,6 +210,10 @@ type NodeServiceHandler interface {
 	// none are (a snapshot). last_seq is the newest event when it was read, so
 	// the result reflects at least every event up to it.
 	GetServers(context.Context, *v1.GetServersRequest) (*v1.GetServersResponse, error)
+	// Console streams a server's console: its history, then new lines as
+	// they come, until the Panel hangs up. The request is an envelope for
+	// "server.console" with the Panel's grant, checked like a command's.
+	Console(context.Context, *v1.ConsoleRequest, *connect.ServerStream[v1.ConsoleResponse]) error
 }
 
 // NewNodeServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -229,6 +251,12 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	nodeServiceConsoleHandler := connect.NewServerStreamHandlerSimple(
+		NodeServiceConsoleProcedure,
+		svc.Console,
+		connect.WithSchema(nodeServiceMethods.ByName("Console")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.node.v1.NodeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NodeServiceExecuteProcedure:
@@ -239,6 +267,8 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 			nodeServiceOpenTransferHandler.ServeHTTP(w, r)
 		case NodeServiceGetServersProcedure:
 			nodeServiceGetServersHandler.ServeHTTP(w, r)
+		case NodeServiceConsoleProcedure:
+			nodeServiceConsoleHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -262,6 +292,10 @@ func (UnimplementedNodeServiceHandler) OpenTransfer(context.Context, *v1.OpenTra
 
 func (UnimplementedNodeServiceHandler) GetServers(context.Context, *v1.GetServersRequest) (*v1.GetServersResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.NodeService.GetServers is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) Console(context.Context, *v1.ConsoleRequest, *connect.ServerStream[v1.ConsoleResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.NodeService.Console is not implemented"))
 }
 
 // PanelServiceClient is a client for the raptor.node.v1.PanelService service.

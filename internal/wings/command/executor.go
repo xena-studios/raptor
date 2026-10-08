@@ -149,6 +149,28 @@ func (x *Executor) Execute(ctx context.Context, e Envelope) (Result, error) {
 	return res, err
 }
 
+// AuthorizeStream checks a request to watch something (a server's console)
+// the way commands are checked: for this node, unexpired, and carrying the
+// Panel's grant for exactly it. Watching changes nothing, so it's never
+// signed or recorded.
+func (x *Executor) AuthorizeStream(e Envelope, action string) error {
+	if e.Action != action {
+		return fmt.Errorf("%w %q", ErrUnknownAction, e.Action)
+	}
+	if err := e.Validate(x.NodeID); err != nil {
+		return err
+	}
+	now := x.now()
+	exp := time.Unix(e.ExpiresAt, 0)
+	if !exp.After(now) {
+		return ErrExpired
+	}
+	if exp.Sub(now) > MaxLifetime {
+		return fmt.Errorf("%w: expires more than %s from now", ErrExpired, MaxLifetime)
+	}
+	return x.checkGrant(e, now)
+}
+
 func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 	if err := e.Validate(x.NodeID); err != nil {
 		return Result{}, err

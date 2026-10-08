@@ -30,6 +30,10 @@ const (
 	ServerRestart   = "server.restart"
 	ServerKill      = "server.kill"
 	ServerCommand   = "server.command"
+	// ServerConsole watches a server's console (NodeService.Console). It
+	// isn't a command: the grant is checked, then lines stream until the
+	// Panel hangs up.
+	ServerConsole = "server.console"
 
 	ScheduleCreate = "schedule.create"
 	ScheduleUpdate = "schedule.update"

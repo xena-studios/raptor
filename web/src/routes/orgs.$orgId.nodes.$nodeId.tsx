@@ -1,10 +1,12 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { KeyRound, Play, Plus, RotateCw, Square, Trash2, Users } from "lucide-react";
+import { KeyRound, Plus, Trash2, Users } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { PowerButtons } from "@/components/power-buttons";
+import { StatusBadge, StatusDetail } from "@/components/server-status";
 import { TrustedKeys } from "@/components/trusted-keys";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +19,10 @@ import { OrgService, Role, type Server } from "@/gen/raptor/panel/v1/org_pb";
 import { keyFingerprint } from "@/lib/canonical";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
-import { type ServerStatus, serverStatus } from "@/lib/servers";
+import { serverStatus } from "@/lib/servers";
 import { requireSession } from "@/lib/session";
 import { sameBytes, sendSigned, whichPasskey } from "@/lib/signed";
-import { commandClient, orgClient } from "@/lib/transport";
+import { orgClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
 
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId")({
@@ -29,6 +31,7 @@ export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId")({
 });
 
 const allPermissions = [
+  "console.read",
   "console.write",
   "power",
   "files.read",
@@ -152,72 +155,29 @@ function ServerCard({
     }
   }
 
-  async function power(action: string) {
-    setBusy(action);
-    setError("");
-    try {
-      await commandClient.execute({ nodeId, action, serverId: server.id });
-      await client.invalidateQueries();
-    } catch (err) {
-      setError(message(err));
-    } finally {
-      setBusy("");
-    }
-  }
-
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-3">
         <div>
           <CardTitle className="flex items-center gap-2">
-            {server.name} <StatusBadge status={status} />
+            <Link
+              to="/orgs/$orgId/nodes/$nodeId/servers/$serverId"
+              params={{ orgId, nodeId, serverId: server.id }}
+              className="hover:underline"
+            >
+              {server.name}
+            </Link>{" "}
+            <StatusBadge status={status} />
           </CardTitle>
           <CardDescription>
             {server.eggName || "—"}
             {server.ports[0] ? ` · port ${server.ports[0]}` : ""} · SFTP ID{" "}
             <code>{server.id.slice(-8)}</code>
           </CardDescription>
-          {status.detail && (
-            <p
-              className={
-                status.tone === "failed"
-                  ? "mt-1 text-xs text-destructive"
-                  : "mt-1 text-xs text-muted-foreground"
-              }
-            >
-              {status.detail}
-            </p>
-          )}
+          <StatusDetail status={status} />
         </div>
         <div className="flex items-center gap-1">
-          {can("power") && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!!busy}
-                onClick={() => power("server.start")}
-              >
-                <Play /> Start
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!!busy}
-                onClick={() => power("server.restart")}
-              >
-                <RotateCw /> Restart
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!!busy}
-                onClick={() => power("server.stop")}
-              >
-                <Square /> Stop
-              </Button>
-            </>
-          )}
+          {can("power") && <PowerButtons nodeId={nodeId} serverId={server.id} onError={setError} />}
           {admin && (
             <Button
               size="sm"
@@ -248,27 +208,6 @@ function ServerCard({
         </CardContent>
       )}
     </Card>
-  );
-}
-
-const toneVariant = {
-  live: "default",
-  pending: "secondary",
-  failed: "destructive",
-  stale: "outline",
-  stopped: "outline",
-} as const;
-
-// StatusBadge shows a server's state; a stale one (its node is offline) is
-// dimmed, since it's only the node's last report.
-function StatusBadge({ status }: { status: ServerStatus }) {
-  return (
-    <Badge
-      variant={toneVariant[status.tone]}
-      className={status.tone === "stale" ? "opacity-60" : undefined}
-    >
-      {status.label}
-    </Badge>
   );
 }
 

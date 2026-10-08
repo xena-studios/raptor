@@ -159,6 +159,12 @@ Browser ◄─WS─► panel api ◄─(LISTEN/NOTIFY if another instance)─►
 - Wings keeps a **ring buffer** of recent console lines per server, so opening the console shows history immediately.
 - Slow browser clients get **dropped lines, not backpressure**. A slow browser can never stall a game server's stdout.
 
+How the console gets there (built; stats come later):
+- **Browser ↔ Panel:** `wss://api.raptorpanel.net/api/live` (`internal/panel/live`), signed in by the session cookie, from the web app's origin only. The browser sends `{"op":"console","id":…,"node":…,"server":…}` to watch a console and `{"op":"close","id":…}` to stop. The Panel answers with `{"id":…,"type":"lines","lines":[…],"reset":true}` (reset: a stream starts over with the history, so the terminal clears) and `{"id":…,"type":"ended","error":…,"retry":true}` when a watch ends (retry: the node is offline; the web app tries again). At most 20 watches per socket. The socket closes when its session ends, checked every minute, and the Panel pings it every 30 seconds, since Cloudflare closes WebSockets idle for 100.
+- **Access is checked when a watch opens, and again every 5 minutes**: the Panel reopens the stream (the browser gets the history again with `reset`), so taking away someone's access ends their watch within minutes.
+- **Panel ↔ node:** `NodeService.Console`, a server-streaming call over the node connection, with a grant for `server.console` ([SERVERS.md](SERVERS.md#console)).
+- **Between Panel instances:** if the other instance holds the node, this one sends it a `con` notification (LISTEN/NOTIFY on its instance channel). The holder opens the stream and sends the batches back as `cl` notifications, split to fit Postgres's 8,000-byte payload; a single line too long for one is cut (lines longer than about 6,000 bytes as JSON, which game output rarely reaches). The watcher renews every 10 seconds (`cka`), the holder stops a stream not renewed for 30 seconds, and `cx` and `ce` close it from either side. Notifications sent one after another arrive in order.
+
 ## Files and SFTP
 
 **Wings runs no HTTP server.** The only things listening on a node are the game servers and, if the owner turns it on, SFTP.

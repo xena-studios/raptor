@@ -26,6 +26,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/files"
+	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -45,6 +46,7 @@ type fixture struct {
 	release  chan struct{} // let it finish
 	announce chan int64
 	files    *fakeFiles
+	servers  *fakeServers
 	nodeKey  ed25519.PrivateKey
 	panelPub ed25519.PublicKey
 }
@@ -94,10 +96,12 @@ func newFixture(t *testing.T) *fixture {
 	f.proxy = nodelinktest.NewProxy(t, strings.TrimPrefix(srv.URL, "http://"))
 
 	f.files = &fakeFiles{uploads: map[string][]byte{}, sizes: map[string]int64{}, downloads: map[string][]byte{}}
+	f.servers = &fakeServers{consoles: map[string]*server.Console{}}
 	f.link = New(Config{
 		PanelURL: "http://" + f.proxy.Addr, NodeID: nodeID, NodeKey: nodePriv, PanelKey: panelPub,
 		Commands: x, Events: f.outbox, MinBackoff: 10 * time.Millisecond, MaxBackoff: 50 * time.Millisecond,
 		Transfers: func() Transfers { return f.files },
+		Servers:   func() Servers { return f.servers },
 	})
 	f.nodeKey, f.panelPub = nodePriv, panelPub
 	done := make(chan struct{})
@@ -106,10 +110,12 @@ func newFixture(t *testing.T) *fixture {
 	return f
 }
 
-func (f *fixture) envelope(action string) []byte {
+func (f *fixture) envelope(action string) []byte { return f.envelopeFor(action, "") }
+
+func (f *fixture) envelopeFor(action, serverID string) []byte {
 	id, _ := uuid.NewV7()
-	e := command.Envelope{CommandID: id.String(), NodeID: nodeID, UserID: "user-1", Action: action, ExpiresAt: time.Now().Add(5 * time.Minute).Unix()}
-	e.Grant = command.Grant{UserID: e.UserID, NodeID: e.NodeID, CommandID: e.CommandID, Action: e.Action, ExpiresAt: e.ExpiresAt}
+	e := command.Envelope{CommandID: id.String(), NodeID: nodeID, UserID: "user-1", Action: action, ServerID: serverID, ExpiresAt: time.Now().Add(5 * time.Minute).Unix()}
+	e.Grant = command.Grant{UserID: e.UserID, NodeID: e.NodeID, CommandID: e.CommandID, Action: e.Action, ServerID: serverID, ExpiresAt: e.ExpiresAt}
 	p, err := e.Grant.Payload()
 	if err != nil {
 		f.t.Fatal(err)
