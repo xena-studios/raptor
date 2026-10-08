@@ -22,9 +22,9 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/live"
-	"github.com/xena-studios/raptor/internal/panel/transfers"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
+	"github.com/xena-studios/raptor/internal/panel/transfers"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
