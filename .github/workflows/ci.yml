@@ -66,6 +66,10 @@ jobs:
           RAPTOR_RUN=/tmp/run docker compose -f primary/compose.yaml config -q
           RAPTOR_RUN=/tmp/run PRIMARY_PRIVATE_IP=10.0.0.1 docker compose -f replica/compose.yaml --profile failover config -q
       - run: shellcheck deploy/scripts/*.sh deploy/primary/initdb/*.sh deploy/replica/*.sh
+      - name: Grafana alert rules and dashboard
+        run: |
+          docker run --rm --entrypoint promtool -v "$PWD/deploy/grafana:/g:ro" prom/prometheus:v3.7.3 check rules /g/alerts.yaml
+          jq -e '.uid == "raptor-panel" and (.panels | length > 0)' deploy/grafana/raptor-panel.json >/dev/null
 
   security:
     runs-on: ubuntu-24.04
