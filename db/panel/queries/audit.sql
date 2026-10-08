@@ -24,3 +24,13 @@ DELETE FROM audit_log WHERE at < now() - interval '1 year';
 -- browser.
 SELECT count(*) AS total, count(*) FILTER (WHERE user_agent = @user_agent) AS same
 FROM sessions WHERE user_id = @user_id;
+
+-- name: ServerAuditLog :many
+-- The commands sent to one server, newest first.
+SELECT a.*, u.email AS actor_email FROM audit_log a
+LEFT JOIN users u ON u.id = a.actor_id
+WHERE a.org_id = @org_id AND a.action = 'command' AND a.target = @server_id::text
+  AND a.metadata->>'node' = @node_id::text
+  AND (@before::uuid IS NULL OR a.id < @before::uuid)
+ORDER BY a.id DESC
+LIMIT @lim;

@@ -36,8 +36,14 @@ import { Route as OrgsOrgIdNodesNodeIdSettingsRouteImport } from './routes/orgs.
 import { Route as OrgsOrgIdServersNodeIdServerIdRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId'
 import { Route as OrgsOrgIdServersNodeIdServerIdIndexRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.index'
 import { Route as OrgsOrgIdServersNodeIdServerIdAccessRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.access'
+import { Route as OrgsOrgIdServersNodeIdServerIdActivityRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.activity'
+import { Route as OrgsOrgIdServersNodeIdServerIdBackupsRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.backups'
+import { Route as OrgsOrgIdServersNodeIdServerIdDatabasesRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.databases'
 import { Route as OrgsOrgIdServersNodeIdServerIdFilesRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.files'
+import { Route as OrgsOrgIdServersNodeIdServerIdNetworkRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.network'
+import { Route as OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.schedules'
 import { Route as OrgsOrgIdServersNodeIdServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.settings'
+import { Route as OrgsOrgIdServersNodeIdServerIdStartupRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.startup'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -182,16 +188,52 @@ const OrgsOrgIdServersNodeIdServerIdAccessRoute =
     path: '/access',
     getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
   } as any)
+const OrgsOrgIdServersNodeIdServerIdActivityRoute =
+  OrgsOrgIdServersNodeIdServerIdActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdBackupsRoute =
+  OrgsOrgIdServersNodeIdServerIdBackupsRouteImport.update({
+    id: '/backups',
+    path: '/backups',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdDatabasesRoute =
+  OrgsOrgIdServersNodeIdServerIdDatabasesRouteImport.update({
+    id: '/databases',
+    path: '/databases',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
 const OrgsOrgIdServersNodeIdServerIdFilesRoute =
   OrgsOrgIdServersNodeIdServerIdFilesRouteImport.update({
     id: '/files',
     path: '/files',
     getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
   } as any)
+const OrgsOrgIdServersNodeIdServerIdNetworkRoute =
+  OrgsOrgIdServersNodeIdServerIdNetworkRouteImport.update({
+    id: '/network',
+    path: '/network',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdSchedulesRoute =
+  OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport.update({
+    id: '/schedules',
+    path: '/schedules',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
 const OrgsOrgIdServersNodeIdServerIdSettingsRoute =
   OrgsOrgIdServersNodeIdServerIdSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdStartupRoute =
+  OrgsOrgIdServersNodeIdServerIdStartupRouteImport.update({
+    id: '/startup',
+    path: '/startup',
     getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
   } as any)
 
@@ -222,8 +264,14 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/backups': typeof OrgsOrgIdServersNodeIdServerIdBackupsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/databases': typeof OrgsOrgIdServersNodeIdServerIdDatabasesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/network': typeof OrgsOrgIdServersNodeIdServerIdNetworkRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -248,8 +296,14 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/backups': typeof OrgsOrgIdServersNodeIdServerIdBackupsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/databases': typeof OrgsOrgIdServersNodeIdServerIdDatabasesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/network': typeof OrgsOrgIdServersNodeIdServerIdNetworkRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
 }
 export interface FileRoutesById {
@@ -280,8 +334,14 @@ export interface FileRoutesById {
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/backups': typeof OrgsOrgIdServersNodeIdServerIdBackupsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/databases': typeof OrgsOrgIdServersNodeIdServerIdDatabasesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/network': typeof OrgsOrgIdServersNodeIdServerIdNetworkRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -313,8 +373,14 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/nodes/$nodeId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/backups'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/databases'
     | '/orgs/$orgId/servers/$nodeId/$serverId/files'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/network'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -339,8 +405,14 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/backups'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/databases'
     | '/orgs/$orgId/servers/$nodeId/$serverId/files'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/network'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
   id:
     | '__root__'
@@ -370,8 +442,14 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/nodes/$nodeId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/backups'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/databases'
     | '/orgs/$orgId/servers/$nodeId/$serverId/files'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/network'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId/'
   fileRoutesById: FileRoutesById
 }
@@ -576,6 +654,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdAccessRouteImport
       parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
     }
+    '/orgs/$orgId/servers/$nodeId/$serverId/activity': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/activity'
+      path: '/activity'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/activity'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdActivityRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId/backups': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/backups'
+      path: '/backups'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/backups'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdBackupsRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId/databases': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/databases'
+      path: '/databases'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/databases'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdDatabasesRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
     '/orgs/$orgId/servers/$nodeId/$serverId/files': {
       id: '/orgs/$orgId/servers/$nodeId/$serverId/files'
       path: '/files'
@@ -583,11 +682,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdFilesRouteImport
       parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
     }
+    '/orgs/$orgId/servers/$nodeId/$serverId/network': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/network'
+      path: '/network'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/network'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdNetworkRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId/schedules': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
+      path: '/schedules'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
     '/orgs/$orgId/servers/$nodeId/$serverId/settings': {
       id: '/orgs/$orgId/servers/$nodeId/$serverId/settings'
       path: '/settings'
       fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/settings'
       preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdSettingsRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId/startup': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/startup'
+      path: '/startup'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/startup'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdStartupRouteImport
       parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
     }
   }
@@ -641,8 +761,14 @@ const OrgsOrgIdNodesNodeIdRouteWithChildren =
 
 interface OrgsOrgIdServersNodeIdServerIdRouteChildren {
   OrgsOrgIdServersNodeIdServerIdAccessRoute: typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
+  OrgsOrgIdServersNodeIdServerIdActivityRoute: typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
+  OrgsOrgIdServersNodeIdServerIdBackupsRoute: typeof OrgsOrgIdServersNodeIdServerIdBackupsRoute
+  OrgsOrgIdServersNodeIdServerIdDatabasesRoute: typeof OrgsOrgIdServersNodeIdServerIdDatabasesRoute
   OrgsOrgIdServersNodeIdServerIdFilesRoute: typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
+  OrgsOrgIdServersNodeIdServerIdNetworkRoute: typeof OrgsOrgIdServersNodeIdServerIdNetworkRoute
+  OrgsOrgIdServersNodeIdServerIdSchedulesRoute: typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
   OrgsOrgIdServersNodeIdServerIdSettingsRoute: typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
+  OrgsOrgIdServersNodeIdServerIdStartupRoute: typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   OrgsOrgIdServersNodeIdServerIdIndexRoute: typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
 }
 
@@ -650,10 +776,22 @@ const OrgsOrgIdServersNodeIdServerIdRouteChildren: OrgsOrgIdServersNodeIdServerI
   {
     OrgsOrgIdServersNodeIdServerIdAccessRoute:
       OrgsOrgIdServersNodeIdServerIdAccessRoute,
+    OrgsOrgIdServersNodeIdServerIdActivityRoute:
+      OrgsOrgIdServersNodeIdServerIdActivityRoute,
+    OrgsOrgIdServersNodeIdServerIdBackupsRoute:
+      OrgsOrgIdServersNodeIdServerIdBackupsRoute,
+    OrgsOrgIdServersNodeIdServerIdDatabasesRoute:
+      OrgsOrgIdServersNodeIdServerIdDatabasesRoute,
     OrgsOrgIdServersNodeIdServerIdFilesRoute:
       OrgsOrgIdServersNodeIdServerIdFilesRoute,
+    OrgsOrgIdServersNodeIdServerIdNetworkRoute:
+      OrgsOrgIdServersNodeIdServerIdNetworkRoute,
+    OrgsOrgIdServersNodeIdServerIdSchedulesRoute:
+      OrgsOrgIdServersNodeIdServerIdSchedulesRoute,
     OrgsOrgIdServersNodeIdServerIdSettingsRoute:
       OrgsOrgIdServersNodeIdServerIdSettingsRoute,
+    OrgsOrgIdServersNodeIdServerIdStartupRoute:
+      OrgsOrgIdServersNodeIdServerIdStartupRoute,
     OrgsOrgIdServersNodeIdServerIdIndexRoute:
       OrgsOrgIdServersNodeIdServerIdIndexRoute,
   }

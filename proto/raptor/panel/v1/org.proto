@@ -117,6 +117,18 @@ service OrgService {
   rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ListSchedules lists a server's schedules as the mirror has them. Needs
+  // the schedules permission.
+  rpc ListSchedules(ListSchedulesRequest) returns (ListSchedulesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ListBackups lists a server's backups as the mirror has them, newest
+  // first. Needs the backups permission.
+  rpc ListBackups(ListBackupsRequest) returns (ListBackupsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 enum Role {
@@ -243,6 +255,9 @@ message ListAuditLogRequest {
   string org_id = 1;
   // next_page_token from the previous page.
   string page_token = 2;
+  // With both set, only the commands sent to that server.
+  string node_id = 3;
+  string server_id = 4;
 }
 
 message ListAuditLogResponse {
@@ -376,4 +391,53 @@ message ListMemberPasskeysRequest {
 message ListMemberPasskeysResponse {
   // name, credential_id, public_key, and created_at are set.
   repeated Passkey passkeys = 1;
+}
+
+message ListSchedulesRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+}
+
+message ListSchedulesResponse {
+  repeated Schedule schedules = 1;
+}
+
+message Schedule {
+  string id = 1;
+  string name = 2;
+  bool enabled = 3;
+  google.protobuf.Timestamp next_run = 4;
+  google.protobuf.Timestamp last_run = 5;
+  // What schedule.create and schedule.update take, as JSON: cron, timezone,
+  // steps, and the rest.
+  string definition_json = 6;
+}
+
+message ListBackupsRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+}
+
+message ListBackupsResponse {
+  repeated Backup backups = 1;
+}
+
+message Backup {
+  string id = 1;
+  // "manual", "scheduled", "safety" (taken before a restore or a wipe), or
+  // "final" (taken before the server was deleted).
+  string kind = 2;
+  // "pending", "running", "ok", or "failed".
+  string status = 3;
+  // Retention never deletes a locked backup.
+  bool locked = 4;
+  int64 size = 5;
+  int64 files = 6;
+  string error = 7;
+  string warning = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp finished_at = 10;
+  google.protobuf.Timestamp expires_at = 11;
 }

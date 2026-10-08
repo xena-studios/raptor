@@ -287,6 +287,41 @@ func TestCommands(t *testing.T) {
 		t.Errorf("a server the member can't see: %v", err)
 	}
 
+	// Schedules and backups, from the mirror, for those with the permission.
+	if _, err := db.Exec(ctx, `INSERT INTO m_schedules (node_id, server_id, schedule_id, name, enabled, version, definition) VALUES ($1, 's1', 'sc1', 'Restart', true, 1, '{"cron": "@daily"}')`, nodeID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(ctx, `INSERT INTO m_backups (node_id, server_id, backup_id, kind, status, locked, size, files, destination_id, error, warning, created_by, created_at)
+		VALUES ($1, 's1', 'b1', 'manual', 'ok', false, 1024, 3, 'local', '', '', '', now())`, nodeID); err != nil {
+		t.Fatal(err)
+	}
+	scheds, err := alice.orgs.ListSchedules(ctx, &panelv1.ListSchedulesRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"})
+	if err != nil || len(scheds.GetSchedules()) != 1 || scheds.GetSchedules()[0].GetName() != "Restart" || !strings.Contains(scheds.GetSchedules()[0].GetDefinitionJson(), "@daily") {
+		t.Errorf("owner's schedules: %v, %v", scheds, err)
+	}
+	backups, err := alice.orgs.ListBackups(ctx, &panelv1.ListBackupsRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"})
+	if err != nil || len(backups.GetBackups()) != 1 || backups.GetBackups()[0].GetSize() != 1024 || backups.GetBackups()[0].GetCreatedAt() == nil {
+		t.Errorf("owner's backups: %v, %v", backups, err)
+	}
+	if _, err := bob.orgs.ListSchedules(ctx, &panelv1.ListSchedulesRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"}); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("member without schedules: %v", err)
+	}
+	if _, err := bob.orgs.ListBackups(ctx, &panelv1.ListBackupsRequest{OrgId: org, NodeId: nodeID, ServerId: "s2"}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("backups of a server the member can't see: %v", err)
+	}
+	if err := set(alice, "s1", bobID, "power", "files.read", "backups"); err != nil {
+		t.Fatal(err)
+	}
+	if backups, err := bob.orgs.ListBackups(ctx, &panelv1.ListBackupsRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"}); err != nil || len(backups.GetBackups()) != 1 {
+		t.Errorf("member with backups: %v, %v", backups, err)
+	}
+
+	// One server's activity: the commands sent to it.
+	log, err = alice.orgs.ListAuditLog(ctx, &panelv1.ListAuditLogRequest{OrgId: org, NodeId: nodeID, ServerId: "s2"})
+	if err != nil || len(log.GetEvents()) != 1 || !strings.Contains(log.GetEvents()[0].GetMetadataJson(), "server.delete") {
+		t.Errorf("s2's activity: %v, %v", log, err)
+	}
+
 	// Removing access, or the member, takes it away.
 	if err := set(alice, "s1", bobID); err != nil {
 		t.Fatal(err)

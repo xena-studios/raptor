@@ -83,6 +83,11 @@ const (
 	OrgServiceListMemberPasskeysProcedure = "/raptor.panel.v1.OrgService/ListMemberPasskeys"
 	// OrgServiceListAuditLogProcedure is the fully-qualified name of the OrgService's ListAuditLog RPC.
 	OrgServiceListAuditLogProcedure = "/raptor.panel.v1.OrgService/ListAuditLog"
+	// OrgServiceListSchedulesProcedure is the fully-qualified name of the OrgService's ListSchedules
+	// RPC.
+	OrgServiceListSchedulesProcedure = "/raptor.panel.v1.OrgService/ListSchedules"
+	// OrgServiceListBackupsProcedure is the fully-qualified name of the OrgService's ListBackups RPC.
+	OrgServiceListBackupsProcedure = "/raptor.panel.v1.OrgService/ListBackups"
 )
 
 // OrgServiceClient is a client for the raptor.panel.v1.OrgService service.
@@ -154,6 +159,12 @@ type OrgServiceClient interface {
 	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
 	// Admins and owners.
 	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
+	// ListSchedules lists a server's schedules as the mirror has them. Needs
+	// the schedules permission.
+	ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error)
+	// ListBackups lists a server's backups as the mirror has them, newest
+	// first. Needs the backups permission.
+	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
 }
 
 // NewOrgServiceClient constructs a client for the raptor.panel.v1.OrgService service. By default,
@@ -302,6 +313,20 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		listSchedules: connect.NewClient[v1.ListSchedulesRequest, v1.ListSchedulesResponse](
+			httpClient,
+			baseURL+OrgServiceListSchedulesProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListSchedules")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		listBackups: connect.NewClient[v1.ListBackupsRequest, v1.ListBackupsResponse](
+			httpClient,
+			baseURL+OrgServiceListBackupsProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListBackups")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -328,6 +353,8 @@ type orgServiceClient struct {
 	pinJoinToken       *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
 	listMemberPasskeys *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
 	listAuditLog       *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
+	listSchedules      *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
+	listBackups        *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
 }
 
 // CreateOrg calls raptor.panel.v1.OrgService.CreateOrg.
@@ -519,6 +546,24 @@ func (c *orgServiceClient) ListAuditLog(ctx context.Context, req *v1.ListAuditLo
 	return nil, err
 }
 
+// ListSchedules calls raptor.panel.v1.OrgService.ListSchedules.
+func (c *orgServiceClient) ListSchedules(ctx context.Context, req *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error) {
+	response, err := c.listSchedules.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListBackups calls raptor.panel.v1.OrgService.ListBackups.
+func (c *orgServiceClient) ListBackups(ctx context.Context, req *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {
+	response, err := c.listBackups.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // OrgServiceHandler is an implementation of the raptor.panel.v1.OrgService service.
 type OrgServiceHandler interface {
 	// CreateOrg makes an org with the caller as its owner.
@@ -588,6 +633,12 @@ type OrgServiceHandler interface {
 	// ListAuditLog lists the org's audit log, newest first, 50 at a time.
 	// Admins and owners.
 	ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error)
+	// ListSchedules lists a server's schedules as the mirror has them. Needs
+	// the schedules permission.
+	ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error)
+	// ListBackups lists a server's backups as the mirror has them, newest
+	// first. Needs the backups permission.
+	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
 }
 
 // NewOrgServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -732,6 +783,20 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceListSchedulesHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListSchedulesProcedure,
+		svc.ListSchedules,
+		connect.WithSchema(orgServiceMethods.ByName("ListSchedules")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceListBackupsHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListBackupsProcedure,
+		svc.ListBackups,
+		connect.WithSchema(orgServiceMethods.ByName("ListBackups")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.OrgService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrgServiceCreateOrgProcedure:
@@ -776,6 +841,10 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListMemberPasskeysHandler.ServeHTTP(w, r)
 		case OrgServiceListAuditLogProcedure:
 			orgServiceListAuditLogHandler.ServeHTTP(w, r)
+		case OrgServiceListSchedulesProcedure:
+			orgServiceListSchedulesHandler.ServeHTTP(w, r)
+		case OrgServiceListBackupsProcedure:
+			orgServiceListBackupsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -867,4 +936,12 @@ func (UnimplementedOrgServiceHandler) ListMemberPasskeys(context.Context, *v1.Li
 
 func (UnimplementedOrgServiceHandler) ListAuditLog(context.Context, *v1.ListAuditLogRequest) (*v1.ListAuditLogResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListAuditLog is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListSchedules is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListBackups is not implemented"))
 }
