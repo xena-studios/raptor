@@ -47,10 +47,14 @@ func (s *service) OpenTransfer(ctx context.Context, req *nodev1.OpenTransferRequ
 	if id == "" || len(id) > 64 || !t.HasTransfer(ctx, id) {
 		return nil, connect.NewError(connect.CodeNotFound, files.ErrTransferNotFound)
 	}
+	route := req.GetRoute()
+	if route != "" && !nodelink.ValidRoute(route) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("bad route"))
+	}
 	dctx, cancel := context.WithTimeout(ctx, nodelink.HandshakeTimeout)
 	defer cancel()
 	sess, err := nodelink.Dial(context.WithoutCancel(dctx), nodelink.DialConfig{
-		URL: s.l.cfg.PanelURL, NodeID: s.l.cfg.NodeID, NodeKey: s.l.cfg.NodeKey, PanelKey: s.l.cfg.PanelKey,
+		URL: nodelink.WithRoute(s.l.cfg.PanelURL, route), NodeID: s.l.cfg.NodeID, NodeKey: s.l.cfg.NodeKey, PanelKey: s.l.cfg.PanelKey,
 		Purpose: nodelink.TransferPurpose(id), Software: s.l.cfg.Software, HTTPClient: s.l.cfg.HTTPClient, Keepalive: s.l.cfg.Keepalive,
 	})
 	if err != nil {

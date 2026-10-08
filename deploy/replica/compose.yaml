@@ -8,7 +8,7 @@ x-panel: &panel
   restart: unless-stopped
   profiles: [failover]
   env_file: ["${RAPTOR_RUN:-/run/raptor}/panel.env"]
-  environment:
+  environment: &panel-env
     PANEL_API_ADDR: ":8080"
     PANEL_SIGNING_KEY: /keys/signing.key
     PANEL_DATA_KEY: /keys/data.key
@@ -61,8 +61,18 @@ services:
       timeout: 5s
       retries: 60
 
-  panel-a: *panel
-  panel-b: *panel
+  panel-a:
+    <<: *panel
+    environment:
+      <<: *panel-env
+      # Each instance's own path through Caddy (Caddyfile), for the
+      # transfer connections nodes open to the instance that asked.
+      PANEL_INSTANCE_ROUTE: /i/panel-a
+  panel-b:
+    <<: *panel
+    environment:
+      <<: *panel-env
+      PANEL_INSTANCE_ROUTE: /i/panel-b
 
   caddy:
     image: caddy:2

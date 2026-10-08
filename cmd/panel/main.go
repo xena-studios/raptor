@@ -165,8 +165,12 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		}
 		cfg.Nodes = reg
 		router := &nodes.Router{DB: pool, ID: nodes.NewInstanceID(), Log: log}
+		route := os.Getenv("PANEL_INSTANCE_ROUTE")
+		if route != "" && !nodelink.ValidRoute(route) {
+			return fmt.Errorf("PANEL_INSTANCE_ROUTE %q: want a path like /i/panel-a", route)
+		}
 		cfg.Hub = &nodes.Hub{
-			PanelKey: reg.PanelKey, NodeKey: reg.NodeKey, Log: log,
+			PanelKey: reg.PanelKey, NodeKey: reg.NodeKey, Log: log, Route: route,
 			OnConnect: func(ctx context.Context, h nodelink.Hello) {
 				router.Connected(ctx, h)
 				if err := reg.Connected(ctx, h); err != nil {

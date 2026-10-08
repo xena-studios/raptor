@@ -637,7 +637,12 @@ func (x *Backup) GetExpiresAt() int64 {
 type OpenTransferRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The upload_id or download_id.
-	TransferId    string `protobuf:"bytes,1,opt,name=transfer_id,json=transferId,proto3" json:"transfer_id,omitempty"`
+	TransferId string `protobuf:"bytes,1,opt,name=transfer_id,json=transferId,proto3" json:"transfer_id,omitempty"`
+	// The path that reaches the Panel instance asking ("/i/panel-a"), which
+	// Wings puts before the connection's path: with several instances behind
+	// one proxy, the transfer connection must reach the one waiting for it.
+	// Empty: the Panel URL as it is.
+	Route         string `protobuf:"bytes,2,opt,name=route,proto3" json:"route,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -675,6 +680,13 @@ func (*OpenTransferRequest) Descriptor() ([]byte, []int) {
 func (x *OpenTransferRequest) GetTransferId() string {
 	if x != nil {
 		return x.TransferId
+	}
+	return ""
+}
+
+func (x *OpenTransferRequest) GetRoute() string {
+	if x != nil {
+		return x.Route
 	}
 	return ""
 }
@@ -1642,10 +1654,11 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\vfinished_at\x18\f \x01(\x03R\n" +
 	"finishedAt\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\r \x01(\x03R\texpiresAt\"6\n" +
+	"expires_at\x18\r \x01(\x03R\texpiresAt\"L\n" +
 	"\x13OpenTransferRequest\x12\x1f\n" +
 	"\vtransfer_id\x18\x01 \x01(\tR\n" +
-	"transferId\"\x16\n" +
+	"transferId\x12\x14\n" +
+	"\x05route\x18\x02 \x01(\tR\x05route\"\x16\n" +
 	"\x14OpenTransferResponse\",\n" +
 	"\x0eExecuteRequest\x12\x1a\n" +
 	"\benvelope\x18\x01 \x01(\fR\benvelope\"]\n" +

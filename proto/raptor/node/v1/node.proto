@@ -137,6 +137,11 @@ message Backup {
 message OpenTransferRequest {
   // The upload_id or download_id.
   string transfer_id = 1;
+  // The path that reaches the Panel instance asking ("/i/panel-a"), which
+  // Wings puts before the connection's path: with several instances behind
+  // one proxy, the transfer connection must reach the one waiting for it.
+  // Empty: the Panel URL as it is.
+  string route = 2;
 }
 
 message OpenTransferResponse {}
