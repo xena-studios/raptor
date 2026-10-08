@@ -289,3 +289,32 @@ func (r *Registry) Disconnected(ctx context.Context, nodeID string) error {
 }
 
 var _ nodev1connect.EnrollmentServiceHandler = (*Registry)(nil)
+
+// Remove takes a node out of its org: its key is refused from now on, and
+// its mirror and members' grants are dropped. Its servers keep running on
+// the machine; relinking it (raptor relink, with a join token) brings it
+// back. False if there was no such node.
+func (r *Registry) Remove(ctx context.Context, nodeID string) (bool, error) {
+	id, err := uuid.Parse(nodeID)
+	if err != nil {
+		return false, err
+	}
+	var removed bool
+	err = pgx.BeginFunc(ctx, r.DB, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		n, err := q.RemoveNode(ctx, pgUUID(id))
+		if err != nil || n == 0 {
+			return err
+		}
+		removed = true
+		for _, forget := range []func(context.Context, pgtype.UUID) error{
+			q.ForgetNodeJobs, q.ForgetNodeBackups, q.ForgetNodeSchedules, q.ForgetNodeServers, q.ForgetNodeGrants,
+		} {
+			if err := forget(ctx, pgUUID(id)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return removed, err
+}

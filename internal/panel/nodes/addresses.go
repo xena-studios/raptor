@@ -144,3 +144,46 @@ func (a *Addresses) Sync(ctx context.Context, nodeID string) error {
 	a.log().Info("node DNS updated", "node", nodeID, "name", name)
 	return nil
 }
+
+// Forget removes a removed node's DNS records, so its name stops pointing
+// at the machine (names are never reused).
+func (a *Addresses) Forget(ctx context.Context, nodeID string) error {
+	if a.DNS == nil || a.Domain == "" {
+		return nil
+	}
+	id, err := uuid.Parse(nodeID)
+	if err != nil {
+		return err
+	}
+	q := a.Store.q()
+	n, err := q.NodeDNS(ctx, pgUUID(id))
+	if err != nil {
+		return err
+	}
+	name := Hostname(n.ShortID, a.Domain)
+	for _, typ := range []string{"A", "AAAA"} {
+		if err := a.DNS.Set(ctx, name, typ, netip.Addr{}); err != nil {
+			return err
+		}
+	}
+	return q.SetNodeDNS(ctx, store.SetNodeDNSParams{ID: pgUUID(id)})
+}
+
+// ForgetWithRetry is Forget, retried for a while if Cloudflare fails.
+func (a *Addresses) ForgetWithRetry(ctx context.Context, nodeID string) {
+	wait := time.Second
+	for range 8 {
+		err := a.Forget(ctx, nodeID)
+		if err == nil {
+			return
+		}
+		a.log().Warn("removing a removed node's DNS records failed; retrying", "node", nodeID, "err", err)
+		select {
+		case <-time.After(wait):
+		case <-ctx.Done():
+			return
+		}
+		wait *= 2
+	}
+	a.log().Error("gave up removing a removed node's DNS records", "node", nodeID)
+}

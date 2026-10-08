@@ -68,6 +68,10 @@ const (
 	OrgServiceListServerAccessProcedure = "/raptor.panel.v1.OrgService/ListServerAccess"
 	// OrgServiceListNodesProcedure is the fully-qualified name of the OrgService's ListNodes RPC.
 	OrgServiceListNodesProcedure = "/raptor.panel.v1.OrgService/ListNodes"
+	// OrgServiceRenameNodeProcedure is the fully-qualified name of the OrgService's RenameNode RPC.
+	OrgServiceRenameNodeProcedure = "/raptor.panel.v1.OrgService/RenameNode"
+	// OrgServiceRemoveNodeProcedure is the fully-qualified name of the OrgService's RemoveNode RPC.
+	OrgServiceRemoveNodeProcedure = "/raptor.panel.v1.OrgService/RemoveNode"
 	// OrgServiceListServersProcedure is the fully-qualified name of the OrgService's ListServers RPC.
 	OrgServiceListServersProcedure = "/raptor.panel.v1.OrgService/ListServers"
 	// OrgServiceGetServerProcedure is the fully-qualified name of the OrgService's GetServer RPC.
@@ -121,6 +125,14 @@ type OrgServiceClient interface {
 	// ListNodes lists the org's nodes. Admins and owners see all of them;
 	// members see the ones with servers they have access to.
 	ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error)
+	// RenameNode renames a node. Admins and owners.
+	RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error)
+	// RemoveNode takes a node out of the org: its key is refused from now
+	// on, its DNS name stops pointing at it, and its mirror and members'
+	// grants are dropped. Its servers keep running on the machine, and
+	// relinking it with a join token brings it back. Admins and owners, after
+	// re-authenticating.
+	RemoveNode(context.Context, *v1.RemoveNodeRequest) (*v1.RemoveNodeResponse, error)
 	// ListServers lists a node's servers as the Panel's mirror has them, with
 	// what the caller may do on each. Members see only the servers they have
 	// access to.
@@ -244,6 +256,18 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		renameNode: connect.NewClient[v1.RenameNodeRequest, v1.RenameNodeResponse](
+			httpClient,
+			baseURL+OrgServiceRenameNodeProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("RenameNode")),
+			connect.WithClientOptions(opts...),
+		),
+		removeNode: connect.NewClient[v1.RemoveNodeRequest, v1.RemoveNodeResponse](
+			httpClient,
+			baseURL+OrgServiceRemoveNodeProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("RemoveNode")),
+			connect.WithClientOptions(opts...),
+		),
 		listServers: connect.NewClient[v1.ListServersRequest, v1.ListServersResponse](
 			httpClient,
 			baseURL+OrgServiceListServersProcedure,
@@ -297,6 +321,8 @@ type orgServiceClient struct {
 	setServerAccess    *connect.Client[v1.SetServerAccessRequest, v1.SetServerAccessResponse]
 	listServerAccess   *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
 	listNodes          *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
+	renameNode         *connect.Client[v1.RenameNodeRequest, v1.RenameNodeResponse]
+	removeNode         *connect.Client[v1.RemoveNodeRequest, v1.RemoveNodeResponse]
 	listServers        *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
 	getServer          *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
 	pinJoinToken       *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
@@ -430,6 +456,24 @@ func (c *orgServiceClient) ListNodes(ctx context.Context, req *v1.ListNodesReque
 	return nil, err
 }
 
+// RenameNode calls raptor.panel.v1.OrgService.RenameNode.
+func (c *orgServiceClient) RenameNode(ctx context.Context, req *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error) {
+	response, err := c.renameNode.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RemoveNode calls raptor.panel.v1.OrgService.RemoveNode.
+func (c *orgServiceClient) RemoveNode(ctx context.Context, req *v1.RemoveNodeRequest) (*v1.RemoveNodeResponse, error) {
+	response, err := c.removeNode.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListServers calls raptor.panel.v1.OrgService.ListServers.
 func (c *orgServiceClient) ListServers(ctx context.Context, req *v1.ListServersRequest) (*v1.ListServersResponse, error) {
 	response, err := c.listServers.CallUnary(ctx, connect.NewRequest(req))
@@ -515,6 +559,14 @@ type OrgServiceHandler interface {
 	// ListNodes lists the org's nodes. Admins and owners see all of them;
 	// members see the ones with servers they have access to.
 	ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error)
+	// RenameNode renames a node. Admins and owners.
+	RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error)
+	// RemoveNode takes a node out of the org: its key is refused from now
+	// on, its DNS name stops pointing at it, and its mirror and members'
+	// grants are dropped. Its servers keep running on the machine, and
+	// relinking it with a join token brings it back. Admins and owners, after
+	// re-authenticating.
+	RemoveNode(context.Context, *v1.RemoveNodeRequest) (*v1.RemoveNodeResponse, error)
 	// ListServers lists a node's servers as the Panel's mirror has them, with
 	// what the caller may do on each. Members see only the servers they have
 	// access to.
@@ -634,6 +686,18 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceRenameNodeHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceRenameNodeProcedure,
+		svc.RenameNode,
+		connect.WithSchema(orgServiceMethods.ByName("RenameNode")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceRemoveNodeHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceRemoveNodeProcedure,
+		svc.RemoveNode,
+		connect.WithSchema(orgServiceMethods.ByName("RemoveNode")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceListServersHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceListServersProcedure,
 		svc.ListServers,
@@ -698,6 +762,10 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListServerAccessHandler.ServeHTTP(w, r)
 		case OrgServiceListNodesProcedure:
 			orgServiceListNodesHandler.ServeHTTP(w, r)
+		case OrgServiceRenameNodeProcedure:
+			orgServiceRenameNodeHandler.ServeHTTP(w, r)
+		case OrgServiceRemoveNodeProcedure:
+			orgServiceRemoveNodeHandler.ServeHTTP(w, r)
 		case OrgServiceListServersProcedure:
 			orgServiceListServersHandler.ServeHTTP(w, r)
 		case OrgServiceGetServerProcedure:
@@ -771,6 +839,14 @@ func (UnimplementedOrgServiceHandler) ListServerAccess(context.Context, *v1.List
 
 func (UnimplementedOrgServiceHandler) ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListNodes is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.RenameNode is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) RemoveNode(context.Context, *v1.RemoveNodeRequest) (*v1.RemoveNodeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.RemoveNode is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error) {

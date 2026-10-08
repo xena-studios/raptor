@@ -105,6 +105,54 @@ func (q *Queries) CreateOrg(ctx context.Context, name string) (Org, error) {
 	return i, err
 }
 
+const forgetNodeBackups = `-- name: ForgetNodeBackups :exec
+DELETE FROM m_backups WHERE node_id = $1
+`
+
+func (q *Queries) ForgetNodeBackups(ctx context.Context, nodeID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, forgetNodeBackups, nodeID)
+	return err
+}
+
+const forgetNodeGrants = `-- name: ForgetNodeGrants :exec
+DELETE FROM server_grants WHERE node_id = $1
+`
+
+func (q *Queries) ForgetNodeGrants(ctx context.Context, nodeID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, forgetNodeGrants, nodeID)
+	return err
+}
+
+const forgetNodeJobs = `-- name: ForgetNodeJobs :exec
+
+DELETE FROM m_jobs WHERE node_id = $1
+`
+
+// A removed node's mirror and members' grants: they were about servers the
+// Panel no longer manages.
+func (q *Queries) ForgetNodeJobs(ctx context.Context, nodeID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, forgetNodeJobs, nodeID)
+	return err
+}
+
+const forgetNodeSchedules = `-- name: ForgetNodeSchedules :exec
+DELETE FROM m_schedules WHERE node_id = $1
+`
+
+func (q *Queries) ForgetNodeSchedules(ctx context.Context, nodeID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, forgetNodeSchedules, nodeID)
+	return err
+}
+
+const forgetNodeServers = `-- name: ForgetNodeServers :exec
+DELETE FROM m_servers WHERE node_id = $1
+`
+
+func (q *Queries) ForgetNodeServers(ctx context.Context, nodeID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, forgetNodeServers, nodeID)
+	return err
+}
+
 const getJoinTokenForUpdate = `-- name: GetJoinTokenForUpdate :one
 SELECT id, org_id, token_hash, name, expires_at, used_at, node_id, created_at, owner_pin FROM join_tokens WHERE token_hash = $1 FOR UPDATE
 `
@@ -250,6 +298,38 @@ func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, e
 		&i.DnsIpv6,
 	)
 	return i, err
+}
+
+const removeNode = `-- name: RemoveNode :execrows
+UPDATE nodes SET deleted_at = now(), key_revoked_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+// Removing a node: its key is refused from now on (relinking with a join
+// token brings it back), and it's hidden everywhere.
+func (q *Queries) RemoveNode(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, removeNode, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const renameNode = `-- name: RenameNode :execrows
+UPDATE nodes SET name = $2 WHERE id = $1 AND deleted_at IS NULL
+`
+
+type RenameNodeParams struct {
+	ID   pgtype.UUID
+	Name string
+}
+
+func (q *Queries) RenameNode(ctx context.Context, arg RenameNodeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, renameNode, arg.ID, arg.Name)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const setJoinTokenPin = `-- name: SetJoinTokenPin :execrows

@@ -55,3 +55,30 @@ UPDATE nodes SET dns_ipv4 = $2, dns_ipv6 = $3 WHERE id = $1;
 -- Only on an org's own unused, unexpired token, and only once.
 UPDATE join_tokens SET owner_pin = $3
 WHERE token_hash = $1 AND org_id = $2 AND used_at IS NULL AND expires_at > now() AND owner_pin IS NULL;
+
+-- name: RemoveNode :execrows
+-- Removing a node: its key is refused from now on (relinking with a join
+-- token brings it back), and it's hidden everywhere.
+UPDATE nodes SET deleted_at = now(), key_revoked_at = now()
+WHERE id = $1 AND deleted_at IS NULL;
+
+-- A removed node's mirror and members' grants: they were about servers the
+-- Panel no longer manages.
+
+-- name: ForgetNodeJobs :exec
+DELETE FROM m_jobs WHERE node_id = $1;
+
+-- name: ForgetNodeBackups :exec
+DELETE FROM m_backups WHERE node_id = $1;
+
+-- name: ForgetNodeSchedules :exec
+DELETE FROM m_schedules WHERE node_id = $1;
+
+-- name: ForgetNodeServers :exec
+DELETE FROM m_servers WHERE node_id = $1;
+
+-- name: ForgetNodeGrants :exec
+DELETE FROM server_grants WHERE node_id = $1;
+
+-- name: RenameNode :execrows
+UPDATE nodes SET name = $2 WHERE id = $1 AND deleted_at IS NULL;

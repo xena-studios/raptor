@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
+	"strings"
+	"unicode/utf8"
 
+	"connectrpc.com/connect"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -183,4 +187,68 @@ func (s *Service) GetServer(ctx context.Context, req *panelv1.GetServerRequest) 
 		return nil, err
 	}
 	return out, nil
+}
+
+// nodeOf checks the signed-in user is an admin or owner of the org the
+// node is in.
+func (s *Service) nodeOf(ctx context.Context, orgID, nodeID string) (*auth.Session, pgtype.UUID, pgtype.UUID, error) {
+	var sess *auth.Session
+	var org, node pgtype.UUID
+	err := s.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
+		sess = se
+		var err error
+		if org, _, err = member(ctx, q, se, orgID, "admin"); err != nil {
+			return err
+		}
+		if node, err = parseID(nodeID, "node"); err != nil {
+			return err
+		}
+		if owner, err := q.NodeOrg(ctx, node); err != nil || owner != org {
+			return connect.NewError(connect.CodeNotFound, errors.New("no such node"))
+		}
+		return nil
+	})
+	return sess, org, node, err
+}
+
+// RenameNode implements OrgService.
+func (s *Service) RenameNode(ctx context.Context, req *panelv1.RenameNodeRequest) (*panelv1.RenameNodeResponse, error) {
+	name := strings.TrimSpace(req.GetName())
+	if name == "" || utf8.RuneCountInString(name) > maxOrgName || !utf8.ValidString(name) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("a node's name is 1 to %d characters", maxOrgName))
+	}
+	sess, org, node, err := s.nodeOf(ctx, req.GetOrgId(), req.GetNodeId())
+	if err != nil {
+		return nil, err
+	}
+	if _, err := store.New(s.DB).RenameNode(ctx, store.RenameNodeParams{ID: node, Name: name}); err != nil {
+		return nil, err
+	}
+	_ = s.audit(ctx, nil, sess, org, "node.rename", idString(node), nil, map[string]any{"name": name})
+	return &panelv1.RenameNodeResponse{}, nil
+}
+
+// RemoveNode implements OrgService.
+func (s *Service) RemoveNode(ctx context.Context, req *panelv1.RemoveNodeRequest) (*panelv1.RemoveNodeResponse, error) {
+	if s.Registry == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("nodes aren't managed by this Panel"))
+	}
+	sess, org, node, err := s.nodeOf(ctx, req.GetOrgId(), req.GetNodeId())
+	if err != nil {
+		return nil, err
+	}
+	if err := s.Auth.RequireReauth(sess); err != nil {
+		return nil, err
+	}
+	removed, err := s.Registry.Remove(ctx, idString(node))
+	if err != nil {
+		return nil, err
+	}
+	if removed {
+		_ = s.audit(ctx, nil, sess, org, "node.remove", idString(node), nil, nil)
+		if s.NodeRemoved != nil {
+			s.NodeRemoved(context.WithoutCancel(ctx), idString(node))
+		}
+	}
+	return &panelv1.RemoveNodeResponse{}, nil
 }

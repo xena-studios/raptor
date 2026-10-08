@@ -1887,6 +1887,190 @@ func (x *ListNodesResponse) GetNodes() []*Node {
 	return nil
 }
 
+type RenameNodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	NodeId        string                 `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameNodeRequest) Reset() {
+	*x = RenameNodeRequest{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameNodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameNodeRequest) ProtoMessage() {}
+
+func (x *RenameNodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameNodeRequest.ProtoReflect.Descriptor instead.
+func (*RenameNodeRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *RenameNodeRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *RenameNodeRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *RenameNodeRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type RenameNodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameNodeResponse) Reset() {
+	*x = RenameNodeResponse{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameNodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameNodeResponse) ProtoMessage() {}
+
+func (x *RenameNodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameNodeResponse.ProtoReflect.Descriptor instead.
+func (*RenameNodeResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{36}
+}
+
+type RemoveNodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	NodeId        string                 `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveNodeRequest) Reset() {
+	*x = RemoveNodeRequest{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveNodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveNodeRequest) ProtoMessage() {}
+
+func (x *RemoveNodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveNodeRequest.ProtoReflect.Descriptor instead.
+func (*RemoveNodeRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *RemoveNodeRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *RemoveNodeRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+type RemoveNodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveNodeResponse) Reset() {
+	*x = RemoveNodeResponse{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveNodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveNodeResponse) ProtoMessage() {}
+
+func (x *RemoveNodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveNodeResponse.ProtoReflect.Descriptor instead.
+func (*RemoveNodeResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{38}
+}
+
 type ListServersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
@@ -1897,7 +2081,7 @@ type ListServersRequest struct {
 
 func (x *ListServersRequest) Reset() {
 	*x = ListServersRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1909,7 +2093,7 @@ func (x *ListServersRequest) String() string {
 func (*ListServersRequest) ProtoMessage() {}
 
 func (x *ListServersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1922,7 +2106,7 @@ func (x *ListServersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServersRequest.ProtoReflect.Descriptor instead.
 func (*ListServersRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{35}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ListServersRequest) GetOrgId() string {
@@ -1960,7 +2144,7 @@ type Server struct {
 
 func (x *Server) Reset() {
 	*x = Server{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[36]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1972,7 +2156,7 @@ func (x *Server) String() string {
 func (*Server) ProtoMessage() {}
 
 func (x *Server) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[36]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1985,7 +2169,7 @@ func (x *Server) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Server.ProtoReflect.Descriptor instead.
 func (*Server) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{36}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *Server) GetId() string {
@@ -2053,7 +2237,7 @@ type ListServersResponse struct {
 
 func (x *ListServersResponse) Reset() {
 	*x = ListServersResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[37]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2065,7 +2249,7 @@ func (x *ListServersResponse) String() string {
 func (*ListServersResponse) ProtoMessage() {}
 
 func (x *ListServersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[37]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2078,7 +2262,7 @@ func (x *ListServersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServersResponse.ProtoReflect.Descriptor instead.
 func (*ListServersResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{37}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ListServersResponse) GetServers() []*Server {
@@ -2099,7 +2283,7 @@ type GetServerRequest struct {
 
 func (x *GetServerRequest) Reset() {
 	*x = GetServerRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[38]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2111,7 +2295,7 @@ func (x *GetServerRequest) String() string {
 func (*GetServerRequest) ProtoMessage() {}
 
 func (x *GetServerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[38]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2124,7 +2308,7 @@ func (x *GetServerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServerRequest.ProtoReflect.Descriptor instead.
 func (*GetServerRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{38}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetServerRequest) GetOrgId() string {
@@ -2163,7 +2347,7 @@ type GetServerResponse struct {
 
 func (x *GetServerResponse) Reset() {
 	*x = GetServerResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[39]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2175,7 +2359,7 @@ func (x *GetServerResponse) String() string {
 func (*GetServerResponse) ProtoMessage() {}
 
 func (x *GetServerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[39]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2188,7 +2372,7 @@ func (x *GetServerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServerResponse.ProtoReflect.Descriptor instead.
 func (*GetServerResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{39}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetServerResponse) GetServer() *Server {
@@ -2218,7 +2402,7 @@ type PinJoinTokenRequest struct {
 
 func (x *PinJoinTokenRequest) Reset() {
 	*x = PinJoinTokenRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[40]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2230,7 +2414,7 @@ func (x *PinJoinTokenRequest) String() string {
 func (*PinJoinTokenRequest) ProtoMessage() {}
 
 func (x *PinJoinTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[40]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2243,7 +2427,7 @@ func (x *PinJoinTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PinJoinTokenRequest.ProtoReflect.Descriptor instead.
 func (*PinJoinTokenRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{40}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *PinJoinTokenRequest) GetOrgId() string {
@@ -2275,7 +2459,7 @@ type PinJoinTokenResponse struct {
 
 func (x *PinJoinTokenResponse) Reset() {
 	*x = PinJoinTokenResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[41]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2287,7 +2471,7 @@ func (x *PinJoinTokenResponse) String() string {
 func (*PinJoinTokenResponse) ProtoMessage() {}
 
 func (x *PinJoinTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[41]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2300,7 +2484,7 @@ func (x *PinJoinTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PinJoinTokenResponse.ProtoReflect.Descriptor instead.
 func (*PinJoinTokenResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{41}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{45}
 }
 
 type ListMemberPasskeysRequest struct {
@@ -2313,7 +2497,7 @@ type ListMemberPasskeysRequest struct {
 
 func (x *ListMemberPasskeysRequest) Reset() {
 	*x = ListMemberPasskeysRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[42]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2325,7 +2509,7 @@ func (x *ListMemberPasskeysRequest) String() string {
 func (*ListMemberPasskeysRequest) ProtoMessage() {}
 
 func (x *ListMemberPasskeysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[42]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2338,7 +2522,7 @@ func (x *ListMemberPasskeysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMemberPasskeysRequest.ProtoReflect.Descriptor instead.
 func (*ListMemberPasskeysRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{42}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ListMemberPasskeysRequest) GetOrgId() string {
@@ -2365,7 +2549,7 @@ type ListMemberPasskeysResponse struct {
 
 func (x *ListMemberPasskeysResponse) Reset() {
 	*x = ListMemberPasskeysResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[43]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2377,7 +2561,7 @@ func (x *ListMemberPasskeysResponse) String() string {
 func (*ListMemberPasskeysResponse) ProtoMessage() {}
 
 func (x *ListMemberPasskeysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[43]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2390,7 +2574,7 @@ func (x *ListMemberPasskeysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMemberPasskeysResponse.ProtoReflect.Descriptor instead.
 func (*ListMemberPasskeysResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{43}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ListMemberPasskeysResponse) GetPasskeys() []*Passkey {
@@ -2518,7 +2702,16 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\fmemory_bytes\x18\n" +
 	" \x01(\x03R\vmemoryBytes\"@\n" +
 	"\x11ListNodesResponse\x12+\n" +
-	"\x05nodes\x18\x01 \x03(\v2\x15.raptor.panel.v1.NodeR\x05nodes\"D\n" +
+	"\x05nodes\x18\x01 \x03(\v2\x15.raptor.panel.v1.NodeR\x05nodes\"W\n" +
+	"\x11RenameNodeRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\x14\n" +
+	"\x12RenameNodeResponse\"C\n" +
+	"\x11RemoveNodeRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\x14\n" +
+	"\x12RemoveNodeResponse\"D\n" +
 	"\x12ListServersRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\xdf\x01\n" +
@@ -2557,7 +2750,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\n" +
 	"ROLE_ADMIN\x10\x02\x12\x0e\n" +
 	"\n" +
-	"ROLE_OWNER\x10\x032\xd2\x0e\n" +
+	"ROLE_OWNER\x10\x032\x84\x10\n" +
 	"\n" +
 	"OrgService\x12T\n" +
 	"\tCreateOrg\x12!.raptor.panel.v1.CreateOrgRequest\x1a\".raptor.panel.v1.CreateOrgResponse\"\x00\x12T\n" +
@@ -2573,7 +2766,11 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x0fCreateJoinToken\x12'.raptor.panel.v1.CreateJoinTokenRequest\x1a(.raptor.panel.v1.CreateJoinTokenResponse\"\x00\x12f\n" +
 	"\x0fSetServerAccess\x12'.raptor.panel.v1.SetServerAccessRequest\x1a(.raptor.panel.v1.SetServerAccessResponse\"\x00\x12l\n" +
 	"\x10ListServerAccess\x12(.raptor.panel.v1.ListServerAccessRequest\x1a).raptor.panel.v1.ListServerAccessResponse\"\x03\x90\x02\x01\x12W\n" +
-	"\tListNodes\x12!.raptor.panel.v1.ListNodesRequest\x1a\".raptor.panel.v1.ListNodesResponse\"\x03\x90\x02\x01\x12]\n" +
+	"\tListNodes\x12!.raptor.panel.v1.ListNodesRequest\x1a\".raptor.panel.v1.ListNodesResponse\"\x03\x90\x02\x01\x12W\n" +
+	"\n" +
+	"RenameNode\x12\".raptor.panel.v1.RenameNodeRequest\x1a#.raptor.panel.v1.RenameNodeResponse\"\x00\x12W\n" +
+	"\n" +
+	"RemoveNode\x12\".raptor.panel.v1.RemoveNodeRequest\x1a#.raptor.panel.v1.RemoveNodeResponse\"\x00\x12]\n" +
 	"\vListServers\x12#.raptor.panel.v1.ListServersRequest\x1a$.raptor.panel.v1.ListServersResponse\"\x03\x90\x02\x01\x12W\n" +
 	"\tGetServer\x12!.raptor.panel.v1.GetServerRequest\x1a\".raptor.panel.v1.GetServerResponse\"\x03\x90\x02\x01\x12]\n" +
 	"\fPinJoinToken\x12$.raptor.panel.v1.PinJoinTokenRequest\x1a%.raptor.panel.v1.PinJoinTokenResponse\"\x00\x12r\n" +
@@ -2594,7 +2791,7 @@ func file_raptor_panel_v1_org_proto_rawDescGZIP() []byte {
 }
 
 var file_raptor_panel_v1_org_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_raptor_panel_v1_org_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_raptor_panel_v1_org_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
 var file_raptor_panel_v1_org_proto_goTypes = []any{
 	(Role)(0),                          // 0: raptor.panel.v1.Role
 	(*Org)(nil),                        // 1: raptor.panel.v1.Org
@@ -2632,44 +2829,48 @@ var file_raptor_panel_v1_org_proto_goTypes = []any{
 	(*ListNodesRequest)(nil),           // 33: raptor.panel.v1.ListNodesRequest
 	(*Node)(nil),                       // 34: raptor.panel.v1.Node
 	(*ListNodesResponse)(nil),          // 35: raptor.panel.v1.ListNodesResponse
-	(*ListServersRequest)(nil),         // 36: raptor.panel.v1.ListServersRequest
-	(*Server)(nil),                     // 37: raptor.panel.v1.Server
-	(*ListServersResponse)(nil),        // 38: raptor.panel.v1.ListServersResponse
-	(*GetServerRequest)(nil),           // 39: raptor.panel.v1.GetServerRequest
-	(*GetServerResponse)(nil),          // 40: raptor.panel.v1.GetServerResponse
-	(*PinJoinTokenRequest)(nil),        // 41: raptor.panel.v1.PinJoinTokenRequest
-	(*PinJoinTokenResponse)(nil),       // 42: raptor.panel.v1.PinJoinTokenResponse
-	(*ListMemberPasskeysRequest)(nil),  // 43: raptor.panel.v1.ListMemberPasskeysRequest
-	(*ListMemberPasskeysResponse)(nil), // 44: raptor.panel.v1.ListMemberPasskeysResponse
-	(*timestamppb.Timestamp)(nil),      // 45: google.protobuf.Timestamp
-	(*AuditEvent)(nil),                 // 46: raptor.panel.v1.AuditEvent
-	(*Passkey)(nil),                    // 47: raptor.panel.v1.Passkey
+	(*RenameNodeRequest)(nil),          // 36: raptor.panel.v1.RenameNodeRequest
+	(*RenameNodeResponse)(nil),         // 37: raptor.panel.v1.RenameNodeResponse
+	(*RemoveNodeRequest)(nil),          // 38: raptor.panel.v1.RemoveNodeRequest
+	(*RemoveNodeResponse)(nil),         // 39: raptor.panel.v1.RemoveNodeResponse
+	(*ListServersRequest)(nil),         // 40: raptor.panel.v1.ListServersRequest
+	(*Server)(nil),                     // 41: raptor.panel.v1.Server
+	(*ListServersResponse)(nil),        // 42: raptor.panel.v1.ListServersResponse
+	(*GetServerRequest)(nil),           // 43: raptor.panel.v1.GetServerRequest
+	(*GetServerResponse)(nil),          // 44: raptor.panel.v1.GetServerResponse
+	(*PinJoinTokenRequest)(nil),        // 45: raptor.panel.v1.PinJoinTokenRequest
+	(*PinJoinTokenResponse)(nil),       // 46: raptor.panel.v1.PinJoinTokenResponse
+	(*ListMemberPasskeysRequest)(nil),  // 47: raptor.panel.v1.ListMemberPasskeysRequest
+	(*ListMemberPasskeysResponse)(nil), // 48: raptor.panel.v1.ListMemberPasskeysResponse
+	(*timestamppb.Timestamp)(nil),      // 49: google.protobuf.Timestamp
+	(*AuditEvent)(nil),                 // 50: raptor.panel.v1.AuditEvent
+	(*Passkey)(nil),                    // 51: raptor.panel.v1.Passkey
 }
 var file_raptor_panel_v1_org_proto_depIdxs = []int32{
-	45, // 0: raptor.panel.v1.Org.created_at:type_name -> google.protobuf.Timestamp
+	49, // 0: raptor.panel.v1.Org.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: raptor.panel.v1.Org.role:type_name -> raptor.panel.v1.Role
 	1,  // 2: raptor.panel.v1.CreateOrgResponse.org:type_name -> raptor.panel.v1.Org
 	1,  // 3: raptor.panel.v1.ListOrgsResponse.orgs:type_name -> raptor.panel.v1.Org
 	0,  // 4: raptor.panel.v1.Member.role:type_name -> raptor.panel.v1.Role
-	45, // 5: raptor.panel.v1.Member.joined_at:type_name -> google.protobuf.Timestamp
+	49, // 5: raptor.panel.v1.Member.joined_at:type_name -> google.protobuf.Timestamp
 	8,  // 6: raptor.panel.v1.ListMembersResponse.members:type_name -> raptor.panel.v1.Member
 	0,  // 7: raptor.panel.v1.SetMemberRoleRequest.role:type_name -> raptor.panel.v1.Role
 	0,  // 8: raptor.panel.v1.Invitation.role:type_name -> raptor.panel.v1.Role
-	45, // 9: raptor.panel.v1.Invitation.created_at:type_name -> google.protobuf.Timestamp
-	45, // 10: raptor.panel.v1.Invitation.expires_at:type_name -> google.protobuf.Timestamp
+	49, // 9: raptor.panel.v1.Invitation.created_at:type_name -> google.protobuf.Timestamp
+	49, // 10: raptor.panel.v1.Invitation.expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 11: raptor.panel.v1.InviteMemberRequest.role:type_name -> raptor.panel.v1.Role
 	15, // 12: raptor.panel.v1.InviteMemberResponse.invitation:type_name -> raptor.panel.v1.Invitation
 	15, // 13: raptor.panel.v1.ListInvitationsResponse.invitations:type_name -> raptor.panel.v1.Invitation
 	1,  // 14: raptor.panel.v1.AcceptInvitationResponse.org:type_name -> raptor.panel.v1.Org
-	45, // 15: raptor.panel.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
-	46, // 16: raptor.panel.v1.ListAuditLogResponse.events:type_name -> raptor.panel.v1.AuditEvent
+	49, // 15: raptor.panel.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
+	50, // 16: raptor.panel.v1.ListAuditLogResponse.events:type_name -> raptor.panel.v1.AuditEvent
 	31, // 17: raptor.panel.v1.ListServerAccessResponse.access:type_name -> raptor.panel.v1.ServerAccess
-	45, // 18: raptor.panel.v1.Node.last_seen_at:type_name -> google.protobuf.Timestamp
-	45, // 19: raptor.panel.v1.Node.created_at:type_name -> google.protobuf.Timestamp
+	49, // 18: raptor.panel.v1.Node.last_seen_at:type_name -> google.protobuf.Timestamp
+	49, // 19: raptor.panel.v1.Node.created_at:type_name -> google.protobuf.Timestamp
 	34, // 20: raptor.panel.v1.ListNodesResponse.nodes:type_name -> raptor.panel.v1.Node
-	37, // 21: raptor.panel.v1.ListServersResponse.servers:type_name -> raptor.panel.v1.Server
-	37, // 22: raptor.panel.v1.GetServerResponse.server:type_name -> raptor.panel.v1.Server
-	47, // 23: raptor.panel.v1.ListMemberPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
+	41, // 21: raptor.panel.v1.ListServersResponse.servers:type_name -> raptor.panel.v1.Server
+	41, // 22: raptor.panel.v1.GetServerResponse.server:type_name -> raptor.panel.v1.Server
+	51, // 23: raptor.panel.v1.ListMemberPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
 	2,  // 24: raptor.panel.v1.OrgService.CreateOrg:input_type -> raptor.panel.v1.CreateOrgRequest
 	4,  // 25: raptor.panel.v1.OrgService.ListOrgs:input_type -> raptor.panel.v1.ListOrgsRequest
 	6,  // 26: raptor.panel.v1.OrgService.RenameOrg:input_type -> raptor.panel.v1.RenameOrgRequest
@@ -2684,32 +2885,36 @@ var file_raptor_panel_v1_org_proto_depIdxs = []int32{
 	28, // 35: raptor.panel.v1.OrgService.SetServerAccess:input_type -> raptor.panel.v1.SetServerAccessRequest
 	30, // 36: raptor.panel.v1.OrgService.ListServerAccess:input_type -> raptor.panel.v1.ListServerAccessRequest
 	33, // 37: raptor.panel.v1.OrgService.ListNodes:input_type -> raptor.panel.v1.ListNodesRequest
-	36, // 38: raptor.panel.v1.OrgService.ListServers:input_type -> raptor.panel.v1.ListServersRequest
-	39, // 39: raptor.panel.v1.OrgService.GetServer:input_type -> raptor.panel.v1.GetServerRequest
-	41, // 40: raptor.panel.v1.OrgService.PinJoinToken:input_type -> raptor.panel.v1.PinJoinTokenRequest
-	43, // 41: raptor.panel.v1.OrgService.ListMemberPasskeys:input_type -> raptor.panel.v1.ListMemberPasskeysRequest
-	26, // 42: raptor.panel.v1.OrgService.ListAuditLog:input_type -> raptor.panel.v1.ListAuditLogRequest
-	3,  // 43: raptor.panel.v1.OrgService.CreateOrg:output_type -> raptor.panel.v1.CreateOrgResponse
-	5,  // 44: raptor.panel.v1.OrgService.ListOrgs:output_type -> raptor.panel.v1.ListOrgsResponse
-	7,  // 45: raptor.panel.v1.OrgService.RenameOrg:output_type -> raptor.panel.v1.RenameOrgResponse
-	10, // 46: raptor.panel.v1.OrgService.ListMembers:output_type -> raptor.panel.v1.ListMembersResponse
-	12, // 47: raptor.panel.v1.OrgService.SetMemberRole:output_type -> raptor.panel.v1.SetMemberRoleResponse
-	14, // 48: raptor.panel.v1.OrgService.RemoveMember:output_type -> raptor.panel.v1.RemoveMemberResponse
-	17, // 49: raptor.panel.v1.OrgService.InviteMember:output_type -> raptor.panel.v1.InviteMemberResponse
-	19, // 50: raptor.panel.v1.OrgService.ListInvitations:output_type -> raptor.panel.v1.ListInvitationsResponse
-	21, // 51: raptor.panel.v1.OrgService.RevokeInvitation:output_type -> raptor.panel.v1.RevokeInvitationResponse
-	23, // 52: raptor.panel.v1.OrgService.AcceptInvitation:output_type -> raptor.panel.v1.AcceptInvitationResponse
-	25, // 53: raptor.panel.v1.OrgService.CreateJoinToken:output_type -> raptor.panel.v1.CreateJoinTokenResponse
-	29, // 54: raptor.panel.v1.OrgService.SetServerAccess:output_type -> raptor.panel.v1.SetServerAccessResponse
-	32, // 55: raptor.panel.v1.OrgService.ListServerAccess:output_type -> raptor.panel.v1.ListServerAccessResponse
-	35, // 56: raptor.panel.v1.OrgService.ListNodes:output_type -> raptor.panel.v1.ListNodesResponse
-	38, // 57: raptor.panel.v1.OrgService.ListServers:output_type -> raptor.panel.v1.ListServersResponse
-	40, // 58: raptor.panel.v1.OrgService.GetServer:output_type -> raptor.panel.v1.GetServerResponse
-	42, // 59: raptor.panel.v1.OrgService.PinJoinToken:output_type -> raptor.panel.v1.PinJoinTokenResponse
-	44, // 60: raptor.panel.v1.OrgService.ListMemberPasskeys:output_type -> raptor.panel.v1.ListMemberPasskeysResponse
-	27, // 61: raptor.panel.v1.OrgService.ListAuditLog:output_type -> raptor.panel.v1.ListAuditLogResponse
-	43, // [43:62] is the sub-list for method output_type
-	24, // [24:43] is the sub-list for method input_type
+	36, // 38: raptor.panel.v1.OrgService.RenameNode:input_type -> raptor.panel.v1.RenameNodeRequest
+	38, // 39: raptor.panel.v1.OrgService.RemoveNode:input_type -> raptor.panel.v1.RemoveNodeRequest
+	40, // 40: raptor.panel.v1.OrgService.ListServers:input_type -> raptor.panel.v1.ListServersRequest
+	43, // 41: raptor.panel.v1.OrgService.GetServer:input_type -> raptor.panel.v1.GetServerRequest
+	45, // 42: raptor.panel.v1.OrgService.PinJoinToken:input_type -> raptor.panel.v1.PinJoinTokenRequest
+	47, // 43: raptor.panel.v1.OrgService.ListMemberPasskeys:input_type -> raptor.panel.v1.ListMemberPasskeysRequest
+	26, // 44: raptor.panel.v1.OrgService.ListAuditLog:input_type -> raptor.panel.v1.ListAuditLogRequest
+	3,  // 45: raptor.panel.v1.OrgService.CreateOrg:output_type -> raptor.panel.v1.CreateOrgResponse
+	5,  // 46: raptor.panel.v1.OrgService.ListOrgs:output_type -> raptor.panel.v1.ListOrgsResponse
+	7,  // 47: raptor.panel.v1.OrgService.RenameOrg:output_type -> raptor.panel.v1.RenameOrgResponse
+	10, // 48: raptor.panel.v1.OrgService.ListMembers:output_type -> raptor.panel.v1.ListMembersResponse
+	12, // 49: raptor.panel.v1.OrgService.SetMemberRole:output_type -> raptor.panel.v1.SetMemberRoleResponse
+	14, // 50: raptor.panel.v1.OrgService.RemoveMember:output_type -> raptor.panel.v1.RemoveMemberResponse
+	17, // 51: raptor.panel.v1.OrgService.InviteMember:output_type -> raptor.panel.v1.InviteMemberResponse
+	19, // 52: raptor.panel.v1.OrgService.ListInvitations:output_type -> raptor.panel.v1.ListInvitationsResponse
+	21, // 53: raptor.panel.v1.OrgService.RevokeInvitation:output_type -> raptor.panel.v1.RevokeInvitationResponse
+	23, // 54: raptor.panel.v1.OrgService.AcceptInvitation:output_type -> raptor.panel.v1.AcceptInvitationResponse
+	25, // 55: raptor.panel.v1.OrgService.CreateJoinToken:output_type -> raptor.panel.v1.CreateJoinTokenResponse
+	29, // 56: raptor.panel.v1.OrgService.SetServerAccess:output_type -> raptor.panel.v1.SetServerAccessResponse
+	32, // 57: raptor.panel.v1.OrgService.ListServerAccess:output_type -> raptor.panel.v1.ListServerAccessResponse
+	35, // 58: raptor.panel.v1.OrgService.ListNodes:output_type -> raptor.panel.v1.ListNodesResponse
+	37, // 59: raptor.panel.v1.OrgService.RenameNode:output_type -> raptor.panel.v1.RenameNodeResponse
+	39, // 60: raptor.panel.v1.OrgService.RemoveNode:output_type -> raptor.panel.v1.RemoveNodeResponse
+	42, // 61: raptor.panel.v1.OrgService.ListServers:output_type -> raptor.panel.v1.ListServersResponse
+	44, // 62: raptor.panel.v1.OrgService.GetServer:output_type -> raptor.panel.v1.GetServerResponse
+	46, // 63: raptor.panel.v1.OrgService.PinJoinToken:output_type -> raptor.panel.v1.PinJoinTokenResponse
+	48, // 64: raptor.panel.v1.OrgService.ListMemberPasskeys:output_type -> raptor.panel.v1.ListMemberPasskeysResponse
+	27, // 65: raptor.panel.v1.OrgService.ListAuditLog:output_type -> raptor.panel.v1.ListAuditLogResponse
+	45, // [45:66] is the sub-list for method output_type
+	24, // [24:45] is the sub-list for method input_type
 	24, // [24:24] is the sub-list for extension type_name
 	24, // [24:24] is the sub-list for extension extendee
 	0,  // [0:24] is the sub-list for field type_name
@@ -2728,7 +2933,7 @@ func file_raptor_panel_v1_org_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_org_proto_rawDesc), len(file_raptor_panel_v1_org_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   44,
+			NumMessages:   48,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

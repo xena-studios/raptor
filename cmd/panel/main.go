@@ -240,6 +240,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		}
 		cfg.Hub.ClientIPHeader = os.Getenv("PANEL_CLIENT_IP_HEADER")
 		cfg.Hub.OnAddress = addrs.Seen
+		cfg.Orgs.NodeRemoved = func(ctx context.Context, id string) {
+			router.Drop(ctx, id)
+			go addrs.ForgetWithRetry(ctx, id)
+		}
 		mirror := &nodes.Mirror{DB: pool, Hub: cfg.Hub, Log: log}
 		cfg.Hub.EventsAvailable = func(_ context.Context, id string, _ int64) { mirror.Notify(id) }
 		cfg.Hub.SFTPLogin = cfg.Auth.SFTPLogin
