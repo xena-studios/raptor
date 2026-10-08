@@ -32,6 +32,15 @@ for svc in panel-a panel-b; do
   docker compose up -d --no-deps --force-recreate "$svc"
   wait_healthy "$svc"
 done
+# Caddy reads its config when it starts (no admin API), and a checkout
+# replaces the Caddyfile with a new file its container doesn't see. When a
+# release changes it, restart Caddy: about a second of dropped connections,
+# which browsers and nodes reconnect from.
+running=$(docker compose exec -T caddy cat /etc/caddy/Caddyfile 2>/dev/null | sha256sum | cut -d' ' -f1)
+if [ "$running" != "$(sha256sum <Caddyfile | cut -d' ' -f1)" ]; then
+  echo "deploy: the Caddyfile changed; restarting Caddy"
+  docker compose up -d --no-deps --force-recreate caddy
+fi
 # Compose reads .env (this server's settings, docs/DEPLOY.md) on every
 # later run, at boot and for backups, so they start this version, not
 # whatever :latest is cached.

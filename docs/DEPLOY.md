@@ -319,6 +319,10 @@ The release workflow builds and pushes the images. Then, for a stable tag (`vX.Y
 
 On the server, `deploy.sh` runs the migrations first. They must work with the version still running: add columns, backfill, and drop in a later release; never rename in one step. Then it replaces one Panel at a time. A Panel shutting down answers 503 to Caddy's health check, stops getting new requests, and hands its node connections to the other over 20 seconds; nodes reconnect with jitter. Browsers see nothing; game servers never notice. If the new version doesn't become healthy, the job fails with the old one still serving the other half. Fix it and tag a new version, or redeploy the previous one by hand (below). A failed deploy stops before the web app, so the web app never runs ahead of the API.
 
+When a release changes the Caddyfile, `deploy.sh` restarts Caddy after the Panels: it reads its config only when it starts, and the container still sees the old file after a checkout. That drops every connection for about a second; browsers and nodes reconnect on their own.
+
+Besides the load-balanced route, Caddy sends `/i/panel-a/…` and `/i/panel-b/…` to that one Panel, which knows its route from `PANEL_INSTANCE_ROUTE` (set in `compose.yaml`). A node opens a file transfer's connection by that route, to the instance that asked for it ([ARCHITECTURE.md](ARCHITECTURE.md#files-and-sftp)).
+
 ### Automatic deploys
 
 Set up once, after server #1 is running:

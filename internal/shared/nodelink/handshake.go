@@ -6,6 +6,7 @@
 package nodelink
 
 import (
+	"regexp"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/json"
@@ -23,6 +24,21 @@ const Version = 1
 
 // Path is where the Panel accepts node connections.
 const Path = "/nodes/connect"
+
+// routePattern is a Panel instance's route through the proxy (/i/panel-a).
+var routePattern = regexp.MustCompile(`^/i/[a-z0-9-]{1,32}$`)
+
+// ValidRoute reports whether r is a Panel instance's route.
+func ValidRoute(r string) bool { return routePattern.MatchString(r) }
+
+// WithRoute is the Panel URL that reaches one instance: route goes before
+// the connection's path.
+func WithRoute(panelURL, route string) string {
+	if route == "" {
+		return panelURL
+	}
+	return strings.TrimSuffix(panelURL, "/") + route
+}
 
 // MaxSkew is how far the two clocks may disagree. The nonces make every
 // signature fresh on their own; the timestamps catch a badly set clock early,

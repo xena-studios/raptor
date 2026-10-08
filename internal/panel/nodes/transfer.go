@@ -12,7 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
+
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
+	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
@@ -44,8 +49,22 @@ var ErrTransfer = errors.New("transfer failed")
 
 // OpenTransfer asks the node to open a connection for a transfer that a
 // files.upload or files.download command started, and returns it once it's
-// up.
+// up. The node must be connected to this instance (Router.OpenTransfer
+// asks through the instance holding it).
 func (h *Hub) OpenTransfer(ctx context.Context, nodeID, transferID string) (*Transfer, error) {
+	return h.openTransfer(ctx, nodeID, transferID, func(ctx context.Context) error {
+		c, ok := h.Conn(nodeID)
+		if !ok {
+			return errors.New("node is offline")
+		}
+		_, err := c.Node.OpenTransfer(ctx, &nodev1.OpenTransferRequest{TransferId: transferID, Route: h.Route})
+		return err
+	})
+}
+
+// openTransfer waits for the transfer connection that ask gets the node to
+// open, to this instance.
+func (h *Hub) openTransfer(ctx context.Context, nodeID, transferID string, ask func(context.Context) error) (*Transfer, error) {
 	h.init()
 	key := nodeID + "/" + transferID
 	ch := make(chan *nodelink.Session, 1)
@@ -65,11 +84,7 @@ func (h *Hub) OpenTransfer(ctx context.Context, nodeID, transferID string) (*Tra
 		h.mu.Unlock()
 	}()
 
-	c, ok := h.Conn(nodeID)
-	if !ok {
-		return nil, errors.New("node is offline")
-	}
-	if _, err := c.Node.OpenTransfer(ctx, &nodev1.OpenTransferRequest{TransferId: transferID}); err != nil {
+	if err := ask(ctx); err != nil {
 		return nil, err
 	}
 	// Wings answers once its connection is up, so it's here or about to be.
@@ -149,3 +164,29 @@ func (t *Transfer) Download(ctx context.Context, offset, n int64, size int64, w 
 
 // Close ends the transfer connection.
 func (t *Transfer) Close() error { return t.Session.Close() }
+
+// OpenTransfer opens a transfer connection to this instance wherever the
+// node is connected: if another instance holds it, that one asks the node
+// (a forwarded request) to open the connection to this instance's Route,
+// so the transfer's bytes never pass between instances.
+func (r *Router) OpenTransfer(ctx context.Context, nodeID, transferID string) (*Transfer, error) {
+	if _, ok := r.Hub.Conn(nodeID); ok {
+		return r.Hub.OpenTransfer(ctx, nodeID, transferID)
+	}
+	id, err := uuid.Parse(nodeID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("bad node ID"))
+	}
+	holder, err := r.q().NodeHolder(ctx, store.NodeHolderParams{NodeID: pgUUID(id), StaleSecs: staleAfter.Seconds()})
+	if err != nil || holder == r.ID {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("the node is offline"))
+	}
+	req, err := proto.Marshal(&nodev1.OpenTransferRequest{TransferId: transferID, Route: r.Hub.Route})
+	if err != nil {
+		return nil, err
+	}
+	return r.Hub.openTransfer(ctx, nodeID, transferID, func(ctx context.Context) error {
+		_, err := r.forwardRaw(ctx, holder, id, methodOpenTransfer, req)
+		return err
+	})
+}

@@ -46,7 +46,11 @@ type Hub struct {
 	ClientIPHeader string
 	OnDisconnect   func(ctx context.Context, nodeID string)
 	Log            *slog.Logger
-	Keepalive      nodelink.Keepalive // for tests
+	// Route is this instance's own path through the proxy ("/i/panel-a"),
+	// sent with transfer requests so Wings' transfer connection reaches
+	// this instance and not another. Empty with one instance.
+	Route     string
+	Keepalive nodelink.Keepalive // for tests
 
 	once     sync.Once
 	ctx      context.Context

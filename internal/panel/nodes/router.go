@@ -190,7 +190,12 @@ func (r *Router) Disconnected(ctx context.Context, nodeID string) {
 	_ = r.q().ClearNodeConnection(ctx, store.ClearNodeConnectionParams{NodeID: pgUUID(id), InstanceID: r.ID})
 }
 
-const methodExecute = "execute"
+// Forwarded request methods: running a command, and asking the node to
+// open a transfer connection to the instance that forwarded it.
+const (
+	methodExecute      = "execute"
+	methodOpenTransfer = "open_transfer"
+)
 
 // Execute sends a command to a node wherever it's connected, retrying with
 // the same command ID (Wings runs it once) until the node answers or ctx
@@ -230,9 +235,23 @@ func retryableCode(c connect.Code) bool {
 // forward asks the holder to run a command and waits for its answer, giving
 // up (to retry) if the holder goes away.
 func (r *Router) forward(ctx context.Context, holder string, node [16]byte, envelope []byte) (*nodev1.ExecuteResponse, error) {
+	raw, err := r.forwardRaw(ctx, holder, node, methodExecute, envelope)
+	if err != nil {
+		return nil, err
+	}
+	var res nodev1.ExecuteResponse
+	if err := proto.Unmarshal(raw, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// forwardRaw has the instance holding the node run a request and returns
+// its answer.
+func (r *Router) forwardRaw(ctx context.Context, holder string, node [16]byte, method string, request []byte) ([]byte, error) {
 	q := r.q()
 	reqID, err := q.CreateNodeRequest(ctx, store.CreateNodeRequestParams{
-		NodeID: pgUUID(node), Origin: r.ID, Target: holder, Method: methodExecute, Request: envelope,
+		NodeID: pgUUID(node), Origin: r.ID, Target: holder, Method: method, Request: request,
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
@@ -280,11 +299,7 @@ func (r *Router) forward(ctx context.Context, holder string, node [16]byte, enve
 			}
 			return nil, connect.NewError(code, errors.New(row.Error))
 		}
-		var res nodev1.ExecuteResponse
-		if err := proto.Unmarshal(row.Response, &res); err != nil {
-			return nil, err
-		}
-		return &res, nil
+		return row.Response, nil
 	}
 }
 
@@ -311,15 +326,25 @@ func (r *Router) handle(ctx context.Context, id int64) {
 	code, msg := "", ""
 	nodeID := UUIDString(row.NodeID)
 	c, ok := r.Hub.Conn(nodeID)
+	var res proto.Message
 	switch {
 	case !ok:
 		code, msg = connect.CodeUnavailable.String(), "the node isn't connected to this instance any more"
-	case row.Method != methodExecute:
-		code, msg = connect.CodeUnimplemented.String(), "unknown method "+row.Method
-	default:
+	case row.Method == methodExecute:
 		hctx, cancel := context.WithTimeout(ctx, handleTimeout)
-		res, err := c.Node.Execute(hctx, &nodev1.ExecuteRequest{Envelope: row.Request})
+		res, err = c.Node.Execute(hctx, &nodev1.ExecuteRequest{Envelope: row.Request})
 		cancel()
+	case row.Method == methodOpenTransfer:
+		var req nodev1.OpenTransferRequest
+		if err = proto.Unmarshal(row.Request, &req); err == nil {
+			hctx, cancel := context.WithTimeout(ctx, nodelink.HandshakeTimeout+5*time.Second)
+			res, err = c.Node.OpenTransfer(hctx, &req)
+			cancel()
+		}
+	default:
+		code, msg = connect.CodeUnimplemented.String(), "unknown method "+row.Method
+	}
+	if ok && code == "" {
 		if err != nil {
 			code, msg = connect.CodeOf(err).String(), err.Error()
 			var ce *connect.Error

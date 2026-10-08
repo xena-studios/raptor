@@ -107,6 +107,10 @@ $P up -d --wait panel-a panel-b caddy
 curl_cf() { curl -sS --max-time 5 --resolve "$API_HOST:$HTTPS_PORT:127.0.0.1" --cacert "$RAPTOR_TLS/origin.pem" \
   --cert "$RAPTOR_TLS/cf.pem" --key "$RAPTOR_TLS/cf-key.pem" "$@"; }
 [ "$(curl_cf -o /dev/null -w '%{http_code}' "https://$API_HOST:$HTTPS_PORT/healthz")" = 200 ] || fail "the Panel didn't answer through Caddy"
+# Each Panel's own route, which transfer connections take.
+for p in panel-a panel-b; do
+  [ "$(curl_cf -o /dev/null -w '%{http_code}' "https://$API_HOST:$HTTPS_PORT/i/$p/healthz")" = 200 ] || fail "$p's route through Caddy didn't reach it"
+done
 methods=$(curl_cf -H "Origin: $PANEL_APP_URL" -H 'Content-Type: application/json' -d '{}' \
   "https://$API_HOST:$HTTPS_PORT/api/raptor.panel.v1.AuthService/GetSignInMethods")
 echo "sign-in methods: $methods"
