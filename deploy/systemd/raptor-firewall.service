@@ -1,0 +1,19 @@
+# The firewall at every boot (deploy/scripts/firewall.sh): ufw keeps its own
+# rules, but the DOCKER-USER rules limiting 443 to Cloudflare are gone after
+# a reboot until this runs. On server #2, or once there is one,
+# /etc/raptor/stack.env names the other server: PEER_PRIVATE_IP=10.0.0.x.
+[Unit]
+Description=Raptor firewall (SSH, 443 from Cloudflare, Postgres from the other server)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+Before=raptor-stack.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=-/etc/raptor/stack.env
+ExecStart=/opt/raptor/deploy/scripts/firewall.sh
+
+[Install]
+WantedBy=multi-user.target
