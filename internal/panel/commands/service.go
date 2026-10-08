@@ -55,6 +55,9 @@ const (
 	commandsPerMin   = 300
 	executeTimeout   = time.Minute
 	maxParamsJSONLen = 256 << 10
+	// files.write carries a whole file for the editor: up to Wings' 4 MiB,
+	// base64 in JSON.
+	maxWriteJSONLen = 6 << 20
 )
 
 func (s *Service) now() time.Time {
@@ -123,7 +126,11 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	}
 	env := nodecmd.Envelope{NodeID: node.String(), Action: req.GetAction(), ServerID: req.GetServerId()}
 	if p := req.GetParamsJson(); p != "" {
-		if len(p) > maxParamsJSONLen || !json.Valid([]byte(p)) {
+		limit := maxParamsJSONLen
+		if req.GetAction() == "files.write" {
+			limit = maxWriteJSONLen
+		}
+		if len(p) > limit || !json.Valid([]byte(p)) {
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("params must be a JSON object"))
 		}
 		env.Params = json.RawMessage(p)

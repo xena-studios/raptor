@@ -96,7 +96,7 @@ func Handler(cfg Config) http.Handler {
 		api.Handle(path, handler)
 	}
 	if cfg.Commands != nil {
-		path, handler := panelv1connect.NewCommandServiceHandler(cfg.Commands, opts(connect.WithReadMaxBytes(512<<10))...)
+		path, handler := panelv1connect.NewCommandServiceHandler(cfg.Commands, opts(connect.WithReadMaxBytes(7<<20))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Commands != nil && cfg.Auth != nil {
