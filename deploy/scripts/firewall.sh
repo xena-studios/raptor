@@ -35,6 +35,13 @@ ufw --force enable
 # Docker-published 443: Cloudflare's ranges only.
 iptables -F DOCKER-USER 2>/dev/null || iptables -N DOCKER-USER
 ip6tables -F DOCKER-USER 2>/dev/null || ip6tables -N DOCKER-USER
+# DOCKER-USER sees forwarded traffic both ways: what the containers send
+# out (to the backup bucket, Resend, GitHub, Cloudflare's API) passes first,
+# so only connections coming in are limited.
+for t in iptables ip6tables; do
+  $t -A DOCKER-USER -i docker0 -j RETURN
+  $t -A DOCKER-USER -i br-+ -j RETURN
+done
 for cidr in $ranges; do
   if [[ $cidr == *:* ]]; then
     ip6tables -A DOCKER-USER -p tcp --dport 443 -s "$cidr" -j RETURN
