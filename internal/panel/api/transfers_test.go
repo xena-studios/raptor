@@ -211,7 +211,7 @@ func TestFileTransfers(t *testing.T) {
 		t.Errorf("an unknown upload: %d", code)
 	}
 
-	get := func(b *browser) (*http.Response, []byte) {
+	get := func(b *browser) (int, http.Header, []byte) {
 		t.Helper()
 		resp, err := b.http.Get(fmt.Sprintf("%s/api/files/download?node=%s&server=s1&path=%s", srv.URL, nodeID, "logs/latest.log"))
 		if err != nil {
@@ -219,16 +219,16 @@ func TestFileTransfers(t *testing.T) {
 		}
 		defer func() { _ = resp.Body.Close() }()
 		body, _ := io.ReadAll(resp.Body)
-		return resp, body
+		return resp.StatusCode, resp.Header, body
 	}
-	resp, body := get(bob)
-	if resp.StatusCode != http.StatusOK || !bytes.Equal(body, nf.file) {
-		t.Fatalf("download: %d, %d bytes", resp.StatusCode, len(body))
+	status, header, body := get(bob)
+	if status != http.StatusOK || !bytes.Equal(body, nf.file) {
+		t.Fatalf("download: %d, %d bytes", status, len(body))
 	}
-	if cd := resp.Header.Get("Content-Disposition"); cd != `attachment; filename=latest.log` {
+	if cd := header.Get("Content-Disposition"); cd != `attachment; filename=latest.log` {
 		t.Errorf("Content-Disposition %q", cd)
 	}
-	if resp, _ := get(newBrowser(t, srv, appOrigin)); resp.StatusCode != http.StatusUnauthorized {
-		t.Errorf("signed out: %d", resp.StatusCode)
+	if status, _, _ := get(newBrowser(t, srv, appOrigin)); status != http.StatusUnauthorized {
+		t.Errorf("signed out: %d", status)
 	}
 }
