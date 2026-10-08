@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
+  // Monaco's workers import modules of their own.
+  worker: { format: "es" },
   server: {
     proxy: {
       // ws: the live socket (/api/live) too.

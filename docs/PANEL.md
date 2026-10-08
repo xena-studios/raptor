@@ -38,7 +38,7 @@ Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, 
 | Email | **Resend** (`resend-go`), from its own sending subdomain: sign-in codes, invitations, security notices |
 | Billing | Polar |
 | Object storage | S3-compatible object storage (hosted backups, doctor bundles) |
-| Frontend | React, TypeScript, Vite, TanStack Router + Query, shadcn/ui, Tailwind, xterm.js, CodeMirror |
+| Frontend | React, TypeScript, Vite, TanStack Router + Query, shadcn/ui, Tailwind, xterm.js, Monaco |
 | Observability | `slog` structured logs, OpenTelemetry metrics/traces over OTLP to Grafana Cloud (#209) |
 
 ## Data model (sketch)

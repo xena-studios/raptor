@@ -53,37 +53,81 @@ export function isArchive(name: string): boolean {
   return archives.some((ext) => n.endsWith(ext));
 }
 
-export type Language = "json" | "yaml" | "xml" | "properties" | "toml" | "shell" | "ini" | "plain";
-
-// languageFor picks syntax highlighting from a file's name: the formats
-// game servers' configs come in.
-export function languageFor(name: string): Language {
+// languageFor picks the editor's language (a Monaco language ID) from a
+// file's name: the formats game servers' configs, scripts, and plugins come
+// in.
+export function languageFor(name: string): string {
   const n = name.toLowerCase();
-  const ext = n.slice(n.lastIndexOf(".") + 1);
-  switch (ext) {
-    case "json":
-    case "json5":
-    case "mcmeta":
-      return "json";
-    case "yml":
-    case "yaml":
-      return "yaml";
-    case "xml":
-      return "xml";
-    case "properties":
-    case "lang":
-      return "properties";
-    case "toml":
-      return "toml";
-    case "sh":
-    case "bash":
-      return "shell";
-    case "ini":
-    case "cfg":
-    case "conf":
-      return "ini";
-  }
-  return "plain";
+  const ext = n.includes(".") ? n.slice(n.lastIndexOf(".") + 1) : "";
+  if (n === "dockerfile") return "dockerfile";
+  return languages[ext] ?? "plaintext";
+}
+
+const languages: Record<string, string> = {
+  json: "json",
+  json5: "json",
+  mcmeta: "json",
+  yml: "yaml",
+  yaml: "yaml",
+  xml: "xml",
+  properties: "ini",
+  lang: "ini",
+  ini: "ini",
+  cfg: "ini",
+  conf: "ini",
+  toml: "ini",
+  sh: "shell",
+  bash: "shell",
+  bat: "bat",
+  cmd: "bat",
+  ps1: "powershell",
+  js: "javascript",
+  mjs: "javascript",
+  cjs: "javascript",
+  ts: "typescript",
+  py: "python",
+  lua: "lua",
+  java: "java",
+  kt: "kotlin",
+  html: "html",
+  htm: "html",
+  css: "css",
+  md: "markdown",
+  sql: "sql",
+  go: "go",
+  rs: "rust",
+  cs: "csharp",
+  php: "php",
+  rb: "ruby",
+};
+
+// languageName is a language ID as the status bar shows it.
+export function languageName(id: string): string {
+  const names: Record<string, string> = {
+    json: "JSON",
+    yaml: "YAML",
+    xml: "XML",
+    ini: "Properties",
+    shell: "Shell",
+    bat: "Batch",
+    powershell: "PowerShell",
+    javascript: "JavaScript",
+    typescript: "TypeScript",
+    python: "Python",
+    html: "HTML",
+    css: "CSS",
+    sql: "SQL",
+    csharp: "C#",
+    php: "PHP",
+    plaintext: "Plain text",
+  };
+  return names[id] ?? id.charAt(0).toUpperCase() + id.slice(1);
+}
+
+// readOnlyByName: files the editor opens read-only (logs: the server writes
+// them).
+export function readOnlyByName(name: string): boolean {
+  return /\.log(\.\d+)?$/i.test(name) || /\.log\.gz$/i.test(name);
 }
 
 // fromBase64 decodes a []byte from Go's JSON.

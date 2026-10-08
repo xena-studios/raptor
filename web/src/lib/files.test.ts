@@ -12,6 +12,7 @@ import {
   languageFor,
   looksBinary,
   parent,
+  readOnlyByName,
   validName,
 } from "./files.ts";
 
@@ -39,11 +40,13 @@ test("binary, archives, languages, names", () => {
   assert.equal(looksBinary(new TextEncoder().encode("motd=hi\n")), false);
   assert.equal(looksBinary(new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x00])), true);
   assert.ok(isArchive("world.tar.gz") && isArchive("Backup.ZIP") && !isArchive("server.jar"));
-  assert.equal(languageFor("server.properties"), "properties");
+  assert.equal(languageFor("server.properties"), "ini");
   assert.equal(languageFor("config.YML"), "yaml");
   assert.equal(languageFor("ops.json"), "json");
   assert.equal(languageFor("start.sh"), "shell");
-  assert.equal(languageFor("README"), "plain");
+  assert.equal(languageFor("README"), "plaintext");
+  assert.equal(readOnlyByName("logs/latest.log"), true);
+  assert.equal(readOnlyByName("blog.txt"), false);
   assert.ok(validName("a.txt") && !validName("..") && !validName("a/b") && !validName(""));
 });
 
