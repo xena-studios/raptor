@@ -8,6 +8,7 @@ RUN go mod download
 COPY cmd ./cmd
 COPY internal ./internal
 COPY db ./db
+COPY eggs ./eggs
 ARG VERSION=dev
 ARG COMMIT=none
 ARG DATE=unknown
