@@ -11,14 +11,29 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InviteRouteImport } from './routes/invite'
+import { Route as OrgsOrgIdRouteImport } from './routes/orgs.$orgId'
 import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as SigninIndexRouteImport } from './routes/signin.index'
 import { Route as SigninLinkRouteImport } from './routes/signin.link'
 import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-factor'
 import { Route as OrgsOrgIdIndexRouteImport } from './routes/orgs.$orgId.index'
+import { Route as OrgsOrgIdEggsRouteImport } from './routes/orgs.$orgId.eggs'
+import { Route as OrgsOrgIdSettingsRouteImport } from './routes/orgs.$orgId.settings'
+import { Route as OrgsOrgIdNodesIndexRouteImport } from './routes/orgs.$orgId.nodes.index'
 import { Route as OrgsOrgIdNodesNodeIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId'
+import { Route as OrgsOrgIdNodesNewRouteImport } from './routes/orgs.$orgId.nodes.new'
+import { Route as OrgsOrgIdServersIndexRouteImport } from './routes/orgs.$orgId.servers.index'
 import { Route as OrgsOrgIdServersNewRouteImport } from './routes/orgs.$orgId.servers.new'
-import { Route as OrgsOrgIdNodesNodeIdServersServerIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId_.servers.$serverId'
+import { Route as OrgsOrgIdSettingsIndexRouteImport } from './routes/orgs.$orgId.settings.index'
+import { Route as OrgsOrgIdSettingsActivityRouteImport } from './routes/orgs.$orgId.settings.activity'
+import { Route as OrgsOrgIdSettingsMembersRouteImport } from './routes/orgs.$orgId.settings.members'
+import { Route as OrgsOrgIdNodesNodeIdIndexRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.index'
+import { Route as OrgsOrgIdNodesNodeIdSettingsRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.settings'
+import { Route as OrgsOrgIdServersNodeIdServerIdRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId'
+import { Route as OrgsOrgIdServersNodeIdServerIdIndexRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.index'
+import { Route as OrgsOrgIdServersNodeIdServerIdAccessRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.access'
+import { Route as OrgsOrgIdServersNodeIdServerIdFilesRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.files'
+import { Route as OrgsOrgIdServersNodeIdServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,6 +43,11 @@ const IndexRoute = IndexRouteImport.update({
 const InviteRoute = InviteRouteImport.update({
   id: '/invite',
   path: '/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgsOrgIdRoute = OrgsOrgIdRouteImport.update({
+  id: '/orgs/$orgId',
+  path: '/orgs/$orgId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
@@ -51,38 +71,131 @@ const SigninSecondFactorRoute = SigninSecondFactorRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrgsOrgIdIndexRoute = OrgsOrgIdIndexRouteImport.update({
-  id: '/orgs/$orgId/',
-  path: '/orgs/$orgId/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const OrgsOrgIdEggsRoute = OrgsOrgIdEggsRouteImport.update({
+  id: '/eggs',
+  path: '/eggs',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const OrgsOrgIdSettingsRoute = OrgsOrgIdSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const OrgsOrgIdNodesIndexRoute = OrgsOrgIdNodesIndexRouteImport.update({
+  id: '/nodes/',
+  path: '/nodes/',
+  getParentRoute: () => OrgsOrgIdRoute,
 } as any)
 const OrgsOrgIdNodesNodeIdRoute = OrgsOrgIdNodesNodeIdRouteImport.update({
-  id: '/orgs/$orgId/nodes/$nodeId',
-  path: '/orgs/$orgId/nodes/$nodeId',
-  getParentRoute: () => rootRouteImport,
+  id: '/nodes/$nodeId',
+  path: '/nodes/$nodeId',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const OrgsOrgIdNodesNewRoute = OrgsOrgIdNodesNewRouteImport.update({
+  id: '/nodes/new',
+  path: '/nodes/new',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const OrgsOrgIdServersIndexRoute = OrgsOrgIdServersIndexRouteImport.update({
+  id: '/servers/',
+  path: '/servers/',
+  getParentRoute: () => OrgsOrgIdRoute,
 } as any)
 const OrgsOrgIdServersNewRoute = OrgsOrgIdServersNewRouteImport.update({
-  id: '/orgs/$orgId/servers/new',
-  path: '/orgs/$orgId/servers/new',
-  getParentRoute: () => rootRouteImport,
+  id: '/servers/new',
+  path: '/servers/new',
+  getParentRoute: () => OrgsOrgIdRoute,
 } as any)
-const OrgsOrgIdNodesNodeIdServersServerIdRoute =
-  OrgsOrgIdNodesNodeIdServersServerIdRouteImport.update({
-    id: '/orgs/$orgId/nodes/$nodeId_/servers/$serverId',
-    path: '/orgs/$orgId/nodes/$nodeId/servers/$serverId',
-    getParentRoute: () => rootRouteImport,
+const OrgsOrgIdSettingsIndexRoute = OrgsOrgIdSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgsOrgIdSettingsRoute,
+} as any)
+const OrgsOrgIdSettingsActivityRoute =
+  OrgsOrgIdSettingsActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => OrgsOrgIdSettingsRoute,
+  } as any)
+const OrgsOrgIdSettingsMembersRoute =
+  OrgsOrgIdSettingsMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => OrgsOrgIdSettingsRoute,
+  } as any)
+const OrgsOrgIdNodesNodeIdIndexRoute =
+  OrgsOrgIdNodesNodeIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OrgsOrgIdNodesNodeIdRoute,
+  } as any)
+const OrgsOrgIdNodesNodeIdSettingsRoute =
+  OrgsOrgIdNodesNodeIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => OrgsOrgIdNodesNodeIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdRoute =
+  OrgsOrgIdServersNodeIdServerIdRouteImport.update({
+    id: '/servers/$nodeId/$serverId',
+    path: '/servers/$nodeId/$serverId',
+    getParentRoute: () => OrgsOrgIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdIndexRoute =
+  OrgsOrgIdServersNodeIdServerIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdAccessRoute =
+  OrgsOrgIdServersNodeIdServerIdAccessRouteImport.update({
+    id: '/access',
+    path: '/access',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdFilesRoute =
+  OrgsOrgIdServersNodeIdServerIdFilesRouteImport.update({
+    id: '/files',
+    path: '/files',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const OrgsOrgIdServersNodeIdServerIdSettingsRoute =
+  OrgsOrgIdServersNodeIdServerIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/invite': typeof InviteRoute
+  '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin/': typeof SigninIndexRoute
+  '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
+  '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
-  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
+  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRouteWithChildren
+  '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
-  '/orgs/$orgId/nodes/$nodeId/servers/$serverId': typeof OrgsOrgIdNodesNodeIdServersServerIdRoute
+  '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
+  '/orgs/$orgId/servers/': typeof OrgsOrgIdServersIndexRoute
+  '/orgs/$orgId/settings/': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,37 +204,78 @@ export interface FileRoutesByTo {
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin': typeof SigninIndexRoute
+  '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/orgs/$orgId': typeof OrgsOrgIdIndexRoute
-  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
+  '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
-  '/orgs/$orgId/nodes/$nodeId/servers/$serverId': typeof OrgsOrgIdNodesNodeIdServersServerIdRoute
+  '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/orgs/$orgId/nodes': typeof OrgsOrgIdNodesIndexRoute
+  '/orgs/$orgId/servers': typeof OrgsOrgIdServersIndexRoute
+  '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
+  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/invite': typeof InviteRoute
+  '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
   '/signin/': typeof SigninIndexRoute
+  '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
+  '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
-  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
+  '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRouteWithChildren
+  '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
-  '/orgs/$orgId/nodes/$nodeId_/servers/$serverId': typeof OrgsOrgIdNodesNodeIdServersServerIdRoute
+  '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
+  '/orgs/$orgId/servers/': typeof OrgsOrgIdServersIndexRoute
+  '/orgs/$orgId/settings/': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/invite'
+    | '/orgs/$orgId'
     | '/settings/security'
     | '/signin/link'
     | '/signin/second-factor'
     | '/signin/'
+    | '/orgs/$orgId/eggs'
+    | '/orgs/$orgId/settings'
     | '/orgs/$orgId/'
     | '/orgs/$orgId/nodes/$nodeId'
+    | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
-    | '/orgs/$orgId/nodes/$nodeId/servers/$serverId'
+    | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/members'
+    | '/orgs/$orgId/nodes/'
+    | '/orgs/$orgId/servers/'
+    | '/orgs/$orgId/settings/'
+    | '/orgs/$orgId/nodes/$nodeId/settings'
+    | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/orgs/$orgId/nodes/$nodeId/'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/access'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/files'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,35 +284,58 @@ export interface FileRouteTypes {
     | '/signin/link'
     | '/signin/second-factor'
     | '/signin'
+    | '/orgs/$orgId/eggs'
     | '/orgs/$orgId'
-    | '/orgs/$orgId/nodes/$nodeId'
+    | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
-    | '/orgs/$orgId/nodes/$nodeId/servers/$serverId'
+    | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/members'
+    | '/orgs/$orgId/nodes'
+    | '/orgs/$orgId/servers'
+    | '/orgs/$orgId/settings'
+    | '/orgs/$orgId/nodes/$nodeId/settings'
+    | '/orgs/$orgId/nodes/$nodeId'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/access'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/files'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
+    | '/orgs/$orgId/servers/$nodeId/$serverId'
   id:
     | '__root__'
     | '/'
     | '/invite'
+    | '/orgs/$orgId'
     | '/settings/security'
     | '/signin/link'
     | '/signin/second-factor'
     | '/signin/'
+    | '/orgs/$orgId/eggs'
+    | '/orgs/$orgId/settings'
     | '/orgs/$orgId/'
     | '/orgs/$orgId/nodes/$nodeId'
+    | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
-    | '/orgs/$orgId/nodes/$nodeId_/servers/$serverId'
+    | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/members'
+    | '/orgs/$orgId/nodes/'
+    | '/orgs/$orgId/servers/'
+    | '/orgs/$orgId/settings/'
+    | '/orgs/$orgId/nodes/$nodeId/settings'
+    | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/orgs/$orgId/nodes/$nodeId/'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/access'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/files'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   InviteRoute: typeof InviteRoute
+  OrgsOrgIdRoute: typeof OrgsOrgIdRouteWithChildren
   SettingsSecurityRoute: typeof SettingsSecurityRoute
   SigninLinkRoute: typeof SigninLinkRoute
   SigninSecondFactorRoute: typeof SigninSecondFactorRoute
   SigninIndexRoute: typeof SigninIndexRoute
-  OrgsOrgIdIndexRoute: typeof OrgsOrgIdIndexRoute
-  OrgsOrgIdNodesNodeIdRoute: typeof OrgsOrgIdNodesNodeIdRoute
-  OrgsOrgIdServersNewRoute: typeof OrgsOrgIdServersNewRoute
-  OrgsOrgIdNodesNodeIdServersServerIdRoute: typeof OrgsOrgIdNodesNodeIdServersServerIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -175,6 +352,13 @@ declare module '@tanstack/react-router' {
       path: '/invite'
       fullPath: '/invite'
       preLoaderRoute: typeof InviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orgs/$orgId': {
+      id: '/orgs/$orgId'
+      path: '/orgs/$orgId'
+      fullPath: '/orgs/$orgId'
+      preLoaderRoute: typeof OrgsOrgIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/security': {
@@ -207,47 +391,222 @@ declare module '@tanstack/react-router' {
     }
     '/orgs/$orgId/': {
       id: '/orgs/$orgId/'
-      path: '/orgs/$orgId'
+      path: '/'
       fullPath: '/orgs/$orgId/'
       preLoaderRoute: typeof OrgsOrgIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/eggs': {
+      id: '/orgs/$orgId/eggs'
+      path: '/eggs'
+      fullPath: '/orgs/$orgId/eggs'
+      preLoaderRoute: typeof OrgsOrgIdEggsRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/settings': {
+      id: '/orgs/$orgId/settings'
+      path: '/settings'
+      fullPath: '/orgs/$orgId/settings'
+      preLoaderRoute: typeof OrgsOrgIdSettingsRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/nodes/': {
+      id: '/orgs/$orgId/nodes/'
+      path: '/nodes'
+      fullPath: '/orgs/$orgId/nodes/'
+      preLoaderRoute: typeof OrgsOrgIdNodesIndexRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
     }
     '/orgs/$orgId/nodes/$nodeId': {
       id: '/orgs/$orgId/nodes/$nodeId'
-      path: '/orgs/$orgId/nodes/$nodeId'
+      path: '/nodes/$nodeId'
       fullPath: '/orgs/$orgId/nodes/$nodeId'
       preLoaderRoute: typeof OrgsOrgIdNodesNodeIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/nodes/new': {
+      id: '/orgs/$orgId/nodes/new'
+      path: '/nodes/new'
+      fullPath: '/orgs/$orgId/nodes/new'
+      preLoaderRoute: typeof OrgsOrgIdNodesNewRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/servers/': {
+      id: '/orgs/$orgId/servers/'
+      path: '/servers'
+      fullPath: '/orgs/$orgId/servers/'
+      preLoaderRoute: typeof OrgsOrgIdServersIndexRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
     }
     '/orgs/$orgId/servers/new': {
       id: '/orgs/$orgId/servers/new'
-      path: '/orgs/$orgId/servers/new'
+      path: '/servers/new'
       fullPath: '/orgs/$orgId/servers/new'
       preLoaderRoute: typeof OrgsOrgIdServersNewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
     }
-    '/orgs/$orgId/nodes/$nodeId_/servers/$serverId': {
-      id: '/orgs/$orgId/nodes/$nodeId_/servers/$serverId'
-      path: '/orgs/$orgId/nodes/$nodeId/servers/$serverId'
-      fullPath: '/orgs/$orgId/nodes/$nodeId/servers/$serverId'
-      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdServersServerIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/orgs/$orgId/settings/': {
+      id: '/orgs/$orgId/settings/'
+      path: '/'
+      fullPath: '/orgs/$orgId/settings/'
+      preLoaderRoute: typeof OrgsOrgIdSettingsIndexRouteImport
+      parentRoute: typeof OrgsOrgIdSettingsRoute
+    }
+    '/orgs/$orgId/settings/activity': {
+      id: '/orgs/$orgId/settings/activity'
+      path: '/activity'
+      fullPath: '/orgs/$orgId/settings/activity'
+      preLoaderRoute: typeof OrgsOrgIdSettingsActivityRouteImport
+      parentRoute: typeof OrgsOrgIdSettingsRoute
+    }
+    '/orgs/$orgId/settings/members': {
+      id: '/orgs/$orgId/settings/members'
+      path: '/members'
+      fullPath: '/orgs/$orgId/settings/members'
+      preLoaderRoute: typeof OrgsOrgIdSettingsMembersRouteImport
+      parentRoute: typeof OrgsOrgIdSettingsRoute
+    }
+    '/orgs/$orgId/nodes/$nodeId/': {
+      id: '/orgs/$orgId/nodes/$nodeId/'
+      path: '/'
+      fullPath: '/orgs/$orgId/nodes/$nodeId/'
+      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdIndexRouteImport
+      parentRoute: typeof OrgsOrgIdNodesNodeIdRoute
+    }
+    '/orgs/$orgId/nodes/$nodeId/settings': {
+      id: '/orgs/$orgId/nodes/$nodeId/settings'
+      path: '/settings'
+      fullPath: '/orgs/$orgId/nodes/$nodeId/settings'
+      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdSettingsRouteImport
+      parentRoute: typeof OrgsOrgIdNodesNodeIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId'
+      path: '/servers/$nodeId/$serverId'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId/': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/'
+      path: '/'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdIndexRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId/access': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/access'
+      path: '/access'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/access'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdAccessRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId/files': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/files'
+      path: '/files'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/files'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdFilesRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
+    '/orgs/$orgId/servers/$nodeId/$serverId/settings': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/settings'
+      path: '/settings'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/settings'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdSettingsRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
     }
   }
 }
 
+interface OrgsOrgIdSettingsRouteChildren {
+  OrgsOrgIdSettingsActivityRoute: typeof OrgsOrgIdSettingsActivityRoute
+  OrgsOrgIdSettingsMembersRoute: typeof OrgsOrgIdSettingsMembersRoute
+  OrgsOrgIdSettingsIndexRoute: typeof OrgsOrgIdSettingsIndexRoute
+}
+
+const OrgsOrgIdSettingsRouteChildren: OrgsOrgIdSettingsRouteChildren = {
+  OrgsOrgIdSettingsActivityRoute: OrgsOrgIdSettingsActivityRoute,
+  OrgsOrgIdSettingsMembersRoute: OrgsOrgIdSettingsMembersRoute,
+  OrgsOrgIdSettingsIndexRoute: OrgsOrgIdSettingsIndexRoute,
+}
+
+const OrgsOrgIdSettingsRouteWithChildren =
+  OrgsOrgIdSettingsRoute._addFileChildren(OrgsOrgIdSettingsRouteChildren)
+
+interface OrgsOrgIdNodesNodeIdRouteChildren {
+  OrgsOrgIdNodesNodeIdSettingsRoute: typeof OrgsOrgIdNodesNodeIdSettingsRoute
+  OrgsOrgIdNodesNodeIdIndexRoute: typeof OrgsOrgIdNodesNodeIdIndexRoute
+}
+
+const OrgsOrgIdNodesNodeIdRouteChildren: OrgsOrgIdNodesNodeIdRouteChildren = {
+  OrgsOrgIdNodesNodeIdSettingsRoute: OrgsOrgIdNodesNodeIdSettingsRoute,
+  OrgsOrgIdNodesNodeIdIndexRoute: OrgsOrgIdNodesNodeIdIndexRoute,
+}
+
+const OrgsOrgIdNodesNodeIdRouteWithChildren =
+  OrgsOrgIdNodesNodeIdRoute._addFileChildren(OrgsOrgIdNodesNodeIdRouteChildren)
+
+interface OrgsOrgIdServersNodeIdServerIdRouteChildren {
+  OrgsOrgIdServersNodeIdServerIdAccessRoute: typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
+  OrgsOrgIdServersNodeIdServerIdFilesRoute: typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
+  OrgsOrgIdServersNodeIdServerIdSettingsRoute: typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
+  OrgsOrgIdServersNodeIdServerIdIndexRoute: typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
+}
+
+const OrgsOrgIdServersNodeIdServerIdRouteChildren: OrgsOrgIdServersNodeIdServerIdRouteChildren =
+  {
+    OrgsOrgIdServersNodeIdServerIdAccessRoute:
+      OrgsOrgIdServersNodeIdServerIdAccessRoute,
+    OrgsOrgIdServersNodeIdServerIdFilesRoute:
+      OrgsOrgIdServersNodeIdServerIdFilesRoute,
+    OrgsOrgIdServersNodeIdServerIdSettingsRoute:
+      OrgsOrgIdServersNodeIdServerIdSettingsRoute,
+    OrgsOrgIdServersNodeIdServerIdIndexRoute:
+      OrgsOrgIdServersNodeIdServerIdIndexRoute,
+  }
+
+const OrgsOrgIdServersNodeIdServerIdRouteWithChildren =
+  OrgsOrgIdServersNodeIdServerIdRoute._addFileChildren(
+    OrgsOrgIdServersNodeIdServerIdRouteChildren,
+  )
+
+interface OrgsOrgIdRouteChildren {
+  OrgsOrgIdEggsRoute: typeof OrgsOrgIdEggsRoute
+  OrgsOrgIdSettingsRoute: typeof OrgsOrgIdSettingsRouteWithChildren
+  OrgsOrgIdIndexRoute: typeof OrgsOrgIdIndexRoute
+  OrgsOrgIdNodesNodeIdRoute: typeof OrgsOrgIdNodesNodeIdRouteWithChildren
+  OrgsOrgIdNodesNewRoute: typeof OrgsOrgIdNodesNewRoute
+  OrgsOrgIdServersNewRoute: typeof OrgsOrgIdServersNewRoute
+  OrgsOrgIdNodesIndexRoute: typeof OrgsOrgIdNodesIndexRoute
+  OrgsOrgIdServersIndexRoute: typeof OrgsOrgIdServersIndexRoute
+  OrgsOrgIdServersNodeIdServerIdRoute: typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+}
+
+const OrgsOrgIdRouteChildren: OrgsOrgIdRouteChildren = {
+  OrgsOrgIdEggsRoute: OrgsOrgIdEggsRoute,
+  OrgsOrgIdSettingsRoute: OrgsOrgIdSettingsRouteWithChildren,
+  OrgsOrgIdIndexRoute: OrgsOrgIdIndexRoute,
+  OrgsOrgIdNodesNodeIdRoute: OrgsOrgIdNodesNodeIdRouteWithChildren,
+  OrgsOrgIdNodesNewRoute: OrgsOrgIdNodesNewRoute,
+  OrgsOrgIdServersNewRoute: OrgsOrgIdServersNewRoute,
+  OrgsOrgIdNodesIndexRoute: OrgsOrgIdNodesIndexRoute,
+  OrgsOrgIdServersIndexRoute: OrgsOrgIdServersIndexRoute,
+  OrgsOrgIdServersNodeIdServerIdRoute:
+    OrgsOrgIdServersNodeIdServerIdRouteWithChildren,
+}
+
+const OrgsOrgIdRouteWithChildren = OrgsOrgIdRoute._addFileChildren(
+  OrgsOrgIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   InviteRoute: InviteRoute,
+  OrgsOrgIdRoute: OrgsOrgIdRouteWithChildren,
   SettingsSecurityRoute: SettingsSecurityRoute,
   SigninLinkRoute: SigninLinkRoute,
   SigninSecondFactorRoute: SigninSecondFactorRoute,
   SigninIndexRoute: SigninIndexRoute,
-  OrgsOrgIdIndexRoute: OrgsOrgIdIndexRoute,
-  OrgsOrgIdNodesNodeIdRoute: OrgsOrgIdNodesNodeIdRoute,
-  OrgsOrgIdServersNewRoute: OrgsOrgIdServersNewRoute,
-  OrgsOrgIdNodesNodeIdServersServerIdRoute:
-    OrgsOrgIdNodesNodeIdServersServerIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

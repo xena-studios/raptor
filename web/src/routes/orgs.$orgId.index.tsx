@@ -1,428 +1,142 @@
 import { useQuery } from "@connectrpc/connect-query";
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Server, Trash2 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { Plus, Server, SquareTerminal } from "lucide-react";
 
-import { AppShell, type OrgSection } from "@/components/app-shell";
-import { useReauth } from "@/components/reauth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { EmptyState, PageHeader } from "@/components/page";
+import { StatusBadge } from "@/components/server-status";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
-import { OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
-import { message } from "@/lib/errors";
-import { isAdmin, roleNames, when } from "@/lib/format";
-import { requireSession } from "@/lib/session";
-import { signPin } from "@/lib/signed";
-import { orgClient } from "@/lib/transport";
-import { passkeyCancelled } from "@/lib/webauthn";
-
-type OrgSearch = { section?: Exclude<OrgSection, "nodes"> };
+import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { isAdmin } from "@/lib/format";
+import { useOrgNodes, useOrgServers } from "@/lib/org-data";
+import { serverStatus } from "@/lib/servers";
 
 export const Route = createFileRoute("/orgs/$orgId/")({
-  beforeLoad: ({ location }) => requireSession(location),
-  validateSearch: (s: Record<string, unknown>): OrgSearch => ({
-    section:
-      s.section === "members" || s.section === "log" || s.section === "settings"
-        ? s.section
-        : undefined,
-  }),
-  component: OrgPage,
+  component: Overview,
 });
 
-const sectionTitles: Record<OrgSection, string> = {
-  nodes: "Nodes",
-  members: "Members",
-  log: "Audit log",
-  settings: "Settings",
-};
-
-function useOrg(orgId: string) {
-  const orgs = useQuery(OrgService.method.listOrgs, {});
-  return orgs.data?.orgs.find((o) => o.id === orgId);
-}
-
-function OrgPage() {
-  const session = Route.useRouteContext();
+function Overview() {
   const { orgId } = Route.useParams();
-  const org = useOrg(orgId);
+  const orgs = useQuery(OrgService.method.listOrgs, {});
+  const org = orgs.data?.orgs.find((o) => o.id === orgId);
+  const nodes = useOrgNodes(orgId);
+  const { servers } = useOrgServers(orgId);
+  const nodeList = nodes.data?.nodes ?? [];
+  const online = nodeList.filter((n) => n.connected).length;
+  const running = servers.filter((s) => s.state === "running").length;
   const admin = isAdmin(org?.role);
-  const section: OrgSection = Route.useSearch().section ?? "nodes";
+
   return (
-    <AppShell session={session} orgId={orgId} section={section}>
-      <p className="mb-1 text-sm text-muted-foreground">{org?.name ?? "…"}</p>
-      <div className="mb-6 flex items-center gap-3">
-        <h1 className="font-heading text-2xl font-semibold">{sectionTitles[section]}</h1>
-        {org && section === "nodes" && <Badge variant="secondary">{roleNames[org.role]}</Badge>}
+    <>
+      <PageHeader
+        eyebrow={org?.name}
+        title="Overview"
+        description="Your nodes and servers at a glance."
+        actions={
+          admin && (
+            <Link
+              to="/orgs/$orgId/servers/new"
+              params={{ orgId }}
+              className={buttonVariants({ size: "sm" })}
+            >
+              <Plus /> Deploy server
+            </Link>
+          )
+        }
+      />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Nodes online" value={`${online} / ${nodeList.length}`} />
+        <Stat label="Servers running" value={`${running} / ${servers.length}`} />
+        <Stat
+          label="Servers needing attention"
+          value={String(
+            servers.filter((s) => ["crashed", "install_failed"].includes(s.state)).length,
+          )}
+        />
       </div>
-      {section === "nodes" && <Nodes orgId={orgId} admin={admin} userId={session.user?.id ?? ""} />}
-      {section === "members" && (
-        <Members orgId={orgId} myRole={org?.role} myId={session.user?.id ?? ""} />
+      {nodeList.length === 0 ? (
+        <EmptyState
+          icon={SquareTerminal}
+          title="No nodes yet"
+          description="Connect a machine to start running servers on it."
+          action={
+            admin && (
+              <Link
+                to="/orgs/$orgId/nodes/new"
+                params={{ orgId }}
+                className={buttonVariants({ size: "sm" })}
+              >
+                <Plus /> Connect node
+              </Link>
+            )
+          }
+        />
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Servers</CardTitle>
+              <CardDescription>What's running across your nodes.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col divide-y">
+              {servers.length === 0 && (
+                <p className="text-sm text-muted-foreground">No servers yet.</p>
+              )}
+              {servers.slice(0, 8).map((s) => (
+                <Link
+                  key={`${s.node.id}/${s.id}`}
+                  to="/orgs/$orgId/servers/$nodeId/$serverId"
+                  params={{ orgId, nodeId: s.node.id, serverId: s.id }}
+                  className="flex items-center gap-3 py-2 text-sm hover:underline"
+                >
+                  <Server className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                  <StatusBadge status={serverStatus(s, s.node.connected)} />
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Nodes</CardTitle>
+              <CardDescription>The machines your servers run on.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col divide-y">
+              {nodeList.slice(0, 8).map((n) => (
+                <Link
+                  key={n.id}
+                  to="/orgs/$orgId/nodes/$nodeId"
+                  params={{ orgId, nodeId: n.id }}
+                  className="flex items-center gap-3 py-2 text-sm hover:underline"
+                >
+                  <span
+                    className={
+                      n.connected
+                        ? "size-2 rounded-full bg-emerald-500"
+                        : "size-2 rounded-full bg-muted-foreground/40"
+                    }
+                  />
+                  <span className="min-w-0 flex-1 truncate">{n.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {n.connected ? "Connected" : "Offline"}
+                  </span>
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       )}
-      {section === "log" && admin && <Log orgId={orgId} />}
-      {section === "settings" && admin && org && <OrgSettings orgId={orgId} name={org.name} />}
-    </AppShell>
+    </>
   );
 }
 
-// OrgSettings renames the org (admins and owners).
-function OrgSettings({ orgId, name: current }: { orgId: string; name: string }) {
-  const client = useQueryClient();
-  const [name, setName] = useState(current);
-  const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
-
-  async function rename(e: FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSaved(false);
-    try {
-      await orgClient.renameOrg({ orgId, name });
-      await client.invalidateQueries();
-      setSaved(true);
-    } catch (err) {
-      setError(message(err));
-    }
-  }
-
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Name</CardTitle>
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={rename} className="flex gap-2">
-          <Input
-            aria-label="Org name"
-            required
-            maxLength={64}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Button type="submit" disabled={name.trim() === current}>
-            Rename
-          </Button>
-        </form>
-        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-        {saved && <p className="mt-2 text-sm text-muted-foreground">Renamed.</p>}
-      </CardContent>
-    </Card>
-  );
-}
-
-function Nodes({ orgId, admin, userId }: { orgId: string; admin: boolean; userId: string }) {
-  const nodes = useQuery(OrgService.method.listNodes, { orgId }, { refetchInterval: 10_000 });
-  const passkeys = useQuery(AuthService.method.listPasskeys, {});
-  const withReauth = useReauth();
-  const [token, setToken] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  // The passkey the new node will trust: its fingerprint once signed, or
-  // "skipped".
-  const [pinned, setPinned] = useState<{ fingerprint: string; name: string } | "skipped" | null>(
-    null,
-  );
-
-  async function trustPasskey() {
-    if (!token) return;
-    setError("");
-    try {
-      const pin = await signPin({
-        joinToken: token,
-        userId,
-        passkeys: passkeys.data?.passkeys ?? [],
-      });
-      await orgClient.pinJoinToken({ orgId, token, pinJson: pin.pinJson });
-      setPinned({ fingerprint: pin.fingerprint, name: pin.name });
-    } catch (err) {
-      if (!passkeyCancelled(err)) setError(message(err));
-    }
-  }
-
-  async function addNode() {
-    setError("");
-    try {
-      const res = await withReauth(() => orgClient.createJoinToken({ orgId }));
-      setToken(res.token);
-      setPinned((passkeys.data?.passkeys.length ?? 0) > 0 ? null : "skipped");
-    } catch (err) {
-      setError(message(err));
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      {nodes.data?.nodes.length === 0 && (
-        <p className="text-sm text-muted-foreground">No nodes yet.</p>
-      )}
-      {nodes.data?.nodes.map((n) => (
-        <Link key={n.id} to="/orgs/$orgId/nodes/$nodeId" params={{ orgId, nodeId: n.id }}>
-          <Card className="transition-colors hover:bg-muted/50">
-            <CardHeader className="flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Server className="size-4 text-muted-foreground" />
-                <div>
-                  <CardTitle>{n.name}</CardTitle>
-                  <CardDescription>
-                    n-{n.shortId}.raptornodes.net · Wings {n.wingsVersion || "?"}
-                  </CardDescription>
-                </div>
-              </div>
-              <Badge variant={n.connected ? "default" : "outline"}>
-                {n.connected ? "Connected" : `Last seen ${when(n.lastSeenAt)}`}
-              </Badge>
-            </CardHeader>
-          </Card>
-        </Link>
-      ))}
-      {admin && !token && (
-        <Button className="self-start" onClick={addNode}>
-          Add a node
-        </Button>
-      )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {token && pinned === null && (
-        <Alert>
-          <AlertDescription className="flex flex-col gap-2">
-            <p>
-              First, sign with your passkey so the new node trusts it from the start: deleting
-              servers and other dangerous actions need a passkey the node trusts. Your password
-              manager asks twice: once to pick the passkey, once to sign.
-            </p>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={trustPasskey}>
-                Sign with a passkey
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setPinned("skipped")}>
-                Skip
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-      {token && pinned !== null && (
-        <Alert>
-          <AlertDescription className="flex flex-col gap-2">
-            <p>
-              On a fresh Debian 12, Debian 13, or Ubuntu 24.04 server, run this as root. The token
-              works once, for an hour.
-            </p>
-            <code className="break-all rounded bg-muted p-2 text-xs">
-              curl -fsSL https://get.raptorpanel.net | sudo bash -s -- -token {token}
-            </code>
-            {pinned === "skipped" ? (
-              <p className="text-xs text-muted-foreground">
-                No passkey will be trusted on it yet: pair one later with{" "}
-                <code>sudo raptor keys reset</code> on the node.
-              </p>
-            ) : (
-              <p className="text-xs">
-                It will trust your passkey "{pinned.name}". When it links, it prints a fingerprint:
-                check it's <code className="font-semibold">{pinned.fingerprint}</code>.
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              The node shows up here as soon as it connects.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  navigator.clipboard.writeText(
-                    `curl -fsSL https://get.raptorpanel.net | sudo bash -s -- -token ${token}`,
-                  )
-                }
-              >
-                Copy
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setToken(null)}>
-                Done
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-    </div>
-  );
-}
-
-const roleOptions = [Role.MEMBER, Role.ADMIN, Role.OWNER];
-
-function Members({
-  orgId,
-  myRole,
-  myId,
-}: {
-  orgId: string;
-  myRole: Role | undefined;
-  myId: string;
-}) {
-  const members = useQuery(OrgService.method.listMembers, { orgId });
-  const admin = isAdmin(myRole);
-  const owner = myRole === Role.OWNER;
-  const invitations = useQuery(OrgService.method.listInvitations, { orgId }, { enabled: admin });
-  const client = useQueryClient();
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Role>(Role.MEMBER);
-  const [error, setError] = useState("");
-  const [sent, setSent] = useState("");
-
-  async function run(fn: () => Promise<unknown>) {
-    setError("");
-    try {
-      await fn();
-      await client.invalidateQueries();
-    } catch (err) {
-      setError(message(err));
-    }
-  }
-
-  async function invite(e: FormEvent) {
-    e.preventDefault();
-    setSent("");
-    await run(async () => {
-      await orgClient.inviteMember({ orgId, email, role });
-      setSent(email);
-      setEmail("");
-    });
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <Card>
-        <CardContent className="flex flex-col divide-y">
-          {members.data?.members.map((m) => (
-            <div key={m.userId} className="flex items-center justify-between gap-3 py-2 text-sm">
-              <span>
-                {m.email}{" "}
-                {m.userId === myId && <span className="text-muted-foreground">(you)</span>}
-              </span>
-              <div className="flex items-center gap-2">
-                {owner ? (
-                  <select
-                    className="rounded-md border bg-background px-2 py-1 text-sm"
-                    value={m.role}
-                    onChange={(e) =>
-                      run(() =>
-                        orgClient.setMemberRole({
-                          orgId,
-                          userId: m.userId,
-                          role: Number(e.target.value),
-                        }),
-                      )
-                    }
-                  >
-                    {roleOptions.map((r) => (
-                      <option key={r} value={r}>
-                        {roleNames[r]}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <Badge variant="secondary">{roleNames[m.role]}</Badge>
-                )}
-                {(m.userId === myId || owner || (admin && m.role === Role.MEMBER)) && (
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={m.userId === myId ? "Leave the org" : `Remove ${m.email}`}
-                    onClick={() => run(() => orgClient.removeMember({ orgId, userId: m.userId }))}
-                  >
-                    <Trash2 />
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {admin && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Invite someone</CardTitle>
-            <CardDescription>
-              They'll get an email with a link that works for 7 days, only for that address.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <form onSubmit={invite} className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="Email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <select
-                className="rounded-md border bg-background px-2 text-sm"
-                value={role}
-                onChange={(e) => setRole(Number(e.target.value))}
-              >
-                {roleOptions
-                  .filter((r) => owner || r !== Role.OWNER)
-                  .map((r) => (
-                    <option key={r} value={r}>
-                      {roleNames[r]}
-                    </option>
-                  ))}
-              </select>
-              <Button type="submit">Invite</Button>
-            </form>
-            {sent && <p className="text-sm text-muted-foreground">Invitation sent to {sent}.</p>}
-            {invitations.data?.invitations.map((i) => (
-              <div key={i.id} className="flex items-center justify-between text-sm">
-                <span>
-                  {i.email}{" "}
-                  <span className="text-muted-foreground">
-                    · {roleNames[i.role]} · until {when(i.expiresAt)}
-                  </span>
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    run(() => orgClient.revokeInvitation({ orgId, invitationId: i.id }))
-                  }
-                >
-                  Revoke
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function Log({ orgId }: { orgId: string }) {
-  const log = useQuery(OrgService.method.listAuditLog, { orgId });
-  return (
-    <Card>
-      <CardContent className="flex flex-col divide-y text-sm">
-        {log.data?.events.map((e) => {
-          const meta = JSON.parse(e.metadataJson || "{}") as Record<string, unknown>;
-          const what =
-            e.action === "command" ? `${meta.action}${meta.error ? " (failed)" : ""}` : e.action;
-          return (
-            <div key={e.id} className="flex justify-between gap-4 py-2">
-              <span>
-                <span className="font-medium">{e.actorEmail || "someone who left"}</span> {what}
-                {e.target && <span className="text-muted-foreground"> · {e.target}</span>}
-              </span>
-              <span className="shrink-0 text-xs text-muted-foreground">{when(e.at)}</span>
-            </div>
-          );
-        })}
-        {log.data?.events.length === 0 && (
-          <p className="py-2 text-muted-foreground">Nothing yet.</p>
-        )}
-      </CardContent>
     </Card>
   );
 }

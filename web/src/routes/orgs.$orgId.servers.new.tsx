@@ -1,10 +1,10 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BadgeCheck, Search } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 
-import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,6 @@ import {
   suggestMemoryMiB,
   suggestPort,
 } from "@/lib/servers";
-import { requireSession } from "@/lib/session";
 import { sendSigned } from "@/lib/signed";
 import { catalogClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
@@ -38,7 +37,6 @@ import { passkeyCancelled } from "@/lib/webauthn";
 type NewServerSearch = { node?: string };
 
 export const Route = createFileRoute("/orgs/$orgId/servers/new")({
-  beforeLoad: ({ location }) => requireSession(location),
   validateSearch: (s: Record<string, unknown>): NewServerSearch => ({
     node: typeof s.node === "string" ? s.node : undefined,
   }),
@@ -69,25 +67,12 @@ function NewServerPage() {
   const node = nodes.data?.nodes.find((n) => n.id === (nodeId || nodes.data?.nodes[0]?.id));
 
   return (
-    <AppShell session={session} orgId={orgId}>
-      <p className="mb-1 text-sm text-muted-foreground">
-        <Link to="/orgs/$orgId" params={{ orgId }} className="hover:underline">
-          {org?.name ?? "Org"}
-        </Link>
-        {node && (
-          <>
-            {" / "}
-            <Link
-              to="/orgs/$orgId/nodes/$nodeId"
-              params={{ orgId, nodeId: node.id }}
-              className="hover:underline"
-            >
-              {node.name}
-            </Link>
-          </>
-        )}
-      </p>
-      <h1 className="mb-6 font-heading text-2xl font-semibold">New server</h1>
+    <>
+      <PageHeader
+        back={{ label: "Servers", to: "/orgs/$orgId/servers", params: { orgId } }}
+        title="Deploy a server"
+        description="Pick a node and a game; Raptor installs it and starts it."
+      />
       {org && !isAdmin(org.role) ? (
         <p className="text-sm text-muted-foreground">
           Only the org's admins and owners can create servers.
@@ -126,7 +111,7 @@ function NewServerPage() {
           )}
         </div>
       )}
-    </AppShell>
+    </>
   );
 }
 
