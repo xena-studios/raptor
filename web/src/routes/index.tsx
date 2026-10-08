@@ -1,9 +1,9 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { type FormEvent, useEffect, useState } from "react";
 
-import { AppShell } from "@/components/app-shell";
+import { AppShell, lastOrg } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,13 @@ import { roleNames } from "@/lib/format";
 import { requireSession } from "@/lib/session";
 import { orgClient } from "@/lib/transport";
 
+type HomeSearch = { new?: boolean };
+
 export const Route = createFileRoute("/")({
   beforeLoad: ({ location }) => requireSession(location),
+  validateSearch: (s: Record<string, unknown>): HomeSearch => ({
+    new: s.new === true || s.new === "true" ? true : undefined,
+  }),
   component: Home,
 });
 
@@ -23,16 +28,29 @@ function Home() {
   const session = Route.useRouteContext();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const client = useQueryClient();
+  const navigate = useNavigate();
+  const making = Route.useSearch().new;
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+
+  // Home is the org you were last in (or your first), unless you're making
+  // a new one.
+  useEffect(() => {
+    const list = orgs.data?.orgs;
+    if (making || !list?.length) return;
+    const last = lastOrg();
+    const to = list.find((o) => o.id === last) ?? list[0];
+    if (to) void navigate({ to: "/orgs/$orgId", params: { orgId: to.id }, replace: true });
+  }, [orgs.data, making, navigate]);
 
   async function create(e: FormEvent) {
     e.preventDefault();
     setError("");
     try {
-      await orgClient.createOrg({ name });
+      const res = await orgClient.createOrg({ name });
       setName("");
       await client.invalidateQueries();
+      if (res.org) await navigate({ to: "/orgs/$orgId", params: { orgId: res.org.id } });
     } catch (err) {
       setError(message(err));
     }
@@ -40,7 +58,7 @@ function Home() {
 
   return (
     <AppShell session={session}>
-      <h1 className="mb-6 font-heading text-2xl font-semibold">Orgs</h1>
+      <h1 className="mb-6 font-heading text-2xl font-semibold">{making ? "New org" : "Orgs"}</h1>
       <div className="flex flex-col gap-3">
         {orgs.data?.orgs.length === 0 && (
           <p className="text-sm text-muted-foreground">

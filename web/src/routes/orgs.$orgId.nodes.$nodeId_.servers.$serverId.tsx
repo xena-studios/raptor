@@ -47,7 +47,7 @@ function ServerPage() {
   const status = server && serverStatus(server, node?.connected ?? false);
 
   return (
-    <AppShell session={session}>
+    <AppShell session={session} orgId={orgId}>
       <p className="mb-1 text-sm text-muted-foreground">
         <Link to="/orgs/$orgId" params={{ orgId }} className="hover:underline">
           {org?.name ?? "Org"}
