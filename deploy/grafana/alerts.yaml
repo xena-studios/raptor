@@ -1,0 +1,105 @@
+# The Panel's alert rules (docs/DEPLOY.md#monitoring), in Prometheus's rule
+# format: import them into Grafana Cloud as Grafana-managed rules, or load
+# them with mimirtool. The "replica" group only makes sense once server #2
+# exists; leave it out until then.
+# The API-down alarm isn't here: it's Synthetic Monitoring's check on
+# /healthz, which works when the Panel can't report anything.
+groups:
+  - name: raptor-panel
+    rules:
+      - alert: RaptorPanelSilent
+        expr: absent(raptor_postgres_pool_connections{job="raptor-panel"})
+        for: 10m
+        labels: {severity: critical}
+        annotations:
+          summary: No Panel has sent metrics for 10 minutes
+          description: >-
+            Every other alert here is blind until this clears. Either the
+            Panels are down (the synthetic check says so too), or they can't
+            reach Grafana: an expired or revoked OTLP token, or a wrong
+            "Grafana Cloud OTLP" item in 1Password.
+
+      - alert: RaptorAPIErrors
+        expr: |
+          sum(rate(rpc_server_call_duration_seconds_count{job="raptor-panel",rpc_response_status_code=~"INTERNAL|UNKNOWN|UNAVAILABLE|DATA_LOSS"}[5m]))
+            / sum(rate(rpc_server_call_duration_seconds_count{job="raptor-panel"}[5m]))
+            > 0.05
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: "Over 5% of API requests fail on the Panel's side"
+          description: Something behind the API is broken. The Panels' logs say what.
+
+      - alert: RaptorNodesDropped
+        expr: |
+          sum(raptor_nodes_connected{job="raptor-panel"})
+            < 0.7 * sum(raptor_nodes_connected{job="raptor-panel"} offset 5m)
+          and sum(raptor_nodes_connected{job="raptor-panel"} offset 5m) >= 5
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: Connected nodes fell by 30% within 5 minutes
+          description: Cloudflare, the network, or the Panel is failing node connections.
+
+      - alert: RaptorReconnectStorm
+        expr: |
+          sum(rate(raptor_nodes_connects_total{job="raptor-panel"}[5m]))
+            > 3 * sum(rate(raptor_nodes_connects_total{job="raptor-panel"}[1d] offset 1h))
+          and sum(rate(raptor_nodes_connects_total{job="raptor-panel"}[5m])) > 0.1
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: Nodes have been reconnecting at 3× the usual rate for 15 minutes
+          description: >-
+            A deploy's reconnects are over in a minute; this lasting means
+            connections keep failing and retrying.
+
+      - alert: RaptorArchiveFailing
+        expr: max(delta(raptor_postgres_archive_failures{job="raptor-panel"}[15m])) > 0
+        labels: {severity: critical}
+        annotations:
+          summary: WAL segments are failing to reach the backup bucket
+          description: >-
+            Point-in-time recovery has a hole until this is fixed. Check
+            pgBackRest's log in the Postgres container and the bucket's keys.
+
+      - alert: RaptorWALPilingUp
+        expr: max(raptor_postgres_wal_size_bytes{job="raptor-panel"}) > 10e9
+        for: 10m
+        labels: {severity: critical}
+        annotations:
+          summary: Over 10 GB of WAL on the primary's disk
+          description: The disk fills next. Usually the archive failing, or a dead replica's slot.
+
+      - alert: RaptorEmailFailing
+        expr: sum(increase(raptor_emails_total{job="raptor-panel",result="failed"}[15m])) >= 3
+        labels: {severity: critical}
+        annotations:
+          summary: Emails are failing to send
+          description: Sign-in codes aren't arriving. Check Resend's dashboard and the API key.
+
+      - alert: RaptorMirrorFailing
+        expr: sum(rate(raptor_mirror_sync_failures_total{job="raptor-panel"}[10m])) > 0
+        for: 30m
+        labels: {severity: warning}
+        annotations:
+          summary: Mirror syncs have been failing for 30 minutes
+          description: Pages show stale servers. The Panels' logs name the nodes.
+
+  - name: raptor-replica
+    rules:
+      - alert: RaptorReplicaGone
+        expr: max(raptor_postgres_replicas{job="raptor-panel"}) < 1
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: No streaming replica is connected
+          description: No failover target, and WAL piles up for the replica's slot.
+
+      - alert: RaptorReplicaBehind
+        expr: max(raptor_postgres_replica_lag_seconds{job="raptor-panel"}) > 60
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: The replica is over a minute behind
+          description: A failover now would lose that much.
