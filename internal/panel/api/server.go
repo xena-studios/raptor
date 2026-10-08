@@ -2,6 +2,7 @@
 package api
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"io"
@@ -20,6 +21,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
+	"github.com/xena-studios/raptor/internal/panel/live"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
@@ -53,6 +55,9 @@ type Config struct {
 	Commands *commands.Service
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
+	// ConsoleRecheck is how often live console streams check access again
+	// (default commands.ConsoleRecheck; shorter in tests).
+	ConsoleRecheck time.Duration
 	// AppOrigin is the only origin browsers may call the API from
 	// (https://app.raptorpanel.net; http://localhost:5173 in development).
 	AppOrigin string
@@ -93,6 +98,9 @@ func Handler(cfg Config) http.Handler {
 	if cfg.Commands != nil {
 		path, handler := panelv1connect.NewCommandServiceHandler(cfg.Commands, opts(connect.WithReadMaxBytes(512<<10))...)
 		api.Handle(path, handler)
+	}
+	if cfg.Commands != nil && cfg.Auth != nil {
+		api.Handle("GET "+live.Path, &live.Handler{Auth: cfg.Auth, Commands: cfg.Commands, AppOrigin: cmp.Or(cfg.AppOrigin, "https://app.raptorpanel.net"), Recheck: cfg.ConsoleRecheck})
 	}
 	if cfg.Orgs != nil {
 		path, handler := panelv1connect.NewOrgServiceHandler(cfg.Orgs, opts(connect.WithReadMaxBytes(64<<10))...)

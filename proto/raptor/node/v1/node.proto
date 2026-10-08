@@ -41,6 +41,11 @@ service NodeService {
   rpc GetServers(GetServersRequest) returns (GetServersResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // Console streams a server's console: its history, then new lines as
+  // they come, until the Panel hangs up. The request is an envelope for
+  // "server.console" with the Panel's grant, checked like a command's.
+  rpc Console(ConsoleRequest) returns (stream ConsoleResponse) {}
 }
 
 message GetServersRequest {
@@ -262,4 +267,16 @@ message EnrollResponse {
   // The node's full hostname, n-<short_id>.<the Panel's node domain>,
   // which the node keeps for raptor doctor's hostname check.
   string hostname = 5;
+}
+
+message ConsoleRequest {
+  // The JSON command envelope (action "server.console").
+  bytes envelope = 1;
+}
+
+message ConsoleResponse {
+  repeated string lines = 1;
+  // The lines are the console's history: the first message is, even when
+  // empty; the rest are new lines.
+  bool history = 2;
 }

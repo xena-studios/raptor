@@ -11,7 +11,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": "http://localhost:8080",
+      // ws: the live socket (/api/live) too.
+      "/api": { target: "http://localhost:8080", ws: true },
     },
   },
 });

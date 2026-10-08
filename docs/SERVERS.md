@@ -100,6 +100,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 - Lines longer than 8 KiB are truncated.
 - **Throttling:** at most 1,000 lines per second per server are streamed to viewers. Excess lines are dropped and replaced by a single `[raptor] N lines suppressed` line. The server itself is never stopped for spamming the console. History reloaded from Docker after a Wings restart doesn't count toward the limit, so a long history (e.g. a world generation's progress lines) can't suppress the live lines after it.
 - There is no separate console log file. History beyond the ring buffer is Docker's rotated logs (3 × 20 MB).
+- **Watching** needs the `console.read` permission (`console.write` includes it), or root on the box. The Panel opens `NodeService.Console` with a grant for `server.console`, which Wings checks like a command's; the stream sends the ring buffer, then new lines in batches (at most 200 lines, 50 ms apart). See [ARCHITECTURE.md](ARCHITECTURE.md#realtime-console-and-stats) for the path to the browser.
 
 **Input**
 - Requires the `console.write` permission, or root on the box through `raptor console`.

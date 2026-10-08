@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"regexp"
-	"slices"
 	"time"
 
 	"connectrpc.com/connect"
@@ -41,6 +40,7 @@ type Sender interface {
 type Service struct {
 	Auth     *auth.Service
 	Sender   Sender
+	Consoles Consoles
 	PanelKey ed25519.PrivateKey
 	Now      func() time.Time
 }
@@ -109,7 +109,7 @@ func (s *Service) authorize(ctx context.Context, q *store.Queries, sess *auth.Se
 	if err != nil {
 		return org, err
 	}
-	if !slices.Contains(g.Permissions, perm) {
+	if !perms.Allows(g.Permissions, perm) {
 		return org, errDenied
 	}
 	return org, nil

@@ -7,6 +7,9 @@ package perms
 
 // Server permissions, granted to members per server.
 const (
+	// ConsoleRead is watching the console (its output can name players and
+	// their addresses); ConsoleWrite, sending commands, includes it.
+	ConsoleRead  = "console.read"
 	ConsoleWrite = "console.write"
 	Power        = "power"
 	FilesRead    = "files.read"
@@ -19,12 +22,13 @@ const (
 )
 
 // All is every server permission (the database checks the same list).
-var All = []string{ConsoleWrite, Power, FilesRead, FilesWrite, Backups, Schedules, Startup, Reinstall, SFTP}
+var All = []string{ConsoleRead, ConsoleWrite, Power, FilesRead, FilesWrite, Backups, Schedules, Startup, Reinstall, SFTP}
 
 // adminOnly marks actions only admins and owners may run.
 const adminOnly = ""
 
 var actions = map[string]string{
+	"server.console": ConsoleRead,
 	"server.command": ConsoleWrite,
 
 	"server.start":   Power,
@@ -83,6 +87,17 @@ var actions = map[string]string{
 func For(action string) (perm string, ok bool) {
 	perm, ok = actions[action]
 	return perm, ok
+}
+
+// Allows reports whether a member with these server permissions has perm.
+// console.write includes console.read: sending commands blind is useless.
+func Allows(granted []string, perm string) bool {
+	for _, g := range granted {
+		if g == perm || (perm == ConsoleRead && g == ConsoleWrite) {
+			return true
+		}
+	}
+	return false
 }
 
 // AdminOnly reports whether only admins and owners may run action.

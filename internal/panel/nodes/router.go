@@ -32,9 +32,11 @@ type Router struct {
 	ID  string
 	Log *slog.Logger
 
-	mu      sync.Mutex
-	waiters map[int64]chan struct{}
-	done    chan struct{}
+	mu       sync.Mutex
+	waiters  map[int64]chan struct{}
+	watchers map[string]*watcher // console streams watched on other instances
+	serving  map[string]*served  // console streams run for other instances
+	done     chan struct{}
 }
 
 // Timing. An instance that hasn't said it's alive for staleAfter is treated
@@ -62,6 +64,8 @@ func (r *Router) Start(ctx context.Context) error {
 		r.Log = slog.New(slog.DiscardHandler)
 	}
 	r.waiters = map[int64]chan struct{}{}
+	r.watchers = map[string]*watcher{}
+	r.serving = map[string]*served{}
 	r.done = make(chan struct{})
 	if err := r.q().InstanceAlive(ctx, r.ID); err != nil {
 		return err
@@ -88,7 +92,7 @@ func (r *Router) listen(ctx context.Context) (*pgxpool.Conn, error) {
 }
 
 // loop receives notifications: "req:<id>" (run a request) and "res:<id>"
-// (a request of ours was answered). If the listening connection breaks it
+// (a request of ours was answered), and console streams' (console.go). If the listening connection breaks it
 // listens again; the fallback poll covers the gap.
 func (r *Router) loop(ctx context.Context, conn *pgxpool.Conn) {
 	defer close(r.done)
@@ -113,6 +117,9 @@ func (r *Router) loop(ctx context.Context, conn *pgxpool.Conn) {
 			continue
 		}
 		kind, idStr, _ := strings.Cut(n.Payload, ":")
+		if r.consoleNotification(ctx, kind, idStr) {
+			continue
+		}
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			continue

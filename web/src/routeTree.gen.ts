@@ -18,6 +18,7 @@ import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-f
 import { Route as OrgsOrgIdIndexRouteImport } from './routes/orgs.$orgId.index'
 import { Route as OrgsOrgIdNodesNodeIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId'
 import { Route as OrgsOrgIdServersNewRouteImport } from './routes/orgs.$orgId.servers.new'
+import { Route as OrgsOrgIdNodesNodeIdServersServerIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId_.servers.$serverId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +65,12 @@ const OrgsOrgIdServersNewRoute = OrgsOrgIdServersNewRouteImport.update({
   path: '/orgs/$orgId/servers/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgsOrgIdNodesNodeIdServersServerIdRoute =
+  OrgsOrgIdNodesNodeIdServersServerIdRouteImport.update({
+    id: '/orgs/$orgId/nodes/$nodeId_/servers/$serverId',
+    path: '/orgs/$orgId/nodes/$nodeId/servers/$serverId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
+  '/orgs/$orgId/nodes/$nodeId/servers/$serverId': typeof OrgsOrgIdNodesNodeIdServersServerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +94,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
+  '/orgs/$orgId/nodes/$nodeId/servers/$serverId': typeof OrgsOrgIdNodesNodeIdServersServerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +107,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
+  '/orgs/$orgId/nodes/$nodeId_/servers/$serverId': typeof OrgsOrgIdNodesNodeIdServersServerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/servers/new'
+    | '/orgs/$orgId/nodes/$nodeId/servers/$serverId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/servers/new'
+    | '/orgs/$orgId/nodes/$nodeId/servers/$serverId'
   id:
     | '__root__'
     | '/'
@@ -133,6 +145,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/servers/new'
+    | '/orgs/$orgId/nodes/$nodeId_/servers/$serverId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +158,7 @@ export interface RootRouteChildren {
   OrgsOrgIdIndexRoute: typeof OrgsOrgIdIndexRoute
   OrgsOrgIdNodesNodeIdRoute: typeof OrgsOrgIdNodesNodeIdRoute
   OrgsOrgIdServersNewRoute: typeof OrgsOrgIdServersNewRoute
+  OrgsOrgIdNodesNodeIdServersServerIdRoute: typeof OrgsOrgIdNodesNodeIdServersServerIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orgs/$orgId/nodes/$nodeId_/servers/$serverId': {
+      id: '/orgs/$orgId/nodes/$nodeId_/servers/$serverId'
+      path: '/orgs/$orgId/nodes/$nodeId/servers/$serverId'
+      fullPath: '/orgs/$orgId/nodes/$nodeId/servers/$serverId'
+      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdServersServerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +246,8 @@ const rootRouteChildren: RootRouteChildren = {
   OrgsOrgIdIndexRoute: OrgsOrgIdIndexRoute,
   OrgsOrgIdNodesNodeIdRoute: OrgsOrgIdNodesNodeIdRoute,
   OrgsOrgIdServersNewRoute: OrgsOrgIdServersNewRoute,
+  OrgsOrgIdNodesNodeIdServersServerIdRoute:
+    OrgsOrgIdNodesNodeIdServersServerIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

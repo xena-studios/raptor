@@ -160,6 +160,12 @@ func withHTTPCall(ctx context.Context, w http.ResponseWriter, r *http.Request) c
 	return context.WithValue(ctx, httpCallKey{}, call{req: r.Header, resp: w.Header(), peer: r.RemoteAddr})
 }
 
+// WithRequest makes a plain HTTP request's cookies and address available
+// to Current and AsUser, for handlers outside Connect (the live WebSocket).
+func WithRequest(ctx context.Context, w http.ResponseWriter, r *http.Request) context.Context {
+	return withHTTPCall(ctx, w, r)
+}
+
 func callOf(ctx context.Context) (call, bool) {
 	if ci, ok := connect.CallInfoForHandlerContext(ctx); ok {
 		return call{req: ci.RequestHeader(), resp: ci.ResponseHeader(), peer: ci.Peer().Addr}, true
