@@ -1,14 +1,14 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { KeyRound, Play, RotateCw, Square, Trash2, Users } from "lucide-react";
+import { KeyRound, Play, Plus, RotateCw, Square, Trash2, Users } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { TrustedKeys } from "@/components/trusted-keys";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { OrgService, Role, type Server } from "@/gen/raptor/panel/v1/org_pb";
 import { keyFingerprint } from "@/lib/canonical";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
+import { type ServerStatus, serverStatus } from "@/lib/servers";
 import { requireSession } from "@/lib/session";
 import { sameBytes, sendSigned, whichPasskey } from "@/lib/signed";
 import { commandClient, orgClient } from "@/lib/transport";
@@ -66,6 +67,16 @@ function NodePage() {
             {node.connected ? "Connected" : "Offline"}
           </Badge>
         )}
+        {isAdmin(org?.role) && (
+          <Link
+            to="/orgs/$orgId/servers/new"
+            params={{ orgId }}
+            search={{ node: nodeId }}
+            className={buttonVariants({ size: "sm", className: "ml-auto" })}
+          >
+            <Plus /> New server
+          </Link>
+        )}
       </div>
       <div className="flex flex-col gap-3">
         {servers.data?.servers.length === 0 && (
@@ -79,6 +90,7 @@ function NodePage() {
             nodeId={nodeId}
             admin={isAdmin(org?.role)}
             userId={session.user?.id ?? ""}
+            nodeConnected={node?.connected ?? false}
           />
         ))}
         {isAdmin(org?.role) && (
@@ -101,18 +113,21 @@ function ServerCard({
   nodeId,
   admin,
   userId,
+  nodeConnected,
 }: {
   server: Server;
   orgId: string;
   nodeId: string;
   admin: boolean;
   userId: string;
+  nodeConnected: boolean;
 }) {
   const client = useQueryClient();
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [sharing, setSharing] = useState(false);
   const can = (p: string) => server.permissions.includes("*") || server.permissions.includes(p);
+  const status = serverStatus(server, nodeConnected);
 
   // Deleting is signed by the user's passkey; Wings checks the signature.
   async function remove() {
@@ -154,11 +169,25 @@ function ServerCard({
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-3">
         <div>
-          <CardTitle>{server.name}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            {server.name} <StatusBadge status={status} />
+          </CardTitle>
           <CardDescription>
-            {server.eggName || "—"} · {server.state || "unknown"} · SFTP ID{" "}
+            {server.eggName || "—"}
+            {server.ports[0] ? ` · port ${server.ports[0]}` : ""} · SFTP ID{" "}
             <code>{server.id.slice(-8)}</code>
           </CardDescription>
+          {status.detail && (
+            <p
+              className={
+                status.tone === "failed"
+                  ? "mt-1 text-xs text-destructive"
+                  : "mt-1 text-xs text-muted-foreground"
+              }
+            >
+              {status.detail}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {can("power") && (
@@ -219,6 +248,27 @@ function ServerCard({
         </CardContent>
       )}
     </Card>
+  );
+}
+
+const toneVariant = {
+  live: "default",
+  pending: "secondary",
+  failed: "destructive",
+  stale: "outline",
+  stopped: "outline",
+} as const;
+
+// StatusBadge shows a server's state; a stale one (its node is offline) is
+// dimmed, since it's only the node's last report.
+function StatusBadge({ status }: { status: ServerStatus }) {
+  return (
+    <Badge
+      variant={toneVariant[status.tone]}
+      className={status.tone === "stale" ? "opacity-60" : undefined}
+    >
+      {status.label}
+    </Badge>
   );
 }
 
