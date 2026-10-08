@@ -84,3 +84,14 @@ FROM m_servers WHERE node_id = $1 AND server_id = $2;
 -- name: UserGrantsInOrg :many
 -- A member's server grants in an org.
 SELECT node_id, server_id, permissions FROM server_grants WHERE org_id = $1 AND user_id = $2;
+
+-- name: CountOrgMembers :one
+SELECT count(*) FROM org_members WHERE org_id = $1;
+
+-- name: CountOrgNodes :one
+-- The org's nodes that haven't been removed.
+SELECT count(*) FROM nodes WHERE org_id = $1 AND deleted_at IS NULL;
+
+-- name: RevokeOrgInvitations :exec
+UPDATE org_invitations SET revoked_at = now()
+WHERE org_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL;

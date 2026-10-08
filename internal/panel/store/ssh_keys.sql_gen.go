@@ -79,7 +79,7 @@ func (q *Queries) DeleteSSHKey(ctx context.Context, arg DeleteSSHKeyParams) (Ssh
 }
 
 const getUserBySFTPUsername = `-- name: GetUserBySFTPUsername :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username FROM users WHERE sftp_username = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme FROM users WHERE sftp_username = $1
 `
 
 func (q *Queries) GetUserBySFTPUsername(ctx context.Context, sftpUsername pgtype.Text) (User, error) {
@@ -96,6 +96,7 @@ func (q *Queries) GetUserBySFTPUsername(ctx context.Context, sftpUsername pgtype
 		&i.TotpEnabledAt,
 		&i.TotpLastStep,
 		&i.SftpUsername,
+		&i.Theme,
 	)
 	return i, err
 }

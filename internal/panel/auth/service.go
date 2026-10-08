@@ -68,13 +68,18 @@ func (s *Service) sendEmailCode(ctx context.Context, email, purpose string) erro
 		return err
 	}
 	var subject, body string
-	if purpose == purposeSignIn {
+	switch {
+	case strings.HasPrefix(purpose, "email_change:"):
+		subject = "Confirm your new Raptor email: " + code
+		body = fmt.Sprintf("Your Raptor confirmation code is %s\n\nSomeone signed in to a Raptor account asked to move it to this address. The code works once, for %d minutes. If this wasn't you, ignore it: nothing changes without the code.\n",
+			code, int(CodeTTL.Minutes()))
+	case purpose == purposeSignIn:
 		// The token goes after #, so it never reaches a server's logs.
 		url := strings.TrimSuffix(s.AppURL, "/") + "/signin/link#" + link
 		subject = "Your Raptor sign-in code: " + code
 		body = fmt.Sprintf("Your Raptor sign-in code is %s\n\nOr sign in with this link:\n%s\n\nBoth work once, for %d minutes. If you didn't ask for this, ignore it: nobody can sign in without the code.\n",
 			code, url, int(CodeTTL.Minutes()))
-	} else {
+	default:
 		subject = "Your Raptor confirmation code: " + code
 		body = fmt.Sprintf("Your Raptor confirmation code is %s\n\nSomeone signed in to your account is changing how it's secured, and asked to confirm it's you. The code works once, for %d minutes. If this wasn't you, sign out every device from your account settings.\n",
 			code, int(CodeTTL.Minutes()))
@@ -213,7 +218,10 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 }
 
 func userProto(u store.User) *panelv1.User {
-	return &panelv1.User{Id: uuid.UUID(u.ID.Bytes).String(), Email: u.Email, Name: u.Name, TotpEnabled: u.TotpEnabledAt.Valid, SftpUsername: u.SftpUsername.String}
+	return &panelv1.User{
+		Id: uuid.UUID(u.ID.Bytes).String(), Email: u.Email, Name: u.Name, TotpEnabled: u.TotpEnabledAt.Valid,
+		SftpUsername: u.SftpUsername.String, CreatedAt: timestamppb.New(u.CreatedAt.Time), Theme: u.Theme,
+	}
 }
 
 func sessionProto(sess store.Session, current pgtype.UUID) *panelv1.Session {

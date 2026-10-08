@@ -36,6 +36,29 @@ func (q *Queries) AddOrgMember(ctx context.Context, arg AddOrgMemberParams) erro
 	return err
 }
 
+const countOrgMembers = `-- name: CountOrgMembers :one
+SELECT count(*) FROM org_members WHERE org_id = $1
+`
+
+func (q *Queries) CountOrgMembers(ctx context.Context, orgID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countOrgMembers, orgID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countOrgNodes = `-- name: CountOrgNodes :one
+SELECT count(*) FROM nodes WHERE org_id = $1 AND deleted_at IS NULL
+`
+
+// The org's nodes that haven't been removed.
+func (q *Queries) CountOrgNodes(ctx context.Context, orgID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countOrgNodes, orgID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countOwnedOrgs = `-- name: CountOwnedOrgs :one
 SELECT count(*) FROM org_members WHERE user_id = $1 AND role = 'owner'
 `
@@ -441,6 +464,16 @@ func (q *Queries) RevokeInvitation(ctx context.Context, arg RevokeInvitationPara
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const revokeOrgInvitations = `-- name: RevokeOrgInvitations :exec
+UPDATE org_invitations SET revoked_at = now()
+WHERE org_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeOrgInvitations(ctx context.Context, orgID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, revokeOrgInvitations, orgID)
+	return err
 }
 
 const setOrgMemberRole = `-- name: SetOrgMemberRole :execrows

@@ -9,8 +9,8 @@ import {
   Plus,
   Server,
   Settings,
-  Shield,
   SquareTerminal,
+  UserRound,
 } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 
@@ -46,6 +46,7 @@ import {
 import { AuthService, type GetSessionResponse } from "@/gen/raptor/panel/v1/auth_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { roleNames } from "@/lib/format";
+import { getTheme, isTheme, setTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 // The org the app shows when a page isn't about one (the last one opened).
@@ -58,6 +59,8 @@ export function lastOrg(): string | null {
     return null;
   }
 }
+
+let themeSynced = false;
 
 // The frame around signed-in pages: a sidebar (the org switcher, the org's
 // sections and nodes, how many nodes are online, the user's menu), a top bar,
@@ -76,6 +79,15 @@ export function AppShell({
   const list = orgs.data?.orgs ?? [];
   const currentId = orgId ?? lastOrg() ?? list[0]?.id;
   const current = list.find((o) => o.id === currentId) ?? list[0];
+
+  // The account's theme wins once per page load; after that, the
+  // Appearance card changes both.
+  useEffect(() => {
+    const t = session.user?.theme;
+    if (themeSynced || !isTheme(t)) return;
+    themeSynced = true;
+    if (t !== getTheme()) setTheme(t);
+  }, [session.user?.theme]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -271,6 +283,7 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
   const navigate = useNavigate();
   const signOut = useMutation(AuthService.method.signOut);
   const email = session.user?.email ?? "";
+  const name = session.user?.name ?? "";
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -279,9 +292,14 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
             render={
               <SidebarMenuButton size="lg">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold uppercase">
-                  {email.slice(0, 2)}
+                  {initials(name || email)}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-left">{email}</span>
+                <span className="grid min-w-0 flex-1 text-left leading-tight">
+                  {name && <span className="truncate font-medium">{name}</span>}
+                  <span className={cn("truncate", name && "text-xs text-muted-foreground")}>
+                    {email}
+                  </span>
+                </span>
                 <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
               </SidebarMenuButton>
             }
@@ -291,8 +309,8 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
               <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate({ to: "/settings/security" })}>
-              <Shield className="size-4" /> Account security
+            <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
+              <UserRound className="size-4" /> Account settings
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={async () => {
