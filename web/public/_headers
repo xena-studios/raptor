@@ -1,5 +1,5 @@
-# Response headers for app.raptorpanel.net (Cloudflare Pages reads this file
-# from the build output; docs/DEPLOY.md#static-sites). The app's origin owns
+# Response headers for app.raptorpanel.net (Cloudflare Workers reads this
+# file from the build output; docs/DEPLOY.md#static-sites). The app's origin owns
 # the passkeys (docs/DECISIONS.md #82), so it runs only its own scripts, talks
 # only to the API, frames only the Turnstile page, and can't be framed.
 /*

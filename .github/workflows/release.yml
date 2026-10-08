@@ -114,11 +114,11 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm --dir web install --frozen-lockfile
       - run: pnpm --dir web build
-      - name: Cloudflare Pages
+      - name: Cloudflare Workers
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         working-directory: web
         run: |
-          pnpm dlx wrangler@4 pages deploy dist --project-name raptor-app --branch main --commit-hash "$GITHUB_SHA"
-          pnpm dlx wrangler@4 pages deploy verify --project-name raptor-verify --branch main --commit-hash "$GITHUB_SHA"
+          pnpm dlx wrangler@4 deploy --message "$GITHUB_REF_NAME ($GITHUB_SHA)"
+          pnpm dlx wrangler@4 deploy -c wrangler.verify.jsonc --message "$GITHUB_REF_NAME ($GITHUB_SHA)"

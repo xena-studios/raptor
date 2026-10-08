@@ -8,8 +8,8 @@ The why behind these choices is in [PANEL.md](PANEL.md#hosting), [RELIABILITY.md
 
 ```
                        Cloudflare (proxy, WAF, Turnstile)
-browsers ──https──▶  app.raptorpanel.net     (Pages: web/dist)
-                     verify.raptorpanel.net  (Pages: web/verify)
+browsers ──https──▶  app.raptorpanel.net     (Worker: web/dist)
+                     verify.raptorpanel.net  (Worker: web/verify)
                      get.raptorpanel.net     (redirect to the latest install.sh)
 browsers, nodes ──▶  api.raptorpanel.net ──client cert──▶ server #1
                                                          Caddy :443
@@ -28,7 +28,7 @@ nodes' hostnames:    n-<id>.raptornodes.net  (DNS only, written by the Panel)
 - **Server #2** runs a streaming replica. If server #1 dies, you promote it and start the Panels there ([failover](#failover)): minutes, not the hours a restore from the archive would take.
 - **Backups** go to object storage at a different provider, encrypted before they leave the server. Every WAL segment is archived within a minute, there's a backup every night, and a restore is tested every month, automatically.
 - **Secrets** live in 1Password and are written to memory (`/run/raptor`) at boot. Nothing secret is on disk or in the repo.
-- **The web app** is static, on Cloudflare Pages, deployed with a token that can do nothing else.
+- **The web app** is static, served by Cloudflare Workers (static assets, no code), deployed with a token that can do nothing else.
 
 ## Before you start
 
@@ -78,7 +78,7 @@ Then the service account: 1Password → Developer → Service accounts → new, 
    |---|---|---|---|
    | `api` | A | server #1's public IPv4 | Proxied |
    | `api` | AAAA | server #1's public IPv6 (if it has one) | Proxied |
-   | `app`, `verify` | CNAME | from Pages, [below](#static-sites) | Proxied |
+   | `app`, `verify` | | made by Workers when you attach the domains, [below](#static-sites) | Proxied |
    | `get` | AAAA | `100::` | Proxied (a placeholder: the redirect rule answers) |
 
    The Resend records for `mail` and the Email Routing records are already there.
@@ -272,17 +272,20 @@ The Panel caps uploads at 32 MB, 10 a day per linked node, 3 a day per address f
 
 ## Static sites
 
-On Cloudflare Pages, in the same account as the zones, deployed with a token that can only deploy Pages (My Profile → API Tokens → Custom: Account → Cloudflare Pages → Edit). A separate Cloudflare account wouldn't buy much: whoever controls the DNS account controls these hostnames anyway (DECISIONS #203).
+Two Cloudflare Workers with static assets and no code: `raptor-app` serves the web app's build (`web/dist`) and sends every unknown path to `index.html`; `raptor-verify` serves the Turnstile page (`web/verify`). Their settings are in [`web/wrangler.jsonc`](../web/wrangler.jsonc) and [`web/wrangler.verify.jsonc`](../web/wrangler.verify.jsonc). They're in the same account as the zones: whoever controls the DNS account controls these hostnames anyway (DECISIONS #203).
+
+The deploy token can only change Workers: My Profile → API Tokens → Create Token → Custom: **Account → Workers Scripts → Edit**, for this account only. No DNS or zone permissions. Put it in the vault (item `Cloudflare Workers deploy`).
+
+The first deploy, from your Mac:
 
 ```bash
 cd web && pnpm install --frozen-lockfile && pnpm build      # reads web/.env.production
-CLOUDFLARE_API_TOKEN=<pages token> npx wrangler pages project create raptor-app --production-branch main
-CLOUDFLARE_API_TOKEN=<pages token> npx wrangler pages deploy dist --project-name raptor-app --branch main
-CLOUDFLARE_API_TOKEN=<pages token> npx wrangler pages project create raptor-verify --production-branch main
-CLOUDFLARE_API_TOKEN=<pages token> npx wrangler pages deploy verify --project-name raptor-verify --branch main
+export CLOUDFLARE_API_TOKEN=<workers token> CLOUDFLARE_ACCOUNT_ID=<account id>
+pnpm dlx wrangler@4 deploy
+pnpm dlx wrangler@4 deploy -c wrangler.verify.jsonc
 ```
 
-Then each project → Custom domains: `app.raptorpanel.net` for `raptor-app`, `verify.raptorpanel.net` for `raptor-verify`. The `*.pages.dev` addresses stay reachable, which is harmless: the API only answers `https://app.raptorpanel.net` (CORS), and passkeys only work there.
+Then attach the domains, once, in the dashboard: Workers & Pages → `raptor-app` → Settings → Domains & Routes → Add → **Custom domain** → `app.raptorpanel.net`, and the same for `raptor-verify` with `verify.raptorpanel.net`. Cloudflare creates the DNS records and certificates. The domains stay out of the config on purpose: deploying a custom domain from wrangler needs DNS edit permission (and, outside a terminal, wrangler overwrites conflicting DNS records), which the deploy token shouldn't have. Deploys leave domains they don't mention alone. Neither Worker has a `workers.dev` or preview address, so the custom domains are the only way in.
 
 Both carry their own headers (`web/public/_headers`, `web/verify/_headers`): a Content-Security-Policy that lets the app run only its own scripts, call only the API, frame only the verify page, and never be framed; the verify page may only load Turnstile and only be framed by the app.
 
@@ -297,7 +300,7 @@ git checkout main && git pull
 git tag v0.x.y && git push origin v0.x.y
 ```
 
-The release workflow builds and pushes the images. Then, for a stable tag (`vX.Y.Z`, not `-rc.1` and the like), it deploys the Panel to server #1 and the web app to Pages, in that order. The Wings binaries in the same release still wait for you to sign them (`task release:sign`). Nodes only update from signed releases, and the signing key never goes near CI.
+The release workflow builds and pushes the images. Then, for a stable tag (`vX.Y.Z`, not `-rc.1` and the like), it deploys the Panel to server #1 and then the web app and the Turnstile page, in that order. The Wings binaries in the same release still wait for you to sign them (`task release:sign`). Nodes only update from signed releases, and the signing key never goes near CI.
 
 On the server, `deploy.sh` runs the migrations first. They must work with the version still running: add columns, backfill, and drop in a later release; never rename in one step. Then it replaces one Panel at a time. A Panel shutting down answers 503 to Caddy's health check, stops getting new requests, and hands its node connections to the other over 20 seconds; nodes reconnect with jitter. Browsers see nothing; game servers never notice. If the new version doesn't become healthy, the job fails with the old one still serving the other half. Fix it and tag a new version, or redeploy the previous one by hand (below). A failed deploy stops before the web app, so the web app never runs ahead of the API.
 
@@ -331,7 +334,7 @@ Set up once, after server #1 is running:
    - `DEPLOY_SSH_KEY`: the private key file's contents. Then `rm -P /tmp/raptor-deploy*`.
    - `DEPLOY_HOST`: server #1's public address.
    - `DEPLOY_KNOWN_HOSTS`: the output of `ssh-keyscan -t ed25519 <server #1's address>`. Check its fingerprint against `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the server.
-   - `CLOUDFLARE_PAGES_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`: the Pages-only token from [Static sites](#static-sites).
+   - `CLOUDFLARE_WORKERS_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`: the Workers-only token from [Static sites](#static-sites).
 
    If you want a final check before production, add yourself as a required reviewer on the environment: every deploy then waits for one click.
 4. Settings → Variables → **`DEPLOY_ENABLED`** = `true`. Until it's set, releases build and stop there.

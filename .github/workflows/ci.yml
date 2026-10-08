@@ -40,6 +40,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - run: task build
+      - name: The web app's Workers configs
+        working-directory: web
+        run: |
+          pnpm dlx wrangler@4 deploy --dry-run
+          pnpm dlx wrangler@4 deploy --dry-run -c wrangler.verify.jsonc
       - name: Cross-compile raptor (static)
         run: |
           for arch in amd64 arm64; do

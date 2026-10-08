@@ -1,0 +1,15 @@
+// app.raptorpanel.net: the web app's build (dist/) as a Cloudflare Worker
+// with static assets only, no Worker code (docs/DEPLOY.md#static-sites).
+// Its headers, the CSP among them, are in public/_headers.
+{
+  "name": "raptor-app",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  // Only the custom domain, attached once by hand: no workers.dev or
+  // preview addresses, and the deploy token never needs DNS access.
+  "workers_dev": false,
+  "preview_urls": false
+}
