@@ -5,6 +5,7 @@ import { KeyRound, Plus, Trash2, Users } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { NodeSettings } from "@/components/node-settings";
 import { PowerButtons } from "@/components/power-buttons";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
 import { TrustedKeys } from "@/components/trusted-keys";
@@ -105,6 +106,9 @@ function NodePage() {
           />
         )}
         {isAdmin(org?.role) && <PairKey nodeId={nodeId} userId={session.user?.id ?? ""} />}
+        {isAdmin(org?.role) && node && (
+          <NodeSettings key={node.name} orgId={orgId} nodeId={nodeId} name={node.name} />
+        )}
       </div>
     </AppShell>
   );

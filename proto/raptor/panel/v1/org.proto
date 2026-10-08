@@ -74,6 +74,16 @@ service OrgService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // RenameNode renames a node. Admins and owners.
+  rpc RenameNode(RenameNodeRequest) returns (RenameNodeResponse) {}
+
+  // RemoveNode takes a node out of the org: its key is refused from now
+  // on, its DNS name stops pointing at it, and its mirror and members'
+  // grants are dropped. Its servers keep running on the machine, and
+  // relinking it with a join token brings it back. Admins and owners, after
+  // re-authenticating.
+  rpc RemoveNode(RemoveNodeRequest) returns (RemoveNodeResponse) {}
+
   // ListServers lists a node's servers as the Panel's mirror has them, with
   // what the caller may do on each. Members see only the servers they have
   // access to.
@@ -291,6 +301,21 @@ message Node {
 message ListNodesResponse {
   repeated Node nodes = 1;
 }
+
+message RenameNodeRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string name = 3;
+}
+
+message RenameNodeResponse {}
+
+message RemoveNodeRequest {
+  string org_id = 1;
+  string node_id = 2;
+}
+
+message RemoveNodeResponse {}
 
 message ListServersRequest {
   string org_id = 1;

@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"net/http"
 	"net/netip"
+	"strings"
 	"sync"
 	"testing"
 
@@ -68,6 +69,15 @@ func TestAddresses(t *testing.T) {
 		if f.sets[i] != want[i] {
 			t.Fatalf("writes: %v, want %v", f.sets, want)
 		}
+	}
+
+	// A removed node's records go (an invalid address removes them).
+	f.sets = nil
+	if err := a.Forget(ctx, hello.NodeID); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(f.sets, ", "); got != name+" A invalid IP, "+name+" AAAA invalid IP" {
+		t.Errorf("forgetting: %s", got)
 	}
 }
 

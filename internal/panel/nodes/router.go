@@ -120,6 +120,10 @@ func (r *Router) loop(ctx context.Context, conn *pgxpool.Conn) {
 		if r.consoleNotification(ctx, kind, idStr) {
 			continue
 		}
+		if kind == "drop" {
+			r.Hub.Disconnect(idStr)
+			continue
+		}
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			continue
@@ -158,6 +162,22 @@ func (r *Router) housekeeping(ctx context.Context) {
 				}
 			}
 		}
+	}
+}
+
+// Drop closes a node's connection wherever it is (a removed node: its key
+// is refused when it tries again).
+func (r *Router) Drop(ctx context.Context, nodeID string) {
+	if _, ok := r.Hub.Conn(nodeID); ok {
+		r.Hub.Disconnect(nodeID)
+		return
+	}
+	id, err := uuid.Parse(nodeID)
+	if err != nil {
+		return
+	}
+	if holder, err := r.q().NodeHolder(ctx, store.NodeHolderParams{NodeID: pgUUID(id), StaleSecs: staleAfter.Seconds()}); err == nil && holder != r.ID {
+		_, _ = r.DB.Exec(ctx, "SELECT pg_notify($1, $2)", channel(holder), "drop:"+nodeID)
 	}
 }
 

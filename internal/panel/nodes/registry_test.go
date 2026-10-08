@@ -217,3 +217,35 @@ func TestNewVersionResnapshots(t *testing.T) {
 		t.Errorf("new version: acked %d, want -1 (a snapshot)", n)
 	}
 }
+
+// Removing a node refuses its key, hides it, and drops its mirror and
+// grants; relinking with a join token brings it back.
+func TestRemove(t *testing.T) {
+	r := newRegistry(t)
+	ctx := context.Background()
+	org, _ := r.CreateOrg(ctx, "org")
+	token, _ := r.CreateJoinToken(ctx, org, "")
+	_, key, _ := ed25519.GenerateKey(nil)
+	res, err := r.Enroll(ctx, enrollReq(t, token, key))
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := res.GetNodeId()
+	if _, err := r.DB.Exec(ctx, `INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at) VALUES ($1, 's1', 'mc', 1, now(), now())`, id); err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := r.Remove(ctx, id); err != nil || !ok {
+		t.Fatalf("remove: %v, %v", ok, err)
+	}
+	if ok, err := r.Remove(ctx, id); err != nil || ok {
+		t.Errorf("removing it again: %v, %v", ok, err)
+	}
+	if _, err := r.NodeKey(ctx, id); err == nil {
+		t.Error("a removed node's key is still accepted")
+	}
+	var mirrored int
+	_ = r.DB.QueryRow(ctx, "SELECT count(*) FROM m_servers WHERE node_id = $1", id).Scan(&mirrored)
+	if mirrored != 0 {
+		t.Errorf("%d mirrored servers left", mirrored)
+	}
+}

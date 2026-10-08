@@ -43,6 +43,9 @@ type Service struct {
 	Auth     *auth.Service
 	Registry *nodes.Registry
 	Now      func() time.Time
+	// NodeRemoved is called after a node is removed, to drop its
+	// connection and DNS records (nil: nothing more).
+	NodeRemoved func(ctx context.Context, nodeID string)
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)
