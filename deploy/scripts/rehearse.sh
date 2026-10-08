@@ -92,6 +92,12 @@ done
 step "server #1: Postgres primary"
 export PG_PORT=15432
 $P up -d --wait postgres
+pglog=$($P logs postgres 2>&1)
+grep -q "backup repository ready" <<<"$pglog" || fail "the first start didn't make the backup repository"
+if grep -q "server does not shut down" <<<"$pglog"; then fail "the first start waited on the WAL archive"; fi
+if grep -q "Peer authentication failed" <<<"$pglog"; then fail "the health check logs failed logins"; fi
+echo "ok: first start made the backup repository, without waiting or failed logins"
+# Again by hand, as DEPLOY.md does: harmless once it exists.
 $P exec -T -u postgres postgres pgbackrest --stanza=raptor stanza-create
 $P exec -T -u postgres postgres pgbackrest --stanza=raptor check
 
