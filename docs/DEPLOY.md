@@ -416,7 +416,18 @@ The rehearsal does steps 2–5 and checks the API answers and the promoted datab
 
 The Panel sends metrics and a sample of traces (10% of requests) over OpenTelemetry when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Grafana Cloud's free tier holds more than launch needs.
 
-1. Grafana Cloud → your stack → **OpenTelemetry** → configure: make a token, and copy the endpoint (`https://otlp-gateway-<region>.grafana.net/otlp`) and the `Authorization=Basic%20…` header it shows. Put them in the vault item **`Grafana Cloud OTLP`** as `endpoint` and `headers`. `secrets.sh` picks them up on the next deploy.
+1. A token that can only write metrics and traces. Don't use the token the **OpenTelemetry** tile makes: its policy (`stack-…-otlp-write`) also has `logs:write`, `profiles:write`, `alerts:write`, and `rules:write`, and anyone holding the last two can rewrite or delete your alert rules. Instead, Grafana Cloud → Administration → Users and access → **Cloud access policies** → Create:
+   - Name `raptor-panel-otlp`, realm **your stack only**.
+   - Scopes **`metrics:write`** and **`traces:write`**, nothing else. The Panel sends no logs or profiles.
+   - Add token: name `raptor-panel`, expiry **No expiry**. An expired token fails quietly (the Panel only logs a warning and the dashboards go flat), and the token can't read anything, so rotate it by hand if it leaks rather than on a timer.
+
+   Then Grafana Cloud → your stack → **OpenTelemetry** → configure, without generating a token there: copy the endpoint (`https://otlp-gateway-<region>.grafana.net/otlp`) and the instance ID. The header is `Authorization=Basic%20` followed by the base64 of `<instance ID>:<token>`. Paste the token at the silent prompt, so it stays out of your shell history:
+
+   ```sh
+   read -rs TOKEN; echo "Authorization=Basic%20$(printf '%s:%s' '<instance ID>' "$TOKEN" | base64 | tr -d '\n')"; unset TOKEN
+   ```
+
+   Put the endpoint and header in the vault item **`Grafana Cloud OTLP`** as `endpoint` and `headers`. `secrets.sh` picks them up on the next deploy.
 
    Optionally, its address: Grafana Cloud → your stack → Details → Edit (the instance settings) → Instance URL → custom domain `grafana.raptorpanel.net`, after the `grafana` CNAME in [DNS](#raptorpanelnet) exists. It must stay DNS only: Grafana proves the name to Let's Encrypt itself, which fails behind Cloudflare's proxy. If you ever add CAA records to `raptorpanel.net`, include `letsencrypt.org`. Only the sign-in address changes; the OTLP endpoint stays on `grafana.net`.
 2. Deploy. Both Panels report as `raptor-panel`, each with its container's hostname as the instance.
