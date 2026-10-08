@@ -81,6 +81,14 @@ service OrgService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // GetServer returns one server as the mirror has it. With the startup
+  // permission (admins and owners always), also its settings and its egg's
+  // images and variables, for the settings page: variables can hold
+  // secrets (tokens, passwords), so nobody else gets them.
+  rpc GetServer(GetServerRequest) returns (GetServerResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // PinJoinToken attaches the owner's passkey, signed in the browser over
   // the token (nodecmd.OwnerPin), to a new join token: the node that links
   // with it checks the signature and trusts that passkey from the start.
@@ -307,6 +315,22 @@ message Server {
 
 message ListServersResponse {
   repeated Server servers = 1;
+}
+
+message GetServerRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+}
+
+message GetServerResponse {
+  Server server = 1;
+  // The settings as the node last reported them, as JSON: image, startup,
+  // variables, limits, settings, host_network, allocations, and egg (its
+  // images, variables, and features). Empty without the startup
+  // permission. The web app changes them and sends them back with
+  // server.update.
+  string config_json = 2;
 }
 
 message PinJoinTokenRequest {

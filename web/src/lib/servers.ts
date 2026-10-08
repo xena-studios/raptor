@@ -144,3 +144,65 @@ export function serverStatus(
   }
   return st;
 }
+
+// A server's settings as the mirror has them (GetServer's config_json).
+export type ServerConfig = {
+  image: string;
+  startup: string;
+  variables: Record<string, string> | null;
+  limits: { memory_mib: number; disk_mib: number; [k: string]: unknown };
+  settings: Record<string, unknown>;
+  host_network: boolean;
+  allocations: { ip: string; port: number; primary?: boolean }[];
+  egg_hash?: string;
+  egg?: {
+    images: { name: string; ref: string }[] | null;
+    // As Wings reports them (snake_case JSON).
+    variables:
+      | {
+          name: string;
+          description?: string;
+          env: string;
+          default: string;
+          user_viewable?: boolean;
+          user_editable?: boolean;
+          rules?: string[];
+        }[]
+      | null;
+    features?: string[];
+  };
+};
+
+export type SettingsChange = {
+  name: string;
+  image: string;
+  variables: Record<string, string>;
+  memoryMiB: number;
+  diskMiB: number;
+  port: number;
+};
+
+// updateParams is server.update's params: the server's whole config with
+// the changes, and no egg, which tells Wings to keep the server's own (the
+// Panel doesn't hold egg files). Fields this page doesn't edit go back as
+// they were.
+export function updateParams(cfg: ServerConfig, c: SettingsChange) {
+  const { egg: _egg, egg_hash: _hash, ...rest } = cfg;
+  const allocations = cfg.allocations.map((a) => (a.primary ? { ...a, port: c.port } : a));
+  if (!allocations.some((a) => a.primary))
+    allocations.unshift({ ip: "0.0.0.0", port: c.port, primary: true });
+  return {
+    ...rest,
+    name: c.name.trim(),
+    image: c.image,
+    variables: { ...(cfg.variables ?? {}), ...c.variables },
+    limits: { ...cfg.limits, memory_mib: c.memoryMiB, disk_mib: c.diskMiB },
+    allocations,
+  };
+}
+
+// changesCode: a new image or startup command changes what code runs, so
+// the user's passkey must sign it (Wings: Manager.ChangesCode).
+export function changesCode(cfg: ServerConfig, c: SettingsChange): boolean {
+  return c.image !== cfg.image;
+}

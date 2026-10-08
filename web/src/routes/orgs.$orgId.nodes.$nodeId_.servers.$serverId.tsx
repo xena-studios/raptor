@@ -5,6 +5,7 @@ import { lazy, Suspense, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Files } from "@/components/files";
 import { PowerButtons } from "@/components/power-buttons";
+import { ServerSettings } from "@/components/server-settings";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
@@ -13,12 +14,12 @@ import { requireSession } from "@/lib/session";
 
 const Console = lazy(() => import("@/components/console"));
 
-type ServerSearch = { tab?: "console" | "files"; path?: string };
+type ServerSearch = { tab?: "console" | "files" | "settings"; path?: string };
 
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId_/servers/$serverId")({
   beforeLoad: ({ location }) => requireSession(location),
   validateSearch: (s: Record<string, unknown>): ServerSearch => ({
-    tab: s.tab === "files" ? "files" : undefined,
+    tab: s.tab === "files" || s.tab === "settings" ? s.tab : undefined,
     path: typeof s.path === "string" && s.path ? s.path : undefined,
   }),
   component: ServerPage,
@@ -85,12 +86,18 @@ function ServerPage() {
             className="mt-6"
             value={tab}
             onValueChange={(v) =>
-              navigate({ search: { tab: v === "files" ? "files" : undefined }, replace: true })
+              navigate({
+                search: { tab: v === "files" || v === "settings" ? v : undefined },
+                replace: true,
+              })
             }
           >
             <TabsList>
               <TabsTrigger value="console">Console</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
+              {(can("startup") || can("reinstall")) && (
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="console">
               {can("console.read") || can("console.write") ? (
@@ -122,6 +129,21 @@ function ServerPage() {
                     You don't have access to this server's files.
                   </p>
                 )
+              )}
+            </TabsContent>
+            <TabsContent value="settings">
+              {(can("startup") || can("reinstall")) && (
+                <ServerSettings
+                  orgId={orgId}
+                  nodeId={nodeId}
+                  serverId={serverId}
+                  userId={session.user?.id ?? ""}
+                  admin={can("*")}
+                  canReinstall={can("reinstall")}
+                  stopped={["offline", "crashed", "install_failed", ""].includes(
+                    server?.state ?? "",
+                  )}
+                />
               )}
             </TabsContent>
           </Tabs>

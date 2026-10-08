@@ -3,8 +3,10 @@ package orgs
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"slices"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -134,4 +136,51 @@ func ports(allocations []byte) []int32 {
 		out[i] = a.Port
 	}
 	return out
+}
+
+// GetServer implements OrgService.
+func (s *Service) GetServer(ctx context.Context, req *panelv1.GetServerRequest) (*panelv1.GetServerResponse, error) {
+	out := &panelv1.GetServerResponse{}
+	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, role, err := member(ctx, q, sess, req.GetOrgId(), "member")
+		if err != nil {
+			return err
+		}
+		node, err := parseID(req.GetNodeId(), "node")
+		if err != nil {
+			return err
+		}
+		if owner, err := q.NodeOrg(ctx, node); err != nil || owner != org {
+			return errNoServer
+		}
+		perms := []string{"*"}
+		if role == "member" {
+			grants, err := memberGrants(ctx, q, org, sess, role)
+			if err != nil {
+				return err
+			}
+			if perms = grants[node][req.GetServerId()]; len(perms) == 0 {
+				return errNoServer
+			}
+		}
+		r, err := q.NodeServer(ctx, store.NodeServerParams{NodeID: node, ServerID: req.GetServerId()})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errNoServer
+		}
+		if err != nil {
+			return err
+		}
+		out.Server = &panelv1.Server{
+			Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, Permissions: perms,
+			Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
+		}
+		if slices.Contains(perms, "*") || slices.Contains(perms, "startup") {
+			out.ConfigJson = string(r.Config)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
