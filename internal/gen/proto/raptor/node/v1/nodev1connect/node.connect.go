@@ -303,7 +303,7 @@ type PanelServiceClient interface {
 	// EventsAvailable tells the Panel the node has events up to last_seq, so
 	// it pulls them (Events) without polling.
 	EventsAvailable(context.Context, *v1.EventsAvailableRequest) (*v1.EventsAvailableResponse, error)
-	// SFTPLogin asks whether an SSH key may log in to a server on this node
+	// SFTPLogin asks whether a temporary password may log in to a server on this node
 	// over SFTP, and with which permissions. PERMISSION_DENIED if not.
 	SFTPLogin(context.Context, *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error)
 }
@@ -365,7 +365,7 @@ type PanelServiceHandler interface {
 	// EventsAvailable tells the Panel the node has events up to last_seq, so
 	// it pulls them (Events) without polling.
 	EventsAvailable(context.Context, *v1.EventsAvailableRequest) (*v1.EventsAvailableResponse, error)
-	// SFTPLogin asks whether an SSH key may log in to a server on this node
+	// SFTPLogin asks whether a temporary password may log in to a server on this node
 	// over SFTP, and with which permissions. PERMISSION_DENIED if not.
 	SFTPLogin(context.Context, *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error)
 }

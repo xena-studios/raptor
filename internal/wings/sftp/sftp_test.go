@@ -28,14 +28,13 @@ const srvID = "0b6f7a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b"
 
 var allPerms = []string{PermSFTP, PermRead, PermWrite}
 
-// panel is a fake Authenticator: alice's password is "hunter2", and keys in
-// keys are accepted. down makes it unreachable.
+// panel is a fake Authenticator: alice's password is "hunter2". down makes
+// it unreachable.
 type panel struct {
 	mu      sync.Mutex
 	down    bool
 	perms   []string
-	keys    map[string]bool // fingerprint → accepted
-	expires time.Time       // the password's expiry
+	expires time.Time // the password's expiry
 }
 
 func (p *panel) Password(_ context.Context, l Login, pw string) (Grant, error) {
@@ -48,18 +47,6 @@ func (p *panel) Password(_ context.Context, l Login, pw string) (Grant, error) {
 		return Grant{}, ErrDenied
 	}
 	return Grant{UserID: "u1", Permissions: p.perms, ExpiresAt: p.expires}, nil
-}
-
-func (p *panel) PublicKey(_ context.Context, l Login, key ssh.PublicKey) (Grant, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.down {
-		return Grant{}, ErrUnavailable
-	}
-	if l.Username != "alice" || !p.keys[ssh.FingerprintSHA256(key)] {
-		return Grant{}, ErrDenied
-	}
-	return Grant{UserID: "u1", Permissions: p.perms}, nil
 }
 
 func (p *panel) set(fn func(p *panel)) {
@@ -142,11 +129,11 @@ func newEnv(t *testing.T) *env {
 	}
 	e := &env{
 		t: t, root: root, dir: dir, db: db, hostKey: hk,
-		panel:   &panel{perms: allPerms, keys: map[string]bool{}},
+		panel:   &panel{perms: allPerms},
 		servers: &servers{dir: dir},
 	}
 	e.srv = New(Options{
-		HostKey: hk, Auth: e.panel, Keys: &KeyCache{DB: db}, Servers: e.servers, Events: events.New(db),
+		HostKey: hk, Auth: e.panel, Servers: e.servers, Events: events.New(db),
 		UID: os.Getuid(), GID: os.Getgid(),
 	})
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -555,63 +542,17 @@ func TestLogin(t *testing.T) {
 	}
 }
 
-// Keys the Panel accepted keep working while it's unreachable; passwords
-// don't. When the Panel answers again, it decides.
-func TestKeyCache(t *testing.T) {
+// Keys aren't accepted, and passwords don't work while the Panel is
+// unreachable: nothing is cached.
+func TestNoKeysNoCache(t *testing.T) {
 	e := newEnv(t)
-	key, other := newKey(t), newKey(t)
-	user := "alice." + srvID
-	e.panel.set(func(p *panel) { p.keys[ssh.FingerprintSHA256(key.PublicKey())] = true })
-
-	if _, err := e.dial(user, ssh.PublicKeys(key)); err != nil {
-		t.Fatalf("key login with the Panel up: %v", err)
+	if _, err := e.dial("alice."+srvID, ssh.PublicKeys(newKey(t))); err == nil {
+		t.Error("a key logged in")
 	}
-
+	e.login()
 	e.panel.set(func(p *panel) { p.down = true })
-	cl, err := e.dial(user, ssh.PublicKeys(key))
-	if err != nil {
-		t.Fatalf("cached key login with the Panel down: %v", err)
-	}
-	put(t, cl, "/uploaded", "x") // with the cached permissions
-	if _, err := e.dial(user, ssh.PublicKeys(other)); err == nil {
-		t.Error("an unknown key logged in with the Panel down")
-	}
-	if _, err := e.dial(user, ssh.Password("hunter2")); err == nil {
+	if _, err := e.dial("alice."+srvID, ssh.Password("hunter2")); err == nil {
 		t.Error("a password logged in with the Panel down")
-	}
-	if _, err := e.dial("mallory."+srvID, ssh.PublicKeys(key)); err == nil {
-		t.Error("a cached key logged in as another user")
-	}
-
-	// The Panel removed the key: the cache forgets it at the next login.
-	e.panel.set(func(p *panel) { p.down = false; p.keys = map[string]bool{} })
-	if _, err := e.dial(user, ssh.PublicKeys(key)); err == nil {
-		t.Error("a key the Panel rejected logged in")
-	}
-	e.panel.set(func(p *panel) { p.down = true })
-	if _, err := e.dial(user, ssh.PublicKeys(key)); err == nil {
-		t.Error("a key the Panel rejected logged in from the cache")
-	}
-}
-
-func TestKeyCacheExpiry(t *testing.T) {
-	e := newEnv(t)
-	now := time.Now()
-	c := &KeyCache{DB: e.db, Now: func() time.Time { return now }}
-	key := newKey(t).PublicKey()
-	l := Login{Username: "alice", ServerID: srvID}
-	if err := c.Put(context.Background(), l, key, Grant{UserID: "u1", Permissions: allPerms}); err != nil {
-		t.Fatal(err)
-	}
-	if g, ok, err := c.Get(context.Background(), l, key); err != nil || !ok || g.UserID != "u1" || !g.Has(PermWrite) {
-		t.Fatalf("get: %+v %v %v", g, ok, err)
-	}
-	now = now.Add(keyCacheMaxAge + time.Minute)
-	if _, ok, _ := c.Get(context.Background(), l, key); ok {
-		t.Fatal("a key the Panel hasn't confirmed in too long still works")
-	}
-	if n, err := c.Prune(context.Background()); err != nil || n != 1 {
-		t.Fatalf("prune: %d %v", n, err)
 	}
 }
 

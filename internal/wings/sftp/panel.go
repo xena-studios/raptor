@@ -6,15 +6,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"golang.org/x/crypto/ssh"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 )
 
-// PanelAuth checks logins with the Panel over the node connection: SSH keys,
-// and the temporary passwords users turn on per server (docs/DECISIONS.md
-// #222). Accounts themselves have no passwords.
+// PanelAuth checks logins with the Panel over the node connection: the
+// temporary passwords users turn on per server (docs/DECISIONS.md #222,
+// #223). Accounts themselves have no passwords.
 type PanelAuth struct {
 	// Panel returns a client while the node is connected, nil otherwise.
 	Panel func() nodev1connect.PanelServiceClient
@@ -24,11 +23,6 @@ type PanelAuth struct {
 // Panel: they aren't cached, so they don't work while it's unreachable.
 func (a PanelAuth) Password(ctx context.Context, l Login, password string) (Grant, error) {
 	return a.ask(ctx, &nodev1.SFTPLoginRequest{Username: l.Username, ServerId: l.ServerID, Password: password})
-}
-
-// PublicKey implements Authenticator.
-func (a PanelAuth) PublicKey(ctx context.Context, l Login, key ssh.PublicKey) (Grant, error) {
-	return a.ask(ctx, &nodev1.SFTPLoginRequest{Username: l.Username, ServerId: l.ServerID, PublicKey: key.Marshal()})
 }
 
 func (a PanelAuth) ask(ctx context.Context, req *nodev1.SFTPLoginRequest) (Grant, error) {
@@ -50,6 +44,6 @@ func (a PanelAuth) ask(ctx context.Context, req *nodev1.SFTPLoginRequest) (Grant
 	case connect.CodePermissionDenied, connect.CodeNotFound, connect.CodeUnauthenticated, connect.CodeInvalidArgument:
 		return Grant{}, ErrDenied
 	}
-	// Couldn't ask: key logins fall back to the cache.
+	// Couldn't ask: the login fails.
 	return Grant{}, errors.Join(ErrUnavailable, err)
 }

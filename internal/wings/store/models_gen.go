@@ -182,16 +182,6 @@ type Server struct {
 	QuotaProject sql.NullInt64
 }
 
-type SftpKeyCache struct {
-	Username    string
-	ServerID    string
-	Fingerprint string
-	PublicKey   []byte
-	UserID      string
-	Permissions string
-	ConfirmedAt int64
-}
-
 type TrustedKey struct {
 	CredentialID []byte
 	UserID       string
