@@ -306,7 +306,10 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
           />
           <DropdownMenuContent align="start" side="top" className="w-60">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
+              <DropdownMenuLabel className="grid leading-tight">
+                {name && <span className="truncate font-medium text-foreground">{name}</span>}
+                <span className="truncate">{email}</span>
+              </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
