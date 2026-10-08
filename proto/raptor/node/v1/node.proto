@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package raptor.node.v1;
 
+import "google/protobuf/timestamp.proto";
+
 // The node connection (docs/ARCHITECTURE.md#node-connection): one WebSocket
 // that Wings opens to the Panel, with yamux inside. Each side serves one of
 // these services and calls the other's, each call on its own yamux stream.
@@ -204,14 +206,19 @@ message SFTPLoginRequest {
   string username = 1;
   // The server's full ID (Wings resolved the short one).
   string server_id = 2;
-  // The SSH public key, in wire format.
+  // The SSH public key, in wire format; or
   bytes public_key = 3;
+  // a temporary password the user turned on for this server.
+  string password = 4;
 }
 
 message SFTPLoginResponse {
   string user_id = 1;
   // Of "sftp", "files.read", "files.write".
   repeated string permissions = 2;
+  // When the login stops working (a temporary password's expiry); the node
+  // ends its sessions then. Unset for keys.
+  google.protobuf.Timestamp expires_at = 3;
 }
 
 message EventsAvailableRequest {

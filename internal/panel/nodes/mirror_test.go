@@ -235,6 +235,25 @@ func TestMirror(t *testing.T) {
 	appendEvent("backup.finished", "s2", nil)
 	waitChildren("backup finished", 1, "ok")
 
+	// The node turning SFTP on is a node event: it lands on the node's row.
+	appendEvent("node.sftp", "", map[string]any{"enabled": true, "port": 2022, "host_key_fingerprint": "SHA256:hk"})
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		var on bool
+		var port int32
+		var hk string
+		if err := r.DB.QueryRow(ctx, "SELECT sftp_enabled, sftp_port, sftp_host_key FROM nodes WHERE id = $1", nodeID).Scan(&on, &port, &hk); err != nil {
+			t.Fatal(err)
+		}
+		if on && port == 2022 && hk == "SHA256:hk" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("node sftp: %v %d %q", on, port, hk)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
 	// A job on s2: its status changes are events, and the mirror follows
 	// them to the end.
 	job, err := engine.Enqueue(ctx, jobs.Spec{Type: "files.compress", ServerID: "s2"})

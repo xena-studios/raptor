@@ -68,6 +68,7 @@ type Server struct {
 type conn struct {
 	net.Conn
 	serverID string
+	username string
 }
 
 type failures struct {
@@ -174,6 +175,21 @@ func (s *Server) Disconnect(serverID string) int {
 	return n
 }
 
+// DisconnectLogin drops one login's connections to a server, e.g. when its
+// temporary password is revoked. It returns how many were dropped.
+func (s *Server) DisconnectLogin(serverID, username string) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n := 0
+	for c := range s.conns {
+		if c.serverID == serverID && c.username == username {
+			_ = c.Close()
+			n++
+		}
+	}
+	return n
+}
+
 func remoteAddr(a net.Addr) netip.Addr {
 	if ap, err := netip.ParseAddrPort(a.String()); err == nil {
 		return ap.Addr().Unmap()
@@ -242,8 +258,13 @@ func (s *Server) handle(c *conn, addr netip.Addr) {
 	}
 
 	s.mu.Lock()
-	c.serverID = sess.login.ServerID
+	c.serverID, c.username = sess.login.ServerID, sess.login.Username
 	s.mu.Unlock()
+	// A login that runs out (a temporary password) ends with it.
+	if !sess.grant.ExpiresAt.IsZero() {
+		t := time.AfterFunc(time.Until(sess.grant.ExpiresAt), func() { _ = sc.Close() })
+		defer t.Stop()
+	}
 	// A delete or install that started during the handshake is caught by
 	// the per-request checks.
 	s.o.Log.Info("sftp login", "server", sess.login.ServerID, "user", sess.login.Username, "addr", addr, "method", sess.method, "cached", sess.cached)

@@ -74,6 +74,7 @@ var actions = map[string]string{
 	"backup.destination.save":   adminOnly,
 	"backup.destination.delete": adminOnly,
 	"node.sftp":                 adminOnly,
+	"sftp.disconnect":           SFTP,
 	"node.update":               adminOnly,
 	"keys.add":                  adminOnly,
 	"keys.remove":               adminOnly,

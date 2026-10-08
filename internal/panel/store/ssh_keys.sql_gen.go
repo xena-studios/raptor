@@ -54,6 +54,32 @@ func (q *Queries) CountSSHKeys(ctx context.Context, userID pgtype.UUID) (int64, 
 	return count, err
 }
 
+const deleteSFTPPassword = `-- name: DeleteSFTPPassword :one
+DELETE FROM sftp_passwords WHERE user_id = $1 AND node_id = $2 AND server_id = $3 RETURNING id, user_id, node_id, server_id, username, secret_hash, expires_at, created_at
+`
+
+type DeleteSFTPPasswordParams struct {
+	UserID   pgtype.UUID
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) DeleteSFTPPassword(ctx context.Context, arg DeleteSFTPPasswordParams) (SftpPassword, error) {
+	row := q.db.QueryRow(ctx, deleteSFTPPassword, arg.UserID, arg.NodeID, arg.ServerID)
+	var i SftpPassword
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.NodeID,
+		&i.ServerID,
+		&i.Username,
+		&i.SecretHash,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteSSHKey = `-- name: DeleteSSHKey :one
 DELETE FROM ssh_keys WHERE id = $1 AND user_id = $2 RETURNING id, user_id, name, public_key, fingerprint, created_at, last_used_at
 `
@@ -74,6 +100,32 @@ func (q *Queries) DeleteSSHKey(ctx context.Context, arg DeleteSSHKeyParams) (Ssh
 		&i.Fingerprint,
 		&i.CreatedAt,
 		&i.LastUsedAt,
+	)
+	return i, err
+}
+
+const getSFTPPassword = `-- name: GetSFTPPassword :one
+SELECT id, user_id, node_id, server_id, username, secret_hash, expires_at, created_at FROM sftp_passwords WHERE user_id = $1 AND node_id = $2 AND server_id = $3
+`
+
+type GetSFTPPasswordParams struct {
+	UserID   pgtype.UUID
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) GetSFTPPassword(ctx context.Context, arg GetSFTPPasswordParams) (SftpPassword, error) {
+	row := q.db.QueryRow(ctx, getSFTPPassword, arg.UserID, arg.NodeID, arg.ServerID)
+	var i SftpPassword
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.NodeID,
+		&i.ServerID,
+		&i.Username,
+		&i.SecretHash,
+		&i.ExpiresAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -133,6 +185,35 @@ func (q *Queries) ListSSHKeys(ctx context.Context, userID pgtype.UUID) ([]SshKey
 	return items, nil
 }
 
+const pruneSFTPPasswords = `-- name: PruneSFTPPasswords :exec
+DELETE FROM sftp_passwords WHERE expires_at < now()
+`
+
+func (q *Queries) PruneSFTPPasswords(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pruneSFTPPasswords)
+	return err
+}
+
+const sFTPPasswordByUsername = `-- name: SFTPPasswordByUsername :one
+SELECT id, user_id, node_id, server_id, username, secret_hash, expires_at, created_at FROM sftp_passwords WHERE username = $1
+`
+
+func (q *Queries) SFTPPasswordByUsername(ctx context.Context, username string) (SftpPassword, error) {
+	row := q.db.QueryRow(ctx, sFTPPasswordByUsername, username)
+	var i SftpPassword
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.NodeID,
+		&i.ServerID,
+		&i.Username,
+		&i.SecretHash,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const sSHKeyByFingerprint = `-- name: SSHKeyByFingerprint :one
 SELECT id, user_id, name, public_key, fingerprint, created_at, last_used_at FROM ssh_keys WHERE user_id = $1 AND fingerprint = $2
 `
@@ -153,6 +234,48 @@ func (q *Queries) SSHKeyByFingerprint(ctx context.Context, arg SSHKeyByFingerpri
 		&i.Fingerprint,
 		&i.CreatedAt,
 		&i.LastUsedAt,
+	)
+	return i, err
+}
+
+const setSFTPPassword = `-- name: SetSFTPPassword :one
+INSERT INTO sftp_passwords (user_id, node_id, server_id, username, secret_hash, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (user_id, node_id, server_id) DO UPDATE
+SET username = excluded.username, secret_hash = excluded.secret_hash,
+    expires_at = excluded.expires_at, created_at = now()
+RETURNING id, user_id, node_id, server_id, username, secret_hash, expires_at, created_at
+`
+
+type SetSFTPPasswordParams struct {
+	UserID     pgtype.UUID
+	NodeID     pgtype.UUID
+	ServerID   string
+	Username   string
+	SecretHash []byte
+	ExpiresAt  pgtype.Timestamptz
+}
+
+// One per user and server: turning it on again replaces the old one.
+func (q *Queries) SetSFTPPassword(ctx context.Context, arg SetSFTPPasswordParams) (SftpPassword, error) {
+	row := q.db.QueryRow(ctx, setSFTPPassword,
+		arg.UserID,
+		arg.NodeID,
+		arg.ServerID,
+		arg.Username,
+		arg.SecretHash,
+		arg.ExpiresAt,
+	)
+	var i SftpPassword
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.NodeID,
+		&i.ServerID,
+		&i.Username,
+		&i.SecretHash,
+		&i.ExpiresAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }

@@ -82,3 +82,6 @@ DELETE FROM server_grants WHERE node_id = $1;
 
 -- name: RenameNode :execrows
 UPDATE nodes SET name = $2 WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: SetNodeSFTP :exec
+UPDATE nodes SET sftp_enabled = $2, sftp_port = $3, sftp_host_key = $4 WHERE id = $1;

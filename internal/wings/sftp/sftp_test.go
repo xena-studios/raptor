@@ -31,10 +31,11 @@ var allPerms = []string{PermSFTP, PermRead, PermWrite}
 // panel is a fake Authenticator: alice's password is "hunter2", and keys in
 // keys are accepted. down makes it unreachable.
 type panel struct {
-	mu    sync.Mutex
-	down  bool
-	perms []string
-	keys  map[string]bool // fingerprint → accepted
+	mu      sync.Mutex
+	down    bool
+	perms   []string
+	keys    map[string]bool // fingerprint → accepted
+	expires time.Time       // the password's expiry
 }
 
 func (p *panel) Password(_ context.Context, l Login, pw string) (Grant, error) {
@@ -46,7 +47,7 @@ func (p *panel) Password(_ context.Context, l Login, pw string) (Grant, error) {
 	if l.Username != "alice" || pw != "hunter2" {
 		return Grant{}, ErrDenied
 	}
-	return Grant{UserID: "u1", Permissions: p.perms}, nil
+	return Grant{UserID: "u1", Permissions: p.perms, ExpiresAt: p.expires}, nil
 }
 
 func (p *panel) PublicKey(_ context.Context, l Login, key ssh.PublicKey) (Grant, error) {
@@ -726,4 +727,31 @@ func mustAddr(t *testing.T, s string) netip.Addr {
 		t.Fatal(err)
 	}
 	return a
+}
+
+// A temporary password's sessions end when it runs out, or when the Panel
+// says it was revoked.
+func TestPasswordExpiry(t *testing.T) {
+	e := newEnv(t)
+	e.panel.set(func(p *panel) { p.expires = time.Now().Add(300 * time.Millisecond) })
+	cl := e.login()
+	if _, err := cl.ReadDir("/"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(500 * time.Millisecond)
+	if _, err := cl.ReadDir("/"); err == nil {
+		t.Error("the session outlived its password")
+	}
+
+	e.panel.set(func(p *panel) { p.expires = time.Time{} })
+	cl = e.login()
+	if n := e.srv.DisconnectLogin(srvID, "bob"); n != 0 {
+		t.Errorf("disconnected %d of bob's", n)
+	}
+	if n := e.srv.DisconnectLogin(srvID, "alice"); n != 1 {
+		t.Errorf("disconnected %d of alice's, want 1", n)
+	}
+	if _, err := cl.ReadDir("/"); err == nil {
+		t.Error("the session outlived its revoked password")
+	}
 }

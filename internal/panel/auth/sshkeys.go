@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"math/big"
 	"slices"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -211,20 +213,25 @@ var sftpPerms = []string{"sftp", "files.read", "files.write"}
 
 var errSFTPDenied = connect.NewError(connect.CodePermissionDenied, errors.New("sftp login denied"))
 
-// SFTPLogin answers a node asking whether an SSH key may log in to one of
-// its servers (nodev1.PanelService). Org admins and owners may; members
-// need the sftp permission on that server, and carry their file
-// permissions. The answer never says which part failed.
+// SFTPLogin answers a node asking whether an SSH key, or a temporary
+// password, may log in to one of its servers (nodev1.PanelService). Org
+// admins and owners may; members need the sftp permission on that server,
+// and carry their file permissions. The answer never says which part
+// failed.
 func (s *Service) SFTPLogin(ctx context.Context, nodeID string, req *nodev1.SFTPLoginRequest) (*nodev1.SFTPLoginResponse, error) {
 	node, err := uuid.Parse(nodeID)
 	if err != nil {
 		return nil, errSFTPDenied
 	}
+	nodeUUID := pgtype.UUID{Bytes: node, Valid: true}
+	q := s.q()
+	if req.GetPassword() != "" {
+		return s.sftpPasswordLogin(ctx, q, nodeUUID, req)
+	}
 	pk, err := ssh.ParsePublicKey(req.GetPublicKey())
 	if err != nil {
 		return nil, errSFTPDenied
 	}
-	q := s.q()
 	user, err := q.GetUserBySFTPUsername(ctx, pgtype.Text{String: strings.ToLower(req.GetUsername()), Valid: true})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errSFTPDenied
@@ -239,15 +246,47 @@ func (s *Service) SFTPLogin(ctx context.Context, nodeID string, req *nodev1.SFTP
 	if err != nil {
 		return nil, err
 	}
-	nodeUUID := pgtype.UUID{Bytes: node, Valid: true}
-	org, err := q.NodeOrg(ctx, nodeUUID)
+	perms, err := sftpGrant(ctx, q, nodeUUID, req.GetServerId(), user.ID)
+	if err != nil {
+		return nil, err
+	}
+	_ = q.UseSSHKey(ctx, key.ID)
+	return &nodev1.SFTPLoginResponse{UserId: uuid.UUID(user.ID.Bytes).String(), Permissions: perms}, nil
+}
+
+// sftpPasswordLogin checks a temporary password: for this node and server,
+// not run out, and its user still allowed in.
+func (s *Service) sftpPasswordLogin(ctx context.Context, q *store.Queries, node pgtype.UUID, req *nodev1.SFTPLoginRequest) (*nodev1.SFTPLoginResponse, error) {
+	row, err := q.SFTPPasswordByUsername(ctx, strings.ToLower(req.GetUsername()))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errSFTPDenied
 	}
 	if err != nil {
 		return nil, err
 	}
-	m, err := q.OrgMember(ctx, store.OrgMemberParams{OrgID: org, UserID: user.ID})
+	match := subtle.ConstantTimeCompare(hash(req.GetPassword()), row.SecretHash) == 1
+	if !match || row.NodeID != node || row.ServerID != req.GetServerId() || !row.ExpiresAt.Time.After(s.now()) {
+		return nil, errSFTPDenied
+	}
+	perms, err := sftpGrant(ctx, q, node, req.GetServerId(), row.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &nodev1.SFTPLoginResponse{
+		UserId: uuid.UUID(row.UserID.Bytes).String(), Permissions: perms, ExpiresAt: timestamppb.New(row.ExpiresAt.Time),
+	}, nil
+}
+
+// sftpGrant is what a user may do over SFTP on a server, as of now.
+func sftpGrant(ctx context.Context, q *store.Queries, node pgtype.UUID, server string, user pgtype.UUID) ([]string, error) {
+	org, err := q.NodeOrg(ctx, node)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errSFTPDenied
+	}
+	if err != nil {
+		return nil, err
+	}
+	m, err := q.OrgMember(ctx, store.OrgMemberParams{OrgID: org, UserID: user})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errSFTPDenied
 	}
@@ -256,7 +295,7 @@ func (s *Service) SFTPLogin(ctx context.Context, nodeID string, req *nodev1.SFTP
 	}
 	perms := slices.Clone(sftpPerms)
 	if m.Role == "member" {
-		g, err := q.ServerGrant(ctx, store.ServerGrantParams{NodeID: nodeUUID, ServerID: req.GetServerId(), UserID: user.ID})
+		g, err := q.ServerGrant(ctx, store.ServerGrantParams{NodeID: node, ServerID: server, UserID: user})
 		if errors.Is(err, pgx.ErrNoRows) || (err == nil && !slices.Contains(g.Permissions, "sftp")) {
 			return nil, errSFTPDenied
 		}
@@ -265,8 +304,31 @@ func (s *Service) SFTPLogin(ctx context.Context, nodeID string, req *nodev1.SFTP
 		}
 		perms = slices.DeleteFunc(perms, func(p string) bool { return !slices.Contains(g.Permissions, p) })
 	}
-	_ = q.UseSSHKey(ctx, key.ID)
-	return &nodev1.SFTPLoginResponse{UserId: uuid.UUID(user.ID.Bytes).String(), Permissions: perms}, nil
+	return perms, nil
+}
+
+// SFTP password lifetimes.
+const (
+	SFTPPasswordDefault = 24 * time.Hour
+	SFTPPasswordMin     = time.Hour
+	SFTPPasswordMax     = 30 * 24 * time.Hour
+)
+
+// NewSFTPPassword makes a temporary SFTP login: its username, its password,
+// and the password's hash to store.
+func NewSFTPPassword() (username, password string, secretHash []byte) {
+	const alphabet = "abcdefghjkmnpqrstuvwxyz23456789" // no 0/o, 1/l/i
+	pick := func(n int) string {
+		b := make([]byte, n)
+		for i := range b {
+			v, _ := rand.Int(rand.Reader, big.NewInt(int64(len(alphabet))))
+			b[i] = alphabet[v.Int64()]
+		}
+		return string(b)
+	}
+	// 24 characters of 31: about 119 bits, so a plain hash is enough.
+	password = pick(6) + "-" + pick(6) + "-" + pick(6) + "-" + pick(6)
+	return "t-" + pick(10), password, hash(password)
 }
 
 func rsaBits(k ssh.CryptoPublicKey) int {

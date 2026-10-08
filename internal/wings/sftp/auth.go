@@ -44,6 +44,9 @@ type Login struct {
 type Grant struct {
 	UserID      string   `json:"user_id"`
 	Permissions []string `json:"permissions"`
+	// ExpiresAt ends the session (a temporary password's expiry); zero for
+	// none.
+	ExpiresAt time.Time `json:"-"`
 }
 
 // Has reports whether the grant includes a permission.

@@ -9,6 +9,7 @@ package nodev1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -1034,8 +1035,10 @@ type SFTPLoginRequest struct {
 	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	// The server's full ID (Wings resolved the short one).
 	ServerId string `protobuf:"bytes,2,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
-	// The SSH public key, in wire format.
-	PublicKey     []byte `protobuf:"bytes,3,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// The SSH public key, in wire format; or
+	PublicKey []byte `protobuf:"bytes,3,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// a temporary password the user turned on for this server.
+	Password      string `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1091,11 +1094,21 @@ func (x *SFTPLoginRequest) GetPublicKey() []byte {
 	return nil
 }
 
+func (x *SFTPLoginRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
 type SFTPLoginResponse struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// Of "sftp", "files.read", "files.write".
-	Permissions   []string `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	Permissions []string `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	// When the login stops working (a temporary password's expiry); the node
+	// ends its sessions then. Unset for keys.
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1140,6 +1153,13 @@ func (x *SFTPLoginResponse) GetUserId() string {
 func (x *SFTPLoginResponse) GetPermissions() []string {
 	if x != nil {
 		return x.Permissions
+	}
+	return nil
+}
+
+func (x *SFTPLoginResponse) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
 	}
 	return nil
 }
@@ -1587,7 +1607,7 @@ var File_raptor_node_v1_node_proto protoreflect.FileDescriptor
 
 const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\n" +
-	"\x19raptor/node/v1/node.proto\x12\x0eraptor.node.v1\"%\n" +
+	"\x19raptor/node/v1/node.proto\x12\x0eraptor.node.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"%\n" +
 	"\x11GetServersRequest\x12\x10\n" +
 	"\x03ids\x18\x01 \x03(\tR\x03ids\"{\n" +
 	"\x12GetServersResponse\x120\n" +
@@ -1678,15 +1698,18 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\tserver_id\x18\x03 \x01(\tR\bserverId\x12\x18\n" +
 	"\aversion\x18\x04 \x01(\x03R\aversion\x12\x0e\n" +
 	"\x02at\x18\x05 \x01(\x03R\x02at\x12\x12\n" +
-	"\x04data\x18\x06 \x01(\fR\x04data\"j\n" +
+	"\x04data\x18\x06 \x01(\fR\x04data\"\x86\x01\n" +
 	"\x10SFTPLoginRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1b\n" +
 	"\tserver_id\x18\x02 \x01(\tR\bserverId\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\x03 \x01(\fR\tpublicKey\"N\n" +
+	"public_key\x18\x03 \x01(\fR\tpublicKey\x12\x1a\n" +
+	"\bpassword\x18\x04 \x01(\tR\bpassword\"\x89\x01\n" +
 	"\x11SFTPLoginResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
-	"\vpermissions\x18\x02 \x03(\tR\vpermissions\"3\n" +
+	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x129\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"3\n" +
 	"\x16EventsAvailableRequest\x12\x19\n" +
 	"\blast_seq\x18\x01 \x01(\x03R\alastSeq\"\x19\n" +
 	"\x17EventsAvailableResponse\"\xe5\x01\n" +
@@ -1766,6 +1789,7 @@ var file_raptor_node_v1_node_proto_goTypes = []any{
 	(*EnrollResponse)(nil),          // 19: raptor.node.v1.EnrollResponse
 	(*ConsoleRequest)(nil),          // 20: raptor.node.v1.ConsoleRequest
 	(*ConsoleResponse)(nil),         // 21: raptor.node.v1.ConsoleResponse
+	(*timestamppb.Timestamp)(nil),   // 22: google.protobuf.Timestamp
 }
 var file_raptor_node_v1_node_proto_depIdxs = []int32{
 	2,  // 0: raptor.node.v1.GetServersResponse.servers:type_name -> raptor.node.v1.Server
@@ -1773,28 +1797,29 @@ var file_raptor_node_v1_node_proto_depIdxs = []int32{
 	5,  // 2: raptor.node.v1.Server.backups:type_name -> raptor.node.v1.Backup
 	3,  // 3: raptor.node.v1.Server.jobs:type_name -> raptor.node.v1.Job
 	12, // 4: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
-	18, // 5: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
-	8,  // 6: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
-	10, // 7: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
-	6,  // 8: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
-	0,  // 9: raptor.node.v1.NodeService.GetServers:input_type -> raptor.node.v1.GetServersRequest
-	20, // 10: raptor.node.v1.NodeService.Console:input_type -> raptor.node.v1.ConsoleRequest
-	15, // 11: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
-	13, // 12: raptor.node.v1.PanelService.SFTPLogin:input_type -> raptor.node.v1.SFTPLoginRequest
-	17, // 13: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
-	9,  // 14: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
-	11, // 15: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
-	7,  // 16: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
-	1,  // 17: raptor.node.v1.NodeService.GetServers:output_type -> raptor.node.v1.GetServersResponse
-	21, // 18: raptor.node.v1.NodeService.Console:output_type -> raptor.node.v1.ConsoleResponse
-	16, // 19: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
-	14, // 20: raptor.node.v1.PanelService.SFTPLogin:output_type -> raptor.node.v1.SFTPLoginResponse
-	19, // 21: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
-	14, // [14:22] is the sub-list for method output_type
-	6,  // [6:14] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	22, // 5: raptor.node.v1.SFTPLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	18, // 6: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
+	8,  // 7: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
+	10, // 8: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
+	6,  // 9: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
+	0,  // 10: raptor.node.v1.NodeService.GetServers:input_type -> raptor.node.v1.GetServersRequest
+	20, // 11: raptor.node.v1.NodeService.Console:input_type -> raptor.node.v1.ConsoleRequest
+	15, // 12: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
+	13, // 13: raptor.node.v1.PanelService.SFTPLogin:input_type -> raptor.node.v1.SFTPLoginRequest
+	17, // 14: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
+	9,  // 15: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
+	11, // 16: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
+	7,  // 17: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
+	1,  // 18: raptor.node.v1.NodeService.GetServers:output_type -> raptor.node.v1.GetServersResponse
+	21, // 19: raptor.node.v1.NodeService.Console:output_type -> raptor.node.v1.ConsoleResponse
+	16, // 20: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
+	14, // 21: raptor.node.v1.PanelService.SFTPLogin:output_type -> raptor.node.v1.SFTPLoginResponse
+	19, // 22: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
+	15, // [15:23] is the sub-list for method output_type
+	7,  // [7:15] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_raptor_node_v1_node_proto_init() }

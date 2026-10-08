@@ -124,6 +124,21 @@ service OrgService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // GetSFTPAccess says whether the caller has a temporary SFTP password
+  // for a server, and how to connect. Needs the sftp permission.
+  rpc GetSFTPAccess(GetSFTPAccessRequest) returns (GetSFTPAccessResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // CreateSFTPAccess makes the caller a temporary SFTP password for a
+  // server, replacing any they had. The password is only ever in this
+  // answer. Needs the sftp permission.
+  rpc CreateSFTPAccess(CreateSFTPAccessRequest) returns (CreateSFTPAccessResponse) {}
+
+  // RevokeSFTPAccess deletes the caller's temporary SFTP password for a
+  // server. The web app then sends sftp.disconnect to end its sessions.
+  rpc RevokeSFTPAccess(RevokeSFTPAccessRequest) returns (RevokeSFTPAccessResponse) {}
+
   // ListBackups lists a server's backups as the mirror has them, newest
   // first. Needs the backups permission.
   rpc ListBackups(ListBackupsRequest) returns (ListBackupsResponse) {
@@ -311,6 +326,11 @@ message Node {
   string arch = 8;
   int32 cpus = 9;
   int64 memory_bytes = 10;
+  // Whether it serves SFTP (node.sftp), on which port, and its host key's
+  // fingerprint, as it last reported them.
+  bool sftp_enabled = 11;
+  int32 sftp_port = 12;
+  string sftp_host_key_fingerprint = 13;
 }
 
 message ListNodesResponse {
@@ -440,4 +460,49 @@ message Backup {
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp finished_at = 10;
   google.protobuf.Timestamp expires_at = 11;
+}
+
+message GetSFTPAccessRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+}
+
+message GetSFTPAccessResponse {
+  // Unset without a password that's still good.
+  SFTPAccess access = 1;
+}
+
+// SFTPAccess is how to connect: host, port, and the full username
+// (<username>.<server short ID>). The password isn't stored.
+message SFTPAccess {
+  string host = 1;
+  int32 port = 2;
+  string username = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  string host_key_fingerprint = 5;
+}
+
+message CreateSFTPAccessRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+  // How long it works: 1 hour to 30 days; 0 for a day.
+  int64 ttl_seconds = 4;
+}
+
+message CreateSFTPAccessResponse {
+  SFTPAccess access = 1;
+  string password = 2;
+}
+
+message RevokeSFTPAccessRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+}
+
+message RevokeSFTPAccessResponse {
+  // The login's first part, for sftp.disconnect; empty if there was none.
+  string username = 1;
 }
