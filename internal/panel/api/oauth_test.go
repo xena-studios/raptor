@@ -325,7 +325,7 @@ func TestOAuth(t *testing.T) {
 	}
 	aliceDiscord := auth.Identity{Subject: "d-alice", Email: "alice@discord.example", EmailVerified: false}
 	state, code2 = p.authorize(t, u, grant{id: aliceDiscord})
-	if dest := back(alice, "discord", state, code2); dest != "/settings/security?linked=discord" {
+	if dest := back(alice, "discord", state, code2); dest != "/settings?linked=discord" {
 		t.Fatalf("link: %s", dest)
 	}
 	list, err := alice.auth.ListOAuthAccounts(ctx, &panelv1.ListOAuthAccountsRequest{})
@@ -340,7 +340,7 @@ func TestOAuth(t *testing.T) {
 	// A provider account can't be on two Raptor accounts.
 	u, _ = begin(alice, "google", true)
 	state, code2 = p.authorize(t, u, grant{id: carol})
-	if dest := back(alice, "google", state, code2); dest != "/settings/security?error=oauth_taken" {
+	if dest := back(alice, "google", state, code2); dest != "/settings?error=oauth_taken" {
 		t.Errorf("someone else's google: %s", dest)
 	}
 

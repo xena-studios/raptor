@@ -295,6 +295,7 @@ type User struct {
 	TotpEnabledAt   pgtype.Timestamptz
 	TotpLastStep    int64
 	SftpUsername    pgtype.Text
+	Theme           string
 }
 
 type WebauthnCeremony struct {

@@ -74,3 +74,19 @@ SELECT * FROM sessions WHERE id = $1;
 
 -- name: RevokeSessionByToken :exec
 UPDATE sessions SET revoked_at = now() WHERE token_hash = $1 AND revoked_at IS NULL;
+
+-- name: SetUserName :one
+UPDATE users SET name = $2 WHERE id = $1 RETURNING *;
+
+-- name: SetUserTheme :one
+UPDATE users SET theme = $2 WHERE id = $1 RETURNING *;
+
+-- name: SetUserEmail :one
+UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 RETURNING *;
+
+-- name: DeleteUser :exec
+DELETE FROM users WHERE id = $1;
+
+-- name: DeleteUserActivity :exec
+-- An account's own events go with it; its orgs' events stay.
+DELETE FROM audit_log WHERE user_id = $1 AND org_id IS NULL;

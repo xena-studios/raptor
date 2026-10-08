@@ -110,6 +110,18 @@ const (
 	// AuthServiceListActivityProcedure is the fully-qualified name of the AuthService's ListActivity
 	// RPC.
 	AuthServiceListActivityProcedure = "/raptor.panel.v1.AuthService/ListActivity"
+	// AuthServiceUpdateProfileProcedure is the fully-qualified name of the AuthService's UpdateProfile
+	// RPC.
+	AuthServiceUpdateProfileProcedure = "/raptor.panel.v1.AuthService/UpdateProfile"
+	// AuthServiceStartEmailChangeProcedure is the fully-qualified name of the AuthService's
+	// StartEmailChange RPC.
+	AuthServiceStartEmailChangeProcedure = "/raptor.panel.v1.AuthService/StartEmailChange"
+	// AuthServiceFinishEmailChangeProcedure is the fully-qualified name of the AuthService's
+	// FinishEmailChange RPC.
+	AuthServiceFinishEmailChangeProcedure = "/raptor.panel.v1.AuthService/FinishEmailChange"
+	// AuthServiceDeleteAccountProcedure is the fully-qualified name of the AuthService's DeleteAccount
+	// RPC.
+	AuthServiceDeleteAccountProcedure = "/raptor.panel.v1.AuthService/DeleteAccount"
 )
 
 // AuthServiceClient is a client for the raptor.panel.v1.AuthService service.
@@ -197,6 +209,19 @@ type AuthServiceClient interface {
 	// ListActivity lists the account's sign-ins, failed attempts, and
 	// security changes, newest first, 50 at a time.
 	ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error)
+	// UpdateProfile changes the account's name or theme (the theme follows
+	// the account to every browser).
+	UpdateProfile(context.Context, *v1.UpdateProfileRequest) (*v1.UpdateProfileResponse, error)
+	// StartEmailChange emails a code to the new address. Needs a recent
+	// re-authentication: the email address signs in.
+	StartEmailChange(context.Context, *v1.StartEmailChangeRequest) (*v1.StartEmailChangeResponse, error)
+	// FinishEmailChange checks the code and moves the account to the new
+	// address; the old one is told.
+	FinishEmailChange(context.Context, *v1.FinishEmailChangeRequest) (*v1.FinishEmailChangeResponse, error)
+	// DeleteAccount deletes the account and signs it out everywhere. Needs a
+	// recent re-authentication. Refused while the account is an org's only
+	// owner and the org has other members or nodes.
+	DeleteAccount(context.Context, *v1.DeleteAccountRequest) (*v1.DeleteAccountResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the raptor.panel.v1.AuthService service. By default,
@@ -385,6 +410,30 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		updateProfile: connect.NewClient[v1.UpdateProfileRequest, v1.UpdateProfileResponse](
+			httpClient,
+			baseURL+AuthServiceUpdateProfileProcedure,
+			connect.WithSchema(authServiceMethods.ByName("UpdateProfile")),
+			connect.WithClientOptions(opts...),
+		),
+		startEmailChange: connect.NewClient[v1.StartEmailChangeRequest, v1.StartEmailChangeResponse](
+			httpClient,
+			baseURL+AuthServiceStartEmailChangeProcedure,
+			connect.WithSchema(authServiceMethods.ByName("StartEmailChange")),
+			connect.WithClientOptions(opts...),
+		),
+		finishEmailChange: connect.NewClient[v1.FinishEmailChangeRequest, v1.FinishEmailChangeResponse](
+			httpClient,
+			baseURL+AuthServiceFinishEmailChangeProcedure,
+			connect.WithSchema(authServiceMethods.ByName("FinishEmailChange")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteAccount: connect.NewClient[v1.DeleteAccountRequest, v1.DeleteAccountResponse](
+			httpClient,
+			baseURL+AuthServiceDeleteAccountProcedure,
+			connect.WithSchema(authServiceMethods.ByName("DeleteAccount")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -418,6 +467,10 @@ type authServiceClient struct {
 	addSSHKey                 *connect.Client[v1.AddSSHKeyRequest, v1.AddSSHKeyResponse]
 	deleteSSHKey              *connect.Client[v1.DeleteSSHKeyRequest, v1.DeleteSSHKeyResponse]
 	listActivity              *connect.Client[v1.ListActivityRequest, v1.ListActivityResponse]
+	updateProfile             *connect.Client[v1.UpdateProfileRequest, v1.UpdateProfileResponse]
+	startEmailChange          *connect.Client[v1.StartEmailChangeRequest, v1.StartEmailChangeResponse]
+	finishEmailChange         *connect.Client[v1.FinishEmailChangeRequest, v1.FinishEmailChangeResponse]
+	deleteAccount             *connect.Client[v1.DeleteAccountRequest, v1.DeleteAccountResponse]
 }
 
 // StartEmailSignIn calls raptor.panel.v1.AuthService.StartEmailSignIn.
@@ -672,6 +725,42 @@ func (c *authServiceClient) ListActivity(ctx context.Context, req *v1.ListActivi
 	return nil, err
 }
 
+// UpdateProfile calls raptor.panel.v1.AuthService.UpdateProfile.
+func (c *authServiceClient) UpdateProfile(ctx context.Context, req *v1.UpdateProfileRequest) (*v1.UpdateProfileResponse, error) {
+	response, err := c.updateProfile.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// StartEmailChange calls raptor.panel.v1.AuthService.StartEmailChange.
+func (c *authServiceClient) StartEmailChange(ctx context.Context, req *v1.StartEmailChangeRequest) (*v1.StartEmailChangeResponse, error) {
+	response, err := c.startEmailChange.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// FinishEmailChange calls raptor.panel.v1.AuthService.FinishEmailChange.
+func (c *authServiceClient) FinishEmailChange(ctx context.Context, req *v1.FinishEmailChangeRequest) (*v1.FinishEmailChangeResponse, error) {
+	response, err := c.finishEmailChange.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DeleteAccount calls raptor.panel.v1.AuthService.DeleteAccount.
+func (c *authServiceClient) DeleteAccount(ctx context.Context, req *v1.DeleteAccountRequest) (*v1.DeleteAccountResponse, error) {
+	response, err := c.deleteAccount.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthServiceHandler is an implementation of the raptor.panel.v1.AuthService service.
 type AuthServiceHandler interface {
 	// StartEmailSignIn emails a 6-digit code and a sign-in link for the
@@ -757,6 +846,19 @@ type AuthServiceHandler interface {
 	// ListActivity lists the account's sign-ins, failed attempts, and
 	// security changes, newest first, 50 at a time.
 	ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error)
+	// UpdateProfile changes the account's name or theme (the theme follows
+	// the account to every browser).
+	UpdateProfile(context.Context, *v1.UpdateProfileRequest) (*v1.UpdateProfileResponse, error)
+	// StartEmailChange emails a code to the new address. Needs a recent
+	// re-authentication: the email address signs in.
+	StartEmailChange(context.Context, *v1.StartEmailChangeRequest) (*v1.StartEmailChangeResponse, error)
+	// FinishEmailChange checks the code and moves the account to the new
+	// address; the old one is told.
+	FinishEmailChange(context.Context, *v1.FinishEmailChangeRequest) (*v1.FinishEmailChangeResponse, error)
+	// DeleteAccount deletes the account and signs it out everywhere. Needs a
+	// recent re-authentication. Refused while the account is an org's only
+	// owner and the org has other members or nodes.
+	DeleteAccount(context.Context, *v1.DeleteAccountRequest) (*v1.DeleteAccountResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -941,6 +1043,30 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceUpdateProfileHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceUpdateProfileProcedure,
+		svc.UpdateProfile,
+		connect.WithSchema(authServiceMethods.ByName("UpdateProfile")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceStartEmailChangeHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceStartEmailChangeProcedure,
+		svc.StartEmailChange,
+		connect.WithSchema(authServiceMethods.ByName("StartEmailChange")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceFinishEmailChangeHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceFinishEmailChangeProcedure,
+		svc.FinishEmailChange,
+		connect.WithSchema(authServiceMethods.ByName("FinishEmailChange")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceDeleteAccountHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceDeleteAccountProcedure,
+		svc.DeleteAccount,
+		connect.WithSchema(authServiceMethods.ByName("DeleteAccount")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceStartEmailSignInProcedure:
@@ -999,6 +1125,14 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceDeleteSSHKeyHandler.ServeHTTP(w, r)
 		case AuthServiceListActivityProcedure:
 			authServiceListActivityHandler.ServeHTTP(w, r)
+		case AuthServiceUpdateProfileProcedure:
+			authServiceUpdateProfileHandler.ServeHTTP(w, r)
+		case AuthServiceStartEmailChangeProcedure:
+			authServiceStartEmailChangeHandler.ServeHTTP(w, r)
+		case AuthServiceFinishEmailChangeProcedure:
+			authServiceFinishEmailChangeHandler.ServeHTTP(w, r)
+		case AuthServiceDeleteAccountProcedure:
+			authServiceDeleteAccountHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1118,4 +1252,20 @@ func (UnimplementedAuthServiceHandler) DeleteSSHKey(context.Context, *v1.DeleteS
 
 func (UnimplementedAuthServiceHandler) ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.ListActivity is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) UpdateProfile(context.Context, *v1.UpdateProfileRequest) (*v1.UpdateProfileResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.UpdateProfile is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) StartEmailChange(context.Context, *v1.StartEmailChangeRequest) (*v1.StartEmailChangeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.StartEmailChange is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) FinishEmailChange(context.Context, *v1.FinishEmailChangeRequest) (*v1.FinishEmailChangeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.FinishEmailChange is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) DeleteAccount(context.Context, *v1.DeleteAccountRequest) (*v1.DeleteAccountResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.DeleteAccount is not implemented"))
 }

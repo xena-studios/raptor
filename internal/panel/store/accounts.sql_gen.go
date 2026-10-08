@@ -110,7 +110,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username
+INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme
 `
 
 func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
@@ -127,8 +127,28 @@ func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
 		&i.TotpEnabledAt,
 		&i.TotpLastStep,
 		&i.SftpUsername,
+		&i.Theme,
 	)
 	return i, err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
+	return err
+}
+
+const deleteUserActivity = `-- name: DeleteUserActivity :exec
+DELETE FROM audit_log WHERE user_id = $1 AND org_id IS NULL
+`
+
+// An account's own events go with it; its orgs' events stay.
+func (q *Queries) DeleteUserActivity(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUserActivity, userID)
+	return err
 }
 
 const emailCodeByLink = `-- name: EmailCodeByLink :one
@@ -176,7 +196,7 @@ func (q *Queries) GetSession(ctx context.Context, id pgtype.UUID) (Session, erro
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username FROM users WHERE id = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -193,12 +213,13 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.TotpEnabledAt,
 		&i.TotpLastStep,
 		&i.SftpUsername,
+		&i.Theme,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username FROM users WHERE email = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -215,6 +236,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.TotpEnabledAt,
 		&i.TotpLastStep,
 		&i.SftpUsername,
+		&i.Theme,
 	)
 	return i, err
 }
@@ -383,6 +405,90 @@ type SetSessionReauthParams struct {
 func (q *Queries) SetSessionReauth(ctx context.Context, arg SetSessionReauthParams) error {
 	_, err := q.db.Exec(ctx, setSessionReauth, arg.ID, arg.ReauthAt)
 	return err
+}
+
+const setUserEmail = `-- name: SetUserEmail :one
+UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme
+`
+
+type SetUserEmailParams struct {
+	ID    pgtype.UUID
+	Email string
+}
+
+func (q *Queries) SetUserEmail(ctx context.Context, arg SetUserEmailParams) (User, error) {
+	row := q.db.QueryRow(ctx, setUserEmail, arg.ID, arg.Email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.EmailVerifiedAt,
+		&i.Name,
+		&i.CreatedAt,
+		&i.WebauthnHandle,
+		&i.TotpSecret,
+		&i.TotpEnabledAt,
+		&i.TotpLastStep,
+		&i.SftpUsername,
+		&i.Theme,
+	)
+	return i, err
+}
+
+const setUserName = `-- name: SetUserName :one
+UPDATE users SET name = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme
+`
+
+type SetUserNameParams struct {
+	ID   pgtype.UUID
+	Name string
+}
+
+func (q *Queries) SetUserName(ctx context.Context, arg SetUserNameParams) (User, error) {
+	row := q.db.QueryRow(ctx, setUserName, arg.ID, arg.Name)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.EmailVerifiedAt,
+		&i.Name,
+		&i.CreatedAt,
+		&i.WebauthnHandle,
+		&i.TotpSecret,
+		&i.TotpEnabledAt,
+		&i.TotpLastStep,
+		&i.SftpUsername,
+		&i.Theme,
+	)
+	return i, err
+}
+
+const setUserTheme = `-- name: SetUserTheme :one
+UPDATE users SET theme = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme
+`
+
+type SetUserThemeParams struct {
+	ID    pgtype.UUID
+	Theme string
+}
+
+func (q *Queries) SetUserTheme(ctx context.Context, arg SetUserThemeParams) (User, error) {
+	row := q.db.QueryRow(ctx, setUserTheme, arg.ID, arg.Theme)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.EmailVerifiedAt,
+		&i.Name,
+		&i.CreatedAt,
+		&i.WebauthnHandle,
+		&i.TotpSecret,
+		&i.TotpEnabledAt,
+		&i.TotpLastStep,
+		&i.SftpUsername,
+		&i.Theme,
+	)
+	return i, err
 }
 
 const touchSession = `-- name: TouchSession :exec

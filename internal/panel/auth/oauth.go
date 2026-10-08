@@ -229,7 +229,7 @@ func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity)
 // state cookie; the session cookie itself doesn't come along, since the
 // browser arrives from another site.
 func (s *Service) oauthLink(ctx context.Context, provider string, session pgtype.UUID, id Identity) string {
-	const settings = "/settings/security"
+	const settings = "/settings"
 	q := s.q()
 	sess, err := q.GetSession(ctx, session)
 	if err != nil || sess.RevokedAt.Valid || !sess.ExpiresAt.Time.After(s.now()) {

@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InviteRouteImport } from './routes/invite'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as OrgsOrgIdRouteImport } from './routes/orgs.$orgId'
+import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as SettingsActivityRouteImport } from './routes/settings.activity'
 import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as SigninIndexRouteImport } from './routes/signin.index'
 import { Route as SigninLinkRouteImport } from './routes/signin.link'
@@ -26,6 +29,7 @@ import { Route as OrgsOrgIdServersIndexRouteImport } from './routes/orgs.$orgId.
 import { Route as OrgsOrgIdServersNewRouteImport } from './routes/orgs.$orgId.servers.new'
 import { Route as OrgsOrgIdSettingsIndexRouteImport } from './routes/orgs.$orgId.settings.index'
 import { Route as OrgsOrgIdSettingsActivityRouteImport } from './routes/orgs.$orgId.settings.activity'
+import { Route as OrgsOrgIdSettingsBillingRouteImport } from './routes/orgs.$orgId.settings.billing'
 import { Route as OrgsOrgIdSettingsMembersRouteImport } from './routes/orgs.$orgId.settings.members'
 import { Route as OrgsOrgIdNodesNodeIdIndexRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.index'
 import { Route as OrgsOrgIdNodesNodeIdSettingsRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.settings'
@@ -45,15 +49,30 @@ const InviteRoute = InviteRouteImport.update({
   path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrgsOrgIdRoute = OrgsOrgIdRouteImport.update({
   id: '/orgs/$orgId',
   path: '/orgs/$orgId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsActivityRoute = SettingsActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
-  id: '/settings/security',
-  path: '/settings/security',
-  getParentRoute: () => rootRouteImport,
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SigninIndexRoute = SigninIndexRouteImport.update({
   id: '/signin/',
@@ -121,6 +140,12 @@ const OrgsOrgIdSettingsActivityRoute =
     path: '/activity',
     getParentRoute: () => OrgsOrgIdSettingsRoute,
   } as any)
+const OrgsOrgIdSettingsBillingRoute =
+  OrgsOrgIdSettingsBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => OrgsOrgIdSettingsRoute,
+  } as any)
 const OrgsOrgIdSettingsMembersRoute =
   OrgsOrgIdSettingsMembersRouteImport.update({
     id: '/members',
@@ -173,10 +198,13 @@ const OrgsOrgIdServersNodeIdServerIdSettingsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/invite': typeof InviteRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
+  '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
+  '/settings/': typeof SettingsIndexRoute
   '/signin/': typeof SigninIndexRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
@@ -185,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers/': typeof OrgsOrgIdServersIndexRoute
@@ -200,15 +229,18 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/invite': typeof InviteRoute
+  '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
+  '/settings': typeof SettingsIndexRoute
   '/signin': typeof SigninIndexRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/orgs/$orgId': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
   '/orgs/$orgId/nodes': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers': typeof OrgsOrgIdServersIndexRoute
@@ -224,10 +256,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/invite': typeof InviteRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
+  '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
   '/signin/second-factor': typeof SigninSecondFactorRoute
+  '/settings/': typeof SettingsIndexRoute
   '/signin/': typeof SigninIndexRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
@@ -236,6 +271,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers/': typeof OrgsOrgIdServersIndexRoute
@@ -253,10 +289,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/invite'
+    | '/settings'
     | '/orgs/$orgId'
+    | '/settings/activity'
     | '/settings/security'
     | '/signin/link'
     | '/signin/second-factor'
+    | '/settings/'
     | '/signin/'
     | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/settings'
@@ -265,6 +304,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
     | '/orgs/$orgId/nodes/'
     | '/orgs/$orgId/servers/'
@@ -280,15 +320,18 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/invite'
+    | '/settings/activity'
     | '/settings/security'
     | '/signin/link'
     | '/signin/second-factor'
+    | '/settings'
     | '/signin'
     | '/orgs/$orgId/eggs'
     | '/orgs/$orgId'
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
     | '/orgs/$orgId/nodes'
     | '/orgs/$orgId/servers'
@@ -303,10 +346,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/invite'
+    | '/settings'
     | '/orgs/$orgId'
+    | '/settings/activity'
     | '/settings/security'
     | '/signin/link'
     | '/signin/second-factor'
+    | '/settings/'
     | '/signin/'
     | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/settings'
@@ -315,6 +361,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
     | '/orgs/$orgId/nodes/'
     | '/orgs/$orgId/servers/'
@@ -331,8 +378,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   InviteRoute: typeof InviteRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   OrgsOrgIdRoute: typeof OrgsOrgIdRouteWithChildren
-  SettingsSecurityRoute: typeof SettingsSecurityRoute
   SigninLinkRoute: typeof SigninLinkRoute
   SigninSecondFactorRoute: typeof SigninSecondFactorRoute
   SigninIndexRoute: typeof SigninIndexRoute
@@ -354,6 +401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orgs/$orgId': {
       id: '/orgs/$orgId'
       path: '/orgs/$orgId'
@@ -361,12 +415,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/activity': {
+      id: '/settings/activity'
+      path: '/activity'
+      fullPath: '/settings/activity'
+      preLoaderRoute: typeof SettingsActivityRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/security': {
       id: '/settings/security'
-      path: '/settings/security'
+      path: '/security'
       fullPath: '/settings/security'
       preLoaderRoute: typeof SettingsSecurityRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/signin/': {
       id: '/signin/'
@@ -459,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdSettingsActivityRouteImport
       parentRoute: typeof OrgsOrgIdSettingsRoute
     }
+    '/orgs/$orgId/settings/billing': {
+      id: '/orgs/$orgId/settings/billing'
+      path: '/billing'
+      fullPath: '/orgs/$orgId/settings/billing'
+      preLoaderRoute: typeof OrgsOrgIdSettingsBillingRouteImport
+      parentRoute: typeof OrgsOrgIdSettingsRoute
+    }
     '/orgs/$orgId/settings/members': {
       id: '/orgs/$orgId/settings/members'
       path: '/members'
@@ -518,14 +593,32 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SettingsRouteChildren {
+  SettingsActivityRoute: typeof SettingsActivityRoute
+  SettingsSecurityRoute: typeof SettingsSecurityRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsActivityRoute: SettingsActivityRoute,
+  SettingsSecurityRoute: SettingsSecurityRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 interface OrgsOrgIdSettingsRouteChildren {
   OrgsOrgIdSettingsActivityRoute: typeof OrgsOrgIdSettingsActivityRoute
+  OrgsOrgIdSettingsBillingRoute: typeof OrgsOrgIdSettingsBillingRoute
   OrgsOrgIdSettingsMembersRoute: typeof OrgsOrgIdSettingsMembersRoute
   OrgsOrgIdSettingsIndexRoute: typeof OrgsOrgIdSettingsIndexRoute
 }
 
 const OrgsOrgIdSettingsRouteChildren: OrgsOrgIdSettingsRouteChildren = {
   OrgsOrgIdSettingsActivityRoute: OrgsOrgIdSettingsActivityRoute,
+  OrgsOrgIdSettingsBillingRoute: OrgsOrgIdSettingsBillingRoute,
   OrgsOrgIdSettingsMembersRoute: OrgsOrgIdSettingsMembersRoute,
   OrgsOrgIdSettingsIndexRoute: OrgsOrgIdSettingsIndexRoute,
 }
@@ -602,8 +695,8 @@ const OrgsOrgIdRouteWithChildren = OrgsOrgIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   InviteRoute: InviteRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   OrgsOrgIdRoute: OrgsOrgIdRouteWithChildren,
-  SettingsSecurityRoute: SettingsSecurityRoute,
   SigninLinkRoute: SigninLinkRoute,
   SigninSecondFactorRoute: SigninSecondFactorRoute,
   SigninIndexRoute: SigninIndexRoute,

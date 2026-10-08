@@ -133,6 +133,23 @@ service AuthService {
   rpc ListActivity(ListActivityRequest) returns (ListActivityResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // UpdateProfile changes the account's name or theme (the theme follows
+  // the account to every browser).
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {}
+
+  // StartEmailChange emails a code to the new address. Needs a recent
+  // re-authentication: the email address signs in.
+  rpc StartEmailChange(StartEmailChangeRequest) returns (StartEmailChangeResponse) {}
+
+  // FinishEmailChange checks the code and moves the account to the new
+  // address; the old one is told.
+  rpc FinishEmailChange(FinishEmailChangeRequest) returns (FinishEmailChangeResponse) {}
+
+  // DeleteAccount deletes the account and signs it out everywhere. Needs a
+  // recent re-authentication. Refused while the account is an org's only
+  // owner and the org has other members or nodes.
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse) {}
 }
 
 message StartEmailSignInRequest {
@@ -173,6 +190,9 @@ message User {
   // For SFTP: log in as <sftp_username>.<server short ID> (empty until the
   // first SSH key is added).
   string sftp_username = 5;
+  google.protobuf.Timestamp created_at = 6;
+  // "system", "light", or "dark".
+  string theme = 7;
 }
 
 message GetSessionRequest {}
@@ -446,3 +466,32 @@ message DeleteSSHKeyRequest {
 }
 
 message DeleteSSHKeyResponse {}
+
+message UpdateProfileRequest {
+  // Unset fields stay as they are.
+  optional string name = 1;
+  optional string theme = 2;
+}
+
+message UpdateProfileResponse {
+  User user = 1;
+}
+
+message StartEmailChangeRequest {
+  string new_email = 1;
+}
+
+message StartEmailChangeResponse {}
+
+message FinishEmailChangeRequest {
+  string new_email = 1;
+  string code = 2;
+}
+
+message FinishEmailChangeResponse {
+  User user = 1;
+}
+
+message DeleteAccountRequest {}
+
+message DeleteAccountResponse {}
