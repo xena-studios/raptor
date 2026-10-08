@@ -134,7 +134,7 @@ Then the service account: 1Password → Developer → Service accounts → new, 
 
 1. Every record is **DNS only** (grey cloud). Node hostnames point straight at nodes.
 2. Apex: a Redirect Rule `raptornodes.net/*` → `https://raptorpanel.net`, 301 (with a proxied placeholder record `@ AAAA 100::` for it to answer on).
-3. A token for the Panel: My Profile → API Tokens → Custom: permission **Zone → DNS → Edit**, zone **raptornodes.net only**, client IP filtering **every public address of server #1 and server #2, IPv4 and IPv6** (the Panel's calls to Cloudflare may leave over either). The Panel holds this token and no other Cloudflare token; it can't touch `raptorpanel.net`. Put it and the zone ID in the vault (`Cloudflare raptornodes.net DNS`).
+3. A token for the Panel: My Profile → API Tokens → Custom: permission **Zone → DNS → Edit**, zone **raptornodes.net only**, client IP filtering **every public address of server #1 and server #2, IPv4 and IPv6** (the Panel's calls leave over IPv4, since its Docker network has none, but commands on the servers themselves, like checking the token, prefer IPv6). The Panel holds this token and no other Cloudflare token; it can't touch `raptorpanel.net`. Put it and the zone ID in the vault (`Cloudflare raptornodes.net DNS`).
 4. Later, before launch: submit `raptornodes.net` to the [Public Suffix List](https://publicsuffix.org) ([ARCHITECTURE.md](ARCHITECTURE.md#node-dns)).
 
 ### Accounts
