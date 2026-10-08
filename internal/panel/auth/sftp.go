@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
+	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -112,4 +113,21 @@ func NewSFTPPassword() (username, password string, secretHash []byte) {
 	// 24 characters of 31: about 119 bits, so a plain hash is enough.
 	password = pick(6) + "-" + pick(6) + "-" + pick(6) + "-" + pick(6)
 	return "t-" + pick(10), password, hash(password)
+}
+
+var errNoSSHKeys = connect.NewError(connect.CodeUnimplemented, errors.New("SSH keys are gone: turn on SFTP on a server's Files tab for a temporary password"))
+
+// ListSSHKeys implements AuthService. SSH keys are gone (DECISIONS #223).
+func (s *Service) ListSSHKeys(context.Context, *panelv1.ListSSHKeysRequest) (*panelv1.ListSSHKeysResponse, error) {
+	return nil, errNoSSHKeys
+}
+
+// AddSSHKey implements AuthService. SSH keys are gone (DECISIONS #223).
+func (s *Service) AddSSHKey(context.Context, *panelv1.AddSSHKeyRequest) (*panelv1.AddSSHKeyResponse, error) {
+	return nil, errNoSSHKeys
+}
+
+// DeleteSSHKey implements AuthService. SSH keys are gone (DECISIONS #223).
+func (s *Service) DeleteSSHKey(context.Context, *panelv1.DeleteSSHKeyRequest) (*panelv1.DeleteSSHKeyResponse, error) {
+	return nil, errNoSSHKeys
 }

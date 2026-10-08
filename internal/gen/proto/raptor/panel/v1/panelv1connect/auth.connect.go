@@ -100,6 +100,13 @@ const (
 	// AuthServiceUnlinkOAuthAccountProcedure is the fully-qualified name of the AuthService's
 	// UnlinkOAuthAccount RPC.
 	AuthServiceUnlinkOAuthAccountProcedure = "/raptor.panel.v1.AuthService/UnlinkOAuthAccount"
+	// AuthServiceListSSHKeysProcedure is the fully-qualified name of the AuthService's ListSSHKeys RPC.
+	AuthServiceListSSHKeysProcedure = "/raptor.panel.v1.AuthService/ListSSHKeys"
+	// AuthServiceAddSSHKeyProcedure is the fully-qualified name of the AuthService's AddSSHKey RPC.
+	AuthServiceAddSSHKeyProcedure = "/raptor.panel.v1.AuthService/AddSSHKey"
+	// AuthServiceDeleteSSHKeyProcedure is the fully-qualified name of the AuthService's DeleteSSHKey
+	// RPC.
+	AuthServiceDeleteSSHKeyProcedure = "/raptor.panel.v1.AuthService/DeleteSSHKey"
 	// AuthServiceListActivityProcedure is the fully-qualified name of the AuthService's ListActivity
 	// RPC.
 	AuthServiceListActivityProcedure = "/raptor.panel.v1.AuthService/ListActivity"
@@ -191,6 +198,15 @@ type AuthServiceClient interface {
 	// UnlinkOAuthAccount stops one signing in. Needs a recent
 	// re-authentication.
 	UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error)
+	// ListSSHKeys, AddSSHKey, and DeleteSSHKey are gone: SFTP takes only
+	// temporary passwords (DECISIONS #223). They answer UNIMPLEMENTED.
+	//
+	// Deprecated: do not use.
+	ListSSHKeys(context.Context, *v1.ListSSHKeysRequest) (*v1.ListSSHKeysResponse, error)
+	// Deprecated: do not use.
+	AddSSHKey(context.Context, *v1.AddSSHKeyRequest) (*v1.AddSSHKeyResponse, error)
+	// Deprecated: do not use.
+	DeleteSSHKey(context.Context, *v1.DeleteSSHKeyRequest) (*v1.DeleteSSHKeyResponse, error)
 	// ListActivity lists the account's sign-ins, failed attempts, and
 	// security changes, newest first, 50 at a time.
 	ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error)
@@ -369,6 +385,25 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("UnlinkOAuthAccount")),
 			connect.WithClientOptions(opts...),
 		),
+		listSSHKeys: connect.NewClient[v1.ListSSHKeysRequest, v1.ListSSHKeysResponse](
+			httpClient,
+			baseURL+AuthServiceListSSHKeysProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListSSHKeys")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		addSSHKey: connect.NewClient[v1.AddSSHKeyRequest, v1.AddSSHKeyResponse](
+			httpClient,
+			baseURL+AuthServiceAddSSHKeyProcedure,
+			connect.WithSchema(authServiceMethods.ByName("AddSSHKey")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSSHKey: connect.NewClient[v1.DeleteSSHKeyRequest, v1.DeleteSSHKeyResponse](
+			httpClient,
+			baseURL+AuthServiceDeleteSSHKeyProcedure,
+			connect.WithSchema(authServiceMethods.ByName("DeleteSSHKey")),
+			connect.WithClientOptions(opts...),
+		),
 		listActivity: connect.NewClient[v1.ListActivityRequest, v1.ListActivityResponse](
 			httpClient,
 			baseURL+AuthServiceListActivityProcedure,
@@ -429,6 +464,9 @@ type authServiceClient struct {
 	beginOAuth                *connect.Client[v1.BeginOAuthRequest, v1.BeginOAuthResponse]
 	listOAuthAccounts         *connect.Client[v1.ListOAuthAccountsRequest, v1.ListOAuthAccountsResponse]
 	unlinkOAuthAccount        *connect.Client[v1.UnlinkOAuthAccountRequest, v1.UnlinkOAuthAccountResponse]
+	listSSHKeys               *connect.Client[v1.ListSSHKeysRequest, v1.ListSSHKeysResponse]
+	addSSHKey                 *connect.Client[v1.AddSSHKeyRequest, v1.AddSSHKeyResponse]
+	deleteSSHKey              *connect.Client[v1.DeleteSSHKeyRequest, v1.DeleteSSHKeyResponse]
 	listActivity              *connect.Client[v1.ListActivityRequest, v1.ListActivityResponse]
 	updateProfile             *connect.Client[v1.UpdateProfileRequest, v1.UpdateProfileResponse]
 	startEmailChange          *connect.Client[v1.StartEmailChangeRequest, v1.StartEmailChangeResponse]
@@ -652,6 +690,39 @@ func (c *authServiceClient) UnlinkOAuthAccount(ctx context.Context, req *v1.Unli
 	return nil, err
 }
 
+// ListSSHKeys calls raptor.panel.v1.AuthService.ListSSHKeys.
+//
+// Deprecated: do not use.
+func (c *authServiceClient) ListSSHKeys(ctx context.Context, req *v1.ListSSHKeysRequest) (*v1.ListSSHKeysResponse, error) {
+	response, err := c.listSSHKeys.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// AddSSHKey calls raptor.panel.v1.AuthService.AddSSHKey.
+//
+// Deprecated: do not use.
+func (c *authServiceClient) AddSSHKey(ctx context.Context, req *v1.AddSSHKeyRequest) (*v1.AddSSHKeyResponse, error) {
+	response, err := c.addSSHKey.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DeleteSSHKey calls raptor.panel.v1.AuthService.DeleteSSHKey.
+//
+// Deprecated: do not use.
+func (c *authServiceClient) DeleteSSHKey(ctx context.Context, req *v1.DeleteSSHKeyRequest) (*v1.DeleteSSHKeyResponse, error) {
+	response, err := c.deleteSSHKey.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListActivity calls raptor.panel.v1.AuthService.ListActivity.
 func (c *authServiceClient) ListActivity(ctx context.Context, req *v1.ListActivityRequest) (*v1.ListActivityResponse, error) {
 	response, err := c.listActivity.CallUnary(ctx, connect.NewRequest(req))
@@ -771,6 +842,15 @@ type AuthServiceHandler interface {
 	// UnlinkOAuthAccount stops one signing in. Needs a recent
 	// re-authentication.
 	UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error)
+	// ListSSHKeys, AddSSHKey, and DeleteSSHKey are gone: SFTP takes only
+	// temporary passwords (DECISIONS #223). They answer UNIMPLEMENTED.
+	//
+	// Deprecated: do not use.
+	ListSSHKeys(context.Context, *v1.ListSSHKeysRequest) (*v1.ListSSHKeysResponse, error)
+	// Deprecated: do not use.
+	AddSSHKey(context.Context, *v1.AddSSHKeyRequest) (*v1.AddSSHKeyResponse, error)
+	// Deprecated: do not use.
+	DeleteSSHKey(context.Context, *v1.DeleteSSHKeyRequest) (*v1.DeleteSSHKeyResponse, error)
 	// ListActivity lists the account's sign-ins, failed attempts, and
 	// security changes, newest first, 50 at a time.
 	ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error)
@@ -945,6 +1025,25 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("UnlinkOAuthAccount")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceListSSHKeysHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceListSSHKeysProcedure,
+		svc.ListSSHKeys,
+		connect.WithSchema(authServiceMethods.ByName("ListSSHKeys")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceAddSSHKeyHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceAddSSHKeyProcedure,
+		svc.AddSSHKey,
+		connect.WithSchema(authServiceMethods.ByName("AddSSHKey")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceDeleteSSHKeyHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceDeleteSSHKeyProcedure,
+		svc.DeleteSSHKey,
+		connect.WithSchema(authServiceMethods.ByName("DeleteSSHKey")),
+		connect.WithHandlerOptions(opts...),
+	)
 	authServiceListActivityHandler := connect.NewUnaryHandlerSimple(
 		AuthServiceListActivityProcedure,
 		svc.ListActivity,
@@ -1026,6 +1125,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceListOAuthAccountsHandler.ServeHTTP(w, r)
 		case AuthServiceUnlinkOAuthAccountProcedure:
 			authServiceUnlinkOAuthAccountHandler.ServeHTTP(w, r)
+		case AuthServiceListSSHKeysProcedure:
+			authServiceListSSHKeysHandler.ServeHTTP(w, r)
+		case AuthServiceAddSSHKeyProcedure:
+			authServiceAddSSHKeyHandler.ServeHTTP(w, r)
+		case AuthServiceDeleteSSHKeyProcedure:
+			authServiceDeleteSSHKeyHandler.ServeHTTP(w, r)
 		case AuthServiceListActivityProcedure:
 			authServiceListActivityHandler.ServeHTTP(w, r)
 		case AuthServiceUpdateProfileProcedure:
@@ -1139,6 +1244,18 @@ func (UnimplementedAuthServiceHandler) ListOAuthAccounts(context.Context, *v1.Li
 
 func (UnimplementedAuthServiceHandler) UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.UnlinkOAuthAccount is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListSSHKeys(context.Context, *v1.ListSSHKeysRequest) (*v1.ListSSHKeysResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.ListSSHKeys is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) AddSSHKey(context.Context, *v1.AddSSHKeyRequest) (*v1.AddSSHKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.AddSSHKey is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) DeleteSSHKey(context.Context, *v1.DeleteSSHKeyRequest) (*v1.DeleteSSHKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.DeleteSSHKey is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) ListActivity(context.Context, *v1.ListActivityRequest) (*v1.ListActivityResponse, error) {

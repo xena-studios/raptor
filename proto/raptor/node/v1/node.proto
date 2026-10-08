@@ -206,7 +206,8 @@ message SFTPLoginRequest {
   string username = 1;
   // The server's full ID (Wings resolved the short one).
   string server_id = 2;
-  reserved 3; // public_key: SSH keys are gone (DECISIONS #223)
+  // Ignored: SSH keys are gone (DECISIONS #223); older Wings still send it.
+  bytes public_key = 3 [deprecated = true];
   // The temporary password the user turned on for this server.
   string password = 4;
 }

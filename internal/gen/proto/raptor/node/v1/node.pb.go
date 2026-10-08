@@ -1035,6 +1035,10 @@ type SFTPLoginRequest struct {
 	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	// The server's full ID (Wings resolved the short one).
 	ServerId string `protobuf:"bytes,2,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	// Ignored: SSH keys are gone (DECISIONS #223); older Wings still send it.
+	//
+	// Deprecated: Marked as deprecated in raptor/node/v1/node.proto.
+	PublicKey []byte `protobuf:"bytes,3,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	// The temporary password the user turned on for this server.
 	Password      string `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1083,6 +1087,14 @@ func (x *SFTPLoginRequest) GetServerId() string {
 		return x.ServerId
 	}
 	return ""
+}
+
+// Deprecated: Marked as deprecated in raptor/node/v1/node.proto.
+func (x *SFTPLoginRequest) GetPublicKey() []byte {
+	if x != nil {
+		return x.PublicKey
+	}
+	return nil
 }
 
 func (x *SFTPLoginRequest) GetPassword() string {
@@ -1688,11 +1700,13 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\tserver_id\x18\x03 \x01(\tR\bserverId\x12\x18\n" +
 	"\aversion\x18\x04 \x01(\x03R\aversion\x12\x0e\n" +
 	"\x02at\x18\x05 \x01(\x03R\x02at\x12\x12\n" +
-	"\x04data\x18\x06 \x01(\fR\x04data\"m\n" +
+	"\x04data\x18\x06 \x01(\fR\x04data\"\x8a\x01\n" +
 	"\x10SFTPLoginRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1b\n" +
-	"\tserver_id\x18\x02 \x01(\tR\bserverId\x12\x1a\n" +
-	"\bpassword\x18\x04 \x01(\tR\bpasswordJ\x04\b\x03\x10\x04\"\x89\x01\n" +
+	"\tserver_id\x18\x02 \x01(\tR\bserverId\x12!\n" +
+	"\n" +
+	"public_key\x18\x03 \x01(\fB\x02\x18\x01R\tpublicKey\x12\x1a\n" +
+	"\bpassword\x18\x04 \x01(\tR\bpassword\"\x89\x01\n" +
 	"\x11SFTPLoginResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
 	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x129\n" +

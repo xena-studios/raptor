@@ -115,6 +115,19 @@ service AuthService {
   // re-authentication.
   rpc UnlinkOAuthAccount(UnlinkOAuthAccountRequest) returns (UnlinkOAuthAccountResponse) {}
 
+  // ListSSHKeys, AddSSHKey, and DeleteSSHKey are gone: SFTP takes only
+  // temporary passwords (DECISIONS #223). They answer UNIMPLEMENTED.
+  rpc ListSSHKeys(ListSSHKeysRequest) returns (ListSSHKeysResponse) {
+    option deprecated = true;
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc AddSSHKey(AddSSHKeyRequest) returns (AddSSHKeyResponse) {
+    option deprecated = true;
+  }
+  rpc DeleteSSHKey(DeleteSSHKeyRequest) returns (DeleteSSHKeyResponse) {
+    option deprecated = true;
+  }
+
   // ListActivity lists the account's sign-ins, failed attempts, and
   // security changes, newest first, 50 at a time.
   rpc ListActivity(ListActivityRequest) returns (ListActivityResponse) {
@@ -174,7 +187,8 @@ message User {
   string email = 2;
   string name = 3;
   bool totp_enabled = 4;
-  reserved 5; // sftp_username: SSH keys are gone (DECISIONS #223)
+  // Always empty: SSH keys are gone (DECISIONS #223).
+  string sftp_username = 5 [deprecated = true];
   google.protobuf.Timestamp created_at = 6;
   // "system", "light", or "dark".
   string theme = 7;
@@ -451,3 +465,40 @@ message FinishEmailChangeResponse {
 message DeleteAccountRequest {}
 
 message DeleteAccountResponse {}
+
+// The SSH key messages are kept for the deprecated RPCs above.
+message ListSSHKeysRequest {}
+
+message ListSSHKeysResponse {
+  repeated SSHKey keys = 1;
+  string sftp_username = 2;
+}
+
+message SSHKey {
+  string id = 1;
+  string name = 2;
+  // SHA256:… as ssh-keygen -l shows it.
+  string fingerprint = 3;
+  // ssh-ed25519, ssh-rsa, ...
+  string type = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp last_used_at = 6;
+}
+
+message AddSSHKeyRequest {
+  // One line of an authorized_keys file ("ssh-ed25519 AAAA… comment").
+  string public_key = 1;
+  // Defaults to the key's comment.
+  string name = 2;
+}
+
+message AddSSHKeyResponse {
+  SSHKey key = 1;
+  string sftp_username = 2;
+}
+
+message DeleteSSHKeyRequest {
+  string id = 1;
+}
+
+message DeleteSSHKeyResponse {}
