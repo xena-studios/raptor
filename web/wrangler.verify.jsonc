@@ -1,0 +1,12 @@
+// verify.raptorpanel.net: the Turnstile page (verify/) as a Cloudflare
+// Worker with static assets only (docs/DEPLOY.md#static-sites). Its
+// headers are in verify/_headers.
+{
+  "name": "raptor-verify",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./verify"
+  },
+  "workers_dev": false,
+  "preview_urls": false
+}

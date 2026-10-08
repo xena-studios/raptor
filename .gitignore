@@ -4,6 +4,8 @@
 # The web app's production build settings: public, so committed.
 !web/.env.production
 dist/
+# wrangler dev's scratch files
+.wrangler/
 node_modules/
 *.db
 *.db-wal
