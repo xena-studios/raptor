@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Download,
   File,
   FileArchive,
   Folder,
@@ -12,10 +13,12 @@ import {
   RefreshCw,
   Save,
   Trash2,
+  Upload,
+  X,
 } from "lucide-react";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { message } from "@/lib/errors";
 import {
   baseName,
@@ -31,6 +34,7 @@ import {
 } from "@/lib/files";
 import { base64 } from "@/lib/servers";
 import { commandClient } from "@/lib/transport";
+import { downloadURL, uploadFile } from "@/lib/upload";
 
 const Editor = lazy(() => import("@/components/editor"));
 
@@ -47,6 +51,15 @@ type Entry = {
 };
 type Listing = { path: string; entries: Entry[]; truncated?: boolean };
 type Content = Entry & { data: string };
+type PendingUpload = {
+  key: string;
+  name: string;
+  file: File;
+  progress: number;
+  done?: boolean;
+  error?: string;
+  abort: AbortController;
+};
 
 // Files is the web file manager (docs/WINGS.md#files-and-sftp): every
 // action is a command to the node, checked by the Panel and Wings, with the
@@ -70,6 +83,8 @@ export function Files({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uploads, setUploads] = useState<PendingUpload[]>([]);
+  const picker = useRef<HTMLInputElement>(null);
 
   async function run<T>(action: string, params: object): Promise<T | undefined> {
     const res = await commandClient.execute({
@@ -111,6 +126,46 @@ export function Files({
       return undefined;
     }
     return name;
+  }
+
+  // Uploads go one after another, each in chunks that resume.
+  function startUploads(list: FileList | null) {
+    if (!list || list.length === 0) return;
+    const dir = path;
+    const added: PendingUpload[] = [...list].map((file) => ({
+      key: `${Date.now()}-${file.name}-${Math.random()}`,
+      name: file.name,
+      file,
+      progress: 0,
+      abort: new AbortController(),
+    }));
+    setUploads((u) => [...u, ...added]);
+    void (async () => {
+      for (const u of added) {
+        if (u.abort.signal.aborted) continue;
+        try {
+          await uploadFile({
+            nodeId,
+            serverId,
+            dir,
+            file: u.file,
+            signal: u.abort.signal,
+            onProgress: (f) => update(u.key, { progress: f }),
+          });
+          update(u.key, { progress: 1, done: true });
+          void refresh();
+        } catch (err) {
+          if (!u.abort.signal.aborted) update(u.key, { error: message(err) });
+        }
+      }
+    })();
+  }
+  function update(key: string, change: Partial<PendingUpload>) {
+    setUploads((list) => list.map((u) => (u.key === key ? { ...u, ...change } : u)));
+  }
+  function dismiss(u: PendingUpload) {
+    u.abort.abort();
+    setUploads((list) => list.filter((x) => x.key !== u.key));
   }
 
   const newFolder = () => {
@@ -219,6 +274,19 @@ export function Files({
           )}
           {canWrite && (
             <>
+              <Button size="sm" variant="outline" onClick={() => picker.current?.click()}>
+                <Upload /> Upload
+              </Button>
+              <input
+                ref={picker}
+                type="file"
+                multiple
+                hidden
+                onChange={(e) => {
+                  startUploads(e.target.files);
+                  e.target.value = "";
+                }}
+              />
               <Button size="sm" variant="outline" disabled={busy} onClick={newFile}>
                 <Plus /> File
               </Button>
@@ -234,6 +302,40 @@ export function Files({
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
+      {uploads.length > 0 && (
+        <ul className="flex flex-col gap-1.5 rounded-lg border p-3 text-sm">
+          {uploads.map((u) => (
+            <li key={u.key} className="flex items-center gap-3">
+              <span className="min-w-0 flex-1 truncate">{u.name}</span>
+              {u.error ? (
+                <span className="text-xs text-destructive">{u.error}</span>
+              ) : u.done ? (
+                <span className="text-xs text-muted-foreground">Uploaded</span>
+              ) : (
+                <span className="flex w-40 items-center gap-2">
+                  <span className="h-1.5 flex-1 overflow-hidden rounded bg-muted">
+                    <span
+                      className="block h-full bg-primary transition-[width]"
+                      style={{ width: `${Math.round(u.progress * 100)}%` }}
+                    />
+                  </span>
+                  <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">
+                    {Math.round(u.progress * 100)}%
+                  </span>
+                </span>
+              )}
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                aria-label={u.done || u.error ? `Hide ${u.name}` : `Cancel ${u.name}`}
+                onClick={() => dismiss(u)}
+              >
+                <X />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
       {listing.error && <p className="text-sm text-destructive">{message(listing.error)}</p>}
       <div className="overflow-hidden rounded-lg border">
         <table className="w-full text-sm">
@@ -243,7 +345,7 @@ export function Files({
               <th className="px-3 py-2 font-medium">Name</th>
               <th className="w-24 px-3 py-2 text-right font-medium">Size</th>
               <th className="hidden w-44 px-3 py-2 font-medium sm:table-cell">Modified</th>
-              {canWrite && <th className="w-28 px-3 py-2" />}
+              <th className="w-32 px-3 py-2" />
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -306,43 +408,54 @@ export function Files({
                 <td className="hidden px-3 py-2 text-muted-foreground sm:table-cell">
                   {new Date(e.modified_at).toLocaleString()}
                 </td>
-                {canWrite && (
-                  <td className="px-3 py-1 text-right">
-                    {!e.denied && (
-                      <div className="flex justify-end gap-0.5">
-                        {e.type === "file" && isArchive(e.name) && (
+                <td className="px-3 py-1 text-right">
+                  {!e.denied && (
+                    <div className="flex justify-end gap-0.5">
+                      {e.type === "file" && (
+                        <a
+                          href={downloadURL(nodeId, serverId, join(path, e.name))}
+                          aria-label={`Download ${e.name}`}
+                          className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+                        >
+                          <Download />
+                        </a>
+                      )}
+                      {canWrite && (
+                        <>
+                          {e.type === "file" && isArchive(e.name) && (
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              aria-label={`Extract ${e.name}`}
+                              disabled={busy}
+                              onClick={() => decompress(e)}
+                            >
+                              <FileArchive />
+                            </Button>
+                          )}
                           <Button
                             size="icon-sm"
                             variant="ghost"
-                            aria-label={`Extract ${e.name}`}
+                            aria-label={`Rename ${e.name}`}
                             disabled={busy}
-                            onClick={() => decompress(e)}
+                            onClick={() => rename(e)}
                           >
-                            <FileArchive />
+                            <Pencil />
                           </Button>
-                        )}
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          aria-label={`Rename ${e.name}`}
-                          disabled={busy}
-                          onClick={() => rename(e)}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          aria-label={`Delete ${e.name}`}
-                          disabled={busy}
-                          onClick={() => remove([e.name])}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
-                    )}
-                  </td>
-                )}
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            aria-label={`Delete ${e.name}`}
+                            disabled={busy}
+                            onClick={() => remove([e.name])}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

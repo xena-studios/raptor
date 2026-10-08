@@ -226,6 +226,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		go cfg.Auth.RunJanitor(ctx, time.Hour)
 		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg}
 		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey}
+		cfg.Transfers = router
 		mailer, err := mailer(log)
 		if err != nil {
 			return err

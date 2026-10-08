@@ -22,6 +22,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/live"
+	"github.com/xena-studios/raptor/internal/panel/transfers"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
@@ -55,6 +56,9 @@ type Config struct {
 	Commands *commands.Service
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
+	// Transfers opens file transfer connections to nodes (*nodes.Router),
+	// for uploads and downloads in the web file manager (nil: none).
+	Transfers transfers.Opener
 	// ConsoleRecheck is how often live console streams check access again
 	// (default commands.ConsoleRecheck; shorter in tests).
 	ConsoleRecheck time.Duration
@@ -98,6 +102,9 @@ func Handler(cfg Config) http.Handler {
 	if cfg.Commands != nil {
 		path, handler := panelv1connect.NewCommandServiceHandler(cfg.Commands, opts(connect.WithReadMaxBytes(7<<20))...)
 		api.Handle(path, handler)
+	}
+	if cfg.Commands != nil && cfg.Auth != nil && cfg.Transfers != nil {
+		(&transfers.Handler{Auth: cfg.Auth, Commands: cfg.Commands, Opener: cfg.Transfers}).Register(api)
 	}
 	if cfg.Commands != nil && cfg.Auth != nil {
 		api.Handle("GET "+live.Path, &live.Handler{Auth: cfg.Auth, Commands: cfg.Commands, AppOrigin: cmp.Or(cfg.AppOrigin, "https://app.raptorpanel.net"), Recheck: cfg.ConsoleRecheck})

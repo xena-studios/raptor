@@ -34,7 +34,7 @@ func browserGuard(appOrigin string, next http.Handler) http.Handler {
 		}
 		if r.Method == http.MethodOptions {
 			h := w.Header()
-			h.Set("Access-Control-Allow-Methods", "GET, POST")
+			h.Set("Access-Control-Allow-Methods", "GET, POST, PUT")
 			h.Set("Access-Control-Allow-Headers", connectHeaders)
 			h.Set("Access-Control-Max-Age", "7200")
 			w.WriteHeader(http.StatusNoContent)
