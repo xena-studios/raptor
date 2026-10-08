@@ -93,6 +93,10 @@ func (c ServerConfig) toConfig() server.Config {
 type CreateParams struct {
 	ServerConfig
 	StartAfterInstall bool `json:"start_after_install,omitempty"`
+	// AcceptEULA: the user accepted the game's EULA (eggs with the "eula"
+	// feature); Wings writes eula.txt after the install. Part of what the
+	// user's passkey signs.
+	AcceptEULA bool `json:"accept_eula,omitempty"`
 	// BackupSchedule: add the default daily backup schedule (default true).
 	BackupSchedule *bool `json:"backup_schedule,omitempty"`
 }
@@ -147,7 +151,7 @@ func Register(x *command.Executor, m *server.Manager, d Defaults) {
 		if err := decode(e, &p); err != nil {
 			return nil, err
 		}
-		opts := server.CreateOptions{StartAfterInstall: p.StartAfterInstall}
+		opts := server.CreateOptions{StartAfterInstall: p.StartAfterInstall, AcceptEULA: p.AcceptEULA}
 		if d.BackupSchedule != nil && (p.BackupSchedule == nil || *p.BackupSchedule) {
 			opts.InTx = d.BackupSchedule
 		}

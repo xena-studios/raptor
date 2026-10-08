@@ -164,6 +164,10 @@ const JobInstall = "server.install"
 
 type installPayload struct {
 	StartAfter bool `json:"start_after,omitempty"`
+	// AcceptEULA writes eula.txt after the install, for eggs with the
+	// "eula" feature (Minecraft): the user accepted it when creating the
+	// server.
+	AcceptEULA bool `json:"accept_eula,omitempty"`
 	// Wipe: take a safety backup and remove every file before the script
 	// runs ("wipe and reinstall").
 	Wipe bool `json:"wipe,omitempty"`
@@ -318,6 +322,9 @@ func (m *Manager) List() map[string]State {
 // CreateOptions control what happens after a server is created.
 type CreateOptions struct {
 	StartAfterInstall bool
+	// AcceptEULA: the user accepted the game's EULA (eggs with the "eula"
+	// feature); eula.txt is written once the install succeeds.
+	AcceptEULA bool
 	// Import, if set, fills the new server's directory instead of the
 	// egg's install script (a server moved from another panel): the server
 	// is created installed. If it fails, the server is removed again.
@@ -374,7 +381,7 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 		if opts.Import != nil {
 			return nil
 		}
-		_, err := m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobInstall, ServerID: sid, Payload: installPayload{StartAfter: opts.StartAfterInstall}})
+		_, err := m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobInstall, ServerID: sid, Payload: installPayload{StartAfter: opts.StartAfterInstall, AcceptEULA: opts.AcceptEULA}})
 		return err
 	})
 	if err != nil {

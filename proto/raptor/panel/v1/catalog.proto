@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+// CatalogService serves Raptor's built-in egg catalog
+// (docs/EGGS.md#built-in-catalog) to the web app, for creating servers. The
+// same for everyone; any signed-in user.
+service CatalogService {
+  // ListEggs lists every egg, without the egg files themselves.
+  rpc ListEggs(ListEggsRequest) returns (ListEggsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetEgg returns one egg's file, as a server created from it gets it.
+  rpc GetEgg(GetEggRequest) returns (GetEggResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message ListEggsRequest {}
+
+message CatalogEgg {
+  // The catalog's ID, e.g. "minecraft/paper".
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  // "minecraft", "steam", ...: the ID's first part.
+  string category = 4;
+  bool certified = 5;
+  // The CPU architectures the game runs on: amd64, arm64.
+  repeated string arch = 6;
+  // In the egg's order; the first is the default.
+  repeated EggImage images = 7;
+  repeated EggVariable variables = 8;
+  // The egg's features: "eula" means the user must accept the game's EULA.
+  repeated string features = 9;
+  // Where the egg comes from: the upstream file at the copied commit.
+  string source_url = 10;
+}
+
+message EggImage {
+  string name = 1;
+  string ref = 2;
+}
+
+message EggVariable {
+  string name = 1;
+  string description = 2;
+  string env = 3;
+  string default = 4;
+  bool user_viewable = 5;
+  bool user_editable = 6;
+  // Laravel validation rules ("required", "max:20", ...), which Wings checks.
+  repeated string rules = 7;
+}
+
+message ListEggsResponse {
+  repeated CatalogEgg eggs = 1;
+}
+
+message GetEggRequest {
+  string id = 1;
+}
+
+message GetEggResponse {
+  // The egg file: upstream's, with the catalog's x-raptor block added. The
+  // web app puts it in the signed server.create command as it is.
+  bytes egg = 1;
+}

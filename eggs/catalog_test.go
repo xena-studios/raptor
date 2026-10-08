@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"reflect"
 	"slices"
 	"testing"
 
@@ -61,6 +62,36 @@ func TestValidateRejects(t *testing.T) {
 		mutate(&e)
 		if e.validate() == nil {
 			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
+// Every entry's server egg parses, in its own format, with the catalog's
+// architectures and player query, and is otherwise the upstream egg.
+func TestServerEgg(t *testing.T) {
+	all, err := All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range all {
+		b, err := e.ServerEgg()
+		if err != nil {
+			t.Fatalf("%s: %v", e.ID, err)
+		}
+		got, err := eggs.Parse(b)
+		if err != nil {
+			t.Fatalf("%s: %v", e.ID, err)
+		}
+		want, _ := eggs.Parse(e.Egg)
+		if !slices.Equal(got.Raptor.Arch, e.Arch) || got.Raptor.Players.Query != e.Players.Query || got.Raptor.Players.Port != e.Players.Port {
+			t.Errorf("%s: x-raptor = %+v", e.ID, got.Raptor)
+		}
+		got.Raptor, want.Raptor = eggs.Extension{}, eggs.Extension{}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: the server egg differs from upstream beyond x-raptor", e.ID)
+		}
+		if (b[0] == '{') != (e.Egg[0] == '{') {
+			t.Errorf("%s: format changed", e.ID)
 		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -104,11 +105,13 @@ func TestCommands(t *testing.T) {
 		t.Fatal(err)
 	}
 	var nodeID string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'abcd1234', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&nodeID); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, facts) VALUES ($1, 'box', 'abcd1234', decode(repeat('00', 32), 'hex'),
+		'{"os": "debian", "arch": "arm64", "cpus": 4, "memory_bytes": 8589934592}') RETURNING id`, org).Scan(&nodeID); err != nil {
 		t.Fatal(err)
 	}
 	for _, s := range []string{"s1", "s2"} {
-		if _, err := db.Exec(ctx, `INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at) VALUES ($1, $2, 'mc', 1, now(), now())`, nodeID, s); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at, install_state, config) VALUES ($1, $2, 'mc', 1, now(), now(), 'installed',
+			'{"allocations": [{"ip": "0.0.0.0", "port": 25566}, {"ip": "0.0.0.0", "port": 25565, "primary": true}]}')`, nodeID, s); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -176,9 +179,15 @@ func TestCommands(t *testing.T) {
 	if err != nil || len(nodes.GetNodes()) != 1 || !nodes.GetNodes()[0].GetConnected() || nodes.GetNodes()[0].GetShortId() != "abcd1234" {
 		t.Fatalf("owner's nodes: %v, %v", nodes, err)
 	}
+	if n := nodes.GetNodes()[0]; n.GetArch() != "arm64" || n.GetCpus() != 4 || n.GetMemoryBytes() != 8<<30 {
+		t.Errorf("node facts: %v", n)
+	}
 	servers, err := alice.orgs.ListServers(ctx, &panelv1.ListServersRequest{OrgId: org, NodeId: nodeID})
 	if err != nil || len(servers.GetServers()) != 2 || servers.GetServers()[0].GetPermissions()[0] != "*" {
 		t.Fatalf("owner's servers: %v, %v", servers, err)
+	}
+	if s := servers.GetServers()[0]; !slices.Equal(s.GetPorts(), []int32{25565, 25566}) || s.GetInstallState() != "installed" {
+		t.Errorf("ports %v (want the primary first), install %q", s.GetPorts(), s.GetInstallState())
 	}
 	servers, err = bob.orgs.ListServers(ctx, &panelv1.ListServersRequest{OrgId: org, NodeId: nodeID})
 	if err != nil || len(servers.GetServers()) != 1 || servers.GetServers()[0].GetId() != "s1" ||

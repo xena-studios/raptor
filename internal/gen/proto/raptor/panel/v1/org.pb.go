@@ -1729,11 +1729,16 @@ type Node struct {
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// n-<short_id>.raptornodes.net
-	ShortId       string                 `protobuf:"bytes,3,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
-	WingsVersion  string                 `protobuf:"bytes,4,opt,name=wings_version,json=wingsVersion,proto3" json:"wings_version,omitempty"`
-	Connected     bool                   `protobuf:"varint,5,opt,name=connected,proto3" json:"connected,omitempty"`
-	LastSeenAt    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ShortId      string                 `protobuf:"bytes,3,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
+	WingsVersion string                 `protobuf:"bytes,4,opt,name=wings_version,json=wingsVersion,proto3" json:"wings_version,omitempty"`
+	Connected    bool                   `protobuf:"varint,5,opt,name=connected,proto3" json:"connected,omitempty"`
+	LastSeenAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
+	CreatedAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// What the node reported when it last linked: its CPU architecture
+	// (amd64, arm64), cores, and memory.
+	Arch          string `protobuf:"bytes,8,opt,name=arch,proto3" json:"arch,omitempty"`
+	Cpus          int32  `protobuf:"varint,9,opt,name=cpus,proto3" json:"cpus,omitempty"`
+	MemoryBytes   int64  `protobuf:"varint,10,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1815,6 +1820,27 @@ func (x *Node) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *Node) GetArch() string {
+	if x != nil {
+		return x.Arch
+	}
+	return ""
+}
+
+func (x *Node) GetCpus() int32 {
+	if x != nil {
+		return x.Cpus
+	}
+	return 0
+}
+
+func (x *Node) GetMemoryBytes() int64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
 }
 
 type ListNodesResponse struct {
@@ -1921,7 +1947,13 @@ type Server struct {
 	State   string `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
 	EggName string `protobuf:"bytes,4,opt,name=egg_name,json=eggName,proto3" json:"egg_name,omitempty"`
 	// What the caller may do on it ("*" for admins and owners: everything).
-	Permissions   []string `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	Permissions []string `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	// The ports its allocations use, the primary first.
+	Ports []int32 `protobuf:"varint,6,rep,packed,name=ports,proto3" json:"ports,omitempty"`
+	// The install: "pending", "installing", "installed", or "failed" (with
+	// install_error).
+	InstallState  string `protobuf:"bytes,7,opt,name=install_state,json=installState,proto3" json:"install_state,omitempty"`
+	InstallError  string `protobuf:"bytes,8,opt,name=install_error,json=installError,proto3" json:"install_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1989,6 +2021,27 @@ func (x *Server) GetPermissions() []string {
 		return x.Permissions
 	}
 	return nil
+}
+
+func (x *Server) GetPorts() []int32 {
+	if x != nil {
+		return x.Ports
+	}
+	return nil
+}
+
+func (x *Server) GetInstallState() string {
+	if x != nil {
+		return x.InstallState
+	}
+	return ""
+}
+
+func (x *Server) GetInstallError() string {
+	if x != nil {
+		return x.InstallError
+	}
+	return ""
 }
 
 type ListServersResponse struct {
@@ -2332,7 +2385,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x18ListServerAccessResponse\x125\n" +
 	"\x06access\x18\x01 \x03(\v2\x1d.raptor.panel.v1.ServerAccessR\x06access\")\n" +
 	"\x10ListNodesRequest\x12\x15\n" +
-	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\x81\x02\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\xcc\x02\n" +
 	"\x04Node\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
@@ -2342,18 +2395,25 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\flast_seen_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastSeenAt\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"@\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x12\n" +
+	"\x04arch\x18\b \x01(\tR\x04arch\x12\x12\n" +
+	"\x04cpus\x18\t \x01(\x05R\x04cpus\x12!\n" +
+	"\fmemory_bytes\x18\n" +
+	" \x01(\x03R\vmemoryBytes\"@\n" +
 	"\x11ListNodesResponse\x12+\n" +
 	"\x05nodes\x18\x01 \x03(\v2\x15.raptor.panel.v1.NodeR\x05nodes\"D\n" +
 	"\x12ListServersRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
-	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\x7f\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\xdf\x01\n" +
 	"\x06Server\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05state\x18\x03 \x01(\tR\x05state\x12\x19\n" +
 	"\begg_name\x18\x04 \x01(\tR\aeggName\x12 \n" +
-	"\vpermissions\x18\x05 \x03(\tR\vpermissions\"H\n" +
+	"\vpermissions\x18\x05 \x03(\tR\vpermissions\x12\x14\n" +
+	"\x05ports\x18\x06 \x03(\x05R\x05ports\x12#\n" +
+	"\rinstall_state\x18\a \x01(\tR\finstallState\x12#\n" +
+	"\rinstall_error\x18\b \x01(\tR\finstallError\"H\n" +
 	"\x13ListServersResponse\x121\n" +
 	"\aservers\x18\x01 \x03(\v2\x17.raptor.panel.v1.ServerR\aservers\"]\n" +
 	"\x13PinJoinTokenRequest\x12\x15\n" +

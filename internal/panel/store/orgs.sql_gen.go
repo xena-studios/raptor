@@ -159,14 +159,19 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID pgtype.UUID) ([]pgtyp
 }
 
 const nodeServers = `-- name: NodeServers :many
-SELECT server_id, name, state, egg_name FROM m_servers WHERE node_id = $1 ORDER BY name, server_id
+SELECT server_id, name, state, egg_name, install_state, install_error,
+       coalesce(config->'allocations', '[]')::jsonb AS allocations
+FROM m_servers WHERE node_id = $1 ORDER BY name, server_id
 `
 
 type NodeServersRow struct {
-	ServerID string
-	Name     string
-	State    string
-	EggName  string
+	ServerID     string
+	Name         string
+	State        string
+	EggName      string
+	InstallState string
+	InstallError string
+	Allocations  []byte
 }
 
 func (q *Queries) NodeServers(ctx context.Context, nodeID pgtype.UUID) ([]NodeServersRow, error) {
@@ -183,6 +188,9 @@ func (q *Queries) NodeServers(ctx context.Context, nodeID pgtype.UUID) ([]NodeSe
 			&i.Name,
 			&i.State,
 			&i.EggName,
+			&i.InstallState,
+			&i.InstallError,
+			&i.Allocations,
 		); err != nil {
 			return nil, err
 		}
@@ -258,7 +266,10 @@ func (q *Queries) OrgMembers(ctx context.Context, orgID pgtype.UUID) ([]OrgMembe
 
 const orgNodes = `-- name: OrgNodes :many
 SELECT n.id, n.name, n.short_id, n.wings_version, n.last_seen_at, n.created_at,
-       (c.node_id IS NOT NULL)::bool AS connected
+       (c.node_id IS NOT NULL)::bool AS connected,
+       coalesce(n.facts->>'arch', '')::text AS arch,
+       coalesce((n.facts->>'cpus')::int, 0)::int AS cpus,
+       coalesce((n.facts->>'memory_bytes')::bigint, 0)::bigint AS memory_bytes
 FROM nodes n LEFT JOIN node_connections c ON c.node_id = n.id
 WHERE n.org_id = $1 AND n.deleted_at IS NULL
 ORDER BY n.created_at
@@ -272,6 +283,9 @@ type OrgNodesRow struct {
 	LastSeenAt   pgtype.Timestamptz
 	CreatedAt    pgtype.Timestamptz
 	Connected    bool
+	Arch         string
+	Cpus         int32
+	MemoryBytes  int64
 }
 
 func (q *Queries) OrgNodes(ctx context.Context, orgID pgtype.UUID) ([]OrgNodesRow, error) {
@@ -291,6 +305,9 @@ func (q *Queries) OrgNodes(ctx context.Context, orgID pgtype.UUID) ([]OrgNodesRo
 			&i.LastSeenAt,
 			&i.CreatedAt,
 			&i.Connected,
+			&i.Arch,
+			&i.Cpus,
+			&i.MemoryBytes,
 		); err != nil {
 			return nil, err
 		}
