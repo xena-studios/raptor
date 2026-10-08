@@ -6,12 +6,12 @@
 package nodelink
 
 import (
-	"regexp"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
