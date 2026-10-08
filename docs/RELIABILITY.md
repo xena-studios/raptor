@@ -84,7 +84,7 @@ The Panel is one process role (`serve api`), deployed with zero downtime for bro
 - Graceful degradation: if a node is offline, pages render from the mirror with a clear **stale** state. They never hang waiting for a node.
 
 ### Frontend
-- Route-based code splitting; the console (xterm.js) and editor (Monaco) load lazily.
+- Route-based code splitting; the console (xterm.js) and editor (CodeMirror) load lazily.
 - TanStack Query caching with mirror data, so page navigation is instant.
 - One WebSocket per tab, multiplexing all subscriptions.
 - The UI shows **live / stale / pending / failed** states explicitly. Stale data never looks live.

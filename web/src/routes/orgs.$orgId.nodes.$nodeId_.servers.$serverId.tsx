@@ -3,22 +3,33 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { Files } from "@/components/files";
 import { PowerButtons } from "@/components/power-buttons";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { serverStatus } from "@/lib/servers";
 import { requireSession } from "@/lib/session";
 
 const Console = lazy(() => import("@/components/console"));
 
+type ServerSearch = { tab?: "console" | "files"; path?: string };
+
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId_/servers/$serverId")({
   beforeLoad: ({ location }) => requireSession(location),
+  validateSearch: (s: Record<string, unknown>): ServerSearch => ({
+    tab: s.tab === "files" ? "files" : undefined,
+    path: typeof s.path === "string" && s.path ? s.path : undefined,
+  }),
   component: ServerPage,
 });
 
 function ServerPage() {
   const session = Route.useRouteContext();
   const { orgId, nodeId, serverId } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const tab = search.tab ?? "console";
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const org = orgs.data?.orgs.find((o) => o.id === orgId);
   const nodes = useQuery(OrgService.method.listNodes, { orgId }, { refetchInterval: 10_000 });
@@ -70,21 +81,50 @@ function ServerPage() {
           </p>
           {status && <StatusDetail status={status} />}
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-          <div className="mt-6">
-            {can("console.read") || can("console.write") ? (
-              <Suspense
-                fallback={<p className="text-sm text-muted-foreground">Loading the console…</p>}
-              >
-                <Console nodeId={nodeId} serverId={serverId} canWrite={can("console.write")} />
-              </Suspense>
-            ) : (
-              server && (
-                <p className="text-sm text-muted-foreground">
-                  You don't have access to this server's console.
-                </p>
-              )
-            )}
-          </div>
+          <Tabs
+            className="mt-6"
+            value={tab}
+            onValueChange={(v) =>
+              navigate({ search: { tab: v === "files" ? "files" : undefined }, replace: true })
+            }
+          >
+            <TabsList>
+              <TabsTrigger value="console">Console</TabsTrigger>
+              <TabsTrigger value="files">Files</TabsTrigger>
+            </TabsList>
+            <TabsContent value="console">
+              {can("console.read") || can("console.write") ? (
+                <Suspense
+                  fallback={<p className="text-sm text-muted-foreground">Loading the console…</p>}
+                >
+                  <Console nodeId={nodeId} serverId={serverId} canWrite={can("console.write")} />
+                </Suspense>
+              ) : (
+                server && (
+                  <p className="text-sm text-muted-foreground">
+                    You don't have access to this server's console.
+                  </p>
+                )
+              )}
+            </TabsContent>
+            <TabsContent value="files">
+              {can("files.read") ? (
+                <Files
+                  nodeId={nodeId}
+                  serverId={serverId}
+                  canWrite={can("files.write")}
+                  path={search.path ?? ""}
+                  onPath={(p) => navigate({ search: { tab: "files", path: p || undefined } })}
+                />
+              ) : (
+                server && (
+                  <p className="text-sm text-muted-foreground">
+                    You don't have access to this server's files.
+                  </p>
+                )
+              )}
+            </TabsContent>
+          </Tabs>
         </>
       )}
     </AppShell>

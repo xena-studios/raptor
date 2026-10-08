@@ -263,6 +263,16 @@ func TestCommands(t *testing.T) {
 		t.Errorf("log: %s", got)
 	}
 
+	// Saving a file from the editor carries it whole (Wings allows 4 MiB);
+	// every other command's params stay small.
+	big := `{"path":"a.txt","data":"` + strings.Repeat("A", 3<<20) + `"}`
+	if _, err := alice.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: nodeID, Action: "files.write", ServerId: "s1", ParamsJson: big}); err != nil {
+		t.Errorf("a 3 MiB file save: %v", err)
+	}
+	if _, err := alice.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: nodeID, Action: "files.mkdir", ServerId: "s1", ParamsJson: big}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("3 MiB of params for another action: %v", err)
+	}
+
 	// Removing access, or the member, takes it away.
 	if err := set(alice, "s1", bobID); err != nil {
 		t.Fatal(err)

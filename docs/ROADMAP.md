@@ -245,7 +245,7 @@ Found while checking production (Oct 8):
 - [ ] **Nodes:** add node (command + live enrollment progress), node list, node health page (doctor warnings), settings, remove
 - [ ] **Servers:** create wizard (egg picker filtered by arch, variables, EULA prompts, allocations), overview (status, stats graphs, players), settings, reinstall, delete (create done: `/orgs/<org>/servers/new`, from the node page's "New server": the node (with its architecture), a searchable catalog with certified games first, then the name, runtime image, required variables up front and the rest under "Game settings", a free port suggested from the node's servers, memory fitted to the node, an optional disk limit, and the EULA for eggs that need one; the user's passkey signs `server.create` with the catalog's egg in it, and the server installs and starts; the browser-built params are pinned by a vector shared with Wings' decoder. Delete was already there.)
 - [x] **Console:** xterm.js, one multiplexed WebSocket per tab (the server page, `/orgs/<org>/nodes/<node>/servers/<server>`: power buttons, the live console with its history, and a command line with up-arrow history; xterm loads only on that page; watching needs the new `console.read` permission, which `console.write` includes; works across Panel instances through LISTEN/NOTIFY; checked in the dev app against the Wings VM: history, live lines through a restart, and a command's output)
-- [ ] **Files:** browser, Monaco editor, chunked resumable uploads/downloads through the Panel (1 GB cap, "use SFTP" beyond it), archive/unarchive
+- [ ] **Files:** browser, editor, chunked resumable uploads/downloads through the Panel (1 GB cap, "use SFTP" beyond it), archive/unarchive (browser, editor, and archives done: the server page's Files tab lists a folder (breadcrumbs, the folder in the URL, files on the egg's denylist shown locked), makes files and folders, renames, deletes, compresses a selection, and extracts archives; text files up to 4 MB open in CodeMirror rather than Monaco (#217), with highlighting for the usual config formats and Ctrl/Cmd-S; binary files are refused. Left: uploads and downloads, which need a browser endpoint for transfer chunks in the Panel)
 - [ ] **Schedules:** builder for multi-step tasks, timezone picker, run history
 - [ ] **Backups:** list, create, restore, destinations, retention, key mode
 - [ ] **Users:** sub-users, per-server permissions, SSH keys
@@ -253,7 +253,7 @@ Found while checking production (Oct 8):
 - [ ] **Connection test** with provider guides
 - [ ] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link (the domain is on the Public Suffix List first)
 - [ ] **Audit log** view
-- [ ] Performance: route code splitting, lazy xterm/Monaco
+- [ ] Performance: route code splitting, lazy xterm and editor (xterm and the editor load only when shown, each in its own chunk)
 
 **Exit criteria:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, **without help**, in under 15 minutes.
 
