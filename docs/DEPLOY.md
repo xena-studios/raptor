@@ -331,11 +331,13 @@ Set up once, after server #1 is running:
 
    Whatever the workflow sends becomes one argument to `deploy-from-ci.sh`. The script accepts only a `vX.Y.Z` tag that exists on GitHub and is on `main`, checks out that tag's `deploy/` files, and runs `deploy.sh`. With this key someone can redeploy a release you already made, and nothing else.
 
-3. **GitHub:** Settings → Environments → new environment **`production`**. Allow deployments from tags only (`v*`). Add these secrets:
+3. **GitHub:** Settings → Environments → new environment **`production`**. Under Deployment branches and tags, choose Selected branches and tags and add a **tag** rule `v*`, so only release tags can use it. Add these secrets:
    - `DEPLOY_SSH_KEY`: the private key file's contents. Then `rm -P /tmp/raptor-deploy*`.
    - `DEPLOY_HOST`: server #1's public address.
    - `DEPLOY_KNOWN_HOSTS`: the output of `ssh-keyscan -t ed25519 <server #1's address>`. Check its fingerprint against `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the server.
-   - `CLOUDFLARE_WORKERS_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`: the Workers-only token from [Static sites](#static-sites).
+   - `CLOUDFLARE_WORKERS_TOKEN`: the Workers-only token from [Static sites](#static-sites).
+
+   And one environment variable (not secret): `CLOUDFLARE_ACCOUNT_ID`, from the right side of any zone's Overview page.
 
    If you want a final check before production, add yourself as a required reviewer on the environment: every deploy then waits for one click.
 4. Settings → Variables → **`DEPLOY_ENABLED`** = `true`. Until it's set, releases build and stop there.
