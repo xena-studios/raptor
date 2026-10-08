@@ -45,6 +45,15 @@ You need:
 
 Pick the two servers' private addresses now; this guide calls them `10.0.0.2` (server #1) and `10.0.0.3` (server #2).
 
+### Starting with one server
+
+Server #1 runs everything by itself; server #2 only adds a standby. You can launch on one and add the second whenever an hour of downtime starts to matter:
+
+- **What you give up:** a failover in minutes. Without server #2, recovering from a dead server #1 means a new server and a restore from the archive ([Backups](#backups)): 30 to 60 minutes, losing at most the last minute of writes (WAL is archived every 60 seconds). Zero-downtime deploys don't change: both Panels still run on server #1.
+- **Size:** 2 vCPU, 4 GB RAM, 40 GB NVMe is enough at launch (Postgres's settings assume 4 GB or more). Pick a plan you can resize in place.
+- **Skip:** private addresses (leave `PRIVATE_IP` out of `primary/.env`, and Postgres listens only on the server itself), [Server #2](#server-2), and the *Replica gone* and *Replica behind* alerts. There's no replication slot until a replica connects, so nothing holds WAL for one that doesn't exist.
+- **Adding server #2 later:** put both servers on a private network, set `PRIVATE_IP` in `primary/.env` and `PEER_PRIVATE_IP=10.0.0.3` in server #1's `/etc/raptor/stack.env`, then `systemctl restart raptor-firewall` and `cd /opt/raptor/deploy/primary && docker compose up -d postgres` (a few seconds of database downtime). Then [Server #2](#server-2), and turn the two replica alerts on.
+
 ## Secrets
 
 Everything the servers need comes from the **Raptor production** vault. Make these items (field names matter: the templates in [`deploy/secrets/`](../deploy/secrets) read them):
@@ -179,24 +188,26 @@ Check the secrets come through:
 /opt/raptor/deploy/scripts/secrets.sh && ls -l /run/raptor /run/raptor/keys
 ```
 
-The firewall, naming the other server's private address (on server #1, `10.0.0.3`; on server #2, `10.0.0.2`):
+The firewall. Name the other server's private address in the server's settings (on server #1, `10.0.0.3`; on server #2, `10.0.0.2`; on a lone server #1, skip this line):
 
 ```bash
-/opt/raptor/deploy/scripts/firewall.sh 10.0.0.3
+echo PEER_PRIVATE_IP=10.0.0.3 >> /etc/raptor/stack.env
 ```
 
-It allows SSH, 443 from Cloudflare's addresses only, and Postgres from the other server only. Docker publishes ports around ufw, so 443 is filtered in Docker's own chain (`DOCKER-USER`) and Postgres is only bound to the private address. Rerun it now and then: Cloudflare's address list changes rarely, but it changes.
+It allows SSH, 443 from Cloudflare's addresses only, and Postgres from the other server only (with no other server, from nowhere). Docker publishes ports around ufw, so 443 is filtered in Docker's own chain (`DOCKER-USER`) and Postgres is only bound to the private address. Those Docker rules don't survive a reboot by themselves, so `raptor-firewall.service` applies them at every boot, from the last list of Cloudflare's addresses it fetched if it can't fetch a new one (with no list at all, 443 stays closed). It runs below; restart it now and then to pick up changes to Cloudflare's list: `systemctl restart raptor-firewall`.
 
 The boot unit, timers, and the server's settings:
 
 ```bash
 cp /opt/raptor/deploy/systemd/* /etc/systemd/system/ && systemctl daemon-reload
+systemctl enable --now raptor-firewall.service
 systemctl enable raptor-stack.service
+ufw status && iptables -S DOCKER-USER | head -3
 ```
 
 ### Server #1
 
-Its settings, read by Compose on every run:
+Its settings, read by Compose on every run (on one server, skip this: [Starting with one server](#starting-with-one-server)):
 
 ```bash
 cat > /opt/raptor/deploy/primary/.env <<'EOF'
@@ -242,7 +253,7 @@ cat > /opt/raptor/deploy/replica/.env <<'EOF'
 PRIVATE_IP=10.0.0.3
 PRIMARY_PRIVATE_IP=10.0.0.2
 EOF
-echo ROLE=replica > /etc/raptor/stack.env
+echo ROLE=replica >> /etc/raptor/stack.env
 
 cd /opt/raptor/deploy/replica
 ../scripts/secrets.sh
@@ -387,7 +398,7 @@ docker compose exec -u postgres postgres psql -c "CHECKPOINT"
 # 3. Start the Panels and Caddy here, at the version server #1 ran.
 echo PANEL_IMAGE=ghcr.io/xena-studios/raptor-panel:v0.x.y >> .env
 docker compose --profile failover up -d --wait
-printf 'ROLE=replica\nCOMPOSE_PROFILES=failover\n' > /etc/raptor/stack.env
+echo COMPOSE_PROFILES=failover >> /etc/raptor/stack.env    # it already says ROLE=replica
 ```
 
 4. In Cloudflare, point `api` (A and AAAA) at server #2's public address. Proxied records change within seconds, and nodes and browsers reconnect by themselves.
