@@ -3,7 +3,7 @@
 # the passkeys (docs/DECISIONS.md #82), so it runs only its own scripts, talks
 # only to the API, frames only the Turnstile page, and can't be framed.
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.raptorpanel.net wss://api.raptorpanel.net; frame-src https://verify.raptorpanel.net; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://api.raptorpanel.net wss://api.raptorpanel.net; frame-src https://verify.raptorpanel.net; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
   Strict-Transport-Security: max-age=63072000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

@@ -1,0 +1,3 @@
+overrides:
+  # Monaco pins an older DOMPurify with known advisories (GHSA-6688-9rhm-gjv2).
+  dompurify: ">=3.4.16"

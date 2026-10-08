@@ -44,7 +44,7 @@ A single Go binary, `panel serve api`: the HTTP/Connect API, WebSockets for brow
 The only infrastructure is **Postgres**. No Redis, no NATS, no message broker.
 
 ### Web app
-React + TypeScript SPA (Vite, TanStack Router + Query, shadcn/ui + Tailwind, xterm.js, CodeMirror). Talks to the API through generated Connect clients.
+React + TypeScript SPA (Vite, TanStack Router + Query, shadcn/ui + Tailwind, xterm.js, Monaco). Talks to the API through generated Connect clients.
 
 It's served as static files **from separate static hosting, not the API servers**, on `app.raptorpanel.net`, and calls the API cross-origin at `api.raptorpanel.net`. The web app is what asks users' passkeys to sign dangerous commands, so compromising the API must not let anyone change it. Deploys need separate credentials, a strict Content Security Policy applies, it loads no third-party scripts, and each release publishes the bundle hashes (see [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)).
 
