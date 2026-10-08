@@ -374,8 +374,8 @@ function Settings({
                 id="memory"
                 type="number"
                 required
-                min={0.25}
-                step={0.25}
+                min={0.0625}
+                step="any"
                 value={memoryGiB}
                 onChange={(e) => setMemoryGiB(Number(e.target.value))}
               />

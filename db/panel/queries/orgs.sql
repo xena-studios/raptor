@@ -76,6 +76,11 @@ SELECT server_id, name, state, egg_name, install_state, install_error,
        coalesce(config->'allocations', '[]')::jsonb AS allocations
 FROM m_servers WHERE node_id = $1 ORDER BY name, server_id;
 
+-- name: NodeServer :one
+SELECT server_id, name, state, egg_name, install_state, install_error,
+       coalesce(config->'allocations', '[]')::jsonb AS allocations, config
+FROM m_servers WHERE node_id = $1 AND server_id = $2;
+
 -- name: UserGrantsInOrg :many
 -- A member's server grants in an org.
 SELECT node_id, server_id, permissions FROM server_grants WHERE org_id = $1 AND user_id = $2;

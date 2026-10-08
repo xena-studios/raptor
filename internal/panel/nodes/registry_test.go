@@ -177,3 +177,43 @@ func TestRelink(t *testing.T) {
 		t.Errorf("used token on another node: %v", err)
 	}
 }
+
+// A node back on a new Wings version gets a fresh mirror snapshot, so what
+// the new version reports about servers shows up without waiting for each
+// server to change; reconnecting on the same version keeps the mirror.
+func TestNewVersionResnapshots(t *testing.T) {
+	r := newRegistry(t)
+	ctx := context.Background()
+	org, _ := r.CreateOrg(ctx, "org")
+	token, _ := r.CreateJoinToken(ctx, org, "")
+	_, key, _ := ed25519.GenerateKey(nil)
+	res, err := r.Enroll(ctx, enrollReq(t, token, key))
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := res.GetNodeId()
+	acked := func() int64 {
+		var n int64
+		if err := r.DB.QueryRow(ctx, "SELECT last_acked_seq FROM nodes WHERE id = $1", id).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	connect := func(version string) {
+		if err := r.Connected(ctx, nodelink.Hello{NodeID: id, Software: version}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	connect("v0.1.0")
+	if _, err := r.DB.Exec(ctx, "UPDATE nodes SET last_acked_seq = 42 WHERE id = $1", id); err != nil {
+		t.Fatal(err)
+	}
+	connect("v0.1.0")
+	if n := acked(); n != 42 {
+		t.Errorf("same version: acked %d, want 42", n)
+	}
+	connect("v0.2.0")
+	if n := acked(); n != -1 {
+		t.Errorf("new version: acked %d, want -1 (a snapshot)", n)
+	}
+}

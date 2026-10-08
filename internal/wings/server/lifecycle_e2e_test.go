@@ -359,6 +359,39 @@ func TestAcceptEULA(t *testing.T) {
 	}
 }
 
+// The Panel changes settings without sending the egg (it doesn't hold egg
+// files): the server keeps its egg, and only a new image or startup command
+// counts as changing what code runs.
+func TestUpdateKeepsEgg(t *testing.T) {
+	e := newEnv(t)
+	m := e.manager()
+	defer m.Close()
+	ctx := context.Background()
+	id := e.create(m, freePort(t))
+	srv, err := m.Get(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := srv.Config
+	cfg.Egg, cfg.EggSource = nil, ""
+	cfg.Name = "renamed"
+	cfg.Variables = map[string]string{"GREETING": "howdy"}
+	if code, err := m.ChangesCode(ctx, id, cfg); err != nil || code {
+		t.Fatalf("a settings change counted as changing code: %v, %v", code, err)
+	}
+	if err := m.Update(ctx, id, cfg); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := m.Get(ctx, id)
+	if after.Name != "renamed" || after.Variables["GREETING"] != "howdy" || after.EggHash != srv.EggHash || len(after.Config.Egg) == 0 {
+		t.Errorf("after the update: %q %v, egg kept: %v", after.Name, after.Variables, after.EggHash == srv.EggHash)
+	}
+	cfg.Image = "busybox:1.36"
+	if code, err := m.ChangesCode(ctx, id, cfg); err != nil || !code {
+		t.Errorf("a new image didn't count as changing code: %v, %v", code, err)
+	}
+}
+
 func TestCrashPolicy(t *testing.T) {
 	e := newEnv(t)
 	m := e.manager()

@@ -444,6 +444,9 @@ func (m *Manager) Update(ctx context.Context, id string, cfg Config) error {
 	if err != nil {
 		return err
 	}
+	if err := m.keepEgg(ctx, id, &cfg); err != nil {
+		return err
+	}
 	if _, err := cfg.validate(m.o.ReservedPorts); err != nil {
 		return err
 	}
@@ -806,7 +809,7 @@ func (m *Manager) ChangesCode(ctx context.Context, id string, cfg Config) (bool,
 	if err != nil {
 		return false, err
 	}
-	if eggHash(cfg.Egg) != cur.EggHash {
+	if len(cfg.Egg) > 0 && eggHash(cfg.Egg) != cur.EggHash {
 		return true, nil
 	}
 	// Empty image/startup mean the egg's defaults, as in validate.
@@ -818,6 +821,20 @@ func (m *Manager) ChangesCode(ctx context.Context, id string, cfg Config) (bool,
 		startup = cur.Egg().DefaultStartup()
 	}
 	return image != cur.Image || startup != cur.Startup, nil
+}
+
+// keepEgg fills in the server's current egg when an update leaves it out:
+// the Panel doesn't hold egg files, so settings changes come without one.
+func (m *Manager) keepEgg(ctx context.Context, id string, cfg *Config) error {
+	if len(cfg.Egg) > 0 {
+		return nil
+	}
+	cur, err := m.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	cfg.Egg, cfg.EggSource = cur.Config.Egg, cur.EggSource
+	return nil
 }
 
 // assignQuotaProject gives a server the next free XFS quota project.

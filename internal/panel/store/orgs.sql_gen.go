@@ -158,6 +158,44 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID pgtype.UUID) ([]pgtyp
 	return items, nil
 }
 
+const nodeServer = `-- name: NodeServer :one
+SELECT server_id, name, state, egg_name, install_state, install_error,
+       coalesce(config->'allocations', '[]')::jsonb AS allocations, config
+FROM m_servers WHERE node_id = $1 AND server_id = $2
+`
+
+type NodeServerParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+type NodeServerRow struct {
+	ServerID     string
+	Name         string
+	State        string
+	EggName      string
+	InstallState string
+	InstallError string
+	Allocations  []byte
+	Config       []byte
+}
+
+func (q *Queries) NodeServer(ctx context.Context, arg NodeServerParams) (NodeServerRow, error) {
+	row := q.db.QueryRow(ctx, nodeServer, arg.NodeID, arg.ServerID)
+	var i NodeServerRow
+	err := row.Scan(
+		&i.ServerID,
+		&i.Name,
+		&i.State,
+		&i.EggName,
+		&i.InstallState,
+		&i.InstallError,
+		&i.Allocations,
+		&i.Config,
+	)
+	return i, err
+}
+
 const nodeServers = `-- name: NodeServers :many
 SELECT server_id, name, state, egg_name, install_state, install_error,
        coalesce(config->'allocations', '[]')::jsonb AS allocations

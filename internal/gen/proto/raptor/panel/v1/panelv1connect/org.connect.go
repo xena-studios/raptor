@@ -70,6 +70,8 @@ const (
 	OrgServiceListNodesProcedure = "/raptor.panel.v1.OrgService/ListNodes"
 	// OrgServiceListServersProcedure is the fully-qualified name of the OrgService's ListServers RPC.
 	OrgServiceListServersProcedure = "/raptor.panel.v1.OrgService/ListServers"
+	// OrgServiceGetServerProcedure is the fully-qualified name of the OrgService's GetServer RPC.
+	OrgServiceGetServerProcedure = "/raptor.panel.v1.OrgService/GetServer"
 	// OrgServicePinJoinTokenProcedure is the fully-qualified name of the OrgService's PinJoinToken RPC.
 	OrgServicePinJoinTokenProcedure = "/raptor.panel.v1.OrgService/PinJoinToken"
 	// OrgServiceListMemberPasskeysProcedure is the fully-qualified name of the OrgService's
@@ -123,6 +125,11 @@ type OrgServiceClient interface {
 	// what the caller may do on each. Members see only the servers they have
 	// access to.
 	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
+	// GetServer returns one server as the mirror has it. With the startup
+	// permission (admins and owners always), also its settings and its egg's
+	// images and variables, for the settings page: variables can hold
+	// secrets (tokens, passwords), so nobody else gets them.
+	GetServer(context.Context, *v1.GetServerRequest) (*v1.GetServerResponse, error)
 	// PinJoinToken attaches the owner's passkey, signed in the browser over
 	// the token (nodecmd.OwnerPin), to a new join token: the node that links
 	// with it checks the signature and trusts that passkey from the start.
@@ -244,6 +251,13 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		getServer: connect.NewClient[v1.GetServerRequest, v1.GetServerResponse](
+			httpClient,
+			baseURL+OrgServiceGetServerProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("GetServer")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		pinJoinToken: connect.NewClient[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse](
 			httpClient,
 			baseURL+OrgServicePinJoinTokenProcedure,
@@ -284,6 +298,7 @@ type orgServiceClient struct {
 	listServerAccess   *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
 	listNodes          *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
 	listServers        *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
+	getServer          *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
 	pinJoinToken       *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
 	listMemberPasskeys *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
 	listAuditLog       *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
@@ -424,6 +439,15 @@ func (c *orgServiceClient) ListServers(ctx context.Context, req *v1.ListServersR
 	return nil, err
 }
 
+// GetServer calls raptor.panel.v1.OrgService.GetServer.
+func (c *orgServiceClient) GetServer(ctx context.Context, req *v1.GetServerRequest) (*v1.GetServerResponse, error) {
+	response, err := c.getServer.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // PinJoinToken calls raptor.panel.v1.OrgService.PinJoinToken.
 func (c *orgServiceClient) PinJoinToken(ctx context.Context, req *v1.PinJoinTokenRequest) (*v1.PinJoinTokenResponse, error) {
 	response, err := c.pinJoinToken.CallUnary(ctx, connect.NewRequest(req))
@@ -495,6 +519,11 @@ type OrgServiceHandler interface {
 	// what the caller may do on each. Members see only the servers they have
 	// access to.
 	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
+	// GetServer returns one server as the mirror has it. With the startup
+	// permission (admins and owners always), also its settings and its egg's
+	// images and variables, for the settings page: variables can hold
+	// secrets (tokens, passwords), so nobody else gets them.
+	GetServer(context.Context, *v1.GetServerRequest) (*v1.GetServerResponse, error)
 	// PinJoinToken attaches the owner's passkey, signed in the browser over
 	// the token (nodecmd.OwnerPin), to a new join token: the node that links
 	// with it checks the signature and trusts that passkey from the start.
@@ -612,6 +641,13 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceGetServerHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceGetServerProcedure,
+		svc.GetServer,
+		connect.WithSchema(orgServiceMethods.ByName("GetServer")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServicePinJoinTokenHandler := connect.NewUnaryHandlerSimple(
 		OrgServicePinJoinTokenProcedure,
 		svc.PinJoinToken,
@@ -664,6 +700,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListNodesHandler.ServeHTTP(w, r)
 		case OrgServiceListServersProcedure:
 			orgServiceListServersHandler.ServeHTTP(w, r)
+		case OrgServiceGetServerProcedure:
+			orgServiceGetServerHandler.ServeHTTP(w, r)
 		case OrgServicePinJoinTokenProcedure:
 			orgServicePinJoinTokenHandler.ServeHTTP(w, r)
 		case OrgServiceListMemberPasskeysProcedure:
@@ -737,6 +775,10 @@ func (UnimplementedOrgServiceHandler) ListNodes(context.Context, *v1.ListNodesRe
 
 func (UnimplementedOrgServiceHandler) ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListServers is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) GetServer(context.Context, *v1.GetServerRequest) (*v1.GetServerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.GetServer is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) PinJoinToken(context.Context, *v1.PinJoinTokenRequest) (*v1.PinJoinTokenResponse, error) {

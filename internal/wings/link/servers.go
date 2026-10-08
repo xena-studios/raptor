@@ -94,6 +94,47 @@ func (s *service) GetServers(ctx context.Context, req *nodev1.GetServersRequest)
 	return out, nil
 }
 
+// eggInfo is what the Panel shows about a server's egg in its settings: the
+// images to choose from, and the variables with their rules.
+type eggInfo struct {
+	Images    []eggImage    `json:"images"`
+	Variables []eggVariable `json:"variables"`
+	Features  []string      `json:"features,omitempty"`
+}
+
+type eggImage struct {
+	Name string `json:"name"`
+	Ref  string `json:"ref"`
+}
+
+type eggVariable struct {
+	Name         string   `json:"name"`
+	Description  string   `json:"description,omitempty"`
+	Env          string   `json:"env"`
+	Default      string   `json:"default"`
+	UserViewable bool     `json:"user_viewable,omitempty"`
+	UserEditable bool     `json:"user_editable,omitempty"`
+	Rules        []string `json:"rules,omitempty"`
+}
+
+func describeEgg(s *server.Server) *eggInfo {
+	e := s.Egg()
+	if e == nil {
+		return nil
+	}
+	out := &eggInfo{Features: e.Features}
+	for _, i := range e.Images {
+		out.Images = append(out.Images, eggImage{Name: i.Name, Ref: i.Ref})
+	}
+	for _, v := range e.Variables {
+		out.Variables = append(out.Variables, eggVariable{
+			Name: v.Name, Description: v.Description, Env: v.Env, Default: v.Default,
+			UserViewable: v.UserViewable, UserEditable: v.UserEditable, Rules: v.Rules,
+		})
+	}
+	return out
+}
+
 func serverProto(s *server.Server, state string) (*nodev1.Server, error) {
 	cfg, err := json.Marshal(struct {
 		Image       string              `json:"image"`
@@ -104,7 +145,8 @@ func serverProto(s *server.Server, state string) (*nodev1.Server, error) {
 		HostNetwork bool                `json:"host_network"`
 		Allocations []server.Allocation `json:"allocations"`
 		EggHash     string              `json:"egg_hash"`
-	}{s.Image, s.Startup, s.Variables, s.Limits, s.Settings, s.HostNetwork, s.Allocations, s.EggHash})
+		Egg         *eggInfo            `json:"egg,omitempty"`
+	}{s.Image, s.Startup, s.Variables, s.Limits, s.Settings, s.HostNetwork, s.Allocations, s.EggHash, describeEgg(s)})
 	if err != nil {
 		return nil, err
 	}

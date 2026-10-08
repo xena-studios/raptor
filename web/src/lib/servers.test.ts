@@ -4,12 +4,14 @@ import { test } from "node:test";
 
 import {
   base64,
+  changesCode,
   createParams,
   eggsFor,
   missingRequired,
   serverStatus,
   suggestMemoryMiB,
   suggestPort,
+  updateParams,
 } from "./servers.ts";
 
 test("eggs a node can run, certified first", () => {
@@ -121,4 +123,41 @@ test("create params match the Go vector", () => {
     JSON.stringify(p),
     '{"name":"Survival","egg":"eyJ4IjoxfQ==","egg_source":"minecraft/paper","image":"ghcr.io/x/java:25","variables":{"MINECRAFT_VERSION":"1.21.10"},"limits":{"memory_mib":2048,"disk_mib":10240},"allocations":[{"ip":"0.0.0.0","port":25565,"primary":true}],"start_after_install":true,"accept_eula":true}',
   );
+});
+
+test("update params keep everything not edited, and no egg", () => {
+  const cfg = {
+    image: "java:21",
+    startup: "java -jar server.jar",
+    variables: { A: "1", B: "2" },
+    limits: { memory_mib: 2048, disk_mib: 0, cpu_weight: 512 },
+    settings: { crash_auto_restart: true },
+    host_network: false,
+    allocations: [
+      { ip: "0.0.0.0", port: 25565, primary: true },
+      { ip: "0.0.0.0", port: 25575 },
+    ],
+    egg_hash: "abc",
+    egg: { images: [], variables: [] },
+  };
+  const change = {
+    name: " New ",
+    image: "java:21",
+    variables: { B: "3" },
+    memoryMiB: 4096,
+    diskMiB: 10240,
+    port: 25566,
+  };
+  const p = updateParams(cfg, change);
+  assert.equal("egg" in p || "egg_hash" in p, false);
+  assert.equal(p.name, "New");
+  assert.deepEqual(p.variables, { A: "1", B: "3" });
+  assert.deepEqual(p.limits, { memory_mib: 4096, disk_mib: 10240, cpu_weight: 512 });
+  assert.deepEqual(p.allocations, [
+    { ip: "0.0.0.0", port: 25566, primary: true },
+    { ip: "0.0.0.0", port: 25575 },
+  ]);
+  assert.equal(p.startup, "java -jar server.jar");
+  assert.equal(changesCode(cfg, change), false);
+  assert.equal(changesCode(cfg, { ...change, image: "java:25" }), true);
 });

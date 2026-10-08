@@ -273,6 +273,20 @@ func TestCommands(t *testing.T) {
 		t.Errorf("3 MiB of params for another action: %v", err)
 	}
 
+	// A server's settings (which can hold secrets) go to those who may
+	// change them: owners and admins, and members with startup.
+	got, err := alice.orgs.GetServer(ctx, &panelv1.GetServerRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"})
+	if err != nil || !strings.Contains(got.GetConfigJson(), `"allocations"`) || got.GetServer().GetName() != "mc" {
+		t.Errorf("owner's GetServer: %v, %v", got, err)
+	}
+	got, err = bob.orgs.GetServer(ctx, &panelv1.GetServerRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"})
+	if err != nil || got.GetConfigJson() != "" || got.GetServer().GetId() != "s1" {
+		t.Errorf("member without startup: %v, %v", got, err)
+	}
+	if _, err := bob.orgs.GetServer(ctx, &panelv1.GetServerRequest{OrgId: org, NodeId: nodeID, ServerId: "s2"}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("a server the member can't see: %v", err)
+	}
+
 	// Removing access, or the member, takes it away.
 	if err := set(alice, "s1", bobID); err != nil {
 		t.Fatal(err)
