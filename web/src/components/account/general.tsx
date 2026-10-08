@@ -268,7 +268,6 @@ export function Details({ user }: { user: User }) {
               "Member since",
               user.createdAt ? timestampDate(user.createdAt).toLocaleDateString() : "",
             ],
-            ["SFTP username", user.sftpUsername || "Set when you add an SSH key"],
           ]}
         />
       </CardContent>
@@ -302,9 +301,9 @@ export function DeleteAccount({ email }: { email: string }) {
       <CardHeader>
         <CardTitle>Delete account</CardTitle>
         <CardDescription>
-          Deletes your account, its passkeys, SSH keys, and sign-ins, and takes you out of every
-          org. Orgs you're the only owner of need another owner first, or no members and no nodes
-          left. This can't be undone.
+          Deletes your account, its passkeys, SFTP passwords, and sign-ins, and takes you out of
+          every org. Orgs you're the only owner of need another owner first, or no members and no
+          nodes left. This can't be undone.
         </CardDescription>
       </CardHeader>
       <CardContent>

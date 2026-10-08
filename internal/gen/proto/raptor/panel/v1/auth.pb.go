@@ -315,8 +315,9 @@ type User struct {
 	Email       string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Name        string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	TotpEnabled bool                   `protobuf:"varint,4,opt,name=totp_enabled,json=totpEnabled,proto3" json:"totp_enabled,omitempty"`
-	// For SFTP: log in as <sftp_username>.<server short ID> (empty until the
-	// first SSH key is added).
+	// Always empty: SSH keys are gone (DECISIONS #223).
+	//
+	// Deprecated: Marked as deprecated in raptor/panel/v1/auth.proto.
 	SftpUsername string                 `protobuf:"bytes,5,opt,name=sftp_username,json=sftpUsername,proto3" json:"sftp_username,omitempty"`
 	CreatedAt    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// "system", "light", or "dark".
@@ -383,6 +384,7 @@ func (x *User) GetTotpEnabled() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in raptor/panel/v1/auth.proto.
 func (x *User) GetSftpUsername() string {
 	if x != nil {
 		return x.SftpUsername
@@ -2930,6 +2932,440 @@ func (x *ListActivityResponse) GetNextPageToken() string {
 	return ""
 }
 
+type UpdateProfileRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unset fields stay as they are.
+	Name          *string `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Theme         *string `protobuf:"bytes,2,opt,name=theme,proto3,oneof" json:"theme,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateProfileRequest) Reset() {
+	*x = UpdateProfileRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProfileRequest) ProtoMessage() {}
+
+func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProfileRequest.ProtoReflect.Descriptor instead.
+func (*UpdateProfileRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *UpdateProfileRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *UpdateProfileRequest) GetTheme() string {
+	if x != nil && x.Theme != nil {
+		return *x.Theme
+	}
+	return ""
+}
+
+type UpdateProfileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateProfileResponse) Reset() {
+	*x = UpdateProfileResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProfileResponse) ProtoMessage() {}
+
+func (x *UpdateProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProfileResponse.ProtoReflect.Descriptor instead.
+func (*UpdateProfileResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *UpdateProfileResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+type StartEmailChangeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NewEmail      string                 `protobuf:"bytes,1,opt,name=new_email,json=newEmail,proto3" json:"new_email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartEmailChangeRequest) Reset() {
+	*x = StartEmailChangeRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartEmailChangeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartEmailChangeRequest) ProtoMessage() {}
+
+func (x *StartEmailChangeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartEmailChangeRequest.ProtoReflect.Descriptor instead.
+func (*StartEmailChangeRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *StartEmailChangeRequest) GetNewEmail() string {
+	if x != nil {
+		return x.NewEmail
+	}
+	return ""
+}
+
+type StartEmailChangeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartEmailChangeResponse) Reset() {
+	*x = StartEmailChangeResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartEmailChangeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartEmailChangeResponse) ProtoMessage() {}
+
+func (x *StartEmailChangeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartEmailChangeResponse.ProtoReflect.Descriptor instead.
+func (*StartEmailChangeResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{60}
+}
+
+type FinishEmailChangeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NewEmail      string                 `protobuf:"bytes,1,opt,name=new_email,json=newEmail,proto3" json:"new_email,omitempty"`
+	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishEmailChangeRequest) Reset() {
+	*x = FinishEmailChangeRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishEmailChangeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishEmailChangeRequest) ProtoMessage() {}
+
+func (x *FinishEmailChangeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishEmailChangeRequest.ProtoReflect.Descriptor instead.
+func (*FinishEmailChangeRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *FinishEmailChangeRequest) GetNewEmail() string {
+	if x != nil {
+		return x.NewEmail
+	}
+	return ""
+}
+
+func (x *FinishEmailChangeRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type FinishEmailChangeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishEmailChangeResponse) Reset() {
+	*x = FinishEmailChangeResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishEmailChangeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishEmailChangeResponse) ProtoMessage() {}
+
+func (x *FinishEmailChangeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishEmailChangeResponse.ProtoReflect.Descriptor instead.
+func (*FinishEmailChangeResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *FinishEmailChangeResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+type DeleteAccountRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAccountRequest) Reset() {
+	*x = DeleteAccountRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAccountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAccountRequest) ProtoMessage() {}
+
+func (x *DeleteAccountRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAccountRequest.ProtoReflect.Descriptor instead.
+func (*DeleteAccountRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{63}
+}
+
+type DeleteAccountResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAccountResponse) Reset() {
+	*x = DeleteAccountResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAccountResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAccountResponse) ProtoMessage() {}
+
+func (x *DeleteAccountResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAccountResponse.ProtoReflect.Descriptor instead.
+func (*DeleteAccountResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{64}
+}
+
+// The SSH key messages are kept for the deprecated RPCs above.
+type ListSSHKeysRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSSHKeysRequest) Reset() {
+	*x = ListSSHKeysRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSSHKeysRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSSHKeysRequest) ProtoMessage() {}
+
+func (x *ListSSHKeysRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSSHKeysRequest.ProtoReflect.Descriptor instead.
+func (*ListSSHKeysRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{65}
+}
+
+type ListSSHKeysResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Keys          []*SSHKey              `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
+	SftpUsername  string                 `protobuf:"bytes,2,opt,name=sftp_username,json=sftpUsername,proto3" json:"sftp_username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSSHKeysResponse) Reset() {
+	*x = ListSSHKeysResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSSHKeysResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSSHKeysResponse) ProtoMessage() {}
+
+func (x *ListSSHKeysResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSSHKeysResponse.ProtoReflect.Descriptor instead.
+func (*ListSSHKeysResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *ListSSHKeysResponse) GetKeys() []*SSHKey {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
+func (x *ListSSHKeysResponse) GetSftpUsername() string {
+	if x != nil {
+		return x.SftpUsername
+	}
+	return ""
+}
+
 type SSHKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -2946,7 +3382,7 @@ type SSHKey struct {
 
 func (x *SSHKey) Reset() {
 	*x = SSHKey{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[57]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2958,7 +3394,7 @@ func (x *SSHKey) String() string {
 func (*SSHKey) ProtoMessage() {}
 
 func (x *SSHKey) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[57]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2971,7 +3407,7 @@ func (x *SSHKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSHKey.ProtoReflect.Descriptor instead.
 func (*SSHKey) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{57}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *SSHKey) GetId() string {
@@ -3016,94 +3452,6 @@ func (x *SSHKey) GetLastUsedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-type ListSSHKeysRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListSSHKeysRequest) Reset() {
-	*x = ListSSHKeysRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[58]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListSSHKeysRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListSSHKeysRequest) ProtoMessage() {}
-
-func (x *ListSSHKeysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[58]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListSSHKeysRequest.ProtoReflect.Descriptor instead.
-func (*ListSSHKeysRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{58}
-}
-
-type ListSSHKeysResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Keys          []*SSHKey              `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
-	SftpUsername  string                 `protobuf:"bytes,2,opt,name=sftp_username,json=sftpUsername,proto3" json:"sftp_username,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListSSHKeysResponse) Reset() {
-	*x = ListSSHKeysResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[59]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListSSHKeysResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListSSHKeysResponse) ProtoMessage() {}
-
-func (x *ListSSHKeysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[59]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListSSHKeysResponse.ProtoReflect.Descriptor instead.
-func (*ListSSHKeysResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{59}
-}
-
-func (x *ListSSHKeysResponse) GetKeys() []*SSHKey {
-	if x != nil {
-		return x.Keys
-	}
-	return nil
-}
-
-func (x *ListSSHKeysResponse) GetSftpUsername() string {
-	if x != nil {
-		return x.SftpUsername
-	}
-	return ""
-}
-
 type AddSSHKeyRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// One line of an authorized_keys file ("ssh-ed25519 AAAA… comment").
@@ -3116,7 +3464,7 @@ type AddSSHKeyRequest struct {
 
 func (x *AddSSHKeyRequest) Reset() {
 	*x = AddSSHKeyRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[60]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3128,7 +3476,7 @@ func (x *AddSSHKeyRequest) String() string {
 func (*AddSSHKeyRequest) ProtoMessage() {}
 
 func (x *AddSSHKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[60]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3141,7 +3489,7 @@ func (x *AddSSHKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddSSHKeyRequest.ProtoReflect.Descriptor instead.
 func (*AddSSHKeyRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{60}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *AddSSHKeyRequest) GetPublicKey() string {
@@ -3168,7 +3516,7 @@ type AddSSHKeyResponse struct {
 
 func (x *AddSSHKeyResponse) Reset() {
 	*x = AddSSHKeyResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[61]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3180,7 +3528,7 @@ func (x *AddSSHKeyResponse) String() string {
 func (*AddSSHKeyResponse) ProtoMessage() {}
 
 func (x *AddSSHKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[61]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3193,7 +3541,7 @@ func (x *AddSSHKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddSSHKeyResponse.ProtoReflect.Descriptor instead.
 func (*AddSSHKeyResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{61}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *AddSSHKeyResponse) GetKey() *SSHKey {
@@ -3219,7 +3567,7 @@ type DeleteSSHKeyRequest struct {
 
 func (x *DeleteSSHKeyRequest) Reset() {
 	*x = DeleteSSHKeyRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[62]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3231,7 +3579,7 @@ func (x *DeleteSSHKeyRequest) String() string {
 func (*DeleteSSHKeyRequest) ProtoMessage() {}
 
 func (x *DeleteSSHKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[62]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3244,7 +3592,7 @@ func (x *DeleteSSHKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSSHKeyRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSSHKeyRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{62}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *DeleteSSHKeyRequest) GetId() string {
@@ -3262,7 +3610,7 @@ type DeleteSSHKeyResponse struct {
 
 func (x *DeleteSSHKeyResponse) Reset() {
 	*x = DeleteSSHKeyResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[63]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3274,7 +3622,7 @@ func (x *DeleteSSHKeyResponse) String() string {
 func (*DeleteSSHKeyResponse) ProtoMessage() {}
 
 func (x *DeleteSSHKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[63]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3287,351 +3635,6 @@ func (x *DeleteSSHKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSSHKeyResponse.ProtoReflect.Descriptor instead.
 func (*DeleteSSHKeyResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{63}
-}
-
-type UpdateProfileRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Unset fields stay as they are.
-	Name          *string `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Theme         *string `protobuf:"bytes,2,opt,name=theme,proto3,oneof" json:"theme,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateProfileRequest) Reset() {
-	*x = UpdateProfileRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[64]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateProfileRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateProfileRequest) ProtoMessage() {}
-
-func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[64]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateProfileRequest.ProtoReflect.Descriptor instead.
-func (*UpdateProfileRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{64}
-}
-
-func (x *UpdateProfileRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
-	}
-	return ""
-}
-
-func (x *UpdateProfileRequest) GetTheme() string {
-	if x != nil && x.Theme != nil {
-		return *x.Theme
-	}
-	return ""
-}
-
-type UpdateProfileResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateProfileResponse) Reset() {
-	*x = UpdateProfileResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[65]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateProfileResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateProfileResponse) ProtoMessage() {}
-
-func (x *UpdateProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[65]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateProfileResponse.ProtoReflect.Descriptor instead.
-func (*UpdateProfileResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{65}
-}
-
-func (x *UpdateProfileResponse) GetUser() *User {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
-type StartEmailChangeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NewEmail      string                 `protobuf:"bytes,1,opt,name=new_email,json=newEmail,proto3" json:"new_email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StartEmailChangeRequest) Reset() {
-	*x = StartEmailChangeRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[66]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StartEmailChangeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StartEmailChangeRequest) ProtoMessage() {}
-
-func (x *StartEmailChangeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[66]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StartEmailChangeRequest.ProtoReflect.Descriptor instead.
-func (*StartEmailChangeRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{66}
-}
-
-func (x *StartEmailChangeRequest) GetNewEmail() string {
-	if x != nil {
-		return x.NewEmail
-	}
-	return ""
-}
-
-type StartEmailChangeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StartEmailChangeResponse) Reset() {
-	*x = StartEmailChangeResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StartEmailChangeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StartEmailChangeResponse) ProtoMessage() {}
-
-func (x *StartEmailChangeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StartEmailChangeResponse.ProtoReflect.Descriptor instead.
-func (*StartEmailChangeResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{67}
-}
-
-type FinishEmailChangeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NewEmail      string                 `protobuf:"bytes,1,opt,name=new_email,json=newEmail,proto3" json:"new_email,omitempty"`
-	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FinishEmailChangeRequest) Reset() {
-	*x = FinishEmailChangeRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FinishEmailChangeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FinishEmailChangeRequest) ProtoMessage() {}
-
-func (x *FinishEmailChangeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FinishEmailChangeRequest.ProtoReflect.Descriptor instead.
-func (*FinishEmailChangeRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{68}
-}
-
-func (x *FinishEmailChangeRequest) GetNewEmail() string {
-	if x != nil {
-		return x.NewEmail
-	}
-	return ""
-}
-
-func (x *FinishEmailChangeRequest) GetCode() string {
-	if x != nil {
-		return x.Code
-	}
-	return ""
-}
-
-type FinishEmailChangeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FinishEmailChangeResponse) Reset() {
-	*x = FinishEmailChangeResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FinishEmailChangeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FinishEmailChangeResponse) ProtoMessage() {}
-
-func (x *FinishEmailChangeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FinishEmailChangeResponse.ProtoReflect.Descriptor instead.
-func (*FinishEmailChangeResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{69}
-}
-
-func (x *FinishEmailChangeResponse) GetUser() *User {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
-type DeleteAccountRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteAccountRequest) Reset() {
-	*x = DeleteAccountRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteAccountRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteAccountRequest) ProtoMessage() {}
-
-func (x *DeleteAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteAccountRequest.ProtoReflect.Descriptor instead.
-func (*DeleteAccountRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{70}
-}
-
-type DeleteAccountResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteAccountResponse) Reset() {
-	*x = DeleteAccountResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteAccountResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteAccountResponse) ProtoMessage() {}
-
-func (x *DeleteAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteAccountResponse.ProtoReflect.Descriptor instead.
-func (*DeleteAccountResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{71}
 }
 
@@ -3656,13 +3659,13 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x12\x1f\n" +
 	"\vnew_account\x18\x02 \x01(\bR\n" +
 	"newAccount\x124\n" +
-	"\x16second_factor_required\x18\x03 \x01(\bR\x14secondFactorRequired\"\xd9\x01\n" +
+	"\x16second_factor_required\x18\x03 \x01(\bR\x14secondFactorRequired\"\xdd\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
-	"\ftotp_enabled\x18\x04 \x01(\bR\vtotpEnabled\x12#\n" +
-	"\rsftp_username\x18\x05 \x01(\tR\fsftpUsername\x129\n" +
+	"\ftotp_enabled\x18\x04 \x01(\bR\vtotpEnabled\x12'\n" +
+	"\rsftp_username\x18\x05 \x01(\tB\x02\x18\x01R\fsftpUsername\x129\n" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x14\n" +
 	"\x05theme\x18\a \x01(\tR\x05theme\"\x13\n" +
@@ -3801,30 +3804,7 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"page_token\x18\x01 \x01(\tR\tpageToken\"s\n" +
 	"\x14ListActivityResponse\x123\n" +
 	"\x06events\x18\x01 \x03(\v2\x1b.raptor.panel.v1.AuditEventR\x06events\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xdb\x01\n" +
-	"\x06SSHKey\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vfingerprint\x18\x03 \x01(\tR\vfingerprint\x12\x12\n" +
-	"\x04type\x18\x04 \x01(\tR\x04type\x129\n" +
-	"\n" +
-	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
-	"\flast_used_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAt\"\x14\n" +
-	"\x12ListSSHKeysRequest\"g\n" +
-	"\x13ListSSHKeysResponse\x12+\n" +
-	"\x04keys\x18\x01 \x03(\v2\x17.raptor.panel.v1.SSHKeyR\x04keys\x12#\n" +
-	"\rsftp_username\x18\x02 \x01(\tR\fsftpUsername\"E\n" +
-	"\x10AddSSHKeyRequest\x12\x1d\n" +
-	"\n" +
-	"public_key\x18\x01 \x01(\tR\tpublicKey\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"c\n" +
-	"\x11AddSSHKeyResponse\x12)\n" +
-	"\x03key\x18\x01 \x01(\v2\x17.raptor.panel.v1.SSHKeyR\x03key\x12#\n" +
-	"\rsftp_username\x18\x02 \x01(\tR\fsftpUsername\"%\n" +
-	"\x13DeleteSSHKeyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x16\n" +
-	"\x14DeleteSSHKeyResponse\"]\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"]\n" +
 	"\x14UpdateProfileRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x19\n" +
 	"\x05theme\x18\x02 \x01(\tH\x01R\x05theme\x88\x01\x01B\a\n" +
@@ -3841,7 +3821,30 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x19FinishEmailChangeResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\"\x16\n" +
 	"\x14DeleteAccountRequest\"\x17\n" +
-	"\x15DeleteAccountResponse2\xfd\x19\n" +
+	"\x15DeleteAccountResponse\"\x14\n" +
+	"\x12ListSSHKeysRequest\"g\n" +
+	"\x13ListSSHKeysResponse\x12+\n" +
+	"\x04keys\x18\x01 \x03(\v2\x17.raptor.panel.v1.SSHKeyR\x04keys\x12#\n" +
+	"\rsftp_username\x18\x02 \x01(\tR\fsftpUsername\"\xdb\x01\n" +
+	"\x06SSHKey\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vfingerprint\x18\x03 \x01(\tR\vfingerprint\x12\x12\n" +
+	"\x04type\x18\x04 \x01(\tR\x04type\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
+	"\flast_used_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"lastUsedAt\"E\n" +
+	"\x10AddSSHKeyRequest\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x01 \x01(\tR\tpublicKey\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"c\n" +
+	"\x11AddSSHKeyResponse\x12)\n" +
+	"\x03key\x18\x01 \x01(\v2\x17.raptor.panel.v1.SSHKeyR\x03key\x12#\n" +
+	"\rsftp_username\x18\x02 \x01(\tR\fsftpUsername\"%\n" +
+	"\x13DeleteSSHKeyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x16\n" +
+	"\x14DeleteSSHKeyResponse2\x86\x1a\n" +
 	"\vAuthService\x12i\n" +
 	"\x10StartEmailSignIn\x12(.raptor.panel.v1.StartEmailSignInRequest\x1a).raptor.panel.v1.StartEmailSignInResponse\"\x00\x12l\n" +
 	"\x11FinishEmailSignIn\x12).raptor.panel.v1.FinishEmailSignInRequest\x1a*.raptor.panel.v1.FinishEmailSignInResponse\"\x00\x12Z\n" +
@@ -3868,10 +3871,10 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"BeginOAuth\x12\".raptor.panel.v1.BeginOAuthRequest\x1a#.raptor.panel.v1.BeginOAuthResponse\"\x00\x12o\n" +
 	"\x11ListOAuthAccounts\x12).raptor.panel.v1.ListOAuthAccountsRequest\x1a*.raptor.panel.v1.ListOAuthAccountsResponse\"\x03\x90\x02\x01\x12o\n" +
-	"\x12UnlinkOAuthAccount\x12*.raptor.panel.v1.UnlinkOAuthAccountRequest\x1a+.raptor.panel.v1.UnlinkOAuthAccountResponse\"\x00\x12]\n" +
-	"\vListSSHKeys\x12#.raptor.panel.v1.ListSSHKeysRequest\x1a$.raptor.panel.v1.ListSSHKeysResponse\"\x03\x90\x02\x01\x12T\n" +
-	"\tAddSSHKey\x12!.raptor.panel.v1.AddSSHKeyRequest\x1a\".raptor.panel.v1.AddSSHKeyResponse\"\x00\x12]\n" +
-	"\fDeleteSSHKey\x12$.raptor.panel.v1.DeleteSSHKeyRequest\x1a%.raptor.panel.v1.DeleteSSHKeyResponse\"\x00\x12`\n" +
+	"\x12UnlinkOAuthAccount\x12*.raptor.panel.v1.UnlinkOAuthAccountRequest\x1a+.raptor.panel.v1.UnlinkOAuthAccountResponse\"\x00\x12`\n" +
+	"\vListSSHKeys\x12#.raptor.panel.v1.ListSSHKeysRequest\x1a$.raptor.panel.v1.ListSSHKeysResponse\"\x06\x88\x02\x01\x90\x02\x01\x12W\n" +
+	"\tAddSSHKey\x12!.raptor.panel.v1.AddSSHKeyRequest\x1a\".raptor.panel.v1.AddSSHKeyResponse\"\x03\x88\x02\x01\x12`\n" +
+	"\fDeleteSSHKey\x12$.raptor.panel.v1.DeleteSSHKeyRequest\x1a%.raptor.panel.v1.DeleteSSHKeyResponse\"\x03\x88\x02\x01\x12`\n" +
 	"\fListActivity\x12$.raptor.panel.v1.ListActivityRequest\x1a%.raptor.panel.v1.ListActivityResponse\"\x03\x90\x02\x01\x12`\n" +
 	"\rUpdateProfile\x12%.raptor.panel.v1.UpdateProfileRequest\x1a&.raptor.panel.v1.UpdateProfileResponse\"\x00\x12i\n" +
 	"\x10StartEmailChange\x12(.raptor.panel.v1.StartEmailChangeRequest\x1a).raptor.panel.v1.StartEmailChangeResponse\"\x00\x12l\n" +
@@ -3950,21 +3953,21 @@ var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*UnlinkOAuthAccountResponse)(nil),        // 54: raptor.panel.v1.UnlinkOAuthAccountResponse
 	(*ListActivityRequest)(nil),               // 55: raptor.panel.v1.ListActivityRequest
 	(*ListActivityResponse)(nil),              // 56: raptor.panel.v1.ListActivityResponse
-	(*SSHKey)(nil),                            // 57: raptor.panel.v1.SSHKey
-	(*ListSSHKeysRequest)(nil),                // 58: raptor.panel.v1.ListSSHKeysRequest
-	(*ListSSHKeysResponse)(nil),               // 59: raptor.panel.v1.ListSSHKeysResponse
-	(*AddSSHKeyRequest)(nil),                  // 60: raptor.panel.v1.AddSSHKeyRequest
-	(*AddSSHKeyResponse)(nil),                 // 61: raptor.panel.v1.AddSSHKeyResponse
-	(*DeleteSSHKeyRequest)(nil),               // 62: raptor.panel.v1.DeleteSSHKeyRequest
-	(*DeleteSSHKeyResponse)(nil),              // 63: raptor.panel.v1.DeleteSSHKeyResponse
-	(*UpdateProfileRequest)(nil),              // 64: raptor.panel.v1.UpdateProfileRequest
-	(*UpdateProfileResponse)(nil),             // 65: raptor.panel.v1.UpdateProfileResponse
-	(*StartEmailChangeRequest)(nil),           // 66: raptor.panel.v1.StartEmailChangeRequest
-	(*StartEmailChangeResponse)(nil),          // 67: raptor.panel.v1.StartEmailChangeResponse
-	(*FinishEmailChangeRequest)(nil),          // 68: raptor.panel.v1.FinishEmailChangeRequest
-	(*FinishEmailChangeResponse)(nil),         // 69: raptor.panel.v1.FinishEmailChangeResponse
-	(*DeleteAccountRequest)(nil),              // 70: raptor.panel.v1.DeleteAccountRequest
-	(*DeleteAccountResponse)(nil),             // 71: raptor.panel.v1.DeleteAccountResponse
+	(*UpdateProfileRequest)(nil),              // 57: raptor.panel.v1.UpdateProfileRequest
+	(*UpdateProfileResponse)(nil),             // 58: raptor.panel.v1.UpdateProfileResponse
+	(*StartEmailChangeRequest)(nil),           // 59: raptor.panel.v1.StartEmailChangeRequest
+	(*StartEmailChangeResponse)(nil),          // 60: raptor.panel.v1.StartEmailChangeResponse
+	(*FinishEmailChangeRequest)(nil),          // 61: raptor.panel.v1.FinishEmailChangeRequest
+	(*FinishEmailChangeResponse)(nil),         // 62: raptor.panel.v1.FinishEmailChangeResponse
+	(*DeleteAccountRequest)(nil),              // 63: raptor.panel.v1.DeleteAccountRequest
+	(*DeleteAccountResponse)(nil),             // 64: raptor.panel.v1.DeleteAccountResponse
+	(*ListSSHKeysRequest)(nil),                // 65: raptor.panel.v1.ListSSHKeysRequest
+	(*ListSSHKeysResponse)(nil),               // 66: raptor.panel.v1.ListSSHKeysResponse
+	(*SSHKey)(nil),                            // 67: raptor.panel.v1.SSHKey
+	(*AddSSHKeyRequest)(nil),                  // 68: raptor.panel.v1.AddSSHKeyRequest
+	(*AddSSHKeyResponse)(nil),                 // 69: raptor.panel.v1.AddSSHKeyResponse
+	(*DeleteSSHKeyRequest)(nil),               // 70: raptor.panel.v1.DeleteSSHKeyRequest
+	(*DeleteSSHKeyResponse)(nil),              // 71: raptor.panel.v1.DeleteSSHKeyResponse
 	(*timestamppb.Timestamp)(nil),             // 72: google.protobuf.Timestamp
 	(*AuditEvent)(nil),                        // 73: raptor.panel.v1.AuditEvent
 }
@@ -3995,12 +3998,12 @@ var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	72, // 23: raptor.panel.v1.OAuthAccount.last_used_at:type_name -> google.protobuf.Timestamp
 	50, // 24: raptor.panel.v1.ListOAuthAccountsResponse.accounts:type_name -> raptor.panel.v1.OAuthAccount
 	73, // 25: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
-	72, // 26: raptor.panel.v1.SSHKey.created_at:type_name -> google.protobuf.Timestamp
-	72, // 27: raptor.panel.v1.SSHKey.last_used_at:type_name -> google.protobuf.Timestamp
-	57, // 28: raptor.panel.v1.ListSSHKeysResponse.keys:type_name -> raptor.panel.v1.SSHKey
-	57, // 29: raptor.panel.v1.AddSSHKeyResponse.key:type_name -> raptor.panel.v1.SSHKey
-	5,  // 30: raptor.panel.v1.UpdateProfileResponse.user:type_name -> raptor.panel.v1.User
-	5,  // 31: raptor.panel.v1.FinishEmailChangeResponse.user:type_name -> raptor.panel.v1.User
+	5,  // 26: raptor.panel.v1.UpdateProfileResponse.user:type_name -> raptor.panel.v1.User
+	5,  // 27: raptor.panel.v1.FinishEmailChangeResponse.user:type_name -> raptor.panel.v1.User
+	67, // 28: raptor.panel.v1.ListSSHKeysResponse.keys:type_name -> raptor.panel.v1.SSHKey
+	72, // 29: raptor.panel.v1.SSHKey.created_at:type_name -> google.protobuf.Timestamp
+	72, // 30: raptor.panel.v1.SSHKey.last_used_at:type_name -> google.protobuf.Timestamp
+	67, // 31: raptor.panel.v1.AddSSHKeyResponse.key:type_name -> raptor.panel.v1.SSHKey
 	0,  // 32: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
 	2,  // 33: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
 	6,  // 34: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
@@ -4025,14 +4028,14 @@ var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	48, // 53: raptor.panel.v1.AuthService.BeginOAuth:input_type -> raptor.panel.v1.BeginOAuthRequest
 	51, // 54: raptor.panel.v1.AuthService.ListOAuthAccounts:input_type -> raptor.panel.v1.ListOAuthAccountsRequest
 	53, // 55: raptor.panel.v1.AuthService.UnlinkOAuthAccount:input_type -> raptor.panel.v1.UnlinkOAuthAccountRequest
-	58, // 56: raptor.panel.v1.AuthService.ListSSHKeys:input_type -> raptor.panel.v1.ListSSHKeysRequest
-	60, // 57: raptor.panel.v1.AuthService.AddSSHKey:input_type -> raptor.panel.v1.AddSSHKeyRequest
-	62, // 58: raptor.panel.v1.AuthService.DeleteSSHKey:input_type -> raptor.panel.v1.DeleteSSHKeyRequest
+	65, // 56: raptor.panel.v1.AuthService.ListSSHKeys:input_type -> raptor.panel.v1.ListSSHKeysRequest
+	68, // 57: raptor.panel.v1.AuthService.AddSSHKey:input_type -> raptor.panel.v1.AddSSHKeyRequest
+	70, // 58: raptor.panel.v1.AuthService.DeleteSSHKey:input_type -> raptor.panel.v1.DeleteSSHKeyRequest
 	55, // 59: raptor.panel.v1.AuthService.ListActivity:input_type -> raptor.panel.v1.ListActivityRequest
-	64, // 60: raptor.panel.v1.AuthService.UpdateProfile:input_type -> raptor.panel.v1.UpdateProfileRequest
-	66, // 61: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
-	68, // 62: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
-	70, // 63: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
+	57, // 60: raptor.panel.v1.AuthService.UpdateProfile:input_type -> raptor.panel.v1.UpdateProfileRequest
+	59, // 61: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
+	61, // 62: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
+	63, // 63: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
 	1,  // 64: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
 	4,  // 65: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
 	7,  // 66: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
@@ -4057,14 +4060,14 @@ var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	49, // 85: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
 	52, // 86: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
 	54, // 87: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
-	59, // 88: raptor.panel.v1.AuthService.ListSSHKeys:output_type -> raptor.panel.v1.ListSSHKeysResponse
-	61, // 89: raptor.panel.v1.AuthService.AddSSHKey:output_type -> raptor.panel.v1.AddSSHKeyResponse
-	63, // 90: raptor.panel.v1.AuthService.DeleteSSHKey:output_type -> raptor.panel.v1.DeleteSSHKeyResponse
+	66, // 88: raptor.panel.v1.AuthService.ListSSHKeys:output_type -> raptor.panel.v1.ListSSHKeysResponse
+	69, // 89: raptor.panel.v1.AuthService.AddSSHKey:output_type -> raptor.panel.v1.AddSSHKeyResponse
+	71, // 90: raptor.panel.v1.AuthService.DeleteSSHKey:output_type -> raptor.panel.v1.DeleteSSHKeyResponse
 	56, // 91: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
-	65, // 92: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
-	67, // 93: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
-	69, // 94: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
-	71, // 95: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
+	58, // 92: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
+	60, // 93: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
+	62, // 94: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
+	64, // 95: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
 	64, // [64:96] is the sub-list for method output_type
 	32, // [32:64] is the sub-list for method input_type
 	32, // [32:32] is the sub-list for extension type_name
@@ -4099,7 +4102,7 @@ func file_raptor_panel_v1_auth_proto_init() {
 		(*FinishSecondFactorRequest_TotpCode)(nil),
 		(*FinishSecondFactorRequest_RecoveryCode)(nil),
 	}
-	file_raptor_panel_v1_auth_proto_msgTypes[64].OneofWrappers = []any{}
+	file_raptor_panel_v1_auth_proto_msgTypes[57].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

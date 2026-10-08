@@ -194,7 +194,7 @@ service PanelService {
     option idempotency_level = IDEMPOTENT;
   }
 
-  // SFTPLogin asks whether an SSH key may log in to a server on this node
+  // SFTPLogin asks whether a temporary password may log in to a server on this node
   // over SFTP, and with which permissions. PERMISSION_DENIED if not.
   rpc SFTPLogin(SFTPLoginRequest) returns (SFTPLoginResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
@@ -206,9 +206,9 @@ message SFTPLoginRequest {
   string username = 1;
   // The server's full ID (Wings resolved the short one).
   string server_id = 2;
-  // The SSH public key, in wire format; or
-  bytes public_key = 3;
-  // a temporary password the user turned on for this server.
+  // Ignored: SSH keys are gone (DECISIONS #223); older Wings still send it.
+  bytes public_key = 3 [deprecated = true];
+  // The temporary password the user turned on for this server.
   string password = 4;
 }
 
@@ -216,8 +216,7 @@ message SFTPLoginResponse {
   string user_id = 1;
   // Of "sftp", "files.read", "files.write".
   repeated string permissions = 2;
-  // When the login stops working (a temporary password's expiry); the node
-  // ends its sessions then. Unset for keys.
+  // When the password stops working; the node ends its sessions then.
   google.protobuf.Timestamp expires_at = 3;
 }
 

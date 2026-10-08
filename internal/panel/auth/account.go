@@ -187,7 +187,7 @@ func (s *Service) DeleteAccount(ctx context.Context, _ *panelv1.DeleteAccountReq
 		if err := q.DeleteUserActivity(ctx, sess.UserID); err != nil {
 			return err
 		}
-		// Sessions, passkeys, TOTP, SSH keys, linked accounts, memberships,
+		// Sessions, passkeys, TOTP, SFTP passwords, linked accounts, memberships,
 		// and server grants go with it (ON DELETE CASCADE).
 		return q.DeleteUser(ctx, sess.UserID)
 	})

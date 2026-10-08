@@ -103,7 +103,7 @@ func (q *Queries) DeletePasskey(ctx context.Context, arg DeletePasskeyParams) (P
 }
 
 const getUserByWebAuthnHandle = `-- name: GetUserByWebAuthnHandle :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme FROM users WHERE webauthn_handle = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme FROM users WHERE webauthn_handle = $1
 `
 
 func (q *Queries) GetUserByWebAuthnHandle(ctx context.Context, webauthnHandle []byte) (User, error) {
@@ -119,7 +119,6 @@ func (q *Queries) GetUserByWebAuthnHandle(ctx context.Context, webauthnHandle []
 		&i.TotpSecret,
 		&i.TotpEnabledAt,
 		&i.TotpLastStep,
-		&i.SftpUsername,
 		&i.Theme,
 	)
 	return i, err

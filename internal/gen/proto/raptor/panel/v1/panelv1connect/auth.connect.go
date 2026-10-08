@@ -198,13 +198,14 @@ type AuthServiceClient interface {
 	// UnlinkOAuthAccount stops one signing in. Needs a recent
 	// re-authentication.
 	UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error)
-	// ListSSHKeys lists the account's SSH keys, for SFTP.
+	// ListSSHKeys, AddSSHKey, and DeleteSSHKey are gone: SFTP takes only
+	// temporary passwords (DECISIONS #223). They answer UNIMPLEMENTED.
+	//
+	// Deprecated: do not use.
 	ListSSHKeys(context.Context, *v1.ListSSHKeysRequest) (*v1.ListSSHKeysResponse, error)
-	// AddSSHKey adds an SSH public key for SFTP, giving the account its SFTP
-	// username the first time. Needs a recent re-authentication: a key opens
-	// the files of every server the account can reach.
+	// Deprecated: do not use.
 	AddSSHKey(context.Context, *v1.AddSSHKeyRequest) (*v1.AddSSHKeyResponse, error)
-	// DeleteSSHKey removes one. Needs a recent re-authentication.
+	// Deprecated: do not use.
 	DeleteSSHKey(context.Context, *v1.DeleteSSHKeyRequest) (*v1.DeleteSSHKeyResponse, error)
 	// ListActivity lists the account's sign-ins, failed attempts, and
 	// security changes, newest first, 50 at a time.
@@ -690,6 +691,8 @@ func (c *authServiceClient) UnlinkOAuthAccount(ctx context.Context, req *v1.Unli
 }
 
 // ListSSHKeys calls raptor.panel.v1.AuthService.ListSSHKeys.
+//
+// Deprecated: do not use.
 func (c *authServiceClient) ListSSHKeys(ctx context.Context, req *v1.ListSSHKeysRequest) (*v1.ListSSHKeysResponse, error) {
 	response, err := c.listSSHKeys.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
@@ -699,6 +702,8 @@ func (c *authServiceClient) ListSSHKeys(ctx context.Context, req *v1.ListSSHKeys
 }
 
 // AddSSHKey calls raptor.panel.v1.AuthService.AddSSHKey.
+//
+// Deprecated: do not use.
 func (c *authServiceClient) AddSSHKey(ctx context.Context, req *v1.AddSSHKeyRequest) (*v1.AddSSHKeyResponse, error) {
 	response, err := c.addSSHKey.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
@@ -708,6 +713,8 @@ func (c *authServiceClient) AddSSHKey(ctx context.Context, req *v1.AddSSHKeyRequ
 }
 
 // DeleteSSHKey calls raptor.panel.v1.AuthService.DeleteSSHKey.
+//
+// Deprecated: do not use.
 func (c *authServiceClient) DeleteSSHKey(ctx context.Context, req *v1.DeleteSSHKeyRequest) (*v1.DeleteSSHKeyResponse, error) {
 	response, err := c.deleteSSHKey.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
@@ -835,13 +842,14 @@ type AuthServiceHandler interface {
 	// UnlinkOAuthAccount stops one signing in. Needs a recent
 	// re-authentication.
 	UnlinkOAuthAccount(context.Context, *v1.UnlinkOAuthAccountRequest) (*v1.UnlinkOAuthAccountResponse, error)
-	// ListSSHKeys lists the account's SSH keys, for SFTP.
+	// ListSSHKeys, AddSSHKey, and DeleteSSHKey are gone: SFTP takes only
+	// temporary passwords (DECISIONS #223). They answer UNIMPLEMENTED.
+	//
+	// Deprecated: do not use.
 	ListSSHKeys(context.Context, *v1.ListSSHKeysRequest) (*v1.ListSSHKeysResponse, error)
-	// AddSSHKey adds an SSH public key for SFTP, giving the account its SFTP
-	// username the first time. Needs a recent re-authentication: a key opens
-	// the files of every server the account can reach.
+	// Deprecated: do not use.
 	AddSSHKey(context.Context, *v1.AddSSHKeyRequest) (*v1.AddSSHKeyResponse, error)
-	// DeleteSSHKey removes one. Needs a recent re-authentication.
+	// Deprecated: do not use.
 	DeleteSSHKey(context.Context, *v1.DeleteSSHKeyRequest) (*v1.DeleteSSHKeyResponse, error)
 	// ListActivity lists the account's sign-ins, failed attempts, and
 	// security changes, newest first, 50 at a time.

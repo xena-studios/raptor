@@ -220,7 +220,6 @@ type runtimeSetup struct {
 	metricsDone chan struct{}
 	sftp        *sftp.Service
 	sftpKey     ssh.Signer
-	sftpKeys    *sftp.KeyCache
 	// panelLink is the node connection, for SFTP logins (set after SFTP starts).
 	panelLink      atomic.Pointer[link.Link]
 	stopSFTPEvents func()
@@ -263,7 +262,6 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 	if r.sftpKey, err = sftp.LoadHostKey(cfg.Identity.SFTPHostKey); err != nil {
 		return nil, fmt.Errorf("sftp host key: %w", err)
 	}
-	r.sftpKeys = &sftp.KeyCache{DB: db}
 	return r, nil
 }
 
@@ -311,9 +309,6 @@ func (r *runtimeSetup) prune(ctx context.Context) {
 	}
 	if _, err := r.commands.Prune(ctx); err != nil {
 		r.log.Error("pruning executed commands failed", "err", err)
-	}
-	if _, err := r.sftpKeys.Prune(ctx); err != nil {
-		r.log.Error("pruning cached sftp keys failed", "err", err)
 	}
 	if r.files != nil {
 		if _, err := r.files.Prune(ctx); err != nil {
@@ -662,7 +657,6 @@ func (r *runtimeSetup) startSFTP(ctx context.Context, mgr *server.Manager, uid, 
 		Options: sftp.Options{
 			HostKey: r.sftpKey,
 			Auth:    r.sftpAuth(),
-			Keys:    r.sftpKeys,
 			Servers: mgr,
 			Events:  r.events,
 			UID:     uid,

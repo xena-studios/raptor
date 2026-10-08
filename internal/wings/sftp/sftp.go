@@ -1,8 +1,9 @@
 // Package sftp is Wings' built-in SFTP server (docs/WINGS.md#files-and-sftp).
 // It's off by default and enabled per node. Users log in as user.serverid
-// with a password or SSH key, which the Panel checks; accepted keys are
-// cached so key logins keep working while the Panel is unreachable. Each
-// session is confined to the server's directory with os.Root.
+// with a temporary password, which the Panel checks every time (nothing is
+// cached, so logins fail while it's unreachable). Each session is confined
+// to the server's directory with os.Root, and ends when the password runs
+// out.
 package sftp
 
 import (
@@ -43,7 +44,6 @@ const (
 type Options struct {
 	HostKey ssh.Signer
 	Auth    Authenticator
-	Keys    *KeyCache // nil: no cache, key logins need the Panel
 	Servers Servers
 	Events  *events.Outbox // nil: logins aren't recorded
 	// UID and GID own what SFTP creates: the servers' user.
@@ -83,7 +83,6 @@ type session struct {
 	login  Login
 	grant  Grant
 	method string
-	cached bool // accepted from the key cache while the Panel was unreachable
 }
 
 const sessionKey = "raptor.session"
@@ -101,10 +100,9 @@ func New(o Options) *Server {
 		failures: map[netip.Addr]*failures{},
 	}
 	s.cfg = &ssh.ServerConfig{
-		ServerVersion:     "SSH-2.0-Raptor",
-		MaxAuthTries:      maxAuthTries,
-		PasswordCallback:  s.password,
-		PublicKeyCallback: s.publicKey,
+		ServerVersion:    "SSH-2.0-Raptor",
+		MaxAuthTries:     maxAuthTries,
+		PasswordCallback: s.password,
 	}
 	s.cfg.AddHostKey(o.HostKey)
 	return s
@@ -267,11 +265,11 @@ func (s *Server) handle(c *conn, addr netip.Addr) {
 	}
 	// A delete or install that started during the handshake is caught by
 	// the per-request checks.
-	s.o.Log.Info("sftp login", "server", sess.login.ServerID, "user", sess.login.Username, "addr", addr, "method", sess.method, "cached", sess.cached)
+	s.o.Log.Info("sftp login", "server", sess.login.ServerID, "user", sess.login.Username, "addr", addr, "method", sess.method)
 	if s.o.Events != nil {
 		if _, err := s.o.Events.Append(context.Background(), events.Event{
 			Type: EventLogin, ServerID: sess.login.ServerID,
-			Data: map[string]any{"user": sess.login.Username, "user_id": sess.grant.UserID, "ip": addr.String(), "method": sess.method, "cached": sess.cached},
+			Data: map[string]any{"user": sess.login.Username, "user_id": sess.grant.UserID, "ip": addr.String(), "method": sess.method},
 		}); err != nil {
 			s.o.Log.Error("recording sftp login failed", "err", err)
 		}
@@ -356,48 +354,6 @@ func (s *Server) password(meta ssh.ConnMetadata, pw []byte) (*ssh.Permissions, e
 		return s.reject(meta, "password", err)
 	}
 	return s.accept(meta, &session{login: l, grant: g, method: "password"})
-}
-
-// publicKey checks a key with the Panel. It's also called for keys the
-// client only offers without proving it holds them; nothing here depends on
-// that proof except the accepted session, which ssh only uses for the key
-// that was verified.
-func (s *Server) publicKey(meta ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-	l, err := s.login(meta)
-	if err != nil {
-		return s.reject(meta, "publickey", err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), authTimeout)
-	defer cancel()
-	g, err := s.o.Auth.PublicKey(ctx, l, key)
-	cached := false
-	switch {
-	case err == nil:
-		if s.o.Keys != nil {
-			if err := s.o.Keys.Put(ctx, l, key, g); err != nil {
-				s.o.Log.Error("caching sftp key failed", "err", err)
-			}
-		}
-	case errors.Is(err, ErrDenied):
-		// The Panel is the authority whenever it answers.
-		if s.o.Keys != nil {
-			if err := s.o.Keys.Delete(ctx, l, key); err != nil {
-				s.o.Log.Error("forgetting sftp key failed", "err", err)
-			}
-		}
-		return s.reject(meta, "publickey", err)
-	case errors.Is(err, ErrUnavailable) && s.o.Keys != nil:
-		var ok bool
-		var cerr error
-		g, ok, cerr = s.o.Keys.Get(ctx, l, key)
-		if cerr != nil || !ok {
-			return s.reject(meta, "publickey", errors.Join(err, cerr))
-		}
-		cached = true
-	default:
-		return s.reject(meta, "publickey", err)
-	}
-	return s.accept(meta, &session{login: l, grant: g, method: "publickey", cached: cached})
 }
 
 func (s *Server) accept(meta ssh.ConnMetadata, sess *session) (*ssh.Permissions, error) {
