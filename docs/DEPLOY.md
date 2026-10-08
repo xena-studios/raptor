@@ -67,10 +67,12 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `Resend` | `api_key` | The production key: sending access only, for `mail.raptorpanel.net`. |
 | `Turnstile` | `secret_key` | The production widget's secret. |
 | `GitHub OAuth` | `client_id`, `client_secret` | The production app (callback `https://api.raptorpanel.net/oauth/github/callback`). |
-| `Google OAuth`, `Discord OAuth` | `client_id`, `client_secret` | When you've made them. **Until then, delete their lines from `deploy/secrets/panel.env.tpl` on the servers**: `op inject` fails on a missing item. A provider is offered once both its values are set. |
+| `Google OAuth`, `Discord OAuth` | `client_id`, `client_secret` | When you've made them. A provider is offered once both its values are set. |
 | `Cloudflare raptornodes.net DNS` | `token`, `zone_id` | [Below](#raptornodesnet). |
 | `Support bundles storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key` | [Below](#support-bundles). |
 | `Grafana Cloud OTLP` | `endpoint`, `headers` | [Below](#monitoring). |
+
+The Google, Discord, `raptornodes.net` DNS, support bundle, and Grafana items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
 
 Rotate anything that was ever pasted in a chat or a terminal history.
 
@@ -414,7 +416,7 @@ The rehearsal does steps 2–5 and checks the API answers and the promoted datab
 
 The Panel sends metrics and a sample of traces (10% of requests) over OpenTelemetry when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Grafana Cloud's free tier holds more than launch needs.
 
-1. Grafana Cloud → your stack → **OpenTelemetry** → configure: make a token, and copy the endpoint (`https://otlp-gateway-<region>.grafana.net/otlp`) and the `Authorization=Basic%20…` header it shows. Put them in the vault item **`Grafana Cloud OTLP`** as `endpoint` and `headers`. `panel.env.tpl` already reads them.
+1. Grafana Cloud → your stack → **OpenTelemetry** → configure: make a token, and copy the endpoint (`https://otlp-gateway-<region>.grafana.net/otlp`) and the `Authorization=Basic%20…` header it shows. Put them in the vault item **`Grafana Cloud OTLP`** as `endpoint` and `headers`. `secrets.sh` picks them up on the next deploy.
 
    Optionally, its address: Grafana Cloud → your stack → Details → Edit (the instance settings) → Instance URL → custom domain `grafana.raptorpanel.net`, after the `grafana` CNAME in [DNS](#raptorpanelnet) exists. It must stay DNS only: Grafana proves the name to Let's Encrypt itself, which fails behind Cloudflare's proxy. If you ever add CAA records to `raptorpanel.net`, include `letsencrypt.org`. Only the sign-in address changes; the OTLP endpoint stays on `grafana.net`.
 2. Deploy. Both Panels report as `raptor-panel`, each with its container's hostname as the instance.
