@@ -19,6 +19,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/xena-studios/raptor/internal/eggs"
+	"github.com/xena-studios/raptor/internal/shared/ordered"
 )
 
 //go:embed */*/*
@@ -217,3 +218,61 @@ func (e *Entry) validate() error {
 
 // Supports reports whether the game runs on a CPU architecture.
 func (e *Entry) Supports(arch string) bool { return slices.Contains(e.Arch, arch) }
+
+// ServerEgg is the egg a server created from this entry gets: the upstream
+// egg with the catalog's x-raptor block added (the architectures, and how to
+// ask for the player count), which upstream eggs don't have. Key order and
+// the file's format (JSON or YAML) are kept.
+func (e *Entry) ServerEgg() ([]byte, error) {
+	root, err := ordered.Decode(e.Egg)
+	if err != nil {
+		return nil, err
+	}
+	if root.Kind != yaml.MappingNode {
+		return nil, errors.New("egg isn't an object")
+	}
+	ext := mapping(root, "x-raptor")
+	arch := &yaml.Node{Kind: yaml.SequenceNode, Style: yaml.FlowStyle}
+	for _, a := range e.Arch {
+		arch.Content = append(arch.Content, str(a))
+	}
+	set(ext, "arch", arch)
+	if e.Players.Query != "" {
+		p := &yaml.Node{Kind: yaml.MappingNode}
+		set(p, "query", str(e.Players.Query))
+		if e.Players.Port != "" {
+			set(p, "port", str(e.Players.Port))
+		}
+		set(ext, "players", p)
+	}
+	if path.Ext(e.File) == ".json" {
+		return ordered.EncodeJSON(root, "    ")
+	}
+	return yaml.Marshal(root)
+}
+
+func str(s string) *yaml.Node { return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: s} }
+
+// mapping returns the mapping under key, adding an empty one if it's
+// missing (or isn't a mapping).
+func mapping(n *yaml.Node, key string) *yaml.Node {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == key && n.Content[i+1].Kind == yaml.MappingNode {
+			return n.Content[i+1]
+		}
+	}
+	m := &yaml.Node{Kind: yaml.MappingNode}
+	set(n, key, m)
+	return m
+}
+
+// set sets key in a mapping, replacing its value if it's there.
+func set(n *yaml.Node, key string, v *yaml.Node) {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == key {
+			n.Content[i+1] = v
+			return
+		}
+	}
+	n.Content = append(n.Content, str(key), v)
+}

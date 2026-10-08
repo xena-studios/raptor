@@ -7,6 +7,7 @@
 package server
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"errors"
@@ -319,6 +320,42 @@ func TestLifecycle(t *testing.T) {
 	}
 	if !seen {
 		t.Error("no audit event for the console command")
+	}
+}
+
+// Accepting the EULA at creation writes eula.txt after the install, owned by
+// the server's user, for eggs with the "eula" feature only.
+func TestAcceptEULA(t *testing.T) {
+	e := newEnv(t)
+	m := e.manager()
+	defer m.Close()
+	for _, feature := range []bool{true, false} {
+		egg := shellEgg("echo installed > /mnt/server/installed.txt")
+		if feature {
+			egg = bytes.Replace(egg, []byte(`"name": "Shell",`), []byte(`"name": "Shell", "features": ["eula"],`), 1)
+		}
+		id, err := m.Create(context.Background(), Config{
+			Name: "eula", Egg: egg, Limits: containers.Limits{MemoryMiB: 128}, Settings: DefaultSettings(),
+			Allocations: []Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}},
+		}, CreateOptions{AcceptEULA: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitState(t, m, id, Offline, 2*time.Minute)
+		p := filepath.Join(e.opts.VolumesDir, id, "eula.txt")
+		b, err := os.ReadFile(p)
+		if !feature {
+			if err == nil {
+				t.Error("eula.txt written for an egg without the eula feature")
+			}
+			continue
+		}
+		if err != nil || string(b) != "eula=true\n" {
+			t.Fatalf("eula.txt = %q, %v", b, err)
+		}
+		if fi, _ := os.Lstat(p); fi.Sys().(*syscall.Stat_t).Uid != testUID {
+			t.Errorf("eula.txt owned by %d", fi.Sys().(*syscall.Stat_t).Uid)
+		}
 	}
 }
 

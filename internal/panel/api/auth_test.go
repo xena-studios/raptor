@@ -57,6 +57,7 @@ type browser struct {
 	auth panelv1connect.AuthServiceClient
 	orgs panelv1connect.OrgServiceClient
 	cmds panelv1connect.CommandServiceClient
+	eggs panelv1connect.CatalogServiceClient
 }
 
 func newBrowser(t *testing.T, srv *httptest.Server, origin string) *browser {
@@ -74,6 +75,7 @@ func newBrowser(t *testing.T, srv *httptest.Server, origin string) *browser {
 		auth: panelv1connect.NewAuthServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 		orgs: panelv1connect.NewOrgServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 		cmds: panelv1connect.NewCommandServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
+		eggs: panelv1connect.NewCatalogServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 	}
 }
 

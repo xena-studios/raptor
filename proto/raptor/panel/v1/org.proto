@@ -273,6 +273,11 @@ message Node {
   bool connected = 5;
   google.protobuf.Timestamp last_seen_at = 6;
   google.protobuf.Timestamp created_at = 7;
+  // What the node reported when it last linked: its CPU architecture
+  // (amd64, arm64), cores, and memory.
+  string arch = 8;
+  int32 cpus = 9;
+  int64 memory_bytes = 10;
 }
 
 message ListNodesResponse {
@@ -292,6 +297,12 @@ message Server {
   string egg_name = 4;
   // What the caller may do on it ("*" for admins and owners: everything).
   repeated string permissions = 5;
+  // The ports its allocations use, the primary first.
+  repeated int32 ports = 6;
+  // The install: "pending", "installing", "installed", or "failed" (with
+  // install_error).
+  string install_state = 7;
+  string install_error = 8;
 }
 
 message ListServersResponse {

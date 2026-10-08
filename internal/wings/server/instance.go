@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -207,10 +208,29 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, jobID string, p i
 	if err := m.finishInstall(i, srv, res, err); err != nil {
 		return err
 	}
+	if p.AcceptEULA && slices.Contains(srv.Egg().Features, "eula") {
+		if err := m.writeEULA(dir); err != nil {
+			i.console.Notice("writing eula.txt: %v", err)
+		}
+	}
 	if p.StartAfter {
 		return i.startLocked(ctx, true)
 	}
 	return nil
+}
+
+// writeEULA records that the user accepted the game's EULA, as Minecraft
+// servers expect it: eula.txt in the server's directory.
+func (m *Manager) writeEULA(dir string) error {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = root.Close() }()
+	if err := root.WriteFile("eula.txt", []byte("eula=true\n"), 0o644); err != nil {
+		return err
+	}
+	return root.Lchown("eula.txt", m.o.UID, m.o.GID)
 }
 
 func (m *Manager) finishInstall(i *instance, srv *Server, res install.Result, runErr error) error {

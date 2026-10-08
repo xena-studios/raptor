@@ -248,6 +248,11 @@ test:
 
 A unit test loads every entry and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, and a chosen image is one the egg offers.
 
+The Panel serves the catalog to the web app (`CatalogService`): `ListEggs` describes every egg (name, images, variables and their rules, features, architectures, and a link to the upstream file), and `GetEgg` returns the file a server gets: upstream's, with `raptor.yaml`'s `arch` and `players` added under `x-raptor`, in the same format and key order. The web app puts that file in the passkey-signed `server.create` as it is, so what the user approved is what the node runs.
+
+### Accepting a EULA
+Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EULA. The web app asks when creating the server and sends `accept_eula: true` in `server.create`, inside what the passkey signs. Wings writes `eula.txt` (`eula=true`, owned by the server's user) once the install succeeds and before the first start. For eggs without the feature the flag does nothing.
+
 ## Conformance test suite
 
 `internal/wings/conformance` runs catalog eggs through the full Wings lifecycle with the real server manager, Docker, and the eggs' unmodified images:

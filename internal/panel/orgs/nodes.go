@@ -2,6 +2,8 @@ package orgs
 
 import (
 	"context"
+	"encoding/json"
+	"slices"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -51,6 +53,7 @@ func (s *Service) ListNodes(ctx context.Context, req *panelv1.ListNodesRequest) 
 			n := &panelv1.Node{
 				Id: idString(r.ID), Name: r.Name, ShortId: r.ShortID, WingsVersion: r.WingsVersion,
 				Connected: r.Connected, CreatedAt: timestamppb.New(r.CreatedAt.Time),
+				Arch: r.Arch, Cpus: r.Cpus, MemoryBytes: r.MemoryBytes,
 			}
 			if r.LastSeenAt.Valid {
 				n.LastSeenAt = timestamppb.New(r.LastSeenAt.Time)
@@ -93,7 +96,10 @@ func (s *Service) ListServers(ctx context.Context, req *panelv1.ListServersReque
 					continue
 				}
 			}
-			out.Servers = append(out.Servers, &panelv1.Server{Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, Permissions: perms})
+			out.Servers = append(out.Servers, &panelv1.Server{
+				Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, Permissions: perms,
+				Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
+			})
 		}
 		return err
 	})
@@ -101,4 +107,31 @@ func (s *Service) ListServers(ctx context.Context, req *panelv1.ListServersReque
 		return nil, err
 	}
 	return out, nil
+}
+
+type allocation struct {
+	Port    int32 `json:"port"`
+	Primary bool  `json:"primary"`
+}
+
+// ports lists a mirrored server's allocation ports, the primary first.
+func ports(allocations []byte) []int32 {
+	var as []allocation
+	if json.Unmarshal(allocations, &as) != nil {
+		return nil
+	}
+	slices.SortStableFunc(as, func(a, b allocation) int {
+		switch {
+		case a.Primary == b.Primary:
+			return 0
+		case a.Primary:
+			return -1
+		}
+		return 1
+	})
+	out := make([]int32, len(as))
+	for i, a := range as {
+		out[i] = a.Port
+	}
+	return out
 }
