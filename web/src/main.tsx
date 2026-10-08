@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ReauthProvider } from "@/components/reauth";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { transport } from "@/lib/transport";
 import { routeTree } from "@/routeTree.gen";
 import "@/index.css";
@@ -26,7 +27,9 @@ createRoot(root).render(
     <TransportProvider transport={transport}>
       <QueryClientProvider client={queryClient}>
         <ReauthProvider>
-          <RouterProvider router={router} />
+          <TooltipProvider>
+            <RouterProvider router={router} />
+          </TooltipProvider>
         </ReauthProvider>
       </QueryClientProvider>
     </TransportProvider>
