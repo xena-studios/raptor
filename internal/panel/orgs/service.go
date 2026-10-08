@@ -566,7 +566,19 @@ func (s *Service) ListAuditLog(ctx context.Context, req *panelv1.ListAuditLogReq
 		if err != nil {
 			return err
 		}
-		rows, err := q.OrgAuditLog(ctx, store.OrgAuditLogParams{OrgID: org, Before: before, Lim: auth.PageSize})
+		var rows []store.OrgAuditLogRow
+		if req.GetNodeId() != "" || req.GetServerId() != "" {
+			// One server's commands.
+			var sr []store.ServerAuditLogRow
+			sr, err = q.ServerAuditLog(ctx, store.ServerAuditLogParams{
+				OrgID: org, ServerID: req.GetServerId(), NodeID: req.GetNodeId(), Before: before, Lim: auth.PageSize,
+			})
+			for _, r := range sr {
+				rows = append(rows, store.OrgAuditLogRow(r))
+			}
+		} else {
+			rows, err = q.OrgAuditLog(ctx, store.OrgAuditLogParams{OrgID: org, Before: before, Lim: auth.PageSize})
+		}
 		for _, r := range rows {
 			out.Events = append(out.Events, auth.AuditProto(r.ID, r.At, r.Actor, r.ActorEmail.String, r.Action, r.Target, r.Ip, r.UserAgent, r.Metadata))
 		}

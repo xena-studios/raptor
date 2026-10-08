@@ -17,6 +17,7 @@ function SettingsTab() {
   return (
     <div className="flex flex-col gap-6">
       <ServerSettings
+        section="general"
         orgId={orgId}
         nodeId={nodeId}
         serverId={serverId}

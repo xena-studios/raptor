@@ -4,8 +4,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { when } from "@/lib/format";
 
-export function Log({ orgId }: { orgId: string }) {
-  const log = useQuery(OrgService.method.listAuditLog, { orgId });
+// Log is the org's audit log or, given a server, the commands sent to it.
+export function Log({
+  orgId,
+  nodeId = "",
+  serverId = "",
+}: {
+  orgId: string;
+  nodeId?: string;
+  serverId?: string;
+}) {
+  const log = useQuery(OrgService.method.listAuditLog, { orgId, nodeId, serverId });
   return (
     <Card>
       <CardContent className="flex flex-col divide-y text-sm">
@@ -16,8 +25,14 @@ export function Log({ orgId }: { orgId: string }) {
           return (
             <div key={e.id} className="flex justify-between gap-4 py-2">
               <span>
-                <span className="font-medium">{e.actorEmail || "someone who left"}</span> {what}
-                {e.target && <span className="text-muted-foreground"> · {e.target}</span>}
+                <span className="font-medium">
+                  {e.actorEmail ||
+                    (typeof meta.email === "string" ? meta.email : "someone who left")}
+                </span>{" "}
+                {what}
+                {e.target && !serverId && (
+                  <span className="text-muted-foreground"> · {e.target}</span>
+                )}
               </span>
               <span className="shrink-0 text-xs text-muted-foreground">{when(e.at)}</span>
             </div>

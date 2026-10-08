@@ -16,10 +16,32 @@ import { passkeyCancelled } from "@/lib/webauthn";
 const select =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
-// ServerSettings changes a server's name, runtime, variables, memory, disk
-// limit, and port (server.update; a new runtime is signed by the user's
-// passkey), and reinstalls it.
+// A server's settings, split across its tabs: startup (runtime and
+// variables), network (its port), and general (name and limits, and
+// reinstalling).
+export type SettingsSection = "startup" | "network" | "general";
+
+const sectionText: Record<SettingsSection, { title: string; description: string }> = {
+  startup: {
+    title: "Startup",
+    description: "The runtime and the game's settings. Changes apply the next time it starts.",
+  },
+  network: {
+    title: "Port",
+    description: "The port players connect to. It changes the next time the server starts.",
+  },
+  general: {
+    title: "Settings",
+    description:
+      "The server's name and limits. Memory applies the next time it starts; the disk limit at once.",
+  },
+};
+
+// ServerSettings changes one section of a server's settings (server.update;
+// a new runtime is signed by the user's passkey), and on the general one
+// reinstalls it.
 export function ServerSettings({
+  section,
   orgId,
   nodeId,
   serverId,
@@ -28,6 +50,7 @@ export function ServerSettings({
   canReinstall,
   stopped,
 }: {
+  section: SettingsSection;
   orgId: string;
   nodeId: string;
   serverId: string;
@@ -48,6 +71,7 @@ export function ServerSettings({
       {cfg ? (
         <SettingsForm
           key={res.data.configJson}
+          section={section}
           name={res.data.server?.name ?? ""}
           cfg={cfg}
           nodeId={nodeId}
@@ -60,7 +84,7 @@ export function ServerSettings({
           You don't have access to this server's settings.
         </p>
       )}
-      {canReinstall && (
+      {section === "general" && canReinstall && (
         <Reinstall
           stopped={stopped}
           nodeId={nodeId}
@@ -74,6 +98,7 @@ export function ServerSettings({
 }
 
 function SettingsForm({
+  section,
   name: initialName,
   cfg,
   nodeId,
@@ -81,6 +106,7 @@ function SettingsForm({
   userId,
   admin,
 }: {
+  section: SettingsSection;
   name: string;
   cfg: ServerConfig;
   nodeId: string;
@@ -152,23 +178,31 @@ function SettingsForm({
     <form onSubmit={save}>
       <Card>
         <CardHeader>
-          <CardTitle>Settings</CardTitle>
-          <CardDescription>
-            Changes apply the next time the server starts; the disk limit applies at once.
-          </CardDescription>
+          <CardTitle>{sectionText[section].title}</CardTitle>
+          <CardDescription>{sectionText[section].description}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="s-name">Name</Label>
-            <Input
-              id="s-name"
-              required
-              maxLength={64}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          {images.length > 1 && (
+          {section === "general" && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="s-name">Name</Label>
+              <Input
+                id="s-name"
+                required
+                maxLength={64}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          )}
+          {section === "startup" && cfg.startup && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Startup command</Label>
+              <code className="rounded-lg bg-muted p-3 font-mono text-xs break-all">
+                {cfg.startup}
+              </code>
+            </div>
+          )}
+          {section === "startup" && images.length > 1 && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="s-image">Runtime</Label>
               <select
@@ -190,8 +224,8 @@ function SettingsForm({
               )}
             </div>
           )}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="flex flex-col gap-1.5">
+          {section === "network" && (
+            <div className="flex flex-col gap-1.5 sm:max-w-48">
               <Label htmlFor="s-port">Port</Label>
               <Input
                 id="s-port"
@@ -203,44 +237,49 @@ function SettingsForm({
                 onChange={(e) => setPort(Number(e.target.value))}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="s-memory">Memory (GB)</Label>
-              <Input
-                id="s-memory"
-                type="number"
-                required
-                min={0.0625}
-                step="any"
-                value={memoryGiB}
-                onChange={(e) => setMemoryGiB(Number(e.target.value))}
-              />
+          )}
+          {section === "general" && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="s-memory">Memory (GB)</Label>
+                <Input
+                  id="s-memory"
+                  type="number"
+                  required
+                  min={0.0625}
+                  step="any"
+                  value={memoryGiB}
+                  onChange={(e) => setMemoryGiB(Number(e.target.value))}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="s-disk">Disk limit (GB)</Label>
+                <Input
+                  id="s-disk"
+                  type="number"
+                  min={1}
+                  placeholder="No limit"
+                  value={diskGiB}
+                  onChange={(e) => setDiskGiB(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="s-disk">Disk limit (GB)</Label>
-              <Input
-                id="s-disk"
-                type="number"
-                min={1}
-                placeholder="No limit"
-                value={diskGiB}
-                onChange={(e) => setDiskGiB(e.target.value)}
-              />
-            </div>
-          </div>
-          {vars.map((v) => (
-            <div key={v.env} className="flex flex-col gap-1.5">
-              <Label htmlFor={`s-var-${v.env}`}>{v.name}</Label>
-              <Input
-                id={`s-var-${v.env}`}
-                value={values[v.env] ?? ""}
-                placeholder={v.default}
-                disabled={!admin && !v.user_editable}
-                onChange={(e) => setValues({ ...values, [v.env]: e.target.value })}
-              />
-              {v.description && <p className="text-xs text-muted-foreground">{v.description}</p>}
-            </div>
-          ))}
-          {!cfg.egg && (
+          )}
+          {section === "startup" &&
+            vars.map((v) => (
+              <div key={v.env} className="flex flex-col gap-1.5">
+                <Label htmlFor={`s-var-${v.env}`}>{v.name}</Label>
+                <Input
+                  id={`s-var-${v.env}`}
+                  value={values[v.env] ?? ""}
+                  placeholder={v.default}
+                  disabled={!admin && !v.user_editable}
+                  onChange={(e) => setValues({ ...values, [v.env]: e.target.value })}
+                />
+                {v.description && <p className="text-xs text-muted-foreground">{v.description}</p>}
+              </div>
+            ))}
+          {section === "startup" && !cfg.egg && (
             <p className="text-xs text-muted-foreground">
               The node hasn't reported this server's game settings yet. Update Wings to edit them
               here.

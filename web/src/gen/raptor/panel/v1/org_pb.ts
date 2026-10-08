@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/org.proto.
  */
 export const file_raptor_panel_v1_org: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvb3JnLnByb3RvEg9yYXB0b3IucGFuZWwudjEidAoDT3JnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSLgoKY3JlYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIiAKEENyZWF0ZU9yZ1JlcXVlc3QSDAoEbmFtZRgBIAEoCSI2ChFDcmVhdGVPcmdSZXNwb25zZRIhCgNvcmcYASABKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIhEKD0xpc3RPcmdzUmVxdWVzdCI2ChBMaXN0T3Jnc1Jlc3BvbnNlEiIKBG9yZ3MYASADKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIjAKEFJlbmFtZU9yZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBG5hbWUYAiABKAkiEwoRUmVuYW1lT3JnUmVzcG9uc2UiigEKBk1lbWJlchIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlEi0KCWpvaW5lZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiJAoSTGlzdE1lbWJlcnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSI/ChNMaXN0TWVtYmVyc1Jlc3BvbnNlEigKB21lbWJlcnMYASADKAsyFy5yYXB0b3IucGFuZWwudjEuTWVtYmVyIlwKFFNldE1lbWJlclJvbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEiMKBHJvbGUYAyABKA4yFS5yYXB0b3IucGFuZWwudjEuUm9sZSIXChVTZXRNZW1iZXJSb2xlUmVzcG9uc2UiNgoTUmVtb3ZlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCSIWChRSZW1vdmVNZW1iZXJSZXNwb25zZSKsAQoKSW52aXRhdGlvbhIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIjCgRyb2xlGAMgASgOMhUucmFwdG9yLnBhbmVsLnYxLlJvbGUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWQoTSW52aXRlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFZW1haWwYAiABKAkSIwoEcm9sZRgDIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIkcKFEludml0ZU1lbWJlclJlc3BvbnNlEi8KCmludml0YXRpb24YASABKAsyGy5yYXB0b3IucGFuZWwudjEuSW52aXRhdGlvbiIoChZMaXN0SW52aXRhdGlvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSJLChdMaXN0SW52aXRhdGlvbnNSZXNwb25zZRIwCgtpbnZpdGF0aW9ucxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5JbnZpdGF0aW9uIkAKF1Jldm9rZUludml0YXRpb25SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIVCg1pbnZpdGF0aW9uX2lkGAIgASgJIhoKGFJldm9rZUludml0YXRpb25SZXNwb25zZSIoChdBY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBINCgV0b2tlbhgBIAEoCSI9ChhBY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2USIQoDb3JnGAEgASgLMhQucmFwdG9yLnBhbmVsLnYxLk9yZyI2ChZDcmVhdGVKb2luVG9rZW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJIlgKF0NyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjkKE0xpc3RBdWRpdExvZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkiXAoUTGlzdEF1ZGl0TG9nUmVzcG9uc2USKwoGZXZlbnRzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkF1ZGl0RXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJInIKFlNldFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJEg8KB3VzZXJfaWQYBCABKAkSEwoLcGVybWlzc2lvbnMYBSADKAkiGQoXU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiTQoXTGlzdFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIkMKDFNlcnZlckFjY2VzcxIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEhMKC3Blcm1pc3Npb25zGAMgAygJIkkKGExpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZRItCgZhY2Nlc3MYASADKAsyHS5yYXB0b3IucGFuZWwudjEuU2VydmVyQWNjZXNzIiIKEExpc3ROb2Rlc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJIvABCgROb2RlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIc2hvcnRfaWQYAyABKAkSFQoNd2luZ3NfdmVyc2lvbhgEIAEoCRIRCgljb25uZWN0ZWQYBSABKAgSMAoMbGFzdF9zZWVuX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRhcmNoGAggASgJEgwKBGNwdXMYCSABKAUSFAoMbWVtb3J5X2J5dGVzGAogASgDIjkKEUxpc3ROb2Rlc1Jlc3BvbnNlEiQKBW5vZGVzGAEgAygLMhUucmFwdG9yLnBhbmVsLnYxLk5vZGUiQgoRUmVuYW1lTm9kZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSDAoEbmFtZRgDIAEoCSIUChJSZW5hbWVOb2RlUmVzcG9uc2UiNAoRUmVtb3ZlTm9kZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkiFAoSUmVtb3ZlTm9kZVJlc3BvbnNlIjUKEkxpc3RTZXJ2ZXJzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCSKVAQoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFc3RhdGUYAyABKAkSEAoIZWdnX25hbWUYBCABKAkSEwoLcGVybWlzc2lvbnMYBSADKAkSDQoFcG9ydHMYBiADKAUSFQoNaW5zdGFsbF9zdGF0ZRgHIAEoCRIVCg1pbnN0YWxsX2Vycm9yGAggASgJIj8KE0xpc3RTZXJ2ZXJzUmVzcG9uc2USKAoHc2VydmVycxgBIAMoCzIXLnJhcHRvci5wYW5lbC52MS5TZXJ2ZXIiRgoQR2V0U2VydmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiUQoRR2V0U2VydmVyUmVzcG9uc2USJwoGc2VydmVyGAEgASgLMhcucmFwdG9yLnBhbmVsLnYxLlNlcnZlchITCgtjb25maWdfanNvbhgCIAEoCSJGChNQaW5Kb2luVG9rZW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRINCgV0b2tlbhgCIAEoCRIQCghwaW5fanNvbhgDIAEoCSIWChRQaW5Kb2luVG9rZW5SZXNwb25zZSI8ChlMaXN0TWVtYmVyUGFzc2tleXNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJIkgKGkxpc3RNZW1iZXJQYXNza2V5c1Jlc3BvbnNlEioKCHBhc3NrZXlzGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkqTQoEUm9sZRIUChBST0xFX1VOU1BFQ0lGSUVEEAASDwoLUk9MRV9NRU1CRVIQARIOCgpST0xFX0FETUlOEAISDgoKUk9MRV9PV05FUhADMoQQCgpPcmdTZXJ2aWNlElQKCUNyZWF0ZU9yZxIhLnJhcHRvci5wYW5lbC52MS5DcmVhdGVPcmdSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZU9yZ1Jlc3BvbnNlIgASVAoITGlzdE9yZ3MSIC5yYXB0b3IucGFuZWwudjEuTGlzdE9yZ3NSZXF1ZXN0GiEucmFwdG9yLnBhbmVsLnYxLkxpc3RPcmdzUmVzcG9uc2UiA5ACARJUCglSZW5hbWVPcmcSIS5yYXB0b3IucGFuZWwudjEuUmVuYW1lT3JnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5SZW5hbWVPcmdSZXNwb25zZSIAEl0KC0xpc3RNZW1iZXJzEiMucmFwdG9yLnBhbmVsLnYxLkxpc3RNZW1iZXJzUmVxdWVzdBokLnJhcHRvci5wYW5lbC52MS5MaXN0TWVtYmVyc1Jlc3BvbnNlIgOQAgESYAoNU2V0TWVtYmVyUm9sZRIlLnJhcHRvci5wYW5lbC52MS5TZXRNZW1iZXJSb2xlUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5TZXRNZW1iZXJSb2xlUmVzcG9uc2UiABJdCgxSZW1vdmVNZW1iZXISJC5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTWVtYmVyUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5SZW1vdmVNZW1iZXJSZXNwb25zZSIAEl0KDEludml0ZU1lbWJlchIkLnJhcHRvci5wYW5lbC52MS5JbnZpdGVNZW1iZXJSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkludml0ZU1lbWJlclJlc3BvbnNlIgASaQoPTGlzdEludml0YXRpb25zEicucmFwdG9yLnBhbmVsLnYxLkxpc3RJbnZpdGF0aW9uc1JlcXVlc3QaKC5yYXB0b3IucGFuZWwudjEuTGlzdEludml0YXRpb25zUmVzcG9uc2UiA5ACARJpChBSZXZva2VJbnZpdGF0aW9uEigucmFwdG9yLnBhbmVsLnYxLlJldm9rZUludml0YXRpb25SZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLlJldm9rZUludml0YXRpb25SZXNwb25zZSIAEmkKEEFjY2VwdEludml0YXRpb24SKC5yYXB0b3IucGFuZWwudjEuQWNjZXB0SW52aXRhdGlvblJlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuQWNjZXB0SW52aXRhdGlvblJlc3BvbnNlIgASZgoPQ3JlYXRlSm9pblRva2VuEicucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZUpvaW5Ub2tlblJlcXVlc3QaKC5yYXB0b3IucGFuZWwudjEuQ3JlYXRlSm9pblRva2VuUmVzcG9uc2UiABJmCg9TZXRTZXJ2ZXJBY2Nlc3MSJy5yYXB0b3IucGFuZWwudjEuU2V0U2VydmVyQWNjZXNzUmVxdWVzdBooLnJhcHRvci5wYW5lbC52MS5TZXRTZXJ2ZXJBY2Nlc3NSZXNwb25zZSIAEmwKEExpc3RTZXJ2ZXJBY2Nlc3MSKC5yYXB0b3IucGFuZWwudjEuTGlzdFNlcnZlckFjY2Vzc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuTGlzdFNlcnZlckFjY2Vzc1Jlc3BvbnNlIgOQAgESVwoJTGlzdE5vZGVzEiEucmFwdG9yLnBhbmVsLnYxLkxpc3ROb2Rlc1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuTGlzdE5vZGVzUmVzcG9uc2UiA5ACARJXCgpSZW5hbWVOb2RlEiIucmFwdG9yLnBhbmVsLnYxLlJlbmFtZU5vZGVSZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLlJlbmFtZU5vZGVSZXNwb25zZSIAElcKClJlbW92ZU5vZGUSIi5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTm9kZVJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTm9kZVJlc3BvbnNlIgASXQoLTGlzdFNlcnZlcnMSIy5yYXB0b3IucGFuZWwudjEuTGlzdFNlcnZlcnNSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJzUmVzcG9uc2UiA5ACARJXCglHZXRTZXJ2ZXISIS5yYXB0b3IucGFuZWwudjEuR2V0U2VydmVyUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5HZXRTZXJ2ZXJSZXNwb25zZSIDkAIBEl0KDFBpbkpvaW5Ub2tlbhIkLnJhcHRvci5wYW5lbC52MS5QaW5Kb2luVG9rZW5SZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLlBpbkpvaW5Ub2tlblJlc3BvbnNlIgAScgoSTGlzdE1lbWJlclBhc3NrZXlzEioucmFwdG9yLnBhbmVsLnYxLkxpc3RNZW1iZXJQYXNza2V5c1JlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuTGlzdE1lbWJlclBhc3NrZXlzUmVzcG9uc2UiA5ACARJgCgxMaXN0QXVkaXRMb2cSJC5yYXB0b3IucGFuZWwudjEuTGlzdEF1ZGl0TG9nUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5MaXN0QXVkaXRMb2dSZXNwb25zZSIDkAIBQsgBChNjb20ucmFwdG9yLnBhbmVsLnYxQghPcmdQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_raptor_panel_v1_audit, file_raptor_panel_v1_auth]);
+  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvb3JnLnByb3RvEg9yYXB0b3IucGFuZWwudjEidAoDT3JnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSLgoKY3JlYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIiAKEENyZWF0ZU9yZ1JlcXVlc3QSDAoEbmFtZRgBIAEoCSI2ChFDcmVhdGVPcmdSZXNwb25zZRIhCgNvcmcYASABKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIhEKD0xpc3RPcmdzUmVxdWVzdCI2ChBMaXN0T3Jnc1Jlc3BvbnNlEiIKBG9yZ3MYASADKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIjAKEFJlbmFtZU9yZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBG5hbWUYAiABKAkiEwoRUmVuYW1lT3JnUmVzcG9uc2UiigEKBk1lbWJlchIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlEi0KCWpvaW5lZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiJAoSTGlzdE1lbWJlcnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSI/ChNMaXN0TWVtYmVyc1Jlc3BvbnNlEigKB21lbWJlcnMYASADKAsyFy5yYXB0b3IucGFuZWwudjEuTWVtYmVyIlwKFFNldE1lbWJlclJvbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEiMKBHJvbGUYAyABKA4yFS5yYXB0b3IucGFuZWwudjEuUm9sZSIXChVTZXRNZW1iZXJSb2xlUmVzcG9uc2UiNgoTUmVtb3ZlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCSIWChRSZW1vdmVNZW1iZXJSZXNwb25zZSKsAQoKSW52aXRhdGlvbhIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIjCgRyb2xlGAMgASgOMhUucmFwdG9yLnBhbmVsLnYxLlJvbGUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWQoTSW52aXRlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFZW1haWwYAiABKAkSIwoEcm9sZRgDIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIkcKFEludml0ZU1lbWJlclJlc3BvbnNlEi8KCmludml0YXRpb24YASABKAsyGy5yYXB0b3IucGFuZWwudjEuSW52aXRhdGlvbiIoChZMaXN0SW52aXRhdGlvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSJLChdMaXN0SW52aXRhdGlvbnNSZXNwb25zZRIwCgtpbnZpdGF0aW9ucxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5JbnZpdGF0aW9uIkAKF1Jldm9rZUludml0YXRpb25SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIVCg1pbnZpdGF0aW9uX2lkGAIgASgJIhoKGFJldm9rZUludml0YXRpb25SZXNwb25zZSIoChdBY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBINCgV0b2tlbhgBIAEoCSI9ChhBY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2USIQoDb3JnGAEgASgLMhQucmFwdG9yLnBhbmVsLnYxLk9yZyI2ChZDcmVhdGVKb2luVG9rZW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJIlgKF0NyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIl0KE0xpc3RBdWRpdExvZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglzZXJ2ZXJfaWQYBCABKAkiXAoUTGlzdEF1ZGl0TG9nUmVzcG9uc2USKwoGZXZlbnRzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkF1ZGl0RXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJInIKFlNldFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJEg8KB3VzZXJfaWQYBCABKAkSEwoLcGVybWlzc2lvbnMYBSADKAkiGQoXU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiTQoXTGlzdFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIkMKDFNlcnZlckFjY2VzcxIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEhMKC3Blcm1pc3Npb25zGAMgAygJIkkKGExpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZRItCgZhY2Nlc3MYASADKAsyHS5yYXB0b3IucGFuZWwudjEuU2VydmVyQWNjZXNzIiIKEExpc3ROb2Rlc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJIvABCgROb2RlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIc2hvcnRfaWQYAyABKAkSFQoNd2luZ3NfdmVyc2lvbhgEIAEoCRIRCgljb25uZWN0ZWQYBSABKAgSMAoMbGFzdF9zZWVuX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRhcmNoGAggASgJEgwKBGNwdXMYCSABKAUSFAoMbWVtb3J5X2J5dGVzGAogASgDIjkKEUxpc3ROb2Rlc1Jlc3BvbnNlEiQKBW5vZGVzGAEgAygLMhUucmFwdG9yLnBhbmVsLnYxLk5vZGUiQgoRUmVuYW1lTm9kZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSDAoEbmFtZRgDIAEoCSIUChJSZW5hbWVOb2RlUmVzcG9uc2UiNAoRUmVtb3ZlTm9kZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkiFAoSUmVtb3ZlTm9kZVJlc3BvbnNlIjUKEkxpc3RTZXJ2ZXJzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCSKVAQoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFc3RhdGUYAyABKAkSEAoIZWdnX25hbWUYBCABKAkSEwoLcGVybWlzc2lvbnMYBSADKAkSDQoFcG9ydHMYBiADKAUSFQoNaW5zdGFsbF9zdGF0ZRgHIAEoCRIVCg1pbnN0YWxsX2Vycm9yGAggASgJIj8KE0xpc3RTZXJ2ZXJzUmVzcG9uc2USKAoHc2VydmVycxgBIAMoCzIXLnJhcHRvci5wYW5lbC52MS5TZXJ2ZXIiRgoQR2V0U2VydmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiUQoRR2V0U2VydmVyUmVzcG9uc2USJwoGc2VydmVyGAEgASgLMhcucmFwdG9yLnBhbmVsLnYxLlNlcnZlchITCgtjb25maWdfanNvbhgCIAEoCSJGChNQaW5Kb2luVG9rZW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRINCgV0b2tlbhgCIAEoCRIQCghwaW5fanNvbhgDIAEoCSIWChRQaW5Kb2luVG9rZW5SZXNwb25zZSI8ChlMaXN0TWVtYmVyUGFzc2tleXNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJIkgKGkxpc3RNZW1iZXJQYXNza2V5c1Jlc3BvbnNlEioKCHBhc3NrZXlzGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkiSgoUTGlzdFNjaGVkdWxlc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIkUKFUxpc3RTY2hlZHVsZXNSZXNwb25zZRIsCglzY2hlZHVsZXMYASADKAsyGS5yYXB0b3IucGFuZWwudjEuU2NoZWR1bGUiqgEKCFNjaGVkdWxlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHZW5hYmxlZBgDIAEoCBIsCghuZXh0X3J1bhgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLAoIbGFzdF9ydW4YBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD2RlZmluaXRpb25fanNvbhgGIAEoCSJIChJMaXN0QmFja3Vwc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIj8KE0xpc3RCYWNrdXBzUmVzcG9uc2USKAoHYmFja3VwcxgBIAMoCzIXLnJhcHRvci5wYW5lbC52MS5CYWNrdXAikAIKBkJhY2t1cBIKCgJpZBgBIAEoCRIMCgRraW5kGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIOCgZsb2NrZWQYBCABKAgSDAoEc2l6ZRgFIAEoAxINCgVmaWxlcxgGIAEoAxINCgVlcnJvchgHIAEoCRIPCgd3YXJuaW5nGAggASgJEi4KCmNyZWF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC2ZpbmlzaGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpleHBpcmVzX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCpNCgRSb2xlEhQKEFJPTEVfVU5TUEVDSUZJRUQQABIPCgtST0xFX01FTUJFUhABEg4KClJPTEVfQURNSU4QAhIOCgpST0xFX09XTkVSEAMyyBEKCk9yZ1NlcnZpY2USVAoJQ3JlYXRlT3JnEiEucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZU9yZ1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuQ3JlYXRlT3JnUmVzcG9uc2UiABJUCghMaXN0T3JncxIgLnJhcHRvci5wYW5lbC52MS5MaXN0T3Jnc1JlcXVlc3QaIS5yYXB0b3IucGFuZWwudjEuTGlzdE9yZ3NSZXNwb25zZSIDkAIBElQKCVJlbmFtZU9yZxIhLnJhcHRvci5wYW5lbC52MS5SZW5hbWVPcmdSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLlJlbmFtZU9yZ1Jlc3BvbnNlIgASXQoLTGlzdE1lbWJlcnMSIy5yYXB0b3IucGFuZWwudjEuTGlzdE1lbWJlcnNSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLkxpc3RNZW1iZXJzUmVzcG9uc2UiA5ACARJgCg1TZXRNZW1iZXJSb2xlEiUucmFwdG9yLnBhbmVsLnYxLlNldE1lbWJlclJvbGVSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLlNldE1lbWJlclJvbGVSZXNwb25zZSIAEl0KDFJlbW92ZU1lbWJlchIkLnJhcHRvci5wYW5lbC52MS5SZW1vdmVNZW1iZXJSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLlJlbW92ZU1lbWJlclJlc3BvbnNlIgASXQoMSW52aXRlTWVtYmVyEiQucmFwdG9yLnBhbmVsLnYxLkludml0ZU1lbWJlclJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuSW52aXRlTWVtYmVyUmVzcG9uc2UiABJpCg9MaXN0SW52aXRhdGlvbnMSJy5yYXB0b3IucGFuZWwudjEuTGlzdEludml0YXRpb25zUmVxdWVzdBooLnJhcHRvci5wYW5lbC52MS5MaXN0SW52aXRhdGlvbnNSZXNwb25zZSIDkAIBEmkKEFJldm9rZUludml0YXRpb24SKC5yYXB0b3IucGFuZWwudjEuUmV2b2tlSW52aXRhdGlvblJlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuUmV2b2tlSW52aXRhdGlvblJlc3BvbnNlIgASaQoQQWNjZXB0SW52aXRhdGlvbhIoLnJhcHRvci5wYW5lbC52MS5BY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5BY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2UiABJmCg9DcmVhdGVKb2luVG9rZW4SJy5yYXB0b3IucGFuZWwudjEuQ3JlYXRlSm9pblRva2VuUmVxdWVzdBooLnJhcHRvci5wYW5lbC52MS5DcmVhdGVKb2luVG9rZW5SZXNwb25zZSIAEmYKD1NldFNlcnZlckFjY2VzcxInLnJhcHRvci5wYW5lbC52MS5TZXRTZXJ2ZXJBY2Nlc3NSZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLlNldFNlcnZlckFjY2Vzc1Jlc3BvbnNlIgASbAoQTGlzdFNlcnZlckFjY2VzcxIoLnJhcHRvci5wYW5lbC52MS5MaXN0U2VydmVyQWNjZXNzUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5MaXN0U2VydmVyQWNjZXNzUmVzcG9uc2UiA5ACARJXCglMaXN0Tm9kZXMSIS5yYXB0b3IucGFuZWwudjEuTGlzdE5vZGVzUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5MaXN0Tm9kZXNSZXNwb25zZSIDkAIBElcKClJlbmFtZU5vZGUSIi5yYXB0b3IucGFuZWwudjEuUmVuYW1lTm9kZVJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuUmVuYW1lTm9kZVJlc3BvbnNlIgASVwoKUmVtb3ZlTm9kZRIiLnJhcHRvci5wYW5lbC52MS5SZW1vdmVOb2RlUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5SZW1vdmVOb2RlUmVzcG9uc2UiABJdCgtMaXN0U2VydmVycxIjLnJhcHRvci5wYW5lbC52MS5MaXN0U2VydmVyc1JlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuTGlzdFNlcnZlcnNSZXNwb25zZSIDkAIBElcKCUdldFNlcnZlchIhLnJhcHRvci5wYW5lbC52MS5HZXRTZXJ2ZXJSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkdldFNlcnZlclJlc3BvbnNlIgOQAgESXQoMUGluSm9pblRva2VuEiQucmFwdG9yLnBhbmVsLnYxLlBpbkpvaW5Ub2tlblJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuUGluSm9pblRva2VuUmVzcG9uc2UiABJyChJMaXN0TWVtYmVyUGFzc2tleXMSKi5yYXB0b3IucGFuZWwudjEuTGlzdE1lbWJlclBhc3NrZXlzUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5MaXN0TWVtYmVyUGFzc2tleXNSZXNwb25zZSIDkAIBEmAKDExpc3RBdWRpdExvZxIkLnJhcHRvci5wYW5lbC52MS5MaXN0QXVkaXRMb2dSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkxpc3RBdWRpdExvZ1Jlc3BvbnNlIgOQAgESYwoNTGlzdFNjaGVkdWxlcxIlLnJhcHRvci5wYW5lbC52MS5MaXN0U2NoZWR1bGVzUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5MaXN0U2NoZWR1bGVzUmVzcG9uc2UiA5ACARJdCgtMaXN0QmFja3VwcxIjLnJhcHRvci5wYW5lbC52MS5MaXN0QmFja3Vwc1JlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuTGlzdEJhY2t1cHNSZXNwb25zZSIDkAIBQsgBChNjb20ucmFwdG9yLnBhbmVsLnYxQghPcmdQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_raptor_panel_v1_audit, file_raptor_panel_v1_auth]);
 
 /**
  * @generated from message raptor.panel.v1.Org
@@ -544,6 +544,18 @@ export type ListAuditLogRequest = Message<"raptor.panel.v1.ListAuditLogRequest">
    * @generated from field: string page_token = 2;
    */
   pageToken: string;
+
+  /**
+   * With both set, only the commands sent to that server.
+   *
+   * @generated from field: string node_id = 3;
+   */
+  nodeId: string;
+
+  /**
+   * @generated from field: string server_id = 4;
+   */
+  serverId: string;
 };
 
 /**
@@ -1116,6 +1128,213 @@ export const ListMemberPasskeysResponseSchema: GenMessage<ListMemberPasskeysResp
   messageDesc(file_raptor_panel_v1_org, 47);
 
 /**
+ * @generated from message raptor.panel.v1.ListSchedulesRequest
+ */
+export type ListSchedulesRequest = Message<"raptor.panel.v1.ListSchedulesRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
+
+  /**
+   * @generated from field: string server_id = 3;
+   */
+  serverId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListSchedulesRequest.
+ * Use `create(ListSchedulesRequestSchema)` to create a new message.
+ */
+export const ListSchedulesRequestSchema: GenMessage<ListSchedulesRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 48);
+
+/**
+ * @generated from message raptor.panel.v1.ListSchedulesResponse
+ */
+export type ListSchedulesResponse = Message<"raptor.panel.v1.ListSchedulesResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.Schedule schedules = 1;
+   */
+  schedules: Schedule[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListSchedulesResponse.
+ * Use `create(ListSchedulesResponseSchema)` to create a new message.
+ */
+export const ListSchedulesResponseSchema: GenMessage<ListSchedulesResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 49);
+
+/**
+ * @generated from message raptor.panel.v1.Schedule
+ */
+export type Schedule = Message<"raptor.panel.v1.Schedule"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: bool enabled = 3;
+   */
+  enabled: boolean;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp next_run = 4;
+   */
+  nextRun?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp last_run = 5;
+   */
+  lastRun?: Timestamp | undefined;
+
+  /**
+   * What schedule.create and schedule.update take, as JSON: cron, timezone,
+   * steps, and the rest.
+   *
+   * @generated from field: string definition_json = 6;
+   */
+  definitionJson: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.Schedule.
+ * Use `create(ScheduleSchema)` to create a new message.
+ */
+export const ScheduleSchema: GenMessage<Schedule> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 50);
+
+/**
+ * @generated from message raptor.panel.v1.ListBackupsRequest
+ */
+export type ListBackupsRequest = Message<"raptor.panel.v1.ListBackupsRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
+
+  /**
+   * @generated from field: string server_id = 3;
+   */
+  serverId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListBackupsRequest.
+ * Use `create(ListBackupsRequestSchema)` to create a new message.
+ */
+export const ListBackupsRequestSchema: GenMessage<ListBackupsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 51);
+
+/**
+ * @generated from message raptor.panel.v1.ListBackupsResponse
+ */
+export type ListBackupsResponse = Message<"raptor.panel.v1.ListBackupsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.Backup backups = 1;
+   */
+  backups: Backup[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListBackupsResponse.
+ * Use `create(ListBackupsResponseSchema)` to create a new message.
+ */
+export const ListBackupsResponseSchema: GenMessage<ListBackupsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 52);
+
+/**
+ * @generated from message raptor.panel.v1.Backup
+ */
+export type Backup = Message<"raptor.panel.v1.Backup"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "manual", "scheduled", "safety" (taken before a restore or a wipe), or
+   * "final" (taken before the server was deleted).
+   *
+   * @generated from field: string kind = 2;
+   */
+  kind: string;
+
+  /**
+   * "pending", "running", "ok", or "failed".
+   *
+   * @generated from field: string status = 3;
+   */
+  status: string;
+
+  /**
+   * Retention never deletes a locked backup.
+   *
+   * @generated from field: bool locked = 4;
+   */
+  locked: boolean;
+
+  /**
+   * @generated from field: int64 size = 5;
+   */
+  size: bigint;
+
+  /**
+   * @generated from field: int64 files = 6;
+   */
+  files: bigint;
+
+  /**
+   * @generated from field: string error = 7;
+   */
+  error: string;
+
+  /**
+   * @generated from field: string warning = 8;
+   */
+  warning: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 9;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp finished_at = 10;
+   */
+  finishedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expires_at = 11;
+   */
+  expiresAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.Backup.
+ * Use `create(BackupSchema)` to create a new message.
+ */
+export const BackupSchema: GenMessage<Backup> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 53);
+
+/**
  * @generated from enum raptor.panel.v1.Role
  */
 export enum Role {
@@ -1390,6 +1609,28 @@ export const OrgService: GenService<{
     methodKind: "unary";
     input: typeof ListAuditLogRequestSchema;
     output: typeof ListAuditLogResponseSchema;
+  },
+  /**
+   * ListSchedules lists a server's schedules as the mirror has them. Needs
+   * the schedules permission.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.ListSchedules
+   */
+  listSchedules: {
+    methodKind: "unary";
+    input: typeof ListSchedulesRequestSchema;
+    output: typeof ListSchedulesResponseSchema;
+  },
+  /**
+   * ListBackups lists a server's backups as the mirror has them, newest
+   * first. Needs the backups permission.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.ListBackups
+   */
+  listBackups: {
+    methodKind: "unary";
+    input: typeof ListBackupsRequestSchema;
+    output: typeof ListBackupsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_org, 0);

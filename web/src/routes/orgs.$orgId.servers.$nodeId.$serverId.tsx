@@ -4,8 +4,33 @@ import { useState } from "react";
 import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { PowerButtons } from "@/components/power-buttons";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
+import type { Server } from "@/gen/raptor/panel/v1/org_pb";
 import { can, useServer } from "@/lib/org-data";
 import { serverStatus } from "@/lib/servers";
+
+// A server's tabs, each shown to those who may use it.
+const base = "/orgs/$orgId/servers/$nodeId/$serverId";
+const tabs = [
+  { label: "Overview", to: base, exact: true, show: () => true },
+  { label: "Files", to: `${base}/files`, show: (s) => can(s, "files.read") },
+  { label: "Databases", to: `${base}/databases`, show: (s) => can(s, "*") },
+  { label: "Schedules", to: `${base}/schedules`, show: (s) => can(s, "schedules") },
+  { label: "Backups", to: `${base}/backups`, show: (s) => can(s, "backups") },
+  { label: "Network", to: `${base}/network`, show: () => true },
+  { label: "Startup", to: `${base}/startup`, show: (s) => can(s, "startup") },
+  {
+    label: "Settings",
+    to: `${base}/settings`,
+    show: (s) => can(s, "startup") || can(s, "reinstall"),
+  },
+  { label: "Activity", to: `${base}/activity`, show: (s) => can(s, "*") },
+  { label: "Access", to: `${base}/access`, show: (s) => can(s, "*") },
+] as const satisfies readonly {
+  label: string;
+  to: string;
+  exact?: boolean;
+  show: (s: Server | undefined) => boolean;
+}[];
 
 // A server's pages: its header with the power buttons, its tabs, and the
 // tab below.
@@ -50,41 +75,19 @@ function ServerLayout() {
         {status && <StatusDetail status={status} />}
         {error && <p className="text-sm text-destructive">{error}</p>}
         <RouteTabs label="Server sections">
-          <Link
-            to="/orgs/$orgId/servers/$nodeId/$serverId"
-            params={params}
-            activeOptions={{ exact: true }}
-            className={tabClass}
-          >
-            Console
-          </Link>
-          {can(server, "files.read") && (
-            <Link
-              to="/orgs/$orgId/servers/$nodeId/$serverId/files"
-              params={params}
-              className={tabClass}
-            >
-              Files
-            </Link>
-          )}
-          {(can(server, "startup") || can(server, "reinstall")) && (
-            <Link
-              to="/orgs/$orgId/servers/$nodeId/$serverId/settings"
-              params={params}
-              className={tabClass}
-            >
-              Settings
-            </Link>
-          )}
-          {can(server, "*") && (
-            <Link
-              to="/orgs/$orgId/servers/$nodeId/$serverId/access"
-              params={params}
-              className={tabClass}
-            >
-              Access
-            </Link>
-          )}
+          {tabs
+            .filter((t) => t.show(server))
+            .map((t) => (
+              <Link
+                key={t.to}
+                to={t.to}
+                params={params}
+                activeOptions={{ exact: "exact" in t && t.exact }}
+                className={tabClass}
+              >
+                {t.label}
+              </Link>
+            ))}
         </RouteTabs>
       </div>
       <Outlet />

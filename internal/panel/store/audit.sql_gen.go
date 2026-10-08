@@ -115,6 +115,79 @@ func (q *Queries) PruneAuditLog(ctx context.Context) error {
 	return err
 }
 
+const serverAuditLog = `-- name: ServerAuditLog :many
+SELECT a.id, a.org_id, a.user_id, a.actor, a.actor_id, a.action, a.target, a.ip, a.user_agent, a.metadata, a.at, u.email AS actor_email FROM audit_log a
+LEFT JOIN users u ON u.id = a.actor_id
+WHERE a.org_id = $1 AND a.action = 'command' AND a.target = $2::text
+  AND a.metadata->>'node' = $3::text
+  AND ($4::uuid IS NULL OR a.id < $4::uuid)
+ORDER BY a.id DESC
+LIMIT $5
+`
+
+type ServerAuditLogParams struct {
+	OrgID    pgtype.UUID
+	ServerID string
+	NodeID   string
+	Before   pgtype.UUID
+	Lim      int32
+}
+
+type ServerAuditLogRow struct {
+	ID         pgtype.UUID
+	OrgID      pgtype.UUID
+	UserID     pgtype.UUID
+	Actor      string
+	ActorID    pgtype.UUID
+	Action     string
+	Target     string
+	Ip         *netip.Addr
+	UserAgent  string
+	Metadata   []byte
+	At         pgtype.Timestamptz
+	ActorEmail pgtype.Text
+}
+
+// The commands sent to one server, newest first.
+func (q *Queries) ServerAuditLog(ctx context.Context, arg ServerAuditLogParams) ([]ServerAuditLogRow, error) {
+	rows, err := q.db.Query(ctx, serverAuditLog,
+		arg.OrgID,
+		arg.ServerID,
+		arg.NodeID,
+		arg.Before,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ServerAuditLogRow
+	for rows.Next() {
+		var i ServerAuditLogRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.UserID,
+			&i.Actor,
+			&i.ActorID,
+			&i.Action,
+			&i.Target,
+			&i.Ip,
+			&i.UserAgent,
+			&i.Metadata,
+			&i.At,
+			&i.ActorEmail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sessionsWithUserAgent = `-- name: SessionsWithUserAgent :one
 SELECT count(*) AS total, count(*) FILTER (WHERE user_agent = $1) AS same
 FROM sessions WHERE user_id = $2

@@ -146,26 +146,9 @@ func ports(allocations []byte) []int32 {
 func (s *Service) GetServer(ctx context.Context, req *panelv1.GetServerRequest) (*panelv1.GetServerResponse, error) {
 	out := &panelv1.GetServerResponse{}
 	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
-		org, role, err := member(ctx, q, sess, req.GetOrgId(), "member")
+		_, node, perms, err := serverAccess(ctx, q, sess, req.GetOrgId(), req.GetNodeId(), req.GetServerId())
 		if err != nil {
 			return err
-		}
-		node, err := parseID(req.GetNodeId(), "node")
-		if err != nil {
-			return err
-		}
-		if owner, err := q.NodeOrg(ctx, node); err != nil || owner != org {
-			return errNoServer
-		}
-		perms := []string{"*"}
-		if role == "member" {
-			grants, err := memberGrants(ctx, q, org, sess, role)
-			if err != nil {
-				return err
-			}
-			if perms = grants[node][req.GetServerId()]; len(perms) == 0 {
-				return errNoServer
-			}
 		}
 		r, err := q.NodeServer(ctx, store.NodeServerParams{NodeID: node, ServerID: req.GetServerId()})
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -187,6 +170,32 @@ func (s *Service) GetServer(ctx context.Context, req *panelv1.GetServerRequest) 
 		return nil, err
 	}
 	return out, nil
+}
+
+// serverAccess checks the signed-in user can see a server of the org's,
+// and returns what they may do on it ("*" for admins and owners).
+func serverAccess(ctx context.Context, q *store.Queries, sess *auth.Session, orgID, nodeID, serverID string) (org, node pgtype.UUID, perms []string, err error) {
+	org, role, err := member(ctx, q, sess, orgID, "member")
+	if err != nil {
+		return org, node, nil, err
+	}
+	if node, err = parseID(nodeID, "node"); err != nil {
+		return org, node, nil, err
+	}
+	if owner, err := q.NodeOrg(ctx, node); err != nil || owner != org {
+		return org, node, nil, errNoServer
+	}
+	if role != "member" {
+		return org, node, []string{"*"}, nil
+	}
+	grants, err := memberGrants(ctx, q, org, sess, role)
+	if err != nil {
+		return org, node, nil, err
+	}
+	if perms = grants[node][serverID]; len(perms) == 0 {
+		return org, node, nil, errNoServer
+	}
+	return org, node, perms, nil
 }
 
 // nodeOf checks the signed-in user is an admin or owner of the org the
