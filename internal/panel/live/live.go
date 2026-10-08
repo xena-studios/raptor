@@ -30,6 +30,9 @@ const (
 	outQueue         = 256     // messages waiting for a slow browser; past it, lines are dropped
 	sessionCheck     = time.Minute
 	writeTimeout     = 10 * time.Second
+	// Cloudflare closes WebSockets idle for 100 seconds; a quiet console
+	// would be cut off without pings.
+	pingEvery = 30 * time.Second
 )
 
 // Handler serves the live WebSocket.
@@ -85,6 +88,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	go s.write(ctx, cancel)
 	go s.checkSession(ctx, cancel)
+	go s.ping(ctx, cancel)
 	s.read(ctx)
 	s.mu.Lock()
 	for _, stop := range s.subs {
@@ -162,6 +166,27 @@ func (s *socket) send(ctx context.Context, m Out) {
 	select {
 	case s.out <- m:
 	case <-ctx.Done():
+	}
+}
+
+// ping keeps the socket from looking idle, and drops a browser that stopped
+// answering.
+func (s *socket) ping(ctx context.Context, cancel context.CancelFunc) {
+	t := time.NewTicker(pingEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			pctx, pcancel := context.WithTimeout(ctx, pingEvery)
+			err := s.c.Ping(pctx)
+			pcancel()
+			if err != nil {
+				cancel()
+				return
+			}
+		}
 	}
 }
 
