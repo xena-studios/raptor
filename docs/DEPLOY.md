@@ -80,6 +80,7 @@ Then the service account: 1Password → Developer → Service accounts → new, 
    | `api` | AAAA | server #1's public IPv6 (if it has one) | Proxied |
    | `app`, `verify` | | made by Workers when you attach the domains, [below](#static-sites) | Proxied |
    | `get` | AAAA | `100::` | Proxied (a placeholder: the redirect rule answers) |
+   | `grafana` | CNAME | `raptor.grafana.net` | **DNS only** (Grafana gets its own certificate; [Monitoring](#monitoring)) |
 
    The Resend records for `mail` and the Email Routing records are already there.
 3. **Origin certificate** (for Caddy): SSL/TLS → Origin Server → Create certificate: ECDSA, hostname `api.raptorpanel.net`, 15 years. Save the certificate as `origin.pem` and the key as `origin-key.pem`, and put both in the vault (item `Origin certificate`) too.
@@ -400,6 +401,8 @@ The rehearsal does steps 2–5 and checks the API answers and the promoted datab
 The Panel sends metrics and a sample of traces (10% of requests) over OpenTelemetry when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Grafana Cloud's free tier holds more than launch needs.
 
 1. Grafana Cloud → your stack → **OpenTelemetry** → configure: make a token, and copy the endpoint (`https://otlp-gateway-<region>.grafana.net/otlp`) and the `Authorization=Basic%20…` header it shows. Put them in the vault item **`Grafana Cloud OTLP`** as `endpoint` and `headers`. `panel.env.tpl` already reads them.
+
+   Optionally, its address: Grafana Cloud → your stack → Details → Edit (the instance settings) → Instance URL → custom domain `grafana.raptorpanel.net`, after the `grafana` CNAME in [DNS](#raptorpanelnet) exists. It must stay DNS only: Grafana proves the name to Let's Encrypt itself, which fails behind Cloudflare's proxy. If you ever add CAA records to `raptorpanel.net`, include `letsencrypt.org`. Only the sign-in address changes; the OTLP endpoint stays on `grafana.net`.
 2. Deploy. Both Panels report as `raptor-panel`, each with its container's hostname as the instance.
 3. **Synthetic Monitoring** (in the same stack, free): an HTTP check on `https://api.raptorpanel.net/healthz` every minute from three locations. This is the "API is down" alarm, and it works when the Panel can't report anything.
 4. **healthchecks.io** (free): two checks, *Raptor backup* (daily, 2 h grace) and *Raptor restore test* (monthly, 1 day grace). Put their ping URLs in `/etc/raptor/stack.env` on whichever server runs the backups, as `BACKUP_PING_URL=…` and `RESTORE_TEST_PING_URL=…`. The scripts ping only when they succeed, so a failed run and a timer that never fired both alert.
