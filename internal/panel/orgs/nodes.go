@@ -60,6 +60,7 @@ func (s *Service) ListNodes(ctx context.Context, req *panelv1.ListNodesRequest) 
 				Id: idString(r.ID), Name: r.Name, ShortId: r.ShortID, WingsVersion: r.WingsVersion,
 				Connected: r.Connected, CreatedAt: timestamppb.New(r.CreatedAt.Time),
 				Arch: r.Arch, Cpus: r.Cpus, MemoryBytes: r.MemoryBytes,
+				SftpEnabled: r.SftpEnabled, SftpPort: r.SftpPort, SftpHostKeyFingerprint: r.SftpHostKey,
 			}
 			if r.LastSeenAt.Valid {
 				n.LastSeenAt = timestamppb.New(r.LastSeenAt.Time)

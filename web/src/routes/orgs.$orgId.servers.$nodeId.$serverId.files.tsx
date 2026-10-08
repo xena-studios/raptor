@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Files } from "@/components/files";
+import { SFTPCard } from "@/components/sftp-access";
 import { can, useServer } from "@/lib/org-data";
 
 type FilesSearch = { path?: string };
@@ -16,15 +17,20 @@ function FilesTab() {
   const { orgId, nodeId, serverId } = Route.useParams();
   const { path } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const { server } = useServer(orgId, nodeId, serverId);
+  const { node, server } = useServer(orgId, nodeId, serverId);
   if (!server) return null;
   return (
-    <Files
-      nodeId={nodeId}
-      serverId={serverId}
-      canWrite={can(server, "files.write")}
-      path={path ?? ""}
-      onPath={(p) => navigate({ search: { path: p || undefined } })}
-    />
+    <div className="flex flex-col gap-6">
+      <Files
+        nodeId={nodeId}
+        serverId={serverId}
+        canWrite={can(server, "files.write")}
+        path={path ?? ""}
+        onPath={(p) => navigate({ search: { path: p || undefined } })}
+      />
+      {node && can(server, "sftp") && (
+        <SFTPCard orgId={orgId} node={node} serverId={serverId} admin={can(server, "*")} />
+      )}
+    </div>
   );
 }

@@ -143,6 +143,17 @@ func (s *Service) Disconnect(serverID string) int {
 	return srv.Disconnect(serverID)
 }
 
+// DisconnectLogin drops one login's connections to a server.
+func (s *Service) DisconnectLogin(serverID, username string) int {
+	s.mu.Lock()
+	srv := s.srv
+	s.mu.Unlock()
+	if srv == nil {
+		return 0
+	}
+	return srv.DisconnectLogin(serverID, username)
+}
+
 // Close stops the server without changing the stored state.
 func (s *Service) Close() {
 	s.mu.Lock()

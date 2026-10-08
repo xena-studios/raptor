@@ -6,9 +6,11 @@ import (
 	"crypto/rand"
 	"errors"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"golang.org/x/crypto/ssh"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
@@ -59,8 +61,15 @@ func TestPanelAuth(t *testing.T) {
 	if _, err := disconnected.PublicKey(ctx, l, key); !errors.Is(err, ErrUnavailable) {
 		t.Errorf("disconnected: %v", err)
 	}
-	// Passwords: never, and never cached.
-	if _, err := a.Password(ctx, l, "hunter2"); !errors.Is(err, ErrDenied) {
-		t.Errorf("password: %v", err)
+	// Temporary passwords: asked about every time (never cached), and the
+	// grant carries their expiry.
+	if _, err := a.Password(ctx, l, "hunter2"); !errors.Is(err, ErrUnavailable) {
+		t.Errorf("password while the Panel is down: %v", err)
+	}
+	exp := time.Now().Add(time.Hour).Truncate(time.Second)
+	f.err, f.res = nil, &nodev1.SFTPLoginResponse{UserId: "u1", Permissions: []string{"sftp"}, ExpiresAt: timestamppb.New(exp)}
+	g, err = a.Password(ctx, l, "hunter2")
+	if err != nil || !g.ExpiresAt.Equal(exp) || f.got.GetPassword() != "hunter2" || len(f.got.GetPublicKey()) != 0 {
+		t.Errorf("password: %+v, %v (asked %v)", g, err, f.got)
 	}
 }

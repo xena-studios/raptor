@@ -86,6 +86,15 @@ const (
 	// OrgServiceListSchedulesProcedure is the fully-qualified name of the OrgService's ListSchedules
 	// RPC.
 	OrgServiceListSchedulesProcedure = "/raptor.panel.v1.OrgService/ListSchedules"
+	// OrgServiceGetSFTPAccessProcedure is the fully-qualified name of the OrgService's GetSFTPAccess
+	// RPC.
+	OrgServiceGetSFTPAccessProcedure = "/raptor.panel.v1.OrgService/GetSFTPAccess"
+	// OrgServiceCreateSFTPAccessProcedure is the fully-qualified name of the OrgService's
+	// CreateSFTPAccess RPC.
+	OrgServiceCreateSFTPAccessProcedure = "/raptor.panel.v1.OrgService/CreateSFTPAccess"
+	// OrgServiceRevokeSFTPAccessProcedure is the fully-qualified name of the OrgService's
+	// RevokeSFTPAccess RPC.
+	OrgServiceRevokeSFTPAccessProcedure = "/raptor.panel.v1.OrgService/RevokeSFTPAccess"
 	// OrgServiceListBackupsProcedure is the fully-qualified name of the OrgService's ListBackups RPC.
 	OrgServiceListBackupsProcedure = "/raptor.panel.v1.OrgService/ListBackups"
 )
@@ -162,6 +171,16 @@ type OrgServiceClient interface {
 	// ListSchedules lists a server's schedules as the mirror has them. Needs
 	// the schedules permission.
 	ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error)
+	// GetSFTPAccess says whether the caller has a temporary SFTP password
+	// for a server, and how to connect. Needs the sftp permission.
+	GetSFTPAccess(context.Context, *v1.GetSFTPAccessRequest) (*v1.GetSFTPAccessResponse, error)
+	// CreateSFTPAccess makes the caller a temporary SFTP password for a
+	// server, replacing any they had. The password is only ever in this
+	// answer. Needs the sftp permission.
+	CreateSFTPAccess(context.Context, *v1.CreateSFTPAccessRequest) (*v1.CreateSFTPAccessResponse, error)
+	// RevokeSFTPAccess deletes the caller's temporary SFTP password for a
+	// server. The web app then sends sftp.disconnect to end its sessions.
+	RevokeSFTPAccess(context.Context, *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error)
 	// ListBackups lists a server's backups as the mirror has them, newest
 	// first. Needs the backups permission.
 	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
@@ -320,6 +339,25 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		getSFTPAccess: connect.NewClient[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse](
+			httpClient,
+			baseURL+OrgServiceGetSFTPAccessProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("GetSFTPAccess")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		createSFTPAccess: connect.NewClient[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse](
+			httpClient,
+			baseURL+OrgServiceCreateSFTPAccessProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("CreateSFTPAccess")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeSFTPAccess: connect.NewClient[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse](
+			httpClient,
+			baseURL+OrgServiceRevokeSFTPAccessProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("RevokeSFTPAccess")),
+			connect.WithClientOptions(opts...),
+		),
 		listBackups: connect.NewClient[v1.ListBackupsRequest, v1.ListBackupsResponse](
 			httpClient,
 			baseURL+OrgServiceListBackupsProcedure,
@@ -354,6 +392,9 @@ type orgServiceClient struct {
 	listMemberPasskeys *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
 	listAuditLog       *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
 	listSchedules      *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
+	getSFTPAccess      *connect.Client[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse]
+	createSFTPAccess   *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
+	revokeSFTPAccess   *connect.Client[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse]
 	listBackups        *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
 }
 
@@ -555,6 +596,33 @@ func (c *orgServiceClient) ListSchedules(ctx context.Context, req *v1.ListSchedu
 	return nil, err
 }
 
+// GetSFTPAccess calls raptor.panel.v1.OrgService.GetSFTPAccess.
+func (c *orgServiceClient) GetSFTPAccess(ctx context.Context, req *v1.GetSFTPAccessRequest) (*v1.GetSFTPAccessResponse, error) {
+	response, err := c.getSFTPAccess.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CreateSFTPAccess calls raptor.panel.v1.OrgService.CreateSFTPAccess.
+func (c *orgServiceClient) CreateSFTPAccess(ctx context.Context, req *v1.CreateSFTPAccessRequest) (*v1.CreateSFTPAccessResponse, error) {
+	response, err := c.createSFTPAccess.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RevokeSFTPAccess calls raptor.panel.v1.OrgService.RevokeSFTPAccess.
+func (c *orgServiceClient) RevokeSFTPAccess(ctx context.Context, req *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error) {
+	response, err := c.revokeSFTPAccess.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListBackups calls raptor.panel.v1.OrgService.ListBackups.
 func (c *orgServiceClient) ListBackups(ctx context.Context, req *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {
 	response, err := c.listBackups.CallUnary(ctx, connect.NewRequest(req))
@@ -636,6 +704,16 @@ type OrgServiceHandler interface {
 	// ListSchedules lists a server's schedules as the mirror has them. Needs
 	// the schedules permission.
 	ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error)
+	// GetSFTPAccess says whether the caller has a temporary SFTP password
+	// for a server, and how to connect. Needs the sftp permission.
+	GetSFTPAccess(context.Context, *v1.GetSFTPAccessRequest) (*v1.GetSFTPAccessResponse, error)
+	// CreateSFTPAccess makes the caller a temporary SFTP password for a
+	// server, replacing any they had. The password is only ever in this
+	// answer. Needs the sftp permission.
+	CreateSFTPAccess(context.Context, *v1.CreateSFTPAccessRequest) (*v1.CreateSFTPAccessResponse, error)
+	// RevokeSFTPAccess deletes the caller's temporary SFTP password for a
+	// server. The web app then sends sftp.disconnect to end its sessions.
+	RevokeSFTPAccess(context.Context, *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error)
 	// ListBackups lists a server's backups as the mirror has them, newest
 	// first. Needs the backups permission.
 	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
@@ -790,6 +868,25 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceGetSFTPAccessHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceGetSFTPAccessProcedure,
+		svc.GetSFTPAccess,
+		connect.WithSchema(orgServiceMethods.ByName("GetSFTPAccess")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceCreateSFTPAccessHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceCreateSFTPAccessProcedure,
+		svc.CreateSFTPAccess,
+		connect.WithSchema(orgServiceMethods.ByName("CreateSFTPAccess")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceRevokeSFTPAccessHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceRevokeSFTPAccessProcedure,
+		svc.RevokeSFTPAccess,
+		connect.WithSchema(orgServiceMethods.ByName("RevokeSFTPAccess")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceListBackupsHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceListBackupsProcedure,
 		svc.ListBackups,
@@ -843,6 +940,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListAuditLogHandler.ServeHTTP(w, r)
 		case OrgServiceListSchedulesProcedure:
 			orgServiceListSchedulesHandler.ServeHTTP(w, r)
+		case OrgServiceGetSFTPAccessProcedure:
+			orgServiceGetSFTPAccessHandler.ServeHTTP(w, r)
+		case OrgServiceCreateSFTPAccessProcedure:
+			orgServiceCreateSFTPAccessHandler.ServeHTTP(w, r)
+		case OrgServiceRevokeSFTPAccessProcedure:
+			orgServiceRevokeSFTPAccessHandler.ServeHTTP(w, r)
 		case OrgServiceListBackupsProcedure:
 			orgServiceListBackupsHandler.ServeHTTP(w, r)
 		default:
@@ -940,6 +1043,18 @@ func (UnimplementedOrgServiceHandler) ListAuditLog(context.Context, *v1.ListAudi
 
 func (UnimplementedOrgServiceHandler) ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListSchedules is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) GetSFTPAccess(context.Context, *v1.GetSFTPAccessRequest) (*v1.GetSFTPAccessResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.GetSFTPAccess is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) CreateSFTPAccess(context.Context, *v1.CreateSFTPAccessRequest) (*v1.CreateSFTPAccessResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.CreateSFTPAccess is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) RevokeSFTPAccess(context.Context, *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.RevokeSFTPAccess is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {

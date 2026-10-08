@@ -64,7 +64,7 @@ org_members      org_id, user_id, role (owner|admin|member), created_at
 org_invitations  id, org_id, email, role, token_hash, invited_by, expires_at,
                  accepted_at, revoked_at
 nodes            id, org_id, name, short_id, public_key, public_ipv4, public_ipv6,
-                 status, key_revoked_at, sftp_enabled,
+                 status, key_revoked_at, sftp_enabled, sftp_port, sftp_host_key,
                  wings_version, protocol_version, last_seen_at, last_acked_seq,
                  support_access_disabled, billing_state
 join_tokens      id, org_id, token_hash, expires_at, used_at
@@ -73,6 +73,8 @@ support_grants   id, node_id, staff_id, level, reason, ticket_ref,
                  approved_by, expires_at, revoked_at
 ssh_keys         id, user_id, name, public_key, fingerprint, created_at, last_used_at
                  (users.sftp_username: the SFTP login's first part)
+sftp_passwords   id, user_id, node_id, server_id, username (t-…), secret_hash, expires_at
+                 (temporary SFTP passwords, one per user and server; DECISIONS #222)
 audit_log        id, org_id, user_id, actor (user|staff|system), actor_id, action, target,
                  ip, user_agent, metadata, at
 

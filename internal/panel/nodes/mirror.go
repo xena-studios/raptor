@@ -128,9 +128,17 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 		// means asking for it.
 		states := map[string]string{}
 		fetch := map[string]bool{}
+		// The node's SFTP as of its last node.sftp event in the batch.
+		var sftp *sftpState
 		for _, e := range evs {
 			sid := e.GetServerId()
 			if sid == "" {
+				if e.GetType() == "node.sftp" {
+					var d sftpState
+					if json.Unmarshal(e.GetData(), &d) == nil {
+						sftp = &d
+					}
+				}
 				continue
 			}
 			switch e.GetType() {
@@ -161,6 +169,11 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 					return err
 				}
 			}
+			if sftp != nil {
+				if err := q.SetNodeSFTP(ctx, store.SetNodeSFTPParams{ID: node, SftpEnabled: sftp.Enabled, SftpPort: sftp.Port, SftpHostKey: sftp.HostKey}); err != nil {
+					return err
+				}
+			}
 			// Fetched after the events, so newer than their states.
 			if servers != nil {
 				if err := applyServers(ctx, q, node, servers); err != nil {
@@ -177,6 +190,13 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 			return nil
 		}
 	}
+}
+
+// sftpState is a node.sftp event's data.
+type sftpState struct {
+	Enabled bool   `json:"enabled"`
+	Port    int32  `json:"port"`
+	HostKey string `json:"host_key_fingerprint"`
 }
 
 // snapshot replaces a node's mirror with every server it has now.

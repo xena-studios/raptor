@@ -126,6 +126,9 @@ type Node struct {
 	PublicIpv6      *netip.Addr
 	DnsIpv4         *netip.Addr
 	DnsIpv6         *netip.Addr
+	SftpEnabled     bool
+	SftpPort        int32
+	SftpHostKey     string
 }
 
 type NodeConnection struct {
@@ -266,6 +269,17 @@ type Session struct {
 	Ip         *netip.Addr
 	UserAgent  string
 	RevokedAt  pgtype.Timestamptz
+}
+
+type SftpPassword struct {
+	ID         pgtype.UUID
+	UserID     pgtype.UUID
+	NodeID     pgtype.UUID
+	ServerID   string
+	Username   string
+	SecretHash []byte
+	ExpiresAt  pgtype.Timestamptz
+	CreatedAt  pgtype.Timestamptz
 }
 
 type SshKey struct {

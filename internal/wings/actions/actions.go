@@ -48,7 +48,8 @@ const (
 	BackupDestinationSave   = "backup.destination.save" // create or update
 	BackupDestinationDelete = "backup.destination.delete"
 
-	NodeSFTP = "node.sftp" // turn SFTP on or off
+	NodeSFTP       = "node.sftp"       // turn SFTP on or off
+	SFTPDisconnect = "sftp.disconnect" // end one login's connections to a server
 
 	FilesList         = "files.list"
 	FilesStat         = "files.stat"
@@ -479,6 +480,27 @@ func RegisterSFTP(x *command.Executor, s *sftp.Service) {
 		}
 		return s.SetEnabled(ctx, p.Enabled)
 	}})
+	// The Panel sends this when a temporary password is revoked, so
+	// sessions it opened end too.
+	x.Register(SFTPDisconnect, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p SFTPDisconnectParams
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		if p.Username == "" {
+			return nil, errors.New("command needs a username")
+		}
+		return map[string]int{"disconnected": s.DisconnectLogin(e.ServerID, p.Username)}, nil
+	}})
+}
+
+// SFTPDisconnectParams are the params of sftp.disconnect.
+type SFTPDisconnectParams struct {
+	// The login's username, before the dot.
+	Username string `json:"username"`
 }
 
 // FilesParams are the params of the file actions; each uses the fields it

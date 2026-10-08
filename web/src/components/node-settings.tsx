@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { Node } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
-import { orgClient } from "@/lib/transport";
+import { commandClient, orgClient } from "@/lib/transport";
 
 // NodeSettings renames a node and removes it from the org (admins and
 // owners).
@@ -91,6 +92,61 @@ export function NodeSettings({
         <Button variant="destructive" className="self-start" disabled={busy} onClick={remove}>
           Remove node
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// NodeSFTP turns the node's SFTP server on or off (node.sftp). Each user
+// still turns on their own login per server.
+export function NodeSFTP({ node }: { node: Node }) {
+  const client = useQueryClient();
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function set(enabled: boolean) {
+    setBusy(true);
+    setError("");
+    try {
+      await commandClient.execute({
+        nodeId: node.id,
+        action: "node.sftp",
+        paramsJson: JSON.stringify({ enabled }),
+      });
+      await client.invalidateQueries();
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>SFTP</CardTitle>
+        <CardDescription>
+          {node.sftpEnabled
+            ? `On, at n-${node.shortId}.raptornodes.net port ${node.sftpPort}. Members with the SFTP permission can turn on a login for each server they can reach.`
+            : "Off. While it's off, nobody can use SFTP on this node's servers."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        {node.sftpEnabled && node.sftpHostKeyFingerprint && (
+          <p className="text-xs text-muted-foreground">
+            Host key: <code>{node.sftpHostKeyFingerprint}</code>
+          </p>
+        )}
+        <Button
+          variant={node.sftpEnabled ? "outline" : "default"}
+          className="self-start"
+          disabled={busy || !node.connected}
+          onClick={() => set(!node.sftpEnabled)}
+        >
+          {node.sftpEnabled ? "Turn off SFTP" : "Turn on SFTP"}
+        </Button>
+        {!node.connected && <p className="text-xs text-muted-foreground">The node is offline.</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
     </Card>
   );
