@@ -4,14 +4,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Server, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
-import { AppShell } from "@/components/app-shell";
+import { AppShell, type OrgSection } from "@/components/app-shell";
 import { useReauth } from "@/components/reauth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
@@ -21,10 +20,25 @@ import { signPin } from "@/lib/signed";
 import { orgClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
 
+type OrgSearch = { section?: Exclude<OrgSection, "nodes"> };
+
 export const Route = createFileRoute("/orgs/$orgId/")({
   beforeLoad: ({ location }) => requireSession(location),
+  validateSearch: (s: Record<string, unknown>): OrgSearch => ({
+    section:
+      s.section === "members" || s.section === "log" || s.section === "settings"
+        ? s.section
+        : undefined,
+  }),
   component: OrgPage,
 });
+
+const sectionTitles: Record<OrgSection, string> = {
+  nodes: "Nodes",
+  members: "Members",
+  log: "Audit log",
+  settings: "Settings",
+};
 
 function useOrg(orgId: string) {
   const orgs = useQuery(OrgService.method.listOrgs, {});
@@ -36,31 +50,66 @@ function OrgPage() {
   const { orgId } = Route.useParams();
   const org = useOrg(orgId);
   const admin = isAdmin(org?.role);
+  const section: OrgSection = Route.useSearch().section ?? "nodes";
   return (
-    <AppShell session={session}>
+    <AppShell session={session} orgId={orgId} section={section}>
+      <p className="mb-1 text-sm text-muted-foreground">{org?.name ?? "…"}</p>
       <div className="mb-6 flex items-center gap-3">
-        <h1 className="font-heading text-2xl font-semibold">{org?.name ?? "…"}</h1>
-        {org && <Badge variant="secondary">{roleNames[org.role]}</Badge>}
+        <h1 className="font-heading text-2xl font-semibold">{sectionTitles[section]}</h1>
+        {org && section === "nodes" && <Badge variant="secondary">{roleNames[org.role]}</Badge>}
       </div>
-      <Tabs defaultValue="nodes">
-        <TabsList>
-          <TabsTrigger value="nodes">Nodes</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-          {admin && <TabsTrigger value="log">Log</TabsTrigger>}
-        </TabsList>
-        <TabsContent value="nodes">
-          <Nodes orgId={orgId} admin={admin} userId={session.user?.id ?? ""} />
-        </TabsContent>
-        <TabsContent value="members">
-          <Members orgId={orgId} myRole={org?.role} myId={session.user?.id ?? ""} />
-        </TabsContent>
-        {admin && (
-          <TabsContent value="log">
-            <Log orgId={orgId} />
-          </TabsContent>
-        )}
-      </Tabs>
+      {section === "nodes" && <Nodes orgId={orgId} admin={admin} userId={session.user?.id ?? ""} />}
+      {section === "members" && (
+        <Members orgId={orgId} myRole={org?.role} myId={session.user?.id ?? ""} />
+      )}
+      {section === "log" && admin && <Log orgId={orgId} />}
+      {section === "settings" && admin && org && <OrgSettings orgId={orgId} name={org.name} />}
     </AppShell>
+  );
+}
+
+// OrgSettings renames the org (admins and owners).
+function OrgSettings({ orgId, name: current }: { orgId: string; name: string }) {
+  const client = useQueryClient();
+  const [name, setName] = useState(current);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  async function rename(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaved(false);
+    try {
+      await orgClient.renameOrg({ orgId, name });
+      await client.invalidateQueries();
+      setSaved(true);
+    } catch (err) {
+      setError(message(err));
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Name</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={rename} className="flex gap-2">
+          <Input
+            aria-label="Org name"
+            required
+            maxLength={64}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Button type="submit" disabled={name.trim() === current}>
+            Rename
+          </Button>
+        </form>
+        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+        {saved && <p className="mt-2 text-sm text-muted-foreground">Renamed.</p>}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -104,7 +153,7 @@ function Nodes({ orgId, admin, userId }: { orgId: string; admin: boolean; userId
   }
 
   return (
-    <div className="mt-4 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       {nodes.data?.nodes.length === 0 && (
         <p className="text-sm text-muted-foreground">No nodes yet.</p>
       )}
@@ -242,7 +291,7 @@ function Members({
   }
 
   return (
-    <div className="mt-4 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Card>
         <CardContent className="flex flex-col divide-y">
@@ -354,7 +403,7 @@ function Members({
 function Log({ orgId }: { orgId: string }) {
   const log = useQuery(OrgService.method.listAuditLog, { orgId });
   return (
-    <Card className="mt-4">
+    <Card>
       <CardContent className="flex flex-col divide-y text-sm">
         {log.data?.events.map((e) => {
           const meta = JSON.parse(e.metadataJson || "{}") as Record<string, unknown>;

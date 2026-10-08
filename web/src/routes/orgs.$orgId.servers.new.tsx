@@ -69,7 +69,7 @@ function NewServerPage() {
   const node = nodes.data?.nodes.find((n) => n.id === (nodeId || nodes.data?.nodes[0]?.id));
 
   return (
-    <AppShell session={session}>
+    <AppShell session={session} orgId={orgId}>
       <p className="mb-1 text-sm text-muted-foreground">
         <Link to="/orgs/$orgId" params={{ orgId }} className="hover:underline">
           {org?.name ?? "Org"}
