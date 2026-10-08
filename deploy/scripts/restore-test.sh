@@ -13,9 +13,25 @@ name=raptor-restore-test-$$
 vol=$name-data
 trap 'docker rm -f "$name" >/dev/null 2>&1; docker volume rm -f "$vol" >/dev/null 2>&1' EXIT
 
-# Make sure the newest WAL is in the archive, so the restore reaches "now".
-docker compose exec -T -u postgres postgres psql -qAt -d raptor -c "SELECT pg_switch_wal()" >/dev/null
-sleep 5
+q() { docker exec -u postgres "$1" psql -qAt -d raptor -c "$2"; }
+check="(SELECT max(version_id) FROM goose_db_version) || ' ' || (SELECT count(*) FROM users) || ' ' || (SELECT count(*) FROM nodes) || ' ' || (SELECT count(*) FROM orgs)"
+primary_ctr=$(docker compose ps -q postgres)
+
+# The primary's counts and the WAL position they belong to: the restore stops
+# at exactly that point, so writes while this runs (people using the Panel)
+# can't make the copies differ. A checkpoint puts a record after it (even on
+# an idle database), and the switch sends its WAL file to the archive.
+IFS='|' read -r primary lsn < <(q "$primary_ctr" "SELECT $check, pg_current_wal_insert_lsn()")
+q "$primary_ctr" "CHECKPOINT" >/dev/null
+seg=$(q "$primary_ctr" "SELECT pg_walfile_name(pg_switch_wal())")
+for _ in $(seq 1 120); do
+  [ "$(q "$primary_ctr" "SELECT coalesce(last_archived_wal >= '$seg', false) FROM pg_stat_archiver")" = t ] && break
+  sleep 1
+done
+if [ "$(q "$primary_ctr" "SELECT coalesce(last_archived_wal >= '$seg', false) FROM pg_stat_archiver")" != t ]; then
+  echo "restore-test: FAILED: WAL $seg didn't reach the archive in 2 minutes" >&2
+  exit 1
+fi
 
 echo "restore-test: restoring into a scratch volume"
 docker volume create "$vol" >/dev/null
@@ -23,8 +39,9 @@ docker run --rm --env-file "${ENV_FILE:-/run/raptor/postgres.env}" ${NETWORK:+--
   -v "$vol":/var/lib/postgresql -v "$CONF/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro" \
   --entrypoint bash "$image" -c '
     install -d -o postgres -g postgres -m 0700 /var/lib/postgresql/18/docker
-    gosu postgres pgbackrest --stanza=raptor --log-level-console=warn restore
-  '
+    gosu postgres pgbackrest --stanza=raptor --log-level-console=warn restore \
+      --type=lsn --target="$1" --target-action=promote
+  ' _ "$lsn"
 
 echo "restore-test: starting the restored copy"
 # The primary's settings (a restore refuses to run with smaller ones), minus
@@ -45,11 +62,8 @@ for _ in $(seq 1 120); do
   sleep 1
 done
 
-q() { docker exec -u postgres "$1" psql -qAt -d raptor -c "$2"; }
-check="SELECT (SELECT max(version_id) FROM goose_db_version) || ' ' || (SELECT count(*) FROM users) || ' ' || (SELECT count(*) FROM nodes) || ' ' || (SELECT count(*) FROM orgs)"
-restored=$(q "$name" "$check")
-primary=$(q "$(docker compose ps -q postgres)" "$check")
-echo "restore-test: migration, users, nodes, orgs: restored [$restored], primary [$primary]"
+restored=$(q "$name" "SELECT $check")
+echo "restore-test: migration, users, nodes, orgs at $lsn: restored [$restored], primary [$primary]"
 if [ -z "$restored" ] || [ "$restored" != "$primary" ]; then
   echo "restore-test: FAILED: the restored copy doesn't match the primary" >&2
   exit 1
