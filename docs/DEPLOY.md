@@ -86,10 +86,11 @@ Then the service account: 1Password → Developer → Service accounts → new, 
    | Name | Type | Content | Proxy |
    |---|---|---|---|
    | `api` | A | server #1's public IPv4 | Proxied |
-   | `api` | AAAA | server #1's public IPv6 (if it has one) | Proxied |
    | `app`, `verify` | | made by Workers when you attach the domains, [below](#static-sites) | Proxied |
    | `get` | AAAA | `100::` | Proxied (a placeholder: the redirect rule answers) |
    | `grafana` | CNAME | `raptor.grafana.net` | **DNS only** (Grafana gets its own certificate; [Monitoring](#monitoring)) |
+
+   No AAAA for `api`: Cloudflare answers users over IPv6 for a proxied name anyway, and an AAAA record would only add a second way from Cloudflare to the server to firewall.
 
    The Resend records for `mail` and the Email Routing records are already there.
 3. **Origin certificate** (for Caddy): SSL/TLS → Origin Server → Create certificate: ECDSA, hostname `api.raptorpanel.net`, 15 years. Save the certificate as `origin.pem` and the key as `origin-key.pem`, and put both in the vault (item `Origin certificate`) too.
@@ -131,7 +132,7 @@ Then the service account: 1Password → Developer → Service accounts → new, 
 
 1. Every record is **DNS only** (grey cloud). Node hostnames point straight at nodes.
 2. Apex: a Redirect Rule `raptornodes.net/*` → `https://raptorpanel.net`, 301 (with a proxied placeholder record `@ AAAA 100::` for it to answer on).
-3. A token for the Panel: My Profile → API Tokens → Custom: permission **Zone → DNS → Edit**, zone **raptornodes.net only**, client IP filtering **server #1's and server #2's public IPs**. The Panel holds this token and no other Cloudflare token; it can't touch `raptorpanel.net`. Put it and the zone ID in the vault (`Cloudflare raptornodes.net DNS`).
+3. A token for the Panel: My Profile → API Tokens → Custom: permission **Zone → DNS → Edit**, zone **raptornodes.net only**, client IP filtering **every public address of server #1 and server #2, IPv4 and IPv6** (the Panel's calls to Cloudflare may leave over either). The Panel holds this token and no other Cloudflare token; it can't touch `raptorpanel.net`. Put it and the zone ID in the vault (`Cloudflare raptornodes.net DNS`).
 4. Later, before launch: submit `raptornodes.net` to the [Public Suffix List](https://publicsuffix.org) ([ARCHITECTURE.md](ARCHITECTURE.md#node-dns)).
 
 ### Accounts
