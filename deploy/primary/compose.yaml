@@ -76,7 +76,8 @@ services:
     shm_size: 256mb
     stop_grace_period: 120s
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "raptor"]
+      # As the postgres user: as root, every check logs a failed login.
+      test: ["CMD", "gosu", "postgres", "pg_isready", "-q", "-U", "postgres", "-d", "raptor"]
       interval: 5s
       timeout: 5s
       retries: 20

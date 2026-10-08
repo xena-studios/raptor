@@ -228,7 +228,7 @@ docker compose exec -u postgres postgres pgbackrest --stanza=raptor stanza-creat
 docker compose exec -u postgres postgres pgbackrest --stanza=raptor check
 ```
 
-`check` archives a WAL segment and confirms it arrived: if it fails, the bucket settings or keys are wrong. The first start also creates the `panel` and `replicator` roles ([`initdb/10-roles.sh`](../deploy/primary/initdb/10-roles.sh)); the Panel isn't a superuser.
+The first start creates the `panel` and `replicator` roles ([`initdb/10-roles.sh`](../deploy/primary/initdb/10-roles.sh); the Panel isn't a superuser) and the backup repository ([`initdb/20-stanza.sh`](../deploy/primary/initdb/20-stanza.sh)), so the WAL written while the database is created can be archived. `stanza-create` again is harmless. `check` archives a WAL segment and confirms it arrived: if it fails, the bucket settings or keys are wrong, and the container's log from the first start says why the repository wasn't made.
 
 Then the Panel, at a released version (the release workflow publishes `ghcr.io/xena-studios/raptor-panel:<tag>`):
 
@@ -374,7 +374,7 @@ git -C /opt/raptor fetch --tags && git -C /opt/raptor checkout --detach v0.x.y
 - **Restore test:** monthly, on the 1st. It restores the latest backup into a scratch container (never touching the live database or the archive), starts it, and compares the migration version and the count of users, nodes, and orgs with the primary. A failed run exits non-zero: `systemctl status raptor-restore-test`.
 - **Status:** `docker compose -f /opt/raptor/deploy/primary/compose.yaml exec -u postgres postgres pgbackrest --stanza=raptor info`.
 
-Restoring for real, when both servers are lost: build a new server #1 as above up to the backup repository, but instead of `stanza-create`, stop Postgres and restore over its empty data directory:
+Restoring for real, when both servers are lost: build a new server #1 as above up to the backup repository (its first start warns that the repository already holds another database: expected), but instead of `stanza-create`, stop Postgres and restore over its empty data directory:
 
 ```bash
 cd /opt/raptor/deploy/primary
