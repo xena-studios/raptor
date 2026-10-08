@@ -17,6 +17,7 @@ import { Route as SigninLinkRouteImport } from './routes/signin.link'
 import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-factor'
 import { Route as OrgsOrgIdIndexRouteImport } from './routes/orgs.$orgId.index'
 import { Route as OrgsOrgIdNodesNodeIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId'
+import { Route as OrgsOrgIdServersNewRouteImport } from './routes/orgs.$orgId.servers.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const OrgsOrgIdNodesNodeIdRoute = OrgsOrgIdNodesNodeIdRouteImport.update({
   path: '/orgs/$orgId/nodes/$nodeId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgsOrgIdServersNewRoute = OrgsOrgIdServersNewRouteImport.update({
+  id: '/orgs/$orgId/servers/new',
+  path: '/orgs/$orgId/servers/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/signin/': typeof SigninIndexRoute
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
+  '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/signin': typeof SigninIndexRoute
   '/orgs/$orgId': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
+  '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/signin/': typeof SigninIndexRoute
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRoute
+  '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/signin/'
     | '/orgs/$orgId/'
     | '/orgs/$orgId/nodes/$nodeId'
+    | '/orgs/$orgId/servers/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/orgs/$orgId'
     | '/orgs/$orgId/nodes/$nodeId'
+    | '/orgs/$orgId/servers/new'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/signin/'
     | '/orgs/$orgId/'
     | '/orgs/$orgId/nodes/$nodeId'
+    | '/orgs/$orgId/servers/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   SigninIndexRoute: typeof SigninIndexRoute
   OrgsOrgIdIndexRoute: typeof OrgsOrgIdIndexRoute
   OrgsOrgIdNodesNodeIdRoute: typeof OrgsOrgIdNodesNodeIdRoute
+  OrgsOrgIdServersNewRoute: typeof OrgsOrgIdServersNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdNodesNodeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orgs/$orgId/servers/new': {
+      id: '/orgs/$orgId/servers/new'
+      path: '/orgs/$orgId/servers/new'
+      fullPath: '/orgs/$orgId/servers/new'
+      preLoaderRoute: typeof OrgsOrgIdServersNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   SigninIndexRoute: SigninIndexRoute,
   OrgsOrgIdIndexRoute: OrgsOrgIdIndexRoute,
   OrgsOrgIdNodesNodeIdRoute: OrgsOrgIdNodesNodeIdRoute,
+  OrgsOrgIdServersNewRoute: OrgsOrgIdServersNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

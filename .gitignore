@@ -6,6 +6,8 @@
 dist/
 # wrangler dev's scratch files
 .wrangler/
+# the TanStack router plugin's scratch files
+.tanstack/
 node_modules/
 *.db
 *.db-wal
