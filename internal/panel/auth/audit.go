@@ -74,10 +74,10 @@ func truncate(s string, n int) string {
 }
 
 // AuditProto is an audit log row for the API.
-func AuditProto(id pgtype.UUID, at pgtype.Timestamptz, actor, actorEmail, action, target string, ip *netip.Addr, ua string, meta []byte) *panelv1.AuditEvent {
+func AuditProto(id pgtype.UUID, at pgtype.Timestamptz, actor, actorEmail, subjectEmail, action, target string, ip *netip.Addr, ua string, meta []byte) *panelv1.AuditEvent {
 	out := &panelv1.AuditEvent{
 		Id: uuid.UUID(id.Bytes).String(), At: timestamppb.New(at.Time), Action: action, Actor: actor, ActorEmail: actorEmail,
-		Target: target, UserAgent: ua, MetadataJson: string(meta),
+		Target: target, UserAgent: ua, MetadataJson: string(meta), SubjectEmail: subjectEmail,
 	}
 	if ip != nil {
 		out.Ip = ip.String()
@@ -116,7 +116,7 @@ func (s *Service) ListActivity(ctx context.Context, req *panelv1.ListActivityReq
 	}
 	out := &panelv1.ListActivityResponse{}
 	for _, r := range rows {
-		out.Events = append(out.Events, AuditProto(r.ID, r.At, r.Actor, "", r.Action, r.Target, r.Ip, r.UserAgent, r.Metadata))
+		out.Events = append(out.Events, AuditProto(r.ID, r.At, r.Actor, "", "", r.Action, r.Target, r.Ip, r.UserAgent, r.Metadata))
 	}
 	if len(rows) == PageSize {
 		out.NextPageToken = uuid.UUID(rows[len(rows)-1].ID.Bytes).String()

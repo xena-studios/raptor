@@ -585,7 +585,7 @@ func (s *Service) ListAuditLog(ctx context.Context, req *panelv1.ListAuditLogReq
 			rows, err = q.OrgAuditLog(ctx, store.OrgAuditLogParams{OrgID: org, Before: before, Lim: auth.PageSize})
 		}
 		for _, r := range rows {
-			out.Events = append(out.Events, auth.AuditProto(r.ID, r.At, r.Actor, r.ActorEmail.String, r.Action, r.Target, r.Ip, r.UserAgent, r.Metadata))
+			out.Events = append(out.Events, auth.AuditProto(r.ID, r.At, r.Actor, r.ActorEmail.String, r.SubjectEmail.String, r.Action, r.Target, r.Ip, r.UserAgent, r.Metadata))
 		}
 		if len(rows) == auth.PageSize {
 			out.NextPageToken = idString(rows[len(rows)-1].ID)

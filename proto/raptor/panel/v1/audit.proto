@@ -21,4 +21,7 @@ message AuditEvent {
   string user_agent = 8;
   // Details, as a JSON object.
   string metadata_json = 9;
+  // Who it was about, for org events about a member (their role, access,
+  // removal), if they still have an account.
+  string subject_email = 10;
 }

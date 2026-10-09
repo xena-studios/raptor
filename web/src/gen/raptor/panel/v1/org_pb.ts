@@ -546,7 +546,8 @@ export type ListAuditLogRequest = Message<"raptor.panel.v1.ListAuditLogRequest">
   pageToken: string;
 
   /**
-   * With both set, only the commands sent to that server.
+   * With both set, only what was done to that server: commands, access
+   * changes, and SFTP.
    *
    * @generated from field: string node_id = 3;
    */

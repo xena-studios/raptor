@@ -10,8 +10,9 @@ ORDER BY id DESC
 LIMIT @lim;
 
 -- name: OrgAuditLog :many
-SELECT a.*, u.email AS actor_email FROM audit_log a
+SELECT a.*, u.email AS actor_email, s.email AS subject_email FROM audit_log a
 LEFT JOIN users u ON u.id = a.actor_id
+LEFT JOIN users s ON s.id = a.user_id
 WHERE a.org_id = @org_id AND (@before::uuid IS NULL OR a.id < @before::uuid)
 ORDER BY a.id DESC
 LIMIT @lim;
@@ -26,10 +27,11 @@ SELECT count(*) AS total, count(*) FILTER (WHERE user_agent = @user_agent) AS sa
 FROM sessions WHERE user_id = @user_id;
 
 -- name: ServerAuditLog :many
--- The commands sent to one server, newest first.
-SELECT a.*, u.email AS actor_email FROM audit_log a
+-- What was done to one server (commands, access, SFTP), newest first.
+SELECT a.*, u.email AS actor_email, s.email AS subject_email FROM audit_log a
 LEFT JOIN users u ON u.id = a.actor_id
-WHERE a.org_id = @org_id AND a.action = 'command' AND a.target = @server_id::text
+LEFT JOIN users s ON s.id = a.user_id
+WHERE a.org_id = @org_id AND a.target = @server_id::text
   AND a.metadata->>'node' = @node_id::text
   AND (@before::uuid IS NULL OR a.id < @before::uuid)
 ORDER BY a.id DESC
