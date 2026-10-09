@@ -27,7 +27,12 @@ var All = []string{ConsoleRead, ConsoleWrite, Power, FilesRead, FilesWrite, Back
 // adminOnly marks actions only admins and owners may run.
 const adminOnly = ""
 
+// View is any access to a server at all: actions that only show it (its
+// resource graphs) need no particular permission. It isn't grantable.
+const View = "view"
+
 var actions = map[string]string{
+	"server.metrics": View,
 	"server.console": ConsoleRead,
 	"server.command": ConsoleWrite,
 
@@ -81,6 +86,8 @@ var actions = map[string]string{
 	"node.sftp":                 adminOnly,
 	"sftp.disconnect":           SFTP,
 	"node.update":               adminOnly,
+	"node.health":               adminOnly,
+	"node.doctor":               adminOnly,
 	"keys.add":                  adminOnly,
 	"keys.remove":               adminOnly,
 	"keys.pair":                 adminOnly,
@@ -98,6 +105,9 @@ func For(action string) (perm string, ok bool) {
 // Allows reports whether a member with these server permissions has perm.
 // console.write includes console.read: sending commands blind is useless.
 func Allows(granted []string, perm string) bool {
+	if perm == View {
+		return len(granted) > 0
+	}
 	for _, g := range granted {
 		if g == perm || (perm == ConsoleRead && g == ConsoleWrite) {
 			return true
@@ -127,7 +137,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.activity":
+		"backup.browse", "backup.activity", "server.metrics", "node.health", "node.doctor":
 		return true
 	}
 	return false

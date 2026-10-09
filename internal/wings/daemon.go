@@ -278,6 +278,14 @@ func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
 		r.metrics.Run(ctx)
 	}()
 	r.svc.SetMetrics(r.metrics)
+	actions.RegisterMetrics(r.commands, r.metrics, mgr)
+	path := r.cfg.Path
+	if path == "" {
+		path = config.DefaultPath
+	}
+	actions.RegisterHealth(r.commands, &actions.Health{
+		ConfigPath: path, Volumes: r.cfg.Paths.Volumes, Space: storage.Space, Servers: mgr, Metrics: r.metrics,
+	})
 }
 
 func (r *runtimeSetup) close() {

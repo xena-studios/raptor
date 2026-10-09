@@ -32,6 +32,7 @@ import { Route as OrgsOrgIdSettingsActivityRouteImport } from './routes/orgs.$or
 import { Route as OrgsOrgIdSettingsBillingRouteImport } from './routes/orgs.$orgId.settings.billing'
 import { Route as OrgsOrgIdSettingsMembersRouteImport } from './routes/orgs.$orgId.settings.members'
 import { Route as OrgsOrgIdNodesNodeIdIndexRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.index'
+import { Route as OrgsOrgIdNodesNodeIdHealthRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.health'
 import { Route as OrgsOrgIdNodesNodeIdSettingsRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.settings'
 import { Route as OrgsOrgIdServersNodeIdServerIdRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId'
 import { Route as OrgsOrgIdServersNodeIdServerIdIndexRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.index'
@@ -164,6 +165,12 @@ const OrgsOrgIdNodesNodeIdIndexRoute =
     path: '/',
     getParentRoute: () => OrgsOrgIdNodesNodeIdRoute,
   } as any)
+const OrgsOrgIdNodesNodeIdHealthRoute =
+  OrgsOrgIdNodesNodeIdHealthRouteImport.update({
+    id: '/health',
+    path: '/health',
+    getParentRoute: () => OrgsOrgIdNodesNodeIdRoute,
+  } as any)
 const OrgsOrgIdNodesNodeIdSettingsRoute =
   OrgsOrgIdNodesNodeIdSettingsRouteImport.update({
     id: '/settings',
@@ -260,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers/': typeof OrgsOrgIdServersIndexRoute
   '/orgs/$orgId/settings/': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
@@ -293,6 +301,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/nodes': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers': typeof OrgsOrgIdServersIndexRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
@@ -330,6 +339,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers/': typeof OrgsOrgIdServersIndexRoute
   '/orgs/$orgId/settings/': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/'
     | '/orgs/$orgId/servers/'
     | '/orgs/$orgId/settings/'
+    | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/nodes/$nodeId/'
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes'
     | '/orgs/$orgId/servers'
     | '/orgs/$orgId/settings'
+    | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
@@ -438,6 +450,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/'
     | '/orgs/$orgId/servers/'
     | '/orgs/$orgId/settings/'
+    | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/nodes/$nodeId/'
@@ -626,6 +639,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdNodesNodeIdIndexRouteImport
       parentRoute: typeof OrgsOrgIdNodesNodeIdRoute
     }
+    '/orgs/$orgId/nodes/$nodeId/health': {
+      id: '/orgs/$orgId/nodes/$nodeId/health'
+      path: '/health'
+      fullPath: '/orgs/$orgId/nodes/$nodeId/health'
+      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdHealthRouteImport
+      parentRoute: typeof OrgsOrgIdNodesNodeIdRoute
+    }
     '/orgs/$orgId/nodes/$nodeId/settings': {
       id: '/orgs/$orgId/nodes/$nodeId/settings'
       path: '/settings'
@@ -747,11 +767,13 @@ const OrgsOrgIdSettingsRouteWithChildren =
   OrgsOrgIdSettingsRoute._addFileChildren(OrgsOrgIdSettingsRouteChildren)
 
 interface OrgsOrgIdNodesNodeIdRouteChildren {
+  OrgsOrgIdNodesNodeIdHealthRoute: typeof OrgsOrgIdNodesNodeIdHealthRoute
   OrgsOrgIdNodesNodeIdSettingsRoute: typeof OrgsOrgIdNodesNodeIdSettingsRoute
   OrgsOrgIdNodesNodeIdIndexRoute: typeof OrgsOrgIdNodesNodeIdIndexRoute
 }
 
 const OrgsOrgIdNodesNodeIdRouteChildren: OrgsOrgIdNodesNodeIdRouteChildren = {
+  OrgsOrgIdNodesNodeIdHealthRoute: OrgsOrgIdNodesNodeIdHealthRoute,
   OrgsOrgIdNodesNodeIdSettingsRoute: OrgsOrgIdNodesNodeIdSettingsRoute,
   OrgsOrgIdNodesNodeIdIndexRoute: OrgsOrgIdNodesNodeIdIndexRoute,
 }
