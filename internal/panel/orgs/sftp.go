@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"connectrpc.com/connect"
@@ -70,35 +71,79 @@ func (s *Service) CreateSFTPAccess(ctx context.Context, req *panelv1.CreateSFTPA
 	}
 	out := &panelv1.CreateSFTPAccessResponse{}
 	var sess *auth.Session
+	var node pgtype.UUID
+	var row store.SftpPassword
 	err := s.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
 		sess = se
-		node, err := serverWith(ctx, q, se, req.GetOrgId(), req.GetNodeId(), req.GetServerId(), "sftp")
-		if err != nil {
-			return err
-		}
-		username, password, secret := auth.NewSFTPPassword()
-		// The table isn't visible to requests' role: written as the Panel,
-		// for the user the checks above are about.
-		row, err := s.q().SetSFTPPassword(ctx, store.SetSFTPPasswordParams{
-			UserID: se.UserID, NodeID: node, ServerID: req.GetServerId(), Username: username, SecretHash: secret,
-			ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(ttl), Valid: true},
-		})
-		if err != nil {
+		var err error
+		if node, err = serverWith(ctx, q, se, req.GetOrgId(), req.GetNodeId(), req.GetServerId(), "sftp"); err != nil {
 			return err
 		}
 		n, err := s.q().GetNode(ctx, node)
 		if err != nil {
 			return err
 		}
-		out.Access, out.Password = sftpAccess(n, req.GetServerId(), row.Username, row.ExpiresAt), password
-		return nil
+		if !n.SftpAllowed {
+			return errSFTPStopped
+		}
+		username, password, secret := auth.NewSFTPPassword()
+		// The table isn't visible to requests' role: written as the Panel,
+		// for the user the checks above are about.
+		row, err = s.q().SetSFTPPassword(ctx, store.SetSFTPPasswordParams{
+			UserID: se.UserID, NodeID: node, ServerID: req.GetServerId(), Username: username, SecretHash: secret,
+			ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(ttl), Valid: true},
+		})
+		out.Password = password
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
+	// Open the node's port, so it's ready when the user connects; if the
+	// node is offline, the gate opens it once it's back.
+	s.syncSFTP(ctx, req.GetNodeId())
+	n, err := s.q().GetNode(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+	out.Access = sftpAccess(n, req.GetServerId(), row.Username, row.ExpiresAt)
 	org, _ := parseID(req.GetOrgId(), "org")
 	_ = s.Auth.Audit(ctx, nil, auth.Event{Org: org, Actor: sess.UserID, Action: "sftp.password", Target: req.GetServerId(), Meta: map[string]any{"node": req.GetNodeId(), "expires_at": out.GetAccess().GetExpiresAt().AsTime()}})
 	return out, nil
+}
+
+var errSFTPStopped = connect.NewError(connect.CodeFailedPrecondition, errors.New("an admin has stopped SFTP on this node"))
+
+// syncSFTP opens or closes a node's SFTP port to match its passwords. Best
+// effort: the gate's own loop retries.
+func (s *Service) syncSFTP(ctx context.Context, nodeID string) {
+	if s.SFTPGate == nil {
+		return
+	}
+	if err := s.SFTPGate.Sync(ctx, nodeID); err != nil {
+		slog.Info("couldn't sync the node's sftp port; the gate retries", "node", nodeID, "err", err)
+	}
+}
+
+// SetNodeSFTP implements OrgService.
+func (s *Service) SetNodeSFTP(ctx context.Context, req *panelv1.SetNodeSFTPRequest) (*panelv1.SetNodeSFTPResponse, error) {
+	sess, org, node, err := s.nodeOf(ctx, req.GetOrgId(), req.GetNodeId())
+	if err != nil {
+		return nil, err
+	}
+	q := s.q()
+	if _, err := q.SetNodeSFTPAllowed(ctx, store.SetNodeSFTPAllowedParams{ID: node, SftpAllowed: req.GetAllowed()}); err != nil {
+		return nil, err
+	}
+	if !req.GetAllowed() {
+		// Its passwords go too; closing the port ends their sessions.
+		if err := q.DeleteNodeSFTPPasswords(ctx, node); err != nil {
+			return nil, err
+		}
+	}
+	_ = s.Auth.Audit(ctx, nil, auth.Event{Org: org, Actor: sess.UserID, Action: "node.sftp", Target: req.GetNodeId(), Meta: map[string]any{"allowed": req.GetAllowed()}})
+	s.syncSFTP(ctx, req.GetNodeId())
+	return &panelv1.SetNodeSFTPResponse{}, nil
 }
 
 // RevokeSFTPAccess implements OrgService.
@@ -122,6 +167,9 @@ func (s *Service) RevokeSFTPAccess(ctx context.Context, req *panelv1.RevokeSFTPA
 	})
 	if err != nil {
 		return nil, err
+	}
+	if out.GetUsername() != "" {
+		s.syncSFTP(ctx, req.GetNodeId())
 	}
 	return out, nil
 }

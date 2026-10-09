@@ -129,6 +129,7 @@ type Node struct {
 	SftpEnabled     bool
 	SftpPort        int32
 	SftpHostKey     string
+	SftpAllowed     bool
 }
 
 type NodeConnection struct {

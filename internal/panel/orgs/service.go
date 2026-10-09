@@ -46,6 +46,11 @@ type Service struct {
 	// NodeRemoved is called after a node is removed, to drop its
 	// connection and DNS records (nil: nothing more).
 	NodeRemoved func(ctx context.Context, nodeID string)
+	// SFTPGate opens and closes nodes' SFTP ports (*sftpgate.Gate; nil:
+	// the ports aren't managed).
+	SFTPGate interface {
+		Sync(ctx context.Context, nodeID string) error
+	}
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)

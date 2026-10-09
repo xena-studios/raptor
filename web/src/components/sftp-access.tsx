@@ -1,7 +1,7 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, FolderKey } from "lucide-react";
 import { useState } from "react";
 
 import { DetailList } from "@/components/page";
@@ -16,7 +16,6 @@ import {
 import { type Node, OrgService, type SFTPAccess } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { commandClient, orgClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 const select =
   "h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -118,20 +117,18 @@ export function SFTPButton({
       }
     });
 
-  const active = node.sftpEnabled && !!access;
+  const active = node.sftpAllowed && !!access;
 
   return (
     <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-        <span
-          aria-hidden
-          className={cn(
-            "size-2 rounded-full",
-            active ? "bg-emerald-500" : "bg-muted-foreground/40",
-          )}
-        />
-        SFTP
-        <span className="sr-only">{active ? "(on)" : "(off)"}</span>
+        <FolderKey /> SFTP
+        {active && (
+          <>
+            <span aria-hidden className="size-2 rounded-full bg-emerald-500" />
+            <span className="sr-only">(on)</span>
+          </>
+        )}
       </Button>
       <Dialog
         open={open}
@@ -154,34 +151,30 @@ export function SFTPButton({
             <DialogDescription>
               For big uploads and your own file apps (FileZilla, WinSCP, Cyberduck). Turn it on when
               you need it: you get a username and password that stop working when you turn it off or
-              when they run out.
+              when they run out. The node's SFTP port is closed until someone needs it.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 text-sm">
-            {!node.sftpEnabled ? (
+            {!node.sftpAllowed ? (
               admin ? (
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-muted-foreground">SFTP is off on {node.name}.</span>
+                  <span className="text-muted-foreground">SFTP is stopped on {node.name}.</span>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={busy}
                     onClick={() =>
                       act(async () => {
-                        await commandClient.execute({
-                          nodeId: node.id,
-                          action: "node.sftp",
-                          paramsJson: JSON.stringify({ enabled: true }),
-                        });
+                        await orgClient.setNodeSFTP({ orgId, nodeId: node.id, allowed: true });
                       })
                     }
                   >
-                    Turn on SFTP for this node
+                    Allow SFTP on this node
                   </Button>
                 </div>
               ) : (
                 <p className="text-muted-foreground">
-                  SFTP is off on {node.name}. Ask an admin of your org to turn it on.
+                  An admin has stopped SFTP on {node.name}. Ask them to allow it.
                 </p>
               )
             ) : access ? (
@@ -189,7 +182,16 @@ export function SFTPButton({
                 <DetailList
                   rows={[
                     ["Host", <CopyValue key="h" value={access.host} />],
-                    ["Port", <CopyValue key="p" value={String(access.port)} />],
+                    [
+                      "Port",
+                      access.port ? (
+                        <CopyValue key="p" value={String(access.port)} />
+                      ) : (
+                        <span key="p" className="text-muted-foreground">
+                          Opens when {node.name} is back online
+                        </span>
+                      ),
+                    ],
                     ["Username", <CopyValue key="u" value={access.username} />],
                     [
                       "Password",

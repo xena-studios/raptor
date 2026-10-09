@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import type { Node } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
-import { commandClient, orgClient } from "@/lib/transport";
+import { orgClient } from "@/lib/transport";
+import { cn } from "@/lib/utils";
 
 // NodeSettings renames a node and removes it from the org (admins and
 // owners).
@@ -97,22 +99,18 @@ export function NodeSettings({
   );
 }
 
-// NodeSFTP turns the node's SFTP server on or off (node.sftp). Each user
-// still turns on their own login per server.
-export function NodeSFTP({ node }: { node: Node }) {
+// NodeSFTP allows or stops SFTP on the node. Its port opens only while
+// someone has turned on SFTP for one of its servers (the Panel's gate).
+export function NodeSFTP({ orgId, node }: { orgId: string; node: Node }) {
   const client = useQueryClient();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function set(enabled: boolean) {
+  async function set(allowed: boolean) {
     setBusy(true);
     setError("");
     try {
-      await commandClient.execute({
-        nodeId: node.id,
-        action: "node.sftp",
-        paramsJson: JSON.stringify({ enabled }),
-      });
+      await orgClient.setNodeSFTP({ orgId, nodeId: node.id, allowed });
       await client.invalidateQueries();
     } catch (err) {
       setError(message(err));
@@ -126,26 +124,42 @@ export function NodeSFTP({ node }: { node: Node }) {
       <CardHeader>
         <CardTitle>SFTP</CardTitle>
         <CardDescription>
-          {node.sftpEnabled
-            ? `On, at n-${node.shortId}.raptornodes.net port ${node.sftpPort}. Members with the SFTP permission can turn on a login for each server they can reach.`
-            : "Off. While it's off, nobody can use SFTP on this node's servers."}
+          Members with the SFTP permission can turn on a temporary login for a server from its Files
+          tab. The port stays closed until someone does, and closes again when the last login is
+          turned off or runs out.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <label htmlFor="node-sftp" className="text-sm">
+            <span className="block font-medium">Allow SFTP on this node</span>
+            <span className="block text-xs text-muted-foreground">
+              Stopping it closes the port and ends every login now.
+            </span>
+          </label>
+          <Switch
+            id="node-sftp"
+            checked={node.sftpAllowed}
+            disabled={busy}
+            onCheckedChange={(v) => set(v)}
+          />
+        </div>
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span
+            className={cn(
+              "size-2 rounded-full",
+              node.sftpEnabled ? "bg-emerald-500" : "bg-muted-foreground/40",
+            )}
+          />
+          {node.sftpEnabled
+            ? `Open now, at n-${node.shortId}.raptornodes.net port ${node.sftpPort}`
+            : "Closed: nobody is using SFTP"}
+        </p>
         {node.sftpEnabled && node.sftpHostKeyFingerprint && (
           <p className="text-xs text-muted-foreground">
             Host key: <code>{node.sftpHostKeyFingerprint}</code>
           </p>
         )}
-        <Button
-          variant={node.sftpEnabled ? "outline" : "default"}
-          className="self-start"
-          disabled={busy || !node.connected}
-          onClick={() => set(!node.sftpEnabled)}
-        >
-          {node.sftpEnabled ? "Turn off SFTP" : "Turn on SFTP"}
-        </Button>
-        {!node.connected && <p className="text-xs text-muted-foreground">The node is offline.</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
     </Card>

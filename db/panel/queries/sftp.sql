@@ -18,3 +18,26 @@ DELETE FROM sftp_passwords WHERE user_id = $1 AND node_id = $2 AND server_id = $
 
 -- name: PruneSFTPPasswords :exec
 DELETE FROM sftp_passwords WHERE expires_at < now();
+
+-- name: NodeSFTPWanted :one
+-- Whether a node's SFTP port should be open: SFTP allowed there, and a
+-- password on it that hasn't run out.
+SELECT n.sftp_enabled,
+       (n.sftp_allowed AND EXISTS (
+           SELECT 1 FROM sftp_passwords p WHERE p.node_id = n.id AND p.expires_at > now()
+       ))::bool AS wanted
+FROM nodes n WHERE n.id = $1 AND n.deleted_at IS NULL;
+
+-- name: NodesSFTPOutOfStep :many
+-- Nodes whose SFTP port is open when it shouldn't be, or the other way.
+SELECT n.id FROM nodes n
+WHERE n.deleted_at IS NULL
+  AND n.sftp_enabled <> (n.sftp_allowed AND EXISTS (
+      SELECT 1 FROM sftp_passwords p WHERE p.node_id = n.id AND p.expires_at > now()
+  ));
+
+-- name: SetNodeSFTPAllowed :execrows
+UPDATE nodes SET sftp_allowed = $2 WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: DeleteNodeSFTPPasswords :exec
+DELETE FROM sftp_passwords WHERE node_id = $1;

@@ -124,6 +124,11 @@ service OrgService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // SetNodeSFTP allows or stops SFTP on a node. Stopping it closes its
+  // port, and nobody can turn on a password there until it's allowed again.
+  // Admins and owners.
+  rpc SetNodeSFTP(SetNodeSFTPRequest) returns (SetNodeSFTPResponse) {}
+
   // GetSFTPAccess says whether the caller has a temporary SFTP password
   // for a server, and how to connect. Needs the sftp permission.
   rpc GetSFTPAccess(GetSFTPAccessRequest) returns (GetSFTPAccessResponse) {
@@ -131,12 +136,14 @@ service OrgService {
   }
 
   // CreateSFTPAccess makes the caller a temporary SFTP password for a
-  // server, replacing any they had. The password is only ever in this
-  // answer. Needs the sftp permission.
+  // server, replacing any they had, and opens the node's SFTP port if it was
+  // closed. The password is only ever in this answer. Needs the sftp
+  // permission, and SFTP allowed on the node.
   rpc CreateSFTPAccess(CreateSFTPAccessRequest) returns (CreateSFTPAccessResponse) {}
 
   // RevokeSFTPAccess deletes the caller's temporary SFTP password for a
-  // server. The web app then sends sftp.disconnect to end its sessions.
+  // server, closing the node's SFTP port if it was the last. The web app
+  // then sends sftp.disconnect to end its sessions.
   rpc RevokeSFTPAccess(RevokeSFTPAccessRequest) returns (RevokeSFTPAccessResponse) {}
 
   // ListBackups lists a server's backups as the mirror has them, newest
@@ -326,11 +333,14 @@ message Node {
   string arch = 8;
   int32 cpus = 9;
   int64 memory_bytes = 10;
-  // Whether it serves SFTP (node.sftp), on which port, and its host key's
-  // fingerprint, as it last reported them.
+  // Whether its SFTP port is open (node.sftp), on which port, and its host
+  // key's fingerprint, as it last reported them. The Panel opens the port
+  // only while someone has a temporary SFTP password on the node.
   bool sftp_enabled = 11;
   int32 sftp_port = 12;
   string sftp_host_key_fingerprint = 13;
+  // Whether admins allow SFTP on the node at all.
+  bool sftp_allowed = 14;
 }
 
 message ListNodesResponse {
@@ -506,3 +516,11 @@ message RevokeSFTPAccessResponse {
   // The login's first part, for sftp.disconnect; empty if there was none.
   string username = 1;
 }
+
+message SetNodeSFTPRequest {
+  string org_id = 1;
+  string node_id = 2;
+  bool allowed = 3;
+}
+
+message SetNodeSFTPResponse {}

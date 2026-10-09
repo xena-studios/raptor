@@ -26,6 +26,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
+	"github.com/xena-studios/raptor/internal/panel/sftpgate"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/panel/support"
 	"github.com/xena-studios/raptor/internal/panel/telemetry"
@@ -224,7 +225,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		}
 		cfg.Auth.OAuth = oauthProviders(envOr("PANEL_API_URL", "https://api.raptorpanel.net"), log)
 		go cfg.Auth.RunJanitor(ctx, time.Hour)
-		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg}
+		// SFTP ports open only while someone has a password on the node.
+		gate := &sftpgate.Gate{DB: pool, Sender: router, PanelKey: reg.PanelKey, Log: log}
+		go gate.Run(ctx, time.Minute)
+		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate}
 		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey}
 		cfg.Transfers = router
 		mailer, err := mailer(log)
