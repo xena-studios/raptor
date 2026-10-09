@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"net"
 	"net/http/httptest"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -27,11 +28,16 @@ func TestConnectionTest(t *testing.T) {
 	mail := &inbox{}
 	_, key, _ := ed25519.GenerateKey(rand.Reader)
 	authSvc := &auth.Service{DB: db, Mailer: mail, AppURL: appOrigin}
-	var dialed []string
+	var (
+		mu     sync.Mutex
+		dialed []string
+	)
 	orgSvc := &orgs.Service{
 		DB: db, Auth: authSvc, Registry: &nodes.Registry{DB: db, PanelKey: key},
 		Dial: func(_ context.Context, _, addr string) (net.Conn, error) {
+			mu.Lock()
 			dialed = append(dialed, addr)
+			mu.Unlock()
 			switch addr {
 			case "203.0.113.7:25565":
 				a, _ := net.Pipe() // stays open, like a game waiting for the player
@@ -88,6 +94,8 @@ func TestConnectionTest(t *testing.T) {
 	if !got[25565].GetReachable() || got[25566].GetFailure() != "refused" || got[25567].GetFailure() != "timeout" || got[25568].GetFailure() != "local_only" || got[25569].GetFailure() != "closed" {
 		t.Errorf("ports: %v", res.GetPorts())
 	}
+	mu.Lock()
+	defer mu.Unlock()
 	for _, a := range dialed {
 		if a == "203.0.113.7:25568" {
 			t.Error("a 127.0.0.1 allocation was dialed")
