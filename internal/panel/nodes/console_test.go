@@ -74,6 +74,22 @@ func TestConsoleAcrossInstances(t *testing.T) {
 	if _, err := a.hub.Wait(wctx, nodeID); err != nil {
 		t.Fatal(err)
 	}
+	// The other instance finds the node by its connection row, which is
+	// written just after the hub has the connection.
+	for {
+		var n int
+		if err := r.DB.QueryRow(wctx, "SELECT count(*) FROM node_connections WHERE node_id = $1", nodeID).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n > 0 {
+			break
+		}
+		select {
+		case <-wctx.Done():
+			t.Fatal("the node's connection was never recorded")
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
 
 	id, _ := uuid.NewV7()
 	e := command.Envelope{CommandID: id.String(), NodeID: nodeID, UserID: "u", Action: link.ConsoleAction, ServerID: "s1", ExpiresAt: time.Now().Add(5 * time.Minute).Unix()}
