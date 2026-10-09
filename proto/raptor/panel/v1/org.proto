@@ -146,6 +146,12 @@ service OrgService {
   // then sends sftp.disconnect to end its sessions.
   rpc RevokeSFTPAccess(RevokeSFTPAccessRequest) returns (RevokeSFTPAccessResponse) {}
 
+  // TestConnection checks from outside whether players can reach a server:
+  // the Panel connects to each of its ports on the node's public address.
+  // With server.ports (what the game listens on, from the node), the web
+  // app tells why when it can't. Any access to the server; rate limited.
+  rpc TestConnection(TestConnectionRequest) returns (TestConnectionResponse) {}
+
   // ListBackups lists a server's backups as the mirror has them, newest
   // first. Needs the backups permission.
   rpc ListBackups(ListBackupsRequest) returns (ListBackupsResponse) {
@@ -525,3 +531,36 @@ message SetNodeSFTPRequest {
 }
 
 message SetNodeSFTPResponse {}
+
+message TestConnectionRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+}
+
+message TestConnectionResponse {
+  // The node's public address the Panel tried ("" if it doesn't know it).
+  string address = 1;
+  repeated PortProbe ports = 2;
+  // A guess at the node's hosting provider, from its reverse DNS, for the
+  // right firewall guide: "hetzner", "ovh", "aws", "gcp", "azure",
+  // "oracle", "digitalocean", "linode", "vultr", "home", or "".
+  string provider = 3;
+  string reverse_dns = 4;
+}
+
+// PortProbe is one port, tried over TCP from the Panel.
+message PortProbe {
+  int32 port = 1;
+  bool primary = 2;
+  // Answered over TCP from outside.
+  bool reachable = 3;
+  int32 latency_ms = 4;
+  // Why not: "refused" (the machine answered, nothing listens or a
+  // firewall rejected it), "timeout" (dropped on the way: a firewall),
+  // "closed" (accepted, then hung up at once: a port forwarder with
+  // nothing behind it),
+  // "local_only" (the allocation is on 127.0.0.1, so not public by
+  // design), or "unknown".
+  string failure = 5;
+}

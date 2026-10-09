@@ -124,7 +124,7 @@ func (c *Client) Inspect(ctx context.Context, id string) (containers.State, erro
 		return containers.State{}, errors.New("container has no state")
 	}
 	started, _ := time.Parse(time.RFC3339Nano, st.StartedAt)
-	return containers.State{Running: st.Running, ExitCode: int64(st.ExitCode), OOMKilled: st.OOMKilled, StartedAt: started}, nil
+	return containers.State{Running: st.Running, ExitCode: int64(st.ExitCode), OOMKilled: st.OOMKilled, StartedAt: started, Pid: st.Pid}, nil
 }
 
 // Stats samples a container's usage. One-shot: Docker returns immediately
