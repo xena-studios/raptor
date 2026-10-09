@@ -5,6 +5,7 @@ package raptor.panel.v1;
 import "google/protobuf/timestamp.proto";
 import "raptor/panel/v1/audit.proto";
 import "raptor/panel/v1/auth.proto";
+import "raptor/panel/v1/catalog.proto";
 
 // OrgService manages orgs, their members, and invitations
 // (docs/PANEL.md#permissions). Roles: owners can do everything, including
@@ -158,6 +159,31 @@ service OrgService {
   // With server.ports (what the game listens on, from the node), the web
   // app tells why when it can't. Any access to the server; rate limited.
   rpc TestConnection(TestConnectionRequest) returns (TestConnectionResponse) {}
+
+  // PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
+  // says what it would run, for review before ImportEgg: its images and
+  // their registries, its install script, its startup command, and
+  // warnings. Nothing is saved. Admins and owners; rate limited.
+  rpc PreviewEgg(PreviewEggRequest) returns (PreviewEggResponse) {}
+
+  // ImportEgg saves a reviewed egg to the org, for creating servers.
+  // Admins and owners.
+  rpc ImportEgg(ImportEggRequest) returns (ImportEggResponse) {}
+
+  // ListOrgEggs lists the org's imported eggs. Any member.
+  rpc ListOrgEggs(ListOrgEggsRequest) returns (ListOrgEggsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetOrgEgg returns an imported egg's file, as a server created from it
+  // gets it. Any member.
+  rpc GetOrgEgg(GetOrgEggRequest) returns (GetOrgEggResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // DeleteOrgEgg removes an imported egg. Servers made from it keep it.
+  // Admins and owners.
+  rpc DeleteOrgEgg(DeleteOrgEggRequest) returns (DeleteOrgEggResponse) {}
 
   // ListBackups lists a server's backups as the mirror has them, newest
   // first. Needs the backups permission.
@@ -610,3 +636,97 @@ message PortProbe {
   // design), or "unknown".
   string failure = 5;
 }
+
+message PreviewEggRequest {
+  string org_id = 1;
+  oneof source {
+    // An https URL. GitHub file pages are read from their raw file.
+    string url = 2;
+    // An uploaded egg file (JSON or YAML), up to 1 MiB.
+    bytes file = 3;
+  }
+}
+
+message PreviewEggResponse {
+  // The file as fetched, to send back to ImportEgg unchanged.
+  bytes egg = 1;
+  // Where it came from: the URL actually read; empty for a file.
+  string source_url = 2;
+  string sha256 = 3;
+  EggReview review = 4;
+}
+
+// EggReview is what an egg would run on a node.
+message EggReview {
+  string name = 1;
+  string description = 2;
+  string author = 3;
+  // "pterodactyl" or "pelican".
+  string format = 4;
+  repeated EggImage images = 5;
+  // Every registry the images and the install container come from.
+  repeated string registries = 6;
+  string install_container = 7;
+  string install_entrypoint = 8;
+  string install_script = 9;
+  // The startup commands, the default first.
+  repeated string startup = 10;
+  repeated EggVariable variables = 11;
+  repeated string features = 12;
+  // Empty: the egg doesn't say which CPUs it runs on.
+  repeated string arch = 13;
+  repeated EggWarning warnings = 14;
+  // Whether an egg with the same file is already imported.
+  bool duplicate = 15;
+}
+
+message EggWarning {
+  // "registry" (an image from a registry the community eggs don't use),
+  // "pipe_to_shell" (the install script runs a script it downloads),
+  // "no_arch", "claims_certified".
+  string kind = 1;
+  // A sentence for the user.
+  string text = 2;
+}
+
+message ImportEggRequest {
+  string org_id = 1;
+  // From PreviewEgg.
+  bytes egg = 2;
+  string source_url = 3;
+}
+
+message ImportEggResponse {
+  CatalogEgg egg = 1;
+}
+
+message ListOrgEggsRequest {
+  string org_id = 1;
+}
+
+message ListOrgEggsResponse {
+  repeated OrgEgg eggs = 1;
+}
+
+message OrgEgg {
+  // id is "org:<uuid>"; category "imported"; certified is always false.
+  CatalogEgg egg = 1;
+  string imported_by_email = 2;
+  google.protobuf.Timestamp imported_at = 3;
+}
+
+message GetOrgEggRequest {
+  string org_id = 1;
+  string egg_id = 2;
+}
+
+message GetOrgEggResponse {
+  bytes egg = 1;
+}
+
+message DeleteOrgEggRequest {
+  string org_id = 1;
+  string egg_id = 2;
+}
+
+message DeleteOrgEggResponse {}

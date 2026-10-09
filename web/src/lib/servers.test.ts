@@ -25,6 +25,12 @@ test("eggs a node can run, certified first", () => {
     ["c", "b"],
   );
   assert.equal(eggsFor(eggs, "").length, 3);
+  // An imported egg that doesn't say which CPUs it runs on.
+  const unknown = { id: "d", name: "Delta", category: "imported", certified: false, arch: [] };
+  assert.deepEqual(
+    eggsFor([...eggs, unknown], "arm64").map((e) => e.id),
+    ["c", "b", "d"],
+  );
 });
 
 test("the usual port, or the next free one", () => {

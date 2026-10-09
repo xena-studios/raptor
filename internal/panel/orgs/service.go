@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -56,6 +57,9 @@ type Service struct {
 	// network's own by default; tests replace them).
 	Dial       func(ctx context.Context, network, addr string) (net.Conn, error)
 	LookupAddr func(ctx context.Context, addr string) ([]string, error)
+	// EggClient fetches eggs to import (nil: eggimport.Client, which only
+	// reaches public addresses).
+	EggClient *http.Client
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)

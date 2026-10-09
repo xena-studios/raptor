@@ -5,6 +5,7 @@ import {
   Archive,
   Building2,
   CalendarClock,
+  Egg,
   FileText,
   FolderKey,
   KeyRound,
@@ -219,6 +220,12 @@ export function OrgActivity({
         break;
       case "sftp.password":
         [text, icon] = [`turned on SFTP for ${serverName(str(meta.node), e.target)}`, FolderKey];
+        break;
+      case "egg.import":
+        [text, icon] = [`imported the egg "${str(meta.name)}"`, Egg];
+        break;
+      case "egg.delete":
+        [text, icon] = [`removed the imported egg "${str(meta.name)}"`, Egg];
         break;
       case "command": {
         const server =

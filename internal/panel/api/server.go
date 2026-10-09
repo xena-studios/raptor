@@ -110,7 +110,8 @@ func Handler(cfg Config) http.Handler {
 		api.Handle("GET "+live.Path, &live.Handler{Auth: cfg.Auth, Commands: cfg.Commands, AppOrigin: cmp.Or(cfg.AppOrigin, "https://app.raptorpanel.net"), Recheck: cfg.ConsoleRecheck})
 	}
 	if cfg.Orgs != nil {
-		path, handler := panelv1connect.NewOrgServiceHandler(cfg.Orgs, opts(connect.WithReadMaxBytes(64<<10))...)
+		// An uploaded egg is up to 1 MiB, base64 in JSON.
+		path, handler := panelv1connect.NewOrgServiceHandler(cfg.Orgs, opts(connect.WithReadMaxBytes(2<<20))...)
 		api.Handle(path, handler)
 	}
 	appOrigin := cfg.AppOrigin

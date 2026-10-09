@@ -10,13 +10,15 @@ import type { AuditEvent } from "./audit_pb";
 import { file_raptor_panel_v1_audit } from "./audit_pb";
 import type { Passkey } from "./auth_pb";
 import { file_raptor_panel_v1_auth } from "./auth_pb";
+import type { CatalogEgg, EggImage, EggVariable } from "./catalog_pb";
+import { file_raptor_panel_v1_catalog } from "./catalog_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file raptor/panel/v1/org.proto.
  */
 export const file_raptor_panel_v1_org: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvb3JnLnByb3RvEg9yYXB0b3IucGFuZWwudjEidAoDT3JnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSLgoKY3JlYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIiAKEENyZWF0ZU9yZ1JlcXVlc3QSDAoEbmFtZRgBIAEoCSI2ChFDcmVhdGVPcmdSZXNwb25zZRIhCgNvcmcYASABKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIhEKD0xpc3RPcmdzUmVxdWVzdCI2ChBMaXN0T3Jnc1Jlc3BvbnNlEiIKBG9yZ3MYASADKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIjAKEFJlbmFtZU9yZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBG5hbWUYAiABKAkiEwoRUmVuYW1lT3JnUmVzcG9uc2UiigEKBk1lbWJlchIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlEi0KCWpvaW5lZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiJAoSTGlzdE1lbWJlcnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSI/ChNMaXN0TWVtYmVyc1Jlc3BvbnNlEigKB21lbWJlcnMYASADKAsyFy5yYXB0b3IucGFuZWwudjEuTWVtYmVyIlwKFFNldE1lbWJlclJvbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEiMKBHJvbGUYAyABKA4yFS5yYXB0b3IucGFuZWwudjEuUm9sZSIXChVTZXRNZW1iZXJSb2xlUmVzcG9uc2UiNgoTUmVtb3ZlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCSIWChRSZW1vdmVNZW1iZXJSZXNwb25zZSKsAQoKSW52aXRhdGlvbhIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIjCgRyb2xlGAMgASgOMhUucmFwdG9yLnBhbmVsLnYxLlJvbGUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWQoTSW52aXRlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFZW1haWwYAiABKAkSIwoEcm9sZRgDIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIkcKFEludml0ZU1lbWJlclJlc3BvbnNlEi8KCmludml0YXRpb24YASABKAsyGy5yYXB0b3IucGFuZWwudjEuSW52aXRhdGlvbiIoChZMaXN0SW52aXRhdGlvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSJLChdMaXN0SW52aXRhdGlvbnNSZXNwb25zZRIwCgtpbnZpdGF0aW9ucxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5JbnZpdGF0aW9uIkAKF1Jldm9rZUludml0YXRpb25SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIVCg1pbnZpdGF0aW9uX2lkGAIgASgJIhoKGFJldm9rZUludml0YXRpb25SZXNwb25zZSIoChdBY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBINCgV0b2tlbhgBIAEoCSI9ChhBY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2USIQoDb3JnGAEgASgLMhQucmFwdG9yLnBhbmVsLnYxLk9yZyI2ChZDcmVhdGVKb2luVG9rZW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJIlgKF0NyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIl0KE0xpc3RBdWRpdExvZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglzZXJ2ZXJfaWQYBCABKAkiXAoUTGlzdEF1ZGl0TG9nUmVzcG9uc2USKwoGZXZlbnRzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkF1ZGl0RXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJInIKFlNldFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJEg8KB3VzZXJfaWQYBCABKAkSEwoLcGVybWlzc2lvbnMYBSADKAkiGQoXU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiTQoXTGlzdFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIkMKDFNlcnZlckFjY2VzcxIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEhMKC3Blcm1pc3Npb25zGAMgAygJIkkKGExpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZRItCgZhY2Nlc3MYASADKAsyHS5yYXB0b3IucGFuZWwudjEuU2VydmVyQWNjZXNzIiIKEExpc3ROb2Rlc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJItICCgROb2RlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIc2hvcnRfaWQYAyABKAkSFQoNd2luZ3NfdmVyc2lvbhgEIAEoCRIRCgljb25uZWN0ZWQYBSABKAgSMAoMbGFzdF9zZWVuX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRhcmNoGAggASgJEgwKBGNwdXMYCSABKAUSFAoMbWVtb3J5X2J5dGVzGAogASgDEhQKDHNmdHBfZW5hYmxlZBgLIAEoCBIRCglzZnRwX3BvcnQYDCABKAUSIQoZc2Z0cF9ob3N0X2tleV9maW5nZXJwcmludBgNIAEoCRIUCgxzZnRwX2FsbG93ZWQYDiABKAgiOQoRTGlzdE5vZGVzUmVzcG9uc2USJAoFbm9kZXMYASADKAsyFS5yYXB0b3IucGFuZWwudjEuTm9kZSJCChFSZW5hbWVOb2RlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIMCgRuYW1lGAMgASgJIhQKElJlbmFtZU5vZGVSZXNwb25zZSI0ChFSZW1vdmVOb2RlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCSIUChJSZW1vdmVOb2RlUmVzcG9uc2UiNQoSTGlzdFNlcnZlcnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJIpUBCgZTZXJ2ZXISCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghlZ2dfbmFtZRgEIAEoCRITCgtwZXJtaXNzaW9ucxgFIAMoCRINCgVwb3J0cxgGIAMoBRIVCg1pbnN0YWxsX3N0YXRlGAcgASgJEhUKDWluc3RhbGxfZXJyb3IYCCABKAkiPwoTTGlzdFNlcnZlcnNSZXNwb25zZRIoCgdzZXJ2ZXJzGAEgAygLMhcucmFwdG9yLnBhbmVsLnYxLlNlcnZlciJGChBHZXRTZXJ2ZXJSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCSJRChFHZXRTZXJ2ZXJSZXNwb25zZRInCgZzZXJ2ZXIYASABKAsyFy5yYXB0b3IucGFuZWwudjEuU2VydmVyEhMKC2NvbmZpZ19qc29uGAIgASgJIkYKE1BpbkpvaW5Ub2tlblJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg0KBXRva2VuGAIgASgJEhAKCHBpbl9qc29uGAMgASgJIhYKFFBpbkpvaW5Ub2tlblJlc3BvbnNlIjwKGUxpc3RNZW1iZXJQYXNza2V5c1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkiSAoaTGlzdE1lbWJlclBhc3NrZXlzUmVzcG9uc2USKgoIcGFzc2tleXMYASADKAsyGC5yYXB0b3IucGFuZWwudjEuUGFzc2tleSJKChRMaXN0U2NoZWR1bGVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiRQoVTGlzdFNjaGVkdWxlc1Jlc3BvbnNlEiwKCXNjaGVkdWxlcxgBIAMoCzIZLnJhcHRvci5wYW5lbC52MS5TY2hlZHVsZSKqAQoIU2NoZWR1bGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgdlbmFibGVkGAMgASgIEiwKCG5leHRfcnVuGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIsCghsYXN0X3J1bhgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFwoPZGVmaW5pdGlvbl9qc29uGAYgASgJInYKF0xpc3RTY2hlZHVsZVJ1bnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRITCgtzY2hlZHVsZV9pZBgEIAEoCRISCgpwYWdlX3Rva2VuGAUgASgJIl8KGExpc3RTY2hlZHVsZVJ1bnNSZXNwb25zZRIqCgRydW5zGAEgAygLMhwucmFwdG9yLnBhbmVsLnYxLlNjaGVkdWxlUnVuEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKoAgoLU2NoZWR1bGVSdW4SCgoCaWQYASABKAkSEwoLc2NoZWR1bGVfaWQYAiABKAkSDgoGc3RhdHVzGAMgASgJEg4KBnJlYXNvbhgEIAEoCRITCgtza2lwX3JlYXNvbhgFIAEoCRIvCgVzdGVwcxgGIAMoCzIgLnJhcHRvci5wYW5lbC52MS5TY2hlZHVsZVJ1blN0ZXASMQoNc2NoZWR1bGVkX2ZvchgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjoKD1NjaGVkdWxlUnVuU3RlcBIMCgR0eXBlGAEgASgJEgoKAm9rGAIgASgIEg0KBWVycm9yGAMgASgJIkgKEkxpc3RCYWNrdXBzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiPwoTTGlzdEJhY2t1cHNSZXNwb25zZRIoCgdiYWNrdXBzGAEgAygLMhcucmFwdG9yLnBhbmVsLnYxLkJhY2t1cCKQAgoGQmFja3VwEgoKAmlkGAEgASgJEgwKBGtpbmQYAiABKAkSDgoGc3RhdHVzGAMgASgJEg4KBmxvY2tlZBgEIAEoCBIMCgRzaXplGAUgASgDEg0KBWZpbGVzGAYgASgDEg0KBWVycm9yGAcgASgJEg8KB3dhcm5pbmcYCCABKAkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkoKFEdldFNGVFBBY2Nlc3NSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCSJEChVHZXRTRlRQQWNjZXNzUmVzcG9uc2USKwoGYWNjZXNzGAEgASgLMhsucmFwdG9yLnBhbmVsLnYxLlNGVFBBY2Nlc3MiiAEKClNGVFBBY2Nlc3MSDAoEaG9zdBgBIAEoCRIMCgRwb3J0GAIgASgFEhAKCHVzZXJuYW1lGAMgASgJEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFGhvc3Rfa2V5X2ZpbmdlcnByaW50GAUgASgJImIKF0NyZWF0ZVNGVFBBY2Nlc3NSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRITCgt0dGxfc2Vjb25kcxgEIAEoAyJZChhDcmVhdGVTRlRQQWNjZXNzUmVzcG9uc2USKwoGYWNjZXNzGAEgASgLMhsucmFwdG9yLnBhbmVsLnYxLlNGVFBBY2Nlc3MSEAoIcGFzc3dvcmQYAiABKAkiTQoXUmV2b2tlU0ZUUEFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIiwKGFJldm9rZVNGVFBBY2Nlc3NSZXNwb25zZRIQCgh1c2VybmFtZRgBIAEoCSJGChJTZXROb2RlU0ZUUFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSDwoHYWxsb3dlZBgDIAEoCCIVChNTZXROb2RlU0ZUUFJlc3BvbnNlIksKFVRlc3RDb25uZWN0aW9uUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiewoWVGVzdENvbm5lY3Rpb25SZXNwb25zZRIPCgdhZGRyZXNzGAEgASgJEikKBXBvcnRzGAIgAygLMhoucmFwdG9yLnBhbmVsLnYxLlBvcnRQcm9iZRIQCghwcm92aWRlchgDIAEoCRITCgtyZXZlcnNlX2RucxgEIAEoCSJiCglQb3J0UHJvYmUSDAoEcG9ydBgBIAEoBRIPCgdwcmltYXJ5GAIgASgIEhEKCXJlYWNoYWJsZRgDIAEoCBISCgpsYXRlbmN5X21zGAQgASgFEg8KB2ZhaWx1cmUYBSABKAkqTQoEUm9sZRIUChBST0xFX1VOU1BFQ0lGSUVEEAASDwoLUk9MRV9NRU1CRVIQARIOCgpST0xFX0FETUlOEAISDgoKUk9MRV9PV05FUhADMrIWCgpPcmdTZXJ2aWNlElQKCUNyZWF0ZU9yZxIhLnJhcHRvci5wYW5lbC52MS5DcmVhdGVPcmdSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZU9yZ1Jlc3BvbnNlIgASVAoITGlzdE9yZ3MSIC5yYXB0b3IucGFuZWwudjEuTGlzdE9yZ3NSZXF1ZXN0GiEucmFwdG9yLnBhbmVsLnYxLkxpc3RPcmdzUmVzcG9uc2UiA5ACARJUCglSZW5hbWVPcmcSIS5yYXB0b3IucGFuZWwudjEuUmVuYW1lT3JnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5SZW5hbWVPcmdSZXNwb25zZSIAEl0KC0xpc3RNZW1iZXJzEiMucmFwdG9yLnBhbmVsLnYxLkxpc3RNZW1iZXJzUmVxdWVzdBokLnJhcHRvci5wYW5lbC52MS5MaXN0TWVtYmVyc1Jlc3BvbnNlIgOQAgESYAoNU2V0TWVtYmVyUm9sZRIlLnJhcHRvci5wYW5lbC52MS5TZXRNZW1iZXJSb2xlUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5TZXRNZW1iZXJSb2xlUmVzcG9uc2UiABJdCgxSZW1vdmVNZW1iZXISJC5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTWVtYmVyUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5SZW1vdmVNZW1iZXJSZXNwb25zZSIAEl0KDEludml0ZU1lbWJlchIkLnJhcHRvci5wYW5lbC52MS5JbnZpdGVNZW1iZXJSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkludml0ZU1lbWJlclJlc3BvbnNlIgASaQoPTGlzdEludml0YXRpb25zEicucmFwdG9yLnBhbmVsLnYxLkxpc3RJbnZpdGF0aW9uc1JlcXVlc3QaKC5yYXB0b3IucGFuZWwudjEuTGlzdEludml0YXRpb25zUmVzcG9uc2UiA5ACARJpChBSZXZva2VJbnZpdGF0aW9uEigucmFwdG9yLnBhbmVsLnYxLlJldm9rZUludml0YXRpb25SZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLlJldm9rZUludml0YXRpb25SZXNwb25zZSIAEmkKEEFjY2VwdEludml0YXRpb24SKC5yYXB0b3IucGFuZWwudjEuQWNjZXB0SW52aXRhdGlvblJlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuQWNjZXB0SW52aXRhdGlvblJlc3BvbnNlIgASZgoPQ3JlYXRlSm9pblRva2VuEicucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZUpvaW5Ub2tlblJlcXVlc3QaKC5yYXB0b3IucGFuZWwudjEuQ3JlYXRlSm9pblRva2VuUmVzcG9uc2UiABJmCg9TZXRTZXJ2ZXJBY2Nlc3MSJy5yYXB0b3IucGFuZWwudjEuU2V0U2VydmVyQWNjZXNzUmVxdWVzdBooLnJhcHRvci5wYW5lbC52MS5TZXRTZXJ2ZXJBY2Nlc3NSZXNwb25zZSIAEmwKEExpc3RTZXJ2ZXJBY2Nlc3MSKC5yYXB0b3IucGFuZWwudjEuTGlzdFNlcnZlckFjY2Vzc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuTGlzdFNlcnZlckFjY2Vzc1Jlc3BvbnNlIgOQAgESVwoJTGlzdE5vZGVzEiEucmFwdG9yLnBhbmVsLnYxLkxpc3ROb2Rlc1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuTGlzdE5vZGVzUmVzcG9uc2UiA5ACARJXCgpSZW5hbWVOb2RlEiIucmFwdG9yLnBhbmVsLnYxLlJlbmFtZU5vZGVSZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLlJlbmFtZU5vZGVSZXNwb25zZSIAElcKClJlbW92ZU5vZGUSIi5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTm9kZVJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTm9kZVJlc3BvbnNlIgASXQoLTGlzdFNlcnZlcnMSIy5yYXB0b3IucGFuZWwudjEuTGlzdFNlcnZlcnNSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJzUmVzcG9uc2UiA5ACARJXCglHZXRTZXJ2ZXISIS5yYXB0b3IucGFuZWwudjEuR2V0U2VydmVyUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5HZXRTZXJ2ZXJSZXNwb25zZSIDkAIBEl0KDFBpbkpvaW5Ub2tlbhIkLnJhcHRvci5wYW5lbC52MS5QaW5Kb2luVG9rZW5SZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLlBpbkpvaW5Ub2tlblJlc3BvbnNlIgAScgoSTGlzdE1lbWJlclBhc3NrZXlzEioucmFwdG9yLnBhbmVsLnYxLkxpc3RNZW1iZXJQYXNza2V5c1JlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuTGlzdE1lbWJlclBhc3NrZXlzUmVzcG9uc2UiA5ACARJgCgxMaXN0QXVkaXRMb2cSJC5yYXB0b3IucGFuZWwudjEuTGlzdEF1ZGl0TG9nUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5MaXN0QXVkaXRMb2dSZXNwb25zZSIDkAIBEmMKDUxpc3RTY2hlZHVsZXMSJS5yYXB0b3IucGFuZWwudjEuTGlzdFNjaGVkdWxlc1JlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuTGlzdFNjaGVkdWxlc1Jlc3BvbnNlIgOQAgESbAoQTGlzdFNjaGVkdWxlUnVucxIoLnJhcHRvci5wYW5lbC52MS5MaXN0U2NoZWR1bGVSdW5zUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5MaXN0U2NoZWR1bGVSdW5zUmVzcG9uc2UiA5ACARJaCgtTZXROb2RlU0ZUUBIjLnJhcHRvci5wYW5lbC52MS5TZXROb2RlU0ZUUFJlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuU2V0Tm9kZVNGVFBSZXNwb25zZSIAEmMKDUdldFNGVFBBY2Nlc3MSJS5yYXB0b3IucGFuZWwudjEuR2V0U0ZUUEFjY2Vzc1JlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuR2V0U0ZUUEFjY2Vzc1Jlc3BvbnNlIgOQAgESaQoQQ3JlYXRlU0ZUUEFjY2VzcxIoLnJhcHRvci5wYW5lbC52MS5DcmVhdGVTRlRQQWNjZXNzUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5DcmVhdGVTRlRQQWNjZXNzUmVzcG9uc2UiABJpChBSZXZva2VTRlRQQWNjZXNzEigucmFwdG9yLnBhbmVsLnYxLlJldm9rZVNGVFBBY2Nlc3NSZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLlJldm9rZVNGVFBBY2Nlc3NSZXNwb25zZSIAEmMKDlRlc3RDb25uZWN0aW9uEiYucmFwdG9yLnBhbmVsLnYxLlRlc3RDb25uZWN0aW9uUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5UZXN0Q29ubmVjdGlvblJlc3BvbnNlIgASXQoLTGlzdEJhY2t1cHMSIy5yYXB0b3IucGFuZWwudjEuTGlzdEJhY2t1cHNSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLkxpc3RCYWNrdXBzUmVzcG9uc2UiA5ACAULIAQoTY29tLnJhcHRvci5wYW5lbC52MUIIT3JnUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_raptor_panel_v1_audit, file_raptor_panel_v1_auth]);
+  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvb3JnLnByb3RvEg9yYXB0b3IucGFuZWwudjEidAoDT3JnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSLgoKY3JlYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIiAKEENyZWF0ZU9yZ1JlcXVlc3QSDAoEbmFtZRgBIAEoCSI2ChFDcmVhdGVPcmdSZXNwb25zZRIhCgNvcmcYASABKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIhEKD0xpc3RPcmdzUmVxdWVzdCI2ChBMaXN0T3Jnc1Jlc3BvbnNlEiIKBG9yZ3MYASADKAsyFC5yYXB0b3IucGFuZWwudjEuT3JnIjAKEFJlbmFtZU9yZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBG5hbWUYAiABKAkiEwoRUmVuYW1lT3JnUmVzcG9uc2UiigEKBk1lbWJlchIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEcm9sZRgEIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlEi0KCWpvaW5lZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiJAoSTGlzdE1lbWJlcnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSI/ChNMaXN0TWVtYmVyc1Jlc3BvbnNlEigKB21lbWJlcnMYASADKAsyFy5yYXB0b3IucGFuZWwudjEuTWVtYmVyIlwKFFNldE1lbWJlclJvbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEiMKBHJvbGUYAyABKA4yFS5yYXB0b3IucGFuZWwudjEuUm9sZSIXChVTZXRNZW1iZXJSb2xlUmVzcG9uc2UiNgoTUmVtb3ZlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCSIWChRSZW1vdmVNZW1iZXJSZXNwb25zZSKsAQoKSW52aXRhdGlvbhIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIjCgRyb2xlGAMgASgOMhUucmFwdG9yLnBhbmVsLnYxLlJvbGUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWQoTSW52aXRlTWVtYmVyUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFZW1haWwYAiABKAkSIwoEcm9sZRgDIAEoDjIVLnJhcHRvci5wYW5lbC52MS5Sb2xlIkcKFEludml0ZU1lbWJlclJlc3BvbnNlEi8KCmludml0YXRpb24YASABKAsyGy5yYXB0b3IucGFuZWwudjEuSW52aXRhdGlvbiIoChZMaXN0SW52aXRhdGlvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSJLChdMaXN0SW52aXRhdGlvbnNSZXNwb25zZRIwCgtpbnZpdGF0aW9ucxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5JbnZpdGF0aW9uIkAKF1Jldm9rZUludml0YXRpb25SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIVCg1pbnZpdGF0aW9uX2lkGAIgASgJIhoKGFJldm9rZUludml0YXRpb25SZXNwb25zZSIoChdBY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBINCgV0b2tlbhgBIAEoCSI9ChhBY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2USIQoDb3JnGAEgASgLMhQucmFwdG9yLnBhbmVsLnYxLk9yZyI2ChZDcmVhdGVKb2luVG9rZW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJIlgKF0NyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIl0KE0xpc3RBdWRpdExvZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkSDwoHbm9kZV9pZBgDIAEoCRIRCglzZXJ2ZXJfaWQYBCABKAkiXAoUTGlzdEF1ZGl0TG9nUmVzcG9uc2USKwoGZXZlbnRzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkF1ZGl0RXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJInIKFlNldFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJEg8KB3VzZXJfaWQYBCABKAkSEwoLcGVybWlzc2lvbnMYBSADKAkiGQoXU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiTQoXTGlzdFNlcnZlckFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIkMKDFNlcnZlckFjY2VzcxIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEhMKC3Blcm1pc3Npb25zGAMgAygJIkkKGExpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZRItCgZhY2Nlc3MYASADKAsyHS5yYXB0b3IucGFuZWwudjEuU2VydmVyQWNjZXNzIiIKEExpc3ROb2Rlc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJItICCgROb2RlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIc2hvcnRfaWQYAyABKAkSFQoNd2luZ3NfdmVyc2lvbhgEIAEoCRIRCgljb25uZWN0ZWQYBSABKAgSMAoMbGFzdF9zZWVuX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRhcmNoGAggASgJEgwKBGNwdXMYCSABKAUSFAoMbWVtb3J5X2J5dGVzGAogASgDEhQKDHNmdHBfZW5hYmxlZBgLIAEoCBIRCglzZnRwX3BvcnQYDCABKAUSIQoZc2Z0cF9ob3N0X2tleV9maW5nZXJwcmludBgNIAEoCRIUCgxzZnRwX2FsbG93ZWQYDiABKAgiOQoRTGlzdE5vZGVzUmVzcG9uc2USJAoFbm9kZXMYASADKAsyFS5yYXB0b3IucGFuZWwudjEuTm9kZSJCChFSZW5hbWVOb2RlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIMCgRuYW1lGAMgASgJIhQKElJlbmFtZU5vZGVSZXNwb25zZSI0ChFSZW1vdmVOb2RlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCSIUChJSZW1vdmVOb2RlUmVzcG9uc2UiNQoSTGlzdFNlcnZlcnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJIpUBCgZTZXJ2ZXISCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghlZ2dfbmFtZRgEIAEoCRITCgtwZXJtaXNzaW9ucxgFIAMoCRINCgVwb3J0cxgGIAMoBRIVCg1pbnN0YWxsX3N0YXRlGAcgASgJEhUKDWluc3RhbGxfZXJyb3IYCCABKAkiPwoTTGlzdFNlcnZlcnNSZXNwb25zZRIoCgdzZXJ2ZXJzGAEgAygLMhcucmFwdG9yLnBhbmVsLnYxLlNlcnZlciJGChBHZXRTZXJ2ZXJSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCSJRChFHZXRTZXJ2ZXJSZXNwb25zZRInCgZzZXJ2ZXIYASABKAsyFy5yYXB0b3IucGFuZWwudjEuU2VydmVyEhMKC2NvbmZpZ19qc29uGAIgASgJIkYKE1BpbkpvaW5Ub2tlblJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg0KBXRva2VuGAIgASgJEhAKCHBpbl9qc29uGAMgASgJIhYKFFBpbkpvaW5Ub2tlblJlc3BvbnNlIjwKGUxpc3RNZW1iZXJQYXNza2V5c1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkiSAoaTGlzdE1lbWJlclBhc3NrZXlzUmVzcG9uc2USKgoIcGFzc2tleXMYASADKAsyGC5yYXB0b3IucGFuZWwudjEuUGFzc2tleSJKChRMaXN0U2NoZWR1bGVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiRQoVTGlzdFNjaGVkdWxlc1Jlc3BvbnNlEiwKCXNjaGVkdWxlcxgBIAMoCzIZLnJhcHRvci5wYW5lbC52MS5TY2hlZHVsZSKqAQoIU2NoZWR1bGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgdlbmFibGVkGAMgASgIEiwKCG5leHRfcnVuGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIsCghsYXN0X3J1bhgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFwoPZGVmaW5pdGlvbl9qc29uGAYgASgJInYKF0xpc3RTY2hlZHVsZVJ1bnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRITCgtzY2hlZHVsZV9pZBgEIAEoCRISCgpwYWdlX3Rva2VuGAUgASgJIl8KGExpc3RTY2hlZHVsZVJ1bnNSZXNwb25zZRIqCgRydW5zGAEgAygLMhwucmFwdG9yLnBhbmVsLnYxLlNjaGVkdWxlUnVuEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKoAgoLU2NoZWR1bGVSdW4SCgoCaWQYASABKAkSEwoLc2NoZWR1bGVfaWQYAiABKAkSDgoGc3RhdHVzGAMgASgJEg4KBnJlYXNvbhgEIAEoCRITCgtza2lwX3JlYXNvbhgFIAEoCRIvCgVzdGVwcxgGIAMoCzIgLnJhcHRvci5wYW5lbC52MS5TY2hlZHVsZVJ1blN0ZXASMQoNc2NoZWR1bGVkX2ZvchgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjoKD1NjaGVkdWxlUnVuU3RlcBIMCgR0eXBlGAEgASgJEgoKAm9rGAIgASgIEg0KBWVycm9yGAMgASgJIkgKEkxpc3RCYWNrdXBzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiPwoTTGlzdEJhY2t1cHNSZXNwb25zZRIoCgdiYWNrdXBzGAEgAygLMhcucmFwdG9yLnBhbmVsLnYxLkJhY2t1cCKQAgoGQmFja3VwEgoKAmlkGAEgASgJEgwKBGtpbmQYAiABKAkSDgoGc3RhdHVzGAMgASgJEg4KBmxvY2tlZBgEIAEoCBIMCgRzaXplGAUgASgDEg0KBWZpbGVzGAYgASgDEg0KBWVycm9yGAcgASgJEg8KB3dhcm5pbmcYCCABKAkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkoKFEdldFNGVFBBY2Nlc3NSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCSJEChVHZXRTRlRQQWNjZXNzUmVzcG9uc2USKwoGYWNjZXNzGAEgASgLMhsucmFwdG9yLnBhbmVsLnYxLlNGVFBBY2Nlc3MiiAEKClNGVFBBY2Nlc3MSDAoEaG9zdBgBIAEoCRIMCgRwb3J0GAIgASgFEhAKCHVzZXJuYW1lGAMgASgJEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFGhvc3Rfa2V5X2ZpbmdlcnByaW50GAUgASgJImIKF0NyZWF0ZVNGVFBBY2Nlc3NSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhEKCXNlcnZlcl9pZBgDIAEoCRITCgt0dGxfc2Vjb25kcxgEIAEoAyJZChhDcmVhdGVTRlRQQWNjZXNzUmVzcG9uc2USKwoGYWNjZXNzGAEgASgLMhsucmFwdG9yLnBhbmVsLnYxLlNGVFBBY2Nlc3MSEAoIcGFzc3dvcmQYAiABKAkiTQoXUmV2b2tlU0ZUUEFjY2Vzc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIiwKGFJldm9rZVNGVFBBY2Nlc3NSZXNwb25zZRIQCgh1c2VybmFtZRgBIAEoCSJGChJTZXROb2RlU0ZUUFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAkSDwoHYWxsb3dlZBgDIAEoCCIVChNTZXROb2RlU0ZUUFJlc3BvbnNlIksKFVRlc3RDb25uZWN0aW9uUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHbm9kZV9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiewoWVGVzdENvbm5lY3Rpb25SZXNwb25zZRIPCgdhZGRyZXNzGAEgASgJEikKBXBvcnRzGAIgAygLMhoucmFwdG9yLnBhbmVsLnYxLlBvcnRQcm9iZRIQCghwcm92aWRlchgDIAEoCRITCgtyZXZlcnNlX2RucxgEIAEoCSJiCglQb3J0UHJvYmUSDAoEcG9ydBgBIAEoBRIPCgdwcmltYXJ5GAIgASgIEhEKCXJlYWNoYWJsZRgDIAEoCBISCgpsYXRlbmN5X21zGAQgASgFEg8KB2ZhaWx1cmUYBSABKAkiTAoRUHJldmlld0VnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg0KA3VybBgCIAEoCUgAEg4KBGZpbGUYAyABKAxIAEIICgZzb3VyY2UicQoSUHJldmlld0VnZ1Jlc3BvbnNlEgsKA2VnZxgBIAEoDBISCgpzb3VyY2VfdXJsGAIgASgJEg4KBnNoYTI1NhgDIAEoCRIqCgZyZXZpZXcYBCABKAsyGi5yYXB0b3IucGFuZWwudjEuRWdnUmV2aWV3IoADCglFZ2dSZXZpZXcSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIOCgZhdXRob3IYAyABKAkSDgoGZm9ybWF0GAQgASgJEikKBmltYWdlcxgFIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRISCgpyZWdpc3RyaWVzGAYgAygJEhkKEWluc3RhbGxfY29udGFpbmVyGAcgASgJEhoKEmluc3RhbGxfZW50cnlwb2ludBgIIAEoCRIWCg5pbnN0YWxsX3NjcmlwdBgJIAEoCRIPCgdzdGFydHVwGAogAygJEi8KCXZhcmlhYmxlcxgLIAMoCzIcLnJhcHRvci5wYW5lbC52MS5FZ2dWYXJpYWJsZRIQCghmZWF0dXJlcxgMIAMoCRIMCgRhcmNoGA0gAygJEi0KCHdhcm5pbmdzGA4gAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1dhcm5pbmcSEQoJZHVwbGljYXRlGA8gASgIIigKCkVnZ1dhcm5pbmcSDAoEa2luZBgBIAEoCRIMCgR0ZXh0GAIgASgJIkMKEEltcG9ydEVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgsKA2VnZxgCIAEoDBISCgpzb3VyY2VfdXJsGAMgASgJIj0KEUltcG9ydEVnZ1Jlc3BvbnNlEigKA2VnZxgBIAEoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnIiQKEkxpc3RPcmdFZ2dzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiPAoTTGlzdE9yZ0VnZ3NSZXNwb25zZRIlCgRlZ2dzGAEgAygLMhcucmFwdG9yLnBhbmVsLnYxLk9yZ0VnZyJ+CgZPcmdFZ2cSKAoDZWdnGAEgASgLMhsucmFwdG9yLnBhbmVsLnYxLkNhdGFsb2dFZ2cSGQoRaW1wb3J0ZWRfYnlfZW1haWwYAiABKAkSLwoLaW1wb3J0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjIKEEdldE9yZ0VnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg4KBmVnZ19pZBgCIAEoCSIgChFHZXRPcmdFZ2dSZXNwb25zZRILCgNlZ2cYASABKAwiNQoTRGVsZXRlT3JnRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDgoGZWdnX2lkGAIgASgJIhYKFERlbGV0ZU9yZ0VnZ1Jlc3BvbnNlKk0KBFJvbGUSFAoQUk9MRV9VTlNQRUNJRklFRBAAEg8KC1JPTEVfTUVNQkVSEAESDgoKUk9MRV9BRE1JThACEg4KClJPTEVfT1dORVIQAzL4GQoKT3JnU2VydmljZRJUCglDcmVhdGVPcmcSIS5yYXB0b3IucGFuZWwudjEuQ3JlYXRlT3JnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5DcmVhdGVPcmdSZXNwb25zZSIAElQKCExpc3RPcmdzEiAucmFwdG9yLnBhbmVsLnYxLkxpc3RPcmdzUmVxdWVzdBohLnJhcHRvci5wYW5lbC52MS5MaXN0T3Jnc1Jlc3BvbnNlIgOQAgESVAoJUmVuYW1lT3JnEiEucmFwdG9yLnBhbmVsLnYxLlJlbmFtZU9yZ1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuUmVuYW1lT3JnUmVzcG9uc2UiABJdCgtMaXN0TWVtYmVycxIjLnJhcHRvci5wYW5lbC52MS5MaXN0TWVtYmVyc1JlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuTGlzdE1lbWJlcnNSZXNwb25zZSIDkAIBEmAKDVNldE1lbWJlclJvbGUSJS5yYXB0b3IucGFuZWwudjEuU2V0TWVtYmVyUm9sZVJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuU2V0TWVtYmVyUm9sZVJlc3BvbnNlIgASXQoMUmVtb3ZlTWVtYmVyEiQucmFwdG9yLnBhbmVsLnYxLlJlbW92ZU1lbWJlclJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuUmVtb3ZlTWVtYmVyUmVzcG9uc2UiABJdCgxJbnZpdGVNZW1iZXISJC5yYXB0b3IucGFuZWwudjEuSW52aXRlTWVtYmVyUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5JbnZpdGVNZW1iZXJSZXNwb25zZSIAEmkKD0xpc3RJbnZpdGF0aW9ucxInLnJhcHRvci5wYW5lbC52MS5MaXN0SW52aXRhdGlvbnNSZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkxpc3RJbnZpdGF0aW9uc1Jlc3BvbnNlIgOQAgESaQoQUmV2b2tlSW52aXRhdGlvbhIoLnJhcHRvci5wYW5lbC52MS5SZXZva2VJbnZpdGF0aW9uUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5SZXZva2VJbnZpdGF0aW9uUmVzcG9uc2UiABJpChBBY2NlcHRJbnZpdGF0aW9uEigucmFwdG9yLnBhbmVsLnYxLkFjY2VwdEludml0YXRpb25SZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLkFjY2VwdEludml0YXRpb25SZXNwb25zZSIAEmYKD0NyZWF0ZUpvaW5Ub2tlbhInLnJhcHRvci5wYW5lbC52MS5DcmVhdGVKb2luVG9rZW5SZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlIgASZgoPU2V0U2VydmVyQWNjZXNzEicucmFwdG9yLnBhbmVsLnYxLlNldFNlcnZlckFjY2Vzc1JlcXVlc3QaKC5yYXB0b3IucGFuZWwudjEuU2V0U2VydmVyQWNjZXNzUmVzcG9uc2UiABJsChBMaXN0U2VydmVyQWNjZXNzEigucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJBY2Nlc3NSZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJBY2Nlc3NSZXNwb25zZSIDkAIBElcKCUxpc3ROb2RlcxIhLnJhcHRvci5wYW5lbC52MS5MaXN0Tm9kZXNSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkxpc3ROb2Rlc1Jlc3BvbnNlIgOQAgESVwoKUmVuYW1lTm9kZRIiLnJhcHRvci5wYW5lbC52MS5SZW5hbWVOb2RlUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5SZW5hbWVOb2RlUmVzcG9uc2UiABJXCgpSZW1vdmVOb2RlEiIucmFwdG9yLnBhbmVsLnYxLlJlbW92ZU5vZGVSZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLlJlbW92ZU5vZGVSZXNwb25zZSIAEl0KC0xpc3RTZXJ2ZXJzEiMucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXJ2ZXJzUmVxdWVzdBokLnJhcHRvci5wYW5lbC52MS5MaXN0U2VydmVyc1Jlc3BvbnNlIgOQAgESVwoJR2V0U2VydmVyEiEucmFwdG9yLnBhbmVsLnYxLkdldFNlcnZlclJlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuR2V0U2VydmVyUmVzcG9uc2UiA5ACARJdCgxQaW5Kb2luVG9rZW4SJC5yYXB0b3IucGFuZWwudjEuUGluSm9pblRva2VuUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5QaW5Kb2luVG9rZW5SZXNwb25zZSIAEnIKEkxpc3RNZW1iZXJQYXNza2V5cxIqLnJhcHRvci5wYW5lbC52MS5MaXN0TWVtYmVyUGFzc2tleXNSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLkxpc3RNZW1iZXJQYXNza2V5c1Jlc3BvbnNlIgOQAgESYAoMTGlzdEF1ZGl0TG9nEiQucmFwdG9yLnBhbmVsLnYxLkxpc3RBdWRpdExvZ1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuTGlzdEF1ZGl0TG9nUmVzcG9uc2UiA5ACARJjCg1MaXN0U2NoZWR1bGVzEiUucmFwdG9yLnBhbmVsLnYxLkxpc3RTY2hlZHVsZXNSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkxpc3RTY2hlZHVsZXNSZXNwb25zZSIDkAIBEmwKEExpc3RTY2hlZHVsZVJ1bnMSKC5yYXB0b3IucGFuZWwudjEuTGlzdFNjaGVkdWxlUnVuc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuTGlzdFNjaGVkdWxlUnVuc1Jlc3BvbnNlIgOQAgESWgoLU2V0Tm9kZVNGVFASIy5yYXB0b3IucGFuZWwudjEuU2V0Tm9kZVNGVFBSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLlNldE5vZGVTRlRQUmVzcG9uc2UiABJjCg1HZXRTRlRQQWNjZXNzEiUucmFwdG9yLnBhbmVsLnYxLkdldFNGVFBBY2Nlc3NSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkdldFNGVFBBY2Nlc3NSZXNwb25zZSIDkAIBEmkKEENyZWF0ZVNGVFBBY2Nlc3MSKC5yYXB0b3IucGFuZWwudjEuQ3JlYXRlU0ZUUEFjY2Vzc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuQ3JlYXRlU0ZUUEFjY2Vzc1Jlc3BvbnNlIgASaQoQUmV2b2tlU0ZUUEFjY2VzcxIoLnJhcHRvci5wYW5lbC52MS5SZXZva2VTRlRQQWNjZXNzUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5SZXZva2VTRlRQQWNjZXNzUmVzcG9uc2UiABJjCg5UZXN0Q29ubmVjdGlvbhImLnJhcHRvci5wYW5lbC52MS5UZXN0Q29ubmVjdGlvblJlcXVlc3QaJy5yYXB0b3IucGFuZWwudjEuVGVzdENvbm5lY3Rpb25SZXNwb25zZSIAElcKClByZXZpZXdFZ2cSIi5yYXB0b3IucGFuZWwudjEuUHJldmlld0VnZ1JlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuUHJldmlld0VnZ1Jlc3BvbnNlIgASVAoJSW1wb3J0RWdnEiEucmFwdG9yLnBhbmVsLnYxLkltcG9ydEVnZ1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuSW1wb3J0RWdnUmVzcG9uc2UiABJdCgtMaXN0T3JnRWdncxIjLnJhcHRvci5wYW5lbC52MS5MaXN0T3JnRWdnc1JlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuTGlzdE9yZ0VnZ3NSZXNwb25zZSIDkAIBElcKCUdldE9yZ0VnZxIhLnJhcHRvci5wYW5lbC52MS5HZXRPcmdFZ2dSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkdldE9yZ0VnZ1Jlc3BvbnNlIgOQAgESXQoMRGVsZXRlT3JnRWdnEiQucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZU9yZ0VnZ1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuRGVsZXRlT3JnRWdnUmVzcG9uc2UiABJdCgtMaXN0QmFja3VwcxIjLnJhcHRvci5wYW5lbC52MS5MaXN0QmFja3Vwc1JlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuTGlzdEJhY2t1cHNSZXNwb25zZSIDkAIBQsgBChNjb20ucmFwdG9yLnBhbmVsLnYxQghPcmdQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_raptor_panel_v1_audit, file_raptor_panel_v1_auth, file_raptor_panel_v1_catalog]);
 
 /**
  * @generated from message raptor.panel.v1.Org
@@ -1862,6 +1864,390 @@ export const PortProbeSchema: GenMessage<PortProbe> = /*@__PURE__*/
   messageDesc(file_raptor_panel_v1_org, 69);
 
 /**
+ * @generated from message raptor.panel.v1.PreviewEggRequest
+ */
+export type PreviewEggRequest = Message<"raptor.panel.v1.PreviewEggRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from oneof raptor.panel.v1.PreviewEggRequest.source
+   */
+  source: {
+    /**
+     * An https URL. GitHub file pages are read from their raw file.
+     *
+     * @generated from field: string url = 2;
+     */
+    value: string;
+    case: "url";
+  } | {
+    /**
+     * An uploaded egg file (JSON or YAML), up to 1 MiB.
+     *
+     * @generated from field: bytes file = 3;
+     */
+    value: Uint8Array;
+    case: "file";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message raptor.panel.v1.PreviewEggRequest.
+ * Use `create(PreviewEggRequestSchema)` to create a new message.
+ */
+export const PreviewEggRequestSchema: GenMessage<PreviewEggRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 70);
+
+/**
+ * @generated from message raptor.panel.v1.PreviewEggResponse
+ */
+export type PreviewEggResponse = Message<"raptor.panel.v1.PreviewEggResponse"> & {
+  /**
+   * The file as fetched, to send back to ImportEgg unchanged.
+   *
+   * @generated from field: bytes egg = 1;
+   */
+  egg: Uint8Array;
+
+  /**
+   * Where it came from: the URL actually read; empty for a file.
+   *
+   * @generated from field: string source_url = 2;
+   */
+  sourceUrl: string;
+
+  /**
+   * @generated from field: string sha256 = 3;
+   */
+  sha256: string;
+
+  /**
+   * @generated from field: raptor.panel.v1.EggReview review = 4;
+   */
+  review?: EggReview | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.PreviewEggResponse.
+ * Use `create(PreviewEggResponseSchema)` to create a new message.
+ */
+export const PreviewEggResponseSchema: GenMessage<PreviewEggResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 71);
+
+/**
+ * EggReview is what an egg would run on a node.
+ *
+ * @generated from message raptor.panel.v1.EggReview
+ */
+export type EggReview = Message<"raptor.panel.v1.EggReview"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * @generated from field: string author = 3;
+   */
+  author: string;
+
+  /**
+   * "pterodactyl" or "pelican".
+   *
+   * @generated from field: string format = 4;
+   */
+  format: string;
+
+  /**
+   * @generated from field: repeated raptor.panel.v1.EggImage images = 5;
+   */
+  images: EggImage[];
+
+  /**
+   * Every registry the images and the install container come from.
+   *
+   * @generated from field: repeated string registries = 6;
+   */
+  registries: string[];
+
+  /**
+   * @generated from field: string install_container = 7;
+   */
+  installContainer: string;
+
+  /**
+   * @generated from field: string install_entrypoint = 8;
+   */
+  installEntrypoint: string;
+
+  /**
+   * @generated from field: string install_script = 9;
+   */
+  installScript: string;
+
+  /**
+   * The startup commands, the default first.
+   *
+   * @generated from field: repeated string startup = 10;
+   */
+  startup: string[];
+
+  /**
+   * @generated from field: repeated raptor.panel.v1.EggVariable variables = 11;
+   */
+  variables: EggVariable[];
+
+  /**
+   * @generated from field: repeated string features = 12;
+   */
+  features: string[];
+
+  /**
+   * Empty: the egg doesn't say which CPUs it runs on.
+   *
+   * @generated from field: repeated string arch = 13;
+   */
+  arch: string[];
+
+  /**
+   * @generated from field: repeated raptor.panel.v1.EggWarning warnings = 14;
+   */
+  warnings: EggWarning[];
+
+  /**
+   * Whether an egg with the same file is already imported.
+   *
+   * @generated from field: bool duplicate = 15;
+   */
+  duplicate: boolean;
+};
+
+/**
+ * Describes the message raptor.panel.v1.EggReview.
+ * Use `create(EggReviewSchema)` to create a new message.
+ */
+export const EggReviewSchema: GenMessage<EggReview> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 72);
+
+/**
+ * @generated from message raptor.panel.v1.EggWarning
+ */
+export type EggWarning = Message<"raptor.panel.v1.EggWarning"> & {
+  /**
+   * "registry" (an image from a registry the community eggs don't use),
+   * "pipe_to_shell" (the install script runs a script it downloads),
+   * "no_arch", "claims_certified".
+   *
+   * @generated from field: string kind = 1;
+   */
+  kind: string;
+
+  /**
+   * A sentence for the user.
+   *
+   * @generated from field: string text = 2;
+   */
+  text: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.EggWarning.
+ * Use `create(EggWarningSchema)` to create a new message.
+ */
+export const EggWarningSchema: GenMessage<EggWarning> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 73);
+
+/**
+ * @generated from message raptor.panel.v1.ImportEggRequest
+ */
+export type ImportEggRequest = Message<"raptor.panel.v1.ImportEggRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * From PreviewEgg.
+   *
+   * @generated from field: bytes egg = 2;
+   */
+  egg: Uint8Array;
+
+  /**
+   * @generated from field: string source_url = 3;
+   */
+  sourceUrl: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ImportEggRequest.
+ * Use `create(ImportEggRequestSchema)` to create a new message.
+ */
+export const ImportEggRequestSchema: GenMessage<ImportEggRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 74);
+
+/**
+ * @generated from message raptor.panel.v1.ImportEggResponse
+ */
+export type ImportEggResponse = Message<"raptor.panel.v1.ImportEggResponse"> & {
+  /**
+   * @generated from field: raptor.panel.v1.CatalogEgg egg = 1;
+   */
+  egg?: CatalogEgg | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ImportEggResponse.
+ * Use `create(ImportEggResponseSchema)` to create a new message.
+ */
+export const ImportEggResponseSchema: GenMessage<ImportEggResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 75);
+
+/**
+ * @generated from message raptor.panel.v1.ListOrgEggsRequest
+ */
+export type ListOrgEggsRequest = Message<"raptor.panel.v1.ListOrgEggsRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListOrgEggsRequest.
+ * Use `create(ListOrgEggsRequestSchema)` to create a new message.
+ */
+export const ListOrgEggsRequestSchema: GenMessage<ListOrgEggsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 76);
+
+/**
+ * @generated from message raptor.panel.v1.ListOrgEggsResponse
+ */
+export type ListOrgEggsResponse = Message<"raptor.panel.v1.ListOrgEggsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.OrgEgg eggs = 1;
+   */
+  eggs: OrgEgg[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListOrgEggsResponse.
+ * Use `create(ListOrgEggsResponseSchema)` to create a new message.
+ */
+export const ListOrgEggsResponseSchema: GenMessage<ListOrgEggsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 77);
+
+/**
+ * @generated from message raptor.panel.v1.OrgEgg
+ */
+export type OrgEgg = Message<"raptor.panel.v1.OrgEgg"> & {
+  /**
+   * id is "org:<uuid>"; category "imported"; certified is always false.
+   *
+   * @generated from field: raptor.panel.v1.CatalogEgg egg = 1;
+   */
+  egg?: CatalogEgg | undefined;
+
+  /**
+   * @generated from field: string imported_by_email = 2;
+   */
+  importedByEmail: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp imported_at = 3;
+   */
+  importedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.OrgEgg.
+ * Use `create(OrgEggSchema)` to create a new message.
+ */
+export const OrgEggSchema: GenMessage<OrgEgg> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 78);
+
+/**
+ * @generated from message raptor.panel.v1.GetOrgEggRequest
+ */
+export type GetOrgEggRequest = Message<"raptor.panel.v1.GetOrgEggRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string egg_id = 2;
+   */
+  eggId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.GetOrgEggRequest.
+ * Use `create(GetOrgEggRequestSchema)` to create a new message.
+ */
+export const GetOrgEggRequestSchema: GenMessage<GetOrgEggRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 79);
+
+/**
+ * @generated from message raptor.panel.v1.GetOrgEggResponse
+ */
+export type GetOrgEggResponse = Message<"raptor.panel.v1.GetOrgEggResponse"> & {
+  /**
+   * @generated from field: bytes egg = 1;
+   */
+  egg: Uint8Array;
+};
+
+/**
+ * Describes the message raptor.panel.v1.GetOrgEggResponse.
+ * Use `create(GetOrgEggResponseSchema)` to create a new message.
+ */
+export const GetOrgEggResponseSchema: GenMessage<GetOrgEggResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 80);
+
+/**
+ * @generated from message raptor.panel.v1.DeleteOrgEggRequest
+ */
+export type DeleteOrgEggRequest = Message<"raptor.panel.v1.DeleteOrgEggRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string egg_id = 2;
+   */
+  eggId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.DeleteOrgEggRequest.
+ * Use `create(DeleteOrgEggRequestSchema)` to create a new message.
+ */
+export const DeleteOrgEggRequestSchema: GenMessage<DeleteOrgEggRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 81);
+
+/**
+ * @generated from message raptor.panel.v1.DeleteOrgEggResponse
+ */
+export type DeleteOrgEggResponse = Message<"raptor.panel.v1.DeleteOrgEggResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.DeleteOrgEggResponse.
+ * Use `create(DeleteOrgEggResponseSchema)` to create a new message.
+ */
+export const DeleteOrgEggResponseSchema: GenMessage<DeleteOrgEggResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_org, 82);
+
+/**
  * @generated from enum raptor.panel.v1.Role
  */
 export enum Role {
@@ -2220,6 +2606,62 @@ export const OrgService: GenService<{
     methodKind: "unary";
     input: typeof TestConnectionRequestSchema;
     output: typeof TestConnectionResponseSchema;
+  },
+  /**
+   * PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
+   * says what it would run, for review before ImportEgg: its images and
+   * their registries, its install script, its startup command, and
+   * warnings. Nothing is saved. Admins and owners; rate limited.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.PreviewEgg
+   */
+  previewEgg: {
+    methodKind: "unary";
+    input: typeof PreviewEggRequestSchema;
+    output: typeof PreviewEggResponseSchema;
+  },
+  /**
+   * ImportEgg saves a reviewed egg to the org, for creating servers.
+   * Admins and owners.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.ImportEgg
+   */
+  importEgg: {
+    methodKind: "unary";
+    input: typeof ImportEggRequestSchema;
+    output: typeof ImportEggResponseSchema;
+  },
+  /**
+   * ListOrgEggs lists the org's imported eggs. Any member.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.ListOrgEggs
+   */
+  listOrgEggs: {
+    methodKind: "unary";
+    input: typeof ListOrgEggsRequestSchema;
+    output: typeof ListOrgEggsResponseSchema;
+  },
+  /**
+   * GetOrgEgg returns an imported egg's file, as a server created from it
+   * gets it. Any member.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.GetOrgEgg
+   */
+  getOrgEgg: {
+    methodKind: "unary";
+    input: typeof GetOrgEggRequestSchema;
+    output: typeof GetOrgEggResponseSchema;
+  },
+  /**
+   * DeleteOrgEgg removes an imported egg. Servers made from it keep it.
+   * Admins and owners.
+   *
+   * @generated from rpc raptor.panel.v1.OrgService.DeleteOrgEgg
+   */
+  deleteOrgEgg: {
+    methodKind: "unary";
+    input: typeof DeleteOrgEggRequestSchema;
+    output: typeof DeleteOrgEggResponseSchema;
   },
   /**
    * ListBackups lists a server's backups as the mirror has them, newest

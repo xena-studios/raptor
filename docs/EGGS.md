@@ -188,7 +188,7 @@ Checked against reality: of the 606 eggs, the defaults that fail their own rules
 `java_version` matters in practice: the e2e tests found that the Pterodactyl-format Paper egg defaults to a Java 21 image, while current Minecraft needs Java 25. Pterodactyl detects the "requires Java" console message and prompts the user to switch images; Raptor must do the same.
 
 ### Inheritance
-`config.extends` / `copy_script_from` (Pterodactyl legacy). Resolved when importing the egg.
+`config.extends` / `copy_script_from` (Pterodactyl legacy: parts taken from another egg by its Panel ID). Not resolved: those IDs mean nothing outside the Panel that exported the egg, so an import that uses them is refused.
 
 ## Raptor extensions
 
@@ -214,7 +214,7 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
 ## Egg sources
 
 - Built-in catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and license preserved ([below](#built-in-catalog)).
-- Users can import eggs from a URL or file. The Panel shows the **image registry and install script** before importing. A malicious egg is effectively a malicious program on the node.
+- Users can import eggs from a URL or file. The Panel shows the **image registry and install script** before importing. A malicious egg is effectively a malicious program on the node. Imported eggs belong to the org that imported them ([PANEL.md](PANEL.md#imported-eggs)); eggs that leave parts to another egg (`config.extends`, `copy_script_from`) are refused with a message saying so, since those parts would be missing on the node.
 
 ## Built-in catalog
 
