@@ -18,7 +18,14 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { type DragEvent, type FormEvent, type MouseEvent, useRef, useState } from "react";
+import {
+  type DragEvent,
+  type FormEvent,
+  type MouseEvent,
+  type ReactNode,
+  useRef,
+  useState,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -83,6 +90,7 @@ export function Files({
   path,
   file,
   onNavigate,
+  actions,
 }: {
   nodeId: string;
   serverId: string;
@@ -90,6 +98,8 @@ export function Files({
   path: string;
   file?: string;
   onNavigate: (to: { path: string; file?: string }) => void;
+  // More toolbar buttons (the SFTP one).
+  actions?: ReactNode;
 }) {
   const api = useFilesApi(nodeId, serverId);
   const settings = useFileSettings();
@@ -318,6 +328,7 @@ export function Files({
               />
             </>
           )}
+          {actions}
           <div className="relative w-44 lg:w-56">
             <Search className="pointer-events-none absolute top-2 left-2.5 size-4 text-muted-foreground" />
             <Input
