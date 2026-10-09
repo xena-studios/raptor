@@ -28,6 +28,8 @@ const (
 	opRestore  = "restore"
 	opDelete   = "delete"
 	opMaintain = "maintain"
+	opBrowse   = "browse"
+	opExtract  = "extract"
 )
 
 // request is one operation for the worker, sent on its stdin.
@@ -39,6 +41,8 @@ type request struct {
 	Snapshot *engine.SnapshotRequest `json:"snapshot,omitempty"`
 	Restore  *engine.RestoreRequest  `json:"restore,omitempty"`
 	Delete   []string                `json:"delete,omitempty"`
+	Browse   *engine.BrowseRequest   `json:"browse,omitempty"`
+	Extract  *engine.ExtractRequest  `json:"extract,omitempty"`
 }
 
 // message is a line the worker writes on its stdout: progress, then one
@@ -68,6 +72,16 @@ func execute(ctx context.Context, req request, progress func(engine.Progress)) (
 		return nil, e.Delete(ctx, req.Delete)
 	case opMaintain:
 		return nil, e.Maintain(ctx)
+	case opBrowse:
+		if req.Browse == nil {
+			break
+		}
+		return e.Browse(ctx, *req.Browse)
+	case opExtract:
+		if req.Extract == nil {
+			break
+		}
+		return e.Extract(ctx, *req.Extract, progress)
 	}
 	return nil, fmt.Errorf("bad worker request %q", req.Op)
 }

@@ -615,3 +615,55 @@ func TestRestoreFromDeletedServer(t *testing.T) {
 		t.Errorf("restored file = %q", got)
 	}
 }
+
+// Some of a backup can be pulled into .restore while the server runs, and
+// backup.activity follows backups and extractions to the end.
+func TestExtractAndActivity(t *testing.T) {
+	v := newEnv(t)
+	ctx := context.Background()
+	v.write("config/a.yml", "a: 1")
+	v.write("config/b.yml", "b: 1")
+	v.write("plugins/x.jar", "jar")
+	v.servers.src.Denylist = []string{"*.jar"}
+	b := v.backup()
+	if acts := v.m.Activity(srvID); len(acts) != 1 || acts[0].Kind != ActBackup || acts[0].Status != "ok" || acts[0].Total == 0 {
+		t.Fatalf("activity after a backup: %+v", acts)
+	}
+
+	list, err := v.m.Browse(ctx, srvID, b.ID, "plugins")
+	if err != nil || len(list) != 1 || !list[0].Denied {
+		t.Fatalf("browse plugins: %+v, %v", list, err)
+	}
+	if _, err := v.m.Browse(ctx, otherID, b.ID, ""); err == nil {
+		t.Error("another server browsed this one's backup")
+	}
+
+	v.write("config/a.yml", "a: changed")
+	jobID, folder, err := v.m.Extract(ctx, srvID, b.ID, []string{"config/a.yml"}, "u1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(folder, ".restore/") {
+		t.Errorf("folder %q", folder)
+	}
+	if j := v.wait(jobID); j.Status != jobs.Succeeded {
+		t.Fatalf("extract: %s %s", j.Status, j.Error)
+	}
+	if got := v.read(folder + "/config/a.yml"); got != "a: 1" {
+		t.Errorf("extracted a.yml = %q", got)
+	}
+	if got := v.read("config/a.yml"); got != "a: changed" {
+		t.Errorf("the live a.yml = %q", got)
+	}
+	// A second extraction from the same backup gets a folder of its own.
+	if _, again, err := v.m.Extract(ctx, srvID, b.ID, []string{"config"}, "u1"); err != nil || again == folder {
+		t.Errorf("second extraction into %q (first %q): %v", again, folder, err)
+	}
+	acts := v.m.Activity(srvID)
+	if acts[len(acts)-2].Kind != ActExtract || acts[len(acts)-2].Folder != folder {
+		t.Errorf("activity: %+v", acts)
+	}
+	if _, _, err := v.m.Extract(ctx, srvID, b.ID, nil, "u1"); err == nil {
+		t.Error("an extraction of nothing")
+	}
+}

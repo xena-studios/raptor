@@ -59,6 +59,11 @@ var actions = map[string]string{
 	"backup.restore": Backups,
 	"backup.lock":    Backups,
 	"backup.delete":  Backups,
+	// Pulling files out of a backup writes them into the server's .restore
+	// folder, so it needs the backups permission like a restore.
+	"backup.browse":   Backups,
+	"backup.extract":  Backups,
+	"backup.activity": Backups,
 
 	"schedule.create": Schedules,
 	"schedule.update": Schedules,
@@ -121,7 +126,8 @@ func Valid(p string) bool {
 // audit log.
 func Read(action string) bool {
 	switch action {
-	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list":
+	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list",
+		"backup.browse", "backup.activity":
 		return true
 	}
 	return false

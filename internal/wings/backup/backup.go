@@ -52,11 +52,13 @@ const (
 	JobRestore  = "backup.restore"
 	JobDelete   = "backup.delete"
 	JobMaintain = "backup.maintain"
+	JobExtract  = "backup.extract"
 )
 
 // Event types.
 const (
 	EventQueued        = "backup.queued"
+	EventExtracted     = "backup.extract.finished"
 	EventFinished      = "backup.finished" // ok or failed
 	EventDeleted       = "backup.deleted"
 	EventLocked        = "backup.locked"
@@ -140,6 +142,8 @@ type Manager struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
+
+	acts activities
 }
 
 // New creates a Manager and registers its job handlers. Call it before
@@ -169,6 +173,9 @@ func New(o Options) *Manager {
 	o.Jobs.Register(JobRestore, jobs.Handler{Class: "backup", ServerLock: true, Resumable: true, MaxAttempts: 3, Run: m.restoreJob})
 	o.Jobs.Register(JobDelete, jobs.Handler{Class: "backup", Resumable: true, MaxAttempts: 5, Run: m.deleteJob})
 	o.Jobs.Register(JobMaintain, jobs.Handler{Class: "backup", Resumable: true, Run: m.maintainJob})
+	// An extraction isn't resumed: its folder would already exist. It holds
+	// the server's lock so a restore can't clear the directory under it.
+	o.Jobs.Register(JobExtract, jobs.Handler{Class: "backup", ServerLock: true, MaxAttempts: 1, Run: m.extractJob})
 	return m
 }
 
@@ -462,6 +469,7 @@ func (m *Manager) Create(ctx context.Context, serverID string, opts CreateOption
 	if err != nil {
 		return nil, err
 	}
+	m.queued(serverID, Activity{JobID: b.JobID, Kind: ActBackup, BackupID: b.ID, BackupKind: b.Kind})
 	m.o.Events.Wake()
 	m.o.Jobs.Wake()
 	return b, nil
@@ -595,6 +603,7 @@ func (m *Manager) Restore(ctx context.Context, serverID, id, user string) (strin
 	if err != nil {
 		return "", err
 	}
+	m.queued(serverID, Activity{JobID: jobID, Kind: ActRestore, BackupID: id})
 	m.o.Events.Wake()
 	m.o.Jobs.Wake()
 	return jobID, nil
