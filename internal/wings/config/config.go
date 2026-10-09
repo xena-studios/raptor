@@ -23,6 +23,8 @@ const DefaultPath = "/etc/raptor/config.yml"
 
 // Config is the parsed config file.
 type Config struct {
+	// Path is the file it was loaded from ("" if parsed from bytes).
+	Path   string `yaml:"-"`
 	NodeID string `yaml:"node_id"`
 	// Hostname is the node's name in DNS (n-<short id>.raptornodes.net),
 	// set when it links; the Panel keeps the record pointed at the node.
@@ -172,7 +174,9 @@ func Load(path string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	return Parse(data)
+	cfg, err := Parse(data)
+	cfg.Path = path
+	return cfg, err
 }
 
 // Parse parses and validates config file contents.

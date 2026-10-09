@@ -44,4 +44,9 @@ func TestRules(t *testing.T) {
 			t.Errorf("permission %q", p)
 		}
 	}
+	// Any grant at all lets a member see a server's graphs; none doesn't,
+	// and view can't be granted.
+	if p, _ := For("server.metrics"); !Allows([]string{FilesRead}, p) || Allows(nil, p) || Valid(View) {
+		t.Error("server.metrics: any access, and only that")
+	}
 }
