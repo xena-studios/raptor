@@ -279,6 +279,43 @@ func TestMirror(t *testing.T) {
 		}
 	}
 
+	// Schedule runs: a run from its start to its end, a skipped run, and a
+	// run whose start the Panel never saw; then the schedule deleted.
+	runs := func(schedule string) []string {
+		id, _ := uuid.Parse(nodeID)
+		list, err := store.New(r.DB).ListScheduleRuns(ctx, store.ListScheduleRunsParams{NodeID: pgUUID(id), ServerID: "s2", ScheduleID: schedule, Lim: 10})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, x := range list {
+			out = append(out, x.Status+" "+x.Reason+" "+x.SkipReason+" "+string(x.Steps))
+		}
+		return out
+	}
+	waitRuns := func(what, schedule string, want ...string) {
+		t.Helper()
+		for deadline := time.Now().Add(10 * time.Second); !slices.Equal(runs(schedule), want); time.Sleep(50 * time.Millisecond) {
+			if time.Now().After(deadline) {
+				t.Fatalf("%s: runs are %q", what, runs(schedule))
+			}
+		}
+	}
+	appendEvent("schedule.run.queued", "s2", map[string]any{"schedule_id": "sc1", "job_id": "j1", "reason": "manual"})
+	waitRuns("queued", "sc1", "running manual  []")
+	appendEvent("schedule.run.skipped", "s2", map[string]any{"schedule_id": "sc1", "reason": "offline", "scheduled_for": time.Now().UnixMilli()})
+	appendEvent("schedule.run.finished", "s2", map[string]any{
+		"schedule_id": "sc1", "job_id": "j1", "reason": "manual", "ok": false, "error": "step 1",
+		"steps": []map[string]any{{"type": "command", "ok": false, "error": "server isn't running"}},
+	})
+	appendEvent("schedule.run.finished", "s2", map[string]any{"schedule_id": "sc2", "job_id": "j2", "reason": "scheduled", "ok": true, "steps": []map[string]any{{"type": "wait", "ok": true}}})
+	waitRuns("finished", "sc1",
+		"skipped scheduled offline []",
+		`failed manual  [{"ok": false, "type": "command", "error": "server isn't running"}]`)
+	waitRuns("finished alone", "sc2", `succeeded scheduled  [{"ok": true, "type": "wait"}]`)
+	appendEvent("schedule.deleted", "s2", map[string]any{"schedule_id": "sc1"})
+	waitRuns("schedule deleted", "", `succeeded scheduled  [{"ok": true, "type": "wait"}]`)
+
 	fs.remove("s1")
 	appendEvent("server.deleted", "s1", nil)
 	waitFor("deleted", func(m map[string]row) bool { _, ok := m["s1"]; return !ok && len(m) == 1 })

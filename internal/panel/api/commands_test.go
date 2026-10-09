@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http/httptest"
 	"slices"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
@@ -22,6 +24,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/paneltest"
+	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
 )
 
@@ -305,6 +308,42 @@ func TestCommands(t *testing.T) {
 	}
 	if _, err := bob.orgs.ListSchedules(ctx, &panelv1.ListSchedulesRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"}); connect.CodeOf(err) != connect.CodePermissionDenied {
 		t.Errorf("member without schedules: %v", err)
+	}
+
+	// Schedule runs: newest first, a page at a time, the last 100 of each
+	// schedule kept.
+	for i := range 105 {
+		if _, err := db.Exec(ctx, `INSERT INTO schedule_runs (node_id, server_id, schedule_id, run_key, status, reason, steps, started_at)
+			VALUES ($1, 's1', 'sc1', $2, 'succeeded', 'scheduled', '[{"type": "wait", "ok": true}]', now())`, nodeID, fmt.Sprint("j", i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	nid, _ := uuid.Parse(nodeID)
+	if err := store.New(db).TrimScheduleRuns(ctx, store.TrimScheduleRunsParams{NodeID: pgtype.UUID{Bytes: nid, Valid: true}, ScheduleID: "sc1", Keep: 100}); err != nil {
+		t.Fatal(err)
+	}
+	var seen []string
+	token := ""
+	for {
+		page, err := alice.orgs.ListScheduleRuns(ctx, &panelv1.ListScheduleRunsRequest{OrgId: org, NodeId: nodeID, ServerId: "s1", ScheduleId: "sc1", PageToken: token})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, run := range page.GetRuns() {
+			seen = append(seen, run.GetId())
+			if len(run.GetSteps()) != 1 || !run.GetSteps()[0].GetOk() || run.GetStartedAt() == nil {
+				t.Errorf("run: %v", run)
+			}
+		}
+		if token = page.GetNextPageToken(); token == "" {
+			break
+		}
+	}
+	if len(seen) != 100 {
+		t.Errorf("runs kept: %d", len(seen))
+	}
+	if _, err := bob.orgs.ListScheduleRuns(ctx, &panelv1.ListScheduleRunsRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"}); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("member without schedules, runs: %v", err)
 	}
 	if _, err := bob.orgs.ListBackups(ctx, &panelv1.ListBackupsRequest{OrgId: org, NodeId: nodeID, ServerId: "s2"}); connect.CodeOf(err) != connect.CodeNotFound {
 		t.Errorf("backups of a server the member can't see: %v", err)

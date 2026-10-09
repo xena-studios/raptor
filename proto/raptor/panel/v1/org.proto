@@ -124,6 +124,13 @@ service OrgService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // ListScheduleRuns lists a server's schedule runs, newest first, from the
+  // node's events (the Panel keeps each schedule's last 100). Needs the
+  // schedules permission.
+  rpc ListScheduleRuns(ListScheduleRunsRequest) returns (ListScheduleRunsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // SetNodeSFTP allows or stops SFTP on a node. Stopping it closes its
   // port, and nobody can turn on a password there until it's allowed again.
   // Admins and owners.
@@ -449,6 +456,45 @@ message Schedule {
   // What schedule.create and schedule.update take, as JSON: cron, timezone,
   // steps, and the rest.
   string definition_json = 6;
+}
+
+message ListScheduleRunsRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+  // One schedule's runs; empty for all of the server's.
+  string schedule_id = 4;
+  string page_token = 5;
+}
+
+message ListScheduleRunsResponse {
+  repeated ScheduleRun runs = 1;
+  // Empty on the last page.
+  string next_page_token = 2;
+}
+
+message ScheduleRun {
+  string id = 1;
+  string schedule_id = 2;
+  // "running", "succeeded", "failed", or "skipped".
+  string status = 3;
+  // "scheduled", "manual" (Run now), or "missed" (late, run once).
+  string reason = 4;
+  // Why a skipped run was skipped: "missed", "offline", or "still_running".
+  string skip_reason = 5;
+  // One per step that ran, in order.
+  repeated ScheduleRunStep steps = 6;
+  google.protobuf.Timestamp scheduled_for = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp finished_at = 9;
+}
+
+message ScheduleRunStep {
+  // "command", "power", "wait", or "backup".
+  string type = 1;
+  bool ok = 2;
+  // The node's words, for a failed step.
+  string error = 3;
 }
 
 message ListBackupsRequest {

@@ -76,6 +76,70 @@ func (q *Queries) DeleteMirrorServers(ctx context.Context, nodeID pgtype.UUID) e
 	return err
 }
 
+const deleteScheduleRuns = `-- name: DeleteScheduleRuns :exec
+DELETE FROM schedule_runs WHERE node_id = $1 AND schedule_id = $2
+`
+
+type DeleteScheduleRunsParams struct {
+	NodeID     pgtype.UUID
+	ScheduleID string
+}
+
+func (q *Queries) DeleteScheduleRuns(ctx context.Context, arg DeleteScheduleRunsParams) error {
+	_, err := q.db.Exec(ctx, deleteScheduleRuns, arg.NodeID, arg.ScheduleID)
+	return err
+}
+
+const deleteServerScheduleRuns = `-- name: DeleteServerScheduleRuns :exec
+DELETE FROM schedule_runs WHERE node_id = $1 AND server_id = $2
+`
+
+type DeleteServerScheduleRunsParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) DeleteServerScheduleRuns(ctx context.Context, arg DeleteServerScheduleRunsParams) error {
+	_, err := q.db.Exec(ctx, deleteServerScheduleRuns, arg.NodeID, arg.ServerID)
+	return err
+}
+
+const finishScheduleRun = `-- name: FinishScheduleRun :exec
+INSERT INTO schedule_runs (node_id, server_id, schedule_id, run_key, status, reason, steps, error, started_at, finished_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+ON CONFLICT (node_id, run_key) DO UPDATE
+SET status = excluded.status, steps = excluded.steps, error = excluded.error, finished_at = excluded.finished_at
+`
+
+type FinishScheduleRunParams struct {
+	NodeID     pgtype.UUID
+	ServerID   string
+	ScheduleID string
+	RunKey     string
+	Status     string
+	Reason     string
+	Steps      []byte
+	Error      string
+	FinishedAt pgtype.Timestamptz
+}
+
+// The queued event may be gone (pruned before the Panel saw it): the run
+// is recorded from its end alone.
+func (q *Queries) FinishScheduleRun(ctx context.Context, arg FinishScheduleRunParams) error {
+	_, err := q.db.Exec(ctx, finishScheduleRun,
+		arg.NodeID,
+		arg.ServerID,
+		arg.ScheduleID,
+		arg.RunKey,
+		arg.Status,
+		arg.Reason,
+		arg.Steps,
+		arg.Error,
+		arg.FinishedAt,
+	)
+	return err
+}
+
 const getNodeAcked = `-- name: GetNodeAcked :one
 SELECT last_acked_seq FROM nodes WHERE id = $1
 `
@@ -284,7 +348,12 @@ func (q *Queries) ListMirrorJobs(ctx context.Context, arg ListMirrorJobsParams) 
 }
 
 const listMirrorSchedules = `-- name: ListMirrorSchedules :many
-SELECT node_id, server_id, schedule_id, name, enabled, version, next_run, last_run, definition FROM m_schedules WHERE node_id = $1 AND server_id = $2 ORDER BY name, schedule_id
+SELECT s.node_id, s.server_id, s.schedule_id, s.name, s.enabled, s.version, s.next_run,
+       GREATEST(s.last_run, (SELECT max(r.started_at) FROM schedule_runs r
+                             WHERE r.node_id = s.node_id AND r.schedule_id = s.schedule_id
+                               AND r.status <> 'skipped'))::timestamptz AS last_run,
+       s.definition
+FROM m_schedules s WHERE s.node_id = $1 AND s.server_id = $2 ORDER BY s.name, s.schedule_id
 `
 
 type ListMirrorSchedulesParams struct {
@@ -292,15 +361,28 @@ type ListMirrorSchedulesParams struct {
 	ServerID string
 }
 
-func (q *Queries) ListMirrorSchedules(ctx context.Context, arg ListMirrorSchedulesParams) ([]MSchedule, error) {
+type ListMirrorSchedulesRow struct {
+	NodeID     pgtype.UUID
+	ServerID   string
+	ScheduleID string
+	Name       string
+	Enabled    bool
+	Version    int64
+	NextRun    pgtype.Timestamptz
+	LastRun    pgtype.Timestamptz
+	Definition []byte
+}
+
+// last_run counts Run now too, which the node's doesn't.
+func (q *Queries) ListMirrorSchedules(ctx context.Context, arg ListMirrorSchedulesParams) ([]ListMirrorSchedulesRow, error) {
 	rows, err := q.db.Query(ctx, listMirrorSchedules, arg.NodeID, arg.ServerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []MSchedule
+	var items []ListMirrorSchedulesRow
 	for rows.Next() {
-		var i MSchedule
+		var i ListMirrorSchedulesRow
 		if err := rows.Scan(
 			&i.NodeID,
 			&i.ServerID,
@@ -361,6 +443,64 @@ func (q *Queries) ListMirrorServers(ctx context.Context, nodeID pgtype.UUID) ([]
 	return items, nil
 }
 
+const listScheduleRuns = `-- name: ListScheduleRuns :many
+SELECT id, node_id, server_id, schedule_id, run_key, status, reason, skip_reason, steps, error, scheduled_for, started_at, finished_at FROM schedule_runs
+WHERE node_id = $1 AND server_id = $2
+  AND ($3::text = '' OR schedule_id = $3)
+  AND ($4::bigint = 0 OR id < $4)
+ORDER BY id DESC
+LIMIT $5
+`
+
+type ListScheduleRunsParams struct {
+	NodeID     pgtype.UUID
+	ServerID   string
+	ScheduleID string
+	Before     int64
+	Lim        int32
+}
+
+// A server's runs, newest first; one schedule's if schedule_id isn't empty.
+func (q *Queries) ListScheduleRuns(ctx context.Context, arg ListScheduleRunsParams) ([]ScheduleRun, error) {
+	rows, err := q.db.Query(ctx, listScheduleRuns,
+		arg.NodeID,
+		arg.ServerID,
+		arg.ScheduleID,
+		arg.Before,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ScheduleRun
+	for rows.Next() {
+		var i ScheduleRun
+		if err := rows.Scan(
+			&i.ID,
+			&i.NodeID,
+			&i.ServerID,
+			&i.ScheduleID,
+			&i.RunKey,
+			&i.Status,
+			&i.Reason,
+			&i.SkipReason,
+			&i.Steps,
+			&i.Error,
+			&i.ScheduledFor,
+			&i.StartedAt,
+			&i.FinishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setMirrorServerState = `-- name: SetMirrorServerState :exec
 UPDATE m_servers SET state = $3, synced_at = now() WHERE node_id = $1 AND server_id = $2
 `
@@ -387,6 +527,61 @@ type SetNodeAckedParams struct {
 
 func (q *Queries) SetNodeAcked(ctx context.Context, arg SetNodeAckedParams) error {
 	_, err := q.db.Exec(ctx, setNodeAcked, arg.ID, arg.LastAckedSeq)
+	return err
+}
+
+const startScheduleRun = `-- name: StartScheduleRun :exec
+INSERT INTO schedule_runs (node_id, server_id, schedule_id, run_key, status, reason, skip_reason, scheduled_for, started_at, finished_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+ON CONFLICT (node_id, run_key) DO NOTHING
+`
+
+type StartScheduleRunParams struct {
+	NodeID       pgtype.UUID
+	ServerID     string
+	ScheduleID   string
+	RunKey       string
+	Status       string
+	Reason       string
+	SkipReason   string
+	ScheduledFor pgtype.Timestamptz
+	StartedAt    pgtype.Timestamptz
+	FinishedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) StartScheduleRun(ctx context.Context, arg StartScheduleRunParams) error {
+	_, err := q.db.Exec(ctx, startScheduleRun,
+		arg.NodeID,
+		arg.ServerID,
+		arg.ScheduleID,
+		arg.RunKey,
+		arg.Status,
+		arg.Reason,
+		arg.SkipReason,
+		arg.ScheduledFor,
+		arg.StartedAt,
+		arg.FinishedAt,
+	)
+	return err
+}
+
+const trimScheduleRuns = `-- name: TrimScheduleRuns :exec
+DELETE FROM schedule_runs r
+WHERE r.node_id = $1 AND r.schedule_id = $2
+  AND r.id <= (SELECT s.id FROM schedule_runs s
+            WHERE s.node_id = $1 AND s.schedule_id = $2
+            ORDER BY id DESC OFFSET $3::int LIMIT 1)
+`
+
+type TrimScheduleRunsParams struct {
+	NodeID     pgtype.UUID
+	ScheduleID string
+	Keep       int32
+}
+
+// Keeps a schedule's newest runs.
+func (q *Queries) TrimScheduleRuns(ctx context.Context, arg TrimScheduleRunsParams) error {
+	_, err := q.db.Exec(ctx, trimScheduleRuns, arg.NodeID, arg.ScheduleID, arg.Keep)
 	return err
 }
 

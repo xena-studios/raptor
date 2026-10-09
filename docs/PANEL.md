@@ -81,6 +81,8 @@ m_servers        node_id, server_id, name, egg_ref, status, config jsonb, versio
 m_schedules      node_id, schedule_id, server_id, definition jsonb
 m_backups        node_id, backup_id, server_id, size, created_at, destination
 m_jobs           node_id, job_id, server_id, type, status, started_at, finished_at
+schedule_runs    id, node_id, server_id, schedule_id, run_key, status, reason, steps jsonb,
+                 started_at, finished_at (history from events, not rebuilt)
 
 -- billing
 billing_customers   org_id, polar_customer_id
@@ -163,6 +165,12 @@ One table (`audit_log`) for account and org events, with the IP address and brow
 - **Org:** `org.create|rename`, `member.role|remove|leave`, `invitation.create|revoke|accept`, `join_token.create`.
 
 Sign-ins and org changes are written in the same transaction as the change, so neither happens without the other. Org events are written under row-level security as the user (they can add their own org's events, never change or delete any), and a former member's address isn't shown on their old events once nobody shares an org with them. A sign-in from a browser (by user agent) the account hasn't used before emails the user.
+
+## Schedule runs
+
+The node fires schedules (see [WINGS.md](WINGS.md#scheduler)); the Panel keeps their history in `schedule_runs`, because Wings drops its events after a week. The mirror records a run from the node's events as it syncs: `schedule.run.queued` starts a run (keyed by its job ID), `schedule.run.finished` ends it with each step's result (or records it whole, if its start was never seen), and `schedule.run.skipped` is a run that didn't happen, with why (`missed`, `offline`, `still_running`). Each schedule keeps its last 100 runs; deleting a schedule or a server deletes its runs. A snapshot doesn't bring back runs from a gap in the events, so a run can be missing, never wrong.
+
+`OrgService.ListScheduleRuns` (the `schedules` permission) lists a server's runs, or one schedule's, 25 at a time, newest first. A schedule's "last run" is the newer of the node's and the newest run here, so "Run now" counts. The server's Schedules tab shows them under the schedules, refreshed every 5 seconds: running (with the steps done), ran (with how long and how many steps), failed (at which step, and why), skipped (and why). A step's error is the node's words, so the app shows known ones as a sentence ("the server wasn't running") and anything else as "the backup failed" and the like.
 
 ## Billing (Polar)
 

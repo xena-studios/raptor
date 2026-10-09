@@ -86,6 +86,9 @@ const (
 	// OrgServiceListSchedulesProcedure is the fully-qualified name of the OrgService's ListSchedules
 	// RPC.
 	OrgServiceListSchedulesProcedure = "/raptor.panel.v1.OrgService/ListSchedules"
+	// OrgServiceListScheduleRunsProcedure is the fully-qualified name of the OrgService's
+	// ListScheduleRuns RPC.
+	OrgServiceListScheduleRunsProcedure = "/raptor.panel.v1.OrgService/ListScheduleRuns"
 	// OrgServiceSetNodeSFTPProcedure is the fully-qualified name of the OrgService's SetNodeSFTP RPC.
 	OrgServiceSetNodeSFTPProcedure = "/raptor.panel.v1.OrgService/SetNodeSFTP"
 	// OrgServiceGetSFTPAccessProcedure is the fully-qualified name of the OrgService's GetSFTPAccess
@@ -176,6 +179,10 @@ type OrgServiceClient interface {
 	// ListSchedules lists a server's schedules as the mirror has them. Needs
 	// the schedules permission.
 	ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error)
+	// ListScheduleRuns lists a server's schedule runs, newest first, from the
+	// node's events (the Panel keeps each schedule's last 100). Needs the
+	// schedules permission.
+	ListScheduleRuns(context.Context, *v1.ListScheduleRunsRequest) (*v1.ListScheduleRunsResponse, error)
 	// SetNodeSFTP allows or stops SFTP on a node. Stopping it closes its
 	// port, and nobody can turn on a password there until it's allowed again.
 	// Admins and owners.
@@ -355,6 +362,13 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		listScheduleRuns: connect.NewClient[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse](
+			httpClient,
+			baseURL+OrgServiceListScheduleRunsProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListScheduleRuns")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		setNodeSFTP: connect.NewClient[v1.SetNodeSFTPRequest, v1.SetNodeSFTPResponse](
 			httpClient,
 			baseURL+OrgServiceSetNodeSFTPProcedure,
@@ -420,6 +434,7 @@ type orgServiceClient struct {
 	listMemberPasskeys *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
 	listAuditLog       *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
 	listSchedules      *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
+	listScheduleRuns   *connect.Client[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse]
 	setNodeSFTP        *connect.Client[v1.SetNodeSFTPRequest, v1.SetNodeSFTPResponse]
 	getSFTPAccess      *connect.Client[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse]
 	createSFTPAccess   *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
@@ -626,6 +641,15 @@ func (c *orgServiceClient) ListSchedules(ctx context.Context, req *v1.ListSchedu
 	return nil, err
 }
 
+// ListScheduleRuns calls raptor.panel.v1.OrgService.ListScheduleRuns.
+func (c *orgServiceClient) ListScheduleRuns(ctx context.Context, req *v1.ListScheduleRunsRequest) (*v1.ListScheduleRunsResponse, error) {
+	response, err := c.listScheduleRuns.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // SetNodeSFTP calls raptor.panel.v1.OrgService.SetNodeSFTP.
 func (c *orgServiceClient) SetNodeSFTP(ctx context.Context, req *v1.SetNodeSFTPRequest) (*v1.SetNodeSFTPResponse, error) {
 	response, err := c.setNodeSFTP.CallUnary(ctx, connect.NewRequest(req))
@@ -752,6 +776,10 @@ type OrgServiceHandler interface {
 	// ListSchedules lists a server's schedules as the mirror has them. Needs
 	// the schedules permission.
 	ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error)
+	// ListScheduleRuns lists a server's schedule runs, newest first, from the
+	// node's events (the Panel keeps each schedule's last 100). Needs the
+	// schedules permission.
+	ListScheduleRuns(context.Context, *v1.ListScheduleRunsRequest) (*v1.ListScheduleRunsResponse, error)
 	// SetNodeSFTP allows or stops SFTP on a node. Stopping it closes its
 	// port, and nobody can turn on a password there until it's allowed again.
 	// Admins and owners.
@@ -927,6 +955,13 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceListScheduleRunsHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListScheduleRunsProcedure,
+		svc.ListScheduleRuns,
+		connect.WithSchema(orgServiceMethods.ByName("ListScheduleRuns")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceSetNodeSFTPHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceSetNodeSFTPProcedure,
 		svc.SetNodeSFTP,
@@ -1011,6 +1046,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListAuditLogHandler.ServeHTTP(w, r)
 		case OrgServiceListSchedulesProcedure:
 			orgServiceListSchedulesHandler.ServeHTTP(w, r)
+		case OrgServiceListScheduleRunsProcedure:
+			orgServiceListScheduleRunsHandler.ServeHTTP(w, r)
 		case OrgServiceSetNodeSFTPProcedure:
 			orgServiceSetNodeSFTPHandler.ServeHTTP(w, r)
 		case OrgServiceGetSFTPAccessProcedure:
@@ -1118,6 +1155,10 @@ func (UnimplementedOrgServiceHandler) ListAuditLog(context.Context, *v1.ListAudi
 
 func (UnimplementedOrgServiceHandler) ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListSchedules is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListScheduleRuns(context.Context, *v1.ListScheduleRunsRequest) (*v1.ListScheduleRunsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListScheduleRuns is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) SetNodeSFTP(context.Context, *v1.SetNodeSFTPRequest) (*v1.SetNodeSFTPResponse, error) {

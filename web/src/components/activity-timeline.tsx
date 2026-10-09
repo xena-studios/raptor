@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { LucideIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ComponentType, type ReactNode, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import { cn } from "@/lib/utils";
 export type TimelineItem = {
   id: string;
   at?: Date;
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
   // Who did it, in bold before the sentence (org and server logs).
   actor?: string;
   text: ReactNode;
@@ -49,6 +48,8 @@ export function ActivityCard<E>({
   fetchPage,
   toItem,
   empty = "Nothing yet.",
+  action,
+  refetchInterval,
 }: {
   title?: string;
   description: string;
@@ -56,13 +57,20 @@ export function ActivityCard<E>({
   fetchPage: (token: string) => Promise<TimelinePage<E>>;
   toItem: (e: E) => TimelineItem;
   empty?: string;
+  // Beside the title: a filter, say.
+  action?: ReactNode;
+  // How often the first page refreshes, for events that change.
+  refetchInterval?: number;
 }) {
   const [pages, setPages] = useState<string[]>([""]);
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1.5">
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </div>
+        {action}
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         {pages.map((token, i) => (
@@ -74,6 +82,7 @@ export function ActivityCard<E>({
             fetchPage={fetchPage}
             toItem={toItem}
             empty={empty}
+            refetchInterval={token ? undefined : refetchInterval}
             onMore={(t) => setPages([...pages, t])}
           />
         ))}
@@ -89,6 +98,7 @@ function Page<E>({
   fetchPage,
   toItem,
   empty,
+  refetchInterval,
   onMore,
 }: {
   token: string;
@@ -97,9 +107,14 @@ function Page<E>({
   fetchPage: (token: string) => Promise<TimelinePage<E>>;
   toItem: (e: E) => TimelineItem;
   empty: string;
+  refetchInterval?: number;
   onMore: (t: string) => void;
 }) {
-  const query = useQuery({ queryKey: [...queryKey, token], queryFn: () => fetchPage(token) });
+  const query = useQuery({
+    queryKey: [...queryKey, token],
+    queryFn: () => fetchPage(token),
+    refetchInterval,
+  });
   if (query.error) return <p className="text-sm text-destructive">{message(query.error)}</p>;
   const page = query.data;
   if (!page) return <p className="text-sm text-muted-foreground">Loading…</p>;
