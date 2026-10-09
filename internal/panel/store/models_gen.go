@@ -283,6 +283,16 @@ type SftpPassword struct {
 	CreatedAt  pgtype.Timestamptz
 }
 
+type SshKey struct {
+	ID          pgtype.UUID
+	UserID      pgtype.UUID
+	Name        string
+	PublicKey   []byte
+	Fingerprint string
+	CreatedAt   pgtype.Timestamptz
+	LastUsedAt  pgtype.Timestamptz
+}
+
 type TotpSetup struct {
 	UserID    pgtype.UUID
 	Secret    []byte
@@ -299,6 +309,7 @@ type User struct {
 	TotpSecret      []byte
 	TotpEnabledAt   pgtype.Timestamptz
 	TotpLastStep    int64
+	SftpUsername    pgtype.Text
 	Theme           string
 }
 
