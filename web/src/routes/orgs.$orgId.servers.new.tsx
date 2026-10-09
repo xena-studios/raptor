@@ -30,7 +30,7 @@ import {
   suggestPort,
 } from "@/lib/servers";
 import { sendSigned } from "@/lib/signed";
-import { catalogClient } from "@/lib/transport";
+import { catalogClient, orgClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
 
@@ -54,6 +54,7 @@ const categoryNames: Record<string, string> = {
   database: "Databases",
   generic: "Generic",
   voice: "Voice",
+  imported: "Imported by your org",
 };
 
 function NewServerPage() {
@@ -117,16 +118,19 @@ function NewServerPage() {
 
 function NewServer({ orgId, node, userId }: { orgId: string; node: Node; userId: string }) {
   const catalog = useQuery(CatalogService.method.listEggs, {});
+  const imported = useQuery(OrgService.method.listOrgEggs, { orgId });
   const servers = useQuery(OrgService.method.listServers, { orgId, nodeId: node.id });
   const [query, setQuery] = useState("");
   const [egg, setEgg] = useState<CatalogEgg>();
 
   const eggs = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return eggsFor(catalog.data?.eggs ?? [], node.arch).filter(
+    const own = (imported.data?.eggs ?? []).flatMap((o) => (o.egg ? [o.egg] : []));
+    // The org's own eggs first: someone imported them to use them.
+    return [...eggsFor(own, node.arch), ...eggsFor(catalog.data?.eggs ?? [], node.arch)].filter(
       (e) => !q || e.name.toLowerCase().includes(q) || e.category.includes(q),
     );
-  }, [catalog.data, node.arch, query]);
+  }, [catalog.data, imported.data, node.arch, query]);
   const usedPorts = (servers.data?.servers ?? []).flatMap((s) => s.ports);
 
   if (egg) {
@@ -236,7 +240,9 @@ function Settings({
     setError("");
     setBusy(true);
     try {
-      const file = await catalogClient.getEgg({ id: egg.id });
+      const file = egg.id.startsWith("org:")
+        ? await orgClient.getOrgEgg({ orgId, eggId: egg.id })
+        : await catalogClient.getEgg({ id: egg.id });
       await sendSigned({
         userId,
         nodeId: node.id,
@@ -286,12 +292,15 @@ function Settings({
           <CardTitle className="flex items-center gap-2">
             {egg.name}
             {egg.certified && <Badge variant="secondary">Certified</Badge>}
+            {egg.category === "imported" && <Badge variant="outline">Imported</Badge>}
           </CardTitle>
           <CardDescription>
             {egg.description.length > 280 ? `${egg.description.slice(0, 280)}…` : egg.description}{" "}
-            <a href={egg.sourceUrl} target="_blank" rel="noreferrer" className="underline">
-              Egg source
-            </a>
+            {egg.sourceUrl && (
+              <a href={egg.sourceUrl} target="_blank" rel="noreferrer" className="underline">
+                Egg source
+              </a>
+            )}
           </CardDescription>
           <CardAction>
             <Button type="button" variant="outline" size="sm" onClick={onBack}>

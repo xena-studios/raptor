@@ -180,6 +180,17 @@ type Org struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type OrgEgg struct {
+	ID         pgtype.UUID
+	OrgID      pgtype.UUID
+	Name       string
+	Egg        []byte
+	Sha256     string
+	SourceUrl  string
+	ImportedBy pgtype.UUID
+	ImportedAt pgtype.Timestamptz
+}
+
 type OrgInvitation struct {
 	ID         pgtype.UUID
 	OrgID      pgtype.UUID

@@ -162,9 +162,19 @@ How TOTP works (`internal/panel/auth`, `pquerna/otp`): 30-second, 6-digit, SHA-1
 One table (`audit_log`) for account and org events, with the IP address and browser of the request, kept a year. Users see their account's events (`AuthService.ListActivity`); admins and owners see their org's (`OrgService.ListAuditLog`), 50 at a time, newest first.
 
 - **Account:** `signin` (method: `email`, `passkey`, `totp`, `recovery_code`, `google`, `github`, `discord`; whether it's a new device), `signin.first_factor` (waiting for TOTP), `signin.failed` (a wrong code, a refused passkey, an unverified provider email), `reauth`, `reauth.failed`, `session.signout`, `session.revoke`, `passkey.add|remove|rename`, `totp.enable|disable`, `recovery_codes.regenerate`, `oauth.link|unlink`.
-- **Org:** `org.create|rename`, `member.role|remove|leave`, `invitation.create|revoke|accept`, `join_token.create`.
+- **Org:** `org.create|rename`, `member.role|remove|leave`, `invitation.create|revoke|accept`, `join_token.create`, `egg.import|delete`.
 
 Sign-ins and org changes are written in the same transaction as the change, so neither happens without the other. Org events are written under row-level security as the user (they can add their own org's events, never change or delete any), and a former member's address isn't shown on their old events once nobody shares an org with them. A sign-in from a browser (by user agent) the account hasn't used before emails the user.
+
+## Imported eggs
+
+Besides the built-in catalog, an org can import eggs (`org_eggs`): Pterodactyl or Pelican files, JSON or YAML, from a link or an upload. Admins and owners import and remove them; any member sees and uses them. The Eggs page lists them first, and the create-server wizard offers them first, on every node unless the egg names its CPUs.
+
+1. **Preview** (`OrgService.PreviewEgg`, 30 an hour per user for links): the Panel fetches the link (`internal/panel/eggimport`): https on port 443 only, a GitHub file page read from its raw file, at most 3 redirects and all https, 1 MiB, 15 seconds, and only public addresses, checked on the address actually dialed so DNS can't point it inward. It parses the egg with the same parser Wings uses (refusing one that leaves parts to another egg with `config.extends` or `copy_script_from`) and returns what it would run: images and their registries, the install container, entrypoint, and script, the startup command, variables, and warnings: an image from a publisher the community eggs don't use (anything but Docker Hub's official images and the Pterodactyl, Pelican, and parkervcp ones), an install script that pipes a download into a shell, no CPUs named, or a claim to be certified. Nothing is saved.
+2. **Review:** the app shows all of it, and Import stays off until the admin ticks that they've looked and trust the egg.
+3. **Import** (`ImportEgg`): the reviewed file, sent back as it was, is parsed again and saved with its SHA-256 and link; the same file can't be imported twice. Up to 100 per org. Audited as `egg.import`.
+
+A server made from an imported egg gets the file in its signed `server.create`, as with the catalog, so the passkey signature covers exactly what was reviewed. Removing an egg (`DeleteOrgEgg`, `egg.delete`) doesn't touch servers made from it. An imported egg is never certified, whatever it says.
 
 ## Schedule runs
 

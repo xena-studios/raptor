@@ -56,11 +56,16 @@ type loaded struct {
 
 func describe(e catalog.Entry, egg *eggs.Egg) *panelv1.CatalogEgg {
 	category, _, _ := strings.Cut(e.ID, "/")
-	out := &panelv1.CatalogEgg{
-		Id: e.ID, Name: egg.Name, Description: egg.Description, Category: category,
-		Certified: e.Certified, Arch: e.Arch, Features: egg.Features,
-		SourceUrl: fmt.Sprintf("https://github.com/%s/blob/%s/%s", e.Source.Repo, e.Source.Commit, e.Source.Path),
-	}
+	out := Proto(egg)
+	out.Id, out.Category, out.Certified, out.Arch = e.ID, category, e.Certified, e.Arch
+	out.SourceUrl = fmt.Sprintf("https://github.com/%s/blob/%s/%s", e.Source.Repo, e.Source.Commit, e.Source.Path)
+	return out
+}
+
+// Proto is what the web app needs of an egg to create a server from it:
+// the caller fills in its ID, category, and source.
+func Proto(egg *eggs.Egg) *panelv1.CatalogEgg {
+	out := &panelv1.CatalogEgg{Name: egg.Name, Description: egg.Description, Features: egg.Features, Arch: egg.Raptor.Arch}
 	for _, i := range egg.Images {
 		out.Images = append(out.Images, &panelv1.EggImage{Name: i.Name, Ref: i.Ref})
 	}

@@ -11,10 +11,11 @@ export type EggSummary = {
 };
 
 // eggsFor lists the eggs a node can run, certified ones first, then by name.
-// An unknown architecture (a node that hasn't reported it) shows them all.
+// An unknown architecture (a node that hasn't reported it, or an imported
+// egg that doesn't say) doesn't rule anything out.
 export function eggsFor<E extends EggSummary>(eggs: E[], arch: string): E[] {
   return eggs
-    .filter((e) => !arch || e.arch.includes(arch))
+    .filter((e) => !arch || e.arch.length === 0 || e.arch.includes(arch))
     .sort((a, b) => Number(b.certified) - Number(a.certified) || a.name.localeCompare(b.name));
 }
 
