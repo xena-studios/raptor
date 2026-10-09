@@ -6,10 +6,17 @@ import { useState } from "react";
 
 import { DetailList } from "@/components/page";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { type Node, OrgService, type SFTPAccess } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { commandClient, orgClient } from "@/lib/transport";
+import { cn } from "@/lib/utils";
 
 const select =
   "h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -42,10 +49,11 @@ function CopyValue({ value, secret }: { value: string; secret?: boolean }) {
   );
 }
 
-// SFTPCard turns SFTP on for the user on one server: a generated username
+// SFTPButton is the file manager's SFTP button, with a green dot while
+// the user's login is on; its dialog turns SFTP on for the user on one server: a generated username
 // and password that work until they turn it off or it runs out (a day
 // unless they pick otherwise). The password is shown once.
-export function SFTPCard({
+export function SFTPButton({
   orgId,
   node,
   serverId,
@@ -62,6 +70,7 @@ export function SFTPCard({
     nodeId: node.id,
     serverId,
   });
+  const [open, setOpen] = useState(false);
   const [ttl, setTtl] = useState(86400);
   const [created, setCreated] = useState<{ access: SFTPAccess; password: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -109,109 +118,140 @@ export function SFTPCard({
       }
     });
 
+  const active = node.sftpEnabled && !!access;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>SFTP</CardTitle>
-        <CardDescription>
-          For big uploads and your own file apps (FileZilla, WinSCP, Cyberduck). Turn it on when you
-          need it: you get a username and password that stop working when you turn it off or when
-          they run out.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 text-sm">
-        {!node.sftpEnabled ? (
-          admin ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-muted-foreground">SFTP is off on {node.name}.</span>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() =>
-                  act(async () => {
-                    await commandClient.execute({
-                      nodeId: node.id,
-                      action: "node.sftp",
-                      paramsJson: JSON.stringify({ enabled: true }),
-                    });
-                  })
-                }
-              >
-                Turn on SFTP for this node
-              </Button>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">
-              SFTP is off on {node.name}. Ask an admin of your org to turn it on.
-            </p>
-          )
-        ) : access ? (
-          <>
-            <DetailList
-              rows={[
-                ["Host", <CopyValue key="h" value={access.host} />],
-                ["Port", <CopyValue key="p" value={String(access.port)} />],
-                ["Username", <CopyValue key="u" value={access.username} />],
-                [
-                  "Password",
-                  created ? (
-                    <CopyValue key="pw" value={created.password} secret />
-                  ) : (
-                    <span key="pw" className="text-muted-foreground">
-                      Shown once, when it was made
-                    </span>
-                  ),
-                ],
-                [
-                  "Works until",
-                  access.expiresAt ? timestampDate(access.expiresAt).toLocaleString() : "",
-                ],
-              ]}
-            />
-            {created && (
-              <p className="text-muted-foreground">
-                Save the password now: it won't be shown again.
-              </p>
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <span
+          aria-hidden
+          className={cn(
+            "size-2 rounded-full",
+            active ? "bg-emerald-500" : "bg-muted-foreground/40",
+          )}
+        />
+        SFTP
+        <span className="sr-only">{active ? "(on)" : "(off)"}</span>
+      </Button>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          // The password is shown once: closing forgets it.
+          if (!next) setCreated(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              SFTP
+              {active && (
+                <span className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+                  <span className="size-2 rounded-full bg-emerald-500" /> On
+                </span>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              For big uploads and your own file apps (FileZilla, WinSCP, Cyberduck). Turn it on when
+              you need it: you get a username and password that stop working when you turn it off or
+              when they run out.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 text-sm">
+            {!node.sftpEnabled ? (
+              admin ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-muted-foreground">SFTP is off on {node.name}.</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() =>
+                      act(async () => {
+                        await commandClient.execute({
+                          nodeId: node.id,
+                          action: "node.sftp",
+                          paramsJson: JSON.stringify({ enabled: true }),
+                        });
+                      })
+                    }
+                  >
+                    Turn on SFTP for this node
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">
+                  SFTP is off on {node.name}. Ask an admin of your org to turn it on.
+                </p>
+              )
+            ) : access ? (
+              <>
+                <DetailList
+                  rows={[
+                    ["Host", <CopyValue key="h" value={access.host} />],
+                    ["Port", <CopyValue key="p" value={String(access.port)} />],
+                    ["Username", <CopyValue key="u" value={access.username} />],
+                    [
+                      "Password",
+                      created ? (
+                        <CopyValue key="pw" value={created.password} secret />
+                      ) : (
+                        <span key="pw" className="text-muted-foreground">
+                          Shown once, when it was made
+                        </span>
+                      ),
+                    ],
+                    [
+                      "Works until",
+                      access.expiresAt ? timestampDate(access.expiresAt).toLocaleString() : "",
+                    ],
+                  ]}
+                />
+                {created && (
+                  <p className="text-muted-foreground">
+                    Save the password now: it won't be shown again.
+                  </p>
+                )}
+                {access.hostKeyFingerprint && (
+                  <p className="text-xs text-muted-foreground">
+                    The first time you connect, your app shows the server's key: check it's{" "}
+                    <code>{access.hostKeyFingerprint}</code>.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" disabled={busy} onClick={turnOn}>
+                    New password
+                  </Button>
+                  <Button size="sm" variant="destructive" disabled={busy} onClick={turnOff}>
+                    Turn off
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2 text-muted-foreground">
+                  Works for
+                  <select
+                    className={select}
+                    value={ttl}
+                    onChange={(e) => setTtl(Number(e.target.value))}
+                  >
+                    {lifetimes.map(([s, label]) => (
+                      <option key={s} value={s}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Button size="sm" disabled={busy || current.isPending} onClick={turnOn}>
+                  Turn on SFTP
+                </Button>
+              </div>
             )}
-            {access.hostKeyFingerprint && (
-              <p className="text-xs text-muted-foreground">
-                The first time you connect, your app shows the server's key: check it's{" "}
-                <code>{access.hostKeyFingerprint}</code>.
-              </p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" disabled={busy} onClick={turnOn}>
-                New password
-              </Button>
-              <Button size="sm" variant="destructive" disabled={busy} onClick={turnOff}>
-                Turn off
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 text-muted-foreground">
-              Works for
-              <select
-                className={select}
-                value={ttl}
-                onChange={(e) => setTtl(Number(e.target.value))}
-              >
-                {lifetimes.map(([s, label]) => (
-                  <option key={s} value={s}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Button size="sm" disabled={busy || current.isPending} onClick={turnOn}>
-              Turn on SFTP
-            </Button>
+            {error && <p className="text-destructive">{error}</p>}
           </div>
-        )}
-        {error && <p className="text-destructive">{error}</p>}
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
