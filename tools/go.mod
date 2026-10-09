@@ -1,6 +1,6 @@
 module github.com/xena-studios/raptor/tools
 
-go 1.27.1
+go 1.27.2
 
 tool (
 	connectrpc.com/connect/cmd/protoc-gen-connect-go
