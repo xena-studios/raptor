@@ -20,7 +20,7 @@ function Settings() {
   return (
     <div className="flex flex-col gap-6">
       {node && <NodeSettings key={node.name} orgId={orgId} nodeId={nodeId} name={node.name} />}
-      {node && <NodeSFTP node={node} />}
+      {node && <NodeSFTP orgId={orgId} node={node} />}
       <TrustedKeys
         orgId={orgId}
         nodeId={nodeId}

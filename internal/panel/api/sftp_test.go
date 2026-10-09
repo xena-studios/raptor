@@ -167,4 +167,28 @@ func TestSFTPPasswords(t *testing.T) {
 	if _, err := login(last.GetAccess().GetUsername(), server, last.GetPassword()); connect.CodeOf(err) != connect.CodePermissionDenied {
 		t.Errorf("expired: %v", err)
 	}
+
+	// Admins can stop SFTP on the node: its passwords go, and no new ones.
+	fresh, err := create(alice, server, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bob.orgs.SetNodeSFTP(ctx, &panelv1.SetNodeSFTPRequest{OrgId: org, NodeId: node, Allowed: false}); connect.CodeOf(err) != connect.CodePermissionDenied && connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("a member stopping sftp: %v", err)
+	}
+	if _, err := alice.orgs.SetNodeSFTP(ctx, &panelv1.SetNodeSFTPRequest{OrgId: org, NodeId: node, Allowed: false}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := login(fresh.GetAccess().GetUsername(), server, fresh.GetPassword()); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("a password on a node where sftp stopped: %v", err)
+	}
+	if _, err := create(alice, server, time.Hour); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Errorf("a new password where sftp stopped: %v", err)
+	}
+	if _, err := alice.orgs.SetNodeSFTP(ctx, &panelv1.SetNodeSFTPRequest{OrgId: org, NodeId: node, Allowed: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := create(alice, server, time.Hour); err != nil {
+		t.Errorf("after allowing it again: %v", err)
+	}
 }

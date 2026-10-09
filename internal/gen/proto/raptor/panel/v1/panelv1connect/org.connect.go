@@ -86,6 +86,8 @@ const (
 	// OrgServiceListSchedulesProcedure is the fully-qualified name of the OrgService's ListSchedules
 	// RPC.
 	OrgServiceListSchedulesProcedure = "/raptor.panel.v1.OrgService/ListSchedules"
+	// OrgServiceSetNodeSFTPProcedure is the fully-qualified name of the OrgService's SetNodeSFTP RPC.
+	OrgServiceSetNodeSFTPProcedure = "/raptor.panel.v1.OrgService/SetNodeSFTP"
 	// OrgServiceGetSFTPAccessProcedure is the fully-qualified name of the OrgService's GetSFTPAccess
 	// RPC.
 	OrgServiceGetSFTPAccessProcedure = "/raptor.panel.v1.OrgService/GetSFTPAccess"
@@ -171,15 +173,21 @@ type OrgServiceClient interface {
 	// ListSchedules lists a server's schedules as the mirror has them. Needs
 	// the schedules permission.
 	ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error)
+	// SetNodeSFTP allows or stops SFTP on a node. Stopping it closes its
+	// port, and nobody can turn on a password there until it's allowed again.
+	// Admins and owners.
+	SetNodeSFTP(context.Context, *v1.SetNodeSFTPRequest) (*v1.SetNodeSFTPResponse, error)
 	// GetSFTPAccess says whether the caller has a temporary SFTP password
 	// for a server, and how to connect. Needs the sftp permission.
 	GetSFTPAccess(context.Context, *v1.GetSFTPAccessRequest) (*v1.GetSFTPAccessResponse, error)
 	// CreateSFTPAccess makes the caller a temporary SFTP password for a
-	// server, replacing any they had. The password is only ever in this
-	// answer. Needs the sftp permission.
+	// server, replacing any they had, and opens the node's SFTP port if it was
+	// closed. The password is only ever in this answer. Needs the sftp
+	// permission, and SFTP allowed on the node.
 	CreateSFTPAccess(context.Context, *v1.CreateSFTPAccessRequest) (*v1.CreateSFTPAccessResponse, error)
 	// RevokeSFTPAccess deletes the caller's temporary SFTP password for a
-	// server. The web app then sends sftp.disconnect to end its sessions.
+	// server, closing the node's SFTP port if it was the last. The web app
+	// then sends sftp.disconnect to end its sessions.
 	RevokeSFTPAccess(context.Context, *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error)
 	// ListBackups lists a server's backups as the mirror has them, newest
 	// first. Needs the backups permission.
@@ -339,6 +347,12 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		setNodeSFTP: connect.NewClient[v1.SetNodeSFTPRequest, v1.SetNodeSFTPResponse](
+			httpClient,
+			baseURL+OrgServiceSetNodeSFTPProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("SetNodeSFTP")),
+			connect.WithClientOptions(opts...),
+		),
 		getSFTPAccess: connect.NewClient[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse](
 			httpClient,
 			baseURL+OrgServiceGetSFTPAccessProcedure,
@@ -392,6 +406,7 @@ type orgServiceClient struct {
 	listMemberPasskeys *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
 	listAuditLog       *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
 	listSchedules      *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
+	setNodeSFTP        *connect.Client[v1.SetNodeSFTPRequest, v1.SetNodeSFTPResponse]
 	getSFTPAccess      *connect.Client[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse]
 	createSFTPAccess   *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
 	revokeSFTPAccess   *connect.Client[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse]
@@ -596,6 +611,15 @@ func (c *orgServiceClient) ListSchedules(ctx context.Context, req *v1.ListSchedu
 	return nil, err
 }
 
+// SetNodeSFTP calls raptor.panel.v1.OrgService.SetNodeSFTP.
+func (c *orgServiceClient) SetNodeSFTP(ctx context.Context, req *v1.SetNodeSFTPRequest) (*v1.SetNodeSFTPResponse, error) {
+	response, err := c.setNodeSFTP.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // GetSFTPAccess calls raptor.panel.v1.OrgService.GetSFTPAccess.
 func (c *orgServiceClient) GetSFTPAccess(ctx context.Context, req *v1.GetSFTPAccessRequest) (*v1.GetSFTPAccessResponse, error) {
 	response, err := c.getSFTPAccess.CallUnary(ctx, connect.NewRequest(req))
@@ -704,15 +728,21 @@ type OrgServiceHandler interface {
 	// ListSchedules lists a server's schedules as the mirror has them. Needs
 	// the schedules permission.
 	ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error)
+	// SetNodeSFTP allows or stops SFTP on a node. Stopping it closes its
+	// port, and nobody can turn on a password there until it's allowed again.
+	// Admins and owners.
+	SetNodeSFTP(context.Context, *v1.SetNodeSFTPRequest) (*v1.SetNodeSFTPResponse, error)
 	// GetSFTPAccess says whether the caller has a temporary SFTP password
 	// for a server, and how to connect. Needs the sftp permission.
 	GetSFTPAccess(context.Context, *v1.GetSFTPAccessRequest) (*v1.GetSFTPAccessResponse, error)
 	// CreateSFTPAccess makes the caller a temporary SFTP password for a
-	// server, replacing any they had. The password is only ever in this
-	// answer. Needs the sftp permission.
+	// server, replacing any they had, and opens the node's SFTP port if it was
+	// closed. The password is only ever in this answer. Needs the sftp
+	// permission, and SFTP allowed on the node.
 	CreateSFTPAccess(context.Context, *v1.CreateSFTPAccessRequest) (*v1.CreateSFTPAccessResponse, error)
 	// RevokeSFTPAccess deletes the caller's temporary SFTP password for a
-	// server. The web app then sends sftp.disconnect to end its sessions.
+	// server, closing the node's SFTP port if it was the last. The web app
+	// then sends sftp.disconnect to end its sessions.
 	RevokeSFTPAccess(context.Context, *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error)
 	// ListBackups lists a server's backups as the mirror has them, newest
 	// first. Needs the backups permission.
@@ -868,6 +898,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceSetNodeSFTPHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceSetNodeSFTPProcedure,
+		svc.SetNodeSFTP,
+		connect.WithSchema(orgServiceMethods.ByName("SetNodeSFTP")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceGetSFTPAccessHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceGetSFTPAccessProcedure,
 		svc.GetSFTPAccess,
@@ -940,6 +976,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListAuditLogHandler.ServeHTTP(w, r)
 		case OrgServiceListSchedulesProcedure:
 			orgServiceListSchedulesHandler.ServeHTTP(w, r)
+		case OrgServiceSetNodeSFTPProcedure:
+			orgServiceSetNodeSFTPHandler.ServeHTTP(w, r)
 		case OrgServiceGetSFTPAccessProcedure:
 			orgServiceGetSFTPAccessHandler.ServeHTTP(w, r)
 		case OrgServiceCreateSFTPAccessProcedure:
@@ -1043,6 +1081,10 @@ func (UnimplementedOrgServiceHandler) ListAuditLog(context.Context, *v1.ListAudi
 
 func (UnimplementedOrgServiceHandler) ListSchedules(context.Context, *v1.ListSchedulesRequest) (*v1.ListSchedulesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListSchedules is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) SetNodeSFTP(context.Context, *v1.SetNodeSFTPRequest) (*v1.SetNodeSFTPResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.SetNodeSFTP is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) GetSFTPAccess(context.Context, *v1.GetSFTPAccessRequest) (*v1.GetSFTPAccessResponse, error) {

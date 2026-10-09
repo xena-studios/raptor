@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteNodeSFTPPasswords = `-- name: DeleteNodeSFTPPasswords :exec
+DELETE FROM sftp_passwords WHERE node_id = $1
+`
+
+func (q *Queries) DeleteNodeSFTPPasswords(ctx context.Context, nodeID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteNodeSFTPPasswords, nodeID)
+	return err
+}
+
 const deleteSFTPPassword = `-- name: DeleteSFTPPassword :one
 DELETE FROM sftp_passwords WHERE user_id = $1 AND node_id = $2 AND server_id = $3 RETURNING id, user_id, node_id, server_id, username, secret_hash, expires_at, created_at
 `
@@ -63,6 +72,57 @@ func (q *Queries) GetSFTPPassword(ctx context.Context, arg GetSFTPPasswordParams
 	return i, err
 }
 
+const nodeSFTPWanted = `-- name: NodeSFTPWanted :one
+SELECT n.sftp_enabled,
+       (n.sftp_allowed AND EXISTS (
+           SELECT 1 FROM sftp_passwords p WHERE p.node_id = n.id AND p.expires_at > now()
+       ))::bool AS wanted
+FROM nodes n WHERE n.id = $1 AND n.deleted_at IS NULL
+`
+
+type NodeSFTPWantedRow struct {
+	SftpEnabled bool
+	Wanted      bool
+}
+
+// Whether a node's SFTP port should be open: SFTP allowed there, and a
+// password on it that hasn't run out.
+func (q *Queries) NodeSFTPWanted(ctx context.Context, id pgtype.UUID) (NodeSFTPWantedRow, error) {
+	row := q.db.QueryRow(ctx, nodeSFTPWanted, id)
+	var i NodeSFTPWantedRow
+	err := row.Scan(&i.SftpEnabled, &i.Wanted)
+	return i, err
+}
+
+const nodesSFTPOutOfStep = `-- name: NodesSFTPOutOfStep :many
+SELECT n.id FROM nodes n
+WHERE n.deleted_at IS NULL
+  AND n.sftp_enabled <> (n.sftp_allowed AND EXISTS (
+      SELECT 1 FROM sftp_passwords p WHERE p.node_id = n.id AND p.expires_at > now()
+  ))
+`
+
+// Nodes whose SFTP port is open when it shouldn't be, or the other way.
+func (q *Queries) NodesSFTPOutOfStep(ctx context.Context) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, nodesSFTPOutOfStep)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var id pgtype.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const pruneSFTPPasswords = `-- name: PruneSFTPPasswords :exec
 DELETE FROM sftp_passwords WHERE expires_at < now()
 `
@@ -90,6 +150,23 @@ func (q *Queries) SFTPPasswordByUsername(ctx context.Context, username string) (
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const setNodeSFTPAllowed = `-- name: SetNodeSFTPAllowed :execrows
+UPDATE nodes SET sftp_allowed = $2 WHERE id = $1 AND deleted_at IS NULL
+`
+
+type SetNodeSFTPAllowedParams struct {
+	ID          pgtype.UUID
+	SftpAllowed bool
+}
+
+func (q *Queries) SetNodeSFTPAllowed(ctx context.Context, arg SetNodeSFTPAllowedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setNodeSFTPAllowed, arg.ID, arg.SftpAllowed)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const setSFTPPassword = `-- name: SetSFTPPassword :one
