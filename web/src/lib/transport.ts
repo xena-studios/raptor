@@ -12,8 +12,11 @@ import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 // every call includes credentials and the page never sees the token.
 export const apiURL: string = import.meta.env.VITE_API_URL ?? "/api";
 
+// A request the API doesn't answer in 90 seconds counts as the API being
+// unreachable (a command to a node can take up to a minute).
 export const transport = createConnectTransport({
   baseUrl: apiURL,
+  defaultTimeoutMs: 90_000,
   fetch: (input, init) => fetch(input, { ...init, credentials: "include" }),
 });
 

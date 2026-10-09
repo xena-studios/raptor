@@ -11,9 +11,11 @@ import {
   Settings,
   SquareTerminal,
   UserRound,
+  WifiOff,
 } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 
+import { NotFound } from "@/components/error-screen";
 import { Logo } from "@/components/logo";
 import {
   DropdownMenu,
@@ -45,6 +47,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AuthService, type GetSessionResponse } from "@/gen/raptor/panel/v1/auth_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { useApiDown } from "@/lib/connection";
 import { roleNames } from "@/lib/format";
 import { getTheme, isTheme, setTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -127,7 +130,14 @@ export function AppShell({
           <Separator orientation="vertical" className="mr-1 h-4" />
           <span className="truncate text-sm text-muted-foreground">{current?.name}</span>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-6">{children}</main>
+        <ConnectionBanner />
+        <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-6">
+          {orgId && orgs.data && !list.some((o) => o.id === orgId) ? (
+            <NotFound full={false} what="org" />
+          ) : (
+            children
+          )}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );
@@ -177,6 +187,22 @@ function OrgSwitcher({ orgs, current }: { orgs: OrgSummary[]; current?: string }
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+// ConnectionBanner says when the Panel stopped answering, until it answers
+// again; pages keep what they last loaded meanwhile.
+function ConnectionBanner() {
+  const down = useApiDown();
+  if (!down) return null;
+  return (
+    <div
+      role="status"
+      className="flex items-center justify-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm"
+    >
+      <WifiOff className="size-4 shrink-0 text-amber-500" />
+      Can't reach Raptor right now. What you see may be out of date; this clears when it's back.
+    </div>
   );
 }
 

@@ -72,7 +72,7 @@ export async function uploadFile(opts: {
       await sleep(500 * 2 ** failures);
       continue;
     }
-    throw new Error(st.error || `The upload failed (${r.status}).`);
+    throw new Error(st.error || "The upload failed. Try again in a moment.");
   }
   opts.onProgress(1);
 }

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { NotFound } from "@/components/error-screen";
 import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { PowerButtons } from "@/components/power-buttons";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
@@ -45,15 +46,7 @@ function ServerLayout() {
   const status = server && serverStatus(server, node?.connected ?? false);
   const params = { orgId, nodeId, serverId };
 
-  if (loaded && !server) {
-    return (
-      <PageHeader
-        back={{ label: "Servers", to: "/orgs/$orgId/servers", params: { orgId } }}
-        title="Server not found"
-        description="It doesn't exist, or you don't have access to it."
-      />
-    );
-  }
+  if (loaded && !server) return <NotFound full={false} what="server" />;
   return (
     <>
       <div className="space-y-4">

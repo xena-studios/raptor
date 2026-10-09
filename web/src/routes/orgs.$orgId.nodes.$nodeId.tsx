@@ -2,6 +2,7 @@ import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 
+import { NotFound } from "@/components/error-screen";
 import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,15 +22,7 @@ function NodeLayout() {
   const nodes = useOrgNodes(orgId);
   const node = nodes.data?.nodes.find((n) => n.id === nodeId);
 
-  if (nodes.data && !node) {
-    return (
-      <PageHeader
-        back={{ label: "Nodes", to: "/orgs/$orgId/nodes", params: { orgId } }}
-        title="Node not found"
-        description="It may have been removed, or you followed an old link."
-      />
-    );
-  }
+  if (nodes.data && !node) return <NotFound full={false} what="node" />;
   return (
     <>
       <div className="space-y-4">
