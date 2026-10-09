@@ -8,6 +8,8 @@ import (
 	"io/fs"
 	"log/slog"
 	"path"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -340,21 +342,29 @@ func (s *Service) Chmod(ctx context.Context, id, dir string, changes []Chmod) er
 type ArchiveJob struct {
 	Dir     string   `json:"dir,omitempty"`     // compress: where the names are, and the archive goes
 	Names   []string `json:"names,omitempty"`   // compress
+	Format  string   `json:"format,omitempty"`  // compress; default tar.gz
+	Name    string   `json:"name,omitempty"`    // compress: the archive's name without its extension
 	Archive string   `json:"archive,omitempty"` // decompress
 	Dest    string   `json:"dest,omitempty"`    // decompress; default the archive's directory
 	UserID  string   `json:"user_id,omitempty"`
 }
 
 // Compress queues a job that archives names (relative to dir) into a new
-// .tar.gz in dir, and returns its ID.
-func (s *Service) Compress(ctx context.Context, id, user, dir string, names []string) (string, error) {
+// archive in dir, and returns its ID.
+func (s *Service) Compress(ctx context.Context, id, user, dir string, names []string, opts CompressOptions) (string, error) {
 	if len(names) == 0 {
 		return "", errors.New("nothing to compress")
+	}
+	if opts.Format != "" && !slices.Contains(Formats, opts.Format) {
+		return "", fmt.Errorf("unknown archive format %q (one of %s)", opts.Format, strings.Join(Formats, ", "))
+	}
+	if n := opts.Name; strings.ContainsAny(n, "/\\\x00") || n == "." || n == ".." || len(n) > 200 {
+		return "", errors.New("an archive's name can't contain a slash, or be . or ..")
 	}
 	if err := s.o.Servers.CheckFiles(ctx, id, true); err != nil {
 		return "", err
 	}
-	return s.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobCompress, ServerID: id, Payload: ArchiveJob{Dir: Rel(dir), Names: names, UserID: user}})
+	return s.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobCompress, ServerID: id, Payload: ArchiveJob{Dir: Rel(dir), Names: names, Format: opts.Format, Name: opts.Name, UserID: user}})
 }
 
 // Decompress queues a job that extracts an archive into dest (default its
@@ -386,7 +396,7 @@ func (s *Service) Decompress(ctx context.Context, id, user, archive, dest string
 func (s *Service) compressJob(ctx context.Context, j jobs.Job, log io.Writer) (any, error) {
 	return s.archiveJob(ctx, j, log, EventCompressed, func(f *FS, p ArchiveJob, space int64) (ArchiveResult, error) {
 		_, _ = fmt.Fprintf(log, "compressing %d item(s) in /%s\n", len(p.Names), p.Dir)
-		return f.Compress(ctx, p.Dir, p.Names, space, s.o.Now())
+		return f.Compress(ctx, p.Dir, p.Names, space, s.o.Now(), CompressOptions{Format: p.Format, Name: p.Name})
 	})
 }
 

@@ -13,7 +13,11 @@ export type FileSettings = {
   // "auto" follows the app's theme.
   editorTheme: EditorTheme;
   treeOpen: boolean;
+  // The format the last archive was made in.
+  archiveFormat: ArchiveFormat;
 };
+
+export type ArchiveFormat = "zip" | "tar.gz" | "tar.zst" | "tar";
 
 export type EditorTheme = "auto" | "dark" | "light" | "hc-black";
 
@@ -33,6 +37,7 @@ const defaults: FileSettings = {
   autoSave: false,
   editorTheme: "auto",
   treeOpen: true,
+  archiveFormat: "zip",
 };
 
 const key = "raptor.files";

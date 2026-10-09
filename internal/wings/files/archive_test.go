@@ -100,7 +100,7 @@ func TestCompressRoundTrip(t *testing.T) {
 	if err := os.Symlink("../outside", filepath.Join(e.dir, "top-link")); err != nil {
 		t.Fatal(err)
 	}
-	id, err := e.svc.Compress(ctx, srvID, "u", "/", []string{"world", "plugins/a.jar", "top-link"})
+	id, err := e.svc.Compress(ctx, srvID, "u", "/", []string{"world", "plugins/a.jar", "top-link"}, CompressOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,4 +318,62 @@ func FuzzExtract(f *testing.F) {
 			t.Fatalf("wrote next to the directory: %v", entries)
 		}
 	})
+}
+
+// Every format Compress writes, named or not, extracts back to what went
+// in, links included.
+func TestCompressFormats(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	e.write("cfg/a.yml", "a: 1")
+	e.write("cfg/sub/b.txt", strings.Repeat("b", 10_000))
+	if err := os.Symlink("a.yml", filepath.Join(e.dir, "cfg/link")); err != nil {
+		t.Fatal(err)
+	}
+	for _, format := range Formats {
+		id, err := e.svc.Compress(ctx, srvID, "u", "/", []string{"cfg"}, CompressOptions{Format: format, Name: "my-" + strings.ReplaceAll(format, ".", "-")})
+		if err != nil {
+			t.Fatal(err)
+		}
+		j := e.wait(id)
+		if j.Status != jobs.Succeeded {
+			t.Fatalf("%s: %s %s", format, j.Status, j.Error)
+		}
+		var res ArchiveResult
+		_ = json.Unmarshal(j.Result, &res)
+		want := "my-" + strings.ReplaceAll(format, ".", "-") + "." + format
+		if res.Archive != want {
+			t.Fatalf("%s: archive %q, want %q", format, res.Archive, want)
+		}
+		out := "out-" + strings.ReplaceAll(format, ".", "-")
+		if err := e.svc.Mkdir(ctx, srvID, out); err != nil {
+			t.Fatal(err)
+		}
+		id, err = e.svc.Decompress(ctx, srvID, "u", res.Archive, out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if j := e.wait(id); j.Status != jobs.Succeeded {
+			t.Fatalf("%s: decompress: %s", format, j.Error)
+		}
+		if e.read(out+"/cfg/a.yml") != "a: 1" || len(e.read(out+"/cfg/sub/b.txt")) != 10_000 {
+			t.Errorf("%s: files didn't come back", format)
+		}
+		if target, err := os.Readlink(filepath.Join(e.dir, out, "cfg/link")); err != nil || target != "a.yml" {
+			t.Errorf("%s: link = %q, %v", format, target, err)
+		}
+	}
+	// The same name again gets a number.
+	id, _ := e.svc.Compress(ctx, srvID, "u", "/", []string{"cfg"}, CompressOptions{Format: FormatZip, Name: "my-zip"})
+	var res ArchiveResult
+	_ = json.Unmarshal(e.wait(id).Result, &res)
+	if res.Archive != "my-zip-2.zip" {
+		t.Errorf("a taken name: %q", res.Archive)
+	}
+	if _, err := e.svc.Compress(ctx, srvID, "u", "/", []string{"cfg"}, CompressOptions{Format: "rar"}); err == nil {
+		t.Error("an unknown format was accepted")
+	}
+	if _, err := e.svc.Compress(ctx, srvID, "u", "/", []string{"cfg"}, CompressOptions{Name: "../escape"}); err == nil {
+		t.Error("a name with a slash was accepted")
+	}
 }

@@ -45,8 +45,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { message } from "@/lib/errors";
-import { setFileSettings, useFileSettings } from "@/lib/file-settings";
+import { type ArchiveFormat, setFileSettings, useFileSettings } from "@/lib/file-settings";
 import {
   baseName,
   crumbs,
@@ -116,6 +117,7 @@ export function Files({
   const [shortcuts, setShortcuts] = useState(false);
   const [ask, setAsk] = useState<NameAsk>();
   const [confirmDelete, setConfirmDelete] = useState<string[]>();
+  const [compressing, setCompressing] = useState<string[]>();
   const dirty = useRef(false);
   const picker = useRef<HTMLInputElement>(null);
 
@@ -249,11 +251,7 @@ export function Files({
       done: (name) =>
         void act(() => api.run("files.rename", { dir: path, moves: [{ from: e.name, to: name }] })),
     });
-  const compress = (names: string[]) =>
-    void act(
-      () => api.run("files.compress", { dir: path, names }),
-      "Compressing. The archive appears here when it's done.",
-    );
+  const compress = (names: string[]) => setCompressing(names);
   const decompress = (e: Entry) =>
     void act(
       () => api.run("files.decompress", { path: join(path, e.name), dest: path }),
@@ -649,6 +647,20 @@ export function Files({
       </div>
 
       <ShortcutsDialog open={shortcuts} onOpenChange={setShortcuts} />
+      {compressing && (
+        <CompressDialog
+          names={compressing}
+          onClose={() => setCompressing(undefined)}
+          onCompress={(format, name) => {
+            const names = compressing;
+            setCompressing(undefined);
+            void act(
+              () => api.run("files.compress", { dir: path, names, format, name }),
+              `Compressing into ${name}.${format}. It appears here when it's done.`,
+            );
+          }}
+        />
+      )}
       {ask && <NameDialog ask={ask} onClose={() => setAsk(undefined)} />}
       <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(undefined)}>
         <DialogContent>
@@ -781,6 +793,103 @@ function NameDialog({ ask, onClose }: { ask: NameAsk; onClose: () => void }) {
             </Button>
             <Button type="submit" disabled={!ok}>
               {ask.action}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const archiveFormats: { value: ArchiveFormat; label: string; text: string }[] = [
+  { value: "zip", label: "ZIP", text: "Opens anywhere: Windows, macOS, and Linux." },
+  { value: "tar.gz", label: "TAR.GZ", text: "The Linux standard. Smaller than ZIP." },
+  { value: "tar.zst", label: "TAR.ZST", text: "Smallest and fastest. Needs newer tools to open." },
+  { value: "tar", label: "TAR", text: "No compression: fastest, and the biggest." },
+];
+
+// CompressDialog asks what to call the archive and which format it's in.
+function CompressDialog({
+  names,
+  onClose,
+  onCompress,
+}: {
+  names: string[];
+  onClose: () => void;
+  onCompress: (format: ArchiveFormat, name: string) => void;
+}) {
+  const settings = useFileSettings();
+  const [format, setFormat] = useState<ArchiveFormat>(settings.archiveFormat);
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const [name, setName] = useState(
+    names.length === 1 && names[0]
+      ? names[0].replace(/\.[^.]*$/, "")
+      : `archive-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`,
+  );
+  const trimmed = name.trim();
+  const ok = validName(trimmed);
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!ok) return;
+    setFileSettings({ archiveFormat: format });
+    onCompress(format, trimmed);
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle>
+              Compress {names.length === 1 ? `"${names[0]}"` : `${names.length} items`}
+            </DialogTitle>
+            <DialogDescription>The archive is made in this folder.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="archive-name">Name</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="archive-name"
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <span className="shrink-0 font-mono text-sm text-muted-foreground">.{format}</span>
+            </div>
+            {trimmed && !ok && (
+              <p className="text-xs text-destructive">
+                A name can't contain a slash, or be . or ..
+              </p>
+            )}
+          </div>
+          <fieldset className="grid gap-2">
+            <legend className="mb-2 text-sm font-medium">Format</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {archiveFormats.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  aria-pressed={format === f.value}
+                  onClick={() => setFormat(f.value)}
+                  className={cn(
+                    "flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50",
+                    format === f.value && "border-primary bg-muted",
+                  )}
+                >
+                  <span className="font-mono text-sm font-medium">{f.label}</span>
+                  <span className="text-xs text-muted-foreground">{f.text}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!ok}>
+              <FileArchive /> Compress
             </Button>
           </DialogFooter>
         </form>
