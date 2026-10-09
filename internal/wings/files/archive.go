@@ -101,7 +101,7 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 		base = "archive-" + now.UTC().Format("2006-01-02T150405Z")
 	}
 	if strings.ContainsAny(base, "/\\\x00") || base == "." || base == ".." || len(base) > 200 {
-		return res, fmt.Errorf("an archive's name can't contain a slash, or be . or ..")
+		return res, errors.New(`an archive's name can't contain a slash, or be "." or ".."`)
 	}
 	if fi, err := f.root.Stat(dir); err != nil {
 		return res, err

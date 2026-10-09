@@ -359,7 +359,7 @@ func (s *Service) Compress(ctx context.Context, id, user, dir string, names []st
 		return "", fmt.Errorf("unknown archive format %q (one of %s)", opts.Format, strings.Join(Formats, ", "))
 	}
 	if n := opts.Name; strings.ContainsAny(n, "/\\\x00") || n == "." || n == ".." || len(n) > 200 {
-		return "", errors.New("an archive's name can't contain a slash, or be . or ..")
+		return "", errors.New(`an archive's name can't contain a slash, or be "." or ".."`)
 	}
 	if err := s.o.Servers.CheckFiles(ctx, id, true); err != nil {
 		return "", err
