@@ -1,18 +1,10 @@
 -- +goose Up
--- SFTP takes only temporary passwords (docs/DECISIONS.md #223): SSH keys and
--- the per-account SFTP username they logged in with are gone.
-DROP TABLE ssh_keys;
-ALTER TABLE users DROP COLUMN sftp_username;
+-- Nothing, on purpose. SSH keys are gone (docs/DECISIONS.md #223), but
+-- v0.1.0 reads users.sftp_username on every session lookup, and migrations
+-- run while the old version is still serving (docs/DEPLOY.md). The table
+-- and the column are dropped in the release after v0.2.0, once nothing
+-- running uses them (ROADMAP: "Next up").
+SELECT 1;
 
 -- +goose Down
-ALTER TABLE users ADD COLUMN sftp_username text UNIQUE CHECK (sftp_username ~ '^[a-z0-9]{3,32}$');
-CREATE TABLE ssh_keys (
-    id           uuid        PRIMARY KEY DEFAULT uuidv7(),
-    user_id      uuid        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    name         text        NOT NULL,
-    public_key   bytea       NOT NULL,
-    fingerprint  text        NOT NULL,
-    created_at   timestamptz NOT NULL DEFAULT now(),
-    last_used_at timestamptz,
-    UNIQUE (user_id, fingerprint)
-);
+SELECT 1;

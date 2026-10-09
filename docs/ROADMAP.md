@@ -25,7 +25,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 3. **Start the week-long soak** (`task soak:start`); it runs on its own while the rest happens.
 4. **Business track items that take weeks**: the Public Suffix List request for `raptornodes.net` (not on the list yet, and user subdomains wait for it), the business entity, `security@raptorpanel.net`.
 5. **Phase 4, in the order the exit test needs it**: create-server wizard → console → files → node pages (live enrollment, health, remove) → backups → schedules → users → egg catalog → connection test → subdomains → audit log view.
-6. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the docs site.
+6. **In the release after v0.2.0:** a migration that drops `ssh_keys` and `users.sftp_username` (unused since #121; kept through v0.2.0 because v0.1.0 reads the column while migrations run), and the generated code that still lists it.
+7. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the docs site.
 
 Found while checking production (Oct 8):
 - `raptorpanel.net` itself answers nothing (no record), so `raptornodes.net`'s redirect lands on a dead page. The landing page is still to do.
