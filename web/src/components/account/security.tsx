@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { renderSVG } from "uqr";
-
+import { ActivityCard, type TimelineItem, type TimelinePage } from "@/components/activity-timeline";
 import { ProviderIcon } from "@/components/provider-icons";
 import { useReauth } from "@/components/reauth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,11 +35,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { AuditEvent } from "@/gen/raptor/panel/v1/audit_pb";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { keyFingerprint } from "@/lib/canonical";
 import { message } from "@/lib/errors";
 import { authClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 import { createPasskey, passkeyCancelled, passkeysSupported } from "@/lib/webauthn";
 
 export const providerNames: Record<string, string> = {
@@ -454,7 +454,7 @@ export function LinkedAccounts() {
 }
 
 // describeDevice turns a user agent into "Chrome on macOS".
-function describeDevice(ua: string): string {
+export function describeDevice(ua: string): string {
   if (!ua) return "Unknown device";
   const browser = /Edg\//.test(ua)
     ? "Edge"
@@ -702,129 +702,37 @@ function describeEvent(action: string, meta: Meta): { text: string; icon: Lucide
   }
 }
 
-function dayLabel(d: Date): string {
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  if (d.toDateString() === today.toDateString()) return "Today";
-  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: d.getFullYear() === today.getFullYear() ? undefined : "numeric",
-  });
+async function accountPage(token: string): Promise<TimelinePage<AuditEvent>> {
+  const res = await authClient.listActivity({ pageToken: token });
+  return { events: res.events, next: res.nextPageToken };
+}
+
+function accountItem(e: AuditEvent): TimelineItem {
+  const meta = JSON.parse(e.metadataJson || "{}") as Meta;
+  const { text, icon } = describeEvent(e.action, meta);
+  return {
+    id: e.id,
+    at: e.at ? timestampDate(e.at) : undefined,
+    icon,
+    text,
+    failed: e.action.endsWith(".failed"),
+    badge: meta.new_device === true && (
+      <Badge variant="outline" className="ml-2">
+        New device
+      </Badge>
+    ),
+    details: [e.userAgent && describeDevice(e.userAgent), e.ip],
+  };
 }
 
 export function ActivityLog() {
-  const [pages, setPages] = useState<string[]>([""]);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Activity</CardTitle>
-        <CardDescription>
-          Sign-ins, failed attempts, and changes to how your account is secured.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        {pages.map((token, i) => (
-          <ActivityPage
-            key={token || "first"}
-            token={token}
-            last={i === pages.length - 1}
-            onMore={(t) => setPages([...pages, t])}
-          />
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ActivityPage({
-  token,
-  last,
-  onMore,
-}: {
-  token: string;
-  last: boolean;
-  onMore: (t: string) => void;
-}) {
-  const page = useQuery(AuthService.method.listActivity, { pageToken: token });
-  const events = page.data?.events ?? [];
-  if (page.data && events.length === 0 && !token) {
-    return <p className="text-sm text-muted-foreground">Nothing yet.</p>;
-  }
-  // Grouped by day, newest first.
-  const days: { label: string; events: typeof events }[] = [];
-  for (const e of events) {
-    const label = e.at ? dayLabel(timestampDate(e.at)) : "";
-    const lastDay = days[days.length - 1];
-    if (lastDay && lastDay.label === label) lastDay.events.push(e);
-    else days.push({ label, events: [e] });
-  }
-  return (
-    <>
-      {days.map((day) => (
-        <section key={`${token}-${day.label}`} className="flex flex-col gap-3">
-          <h3 className="text-xs font-medium text-muted-foreground">{day.label}</h3>
-          <ol>
-            {day.events.map((e, i) => {
-              const meta = JSON.parse(e.metadataJson || "{}") as Meta;
-              const { text, icon: Icon } = describeEvent(e.action, meta);
-              const failed = e.action.endsWith(".failed");
-              const at = e.at ? timestampDate(e.at) : undefined;
-              return (
-                <li key={e.id} className="relative flex gap-3 pb-4 last:pb-0">
-                  {i < day.events.length - 1 && (
-                    <span
-                      aria-hidden
-                      className="absolute top-8 -bottom-0 left-4 w-px -translate-x-1/2 bg-border"
-                    />
-                  )}
-                  <span
-                    className={cn(
-                      "relative flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card",
-                      failed ? "text-destructive" : "text-muted-foreground",
-                    )}
-                  >
-                    <Icon className="size-4" />
-                  </span>
-                  <div className="min-w-0 flex-1 pt-1">
-                    <p className={cn("text-sm", failed && "text-destructive")}>
-                      {text}
-                      {meta.new_device === true && (
-                        <Badge variant="outline" className="ml-2">
-                          New device
-                        </Badge>
-                      )}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      <time title={at?.toLocaleString()}>
-                        {at?.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-                      </time>
-                      {[e.userAgent && describeDevice(e.userAgent), e.ip]
-                        .filter(Boolean)
-                        .map((x) => ` · ${x}`)
-                        .join("")}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-      ))}
-      {last && page.data?.nextPageToken && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="self-start"
-          onClick={() => onMore(page.data.nextPageToken)}
-        >
-          Show more
-        </Button>
-      )}
-    </>
+    <ActivityCard
+      description="Sign-ins, failed attempts, and changes to how your account is secured."
+      queryKey={["account-activity"]}
+      fetchPage={accountPage}
+      toItem={accountItem}
+    />
   );
 }
 

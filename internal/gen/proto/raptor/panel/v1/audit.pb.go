@@ -39,7 +39,10 @@ type AuditEvent struct {
 	Ip        string `protobuf:"bytes,7,opt,name=ip,proto3" json:"ip,omitempty"`
 	UserAgent string `protobuf:"bytes,8,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
 	// Details, as a JSON object.
-	MetadataJson  string `protobuf:"bytes,9,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	MetadataJson string `protobuf:"bytes,9,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	// Who it was about, for org events about a member (their role, access,
+	// removal), if they still have an account.
+	SubjectEmail  string `protobuf:"bytes,10,opt,name=subject_email,json=subjectEmail,proto3" json:"subject_email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -137,11 +140,18 @@ func (x *AuditEvent) GetMetadataJson() string {
 	return ""
 }
 
+func (x *AuditEvent) GetSubjectEmail() string {
+	if x != nil {
+		return x.SubjectEmail
+	}
+	return ""
+}
+
 var File_raptor_panel_v1_audit_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_audit_proto_rawDesc = "" +
 	"\n" +
-	"\x1braptor/panel/v1/audit.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\x02\n" +
+	"\x1braptor/panel/v1/audit.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa8\x02\n" +
 	"\n" +
 	"AuditEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12*\n" +
@@ -154,7 +164,9 @@ const file_raptor_panel_v1_audit_proto_rawDesc = "" +
 	"\x02ip\x18\a \x01(\tR\x02ip\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\b \x01(\tR\tuserAgent\x12#\n" +
-	"\rmetadata_json\x18\t \x01(\tR\fmetadataJsonB\xca\x01\n" +
+	"\rmetadata_json\x18\t \x01(\tR\fmetadataJson\x12#\n" +
+	"\rsubject_email\x18\n" +
+	" \x01(\tR\fsubjectEmailB\xca\x01\n" +
 	"\x13com.raptor.panel.v1B\n" +
 	"AuditProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 

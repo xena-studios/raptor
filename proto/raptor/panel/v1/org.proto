@@ -277,7 +277,8 @@ message ListAuditLogRequest {
   string org_id = 1;
   // next_page_token from the previous page.
   string page_token = 2;
-  // With both set, only the commands sent to that server.
+  // With both set, only what was done to that server: commands, access
+  // changes, and SFTP.
   string node_id = 3;
   string server_id = 4;
 }

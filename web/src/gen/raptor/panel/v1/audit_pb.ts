@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/audit.proto.
  */
 export const file_raptor_panel_v1_audit: GenFile = /*@__PURE__*/
-  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYXVkaXQucHJvdG8SD3JhcHRvci5wYW5lbC52MSK7AQoKQXVkaXRFdmVudBIKCgJpZBgBIAEoCRImCgJhdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGYWN0aW9uGAMgASgJEg0KBWFjdG9yGAQgASgJEhMKC2FjdG9yX2VtYWlsGAUgASgJEg4KBnRhcmdldBgGIAEoCRIKCgJpcBgHIAEoCRISCgp1c2VyX2FnZW50GAggASgJEhUKDW1ldGFkYXRhX2pzb24YCSABKAlCygEKE2NvbS5yYXB0b3IucGFuZWwudjFCCkF1ZGl0UHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYXVkaXQucHJvdG8SD3JhcHRvci5wYW5lbC52MSLSAQoKQXVkaXRFdmVudBIKCgJpZBgBIAEoCRImCgJhdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGYWN0aW9uGAMgASgJEg0KBWFjdG9yGAQgASgJEhMKC2FjdG9yX2VtYWlsGAUgASgJEg4KBnRhcmdldBgGIAEoCRIKCgJpcBgHIAEoCRISCgp1c2VyX2FnZW50GAggASgJEhUKDW1ldGFkYXRhX2pzb24YCSABKAkSFQoNc3ViamVjdF9lbWFpbBgKIAEoCULKAQoTY29tLnJhcHRvci5wYW5lbC52MUIKQXVkaXRQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * An entry in the audit log.
@@ -75,6 +75,14 @@ export type AuditEvent = Message<"raptor.panel.v1.AuditEvent"> & {
    * @generated from field: string metadata_json = 9;
    */
   metadataJson: string;
+
+  /**
+   * Who it was about, for org events about a member (their role, access,
+   * removal), if they still have an account.
+   *
+   * @generated from field: string subject_email = 10;
+   */
+  subjectEmail: string;
 };
 
 /**

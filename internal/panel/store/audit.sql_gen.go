@@ -45,8 +45,9 @@ func (q *Queries) AddAuditEvent(ctx context.Context, arg AddAuditEventParams) er
 }
 
 const orgAuditLog = `-- name: OrgAuditLog :many
-SELECT a.id, a.org_id, a.user_id, a.actor, a.actor_id, a.action, a.target, a.ip, a.user_agent, a.metadata, a.at, u.email AS actor_email FROM audit_log a
+SELECT a.id, a.org_id, a.user_id, a.actor, a.actor_id, a.action, a.target, a.ip, a.user_agent, a.metadata, a.at, u.email AS actor_email, s.email AS subject_email FROM audit_log a
 LEFT JOIN users u ON u.id = a.actor_id
+LEFT JOIN users s ON s.id = a.user_id
 WHERE a.org_id = $1 AND ($2::uuid IS NULL OR a.id < $2::uuid)
 ORDER BY a.id DESC
 LIMIT $3
@@ -59,18 +60,19 @@ type OrgAuditLogParams struct {
 }
 
 type OrgAuditLogRow struct {
-	ID         pgtype.UUID
-	OrgID      pgtype.UUID
-	UserID     pgtype.UUID
-	Actor      string
-	ActorID    pgtype.UUID
-	Action     string
-	Target     string
-	Ip         *netip.Addr
-	UserAgent  string
-	Metadata   []byte
-	At         pgtype.Timestamptz
-	ActorEmail pgtype.Text
+	ID           pgtype.UUID
+	OrgID        pgtype.UUID
+	UserID       pgtype.UUID
+	Actor        string
+	ActorID      pgtype.UUID
+	Action       string
+	Target       string
+	Ip           *netip.Addr
+	UserAgent    string
+	Metadata     []byte
+	At           pgtype.Timestamptz
+	ActorEmail   pgtype.Text
+	SubjectEmail pgtype.Text
 }
 
 func (q *Queries) OrgAuditLog(ctx context.Context, arg OrgAuditLogParams) ([]OrgAuditLogRow, error) {
@@ -95,6 +97,7 @@ func (q *Queries) OrgAuditLog(ctx context.Context, arg OrgAuditLogParams) ([]Org
 			&i.Metadata,
 			&i.At,
 			&i.ActorEmail,
+			&i.SubjectEmail,
 		); err != nil {
 			return nil, err
 		}
@@ -116,9 +119,10 @@ func (q *Queries) PruneAuditLog(ctx context.Context) error {
 }
 
 const serverAuditLog = `-- name: ServerAuditLog :many
-SELECT a.id, a.org_id, a.user_id, a.actor, a.actor_id, a.action, a.target, a.ip, a.user_agent, a.metadata, a.at, u.email AS actor_email FROM audit_log a
+SELECT a.id, a.org_id, a.user_id, a.actor, a.actor_id, a.action, a.target, a.ip, a.user_agent, a.metadata, a.at, u.email AS actor_email, s.email AS subject_email FROM audit_log a
 LEFT JOIN users u ON u.id = a.actor_id
-WHERE a.org_id = $1 AND a.action = 'command' AND a.target = $2::text
+LEFT JOIN users s ON s.id = a.user_id
+WHERE a.org_id = $1 AND a.target = $2::text
   AND a.metadata->>'node' = $3::text
   AND ($4::uuid IS NULL OR a.id < $4::uuid)
 ORDER BY a.id DESC
@@ -134,21 +138,22 @@ type ServerAuditLogParams struct {
 }
 
 type ServerAuditLogRow struct {
-	ID         pgtype.UUID
-	OrgID      pgtype.UUID
-	UserID     pgtype.UUID
-	Actor      string
-	ActorID    pgtype.UUID
-	Action     string
-	Target     string
-	Ip         *netip.Addr
-	UserAgent  string
-	Metadata   []byte
-	At         pgtype.Timestamptz
-	ActorEmail pgtype.Text
+	ID           pgtype.UUID
+	OrgID        pgtype.UUID
+	UserID       pgtype.UUID
+	Actor        string
+	ActorID      pgtype.UUID
+	Action       string
+	Target       string
+	Ip           *netip.Addr
+	UserAgent    string
+	Metadata     []byte
+	At           pgtype.Timestamptz
+	ActorEmail   pgtype.Text
+	SubjectEmail pgtype.Text
 }
 
-// The commands sent to one server, newest first.
+// What was done to one server (commands, access, SFTP), newest first.
 func (q *Queries) ServerAuditLog(ctx context.Context, arg ServerAuditLogParams) ([]ServerAuditLogRow, error) {
 	rows, err := q.db.Query(ctx, serverAuditLog,
 		arg.OrgID,
@@ -177,6 +182,7 @@ func (q *Queries) ServerAuditLog(ctx context.Context, arg ServerAuditLogParams) 
 			&i.Metadata,
 			&i.At,
 			&i.ActorEmail,
+			&i.SubjectEmail,
 		); err != nil {
 			return nil, err
 		}
