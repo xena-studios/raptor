@@ -215,3 +215,16 @@ func (m *Manager) ContainerStarted(ctx context.Context, id string) (time.Time, b
 	}
 	return st.StartedAt, st.Running, nil
 }
+
+// ContainerPid returns the server's running container's main process (0 if
+// it isn't running), for reading its network namespace.
+func (m *Manager) ContainerPid(ctx context.Context, id string) (int, error) {
+	if _, err := m.instance(id); err != nil {
+		return 0, err
+	}
+	st, err := m.o.Runtime.Inspect(ctx, containerName(id))
+	if err != nil || !st.Running {
+		return 0, nil //nolint:nilerr // no container is "not running"
+	}
+	return st.Pid, nil
+}

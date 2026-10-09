@@ -33,6 +33,7 @@ const View = "view"
 
 var actions = map[string]string{
 	"server.metrics": View,
+	"server.ports":   View,
 	"server.console": ConsoleRead,
 	"server.command": ConsoleWrite,
 
@@ -137,7 +138,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.activity", "server.metrics", "node.health", "node.doctor":
+		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor":
 		return true
 	}
 	return false

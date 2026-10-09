@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -51,6 +52,10 @@ type Service struct {
 	SFTPGate interface {
 		Sync(ctx context.Context, nodeID string) error
 	}
+	// Dial and LookupAddr are for the connection test's probes (the
+	// network's own by default; tests replace them).
+	Dial       func(ctx context.Context, network, addr string) (net.Conn, error)
+	LookupAddr func(ctx context.Context, addr string) ([]string, error)
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)

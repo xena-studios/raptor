@@ -279,6 +279,7 @@ func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
 	}()
 	r.svc.SetMetrics(r.metrics)
 	actions.RegisterMetrics(r.commands, r.metrics, mgr)
+	actions.RegisterPorts(r.commands, mgr)
 	path := r.cfg.Path
 	if path == "" {
 		path = config.DefaultPath

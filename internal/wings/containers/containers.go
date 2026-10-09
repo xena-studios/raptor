@@ -92,6 +92,9 @@ type State struct {
 	ExitCode  int64
 	OOMKilled bool
 	StartedAt time.Time
+	// Pid is the container's main process on the host (0 if it isn't
+	// running), for reading its network namespace.
+	Pid int
 }
 
 // Stats is one sample of a container's resource usage.

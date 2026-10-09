@@ -97,6 +97,9 @@ const (
 	// OrgServiceRevokeSFTPAccessProcedure is the fully-qualified name of the OrgService's
 	// RevokeSFTPAccess RPC.
 	OrgServiceRevokeSFTPAccessProcedure = "/raptor.panel.v1.OrgService/RevokeSFTPAccess"
+	// OrgServiceTestConnectionProcedure is the fully-qualified name of the OrgService's TestConnection
+	// RPC.
+	OrgServiceTestConnectionProcedure = "/raptor.panel.v1.OrgService/TestConnection"
 	// OrgServiceListBackupsProcedure is the fully-qualified name of the OrgService's ListBackups RPC.
 	OrgServiceListBackupsProcedure = "/raptor.panel.v1.OrgService/ListBackups"
 )
@@ -189,6 +192,11 @@ type OrgServiceClient interface {
 	// server, closing the node's SFTP port if it was the last. The web app
 	// then sends sftp.disconnect to end its sessions.
 	RevokeSFTPAccess(context.Context, *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error)
+	// TestConnection checks from outside whether players can reach a server:
+	// the Panel connects to each of its ports on the node's public address.
+	// With server.ports (what the game listens on, from the node), the web
+	// app tells why when it can't. Any access to the server; rate limited.
+	TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error)
 	// ListBackups lists a server's backups as the mirror has them, newest
 	// first. Needs the backups permission.
 	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
@@ -372,6 +380,12 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("RevokeSFTPAccess")),
 			connect.WithClientOptions(opts...),
 		),
+		testConnection: connect.NewClient[v1.TestConnectionRequest, v1.TestConnectionResponse](
+			httpClient,
+			baseURL+OrgServiceTestConnectionProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("TestConnection")),
+			connect.WithClientOptions(opts...),
+		),
 		listBackups: connect.NewClient[v1.ListBackupsRequest, v1.ListBackupsResponse](
 			httpClient,
 			baseURL+OrgServiceListBackupsProcedure,
@@ -410,6 +424,7 @@ type orgServiceClient struct {
 	getSFTPAccess      *connect.Client[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse]
 	createSFTPAccess   *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
 	revokeSFTPAccess   *connect.Client[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse]
+	testConnection     *connect.Client[v1.TestConnectionRequest, v1.TestConnectionResponse]
 	listBackups        *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
 }
 
@@ -647,6 +662,15 @@ func (c *orgServiceClient) RevokeSFTPAccess(ctx context.Context, req *v1.RevokeS
 	return nil, err
 }
 
+// TestConnection calls raptor.panel.v1.OrgService.TestConnection.
+func (c *orgServiceClient) TestConnection(ctx context.Context, req *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error) {
+	response, err := c.testConnection.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListBackups calls raptor.panel.v1.OrgService.ListBackups.
 func (c *orgServiceClient) ListBackups(ctx context.Context, req *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {
 	response, err := c.listBackups.CallUnary(ctx, connect.NewRequest(req))
@@ -744,6 +768,11 @@ type OrgServiceHandler interface {
 	// server, closing the node's SFTP port if it was the last. The web app
 	// then sends sftp.disconnect to end its sessions.
 	RevokeSFTPAccess(context.Context, *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error)
+	// TestConnection checks from outside whether players can reach a server:
+	// the Panel connects to each of its ports on the node's public address.
+	// With server.ports (what the game listens on, from the node), the web
+	// app tells why when it can't. Any access to the server; rate limited.
+	TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error)
 	// ListBackups lists a server's backups as the mirror has them, newest
 	// first. Needs the backups permission.
 	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
@@ -923,6 +952,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("RevokeSFTPAccess")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceTestConnectionHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceTestConnectionProcedure,
+		svc.TestConnection,
+		connect.WithSchema(orgServiceMethods.ByName("TestConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceListBackupsHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceListBackupsProcedure,
 		svc.ListBackups,
@@ -984,6 +1019,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceCreateSFTPAccessHandler.ServeHTTP(w, r)
 		case OrgServiceRevokeSFTPAccessProcedure:
 			orgServiceRevokeSFTPAccessHandler.ServeHTTP(w, r)
+		case OrgServiceTestConnectionProcedure:
+			orgServiceTestConnectionHandler.ServeHTTP(w, r)
 		case OrgServiceListBackupsProcedure:
 			orgServiceListBackupsHandler.ServeHTTP(w, r)
 		default:
@@ -1097,6 +1134,10 @@ func (UnimplementedOrgServiceHandler) CreateSFTPAccess(context.Context, *v1.Crea
 
 func (UnimplementedOrgServiceHandler) RevokeSFTPAccess(context.Context, *v1.RevokeSFTPAccessRequest) (*v1.RevokeSFTPAccessResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.RevokeSFTPAccess is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.TestConnection is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {

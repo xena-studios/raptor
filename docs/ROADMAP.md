@@ -251,7 +251,7 @@ Found while checking production (Oct 8):
 - [ ] **Backups:** list, create, restore, destinations, retention, key mode (the Backups tab done: list, back up now (the new backup's row appears at once, queued then backing up with its progress; restores and pulls show theirs in their backup's row, and a note when a pull is done, with a link to its folder), restore the whole server (signed) or pick files and folders from a backup into `.restore/<date>`, lock, delete, the dangerous ones signed; left: destinations, retention, key mode)
 - [ ] **Users:** sub-users, per-server permissions
 - [ ] **Egg catalog:** browse certified/community, import from URL with image + script review
-- [ ] **Connection test** with provider guides
+- [x] **Connection test** with provider guides (on the Network tab: the Panel probes each port from outside while the node says what the game listens on inside, into one cause per port, with a guide for the provider guessed from reverse DNS; left for later: running it after a server's first start)
 - [ ] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link (the domain is on the Public Suffix List first)
 - [ ] **Audit log** view
 - [ ] Performance: route code splitting, lazy xterm and editor (xterm and the editor load only when shown, each in its own chunk)
