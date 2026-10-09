@@ -63,6 +63,9 @@ services:
 
   panel-a:
     <<: *panel
+    # A fixed hostname: the Panel's metrics are labelled with it, so each
+    # instance stays one series across deploys (SERVER_NAME: .env).
+    hostname: ${SERVER_NAME:-raptor}-panel-a
     environment:
       <<: *panel-env
       # Each instance's own path through Caddy (Caddyfile), for the
@@ -70,6 +73,7 @@ services:
       PANEL_INSTANCE_ROUTE: /i/panel-a
   panel-b:
     <<: *panel
+    hostname: ${SERVER_NAME:-raptor}-panel-b
     environment:
       <<: *panel-env
       PANEL_INSTANCE_ROUTE: /i/panel-b
