@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"maps"
 	"slices"
@@ -130,6 +131,7 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 		fetch := map[string]bool{}
 		// The node's SFTP as of its last node.sftp event in the batch.
 		var sftp *sftpState
+		var runs []*nodev1.Event
 		for _, e := range evs {
 			sid := e.GetServerId()
 			if sid == "" {
@@ -150,6 +152,10 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 					states[sid] = d.State
 				}
 			case "server.console.command":
+			case "schedule.run.queued", "schedule.run.skipped", "schedule.run.finished",
+				"schedule.deleted", "server.deleted":
+				runs = append(runs, e)
+				fetch[sid] = true
 			default:
 				fetch[sid] = true
 			}
@@ -174,6 +180,11 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 					return err
 				}
 			}
+			for _, e := range runs {
+				if err := applyRun(ctx, q, node, e); err != nil {
+					return err
+				}
+			}
 			// Fetched after the events, so newer than their states.
 			if servers != nil {
 				if err := applyServers(ctx, q, node, servers); err != nil {
@@ -190,6 +201,79 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 			return nil
 		}
 	}
+}
+
+// keepRuns is how many runs of each schedule the Panel keeps.
+const keepRuns = 100
+
+// runEvent is a schedule.run.* event's data.
+type runEvent struct {
+	ScheduleID   string          `json:"schedule_id"`
+	JobID        string          `json:"job_id"`
+	Reason       string          `json:"reason"`
+	ScheduledFor int64           `json:"scheduled_for"`
+	OK           bool            `json:"ok"`
+	Steps        json.RawMessage `json:"steps"`
+	Error        string          `json:"error"`
+}
+
+// applyRun records a schedule's run from its events, and forgets a deleted
+// schedule's or server's runs.
+func applyRun(ctx context.Context, q *store.Queries, node pgtype.UUID, e *nodev1.Event) error {
+	if e.GetType() == "server.deleted" {
+		return q.DeleteServerScheduleRuns(ctx, store.DeleteServerScheduleRunsParams{NodeID: node, ServerID: e.GetServerId()})
+	}
+	// Unreadable data has nothing to record; not worth stopping the mirror for.
+	var d runEvent
+	if err := json.Unmarshal(e.GetData(), &d); err != nil || d.ScheduleID == "" {
+		return nil //nolint:nilerr // see above
+	}
+	at := millis(e.GetAt())
+	switch e.GetType() {
+	case "schedule.deleted":
+		return q.DeleteScheduleRuns(ctx, store.DeleteScheduleRunsParams{NodeID: node, ScheduleID: d.ScheduleID})
+	case "schedule.run.queued":
+		if d.JobID == "" {
+			return nil
+		}
+		err := q.StartScheduleRun(ctx, store.StartScheduleRunParams{
+			NodeID: node, ServerID: e.GetServerId(), ScheduleID: d.ScheduleID, RunKey: d.JobID,
+			Status: "running", Reason: d.Reason, ScheduledFor: optMillis(d.ScheduledFor), StartedAt: at,
+		})
+		if err != nil {
+			return err
+		}
+	case "schedule.run.skipped":
+		// A skipped run's reason is why it was skipped.
+		err := q.StartScheduleRun(ctx, store.StartScheduleRunParams{
+			NodeID: node, ServerID: e.GetServerId(), ScheduleID: d.ScheduleID, RunKey: fmt.Sprintf("skip:%d", e.GetSeq()),
+			Status: "skipped", Reason: "scheduled", SkipReason: d.Reason, ScheduledFor: optMillis(d.ScheduledFor),
+			StartedAt: at, FinishedAt: at,
+		})
+		if err != nil {
+			return err
+		}
+	case "schedule.run.finished":
+		if d.JobID == "" {
+			return nil
+		}
+		status := "failed"
+		if d.OK {
+			status = "succeeded"
+		}
+		steps := []byte(d.Steps)
+		if !json.Valid(steps) || string(steps) == "null" {
+			steps = []byte("[]")
+		}
+		err := q.FinishScheduleRun(ctx, store.FinishScheduleRunParams{
+			NodeID: node, ServerID: e.GetServerId(), ScheduleID: d.ScheduleID, RunKey: d.JobID,
+			Status: status, Reason: d.Reason, Steps: steps, Error: d.Error, FinishedAt: at,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return q.TrimScheduleRuns(ctx, store.TrimScheduleRunsParams{NodeID: node, ScheduleID: d.ScheduleID, Keep: keepRuns})
 }
 
 // sftpState is a node.sftp event's data.

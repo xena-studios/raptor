@@ -249,6 +249,22 @@ type RolloutNode struct {
 	FinishedAt  pgtype.Timestamptz
 }
 
+type ScheduleRun struct {
+	ID           int64
+	NodeID       pgtype.UUID
+	ServerID     string
+	ScheduleID   string
+	RunKey       string
+	Status       string
+	Reason       string
+	SkipReason   string
+	Steps        []byte
+	Error        string
+	ScheduledFor pgtype.Timestamptz
+	StartedAt    pgtype.Timestamptz
+	FinishedAt   pgtype.Timestamptz
+}
+
 type ServerGrant struct {
 	OrgID       pgtype.UUID
 	UserID      pgtype.UUID

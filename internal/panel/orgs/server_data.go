@@ -2,8 +2,12 @@ package orgs
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"slices"
+	"strconv"
 
+	"connectrpc.com/connect"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -46,6 +50,55 @@ func (s *Service) ListSchedules(ctx context.Context, req *panelv1.ListSchedulesR
 				Id: r.ScheduleID, Name: r.Name, Enabled: r.Enabled, NextRun: ts(r.NextRun), LastRun: ts(r.LastRun),
 				DefinitionJson: string(r.Definition),
 			})
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// runsPage is how many runs ListScheduleRuns returns at a time.
+const runsPage = 25
+
+// ListScheduleRuns implements OrgService.
+func (s *Service) ListScheduleRuns(ctx context.Context, req *panelv1.ListScheduleRunsRequest) (*panelv1.ListScheduleRunsResponse, error) {
+	var before int64
+	if t := req.GetPageToken(); t != "" {
+		var err error
+		if before, err = strconv.ParseInt(t, 10, 64); err != nil || before <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("bad page token"))
+		}
+	}
+	out := &panelv1.ListScheduleRunsResponse{}
+	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		node, err := serverWith(ctx, q, sess, req.GetOrgId(), req.GetNodeId(), req.GetServerId(), "schedules")
+		if err != nil {
+			return err
+		}
+		rows, err := q.ListScheduleRuns(ctx, store.ListScheduleRunsParams{
+			NodeID: node, ServerID: req.GetServerId(), ScheduleID: req.GetScheduleId(), Before: before, Lim: runsPage,
+		})
+		for _, r := range rows {
+			var steps []*panelv1.ScheduleRunStep
+			var raw []struct {
+				Type  string `json:"type"`
+				OK    bool   `json:"ok"`
+				Error string `json:"error"`
+			}
+			_ = json.Unmarshal(r.Steps, &raw)
+			for _, st := range raw {
+				steps = append(steps, &panelv1.ScheduleRunStep{Type: st.Type, Ok: st.OK, Error: st.Error})
+			}
+			out.Runs = append(out.Runs, &panelv1.ScheduleRun{
+				Id: strconv.FormatInt(r.ID, 10), ScheduleId: r.ScheduleID, Status: r.Status, Reason: r.Reason,
+				SkipReason: r.SkipReason, Steps: steps, ScheduledFor: ts(r.ScheduledFor), StartedAt: ts(r.StartedAt),
+				FinishedAt: ts(r.FinishedAt),
+			})
+		}
+		if len(rows) == runsPage {
+			out.NextPageToken = strconv.FormatInt(rows[len(rows)-1].ID, 10)
 		}
 		return err
 	})
