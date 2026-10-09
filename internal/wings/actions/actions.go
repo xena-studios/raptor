@@ -569,9 +569,11 @@ type FilesParams struct {
 	Names    []string      `json:"names,omitempty"`
 	Moves    []files.Move  `json:"moves,omitempty"`
 	Changes  []files.Chmod `json:"changes,omitempty"`
-	Data     []byte        `json:"data,omitempty"` // files.write (base64 in JSON)
-	Dest     string        `json:"dest,omitempty"` // files.decompress
-	Size     int64         `json:"size,omitempty"` // files.upload
+	Data     []byte        `json:"data,omitempty"`   // files.write (base64 in JSON)
+	Dest     string        `json:"dest,omitempty"`   // files.decompress
+	Format   string        `json:"format,omitempty"` // files.compress: tar.gz (default), zip, tar.zst, or tar
+	Name     string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension
+	Size     int64         `json:"size,omitempty"`   // files.upload
 	UploadID string        `json:"upload_id,omitempty"`
 }
 
@@ -643,7 +645,7 @@ func RegisterFiles(x *command.Executor, s *files.Service) {
 		return nil, s.Chmod(ctx, e.ServerID, p.Dir, p.Changes)
 	}))
 	x.Register(FilesCompress, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
-		return jobResult(s.Compress(ctx, e.ServerID, e.UserID, p.Dir, p.Names))
+		return jobResult(s.Compress(ctx, e.ServerID, e.UserID, p.Dir, p.Names, files.CompressOptions{Format: p.Format, Name: p.Name}))
 	}))
 	x.Register(FilesDecompress, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return jobResult(s.Decompress(ctx, e.ServerID, e.UserID, p.Path, p.Dest))

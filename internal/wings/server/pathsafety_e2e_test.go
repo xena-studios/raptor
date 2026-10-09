@@ -279,7 +279,7 @@ func fileManagerAttack(t *testing.T, m *Manager, id, sentinelDir string) {
 		for _, fi := range entries {
 			names = append(names, fi.Name())
 		}
-		res, err := fsys.Compress(ctx, "/", names, -1, time.Now())
+		res, err := fsys.Compress(ctx, "/", names, -1, time.Now(), files.CompressOptions{})
 		if err != nil {
 			t.Errorf("compress: %v", err)
 			return

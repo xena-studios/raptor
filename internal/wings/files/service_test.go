@@ -240,7 +240,7 @@ func TestUnavailable(t *testing.T) {
 	checks["delete"] = e.svc.Delete(ctx, srvID, "/", []string{"a"})
 	_, checks["upload"] = e.svc.StartUpload(ctx, srvID, "u", "b", 1)
 	_, checks["download"] = e.svc.StartDownload(ctx, srvID, "a")
-	_, checks["compress"] = e.svc.Compress(ctx, srvID, "u", "/", []string{"a"})
+	_, checks["compress"] = e.svc.Compress(ctx, srvID, "u", "/", []string{"a"}, CompressOptions{})
 	for op, err := range checks {
 		if !errors.Is(err, errInstalling) {
 			t.Errorf("%s while installing: %v", op, err)

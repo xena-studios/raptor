@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,15 +60,48 @@ func (b *budget) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// Archive formats Compress can write.
+const (
+	FormatTarGz  = "tar.gz"
+	FormatZip    = "zip"
+	FormatTarZst = "tar.zst"
+	FormatTar    = "tar"
+)
+
+// Formats are the archive formats Compress can write.
+var Formats = []string{FormatTarGz, FormatZip, FormatTarZst, FormatTar}
+
+// CompressOptions say what archive to make.
+type CompressOptions struct {
+	Format string // one of Formats; "" is FormatTarGz
+	// Name is the archive's name without its extension; "" is
+	// archive-<UTC time>. A taken name gets -2, -3, ….
+	Name string
+}
+
 // Compress writes the named files and directories (relative to dir) into a
-// new .tar.gz in dir and returns its name. Denied files, and FIFOs, device
+// new archive in dir and returns its name. Denied files, and FIFOs, device
 // nodes, and sockets, are left out; symlinks are stored as links. The
 // archive may use at most space bytes (< 0: unlimited).
-func (f *FS) Compress(ctx context.Context, dir string, names []string, space int64, now time.Time) (ArchiveResult, error) {
+func (f *FS) Compress(ctx context.Context, dir string, names []string, space int64, now time.Time, opts CompressOptions) (ArchiveResult, error) {
 	dir = Rel(dir)
 	var res ArchiveResult
 	if len(names) == 0 {
 		return res, errors.New("nothing to compress")
+	}
+	format := opts.Format
+	if format == "" {
+		format = FormatTarGz
+	}
+	if !slices.Contains(Formats, format) {
+		return res, fmt.Errorf("unknown archive format %q (one of %s)", format, strings.Join(Formats, ", "))
+	}
+	base := opts.Name
+	if base == "" {
+		base = "archive-" + now.UTC().Format("2006-01-02T150405Z")
+	}
+	if strings.ContainsAny(base, "/\\\x00") || base == "." || base == ".." || len(base) > 200 {
+		return res, errors.New(`an archive's name can't contain a slash, or be "." or ".."`)
 	}
 	if fi, err := f.root.Stat(dir); err != nil {
 		return res, err
@@ -83,12 +117,11 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 		targets = append(targets, t)
 	}
 
-	base := "archive-" + now.UTC().Format("2006-01-02T150405Z")
 	out := ""
 	for i := 1; i <= 100; i++ {
-		name := base + ".tar.gz"
+		name := base + "." + format
 		if i > 1 {
-			name = fmt.Sprintf("%s-%d.tar.gz", base, i)
+			name = fmt.Sprintf("%s-%d.%s", base, i, format)
 		}
 		if _, err := f.root.Lstat(path.Join(dir, name)); errors.Is(err, fs.ErrNotExist) {
 			out = path.Join(dir, name)
@@ -111,11 +144,10 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 		}
 	}()
 	counted := &budget{w: file, left: space}
-	zw, err := gzip.NewWriterLevel(counted, gzip.DefaultCompression)
+	aw, err := newArchiveWriter(counted, format)
 	if err != nil {
 		return res, err
 	}
-	tw := tar.NewWriter(zw)
 	visit := func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -133,7 +165,7 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 			}
 			return nil
 		}
-		added, err := f.addToTar(tw, p, strings.TrimPrefix(strings.TrimPrefix(p, dir), "/"), d)
+		added, err := f.addEntry(aw, p, strings.TrimPrefix(strings.TrimPrefix(p, dir), "/"), d)
 		if err != nil {
 			return err
 		}
@@ -160,10 +192,7 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 			return res, err
 		}
 	}
-	if err := tw.Close(); err != nil {
-		return res, err
-	}
-	if err := zw.Close(); err != nil {
+	if err := aw.Close(); err != nil {
 		return res, err
 	}
 	if err := file.Sync(); err != nil {
@@ -177,8 +206,111 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 	return res, nil
 }
 
-// addToTar adds one entry. It reports false for what it leaves out.
-func (f *FS) addToTar(tw *tar.Writer, p, name string, d fs.DirEntry) (bool, error) {
+// archiveWriter writes one archive's entries.
+type archiveWriter interface {
+	dir(name string, fi fs.FileInfo) error
+	symlink(name, target string, fi fs.FileInfo) error
+	file(name string, fi fs.FileInfo, size int64, r io.Reader) error
+	Close() error
+}
+
+func newArchiveWriter(w io.Writer, format string) (archiveWriter, error) {
+	switch format {
+	case FormatZip:
+		return &zipArchive{zw: zip.NewWriter(w)}, nil
+	case FormatTar:
+		return &tarArchive{tw: tar.NewWriter(w)}, nil
+	case FormatTarZst:
+		zw, err := zstd.NewWriter(w, zstd.WithEncoderLevel(zstd.SpeedDefault))
+		if err != nil {
+			return nil, err
+		}
+		return &tarArchive{tw: tar.NewWriter(zw), comp: zw}, nil
+	default:
+		zw, err := gzip.NewWriterLevel(w, gzip.DefaultCompression)
+		if err != nil {
+			return nil, err
+		}
+		return &tarArchive{tw: tar.NewWriter(zw), comp: zw}, nil
+	}
+}
+
+type tarArchive struct {
+	tw   *tar.Writer
+	comp io.Closer // the compressor around the file, if any
+}
+
+func (a *tarArchive) header(name string, fi fs.FileInfo) *tar.Header {
+	return &tar.Header{Name: name, Mode: int64(fi.Mode().Perm()), ModTime: fi.ModTime(), Format: tar.FormatPAX}
+}
+
+func (a *tarArchive) dir(name string, fi fs.FileInfo) error {
+	h := a.header(name+"/", fi)
+	h.Typeflag = tar.TypeDir
+	return a.tw.WriteHeader(h)
+}
+
+func (a *tarArchive) symlink(name, target string, fi fs.FileInfo) error {
+	h := a.header(name, fi)
+	h.Typeflag, h.Linkname = tar.TypeSymlink, target
+	return a.tw.WriteHeader(h)
+}
+
+func (a *tarArchive) file(name string, fi fs.FileInfo, size int64, r io.Reader) error {
+	h := a.header(name, fi)
+	h.Typeflag, h.Size = tar.TypeReg, size
+	if err := a.tw.WriteHeader(h); err != nil {
+		return err
+	}
+	_, err := io.Copy(a.tw, r)
+	return err
+}
+
+func (a *tarArchive) Close() error {
+	err := a.tw.Close()
+	if a.comp != nil {
+		err = errors.Join(err, a.comp.Close())
+	}
+	return err
+}
+
+// zipArchive stores links as Info-ZIP does: the target as the content, with
+// the link mode, which the extractor reads back.
+type zipArchive struct{ zw *zip.Writer }
+
+func (a *zipArchive) header(name string, fi fs.FileInfo, mode fs.FileMode, method uint16) *zip.FileHeader {
+	h := &zip.FileHeader{Name: name, Method: method, Modified: fi.ModTime()}
+	h.SetMode(mode)
+	return h
+}
+
+func (a *zipArchive) dir(name string, fi fs.FileInfo) error {
+	_, err := a.zw.CreateHeader(a.header(name+"/", fi, fs.ModeDir|fi.Mode().Perm(), zip.Store))
+	return err
+}
+
+func (a *zipArchive) symlink(name, target string, fi fs.FileInfo) error {
+	w, err := a.zw.CreateHeader(a.header(name, fi, fs.ModeSymlink|0o777, zip.Store))
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(w, target)
+	return err
+}
+
+func (a *zipArchive) file(name string, fi fs.FileInfo, _ int64, r io.Reader) error {
+	w, err := a.zw.CreateHeader(a.header(name, fi, fi.Mode().Perm(), zip.Deflate))
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(w, r)
+	return err
+}
+
+func (a *zipArchive) Close() error { return a.zw.Close() }
+
+// addEntry adds one entry. It reports false for what it leaves out.
+func (f *FS) addEntry(aw archiveWriter, p, name string, d fs.DirEntry) (bool, error) {
 	if name == "" {
 		return false, nil
 	}
@@ -189,18 +321,15 @@ func (f *FS) addToTar(tw *tar.Writer, p, name string, d fs.DirEntry) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	h := &tar.Header{Name: name, Mode: int64(fi.Mode().Perm()), ModTime: fi.ModTime(), Format: tar.FormatPAX}
 	switch {
 	case fi.IsDir():
-		h.Typeflag, h.Name = tar.TypeDir, name+"/"
-		return true, tw.WriteHeader(h)
+		return true, aw.dir(name, fi)
 	case fi.Mode()&fs.ModeSymlink != 0:
 		target, err := f.root.Readlink(p)
 		if err != nil {
 			return false, err
 		}
-		h.Typeflag, h.Linkname = tar.TypeSymlink, target
-		return true, tw.WriteHeader(h)
+		return true, aw.symlink(name, target, fi)
 	case !fi.Mode().IsRegular():
 		return false, nil
 	}
@@ -216,15 +345,8 @@ func (f *FS) addToTar(tw *tar.Writer, p, name string, d fs.DirEntry) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	h.Typeflag, h.Size = tar.TypeReg, st.Size()
-	if err := tw.WriteHeader(h); err != nil {
-		return false, err
-	}
-	// A file that grows while it's read is cut at the size in the header.
-	if _, err := io.Copy(tw, io.LimitReader(src, st.Size())); err != nil {
-		return false, err
-	}
-	return true, nil
+	// A file that grows while it's read is cut at the size it had.
+	return true, aw.file(name, fi, st.Size(), io.LimitReader(src, st.Size()))
 }
 
 // Extract unpacks an archive into dest (default: the archive's directory).
