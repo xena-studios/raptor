@@ -11,6 +11,10 @@ TAG=${1:?usage: deploy.sh <version>}
 export PANEL_IMAGE=${PANEL_REPO:-ghcr.io/xena-studios/raptor-panel}:$TAG
 [ "${SKIP_SECRETS:-}" = 1 ] || ../scripts/secrets.sh
 
+# The server's name goes in the Panels' hostnames (compose.yaml), so their
+# metrics keep the same labels across deploys and differ between servers.
+grep -q '^SERVER_NAME=' .env 2>/dev/null || echo "SERVER_NAME=$(hostname -s)" >> .env
+
 [ "${SKIP_PULL:-}" = 1 ] || docker compose pull panel-a
 echo "deploy: migrating"
 docker compose run --rm --no-deps panel-a migrate

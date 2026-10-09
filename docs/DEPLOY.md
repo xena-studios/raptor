@@ -252,9 +252,10 @@ systemctl enable --now raptor-backup.timer raptor-restore-test.timer
 ### Server #2
 
 ```bash
-cat > /opt/raptor/deploy/replica/.env <<'EOF'
+cat > /opt/raptor/deploy/replica/.env <<EOF
 PRIVATE_IP=10.0.0.3
 PRIMARY_PRIVATE_IP=10.0.0.2
+SERVER_NAME=$(hostname -s)
 EOF
 echo ROLE=replica >> /etc/raptor/stack.env
 
@@ -434,7 +435,7 @@ The Panel sends metrics and a sample of traces (10% of requests) over OpenTeleme
    Put the endpoint and header in the vault item **`Grafana Cloud OTLP`** as `endpoint` and `headers`. `secrets.sh` picks them up on the next deploy.
 
    Optionally, its address: Grafana Cloud → your stack → Details → Edit (the instance settings) → Instance URL → custom domain `grafana.raptorpanel.net`, after the `grafana` CNAME in [DNS](#raptorpanelnet) exists. It must stay DNS only: Grafana proves the name to Let's Encrypt itself, which fails behind Cloudflare's proxy. If you ever add CAA records to `raptorpanel.net`, include `letsencrypt.org`. Only the sign-in address changes; the OTLP endpoint stays on `grafana.net`.
-2. Deploy. Both Panels report as job `raptor-panel`, each with its container's hostname as the instance. In your stack → Explore, `raptor_postgres_pool_connections` should show two series within a minute.
+2. Deploy. Both Panels report as job `raptor-panel`, each with its container's hostname as the instance: `<server>-panel-a` and `<server>-panel-b` (`SERVER_NAME` in `.env`, which `deploy.sh` sets to the machine's short hostname the first time), so an instance keeps its series across deploys. In your stack → Explore, `raptor_postgres_pool_connections` should show two series within a minute.
 3. **The dashboard:** Dashboards → New → Import → upload [`deploy/grafana/raptor-panel.json`](../deploy/grafana/raptor-panel.json), and pick the stack's Prometheus data source (`grafanacloud-<stack>-prom`). It shows the API (requests, server errors, latency by method), nodes (connected, reconnects, commands by outcome), email, the mirror, and Postgres (replica, WAL archive, WAL on disk, connections). Counters that haven't counted anything yet, such as commands before the first node links, show "No data" until they do.
 4. **Synthetic Monitoring** (in the same stack, free): an HTTP check on `https://api.raptorpanel.net/healthz` every minute from three locations, alerting when 2 of 3 fail. This is the "API is down" alarm, and it works when the Panel can't report anything.
 5. **healthchecks.io** (free): two checks, *Raptor backup* (daily, 2 h grace) and *Raptor restore test* (monthly, 1 day grace). Put their ping URLs in `/etc/raptor/stack.env` on whichever server runs the backups, as `BACKUP_PING_URL=…` and `RESTORE_TEST_PING_URL=…`. The scripts ping only when they succeed, so a failed run and a timer that never fired both alert.
