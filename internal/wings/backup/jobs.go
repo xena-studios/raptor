@@ -93,6 +93,7 @@ func (m *Manager) createJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	if err := m.o.Store.Write.SetBackupRunning(ctx, b.ID); err != nil {
 		return nil, err
 	}
+	a := m.begin(b.ServerID, Activity{JobID: j.ID, Kind: ActBackup, BackupID: b.ID, BackupKind: b.Kind})
 
 	var warning string
 	pre := m.running(b.ServerID) && len(src.Pre) > 0
@@ -104,7 +105,7 @@ func (m *Manager) createJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	_, _ = fmt.Fprintf(log, "backing up to %s\n", b.DestinationID)
 	out, err := m.run(ctx, b.DestinationID, request{Op: opSnapshot, Snapshot: &engine.SnapshotRequest{
 		ServerID: b.ServerID, BackupID: b.ID, Dir: src.Dir, Ignore: pol.Ignore,
-	}}, progressLog(log), log)
+	}}, m.track(a, log), log)
 	if pre {
 		m.post(b.ServerID, src, log)
 		cp.PreRan = false
@@ -115,16 +116,20 @@ func (m *Manager) createJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 			return nil, err // resumed on the next start
 		}
 		m.fail(ctx, b, err)
+		m.end(b.ServerID, a, err, 0, 0)
 		return nil, err
 	}
 	var res engine.SnapshotResult
 	if err := json.Unmarshal(out, &res); err != nil {
+		m.end(b.ServerID, a, err, 0, 0)
 		return nil, err
 	}
 	if res.Skipped > 0 {
 		warning = joinWarning(warning, fmt.Sprintf("%d files or directories changed while being read and were skipped", res.Skipped))
 	}
-	if err := m.finish(ctx, b, res, warning); err != nil {
+	err = m.finish(ctx, b, res, warning)
+	m.end(b.ServerID, a, err, res.Files, res.Size)
+	if err != nil {
 		return nil, err
 	}
 	_, _ = fmt.Fprintf(log, "done: %d files, %d bytes, %d bytes new\n", res.Files, res.Size, res.Uploaded)
@@ -370,6 +375,7 @@ func (m *Manager) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 		m.checkpoint(ctx, j, cp)
 	}
 	var res engine.RestoreResult
+	a := m.begin(j.ServerID, Activity{JobID: j.ID, Kind: ActRestore, BackupID: b.ID})
 	err = m.o.Servers.Restore(ctx, j.ServerID, cp.Start, func(ctx context.Context, dir string) error {
 		if !cp.Safety {
 			id, err := m.safetyBackup(ctx, j, &cp, b, dir, log)
@@ -382,7 +388,7 @@ func (m *Manager) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 		_, _ = fmt.Fprintf(log, "restoring backup %s\n", b.ID)
 		out, err := m.run(ctx, b.DestinationID, request{Op: opRestore, Restore: &engine.RestoreRequest{
 			SnapshotID: b.snapshotID, Dir: dir, UID: src.UID, GID: src.GID, MaxSize: src.DiskLimit,
-		}}, progressLog(log), log)
+		}}, m.track(a, log), log)
 		if err != nil {
 			return err
 		}
@@ -391,6 +397,7 @@ func (m *Manager) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 	if errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
 		return nil, err // resumed on the next start
 	}
+	m.end(j.ServerID, a, err, res.Files, res.Size)
 	data := map[string]any{"backup_id": b.ID, "job_id": j.ID, "user": p.User, "ok": err == nil}
 	if cp.SafetyID != "" {
 		data["safety_backup_id"] = cp.SafetyID

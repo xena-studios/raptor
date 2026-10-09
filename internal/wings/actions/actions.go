@@ -44,6 +44,9 @@ const (
 	BackupRestore           = "backup.restore"
 	BackupDelete            = "backup.delete"
 	BackupLock              = "backup.lock"
+	BackupBrowse            = "backup.browse"   // list a folder in a backup
+	BackupExtract           = "backup.extract"  // restore some files into .restore
+	BackupActivity          = "backup.activity" // running and recent backups and restores
 	BackupPolicy            = "backup.policy.update"
 	BackupDestinationSave   = "backup.destination.save" // create or update
 	BackupDestinationDelete = "backup.destination.delete"
@@ -329,6 +332,18 @@ type BackupParams struct {
 	Locked   bool   `json:"locked,omitempty"` // backup.create, backup.lock
 }
 
+// BrowseParams are backup.browse's params.
+type BrowseParams struct {
+	BackupID string `json:"backup_id"`
+	Path     string `json:"path,omitempty"`
+}
+
+// ExtractParams are backup.extract's params.
+type ExtractParams struct {
+	BackupID string   `json:"backup_id"`
+	Paths    []string `json:"paths"`
+}
+
 // DestinationParams are the params of the destination actions.
 type DestinationParams struct {
 	backup.Destination
@@ -392,6 +407,48 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 			return jobResult(id), nil
 		},
 	})
+	// Browsing and extracting change nothing the server has: extractions go
+	// into a new folder under .restore, with the egg's denylist applied.
+	x.Register(BackupBrowse, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p BrowseParams
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		if p.BackupID == "" {
+			return nil, errors.New("command needs a backup_id")
+		}
+		entries, err := b.Browse(ctx, e.ServerID, p.BackupID, p.Path)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"path": p.Path, "entries": entries}, nil
+	}})
+	x.Register(BackupExtract, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p ExtractParams
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		if p.BackupID == "" {
+			return nil, errors.New("command needs a backup_id")
+		}
+		job, folder, err := b.Extract(ctx, e.ServerID, p.BackupID, p.Paths, e.UserID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": job, "folder": folder}, nil
+	}})
+	x.Register(BackupActivity, command.Handler{Signed: command.Never, Run: func(_ context.Context, e command.Envelope) (any, error) {
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		return map[string]any{"activity": b.Activity(e.ServerID)}, nil
+	}})
 	x.Register(BackupDelete, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		p, err := backupParams(e, true)
 		if err != nil {

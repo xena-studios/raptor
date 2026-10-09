@@ -26,6 +26,9 @@ type BackupSource struct {
 	UID, GID  int   // the owner of restored files
 	// DesiredRunning: the server is meant to be running.
 	DesiredRunning bool
+	// Denylist is the egg's file_denylist: what browsing and extracting a
+	// backup leave out, as the file manager does.
+	Denylist []string
 }
 
 // BackupSource returns what backing up the server needs.
@@ -45,7 +48,7 @@ func (m *Manager) BackupSource(ctx context.Context, id string) (BackupSource, er
 	return BackupSource{
 		Dir: dir, Pre: h.Pre, Post: h.Post, WaitFor: h.WaitFor,
 		DiskLimit: srv.Limits.DiskMiB << 20, UID: m.o.UID, GID: m.o.GID,
-		DesiredRunning: srv.DesiredState == "running",
+		DesiredRunning: srv.DesiredState == "running", Denylist: srv.Egg().FileDenylist,
 	}, nil
 }
 
