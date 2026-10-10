@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"bufio"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -62,17 +61,12 @@ func (d *Destination) secrets() []*string {
 	switch {
 	case c.S3 != nil:
 		return []*string{&c.S3.SecretKey}
-	case c.B2 != nil:
-		return []*string{&c.B2.Key}
 	case c.Azure != nil:
 		return []*string{&c.Azure.StorageKey, &c.Azure.SASToken}
 	case c.SFTP != nil:
 		return []*string{&c.SFTP.Password, &c.SFTP.PrivateKey}
 	case c.WebDAV != nil:
 		return []*string{&c.WebDAV.Password}
-	case c.Rclone != nil:
-		// The config holds the remote's tokens.
-		return []*string{&c.Rclone.Config}
 	}
 	return nil
 }
@@ -128,7 +122,7 @@ func (m *Manager) validate(d *Destination) error {
 	}
 	set := 0
 	c := d.Config
-	for _, p := range []bool{c.Folder != nil, c.S3 != nil, c.B2 != nil, c.Azure != nil, c.SFTP != nil, c.WebDAV != nil, c.Rclone != nil} {
+	for _, p := range []bool{c.Folder != nil, c.S3 != nil, c.Azure != nil, c.SFTP != nil, c.WebDAV != nil} {
 		if p {
 			set++
 		}
@@ -154,14 +148,6 @@ func (m *Manager) validate(d *Destination) error {
 			return fmt.Errorf("the endpoint %q must be a host name or an http(s) URL", s.Endpoint)
 		}
 		return nil
-	case engine.B2:
-		if c.B2 == nil {
-			break
-		}
-		if c.B2.Bucket == "" || c.B2.KeyID == "" || c.B2.Key == "" {
-			return errors.New("a B2 destination needs a bucket, a key ID, and an application key")
-		}
-		return nil
 	case engine.Azure:
 		if c.Azure == nil {
 			break
@@ -185,11 +171,6 @@ func (m *Manager) validate(d *Destination) error {
 			return errors.New("a WebDAV destination needs an http(s) URL")
 		}
 		return nil
-	case engine.Rclone:
-		if c.Rclone == nil {
-			break
-		}
-		return validateRclone(c.Rclone)
 	}
 	return fmt.Errorf("a %s destination needs its %s settings", d.Type, d.Type)
 }
@@ -250,66 +231,6 @@ func validateSFTP(s *engine.SFTPConfig) error {
 	}
 	if ways != 1 {
 		return errors.New("an SFTP destination signs in with one of: a password, this node's key, or a private key")
-	}
-	return nil
-}
-
-// rcloneTypes are the rclone backends a destination can use: storage
-// services, nothing that runs a command or reaches the node's own disk.
-var rcloneTypes = []string{
-	"azureblob", "b2", "box", "drive", "dropbox", "fichier", "filefabric", "gcs", "gofile", "hidrive",
-	"iclouddrive", "internetarchive", "jottacloud", "koofr", "mailru", "mega", "onedrive", "opendrive",
-	"oos", "pcloud", "pikpak", "premiumizeme", "protondrive", "putio", "qingstor", "s3", "seafile",
-	"sharefile", "storj", "sugarsync", "swift", "uptobox", "yandex", "zoho",
-}
-
-// rcloneDenied are option names that can make rclone run a program.
-var rcloneDenied = []string{"command", "ssh", "exec", "program", "helper", "cmd", "shell"}
-
-// validateRclone allows one remote of a storage backend. rclone runs as
-// root beside the backup worker, and some backends and options run
-// programs (sftp's "ssh", local paths through "alias", ...), so anything
-// else is refused.
-func validateRclone(r *engine.RcloneConfig) error {
-	name, path, ok := strings.Cut(r.Remote, ":")
-	_ = path
-	if !ok || name == "" {
-		return errors.New(`the rclone remote is "name:path", with name a remote in the config`)
-	}
-	sections := map[string]map[string]string{}
-	var cur string
-	sc := bufio.NewScanner(strings.NewReader(r.Config))
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		switch {
-		case line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";"):
-		case strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]"):
-			cur = strings.TrimSpace(line[1 : len(line)-1])
-			if _, dup := sections[cur]; dup {
-				return fmt.Errorf("the rclone config has the remote %q twice", cur)
-			}
-			sections[cur] = map[string]string{}
-		default:
-			k, v, ok := strings.Cut(line, "=")
-			if !ok || cur == "" {
-				return errors.New("the rclone config isn't in rclone's format")
-			}
-			sections[cur][strings.ToLower(strings.TrimSpace(k))] = strings.TrimSpace(v)
-		}
-	}
-	if len(sections) != 1 || sections[name] == nil {
-		return fmt.Errorf("the rclone config must hold just the remote %q", name)
-	}
-	opts := sections[name]
-	if !slices.Contains(rcloneTypes, opts["type"]) {
-		return fmt.Errorf("rclone remotes of type %q can't be used: only storage services, not ones that reach this node or run programs", opts["type"])
-	}
-	for k := range opts {
-		for _, bad := range rcloneDenied {
-			if strings.Contains(k, bad) {
-				return fmt.Errorf("the rclone option %q isn't allowed", k)
-			}
-		}
 	}
 	return nil
 }
@@ -376,9 +297,6 @@ func destFromRow(r store.BackupDestination) (Destination, error) {
 	case engine.S3:
 		d.S3 = &engine.S3Config{}
 		target = d.S3
-	case engine.B2:
-		d.B2 = &engine.B2Config{}
-		target = d.B2
 	case engine.Azure:
 		d.Azure = &engine.AzureConfig{}
 		target = d.Azure
@@ -388,9 +306,6 @@ func destFromRow(r store.BackupDestination) (Destination, error) {
 	case engine.WebDAV:
 		d.WebDAV = &engine.WebDAVConfig{}
 		target = d.WebDAV
-	case engine.Rclone:
-		d.Rclone = &engine.RcloneConfig{}
-		target = d.Rclone
 	default:
 		return d, fmt.Errorf("destination %s has an unknown type %q", r.ID, r.Type)
 	}
@@ -403,7 +318,7 @@ func destFromRow(r store.BackupDestination) (Destination, error) {
 // settings is the destination's type's settings, nil for local.
 func (d Destination) settings() any {
 	c := d.Config
-	for _, v := range []any{c.Folder, c.S3, c.B2, c.Azure, c.SFTP, c.WebDAV, c.Rclone} {
+	for _, v := range []any{c.Folder, c.S3, c.Azure, c.SFTP, c.WebDAV} {
 		if !reflect.ValueOf(v).IsNil() {
 			return v
 		}
@@ -740,8 +655,6 @@ func Explain(err error) error {
 	}
 	msg := "the destination couldn't be used; the node's log (raptor logs) has the details"
 	switch {
-	case errors.Is(err, engine.ErrNoRclone):
-		msg = engine.ErrNoRclone.Error()
 	case has("knownhosts", "key mismatch", "host key"):
 		msg = "the server's host key isn't the one saved; if it was changed on purpose, test again and save the new key"
 	case has("unable to authenticate", "permission denied", "accessdenied", "access denied", "invalidaccesskeyid", "signaturedoesnotmatch", "unauthorized", "401", "403", "bad_auth_token", "authenticationfailed", "invalid credentials"):
@@ -760,7 +673,7 @@ func Explain(err error) error {
 		msg = "the destination is full"
 	case has("read-only file system"):
 		msg = "the destination is read-only"
-	case has("no such file or directory") && !has("rclone"):
+	case has("no such file or directory"):
 		msg = "the folder or path doesn't exist there"
 	}
 	return &Explained{Msg: msg, Err: err}

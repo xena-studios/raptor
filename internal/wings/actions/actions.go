@@ -11,7 +11,6 @@ import (
 	"slices"
 
 	"github.com/xena-studios/raptor/internal/wings/backup"
-	"github.com/xena-studios/raptor/internal/wings/backup/engine"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/files"
@@ -523,7 +522,7 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 		},
 	})
 	// Adding or changing a destination decides where servers' files can be
-	// sent, and a folder or rclone destination runs as root on the node,
+	// sent, and a folder destination is written as root on the node,
 	// so they're signed; deleting one forgets its backups.
 	x.Register(BackupDestinationSave, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p DestinationParams
@@ -564,8 +563,7 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 		if err != nil {
 			return nil, err
 		}
-		_, rerr := engine.RcloneExe()
-		return map[string]any{"destinations": list, "ssh_public_key": key, "rclone": rerr == nil}, nil
+		return map[string]any{"destinations": list, "ssh_public_key": key}, nil
 	}})
 	x.Register(BackupHostKey, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p HostKeyParams
