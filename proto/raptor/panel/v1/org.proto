@@ -160,6 +160,22 @@ service OrgService {
   // app tells why when it can't. Any access to the server; rate limited.
   rpc TestConnection(TestConnectionRequest) returns (TestConnectionResponse) {}
 
+  // GetBackupStorage is the org's Raptor Backup Storage: whether this Panel
+  // offers it, which nodes have it on, what's stored, and what it'd cost.
+  // Admins and owners.
+  rpc GetBackupStorage(GetBackupStorageRequest) returns (GetBackupStorageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // EnableBackupStorage turns it on for a node: the Panel makes a key for
+  // the node's folder and sends it to the node. Admins and owners.
+  rpc EnableBackupStorage(EnableBackupStorageRequest) returns (EnableBackupStorageResponse) {}
+
+  // DisableBackupStorage turns it off for a node, after the node removed
+  // the destination (a signed command): its key is deleted now, its data
+  // in 30 days. Admins and owners.
+  rpc DisableBackupStorage(DisableBackupStorageRequest) returns (DisableBackupStorageResponse) {}
+
   // PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
   // says what it would run, for review before ImportEgg: its images and
   // their registries, its install script, its startup command, and
@@ -732,3 +748,38 @@ message DeleteOrgEggRequest {
 }
 
 message DeleteOrgEggResponse {}
+
+message GetBackupStorageRequest {
+  string org_id = 1;
+}
+
+message GetBackupStorageResponse {
+  // Whether this Panel offers Raptor Backup Storage.
+  bool available = 1;
+  // The nodes that have it on.
+  repeated string node_ids = 2;
+  // What the org stores, as last measured (daily); unset if never.
+  int64 used_bytes = 3;
+  google.protobuf.Timestamp measured_at = 4;
+  // Included with the org's nodes (10 GB each).
+  int64 included_bytes = 5;
+  int64 cents_per_tb = 6;
+  // What a month at the last measurement would cost, in cents.
+  int64 estimate_cents = 7;
+  // Past this, during beta, the org is asked to get in touch.
+  int64 soft_cap_bytes = 8;
+}
+
+message EnableBackupStorageRequest {
+  string org_id = 1;
+  string node_id = 2;
+}
+
+message EnableBackupStorageResponse {}
+
+message DisableBackupStorageRequest {
+  string org_id = 1;
+  string node_id = 2;
+}
+
+message DisableBackupStorageResponse {}

@@ -24,6 +24,24 @@ type AuditLog struct {
 	At        pgtype.Timestamptz
 }
 
+type BackupStorage struct {
+	ID         pgtype.UUID
+	OrgID      pgtype.UUID
+	NodeID     pgtype.UUID
+	KeyID      string
+	EnabledAt  pgtype.Timestamptz
+	EnabledBy  pgtype.UUID
+	DisabledAt pgtype.Timestamptz
+	PurgedAt   pgtype.Timestamptz
+}
+
+type BackupStorageUsage struct {
+	OrgID      pgtype.UUID
+	Day        pgtype.Date
+	Bytes      int64
+	MeasuredAt pgtype.Timestamptz
+}
+
 type EmailCode struct {
 	ID            pgtype.UUID
 	Email         string

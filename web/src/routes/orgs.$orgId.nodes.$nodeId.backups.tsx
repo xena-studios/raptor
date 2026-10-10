@@ -25,6 +25,7 @@ function Backups() {
   }
   return (
     <NodeDestinations
+      orgId={orgId}
       nodeId={nodeId}
       userId={session.user?.id ?? ""}
       nodeName={node?.name ?? "This node"}

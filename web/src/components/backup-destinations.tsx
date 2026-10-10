@@ -1,3 +1,4 @@
+import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
@@ -32,10 +33,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import {
   type Destination,
   type DestinationType,
   formatSpeed,
+  type OwnType,
   presetEndpoint,
   presetFor,
   regionOf,
@@ -46,7 +49,7 @@ import {
 import { message } from "@/lib/errors";
 import { formatBytes } from "@/lib/metrics";
 import { sendSigned } from "@/lib/signed";
-import { commandClient } from "@/lib/transport";
+import { commandClient, orgClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
 
@@ -54,6 +57,7 @@ export const select =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 const typeIcons: Record<DestinationType, LucideIcon> = {
+  raptor: ShieldCheck,
   local: HardDrive,
   folder: FolderInput,
   s3: Cloud,
@@ -108,6 +112,8 @@ export function where(d: Destination): string {
       return d.sftp ? `${d.sftp.username}@${d.sftp.host}:${d.sftp.path}` : "";
     case "webdav":
       return d.webdav ? d.webdav.url.replace(/^https?:\/\//, "") : "";
+    case "raptor":
+      return "Encrypted, offsite, run by Raptor";
   }
 }
 
@@ -151,16 +157,19 @@ export function Health({ d }: { d: Destination }) {
 // adding, testing, changing, and removing them. Saving and removing are
 // signed by the user's passkey: they decide where servers' files go.
 export function NodeDestinations({
+  orgId,
   nodeId,
   userId,
   nodeName,
 }: {
+  orgId: string;
   nodeId: string;
   userId: string;
   nodeName: string;
 }) {
   const client = useQueryClient();
   const list = useDestinations(nodeId);
+  const storage = useConnectQuery(OrgService.method.getBackupStorage, { orgId });
   const [editing, setEditing] = useState<Destination | "new" | null>(null);
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<{ id: string; ok: boolean; text: string } | null>(null);
@@ -183,9 +192,12 @@ export function NodeDestinations({
   }
 
   async function remove(d: Destination) {
+    const hosted = d.type === "raptor";
     if (
       !window.confirm(
-        `Remove "${d.name}"? Raptor forgets the backups there; the files themselves are left where they are.`,
+        hosted
+          ? "Turn off Raptor Backup Storage on this node? Raptor forgets the backups there, and deletes them in 30 days."
+          : `Remove "${d.name}"? Raptor forgets the backups there; the files themselves are left where they are.`,
       )
     )
       return;
@@ -198,7 +210,9 @@ export function NodeDestinations({
         action: "backup.destination.delete",
         params: { id: d.id },
       });
-      await client.invalidateQueries({ queryKey: ["backup-destinations", nodeId] });
+      // The node has let go of it: the key can go too.
+      if (hosted) await orgClient.disableBackupStorage({ orgId, nodeId });
+      await client.invalidateQueries();
     } catch (err) {
       if (!passkeyCancelled(err)) setNotice({ id: d.id, ok: false, text: message(err) });
     } finally {
@@ -223,6 +237,27 @@ export function NodeDestinations({
         </Button>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        {storage.data?.available &&
+          list.data &&
+          !list.data.destinations.some((d) => d.type === "raptor") && (
+            <HostedOffer
+              busy={busy === "hosted"}
+              included={Number(storage.data.includedBytes)}
+              onEnable={async () => {
+                setBusy("hosted");
+                setNotice(null);
+                try {
+                  await orgClient.enableBackupStorage({ orgId, nodeId });
+                  await client.invalidateQueries();
+                } catch (err) {
+                  setNotice({ id: "hosted", ok: false, text: message(err) });
+                } finally {
+                  setBusy("");
+                }
+              }}
+            />
+          )}
+        {notice?.id === "hosted" && <p className="text-sm text-destructive">{notice.text}</p>}
         {list.error && <p className="text-sm text-destructive">{message(list.error)}</p>}
         {list.isPending && <p className="text-sm text-muted-foreground">Asking the node…</p>}
         <ul className="divide-y rounded-lg border">
@@ -264,15 +299,17 @@ export function NodeDestinations({
                   </Button>
                   {d.type !== "local" && (
                     <>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={`Edit ${d.name}`}
-                        disabled={busy !== ""}
-                        onClick={() => setEditing(d)}
-                      >
-                        <Pencil />
-                      </Button>
+                      {d.type !== "raptor" && (
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label={`Edit ${d.name}`}
+                          disabled={busy !== ""}
+                          onClick={() => setEditing(d)}
+                        >
+                          <Pencil />
+                        </Button>
+                      )}
                       <Button
                         size="icon-sm"
                         variant="ghost"
@@ -309,9 +346,9 @@ export function NodeDestinations({
   );
 }
 
-const choosable: Exclude<DestinationType, "local">[] = ["s3", "sftp", "folder", "webdav", "azure"];
+const choosable: OwnType[] = ["s3", "sftp", "folder", "webdav", "azure"];
 
-const addTitles: Record<Exclude<DestinationType, "local">, string> = {
+const addTitles: Record<OwnType, string> = {
   s3: "Add S3-compatible storage",
   sftp: "Add an SFTP server",
   folder: "Add a folder on the node",
@@ -320,7 +357,7 @@ const addTitles: Record<Exclude<DestinationType, "local">, string> = {
 };
 
 // defaultName is what a new destination is called until it's renamed.
-const defaultName = (t: Exclude<DestinationType, "local">, preset?: string) =>
+const defaultName = (t: OwnType, preset?: string) =>
   t === "s3" ? (s3Presets.find((p) => p.id === preset)?.name ?? "S3") : typeNames[t];
 
 // Form state: every type's fields, as strings, so switching type keeps what
@@ -395,11 +432,7 @@ function formFrom(d?: Destination): Form {
 // one, when there is one for the same way of signing in.
 const kept = (typed: string, had: boolean) => (typed || !had ? typed : "********");
 
-function toDestination(
-  type: Exclude<DestinationType, "local">,
-  f: Form,
-  orig?: Destination,
-): Destination {
+function toDestination(type: OwnType, f: Form, orig?: Destination): Destination {
   const o = formFrom(orig);
   const d: Destination = {
     id: orig?.id ?? "",
@@ -477,8 +510,8 @@ function DestinationDialog({
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
-  const [type, setType] = useState<Exclude<DestinationType, "local"> | null>(
-    initial && initial.type !== "local" ? initial.type : null,
+  const [type, setType] = useState<OwnType | null>(
+    initial && initial.type !== "local" && initial.type !== "raptor" ? initial.type : null,
   );
   const [f, setF] = useState<Form>(() => formFrom(initial));
   const [busy, setBusy] = useState<"" | "test" | "save" | "hostkey">("");
@@ -1107,6 +1140,36 @@ function CopyLine({ value }: { value: string }) {
         }}
       >
         {copied ? <Check /> : <Copy />}
+      </Button>
+    </div>
+  );
+}
+
+// HostedOffer is Raptor Backup Storage, offered first: offsite backups
+// without setting anything up.
+function HostedOffer({
+  busy,
+  included,
+  onEnable,
+}: {
+  busy: boolean;
+  included: number;
+  onEnable: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center">
+      <ShieldCheck className="size-8 shrink-0 text-primary" />
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="font-medium">Raptor Backup Storage</p>
+        <p className="text-sm text-muted-foreground">
+          Offsite backups with nothing to set up: encrypted on this node before they leave it, kept
+          in a separate data center. {formatBytes(10 * 2 ** 30)} included with every node
+          {included > 0 && ` (${formatBytes(included)} for your org)`}, then $12 per TB a month.
+        </p>
+      </div>
+      <Button onClick={onEnable} disabled={busy}>
+        {busy && <Loader2 className="animate-spin" />}
+        Turn on
       </Button>
     </div>
   );

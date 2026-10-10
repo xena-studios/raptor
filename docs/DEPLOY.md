@@ -70,6 +70,7 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `Google OAuth`, `Discord OAuth` | `client_id`, `client_secret` | When you've made them. A provider is offered once both its values are set. |
 | `Cloudflare raptornodes.net DNS` | `token`, `zone_id` | [Below](#raptornodesnet). |
 | `Support bundles storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key` | [Below](#support-bundles). |
+| `Raptor Backup Storage` | `key_id`, `application_key`, `bucket_id`, `endpoint`, `region` | Optional: without it the Panel doesn't offer it. [Below](#raptor-backup-storage). |
 | `Grafana Cloud OTLP` | `endpoint`, `headers` | [Below](#monitoring). |
 
 The Google, Discord, `raptornodes.net` DNS, support bundle, and Grafana items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
@@ -285,6 +286,16 @@ One row, `streaming`. The slot means server #1 keeps WAL the replica hasn't rece
 - **A lifecycle rule deleting bundles after 90 days** (B2: bucket settings → lifecycle → keep only for 90 days; S3: an expiration rule on `bundles/`). Support doesn't need them longer, and the less there is, the less can leak.
 
 The Panel caps uploads at 32 MB, 10 a day per linked node, 3 a day per address for unlinked ones, and 1,000 a day overall.
+
+
+## Raptor Backup Storage
+
+Customers' offsite backups ([PANEL.md](PANEL.md#raptor-backup-storage)), in one Backblaze B2 bucket. Use a B2 account of its own, not the one the Panel's own backups are in, so a mistake with one can't touch the other.
+
+1. **The bucket:** name it exactly `raptor-backup-storage` (Wings only accepts this name for Raptor storage, `internal/shared/hosted`; if it's taken, the constant changes and so does every Wings). **Private**, and its lifecycle set to **"Keep only the last version of the file"**: Kopia deletes old data by deleting files, and with B2's default (keep every version) the deleted data would be stored, and billed, forever. Note the bucket ID and its S3 endpoint (`s3.<region>.backblazeb2.com`).
+2. **The Panel's key**, with the B2 command line (`brew install b2-tools`, then `b2 account authorize` with the account's master key; the web page's keys can't make keys): `b2 key create raptor-panel listKeys,writeKeys,deleteKeys,listBuckets,listFiles,readFiles,writeFiles,deleteFiles`. It's for all buckets, since B2 only lets those make keys, so use an account with nothing else in it. The Panel uses it to make each node a key limited to `orgs/<org>/nodes/<node>/` in the bucket, delete keys, list files to measure usage, and delete a turned-off node's files after 30 days. It's the most powerful key Raptor holds after the database password: anyone with it can read and delete every customer's (encrypted) backups.
+3. **The vault:** `Raptor Backup Storage` with `key_id`, `application_key`, `bucket_id`, `endpoint` (without `https://`), and `region`. The next deploy sets `PANEL_BACKUP_STORAGE_*`, and the app offers it on every node's Backups tab.
+4. **Check:** turn it on for a test node, take a backup to it, and see the node's folder in the bucket; the next day, org settings → Backups shows the usage.
 
 ## Static sites
 

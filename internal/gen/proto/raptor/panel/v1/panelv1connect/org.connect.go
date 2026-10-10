@@ -103,6 +103,15 @@ const (
 	// OrgServiceTestConnectionProcedure is the fully-qualified name of the OrgService's TestConnection
 	// RPC.
 	OrgServiceTestConnectionProcedure = "/raptor.panel.v1.OrgService/TestConnection"
+	// OrgServiceGetBackupStorageProcedure is the fully-qualified name of the OrgService's
+	// GetBackupStorage RPC.
+	OrgServiceGetBackupStorageProcedure = "/raptor.panel.v1.OrgService/GetBackupStorage"
+	// OrgServiceEnableBackupStorageProcedure is the fully-qualified name of the OrgService's
+	// EnableBackupStorage RPC.
+	OrgServiceEnableBackupStorageProcedure = "/raptor.panel.v1.OrgService/EnableBackupStorage"
+	// OrgServiceDisableBackupStorageProcedure is the fully-qualified name of the OrgService's
+	// DisableBackupStorage RPC.
+	OrgServiceDisableBackupStorageProcedure = "/raptor.panel.v1.OrgService/DisableBackupStorage"
 	// OrgServicePreviewEggProcedure is the fully-qualified name of the OrgService's PreviewEgg RPC.
 	OrgServicePreviewEggProcedure = "/raptor.panel.v1.OrgService/PreviewEgg"
 	// OrgServiceImportEggProcedure is the fully-qualified name of the OrgService's ImportEgg RPC.
@@ -214,6 +223,17 @@ type OrgServiceClient interface {
 	// With server.ports (what the game listens on, from the node), the web
 	// app tells why when it can't. Any access to the server; rate limited.
 	TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error)
+	// GetBackupStorage is the org's Raptor Backup Storage: whether this Panel
+	// offers it, which nodes have it on, what's stored, and what it'd cost.
+	// Admins and owners.
+	GetBackupStorage(context.Context, *v1.GetBackupStorageRequest) (*v1.GetBackupStorageResponse, error)
+	// EnableBackupStorage turns it on for a node: the Panel makes a key for
+	// the node's folder and sends it to the node. Admins and owners.
+	EnableBackupStorage(context.Context, *v1.EnableBackupStorageRequest) (*v1.EnableBackupStorageResponse, error)
+	// DisableBackupStorage turns it off for a node, after the node removed
+	// the destination (a signed command): its key is deleted now, its data
+	// in 30 days. Admins and owners.
+	DisableBackupStorage(context.Context, *v1.DisableBackupStorageRequest) (*v1.DisableBackupStorageResponse, error)
 	// PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
 	// says what it would run, for review before ImportEgg: its images and
 	// their registries, its install script, its startup command, and
@@ -426,6 +446,25 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("TestConnection")),
 			connect.WithClientOptions(opts...),
 		),
+		getBackupStorage: connect.NewClient[v1.GetBackupStorageRequest, v1.GetBackupStorageResponse](
+			httpClient,
+			baseURL+OrgServiceGetBackupStorageProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("GetBackupStorage")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		enableBackupStorage: connect.NewClient[v1.EnableBackupStorageRequest, v1.EnableBackupStorageResponse](
+			httpClient,
+			baseURL+OrgServiceEnableBackupStorageProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("EnableBackupStorage")),
+			connect.WithClientOptions(opts...),
+		),
+		disableBackupStorage: connect.NewClient[v1.DisableBackupStorageRequest, v1.DisableBackupStorageResponse](
+			httpClient,
+			baseURL+OrgServiceDisableBackupStorageProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("DisableBackupStorage")),
+			connect.WithClientOptions(opts...),
+		),
 		previewEgg: connect.NewClient[v1.PreviewEggRequest, v1.PreviewEggResponse](
 			httpClient,
 			baseURL+OrgServicePreviewEggProcedure,
@@ -470,40 +509,43 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // orgServiceClient implements OrgServiceClient.
 type orgServiceClient struct {
-	createOrg          *connect.Client[v1.CreateOrgRequest, v1.CreateOrgResponse]
-	listOrgs           *connect.Client[v1.ListOrgsRequest, v1.ListOrgsResponse]
-	renameOrg          *connect.Client[v1.RenameOrgRequest, v1.RenameOrgResponse]
-	listMembers        *connect.Client[v1.ListMembersRequest, v1.ListMembersResponse]
-	setMemberRole      *connect.Client[v1.SetMemberRoleRequest, v1.SetMemberRoleResponse]
-	removeMember       *connect.Client[v1.RemoveMemberRequest, v1.RemoveMemberResponse]
-	inviteMember       *connect.Client[v1.InviteMemberRequest, v1.InviteMemberResponse]
-	listInvitations    *connect.Client[v1.ListInvitationsRequest, v1.ListInvitationsResponse]
-	revokeInvitation   *connect.Client[v1.RevokeInvitationRequest, v1.RevokeInvitationResponse]
-	acceptInvitation   *connect.Client[v1.AcceptInvitationRequest, v1.AcceptInvitationResponse]
-	createJoinToken    *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
-	setServerAccess    *connect.Client[v1.SetServerAccessRequest, v1.SetServerAccessResponse]
-	listServerAccess   *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
-	listNodes          *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
-	renameNode         *connect.Client[v1.RenameNodeRequest, v1.RenameNodeResponse]
-	removeNode         *connect.Client[v1.RemoveNodeRequest, v1.RemoveNodeResponse]
-	listServers        *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
-	getServer          *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
-	pinJoinToken       *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
-	listMemberPasskeys *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
-	listAuditLog       *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
-	listSchedules      *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
-	listScheduleRuns   *connect.Client[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse]
-	setNodeSFTP        *connect.Client[v1.SetNodeSFTPRequest, v1.SetNodeSFTPResponse]
-	getSFTPAccess      *connect.Client[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse]
-	createSFTPAccess   *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
-	revokeSFTPAccess   *connect.Client[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse]
-	testConnection     *connect.Client[v1.TestConnectionRequest, v1.TestConnectionResponse]
-	previewEgg         *connect.Client[v1.PreviewEggRequest, v1.PreviewEggResponse]
-	importEgg          *connect.Client[v1.ImportEggRequest, v1.ImportEggResponse]
-	listOrgEggs        *connect.Client[v1.ListOrgEggsRequest, v1.ListOrgEggsResponse]
-	getOrgEgg          *connect.Client[v1.GetOrgEggRequest, v1.GetOrgEggResponse]
-	deleteOrgEgg       *connect.Client[v1.DeleteOrgEggRequest, v1.DeleteOrgEggResponse]
-	listBackups        *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
+	createOrg            *connect.Client[v1.CreateOrgRequest, v1.CreateOrgResponse]
+	listOrgs             *connect.Client[v1.ListOrgsRequest, v1.ListOrgsResponse]
+	renameOrg            *connect.Client[v1.RenameOrgRequest, v1.RenameOrgResponse]
+	listMembers          *connect.Client[v1.ListMembersRequest, v1.ListMembersResponse]
+	setMemberRole        *connect.Client[v1.SetMemberRoleRequest, v1.SetMemberRoleResponse]
+	removeMember         *connect.Client[v1.RemoveMemberRequest, v1.RemoveMemberResponse]
+	inviteMember         *connect.Client[v1.InviteMemberRequest, v1.InviteMemberResponse]
+	listInvitations      *connect.Client[v1.ListInvitationsRequest, v1.ListInvitationsResponse]
+	revokeInvitation     *connect.Client[v1.RevokeInvitationRequest, v1.RevokeInvitationResponse]
+	acceptInvitation     *connect.Client[v1.AcceptInvitationRequest, v1.AcceptInvitationResponse]
+	createJoinToken      *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
+	setServerAccess      *connect.Client[v1.SetServerAccessRequest, v1.SetServerAccessResponse]
+	listServerAccess     *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
+	listNodes            *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
+	renameNode           *connect.Client[v1.RenameNodeRequest, v1.RenameNodeResponse]
+	removeNode           *connect.Client[v1.RemoveNodeRequest, v1.RemoveNodeResponse]
+	listServers          *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
+	getServer            *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
+	pinJoinToken         *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
+	listMemberPasskeys   *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
+	listAuditLog         *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
+	listSchedules        *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
+	listScheduleRuns     *connect.Client[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse]
+	setNodeSFTP          *connect.Client[v1.SetNodeSFTPRequest, v1.SetNodeSFTPResponse]
+	getSFTPAccess        *connect.Client[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse]
+	createSFTPAccess     *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
+	revokeSFTPAccess     *connect.Client[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse]
+	testConnection       *connect.Client[v1.TestConnectionRequest, v1.TestConnectionResponse]
+	getBackupStorage     *connect.Client[v1.GetBackupStorageRequest, v1.GetBackupStorageResponse]
+	enableBackupStorage  *connect.Client[v1.EnableBackupStorageRequest, v1.EnableBackupStorageResponse]
+	disableBackupStorage *connect.Client[v1.DisableBackupStorageRequest, v1.DisableBackupStorageResponse]
+	previewEgg           *connect.Client[v1.PreviewEggRequest, v1.PreviewEggResponse]
+	importEgg            *connect.Client[v1.ImportEggRequest, v1.ImportEggResponse]
+	listOrgEggs          *connect.Client[v1.ListOrgEggsRequest, v1.ListOrgEggsResponse]
+	getOrgEgg            *connect.Client[v1.GetOrgEggRequest, v1.GetOrgEggResponse]
+	deleteOrgEgg         *connect.Client[v1.DeleteOrgEggRequest, v1.DeleteOrgEggResponse]
+	listBackups          *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
 }
 
 // CreateOrg calls raptor.panel.v1.OrgService.CreateOrg.
@@ -758,6 +800,33 @@ func (c *orgServiceClient) TestConnection(ctx context.Context, req *v1.TestConne
 	return nil, err
 }
 
+// GetBackupStorage calls raptor.panel.v1.OrgService.GetBackupStorage.
+func (c *orgServiceClient) GetBackupStorage(ctx context.Context, req *v1.GetBackupStorageRequest) (*v1.GetBackupStorageResponse, error) {
+	response, err := c.getBackupStorage.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// EnableBackupStorage calls raptor.panel.v1.OrgService.EnableBackupStorage.
+func (c *orgServiceClient) EnableBackupStorage(ctx context.Context, req *v1.EnableBackupStorageRequest) (*v1.EnableBackupStorageResponse, error) {
+	response, err := c.enableBackupStorage.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DisableBackupStorage calls raptor.panel.v1.OrgService.DisableBackupStorage.
+func (c *orgServiceClient) DisableBackupStorage(ctx context.Context, req *v1.DisableBackupStorageRequest) (*v1.DisableBackupStorageResponse, error) {
+	response, err := c.disableBackupStorage.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // PreviewEgg calls raptor.panel.v1.OrgService.PreviewEgg.
 func (c *orgServiceClient) PreviewEgg(ctx context.Context, req *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error) {
 	response, err := c.previewEgg.CallUnary(ctx, connect.NewRequest(req))
@@ -909,6 +978,17 @@ type OrgServiceHandler interface {
 	// With server.ports (what the game listens on, from the node), the web
 	// app tells why when it can't. Any access to the server; rate limited.
 	TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error)
+	// GetBackupStorage is the org's Raptor Backup Storage: whether this Panel
+	// offers it, which nodes have it on, what's stored, and what it'd cost.
+	// Admins and owners.
+	GetBackupStorage(context.Context, *v1.GetBackupStorageRequest) (*v1.GetBackupStorageResponse, error)
+	// EnableBackupStorage turns it on for a node: the Panel makes a key for
+	// the node's folder and sends it to the node. Admins and owners.
+	EnableBackupStorage(context.Context, *v1.EnableBackupStorageRequest) (*v1.EnableBackupStorageResponse, error)
+	// DisableBackupStorage turns it off for a node, after the node removed
+	// the destination (a signed command): its key is deleted now, its data
+	// in 30 days. Admins and owners.
+	DisableBackupStorage(context.Context, *v1.DisableBackupStorageRequest) (*v1.DisableBackupStorageResponse, error)
 	// PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
 	// says what it would run, for review before ImportEgg: its images and
 	// their registries, its install script, its startup command, and
@@ -1117,6 +1197,25 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("TestConnection")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceGetBackupStorageHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceGetBackupStorageProcedure,
+		svc.GetBackupStorage,
+		connect.WithSchema(orgServiceMethods.ByName("GetBackupStorage")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceEnableBackupStorageHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceEnableBackupStorageProcedure,
+		svc.EnableBackupStorage,
+		connect.WithSchema(orgServiceMethods.ByName("EnableBackupStorage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceDisableBackupStorageHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceDisableBackupStorageProcedure,
+		svc.DisableBackupStorage,
+		connect.WithSchema(orgServiceMethods.ByName("DisableBackupStorage")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServicePreviewEggHandler := connect.NewUnaryHandlerSimple(
 		OrgServicePreviewEggProcedure,
 		svc.PreviewEgg,
@@ -1214,6 +1313,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceRevokeSFTPAccessHandler.ServeHTTP(w, r)
 		case OrgServiceTestConnectionProcedure:
 			orgServiceTestConnectionHandler.ServeHTTP(w, r)
+		case OrgServiceGetBackupStorageProcedure:
+			orgServiceGetBackupStorageHandler.ServeHTTP(w, r)
+		case OrgServiceEnableBackupStorageProcedure:
+			orgServiceEnableBackupStorageHandler.ServeHTTP(w, r)
+		case OrgServiceDisableBackupStorageProcedure:
+			orgServiceDisableBackupStorageHandler.ServeHTTP(w, r)
 		case OrgServicePreviewEggProcedure:
 			orgServicePreviewEggHandler.ServeHTTP(w, r)
 		case OrgServiceImportEggProcedure:
@@ -1345,6 +1450,18 @@ func (UnimplementedOrgServiceHandler) RevokeSFTPAccess(context.Context, *v1.Revo
 
 func (UnimplementedOrgServiceHandler) TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.TestConnection is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) GetBackupStorage(context.Context, *v1.GetBackupStorageRequest) (*v1.GetBackupStorageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.GetBackupStorage is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) EnableBackupStorage(context.Context, *v1.EnableBackupStorageRequest) (*v1.EnableBackupStorageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.EnableBackupStorage is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) DisableBackupStorage(context.Context, *v1.DisableBackupStorageRequest) (*v1.DisableBackupStorageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.DisableBackupStorage is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) PreviewEgg(context.Context, *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error) {

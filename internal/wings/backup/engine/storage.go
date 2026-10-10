@@ -36,10 +36,13 @@ const (
 	Azure  = "azure"  // Azure Blob Storage
 	SFTP   = "sftp"
 	WebDAV = "webdav"
+	// Raptor is Raptor Backup Storage: Raptor's B2 bucket, through its S3
+	// API, with a key the Panel made for this node's folder.
+	Raptor = "raptor"
 )
 
 // Types lists the destination types.
-var Types = []string{Local, Folder, S3, Azure, SFTP, WebDAV}
+var Types = []string{Local, Folder, S3, Azure, SFTP, WebDAV, Raptor}
 
 // Destination is where a repository lives. One repository per destination
 // holds every server's backups on the node, so identical files are stored
@@ -62,6 +65,7 @@ type Config struct {
 	Azure  *AzureConfig  `json:"azure,omitempty"`
 	SFTP   *SFTPConfig   `json:"sftp,omitempty"`
 	WebDAV *WebDAVConfig `json:"webdav,omitempty"`
+	Raptor *S3Config     `json:"raptor,omitempty"`
 }
 
 // FolderConfig is a directory on the node.
@@ -168,6 +172,12 @@ func (e *Engine) storage(ctx context.Context) (blob.Storage, error) {
 			o.KeyData = c.PrivateKey
 		}
 		return sftp.New(ctx, o, true)
+	case d.Type == Raptor && d.Raptor != nil:
+		c := d.Raptor
+		return s3.New(ctx, &s3.Options{
+			BucketName: c.Bucket, Prefix: c.Prefix, Endpoint: c.Endpoint, Region: c.Region,
+			AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey, Limits: limits,
+		}, false)
 	case d.Type == WebDAV && d.WebDAV != nil:
 		c := d.WebDAV
 		return webdav.New(ctx, &webdav.Options{URL: c.URL, Username: c.Username, Password: c.Password, AtomicWrites: true, Limits: limits}, false)

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
+	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
 )
@@ -60,6 +62,9 @@ type Service struct {
 	// EggClient fetches eggs to import (nil: eggimport.Client, which only
 	// reaches public addresses).
 	EggClient *http.Client
+	// Storage is Raptor Backup Storage (nil: not offered).
+	Storage *storage.Service
+	Log     *slog.Logger
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)

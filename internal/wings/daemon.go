@@ -475,6 +475,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	bk = backup.New(backup.Options{
 		Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Log: r.log, Runner: runner,
 		LocalPath: r.cfg.Paths.Backups, StateDir: filepath.Join(filepath.Dir(r.cfg.Paths.State), "kopia"),
+		NodeID: r.cfg.NodeID,
 		ReservedPaths: []string{
 			filepath.Dir(r.cfg.Paths.State), r.cfg.Paths.Volumes, r.cfg.Paths.Backups, r.cfg.Paths.Tmp, r.cfg.Paths.Logs,
 		},

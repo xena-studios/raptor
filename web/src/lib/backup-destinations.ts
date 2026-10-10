@@ -2,7 +2,7 @@
 // as Wings' backup.destinations and backup.policy return them. Kept free of
 // imports so `node --test` can check it.
 
-export type DestinationType = "local" | "folder" | "s3" | "azure" | "sftp" | "webdav";
+export type DestinationType = "local" | "folder" | "s3" | "azure" | "sftp" | "webdav" | "raptor";
 
 export type Destination = {
   id: string;
@@ -47,6 +47,7 @@ export type Destination = {
 };
 
 export const typeNames: Record<DestinationType, string> = {
+  raptor: "Raptor Backup Storage",
   local: "This node's disk",
   folder: "Folder on the node",
   s3: "S3-compatible storage",
@@ -55,7 +56,10 @@ export const typeNames: Record<DestinationType, string> = {
   webdav: "WebDAV",
 };
 
-export const typeHints: Record<Exclude<DestinationType, "local">, string> = {
+// OwnType is a destination the owner adds and sets up themselves.
+export type OwnType = Exclude<DestinationType, "local" | "raptor">;
+
+export const typeHints: Record<OwnType, string> = {
   s3: "Backblaze B2, Cloudflare R2, Wasabi, AWS, and any other S3-compatible bucket.",
   sftp: "A server of your own, over SSH. Its host key is checked every time.",
   folder: "A NAS or second disk mounted on the node.",
@@ -230,12 +234,14 @@ export function keepsLess(next: Policy, cur: Policy): boolean {
 }
 
 // needsPasskey is when Wings wants the change signed: it lets retention
-// delete more, or sends the server's backups somewhere new off its own
-// disk (docs/SECURITY-MODEL.md#passkey-signed-commands).
+// delete more, or sends the server's backups somewhere new other than its
+// own disk and Raptor Backup Storage ("raptor", which can only be Raptor's
+// bucket) (docs/SECURITY-MODEL.md#passkey-signed-commands).
 export function needsPasskey(next: Policy, cur: Policy): boolean {
   const added = next.targets.some(
     (t) =>
       t.destination_id !== "local" &&
+      t.destination_id !== "raptor" &&
       !cur.targets.some((c) => c.destination_id === t.destination_id),
   );
   return added || keepsLess(next, cur);

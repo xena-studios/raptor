@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/ssh"
 
+	"github.com/xena-studios/raptor/internal/shared/hosted"
 	"github.com/xena-studios/raptor/internal/wings/backup/engine"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -65,6 +66,8 @@ func (d *Destination) secrets() []*string {
 		return []*string{&c.Azure.StorageKey, &c.Azure.SASToken}
 	case c.SFTP != nil:
 		return []*string{&c.SFTP.Password, &c.SFTP.PrivateKey}
+	case c.Raptor != nil:
+		return []*string{&c.Raptor.SecretKey}
 	case c.WebDAV != nil:
 		return []*string{&c.WebDAV.Password}
 	}
@@ -128,7 +131,7 @@ func (m *Manager) validate(d *Destination) error {
 	}
 	set := 0
 	c := d.Config
-	for _, p := range []bool{c.Folder != nil, c.S3 != nil, c.Azure != nil, c.SFTP != nil, c.WebDAV != nil} {
+	for _, p := range []bool{c.Folder != nil, c.S3 != nil, c.Azure != nil, c.SFTP != nil, c.WebDAV != nil, c.Raptor != nil} {
 		if p {
 			set++
 		}
@@ -175,6 +178,14 @@ func (m *Manager) validate(d *Destination) error {
 		u, err := url.Parse(c.WebDAV.URL)
 		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
 			return errors.New("a WebDAV destination needs an http(s) URL")
+		}
+		return nil
+	case engine.Raptor:
+		if c.Raptor == nil {
+			break
+		}
+		if !m.IsHosted(*d) {
+			return errors.New("only Raptor sets up Raptor Backup Storage, in its own bucket and this node's folder")
 		}
 		return nil
 	}
@@ -313,6 +324,9 @@ func destFromRow(r store.BackupDestination) (Destination, error) {
 	case engine.SFTP:
 		d.SFTP = &engine.SFTPConfig{}
 		target = d.SFTP
+	case engine.Raptor:
+		d.Raptor = &engine.S3Config{}
+		target = d.Raptor
 	case engine.WebDAV:
 		d.WebDAV = &engine.WebDAVConfig{}
 		target = d.WebDAV
@@ -328,7 +342,7 @@ func destFromRow(r store.BackupDestination) (Destination, error) {
 // settings is the destination's type's settings, nil for local.
 func (d Destination) settings() any {
 	c := d.Config
-	for _, v := range []any{c.Folder, c.S3, c.Azure, c.SFTP, c.WebDAV} {
+	for _, v := range []any{c.Folder, c.S3, c.Azure, c.SFTP, c.WebDAV, c.Raptor} {
 		if !reflect.ValueOf(v).IsNil() {
 			return v
 		}
@@ -380,6 +394,30 @@ func (m *Manager) prepare(ctx context.Context, q *store.Queries, d *Destination)
 	return nil
 }
 
+// HostedDestination is Raptor Backup Storage's ID on every node: there's
+// one, made and replaced by the Panel.
+const HostedDestination = "raptor"
+
+// IsHosted reports whether d is Raptor Backup Storage for this node:
+// Raptor's bucket (its name is unique across Backblaze, and pinned in
+// Wings), a B2 endpoint, and this node's own folder. Such a destination
+// needs no passkey: it can't send backups anywhere but Raptor's storage.
+func (m *Manager) IsHosted(d Destination) bool {
+	return IsHostedFor(d, m.o.NodeID)
+}
+
+// IsHostedFor is IsHosted for a node (the Panel's tests check what it
+// sends against it).
+func IsHostedFor(d Destination, nodeID string) bool {
+	c := d.Raptor
+	if d.Type != engine.Raptor || c == nil || c.Bucket != hosted.Bucket || !hosted.Endpoint(c.Endpoint) ||
+		c.AccessKey == "" || c.SecretKey == "" || nodeID == "" {
+		return false
+	}
+	node, ok := hosted.NodeOf(c.Prefix)
+	return ok && node == nodeID
+}
+
 // SaveDestination adds a destination (d.ID empty) or replaces one. Secrets
 // sent back redacted ("********") keep the stored ones. It returns the
 // destination's ID.
@@ -387,9 +425,33 @@ func (m *Manager) SaveDestination(ctx context.Context, d Destination) (string, e
 	if d.ID == LocalDestination {
 		return "", fmt.Errorf("%w: the local destination can't be changed", ErrInvalid)
 	}
+	if d.ID == HostedDestination && d.Type != engine.Raptor {
+		return "", fmt.Errorf("%w: Raptor Backup Storage is set up by Raptor", ErrInvalid)
+	}
 	now := m.o.Now().UnixMilli()
 	err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if d.Type == engine.Raptor {
+			// Made or replaced (a new key) by the Panel, always as one.
+			d.ID = ""
+			if _, err := q.GetBackupDestination(ctx, HostedDestination); err == nil {
+				d.ID = HostedDestination
+			}
+		}
 		if err := m.prepare(ctx, q, &d); err != nil {
+			return err
+		}
+		if d.Type == engine.Raptor && d.ID == "" {
+			cfg, err := d.config()
+			if err != nil {
+				return err
+			}
+			d.ID = HostedDestination
+			if err := q.InsertBackupDestination(ctx, store.InsertBackupDestinationParams{
+				ID: d.ID, Name: d.Name, Type: d.Type, Config: string(cfg), UploadLimit: d.UploadLimit, CreatedAt: now, UpdatedAt: now,
+			}); err != nil {
+				return err
+			}
+			_, err = events.AppendTx(ctx, q, events.Event{Type: EventDestination, Data: map[string]any{"destination": d.Redacted()}})
 			return err
 		}
 		cfg, err := d.config()
