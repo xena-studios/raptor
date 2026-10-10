@@ -54,6 +54,7 @@ const (
 	BackupDestinationTest   = "backup.destination.test"
 	BackupDestinations      = "backup.destinations" // a read: the destinations, their health, the node's SSH key
 	BackupHostKey           = "backup.hostkey"      // an SFTP server's host key, to pin
+	BackupPolicyGet         = "backup.policy"       // a read: a server's backup settings, and the destinations it can use
 
 	NodeSFTP       = "node.sftp"       // turn SFTP on or off
 	SFTPDisconnect = "sftp.disconnect" // end one login's connections to a server
@@ -564,6 +565,32 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 			return nil, err
 		}
 		return map[string]any{"destinations": list, "ssh_public_key": key}, nil
+	}})
+	// A server's backup settings, for anyone who may back it up: where its
+	// backups go, and the node's destinations by name and type (no
+	// settings or credentials), to choose from.
+	x.Register(BackupPolicyGet, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		p, err := b.Policy(ctx, e.ServerID)
+		if err != nil {
+			return nil, err
+		}
+		list, err := b.Destinations(ctx)
+		if err != nil {
+			return nil, err
+		}
+		type choice struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+			Type string `json:"type"`
+		}
+		choices := make([]choice, len(list))
+		for i, d := range list {
+			choices[i] = choice{d.ID, d.Name, d.Type}
+		}
+		return map[string]any{"policy": p, "destinations": choices}, nil
 	}})
 	x.Register(BackupHostKey, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p HostKeyParams

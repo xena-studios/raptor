@@ -91,19 +91,25 @@ func (d Destination) Redacted() Destination {
 	return d
 }
 
-// keepSecrets fills secrets left empty (or redacted) from the stored
-// destination, if it's the same type.
+// keepSecrets fills secrets sent back redacted from the stored
+// destination, if it's the same type. An empty one is empty: an SFTP
+// destination switching from a password to a key drops the password.
 func (d *Destination) keepSecrets(old Destination) {
 	if d.Type != old.Type {
 		return
 	}
 	olds := old.secrets()
 	for i, s := range d.secrets() {
-		if (*s == "" || *s == redacted) && i < len(olds) {
+		if *s == redacted && i < len(olds) {
 			*s = *olds[i]
 		}
 	}
 }
+
+// mountRoots are where a folder destination can be: where disks and NAS
+// shares are mounted, and all Wings' service may write besides its own
+// directories (install/systemd/raptor-wings.service).
+var mountRoots = []string{"/mnt", "/media", "/srv"}
 
 // Paths a folder destination can't be in or above: the system's, and
 // Raptor's own (servers' files, its database, the local backups).
@@ -180,8 +186,12 @@ func (m *Manager) validate(d *Destination) error {
 // machine, or land where players can read them.
 func (m *Manager) validateFolder(f *engine.FolderConfig) error {
 	p := filepath.Clean(f.Path)
-	if !filepath.IsAbs(f.Path) || p == "/" {
-		return errors.New("the folder must be an absolute path, such as /mnt/backups")
+	roots := mountRoots
+	if m.o.FolderRoots != nil {
+		roots = m.o.FolderRoots
+	}
+	if !filepath.IsAbs(f.Path) || !slices.ContainsFunc(roots, func(root string) bool { return strings.HasPrefix(p, filepath.Clean(root)+"/") }) {
+		return errors.New("the folder must be in /mnt, /media, or /srv, where disks and NAS shares are mounted (such as /mnt/nas/raptor)")
 	}
 	f.Path = p
 	// A link could point anywhere: both the path and where it leads count.
@@ -355,6 +365,13 @@ func (m *Manager) prepare(ctx context.Context, q *store.Queries, d *Destination)
 		if d.Type != old.Type {
 			return fmt.Errorf("%w: a destination's type can't change; add a new one", ErrInvalid)
 		}
+		// Just the ID (testing a saved destination): the stored settings.
+		if d.Name == "" {
+			d.Name = old.Name
+		}
+		if d.settings() == nil {
+			d.Config, d.UploadLimit = old.Config, old.UploadLimit
+		}
 		d.keepSecrets(old)
 	}
 	if err := m.validate(d); err != nil {
@@ -364,8 +381,8 @@ func (m *Manager) prepare(ctx context.Context, q *store.Queries, d *Destination)
 }
 
 // SaveDestination adds a destination (d.ID empty) or replaces one. Secrets
-// left empty or redacted keep the stored ones. It returns the destination's
-// ID.
+// sent back redacted ("********") keep the stored ones. It returns the
+// destination's ID.
 func (m *Manager) SaveDestination(ctx context.Context, d Destination) (string, error) {
 	if d.ID == LocalDestination {
 		return "", fmt.Errorf("%w: the local destination can't be changed", ErrInvalid)
@@ -437,8 +454,8 @@ func (m *Manager) DeleteDestination(ctx context.Context, id string) error {
 
 // TestDestination checks a destination works, before or after saving it:
 // it writes a small file there, reads it back, and removes it. d.ID set
-// tests the stored destination with d's changes (secrets left out are the
-// stored ones). The error says what went wrong in words for people.
+// tests the stored destination with d's changes (redacted secrets are the
+// stored ones; just the ID tests it as saved). The error says what went wrong in words for people.
 func (m *Manager) TestDestination(ctx context.Context, d Destination) error {
 	if d.ID == LocalDestination {
 		dest, err := m.engineDest(ctx, LocalDestination)

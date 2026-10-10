@@ -143,7 +143,7 @@ func newEnv(t *testing.T) *env {
 		Store: db, Jobs: v.jobs, Events: v.events, Servers: v.servers,
 		LocalPath: filepath.Join(dir, "backups"), StateDir: filepath.Join(dir, "kopia"),
 		FreeSpace: func(string) (int64, error) { return v.free, nil }, MinFree: 10 << 30,
-		HookTimeout: 300 * time.Millisecond, Now: v.clock.now,
+		HookTimeout: 300 * time.Millisecond, Now: v.clock.now, FolderRoots: []string{dir},
 	})
 	if err := v.jobs.Start(context.Background()); err != nil {
 		t.Fatal(err)
@@ -474,9 +474,9 @@ func TestPolicyAndDestinations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// An update without the secret keeps it.
+	// An update with the secret redacted keeps it.
 	upd := s3.clone()
-	upd.ID, upd.Name, upd.S3.SecretKey = id, "B2 renamed", ""
+	upd.ID, upd.Name, upd.S3.SecretKey = id, "B2 renamed", "********"
 	if _, err := v.m.SaveDestination(ctx, upd); err != nil {
 		t.Fatal(err)
 	}

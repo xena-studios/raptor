@@ -3245,14 +3245,16 @@ type Backup struct {
 	// "pending", "running", "ok", or "failed".
 	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	// Retention never deletes a locked backup.
-	Locked        bool                   `protobuf:"varint,4,opt,name=locked,proto3" json:"locked,omitempty"`
-	Size          int64                  `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
-	Files         int64                  `protobuf:"varint,6,opt,name=files,proto3" json:"files,omitempty"`
-	Error         string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
-	Warning       string                 `protobuf:"bytes,8,opt,name=warning,proto3" json:"warning,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	FinishedAt    *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Locked     bool                   `protobuf:"varint,4,opt,name=locked,proto3" json:"locked,omitempty"`
+	Size       int64                  `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
+	Files      int64                  `protobuf:"varint,6,opt,name=files,proto3" json:"files,omitempty"`
+	Error      string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	Warning    string                 `protobuf:"bytes,8,opt,name=warning,proto3" json:"warning,omitempty"`
+	CreatedAt  *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	ExpiresAt  *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// Where it is: a destination on its node ("local" for the node's disk).
+	DestinationId string `protobuf:"bytes,12,opt,name=destination_id,json=destinationId,proto3" json:"destination_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3362,6 +3364,13 @@ func (x *Backup) GetExpiresAt() *timestamppb.Timestamp {
 		return x.ExpiresAt
 	}
 	return nil
+}
+
+func (x *Backup) GetDestinationId() string {
+	if x != nil {
+		return x.DestinationId
+	}
+	return ""
 }
 
 type GetSFTPAccessRequest struct {
@@ -5116,7 +5125,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x1b\n" +
 	"\tserver_id\x18\x03 \x01(\tR\bserverId\"H\n" +
 	"\x13ListBackupsResponse\x121\n" +
-	"\abackups\x18\x01 \x03(\v2\x17.raptor.panel.v1.BackupR\abackups\"\xe9\x02\n" +
+	"\abackups\x18\x01 \x03(\v2\x17.raptor.panel.v1.BackupR\abackups\"\x90\x03\n" +
 	"\x06Backup\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x16\n" +
@@ -5132,7 +5141,8 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"finishedAt\x129\n" +
 	"\n" +
-	"expires_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"c\n" +
+	"expires_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12%\n" +
+	"\x0edestination_id\x18\f \x01(\tR\rdestinationId\"c\n" +
 	"\x14GetSFTPAccessRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x1b\n" +

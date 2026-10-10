@@ -122,6 +122,9 @@ type Options struct {
 	// ReservedPaths are directories a folder destination can't be in or
 	// contain (Raptor's data and server volumes), beside the system's.
 	ReservedPaths []string
+	// FolderRoots are where folder destinations may be (default /mnt,
+	// /media, /srv: what the service may write).
+	FolderRoots []string
 	// StateDir holds repository connections and caches.
 	StateDir string
 	// Location is the time zone retention counts days, weeks, and months

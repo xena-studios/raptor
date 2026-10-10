@@ -166,6 +166,14 @@ One table (`audit_log`) for account and org events, with the IP address and brow
 
 Sign-ins and org changes are written in the same transaction as the change, so neither happens without the other. Org events are written under row-level security as the user (they can add their own org's events, never change or delete any), and a former member's address isn't shown on their old events once nobody shares an org with them. A sign-in from a browser (by user agent) the account hasn't used before emails the user.
 
+## Backup destinations in the app
+
+Destinations live on each node, credentials included: the Panel never stores them. They pass through it once, inside the signed `backup.destination.save` the browser sends, and neither the Panel's audit log nor the node's record of commands keeps command parameters.
+
+- **A node's Backups tab** (admins): its destinations with their health (worked when, failing since when and why, what they store, the upload limit), a Test button, and adding or changing one: a folder on the node, S3-compatible (presets fill the endpoint for Backblaze B2, Cloudflare R2, Wasabi, AWS, Hetzner, OVH, and Google Cloud Storage), Azure, an SFTP server (the node fetches the host key, the owner compares the fingerprint and trusts it; sign in with the node's own key, shown to paste into `authorized_keys`, a password, or a private key), or WebDAV. Test works before saving; saving and removing take a passkey. Secrets are never shown back; left blank they're kept.
+- **A server's Backups tab:** "Where backups go", each destination with what it keeps (Light, Standard, Long-term, or custom numbers) and what's left out; admins change it, with a passkey when it sends backups somewhere new off the node's own disk or keeps fewer (`web/src/lib/backup-destinations.ts` mirrors Wings' rule, to say so on the button). Each backup shows where it is, and "Back up now" can go to one place only. A schedule's backup step can too.
+- **Org settings → Backups** (admins): every connected node's destinations and their health in one place, linking to each node's tab.
+
 ## Imported eggs
 
 Besides the built-in catalog, an org can import eggs (`org_eggs`): Pterodactyl or Pelican files, JSON or YAML, from a link or an upload. Admins and owners import and remove them; any member sees and uses them. The Eggs page lists them first, and the create-server wizard offers them first, on every node unless the egg names its CPUs.

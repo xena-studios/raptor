@@ -117,6 +117,9 @@ func TestDestinationFailing(t *testing.T) {
 	if err := v.m.TestDestination(ctx, Destination{ID: broken}); err == nil {
 		t.Fatal("testing a broken destination passed")
 	}
+	if err := v.m.TestDestination(ctx, Destination{ID: nas2(t, v)}); err != nil {
+		t.Fatalf("testing a saved destination by its ID: %v", err)
+	}
 	if err := v.m.TestDestination(ctx, Destination{ID: LocalDestination}); err != nil {
 		t.Fatalf("testing the local destination: %v", err)
 	}
@@ -125,6 +128,7 @@ func TestDestinationFailing(t *testing.T) {
 func TestDestinationValidation(t *testing.T) {
 	v := newEnv(t)
 	v.m.o.ReservedPaths = []string{"/srv/raptor"}
+	v.m.o.FolderRoots = nil // the real ones
 	ok := map[string]Destination{
 		"folder": {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "/mnt/nas/raptor"}}},
 		"s3":     {Type: engine.S3, Config: engine.Config{S3: &engine.S3Config{Endpoint: "s3.us-west-004.backblazeb2.com", Bucket: "b", AccessKey: "a", SecretKey: "s"}}},
@@ -144,6 +148,8 @@ func TestDestinationValidation(t *testing.T) {
 		"no settings":              {Type: engine.S3},
 		"two settings":             {Type: engine.S3, Config: engine.Config{S3: ok["s3"].S3, Azure: ok["azure"].Azure}},
 		"settings of another type": {Type: engine.S3, Config: engine.Config{Azure: ok["azure"].Azure}},
+		"outside the mounts":       {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "/opt/backups"}}},
+		"a mount root itself":      {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "/mnt"}}},
 		"relative folder":          {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "backups"}}},
 		"root":                     {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "/"}}},
 		"etc":                      {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "/etc/raptor"}}},
@@ -203,6 +209,18 @@ func TestDestinationSecrets(t *testing.T) {
 			t.Fatalf("%s changed type: %v", d.Name, err)
 		}
 	}
+	// An SFTP destination switching from its password to the node's key
+	// drops the password, rather than having two ways in.
+	id, err := v.m.SaveDestination(ctx, Destination{Name: "box", Type: engine.SFTP, Config: engine.Config{SFTP: &engine.SFTPConfig{Host: "h", Username: "u", Path: "p", HostKey: hostKey, Password: "SECRET-7"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := v.m.SaveDestination(ctx, Destination{ID: id, Name: "box", Type: engine.SFTP, Config: engine.Config{SFTP: &engine.SFTPConfig{Host: "h", Username: "u", Path: "p", HostKey: hostKey, UseNodeKey: true}}}); err != nil {
+		t.Fatalf("switching to the node's key: %v", err)
+	}
+	if r, _ := v.db.Read.GetBackupDestination(ctx, id); strings.Contains(r.Config, "SECRET-7") {
+		t.Fatalf("the password stayed: %s", r.Config)
+	}
 	all, _ := v.events.Since(ctx, 0, 1000)
 	for _, e := range all {
 		if b, _ := json.Marshal(e.Data); strings.Contains(string(b), "SECRET") {
@@ -258,4 +276,14 @@ func TestExplain(t *testing.T) {
 			t.Errorf("%q: the original is lost", raw)
 		}
 	}
+}
+
+// nas2 saves a working folder destination and returns its ID.
+func nas2(t *testing.T, v *env) string {
+	t.Helper()
+	id, err := v.m.SaveDestination(context.Background(), Destination{Name: "NAS 2", Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: filepath.Join(v.dir, "nas2")}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
 }

@@ -5,6 +5,7 @@ import {
   Archive,
   ArchiveRestore,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Clock,
   FileStack,
@@ -23,6 +24,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { EntryIcon } from "@/components/file-manager/icons";
 import { EmptyState } from "@/components/page";
+import { BackupPlan, useBackupPlan } from "@/components/server-backup-plan";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +55,7 @@ import {
 import { type Backup, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { crumbs, formatSize, join } from "@/lib/files";
-import { when } from "@/lib/format";
+import { isAdmin, when } from "@/lib/format";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
@@ -146,6 +148,14 @@ export function ServerBackups({
   );
   const backups = list.data?.backups ?? [];
   const byId = new Map(backups.map((b) => [b.id, b]));
+  const orgs = useConnectQuery(OrgService.method.listOrgs, {});
+  const admin = isAdmin(orgs.data?.orgs.find((o) => o.id === orgId)?.role);
+  const plan = useBackupPlan(nodeId, serverId);
+  const destName = (id: string) =>
+    plan.data?.destinations.find((d) => d.id === id)?.name ??
+    (id === "local" ? "Local" : "A removed destination");
+  const targets = plan.data?.policy.targets ?? [];
+  const backingUp = acts.some((a) => a.kind === "backup" && busy(a));
 
   // When something finishes, the backups and files it changed are reloaded.
   const seen = useRef(new Set<string>());
@@ -198,18 +208,47 @@ export function ServerBackups({
               Locked backups are kept until you unlock them.
             </CardDescription>
           </div>
-          <Button
-            size="sm"
-            disabled={pending !== "" || acts.some((a) => a.kind === "backup" && busy(a))}
-            onClick={() => act("create", () => run("backup.create", {}))}
-          >
-            {acts.some((a) => a.kind === "backup" && busy(a)) ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Archive />
+          <div className="flex">
+            <Button
+              size="sm"
+              className={targets.length > 1 ? "rounded-r-none" : undefined}
+              disabled={pending !== "" || backingUp}
+              onClick={() => act("create", () => run("backup.create", {}))}
+            >
+              {backingUp ? <Loader2 className="animate-spin" /> : <Archive />}
+              Back up now
+            </Button>
+            {targets.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      size="icon-sm"
+                      className="rounded-l-none border-l border-primary-foreground/20"
+                      aria-label="Back up to one place"
+                      disabled={pending !== "" || backingUp}
+                    />
+                  }
+                >
+                  <ChevronDown />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {targets.map((t) => (
+                    <DropdownMenuItem
+                      key={t.destination_id}
+                      onClick={() =>
+                        act("create", () =>
+                          run("backup.create", { destination_id: t.destination_id }),
+                        )
+                      }
+                    >
+                      Back up to {destName(t.destination_id)} only
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-            Back up now
-          </Button>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -244,6 +283,7 @@ export function ServerBackups({
                 <TableRow>
                   <TableHead>Taken</TableHead>
                   <TableHead>Kind</TableHead>
+                  <TableHead>Where</TableHead>
                   <TableHead className="text-right">Size</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-12" />
@@ -254,6 +294,7 @@ export function ServerBackups({
                   <TableRow key={a.job_id}>
                     <TableCell>{new Date(a.started_at).toLocaleString()}</TableCell>
                     <TableCell>{kindNames[a.backup_kind ?? ""] ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">—</TableCell>
                     <TableCell className="text-right text-muted-foreground">—</TableCell>
                     <TableCell>
                       <Working a={a} />
@@ -274,6 +315,9 @@ export function ServerBackups({
                         </span>
                       </TableCell>
                       <TableCell>{kindNames[b.kind] ?? b.kind}</TableCell>
+                      <TableCell className="max-w-40 truncate">
+                        {destName(b.destinationId || "local")}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {b.status === "ok" ? formatSize(Number(b.size)) : "—"}
                       </TableCell>
@@ -349,6 +393,8 @@ export function ServerBackups({
           )}
         </CardContent>
       </Card>
+
+      <BackupPlan orgId={orgId} nodeId={nodeId} serverId={serverId} userId={userId} admin={admin} />
 
       {restoring && (
         <RestoreDialog

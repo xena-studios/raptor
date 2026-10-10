@@ -70,6 +70,7 @@ var actions = map[string]string{
 	"backup.browse":   Backups,
 	"backup.extract":  Backups,
 	"backup.activity": Backups,
+	"backup.policy":   Backups,
 
 	"schedule.create": Schedules,
 	"schedule.update": Schedules,
@@ -142,7 +143,7 @@ func Read(action string) bool {
 	switch action {
 	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list",
 		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor",
-		"backup.destinations", "backup.hostkey":
+		"backup.destinations", "backup.hostkey", "backup.policy":
 		return true
 	}
 	return false
