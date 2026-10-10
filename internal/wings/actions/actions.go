@@ -58,6 +58,8 @@ const (
 	BackupKey               = "backup.key"          // the backup key, for the Panel to keep (not in owner mode)
 	BackupKeyMode           = "backup.key.mode"     // who keeps copies of the backup key
 	BackupKeyShow           = "backup.key.show"     // the backup key, for the owner to save (signed)
+	BackupRecover           = "backup.recover"      // find backups this node didn't make, or doesn't have any more
+	BackupOrphans           = "backup.orphans"      // a read: backups of servers that aren't on this node
 
 	NodeSFTP       = "node.sftp"       // turn SFTP on or off
 	SFTPDisconnect = "sftp.disconnect" // end one login's connections to a server
@@ -656,6 +658,31 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 			return nil, b.SetKeyMode(ctx, p.Mode)
 		},
 	})
+	// Recovering backups adds a destination with another node's key (or
+	// this node's past), so it takes an owner's passkey; restoring what it
+	// finds onto a server does too, as for a deleted server's backups.
+	x.Register(BackupRecover, command.Handler{
+		Signed:    command.Always,
+		OwnerOnly: func(context.Context, command.Envelope) (bool, error) { return true, nil },
+		Run: func(ctx context.Context, e command.Envelope) (any, error) {
+			var p backup.RecoverParams
+			if err := decode(e, &p); err != nil {
+				return nil, err
+			}
+			id, job, err := b.Recover(ctx, p, e.UserID)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]string{"destination_id": id, "job_id": job}, nil
+		},
+	})
+	x.Register(BackupOrphans, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, _ command.Envelope) (any, error) {
+		list, err := b.Orphans(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"backups": list}, nil
+	}})
 	x.Register(BackupHostKey, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p HostKeyParams
 		if err := decode(e, &p); err != nil {

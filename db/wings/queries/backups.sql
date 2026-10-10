@@ -10,6 +10,17 @@ SELECT * FROM backup_destinations ORDER BY id != 'local', created_at, id; -- loc
 -- name: UpdateBackupDestination :exec
 UPDATE backup_destinations SET name = ?, config = ?, upload_limit = ?, version = version + 1, updated_at = ? WHERE id = ?;
 
+-- name: InsertRecoveredDestination :exec
+INSERT INTO backup_destinations (id, name, type, config, read_only, repo_password, point_in_time, created_at, updated_at)
+VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?);
+
+-- name: InsertRecoveredBackup :exec
+INSERT INTO backups (id, server_id, destination_id, kind, status, snapshot_id, size, files, created_by, created_at, finished_at)
+VALUES (?, ?, ?, 'recovered', 'ok', ?, ?, ?, ?, ?, ?);
+
+-- name: DestinationSnapshots :many
+SELECT snapshot_id FROM backups WHERE destination_id = ?;
+
 -- name: DestinationWorked :exec
 UPDATE backup_destinations SET last_ok_at = ? WHERE id = ?;
 

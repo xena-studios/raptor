@@ -187,6 +187,19 @@ service OrgService {
   // Admins and owners.
   rpc SyncBackupKey(SyncBackupKeyRequest) returns (SyncBackupKeyResponse) {}
 
+  // ListRecoverySources lists the org's nodes, removed ones included, with
+  // what the Panel has for recovering their backups. Owners.
+  rpc ListRecoverySources(ListRecoverySourcesRequest) returns (ListRecoverySourcesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // PrepareRecovery gives the owner what recovering a node's backups on
+  // another node takes, to sign and send as backup.recover: the node's
+  // backup key (the Panel's copy), and for its Raptor Backup Storage a
+  // destination with a key that only reads its folder, for 90 days.
+  // Owners; audited.
+  rpc PrepareRecovery(PrepareRecoveryRequest) returns (PrepareRecoveryResponse) {}
+
   // PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
   // says what it would run, for review before ImportEgg: its images and
   // their registries, its install script, its startup command, and
@@ -817,4 +830,36 @@ message SyncBackupKeyRequest {
 message SyncBackupKeyResponse {
   // The node's mode: "panel" or "owner".
   string mode = 1;
+}
+
+message ListRecoverySourcesRequest {
+  string org_id = 1;
+}
+
+message RecoverySource {
+  string node_id = 1;
+  string name = 2;
+  bool removed = 3;
+  // The Panel has a copy of its backup key.
+  bool key_kept = 4;
+  // It had Raptor Backup Storage, and its files are still there.
+  bool has_storage = 5;
+}
+
+message ListRecoverySourcesResponse {
+  repeated RecoverySource sources = 1;
+}
+
+message PrepareRecoveryRequest {
+  string org_id = 1;
+  string from_node_id = 2;
+  // Also a destination for its Raptor Backup Storage.
+  bool storage = 3;
+}
+
+message PrepareRecoveryResponse {
+  // The node's backup key, from the Panel's copy (empty if it has none).
+  string key = 1;
+  // For storage: the destination, as backup.recover takes it (JSON).
+  string destination_json = 2;
 }

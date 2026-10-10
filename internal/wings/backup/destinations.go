@@ -39,6 +39,12 @@ type Destination struct {
 	UploadLimit int64 `json:"upload_limit,omitempty"`
 	// Status is how it's been doing; filled in listings, ignored on save.
 	Status *DestinationStatus `json:"status,omitempty"`
+	// Recovered destinations (docs/WINGS.md#recovering-backups): read-only,
+	// with the key of the backups there (another node's), or this node's
+	// as they were at PointInTime.
+	ReadOnly     bool       `json:"read_only,omitempty"`
+	RepoPassword string     `json:"repo_password,omitempty"`
+	PointInTime  *time.Time `json:"point_in_time,omitempty"`
 }
 
 // DestinationStatus is a destination's health.
@@ -58,6 +64,14 @@ const redacted = "********"
 
 // secrets are a destination's secret fields.
 func (d *Destination) secrets() []*string {
+	out := d.configSecrets()
+	if d.RepoPassword != "" {
+		out = append(out, &d.RepoPassword)
+	}
+	return out
+}
+
+func (d *Destination) configSecrets() []*string {
 	c := d.Config
 	switch {
 	case c.S3 != nil:
@@ -307,7 +321,11 @@ func statusFromRow(r store.BackupDestination) *DestinationStatus {
 
 // destFromRow reads a stored destination: config holds its type's settings.
 func destFromRow(r store.BackupDestination) (Destination, error) {
-	d := Destination{ID: r.ID, Name: r.Name, Type: r.Type, UploadLimit: r.UploadLimit}
+	d := Destination{ID: r.ID, Name: r.Name, Type: r.Type, UploadLimit: r.UploadLimit, ReadOnly: r.ReadOnly == 1, RepoPassword: r.RepoPassword}
+	if r.PointInTime.Valid {
+		t := time.UnixMilli(r.PointInTime.Int64).UTC()
+		d.PointInTime = &t
+	}
 	var target any
 	switch r.Type {
 	case engine.Local:
@@ -427,6 +445,14 @@ func (m *Manager) SaveDestination(ctx context.Context, d Destination) (string, e
 	}
 	if d.ID == HostedDestination && d.Type != engine.Raptor {
 		return "", fmt.Errorf("%w: Raptor Backup Storage is set up by Raptor", ErrInvalid)
+	}
+	if d.ReadOnly || d.RepoPassword != "" || d.PointInTime != nil {
+		return "", fmt.Errorf("%w: recovered destinations are made by recovering backups", ErrInvalid)
+	}
+	if d.ID != "" {
+		if r, err := m.o.Store.Read.GetBackupDestination(ctx, d.ID); err == nil && r.ReadOnly == 1 {
+			return "", fmt.Errorf("%w: a recovered destination can't be changed; remove it and recover again", ErrInvalid)
+		}
 	}
 	now := m.o.Now().UnixMilli()
 	err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
@@ -554,7 +580,7 @@ func (discard) Write(p []byte) (int, error) { return len(p), nil }
 
 // toEngine is what the worker needs to open a destination.
 func (m *Manager) toEngine(ctx context.Context, d Destination) (engine.Destination, error) {
-	ed := engine.Destination{ID: d.ID, Type: d.Type, Config: d.clone().Config, UploadLimit: d.UploadLimit}
+	ed := engine.Destination{ID: d.ID, Type: d.Type, Config: d.clone().Config, UploadLimit: d.UploadLimit, ReadOnly: d.ReadOnly, PointInTime: d.PointInTime}
 	if d.Type == engine.Local {
 		ed.Path = m.o.LocalPath
 	}

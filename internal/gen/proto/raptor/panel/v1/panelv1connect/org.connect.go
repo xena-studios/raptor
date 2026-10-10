@@ -117,6 +117,12 @@ const (
 	// OrgServiceSyncBackupKeyProcedure is the fully-qualified name of the OrgService's SyncBackupKey
 	// RPC.
 	OrgServiceSyncBackupKeyProcedure = "/raptor.panel.v1.OrgService/SyncBackupKey"
+	// OrgServiceListRecoverySourcesProcedure is the fully-qualified name of the OrgService's
+	// ListRecoverySources RPC.
+	OrgServiceListRecoverySourcesProcedure = "/raptor.panel.v1.OrgService/ListRecoverySources"
+	// OrgServicePrepareRecoveryProcedure is the fully-qualified name of the OrgService's
+	// PrepareRecovery RPC.
+	OrgServicePrepareRecoveryProcedure = "/raptor.panel.v1.OrgService/PrepareRecovery"
 	// OrgServicePreviewEggProcedure is the fully-qualified name of the OrgService's PreviewEgg RPC.
 	OrgServicePreviewEggProcedure = "/raptor.panel.v1.OrgService/PreviewEgg"
 	// OrgServiceImportEggProcedure is the fully-qualified name of the OrgService's ImportEgg RPC.
@@ -246,6 +252,15 @@ type OrgServiceClient interface {
 	// Panel takes a copy, or forgets its copy if the owner keeps the key.
 	// Admins and owners.
 	SyncBackupKey(context.Context, *v1.SyncBackupKeyRequest) (*v1.SyncBackupKeyResponse, error)
+	// ListRecoverySources lists the org's nodes, removed ones included, with
+	// what the Panel has for recovering their backups. Owners.
+	ListRecoverySources(context.Context, *v1.ListRecoverySourcesRequest) (*v1.ListRecoverySourcesResponse, error)
+	// PrepareRecovery gives the owner what recovering a node's backups on
+	// another node takes, to sign and send as backup.recover: the node's
+	// backup key (the Panel's copy), and for its Raptor Backup Storage a
+	// destination with a key that only reads its folder, for 90 days.
+	// Owners; audited.
+	PrepareRecovery(context.Context, *v1.PrepareRecoveryRequest) (*v1.PrepareRecoveryResponse, error)
 	// PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
 	// says what it would run, for review before ImportEgg: its images and
 	// their registries, its install script, its startup command, and
@@ -490,6 +505,19 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("SyncBackupKey")),
 			connect.WithClientOptions(opts...),
 		),
+		listRecoverySources: connect.NewClient[v1.ListRecoverySourcesRequest, v1.ListRecoverySourcesResponse](
+			httpClient,
+			baseURL+OrgServiceListRecoverySourcesProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListRecoverySources")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		prepareRecovery: connect.NewClient[v1.PrepareRecoveryRequest, v1.PrepareRecoveryResponse](
+			httpClient,
+			baseURL+OrgServicePrepareRecoveryProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("PrepareRecovery")),
+			connect.WithClientOptions(opts...),
+		),
 		previewEgg: connect.NewClient[v1.PreviewEggRequest, v1.PreviewEggResponse](
 			httpClient,
 			baseURL+OrgServicePreviewEggProcedure,
@@ -567,6 +595,8 @@ type orgServiceClient struct {
 	disableBackupStorage *connect.Client[v1.DisableBackupStorageRequest, v1.DisableBackupStorageResponse]
 	getBackupKey         *connect.Client[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse]
 	syncBackupKey        *connect.Client[v1.SyncBackupKeyRequest, v1.SyncBackupKeyResponse]
+	listRecoverySources  *connect.Client[v1.ListRecoverySourcesRequest, v1.ListRecoverySourcesResponse]
+	prepareRecovery      *connect.Client[v1.PrepareRecoveryRequest, v1.PrepareRecoveryResponse]
 	previewEgg           *connect.Client[v1.PreviewEggRequest, v1.PreviewEggResponse]
 	importEgg            *connect.Client[v1.ImportEggRequest, v1.ImportEggResponse]
 	listOrgEggs          *connect.Client[v1.ListOrgEggsRequest, v1.ListOrgEggsResponse]
@@ -872,6 +902,24 @@ func (c *orgServiceClient) SyncBackupKey(ctx context.Context, req *v1.SyncBackup
 	return nil, err
 }
 
+// ListRecoverySources calls raptor.panel.v1.OrgService.ListRecoverySources.
+func (c *orgServiceClient) ListRecoverySources(ctx context.Context, req *v1.ListRecoverySourcesRequest) (*v1.ListRecoverySourcesResponse, error) {
+	response, err := c.listRecoverySources.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// PrepareRecovery calls raptor.panel.v1.OrgService.PrepareRecovery.
+func (c *orgServiceClient) PrepareRecovery(ctx context.Context, req *v1.PrepareRecoveryRequest) (*v1.PrepareRecoveryResponse, error) {
+	response, err := c.prepareRecovery.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // PreviewEgg calls raptor.panel.v1.OrgService.PreviewEgg.
 func (c *orgServiceClient) PreviewEgg(ctx context.Context, req *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error) {
 	response, err := c.previewEgg.CallUnary(ctx, connect.NewRequest(req))
@@ -1041,6 +1089,15 @@ type OrgServiceHandler interface {
 	// Panel takes a copy, or forgets its copy if the owner keeps the key.
 	// Admins and owners.
 	SyncBackupKey(context.Context, *v1.SyncBackupKeyRequest) (*v1.SyncBackupKeyResponse, error)
+	// ListRecoverySources lists the org's nodes, removed ones included, with
+	// what the Panel has for recovering their backups. Owners.
+	ListRecoverySources(context.Context, *v1.ListRecoverySourcesRequest) (*v1.ListRecoverySourcesResponse, error)
+	// PrepareRecovery gives the owner what recovering a node's backups on
+	// another node takes, to sign and send as backup.recover: the node's
+	// backup key (the Panel's copy), and for its Raptor Backup Storage a
+	// destination with a key that only reads its folder, for 90 days.
+	// Owners; audited.
+	PrepareRecovery(context.Context, *v1.PrepareRecoveryRequest) (*v1.PrepareRecoveryResponse, error)
 	// PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
 	// says what it would run, for review before ImportEgg: its images and
 	// their registries, its install script, its startup command, and
@@ -1281,6 +1338,19 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("SyncBackupKey")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceListRecoverySourcesHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListRecoverySourcesProcedure,
+		svc.ListRecoverySources,
+		connect.WithSchema(orgServiceMethods.ByName("ListRecoverySources")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServicePrepareRecoveryHandler := connect.NewUnaryHandlerSimple(
+		OrgServicePrepareRecoveryProcedure,
+		svc.PrepareRecovery,
+		connect.WithSchema(orgServiceMethods.ByName("PrepareRecovery")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServicePreviewEggHandler := connect.NewUnaryHandlerSimple(
 		OrgServicePreviewEggProcedure,
 		svc.PreviewEgg,
@@ -1388,6 +1458,10 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceGetBackupKeyHandler.ServeHTTP(w, r)
 		case OrgServiceSyncBackupKeyProcedure:
 			orgServiceSyncBackupKeyHandler.ServeHTTP(w, r)
+		case OrgServiceListRecoverySourcesProcedure:
+			orgServiceListRecoverySourcesHandler.ServeHTTP(w, r)
+		case OrgServicePrepareRecoveryProcedure:
+			orgServicePrepareRecoveryHandler.ServeHTTP(w, r)
 		case OrgServicePreviewEggProcedure:
 			orgServicePreviewEggHandler.ServeHTTP(w, r)
 		case OrgServiceImportEggProcedure:
@@ -1539,6 +1613,14 @@ func (UnimplementedOrgServiceHandler) GetBackupKey(context.Context, *v1.GetBacku
 
 func (UnimplementedOrgServiceHandler) SyncBackupKey(context.Context, *v1.SyncBackupKeyRequest) (*v1.SyncBackupKeyResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.SyncBackupKey is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListRecoverySources(context.Context, *v1.ListRecoverySourcesRequest) (*v1.ListRecoverySourcesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListRecoverySources is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) PrepareRecovery(context.Context, *v1.PrepareRecoveryRequest) (*v1.PrepareRecoveryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.PrepareRecovery is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) PreviewEgg(context.Context, *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error) {

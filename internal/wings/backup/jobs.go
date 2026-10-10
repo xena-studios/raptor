@@ -323,7 +323,7 @@ func (m *Manager) retention(ctx context.Context, serverID, destID string, r Rete
 	}
 	var cands []candidate
 	for _, row := range rows {
-		if row.Status == StatusOK && row.Locked == 0 && row.Kind != KindSafety && row.Kind != KindFinal {
+		if row.Status == StatusOK && row.Locked == 0 && row.Kind != KindSafety && row.Kind != KindFinal && row.Kind != KindRecovered {
 			cands = append(cands, candidate{ID: row.ID, At: time.UnixMilli(row.CreatedAt)})
 		}
 	}
@@ -586,13 +586,24 @@ func (m *Manager) snapshotInto(ctx context.Context, b *Backup, dir string, ignor
 
 // safetyBackup backs up the stopped server's current files before a
 // restore replaces them. An empty directory needs none. The backup goes to
-// the same destination as the one being restored.
+// the same destination as the one being restored, or for a recovered one,
+// the server's primary destination.
 func (m *Manager) safetyBackup(ctx context.Context, j jobs.Job, cp *restoreCheckpoint, restoring *Backup, dir string, log io.Writer) (string, error) {
 	if empty, err := isEmpty(dir); err != nil || empty {
 		return "", err
 	}
+	// Beside the backup being restored, unless that's a recovered
+	// (read-only) destination: then the server's own primary one.
+	dest := restoring.DestinationID
+	if r, err := m.o.Store.Read.GetBackupDestination(ctx, dest); err == nil && r.ReadOnly == 1 {
+		pol, err := m.Policy(ctx, j.ServerID)
+		if err != nil {
+			return "", err
+		}
+		dest = pol.Primary().DestinationID
+	}
 	b := &Backup{
-		ID: cp.SafetyID, ServerID: j.ServerID, DestinationID: restoring.DestinationID, Kind: KindSafety,
+		ID: cp.SafetyID, ServerID: j.ServerID, DestinationID: dest, Kind: KindSafety,
 		Status: StatusPending, JobID: j.ID, CreatedBy: hookUser, CreatedAt: m.o.Now(), ExpiresAt: m.o.Now().Add(SafetyTTL),
 	}
 	if b.ID == "" {
