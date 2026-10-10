@@ -16,9 +16,7 @@ import (
 
 	"github.com/kopia/kopia/repo/blob"
 	"github.com/kopia/kopia/repo/blob/azure"
-	"github.com/kopia/kopia/repo/blob/b2"
 	"github.com/kopia/kopia/repo/blob/filesystem"
-	"github.com/kopia/kopia/repo/blob/rclone"
 	"github.com/kopia/kopia/repo/blob/s3"
 	"github.com/kopia/kopia/repo/blob/sftp"
 	"github.com/kopia/kopia/repo/blob/throttling"
@@ -26,23 +24,22 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// Destination types: every storage Kopia has (docs/WINGS.md#backups),
-// except Google's own APIs, whose SDK would add 18 MB to Wings: Google Cloud
-// Storage is reached through its S3-compatible API, and Google Drive
-// through rclone.
+// Destination types: one per way of reaching storage, from what Kopia has
+// (docs/WINGS.md#backups). Services that speak S3 (Backblaze B2, R2,
+// Wasabi, Google Cloud Storage's S3 API, ...) are S3 destinations, not
+// types of their own. Kopia's experimental backends (rclone, Google Drive)
+// and Google's own APIs (their SDK would add 18 MB to Wings) aren't built in.
 const (
 	Local  = "local"  // the node's own backup directory (paths.backups)
 	Folder = "folder" // another directory on the node: a mounted NAS, a second disk
-	S3     = "s3"     // S3-compatible: AWS, R2, Wasabi, MinIO, ...
-	B2     = "b2"     // Backblaze B2's own API
+	S3     = "s3"     // S3-compatible: AWS, Backblaze B2, R2, Wasabi, MinIO, ...
 	Azure  = "azure"  // Azure Blob Storage
 	SFTP   = "sftp"
 	WebDAV = "webdav"
-	Rclone = "rclone" // anything rclone reaches, with the node's rclone
 )
 
 // Types lists the destination types.
-var Types = []string{Local, Folder, S3, B2, Azure, SFTP, WebDAV, Rclone}
+var Types = []string{Local, Folder, S3, Azure, SFTP, WebDAV}
 
 // Destination is where a repository lives. One repository per destination
 // holds every server's backups on the node, so identical files are stored
@@ -62,11 +59,9 @@ type Destination struct {
 type Config struct {
 	Folder *FolderConfig `json:"folder,omitempty"`
 	S3     *S3Config     `json:"s3,omitempty"`
-	B2     *B2Config     `json:"b2,omitempty"`
 	Azure  *AzureConfig  `json:"azure,omitempty"`
 	SFTP   *SFTPConfig   `json:"sftp,omitempty"`
 	WebDAV *WebDAVConfig `json:"webdav,omitempty"`
-	Rclone *RcloneConfig `json:"rclone,omitempty"`
 }
 
 // FolderConfig is a directory on the node.
@@ -84,14 +79,6 @@ type S3Config struct {
 	Prefix    string `json:"prefix,omitempty"`
 	AccessKey string `json:"access_key"`
 	SecretKey string `json:"secret_key"` //nolint:gosec // it's the field, not a value
-}
-
-// B2Config is a Backblaze B2 bucket, through B2's own API.
-type B2Config struct {
-	Bucket string `json:"bucket"`
-	Prefix string `json:"prefix,omitempty"`
-	KeyID  string `json:"key_id"`
-	Key    string `json:"key"`
 }
 
 // AzureConfig is an Azure Blob Storage container. Either the account key or
@@ -131,14 +118,6 @@ type WebDAVConfig struct {
 	Password string `json:"password,omitempty"`
 }
 
-// RcloneConfig is an rclone remote: the remote's section of an rclone
-// config file, and the path in it.
-type RcloneConfig struct {
-	// Remote is "name:path", the name a section of Config.
-	Remote string `json:"remote"`
-	Config string `json:"config"`
-}
-
 // Addr is an SFTP server's host:port.
 func (c *SFTPConfig) Addr() string {
 	port := c.Port
@@ -165,9 +144,6 @@ func (e *Engine) storage(ctx context.Context) (blob.Storage, error) {
 			DoNotUseTLS: plain, Region: c.Region, AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey,
 			Limits: limits,
 		}, false)
-	case d.Type == B2 && d.B2 != nil:
-		c := d.B2
-		return b2.New(ctx, &b2.Options{BucketName: c.Bucket, Prefix: c.Prefix, KeyID: c.KeyID, Key: c.Key, Limits: limits}, false)
 	case d.Type == Azure && d.Azure != nil:
 		c := d.Azure
 		return azure.New(ctx, &azure.Options{
@@ -195,15 +171,6 @@ func (e *Engine) storage(ctx context.Context) (blob.Storage, error) {
 	case d.Type == WebDAV && d.WebDAV != nil:
 		c := d.WebDAV
 		return webdav.New(ctx, &webdav.Options{URL: c.URL, Username: c.Username, Password: c.Password, AtomicWrites: true, Limits: limits}, false)
-	case d.Type == Rclone && d.Rclone != nil:
-		exe, err := RcloneExe()
-		if err != nil {
-			return nil, err
-		}
-		c := d.Rclone
-		return rclone.New(ctx, &rclone.Options{
-			RemotePath: c.Remote, RCloneExe: exe, EmbeddedConfig: c.Config, AtomicWrites: true, Limits: limits,
-		}, true)
 	}
 	return nil, fmt.Errorf("destination %s: unknown type %q, or its settings are missing", d.ID, d.Type)
 }
@@ -216,19 +183,6 @@ func folder(ctx context.Context, path string, limits throttling.Limits) (blob.St
 		return nil, err
 	}
 	return filesystem.New(ctx, &filesystem.Options{Path: path, FileMode: 0o600, DirectoryMode: 0o700, Limits: limits}, true)
-}
-
-// ErrNoRclone means rclone isn't installed on the node.
-var ErrNoRclone = errors.New("rclone isn't installed on this node; install it from rclone.org first")
-
-// RcloneExe finds the node's rclone. Raptor doesn't ship it.
-func RcloneExe() (string, error) {
-	for _, p := range []string{"/usr/bin/rclone", "/usr/local/bin/rclone"} {
-		if fi, err := os.Stat(p); err == nil && fi.Mode().IsRegular() && fi.Mode()&0o111 != 0 {
-			return p, nil
-		}
-	}
-	return "", ErrNoRclone
 }
 
 // testBlob is the prefix of the file a destination test writes and removes.

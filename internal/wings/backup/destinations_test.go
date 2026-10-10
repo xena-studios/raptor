@@ -128,11 +128,9 @@ func TestDestinationValidation(t *testing.T) {
 	ok := map[string]Destination{
 		"folder": {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "/mnt/nas/raptor"}}},
 		"s3":     {Type: engine.S3, Config: engine.Config{S3: &engine.S3Config{Endpoint: "s3.us-west-004.backblazeb2.com", Bucket: "b", AccessKey: "a", SecretKey: "s"}}},
-		"b2":     {Type: engine.B2, Config: engine.Config{B2: &engine.B2Config{Bucket: "b", KeyID: "k", Key: "s"}}},
 		"azure":  {Type: engine.Azure, Config: engine.Config{Azure: &engine.AzureConfig{Container: "c", StorageAccount: "a", SASToken: "t"}}},
 		"sftp":   {Type: engine.SFTP, Config: engine.Config{SFTP: &engine.SFTPConfig{Host: "h", Username: "u", Path: "backups", HostKey: hostKey, UseNodeKey: true}}},
 		"webdav": {Type: engine.WebDAV, Config: engine.Config{WebDAV: &engine.WebDAVConfig{URL: "https://cloud.example.com/remote.php/dav/files/me/raptor"}}},
-		"rclone": {Type: engine.Rclone, Config: engine.Config{Rclone: &engine.RcloneConfig{Remote: "gd:raptor", Config: "[gd]\ntype = drive\ntoken = {}\n"}}},
 	}
 	for name, d := range ok {
 		d.Name = name
@@ -144,8 +142,8 @@ func TestDestinationValidation(t *testing.T) {
 		"local":                    {Type: engine.Local},
 		"unknown type":             {Type: "ftp"},
 		"no settings":              {Type: engine.S3},
-		"two settings":             {Type: engine.S3, Config: engine.Config{S3: ok["s3"].S3, B2: ok["b2"].B2}},
-		"settings of another type": {Type: engine.S3, Config: engine.Config{B2: ok["b2"].B2}},
+		"two settings":             {Type: engine.S3, Config: engine.Config{S3: ok["s3"].S3, Azure: ok["azure"].Azure}},
+		"settings of another type": {Type: engine.S3, Config: engine.Config{Azure: ok["azure"].Azure}},
 		"relative folder":          {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "backups"}}},
 		"root":                     {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "/"}}},
 		"etc":                      {Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: "/etc/raptor"}}},
@@ -158,13 +156,7 @@ func TestDestinationValidation(t *testing.T) {
 		"sftp two logins":          {Type: engine.SFTP, Config: engine.Config{SFTP: &engine.SFTPConfig{Host: "h", Username: "u", Path: "p", HostKey: hostKey, Password: "pw", UseNodeKey: true}}},
 		"sftp bad key":             {Type: engine.SFTP, Config: engine.Config{SFTP: &engine.SFTPConfig{Host: "h", Username: "u", Path: "p", HostKey: hostKey, PrivateKey: "nope"}}},
 		"webdav ftp":               {Type: engine.WebDAV, Config: engine.Config{WebDAV: &engine.WebDAVConfig{URL: "ftp://x"}}},
-		"rclone local":             {Type: engine.Rclone, Config: engine.Config{Rclone: &engine.RcloneConfig{Remote: "l:/etc", Config: "[l]\ntype = local\n"}}},
-		"rclone sftp ssh":          {Type: engine.Rclone, Config: engine.Config{Rclone: &engine.RcloneConfig{Remote: "s:x", Config: "[s]\ntype = sftp\nssh = sh -c 'id'\n"}}},
-		"rclone command":           {Type: engine.Rclone, Config: engine.Config{Rclone: &engine.RcloneConfig{Remote: "d:x", Config: "[d]\ntype = drive\nauth_command = touch /tmp/x\n"}}},
-		"rclone alias":             {Type: engine.Rclone, Config: engine.Config{Rclone: &engine.RcloneConfig{Remote: "a:x", Config: "[a]\ntype = alias\nremote = /etc\n"}}},
-		"rclone two":               {Type: engine.Rclone, Config: engine.Config{Rclone: &engine.RcloneConfig{Remote: "d:x", Config: "[d]\ntype = drive\n[l]\ntype = local\n"}}},
-		"rclone wrong name":        {Type: engine.Rclone, Config: engine.Config{Rclone: &engine.RcloneConfig{Remote: "x:y", Config: "[d]\ntype = drive\n"}}},
-		"negative limit":           {Type: engine.B2, Config: engine.Config{B2: ok["b2"].B2}, UploadLimit: -1},
+		"negative limit":           {Type: engine.S3, Config: engine.Config{S3: ok["s3"].S3}, UploadLimit: -1},
 	}
 	for name, d := range bad {
 		d.Name = "x"
@@ -181,11 +173,9 @@ func TestDestinationSecrets(t *testing.T) {
 	ctx := context.Background()
 	for _, d := range []Destination{
 		{Name: "s3", Type: engine.S3, Config: engine.Config{S3: &engine.S3Config{Endpoint: "e", Bucket: "b", AccessKey: "a", SecretKey: "SECRET-1"}}},
-		{Name: "b2", Type: engine.B2, Config: engine.Config{B2: &engine.B2Config{Bucket: "b", KeyID: "k", Key: "SECRET-2"}}},
 		{Name: "azure", Type: engine.Azure, Config: engine.Config{Azure: &engine.AzureConfig{Container: "c", StorageAccount: "a", StorageKey: "SECRET-3"}}},
 		{Name: "sftp", Type: engine.SFTP, Config: engine.Config{SFTP: &engine.SFTPConfig{Host: "h", Username: "u", Path: "p", HostKey: hostKey, Password: "SECRET-4"}}},
 		{Name: "webdav", Type: engine.WebDAV, Config: engine.Config{WebDAV: &engine.WebDAVConfig{URL: "https://x", Password: "SECRET-5"}}},
-		{Name: "rclone", Type: engine.Rclone, Config: engine.Config{Rclone: &engine.RcloneConfig{Remote: "d:x", Config: "[d]\ntype = drive\ntoken = SECRET-6\n"}}},
 	} {
 		id, err := v.m.SaveDestination(ctx, d)
 		if err != nil {
@@ -208,7 +198,7 @@ func TestDestinationSecrets(t *testing.T) {
 		}
 		// A type can't change: it would mix one type's secrets into another.
 		other := listed
-		other.Type = map[bool]string{true: engine.B2, false: engine.WebDAV}[d.Type == engine.WebDAV]
+		other.Type = map[bool]string{true: engine.Azure, false: engine.WebDAV}[d.Type == engine.WebDAV]
 		if _, err := v.m.SaveDestination(ctx, other); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("%s changed type: %v", d.Name, err)
 		}
