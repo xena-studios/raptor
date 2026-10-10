@@ -57,6 +57,9 @@ const (
 	// LocalServiceCreateBackupProcedure is the fully-qualified name of the LocalService's CreateBackup
 	// RPC.
 	LocalServiceCreateBackupProcedure = "/raptor.wings.local.v1.LocalService/CreateBackup"
+	// LocalServiceGetBackupKeyProcedure is the fully-qualified name of the LocalService's GetBackupKey
+	// RPC.
+	LocalServiceGetBackupKeyProcedure = "/raptor.wings.local.v1.LocalService/GetBackupKey"
 	// LocalServiceRestoreBackupProcedure is the fully-qualified name of the LocalService's
 	// RestoreBackup RPC.
 	LocalServiceRestoreBackupProcedure = "/raptor.wings.local.v1.LocalService/RestoreBackup"
@@ -119,6 +122,10 @@ type LocalServiceClient interface {
 	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
 	// CreateBackup backs up a server to its destination. Root only.
 	CreateBackup(context.Context, *v1.CreateBackupRequest) (*v1.CreateBackupResponse, error)
+	// GetBackupKey shows the node's backup key (its backups can't be read
+	// without it) and who keeps copies, for the owner to save it without it
+	// passing through the Panel. Root only.
+	GetBackupKey(context.Context, *v1.GetBackupKeyRequest) (*v1.GetBackupKeyResponse, error)
 	// RestoreBackup replaces a server's files with one of its backups, after
 	// taking a safety backup of the current files. The server is stopped
 	// meanwhile and started again if it was meant to be running. Root only.
@@ -235,6 +242,13 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("CreateBackup")),
 			connect.WithClientOptions(opts...),
 		),
+		getBackupKey: connect.NewClient[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse](
+			httpClient,
+			baseURL+LocalServiceGetBackupKeyProcedure,
+			connect.WithSchema(localServiceMethods.ByName("GetBackupKey")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		restoreBackup: connect.NewClient[v1.RestoreBackupRequest, v1.RestoreBackupResponse](
 			httpClient,
 			baseURL+LocalServiceRestoreBackupProcedure,
@@ -324,6 +338,7 @@ type localServiceClient struct {
 	tailLogs          *connect.Client[v1.TailLogsRequest, v1.TailLogsResponse]
 	listBackups       *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
 	createBackup      *connect.Client[v1.CreateBackupRequest, v1.CreateBackupResponse]
+	getBackupKey      *connect.Client[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse]
 	restoreBackup     *connect.Client[v1.RestoreBackupRequest, v1.RestoreBackupResponse]
 	update            *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
 	listKeys          *connect.Client[v1.ListKeysRequest, v1.ListKeysResponse]
@@ -405,6 +420,15 @@ func (c *localServiceClient) ListBackups(ctx context.Context, req *v1.ListBackup
 // CreateBackup calls raptor.wings.local.v1.LocalService.CreateBackup.
 func (c *localServiceClient) CreateBackup(ctx context.Context, req *v1.CreateBackupRequest) (*v1.CreateBackupResponse, error) {
 	response, err := c.createBackup.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetBackupKey calls raptor.wings.local.v1.LocalService.GetBackupKey.
+func (c *localServiceClient) GetBackupKey(ctx context.Context, req *v1.GetBackupKeyRequest) (*v1.GetBackupKeyResponse, error) {
+	response, err := c.getBackupKey.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -547,6 +571,10 @@ type LocalServiceHandler interface {
 	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
 	// CreateBackup backs up a server to its destination. Root only.
 	CreateBackup(context.Context, *v1.CreateBackupRequest) (*v1.CreateBackupResponse, error)
+	// GetBackupKey shows the node's backup key (its backups can't be read
+	// without it) and who keeps copies, for the owner to save it without it
+	// passing through the Panel. Root only.
+	GetBackupKey(context.Context, *v1.GetBackupKeyRequest) (*v1.GetBackupKeyResponse, error)
 	// RestoreBackup replaces a server's files with one of its backups, after
 	// taking a safety backup of the current files. The server is stopped
 	// meanwhile and started again if it was meant to be running. Root only.
@@ -659,6 +687,13 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("CreateBackup")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceGetBackupKeyHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceGetBackupKeyProcedure,
+		svc.GetBackupKey,
+		connect.WithSchema(localServiceMethods.ByName("GetBackupKey")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	localServiceRestoreBackupHandler := connect.NewUnaryHandlerSimple(
 		LocalServiceRestoreBackupProcedure,
 		svc.RestoreBackup,
@@ -754,6 +789,8 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceListBackupsHandler.ServeHTTP(w, r)
 		case LocalServiceCreateBackupProcedure:
 			localServiceCreateBackupHandler.ServeHTTP(w, r)
+		case LocalServiceGetBackupKeyProcedure:
+			localServiceGetBackupKeyHandler.ServeHTTP(w, r)
 		case LocalServiceRestoreBackupProcedure:
 			localServiceRestoreBackupHandler.ServeHTTP(w, r)
 		case LocalServiceUpdateProcedure:
@@ -821,6 +858,10 @@ func (UnimplementedLocalServiceHandler) ListBackups(context.Context, *v1.ListBac
 
 func (UnimplementedLocalServiceHandler) CreateBackup(context.Context, *v1.CreateBackupRequest) (*v1.CreateBackupResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.CreateBackup is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) GetBackupKey(context.Context, *v1.GetBackupKeyRequest) (*v1.GetBackupKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.GetBackupKey is not implemented"))
 }
 
 func (UnimplementedLocalServiceHandler) RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*v1.RestoreBackupResponse, error) {

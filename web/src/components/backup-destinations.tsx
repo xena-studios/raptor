@@ -67,7 +67,12 @@ const typeIcons: Record<DestinationType, LucideIcon> = {
 };
 
 // What backup.destinations returns.
-export type DestinationList = { destinations: Destination[]; ssh_public_key: string };
+export type DestinationList = {
+  destinations: Destination[];
+  ssh_public_key: string;
+  key_mode: "panel" | "owner";
+  key_fingerprint: string;
+};
 
 export async function nodeCommand<T>(
   nodeId: string,
@@ -1172,5 +1177,191 @@ function HostedOffer({
         Turn on
       </Button>
     </div>
+  );
+}
+
+// downloadKey saves a node's backup key as a text file.
+function downloadKey(nodeName: string, key: string, fingerprint: string) {
+  const text = `Raptor backup key for ${nodeName}
+Fingerprint: ${fingerprint}
+
+${key}
+
+Every backup this node makes is encrypted with this key; without it they
+can't be read. Keep it somewhere safe, away from the node: a password
+manager is a good place. To recover this node's backups on another
+machine, Raptor asks for it.
+`;
+  const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `raptor-backup-key-${nodeName.replace(/[^a-z0-9-]+/gi, "-")}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// BackupKey is who keeps copies of a node's backup key: Raptor (so a dead
+// node's backups can be recovered elsewhere) or only the owner.
+export function BackupKey({
+  orgId,
+  nodeId,
+  userId,
+  nodeName,
+}: {
+  orgId: string;
+  nodeId: string;
+  userId: string;
+  nodeName: string;
+}) {
+  const client = useQueryClient();
+  const list = useDestinations(nodeId);
+  const kept = useConnectQuery(OrgService.method.getBackupKey, { orgId, nodeId });
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const mode = list.data?.key_mode;
+  const fp = list.data?.key_fingerprint ?? "";
+  if (!mode) return null;
+
+  async function act(name: string, fn: () => Promise<unknown>) {
+    setBusy(name);
+    setError("");
+    try {
+      await fn();
+      await client.invalidateQueries();
+    } catch (err) {
+      if (!passkeyCancelled(err)) setError(message(err));
+    } finally {
+      setBusy("");
+    }
+  }
+  const download = () =>
+    act("download", async () => {
+      const res = await sendSigned({ userId, nodeId, action: "backup.key.show" });
+      const k = JSON.parse(res.resultJson) as { key: string; fingerprint: string };
+      downloadKey(nodeName, k.key, k.fingerprint);
+      setSaved(true);
+    });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <KeyRound className="size-4" /> Backup key
+        </CardTitle>
+        <CardDescription>
+          Every backup this node makes is encrypted with its own key before it's stored, wherever
+          it's stored. Without the key, the backups can't be read. Fingerprint{" "}
+          <code className="text-xs">{fp}</code>.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3 text-sm">
+        {mode === "panel" ? (
+          <p>
+            {kept.data?.kept
+              ? "Raptor keeps an encrypted copy, so if this machine dies its backups can be recovered on another node. "
+              : kept.data && !kept.data.available
+                ? "This Panel can't keep a copy, so download the key and keep it safe. "
+                : "Raptor is about to keep an encrypted copy. "}
+            With that copy Raptor could decrypt the backups; if you'd rather it couldn't, keep the
+            key yourself.
+          </p>
+        ) : (
+          <p>
+            Only you have this node's key: Raptor can't decrypt its backups. If this machine dies
+            and your copy is lost, so are its backups.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" disabled={busy !== ""} onClick={download}>
+            {busy === "download" && <Loader2 className="animate-spin" />}
+            Download the key
+          </Button>
+          {mode === "panel" ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy !== ""}
+              onClick={() => setConfirming(true)}
+            >
+              Keep it myself only
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy !== ""}
+              onClick={() =>
+                act("panel", async () => {
+                  await sendSigned({
+                    userId,
+                    nodeId,
+                    action: "backup.key.mode",
+                    params: { mode: "panel" },
+                  });
+                  await orgClient.syncBackupKey({ orgId, nodeId });
+                })
+              }
+            >
+              Let Raptor keep a copy
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Downloading takes your passkey. To get the key without it passing through Raptor at all,
+          run <code>raptor backup key</code> as root on the node.
+        </p>
+        {error && <p className="text-destructive">{error}</p>}
+      </CardContent>
+      <Dialog open={confirming} onOpenChange={setConfirming}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Keep the key yourself only?</DialogTitle>
+            <DialogDescription>
+              Raptor deletes its copy. From then on, if this machine dies, its backups can only be
+              recovered with your copy of the key. Lose it, and they're gone for good.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 text-sm">
+            <Button variant="outline" disabled={busy !== ""} onClick={download}>
+              {saved ? <Check /> : null}
+              {saved ? "Downloaded" : "Download the key first"}
+            </Button>
+            <Label className="flex items-start gap-2 font-normal">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={saved}
+                onChange={(e) => setSaved(e.target.checked)}
+              />
+              I've saved the key somewhere safe, away from this node.
+            </Label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!saved || busy !== ""}
+              onClick={() =>
+                act("owner", async () => {
+                  await commandClient.execute({
+                    nodeId,
+                    action: "backup.key.mode",
+                    paramsJson: JSON.stringify({ mode: "owner" }),
+                  });
+                  await orgClient.syncBackupKey({ orgId, nodeId });
+                  setConfirming(false);
+                })
+              }
+            >
+              Keep it myself only
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

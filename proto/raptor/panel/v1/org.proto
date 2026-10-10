@@ -176,6 +176,17 @@ service OrgService {
   // in 30 days. Admins and owners.
   rpc DisableBackupStorage(DisableBackupStorageRequest) returns (DisableBackupStorageResponse) {}
 
+  // GetBackupKey is what the Panel keeps of a node's backup key: whether it
+  // has a copy, and its fingerprint (never the key). Admins and owners.
+  rpc GetBackupKey(GetBackupKeyRequest) returns (GetBackupKeyResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // SyncBackupKey asks the node again, after its key mode changed: the
+  // Panel takes a copy, or forgets its copy if the owner keeps the key.
+  // Admins and owners.
+  rpc SyncBackupKey(SyncBackupKeyRequest) returns (SyncBackupKeyResponse) {}
+
   // PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
   // says what it would run, for review before ImportEgg: its images and
   // their registries, its install script, its startup command, and
@@ -783,3 +794,27 @@ message DisableBackupStorageRequest {
 }
 
 message DisableBackupStorageResponse {}
+
+message GetBackupKeyRequest {
+  string org_id = 1;
+  string node_id = 2;
+}
+
+message GetBackupKeyResponse {
+  // Whether this Panel can keep backup keys at all.
+  bool available = 1;
+  // Whether it has a copy of this node's.
+  bool kept = 2;
+  string fingerprint = 3;
+  google.protobuf.Timestamp stored_at = 4;
+}
+
+message SyncBackupKeyRequest {
+  string org_id = 1;
+  string node_id = 2;
+}
+
+message SyncBackupKeyResponse {
+  // The node's mode: "panel" or "owner".
+  string mode = 1;
+}

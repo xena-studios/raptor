@@ -23,6 +23,8 @@ type Backups interface {
 	List(ctx context.Context, serverID string) ([]*backup.Backup, error)
 	Get(ctx context.Context, serverID, id string) (*backup.Backup, error)
 	Create(ctx context.Context, serverID string, opts backup.CreateOptions) ([]*backup.Backup, error)
+	ShowKey(ctx context.Context) (backup.Key, error)
+	KeyMode(ctx context.Context) (string, error)
 	Restore(ctx context.Context, serverID, id, user string) (string, error)
 }
 
@@ -147,6 +149,26 @@ func (s *Service) ListBackups(ctx context.Context, req *localv1.ListBackupsReque
 		out[i] = backupInfo(bk, name)
 	}
 	return &localv1.ListBackupsResponse{Backups: out}, nil
+}
+
+// GetBackupKey shows the backup key, to root.
+func (s *Service) GetBackupKey(ctx context.Context, _ *localv1.GetBackupKeyRequest) (*localv1.GetBackupKeyResponse, error) {
+	if err := requireRoot(ctx, "see the backup key"); err != nil {
+		return nil, err
+	}
+	_, b, _, err := s.backupManager()
+	if err != nil {
+		return nil, err
+	}
+	k, err := b.ShowKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mode, err := b.KeyMode(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &localv1.GetBackupKeyResponse{Key: k.Key, Fingerprint: k.Fingerprint, Mode: mode}, nil
 }
 
 // CreateBackup backs up a server as the calling Unix user.

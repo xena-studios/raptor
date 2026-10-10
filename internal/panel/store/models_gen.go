@@ -24,6 +24,14 @@ type AuditLog struct {
 	At        pgtype.Timestamptz
 }
 
+type BackupKey struct {
+	NodeID      pgtype.UUID
+	OrgID       pgtype.UUID
+	Sealed      []byte
+	Fingerprint string
+	StoredAt    pgtype.Timestamptz
+}
+
 type BackupStorage struct {
 	ID         pgtype.UUID
 	OrgID      pgtype.UUID

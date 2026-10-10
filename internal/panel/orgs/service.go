@@ -25,6 +25,7 @@ import (
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/backupkeys"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
@@ -64,7 +65,9 @@ type Service struct {
 	EggClient *http.Client
 	// Storage is Raptor Backup Storage (nil: not offered).
 	Storage *storage.Service
-	Log     *slog.Logger
+	// Keys keeps copies of nodes' backup keys (nil: none kept).
+	Keys *backupkeys.Keeper
+	Log  *slog.Logger
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)

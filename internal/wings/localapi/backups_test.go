@@ -62,6 +62,12 @@ func (f *fakeBackups) Get(ctx context.Context, serverID, id string) (*backup.Bac
 	return nil, backup.ErrNotFound
 }
 
+func (f *fakeBackups) ShowKey(context.Context) (backup.Key, error) {
+	return backup.Key{Key: "k", Fingerprint: "f"}, nil
+}
+
+func (f *fakeBackups) KeyMode(context.Context) (string, error) { return backup.KeyPanel, nil }
+
 func (f *fakeBackups) Create(_ context.Context, serverID string, o backup.CreateOptions) ([]*backup.Backup, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

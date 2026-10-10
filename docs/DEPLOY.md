@@ -61,7 +61,7 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | Item | Fields | How to make it |
 |---|---|---|
 | `Panel signing key` | `key` | `go run ./cmd/panel keygen /tmp/signing.key`, paste the file's one line, then `rm -P /tmp/signing.key`. Also save the printed public key in the item's notes. **Nodes pin this key when they link: losing it means relinking every node. Never rotate it casually.** |
-| `Panel data key` | `key` | Same, a separate run. It encrypts TOTP secrets: losing it turns off everyone's authenticator app. |
+| `Panel data key` | `key` | Same, a separate run. It encrypts TOTP secrets and the copies of nodes' backup keys: losing it turns off everyone's authenticator app and loses those copies (nodes still have their own). |
 | `Postgres` | `superuser_password`, `panel_password`, `replicator_password` | Three random passwords: `openssl rand -hex 32` each. Hex, so they're safe in a database URL. |
 | `Backup storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key`, `encryption_passphrase` | From the storage provider (endpoint without `https://`, e.g. `s3.us-west-004.backblazeb2.com`). The passphrase: `openssl rand -base64 48`. **Without it the backups can't be read: it's in 1Password and only there, so make sure the vault itself is backed up (1Password's emergency kit).** |
 | `Resend` | `api_key` | The production key: sending access only, for `mail.raptorpanel.net`. |
