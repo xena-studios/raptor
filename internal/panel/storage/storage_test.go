@@ -29,7 +29,8 @@ import (
 type fakeB2 struct {
 	mu      sync.Mutex
 	keys    map[string]string // id -> name prefix
-	files   map[string]int64  // name -> size
+	files   map[string]int64  // name -> size of its current version
+	hidden  map[string]int64  // name -> size of a hidden (deleted) version
 	calls   []string
 	nextKey int
 }
@@ -60,7 +61,10 @@ func (f *fakeB2) handler(t *testing.T) http.Handler {
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		switch name {
 		case "b2_create_key":
-			if body["bucketId"] != "bucket-1" || !slices.Contains(toStrings(body["capabilities"]), "writeFiles") {
+			// A node's key writes and hides, and never deletes for good.
+			caps := toStrings(body["capabilities"])
+			if body["bucketId"] != "bucket-1" || !slices.Contains(caps, "writeFiles") || slices.Contains(caps, "deleteFiles") ||
+				slices.Contains(caps, "writeKeys") || slices.Contains(caps, "deleteBuckets") {
 				t.Errorf("create_key: %v", body)
 			}
 			f.nextKey++
@@ -78,6 +82,11 @@ func (f *fakeB2) handler(t *testing.T) http.Handler {
 					names = append(names, n)
 				}
 			}
+			for n := range f.hidden {
+				if strings.HasPrefix(n, prefix) && f.files[n] == 0 {
+					names = append(names, n)
+				}
+			}
 			slices.Sort(names)
 			start, _ := body["startFileName"].(string)
 			var page []map[string]any
@@ -90,11 +99,19 @@ func (f *fakeB2) handler(t *testing.T) http.Handler {
 					next = n
 					break
 				}
-				page = append(page, map[string]any{"fileName": n, "fileId": "id-" + n, "contentLength": f.files[n], "action": "upload"})
+				if size, ok := f.files[n]; ok {
+					page = append(page, map[string]any{"fileName": n, "fileId": "id-" + n, "contentLength": size, "action": "upload"})
+				} else {
+					// Hidden: the hide marker first, then the old version.
+					page = append(page,
+						map[string]any{"fileName": n, "fileId": "hide-" + n, "contentLength": 0, "action": "hide"},
+						map[string]any{"fileName": n, "fileId": "old-" + n, "contentLength": f.hidden[n], "action": "upload"})
+				}
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"files": page, "nextFileName": next, "nextFileId": next})
 		case "b2_delete_file_version":
 			delete(f.files, body["fileName"].(string))
+			delete(f.hidden, body["fileName"].(string))
 			_, _ = w.Write([]byte("{}"))
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -132,7 +149,7 @@ func (s *sender) Execute(_ context.Context, _ string, raw []byte) (*nodev1.Execu
 func TestBackupStorage(t *testing.T) {
 	db := paneltest.NewDB(t)
 	ctx := context.Background()
-	fb := &fakeB2{keys: map[string]string{}, files: map[string]int64{}}
+	fb := &fakeB2{keys: map[string]string{}, files: map[string]int64{}, hidden: map[string]int64{}}
 	srv := httptest.NewServer(fb.handler(t))
 	defer srv.Close()
 	_, key, _ := ed25519.GenerateKey(rand.Reader)
@@ -194,6 +211,8 @@ func TestBackupStorage(t *testing.T) {
 		fb.files[pre+"p"+string(rune('a'+i))] = size
 	}
 	fb.files["orgs/someone-else/nodes/x/p"] = 9999
+	// Deleted by the node: hidden, kept 30 days, and not the customer's to pay.
+	fb.hidden[pre+"old"] = 7000
 	if err := s.Tick(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -215,15 +234,15 @@ func TestBackupStorage(t *testing.T) {
 	}
 	now = now.Add(29 * 24 * time.Hour)
 	_ = s.Tick(ctx)
-	if len(fb.files) != 6 {
-		t.Fatalf("deleted before 30 days: %d files", len(fb.files))
+	if len(fb.files) != 6 || len(fb.hidden) != 1 {
+		t.Fatalf("deleted before 30 days: %d files, %d hidden", len(fb.files), len(fb.hidden))
 	}
 	now = now.Add(2 * 24 * time.Hour)
 	if err := s.Tick(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if len(fb.files) != 1 || fb.files["orgs/someone-else/nodes/x/p"] != 9999 {
-		t.Fatalf("after 30 days: %v", fb.files)
+	if len(fb.files) != 1 || fb.files["orgs/someone-else/nodes/x/p"] != 9999 || len(fb.hidden) != 0 {
+		t.Fatalf("after 30 days: %v, hidden %v", fb.files, fb.hidden)
 	}
 	if err := s.Disable(ctx, n1); err != nil {
 		t.Fatalf("turning off twice: %v", err)

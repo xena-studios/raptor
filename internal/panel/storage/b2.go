@@ -114,8 +114,12 @@ type Key struct {
 }
 
 // keyCapabilities let a node use its folder through the S3 API, and
-// nothing else: no other keys, no bucket settings.
-var keyCapabilities = []string{"listBuckets", "listFiles", "readFiles", "writeFiles", "deleteFiles"}
+// nothing else: no other keys, no bucket settings, and no deleting for
+// good. Without deleteFiles, B2 turns a node's deletes (Kopia's cleanup, or
+// anyone with the node's key) into hiding the file; the versions stay for
+// the bucket's 30 days, so a hacked node can't destroy its own offsite
+// backups (docs/DECISIONS.md #234).
+var keyCapabilities = []string{"listBuckets", "listFiles", "readFiles", "writeFiles"}
 
 // CreateKey makes a key for one folder of one bucket.
 func (b *B2) CreateKey(ctx context.Context, name, bucketID, prefix string) (Key, error) {
@@ -158,11 +162,18 @@ type b2File struct {
 // pageSize is the most B2 lists in one call (a paid one past 1,000).
 const pageSize = 10000
 
-// Usage adds up what's stored under a prefix: every version B2 keeps,
-// since every one is billed.
+// Usage adds up what's stored under a prefix for the customer: each file's
+// current version. Hidden (deleted) versions, kept 30 days so a hacked
+// node can't destroy its backups, are Raptor's cost, not the customer's.
+// B2 lists a file's versions newest first.
 func (b *B2) Usage(ctx context.Context, bucketID, prefix string) (int64, error) {
 	var total int64
+	last := ""
 	err := b.versions(ctx, bucketID, prefix, func(f b2File) error {
+		if f.Name == last {
+			return nil // an older version
+		}
+		last = f.Name
 		if f.Action == "upload" {
 			total += f.Size
 		}
