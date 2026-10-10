@@ -99,12 +99,15 @@ jobs:
           go test -c -tags e2e -o /tmp/server-e2e ./internal/wings/server
           go test -c -tags e2e -o /tmp/actions-e2e ./internal/wings/actions
           go test -c -tags e2e -o /tmp/storage-e2e ./internal/wings/storage
+          go test -c -tags e2e -o /tmp/backup-e2e ./internal/wings/backup
       - name: Run runtime tests
         run: sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime'
       - name: Run server lifecycle tests
         run: sudo /tmp/server-e2e -test.v -test.timeout 20m
       - name: Run command path tests (grants, passkey signatures, schedules, backups)
         run: sudo /tmp/actions-e2e -test.v -test.timeout 20m
+      - name: Run backup recovery tests (point in time on versioned S3)
+        run: /tmp/backup-e2e -test.v -test.timeout 10m -test.run 'TestPointInTime'
       # Everything but the reboot, which task e2e:quotas covers in the VM.
       - name: Run disk quota tests (XFS loop volume, seccomp escape check)
         run: sudo scripts/e2e-quotas.sh /tmp/storage-e2e /tmp/server-e2e

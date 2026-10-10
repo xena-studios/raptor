@@ -63,6 +63,33 @@ func (q *Queries) DestinationFailed(ctx context.Context, arg DestinationFailedPa
 	return err
 }
 
+const destinationSnapshots = `-- name: DestinationSnapshots :many
+SELECT snapshot_id FROM backups WHERE destination_id = ?
+`
+
+func (q *Queries) DestinationSnapshots(ctx context.Context, destinationID string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, destinationSnapshots, destinationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var snapshot_id string
+		if err := rows.Scan(&snapshot_id); err != nil {
+			return nil, err
+		}
+		items = append(items, snapshot_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const destinationWorked = `-- name: DestinationWorked :exec
 UPDATE backup_destinations SET last_ok_at = ? WHERE id = ?
 `
@@ -204,7 +231,7 @@ func (q *Queries) GetBackup(ctx context.Context, id string) (Backup, error) {
 }
 
 const getBackupDestination = `-- name: GetBackupDestination :one
-SELECT id, name, type, config, upload_limit, version, created_at, updated_at, last_ok_at, last_error, last_error_at, size, size_at FROM backup_destinations WHERE id = ?
+SELECT id, name, type, config, upload_limit, version, created_at, updated_at, last_ok_at, last_error, last_error_at, size, size_at, read_only, repo_password, point_in_time FROM backup_destinations WHERE id = ?
 `
 
 func (q *Queries) GetBackupDestination(ctx context.Context, id string) (BackupDestination, error) {
@@ -224,6 +251,9 @@ func (q *Queries) GetBackupDestination(ctx context.Context, id string) (BackupDe
 		&i.LastErrorAt,
 		&i.Size,
 		&i.SizeAt,
+		&i.ReadOnly,
+		&i.RepoPassword,
+		&i.PointInTime,
 	)
 	return i, err
 }
@@ -372,8 +402,70 @@ func (q *Queries) InsertBackupTarget(ctx context.Context, arg InsertBackupTarget
 	return err
 }
 
+const insertRecoveredBackup = `-- name: InsertRecoveredBackup :exec
+INSERT INTO backups (id, server_id, destination_id, kind, status, snapshot_id, size, files, created_by, created_at, finished_at)
+VALUES (?, ?, ?, 'recovered', 'ok', ?, ?, ?, ?, ?, ?)
+`
+
+type InsertRecoveredBackupParams struct {
+	ID            string
+	ServerID      string
+	DestinationID string
+	SnapshotID    string
+	Size          int64
+	Files         int64
+	CreatedBy     string
+	CreatedAt     int64
+	FinishedAt    sql.NullInt64
+}
+
+func (q *Queries) InsertRecoveredBackup(ctx context.Context, arg InsertRecoveredBackupParams) error {
+	_, err := q.db.ExecContext(ctx, insertRecoveredBackup,
+		arg.ID,
+		arg.ServerID,
+		arg.DestinationID,
+		arg.SnapshotID,
+		arg.Size,
+		arg.Files,
+		arg.CreatedBy,
+		arg.CreatedAt,
+		arg.FinishedAt,
+	)
+	return err
+}
+
+const insertRecoveredDestination = `-- name: InsertRecoveredDestination :exec
+INSERT INTO backup_destinations (id, name, type, config, read_only, repo_password, point_in_time, created_at, updated_at)
+VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+`
+
+type InsertRecoveredDestinationParams struct {
+	ID           string
+	Name         string
+	Type         string
+	Config       string
+	RepoPassword string
+	PointInTime  sql.NullInt64
+	CreatedAt    int64
+	UpdatedAt    int64
+}
+
+func (q *Queries) InsertRecoveredDestination(ctx context.Context, arg InsertRecoveredDestinationParams) error {
+	_, err := q.db.ExecContext(ctx, insertRecoveredDestination,
+		arg.ID,
+		arg.Name,
+		arg.Type,
+		arg.Config,
+		arg.RepoPassword,
+		arg.PointInTime,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const listBackupDestinations = `-- name: ListBackupDestinations :many
-SELECT id, name, type, config, upload_limit, version, created_at, updated_at, last_ok_at, last_error, last_error_at, size, size_at FROM backup_destinations ORDER BY id != 'local', created_at, id
+SELECT id, name, type, config, upload_limit, version, created_at, updated_at, last_ok_at, last_error, last_error_at, size, size_at, read_only, repo_password, point_in_time FROM backup_destinations ORDER BY id != 'local', created_at, id
 `
 
 func (q *Queries) ListBackupDestinations(ctx context.Context) ([]BackupDestination, error) {
@@ -399,6 +491,9 @@ func (q *Queries) ListBackupDestinations(ctx context.Context) ([]BackupDestinati
 			&i.LastErrorAt,
 			&i.Size,
 			&i.SizeAt,
+			&i.ReadOnly,
+			&i.RepoPassword,
+			&i.PointInTime,
 		); err != nil {
 			return nil, err
 		}

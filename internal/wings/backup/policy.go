@@ -184,8 +184,12 @@ func (m *Manager) SetPolicy(ctx context.Context, serverID string, p Policy) erro
 	primary := p.Primary()
 	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
 		for _, t := range p.Targets {
-			if _, err := q.GetBackupDestination(ctx, t.DestinationID); err != nil {
+			d, err := q.GetBackupDestination(ctx, t.DestinationID)
+			if err != nil {
 				return ErrDestination
+			}
+			if d.ReadOnly == 1 {
+				return fmt.Errorf("%w: %q holds recovered backups and is read-only", ErrInvalid, d.Name)
 			}
 		}
 		// The primary target in the old columns too, for a rollback.

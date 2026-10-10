@@ -66,6 +66,7 @@ const kindNames: Record<string, string> = {
   scheduled: "Scheduled",
   safety: "Safety",
   final: "Final",
+  recovered: "Recovered",
 };
 
 // What Wings' backup.activity returns (internal/wings/backup/activity.go).
@@ -366,7 +367,7 @@ export function ServerBackups({
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               variant="destructive"
-                              disabled={b.locked}
+                              disabled={b.locked || b.kind === "recovered"}
                               onClick={() => {
                                 if (window.confirm("Delete this backup? It can't be undone."))
                                   void act(b.id, () =>

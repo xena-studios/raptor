@@ -34,6 +34,9 @@ const (
 	KindScheduled = "scheduled"
 	KindSafety    = "safety" // taken before a restore or a wipe; expires after SafetyTTL
 	KindFinal     = "final"  // taken before a server is deleted; kept (FinalTTL on the local destination)
+	// KindRecovered: found on a recovered destination (another node's, or
+	// this node's in the past); restored from, never deleted by Raptor.
+	KindRecovered = "recovered"
 )
 
 // Backup statuses.
@@ -99,6 +102,7 @@ var (
 	ErrInUse       = errors.New("destination is used by servers' backup settings")
 	ErrLowDisk     = errors.New("not enough free disk space for backups")
 	ErrDestination = errors.New("destination not found")
+	ErrReadOnly    = errors.New("recovered backups aren't deleted by Raptor; remove the recovered destination to forget them")
 )
 
 // Servers is what backups need from the server manager.
@@ -186,6 +190,7 @@ func New(o Options) *Manager {
 	o.Jobs.Register(JobRestore, jobs.Handler{Class: "backup", ServerLock: true, Resumable: true, MaxAttempts: 3, Run: m.restoreJob})
 	o.Jobs.Register(JobDelete, jobs.Handler{Class: "backup", Resumable: true, MaxAttempts: 5, Run: m.deleteJob})
 	o.Jobs.Register(JobMaintain, jobs.Handler{Class: "backup", Resumable: true, Run: m.maintainJob})
+	o.Jobs.Register(JobScan, jobs.Handler{Class: "backup", Resumable: true, MaxAttempts: 3, Run: m.scanJob})
 	// An extraction isn't resumed: its folder would already exist. It holds
 	// the server's lock so a restore can't clear the directory under it.
 	o.Jobs.Register(JobExtract, jobs.Handler{Class: "backup", ServerLock: true, MaxAttempts: 1, Run: m.extractJob})
@@ -250,8 +255,8 @@ func (m *Manager) housekeeping(ctx context.Context) {
 		return
 	}
 	for _, d := range dests {
-		if active[d.ID] {
-			continue
+		if active[d.ID] || d.ReadOnly == 1 {
+			continue // recovered destinations are never written to
 		}
 		measure := !d.SizeAt.Valid || now.Sub(time.UnixMilli(d.SizeAt.Int64)) >= measureInterval
 		if _, err := m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobMaintain, Payload: maintainPayload{DestinationID: d.ID, Measure: measure}}); err != nil {
@@ -592,6 +597,9 @@ func (m *Manager) Delete(ctx context.Context, serverID, id string) (string, erro
 	if b.Status == StatusPending || b.Status == StatusRunning {
 		return "", ErrNotReady
 	}
+	if b.Kind == KindRecovered {
+		return "", ErrReadOnly
+	}
 	return m.enqueueDelete(ctx, b.DestinationID, []string{id}, "deleted")
 }
 
@@ -666,6 +674,10 @@ func (m *Manager) run(ctx context.Context, destID string, req request, progress 
 	pw, err := m.password(ctx)
 	if err != nil {
 		return nil, err
+	}
+	// A recovered destination's backups have their own key.
+	if r, err := m.o.Store.Read.GetBackupDestination(ctx, destID); err == nil && r.RepoPassword != "" {
+		pw = r.RepoPassword
 	}
 	req.Dest, req.Password, req.StateDir = dest, pw, m.o.StateDir
 	return m.o.Runner.Run(ctx, req, progress, log)

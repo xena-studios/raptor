@@ -1,6 +1,7 @@
 import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArchiveRestore,
   Check,
   CheckCircle2,
   Cloud,
@@ -8,6 +9,7 @@ import {
   FolderInput,
   Globe,
   HardDrive,
+  History,
   KeyRound,
   Loader2,
   type LucideIcon,
@@ -48,6 +50,7 @@ import {
 } from "@/lib/backup-destinations";
 import { message } from "@/lib/errors";
 import { formatBytes } from "@/lib/metrics";
+import { useOrgServers } from "@/lib/org-data";
 import { sendSigned } from "@/lib/signed";
 import { commandClient, orgClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
@@ -166,16 +169,21 @@ export function NodeDestinations({
   nodeId,
   userId,
   nodeName,
+  owner,
 }: {
   orgId: string;
   nodeId: string;
   userId: string;
   nodeName: string;
+  // Recovering backups takes an owner's passkey.
+  owner: boolean;
 }) {
   const client = useQueryClient();
   const list = useDestinations(nodeId);
   const storage = useConnectQuery(OrgService.method.getBackupStorage, { orgId });
   const [editing, setEditing] = useState<Destination | "new" | null>(null);
+  const [lookBack, setLookBack] = useState<Destination | null>(null);
+  const [recovering, setRecovering] = useState(false);
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<{ id: string; ok: boolean; text: string } | null>(null);
 
@@ -237,9 +245,16 @@ export function NodeDestinations({
             be reached.
           </CardDescription>
         </div>
-        <Button size="sm" onClick={() => setEditing("new")}>
-          <Plus /> Add destination
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          {owner && (
+            <Button size="sm" variant="outline" onClick={() => setRecovering(true)}>
+              <ArchiveRestore /> Recover backups
+            </Button>
+          )}
+          <Button size="sm" onClick={() => setEditing("new")}>
+            <Plus /> Add destination
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {storage.data?.available &&
@@ -277,6 +292,7 @@ export function NodeDestinations({
                   <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
                     {d.name}
                     <Badge variant="outline">{typeNames[d.type]}</Badge>
+                    {d.read_only && <Badge variant="secondary">Recovered · read-only</Badge>}
                   </p>
                   <p className="truncate font-mono text-xs text-muted-foreground">{where(d)}</p>
                   <Health d={d} />
@@ -304,7 +320,19 @@ export function NodeDestinations({
                   </Button>
                   {d.type !== "local" && (
                     <>
-                      {d.type !== "raptor" && (
+                      {(d.type === "s3" || d.type === "raptor") && !d.read_only && (
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label={`Look back in time at ${d.name}`}
+                          title="Find backups as they were at an earlier time"
+                          disabled={busy !== ""}
+                          onClick={() => setLookBack(d)}
+                        >
+                          <History />
+                        </Button>
+                      )}
+                      {d.type !== "raptor" && !d.read_only && (
                         <Button
                           size="icon-sm"
                           variant="ghost"
@@ -344,6 +372,31 @@ export function NodeDestinations({
           onSaved={async () => {
             setEditing(null);
             await client.invalidateQueries({ queryKey: ["backup-destinations", nodeId] });
+          }}
+        />
+      )}
+      {lookBack && (
+        <LookBackDialog
+          nodeId={nodeId}
+          userId={userId}
+          dest={lookBack}
+          onClose={() => setLookBack(null)}
+          onDone={async () => {
+            setLookBack(null);
+            await client.invalidateQueries();
+          }}
+        />
+      )}
+      {recovering && (
+        <RecoverDialog
+          orgId={orgId}
+          nodeId={nodeId}
+          userId={userId}
+          sshPublicKey={list.data?.ssh_public_key ?? ""}
+          onClose={() => setRecovering(false)}
+          onDone={async () => {
+            setRecovering(false);
+            await client.invalidateQueries();
           }}
         />
       )}
@@ -505,6 +558,7 @@ function DestinationDialog({
   userId,
   initial,
   sshPublicKey,
+  recover,
   onClose,
   onSaved,
 }: {
@@ -512,13 +566,20 @@ function DestinationDialog({
   userId: string;
   initial?: Destination;
   sshPublicKey: string;
+  // Recovering another node's backups from here: the key they were made
+  // with ("" for the owner to paste), sent as backup.recover.
+  recover?: { key: string; from: string };
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
+  const [recoverKey, setRecoverKey] = useState(recover?.key ?? "");
   const [type, setType] = useState<OwnType | null>(
     initial && initial.type !== "local" && initial.type !== "raptor" ? initial.type : null,
   );
-  const [f, setF] = useState<Form>(() => formFrom(initial));
+  const [f, setF] = useState<Form>(() => ({
+    ...formFrom(initial),
+    ...(recover ? { name: `${recover.from}'s backups` } : {}),
+  }));
   const [busy, setBusy] = useState<"" | "test" | "save" | "hostkey">("");
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [fetched, setFetched] = useState<{ key: string; fingerprint: string } | null>(null);
@@ -568,12 +629,21 @@ function DestinationDialog({
     setBusy("save");
     setResult(null);
     try {
-      await sendSigned({
-        userId,
-        nodeId,
-        action: "backup.destination.save",
-        params: toDestination(type, f, initial) as unknown as Record<string, unknown>,
-      });
+      if (recover) {
+        await sendSigned({
+          userId,
+          nodeId,
+          action: "backup.recover",
+          params: { destination: { ...toDestination(type, f), repo_password: recoverKey.trim() } },
+        });
+      } else {
+        await sendSigned({
+          userId,
+          nodeId,
+          action: "backup.destination.save",
+          params: toDestination(type, f, initial) as unknown as Record<string, unknown>,
+        });
+      }
       await onSaved();
     } catch (err) {
       if (!passkeyCancelled(err)) setResult({ ok: false, text: message(err) });
@@ -588,8 +658,14 @@ function DestinationDialog({
         {!type ? (
           <div className="flex min-w-0 flex-col gap-4">
             <DialogHeader>
-              <DialogTitle>Add a backup destination</DialogTitle>
-              <DialogDescription>Where should this node keep backups?</DialogDescription>
+              <DialogTitle>
+                {recover ? `Where are ${recover.from}'s backups?` : "Add a backup destination"}
+              </DialogTitle>
+              <DialogDescription>
+                {recover
+                  ? "Pick how they're reached, then fill in the settings that node used."
+                  : "Where should this node keep backups?"}
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-2">
               {choosable.map((t) => {
@@ -620,7 +696,13 @@ function DestinationDialog({
         ) : (
           <form onSubmit={save} className="flex min-w-0 flex-col gap-4">
             <DialogHeader>
-              <DialogTitle>{editing ? `Edit "${initial?.name}"` : addTitles[type]}</DialogTitle>
+              <DialogTitle>
+                {recover
+                  ? `Recover ${recover.from}'s backups`
+                  : editing
+                    ? `Edit "${initial?.name}"`
+                    : addTitles[type]}
+              </DialogTitle>
               <DialogDescription>{typeHints[type]}</DialogDescription>
             </DialogHeader>
             <div className="-mx-1 flex max-h-[60vh] min-w-0 flex-col gap-4 overflow-y-auto px-1">
@@ -952,7 +1034,27 @@ function DestinationDialog({
                 </>
               )}
 
-              {type !== "folder" && (
+              {recover && (
+                <Field
+                  label="Backup key"
+                  id="d-recover-key"
+                  hint={
+                    recover.key
+                      ? "Raptor's copy of that node's key. Its backups can't be read without it."
+                      : "That node's key, from where you saved it (raptor backup key, or the file you downloaded)."
+                  }
+                >
+                  <Input
+                    id="d-recover-key"
+                    required
+                    autoComplete="off"
+                    className="font-mono"
+                    value={recoverKey}
+                    onChange={(e) => setRecoverKey(e.target.value)}
+                  />
+                </Field>
+              )}
+              {type !== "folder" && !recover && (
                 <Field
                   label="Upload speed limit (MB/s)"
                   id="d-limit"
@@ -1002,8 +1104,19 @@ function DestinationDialog({
                 >
                   {editing ? "Cancel" : "Back"}
                 </Button>
-                <Button type="submit" disabled={busy !== "" || (type === "sftp" && !f.hostKey)}>
-                  {busy === "save" ? "Saving…" : "Save with a passkey"}
+                <Button
+                  type="submit"
+                  disabled={
+                    busy !== "" ||
+                    (type === "sftp" && !f.hostKey) ||
+                    (!!recover && !recoverKey.trim())
+                  }
+                >
+                  {busy === "save"
+                    ? "Saving…"
+                    : recover
+                      ? "Recover with a passkey"
+                      : "Save with a passkey"}
                 </Button>
               </div>
             </DialogFooter>
@@ -1365,3 +1478,342 @@ export function BackupKey({
     </Card>
   );
 }
+
+// LookBackDialog finds a destination's backups as they were at an earlier
+// time: ones since deleted (by retention, or by someone on a hacked node)
+// come back as recovered backups. S3-compatible storage keeps the old
+// versions (Raptor Backup Storage for 30 days).
+function LookBackDialog({
+  nodeId,
+  userId,
+  dest,
+  onClose,
+  onDone,
+}: {
+  nodeId: string;
+  userId: string;
+  dest: Destination;
+  onClose: () => void;
+  onDone: () => Promise<void>;
+}) {
+  const yesterday = new Date(Date.now() - 86_400_000);
+  const local = (d: Date) =>
+    new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  const [at, setAt] = useState(local(yesterday));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function go(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await sendSigned({
+        userId,
+        nodeId,
+        action: "backup.recover",
+        params: { from_destination_id: dest.id, point_in_time: new Date(at).toISOString() },
+      });
+      await onDone();
+    } catch (err) {
+      if (!passkeyCancelled(err)) setError(message(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <form onSubmit={go} className="flex flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle>Look back in time</DialogTitle>
+            <DialogDescription>
+              Find {dest.name}'s backups as they were at an earlier time, including any deleted
+              since. They show up below as recovered backups, ready to restore.
+              {dest.type === "raptor" &&
+                " Raptor Backup Storage keeps deleted backups for 30 days."}
+            </DialogDescription>
+          </DialogHeader>
+          <Field label="As they were at" id="lb-at">
+            <Input
+              id="lb-at"
+              type="datetime-local"
+              required
+              max={local(new Date())}
+              value={at}
+              onChange={(e) => setAt(e.target.value)}
+            />
+          </Field>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Looking…" : "Look with a passkey"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// RecoverDialog recovers backups this node didn't make: another node's
+// (removed, or another machine), from its Raptor Backup Storage or a
+// destination of its own, with its key.
+function RecoverDialog({
+  orgId,
+  nodeId,
+  userId,
+  sshPublicKey,
+  onClose,
+  onDone,
+}: {
+  orgId: string;
+  nodeId: string;
+  userId: string;
+  sshPublicKey: string;
+  onClose: () => void;
+  onDone: () => Promise<void>;
+}) {
+  const sources = useConnectQuery(OrgService.method.listRecoverySources, { orgId });
+  const [own, setOwn] = useState<{ key: string; from: string } | null>(null);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const list = (sources.data?.sources ?? []).filter((x) => x.nodeId !== nodeId);
+
+  async function fromStorage(id: string, name: string) {
+    setBusy(id);
+    setError("");
+    try {
+      const p = await orgClient.prepareRecovery({ orgId, fromNodeId: id, storage: true });
+      if (!p.key)
+        throw new Error(
+          `Raptor has no copy of ${name}'s key. Recover it as "a destination of its own" and paste the key you saved.`,
+        );
+      const destination = { ...(JSON.parse(p.destinationJson) as object), repo_password: p.key };
+      await sendSigned({ userId, nodeId, action: "backup.recover", params: { destination } });
+      await onDone();
+    } catch (err) {
+      if (!passkeyCancelled(err)) setError(message(err));
+      setBusy("");
+    }
+  }
+
+  async function fromOwn(id: string, name: string, kept: boolean) {
+    setBusy(id);
+    setError("");
+    try {
+      const key = kept ? (await orgClient.prepareRecovery({ orgId, fromNodeId: id })).key : "";
+      setOwn({ key, from: name });
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  if (own) {
+    return (
+      <DestinationDialog
+        nodeId={nodeId}
+        userId={userId}
+        sshPublicKey={sshPublicKey}
+        recover={own}
+        onClose={onClose}
+        onSaved={onDone}
+      />
+    );
+  }
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Recover backups</DialogTitle>
+          <DialogDescription>
+            Bring in backups this node didn't make: from a node that died or was removed, or another
+            machine. They're read-only here, and can be restored onto this node's servers.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex max-h-[55vh] flex-col gap-2 overflow-y-auto">
+          {sources.isPending && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {list.map((x) => (
+            <div key={x.nodeId} className="space-y-2 rounded-lg border p-3">
+              <p className="flex items-center gap-2 text-sm font-medium">
+                {x.name}
+                {x.removed && <Badge variant="outline">Removed</Badge>}
+                <span className="text-xs font-normal text-muted-foreground">
+                  {x.keyKept ? "Raptor has its key" : "Raptor doesn't have its key"}
+                </span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {x.hasStorage && (
+                  <Button
+                    size="sm"
+                    disabled={busy !== ""}
+                    onClick={() => fromStorage(x.nodeId, x.name)}
+                  >
+                    {busy === x.nodeId && <Loader2 className="animate-spin" />}
+                    From its Raptor Backup Storage
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy !== ""}
+                  onClick={() => fromOwn(x.nodeId, x.name, x.keyKept)}
+                >
+                  From a destination of its own
+                </Button>
+              </div>
+            </div>
+          ))}
+          <Button
+            variant="ghost"
+            className="self-start"
+            onClick={() => setOwn({ key: "", from: "another machine" })}
+          >
+            From somewhere else, with a key I saved
+          </Button>
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// RecoveredBackups lists backups of servers that aren't on this node (a
+// removed server's, or recovered ones), to restore onto one of its servers
+// with an owner's passkey.
+export function RecoveredBackups({
+  orgId,
+  nodeId,
+  userId,
+}: {
+  orgId: string;
+  nodeId: string;
+  userId: string;
+}) {
+  const client = useQueryClient();
+  const orphans = useQuery({
+    queryKey: ["backup-orphans", nodeId],
+    queryFn: () => nodeCommand<{ backups: Orphan[] | null }>(nodeId, "backup.orphans"),
+    refetchInterval: 15_000,
+  });
+  const { servers } = useOrgServers(orgId);
+  const mine = servers.filter((x) => x.node.id === nodeId);
+  const [onto, setOnto] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState("");
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const list = orphans.data?.backups ?? [];
+  if (list.length === 0) return null;
+
+  async function restore(b: Orphan) {
+    const target = onto[b.id] ?? mine[0]?.id;
+    const name = mine.find((x) => x.id === target)?.name ?? "the server";
+    if (!target) return;
+    if (
+      !window.confirm(
+        `Replace ${name}'s files with this backup? A safety backup of its current files is taken first.`,
+      )
+    )
+      return;
+    setBusy(b.id);
+    setResult(null);
+    try {
+      await sendSigned({
+        userId,
+        nodeId,
+        serverId: target,
+        action: "backup.restore",
+        params: { backup_id: b.id },
+      });
+      setResult({
+        ok: true,
+        text: `Restoring onto ${name}: follow it on the server's Backups tab.`,
+      });
+      await client.invalidateQueries();
+    } catch (err) {
+      if (!passkeyCancelled(err)) setResult({ ok: false, text: message(err) });
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Recovered backups</CardTitle>
+        <CardDescription>
+          Backups of servers that aren't on this node: recovered from elsewhere, or a removed
+          server's. Restore one onto a server here; it takes an owner's passkey.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        {result && (
+          <p
+            className={cn(
+              "text-sm",
+              result.ok ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
+            )}
+          >
+            {result.text}
+          </p>
+        )}
+        <ul className="divide-y rounded-lg border">
+          {list.map((b) => (
+            <li key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 text-sm">
+              <span className="min-w-0 flex-1">
+                <span className="block">{new Date(b.created_at).toLocaleString()}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  Server <code>{b.server_id.slice(-8)}</code> · {formatBytes(b.size)} · on{" "}
+                  {b.destination_name}
+                </span>
+              </span>
+              {mine.length > 0 ? (
+                <span className="flex items-center gap-2">
+                  <select
+                    aria-label="Restore onto"
+                    className={cn(select, "w-44")}
+                    value={onto[b.id] ?? mine[0]?.id}
+                    onChange={(e) => setOnto({ ...onto, [b.id]: e.target.value })}
+                  >
+                    {mine.map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {x.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy !== ""}
+                    onClick={() => restore(b)}
+                  >
+                    {busy === b.id && <Loader2 className="animate-spin" />}
+                    Restore
+                  </Button>
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Make a server here to restore onto
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+// What backup.orphans returns.
+type Orphan = {
+  id: string;
+  server_id: string;
+  destination_name: string;
+  kind: string;
+  size: number;
+  created_at: string;
+};

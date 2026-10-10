@@ -37,6 +37,10 @@ export type Destination = {
     private_key?: string;
   };
   webdav?: { url: string; username?: string; password?: string };
+  // Recovered: another node's backups, or this node's as they were.
+  read_only?: boolean;
+  repo_password?: string;
+  point_in_time?: string;
   status?: {
     last_ok_at?: string;
     last_error?: string;

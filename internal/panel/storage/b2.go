@@ -121,8 +121,21 @@ type Key struct {
 // backups (docs/DECISIONS.md #234).
 var keyCapabilities = []string{"listBuckets", "listFiles", "readFiles", "writeFiles"}
 
-// CreateKey makes a key for one folder of one bucket.
+// CreateKey makes a node's key for one folder of one bucket.
 func (b *B2) CreateKey(ctx context.Context, name, bucketID, prefix string) (Key, error) {
+	return b.createKey(ctx, name, bucketID, prefix, keyCapabilities, 0)
+}
+
+// readCapabilities read a folder, old versions included, and nothing more.
+var readCapabilities = []string{"listBuckets", "listFiles", "readFiles"}
+
+// ReadKey makes a key that can only read one folder, for a while: for
+// recovering a removed node's backups on another node.
+func (b *B2) ReadKey(ctx context.Context, name, bucketID, prefix string, valid time.Duration) (Key, error) {
+	return b.createKey(ctx, name, bucketID, prefix, readCapabilities, valid)
+}
+
+func (b *B2) createKey(ctx context.Context, name, bucketID, prefix string, caps []string, valid time.Duration) (Key, error) {
 	s, err := b.authorize(ctx)
 	if err != nil {
 		return Key{}, err
@@ -131,10 +144,14 @@ func (b *B2) CreateKey(ctx context.Context, name, bucketID, prefix string) (Key,
 		ID     string `json:"applicationKeyId"`
 		Secret string `json:"applicationKey"`
 	}
-	err = b.call(ctx, s, "b2_create_key", map[string]any{
-		"accountId": s.accountID, "keyName": name, "capabilities": keyCapabilities,
+	body := map[string]any{
+		"accountId": s.accountID, "keyName": name, "capabilities": caps,
 		"bucketId": bucketID, "namePrefix": prefix,
-	}, &out)
+	}
+	if valid > 0 {
+		body["validDurationInSeconds"] = int64(valid / time.Second)
+	}
+	err = b.call(ctx, s, "b2_create_key", body, &out)
 	return Key{ID: out.ID, Secret: out.Secret}, err
 }
 

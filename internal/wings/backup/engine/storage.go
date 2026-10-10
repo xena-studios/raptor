@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kopia/kopia/repo/blob"
 	"github.com/kopia/kopia/repo/blob/azure"
@@ -56,7 +57,16 @@ type Destination struct {
 	// UploadLimit caps upload speed in bytes per second (0: none), so
 	// backups leave room for players.
 	UploadLimit int64 `json:"upload_limit,omitempty"`
+	// ReadOnly: another node's backups, or this node's at PointInTime;
+	// found and restored from, never written.
+	ReadOnly bool `json:"read_only,omitempty"`
+	// PointInTime reads versioned storage as it was then (S3 only).
+	PointInTime *time.Time `json:"point_in_time,omitempty"`
 }
+
+// ErrNoPointInTime means a point in time was asked of storage that doesn't
+// keep old versions.
+var ErrNoPointInTime = errors.New("only S3-compatible storage and Raptor Backup Storage keep old versions to look back at")
 
 // Config is a destination's settings, by type.
 type Config struct {
@@ -134,6 +144,9 @@ func (c *SFTPConfig) Addr() string {
 func (e *Engine) storage(ctx context.Context) (blob.Storage, error) {
 	d := e.Dest
 	limits := throttling.Limits{UploadBytesPerSecond: float64(d.UploadLimit)}
+	if d.PointInTime != nil && d.Type != S3 && d.Type != Raptor {
+		return nil, ErrNoPointInTime
+	}
 	switch {
 	case d.Type == Local:
 		return folder(ctx, d.Path, limits)
@@ -146,7 +159,7 @@ func (e *Engine) storage(ctx context.Context) (blob.Storage, error) {
 		return s3.New(ctx, &s3.Options{
 			BucketName: c.Bucket, Prefix: c.Prefix, Endpoint: strings.TrimSuffix(endpoint, "/"),
 			DoNotUseTLS: plain, Region: c.Region, AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey,
-			Limits: limits,
+			Limits: limits, PointInTime: d.PointInTime,
 		}, false)
 	case d.Type == Azure && d.Azure != nil:
 		c := d.Azure
@@ -176,7 +189,7 @@ func (e *Engine) storage(ctx context.Context) (blob.Storage, error) {
 		c := d.Raptor
 		return s3.New(ctx, &s3.Options{
 			BucketName: c.Bucket, Prefix: c.Prefix, Endpoint: c.Endpoint, Region: c.Region,
-			AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey, Limits: limits,
+			AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey, Limits: limits, PointInTime: d.PointInTime,
 		}, false)
 	case d.Type == WebDAV && d.WebDAV != nil:
 		c := d.WebDAV

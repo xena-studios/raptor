@@ -69,6 +69,52 @@ func (q *Queries) NodesWithoutBackupKey(ctx context.Context) ([]NodesWithoutBack
 	return items, nil
 }
 
+const recoverySources = `-- name: RecoverySources :many
+SELECT n.id, n.name, n.deleted_at,
+       EXISTS (SELECT 1 FROM backup_keys k WHERE k.node_id = n.id) AS key_kept,
+       EXISTS (SELECT 1 FROM backup_storage s WHERE s.node_id = n.id AND s.purged_at IS NULL) AS has_storage
+FROM nodes n
+WHERE n.org_id = $1
+ORDER BY n.deleted_at IS NOT NULL, n.name
+`
+
+type RecoverySourcesRow struct {
+	ID         pgtype.UUID
+	Name       string
+	DeletedAt  pgtype.Timestamptz
+	KeyKept    bool
+	HasStorage bool
+}
+
+// The org's nodes, removed ones included, with what's there to recover
+// their backups with: the Panel's copy of their key, and whether they had
+// Raptor Backup Storage (whose files aren't deleted yet).
+func (q *Queries) RecoverySources(ctx context.Context, orgID pgtype.UUID) ([]RecoverySourcesRow, error) {
+	rows, err := q.db.Query(ctx, recoverySources, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RecoverySourcesRow
+	for rows.Next() {
+		var i RecoverySourcesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.DeletedAt,
+			&i.KeyKept,
+			&i.HasStorage,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertBackupKey = `-- name: UpsertBackupKey :exec
 INSERT INTO backup_keys (node_id, org_id, sealed, fingerprint) VALUES ($1, $2, $3, $4)
 ON CONFLICT (node_id) DO UPDATE SET sealed = excluded.sealed, fingerprint = excluded.fingerprint, stored_at = now()

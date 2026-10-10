@@ -32,6 +32,7 @@ const (
 	opExtract  = "extract"
 	opTest     = "test" // write, read, and remove a small file
 	opSize     = "size" // add up what the repository stores
+	opList     = "list" // the server backups in the repository
 )
 
 // request is one operation for the worker, sent on its stdin.
@@ -88,6 +89,8 @@ func execute(ctx context.Context, req request, progress func(engine.Progress)) (
 		return nil, e.Test(ctx)
 	case opSize:
 		return e.Size(ctx)
+	case opList:
+		return e.List(ctx)
 	}
 	return nil, fmt.Errorf("bad worker request %q", req.Op)
 }

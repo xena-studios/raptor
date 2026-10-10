@@ -50,19 +50,22 @@ type Backup struct {
 }
 
 type BackupDestination struct {
-	ID          string
-	Name        string
-	Type        string
-	Config      string
-	UploadLimit int64
-	Version     int64
-	CreatedAt   int64
-	UpdatedAt   int64
-	LastOkAt    sql.NullInt64
-	LastError   string
-	LastErrorAt sql.NullInt64
-	Size        sql.NullInt64
-	SizeAt      sql.NullInt64
+	ID           string
+	Name         string
+	Type         string
+	Config       string
+	UploadLimit  int64
+	Version      int64
+	CreatedAt    int64
+	UpdatedAt    int64
+	LastOkAt     sql.NullInt64
+	LastError    string
+	LastErrorAt  sql.NullInt64
+	Size         sql.NullInt64
+	SizeAt       sql.NullInt64
+	ReadOnly     int64
+	RepoPassword string
+	PointInTime  sql.NullInt64
 }
 
 type BackupPolicy struct {

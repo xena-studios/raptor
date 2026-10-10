@@ -249,3 +249,26 @@ func Estimate(used int64, nodes int) int64 {
 	}
 	return (over*hosted.CentsPerTB + 1e12 - 1) / 1e12
 }
+
+// RecoveryKeyValid is how long a recovery's read-only key works.
+const RecoveryKeyValid = 90 * 24 * time.Hour
+
+// ReadOnlyDestination is a node's folder, as an S3 destination another node
+// can recover its backups from: a key that only reads it, for 90 days.
+func (s *Service) ReadOnlyDestination(ctx context.Context, org, node uuid.UUID, name string) (map[string]any, error) {
+	if !s.Available() {
+		return nil, ErrOff
+	}
+	prefix := hosted.Prefix(org.String(), node.String())
+	key, err := s.B2.ReadKey(ctx, "raptor-recover-"+node.String(), s.BucketID, prefix, RecoveryKeyValid)
+	if err != nil {
+		return nil, fmt.Errorf("make a key: %w", err)
+	}
+	return map[string]any{
+		"name": name, "type": "s3",
+		"s3": map[string]string{
+			"endpoint": s.Endpoint, "region": s.Region, "bucket": hosted.Bucket, "prefix": prefix,
+			"access_key": key.ID, "secret_key": key.Secret,
+		},
+	}, nil
+}

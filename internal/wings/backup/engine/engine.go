@@ -13,6 +13,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -313,24 +314,76 @@ func (e *Engine) connect(ctx context.Context, configFile, cacheDir string) error
 	}
 	defer func() { _ = st.Close(ctx) }()
 	created := false
-	switch err := repo.Initialize(ctx, st, &repo.NewRepositoryOptions{}, e.Password); {
-	case err == nil:
-		created = true
-	case !errors.Is(err, repo.ErrAlreadyInitialized):
-		return fmt.Errorf("create repository: %w", err)
+	// A read-only destination is someone else's backups (or this node's,
+	// in the past): a repository is found there, never made.
+	if !e.Dest.ReadOnly {
+		switch err := repo.Initialize(ctx, st, &repo.NewRepositoryOptions{}, e.Password); {
+		case err == nil:
+			created = true
+		case !errors.Is(err, repo.ErrAlreadyInitialized):
+			return fmt.Errorf("create repository: %w", err)
+		}
 	}
 	caching := content.CachingOptions{}
 	if e.Dest.Type != Local {
 		// Remote repositories cache their indexes and metadata locally.
 		caching = content.CachingOptions{CacheDirectory: cacheDir, MetadataCacheSizeBytes: 256 << 20}
 	}
-	if err := repo.Connect(ctx, configFile, st, e.Password, &repo.ConnectOptions{ClientOptions: clientOptions(), CachingOptions: caching}); err != nil {
+	opts := clientOptions()
+	opts.ReadOnly = e.Dest.ReadOnly
+	if err := repo.Connect(ctx, configFile, st, e.Password, &repo.ConnectOptions{ClientOptions: opts, CachingOptions: caching}); err != nil {
+		if e.Dest.ReadOnly && errors.Is(err, repo.ErrRepositoryNotInitialized) {
+			return ErrNoRepository
+		}
 		return fmt.Errorf("connect to repository: %w", err)
 	}
 	if created {
 		return e.claimMaintenance(ctx, configFile)
 	}
 	return nil
+}
+
+// ErrNoRepository means a read-only destination has no backups to find.
+var ErrNoRepository = errors.New("there are no Raptor backups there; check the folder and the key")
+
+// Found is a backup in a repository: what a recovery lists.
+type Found struct {
+	SnapshotID string    `json:"snapshot_id"`
+	ServerID   string    `json:"server_id"`
+	BackupID   string    `json:"backup_id"` // the ID it had where it was made
+	At         time.Time `json:"at"`
+	Size       int64     `json:"size"`
+	Files      int64     `json:"files"`
+}
+
+// List finds every server backup in the repository.
+func (e *Engine) List(ctx context.Context) ([]Found, error) {
+	rep, err := e.open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rep.Close(ctx) }()
+	ids, err := snapshot.ListSnapshotManifests(ctx, rep, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	mans, err := snapshot.LoadSnapshots(ctx, rep, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Found, 0, len(mans))
+	for _, m := range mans {
+		id, ok := strings.CutPrefix(m.Source.Path, "/servers/")
+		if !ok || m.Source.Host != sourceHost || m.IncompleteReason != "" {
+			continue // not a server backup made by Raptor
+		}
+		f := Found{SnapshotID: string(m.ID), ServerID: id, BackupID: m.Description, At: m.StartTime.ToTime()}
+		if s := m.RootEntry.DirSummary; s != nil {
+			f.Size, f.Files = s.TotalFileSize, s.TotalFileCount
+		}
+		out = append(out, f)
+	}
+	return out, nil
 }
 
 // claimMaintenance makes Wings the repository's maintenance owner.

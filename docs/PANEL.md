@@ -194,6 +194,17 @@ Each node encrypts its backups with its own key (WINGS.md#backups), so a node th
 - **The node's Backups tab → Backup key:** who keeps it, the fingerprint, "Download the key" (an owner's passkey; or `raptor backup key` on the node, so it never passes through Raptor), and switching. Keeping it yourself asks to download it first and to confirm it's saved; it's unsigned, then `SyncBackupKey` drops the Panel's copy. Letting Raptor keep a copy takes an owner's passkey. `GetBackupKey` says whether the Panel has a copy, never the key.
 - **What it means:** with a copy, Raptor could decrypt that node's backups (and for Raptor Backup Storage, it also has the storage), which the app says plainly. Owner mode is for those who'd rather it couldn't.
 
+## Recovering backups
+
+On a node's Backups tab, owners can **Recover backups** (WINGS.md#backups): `ListRecoverySources` lists the org's nodes, removed ones included, with whether the Panel has a copy of each one's key and whether it had Raptor Backup Storage whose files aren't deleted yet. Then:
+
+- **From its Raptor Backup Storage:** `PrepareRecovery` (owners, audited as `backup.recover.prepare`) opens the Panel's copy of that node's key and makes a B2 key that only reads its folder, for 90 days; the browser signs and sends `backup.recover` with both.
+- **From a destination of its own:** the destination form, plus that node's key (Raptor's copy filled in, or pasted from where the owner saved it).
+- **From somewhere else:** the same, with a key the owner saved (another Panel, a machine never linked).
+- **Look back in time** on an S3 or Raptor Backup Storage destination: its backups as they were at a time the owner picks, to bring back deleted ones.
+
+Recovered backups of servers that aren't on the node show under **Recovered backups**, to restore onto one of its servers with an owner's passkey.
+
 ## Imported eggs
 
 Besides the built-in catalog, an org can import eggs (`org_eggs`): Pterodactyl or Pelican files, JSON or YAML, from a link or an upload. Admins and owners import and remove them; any member sees and uses them. The Eggs page lists them first, and the create-server wizard offers them first, on every node unless the egg names its CPUs.
