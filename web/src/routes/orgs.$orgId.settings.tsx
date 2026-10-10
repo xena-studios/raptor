@@ -35,6 +35,11 @@ function SettingsLayout() {
             Billing
           </Link>
           {admin && (
+            <Link to="/orgs/$orgId/settings/backups" params={{ orgId }} className={tabClass}>
+              Backups
+            </Link>
+          )}
+          {admin && (
             <Link to="/orgs/$orgId/settings/activity" params={{ orgId }} className={tabClass}>
               Activity
             </Link>

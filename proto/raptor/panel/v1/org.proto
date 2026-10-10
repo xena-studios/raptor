@@ -549,6 +549,8 @@ message Backup {
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp finished_at = 10;
   google.protobuf.Timestamp expires_at = 11;
+  // Where it is: a destination on its node ("local" for the node's disk).
+  string destination_id = 12;
 }
 
 message GetSFTPAccessRequest {

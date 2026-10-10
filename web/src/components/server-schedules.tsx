@@ -14,6 +14,7 @@ import { type FormEvent, useState } from "react";
 
 import { ActivityCard, type TimelineItem } from "@/components/activity-timeline";
 import { EmptyState } from "@/components/page";
+import { useBackupPlan } from "@/components/server-backup-plan";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +51,8 @@ type Step = {
   command?: string;
   action?: "start" | "stop" | "restart" | "kill";
   duration?: string;
+  // backup: one of the server's backup destinations; all of them if unset.
+  destination?: string;
   continue_on_failure?: boolean;
 };
 
@@ -72,7 +75,7 @@ const presets: [string, string][] = [
   ["@weekly", "Every Sunday at midnight"],
 ];
 
-function describeStep(s: Step): string {
+function describeStep(s: Step, dest?: (id: string) => string): string {
   switch (s.type) {
     case "command":
       return `Run "${s.command}"`;
@@ -81,7 +84,7 @@ function describeStep(s: Step): string {
     case "wait":
       return `Wait ${s.duration}`;
     case "backup":
-      return "Back up";
+      return s.destination ? `Back up to ${dest?.(s.destination) ?? "one place"}` : "Back up";
   }
 }
 
@@ -118,6 +121,16 @@ export function ServerSchedules({
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const schedules = list.data?.schedules ?? [];
+  // Where the server's backups go, for backup steps that pick one place.
+  const plan = useBackupPlan(nodeId, serverId);
+  const places = (plan.data?.policy.targets ?? []).map((t) => ({
+    id: t.destination_id,
+    name:
+      plan.data?.destinations.find((d) => d.id === t.destination_id)?.name ??
+      (t.destination_id === "local" ? "Local" : "A removed destination"),
+  }));
+  const placeName = (id: string) =>
+    places.find((p) => p.id === id)?.name ?? "a removed destination";
 
   async function run(key: string, action: string, params: Record<string, unknown>) {
     setBusy(key);
@@ -198,7 +211,7 @@ export function ServerSchedules({
                           {s.name}
                         </button>
                         <p className="text-xs text-muted-foreground">
-                          {(def.steps ?? []).map(describeStep).join(" → ")}
+                          {(def.steps ?? []).map((st) => describeStep(st, placeName)).join(" → ")}
                         </p>
                       </TableCell>
                       <TableCell>
@@ -264,6 +277,7 @@ export function ServerSchedules({
           <ScheduleEditor
             key={editing.id ?? "new"}
             initial={editing.def}
+            places={places}
             onClose={() => setEditing(null)}
             onSave={async (def) => {
               await commandClient.execute({
@@ -417,10 +431,12 @@ function ScheduleRuns({
 
 function ScheduleEditor({
   initial,
+  places,
   onClose,
   onSave,
 }: {
   initial: Definition;
+  places: { id: string; name: string }[];
   onClose: () => void;
   onSave: (def: Definition) => Promise<void>;
 }) {
@@ -592,6 +608,21 @@ function ScheduleEditor({
                     <option value="stop">Stop</option>
                     <option value="restart">Restart</option>
                     <option value="kill">Kill</option>
+                  </select>
+                )}
+                {s.type === "backup" && places.length > 1 && (
+                  <select
+                    aria-label="Where to"
+                    className={select}
+                    value={s.destination ?? ""}
+                    onChange={(e) => setStep(i, { ...s, destination: e.target.value || undefined })}
+                  >
+                    <option value="">Everywhere it backs up to</option>
+                    {places.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        Only {p.name}
+                      </option>
+                    ))}
                   </select>
                 )}
                 {s.type === "wait" && (

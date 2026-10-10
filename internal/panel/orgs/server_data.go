@@ -121,6 +121,7 @@ func (s *Service) ListBackups(ctx context.Context, req *panelv1.ListBackupsReque
 			out.Backups = append(out.Backups, &panelv1.Backup{
 				Id: r.BackupID, Kind: r.Kind, Status: r.Status, Locked: r.Locked, Size: r.Size, Files: r.Files,
 				Error: r.Error, Warning: r.Warning, CreatedAt: ts(r.CreatedAt), FinishedAt: ts(r.FinishedAt), ExpiresAt: ts(r.ExpiresAt),
+				DestinationId: r.DestinationID,
 			})
 		}
 		return err

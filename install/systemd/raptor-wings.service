@@ -47,6 +47,9 @@ ProtectSystem=strict
 # Self-update writes versions to /usr/local/lib/raptor ("-": not fatal if
 # it's missing on an older install; updates then say they're unavailable).
 ReadWritePaths=/etc/raptor /var/lib/raptor /var/log/raptor /run/raptor -/usr/local/lib/raptor
+# Folder backup destinations: disks and NAS shares mounted where they usually
+# are (Wings refuses folders anywhere else).
+ReadWritePaths=-/mnt -/media -/srv
 ProtectHome=yes
 PrivateTmp=yes
 ProtectKernelModules=yes
