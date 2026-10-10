@@ -102,7 +102,7 @@ Does the actual work: runs servers in Docker containers, runs schedules and back
 |---|---|
 | **Per node** | **$12 / month** for every node linked to your account, online or not |
 | **First node** | Free for the first month (card required at signup) |
-| **Hosted backup storage** | $0.02 per GB-month |
+| **Raptor Backup Storage** | **10 GB included with every paid node** (pooled across the org), then $12 per TB-month, billed by the GB ($0.012/GB) |
 | **Connection relay** | Later, usage-based |
 
 Every node includes unlimited servers, users, schedules, and all features. There are no limits on RAM, CPU, or players, because it's your hardware.

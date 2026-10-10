@@ -99,6 +99,7 @@ Verification takes about 0.1 ms on the node. The user's cost is one fingerprint 
 - **Creating a server** (it chooses an egg, and so the install script and image that run)
 - Deleting a server; reinstalling with "wipe"; restoring a backup over current files. Restoring a **deleted** server's backup onto another server needs an **owner's** key: a delegation for the new server isn't enough, since the delegate may never have had access to the old server's files.
 - Deleting a backup, unlocking one, or lowering backup retention (each deletes backups, directly or at the next retention run)
+- Adding, changing, or deleting a backup destination, and sending a server's backups to a destination it didn't use (each decides where servers' files can be copied; a folder or rclone destination also runs as root on the node). Backups are encrypted with the node's key, but a compromised Panel mustn't be able to quietly point them at its own bucket.
 - Changing the egg, install script, startup command, or Docker image (Wings compares the update with its own records to decide; the Panel can't mislabel it)
 - Granting support access
 - Adding SSH/SFTP keys or sub-users, and delegating signed actions to them

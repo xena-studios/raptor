@@ -13,14 +13,10 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/kopia/kopia/repo"
-	"github.com/kopia/kopia/repo/blob"
-	"github.com/kopia/kopia/repo/blob/filesystem"
-	"github.com/kopia/kopia/repo/blob/s3"
 	"github.com/kopia/kopia/repo/content"
 	"github.com/kopia/kopia/repo/maintenance"
 	"github.com/kopia/kopia/repo/manifest"
@@ -31,35 +27,6 @@ import (
 	"github.com/kopia/kopia/snapshot/snapshotmaintenance"
 	"github.com/kopia/kopia/snapshot/upload"
 )
-
-// Destination types.
-const (
-	Local = "local"
-	S3    = "s3"
-)
-
-// Destination is where a repository lives. One repository per destination
-// holds every server's backups on the node, so identical files are stored
-// once.
-type Destination struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
-	// Path is the directory of a local destination.
-	Path string   `json:"path,omitempty"`
-	S3   S3Config `json:"s3,omitzero"`
-}
-
-// S3Config is an S3-compatible bucket.
-type S3Config struct {
-	// Endpoint is a host[:port], or a URL: https:// (the default) or
-	// http:// for a bucket on a trusted network.
-	Endpoint  string `json:"endpoint"`
-	Region    string `json:"region,omitempty"`
-	Bucket    string `json:"bucket"`
-	Prefix    string `json:"prefix,omitempty"`
-	AccessKey string `json:"access_key"`
-	SecretKey string `json:"secret_key"` //nolint:gosec // it's the field, not a value
-}
 
 // Engine works on one destination's repository.
 type Engine struct {
@@ -387,28 +354,6 @@ func (e *Engine) removeStale(keep string) {
 			_ = os.Remove(m)
 		}
 	}
-}
-
-func (e *Engine) storage(ctx context.Context) (blob.Storage, error) {
-	switch e.Dest.Type {
-	case Local:
-		if !filepath.IsAbs(e.Dest.Path) {
-			return nil, fmt.Errorf("local destination path %q isn't absolute", e.Dest.Path)
-		}
-		if err := os.MkdirAll(e.Dest.Path, 0o700); err != nil {
-			return nil, err
-		}
-		return filesystem.New(ctx, &filesystem.Options{Path: e.Dest.Path, FileMode: 0o600, DirectoryMode: 0o700}, true)
-	case S3:
-		c := e.Dest.S3
-		endpoint, plain := strings.CutPrefix(c.Endpoint, "http://")
-		endpoint = strings.TrimPrefix(endpoint, "https://")
-		return s3.New(ctx, &s3.Options{
-			BucketName: c.Bucket, Prefix: c.Prefix, Endpoint: strings.TrimSuffix(endpoint, "/"),
-			DoNotUseTLS: plain, Region: c.Region, AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey,
-		}, false)
-	}
-	return nil, fmt.Errorf("unknown destination type %q", e.Dest.Type)
 }
 
 // uploadProgress reports hashed bytes against the estimated total.

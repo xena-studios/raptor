@@ -22,7 +22,7 @@ import (
 type Backups interface {
 	List(ctx context.Context, serverID string) ([]*backup.Backup, error)
 	Get(ctx context.Context, serverID, id string) (*backup.Backup, error)
-	Create(ctx context.Context, serverID string, opts backup.CreateOptions) (*backup.Backup, error)
+	Create(ctx context.Context, serverID string, opts backup.CreateOptions) ([]*backup.Backup, error)
 	Restore(ctx context.Context, serverID, id, user string) (string, error)
 }
 
@@ -162,10 +162,11 @@ func (s *Service) CreateBackup(ctx context.Context, req *localv1.CreateBackupReq
 	if err != nil {
 		return nil, err
 	}
-	bk, err := b.Create(ctx, id, backup.CreateOptions{Kind: backup.KindManual, User: Caller(ctx), Locked: req.GetLocked()})
+	list, err := b.Create(ctx, id, backup.CreateOptions{Kind: backup.KindManual, User: Caller(ctx), Locked: req.GetLocked()})
 	if err != nil {
 		return nil, backupErr(err)
 	}
+	bk := list[0] // the primary destination's; the others are in the same job
 	if req.GetWait() {
 		job, err := j.Wait(ctx, bk.JobID)
 		if err != nil {

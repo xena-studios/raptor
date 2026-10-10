@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/xena-studios/raptor/internal/wings/backup"
+	"github.com/xena-studios/raptor/internal/wings/backup/engine"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/files"
@@ -50,6 +52,9 @@ const (
 	BackupPolicy            = "backup.policy.update"
 	BackupDestinationSave   = "backup.destination.save" // create or update
 	BackupDestinationDelete = "backup.destination.delete"
+	BackupDestinationTest   = "backup.destination.test"
+	BackupDestinations      = "backup.destinations" // a read: the destinations, their health, the node's SSH key
+	BackupHostKey           = "backup.hostkey"      // an SFTP server's host key, to pin
 
 	NodeSFTP       = "node.sftp"       // turn SFTP on or off
 	SFTPDisconnect = "sftp.disconnect" // end one login's connections to a server
@@ -330,6 +335,9 @@ func RegisterSchedules(x *command.Executor, s *schedule.Scheduler) {
 type BackupParams struct {
 	BackupID string `json:"backup_id"`
 	Locked   bool   `json:"locked,omitempty"` // backup.create, backup.lock
+	// DestinationID backs up to one of the server's destinations
+	// (backup.create); "" to all of them.
+	DestinationID string `json:"destination_id,omitempty"`
 }
 
 // BrowseParams are backup.browse's params.
@@ -342,6 +350,12 @@ type BrowseParams struct {
 type ExtractParams struct {
 	BackupID string   `json:"backup_id"`
 	Paths    []string `json:"paths"`
+}
+
+// HostKeyParams are backup.hostkey's params.
+type HostKeyParams struct {
+	Host string `json:"host"`
+	Port int    `json:"port,omitempty"`
 }
 
 // DestinationParams are the params of the destination actions.
@@ -377,11 +391,15 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 		if err != nil {
 			return nil, err
 		}
-		bk, err := b.Create(ctx, e.ServerID, backup.CreateOptions{Kind: backup.KindManual, User: e.UserID, Locked: p.Locked})
+		list, err := b.Create(ctx, e.ServerID, backup.CreateOptions{Kind: backup.KindManual, User: e.UserID, Locked: p.Locked, DestinationID: p.DestinationID})
 		if err != nil {
 			return nil, err
 		}
-		return map[string]string{"backup_id": bk.ID, "job_id": bk.JobID}, nil
+		ids := make([]string, len(list))
+		for i, bk := range list {
+			ids[i] = bk.ID
+		}
+		return map[string]any{"backup_id": ids[0], "backup_ids": ids, "job_id": list[0].JobID}, nil
 	}})
 	// Restoring a deleted server's backup (its final backup) onto another
 	// server needs an owner: a delegate for this server may never have had
@@ -490,7 +508,11 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 			if err != nil {
 				return false, err
 			}
-			return p.KeepsLess(cur.Retention), nil
+			// Sending a server's backups somewhere new copies its files
+			// off the node, so it's signed like a destination; the node's
+			// own disk isn't somewhere new.
+			added := slices.DeleteFunc(p.Added(cur), func(id string) bool { return id == backup.LocalDestination })
+			return p.KeepsLess(cur) || len(added) > 0, nil
 		},
 		Run: func(ctx context.Context, e command.Envelope) (any, error) {
 			p, err := policy(e)
@@ -500,7 +522,10 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 			return nil, b.SetPolicy(ctx, e.ServerID, p)
 		},
 	})
-	x.Register(BackupDestinationSave, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+	// Adding or changing a destination decides where servers' files can be
+	// sent, and a folder or rclone destination runs as root on the node,
+	// so they're signed; deleting one forgets its backups.
+	x.Register(BackupDestinationSave, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p DestinationParams
 		if err := decode(e, &p); err != nil {
 			return nil, err
@@ -511,12 +536,46 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 		}
 		return map[string]string{"destination_id": id}, nil
 	}})
-	x.Register(BackupDestinationDelete, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+	x.Register(BackupDestinationDelete, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p DestinationParams
 		if err := decode(e, &p); err != nil {
 			return nil, err
 		}
 		return nil, b.DeleteDestination(ctx, p.ID)
+	}})
+	// Testing writes a small file to the destination and removes it; it
+	// keeps nothing, so it isn't signed (the Panel lets only admins).
+	x.Register(BackupDestinationTest, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DestinationParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		if err := b.TestDestination(ctx, p.Destination); err != nil {
+			return nil, err
+		}
+		return map[string]bool{"ok": true}, nil
+	}})
+	x.Register(BackupDestinations, command.Handler{Signed: command.Never, Run: func(ctx context.Context, _ command.Envelope) (any, error) {
+		list, err := b.Destinations(ctx)
+		if err != nil {
+			return nil, err
+		}
+		key, err := b.SSHPublicKey(ctx)
+		if err != nil {
+			return nil, err
+		}
+		_, rerr := engine.RcloneExe()
+		return map[string]any{"destinations": list, "ssh_public_key": key, "rclone": rerr == nil}, nil
+	}})
+	x.Register(BackupHostKey, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p HostKeyParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		if p.Host == "" {
+			return nil, errors.New("command needs a host")
+		}
+		return backup.FetchHostKey(ctx, p.Host, p.Port)
 	}})
 }
 

@@ -64,8 +64,9 @@ func (m *Manager) begin(serverID string, a Activity) *Activity {
 		m.acts.all = map[string][]*Activity{}
 	}
 	list := m.acts.all[serverID]
-	// A resumed job takes over its entry.
-	list = slices.DeleteFunc(list, func(x *Activity) bool { return x.JobID == a.JobID })
+	// A resumed job takes over its entry (a backup job has one per
+	// destination).
+	list = slices.DeleteFunc(list, func(x *Activity) bool { return x.JobID == a.JobID && x.BackupID == a.BackupID })
 	p := &a
 	m.acts.all[serverID] = append(list, p)
 	return p

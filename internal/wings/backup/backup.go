@@ -16,10 +16,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"strings"
 	"sync"
 	"time"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -66,6 +64,9 @@ const (
 	EventRestored      = "backup.restore.finished"
 	EventPolicy        = "backup.policy.updated"
 	EventDestination   = "backup.destination.updated" // created, updated, or deleted
+	// EventDestinationStatus: a destination failed, or worked again after
+	// failing.
+	EventDestinationStatus = "backup.destination.status"
 )
 
 // LocalDestination is the ID of the built-in local destination.
@@ -79,8 +80,11 @@ const (
 	FinalTTL         = 30 * 24 * time.Hour
 	failedTTL        = 7 * 24 * time.Hour
 	maintainInterval = time.Hour
-	maxIgnore        = 100
-	maxNameLen       = 100
+	// measureInterval is how often a destination's size is added up:
+	// listing a bucket isn't free.
+	measureInterval = 24 * time.Hour
+	maxIgnore       = 100
+	maxNameLen      = 100
 )
 
 // passwordKey holds the repository password in kv. One password per node,
@@ -115,6 +119,9 @@ type Options struct {
 	Runner  Runner
 	// LocalPath is the local destination's directory.
 	LocalPath string
+	// ReservedPaths are directories a folder destination can't be in or
+	// contain (Raptor's data and server volumes), beside the system's.
+	ReservedPaths []string
 	// StateDir holds repository connections and caches.
 	StateDir string
 	// Location is the time zone retention counts days, weeks, and months
@@ -240,7 +247,8 @@ func (m *Manager) housekeeping(ctx context.Context) {
 		if active[d.ID] {
 			continue
 		}
-		if _, err := m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobMaintain, Payload: maintainPayload{DestinationID: d.ID}}); err != nil {
+		measure := !d.SizeAt.Valid || now.Sub(time.UnixMilli(d.SizeAt.Int64)) >= measureInterval
+		if _, err := m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobMaintain, Payload: maintainPayload{DestinationID: d.ID, Measure: measure}}); err != nil {
 			m.log.Error("queueing backup maintenance failed", "destination", d.ID, "err", err)
 		}
 	}
@@ -434,10 +442,19 @@ type CreateOptions struct {
 	Kind   string // KindManual or KindScheduled
 	User   string // who asked, for the audit event
 	Locked bool   // never deleted by retention
+	// DestinationID backs up to one of the server's destinations; "" to
+	// every one of them.
+	DestinationID string
 }
 
-// Create queues a backup of a server to its destination and returns it.
-func (m *Manager) Create(ctx context.Context, serverID string, opts CreateOptions) (*Backup, error) {
+// ErrNotTarget means a backup was asked for to a destination the server's
+// backups don't go to.
+var ErrNotTarget = errors.New("this server's backups don't go to that destination; add it in the server's backup settings first")
+
+// Create queues a backup of a server to each of its destinations (or the
+// one asked for) and returns them, the primary first. They're one job: the
+// snapshots run one after another.
+func (m *Manager) Create(ctx context.Context, serverID string, opts CreateOptions) ([]*Backup, error) {
 	if opts.Kind != KindManual && opts.Kind != KindScheduled {
 		return nil, fmt.Errorf("%w: kind %q", ErrInvalid, opts.Kind)
 	}
@@ -448,31 +465,56 @@ func (m *Manager) Create(ctx context.Context, serverID string, opts CreateOption
 	if err != nil {
 		return nil, err
 	}
-	if err := m.checkSpace(pol.DestinationID); err != nil {
-		return nil, err
+	targets := pol.Targets
+	if opts.DestinationID != "" {
+		t, ok := pol.Target(opts.DestinationID)
+		if !ok {
+			return nil, ErrNotTarget
+		}
+		targets = []Target{t}
 	}
-	id, err := uuid.NewV7()
-	if err != nil {
-		return nil, err
+	for _, t := range targets {
+		if err := m.checkSpace(t.DestinationID); err != nil {
+			return nil, err
+		}
 	}
-	b := &Backup{
-		ID: id.String(), ServerID: serverID, DestinationID: pol.DestinationID, Kind: opts.Kind,
-		Status: StatusPending, Locked: opts.Locked, CreatedBy: opts.User, CreatedAt: m.o.Now(),
+	var list []*Backup
+	for _, t := range targets {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, &Backup{
+			ID: id.String(), ServerID: serverID, DestinationID: t.DestinationID, Kind: opts.Kind,
+			Status: StatusPending, Locked: opts.Locked, CreatedBy: opts.User, CreatedAt: m.o.Now(),
+		})
+	}
+	ids := make([]string, len(list))
+	for i, b := range list {
+		ids[i] = b.ID
 	}
 	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
-		b.JobID, err = m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobCreate, ServerID: serverID, Payload: createPayload{BackupID: b.ID}})
+		jobID, err := m.o.Jobs.EnqueueTx(ctx, q, jobs.Spec{Type: JobCreate, ServerID: serverID, Payload: createPayload{BackupIDs: ids}})
 		if err != nil {
 			return err
 		}
-		return m.insert(ctx, q, b)
+		for _, b := range list {
+			b.JobID = jobID
+			if err := m.insert(ctx, q, b); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	m.queued(serverID, Activity{JobID: b.JobID, Kind: ActBackup, BackupID: b.ID, BackupKind: b.Kind})
+	for _, b := range list {
+		m.queued(serverID, Activity{JobID: b.JobID, Kind: ActBackup, BackupID: b.ID, BackupKind: b.Kind})
+	}
 	m.o.Events.Wake()
 	m.o.Jobs.Wake()
-	return b, nil
+	return list, nil
 }
 
 func (m *Manager) insert(ctx context.Context, q *store.Queries, b *Backup) error {
@@ -504,14 +546,14 @@ func (m *Manager) checkSpace(destID string) error {
 	return nil
 }
 
-// Backup queues a scheduled backup (a schedule's backup step) and returns
-// its job ID.
-func (m *Manager) Backup(ctx context.Context, serverID, user string) (string, error) {
-	b, err := m.Create(ctx, serverID, CreateOptions{Kind: KindScheduled, User: user})
+// Backup queues a scheduled backup (a schedule's backup step) to the
+// server's destinations, or one of them, and returns its job's ID.
+func (m *Manager) Backup(ctx context.Context, serverID, user, destinationID string) (string, error) {
+	list, err := m.Create(ctx, serverID, CreateOptions{Kind: KindScheduled, User: user, DestinationID: destinationID})
 	if err != nil {
 		return "", err
 	}
-	return b.JobID, nil
+	return list[0].JobID, nil
 }
 
 // Lock sets whether retention may delete a backup.
@@ -607,255 +649,6 @@ func (m *Manager) Restore(ctx context.Context, serverID, id, user string) (strin
 	m.o.Events.Wake()
 	m.o.Jobs.Wake()
 	return jobID, nil
-}
-
-// --- policies ---
-
-// Policy is a server's backup settings.
-type Policy struct {
-	DestinationID string `json:"destination_id"`
-	Retention
-	Ignore []string `json:"ignore,omitempty"` // gitignore-style patterns
-}
-
-// DefaultPolicy is used by servers without settings of their own.
-func DefaultPolicy() Policy {
-	return Policy{DestinationID: LocalDestination, Retention: DefaultRetention}
-}
-
-func (p *Policy) validate() error {
-	if err := p.Retention.validate(); err != nil {
-		return err
-	}
-	if len(p.Ignore) > maxIgnore {
-		return fmt.Errorf("at most %d ignore patterns", maxIgnore)
-	}
-	for _, s := range p.Ignore {
-		if strings.TrimSpace(s) == "" || strings.ContainsAny(s, "\n\r\x00") || len(s) > 1000 {
-			return fmt.Errorf("bad ignore pattern %q", s)
-		}
-	}
-	if p.DestinationID == "" {
-		p.DestinationID = LocalDestination
-	}
-	return nil
-}
-
-// Policy returns a server's backup settings.
-func (m *Manager) Policy(ctx context.Context, serverID string) (Policy, error) {
-	r, err := m.o.Store.Read.GetBackupPolicy(ctx, serverID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return DefaultPolicy(), nil
-	}
-	if err != nil {
-		return Policy{}, err
-	}
-	p := Policy{DestinationID: r.DestinationID, Retention: Retention{
-		KeepLast: int(r.KeepLast), KeepDaily: int(r.KeepDaily), KeepWeekly: int(r.KeepWeekly), KeepMonthly: int(r.KeepMonthly),
-	}}
-	if err := json.Unmarshal([]byte(r.Ignore), &p.Ignore); err != nil {
-		return Policy{}, err
-	}
-	return p, nil
-}
-
-// SetPolicy replaces a server's backup settings. Existing backups stay
-// where they are; retention applies to them from the next backup.
-func (m *Manager) SetPolicy(ctx context.Context, serverID string, p Policy) error {
-	if err := p.validate(); err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalid, err)
-	}
-	if _, err := m.o.Servers.Status(serverID); err != nil {
-		return err
-	}
-	ignore, err := json.Marshal(p.Ignore)
-	if err != nil {
-		return err
-	}
-	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
-		if _, err := q.GetBackupDestination(ctx, p.DestinationID); err != nil {
-			return ErrDestination
-		}
-		if err := q.UpsertBackupPolicy(ctx, store.UpsertBackupPolicyParams{
-			ServerID: serverID, DestinationID: p.DestinationID,
-			KeepLast: int64(p.KeepLast), KeepDaily: int64(p.KeepDaily), KeepWeekly: int64(p.KeepWeekly), KeepMonthly: int64(p.KeepMonthly),
-			Ignore: string(ignore), UpdatedAt: m.o.Now().UnixMilli(),
-		}); err != nil {
-			return err
-		}
-		_, err := events.AppendTx(ctx, q, events.Event{Type: EventPolicy, ServerID: serverID, Data: map[string]any{"policy": p}})
-		return err
-	})
-	if err == nil {
-		m.o.Events.Wake()
-	}
-	return err
-}
-
-// --- destinations ---
-
-// Destination is where backups are stored.
-type Destination struct {
-	ID   string          `json:"id"`
-	Name string          `json:"name"`
-	Type string          `json:"type"` // engine.Local or engine.S3
-	S3   engine.S3Config `json:"s3,omitzero"`
-}
-
-func (d *Destination) validate() error {
-	d.Name = strings.TrimSpace(d.Name)
-	if d.Name == "" || utf8.RuneCountInString(d.Name) > maxNameLen {
-		return fmt.Errorf("name must be 1 to %d characters", maxNameLen)
-	}
-	if d.Type != engine.S3 {
-		return errors.New(`only "s3" destinations can be added; the local one always exists`)
-	}
-	c := &d.S3
-	if c.Endpoint == "" || c.Bucket == "" || c.AccessKey == "" || c.SecretKey == "" {
-		return errors.New("s3 needs an endpoint, bucket, access key, and secret key")
-	}
-	if strings.Contains(c.Endpoint, "://") && !strings.HasPrefix(c.Endpoint, "https://") && !strings.HasPrefix(c.Endpoint, "http://") {
-		return fmt.Errorf("endpoint %q must be a host or an http(s) URL", c.Endpoint)
-	}
-	return nil
-}
-
-// Redacted returns the destination without its secret key, for events and
-// listings.
-func (d Destination) Redacted() Destination {
-	if d.S3.SecretKey != "" {
-		d.S3.SecretKey = "********"
-	}
-	return d
-}
-
-// Destinations lists the destinations, secrets redacted.
-func (m *Manager) Destinations(ctx context.Context) ([]Destination, error) {
-	rows, err := m.o.Store.Read.ListBackupDestinations(ctx)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]Destination, 0, len(rows))
-	for _, r := range rows {
-		d, err := destFromRow(r)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, d.Redacted())
-	}
-	return out, nil
-}
-
-func destFromRow(r store.BackupDestination) (Destination, error) {
-	d := Destination{ID: r.ID, Name: r.Name, Type: r.Type}
-	if r.Type == engine.S3 {
-		if err := json.Unmarshal([]byte(r.Config), &d.S3); err != nil {
-			return d, fmt.Errorf("destination %s: %w", r.ID, err)
-		}
-	}
-	return d, nil
-}
-
-// SaveDestination adds a destination (d.ID empty) or replaces one. The
-// secret key can be left empty on update to keep the stored one. It returns
-// the destination's ID.
-func (m *Manager) SaveDestination(ctx context.Context, d Destination) (string, error) {
-	if d.ID == LocalDestination {
-		return "", fmt.Errorf("%w: the local destination can't be changed", ErrInvalid)
-	}
-	now := m.o.Now().UnixMilli()
-	err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
-		if d.ID != "" {
-			r, err := q.GetBackupDestination(ctx, d.ID)
-			if err != nil {
-				return ErrDestination
-			}
-			old, err := destFromRow(r)
-			if err != nil {
-				return err
-			}
-			if d.S3.SecretKey == "" {
-				d.S3.SecretKey = old.S3.SecretKey
-			}
-		}
-		if err := d.validate(); err != nil {
-			return fmt.Errorf("%w: %w", ErrInvalid, err)
-		}
-		cfg, err := json.Marshal(d.S3) //nolint:gosec // stored in the node's private database
-		if err != nil {
-			return err
-		}
-		if d.ID == "" {
-			id, err := uuid.NewV7()
-			if err != nil {
-				return err
-			}
-			d.ID = id.String()
-			err = q.InsertBackupDestination(ctx, store.InsertBackupDestinationParams{
-				ID: d.ID, Name: d.Name, Type: d.Type, Config: string(cfg), CreatedAt: now, UpdatedAt: now,
-			})
-			if err != nil {
-				return err
-			}
-		} else if err := q.UpdateBackupDestination(ctx, store.UpdateBackupDestinationParams{
-			Name: d.Name, Config: string(cfg), UpdatedAt: now, ID: d.ID,
-		}); err != nil {
-			return err
-		}
-		_, err = events.AppendTx(ctx, q, events.Event{Type: EventDestination, Data: map[string]any{"destination": d.Redacted()}})
-		return err
-	})
-	if err != nil {
-		return "", err
-	}
-	m.o.Events.Wake()
-	return d.ID, nil
-}
-
-// DeleteDestination removes a destination no server's settings use. Its
-// backups are forgotten; the data in the bucket is left alone.
-func (m *Manager) DeleteDestination(ctx context.Context, id string) error {
-	if id == LocalDestination {
-		return fmt.Errorf("%w: the local destination can't be deleted", ErrInvalid)
-	}
-	err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
-		if _, err := q.GetBackupDestination(ctx, id); err != nil {
-			return ErrDestination
-		}
-		n, err := q.CountDestinationPolicies(ctx, id)
-		if err != nil {
-			return err
-		}
-		if n > 0 {
-			return ErrInUse
-		}
-		if err := q.DeleteBackupDestination(ctx, id); err != nil {
-			return err
-		}
-		_, err = events.AppendTx(ctx, q, events.Event{Type: EventDestination, Data: map[string]any{"destination_id": id, "deleted": true}})
-		return err
-	})
-	if err == nil {
-		m.o.Events.Wake()
-	}
-	return err
-}
-
-// engineDest returns what the worker needs to open a destination.
-func (m *Manager) engineDest(ctx context.Context, id string) (engine.Destination, error) {
-	r, err := m.o.Store.Read.GetBackupDestination(ctx, id)
-	if err != nil {
-		return engine.Destination{}, ErrDestination
-	}
-	d, err := destFromRow(r)
-	if err != nil {
-		return engine.Destination{}, err
-	}
-	ed := engine.Destination{ID: d.ID, Type: d.Type, S3: d.S3}
-	if d.Type == engine.Local {
-		ed.Path = m.o.LocalPath
-	}
-	return ed, nil
 }
 
 // run sends one request to the worker.

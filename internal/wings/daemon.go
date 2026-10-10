@@ -475,6 +475,9 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	bk = backup.New(backup.Options{
 		Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Log: r.log, Runner: runner,
 		LocalPath: r.cfg.Paths.Backups, StateDir: filepath.Join(filepath.Dir(r.cfg.Paths.State), "kopia"),
+		ReservedPaths: []string{
+			filepath.Dir(r.cfg.Paths.State), r.cfg.Paths.Volumes, r.cfg.Paths.Backups, r.cfg.Paths.Tmp, r.cfg.Paths.Logs,
+		},
 		Location: loc, MinFree: int64(r.cfg.Limits.HostDiskMinFree),
 		FreeSpace: func(path string) (int64, error) {
 			_, free, err := storage.Space(path)

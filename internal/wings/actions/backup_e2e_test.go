@@ -318,11 +318,19 @@ func TestBackupCommands(t *testing.T) {
 		t.Fatalf("deleted backup: %v", err)
 	}
 
-	// An S3 destination.
+	// An S3 destination. Adding one decides where servers' files can go,
+	// so it needs the passkey.
 	endpoint := startMinIO(t)
-	res, err = p.send("alice", BackupDestinationSave, "", DestinationParams{backup.Destination{
-		Name: "MinIO", Type: engine.S3, S3: engine.S3Config{Endpoint: "http://" + endpoint, Bucket: "raptor", Prefix: "node/", AccessKey: "raptor", SecretKey: "raptor-secret"},
-	}}, nil)
+	minio := DestinationParams{backup.Destination{
+		Name: "MinIO", Type: engine.S3, Config: engine.Config{S3: &engine.S3Config{Endpoint: "http://" + endpoint, Bucket: "raptor", Prefix: "node/", AccessKey: "raptor", SecretKey: "raptor-secret"}},
+	}}
+	if _, err := p.send("alice", BackupDestinationSave, "", minio, nil); !errors.Is(err, command.ErrSignatureNeeded) {
+		t.Fatalf("unsigned destination: %v", err)
+	}
+	if _, err := p.send("alice", BackupDestinationTest, "", minio, nil); err != nil {
+		t.Fatalf("testing the destination: %v", err)
+	}
+	res, err = p.send("alice", BackupDestinationSave, "", minio, owner)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,14 +338,30 @@ func TestBackupCommands(t *testing.T) {
 		DestinationID string `json:"destination_id"`
 	}
 	_ = json.Unmarshal(res.Value, &dest)
-	// Lowering retention needs the passkey; moving to S3 with the same keep
-	// values doesn't.
-	lower := backup.Policy{DestinationID: dest.DestinationID, Retention: backup.Retention{KeepLast: 1}}
+	// Sending the server's backups to S3 copies its files off the node, so
+	// it needs the passkey; so does lowering retention. Raising it doesn't.
+	toS3 := backup.Policy{Targets: []backup.Target{
+		{DestinationID: backup.LocalDestination, Retention: backup.DefaultRetention},
+		{DestinationID: dest.DestinationID, Retention: backup.DefaultRetention},
+	}}
+	if _, err := p.send("alice", BackupPolicy, id, toS3, nil); !errors.Is(err, command.ErrSignatureNeeded) {
+		t.Fatalf("unsigned new destination: %v", err)
+	}
+	if _, err := p.send("alice", BackupPolicy, id, toS3, owner); err != nil {
+		t.Fatal(err)
+	}
+	lower := backup.Policy{Targets: []backup.Target{
+		{DestinationID: backup.LocalDestination, Retention: backup.Retention{KeepLast: 1}},
+		{DestinationID: dest.DestinationID, Retention: backup.DefaultRetention},
+	}}
 	if _, err := p.send("alice", BackupPolicy, id, lower, nil); !errors.Is(err, command.ErrSignatureNeeded) {
 		t.Fatalf("unsigned retention cut: %v", err)
 	}
-	if _, err := p.send("alice", BackupPolicy, id, backup.Policy{DestinationID: dest.DestinationID, Retention: backup.DefaultRetention}, nil); err != nil {
-		t.Fatal(err)
+	more := backup.Policy{Targets: []backup.Target{
+		{DestinationID: dest.DestinationID, Retention: backup.Retention{KeepLast: 5, KeepDaily: 7, KeepWeekly: 4}},
+	}}
+	if _, err := p.send("alice", BackupPolicy, id, more, nil); err != nil {
+		t.Fatalf("keeping more, at S3 only: %v", err)
 	}
 	console("echo offsite > /home/container/level.dat")
 	res, err = p.send("alice", BackupCreate, id, nil, nil)
@@ -420,8 +444,8 @@ func TestWipeAndFinalBackup(t *testing.T) {
 	// A destination that can't be reached: a wipe whose safety backup
 	// fails removes nothing, and the server stays installed.
 	res, err = v.p.send("alice", BackupDestinationSave, "", DestinationParams{backup.Destination{
-		Name: "Down", Type: engine.S3, S3: engine.S3Config{Endpoint: "http://127.0.0.1:1", Bucket: "raptor", AccessKey: "a", SecretKey: "b"},
-	}}, nil)
+		Name: "Down", Type: engine.S3, Config: engine.Config{S3: &engine.S3Config{Endpoint: "http://127.0.0.1:1", Bucket: "raptor", AccessKey: "a", SecretKey: "b"}},
+	}}, v.owner)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +455,7 @@ func TestWipeAndFinalBackup(t *testing.T) {
 	_ = json.Unmarshal(res.Value, &down)
 	setDest := func(dest string) {
 		t.Helper()
-		if _, err := v.p.send("alice", BackupPolicy, id, backup.Policy{DestinationID: dest, Retention: backup.DefaultRetention}, nil); err != nil {
+		if _, err := v.p.send("alice", BackupPolicy, id, backup.Policy{Targets: []backup.Target{{DestinationID: dest, Retention: backup.DefaultRetention}}}, v.owner); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -73,6 +73,9 @@ type Step struct {
 	Command  string             `json:"command,omitempty"`  // command
 	Action   server.PowerAction `json:"action,omitempty"`   // power
 	Duration server.Duration    `json:"duration,omitempty"` // wait
+	// Destination backs up to one of the server's backup destinations
+	// (backup); "" to all of them.
+	Destination string `json:"destination,omitempty"`
 	// ContinueOnFailure: a failed step doesn't stop the run. (A console
 	// command fails when the server is offline, for example.)
 	ContinueOnFailure bool `json:"continue_on_failure,omitempty"`
@@ -86,6 +89,10 @@ func (s Step) String() string {
 		return string(s.Action)
 	case StepWait:
 		return "wait " + time.Duration(s.Duration).String()
+	case StepBackup:
+		if s.Destination != "" {
+			return "backup to " + s.Destination
+		}
 	}
 	return s.Type
 }
@@ -159,6 +166,9 @@ func (s Step) validate() error {
 			return fmt.Errorf("unknown power action %q", s.Action)
 		}
 	case StepBackup:
+		if len(s.Destination) > 100 {
+			return errors.New("bad backup destination")
+		}
 	default:
 		return fmt.Errorf("unknown step type %q", s.Type)
 	}
