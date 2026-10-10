@@ -122,6 +122,9 @@ type Options struct {
 	// ReservedPaths are directories a folder destination can't be in or
 	// contain (Raptor's data and server volumes), beside the system's.
 	ReservedPaths []string
+	// NodeID is this node's, for Raptor Backup Storage's folder ("" when
+	// not linked: no hosted storage).
+	NodeID string
 	// FolderRoots are where folder destinations may be (default /mnt,
 	// /media, /srv: what the service may write).
 	FolderRoots []string

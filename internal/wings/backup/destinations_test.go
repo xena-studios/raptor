@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/xena-studios/raptor/internal/shared/hosted"
 	"github.com/xena-studios/raptor/internal/wings/backup/engine"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 )
@@ -286,4 +287,67 @@ func nas2(t *testing.T, v *env) string {
 		t.Fatal(err)
 	}
 	return id
+}
+
+// Raptor Backup Storage: only Raptor's bucket and this node's folder count,
+// and it's always the one destination "raptor", replaced when the Panel
+// sends a new key.
+func TestHostedDestination(t *testing.T) {
+	v := newEnv(t)
+	ctx := context.Background()
+	v.m.o.NodeID = "n1"
+	good := func() Destination {
+		return Destination{Name: "Raptor Backup Storage", Type: engine.Raptor, Config: engine.Config{Raptor: &engine.S3Config{
+			Endpoint: "s3.us-west-004.backblazeb2.com", Bucket: hosted.Bucket, Prefix: hosted.Prefix("o1", "n1"),
+			AccessKey: "k1", SecretKey: "SECRET-H1",
+		}}}
+	}
+	if !v.m.IsHosted(good()) {
+		t.Fatal("the real thing isn't hosted")
+	}
+	for name, mutate := range map[string]func(*Destination){
+		"another bucket":   func(d *Destination) { d.Raptor.Bucket = "attackers-bucket" },
+		"another endpoint": func(d *Destination) { d.Raptor.Endpoint = "s3.evil.example.com" },
+		"another node":     func(d *Destination) { d.Raptor.Prefix = hosted.Prefix("o1", "n2") },
+		"the org's folder": func(d *Destination) { d.Raptor.Prefix = hosted.OrgPrefix("o1") },
+		"no key":           func(d *Destination) { d.Raptor.SecretKey = "" },
+		"called S3":        func(d *Destination) { d.Type = engine.S3; d.S3, d.Raptor = d.Raptor, nil },
+	} {
+		d := good()
+		mutate(&d)
+		if v.m.IsHosted(d) {
+			t.Errorf("%s: counted as hosted", name)
+		}
+		if d.Type == engine.Raptor {
+			if _, err := v.m.SaveDestination(ctx, d); !errors.Is(err, ErrInvalid) {
+				t.Errorf("%s: saved: %v", name, err)
+			}
+		}
+	}
+	id, err := v.m.SaveDestination(ctx, good())
+	if err != nil || id != HostedDestination {
+		t.Fatalf("saved as %q, %v", id, err)
+	}
+	again := good()
+	again.Raptor.AccessKey, again.Raptor.SecretKey = "k2", "SECRET-H2"
+	if id, err := v.m.SaveDestination(ctx, again); err != nil || id != HostedDestination {
+		t.Fatalf("a new key: %q, %v", id, err)
+	}
+	r, _ := v.db.Read.GetBackupDestination(ctx, HostedDestination)
+	if !strings.Contains(r.Config, "SECRET-H2") {
+		t.Fatalf("the new key wasn't saved: %s", r.Config)
+	}
+	list, _ := v.m.Destinations(ctx)
+	if n := len(list); n != 2 {
+		t.Fatalf("%d destinations", n)
+	}
+	// Nothing else can take its ID.
+	if _, err := v.m.SaveDestination(ctx, Destination{ID: HostedDestination, Name: "x", Type: engine.Folder, Config: engine.Config{Folder: &engine.FolderConfig{Path: filepath.Join(v.dir, "x")}}}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("a folder as %q: %v", HostedDestination, err)
+	}
+	// Unlinked: no hosted storage at all.
+	v.m.o.NodeID = ""
+	if v.m.IsHosted(good()) {
+		t.Fatal("hosted on an unlinked node")
+	}
 }

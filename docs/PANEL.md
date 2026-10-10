@@ -174,6 +174,16 @@ Destinations live on each node, credentials included: the Panel never stores the
 - **A server's Backups tab:** "Where backups go", each destination with what it keeps (Light, Standard, Long-term, or custom numbers) and what's left out; admins change it, with a passkey when it sends backups somewhere new off the node's own disk or keeps fewer (`web/src/lib/backup-destinations.ts` mirrors Wings' rule, to say so on the button). Each backup shows where it is, and "Back up now" can go to one place only. A schedule's backup step can too.
 - **Org settings → Backups** (admins): every connected node's destinations and their health in one place, linking to each node's tab.
 
+## Raptor Backup Storage
+
+Offsite backups with nothing to set up (`internal/panel/storage`), priced in [#230](DECISIONS.md): 10 GB included per paid node, then $12/TB-month by the GB.
+
+- **One B2 bucket**, `raptor-backup-storage`, reached through its S3 API. Its name is pinned in Wings (`internal/shared/hosted`): B2 bucket names are unique across Backblaze, so a "Raptor storage" destination can only ever send backups to Raptor's bucket, whatever a Panel says.
+- **Turning it on** for a node (`OrgService.EnableBackupStorage`, admins; from the node's Backups tab): the Panel makes a B2 key that reaches only `orgs/<org>/nodes/<node>/` (list, read, write, delete files; no other keys, no bucket settings), and sends the node a `backup.destination.save` with it as the destination `raptor`. Wings takes it unsigned because it can only be Raptor's bucket and that node's own folder (`backup.IsHosted`); pointing a server at it is unsigned for the same reason. The key's secret goes to the node and isn't kept by the Panel (`backup_storage` keeps its ID). Turning it on again makes a new key and deletes the old one. A node that's offline gets nothing and leaves no key behind.
+- **The data is the node's to read:** backups are encrypted by the node (Kopia, with the node's repository password) before they leave it, and the Panel doesn't have that password, so Raptor stores what it can't read. (Until the key copy of PR 4 exists, a dead node's backups can't be recovered elsewhere either.)
+- **Turning it off:** the node removes the destination (signed, like any), then `DisableBackupStorage` deletes the key. The files stay 30 days, then the Panel deletes every version under the node's folder. Removing a node does the same.
+- **Usage:** once a day, one Panel instance (an advisory lock) adds up every version under each org's folder (`b2_list_file_versions`) into `backup_storage_usage`. `GetBackupStorage` shows it with what's included (10 GB × the org's nodes) and an estimate. Past 500 GB during beta, the org is asked to get in touch and it's logged; nothing is blocked. Billing reads the same table once billing exists.
+
 ## Imported eggs
 
 Besides the built-in catalog, an org can import eggs (`org_eggs`): Pterodactyl or Pelican files, JSON or YAML, from a link or an upload. Admins and owners import and remove them; any member sees and uses them. The Eggs page lists them first, and the create-server wizard offers them first, on every node unless the egg names its CPUs.

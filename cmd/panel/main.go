@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -27,6 +29,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
 	"github.com/xena-studios/raptor/internal/panel/sftpgate"
+	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/panel/support"
 	"github.com/xena-studios/raptor/internal/panel/telemetry"
@@ -228,7 +231,9 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		// SFTP ports open only while someone has a password on the node.
 		gate := &sftpgate.Gate{DB: pool, Sender: router, PanelKey: reg.PanelKey, Log: log}
 		go gate.Run(ctx, time.Minute)
-		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate}
+		backupStorage := backupStorage(pool, router, reg.PanelKey, log)
+		go backupStorage.Run(ctx, time.Hour)
+		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate, Storage: backupStorage, Log: log}
 		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey}
 		cfg.Transfers = router
 		mailer, err := mailer(log)
@@ -247,6 +252,12 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.Orgs.NodeRemoved = func(ctx context.Context, id string) {
 			router.Drop(ctx, id)
 			go addrs.ForgetWithRetry(ctx, id)
+			// Its storage key goes now, its stored backups in 30 days.
+			if nid, err := uuid.Parse(id); err == nil {
+				if err := backupStorage.Disable(ctx, nid); err != nil {
+					log.Error("turning off a removed node's backup storage failed", "node", id, "err", err)
+				}
+			}
 		}
 		mirror := &nodes.Mirror{DB: pool, Hub: cfg.Hub, Log: log}
 		cfg.Hub.EventsAvailable = func(_ context.Context, id string, _ int64) { mirror.Notify(id) }
@@ -263,6 +274,25 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		log.Warn("PANEL_DATABASE_URL is not set: nodes can't enroll or connect")
 	}
 	return api.Run(ctx, cfg, log)
+}
+
+// backupStorage is Raptor Backup Storage, offered when its B2 settings are
+// set (docs/DEPLOY.md#secrets): a key that can make keys and list and
+// delete files, the bucket's ID, and its S3 endpoint.
+func backupStorage(pool *pgxpool.Pool, router storage.Sender, key ed25519.PrivateKey, log *slog.Logger) *storage.Service {
+	s := &storage.Service{
+		DB: pool, Sender: router, PanelKey: key, Log: log,
+		BucketID: os.Getenv("PANEL_BACKUP_STORAGE_BUCKET_ID"),
+		Endpoint: os.Getenv("PANEL_BACKUP_STORAGE_ENDPOINT"),
+		Region:   os.Getenv("PANEL_BACKUP_STORAGE_REGION"),
+	}
+	if id := os.Getenv("PANEL_BACKUP_STORAGE_KEY_ID"); id != "" {
+		s.B2 = &storage.B2{KeyID: id, Key: os.Getenv("PANEL_BACKUP_STORAGE_KEY")}
+	}
+	if !s.Available() {
+		log.Warn("PANEL_BACKUP_STORAGE_* is not set: Raptor Backup Storage isn't offered")
+	}
+	return s
 }
 
 // supportStore is where nodes' support bundles go: a bucket, or in

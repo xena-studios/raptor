@@ -221,6 +221,12 @@ export function OrgActivity({
       case "sftp.password":
         [text, icon] = [`turned on SFTP for ${serverName(str(meta.node), e.target)}`, FolderKey];
         break;
+      case "backup_storage.enable":
+        [text, icon] = [`turned on Raptor Backup Storage for ${nodeName(e.target)}`, Archive];
+        break;
+      case "backup_storage.disable":
+        [text, icon] = [`turned off Raptor Backup Storage for ${nodeName(e.target)}`, Archive];
+        break;
       case "egg.import":
         [text, icon] = [`imported the egg "${str(meta.name)}"`, Egg];
         break;

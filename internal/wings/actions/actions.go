@@ -510,8 +510,10 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 			}
 			// Sending a server's backups somewhere new copies its files
 			// off the node, so it's signed like a destination; the node's
-			// own disk isn't somewhere new.
-			added := slices.DeleteFunc(p.Added(cur), func(id string) bool { return id == backup.LocalDestination })
+			// own disk and Raptor Backup Storage aren't somewhere new.
+			added := slices.DeleteFunc(p.Added(cur), func(id string) bool {
+				return id == backup.LocalDestination || id == backup.HostedDestination
+			})
 			return p.KeepsLess(cur) || len(added) > 0, nil
 		},
 		Run: func(ctx context.Context, e command.Envelope) (any, error) {
@@ -525,7 +527,15 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 	// Adding or changing a destination decides where servers' files can be
 	// sent, and a folder destination is written as root on the node,
 	// so they're signed; deleting one forgets its backups.
-	x.Register(BackupDestinationSave, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+	x.Register(BackupDestinationSave, command.Handler{Signed: func(_ context.Context, e command.Envelope) (bool, error) {
+		// Raptor Backup Storage can only point at Raptor's bucket and
+		// this node's folder in it, so the Panel sets it up unsigned.
+		var p DestinationParams
+		if err := decode(e, &p); err != nil {
+			return false, err
+		}
+		return !b.IsHosted(p.Destination), nil
+	}, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p DestinationParams
 		if err := decode(e, &p); err != nil {
 			return nil, err
