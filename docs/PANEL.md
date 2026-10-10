@@ -189,7 +189,7 @@ The node fires schedules (see [WINGS.md](WINGS.md#scheduler)); the Panel keeps t
 - **Every enrolled node is billed, regardless of status** (online, offline, or unreachable). A node stops being billed only when it's removed from the Panel.
 - Implemented as a Polar subscription with a **per-unit quantity** equal to the org's enrolled node count, updated on enroll/removal. Changes are **prorated daily**.
 - **Trial:** the first node is free for one month, **once per org**, and a **card is required at signup** (this cuts throwaway re-trial accounts).
-- **Hosted backup storage:** $0.02 per GB-month, metered daily from object storage usage.
+- **Raptor Backup Storage:** 10 GB included per paid node (pooled across the org; a trial node counts), then $0.012 per GB-month ($12/TB), metered daily from object storage usage. Backed by Backblaze B2 (about $6.95/TB): roughly 30% left after B2, payment fees, and API calls. During beta, a soft cap of 500 GB per org, raised on request.
 - The Panel keeps its own **ledger** for reconciliation.
 - Non-payment: 7-day grace → the Panel goes read-only for unpaid nodes → **servers keep running**. Hosted backup data is kept 30 days, then deleted after email reminders.
 

@@ -116,7 +116,7 @@ type backups struct {
 	release chan struct{}
 }
 
-func (b *backups) Backup(ctx context.Context, serverID, _ string) (string, error) {
+func (b *backups) Backup(ctx context.Context, serverID, _, _ string) (string, error) {
 	b.calls.Add(1)
 	return b.jobs().Enqueue(ctx, jobs.Spec{Type: "test.backup", ServerID: serverID})
 }

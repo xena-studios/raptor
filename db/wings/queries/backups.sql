@@ -1,5 +1,5 @@
 -- name: InsertBackupDestination :exec
-INSERT INTO backup_destinations (id, name, type, config, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO backup_destinations (id, name, type, config, upload_limit, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetBackupDestination :one
 SELECT * FROM backup_destinations WHERE id = ?;
@@ -8,13 +8,32 @@ SELECT * FROM backup_destinations WHERE id = ?;
 SELECT * FROM backup_destinations ORDER BY id != 'local', created_at, id; -- local first
 
 -- name: UpdateBackupDestination :exec
-UPDATE backup_destinations SET name = ?, config = ?, version = version + 1, updated_at = ? WHERE id = ?;
+UPDATE backup_destinations SET name = ?, config = ?, upload_limit = ?, version = version + 1, updated_at = ? WHERE id = ?;
+
+-- name: DestinationWorked :exec
+UPDATE backup_destinations SET last_ok_at = ? WHERE id = ?;
+
+-- name: DestinationFailed :exec
+UPDATE backup_destinations SET last_error = ?, last_error_at = ? WHERE id = ?;
+
+-- name: SetDestinationSize :exec
+UPDATE backup_destinations SET size = ?, size_at = ? WHERE id = ?;
 
 -- name: DeleteBackupDestination :exec
 DELETE FROM backup_destinations WHERE id = ?;
 
--- name: CountDestinationPolicies :one
-SELECT COUNT(*) FROM backup_policies WHERE destination_id = ?;
+-- name: CountDestinationTargets :one
+SELECT COUNT(*) FROM backup_targets WHERE destination_id = ?;
+
+-- name: ListBackupTargets :many
+SELECT * FROM backup_targets WHERE server_id = ? ORDER BY position;
+
+-- name: DeleteBackupTargets :exec
+DELETE FROM backup_targets WHERE server_id = ?;
+
+-- name: InsertBackupTarget :exec
+INSERT INTO backup_targets (server_id, destination_id, position, keep_last, keep_daily, keep_weekly, keep_monthly)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetBackupPolicy :one
 SELECT * FROM backup_policies WHERE server_id = ?;

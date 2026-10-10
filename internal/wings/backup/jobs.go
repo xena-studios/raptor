@@ -18,7 +18,17 @@ import (
 )
 
 type createPayload struct {
-	BackupID string `json:"backup_id"`
+	// BackupIDs are the backups to take, one per destination, in order.
+	BackupIDs []string `json:"backup_ids"`
+	// BackupID is a job queued by a Wings from before several destinations.
+	BackupID string `json:"backup_id,omitempty"`
+}
+
+func (p createPayload) ids() []string {
+	if len(p.BackupIDs) == 0 && p.BackupID != "" {
+		return []string{p.BackupID}
+	}
+	return p.BackupIDs
 }
 
 // createCheckpoint: the egg's pre-backup commands were sent, so a resumed
@@ -49,6 +59,8 @@ type deletePayload struct {
 
 type maintainPayload struct {
 	DestinationID string `json:"destination_id"`
+	// Measure adds up what the destination stores, after maintenance.
+	Measure bool `json:"measure,omitempty"`
 }
 
 // hookUser is who the egg's backup commands are attributed to.
@@ -62,29 +74,58 @@ func (m *Manager) row(ctx context.Context, id string) (*Backup, error) {
 	return fromRow(r), nil
 }
 
-// createJob makes a backup: the egg's pre commands while the server is
-// running, the snapshot, the post commands, then retention.
+// createJob takes a backup run's backups, one destination after another:
+// for each, the egg's pre commands while the server is running, the
+// snapshot, the post commands, then that destination's retention. The game
+// saves normally between them. A destination failing doesn't stop the
+// others; the job fails at the end if any did, and a retry takes only
+// those again.
 func (m *Manager) createJob(ctx context.Context, j jobs.Job, log io.Writer) (any, error) {
 	var p createPayload
 	if err := j.Decode(&p); err != nil {
-		return nil, err
-	}
-	b, err := m.row(ctx, p.BackupID)
-	if err != nil {
-		return nil, err
-	}
-	src, err := m.o.Servers.BackupSource(ctx, b.ServerID)
-	if err != nil {
-		m.fail(ctx, b, err)
 		return nil, err
 	}
 	var cp createCheckpoint
 	if _, err := j.DecodeCheckpoint(&cp); err != nil {
 		return nil, err
 	}
+	var results []map[string]any
+	var failed error
+	for _, id := range p.ids() {
+		b, err := m.row(ctx, id)
+		if err != nil {
+			continue // deleted meanwhile (its destination was removed)
+		}
+		if b.Status == StatusOK {
+			continue // done before a Wings restart or a retry
+		}
+		res, err := m.createOne(ctx, j, &cp, b, log)
+		if errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
+			return nil, err // resumed on the next start
+		}
+		if err != nil {
+			failed = errors.Join(failed, fmt.Errorf("%s: %w", b.DestinationID, err))
+			continue
+		}
+		results = append(results, res)
+	}
+	if failed != nil {
+		return nil, failed
+	}
+	return map[string]any{"backups": results}, nil
+}
+
+func (m *Manager) createOne(ctx context.Context, j jobs.Job, cp *createCheckpoint, b *Backup, log io.Writer) (map[string]any, error) {
+	src, err := m.o.Servers.BackupSource(ctx, b.ServerID)
+	if err != nil {
+		m.fail(ctx, b, err)
+		return nil, err
+	}
 	if cp.PreRan {
 		_, _ = fmt.Fprintln(log, "resuming after a Wings restart; sending the post-backup commands first")
 		m.post(b.ServerID, src, log)
+		cp.PreRan = false
+		m.checkpoint(ctx, j, cp)
 	}
 	pol, err := m.Policy(ctx, b.ServerID)
 	if err != nil {
@@ -113,12 +154,15 @@ func (m *Manager) createJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	}
 	if err != nil {
 		if errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
-			return nil, err // resumed on the next start
+			return nil, err
 		}
+		m.recordOutcome(ctx, b.DestinationID, err)
+		err = Explain(err)
 		m.fail(ctx, b, err)
 		m.end(b.ServerID, a, err, 0, 0)
 		return nil, err
 	}
+	m.recordOutcome(ctx, b.DestinationID, nil)
 	var res engine.SnapshotResult
 	if err := json.Unmarshal(out, &res); err != nil {
 		m.end(b.ServerID, a, err, 0, 0)
@@ -136,12 +180,16 @@ func (m *Manager) createJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	if warning != "" {
 		_, _ = fmt.Fprintln(log, "warning:", warning)
 	}
-	if err := m.retention(ctx, b.ServerID, b.DestinationID, pol.Retention, log); err != nil {
-		// The backup itself is fine; retention runs again after the next.
-		_, _ = fmt.Fprintln(log, "retention failed:", err)
-		m.log.Warn("backup retention failed", "server", b.ServerID, "err", err)
+	// The destination's own retention; one the server no longer backs up
+	// to (changed meanwhile) keeps what it has.
+	if t, ok := pol.Target(b.DestinationID); ok {
+		if err := m.retention(ctx, b.ServerID, b.DestinationID, t.Retention, log); err != nil {
+			// The backup itself is fine; retention runs again after the next.
+			_, _ = fmt.Fprintln(log, "retention failed:", err)
+			m.log.Warn("backup retention failed", "server", b.ServerID, "destination", b.DestinationID, "err", err)
+		}
 	}
-	return map[string]any{"backup_id": b.ID, "size": res.Size, "files": res.Files, "uploaded": res.Uploaded}, nil
+	return map[string]any{"backup_id": b.ID, "destination_id": b.DestinationID, "size": res.Size, "files": res.Files, "uploaded": res.Uploaded}, nil
 }
 
 func (m *Manager) checkpoint(ctx context.Context, j jobs.Job, v any) {
@@ -346,6 +394,35 @@ func (m *Manager) maintainJob(ctx context.Context, j jobs.Job, log io.Writer) (a
 		return nil, nil //nolint:nilnil,nilerr // deleted meanwhile
 	}
 	_, err := m.run(ctx, p.DestinationID, request{Op: opMaintain}, nil, log)
+	if errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
+		return nil, err
+	}
+	m.recordOutcome(ctx, p.DestinationID, err)
+	if err != nil || !p.Measure {
+		return nil, err
+	}
+	out, err := m.run(ctx, p.DestinationID, request{Op: opSize}, nil, log)
+	if err != nil {
+		return nil, err
+	}
+	var size int64
+	if err := json.Unmarshal(out, &size); err != nil {
+		return nil, err
+	}
+	_, _ = fmt.Fprintf(log, "the destination stores %d bytes\n", size)
+	now := sql.NullInt64{Int64: m.o.Now().UnixMilli(), Valid: true}
+	err = m.o.Store.WriteTx(context.WithoutCancel(ctx), func(q *store.Queries) error {
+		if err := q.SetDestinationSize(ctx, store.SetDestinationSizeParams{Size: sql.NullInt64{Int64: size, Valid: true}, SizeAt: now, ID: p.DestinationID}); err != nil {
+			return err
+		}
+		_, err := events.AppendTx(ctx, q, events.Event{Type: EventDestinationStatus, Data: map[string]any{
+			"destination_id": p.DestinationID, "ok": true, "size": size,
+		}})
+		return err
+	})
+	if err == nil {
+		m.o.Events.Wake()
+	}
 	return nil, err
 }
 
@@ -447,8 +524,15 @@ func (m *Manager) JobBackup(ctx context.Context, serverID, jobID, kind string, l
 	if err != nil {
 		return "", err
 	}
+	// A wipe's safety backup goes to the primary destination; a final
+	// backup offsite if the server backs up anywhere offsite, so it
+	// outlives the node.
+	dest := pol.Primary().DestinationID
+	if kind == KindFinal {
+		dest = pol.Offsite().DestinationID
+	}
 	if b == nil {
-		if err := m.checkSpace(pol.DestinationID); err != nil {
+		if err := m.checkSpace(dest); err != nil {
 			return "", err
 		}
 		id, err := newID()
@@ -457,13 +541,13 @@ func (m *Manager) JobBackup(ctx context.Context, serverID, jobID, kind string, l
 		}
 		now := m.o.Now()
 		b = &Backup{
-			ID: id, ServerID: serverID, DestinationID: pol.DestinationID, Kind: kind,
+			ID: id, ServerID: serverID, DestinationID: dest, Kind: kind,
 			Status: StatusPending, JobID: jobID, CreatedBy: hookUser, CreatedAt: now,
 		}
 		switch {
 		case kind == KindSafety:
 			b.ExpiresAt = now.Add(SafetyTTL)
-		case pol.DestinationID == LocalDestination:
+		case dest == LocalDestination:
 			b.ExpiresAt = now.Add(FinalTTL)
 		}
 		if err := m.o.Store.WriteTx(ctx, func(q *store.Queries) error { return m.insert(ctx, q, b) }); err != nil {

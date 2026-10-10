@@ -185,10 +185,11 @@ func (v *env) wait(jobID string) jobs.Job {
 // backup makes a manual backup and waits for it.
 func (v *env) backup() *Backup {
 	v.t.Helper()
-	b, err := v.m.Create(context.Background(), srvID, CreateOptions{Kind: KindManual, User: "u1"})
+	list, err := v.m.Create(context.Background(), srvID, CreateOptions{Kind: KindManual, User: "u1"})
 	if err != nil {
 		v.t.Fatal(err)
 	}
+	b := list[0]
 	if j := v.wait(b.JobID); j.Status != jobs.Succeeded {
 		log, _ := v.jobs.Log(j.ID)
 		v.t.Fatalf("backup job %s: %s\n%s", j.Status, j.Error, log)
@@ -271,7 +272,7 @@ func TestBackupAndRestore(t *testing.T) {
 	}
 
 	// Retention never counts or deletes safety backups; they expire.
-	if err := v.m.SetPolicy(context.Background(), srvID, Policy{Retention: Retention{KeepLast: 1}}); err != nil {
+	if err := v.m.SetPolicy(context.Background(), srvID, Policy{Targets: []Target{{DestinationID: LocalDestination, Retention: Retention{KeepLast: 1}}}}); err != nil {
 		t.Fatal(err)
 	}
 	v.clock.add(time.Hour)
@@ -343,10 +344,11 @@ func TestHooks(t *testing.T) {
 	// A failed backup still sends the post commands.
 	good := v.servers.src.Dir
 	v.servers.src.Dir = filepath.Join(v.dir, "missing")
-	b, err := v.m.Create(context.Background(), srvID, CreateOptions{Kind: KindManual})
+	created, err := v.m.Create(context.Background(), srvID, CreateOptions{Kind: KindManual})
 	if err != nil {
 		t.Fatal(err)
 	}
+	b = created[0]
 	if j := v.wait(b.JobID); j.Status != jobs.Failed {
 		t.Fatalf("backup of a missing directory: %s", j.Status)
 	}
@@ -369,7 +371,7 @@ func TestHooks(t *testing.T) {
 func TestRetention(t *testing.T) {
 	v := newEnv(t)
 	v.write("f", "x")
-	if err := v.m.SetPolicy(context.Background(), srvID, Policy{Retention: Retention{KeepLast: 2}}); err != nil {
+	if err := v.m.SetPolicy(context.Background(), srvID, Policy{Targets: []Target{{DestinationID: LocalDestination, Retention: Retention{KeepLast: 2}}}}); err != nil {
 		t.Fatal(err)
 	}
 	locked := v.backup()
@@ -435,24 +437,26 @@ func TestLowDisk(t *testing.T) {
 func TestPolicyAndDestinations(t *testing.T) {
 	v := newEnv(t)
 	ctx := context.Background()
-	if p, err := v.m.Policy(ctx, srvID); err != nil || p.DestinationID != LocalDestination || p.Retention != DefaultRetention {
+	if p, err := v.m.Policy(ctx, srvID); err != nil || p.Primary().DestinationID != LocalDestination || p.Primary().Retention != DefaultRetention || len(p.Targets) != 1 {
 		t.Fatalf("default policy = %+v, %v", p, err)
 	}
 	for name, p := range map[string]Policy{
-		"keeps nothing": {},
-		"negative":      {Retention: Retention{KeepLast: -1}},
-		"huge":          {Retention: Retention{KeepDaily: 5000}},
-		"bad ignore":    {Retention: DefaultRetention, Ignore: []string{"a\nb"}},
+		"no targets":    {},
+		"keeps nothing": {Targets: []Target{{DestinationID: LocalDestination}}},
+		"negative":      {Targets: []Target{{DestinationID: LocalDestination, Retention: Retention{KeepLast: -1}}}},
+		"huge":          {Targets: []Target{{DestinationID: LocalDestination, Retention: Retention{KeepDaily: 5000}}}},
+		"bad ignore":    {Targets: []Target{{DestinationID: LocalDestination, Retention: DefaultRetention}}, Ignore: []string{"a\nb"}},
+		"twice":         {Targets: []Target{{DestinationID: LocalDestination, Retention: DefaultRetention}, {DestinationID: LocalDestination, Retention: DefaultRetention}}},
 	} {
 		if err := v.m.SetPolicy(ctx, srvID, p); !errors.Is(err, ErrInvalid) {
 			t.Errorf("%s: err = %v, want ErrInvalid", name, err)
 		}
 	}
-	if err := v.m.SetPolicy(ctx, srvID, Policy{DestinationID: "nope", Retention: DefaultRetention}); !errors.Is(err, ErrDestination) {
+	if err := v.m.SetPolicy(ctx, srvID, Policy{Targets: []Target{{DestinationID: "nope", Retention: DefaultRetention}}}); !errors.Is(err, ErrDestination) {
 		t.Errorf("unknown destination: %v", err)
 	}
 
-	s3 := Destination{Name: "B2", Type: engine.S3, S3: engine.S3Config{Endpoint: "s3.example.com", Bucket: "b", AccessKey: "k", SecretKey: "secret"}}
+	s3 := Destination{Name: "B2", Type: engine.S3, Config: engine.Config{S3: &engine.S3Config{Endpoint: "s3.example.com", Bucket: "b", AccessKey: "k", SecretKey: "secret"}}}
 	for name, mutate := range map[string]func(*Destination){
 		"no name":   func(d *Destination) { d.Name = "" },
 		"local":     func(d *Destination) { d.Type = engine.Local },
@@ -460,7 +464,7 @@ func TestPolicyAndDestinations(t *testing.T) {
 		"no secret": func(d *Destination) { d.S3.SecretKey = "" },
 		"ftp":       func(d *Destination) { d.S3.Endpoint = "ftp://x" },
 	} {
-		d := s3
+		d := s3.clone()
 		mutate(&d)
 		if _, err := v.m.SaveDestination(ctx, d); !errors.Is(err, ErrInvalid) {
 			t.Errorf("%s: err = %v, want ErrInvalid", name, err)
@@ -471,7 +475,7 @@ func TestPolicyAndDestinations(t *testing.T) {
 		t.Fatal(err)
 	}
 	// An update without the secret keeps it.
-	upd := s3
+	upd := s3.clone()
 	upd.ID, upd.Name, upd.S3.SecretKey = id, "B2 renamed", ""
 	if _, err := v.m.SaveDestination(ctx, upd); err != nil {
 		t.Fatal(err)
@@ -491,7 +495,7 @@ func TestPolicyAndDestinations(t *testing.T) {
 		}
 	}
 
-	if err := v.m.SetPolicy(ctx, srvID, Policy{DestinationID: id, Retention: DefaultRetention}); err != nil {
+	if err := v.m.SetPolicy(ctx, srvID, Policy{Targets: []Target{{DestinationID: id, Retention: DefaultRetention}}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := v.m.DeleteDestination(ctx, id); !errors.Is(err, ErrInUse) {

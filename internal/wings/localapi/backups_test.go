@@ -62,13 +62,13 @@ func (f *fakeBackups) Get(ctx context.Context, serverID, id string) (*backup.Bac
 	return nil, backup.ErrNotFound
 }
 
-func (f *fakeBackups) Create(_ context.Context, serverID string, o backup.CreateOptions) (*backup.Backup, error) {
+func (f *fakeBackups) Create(_ context.Context, serverID string, o backup.CreateOptions) ([]*backup.Backup, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.created = append(f.created, serverID+" "+o.User+" "+map[bool]string{true: "locked", false: "unlocked"}[o.Locked])
 	b := &backup.Backup{ID: "01a0f000-0000-7000-8000-0000000b0009", ServerID: serverID, Kind: o.Kind, Status: backup.StatusOK, JobID: "job-create", CreatedAt: time.Now()}
 	f.backups = append(f.backups, b)
-	return b, nil
+	return []*backup.Backup{b}, nil
 }
 
 func (f *fakeBackups) Restore(_ context.Context, serverID, id, user string) (string, error) {

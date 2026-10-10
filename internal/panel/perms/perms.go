@@ -84,6 +84,9 @@ var actions = map[string]string{
 	"backup.policy.update":      adminOnly,
 	"backup.destination.save":   adminOnly,
 	"backup.destination.delete": adminOnly,
+	"backup.destination.test":   adminOnly,
+	"backup.destinations":       adminOnly,
+	"backup.hostkey":            adminOnly,
 	"node.sftp":                 adminOnly,
 	"sftp.disconnect":           SFTP,
 	"node.update":               adminOnly,
@@ -138,7 +141,8 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor":
+		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor",
+		"backup.destinations", "backup.hostkey":
 		return true
 	}
 	return false

@@ -50,13 +50,19 @@ type Backup struct {
 }
 
 type BackupDestination struct {
-	ID        string
-	Name      string
-	Type      string
-	Config    string
-	Version   int64
-	CreatedAt int64
-	UpdatedAt int64
+	ID          string
+	Name        string
+	Type        string
+	Config      string
+	UploadLimit int64
+	Version     int64
+	CreatedAt   int64
+	UpdatedAt   int64
+	LastOkAt    sql.NullInt64
+	LastError   string
+	LastErrorAt sql.NullInt64
+	Size        sql.NullInt64
+	SizeAt      sql.NullInt64
 }
 
 type BackupPolicy struct {
@@ -69,6 +75,16 @@ type BackupPolicy struct {
 	Ignore        string
 	Version       int64
 	UpdatedAt     int64
+}
+
+type BackupTarget struct {
+	ServerID      string
+	DestinationID string
+	Position      int64
+	KeepLast      int64
+	KeepDaily     int64
+	KeepWeekly    int64
+	KeepMonthly   int64
 }
 
 type Event struct {

@@ -37,9 +37,9 @@ const aliveKey = "scheduler.alive_at"
 
 // Backups makes backups for the backup step.
 type Backups interface {
-	// Backup queues a backup of the server on behalf of user and returns
-	// its job ID.
-	Backup(ctx context.Context, serverID, user string) (jobID string, err error)
+	// Backup queues a backup of the server on behalf of user, to its
+	// backup destinations or the one named, and returns its job ID.
+	Backup(ctx context.Context, serverID, user, destinationID string) (jobID string, err error)
 }
 
 // Servers is what runs need from the server manager.
@@ -438,7 +438,7 @@ func (s *Scheduler) step(ctx context.Context, j jobs.Job, cp *checkpoint, i int,
 			return ctx.Err()
 		}
 	case StepBackup:
-		return s.backup(ctx, j, cp, user)
+		return s.backup(ctx, j, cp, st, user)
 	}
 	return fmt.Errorf("unknown step type %q (step %d)", st.Type, i+1)
 }
@@ -462,12 +462,12 @@ func (s *Scheduler) powerDone(ctx context.Context, id string, a server.PowerActi
 
 // backup queues a backup and waits for it. The job ID is saved first, so a
 // resumed run waits for the same backup instead of starting another.
-func (s *Scheduler) backup(ctx context.Context, j jobs.Job, cp *checkpoint, user string) error {
+func (s *Scheduler) backup(ctx context.Context, j jobs.Job, cp *checkpoint, st Step, user string) error {
 	if s.o.Backups == nil {
 		return errors.New("backups aren't available")
 	}
 	if cp.Job == "" {
-		id, err := s.o.Backups.Backup(ctx, j.ServerID, user)
+		id, err := s.o.Backups.Backup(ctx, j.ServerID, user, st.Destination)
 		if err != nil {
 			return err
 		}
