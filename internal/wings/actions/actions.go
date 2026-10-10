@@ -55,6 +55,9 @@ const (
 	BackupDestinations      = "backup.destinations" // a read: the destinations, their health, the node's SSH key
 	BackupHostKey           = "backup.hostkey"      // an SFTP server's host key, to pin
 	BackupPolicyGet         = "backup.policy"       // a read: a server's backup settings, and the destinations it can use
+	BackupKey               = "backup.key"          // the backup key, for the Panel to keep (not in owner mode)
+	BackupKeyMode           = "backup.key.mode"     // who keeps copies of the backup key
+	BackupKeyShow           = "backup.key.show"     // the backup key, for the owner to save (signed)
 
 	NodeSFTP       = "node.sftp"       // turn SFTP on or off
 	SFTPDisconnect = "sftp.disconnect" // end one login's connections to a server
@@ -352,6 +355,11 @@ type ExtractParams struct {
 	Paths    []string `json:"paths"`
 }
 
+// KeyModeParams are backup.key.mode's params.
+type KeyModeParams struct {
+	Mode string `json:"mode"` // backup.KeyPanel or backup.KeyOwner
+}
+
 // HostKeyParams are backup.hostkey's params.
 type HostKeyParams struct {
 	Host string `json:"host"`
@@ -574,7 +582,17 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"destinations": list, "ssh_public_key": key}, nil
+		mode, err := b.KeyMode(ctx)
+		if err != nil {
+			return nil, err
+		}
+		k, err := b.ShowKey(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{
+			"destinations": list, "ssh_public_key": key, "key_mode": mode, "key_fingerprint": k.Fingerprint,
+		}, nil
 	}})
 	// A server's backup settings, for anyone who may back it up: where its
 	// backups go, and the node's destinations by name and type (no
@@ -602,6 +620,42 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 		}
 		return map[string]any{"policy": p, "destinations": choices}, nil
 	}})
+	// The backup key (docs/WINGS.md#backup-key). Its results aren't kept in
+	// the node's record of commands (ReadOnly), so the key isn't either.
+	x.Register(BackupKey, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, _ command.Envelope) (any, error) {
+		k, err := b.ExportKey(ctx)
+		if errors.Is(err, backup.ErrOwnerKey) {
+			return map[string]string{"mode": backup.KeyOwner}, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"mode": backup.KeyPanel, "key": k.Key, "fingerprint": k.Fingerprint}, nil
+	}})
+	x.Register(BackupKeyShow, command.Handler{
+		Signed: command.Always, ReadOnly: true,
+		OwnerOnly: func(context.Context, command.Envelope) (bool, error) { return true, nil },
+		Run: func(ctx context.Context, _ command.Envelope) (any, error) {
+			return b.ShowKey(ctx)
+		},
+	})
+	// Taking the key back from Raptor is unsigned (it gives nothing out);
+	// handing it to Raptor takes an owner's passkey.
+	x.Register(BackupKeyMode, command.Handler{
+		Signed: func(_ context.Context, e command.Envelope) (bool, error) {
+			var p KeyModeParams
+			err := decode(e, &p)
+			return p.Mode != backup.KeyOwner, err
+		},
+		OwnerOnly: func(context.Context, command.Envelope) (bool, error) { return true, nil },
+		Run: func(ctx context.Context, e command.Envelope) (any, error) {
+			var p KeyModeParams
+			if err := decode(e, &p); err != nil {
+				return nil, err
+			}
+			return nil, b.SetKeyMode(ctx, p.Mode)
+		},
+	})
 	x.Register(BackupHostKey, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p HostKeyParams
 		if err := decode(e, &p); err != nil {

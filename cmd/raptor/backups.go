@@ -26,6 +26,10 @@ const backupUsage = `usage: raptor backup <command>
                                     replace the server's files with a backup
                                     (root); a safety backup is taken first
 
+  key                               show the backup key (root): every backup
+                                    is encrypted with it; keep it somewhere
+                                    safe, away from this machine
+
 <backup> is a backup's ID or its last 8 characters, from list.`
 
 func backupCmd(ctx context.Context, args []string) error {
@@ -39,6 +43,8 @@ func backupCmd(ctx context.Context, args []string) error {
 		return backupCreate(ctx, args[1:])
 	case "restore":
 		return backupRestore(ctx, args[1:], os.Stdin, isTerminal(os.Stdin))
+	case "key":
+		return backupKey(ctx, args[1:])
 	}
 	fmt.Fprintln(os.Stderr, backupUsage)
 	os.Exit(2)
@@ -230,5 +236,28 @@ func confirmRestore(list []*localv1.BackupInfo, ref string, in io.Reader, out io
 	if strings.TrimSpace(line) != name {
 		return errors.New("not restored")
 	}
+	return nil
+}
+
+func backupKey(ctx context.Context, args []string) error {
+	c, pos, err := dial("backup key", args, nil)
+	if err != nil {
+		return err
+	}
+	if len(pos) > 0 {
+		return errors.New("usage: raptor backup key")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	res, err := c.GetBackupKey(ctx, &localv1.GetBackupKeyRequest{})
+	if err != nil {
+		return rpcErr(err)
+	}
+	fmt.Println(res.GetKey())
+	who := "Raptor keeps an encrypted copy, so backups can be recovered on another machine."
+	if res.GetMode() == "owner" {
+		who = "Only you keep it: if it's lost, so are this node's backups."
+	}
+	fmt.Fprintf(os.Stderr, "\nFingerprint %s. %s\nKeep it somewhere safe, away from this machine.\n", res.GetFingerprint(), who)
 	return nil
 }

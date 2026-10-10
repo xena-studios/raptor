@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NodeDestinations } from "@/components/backup-destinations";
+import { BackupKey, NodeDestinations } from "@/components/backup-destinations";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrgNodes } from "@/lib/org-data";
 
@@ -24,11 +24,19 @@ function Backups() {
     );
   }
   return (
-    <NodeDestinations
-      orgId={orgId}
-      nodeId={nodeId}
-      userId={session.user?.id ?? ""}
-      nodeName={node?.name ?? "This node"}
-    />
+    <div className="flex flex-col gap-6">
+      <NodeDestinations
+        orgId={orgId}
+        nodeId={nodeId}
+        userId={session.user?.id ?? ""}
+        nodeName={node?.name ?? "This node"}
+      />
+      <BackupKey
+        orgId={orgId}
+        nodeId={nodeId}
+        userId={session.user?.id ?? ""}
+        nodeName={node?.name ?? "node"}
+      />
+    </div>
   );
 }

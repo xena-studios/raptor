@@ -18,7 +18,7 @@ One Go binary, one role (see [ARCHITECTURE.md](ARCHITECTURE.md#panel)):
 Configured by environment (`panel` with no arguments lists them all):
 - `PANEL_DATABASE_URL`, `PANEL_API_ADDR`.
 - `PANEL_SIGNING_KEY`: the file with the Panel's Ed25519 signing key, kept apart from other secrets; nodes pin its public key.
-- `PANEL_DATA_KEY`: the file whose key encrypts TOTP secrets; without it, two-factor authentication is off. Back it up like the signing key.
+- `PANEL_DATA_KEY`: the file whose key encrypts TOTP secrets and the copies of nodes' backup keys; without it, two-factor authentication is off and no backup keys are kept. Back it up like the signing key.
 - `PANEL_APP_URL` (the web app's origin, the only one browsers may call from, and the passkey RP ID) and `PANEL_API_URL` (for OAuth callbacks).
 - `PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID` and `_CLIENT_SECRET`, `PANEL_TURNSTILE_SECRET`, `PANEL_CLIENT_IP_HEADER`, `PANEL_NODE_DOMAIN`, `PANEL_CLOUDFLARE_DNS_TOKEN`, `PANEL_CLOUDFLARE_ZONE_ID`.
 - `PANEL_RESEND_API_KEY`, `PANEL_MAIL_FROM` (as `Raptor <account@mail.raptorpanel.net>`; not `no-reply`, which costs deliverability and trust), and `PANEL_MAIL_REPLY_TO` (a mailbox someone reads, as `support@raptorpanel.net`, so "this wasn't me" replies reach a person): email through Resend from `mail.raptorpanel.net`, with click and open tracking off (they'd rewrite sign-in links and add pixels to security mail) and TLS enforced. `PANEL_MAIL_LOG=1`, development only, sends emails (codes included) to the log instead, and to `PANEL_MAIL_LOG_FILE` as plain text if set (`task dev:mail` shows them); setting both is an error, and with neither, email sign-in and invitations are off.
@@ -184,6 +184,15 @@ Offsite backups with nothing to set up (`internal/panel/storage`), priced in [#2
 - **The data is the node's to read:** backups are encrypted by the node (Kopia, with the node's repository password) before they leave it, and the Panel doesn't have that password, so Raptor stores what it can't read. (Until the key copy of PR 4 exists, a dead node's backups can't be recovered elsewhere either.)
 - **Turning it off:** the node removes the destination (signed, like any), then `DisableBackupStorage` deletes the key. The files stay 30 days, then the Panel deletes every version under the node's folder. Removing a node does the same.
 - **Usage:** once a day, one Panel instance (an advisory lock) adds up each file's current version under each org's folder (`b2_list_file_versions`) into `backup_storage_usage`. Hidden versions are kept for the customer's protection, so they're Raptor's cost, not counted. `GetBackupStorage` shows it with what's included (10 GB × the org's nodes) and an estimate. Past 500 GB during beta, the org is asked to get in touch and it's logged; nothing is blocked. Billing reads the same table once billing exists.
+
+## Backup keys
+
+Each node encrypts its backups with its own key (WINGS.md#backups), so a node that dies takes the only copy with it unless one is kept elsewhere. By default the Panel keeps one (`internal/panel/backupkeys`, `backup_keys`):
+
+- **Getting it:** when a node connects, and every 15 minutes for nodes without a copy, the Panel sends `backup.key` (one instance at a time, an advisory lock). In `panel` mode the node answers with the key; it's sealed with AES-256-GCM under `PANEL_DATA_KEY`, bound to the node's ID (a sealed key copied to another node's row doesn't open), and stored with its fingerprint. In `owner` mode the node answers with the mode, and the Panel deletes any copy.
+- **Kept after a node is removed:** recovering a dead node's backups is what it's for. It opens only for that node's org (the recovery in PR 4b).
+- **The node's Backups tab → Backup key:** who keeps it, the fingerprint, "Download the key" (an owner's passkey; or `raptor backup key` on the node, so it never passes through Raptor), and switching. Keeping it yourself asks to download it first and to confirm it's saved; it's unsigned, then `SyncBackupKey` drops the Panel's copy. Letting Raptor keep a copy takes an owner's passkey. `GetBackupKey` says whether the Panel has a copy, never the key.
+- **What it means:** with a copy, Raptor could decrypt that node's backups (and for Raptor Backup Storage, it also has the storage), which the app says plainly. Owner mode is for those who'd rather it couldn't.
 
 ## Imported eggs
 

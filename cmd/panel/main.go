@@ -23,6 +23,7 @@ import (
 
 	"github.com/xena-studios/raptor/internal/panel/api"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/backupkeys"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
@@ -173,12 +174,17 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		if route != "" && !nodelink.ValidRoute(route) {
 			return fmt.Errorf("PANEL_INSTANCE_ROUTE %q: want a path like /i/panel-a", route)
 		}
+		// Set once the backup key keeper exists, below.
+		var keysConnected func(ctx context.Context, nodeID string)
 		cfg.Hub = &nodes.Hub{
 			PanelKey: reg.PanelKey, NodeKey: reg.NodeKey, Log: log, Route: route,
 			OnConnect: func(ctx context.Context, h nodelink.Hello) {
 				router.Connected(ctx, h)
 				if err := reg.Connected(ctx, h); err != nil {
 					log.Error("recording a node connection", "node", h.NodeID, "err", err)
+				}
+				if keysConnected != nil {
+					go keysConnected(ctx, h.NodeID)
 				}
 			},
 			OnDisconnect: func(ctx context.Context, id string) {
@@ -233,7 +239,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		go gate.Run(ctx, time.Minute)
 		backupStorage := backupStorage(pool, router, reg.PanelKey, log)
 		go backupStorage.Run(ctx, time.Hour)
-		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate, Storage: backupStorage, Log: log}
+		keys := &backupkeys.Keeper{DB: pool, Sender: router, PanelKey: reg.PanelKey, DataKey: cfg.Auth.DataKey, Log: log}
+		go keys.Run(ctx, 15*time.Minute)
+		keysConnected = keys.Connected
+		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate, Storage: backupStorage, Keys: keys, Log: log}
 		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey}
 		cfg.Transfers = router
 		mailer, err := mailer(log)

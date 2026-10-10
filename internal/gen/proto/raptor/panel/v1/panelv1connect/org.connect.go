@@ -112,6 +112,11 @@ const (
 	// OrgServiceDisableBackupStorageProcedure is the fully-qualified name of the OrgService's
 	// DisableBackupStorage RPC.
 	OrgServiceDisableBackupStorageProcedure = "/raptor.panel.v1.OrgService/DisableBackupStorage"
+	// OrgServiceGetBackupKeyProcedure is the fully-qualified name of the OrgService's GetBackupKey RPC.
+	OrgServiceGetBackupKeyProcedure = "/raptor.panel.v1.OrgService/GetBackupKey"
+	// OrgServiceSyncBackupKeyProcedure is the fully-qualified name of the OrgService's SyncBackupKey
+	// RPC.
+	OrgServiceSyncBackupKeyProcedure = "/raptor.panel.v1.OrgService/SyncBackupKey"
 	// OrgServicePreviewEggProcedure is the fully-qualified name of the OrgService's PreviewEgg RPC.
 	OrgServicePreviewEggProcedure = "/raptor.panel.v1.OrgService/PreviewEgg"
 	// OrgServiceImportEggProcedure is the fully-qualified name of the OrgService's ImportEgg RPC.
@@ -234,6 +239,13 @@ type OrgServiceClient interface {
 	// the destination (a signed command): its key is deleted now, its data
 	// in 30 days. Admins and owners.
 	DisableBackupStorage(context.Context, *v1.DisableBackupStorageRequest) (*v1.DisableBackupStorageResponse, error)
+	// GetBackupKey is what the Panel keeps of a node's backup key: whether it
+	// has a copy, and its fingerprint (never the key). Admins and owners.
+	GetBackupKey(context.Context, *v1.GetBackupKeyRequest) (*v1.GetBackupKeyResponse, error)
+	// SyncBackupKey asks the node again, after its key mode changed: the
+	// Panel takes a copy, or forgets its copy if the owner keeps the key.
+	// Admins and owners.
+	SyncBackupKey(context.Context, *v1.SyncBackupKeyRequest) (*v1.SyncBackupKeyResponse, error)
 	// PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
 	// says what it would run, for review before ImportEgg: its images and
 	// their registries, its install script, its startup command, and
@@ -465,6 +477,19 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("DisableBackupStorage")),
 			connect.WithClientOptions(opts...),
 		),
+		getBackupKey: connect.NewClient[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse](
+			httpClient,
+			baseURL+OrgServiceGetBackupKeyProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("GetBackupKey")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		syncBackupKey: connect.NewClient[v1.SyncBackupKeyRequest, v1.SyncBackupKeyResponse](
+			httpClient,
+			baseURL+OrgServiceSyncBackupKeyProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("SyncBackupKey")),
+			connect.WithClientOptions(opts...),
+		),
 		previewEgg: connect.NewClient[v1.PreviewEggRequest, v1.PreviewEggResponse](
 			httpClient,
 			baseURL+OrgServicePreviewEggProcedure,
@@ -540,6 +565,8 @@ type orgServiceClient struct {
 	getBackupStorage     *connect.Client[v1.GetBackupStorageRequest, v1.GetBackupStorageResponse]
 	enableBackupStorage  *connect.Client[v1.EnableBackupStorageRequest, v1.EnableBackupStorageResponse]
 	disableBackupStorage *connect.Client[v1.DisableBackupStorageRequest, v1.DisableBackupStorageResponse]
+	getBackupKey         *connect.Client[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse]
+	syncBackupKey        *connect.Client[v1.SyncBackupKeyRequest, v1.SyncBackupKeyResponse]
 	previewEgg           *connect.Client[v1.PreviewEggRequest, v1.PreviewEggResponse]
 	importEgg            *connect.Client[v1.ImportEggRequest, v1.ImportEggResponse]
 	listOrgEggs          *connect.Client[v1.ListOrgEggsRequest, v1.ListOrgEggsResponse]
@@ -827,6 +854,24 @@ func (c *orgServiceClient) DisableBackupStorage(ctx context.Context, req *v1.Dis
 	return nil, err
 }
 
+// GetBackupKey calls raptor.panel.v1.OrgService.GetBackupKey.
+func (c *orgServiceClient) GetBackupKey(ctx context.Context, req *v1.GetBackupKeyRequest) (*v1.GetBackupKeyResponse, error) {
+	response, err := c.getBackupKey.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SyncBackupKey calls raptor.panel.v1.OrgService.SyncBackupKey.
+func (c *orgServiceClient) SyncBackupKey(ctx context.Context, req *v1.SyncBackupKeyRequest) (*v1.SyncBackupKeyResponse, error) {
+	response, err := c.syncBackupKey.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // PreviewEgg calls raptor.panel.v1.OrgService.PreviewEgg.
 func (c *orgServiceClient) PreviewEgg(ctx context.Context, req *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error) {
 	response, err := c.previewEgg.CallUnary(ctx, connect.NewRequest(req))
@@ -989,6 +1034,13 @@ type OrgServiceHandler interface {
 	// the destination (a signed command): its key is deleted now, its data
 	// in 30 days. Admins and owners.
 	DisableBackupStorage(context.Context, *v1.DisableBackupStorageRequest) (*v1.DisableBackupStorageResponse, error)
+	// GetBackupKey is what the Panel keeps of a node's backup key: whether it
+	// has a copy, and its fingerprint (never the key). Admins and owners.
+	GetBackupKey(context.Context, *v1.GetBackupKeyRequest) (*v1.GetBackupKeyResponse, error)
+	// SyncBackupKey asks the node again, after its key mode changed: the
+	// Panel takes a copy, or forgets its copy if the owner keeps the key.
+	// Admins and owners.
+	SyncBackupKey(context.Context, *v1.SyncBackupKeyRequest) (*v1.SyncBackupKeyResponse, error)
 	// PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
 	// says what it would run, for review before ImportEgg: its images and
 	// their registries, its install script, its startup command, and
@@ -1216,6 +1268,19 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("DisableBackupStorage")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceGetBackupKeyHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceGetBackupKeyProcedure,
+		svc.GetBackupKey,
+		connect.WithSchema(orgServiceMethods.ByName("GetBackupKey")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceSyncBackupKeyHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceSyncBackupKeyProcedure,
+		svc.SyncBackupKey,
+		connect.WithSchema(orgServiceMethods.ByName("SyncBackupKey")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServicePreviewEggHandler := connect.NewUnaryHandlerSimple(
 		OrgServicePreviewEggProcedure,
 		svc.PreviewEgg,
@@ -1319,6 +1384,10 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceEnableBackupStorageHandler.ServeHTTP(w, r)
 		case OrgServiceDisableBackupStorageProcedure:
 			orgServiceDisableBackupStorageHandler.ServeHTTP(w, r)
+		case OrgServiceGetBackupKeyProcedure:
+			orgServiceGetBackupKeyHandler.ServeHTTP(w, r)
+		case OrgServiceSyncBackupKeyProcedure:
+			orgServiceSyncBackupKeyHandler.ServeHTTP(w, r)
 		case OrgServicePreviewEggProcedure:
 			orgServicePreviewEggHandler.ServeHTTP(w, r)
 		case OrgServiceImportEggProcedure:
@@ -1462,6 +1531,14 @@ func (UnimplementedOrgServiceHandler) EnableBackupStorage(context.Context, *v1.E
 
 func (UnimplementedOrgServiceHandler) DisableBackupStorage(context.Context, *v1.DisableBackupStorageRequest) (*v1.DisableBackupStorageResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.DisableBackupStorage is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) GetBackupKey(context.Context, *v1.GetBackupKeyRequest) (*v1.GetBackupKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.GetBackupKey is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) SyncBackupKey(context.Context, *v1.SyncBackupKeyRequest) (*v1.SyncBackupKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.SyncBackupKey is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) PreviewEgg(context.Context, *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error) {

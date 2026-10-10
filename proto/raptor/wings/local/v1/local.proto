@@ -56,6 +56,13 @@ service LocalService {
   // CreateBackup backs up a server to its destination. Root only.
   rpc CreateBackup(CreateBackupRequest) returns (CreateBackupResponse) {}
 
+  // GetBackupKey shows the node's backup key (its backups can't be read
+  // without it) and who keeps copies, for the owner to save it without it
+  // passing through the Panel. Root only.
+  rpc GetBackupKey(GetBackupKeyRequest) returns (GetBackupKeyResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // RestoreBackup replaces a server's files with one of its backups, after
   // taking a safety backup of the current files. The server is stopped
   // meanwhile and started again if it was meant to be running. Root only.
@@ -580,4 +587,13 @@ message PinOwnerKeyRequest {
 message PinOwnerKeyResponse {
   string fingerprint = 1;
   string name = 2;
+}
+
+message GetBackupKeyRequest {}
+
+message GetBackupKeyResponse {
+  string key = 1;
+  string fingerprint = 2;
+  // "panel" (Raptor keeps an encrypted copy) or "owner" (only the owner).
+  string mode = 3;
 }
