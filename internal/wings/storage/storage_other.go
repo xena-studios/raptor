@@ -63,3 +63,25 @@ func BackingFile(Mount) string { return "" }
 
 // Space isn't supported off Linux.
 func Space(string) (int64, int64, error) { return 0, 0, errLinuxOnly }
+
+// DiskSpec is a disk to set up for Raptor.
+type DiskSpec struct {
+	Device, ID, Role, Mountpoint, UnitDir string
+	Layout                                Layout
+}
+
+// MountpointFor is where a disk of a role is mounted.
+func MountpointFor(l Layout, role, id string) string {
+	if role == RoleBackups {
+		return BackupsMountPrefix + id
+	}
+	return l.DisksDir + "/" + id
+}
+
+// ErrNotEmpty means the device holds something.
+var ErrNotEmpty = errors.New("the disk isn't empty")
+
+// SetupDisk isn't supported off Linux.
+func SetupDisk(context.Context, DiskSpec) (string, error) { return "", errLinuxOnly }
+
+func hostMounts() map[string][]string { return nil }

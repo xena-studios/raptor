@@ -42,6 +42,9 @@ type Options struct {
 	Log     *slog.Logger
 	// Storage is the server data volume and its quotas.
 	Storage *storage.Volume
+	// DisksDir is where data disks are mounted (<DisksDir>/<disk id>); a
+	// server on one keeps its files there instead of in VolumesDir.
+	DisksDir string
 
 	VolumesDir string // server directories: <VolumesDir>/<id>
 	// MachineIDDir holds each server's /etc/machine-id (<dir>/<id>), written
@@ -345,6 +348,15 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 	if err := m.diskCheck(); err != nil {
 		return "", err
 	}
+	if cfg.Disk != "" {
+		vol, err := m.volumeFor(cfg.Disk)
+		if err != nil {
+			return "", ErrNoDisk
+		}
+		if err := vol.Check(); err != nil {
+			return "", fmt.Errorf("%w: %w", ErrNoDisk, err)
+		}
+	}
 	id, err := uuid.NewV7()
 	if err != nil {
 		return "", err
@@ -364,6 +376,7 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 			Image: cfg.Image, Startup: cfg.Startup,
 			Variables: mustJSON(cfg.Variables), Limits: mustJSON(cfg.Limits), Settings: mustJSON(cfg.Settings),
 			HostNetwork: boolInt(cfg.HostNetwork), DesiredState: "stopped", InstallState: installPending,
+			DiskID: cfg.Disk,
 		}); err != nil {
 			return err
 		}
@@ -392,6 +405,7 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 	}
 
 	i := m.newInstance(sid, Installing)
+	i.disk = cfg.Disk
 	m.mu.Lock()
 	m.servers[sid] = i
 	m.mu.Unlock()
@@ -503,8 +517,8 @@ func (m *Manager) Update(ctx context.Context, id string, cfg Config) error {
 		return err
 	}
 	// A new disk limit applies at once, even while the server runs.
-	if cfg.Limits.DiskMiB != old.Limits.DiskMiB && old.QuotaProject != 0 {
-		if err := m.o.Storage.SetLimit(old.QuotaProject, cfg.Limits.DiskMiB<<20); err != nil {
+	if vol, err := m.volumeFor(old.Disk); err == nil && cfg.Limits.DiskMiB != old.Limits.DiskMiB && old.QuotaProject != 0 {
+		if err := vol.SetLimit(old.QuotaProject, cfg.Limits.DiskMiB<<20); err != nil {
 			m.log.Warn("applying the new disk limit failed; it's applied on the next start", "server", id, "err", err)
 		}
 	}
@@ -696,8 +710,8 @@ func (m *Manager) deleteNow(ctx context.Context, id, skipJob string, data map[st
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("remove files: %w", err)
 	}
-	if srv != nil {
-		if err := m.o.Storage.Release(srv.QuotaProject); err != nil {
+	if vol, err := m.volumeFor(diskOrMain(srv)); srv != nil && err == nil {
+		if err := vol.Release(srv.QuotaProject); err != nil {
 			m.log.Warn("clearing the disk limit failed", "server", id, "err", err)
 		}
 	}
@@ -775,13 +789,71 @@ func (m *Manager) ShutdownAll(ctx context.Context) (stopped int, errs error) {
 
 var idPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
+func diskOrMain(s *Server) string {
+	if s == nil {
+		return ""
+	}
+	return s.Disk
+}
+
+// ErrNoDisk means a server's data disk doesn't exist.
+var ErrNoDisk = errors.New("that disk isn't set up for server data on this node")
+
+// diskOf returns which disk a server is on, from its instance or, for one
+// being removed, its row.
+func (m *Manager) diskOf(id string) (string, error) {
+	m.mu.Lock()
+	i, ok := m.servers[id]
+	m.mu.Unlock()
+	if ok {
+		return i.disk, nil
+	}
+	r, err := m.o.Store.Read.GetServer(context.Background(), id)
+	if err != nil {
+		return "", ErrNotFound
+	}
+	return r.DiskID, nil
+}
+
+// diskRoot is where servers on a disk keep their directories.
+func (m *Manager) diskRoot(disk string) (string, error) {
+	if disk == "" {
+		return m.o.VolumesDir, nil
+	}
+	if !storage.DiskIDPattern.MatchString(disk) || m.o.DisksDir == "" {
+		return "", fmt.Errorf("invalid disk %q", disk)
+	}
+	return filepath.Join(m.o.DisksDir, disk), nil
+}
+
+// volumeFor is a disk's volume: the main one, or a data disk's mount
+// (quotas or not, as the main volume).
+func (m *Manager) volumeFor(disk string) (*storage.Volume, error) {
+	if disk == "" {
+		return m.o.Storage, nil
+	}
+	root, err := m.diskRoot(disk)
+	if err != nil {
+		return nil, err
+	}
+	return &storage.Volume{Path: root, Soft: m.o.Storage.Soft}, nil
+}
+
 // serverDir returns a server's directory. IDs are validated so a corrupt
 // row can never point file operations elsewhere.
 func (m *Manager) serverDir(id string) (string, error) {
 	if !idPattern.MatchString(id) {
 		return "", fmt.Errorf("invalid server id %q", id)
 	}
-	return filepath.Join(m.o.VolumesDir, id), nil
+	disk, err := m.diskOf(id)
+	if err != nil {
+		return "", err
+	}
+	root, err := m.diskRoot(disk)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, id), nil
 }
 
 func containerName(id string) string { return "raptor-" + id }
@@ -872,7 +944,11 @@ func (m *Manager) prepareStorage(ctx context.Context, srv *Server) error {
 	if err != nil {
 		return err
 	}
-	return m.o.Storage.Prepare(dir, srv.QuotaProject, srv.Limits.DiskMiB<<20, m.o.UID, m.o.GID)
+	vol, err := m.volumeFor(srv.Disk)
+	if err != nil {
+		return err
+	}
+	return vol.Prepare(dir, srv.QuotaProject, srv.Limits.DiskMiB<<20, m.o.UID, m.o.GID)
 }
 
 // DiskUsage returns a server's disk usage: instantly from its quota, or by
@@ -886,7 +962,11 @@ func (m *Manager) DiskUsage(ctx context.Context, id string) (storage.Usage, erro
 	if err != nil {
 		return storage.Usage{}, err
 	}
-	u, err := m.o.Storage.Usage(ctx, dir, srv.QuotaProject)
+	vol, err := m.volumeFor(srv.Disk)
+	if err != nil {
+		return storage.Usage{}, err
+	}
+	u, err := vol.Usage(ctx, dir, srv.QuotaProject)
 	if err == nil && u.LimitBytes == 0 {
 		u.LimitBytes = srv.Limits.DiskMiB << 20
 	}

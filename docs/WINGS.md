@@ -220,6 +220,28 @@ How it works:
 - Docker images stay on the host disk (`/var/lib/docker`); only server data lives on the quota volume.
 - Tested by `task e2e:quotas` (see [CONTRIBUTING.md](../CONTRIBUTING.md#runtime-end-to-end-tests)).
 
+## Data disks
+
+Boxes with more than one disk can use them from the node's **Disks** tab, or `raptor storage disks|add-disk` on the box.
+
+- **Listing** (`node.disks`, admins): `lsblk` (util-linux 2.37+) lists each disk and partition. Mount points come from PID 1's `mountinfo` (the host's view, filesystem roots only), since Wings' sandbox has its own mounts. Each disk says what it's used for:
+  - **system:** holds `/`, swap, Raptor's state, logs, local backups, or Docker;
+  - Raptor's **main volume**, a **data disk** for servers or backups;
+  - **mounted elsewhere**, **has data or a filesystem**, **partitioned**, or **RAID, LVM, or encrypted**;
+  - **too small** (under 1 GiB), or **empty**.
+
+  Loop devices, RAM disks, and optical drives are left out. The answer also lists where Raptor keeps data: the main volume and each data disk, with free space and how many servers are on it, plus any disk servers are on that isn't mounted.
+- **Setting one up** (`node.disk.setup`, signed by an owner, never a delegation) is offered for **empty** disks and partitions only: no partitions, filesystem, partition table, or signature.
+  - Wings checks that the disk is still the one the owner saw (its size and serial, since device names change between boots) and still empty. Then it runs `raptor storage add-disk` through `systemd-run`: the mount must be in the host's namespace and its unit in `/etc/systemd/system`, which the sandbox can't write.
+  - That command checks again, runs `mkfs.xfs` without `-f` (so it refuses any signature itself), and writes a mount unit by UUID with `prjquota`, ordered like the main volume's (a missing disk doesn't stop the box booting).
+  - Server data disks mount at `/var/lib/raptor/disks/<id>`. Backup disks mount at `/srv/raptor-backups-<id>`, where they can be a folder backup destination.
+  - Disks with anything on them are never formatted from the Panel: the owner wipes them over SSH.
+- **Which disk servers use:** each server has a `disk_id` (`''` is the main volume), chosen when it's created (`server.create`'s `disk`: `main`, a disk's ID, or the node's default) and never changed. The default (`node.disk.default`, unsigned since it moves nothing) is kept in `kv`.
+  - The manager resolves every server path and quota through the server's disk, so files, SFTP, backups, installs, and deletes follow it.
+  - A server whose disk isn't mounted won't install or start, exactly like the main volume. The Disks tab shows the disk as not mounted.
+- Wings finds data disks by where they're mounted, so one set up by hand with `raptor storage add-disk` is the same as one set up from the Panel.
+- Not yet: moving a server to another disk, growing a data disk from the Panel, data disks in doctor's checks and the Health tab's disk list, and the overview's server storage counting them.
+
 ## Job engine
 
 A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a job. Implemented: `server.install` (installs and reinstalls), `server.delete`, `schedule.run`, `backup.create`, `backup.restore`, `backup.delete`, `backup.maintain`, `files.compress`, and `files.decompress`. Coming with their features: `transfer.send`, `transfer.receive`.

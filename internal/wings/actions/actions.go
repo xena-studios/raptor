@@ -117,6 +117,9 @@ type CreateParams struct {
 	AcceptEULA bool `json:"accept_eula,omitempty"`
 	// BackupSchedule: add the default daily backup schedule (default true).
 	BackupSchedule *bool `json:"backup_schedule,omitempty"`
+	// Disk is the disk its files go on: "main", a data disk's ID, or ""
+	// for the node's default.
+	Disk string `json:"disk,omitempty"`
 }
 
 // Defaults are what new servers get.
@@ -124,6 +127,9 @@ type Defaults struct {
 	// BackupSchedule adds the daily backup schedule to a new server, in the
 	// transaction that creates it. nil = none.
 	BackupSchedule func(ctx context.Context, q *store.Queries, serverID string) error
+	// Disk resolves the disk a new server asks for ("" is the default) to
+	// the server's disk_id; nil puts every server on the main volume.
+	Disk func(ctx context.Context, asked string) (string, error)
 }
 
 // DeleteParams are the params of server.delete.
@@ -173,7 +179,15 @@ func Register(x *command.Executor, m *server.Manager, d Defaults) {
 		if d.BackupSchedule != nil && (p.BackupSchedule == nil || *p.BackupSchedule) {
 			opts.InTx = d.BackupSchedule
 		}
-		id, err := m.Create(ctx, p.toConfig(), opts)
+		cfg := p.toConfig()
+		if d.Disk != nil {
+			disk, err := d.Disk(ctx, p.Disk)
+			if err != nil {
+				return nil, err
+			}
+			cfg.Disk = disk
+		}
+		id, err := m.Create(ctx, cfg, opts)
 		if err != nil {
 			return nil, err
 		}

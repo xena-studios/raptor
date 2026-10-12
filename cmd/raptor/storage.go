@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -21,10 +22,18 @@ const minVolume = 1 << 30
 // Wings is stopped.
 func storageCmd(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: raptor storage status|setup|grow [flags]")
+		return errors.New("usage: raptor storage status|setup|grow|disks|add-disk [flags]")
 	}
 	fs := flag.NewFlagSet("storage "+args[0], flag.ContinueOnError)
 	path := fs.String("config", config.DefaultPath, "config file")
+	var device, role, id *string
+	var asJSON *bool
+	if args[0] == "add-disk" {
+		device = fs.String("device", "", "the empty disk or partition, e.g. /dev/sdb (required)")
+		role = fs.String("role", storage.RoleServers, `what it's for: "servers" or "backups"`)
+		id = fs.String("id", "", "its disk ID, 8 lowercase letters and digits (default: random)")
+		asJSON = fs.Bool("json", false, "print the result as JSON (for Wings)")
+	}
 	var size *string
 	if args[0] == "setup" || args[0] == "grow" {
 		size = fs.String("size", "", `volume size, e.g. "200GiB" (required)`)
@@ -39,9 +48,22 @@ func storageCmd(ctx context.Context, args []string) error {
 		return err
 	}
 	vol := cfg.Paths.Volumes
+	layout := storage.LayoutFor(filepath.Dir(cfg.Paths.State), vol, cfg.Paths.Logs, cfg.Paths.Backups)
 	switch args[0] {
 	case "status":
 		return storageStatus(&cfg)
+	case "disks":
+		disks, err := storage.ListDisks(ctx, layout)
+		if err != nil {
+			return err
+		}
+		printDisks(disks, "")
+		return nil
+	case "add-disk":
+		if os.Geteuid() != 0 {
+			return errors.New("must be run as root")
+		}
+		return addDisk(ctx, layout, *device, *role, *id, *asJSON)
 	case "setup", "grow":
 		if os.Geteuid() != 0 {
 			return errors.New("must be run as root")
@@ -196,4 +218,42 @@ func human(n int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
+}
+
+// addDisk is `raptor storage add-disk`: format an empty disk for Raptor and
+// mount it (docs/WINGS.md#data-disks). Wings runs it from the Panel's Disks
+// tab, through systemd-run, since its own sandbox can't write mount units.
+func addDisk(ctx context.Context, layout storage.Layout, device, role, id string, asJSON bool) error {
+	if device == "" {
+		return errors.New("-device is required (see raptor storage disks)")
+	}
+	if role != storage.RoleServers && role != storage.RoleBackups {
+		return errors.New(`-role is "servers" or "backups"`)
+	}
+	if id == "" {
+		id = storage.NewDiskID()
+	}
+	if !storage.DiskIDPattern.MatchString(id) {
+		return errors.New("-id is 8 lowercase letters and digits")
+	}
+	mp := storage.MountpointFor(layout, role, id)
+	uuid, err := storage.SetupDisk(ctx, storage.DiskSpec{
+		Device: device, ID: id, Role: role, Mountpoint: mp, UnitDir: "/etc/systemd/system", Layout: layout,
+	})
+	if err != nil {
+		return err
+	}
+	if asJSON {
+		return json.NewEncoder(os.Stdout).Encode(map[string]string{"id": id, "uuid": uuid, "mountpoint": mp})
+	}
+	fmt.Printf("%s is set up for %s at %s (disk %s)\n", device, role, mp, id)
+	return nil
+}
+
+func printDisks(disks []storage.BlockDevice, indent string) {
+	for _, d := range disks {
+		where := strings.Join(d.Mountpoints, ", ")
+		fmt.Printf("%s%-12s %9s  %-10s %-8s %s\n", indent, d.Path, human(d.Size), d.Use, d.FSType, where)
+		printDisks(d.Children, indent+"  ")
+	}
 }

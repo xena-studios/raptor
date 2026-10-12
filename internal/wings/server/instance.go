@@ -27,6 +27,7 @@ import (
 type instance struct {
 	m       *Manager
 	id      string
+	disk    string // its data disk ("" is the main volume); fixed at creation
 	console *Console
 	power   sync.Mutex
 

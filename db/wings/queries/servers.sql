@@ -1,7 +1,10 @@
 -- name: InsertServer :exec
 INSERT INTO servers (id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings,
-                     host_network, desired_state, install_state, version, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, unixepoch(), unixepoch());
+                     host_network, desired_state, install_state, disk_id, version, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, unixepoch(), unixepoch());
+
+-- name: CountServersOnDisks :many
+SELECT disk_id, COUNT(*) AS servers FROM servers GROUP BY disk_id;
 
 -- name: GetServer :one
 SELECT * FROM servers WHERE id = ?;

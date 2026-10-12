@@ -99,6 +99,9 @@ type Config struct {
 	Settings    Settings
 	HostNetwork bool
 	Allocations []Allocation
+	// Disk is the data disk the server's files are on ("" is the main
+	// volume). It's chosen at creation and never changes.
+	Disk string
 }
 
 // Server is a server's stored configuration and state.
@@ -239,6 +242,7 @@ func fromRow(r store.Server, allocs []store.Allocation) (*Server, error) {
 			Image:       r.Image,
 			Startup:     r.Startup,
 			HostNetwork: r.HostNetwork == 1,
+			Disk:        r.DiskID,
 			Settings:    DefaultSettings(),
 		},
 	}

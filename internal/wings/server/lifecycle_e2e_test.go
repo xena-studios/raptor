@@ -938,3 +938,40 @@ func TestLowHostDisk(t *testing.T) {
 	set(func() error { return nil })
 	ready(t, m, id)
 }
+
+// A server on a data disk installs, runs, and is deleted there; the main
+// volume never sees it. A data disk that isn't there is refused.
+func TestDataDisk(t *testing.T) {
+	e := newEnv(t)
+	e.opts.DisksDir = filepath.Join(e.dir, "disks")
+	if err := os.MkdirAll(filepath.Join(e.opts.DisksDir, "abcd1234"), 0o755); err != nil { //nolint:gosec // test directory
+		t.Fatal(err)
+	}
+	m := e.manager()
+	defer m.Close()
+	id := e.create(m, freePort(t), func(c *Config) { c.Disk = "abcd1234" })
+	onDisk := filepath.Join(e.opts.DisksDir, "abcd1234", id)
+	if _, err := os.Stat(filepath.Join(onDisk, "installed.txt")); err != nil {
+		t.Fatalf("not installed on the disk: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(e.opts.VolumesDir, id)); !os.IsNotExist(err) {
+		t.Errorf("a directory on the main volume: %v", err)
+	}
+	ready(t, m, id)
+	if srv, _ := m.Get(context.Background(), id); srv.Disk != "abcd1234" {
+		t.Errorf("stored disk %q", srv.Disk)
+	}
+	if err := m.Delete(context.Background(), id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(onDisk); !os.IsNotExist(err) {
+		t.Errorf("files left on the disk: %v", err)
+	}
+	cfg := Config{
+		Name: "x", Egg: shellEgg("true"), Limits: containers.Limits{MemoryMiB: 128}, Settings: DefaultSettings(),
+		Allocations: []Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}}, Disk: "gone0000",
+	}
+	if _, err := m.Create(context.Background(), cfg, CreateOptions{}); !errors.Is(err, ErrNoDisk) {
+		t.Errorf("a missing disk: %v", err)
+	}
+}
