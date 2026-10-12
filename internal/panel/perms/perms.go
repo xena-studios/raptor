@@ -58,6 +58,12 @@ var actions = map[string]string{
 	"files.upload":        FilesWrite,
 	"files.upload.status": FilesWrite,
 	"files.upload.cancel": FilesWrite,
+	// Restoring and emptying the trash change files; seeing it lists names
+	// that were in the server.
+	"files.trash":         FilesRead,
+	"files.trash.restore": FilesWrite,
+	"files.trash.delete":  FilesWrite,
+	"files.trash.empty":   FilesWrite,
 
 	// Deleting, unlocking, and restoring backups are passkey-signed too,
 	// and a member's key needs an owner's delegation for them (Wings checks).
@@ -155,7 +161,7 @@ func Valid(p string) bool {
 // audit log.
 func Read(action string) bool {
 	switch action {
-	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list",
+	case "files.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
 		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true

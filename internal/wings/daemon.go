@@ -441,6 +441,11 @@ func (r *runtimeSetup) prune(ctx context.Context) {
 		if _, err := r.files.Prune(ctx); err != nil {
 			r.log.Error("pruning idle file transfers failed", "err", err)
 		}
+		if n, err := r.files.PruneTrash(ctx); err != nil {
+			r.log.Error("emptying old trash failed", "err", err)
+		} else if n > 0 {
+			r.log.Info("old trash emptied", "entries", n)
+		}
 	}
 }
 

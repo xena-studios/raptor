@@ -200,6 +200,16 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 
 	if !perms.Read(env.Action) {
 		meta := map[string]any{"action": env.Action, "node": env.NodeID, "command_id": env.CommandID, "signed": env.Signature != nil}
+		// Params aren't kept (they can hold file contents); whether a delete
+		// skipped the trash is worth knowing.
+		if env.Action == "files.delete" {
+			var p struct {
+				Permanent bool `json:"permanent"`
+			}
+			if json.Unmarshal(env.Params, &p) == nil && p.Permanent {
+				meta["permanent"] = true
+			}
+		}
 		switch {
 		case err != nil:
 			meta["error"] = err.Error()

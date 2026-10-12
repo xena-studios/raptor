@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -38,6 +39,27 @@ func (m *Manager) Resolve(ref string) (string, error) {
 	}
 	return found, nil
 }
+
+// TrashDir returns where a server's trash is: <disk>/.trash/<id>, outside
+// its directory and on the same filesystem.
+func (m *Manager) TrashDir(id string) (string, error) {
+	if !idPattern.MatchString(id) {
+		return "", fmt.Errorf("invalid server id %q", id)
+	}
+	disk, err := m.diskOf(id)
+	if err != nil {
+		return "", err
+	}
+	root, err := m.diskRoot(disk)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, TrashDirName, id), nil
+}
+
+// TrashDirName is the trash's directory on each disk, beside the servers'
+// (docs/WINGS.md#trash). It isn't a server ID, so it's never taken for one.
+const TrashDirName = ".trash"
 
 // FilesDir returns the directory of a server that exists, for file access
 // from outside the server (SFTP).

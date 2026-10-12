@@ -363,6 +363,59 @@ func (f *FS) RemoveAll(name string) error {
 	return f.root.RemoveAll(name)
 }
 
+// MoveOut moves name out of the directory, into dst (a directory outside
+// it that Wings made) as dstName: the trash. The parent is opened through
+// the root, and the move is one renameat between the two open directories,
+// so nothing the server does meanwhile (swapping a directory for a link)
+// can make it move something else. A directory holding denied files is
+// refused, like deleting it.
+func (f *FS) MoveOut(name string, dst *os.File, dstName string) error {
+	name = Rel(name)
+	if name == "." {
+		return &fs.PathError{Op: "trash", Path: name, Err: ErrRoot}
+	}
+	if err := f.checkTree(name, ""); err != nil {
+		return err
+	}
+	dir, base := path.Split(name)
+	parent, err := f.root.Open(Rel(dir))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = parent.Close() }()
+	if err := renameat(parent, base, dst, dstName, false); err != nil {
+		return &fs.PathError{Op: "trash", Path: name, Err: err}
+	}
+	return nil
+}
+
+// MoveIn moves src/srcName (outside the directory) to name, creating its
+// parent directories, and never replacing anything there.
+func (f *FS) MoveIn(src *os.File, srcName, name string) error {
+	name = Rel(name)
+	if name == "." {
+		return &fs.PathError{Op: "restore", Path: name, Err: ErrRoot}
+	}
+	if err := f.check(name, false); err != nil {
+		return err
+	}
+	dir, base := path.Split(name)
+	if d := Rel(dir); d != "." {
+		if err := f.MkdirAll(d); err != nil {
+			return err
+		}
+	}
+	parent, err := f.root.Open(Rel(dir))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = parent.Close() }()
+	if err := renameat(src, srcName, parent, base, true); err != nil {
+		return &fs.PathError{Op: "restore", Path: name, Err: err}
+	}
+	return nil
+}
+
 // Chmod sets permission bits only: never setuid, setgid, or sticky.
 func (f *FS) Chmod(name string, mode fs.FileMode) error {
 	name = Rel(name)

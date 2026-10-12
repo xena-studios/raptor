@@ -31,6 +31,9 @@ type Servers interface {
 	// SpaceLeft returns how many bytes the server may still use (< 0: no
 	// limit).
 	SpaceLeft(ctx context.Context, id string) (int64, error)
+	// TrashDir returns where the server's trash is: outside its directory,
+	// on the same filesystem.
+	TrashDir(id string) (string, error)
 }
 
 // Limits of the web file manager (docs/WINGS.md#files-and-sftp).
