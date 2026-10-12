@@ -16,7 +16,7 @@ type Out = {
   retry?: boolean;
 };
 
-export type ConsoleHandlers = {
+type ConsoleHandlers = {
   // reset: the console starts over with its history; clear what's shown.
   onLines: (lines: string[], reset: boolean) => void;
   // The watch can't go on: retrying says it's being tried again.

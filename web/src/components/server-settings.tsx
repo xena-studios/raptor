@@ -19,7 +19,7 @@ const select =
 // A server's settings, split across its tabs: startup (runtime and
 // variables), network (its port), and general (name and limits, and
 // reinstalling).
-export type SettingsSection = "startup" | "network" | "general";
+type SettingsSection = "startup" | "network" | "general";
 
 const sectionText: Record<SettingsSection, { title: string; description: string }> = {
   startup: {

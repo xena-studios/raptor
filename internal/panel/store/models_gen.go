@@ -398,16 +398,6 @@ type SftpPassword struct {
 	CreatedAt  pgtype.Timestamptz
 }
 
-type SshKey struct {
-	ID          pgtype.UUID
-	UserID      pgtype.UUID
-	Name        string
-	PublicKey   []byte
-	Fingerprint string
-	CreatedAt   pgtype.Timestamptz
-	LastUsedAt  pgtype.Timestamptz
-}
-
 type Staff struct {
 	UserID  pgtype.UUID
 	Role    string
@@ -461,7 +451,6 @@ type User struct {
 	TotpSecret      []byte
 	TotpEnabledAt   pgtype.Timestamptz
 	TotpLastStep    int64
-	SftpUsername    pgtype.Text
 	Theme           string
 	SuspendedAt     pgtype.Timestamptz
 	SuspendedReason string

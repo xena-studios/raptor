@@ -28,7 +28,7 @@ import { EggManagement } from "./manage";
 
 // useCanChange reports whether the caller changes this library's eggs: an
 // org's admins and owners, or staff admins for the official one.
-export function useCanChange(lib: Library): boolean {
+function useCanChange(lib: Library): boolean {
   const orgs = useQuery(OrgService.method.listOrgs, {}, { enabled: !!lib.orgId });
   const staff = useQuery(StaffService.method.getStaffMe, {}, { enabled: !lib.orgId });
   if (lib.orgId) return isAdmin(orgs.data?.orgs.find((o) => o.id === lib.orgId)?.role);

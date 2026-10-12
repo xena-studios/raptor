@@ -25,7 +25,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 3. **Start the week-long soak** (`task soak:start`); it runs on its own while the rest happens.
 4. **Business track items that take weeks**: the Public Suffix List request for `raptornodes.net` (not on the list yet, and user subdomains wait for it), the business entity, `security@raptorpanel.net`.
 5. **Phase 4, in the order the exit test needs it**: create-server wizard → console → files → node pages (live enrollment, health, remove) → backups → schedules → users → egg catalog → connection test → subdomains → audit log view.
-6. **In the release after v0.2.0:** a migration that drops `ssh_keys` and `users.sftp_username` (unused since #121; kept through v0.2.0 because v0.1.0 reads the column while migrations run), and the generated code that still lists it.
+6. **In the release after v0.3.0:** turn `db/panel/pending/drop_sftp_username.sql` into a migration and delete the folder (and its line in `sqlc.yaml`). v0.3.0 drops `ssh_keys` and no longer reads `users.sftp_username`, but v0.2.0's generated queries still name the column, so it can only go once v0.2.0 never runs against the database again.
 7. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the docs site.
 
 Found while checking production (Oct 8):
@@ -125,7 +125,7 @@ Found while checking production (Oct 8):
 - [x] `task e2e:host`: Wings restart, Docker restart, host shutdown, and reboot, against the real systemd units
 
 ### 1.5 Job engine ✅
-- [x] Durable queue in SQLite, resume/retry, per-server locks, global concurrency limits; installs run as resumable jobs
+- [x] Durable queue in SQLite, resume after a restart, per-server locks, global concurrency limits; installs run as resumable jobs
 - [x] Job logs
 - [x] Event outbox with monotonic `seq`, written in the same transaction as each change
 - [x] `executed_commands` table for idempotency, also used as replay protection for signed commands

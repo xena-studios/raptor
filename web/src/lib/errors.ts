@@ -48,7 +48,7 @@ export function message(err: unknown): string {
   return "Something went wrong. Try again in a moment.";
 }
 
-export function isCode(err: unknown, code: Code): boolean {
+function isCode(err: unknown, code: Code): boolean {
   return err instanceof ConnectError && err.code === code;
 }
 

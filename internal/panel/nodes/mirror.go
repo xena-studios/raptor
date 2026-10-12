@@ -386,19 +386,3 @@ func optMillis(ms int64) pgtype.Timestamptz {
 	}
 	return millis(ms)
 }
-
-// Reset drops a node's mirror; the next sync rebuilds it from a snapshot.
-func (m *Mirror) Reset(ctx context.Context, nodeID string) error {
-	id, err := uuid.Parse(nodeID)
-	if err != nil {
-		return err
-	}
-	node := pgUUID(id)
-	return pgx.BeginFunc(ctx, m.DB, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		if err := q.DeleteMirrorServers(ctx, node); err != nil {
-			return err
-		}
-		return q.SetNodeAcked(ctx, store.SetNodeAckedParams{ID: node, LastAckedSeq: -1})
-	})
-}

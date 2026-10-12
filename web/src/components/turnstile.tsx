@@ -4,8 +4,8 @@ import { useEffect, useImperativeHandle, useRef } from "react";
 // (web/verify, docs/DECISIONS.md #192): Turnstile's script never runs on
 // the app's origin, which is the one passkeys belong to. The iframe gets
 // no permissions (no `allow`), so it can't ask for passkeys either.
-export const turnstileURL: string | undefined = import.meta.env.VITE_TURNSTILE_URL;
-export const turnstileSitekey: string | undefined = import.meta.env.VITE_TURNSTILE_SITEKEY;
+const turnstileURL: string | undefined = import.meta.env.VITE_TURNSTILE_URL;
+const turnstileSitekey: string | undefined = import.meta.env.VITE_TURNSTILE_SITEKEY;
 export const turnstileOn = !!(turnstileURL && turnstileSitekey);
 
 export type TurnstileHandle = { reset: () => void };

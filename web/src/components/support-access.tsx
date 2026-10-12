@@ -1,4 +1,3 @@
-import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient, useQuery as useTanQuery } from "@tanstack/react-query";
 import { Headset, Loader2 } from "lucide-react";
@@ -347,8 +346,4 @@ export function SupportSettings({ nodeId, connected }: { nodeId: string; connect
       </CardContent>
     </Card>
   );
-}
-
-export function supportUntil(r: SupportRequest): string {
-  return r.expiresAt ? timestampDate(r.expiresAt).toLocaleString() : "";
 }

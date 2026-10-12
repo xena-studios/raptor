@@ -5,8 +5,8 @@ import { type PointerEvent, useLayoutEffect, useRef, useState } from "react";
 // a tooltip on hover. One series needs no legend (the card names it); two
 // get one, with their latest values.
 
-export type Series = { name: string; color: string };
-export type TimePoint = { t: number; values: (number | null)[] };
+type Series = { name: string; color: string };
+type TimePoint = { t: number; values: (number | null)[] };
 
 const pad = { top: 8, right: 8, bottom: 22, left: 44 };
 

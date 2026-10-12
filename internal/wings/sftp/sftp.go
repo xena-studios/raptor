@@ -78,11 +78,10 @@ type failures struct {
 
 // session is who logged in; it rides in ssh.Permissions from the auth
 // callback that accepted the login, so the grant is always the one for the
-// key or password that was actually verified.
+// password that was actually verified.
 type session struct {
-	login  Login
-	grant  Grant
-	method string
+	login Login
+	grant Grant
 }
 
 const sessionKey = "raptor.session"
@@ -265,11 +264,11 @@ func (s *Server) handle(c *conn, addr netip.Addr) {
 	}
 	// A delete or install that started during the handshake is caught by
 	// the per-request checks.
-	s.o.Log.Info("sftp login", "server", sess.login.ServerID, "user", sess.login.Username, "addr", addr, "method", sess.method)
+	s.o.Log.Info("sftp login", "server", sess.login.ServerID, "user", sess.login.Username, "addr", addr)
 	if s.o.Events != nil {
 		if _, err := s.o.Events.Append(context.Background(), events.Event{
 			Type: EventLogin, ServerID: sess.login.ServerID,
-			Data: map[string]any{"user": sess.login.Username, "user_id": sess.grant.UserID, "ip": addr.String(), "method": sess.method},
+			Data: map[string]any{"user": sess.login.Username, "user_id": sess.grant.UserID, "ip": addr.String(), "method": "password"},
 		}); err != nil {
 			s.o.Log.Error("recording sftp login failed", "err", err)
 		}
@@ -345,26 +344,26 @@ func (s *Server) login(meta ssh.ConnMetadata) (Login, error) {
 func (s *Server) password(meta ssh.ConnMetadata, pw []byte) (*ssh.Permissions, error) {
 	l, err := s.login(meta)
 	if err != nil {
-		return s.reject(meta, "password", err)
+		return s.reject(meta, err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), authTimeout)
 	defer cancel()
 	g, err := s.o.Auth.Password(ctx, l, string(pw))
 	if err != nil {
-		return s.reject(meta, "password", err)
+		return s.reject(meta, err)
 	}
-	return s.accept(meta, &session{login: l, grant: g, method: "password"})
+	return s.accept(meta, &session{login: l, grant: g})
 }
 
 func (s *Server) accept(meta ssh.ConnMetadata, sess *session) (*ssh.Permissions, error) {
 	if !sess.grant.Has(PermSFTP) {
-		return s.reject(meta, sess.method, errors.New("no sftp permission"))
+		return s.reject(meta, errors.New("no sftp permission"))
 	}
 	return &ssh.Permissions{ExtraData: map[any]any{sessionKey: sess}}, nil
 }
 
-func (s *Server) reject(meta ssh.ConnMetadata, method string, err error) (*ssh.Permissions, error) {
+func (s *Server) reject(meta ssh.ConnMetadata, err error) (*ssh.Permissions, error) {
 	s.failed(remoteAddr(meta.RemoteAddr()))
-	s.o.Log.Debug("sftp login rejected", "user", meta.User(), "addr", meta.RemoteAddr(), "method", method, "err", err)
+	s.o.Log.Debug("sftp login rejected", "user", meta.User(), "addr", meta.RemoteAddr(), "err", err)
 	return nil, errors.New("login failed")
 }

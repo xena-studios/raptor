@@ -144,17 +144,6 @@ func Present(ctx context.Context) bool {
 	return exec.CommandContext(ctx, "nft", "list", "table", "inet", Table).Run() == nil
 }
 
-// Remove deletes the table.
-func Remove(ctx context.Context) error {
-	if !Present(ctx) {
-		return nil
-	}
-	if out, err := exec.CommandContext(ctx, "nft", "delete", "table", "inet", Table).CombinedOutput(); err != nil {
-		return fmt.Errorf("nft: %w: %s", err, bytes.TrimSpace(out))
-	}
-	return nil
-}
-
 // HostResolvers returns the upstream DNS servers Docker forwards container
 // queries to: the nameservers in /etc/resolv.conf, or systemd-resolved's
 // upstreams when resolv.conf only points at its local stub. Loopback

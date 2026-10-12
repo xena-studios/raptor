@@ -21,7 +21,7 @@ import { formatBytes } from "@/lib/metrics";
 // from the file manager, for 7 days, to put back or delete for good. It
 // counts toward the server's disk limit until it's gone.
 
-export type TrashEntry = {
+type TrashEntry = {
   id: string;
   path: string;
   is_dir: boolean;

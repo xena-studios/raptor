@@ -70,7 +70,7 @@ const typeIcons: Record<DestinationType, LucideIcon> = {
 };
 
 // What backup.destinations returns.
-export type DestinationList = {
+type DestinationList = {
   destinations: Destination[];
   ssh_public_key: string;
   key_mode: "panel" | "owner";

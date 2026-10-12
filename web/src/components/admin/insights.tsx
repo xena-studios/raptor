@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 // Pieces the admin overview's tabs share: a range picker in days, count
 // breakdowns as bars, and daily counts as chart points.
 
-export const dayRanges = [
+const dayRanges = [
   { days: 7, label: "7 days" },
   { days: 30, label: "30 days" },
   { days: 90, label: "90 days" },

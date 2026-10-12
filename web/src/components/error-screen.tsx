@@ -8,7 +8,7 @@ import { unreachable } from "@/lib/connection";
 
 // ErrorScreen is a page that went wrong: a big code, a plain sentence, and
 // a way on. Never the error's own text: that's for us, not for people.
-export function ErrorScreen({
+function ErrorScreen({
   code,
   title,
   description,
@@ -88,7 +88,7 @@ export function NotFound({ full = true, what = "page" }: { full?: boolean; what?
 
 // Unreachable is the app not reaching the Panel: it tries again on its own
 // every 10 seconds.
-export function Unreachable({ onRetry }: { onRetry: () => void }) {
+function Unreachable({ onRetry }: { onRetry: () => void }) {
   const [seconds, setSeconds] = useState(10);
   useEffect(() => {
     const t = setInterval(() => {

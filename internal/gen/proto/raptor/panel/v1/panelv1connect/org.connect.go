@@ -132,16 +132,6 @@ const (
 	// OrgServicePrepareRecoveryProcedure is the fully-qualified name of the OrgService's
 	// PrepareRecovery RPC.
 	OrgServicePrepareRecoveryProcedure = "/raptor.panel.v1.OrgService/PrepareRecovery"
-	// OrgServicePreviewEggProcedure is the fully-qualified name of the OrgService's PreviewEgg RPC.
-	OrgServicePreviewEggProcedure = "/raptor.panel.v1.OrgService/PreviewEgg"
-	// OrgServiceImportEggProcedure is the fully-qualified name of the OrgService's ImportEgg RPC.
-	OrgServiceImportEggProcedure = "/raptor.panel.v1.OrgService/ImportEgg"
-	// OrgServiceListOrgEggsProcedure is the fully-qualified name of the OrgService's ListOrgEggs RPC.
-	OrgServiceListOrgEggsProcedure = "/raptor.panel.v1.OrgService/ListOrgEggs"
-	// OrgServiceGetOrgEggProcedure is the fully-qualified name of the OrgService's GetOrgEgg RPC.
-	OrgServiceGetOrgEggProcedure = "/raptor.panel.v1.OrgService/GetOrgEgg"
-	// OrgServiceDeleteOrgEggProcedure is the fully-qualified name of the OrgService's DeleteOrgEgg RPC.
-	OrgServiceDeleteOrgEggProcedure = "/raptor.panel.v1.OrgService/DeleteOrgEgg"
 	// OrgServiceListBackupsProcedure is the fully-qualified name of the OrgService's ListBackups RPC.
 	OrgServiceListBackupsProcedure = "/raptor.panel.v1.OrgService/ListBackups"
 )
@@ -281,22 +271,6 @@ type OrgServiceClient interface {
 	// destination with a key that only reads its folder, for 90 days.
 	// Owners; audited.
 	PrepareRecovery(context.Context, *v1.PrepareRecoveryRequest) (*v1.PrepareRecoveryResponse, error)
-	// PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
-	// says what it would run, for review before ImportEgg: its images and
-	// their registries, its install script, its startup command, and
-	// warnings. Nothing is saved. Admins and owners; rate limited.
-	PreviewEgg(context.Context, *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error)
-	// ImportEgg saves a reviewed egg to the org, for creating servers.
-	// Admins and owners.
-	ImportEgg(context.Context, *v1.ImportEggRequest) (*v1.ImportEggResponse, error)
-	// ListOrgEggs lists the org's imported eggs. Any member.
-	ListOrgEggs(context.Context, *v1.ListOrgEggsRequest) (*v1.ListOrgEggsResponse, error)
-	// GetOrgEgg returns an imported egg's file, as a server created from it
-	// gets it. Any member.
-	GetOrgEgg(context.Context, *v1.GetOrgEggRequest) (*v1.GetOrgEggResponse, error)
-	// DeleteOrgEgg removes an imported egg. Servers made from it keep it.
-	// Admins and owners.
-	DeleteOrgEgg(context.Context, *v1.DeleteOrgEggRequest) (*v1.DeleteOrgEggResponse, error)
 	// ListBackups lists a server's backups as the mirror has them, newest
 	// first. Needs the backups permission.
 	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
@@ -557,38 +531,6 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("PrepareRecovery")),
 			connect.WithClientOptions(opts...),
 		),
-		previewEgg: connect.NewClient[v1.PreviewEggRequest, v1.PreviewEggResponse](
-			httpClient,
-			baseURL+OrgServicePreviewEggProcedure,
-			connect.WithSchema(orgServiceMethods.ByName("PreviewEgg")),
-			connect.WithClientOptions(opts...),
-		),
-		importEgg: connect.NewClient[v1.ImportEggRequest, v1.ImportEggResponse](
-			httpClient,
-			baseURL+OrgServiceImportEggProcedure,
-			connect.WithSchema(orgServiceMethods.ByName("ImportEgg")),
-			connect.WithClientOptions(opts...),
-		),
-		listOrgEggs: connect.NewClient[v1.ListOrgEggsRequest, v1.ListOrgEggsResponse](
-			httpClient,
-			baseURL+OrgServiceListOrgEggsProcedure,
-			connect.WithSchema(orgServiceMethods.ByName("ListOrgEggs")),
-			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
-			connect.WithClientOptions(opts...),
-		),
-		getOrgEgg: connect.NewClient[v1.GetOrgEggRequest, v1.GetOrgEggResponse](
-			httpClient,
-			baseURL+OrgServiceGetOrgEggProcedure,
-			connect.WithSchema(orgServiceMethods.ByName("GetOrgEgg")),
-			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
-			connect.WithClientOptions(opts...),
-		),
-		deleteOrgEgg: connect.NewClient[v1.DeleteOrgEggRequest, v1.DeleteOrgEggResponse](
-			httpClient,
-			baseURL+OrgServiceDeleteOrgEggProcedure,
-			connect.WithSchema(orgServiceMethods.ByName("DeleteOrgEgg")),
-			connect.WithClientOptions(opts...),
-		),
 		listBackups: connect.NewClient[v1.ListBackupsRequest, v1.ListBackupsResponse](
 			httpClient,
 			baseURL+OrgServiceListBackupsProcedure,
@@ -639,11 +581,6 @@ type orgServiceClient struct {
 	syncBackupKey           *connect.Client[v1.SyncBackupKeyRequest, v1.SyncBackupKeyResponse]
 	listRecoverySources     *connect.Client[v1.ListRecoverySourcesRequest, v1.ListRecoverySourcesResponse]
 	prepareRecovery         *connect.Client[v1.PrepareRecoveryRequest, v1.PrepareRecoveryResponse]
-	previewEgg              *connect.Client[v1.PreviewEggRequest, v1.PreviewEggResponse]
-	importEgg               *connect.Client[v1.ImportEggRequest, v1.ImportEggResponse]
-	listOrgEggs             *connect.Client[v1.ListOrgEggsRequest, v1.ListOrgEggsResponse]
-	getOrgEgg               *connect.Client[v1.GetOrgEggRequest, v1.GetOrgEggResponse]
-	deleteOrgEgg            *connect.Client[v1.DeleteOrgEggRequest, v1.DeleteOrgEggResponse]
 	listBackups             *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
 }
 
@@ -989,51 +926,6 @@ func (c *orgServiceClient) PrepareRecovery(ctx context.Context, req *v1.PrepareR
 	return nil, err
 }
 
-// PreviewEgg calls raptor.panel.v1.OrgService.PreviewEgg.
-func (c *orgServiceClient) PreviewEgg(ctx context.Context, req *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error) {
-	response, err := c.previewEgg.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ImportEgg calls raptor.panel.v1.OrgService.ImportEgg.
-func (c *orgServiceClient) ImportEgg(ctx context.Context, req *v1.ImportEggRequest) (*v1.ImportEggResponse, error) {
-	response, err := c.importEgg.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListOrgEggs calls raptor.panel.v1.OrgService.ListOrgEggs.
-func (c *orgServiceClient) ListOrgEggs(ctx context.Context, req *v1.ListOrgEggsRequest) (*v1.ListOrgEggsResponse, error) {
-	response, err := c.listOrgEggs.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// GetOrgEgg calls raptor.panel.v1.OrgService.GetOrgEgg.
-func (c *orgServiceClient) GetOrgEgg(ctx context.Context, req *v1.GetOrgEggRequest) (*v1.GetOrgEggResponse, error) {
-	response, err := c.getOrgEgg.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// DeleteOrgEgg calls raptor.panel.v1.OrgService.DeleteOrgEgg.
-func (c *orgServiceClient) DeleteOrgEgg(ctx context.Context, req *v1.DeleteOrgEggRequest) (*v1.DeleteOrgEggResponse, error) {
-	response, err := c.deleteOrgEgg.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
 // ListBackups calls raptor.panel.v1.OrgService.ListBackups.
 func (c *orgServiceClient) ListBackups(ctx context.Context, req *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {
 	response, err := c.listBackups.CallUnary(ctx, connect.NewRequest(req))
@@ -1178,22 +1070,6 @@ type OrgServiceHandler interface {
 	// destination with a key that only reads its folder, for 90 days.
 	// Owners; audited.
 	PrepareRecovery(context.Context, *v1.PrepareRecoveryRequest) (*v1.PrepareRecoveryResponse, error)
-	// PreviewEgg fetches an egg from a URL (or takes an uploaded file) and
-	// says what it would run, for review before ImportEgg: its images and
-	// their registries, its install script, its startup command, and
-	// warnings. Nothing is saved. Admins and owners; rate limited.
-	PreviewEgg(context.Context, *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error)
-	// ImportEgg saves a reviewed egg to the org, for creating servers.
-	// Admins and owners.
-	ImportEgg(context.Context, *v1.ImportEggRequest) (*v1.ImportEggResponse, error)
-	// ListOrgEggs lists the org's imported eggs. Any member.
-	ListOrgEggs(context.Context, *v1.ListOrgEggsRequest) (*v1.ListOrgEggsResponse, error)
-	// GetOrgEgg returns an imported egg's file, as a server created from it
-	// gets it. Any member.
-	GetOrgEgg(context.Context, *v1.GetOrgEggRequest) (*v1.GetOrgEggResponse, error)
-	// DeleteOrgEgg removes an imported egg. Servers made from it keep it.
-	// Admins and owners.
-	DeleteOrgEgg(context.Context, *v1.DeleteOrgEggRequest) (*v1.DeleteOrgEggResponse, error)
 	// ListBackups lists a server's backups as the mirror has them, newest
 	// first. Needs the backups permission.
 	ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error)
@@ -1450,38 +1326,6 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("PrepareRecovery")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orgServicePreviewEggHandler := connect.NewUnaryHandlerSimple(
-		OrgServicePreviewEggProcedure,
-		svc.PreviewEgg,
-		connect.WithSchema(orgServiceMethods.ByName("PreviewEgg")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orgServiceImportEggHandler := connect.NewUnaryHandlerSimple(
-		OrgServiceImportEggProcedure,
-		svc.ImportEgg,
-		connect.WithSchema(orgServiceMethods.ByName("ImportEgg")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orgServiceListOrgEggsHandler := connect.NewUnaryHandlerSimple(
-		OrgServiceListOrgEggsProcedure,
-		svc.ListOrgEggs,
-		connect.WithSchema(orgServiceMethods.ByName("ListOrgEggs")),
-		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
-		connect.WithHandlerOptions(opts...),
-	)
-	orgServiceGetOrgEggHandler := connect.NewUnaryHandlerSimple(
-		OrgServiceGetOrgEggProcedure,
-		svc.GetOrgEgg,
-		connect.WithSchema(orgServiceMethods.ByName("GetOrgEgg")),
-		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
-		connect.WithHandlerOptions(opts...),
-	)
-	orgServiceDeleteOrgEggHandler := connect.NewUnaryHandlerSimple(
-		OrgServiceDeleteOrgEggProcedure,
-		svc.DeleteOrgEgg,
-		connect.WithSchema(orgServiceMethods.ByName("DeleteOrgEgg")),
-		connect.WithHandlerOptions(opts...),
-	)
 	orgServiceListBackupsHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceListBackupsProcedure,
 		svc.ListBackups,
@@ -1567,16 +1411,6 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListRecoverySourcesHandler.ServeHTTP(w, r)
 		case OrgServicePrepareRecoveryProcedure:
 			orgServicePrepareRecoveryHandler.ServeHTTP(w, r)
-		case OrgServicePreviewEggProcedure:
-			orgServicePreviewEggHandler.ServeHTTP(w, r)
-		case OrgServiceImportEggProcedure:
-			orgServiceImportEggHandler.ServeHTTP(w, r)
-		case OrgServiceListOrgEggsProcedure:
-			orgServiceListOrgEggsHandler.ServeHTTP(w, r)
-		case OrgServiceGetOrgEggProcedure:
-			orgServiceGetOrgEggHandler.ServeHTTP(w, r)
-		case OrgServiceDeleteOrgEggProcedure:
-			orgServiceDeleteOrgEggHandler.ServeHTTP(w, r)
 		case OrgServiceListBackupsProcedure:
 			orgServiceListBackupsHandler.ServeHTTP(w, r)
 		default:
@@ -1738,26 +1572,6 @@ func (UnimplementedOrgServiceHandler) ListRecoverySources(context.Context, *v1.L
 
 func (UnimplementedOrgServiceHandler) PrepareRecovery(context.Context, *v1.PrepareRecoveryRequest) (*v1.PrepareRecoveryResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.PrepareRecovery is not implemented"))
-}
-
-func (UnimplementedOrgServiceHandler) PreviewEgg(context.Context, *v1.PreviewEggRequest) (*v1.PreviewEggResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.PreviewEgg is not implemented"))
-}
-
-func (UnimplementedOrgServiceHandler) ImportEgg(context.Context, *v1.ImportEggRequest) (*v1.ImportEggResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ImportEgg is not implemented"))
-}
-
-func (UnimplementedOrgServiceHandler) ListOrgEggs(context.Context, *v1.ListOrgEggsRequest) (*v1.ListOrgEggsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListOrgEggs is not implemented"))
-}
-
-func (UnimplementedOrgServiceHandler) GetOrgEgg(context.Context, *v1.GetOrgEggRequest) (*v1.GetOrgEggResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.GetOrgEgg is not implemented"))
-}
-
-func (UnimplementedOrgServiceHandler) DeleteOrgEgg(context.Context, *v1.DeleteOrgEggRequest) (*v1.DeleteOrgEggResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.DeleteOrgEgg is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) ListBackups(context.Context, *v1.ListBackupsRequest) (*v1.ListBackupsResponse, error) {

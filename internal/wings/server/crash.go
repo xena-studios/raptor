@@ -41,5 +41,3 @@ func (c *crashTracker) record(now, runningSince time.Time, window time.Duration,
 	}
 	return delays[min(n-1, len(delays)-1)], false
 }
-
-func (c *crashTracker) reset() { c.times = nil }

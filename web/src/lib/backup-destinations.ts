@@ -72,7 +72,7 @@ export const typeHints: Record<OwnType, string> = {
 };
 
 // S3 presets: the endpoint to fill in. {region} is replaced by the region.
-export type S3Preset = {
+type S3Preset = {
   id: string;
   name: string;
   endpoint: string;
@@ -174,7 +174,7 @@ export type Target = Retention & { destination_id: string };
 
 export type Policy = { targets: Target[]; ignore?: string[] };
 
-export type RetentionPreset = { id: string; name: string; keep: Retention; hint: string };
+type RetentionPreset = { id: string; name: string; keep: Retention; hint: string };
 
 export const retentionPresets: RetentionPreset[] = [
   {
@@ -197,7 +197,7 @@ export const retentionPresets: RetentionPreset[] = [
   },
 ];
 
-export function sameRetention(a: Retention, b: Retention): boolean {
+function sameRetention(a: Retention, b: Retention): boolean {
   return (
     a.keep_last === b.keep_last &&
     a.keep_daily === b.keep_daily &&
@@ -224,7 +224,7 @@ export function describeRetention(r: Retention): string {
 
 // keepsLess is Wings' Policy.KeepsLess: a destination both policies use
 // keeps fewer backups in next. Dropping a destination deletes nothing.
-export function keepsLess(next: Policy, cur: Policy): boolean {
+function keepsLess(next: Policy, cur: Policy): boolean {
   return cur.targets.some((old) => {
     const t = next.targets.find((x) => x.destination_id === old.destination_id);
     return (

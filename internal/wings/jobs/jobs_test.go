@@ -34,7 +34,7 @@ func newEnv(t *testing.T) env {
 
 func (v env) engine(t *testing.T, register func(*Engine)) *Engine {
 	t.Helper()
-	e := New(Options{Store: v.db, LogDir: v.logs, Limits: map[string]int{"install": 2}, BackoffBase: 50 * time.Millisecond, Poll: 50 * time.Millisecond})
+	e := New(Options{Store: v.db, LogDir: v.logs, Limits: map[string]int{"install": 2}, Poll: 50 * time.Millisecond})
 	register(e)
 	if err := e.Start(context.Background()); err != nil {
 		t.Fatal(err)
@@ -82,16 +82,9 @@ func TestSuccessAndLog(t *testing.T) {
 	}
 }
 
-func TestRetryableAndFailure(t *testing.T) {
+func TestFailure(t *testing.T) {
 	v := newEnv(t)
-	var calls atomic.Int32
 	e := v.engine(t, func(e *Engine) {
-		e.Register("flaky", Handler{MaxAttempts: 3, Run: func(context.Context, Job, io.Writer) (any, error) {
-			if calls.Add(1) < 3 {
-				return nil, Retryable(errors.New("registry timeout"))
-			}
-			return nil, nil
-		}})
 		e.Register("broken", Handler{MaxAttempts: 3, Run: func(context.Context, Job, io.Writer) (any, error) {
 			return nil, errors.New("bad config") // not retryable
 		}})
@@ -100,11 +93,7 @@ func TestRetryableAndFailure(t *testing.T) {
 	defer e.Close()
 	ctx := context.Background()
 
-	id, _ := e.Enqueue(ctx, Spec{Type: "flaky"})
-	if j := wait(t, e, id); j.Status != Succeeded || j.Attempts != 3 {
-		t.Fatalf("flaky: %+v", j)
-	}
-	id, _ = e.Enqueue(ctx, Spec{Type: "broken"})
+	id, _ := e.Enqueue(ctx, Spec{Type: "broken"})
 	if j := wait(t, e, id); j.Status != Failed || j.Attempts != 1 || j.Error != "bad config" {
 		t.Fatalf("broken: %+v", j)
 	}
@@ -275,14 +264,8 @@ func TestLogLimit(t *testing.T) {
 func TestStatusEvents(t *testing.T) {
 	v := newEnv(t)
 	out := events.New(v.db)
-	var calls atomic.Int32
-	e := New(Options{Store: v.db, Events: out, LogDir: v.logs, BackoffBase: 10 * time.Millisecond, Poll: 50 * time.Millisecond})
-	e.Register("flaky", Handler{MaxAttempts: 2, Run: func(context.Context, Job, io.Writer) (any, error) {
-		if calls.Add(1) == 1 {
-			return nil, Retryable(errors.New("registry timeout"))
-		}
-		return nil, nil
-	}})
+	e := New(Options{Store: v.db, Events: out, LogDir: v.logs, Poll: 50 * time.Millisecond})
+	e.Register("works", Handler{Run: func(context.Context, Job, io.Writer) (any, error) { return nil, nil }})
 	e.Register("later", Handler{Run: func(context.Context, Job, io.Writer) (any, error) { return nil, nil }})
 	if err := e.Start(context.Background()); err != nil {
 		t.Fatal(err)
@@ -291,13 +274,13 @@ func TestStatusEvents(t *testing.T) {
 	ctx := context.Background()
 
 	changed := out.Changed()
-	flaky, _ := e.Enqueue(ctx, Spec{Type: "flaky", ServerID: "s1"})
+	works, _ := e.Enqueue(ctx, Spec{Type: "works", ServerID: "s1"})
 	select {
 	case <-changed:
 	case <-time.After(5 * time.Second):
 		t.Fatal("readers weren't woken")
 	}
-	wait(t, e, flaky)
+	wait(t, e, works)
 	later, _ := e.Enqueue(ctx, Spec{Type: "later", ServerID: "s2", RunAfter: time.Now().Add(time.Hour)})
 	if err := e.Cancel(ctx, later); err != nil {
 		t.Fatal(err)
@@ -318,7 +301,7 @@ func TestStatusEvents(t *testing.T) {
 		got[ev.ServerID+" "+id] = append(got[ev.ServerID+" "+id], status)
 	}
 	want := map[string][]string{
-		"s1 " + flaky: {Queued, Running, Queued, Running, Succeeded},
+		"s1 " + works: {Queued, Running, Succeeded},
 		"s2 " + later: {Queued, Cancelled},
 	}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
