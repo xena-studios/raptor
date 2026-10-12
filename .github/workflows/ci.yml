@@ -45,6 +45,14 @@ jobs:
         run: |
           pnpm exec playwright install --with-deps --only-shell chromium
           pnpm test:csp
+      - name: The web app builds the same twice (its published hashes mean something)
+        working-directory: web
+        run: |
+          node scripts/bundle-hashes.mjs > /tmp/first.sha256
+          rm -rf dist
+          pnpm build
+          node scripts/bundle-hashes.mjs > /tmp/second.sha256
+          diff /tmp/first.sha256 /tmp/second.sha256
       - name: The web app's Workers configs
         working-directory: web
         run: |

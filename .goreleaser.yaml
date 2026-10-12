@@ -1,6 +1,15 @@
 version: 2
 project_name: raptor
 
+# The web app's file hashes (docs/DEPLOY.md#published-bundle-hashes): built
+# here from the tag, attached as web-bundle.sha256, and listed in
+# checksums.txt, which the offline key signs.
+before:
+  hooks:
+    - pnpm --dir web install --frozen-lockfile
+    - pnpm --dir web build
+    - node web/scripts/bundle-hashes.mjs web/dist web-bundle.sha256
+
 builds:
   - id: raptor
     main: ./cmd/raptor
@@ -24,8 +33,12 @@ archives:
 checksum:
   name_template: checksums.txt
   algorithm: sha256
+  extra_files:
+    - glob: ./web-bundle.sha256
 
 release:
+  extra_files:
+    - glob: ./web-bundle.sha256
   draft: true
   prerelease: auto
 
