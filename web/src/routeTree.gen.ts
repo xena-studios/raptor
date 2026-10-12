@@ -70,6 +70,7 @@ import { Route as OrgsOrgIdServersNodeIdServerIdNetworkRouteImport } from './rou
 import { Route as OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.schedules'
 import { Route as OrgsOrgIdServersNodeIdServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.settings'
 import { Route as OrgsOrgIdServersNodeIdServerIdStartupRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.startup'
+import { Route as OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.addons.$kind'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -398,6 +399,12 @@ const OrgsOrgIdServersNodeIdServerIdStartupRoute =
     path: '/startup',
     getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
   } as any)
+const OrgsOrgIdServersNodeIdServerIdAddonsKindRoute =
+  OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport.update({
+    id: '/addons/$kind',
+    path: '/addons/$kind',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -461,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -518,6 +526,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -582,6 +591,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -647,6 +657,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId/'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -704,6 +715,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   id:
     | '__root__'
     | '/'
@@ -767,6 +779,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId/'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1209,6 +1222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdStartupRouteImport
       parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
     }
+    '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
+      path: '/addons/$kind'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
   }
 }
 
@@ -1321,6 +1341,7 @@ interface OrgsOrgIdServersNodeIdServerIdRouteChildren {
   OrgsOrgIdServersNodeIdServerIdSettingsRoute: typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   OrgsOrgIdServersNodeIdServerIdStartupRoute: typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   OrgsOrgIdServersNodeIdServerIdIndexRoute: typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
+  OrgsOrgIdServersNodeIdServerIdAddonsKindRoute: typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
 
 const OrgsOrgIdServersNodeIdServerIdRouteChildren: OrgsOrgIdServersNodeIdServerIdRouteChildren =
@@ -1345,6 +1366,8 @@ const OrgsOrgIdServersNodeIdServerIdRouteChildren: OrgsOrgIdServersNodeIdServerI
       OrgsOrgIdServersNodeIdServerIdStartupRoute,
     OrgsOrgIdServersNodeIdServerIdIndexRoute:
       OrgsOrgIdServersNodeIdServerIdIndexRoute,
+    OrgsOrgIdServersNodeIdServerIdAddonsKindRoute:
+      OrgsOrgIdServersNodeIdServerIdAddonsKindRoute,
   }
 
 const OrgsOrgIdServersNodeIdServerIdRouteWithChildren =

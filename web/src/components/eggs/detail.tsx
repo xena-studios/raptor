@@ -9,7 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GetEggDetailsResponse } from "@/gen/raptor/panel/v1/egg_pb";
-import { access, accessNames, addons, knownFeatures, originNames } from "@/lib/eggs";
+import {
+  access,
+  accessNames,
+  addonKinds,
+  addons,
+  knownFeatures,
+  loaderName,
+  originNames,
+} from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { useFileSettings } from "@/lib/file-settings";
 import { when } from "@/lib/format";
@@ -153,6 +161,10 @@ function Overview({ d }: { d: GetEggDetailsResponse }) {
   const spec = d.spec;
   if (!egg || !spec) return null;
   const on = [
+    ...spec.addons.map((a) => ({
+      label: addonKinds[a.kind]?.label ?? a.kind,
+      description: `For ${a.loaders.map(loaderName).join(", ")}, in ${a.dir}`,
+    })),
     ...(spec.features.includes("eula") ? [addons.eula] : []),
     ...(spec.playersQuery ? [addons.players] : []),
   ];

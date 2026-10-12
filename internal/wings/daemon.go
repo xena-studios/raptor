@@ -27,6 +27,7 @@ import (
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/actions"
+	"github.com/xena-studios/raptor/internal/wings/addons"
 	"github.com/xena-studios/raptor/internal/wings/backup"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/config"
@@ -646,6 +647,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)
+	actions.RegisterAddons(r.commands, &addons.Service{Files: fsvc, Servers: mgr, UserAgent: "raptor-wings/" + buildinfo.Version})
 	// Jobs start after reconcile, so interrupted installs resume against
 	// servers that are already loaded.
 	if err := r.jobs.Start(ctx); err != nil {

@@ -15,3 +15,7 @@ test:
   done_timeout: 3m
   command: "glist"
   expect: "Total players online: 0"
+addons:
+  plugins:
+    loaders: [bungeecord, waterfall]
+    dir: plugins

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/xena-studios/raptor/internal/eggs"
 )
 
 // shortIDLen is the length of a server's short ID: the last characters of
@@ -134,6 +136,15 @@ func (m *Manager) Denylist(id string) ([]string, error) {
 		return nil, err
 	}
 	return srv.Egg().FileDenylist, nil
+}
+
+// Egg returns the server's egg.
+func (m *Manager) Egg(ctx context.Context, id string) (*eggs.Egg, error) {
+	srv, err := m.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return srv.Egg(), nil
 }
 
 // SpaceLeft returns how many more bytes a server may use under its disk

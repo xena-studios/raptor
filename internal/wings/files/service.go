@@ -115,6 +115,13 @@ func OpenServer(servers interface {
 	return Open(dir, uid, gid, Compile(deny))
 }
 
+// Open checks that the server's files may be touched now (written, and
+// grow, if write is set) and opens them, for other services that change
+// server files (add-ons).
+func (s *Service) Open(ctx context.Context, id string, write bool) (*FS, error) {
+	return s.open(ctx, id, write)
+}
+
 // open checks that the server's files may be touched now (written, and
 // grow, if write is set) and opens them.
 func (s *Service) open(ctx context.Context, id string, write bool) (*FS, error) {

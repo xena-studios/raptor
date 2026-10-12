@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"regexp"
 	"slices"
@@ -54,7 +55,10 @@ type Meta struct {
 		Query string `yaml:"query"` // minecraft or source
 		Port  string `yaml:"port"`  // "" = the primary port, "+1", or a variable's name
 	} `yaml:"players"`
-	Test Test `yaml:"test"`
+	// Addons are the software add-ons servers get (the egg's
+	// x-raptor.addons, docs/EGGS.md#add-ons), added like Players.
+	Addons map[string]eggs.Addon `yaml:"addons"`
+	Test   Test                  `yaml:"test"`
 }
 
 // Tier says when the conformance suite runs an egg.
@@ -193,6 +197,9 @@ func (e *Entry) validate() error {
 			return fmt.Errorf("unknown arch %q", a)
 		}
 	}
+	if err := eggs.CheckAddons(e.Addons); err != nil {
+		return err
+	}
 	t := e.Test
 	switch {
 	case !slices.Contains([]Tier{TierFast, TierSlow, TierManual}, t.Tier):
@@ -244,6 +251,24 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(p, "port", str(e.Players.Port))
 		}
 		set(ext, "players", p)
+	}
+	if len(e.Addons) > 0 {
+		addons := &yaml.Node{Kind: yaml.MappingNode}
+		for _, kind := range slices.Sorted(maps.Keys(e.Addons)) {
+			a := e.Addons[kind]
+			n := &yaml.Node{Kind: yaml.MappingNode}
+			loaders := &yaml.Node{Kind: yaml.SequenceNode, Style: yaml.FlowStyle}
+			for _, l := range a.Loaders {
+				loaders.Content = append(loaders.Content, str(l))
+			}
+			set(n, "loaders", loaders)
+			set(n, "dir", str(a.Dir))
+			if a.Version != "" {
+				set(n, "version", str(a.Version))
+			}
+			set(addons, kind, n)
+		}
+		set(ext, "addons", addons)
 	}
 	if path.Ext(e.File) == ".json" {
 		return ordered.EncodeJSON(root, "    ")

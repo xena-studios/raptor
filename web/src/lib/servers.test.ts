@@ -7,6 +7,7 @@ import {
   changesCode,
   createParams,
   eggsFor,
+  gameVersion,
   missingRequired,
   serverStatus,
   suggestMemoryMiB,
@@ -168,4 +169,17 @@ test("update params keep everything not edited, and no egg", () => {
   assert.equal(p.startup, "java -jar server.jar");
   assert.equal(changesCode(cfg, change), false);
   assert.equal(changesCode(cfg, { ...change, image: "java:25" }), true);
+});
+
+test("gameVersion is the server's version, or any when it isn't one", () => {
+  const cfg = (v?: string) =>
+    ({
+      variables: v === undefined ? null : { MINECRAFT_VERSION: v },
+      egg: { images: [], variables: [{ name: "v", env: "MINECRAFT_VERSION", default: "latest" }] },
+    }) as unknown as Parameters<typeof gameVersion>[0];
+  assert.equal(gameVersion(cfg("1.21.1"), "MINECRAFT_VERSION"), "1.21.1");
+  assert.equal(gameVersion(cfg(" 1.20 "), "MINECRAFT_VERSION"), "1.20");
+  assert.equal(gameVersion(cfg("latest"), "MINECRAFT_VERSION"), "");
+  assert.equal(gameVersion(cfg(), "MINECRAFT_VERSION"), "");
+  assert.equal(gameVersion(cfg("1.21.1"), undefined), "");
 });

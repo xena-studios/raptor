@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -293,6 +294,12 @@ func toSpec(p *panelv1.EggSpec) *spec.Spec {
 			UserViewable: v.GetUserViewable(), UserEditable: v.GetUserEditable(), Rules: v.GetRules(),
 		})
 	}
+	for _, a := range p.GetAddons() {
+		if s.Addons == nil {
+			s.Addons = map[string]eggs.Addon{}
+		}
+		s.Addons[a.GetKind()] = eggs.Addon{Loaders: a.GetLoaders(), Dir: a.GetDir(), Version: a.GetVersion()}
+	}
 	for _, f := range p.GetFiles() {
 		cf := spec.ConfigFile{Path: f.GetPath(), Parser: f.GetParser()}
 		for _, r := range f.GetFind() {
@@ -321,6 +328,10 @@ func specProto(s *spec.Spec) *panelv1.EggSpec {
 			Name: v.Name, Description: v.Description, Env: v.Env, Default: v.Default,
 			UserViewable: v.UserViewable, UserEditable: v.UserEditable, Rules: v.Rules,
 		})
+	}
+	for _, kind := range slices.Sorted(maps.Keys(s.Addons)) {
+		a := s.Addons[kind]
+		p.Addons = append(p.Addons, &panelv1.EggAddon{Kind: kind, Loaders: a.Loaders, Dir: a.Dir, Version: a.Version})
 	}
 	for _, f := range s.Files {
 		cf := &panelv1.EggConfigFile{Path: f.Path, Parser: f.Parser}

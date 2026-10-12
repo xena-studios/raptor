@@ -22,10 +22,12 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/live"
+	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/transfers"
+	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
@@ -57,6 +59,8 @@ type Config struct {
 	Commands *commands.Service
 	// Staff is Raptor's admin panel (nil without a database).
 	Staff *staff.Service
+	// Modrinth is where plugins and mods are found (nil: Modrinth's API).
+	Modrinth *modrinth.Client
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -118,6 +122,13 @@ func Handler(cfg Config) http.Handler {
 		api.Handle(path, handler)
 		// An egg file is up to 1 MiB too, and an edit carries the whole egg.
 		path, handler = panelv1connect.NewEggServiceHandler(&orgs.Eggs{Orgs: cfg.Orgs, Staff: cfg.Staff}, opts(connect.WithReadMaxBytes(2<<20))...)
+		api.Handle(path, handler)
+		mr := cfg.Modrinth
+		if mr == nil {
+			mr = &modrinth.Client{UserAgent: "xena-studios/raptor/" + buildinfo.Version + " (raptorpanel.net)"}
+		}
+		// A lookup is up to 500 SHA-512s.
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr}, opts(connect.WithReadMaxBytes(128<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Staff != nil {
