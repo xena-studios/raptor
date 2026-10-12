@@ -268,7 +268,7 @@ A node's hostname (`n-<short id>.raptornodes.net`) resolves to the machine's IP 
 
 ## Staff
 
-Raptor's own admin panel, at `/admin` in the app (`internal/panel/staff`, `StaffService`), for staff only. Staff get an **Admin** section in the sidebar: Overview, Users, Orgs, Support, Announcements, and Settings (the staff and the staff log).
+Raptor's own admin panel, at `/admin` in the app (`internal/panel/staff`, `StaffService`), for staff only. Staff switch to it like to an org: **Raptor admin** is the last entry in the org switcher. On admin pages the switcher shows "Raptor admin" with the staff role, and picking an org from it goes back. The sidebar then has the admin sections instead of the org's: Overview, Users, Orgs, Support, Eggs, Announcements, and Settings (the staff and the staff log). Org pages never show the admin sections.
 
 **Who.** Staff are **admins** (look and act) or **support** (look). They're made only on the Panel's server, with `panel staff add <email> admin|support` (and `remove`, `list`), never from the web, so a staff account that's taken over can't make more. The account must already exist and needs a passkey.
 
