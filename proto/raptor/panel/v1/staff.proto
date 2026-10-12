@@ -45,6 +45,20 @@ service StaffService {
   rpc SuspendOrg(SuspendOrgRequest) returns (SuspendOrgResponse) {}
   rpc UnsuspendOrg(UnsuspendOrgRequest) returns (UnsuspendOrgResponse) {}
 
+  // ListActiveAnnouncements is what to show everyone right now. Anyone
+  // signed in may ask.
+  rpc ListActiveAnnouncements(ListActiveAnnouncementsRequest) returns (ListActiveAnnouncementsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // ListAnnouncements lists the newest 100, past and future too.
+  rpc ListAnnouncements(ListAnnouncementsRequest) returns (ListAnnouncementsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // SaveAnnouncement creates one (no id) or changes one. Admins.
+  rpc SaveAnnouncement(SaveAnnouncementRequest) returns (SaveAnnouncementResponse) {}
+  // EndAnnouncement takes one down now. Admins.
+  rpc EndAnnouncement(EndAnnouncementRequest) returns (EndAnnouncementResponse) {}
+
   // ListStaff lists Raptor's staff.
   rpc ListStaff(ListStaffRequest) returns (ListStaffResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
@@ -305,3 +319,47 @@ message ListStaffAuditResponse {
   repeated StaffAuditEntry entries = 1;
   string next_page_token = 2;
 }
+
+message Announcement {
+  string id = 1;
+  // "info", "warning", or "maintenance".
+  string level = 2;
+  string title = 3;
+  // Plain text: never rendered as HTML or Markdown.
+  string body = 4;
+  // An https link for more ("" for none).
+  string link = 5;
+  google.protobuf.Timestamp starts_at = 6;
+  // Unset: until it's ended.
+  google.protobuf.Timestamp ends_at = 7;
+  string created_by = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message ListActiveAnnouncementsRequest {}
+
+message ListActiveAnnouncementsResponse {
+  repeated Announcement announcements = 1;
+}
+
+message ListAnnouncementsRequest {}
+
+message ListAnnouncementsResponse {
+  repeated Announcement announcements = 1;
+}
+
+message SaveAnnouncementRequest {
+  // The id, level, title, body, link, and times; created_by and created_at
+  // are ignored.
+  Announcement announcement = 1;
+}
+
+message SaveAnnouncementResponse {
+  string id = 1;
+}
+
+message EndAnnouncementRequest {
+  string id = 1;
+}
+
+message EndAnnouncementResponse {}

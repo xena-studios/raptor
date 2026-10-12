@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 
+import { Announcements } from "@/components/announcements";
 import { NotFound } from "@/components/error-screen";
 import { Logo } from "@/components/logo";
 import {
@@ -133,6 +134,7 @@ export function AppShell({
           <span className="truncate text-sm text-muted-foreground">{current?.name}</span>
         </header>
         <ConnectionBanner />
+        <Announcements />
         <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-6">
           {orgId && orgs.data && !list.some((o) => o.id === orgId) ? (
             <NotFound full={false} what="org" />

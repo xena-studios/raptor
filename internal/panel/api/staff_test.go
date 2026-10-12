@@ -177,6 +177,39 @@ func TestStaff(t *testing.T) {
 		t.Errorf("alice, as staff see her: %v, %v", got, err)
 	}
 
+	// Announcements: admins publish, everyone signed in sees the live ones.
+	if _, err := support.staff.SaveAnnouncement(ctx, &panelv1.SaveAnnouncementRequest{Announcement: &panelv1.Announcement{Level: "info", Title: "Hi"}}); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("support publishing: %v", err)
+	}
+	for _, bad := range []*panelv1.Announcement{
+		{Level: "panic", Title: "x"},
+		{Level: "info", Title: ""},
+		{Level: "info", Title: "x", Link: "javascript:alert(1)"},
+		{Level: "info", Title: "x", Link: "http://example.com"},
+	} {
+		if _, err := admin.staff.SaveAnnouncement(ctx, &panelv1.SaveAnnouncementRequest{Announcement: bad}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+			t.Errorf("%v: %v", bad, err)
+		}
+	}
+	saved, err := admin.staff.SaveAnnouncement(ctx, &panelv1.SaveAnnouncementRequest{Announcement: &panelv1.Announcement{
+		Level: "maintenance", Title: "Panel maintenance tonight", Body: "<b>not html</b>", Link: "https://status.raptorpanel.net",
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = staff.CLI(ctx, db, &out, []string{"add", "support@raptor.example", "support"})
+	bob, _ := signUp("bob@example.com")
+	live, err := bob.staff.ListActiveAnnouncements(ctx, &panelv1.ListActiveAnnouncementsRequest{})
+	if err != nil || len(live.GetAnnouncements()) != 1 || live.GetAnnouncements()[0].GetBody() != "<b>not html</b>" {
+		t.Errorf("live announcements: %v, %v", live, err)
+	}
+	if _, err := admin.staff.EndAnnouncement(ctx, &panelv1.EndAnnouncementRequest{Id: saved.GetId()}); err != nil {
+		t.Fatal(err)
+	}
+	if live, _ := bob.staff.ListActiveAnnouncements(ctx, &panelv1.ListActiveAnnouncementsRequest{}); len(live.GetAnnouncements()) != 0 {
+		t.Errorf("an ended announcement is live: %v", live)
+	}
+
 	// The staff log has all of it, and can't be changed.
 	log, err := admin.staff.ListStaffAudit(ctx, &panelv1.ListStaffAuditRequest{})
 	if err != nil {
@@ -186,7 +219,7 @@ func TestStaff(t *testing.T) {
 	for _, e := range log.GetEntries() {
 		actions[e.GetAction()] = true
 	}
-	for _, a := range []string{"staff.add", "org.suspend", "org.unsuspend", "user.suspend", "user.view"} {
+	for _, a := range []string{"staff.add", "org.suspend", "org.unsuspend", "user.suspend", "user.view", "announcement.create", "announcement.end"} {
 		if !actions[a] {
 			t.Errorf("%s isn't in the staff log: %v", a, actions)
 		}

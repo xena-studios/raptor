@@ -150,3 +150,21 @@ SELECT (suspended_at IS NOT NULL)::bool FROM orgs WHERE id = $1;
 SELECT EXISTS (
     SELECT 1 FROM staff_audit WHERE staff_id = $1 AND action = $2 AND target_id = $3 AND at > now() - interval '10 minutes'
 )::bool;
+
+-- name: ActiveAnnouncements :many
+SELECT * FROM announcements WHERE starts_at <= now() AND (ends_at IS NULL OR ends_at > now())
+ORDER BY CASE level WHEN 'maintenance' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END, starts_at DESC;
+
+-- name: ListAnnouncements :many
+SELECT * FROM announcements ORDER BY created_at DESC LIMIT 100;
+
+-- name: CreateAnnouncement :one
+INSERT INTO announcements (level, title, body, link, starts_at, ends_at, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
+
+-- name: UpdateAnnouncement :execrows
+UPDATE announcements SET level = $2, title = $3, body = $4, link = $5, starts_at = $6, ends_at = $7, updated_at = now()
+WHERE id = $1;
+
+-- name: EndAnnouncement :execrows
+UPDATE announcements SET ends_at = now(), updated_at = now() WHERE id = $1 AND (ends_at IS NULL OR ends_at > now());

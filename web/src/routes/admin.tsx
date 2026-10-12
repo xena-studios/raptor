@@ -58,6 +58,9 @@ function AdminLayout() {
               <Link to="/admin/orgs" className={tabClass}>
                 Orgs
               </Link>
+              <Link to="/admin/announcements" className={tabClass}>
+                Announcements
+              </Link>
               <Link to="/admin/staff" className={tabClass}>
                 Staff
               </Link>

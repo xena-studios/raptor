@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as InviteRouteImport } from './routes/invite'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as OrgsOrgIdRouteImport } from './routes/orgs.$orgId'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
@@ -80,6 +81,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnnouncementsRoute = AdminAnnouncementsRouteImport.update({
+  id: '/announcements',
+  path: '/announcements',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminStaffRoute = AdminStaffRouteImport.update({
@@ -319,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/invite': typeof InviteRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
@@ -366,6 +373,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/invite': typeof InviteRoute
+  '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -412,6 +420,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/invite': typeof InviteRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
@@ -463,6 +472,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/invite'
     | '/settings'
+    | '/admin/announcements'
     | '/admin/staff'
     | '/orgs/$orgId'
     | '/settings/activity'
@@ -510,6 +520,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/invite'
+    | '/admin/announcements'
     | '/admin/staff'
     | '/settings/activity'
     | '/settings/security'
@@ -555,6 +566,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/invite'
     | '/settings'
+    | '/admin/announcements'
     | '/admin/staff'
     | '/orgs/$orgId'
     | '/settings/activity'
@@ -646,6 +658,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/announcements': {
+      id: '/admin/announcements'
+      path: '/announcements'
+      fullPath: '/admin/announcements'
+      preLoaderRoute: typeof AdminAnnouncementsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/staff': {
@@ -946,6 +965,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
   AdminStaffRoute: typeof AdminStaffRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminOrgsOrgIdRoute: typeof AdminOrgsOrgIdRoute
@@ -955,6 +975,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAnnouncementsRoute: AdminAnnouncementsRoute,
   AdminStaffRoute: AdminStaffRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminOrgsOrgIdRoute: AdminOrgsOrgIdRoute,
