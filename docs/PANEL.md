@@ -246,7 +246,28 @@ Raptor's own admin panel, at `/admin` in the app (`internal/panel/staff`, `Staff
 
 **Getting in.** Every call needs a passkey confirmed by the session in the last **12 hours** (`sessions.passkey_at`, set by signing in or confirming with one). Every change needs one in the last **5 minutes**, through the usual "confirm it's you" dialog. An emailed code or an authenticator app isn't enough. Non-staff get nothing, and `GetStaffMe` just says they aren't staff.
 
-**What it shows.**
+**What it shows.** The Overview has tabs: **Summary** (everything at a glance, below), and **Users**, **Nodes**, **Billing**, and **Infrastructure** in depth:
+- **Users:**
+  - accounts, and how many are active today, this week, and this month;
+  - passkey and authenticator app adoption;
+  - suspended accounts, accounts in no org, open invitations;
+  - accounts, sign-ups, and accounts signing in per day;
+  - sign-in methods over 30 days, linked accounts, and the largest orgs.
+- **Nodes:**
+  - connected of linked;
+  - total cores and memory, and servers per node;
+  - nodes and servers over time;
+  - operating systems, Wings versions, architectures, server states, and the most deployed games;
+  - offline nodes and failing servers.
+- **Billing:** what Raptor Backup Storage would bill a month (billing isn't live, and it says so), storage over time, and each org's storage and bill.
+- **Infrastructure:**
+  - the Panel's instances and the node connections each holds;
+  - the database's size, connections, and largest tables;
+  - live sessions, this Panel's version, and the latest Wings rollout.
+
+  Grafana has the rest (latency, errors, the host).
+
+The Summary:
 - **Overview:** nodes connected, servers running, users (new and active in 30 days), orgs, and Raptor Backup Storage, with their history (counted every hour into `platform_stats` by one Panel instance) over 7 days to a year; sign-ups per day; Wings versions, architectures, and the most deployed games; offline nodes (gone over an hour) and crashed or failed servers.
 - **Revenue:** billing isn't live, so this is what Raptor Backup Storage would bill a month at today's usage, said as such. Real revenue comes with billing.
 - **Users and orgs:** search, and each one's details: orgs, members, nodes, recent sign-ins, Backup Storage.

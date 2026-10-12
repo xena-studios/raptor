@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { Breakdown, DaysPicker, dollars } from "@/components/admin/insights";
 import { Graph, StatCard } from "@/components/stats";
 import { TimeChart } from "@/components/time-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,30 +24,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type CountBucket, StaffService } from "@/gen/raptor/panel/v1/staff_pb";
+import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
 import { when } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/")({
   component: Overview,
 });
 
-const ranges = [
-  { days: 7, label: "7 days" },
-  { days: 30, label: "30 days" },
-  { days: 90, label: "90 days" },
-  { days: 365, label: "1 year" },
-];
-
-const dollars = (cents: number | bigint) => {
-  const c = Number(cents);
-  return c % 100 === 0 ? `$${(c / 100).toLocaleString()}` : `$${(c / 100).toFixed(2)}`;
-};
-
-// The platform at a glance: what's connected and running, how it's grown,
-// what Raptor Backup Storage would bill, and what needs looking at.
+// The overview's summary: the platform at a glance, what's connected and
+// running, how it's grown, what Raptor Backup Storage would bill, and what
+// needs looking at. The other tabs go deeper.
 function Overview() {
   const [days, setDays] = useState(30);
   const ov = useQuery(StaffService.method.getOverview, { days }, { refetchInterval: 60_000 });
@@ -111,23 +100,7 @@ function Overview() {
               <CardTitle>Growth</CardTitle>
               <CardDescription>Counted every hour.</CardDescription>
             </div>
-            <fieldset className="flex rounded-lg border p-0.5">
-              <legend className="sr-only">Time range</legend>
-              {ranges.map((r) => (
-                <button
-                  key={r.days}
-                  type="button"
-                  aria-pressed={days === r.days}
-                  onClick={() => setDays(r.days)}
-                  className={cn(
-                    "rounded-md px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground",
-                    days === r.days && "bg-muted font-medium text-foreground",
-                  )}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </fieldset>
+            <DaysPicker value={days} onChange={setDays} />
           </CardHeader>
           <CardContent className="grid gap-8 md:grid-cols-2">
             <Graph title="Nodes">
@@ -313,34 +286,5 @@ function Overview() {
         </Card>
       </div>
     </div>
-  );
-}
-
-// Breakdown is a count per name, as bars.
-function Breakdown({ title, buckets }: { title: string; buckets: CountBucket[] }) {
-  const total = buckets.reduce((n, b) => n + b.count, 0);
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        {buckets.length === 0 && <p className="text-sm text-muted-foreground">Nothing yet.</p>}
-        {buckets.map((b) => (
-          <div key={b.name} className="flex flex-col gap-1">
-            <div className="flex justify-between gap-3 text-sm">
-              <span className="truncate">{b.name}</span>
-              <span className="tabular-nums text-muted-foreground">{b.count}</span>
-            </div>
-            <div className="h-1 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-[var(--series-1)]"
-                style={{ width: `${total ? (b.count / total) * 100 : 0}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
   );
 }

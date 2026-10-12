@@ -25,6 +25,10 @@ import { Route as SigninLinkRouteImport } from './routes/signin.link'
 import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-factor'
 import { Route as AdminOrgsIndexRouteImport } from './routes/admin.orgs.index'
 import { Route as AdminOrgsOrgIdRouteImport } from './routes/admin.orgs.$orgId'
+import { Route as AdminOverviewBillingRouteImport } from './routes/admin.overview.billing'
+import { Route as AdminOverviewInfrastructureRouteImport } from './routes/admin.overview.infrastructure'
+import { Route as AdminOverviewNodesRouteImport } from './routes/admin.overview.nodes'
+import { Route as AdminOverviewUsersRouteImport } from './routes/admin.overview.users'
 import { Route as AdminSupportIndexRouteImport } from './routes/admin.support.index'
 import { Route as AdminSupportRequestIdRouteImport } from './routes/admin.support.$requestId'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
@@ -138,6 +142,27 @@ const AdminOrgsIndexRoute = AdminOrgsIndexRouteImport.update({
 const AdminOrgsOrgIdRoute = AdminOrgsOrgIdRouteImport.update({
   id: '/orgs/$orgId',
   path: '/orgs/$orgId',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOverviewBillingRoute = AdminOverviewBillingRouteImport.update({
+  id: '/overview/billing',
+  path: '/overview/billing',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOverviewInfrastructureRoute =
+  AdminOverviewInfrastructureRouteImport.update({
+    id: '/overview/infrastructure',
+    path: '/overview/infrastructure',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminOverviewNodesRoute = AdminOverviewNodesRouteImport.update({
+  id: '/overview/nodes',
+  path: '/overview/nodes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOverviewUsersRoute = AdminOverviewUsersRouteImport.update({
+  id: '/overview/users',
+  path: '/overview/users',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSupportIndexRoute = AdminSupportIndexRouteImport.update({
@@ -348,6 +373,10 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof SettingsIndexRoute
   '/signin/': typeof SigninIndexRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
+  '/admin/overview/billing': typeof AdminOverviewBillingRoute
+  '/admin/overview/infrastructure': typeof AdminOverviewInfrastructureRoute
+  '/admin/overview/nodes': typeof AdminOverviewNodesRoute
+  '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
@@ -397,6 +426,10 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsIndexRoute
   '/signin': typeof SigninIndexRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
+  '/admin/overview/billing': typeof AdminOverviewBillingRoute
+  '/admin/overview/infrastructure': typeof AdminOverviewInfrastructureRoute
+  '/admin/overview/nodes': typeof AdminOverviewNodesRoute
+  '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
@@ -447,6 +480,10 @@ export interface FileRoutesById {
   '/settings/': typeof SettingsIndexRoute
   '/signin/': typeof SigninIndexRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
+  '/admin/overview/billing': typeof AdminOverviewBillingRoute
+  '/admin/overview/infrastructure': typeof AdminOverviewInfrastructureRoute
+  '/admin/overview/nodes': typeof AdminOverviewNodesRoute
+  '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
@@ -501,6 +538,10 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/signin/'
     | '/admin/orgs/$orgId'
+    | '/admin/overview/billing'
+    | '/admin/overview/infrastructure'
+    | '/admin/overview/nodes'
+    | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
     | '/orgs/$orgId/eggs'
@@ -550,6 +591,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signin'
     | '/admin/orgs/$orgId'
+    | '/admin/overview/billing'
+    | '/admin/overview/infrastructure'
+    | '/admin/overview/nodes'
+    | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
     | '/orgs/$orgId/eggs'
@@ -599,6 +644,10 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/signin/'
     | '/admin/orgs/$orgId'
+    | '/admin/overview/billing'
+    | '/admin/overview/infrastructure'
+    | '/admin/overview/nodes'
+    | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
     | '/orgs/$orgId/eggs'
@@ -759,6 +808,34 @@ declare module '@tanstack/react-router' {
       path: '/orgs/$orgId'
       fullPath: '/admin/orgs/$orgId'
       preLoaderRoute: typeof AdminOrgsOrgIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/overview/billing': {
+      id: '/admin/overview/billing'
+      path: '/overview/billing'
+      fullPath: '/admin/overview/billing'
+      preLoaderRoute: typeof AdminOverviewBillingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/overview/infrastructure': {
+      id: '/admin/overview/infrastructure'
+      path: '/overview/infrastructure'
+      fullPath: '/admin/overview/infrastructure'
+      preLoaderRoute: typeof AdminOverviewInfrastructureRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/overview/nodes': {
+      id: '/admin/overview/nodes'
+      path: '/overview/nodes'
+      fullPath: '/admin/overview/nodes'
+      preLoaderRoute: typeof AdminOverviewNodesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/overview/users': {
+      id: '/admin/overview/users'
+      path: '/overview/users'
+      fullPath: '/admin/overview/users'
+      preLoaderRoute: typeof AdminOverviewUsersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/support/': {
@@ -1007,6 +1084,10 @@ interface AdminRouteChildren {
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminOrgsOrgIdRoute: typeof AdminOrgsOrgIdRoute
+  AdminOverviewBillingRoute: typeof AdminOverviewBillingRoute
+  AdminOverviewInfrastructureRoute: typeof AdminOverviewInfrastructureRoute
+  AdminOverviewNodesRoute: typeof AdminOverviewNodesRoute
+  AdminOverviewUsersRoute: typeof AdminOverviewUsersRoute
   AdminSupportRequestIdRoute: typeof AdminSupportRequestIdRoute
   AdminUsersUserIdRoute: typeof AdminUsersUserIdRoute
   AdminOrgsIndexRoute: typeof AdminOrgsIndexRoute
@@ -1019,6 +1100,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminOrgsOrgIdRoute: AdminOrgsOrgIdRoute,
+  AdminOverviewBillingRoute: AdminOverviewBillingRoute,
+  AdminOverviewInfrastructureRoute: AdminOverviewInfrastructureRoute,
+  AdminOverviewNodesRoute: AdminOverviewNodesRoute,
+  AdminOverviewUsersRoute: AdminOverviewUsersRoute,
   AdminSupportRequestIdRoute: AdminSupportRequestIdRoute,
   AdminUsersUserIdRoute: AdminUsersUserIdRoute,
   AdminOrgsIndexRoute: AdminOrgsIndexRoute,
