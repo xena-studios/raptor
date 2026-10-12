@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { FileUp, Link2, ShieldAlert, TriangleAlert } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
-
+import { useReauth } from "@/components/reauth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { PreviewEggResponse } from "@/gen/raptor/panel/v1/org_pb";
+import type { ReviewEggFileResponse } from "@/gen/raptor/panel/v1/egg_pb";
+import { categories, categoryName } from "@/lib/eggs";
 import { message } from "@/lib/errors";
-import { orgClient } from "@/lib/transport";
+import { eggClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 
 const maxFile = 1 << 20;
@@ -26,21 +27,25 @@ const maxFile = 1 << 20;
 // EggImport imports an egg from a link or a file (docs/PANEL.md#imported-eggs):
 // first what it would run, then, once the admin says they trust it, the
 // import. An egg's install script runs as root in a container on the node,
-// so the review isn't skippable.
+// so the review isn't skippable. orgId empty imports an official egg.
 export function EggImport({
   orgId,
   open,
   onOpenChange,
+  onImported,
 }: {
   orgId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onImported?: (id: string) => void;
 }) {
   const client = useQueryClient();
+  const withReauth = useReauth();
+  const [category, setCategory] = useState("other");
   const [from, setFrom] = useState<"url" | "file">("url");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File>();
-  const [preview, setPreview] = useState<PreviewEggResponse>();
+  const [preview, setPreview] = useState<ReviewEggFileResponse>();
   const [trusted, setTrusted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -61,9 +66,17 @@ export function EggImport({
         if (file.size > maxFile)
           throw new Error("That file is bigger than 1 MiB, which no egg is.");
         const data = new Uint8Array(await file.arrayBuffer());
-        setPreview(await orgClient.previewEgg({ orgId, source: { case: "file", value: data } }));
+        setPreview(
+          await withReauth(() =>
+            eggClient.reviewEggFile({ orgId, source: { case: "file", value: data } }),
+          ),
+        );
       } else {
-        setPreview(await orgClient.previewEgg({ orgId, source: { case: "url", value: url } }));
+        setPreview(
+          await withReauth(() =>
+            eggClient.reviewEggFile({ orgId, source: { case: "url", value: url } }),
+          ),
+        );
       }
     } catch (err) {
       setError(message(err));
@@ -77,8 +90,16 @@ export function EggImport({
     setError("");
     setBusy(true);
     try {
-      await orgClient.importEgg({ orgId, egg: preview.egg, sourceUrl: preview.sourceUrl });
+      const res = await withReauth(() =>
+        eggClient.importEggFile({
+          orgId,
+          egg: preview.egg,
+          sourceUrl: preview.sourceUrl,
+          category,
+        }),
+      );
       await client.invalidateQueries();
+      onImported?.(res.id);
       onOpenChange(false);
       reset();
       setUrl("");
@@ -263,8 +284,25 @@ export function EggImport({
                 <code>{preview.sha256.slice(0, 12)}</code>
               </p>
             </div>
+            {!r.duplicate && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="egg-category">Category</Label>
+                <select
+                  id="egg-category"
+                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {categoryName(c)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {r.duplicate ? (
-              <p className="text-sm text-muted-foreground">This egg is already imported.</p>
+              <p className="text-sm text-muted-foreground">This egg is already in the library.</p>
             ) : (
               <Label className="flex items-start gap-2 text-sm font-normal">
                 <Checkbox
@@ -272,7 +310,9 @@ export function EggImport({
                   onCheckedChange={(c) => setTrusted(c === true)}
                   className="mt-0.5"
                 />
-                I've looked at what this egg runs, and I trust it on this org's nodes.
+                {orgId
+                  ? "I've looked at what this egg runs, and I trust it on this org's nodes."
+                  : "I've looked at what this egg runs, and I trust it on every org's nodes."}
               </Label>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}

@@ -1,0 +1,252 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+import "raptor/panel/v1/catalog.proto";
+import "raptor/panel/v1/org.proto";
+
+// EggService is the egg library (docs/PANEL.md#eggs): Raptor's built-in
+// eggs, its official ones (managed by staff), and each org's own (imported,
+// made from scratch, or customized copies). An org's admins and owners
+// change the org's eggs; members see them. org_id empty means the official
+// library: staff admins change it, with a passkey from the last 5 minutes.
+service EggService {
+  // ListEggs lists the eggs an org can use: its own (any status), then the
+  // official and built-in ones. For the official library (staff), every
+  // official egg and the built-in ones.
+  rpc ListEggs(EggServiceListEggsRequest) returns (EggServiceListEggsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetEggDetails is one egg: what it runs, as the editor shows it, its
+  // file, and its versions.
+  rpc GetEggDetails(GetEggDetailsRequest) returns (GetEggDetailsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetEggFile returns the file a server made from a published egg gets,
+  // for the signed server.create.
+  rpc GetEggFile(GetEggFileRequest) returns (GetEggFileResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // CreateEgg makes an egg from scratch, as a draft.
+  rpc CreateEgg(CreateEggRequest) returns (CreateEggResponse) {}
+
+  // UpdateEgg saves an edit as a new version: the editor's fields, or a
+  // whole file. Servers made from earlier versions keep theirs.
+  rpc UpdateEgg(UpdateEggRequest) returns (UpdateEggResponse) {}
+
+  // CustomizeEgg copies an egg into the org (or, for staff, into the
+  // official library) as a draft to edit.
+  rpc CustomizeEgg(CustomizeEggRequest) returns (CustomizeEggResponse) {}
+
+  // SetEggStatus publishes, unpublishes (back to draft), or archives an
+  // egg.
+  rpc SetEggStatus(SetEggStatusRequest) returns (SetEggStatusResponse) {}
+
+  // DeleteEgg removes an egg no server uses; archive one that's in use.
+  rpc DeleteEgg(DeleteEggRequest) returns (DeleteEggResponse) {}
+
+  // ReviewEggFile fetches an egg from a link (or takes a file) and says what
+  // it would run, before ImportEggFile. Nothing is saved.
+  rpc ReviewEggFile(ReviewEggFileRequest) returns (ReviewEggFileResponse) {}
+
+  // ImportEggFile saves a reviewed egg, published.
+  rpc ImportEggFile(ImportEggFileRequest) returns (ImportEggFileResponse) {}
+}
+
+message EggServiceListEggsRequest {
+  // Empty: the official library (staff).
+  string org_id = 1;
+}
+
+message EggServiceListEggsResponse {
+  repeated CatalogEgg eggs = 1;
+}
+
+// EggSpec is an egg as the editor shows it. Saving one writes it into the
+// egg's file, leaving what the editor doesn't cover as it was.
+message EggSpec {
+  string name = 1;
+  string author = 2;
+  string description = 3;
+  // The runtimes; the first is the default.
+  repeated EggImage images = 4;
+  // The startup commands; the first is the default. Pterodactyl eggs have
+  // one, Pelican eggs can have several.
+  repeated EggStartup startup = 5;
+  // "command", "signal", or "native" (the image's own stop signal).
+  string stop_type = 6;
+  // The command, or SIGINT, SIGTERM, SIGABRT, or SIGKILL.
+  string stop_value = 7;
+  // Console lines that mean the server is up: text it contains, or a
+  // regular expression after "regex:".
+  repeated string done = 8;
+  string install_script = 9;
+  string install_container = 10;
+  string install_entrypoint = 11;
+  repeated EggVariable variables = 12;
+  repeated EggConfigFile files = 13;
+  // The egg's features: "eula" asks for the Minecraft EULA.
+  repeated string features = 14;
+  repeated string file_denylist = 15;
+  // The CPUs it runs on: amd64, arm64. Empty: not said.
+  repeated string arch = 16;
+  // How to ask for the player count: "minecraft", "source", or empty.
+  string players_query = 17;
+  // Where it answers: empty (the server's port), "+1", or a variable.
+  string players_port = 18;
+}
+
+message EggStartup {
+  string name = 1;
+  string command = 2;
+}
+
+// EggConfigFile is a file Wings edits before every start.
+message EggConfigFile {
+  string path = 1;
+  // file, properties, ini, json, yaml, or xml.
+  string parser = 2;
+  repeated EggFind find = 3;
+}
+
+message EggFind {
+  string key = 1;
+  // Set: only replace this value.
+  string if_value = 2;
+  string value = 3;
+}
+
+message EggVersion {
+  int32 version = 1;
+  string sha256 = 2;
+  string note = 3;
+  string created_by = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message GetEggDetailsRequest {
+  string org_id = 1;
+  string id = 2;
+}
+
+message GetEggDetailsResponse {
+  CatalogEgg egg = 1;
+  EggSpec spec = 2;
+  // The file, as a server made from it gets it.
+  bytes file = 3;
+  // "pterodactyl" or "pelican".
+  string format = 4;
+  repeated string registries = 5;
+  repeated EggWarning warnings = 6;
+  // Variable rules Wings can't check, which it skips.
+  repeated string lint = 7;
+  // Whether the caller can edit it (or, for an official egg in an org,
+  // customize it).
+  bool can_edit = 8;
+  // Newest first.
+  repeated EggVersion versions = 9;
+}
+
+message GetEggFileRequest {
+  string org_id = 1;
+  string id = 2;
+  // 0: the current version.
+  int32 version = 3;
+}
+
+message GetEggFileResponse {
+  bytes egg = 1;
+  int32 version = 2;
+}
+
+message CreateEggRequest {
+  string org_id = 1;
+  EggSpec spec = 2;
+  string summary = 3;
+  string category = 4;
+}
+
+message CreateEggResponse {
+  string id = 1;
+}
+
+message UpdateEggRequest {
+  string org_id = 1;
+  string id = 2;
+  oneof change {
+    EggSpec spec = 3;
+    // The whole file, edited by hand (JSON or YAML).
+    bytes file = 4;
+  }
+  string summary = 5;
+  string category = 6;
+  // What changed, for the version list.
+  string note = 7;
+  // The version the edit was made on: saving fails if someone saved a
+  // newer one since.
+  int32 base_version = 8;
+}
+
+message UpdateEggResponse {
+  int32 version = 1;
+}
+
+message CustomizeEggRequest {
+  // Where the copy goes; empty: the official library (staff).
+  string org_id = 1;
+  string id = 2;
+}
+
+message CustomizeEggResponse {
+  string id = 1;
+}
+
+message SetEggStatusRequest {
+  string org_id = 1;
+  string id = 2;
+  // draft, published, or archived.
+  string status = 3;
+}
+
+message SetEggStatusResponse {}
+
+message DeleteEggRequest {
+  string org_id = 1;
+  string id = 2;
+}
+
+message DeleteEggResponse {}
+
+message ReviewEggFileRequest {
+  string org_id = 1;
+  oneof source {
+    // A link to the egg file (https; GitHub file pages work too).
+    string url = 2;
+    // An egg file, up to 1 MiB.
+    bytes file = 3;
+  }
+}
+
+message ReviewEggFileResponse {
+  // The file as fetched, to send back to ImportEggFile unchanged.
+  bytes egg = 1;
+  string source_url = 2;
+  string sha256 = 3;
+  EggReview review = 4;
+}
+
+message ImportEggFileRequest {
+  string org_id = 1;
+  // From ReviewEggFile.
+  bytes egg = 2;
+  string source_url = 3;
+  string category = 4;
+}
+
+message ImportEggFileResponse {
+  string id = 1;
+}

@@ -225,6 +225,7 @@ const adminLinks = [
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/orgs", label: "Orgs", icon: Building2 },
   { to: "/admin/support", label: "Support", icon: Headset },
+  { to: "/admin/eggs", label: "Eggs", icon: Egg },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/settings", label: "Settings", icon: ShieldCheck },
 ] as const;

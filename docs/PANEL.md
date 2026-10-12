@@ -205,15 +205,30 @@ On a node's Backups tab, owners can **Recover backups** (WINGS.md#backups): `Lis
 
 Recovered backups of servers that aren't on the node show under **Recovered backups**, to restore onto one of its servers with an owner's passkey.
 
-## Imported eggs
+## Eggs
 
-Besides the built-in catalog, an org can import eggs (`org_eggs`): Pterodactyl or Pelican files, JSON or YAML, from a link or an upload. Admins and owners import and remove them; any member sees and uses them. The Eggs page lists them first, and the create-server wizard offers them first, on every node unless the egg names its CPUs.
+The egg library (`EggService`, `internal/panel/orgs/library.go`): what servers are made from. Three kinds, shown together on an org's **Eggs** page:
+- **Built in:** Raptor's catalog, in the code ([EGGS.md](EGGS.md#built-in-catalog)). Never changed here.
+- **Official:** Raptor's, managed by staff on the admin panel's **Eggs** page (`eggs.org_id` NULL). Orgs see the published ones.
+- **The org's own** (`eggs`, replacing `org_eggs`): imported, made from scratch, or customized copies of any egg they can see. Admins and owners change them; members see them. Up to 100 per org (500 official).
 
-1. **Preview** (`OrgService.PreviewEgg`, 30 an hour per user for links): the Panel fetches the link (`internal/panel/eggimport`): https on port 443 only, a GitHub file page read from its raw file, at most 3 redirects and all https, 1 MiB, 15 seconds, and only public addresses, checked on the address actually dialed so DNS can't point it inward. It parses the egg with the same parser Wings uses (refusing one that leaves parts to another egg with `config.extends` or `copy_script_from`) and returns what it would run: images and their registries, the install container, entrypoint, and script, the startup command, variables, and warnings: an image from a publisher the community eggs don't use (anything but Docker Hub's official images and the Pterodactyl, Pelican, and parkervcp ones), an install script that pipes a download into a shell, no CPUs named, or a claim to be certified. Nothing is saved.
-2. **Review:** the app shows all of it, and Import stays off until the admin ticks that they've looked and trust the egg.
-3. **Import** (`ImportEgg`): the reviewed file, sent back as it was, is parsed again and saved with its SHA-256 and link; the same file can't be imported twice. Up to 100 per org. Audited as `egg.import`.
+Each egg has a status: a **draft** can't be deployed, a **published** one can, and an **archived** one is hidden and can't be deployed. Made-from-scratch eggs and copies start as drafts; imports are published. An egg's page shows what it runs: add-ons, runtimes, variables and who can change them, the startup command, ready lines and stop, the install script, the config files Wings edits, the file itself, and every version. From there: **Use egg** (the create-server wizard with it picked), **Customize** or **Duplicate** (a draft copy to edit, which remembers what it's based on), **Export**, and **Edit**.
 
-A server made from an imported egg gets the file in its signed `server.create`, as with the catalog, so the passkey signature covers exactly what was reviewed. Removing an egg (`DeleteOrgEgg`, `egg.delete`) doesn't touch servers made from it. An imported egg is never certified, whatever it says.
+**Editing** (`internal/eggs/spec`): the editor's tabs (Overview, Runtimes, Variables, Startup, Install, Config files, Add-ons) edit fields read from the egg file, and saving writes them back into it: only what the editor covers changes, keys it doesn't know stay, and the format's style is kept (Pterodactyl's JSON-encoded config strings and `a|b` rules, Pelican's objects and lists). The result is JSON, which both formats read, so an edited egg still imports into Pterodactyl or Pelican. Every catalog egg reads and writes back unchanged (`TestRoundTripCatalog`). The File tab edits the file itself. Variables have a kind (text, number, on/off, choice) that writes their Laravel rules; rules the kinds don't produce stay as written, as **Custom rules**.
+
+Each save that changes the file is a new **version** (`egg_versions`, with who and an optional note). Saving on top of a version someone else replaced fails (`base_version`) rather than overwriting it. Servers keep the egg they were made from ([DECISIONS.md](DECISIONS.md) #45), so editing, archiving, or deleting an egg never changes a running server. An egg servers were made from can't be deleted, only archived (`egg_source` in the mirror counts them).
+
+What a server gets: `GetEggFile` returns a published egg's file (any version), which the web app puts in the passkey-signed `server.create` as it is. The org's eggs and the official ones are read as the user, under row-level security; official eggs are changed on the Panel's own connection after the staff check (an admin with a passkey from the last 5 minutes), and go in the staff log. Org changes go in the org's audit log: `egg.create`, `egg.update`, `egg.customize`, `egg.publish`, `egg.unpublish`, `egg.archive`, `egg.delete`, `egg.import`.
+
+### Importing
+
+An egg comes in from a link or an upload: Pterodactyl or Pelican, JSON or YAML.
+
+1. **Review** (`EggService.ReviewEggFile`, 30 an hour per user for links): the Panel fetches the link (`internal/panel/eggimport`): https on port 443 only, a GitHub file page read from its raw file, at most 3 redirects and all https, 1 MiB, 15 seconds, and only public addresses, checked on the address actually dialed so DNS can't point it inward. It parses the egg with the same parser Wings uses (refusing one that leaves parts to another egg with `config.extends` or `copy_script_from`) and returns what it would run: images and their registries, the install container, entrypoint, and script, the startup command, variables, and warnings: an image from a publisher the community eggs don't use (anything but Docker Hub's official images and the Pterodactyl, Pelican, and parkervcp ones), an install script that pipes a download into a shell, no CPUs named, or a claim to be certified. Nothing is saved.
+2. The app shows all of it, and Import stays off until the admin ticks that they've looked and trust the egg.
+3. **Import** (`ImportEggFile`): the reviewed file, sent back as it was, is parsed again and saved with its SHA-256 and link; the same file can't be imported twice into one library.
+
+An imported egg is never certified, whatever it says. `OrgService`'s older egg calls (`PreviewEgg`, `ImportEgg`, `ListOrgEggs`, `GetOrgEgg`, `DeleteOrgEgg`) still work, on the library.
 
 ## Schedule runs
 

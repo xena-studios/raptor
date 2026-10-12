@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/proto"
 
 	catalog "github.com/xena-studios/raptor/eggs"
 	"github.com/xena-studios/raptor/internal/eggs"
@@ -60,6 +61,30 @@ func describe(e catalog.Entry, egg *eggs.Egg) *panelv1.CatalogEgg {
 	out.Id, out.Category, out.Certified, out.Arch = e.ID, category, e.Certified, e.Arch
 	out.SourceUrl = fmt.Sprintf("https://github.com/%s/blob/%s/%s", e.Source.Repo, e.Source.Commit, e.Source.Path)
 	return out
+}
+
+// List returns the built-in eggs, described for the web app. Callers get
+// copies they may change.
+func List() ([]*panelv1.CatalogEgg, error) {
+	l, err := load()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*panelv1.CatalogEgg, len(l.list))
+	for i, e := range l.list {
+		out[i] = proto.CloneOf(e)
+	}
+	return out, nil
+}
+
+// File returns a built-in egg's file, as a server made from it gets it.
+func File(id string) ([]byte, bool) {
+	l, err := load()
+	if err != nil {
+		return nil, false
+	}
+	f, ok := l.eggs[id]
+	return f, ok
 }
 
 // Proto is what the web app needs of an egg to create a server from it:

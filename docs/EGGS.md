@@ -214,7 +214,12 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
 ## Egg sources
 
 - Built-in catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and license preserved ([below](#built-in-catalog)).
+- Orgs make their own eggs (from scratch, or customized copies) and Raptor's staff publish official ones, in the egg library ([PANEL.md](PANEL.md#eggs)); editing writes into the egg file and keeps the format ([Editing eggs](#editing-eggs)).
 - Users can import eggs from a URL or file. The Panel shows the **image registry and install script** before importing. A malicious egg is effectively a malicious program on the node. Imported eggs belong to the org that imported them ([PANEL.md](PANEL.md#imported-eggs)); eggs that leave parts to another egg (`config.extends`, `copy_script_from`) are refused with a message saying so, since those parts would be missing on the node.
+
+## Editing eggs
+
+The Panel's egg editor (`internal/eggs/spec`) reads an egg into fields (name, runtimes, startup commands, stop, ready lines, install script, variables, config files, features, and `x-raptor`'s `arch` and `players`) and writes edits back into the same file. Only those fields change; other keys stay, and so does each format's style: Pterodactyl's JSON-encoded `config.files`/`config.startup` and `a|b` rules, Pelican's objects and rule lists. Images are written as an ordered `docker_images` map, which every format reads. The output is JSON. Whitespace in ready lines and in the `file` parser's keys is kept: it's part of the match.
 
 ## Built-in catalog
 

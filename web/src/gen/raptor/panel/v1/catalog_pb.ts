@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file raptor/panel/v1/catalog.proto.
  */
 export const file_raptor_panel_v1_catalog: GenFile = /*@__PURE__*/
-  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvY2F0YWxvZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIhEKD0xpc3RFZ2dzUmVxdWVzdCLwAQoKQ2F0YWxvZ0VnZxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhEKCWNlcnRpZmllZBgFIAEoCBIMCgRhcmNoGAYgAygJEikKBmltYWdlcxgHIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIvCgl2YXJpYWJsZXMYCCADKAsyHC5yYXB0b3IucGFuZWwudjEuRWdnVmFyaWFibGUSEAoIZmVhdHVyZXMYCSADKAkSEgoKc291cmNlX3VybBgKIAEoCSIlCghFZ2dJbWFnZRIMCgRuYW1lGAEgASgJEgsKA3JlZhgCIAEoCSKLAQoLRWdnVmFyaWFibGUSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRILCgNlbnYYAyABKAkSDwoHZGVmYXVsdBgEIAEoCRIVCg11c2VyX3ZpZXdhYmxlGAUgASgIEhUKDXVzZXJfZWRpdGFibGUYBiABKAgSDQoFcnVsZXMYByADKAkiPQoQTGlzdEVnZ3NSZXNwb25zZRIpCgRlZ2dzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkNhdGFsb2dFZ2ciGwoNR2V0RWdnUmVxdWVzdBIKCgJpZBgBIAEoCSIdCg5HZXRFZ2dSZXNwb25zZRILCgNlZ2cYASABKAwytgEKDkNhdGFsb2dTZXJ2aWNlElQKCExpc3RFZ2dzEiAucmFwdG9yLnBhbmVsLnYxLkxpc3RFZ2dzUmVxdWVzdBohLnJhcHRvci5wYW5lbC52MS5MaXN0RWdnc1Jlc3BvbnNlIgOQAgESTgoGR2V0RWdnEh4ucmFwdG9yLnBhbmVsLnYxLkdldEVnZ1JlcXVlc3QaHy5yYXB0b3IucGFuZWwudjEuR2V0RWdnUmVzcG9uc2UiA5ACAULMAQoTY29tLnJhcHRvci5wYW5lbC52MUIMQ2F0YWxvZ1Byb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z");
+  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvY2F0YWxvZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIhEKD0xpc3RFZ2dzUmVxdWVzdCK+AwoKQ2F0YWxvZ0VnZxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhEKCWNlcnRpZmllZBgFIAEoCBIMCgRhcmNoGAYgAygJEikKBmltYWdlcxgHIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIvCgl2YXJpYWJsZXMYCCADKAsyHC5yYXB0b3IucGFuZWwudjEuRWdnVmFyaWFibGUSEAoIZmVhdHVyZXMYCSADKAkSEgoKc291cmNlX3VybBgKIAEoCRIPCgdzdW1tYXJ5GAsgASgJEg0KBXNjb3BlGAwgASgJEg4KBm9yaWdpbhgNIAEoCRIOCgZzdGF0dXMYDiABKAkSDwoHdmVyc2lvbhgPIAEoBRIPCgdzZXJ2ZXJzGBAgASgFEhEKCXBhcmVudF9pZBgRIAEoCRITCgtwYXJlbnRfbmFtZRgSIAEoCRIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpjcmVhdGVkX2J5GBQgASgJIiUKCEVnZ0ltYWdlEgwKBG5hbWUYASABKAkSCwoDcmVmGAIgASgJIosBCgtFZ2dWYXJpYWJsZRIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEgsKA2VudhgDIAEoCRIPCgdkZWZhdWx0GAQgASgJEhUKDXVzZXJfdmlld2FibGUYBSABKAgSFQoNdXNlcl9lZGl0YWJsZRgGIAEoCBINCgVydWxlcxgHIAMoCSI9ChBMaXN0RWdnc1Jlc3BvbnNlEikKBGVnZ3MYASADKAsyGy5yYXB0b3IucGFuZWwudjEuQ2F0YWxvZ0VnZyIbCg1HZXRFZ2dSZXF1ZXN0EgoKAmlkGAEgASgJIh0KDkdldEVnZ1Jlc3BvbnNlEgsKA2VnZxgBIAEoDDK2AQoOQ2F0YWxvZ1NlcnZpY2USVAoITGlzdEVnZ3MSIC5yYXB0b3IucGFuZWwudjEuTGlzdEVnZ3NSZXF1ZXN0GiEucmFwdG9yLnBhbmVsLnYxLkxpc3RFZ2dzUmVzcG9uc2UiA5ACARJOCgZHZXRFZ2cSHi5yYXB0b3IucGFuZWwudjEuR2V0RWdnUmVxdWVzdBofLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dSZXNwb25zZSIDkAIBQswBChNjb20ucmFwdG9yLnBhbmVsLnYxQgxDYXRhbG9nUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.ListEggsRequest
@@ -85,11 +87,77 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   features: string[];
 
   /**
-   * Where the egg comes from: the upstream file at the copied commit.
+   * Where the egg comes from: the upstream file at the copied commit, or
+   * the link an imported egg was fetched from.
    *
    * @generated from field: string source_url = 10;
    */
   sourceUrl: string;
+
+  /**
+   * One line for the egg's card.
+   *
+   * @generated from field: string summary = 11;
+   */
+  summary: string;
+
+  /**
+   * "builtin" (Raptor's catalog, in the code), "official" (Raptor's,
+   * managed by staff), or "org" (the org's own).
+   *
+   * @generated from field: string scope = 12;
+   */
+  scope: string;
+
+  /**
+   * How it came to be: "builtin", "scratch", "import", or "fork" (a
+   * customized copy).
+   *
+   * @generated from field: string origin = 13;
+   */
+  origin: string;
+
+  /**
+   * "draft", "published" (can be deployed), or "archived".
+   *
+   * @generated from field: string status = 14;
+   */
+  status: string;
+
+  /**
+   * @generated from field: int32 version = 15;
+   */
+  version: number;
+
+  /**
+   * How many servers were made from it: the org's own, or everyone's for
+   * official and built-in eggs.
+   *
+   * @generated from field: int32 servers = 16;
+   */
+  servers: number;
+
+  /**
+   * What a customized copy was made from.
+   *
+   * @generated from field: string parent_id = 17;
+   */
+  parentId: string;
+
+  /**
+   * @generated from field: string parent_name = 18;
+   */
+  parentName: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 19;
+   */
+  updatedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: string created_by = 20;
+   */
+  createdBy: string;
 };
 
 /**

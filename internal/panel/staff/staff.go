@@ -595,3 +595,32 @@ func (s *Service) ListStaffAudit(ctx context.Context, req *panelv1.ListStaffAudi
 	}
 	return out, nil
 }
+
+// Actor is a staff member acting through another service (the official
+// egg library).
+type Actor struct{ c *caller }
+
+// Email is the staff member's email.
+func (a *Actor) Email() string { return a.c.sess.User.Email }
+
+// Admin reports whether the staff member is an admin (who can change
+// things, after confirming their passkey).
+func (a *Actor) Admin() bool { return a.c.role == "admin" }
+
+// UserID is the staff member's account.
+func (a *Actor) UserID() pgtype.UUID { return a.c.sess.UserID }
+
+// Require checks the caller is staff, to look, or an admin who confirmed a
+// passkey in the last ChangeFresh, to change something.
+func (s *Service) Require(ctx context.Context, change bool) (*Actor, error) {
+	c, err := s.staff(ctx, change)
+	if err != nil {
+		return nil, err
+	}
+	return &Actor{c: c}, nil
+}
+
+// Record adds an action to the staff log.
+func (s *Service) Record(ctx context.Context, a *Actor, action, targetType, targetID string, meta map[string]any) error {
+	return s.audit(ctx, a.c, action, targetType, targetID, meta)
+}
