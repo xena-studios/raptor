@@ -56,6 +56,9 @@ const (
 	// EnrollmentServiceEnrollProcedure is the fully-qualified name of the EnrollmentService's Enroll
 	// RPC.
 	EnrollmentServiceEnrollProcedure = "/raptor.node.v1.EnrollmentService/Enroll"
+	// EnrollmentServiceReportProgressProcedure is the fully-qualified name of the EnrollmentService's
+	// ReportProgress RPC.
+	EnrollmentServiceReportProgressProcedure = "/raptor.node.v1.EnrollmentService/ReportProgress"
 )
 
 // NodeServiceClient is a client for the raptor.node.v1.NodeService service.
@@ -420,6 +423,10 @@ type EnrollmentServiceClient interface {
 	// but repeating an enrollment with the same token and key (its answer was
 	// lost) returns the same node.
 	Enroll(context.Context, *v1.EnrollRequest) (*v1.EnrollResponse, error)
+	// ReportProgress tells the Panel how `raptor bootstrap` is getting on, so
+	// the Add Node page can show it. The join token is the credential.
+	// Best effort: bootstrap carries on if it fails.
+	ReportProgress(context.Context, *v1.ReportProgressRequest) (*v1.ReportProgressResponse, error)
 }
 
 // NewEnrollmentServiceClient constructs a client for the raptor.node.v1.EnrollmentService service.
@@ -440,17 +447,34 @@ func NewEnrollmentServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
+		reportProgress: connect.NewClient[v1.ReportProgressRequest, v1.ReportProgressResponse](
+			httpClient,
+			baseURL+EnrollmentServiceReportProgressProcedure,
+			connect.WithSchema(enrollmentServiceMethods.ByName("ReportProgress")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // enrollmentServiceClient implements EnrollmentServiceClient.
 type enrollmentServiceClient struct {
-	enroll *connect.Client[v1.EnrollRequest, v1.EnrollResponse]
+	enroll         *connect.Client[v1.EnrollRequest, v1.EnrollResponse]
+	reportProgress *connect.Client[v1.ReportProgressRequest, v1.ReportProgressResponse]
 }
 
 // Enroll calls raptor.node.v1.EnrollmentService.Enroll.
 func (c *enrollmentServiceClient) Enroll(ctx context.Context, req *v1.EnrollRequest) (*v1.EnrollResponse, error) {
 	response, err := c.enroll.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ReportProgress calls raptor.node.v1.EnrollmentService.ReportProgress.
+func (c *enrollmentServiceClient) ReportProgress(ctx context.Context, req *v1.ReportProgressRequest) (*v1.ReportProgressResponse, error) {
+	response, err := c.reportProgress.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -463,6 +487,10 @@ type EnrollmentServiceHandler interface {
 	// but repeating an enrollment with the same token and key (its answer was
 	// lost) returns the same node.
 	Enroll(context.Context, *v1.EnrollRequest) (*v1.EnrollResponse, error)
+	// ReportProgress tells the Panel how `raptor bootstrap` is getting on, so
+	// the Add Node page can show it. The join token is the credential.
+	// Best effort: bootstrap carries on if it fails.
+	ReportProgress(context.Context, *v1.ReportProgressRequest) (*v1.ReportProgressResponse, error)
 }
 
 // NewEnrollmentServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -479,10 +507,19 @@ func NewEnrollmentServiceHandler(svc EnrollmentServiceHandler, opts ...connect.H
 		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
+	enrollmentServiceReportProgressHandler := connect.NewUnaryHandlerSimple(
+		EnrollmentServiceReportProgressProcedure,
+		svc.ReportProgress,
+		connect.WithSchema(enrollmentServiceMethods.ByName("ReportProgress")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.node.v1.EnrollmentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case EnrollmentServiceEnrollProcedure:
 			enrollmentServiceEnrollHandler.ServeHTTP(w, r)
+		case EnrollmentServiceReportProgressProcedure:
+			enrollmentServiceReportProgressHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -494,4 +531,8 @@ type UnimplementedEnrollmentServiceHandler struct{}
 
 func (UnimplementedEnrollmentServiceHandler) Enroll(context.Context, *v1.EnrollRequest) (*v1.EnrollResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.EnrollmentService.Enroll is not implemented"))
+}
+
+func (UnimplementedEnrollmentServiceHandler) ReportProgress(context.Context, *v1.ReportProgressRequest) (*v1.ReportProgressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.EnrollmentService.ReportProgress is not implemented"))
 }

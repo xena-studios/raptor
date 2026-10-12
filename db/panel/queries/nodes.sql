@@ -88,3 +88,12 @@ UPDATE nodes SET name = $2 WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: SetNodeSFTP :exec
 UPDATE nodes SET sftp_enabled = $2, sftp_port = $3, sftp_host_key = $4 WHERE id = $1;
+
+-- name: SetJoinProgress :execrows
+-- A bootstrap may still be running after its token expires (it started
+-- before), so progress is taken for 3 hours after the token was made.
+UPDATE join_tokens SET progress = @progress
+WHERE token_hash = @token_hash AND created_at > now() - interval '3 hours';
+
+-- name: GetJoinProgress :one
+SELECT progress, node_id FROM join_tokens WHERE token_hash = @token_hash AND org_id = @org_id;

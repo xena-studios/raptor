@@ -15,7 +15,7 @@ import (
 const createJoinToken = `-- name: CreateJoinToken :one
 INSERT INTO join_tokens (org_id, token_hash, name, expires_at)
 VALUES ($1, $2, $3, $4)
-RETURNING id, org_id, token_hash, name, expires_at, used_at, node_id, created_at, owner_pin
+RETURNING id, org_id, token_hash, name, expires_at, used_at, node_id, created_at, owner_pin, progress
 `
 
 type CreateJoinTokenParams struct {
@@ -43,6 +43,7 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 		&i.NodeID,
 		&i.CreatedAt,
 		&i.OwnerPin,
+		&i.Progress,
 	)
 	return i, err
 }
@@ -164,8 +165,29 @@ func (q *Queries) ForgetNodeServers(ctx context.Context, nodeID pgtype.UUID) err
 	return err
 }
 
+const getJoinProgress = `-- name: GetJoinProgress :one
+SELECT progress, node_id FROM join_tokens WHERE token_hash = $1 AND org_id = $2
+`
+
+type GetJoinProgressParams struct {
+	TokenHash []byte
+	OrgID     pgtype.UUID
+}
+
+type GetJoinProgressRow struct {
+	Progress []byte
+	NodeID   pgtype.UUID
+}
+
+func (q *Queries) GetJoinProgress(ctx context.Context, arg GetJoinProgressParams) (GetJoinProgressRow, error) {
+	row := q.db.QueryRow(ctx, getJoinProgress, arg.TokenHash, arg.OrgID)
+	var i GetJoinProgressRow
+	err := row.Scan(&i.Progress, &i.NodeID)
+	return i, err
+}
+
 const getJoinTokenForUpdate = `-- name: GetJoinTokenForUpdate :one
-SELECT id, org_id, token_hash, name, expires_at, used_at, node_id, created_at, owner_pin FROM join_tokens WHERE token_hash = $1 FOR UPDATE
+SELECT id, org_id, token_hash, name, expires_at, used_at, node_id, created_at, owner_pin, progress FROM join_tokens WHERE token_hash = $1 FOR UPDATE
 `
 
 func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (JoinToken, error) {
@@ -181,6 +203,7 @@ func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (
 		&i.NodeID,
 		&i.CreatedAt,
 		&i.OwnerPin,
+		&i.Progress,
 	)
 	return i, err
 }
@@ -347,6 +370,26 @@ type RenameNodeParams struct {
 
 func (q *Queries) RenameNode(ctx context.Context, arg RenameNodeParams) (int64, error) {
 	result, err := q.db.Exec(ctx, renameNode, arg.ID, arg.Name)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const setJoinProgress = `-- name: SetJoinProgress :execrows
+UPDATE join_tokens SET progress = $1
+WHERE token_hash = $2 AND created_at > now() - interval '3 hours'
+`
+
+type SetJoinProgressParams struct {
+	Progress  []byte
+	TokenHash []byte
+}
+
+// A bootstrap may still be running after its token expires (it started
+// before), so progress is taken for 3 hours after the token was made.
+func (q *Queries) SetJoinProgress(ctx context.Context, arg SetJoinProgressParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setJoinProgress, arg.Progress, arg.TokenHash)
 	if err != nil {
 		return 0, err
 	}

@@ -10,16 +10,20 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/term"
 
 	"github.com/xena-studios/raptor/install"
+	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
+	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/storage"
@@ -46,6 +50,7 @@ func bootstrapCmd(ctx context.Context, args []string) error {
 	b := &bootstrap{
 		token: *token, panelURL: *panelURL, storage: *storageMode, size: *size, yes: *yes, force: *force,
 		interactive: !*yes && term.IsTerminal(int(os.Stdin.Fd())), in: bufio.NewReader(os.Stdin), out: os.Stdout,
+		report: reporter(*panelURL, *token),
 	} //nolint:gosec // a file descriptor
 	return b.run(ctx)
 }
@@ -56,6 +61,34 @@ type bootstrap struct {
 	in                             *bufio.Reader
 	out                            io.Writer
 	cfg                            config.Config
+	// progress is every step so far, reported to the Panel for its Add
+	// Node page; report is how (nil: not reported).
+	progress []*nodev1.BootstrapStep
+	report   func(ctx context.Context, steps []*nodev1.BootstrapStep)
+}
+
+// reporter sends progress to the Panel with the join token, best effort:
+// a Panel that doesn't answer never holds bootstrap up.
+func reporter(panelURL, token string) func(context.Context, []*nodev1.BootstrapStep) {
+	if panelURL == "" {
+		panelURL = config.Default().Panel.URL
+	}
+	client := nodev1connect.NewEnrollmentServiceClient(&http.Client{Timeout: 5 * time.Second}, strings.TrimSuffix(panelURL, "/")+"/api")
+	return func(ctx context.Context, steps []*nodev1.BootstrapStep) {
+		_, _ = client.ReportProgress(ctx, &nodev1.ReportProgressRequest{Token: token, Steps: steps})
+	}
+}
+
+// mark records a step's state and reports every step so far.
+func (b *bootstrap) mark(ctx context.Context, name, state, detail string) {
+	if n := len(b.progress); n > 0 && b.progress[n-1].GetName() == name {
+		b.progress[n-1].State, b.progress[n-1].Detail = state, detail
+	} else {
+		b.progress = append(b.progress, &nodev1.BootstrapStep{Name: name, State: state, Detail: detail})
+	}
+	if b.report != nil {
+		b.report(ctx, b.progress)
+	}
 }
 
 func (b *bootstrap) step(format string, a ...any) {
@@ -98,18 +131,27 @@ func (b *bootstrap) run(ctx context.Context) error {
 		{"Server data volume", b.volume},
 		{"Services", b.services},
 	}
+	b.mark(ctx, "Downloaded raptor "+buildinfo.Version, "done", "")
 	for _, s := range steps {
 		b.step("%s", s.name)
+		b.mark(ctx, s.name, "running", "")
 		if err := s.fn(ctx); err != nil {
+			b.mark(ctx, s.name, "failed", err.Error())
 			return fmt.Errorf("%s: %w", strings.ToLower(s.name[:1])+s.name[1:], err)
 		}
+		b.mark(ctx, s.name, "done", "")
 	}
 	b.step("Linking to the Panel")
 	if b.cfg.NodeID != "" {
 		b.note("already linked as %s", b.cfg.NodeID)
 		return nil
 	}
-	return doLink(ctx, linkOptions{token: b.token, panelURL: b.panelURL, cfgPath: config.DefaultPath})
+	b.mark(ctx, "Linking to the Panel", "running", "")
+	if err := doLink(ctx, linkOptions{token: b.token, panelURL: b.panelURL, cfgPath: config.DefaultPath}); err != nil {
+		b.mark(ctx, "Linking to the Panel", "failed", err.Error())
+		return err
+	}
+	return nil
 }
 
 // Supported systems (docs/WINGS.md#doctor).
