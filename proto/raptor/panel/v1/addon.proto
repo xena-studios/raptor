@@ -4,13 +4,14 @@ package raptor.panel.v1;
 
 import "google/protobuf/timestamp.proto";
 
-// AddonService finds plugins and mods on Modrinth for servers whose egg
-// turns on an add-on (docs/EGGS.md#add-ons). The Panel asks Modrinth (with
-// its own user agent, and caches), so the browser talks only to Raptor.
-// Installing is the node's addons.install command, which fetches only from
-// Modrinth's CDN and checks the file's SHA-512. Any member of the org.
+// AddonService finds plugins and mods on Modrinth, and plugins on Hangar,
+// for servers whose egg turns on an add-on (docs/EGGS.md#add-ons). The
+// Panel asks them (with its own user agent, and caches), so the browser
+// talks only to Raptor. Installing is the node's addons.install command,
+// which fetches only from Modrinth's and Hangar's CDNs and checks the
+// file's hash. Any member of the org.
 service AddonService {
-  // SearchAddons searches Modrinth for a kind's projects that run on the
+  // SearchAddons searches a source for a kind's projects that run on the
   // loaders (and game version, if given).
   rpc SearchAddons(SearchAddonsRequest) returns (SearchAddonsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
@@ -22,9 +23,9 @@ service AddonService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
-  // IdentifyAddons says which Modrinth project and version each file is
-  // (by its SHA-512), and the newest version for the loaders and game
-  // version.
+  // IdentifyAddons says which project and version each file is (on
+  // Modrinth by its SHA-512, then on Hangar by its SHA-256), and the newest
+  // version for the loaders and game version.
   rpc IdentifyAddons(IdentifyAddonsRequest) returns (IdentifyAddonsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
@@ -38,15 +39,19 @@ message AddonProject {
   string icon_url = 5;
   int64 downloads = 6;
   string author = 7;
-  // Its page on Modrinth.
+  // Its page on its source.
   string url = 8;
+  // "modrinth" or "hangar".
+  string source = 9;
 }
 
 message AddonFile {
   string url = 1;
   string filename = 2;
   int64 size = 3;
+  // Modrinth's files have a SHA-512, Hangar's a SHA-256.
   string sha512 = 4;
+  string sha256 = 5;
 }
 
 message AddonVersion {
@@ -70,6 +75,8 @@ message SearchAddonsRequest {
   string game_version = 4;
   string query = 5;
   int32 offset = 6;
+  // "modrinth" (the default) or "hangar" (plugins only).
+  string source = 7;
 }
 
 message SearchAddonsResponse {
@@ -82,6 +89,8 @@ message ListAddonVersionsRequest {
   string project_id = 2;
   repeated string loaders = 3;
   string game_version = 4;
+  // The project's source: "modrinth" (the default) or "hangar".
+  string source = 5;
 }
 
 message ListAddonVersionsResponse {
@@ -94,6 +103,9 @@ message IdentifyAddonsRequest {
   repeated string hashes = 2;
   repeated string loaders = 3;
   string game_version = 4;
+  // The files' SHA-256s, by SHA-512: files Modrinth doesn't know are
+  // looked up on Hangar.
+  map<string, string> sha256 = 5;
 }
 
 message IdentifiedAddon {
@@ -106,6 +118,6 @@ message IdentifiedAddon {
 }
 
 message IdentifyAddonsResponse {
-  // Files Modrinth doesn't know are left out.
+  // Files neither knows are left out.
   repeated IdentifiedAddon addons = 1;
 }

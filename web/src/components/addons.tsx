@@ -29,21 +29,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type AddonProject, AddonService } from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
-import { addonKinds, loaderName } from "@/lib/eggs";
+import { addonKinds, loaderName, onHangar, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { formatBytes as bytes } from "@/lib/metrics";
 import { gameVersion, type ServerConfig } from "@/lib/servers";
 
 // The plugin installer and mod manager (docs/EGGS.md#add-ons): what's in
 // the server's add-on folder, named from Modrinth by each file's SHA-512
-// with updates offered, and a search to add more. Wings downloads from
-// Modrinth's CDN only and keeps a file only if its hash is the one asked
-// for.
+// (or Hangar by its SHA-256) with updates offered, and a search to add
+// more. Wings downloads from their CDNs only and keeps a file only if its
+// hash is the one asked for.
 
 type Listing = {
   kind: string;
   dir: string;
-  files: { name: string; size: number; modified_at: number; sha512?: string; disabled?: boolean }[];
+  files: {
+    name: string;
+    size: number;
+    modified_at: number;
+    sha512?: string;
+    sha256?: string;
+    disabled?: boolean;
+  }[];
 };
 
 const select =
@@ -140,9 +147,12 @@ function Addons({
   });
   const files = list.data?.files ?? [];
   const hashes = files.flatMap((f) => (f.sha512 ? [f.sha512] : []));
+  const sha256 = Object.fromEntries(
+    files.flatMap((f) => (f.sha512 && f.sha256 ? [[f.sha512, f.sha256]] : [])),
+  );
   const known = useQuery(
     AddonService.method.identifyAddons,
-    { orgId, hashes, loaders, gameVersion: version },
+    { orgId, hashes, sha256, loaders, gameVersion: version },
     { enabled: hashes.length > 0 },
   );
   const byHash = new Map((known.data?.addons ?? []).map((a) => [a.sha512, a]));
@@ -202,7 +212,7 @@ function Addons({
                         )}
                         {f.disabled && <Badge variant="outline">Disabled</Badge>}
                         {!a && f.sha512 && known.data && (
-                          <Badge variant="outline">Not from Modrinth</Badge>
+                          <Badge variant="outline">Added by hand</Badge>
                         )}
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
@@ -220,7 +230,8 @@ function Addons({
                               api.run("addons.install", {
                                 kind,
                                 url: latest.url,
-                                sha512: latest.sha512,
+                                sha512: latest.sha512 || undefined,
+                                sha256: latest.sha256 || undefined,
                                 filename: latest.filename,
                                 replace: f.name,
                               }),
@@ -283,7 +294,7 @@ function Addons({
   );
 }
 
-type InstallFile = { url: string; sha512: string; filename: string };
+type InstallFile = { url: string; sha512?: string; sha256?: string; filename: string };
 
 function Finder({
   orgId,
@@ -303,10 +314,12 @@ function Finder({
   const meta = addonKinds[kind];
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<AddonProject>();
+  const sources = onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
+  const [source, setSource] = useState("modrinth");
   const q = useDeferredValue(query.trim());
   const search = useInfiniteQuery(
     AddonService.method.searchAddons,
-    { orgId, kind, loaders, gameVersion: version, query: q, offset: 0 },
+    { orgId, kind, loaders, gameVersion: version, query: q, offset: 0, source },
     {
       pageParamKey: "offset",
       getNextPageParam: (last, pages) => {
@@ -321,11 +334,26 @@ function Finder({
       <CardHeader>
         <CardTitle>Find {meta?.noun}s</CardTitle>
         <CardDescription>
-          From Modrinth{version ? `, for ${version}` : ", for any game version"}. Most downloaded
-          first.
+          From {sourceNames[source]}
+          {version ? `, for ${version}` : ", for any game version"}. Most downloaded first.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        {sources.length > 1 && (
+          <div className="flex gap-1.5">
+            {sources.map((s) => (
+              <Button
+                key={s}
+                size="sm"
+                variant={source === s ? "secondary" : "ghost"}
+                aria-pressed={source === s}
+                onClick={() => setSource(s)}
+              >
+                {sourceNames[s]}
+              </Button>
+            ))}
+          </div>
+        )}
         <div className="relative sm:max-w-sm">
           <Search className="pointer-events-none absolute top-2 left-2.5 size-4 text-muted-foreground" />
           <Input
@@ -417,7 +445,9 @@ function InstallDialog({
     projectId: project.id,
     loaders,
     gameVersion: version,
+    source: project.source,
   });
+  const from = sourceNames[project.source] ?? "Modrinth";
   const [chosen, setChosen] = useState("");
   const [busy, setBusy] = useState(false);
   const list = versions.data?.versions ?? [];
@@ -428,7 +458,7 @@ function InstallDialog({
         <DialogHeader>
           <DialogTitle>Install {project.title}</DialogTitle>
           <DialogDescription>
-            Wings downloads it from Modrinth and checks it's exactly the file Modrinth lists.
+            Wings downloads it from {from} and checks it's exactly the file {from} lists.
           </DialogDescription>
         </DialogHeader>
         {versions.error ? (
@@ -474,7 +504,8 @@ function InstallDialog({
               setBusy(true);
               await onInstall({
                 url: v.file.url,
-                sha512: v.file.sha512,
+                sha512: v.file.sha512 || undefined,
+                sha256: v.file.sha256 || undefined,
                 filename: v.file.filename,
               });
               setBusy(false);

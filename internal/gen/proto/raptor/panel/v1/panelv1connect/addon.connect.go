@@ -46,15 +46,15 @@ const (
 
 // AddonServiceClient is a client for the raptor.panel.v1.AddonService service.
 type AddonServiceClient interface {
-	// SearchAddons searches Modrinth for a kind's projects that run on the
+	// SearchAddons searches a source for a kind's projects that run on the
 	// loaders (and game version, if given).
 	SearchAddons(context.Context, *v1.SearchAddonsRequest) (*v1.SearchAddonsResponse, error)
 	// ListAddonVersions lists a project's versions for the loaders and game
 	// version, newest first.
 	ListAddonVersions(context.Context, *v1.ListAddonVersionsRequest) (*v1.ListAddonVersionsResponse, error)
-	// IdentifyAddons says which Modrinth project and version each file is
-	// (by its SHA-512), and the newest version for the loaders and game
-	// version.
+	// IdentifyAddons says which project and version each file is (on
+	// Modrinth by its SHA-512, then on Hangar by its SHA-256), and the newest
+	// version for the loaders and game version.
 	IdentifyAddons(context.Context, *v1.IdentifyAddonsRequest) (*v1.IdentifyAddonsResponse, error)
 }
 
@@ -129,15 +129,15 @@ func (c *addonServiceClient) IdentifyAddons(ctx context.Context, req *v1.Identif
 
 // AddonServiceHandler is an implementation of the raptor.panel.v1.AddonService service.
 type AddonServiceHandler interface {
-	// SearchAddons searches Modrinth for a kind's projects that run on the
+	// SearchAddons searches a source for a kind's projects that run on the
 	// loaders (and game version, if given).
 	SearchAddons(context.Context, *v1.SearchAddonsRequest) (*v1.SearchAddonsResponse, error)
 	// ListAddonVersions lists a project's versions for the loaders and game
 	// version, newest first.
 	ListAddonVersions(context.Context, *v1.ListAddonVersionsRequest) (*v1.ListAddonVersionsResponse, error)
-	// IdentifyAddons says which Modrinth project and version each file is
-	// (by its SHA-512), and the newest version for the loaders and game
-	// version.
+	// IdentifyAddons says which project and version each file is (on
+	// Modrinth by its SHA-512, then on Hangar by its SHA-256), and the newest
+	// version for the loaders and game version.
 	IdentifyAddons(context.Context, *v1.IdentifyAddonsRequest) (*v1.IdentifyAddonsResponse, error)
 }
 

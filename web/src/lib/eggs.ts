@@ -129,6 +129,26 @@ export const addonKinds: Record<
   },
 };
 
+// hangarLoaders are the loaders whose plugins Hangar has (Paper's, and
+// Velocity's and Waterfall's).
+const hangarLoaders = [
+  "paper",
+  "spigot",
+  "bukkit",
+  "purpur",
+  "folia",
+  "velocity",
+  "bungeecord",
+  "waterfall",
+];
+
+// onHangar reports whether Hangar has plugins for an add-on.
+export function onHangar(kind: string, loaders: string[]): boolean {
+  return kind === "plugins" && loaders.some((l) => hangarLoaders.includes(l));
+}
+
+export const sourceNames: Record<string, string> = { modrinth: "Modrinth", hangar: "Hangar" };
+
 const loaderNames: Record<string, string> = {
   bungeecord: "BungeeCord",
   neoforge: "NeoForge",

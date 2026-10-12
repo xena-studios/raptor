@@ -31,8 +31,10 @@ type AddonProject struct {
 	IconUrl     string                 `protobuf:"bytes,5,opt,name=icon_url,json=iconUrl,proto3" json:"icon_url,omitempty"`
 	Downloads   int64                  `protobuf:"varint,6,opt,name=downloads,proto3" json:"downloads,omitempty"`
 	Author      string                 `protobuf:"bytes,7,opt,name=author,proto3" json:"author,omitempty"`
-	// Its page on Modrinth.
-	Url           string `protobuf:"bytes,8,opt,name=url,proto3" json:"url,omitempty"`
+	// Its page on its source.
+	Url string `protobuf:"bytes,8,opt,name=url,proto3" json:"url,omitempty"`
+	// "modrinth" or "hangar".
+	Source        string `protobuf:"bytes,9,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -123,12 +125,21 @@ func (x *AddonProject) GetUrl() string {
 	return ""
 }
 
+func (x *AddonProject) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
 type AddonFile struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	Filename      string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
-	Size          int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
-	Sha512        string                 `protobuf:"bytes,4,opt,name=sha512,proto3" json:"sha512,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Url      string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	Filename string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
+	Size     int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	// Modrinth's files have a SHA-512, Hangar's a SHA-256.
+	Sha512        string `protobuf:"bytes,4,opt,name=sha512,proto3" json:"sha512,omitempty"`
+	Sha256        string `protobuf:"bytes,5,opt,name=sha256,proto3" json:"sha256,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -187,6 +198,13 @@ func (x *AddonFile) GetSize() int64 {
 func (x *AddonFile) GetSha512() string {
 	if x != nil {
 		return x.Sha512
+	}
+	return ""
+}
+
+func (x *AddonFile) GetSha256() string {
+	if x != nil {
+		return x.Sha256
 	}
 	return ""
 }
@@ -299,9 +317,11 @@ type SearchAddonsRequest struct {
 	Kind    string   `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	Loaders []string `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
 	// Empty: any.
-	GameVersion   string `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
-	Query         string `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`
-	Offset        int32  `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"`
+	GameVersion string `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
+	Query       string `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`
+	Offset      int32  `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"`
+	// "modrinth" (the default) or "hangar" (plugins only).
+	Source        string `protobuf:"bytes,7,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -378,6 +398,13 @@ func (x *SearchAddonsRequest) GetOffset() int32 {
 	return 0
 }
 
+func (x *SearchAddonsRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
 type SearchAddonsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Projects      []*AddonProject        `protobuf:"bytes,1,rep,name=projects,proto3" json:"projects,omitempty"`
@@ -431,11 +458,13 @@ func (x *SearchAddonsResponse) GetTotal() int32 {
 }
 
 type ListAddonVersionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Loaders       []string               `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
-	GameVersion   string                 `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	OrgId       string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Loaders     []string               `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
+	GameVersion string                 `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
+	// The project's source: "modrinth" (the default) or "hangar".
+	Source        string `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -498,6 +527,13 @@ func (x *ListAddonVersionsRequest) GetGameVersion() string {
 	return ""
 }
 
+func (x *ListAddonVersionsRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
 type ListAddonVersionsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Versions      []*AddonVersion        `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
@@ -546,9 +582,12 @@ type IdentifyAddonsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
 	// SHA-512s, from the node's addons.list.
-	Hashes        []string `protobuf:"bytes,2,rep,name=hashes,proto3" json:"hashes,omitempty"`
-	Loaders       []string `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
-	GameVersion   string   `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
+	Hashes      []string `protobuf:"bytes,2,rep,name=hashes,proto3" json:"hashes,omitempty"`
+	Loaders     []string `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
+	GameVersion string   `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
+	// The files' SHA-256s, by SHA-512: files Modrinth doesn't know are
+	// looked up on Hangar.
+	Sha256        map[string]string `protobuf:"bytes,5,rep,name=sha256,proto3" json:"sha256,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -609,6 +648,13 @@ func (x *IdentifyAddonsRequest) GetGameVersion() string {
 		return x.GameVersion
 	}
 	return ""
+}
+
+func (x *IdentifyAddonsRequest) GetSha256() map[string]string {
+	if x != nil {
+		return x.Sha256
+	}
+	return nil
 }
 
 type IdentifiedAddon struct {
@@ -683,7 +729,7 @@ func (x *IdentifiedAddon) GetLatest() *AddonVersion {
 
 type IdentifyAddonsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Files Modrinth doesn't know are left out.
+	// Files neither knows are left out.
 	Addons        []*IdentifiedAddon `protobuf:"bytes,1,rep,name=addons,proto3" json:"addons,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -730,7 +776,7 @@ var File_raptor_panel_v1_addon_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"\n" +
-	"\x1braptor/panel/v1/addon.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcd\x01\n" +
+	"\x1braptor/panel/v1/addon.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe5\x01\n" +
 	"\fAddonProject\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x14\n" +
@@ -739,12 +785,14 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"\bicon_url\x18\x05 \x01(\tR\aiconUrl\x12\x1c\n" +
 	"\tdownloads\x18\x06 \x01(\x03R\tdownloads\x12\x16\n" +
 	"\x06author\x18\a \x01(\tR\x06author\x12\x10\n" +
-	"\x03url\x18\b \x01(\tR\x03url\"e\n" +
+	"\x03url\x18\b \x01(\tR\x03url\x12\x16\n" +
+	"\x06source\x18\t \x01(\tR\x06source\"}\n" +
 	"\tAddonFile\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12\x12\n" +
 	"\x04size\x18\x03 \x01(\x03R\x04size\x12\x16\n" +
-	"\x06sha512\x18\x04 \x01(\tR\x06sha512\"\xa6\x02\n" +
+	"\x06sha512\x18\x04 \x01(\tR\x06sha512\x12\x16\n" +
+	"\x06sha256\x18\x05 \x01(\tR\x06sha256\"\xa6\x02\n" +
 	"\fAddonVersion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -754,30 +802,36 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"\rgame_versions\x18\x05 \x03(\tR\fgameVersions\x12\x18\n" +
 	"\aloaders\x18\x06 \x03(\tR\aloaders\x12=\n" +
 	"\fpublished_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vpublishedAt\x12.\n" +
-	"\x04file\x18\b \x01(\v2\x1a.raptor.panel.v1.AddonFileR\x04file\"\xab\x01\n" +
+	"\x04file\x18\b \x01(\v2\x1a.raptor.panel.v1.AddonFileR\x04file\"\xc3\x01\n" +
 	"\x13SearchAddonsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x18\n" +
 	"\aloaders\x18\x03 \x03(\tR\aloaders\x12!\n" +
 	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\x12\x14\n" +
 	"\x05query\x18\x05 \x01(\tR\x05query\x12\x16\n" +
-	"\x06offset\x18\x06 \x01(\x05R\x06offset\"g\n" +
+	"\x06offset\x18\x06 \x01(\x05R\x06offset\x12\x16\n" +
+	"\x06source\x18\a \x01(\tR\x06source\"g\n" +
 	"\x14SearchAddonsResponse\x129\n" +
 	"\bprojects\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AddonProjectR\bprojects\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"\x8d\x01\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xa5\x01\n" +
 	"\x18ListAddonVersionsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x18\n" +
 	"\aloaders\x18\x03 \x03(\tR\aloaders\x12!\n" +
-	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\"V\n" +
+	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\x12\x16\n" +
+	"\x06source\x18\x05 \x01(\tR\x06source\"V\n" +
 	"\x19ListAddonVersionsResponse\x129\n" +
-	"\bversions\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AddonVersionR\bversions\"\x83\x01\n" +
+	"\bversions\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AddonVersionR\bversions\"\x8a\x02\n" +
 	"\x15IdentifyAddonsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x16\n" +
 	"\x06hashes\x18\x02 \x03(\tR\x06hashes\x12\x18\n" +
 	"\aloaders\x18\x03 \x03(\tR\aloaders\x12!\n" +
-	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\"\xd2\x01\n" +
+	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\x12J\n" +
+	"\x06sha256\x18\x05 \x03(\v22.raptor.panel.v1.IdentifyAddonsRequest.Sha256EntryR\x06sha256\x1a9\n" +
+	"\vSha256Entry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd2\x01\n" +
 	"\x0fIdentifiedAddon\x12\x16\n" +
 	"\x06sha512\x18\x01 \x01(\tR\x06sha512\x127\n" +
 	"\aproject\x18\x02 \x01(\v2\x1d.raptor.panel.v1.AddonProjectR\aproject\x127\n" +
@@ -804,7 +858,7 @@ func file_raptor_panel_v1_addon_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_addon_proto_rawDescData
 }
 
-var file_raptor_panel_v1_addon_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_raptor_panel_v1_addon_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_raptor_panel_v1_addon_proto_goTypes = []any{
 	(*AddonProject)(nil),              // 0: raptor.panel.v1.AddonProject
 	(*AddonFile)(nil),                 // 1: raptor.panel.v1.AddonFile
@@ -816,28 +870,30 @@ var file_raptor_panel_v1_addon_proto_goTypes = []any{
 	(*IdentifyAddonsRequest)(nil),     // 7: raptor.panel.v1.IdentifyAddonsRequest
 	(*IdentifiedAddon)(nil),           // 8: raptor.panel.v1.IdentifiedAddon
 	(*IdentifyAddonsResponse)(nil),    // 9: raptor.panel.v1.IdentifyAddonsResponse
-	(*timestamppb.Timestamp)(nil),     // 10: google.protobuf.Timestamp
+	nil,                               // 10: raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
+	(*timestamppb.Timestamp)(nil),     // 11: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_addon_proto_depIdxs = []int32{
-	10, // 0: raptor.panel.v1.AddonVersion.published_at:type_name -> google.protobuf.Timestamp
+	11, // 0: raptor.panel.v1.AddonVersion.published_at:type_name -> google.protobuf.Timestamp
 	1,  // 1: raptor.panel.v1.AddonVersion.file:type_name -> raptor.panel.v1.AddonFile
 	0,  // 2: raptor.panel.v1.SearchAddonsResponse.projects:type_name -> raptor.panel.v1.AddonProject
 	2,  // 3: raptor.panel.v1.ListAddonVersionsResponse.versions:type_name -> raptor.panel.v1.AddonVersion
-	0,  // 4: raptor.panel.v1.IdentifiedAddon.project:type_name -> raptor.panel.v1.AddonProject
-	2,  // 5: raptor.panel.v1.IdentifiedAddon.version:type_name -> raptor.panel.v1.AddonVersion
-	2,  // 6: raptor.panel.v1.IdentifiedAddon.latest:type_name -> raptor.panel.v1.AddonVersion
-	8,  // 7: raptor.panel.v1.IdentifyAddonsResponse.addons:type_name -> raptor.panel.v1.IdentifiedAddon
-	3,  // 8: raptor.panel.v1.AddonService.SearchAddons:input_type -> raptor.panel.v1.SearchAddonsRequest
-	5,  // 9: raptor.panel.v1.AddonService.ListAddonVersions:input_type -> raptor.panel.v1.ListAddonVersionsRequest
-	7,  // 10: raptor.panel.v1.AddonService.IdentifyAddons:input_type -> raptor.panel.v1.IdentifyAddonsRequest
-	4,  // 11: raptor.panel.v1.AddonService.SearchAddons:output_type -> raptor.panel.v1.SearchAddonsResponse
-	6,  // 12: raptor.panel.v1.AddonService.ListAddonVersions:output_type -> raptor.panel.v1.ListAddonVersionsResponse
-	9,  // 13: raptor.panel.v1.AddonService.IdentifyAddons:output_type -> raptor.panel.v1.IdentifyAddonsResponse
-	11, // [11:14] is the sub-list for method output_type
-	8,  // [8:11] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	10, // 4: raptor.panel.v1.IdentifyAddonsRequest.sha256:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
+	0,  // 5: raptor.panel.v1.IdentifiedAddon.project:type_name -> raptor.panel.v1.AddonProject
+	2,  // 6: raptor.panel.v1.IdentifiedAddon.version:type_name -> raptor.panel.v1.AddonVersion
+	2,  // 7: raptor.panel.v1.IdentifiedAddon.latest:type_name -> raptor.panel.v1.AddonVersion
+	8,  // 8: raptor.panel.v1.IdentifyAddonsResponse.addons:type_name -> raptor.panel.v1.IdentifiedAddon
+	3,  // 9: raptor.panel.v1.AddonService.SearchAddons:input_type -> raptor.panel.v1.SearchAddonsRequest
+	5,  // 10: raptor.panel.v1.AddonService.ListAddonVersions:input_type -> raptor.panel.v1.ListAddonVersionsRequest
+	7,  // 11: raptor.panel.v1.AddonService.IdentifyAddons:input_type -> raptor.panel.v1.IdentifyAddonsRequest
+	4,  // 12: raptor.panel.v1.AddonService.SearchAddons:output_type -> raptor.panel.v1.SearchAddonsResponse
+	6,  // 13: raptor.panel.v1.AddonService.ListAddonVersions:output_type -> raptor.panel.v1.ListAddonVersionsResponse
+	9,  // 14: raptor.panel.v1.AddonService.IdentifyAddons:output_type -> raptor.panel.v1.IdentifyAddonsResponse
+	12, // [12:15] is the sub-list for method output_type
+	9,  // [9:12] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_addon_proto_init() }
@@ -851,7 +907,7 @@ func file_raptor_panel_v1_addon_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_addon_proto_rawDesc), len(file_raptor_panel_v1_addon_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
