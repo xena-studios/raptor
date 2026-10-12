@@ -1,19 +1,20 @@
 import "monaco-editor/editor/editor.main.js";
 
 import * as monaco from "monaco-editor/editor/editor.api.js";
-import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
-import JsonWorker from "monaco-editor/language/json/json.worker.js?worker";
+import editorWorker from "monaco-editor/editor/editor.worker.js?worker&url";
+import jsonWorker from "monaco-editor/language/json/json.worker.js?worker&url";
 import { useEffect, useMemo, useRef } from "react";
 
 import type { EditorTheme, FileSettings } from "@/lib/file-settings";
 import { useTheme } from "@/lib/theme";
+import { workerURL } from "@/lib/trusted-types";
 
-// Monaco's workers are our own files (worker-src 'self' in the CSP). JSON
-// gets its own, for validation and folding; everything else uses the
-// editor's.
+// Monaco's workers are our own files (worker-src 'self' in the CSP),
+// passed through the app's Trusted Types policy. JSON gets its own, for
+// validation and folding; everything else uses the editor's.
 self.MonacoEnvironment = {
   getWorker: (_id: string, label: string) =>
-    label === "json" ? new JsonWorker() : new EditorWorker(),
+    new Worker(workerURL(label === "json" ? jsonWorker : editorWorker), { type: "module" }),
 };
 
 // cssColor is a CSS variable as hex, for Monaco (the app's colors are
