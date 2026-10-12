@@ -344,7 +344,7 @@ The limit, said plainly: this stops a staff account (or one taken over) from rea
 
 ## AGPL obligations
 
-The Panel footer links to the **exact source commit** that is deployed. All dependencies must be AGPL-compatible (CI checks licenses).
+The Panel links to the **exact source commit** that is deployed: the sidebar's footer and the sign-in page show "Source code", pointing at the commit the API reports (`MetaService.GetVersion`, set by the image build's `COMMIT`), or the repository for development builds. All dependencies must be AGPL-compatible (CI checks licenses).
 
 ## Hosting
 

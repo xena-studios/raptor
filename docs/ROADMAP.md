@@ -280,7 +280,7 @@ Found while checking production (Oct 8):
 - [ ] **Load test** with fake-Wings simulator (thousands of nodes)
 - [ ] Status page at `status.raptorpanel.net` (hosted with a different provider than the Panel, DNS not on Cloudflare; a Better Stack page exists, but its record is on Cloudflare)
 - [ ] Docs site (Astro Starlight, `docs.raptorpanel.net`): install guide, provider guides (Hetzner, OVH, Oracle Free Tier, home PC), CLI reference, egg authoring
-- [ ] AGPL source link in the Panel footer (deployed commit)
+- [x] AGPL source link in the Panel footer (deployed commit): the sidebar and the sign-in page link to the commit the API reports (`MetaService.GetVersion`), or the repository for development builds
 
 **Exit criteria (launch gate):**
 - Install success rate ≥ 95% on supported OSes during beta

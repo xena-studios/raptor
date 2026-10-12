@@ -24,6 +24,7 @@ import { type ReactNode, useEffect } from "react";
 import { Announcements } from "@/components/announcements";
 import { NotFound } from "@/components/error-screen";
 import { Logo } from "@/components/logo";
+import { SourceLink } from "@/components/source-link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -132,6 +133,7 @@ export function AppShell({
         <SidebarFooter>
           {current && <NodeCount orgId={current.id} />}
           <UserMenu session={session} />
+          <SourceLink className="px-2 group-data-[collapsible=icon]:hidden" />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
