@@ -62,6 +62,18 @@ const (
 	// StaffServiceUnsuspendOrgProcedure is the fully-qualified name of the StaffService's UnsuspendOrg
 	// RPC.
 	StaffServiceUnsuspendOrgProcedure = "/raptor.panel.v1.StaffService/UnsuspendOrg"
+	// StaffServiceListActiveAnnouncementsProcedure is the fully-qualified name of the StaffService's
+	// ListActiveAnnouncements RPC.
+	StaffServiceListActiveAnnouncementsProcedure = "/raptor.panel.v1.StaffService/ListActiveAnnouncements"
+	// StaffServiceListAnnouncementsProcedure is the fully-qualified name of the StaffService's
+	// ListAnnouncements RPC.
+	StaffServiceListAnnouncementsProcedure = "/raptor.panel.v1.StaffService/ListAnnouncements"
+	// StaffServiceSaveAnnouncementProcedure is the fully-qualified name of the StaffService's
+	// SaveAnnouncement RPC.
+	StaffServiceSaveAnnouncementProcedure = "/raptor.panel.v1.StaffService/SaveAnnouncement"
+	// StaffServiceEndAnnouncementProcedure is the fully-qualified name of the StaffService's
+	// EndAnnouncement RPC.
+	StaffServiceEndAnnouncementProcedure = "/raptor.panel.v1.StaffService/EndAnnouncement"
 	// StaffServiceListStaffProcedure is the fully-qualified name of the StaffService's ListStaff RPC.
 	StaffServiceListStaffProcedure = "/raptor.panel.v1.StaffService/ListStaff"
 	// StaffServiceListStaffAuditProcedure is the fully-qualified name of the StaffService's
@@ -89,6 +101,15 @@ type StaffServiceClient interface {
 	// game servers keep running. Admins.
 	SuspendOrg(context.Context, *v1.SuspendOrgRequest) (*v1.SuspendOrgResponse, error)
 	UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error)
+	// ListActiveAnnouncements is what to show everyone right now. Anyone
+	// signed in may ask.
+	ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error)
+	// ListAnnouncements lists the newest 100, past and future too.
+	ListAnnouncements(context.Context, *v1.ListAnnouncementsRequest) (*v1.ListAnnouncementsResponse, error)
+	// SaveAnnouncement creates one (no id) or changes one. Admins.
+	SaveAnnouncement(context.Context, *v1.SaveAnnouncementRequest) (*v1.SaveAnnouncementResponse, error)
+	// EndAnnouncement takes one down now. Admins.
+	EndAnnouncement(context.Context, *v1.EndAnnouncementRequest) (*v1.EndAnnouncementResponse, error)
 	// ListStaff lists Raptor's staff.
 	ListStaff(context.Context, *v1.ListStaffRequest) (*v1.ListStaffResponse, error)
 	// ListStaffAudit is what staff did, newest first, 50 at a time.
@@ -178,6 +199,32 @@ func NewStaffServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(staffServiceMethods.ByName("UnsuspendOrg")),
 			connect.WithClientOptions(opts...),
 		),
+		listActiveAnnouncements: connect.NewClient[v1.ListActiveAnnouncementsRequest, v1.ListActiveAnnouncementsResponse](
+			httpClient,
+			baseURL+StaffServiceListActiveAnnouncementsProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("ListActiveAnnouncements")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		listAnnouncements: connect.NewClient[v1.ListAnnouncementsRequest, v1.ListAnnouncementsResponse](
+			httpClient,
+			baseURL+StaffServiceListAnnouncementsProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("ListAnnouncements")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		saveAnnouncement: connect.NewClient[v1.SaveAnnouncementRequest, v1.SaveAnnouncementResponse](
+			httpClient,
+			baseURL+StaffServiceSaveAnnouncementProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("SaveAnnouncement")),
+			connect.WithClientOptions(opts...),
+		),
+		endAnnouncement: connect.NewClient[v1.EndAnnouncementRequest, v1.EndAnnouncementResponse](
+			httpClient,
+			baseURL+StaffServiceEndAnnouncementProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("EndAnnouncement")),
+			connect.WithClientOptions(opts...),
+		),
 		listStaff: connect.NewClient[v1.ListStaffRequest, v1.ListStaffResponse](
 			httpClient,
 			baseURL+StaffServiceListStaffProcedure,
@@ -197,19 +244,23 @@ func NewStaffServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // staffServiceClient implements StaffServiceClient.
 type staffServiceClient struct {
-	getStaffMe     *connect.Client[v1.GetStaffMeRequest, v1.GetStaffMeResponse]
-	getOverview    *connect.Client[v1.GetOverviewRequest, v1.GetOverviewResponse]
-	searchUsers    *connect.Client[v1.SearchUsersRequest, v1.SearchUsersResponse]
-	getUser        *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
-	suspendUser    *connect.Client[v1.SuspendUserRequest, v1.SuspendUserResponse]
-	unsuspendUser  *connect.Client[v1.UnsuspendUserRequest, v1.UnsuspendUserResponse]
-	signOutUser    *connect.Client[v1.SignOutUserRequest, v1.SignOutUserResponse]
-	searchOrgs     *connect.Client[v1.SearchOrgsRequest, v1.SearchOrgsResponse]
-	getStaffOrg    *connect.Client[v1.GetStaffOrgRequest, v1.GetStaffOrgResponse]
-	suspendOrg     *connect.Client[v1.SuspendOrgRequest, v1.SuspendOrgResponse]
-	unsuspendOrg   *connect.Client[v1.UnsuspendOrgRequest, v1.UnsuspendOrgResponse]
-	listStaff      *connect.Client[v1.ListStaffRequest, v1.ListStaffResponse]
-	listStaffAudit *connect.Client[v1.ListStaffAuditRequest, v1.ListStaffAuditResponse]
+	getStaffMe              *connect.Client[v1.GetStaffMeRequest, v1.GetStaffMeResponse]
+	getOverview             *connect.Client[v1.GetOverviewRequest, v1.GetOverviewResponse]
+	searchUsers             *connect.Client[v1.SearchUsersRequest, v1.SearchUsersResponse]
+	getUser                 *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
+	suspendUser             *connect.Client[v1.SuspendUserRequest, v1.SuspendUserResponse]
+	unsuspendUser           *connect.Client[v1.UnsuspendUserRequest, v1.UnsuspendUserResponse]
+	signOutUser             *connect.Client[v1.SignOutUserRequest, v1.SignOutUserResponse]
+	searchOrgs              *connect.Client[v1.SearchOrgsRequest, v1.SearchOrgsResponse]
+	getStaffOrg             *connect.Client[v1.GetStaffOrgRequest, v1.GetStaffOrgResponse]
+	suspendOrg              *connect.Client[v1.SuspendOrgRequest, v1.SuspendOrgResponse]
+	unsuspendOrg            *connect.Client[v1.UnsuspendOrgRequest, v1.UnsuspendOrgResponse]
+	listActiveAnnouncements *connect.Client[v1.ListActiveAnnouncementsRequest, v1.ListActiveAnnouncementsResponse]
+	listAnnouncements       *connect.Client[v1.ListAnnouncementsRequest, v1.ListAnnouncementsResponse]
+	saveAnnouncement        *connect.Client[v1.SaveAnnouncementRequest, v1.SaveAnnouncementResponse]
+	endAnnouncement         *connect.Client[v1.EndAnnouncementRequest, v1.EndAnnouncementResponse]
+	listStaff               *connect.Client[v1.ListStaffRequest, v1.ListStaffResponse]
+	listStaffAudit          *connect.Client[v1.ListStaffAuditRequest, v1.ListStaffAuditResponse]
 }
 
 // GetStaffMe calls raptor.panel.v1.StaffService.GetStaffMe.
@@ -311,6 +362,42 @@ func (c *staffServiceClient) UnsuspendOrg(ctx context.Context, req *v1.Unsuspend
 	return nil, err
 }
 
+// ListActiveAnnouncements calls raptor.panel.v1.StaffService.ListActiveAnnouncements.
+func (c *staffServiceClient) ListActiveAnnouncements(ctx context.Context, req *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error) {
+	response, err := c.listActiveAnnouncements.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListAnnouncements calls raptor.panel.v1.StaffService.ListAnnouncements.
+func (c *staffServiceClient) ListAnnouncements(ctx context.Context, req *v1.ListAnnouncementsRequest) (*v1.ListAnnouncementsResponse, error) {
+	response, err := c.listAnnouncements.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SaveAnnouncement calls raptor.panel.v1.StaffService.SaveAnnouncement.
+func (c *staffServiceClient) SaveAnnouncement(ctx context.Context, req *v1.SaveAnnouncementRequest) (*v1.SaveAnnouncementResponse, error) {
+	response, err := c.saveAnnouncement.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// EndAnnouncement calls raptor.panel.v1.StaffService.EndAnnouncement.
+func (c *staffServiceClient) EndAnnouncement(ctx context.Context, req *v1.EndAnnouncementRequest) (*v1.EndAnnouncementResponse, error) {
+	response, err := c.endAnnouncement.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListStaff calls raptor.panel.v1.StaffService.ListStaff.
 func (c *staffServiceClient) ListStaff(ctx context.Context, req *v1.ListStaffRequest) (*v1.ListStaffResponse, error) {
 	response, err := c.listStaff.CallUnary(ctx, connect.NewRequest(req))
@@ -349,6 +436,15 @@ type StaffServiceHandler interface {
 	// game servers keep running. Admins.
 	SuspendOrg(context.Context, *v1.SuspendOrgRequest) (*v1.SuspendOrgResponse, error)
 	UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error)
+	// ListActiveAnnouncements is what to show everyone right now. Anyone
+	// signed in may ask.
+	ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error)
+	// ListAnnouncements lists the newest 100, past and future too.
+	ListAnnouncements(context.Context, *v1.ListAnnouncementsRequest) (*v1.ListAnnouncementsResponse, error)
+	// SaveAnnouncement creates one (no id) or changes one. Admins.
+	SaveAnnouncement(context.Context, *v1.SaveAnnouncementRequest) (*v1.SaveAnnouncementResponse, error)
+	// EndAnnouncement takes one down now. Admins.
+	EndAnnouncement(context.Context, *v1.EndAnnouncementRequest) (*v1.EndAnnouncementResponse, error)
 	// ListStaff lists Raptor's staff.
 	ListStaff(context.Context, *v1.ListStaffRequest) (*v1.ListStaffResponse, error)
 	// ListStaffAudit is what staff did, newest first, 50 at a time.
@@ -434,6 +530,32 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(staffServiceMethods.ByName("UnsuspendOrg")),
 		connect.WithHandlerOptions(opts...),
 	)
+	staffServiceListActiveAnnouncementsHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceListActiveAnnouncementsProcedure,
+		svc.ListActiveAnnouncements,
+		connect.WithSchema(staffServiceMethods.ByName("ListActiveAnnouncements")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceListAnnouncementsHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceListAnnouncementsProcedure,
+		svc.ListAnnouncements,
+		connect.WithSchema(staffServiceMethods.ByName("ListAnnouncements")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceSaveAnnouncementHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceSaveAnnouncementProcedure,
+		svc.SaveAnnouncement,
+		connect.WithSchema(staffServiceMethods.ByName("SaveAnnouncement")),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceEndAnnouncementHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceEndAnnouncementProcedure,
+		svc.EndAnnouncement,
+		connect.WithSchema(staffServiceMethods.ByName("EndAnnouncement")),
+		connect.WithHandlerOptions(opts...),
+	)
 	staffServiceListStaffHandler := connect.NewUnaryHandlerSimple(
 		StaffServiceListStaffProcedure,
 		svc.ListStaff,
@@ -472,6 +594,14 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 			staffServiceSuspendOrgHandler.ServeHTTP(w, r)
 		case StaffServiceUnsuspendOrgProcedure:
 			staffServiceUnsuspendOrgHandler.ServeHTTP(w, r)
+		case StaffServiceListActiveAnnouncementsProcedure:
+			staffServiceListActiveAnnouncementsHandler.ServeHTTP(w, r)
+		case StaffServiceListAnnouncementsProcedure:
+			staffServiceListAnnouncementsHandler.ServeHTTP(w, r)
+		case StaffServiceSaveAnnouncementProcedure:
+			staffServiceSaveAnnouncementHandler.ServeHTTP(w, r)
+		case StaffServiceEndAnnouncementProcedure:
+			staffServiceEndAnnouncementHandler.ServeHTTP(w, r)
 		case StaffServiceListStaffProcedure:
 			staffServiceListStaffHandler.ServeHTTP(w, r)
 		case StaffServiceListStaffAuditProcedure:
@@ -527,6 +657,22 @@ func (UnimplementedStaffServiceHandler) SuspendOrg(context.Context, *v1.SuspendO
 
 func (UnimplementedStaffServiceHandler) UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.UnsuspendOrg is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.ListActiveAnnouncements is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) ListAnnouncements(context.Context, *v1.ListAnnouncementsRequest) (*v1.ListAnnouncementsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.ListAnnouncements is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) SaveAnnouncement(context.Context, *v1.SaveAnnouncementRequest) (*v1.SaveAnnouncementResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.SaveAnnouncement is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) EndAnnouncement(context.Context, *v1.EndAnnouncementRequest) (*v1.EndAnnouncementResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.EndAnnouncement is not implemented"))
 }
 
 func (UnimplementedStaffServiceHandler) ListStaff(context.Context, *v1.ListStaffRequest) (*v1.ListStaffResponse, error) {

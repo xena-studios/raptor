@@ -260,6 +260,14 @@ Staff can't sign in as a user, and can't read or act on servers. Reaching a node
 
 **The staff log** (`staff_audit`) records every change and every account or org opened (once per 10 minutes per staff member), with who and from where. A trigger refuses updates, deletes, and truncation, so staff can't edit it. Suspensions also go in the affected account's or org's own log, as done by staff.
 
+## Announcements
+
+Staff publish banners everyone signed in sees, under the app's header (admin panel → Announcements; `SaveAnnouncement`, `EndAnnouncement`, admins, logged).
+- Each is news, a warning (an incident), or maintenance, with a title, up to 1,000 characters of **plain text** (rendered as text, never HTML or Markdown), and an optional `https://` link.
+- It shows from its start (now by default) to its end (until ended by default). Maintenance comes first, then warnings.
+- People can dismiss one; that's remembered in their browser.
+- `ListActiveAnnouncements` is open to anyone signed in. The app asks every 5 minutes.
+
 ## Support access
 
 1. Staff requests access to a node: level (1 diagnostics / 2 operate / 3 manage), duration, reason, **ticket reference required**.

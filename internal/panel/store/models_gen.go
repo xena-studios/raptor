@@ -10,6 +10,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Announcement struct {
+	ID        pgtype.UUID
+	Level     string
+	Title     string
+	Body      string
+	Link      string
+	StartsAt  pgtype.Timestamptz
+	EndsAt    pgtype.Timestamptz
+	CreatedBy string
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
 type AuditLog struct {
 	ID        pgtype.UUID
 	OrgID     pgtype.UUID

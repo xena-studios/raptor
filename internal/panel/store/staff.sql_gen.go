@@ -12,6 +12,42 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const activeAnnouncements = `-- name: ActiveAnnouncements :many
+SELECT id, level, title, body, link, starts_at, ends_at, created_by, created_at, updated_at FROM announcements WHERE starts_at <= now() AND (ends_at IS NULL OR ends_at > now())
+ORDER BY CASE level WHEN 'maintenance' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END, starts_at DESC
+`
+
+func (q *Queries) ActiveAnnouncements(ctx context.Context) ([]Announcement, error) {
+	rows, err := q.db.Query(ctx, activeAnnouncements)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Announcement
+	for rows.Next() {
+		var i Announcement
+		if err := rows.Scan(
+			&i.ID,
+			&i.Level,
+			&i.Title,
+			&i.Body,
+			&i.Link,
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const addStaff = `-- name: AddStaff :exec
 INSERT INTO staff (user_id, role, added_by) VALUES ($1, $2, $3)
 ON CONFLICT (user_id) DO UPDATE SET role = excluded.role, added_by = excluded.added_by, added_at = now()
@@ -54,6 +90,59 @@ func (q *Queries) AddStaffAudit(ctx context.Context, arg AddStaffAuditParams) er
 		arg.Ip,
 	)
 	return err
+}
+
+const createAnnouncement = `-- name: CreateAnnouncement :one
+INSERT INTO announcements (level, title, body, link, starts_at, ends_at, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, level, title, body, link, starts_at, ends_at, created_by, created_at, updated_at
+`
+
+type CreateAnnouncementParams struct {
+	Level     string
+	Title     string
+	Body      string
+	Link      string
+	StartsAt  pgtype.Timestamptz
+	EndsAt    pgtype.Timestamptz
+	CreatedBy string
+}
+
+func (q *Queries) CreateAnnouncement(ctx context.Context, arg CreateAnnouncementParams) (Announcement, error) {
+	row := q.db.QueryRow(ctx, createAnnouncement,
+		arg.Level,
+		arg.Title,
+		arg.Body,
+		arg.Link,
+		arg.StartsAt,
+		arg.EndsAt,
+		arg.CreatedBy,
+	)
+	var i Announcement
+	err := row.Scan(
+		&i.ID,
+		&i.Level,
+		&i.Title,
+		&i.Body,
+		&i.Link,
+		&i.StartsAt,
+		&i.EndsAt,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const endAnnouncement = `-- name: EndAnnouncement :execrows
+UPDATE announcements SET ends_at = now(), updated_at = now() WHERE id = $1 AND (ends_at IS NULL OR ends_at > now())
+`
+
+func (q *Queries) EndAnnouncement(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, endAnnouncement, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const failingServers = `-- name: FailingServers :many
@@ -151,6 +240,41 @@ func (q *Queries) InsertPlatformStats(ctx context.Context, arg InsertPlatformSta
 		arg.StorageBytes,
 	)
 	return err
+}
+
+const listAnnouncements = `-- name: ListAnnouncements :many
+SELECT id, level, title, body, link, starts_at, ends_at, created_by, created_at, updated_at FROM announcements ORDER BY created_at DESC LIMIT 100
+`
+
+func (q *Queries) ListAnnouncements(ctx context.Context) ([]Announcement, error) {
+	rows, err := q.db.Query(ctx, listAnnouncements)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Announcement
+	for rows.Next() {
+		var i Announcement
+		if err := rows.Scan(
+			&i.ID,
+			&i.Level,
+			&i.Title,
+			&i.Body,
+			&i.Link,
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listPlatformStats = `-- name: ListPlatformStats :many
@@ -811,6 +935,37 @@ UPDATE users SET suspended_at = NULL, suspended_reason = '' WHERE id = $1
 
 func (q *Queries) UnsuspendUser(ctx context.Context, id pgtype.UUID) (int64, error) {
 	result, err := q.db.Exec(ctx, unsuspendUser, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateAnnouncement = `-- name: UpdateAnnouncement :execrows
+UPDATE announcements SET level = $2, title = $3, body = $4, link = $5, starts_at = $6, ends_at = $7, updated_at = now()
+WHERE id = $1
+`
+
+type UpdateAnnouncementParams struct {
+	ID       pgtype.UUID
+	Level    string
+	Title    string
+	Body     string
+	Link     string
+	StartsAt pgtype.Timestamptz
+	EndsAt   pgtype.Timestamptz
+}
+
+func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateAnnouncement,
+		arg.ID,
+		arg.Level,
+		arg.Title,
+		arg.Body,
+		arg.Link,
+		arg.StartsAt,
+		arg.EndsAt,
+	)
 	if err != nil {
 		return 0, err
 	}

@@ -2495,6 +2495,448 @@ func (x *ListStaffAuditResponse) GetNextPageToken() string {
 	return ""
 }
 
+type Announcement struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// "info", "warning", or "maintenance".
+	Level string `protobuf:"bytes,2,opt,name=level,proto3" json:"level,omitempty"`
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	// Plain text: never rendered as HTML or Markdown.
+	Body string `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	// An https link for more ("" for none).
+	Link     string                 `protobuf:"bytes,5,opt,name=link,proto3" json:"link,omitempty"`
+	StartsAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=starts_at,json=startsAt,proto3" json:"starts_at,omitempty"`
+	// Unset: until it's ended.
+	EndsAt        *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=ends_at,json=endsAt,proto3" json:"ends_at,omitempty"`
+	CreatedBy     string                 `protobuf:"bytes,8,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Announcement) Reset() {
+	*x = Announcement{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Announcement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Announcement) ProtoMessage() {}
+
+func (x *Announcement) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Announcement.ProtoReflect.Descriptor instead.
+func (*Announcement) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *Announcement) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Announcement) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *Announcement) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Announcement) GetBody() string {
+	if x != nil {
+		return x.Body
+	}
+	return ""
+}
+
+func (x *Announcement) GetLink() string {
+	if x != nil {
+		return x.Link
+	}
+	return ""
+}
+
+func (x *Announcement) GetStartsAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartsAt
+	}
+	return nil
+}
+
+func (x *Announcement) GetEndsAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndsAt
+	}
+	return nil
+}
+
+func (x *Announcement) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return ""
+}
+
+func (x *Announcement) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type ListActiveAnnouncementsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListActiveAnnouncementsRequest) Reset() {
+	*x = ListActiveAnnouncementsRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListActiveAnnouncementsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListActiveAnnouncementsRequest) ProtoMessage() {}
+
+func (x *ListActiveAnnouncementsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListActiveAnnouncementsRequest.ProtoReflect.Descriptor instead.
+func (*ListActiveAnnouncementsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{41}
+}
+
+type ListActiveAnnouncementsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Announcements []*Announcement        `protobuf:"bytes,1,rep,name=announcements,proto3" json:"announcements,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListActiveAnnouncementsResponse) Reset() {
+	*x = ListActiveAnnouncementsResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListActiveAnnouncementsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListActiveAnnouncementsResponse) ProtoMessage() {}
+
+func (x *ListActiveAnnouncementsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListActiveAnnouncementsResponse.ProtoReflect.Descriptor instead.
+func (*ListActiveAnnouncementsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *ListActiveAnnouncementsResponse) GetAnnouncements() []*Announcement {
+	if x != nil {
+		return x.Announcements
+	}
+	return nil
+}
+
+type ListAnnouncementsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAnnouncementsRequest) Reset() {
+	*x = ListAnnouncementsRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAnnouncementsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAnnouncementsRequest) ProtoMessage() {}
+
+func (x *ListAnnouncementsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAnnouncementsRequest.ProtoReflect.Descriptor instead.
+func (*ListAnnouncementsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{43}
+}
+
+type ListAnnouncementsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Announcements []*Announcement        `protobuf:"bytes,1,rep,name=announcements,proto3" json:"announcements,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAnnouncementsResponse) Reset() {
+	*x = ListAnnouncementsResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAnnouncementsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAnnouncementsResponse) ProtoMessage() {}
+
+func (x *ListAnnouncementsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAnnouncementsResponse.ProtoReflect.Descriptor instead.
+func (*ListAnnouncementsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ListAnnouncementsResponse) GetAnnouncements() []*Announcement {
+	if x != nil {
+		return x.Announcements
+	}
+	return nil
+}
+
+type SaveAnnouncementRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The id, level, title, body, link, and times; created_by and created_at
+	// are ignored.
+	Announcement  *Announcement `protobuf:"bytes,1,opt,name=announcement,proto3" json:"announcement,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveAnnouncementRequest) Reset() {
+	*x = SaveAnnouncementRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveAnnouncementRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveAnnouncementRequest) ProtoMessage() {}
+
+func (x *SaveAnnouncementRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveAnnouncementRequest.ProtoReflect.Descriptor instead.
+func (*SaveAnnouncementRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *SaveAnnouncementRequest) GetAnnouncement() *Announcement {
+	if x != nil {
+		return x.Announcement
+	}
+	return nil
+}
+
+type SaveAnnouncementResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveAnnouncementResponse) Reset() {
+	*x = SaveAnnouncementResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveAnnouncementResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveAnnouncementResponse) ProtoMessage() {}
+
+func (x *SaveAnnouncementResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveAnnouncementResponse.ProtoReflect.Descriptor instead.
+func (*SaveAnnouncementResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *SaveAnnouncementResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type EndAnnouncementRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EndAnnouncementRequest) Reset() {
+	*x = EndAnnouncementRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EndAnnouncementRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EndAnnouncementRequest) ProtoMessage() {}
+
+func (x *EndAnnouncementRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EndAnnouncementRequest.ProtoReflect.Descriptor instead.
+func (*EndAnnouncementRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *EndAnnouncementRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type EndAnnouncementResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EndAnnouncementResponse) Reset() {
+	*x = EndAnnouncementResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EndAnnouncementResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EndAnnouncementResponse) ProtoMessage() {}
+
+func (x *EndAnnouncementResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EndAnnouncementResponse.ProtoReflect.Descriptor instead.
+func (*EndAnnouncementResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{48}
+}
+
 var File_raptor_panel_v1_staff_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_staff_proto_rawDesc = "" +
@@ -2682,7 +3124,32 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"page_token\x18\x01 \x01(\tR\tpageToken\"|\n" +
 	"\x16ListStaffAuditResponse\x12:\n" +
 	"\aentries\x18\x01 \x03(\v2 .raptor.panel.v1.StaffAuditEntryR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xc9\t\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xba\x02\n" +
+	"\fAnnouncement\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05level\x18\x02 \x01(\tR\x05level\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x12\n" +
+	"\x04body\x18\x04 \x01(\tR\x04body\x12\x12\n" +
+	"\x04link\x18\x05 \x01(\tR\x04link\x127\n" +
+	"\tstarts_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bstartsAt\x123\n" +
+	"\aends_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x06endsAt\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\b \x01(\tR\tcreatedBy\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\" \n" +
+	"\x1eListActiveAnnouncementsRequest\"f\n" +
+	"\x1fListActiveAnnouncementsResponse\x12C\n" +
+	"\rannouncements\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AnnouncementR\rannouncements\"\x1a\n" +
+	"\x18ListAnnouncementsRequest\"`\n" +
+	"\x19ListAnnouncementsResponse\x12C\n" +
+	"\rannouncements\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AnnouncementR\rannouncements\"\\\n" +
+	"\x17SaveAnnouncementRequest\x12A\n" +
+	"\fannouncement\x18\x01 \x01(\v2\x1d.raptor.panel.v1.AnnouncementR\fannouncement\"*\n" +
+	"\x18SaveAnnouncementResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"(\n" +
+	"\x16EndAnnouncementRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x19\n" +
+	"\x17EndAnnouncementResponse2\x91\r\n" +
 	"\fStaffService\x12Z\n" +
 	"\n" +
 	"GetStaffMe\x12\".raptor.panel.v1.GetStaffMeRequest\x1a#.raptor.panel.v1.GetStaffMeResponse\"\x03\x90\x02\x01\x12]\n" +
@@ -2697,7 +3164,11 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\vGetStaffOrg\x12#.raptor.panel.v1.GetStaffOrgRequest\x1a$.raptor.panel.v1.GetStaffOrgResponse\"\x03\x90\x02\x01\x12W\n" +
 	"\n" +
 	"SuspendOrg\x12\".raptor.panel.v1.SuspendOrgRequest\x1a#.raptor.panel.v1.SuspendOrgResponse\"\x00\x12]\n" +
-	"\fUnsuspendOrg\x12$.raptor.panel.v1.UnsuspendOrgRequest\x1a%.raptor.panel.v1.UnsuspendOrgResponse\"\x00\x12W\n" +
+	"\fUnsuspendOrg\x12$.raptor.panel.v1.UnsuspendOrgRequest\x1a%.raptor.panel.v1.UnsuspendOrgResponse\"\x00\x12\x81\x01\n" +
+	"\x17ListActiveAnnouncements\x12/.raptor.panel.v1.ListActiveAnnouncementsRequest\x1a0.raptor.panel.v1.ListActiveAnnouncementsResponse\"\x03\x90\x02\x01\x12o\n" +
+	"\x11ListAnnouncements\x12).raptor.panel.v1.ListAnnouncementsRequest\x1a*.raptor.panel.v1.ListAnnouncementsResponse\"\x03\x90\x02\x01\x12i\n" +
+	"\x10SaveAnnouncement\x12(.raptor.panel.v1.SaveAnnouncementRequest\x1a).raptor.panel.v1.SaveAnnouncementResponse\"\x00\x12f\n" +
+	"\x0fEndAnnouncement\x12'.raptor.panel.v1.EndAnnouncementRequest\x1a(.raptor.panel.v1.EndAnnouncementResponse\"\x00\x12W\n" +
 	"\tListStaff\x12!.raptor.panel.v1.ListStaffRequest\x1a\".raptor.panel.v1.ListStaffResponse\"\x03\x90\x02\x01\x12f\n" +
 	"\x0eListStaffAudit\x12&.raptor.panel.v1.ListStaffAuditRequest\x1a'.raptor.panel.v1.ListStaffAuditResponse\"\x03\x90\x02\x01B\xca\x01\n" +
 	"\x13com.raptor.panel.v1B\n" +
@@ -2715,53 +3186,62 @@ func file_raptor_panel_v1_staff_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_staff_proto_rawDescData
 }
 
-var file_raptor_panel_v1_staff_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
+var file_raptor_panel_v1_staff_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
 var file_raptor_panel_v1_staff_proto_goTypes = []any{
-	(*GetStaffMeRequest)(nil),      // 0: raptor.panel.v1.GetStaffMeRequest
-	(*GetStaffMeResponse)(nil),     // 1: raptor.panel.v1.GetStaffMeResponse
-	(*GetOverviewRequest)(nil),     // 2: raptor.panel.v1.GetOverviewRequest
-	(*PlatformCounts)(nil),         // 3: raptor.panel.v1.PlatformCounts
-	(*PlatformPoint)(nil),          // 4: raptor.panel.v1.PlatformPoint
-	(*CountBucket)(nil),            // 5: raptor.panel.v1.CountBucket
-	(*OfflineNode)(nil),            // 6: raptor.panel.v1.OfflineNode
-	(*FailingServer)(nil),          // 7: raptor.panel.v1.FailingServer
-	(*Revenue)(nil),                // 8: raptor.panel.v1.Revenue
-	(*GetOverviewResponse)(nil),    // 9: raptor.panel.v1.GetOverviewResponse
-	(*StaffUser)(nil),              // 10: raptor.panel.v1.StaffUser
-	(*SearchUsersRequest)(nil),     // 11: raptor.panel.v1.SearchUsersRequest
-	(*SearchUsersResponse)(nil),    // 12: raptor.panel.v1.SearchUsersResponse
-	(*GetUserRequest)(nil),         // 13: raptor.panel.v1.GetUserRequest
-	(*UserMembership)(nil),         // 14: raptor.panel.v1.UserMembership
-	(*UserSignin)(nil),             // 15: raptor.panel.v1.UserSignin
-	(*GetUserResponse)(nil),        // 16: raptor.panel.v1.GetUserResponse
-	(*SuspendUserRequest)(nil),     // 17: raptor.panel.v1.SuspendUserRequest
-	(*SuspendUserResponse)(nil),    // 18: raptor.panel.v1.SuspendUserResponse
-	(*UnsuspendUserRequest)(nil),   // 19: raptor.panel.v1.UnsuspendUserRequest
-	(*UnsuspendUserResponse)(nil),  // 20: raptor.panel.v1.UnsuspendUserResponse
-	(*SignOutUserRequest)(nil),     // 21: raptor.panel.v1.SignOutUserRequest
-	(*SignOutUserResponse)(nil),    // 22: raptor.panel.v1.SignOutUserResponse
-	(*StaffOrg)(nil),               // 23: raptor.panel.v1.StaffOrg
-	(*SearchOrgsRequest)(nil),      // 24: raptor.panel.v1.SearchOrgsRequest
-	(*SearchOrgsResponse)(nil),     // 25: raptor.panel.v1.SearchOrgsResponse
-	(*GetStaffOrgRequest)(nil),     // 26: raptor.panel.v1.GetStaffOrgRequest
-	(*StaffOrgMember)(nil),         // 27: raptor.panel.v1.StaffOrgMember
-	(*StaffOrgNode)(nil),           // 28: raptor.panel.v1.StaffOrgNode
-	(*GetStaffOrgResponse)(nil),    // 29: raptor.panel.v1.GetStaffOrgResponse
-	(*SuspendOrgRequest)(nil),      // 30: raptor.panel.v1.SuspendOrgRequest
-	(*SuspendOrgResponse)(nil),     // 31: raptor.panel.v1.SuspendOrgResponse
-	(*UnsuspendOrgRequest)(nil),    // 32: raptor.panel.v1.UnsuspendOrgRequest
-	(*UnsuspendOrgResponse)(nil),   // 33: raptor.panel.v1.UnsuspendOrgResponse
-	(*StaffMember)(nil),            // 34: raptor.panel.v1.StaffMember
-	(*ListStaffRequest)(nil),       // 35: raptor.panel.v1.ListStaffRequest
-	(*ListStaffResponse)(nil),      // 36: raptor.panel.v1.ListStaffResponse
-	(*StaffAuditEntry)(nil),        // 37: raptor.panel.v1.StaffAuditEntry
-	(*ListStaffAuditRequest)(nil),  // 38: raptor.panel.v1.ListStaffAuditRequest
-	(*ListStaffAuditResponse)(nil), // 39: raptor.panel.v1.ListStaffAuditResponse
-	(*timestamppb.Timestamp)(nil),  // 40: google.protobuf.Timestamp
+	(*GetStaffMeRequest)(nil),               // 0: raptor.panel.v1.GetStaffMeRequest
+	(*GetStaffMeResponse)(nil),              // 1: raptor.panel.v1.GetStaffMeResponse
+	(*GetOverviewRequest)(nil),              // 2: raptor.panel.v1.GetOverviewRequest
+	(*PlatformCounts)(nil),                  // 3: raptor.panel.v1.PlatformCounts
+	(*PlatformPoint)(nil),                   // 4: raptor.panel.v1.PlatformPoint
+	(*CountBucket)(nil),                     // 5: raptor.panel.v1.CountBucket
+	(*OfflineNode)(nil),                     // 6: raptor.panel.v1.OfflineNode
+	(*FailingServer)(nil),                   // 7: raptor.panel.v1.FailingServer
+	(*Revenue)(nil),                         // 8: raptor.panel.v1.Revenue
+	(*GetOverviewResponse)(nil),             // 9: raptor.panel.v1.GetOverviewResponse
+	(*StaffUser)(nil),                       // 10: raptor.panel.v1.StaffUser
+	(*SearchUsersRequest)(nil),              // 11: raptor.panel.v1.SearchUsersRequest
+	(*SearchUsersResponse)(nil),             // 12: raptor.panel.v1.SearchUsersResponse
+	(*GetUserRequest)(nil),                  // 13: raptor.panel.v1.GetUserRequest
+	(*UserMembership)(nil),                  // 14: raptor.panel.v1.UserMembership
+	(*UserSignin)(nil),                      // 15: raptor.panel.v1.UserSignin
+	(*GetUserResponse)(nil),                 // 16: raptor.panel.v1.GetUserResponse
+	(*SuspendUserRequest)(nil),              // 17: raptor.panel.v1.SuspendUserRequest
+	(*SuspendUserResponse)(nil),             // 18: raptor.panel.v1.SuspendUserResponse
+	(*UnsuspendUserRequest)(nil),            // 19: raptor.panel.v1.UnsuspendUserRequest
+	(*UnsuspendUserResponse)(nil),           // 20: raptor.panel.v1.UnsuspendUserResponse
+	(*SignOutUserRequest)(nil),              // 21: raptor.panel.v1.SignOutUserRequest
+	(*SignOutUserResponse)(nil),             // 22: raptor.panel.v1.SignOutUserResponse
+	(*StaffOrg)(nil),                        // 23: raptor.panel.v1.StaffOrg
+	(*SearchOrgsRequest)(nil),               // 24: raptor.panel.v1.SearchOrgsRequest
+	(*SearchOrgsResponse)(nil),              // 25: raptor.panel.v1.SearchOrgsResponse
+	(*GetStaffOrgRequest)(nil),              // 26: raptor.panel.v1.GetStaffOrgRequest
+	(*StaffOrgMember)(nil),                  // 27: raptor.panel.v1.StaffOrgMember
+	(*StaffOrgNode)(nil),                    // 28: raptor.panel.v1.StaffOrgNode
+	(*GetStaffOrgResponse)(nil),             // 29: raptor.panel.v1.GetStaffOrgResponse
+	(*SuspendOrgRequest)(nil),               // 30: raptor.panel.v1.SuspendOrgRequest
+	(*SuspendOrgResponse)(nil),              // 31: raptor.panel.v1.SuspendOrgResponse
+	(*UnsuspendOrgRequest)(nil),             // 32: raptor.panel.v1.UnsuspendOrgRequest
+	(*UnsuspendOrgResponse)(nil),            // 33: raptor.panel.v1.UnsuspendOrgResponse
+	(*StaffMember)(nil),                     // 34: raptor.panel.v1.StaffMember
+	(*ListStaffRequest)(nil),                // 35: raptor.panel.v1.ListStaffRequest
+	(*ListStaffResponse)(nil),               // 36: raptor.panel.v1.ListStaffResponse
+	(*StaffAuditEntry)(nil),                 // 37: raptor.panel.v1.StaffAuditEntry
+	(*ListStaffAuditRequest)(nil),           // 38: raptor.panel.v1.ListStaffAuditRequest
+	(*ListStaffAuditResponse)(nil),          // 39: raptor.panel.v1.ListStaffAuditResponse
+	(*Announcement)(nil),                    // 40: raptor.panel.v1.Announcement
+	(*ListActiveAnnouncementsRequest)(nil),  // 41: raptor.panel.v1.ListActiveAnnouncementsRequest
+	(*ListActiveAnnouncementsResponse)(nil), // 42: raptor.panel.v1.ListActiveAnnouncementsResponse
+	(*ListAnnouncementsRequest)(nil),        // 43: raptor.panel.v1.ListAnnouncementsRequest
+	(*ListAnnouncementsResponse)(nil),       // 44: raptor.panel.v1.ListAnnouncementsResponse
+	(*SaveAnnouncementRequest)(nil),         // 45: raptor.panel.v1.SaveAnnouncementRequest
+	(*SaveAnnouncementResponse)(nil),        // 46: raptor.panel.v1.SaveAnnouncementResponse
+	(*EndAnnouncementRequest)(nil),          // 47: raptor.panel.v1.EndAnnouncementRequest
+	(*EndAnnouncementResponse)(nil),         // 48: raptor.panel.v1.EndAnnouncementResponse
+	(*timestamppb.Timestamp)(nil),           // 49: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_staff_proto_depIdxs = []int32{
-	40, // 0: raptor.panel.v1.PlatformPoint.at:type_name -> google.protobuf.Timestamp
-	40, // 1: raptor.panel.v1.OfflineNode.last_seen_at:type_name -> google.protobuf.Timestamp
+	49, // 0: raptor.panel.v1.PlatformPoint.at:type_name -> google.protobuf.Timestamp
+	49, // 1: raptor.panel.v1.OfflineNode.last_seen_at:type_name -> google.protobuf.Timestamp
 	3,  // 2: raptor.panel.v1.GetOverviewResponse.counts:type_name -> raptor.panel.v1.PlatformCounts
 	4,  // 3: raptor.panel.v1.GetOverviewResponse.history:type_name -> raptor.panel.v1.PlatformPoint
 	5,  // 4: raptor.panel.v1.GetOverviewResponse.signups_by_day:type_name -> raptor.panel.v1.CountBucket
@@ -2771,57 +3251,71 @@ var file_raptor_panel_v1_staff_proto_depIdxs = []int32{
 	6,  // 8: raptor.panel.v1.GetOverviewResponse.offline_nodes:type_name -> raptor.panel.v1.OfflineNode
 	7,  // 9: raptor.panel.v1.GetOverviewResponse.failing_servers:type_name -> raptor.panel.v1.FailingServer
 	8,  // 10: raptor.panel.v1.GetOverviewResponse.revenue:type_name -> raptor.panel.v1.Revenue
-	40, // 11: raptor.panel.v1.StaffUser.created_at:type_name -> google.protobuf.Timestamp
-	40, // 12: raptor.panel.v1.StaffUser.suspended_at:type_name -> google.protobuf.Timestamp
-	40, // 13: raptor.panel.v1.StaffUser.last_seen_at:type_name -> google.protobuf.Timestamp
+	49, // 11: raptor.panel.v1.StaffUser.created_at:type_name -> google.protobuf.Timestamp
+	49, // 12: raptor.panel.v1.StaffUser.suspended_at:type_name -> google.protobuf.Timestamp
+	49, // 13: raptor.panel.v1.StaffUser.last_seen_at:type_name -> google.protobuf.Timestamp
 	10, // 14: raptor.panel.v1.SearchUsersResponse.users:type_name -> raptor.panel.v1.StaffUser
-	40, // 15: raptor.panel.v1.UserSignin.at:type_name -> google.protobuf.Timestamp
+	49, // 15: raptor.panel.v1.UserSignin.at:type_name -> google.protobuf.Timestamp
 	10, // 16: raptor.panel.v1.GetUserResponse.user:type_name -> raptor.panel.v1.StaffUser
 	14, // 17: raptor.panel.v1.GetUserResponse.memberships:type_name -> raptor.panel.v1.UserMembership
 	15, // 18: raptor.panel.v1.GetUserResponse.sign_ins:type_name -> raptor.panel.v1.UserSignin
-	40, // 19: raptor.panel.v1.StaffOrg.created_at:type_name -> google.protobuf.Timestamp
-	40, // 20: raptor.panel.v1.StaffOrg.suspended_at:type_name -> google.protobuf.Timestamp
+	49, // 19: raptor.panel.v1.StaffOrg.created_at:type_name -> google.protobuf.Timestamp
+	49, // 20: raptor.panel.v1.StaffOrg.suspended_at:type_name -> google.protobuf.Timestamp
 	23, // 21: raptor.panel.v1.SearchOrgsResponse.orgs:type_name -> raptor.panel.v1.StaffOrg
-	40, // 22: raptor.panel.v1.StaffOrgNode.last_seen_at:type_name -> google.protobuf.Timestamp
-	40, // 23: raptor.panel.v1.StaffOrgNode.created_at:type_name -> google.protobuf.Timestamp
+	49, // 22: raptor.panel.v1.StaffOrgNode.last_seen_at:type_name -> google.protobuf.Timestamp
+	49, // 23: raptor.panel.v1.StaffOrgNode.created_at:type_name -> google.protobuf.Timestamp
 	23, // 24: raptor.panel.v1.GetStaffOrgResponse.org:type_name -> raptor.panel.v1.StaffOrg
 	27, // 25: raptor.panel.v1.GetStaffOrgResponse.members:type_name -> raptor.panel.v1.StaffOrgMember
 	28, // 26: raptor.panel.v1.GetStaffOrgResponse.nodes:type_name -> raptor.panel.v1.StaffOrgNode
-	40, // 27: raptor.panel.v1.StaffMember.added_at:type_name -> google.protobuf.Timestamp
+	49, // 27: raptor.panel.v1.StaffMember.added_at:type_name -> google.protobuf.Timestamp
 	34, // 28: raptor.panel.v1.ListStaffResponse.staff:type_name -> raptor.panel.v1.StaffMember
-	40, // 29: raptor.panel.v1.StaffAuditEntry.at:type_name -> google.protobuf.Timestamp
+	49, // 29: raptor.panel.v1.StaffAuditEntry.at:type_name -> google.protobuf.Timestamp
 	37, // 30: raptor.panel.v1.ListStaffAuditResponse.entries:type_name -> raptor.panel.v1.StaffAuditEntry
-	0,  // 31: raptor.panel.v1.StaffService.GetStaffMe:input_type -> raptor.panel.v1.GetStaffMeRequest
-	2,  // 32: raptor.panel.v1.StaffService.GetOverview:input_type -> raptor.panel.v1.GetOverviewRequest
-	11, // 33: raptor.panel.v1.StaffService.SearchUsers:input_type -> raptor.panel.v1.SearchUsersRequest
-	13, // 34: raptor.panel.v1.StaffService.GetUser:input_type -> raptor.panel.v1.GetUserRequest
-	17, // 35: raptor.panel.v1.StaffService.SuspendUser:input_type -> raptor.panel.v1.SuspendUserRequest
-	19, // 36: raptor.panel.v1.StaffService.UnsuspendUser:input_type -> raptor.panel.v1.UnsuspendUserRequest
-	21, // 37: raptor.panel.v1.StaffService.SignOutUser:input_type -> raptor.panel.v1.SignOutUserRequest
-	24, // 38: raptor.panel.v1.StaffService.SearchOrgs:input_type -> raptor.panel.v1.SearchOrgsRequest
-	26, // 39: raptor.panel.v1.StaffService.GetStaffOrg:input_type -> raptor.panel.v1.GetStaffOrgRequest
-	30, // 40: raptor.panel.v1.StaffService.SuspendOrg:input_type -> raptor.panel.v1.SuspendOrgRequest
-	32, // 41: raptor.panel.v1.StaffService.UnsuspendOrg:input_type -> raptor.panel.v1.UnsuspendOrgRequest
-	35, // 42: raptor.panel.v1.StaffService.ListStaff:input_type -> raptor.panel.v1.ListStaffRequest
-	38, // 43: raptor.panel.v1.StaffService.ListStaffAudit:input_type -> raptor.panel.v1.ListStaffAuditRequest
-	1,  // 44: raptor.panel.v1.StaffService.GetStaffMe:output_type -> raptor.panel.v1.GetStaffMeResponse
-	9,  // 45: raptor.panel.v1.StaffService.GetOverview:output_type -> raptor.panel.v1.GetOverviewResponse
-	12, // 46: raptor.panel.v1.StaffService.SearchUsers:output_type -> raptor.panel.v1.SearchUsersResponse
-	16, // 47: raptor.panel.v1.StaffService.GetUser:output_type -> raptor.panel.v1.GetUserResponse
-	18, // 48: raptor.panel.v1.StaffService.SuspendUser:output_type -> raptor.panel.v1.SuspendUserResponse
-	20, // 49: raptor.panel.v1.StaffService.UnsuspendUser:output_type -> raptor.panel.v1.UnsuspendUserResponse
-	22, // 50: raptor.panel.v1.StaffService.SignOutUser:output_type -> raptor.panel.v1.SignOutUserResponse
-	25, // 51: raptor.panel.v1.StaffService.SearchOrgs:output_type -> raptor.panel.v1.SearchOrgsResponse
-	29, // 52: raptor.panel.v1.StaffService.GetStaffOrg:output_type -> raptor.panel.v1.GetStaffOrgResponse
-	31, // 53: raptor.panel.v1.StaffService.SuspendOrg:output_type -> raptor.panel.v1.SuspendOrgResponse
-	33, // 54: raptor.panel.v1.StaffService.UnsuspendOrg:output_type -> raptor.panel.v1.UnsuspendOrgResponse
-	36, // 55: raptor.panel.v1.StaffService.ListStaff:output_type -> raptor.panel.v1.ListStaffResponse
-	39, // 56: raptor.panel.v1.StaffService.ListStaffAudit:output_type -> raptor.panel.v1.ListStaffAuditResponse
-	44, // [44:57] is the sub-list for method output_type
-	31, // [31:44] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	49, // 31: raptor.panel.v1.Announcement.starts_at:type_name -> google.protobuf.Timestamp
+	49, // 32: raptor.panel.v1.Announcement.ends_at:type_name -> google.protobuf.Timestamp
+	49, // 33: raptor.panel.v1.Announcement.created_at:type_name -> google.protobuf.Timestamp
+	40, // 34: raptor.panel.v1.ListActiveAnnouncementsResponse.announcements:type_name -> raptor.panel.v1.Announcement
+	40, // 35: raptor.panel.v1.ListAnnouncementsResponse.announcements:type_name -> raptor.panel.v1.Announcement
+	40, // 36: raptor.panel.v1.SaveAnnouncementRequest.announcement:type_name -> raptor.panel.v1.Announcement
+	0,  // 37: raptor.panel.v1.StaffService.GetStaffMe:input_type -> raptor.panel.v1.GetStaffMeRequest
+	2,  // 38: raptor.panel.v1.StaffService.GetOverview:input_type -> raptor.panel.v1.GetOverviewRequest
+	11, // 39: raptor.panel.v1.StaffService.SearchUsers:input_type -> raptor.panel.v1.SearchUsersRequest
+	13, // 40: raptor.panel.v1.StaffService.GetUser:input_type -> raptor.panel.v1.GetUserRequest
+	17, // 41: raptor.panel.v1.StaffService.SuspendUser:input_type -> raptor.panel.v1.SuspendUserRequest
+	19, // 42: raptor.panel.v1.StaffService.UnsuspendUser:input_type -> raptor.panel.v1.UnsuspendUserRequest
+	21, // 43: raptor.panel.v1.StaffService.SignOutUser:input_type -> raptor.panel.v1.SignOutUserRequest
+	24, // 44: raptor.panel.v1.StaffService.SearchOrgs:input_type -> raptor.panel.v1.SearchOrgsRequest
+	26, // 45: raptor.panel.v1.StaffService.GetStaffOrg:input_type -> raptor.panel.v1.GetStaffOrgRequest
+	30, // 46: raptor.panel.v1.StaffService.SuspendOrg:input_type -> raptor.panel.v1.SuspendOrgRequest
+	32, // 47: raptor.panel.v1.StaffService.UnsuspendOrg:input_type -> raptor.panel.v1.UnsuspendOrgRequest
+	41, // 48: raptor.panel.v1.StaffService.ListActiveAnnouncements:input_type -> raptor.panel.v1.ListActiveAnnouncementsRequest
+	43, // 49: raptor.panel.v1.StaffService.ListAnnouncements:input_type -> raptor.panel.v1.ListAnnouncementsRequest
+	45, // 50: raptor.panel.v1.StaffService.SaveAnnouncement:input_type -> raptor.panel.v1.SaveAnnouncementRequest
+	47, // 51: raptor.panel.v1.StaffService.EndAnnouncement:input_type -> raptor.panel.v1.EndAnnouncementRequest
+	35, // 52: raptor.panel.v1.StaffService.ListStaff:input_type -> raptor.panel.v1.ListStaffRequest
+	38, // 53: raptor.panel.v1.StaffService.ListStaffAudit:input_type -> raptor.panel.v1.ListStaffAuditRequest
+	1,  // 54: raptor.panel.v1.StaffService.GetStaffMe:output_type -> raptor.panel.v1.GetStaffMeResponse
+	9,  // 55: raptor.panel.v1.StaffService.GetOverview:output_type -> raptor.panel.v1.GetOverviewResponse
+	12, // 56: raptor.panel.v1.StaffService.SearchUsers:output_type -> raptor.panel.v1.SearchUsersResponse
+	16, // 57: raptor.panel.v1.StaffService.GetUser:output_type -> raptor.panel.v1.GetUserResponse
+	18, // 58: raptor.panel.v1.StaffService.SuspendUser:output_type -> raptor.panel.v1.SuspendUserResponse
+	20, // 59: raptor.panel.v1.StaffService.UnsuspendUser:output_type -> raptor.panel.v1.UnsuspendUserResponse
+	22, // 60: raptor.panel.v1.StaffService.SignOutUser:output_type -> raptor.panel.v1.SignOutUserResponse
+	25, // 61: raptor.panel.v1.StaffService.SearchOrgs:output_type -> raptor.panel.v1.SearchOrgsResponse
+	29, // 62: raptor.panel.v1.StaffService.GetStaffOrg:output_type -> raptor.panel.v1.GetStaffOrgResponse
+	31, // 63: raptor.panel.v1.StaffService.SuspendOrg:output_type -> raptor.panel.v1.SuspendOrgResponse
+	33, // 64: raptor.panel.v1.StaffService.UnsuspendOrg:output_type -> raptor.panel.v1.UnsuspendOrgResponse
+	42, // 65: raptor.panel.v1.StaffService.ListActiveAnnouncements:output_type -> raptor.panel.v1.ListActiveAnnouncementsResponse
+	44, // 66: raptor.panel.v1.StaffService.ListAnnouncements:output_type -> raptor.panel.v1.ListAnnouncementsResponse
+	46, // 67: raptor.panel.v1.StaffService.SaveAnnouncement:output_type -> raptor.panel.v1.SaveAnnouncementResponse
+	48, // 68: raptor.panel.v1.StaffService.EndAnnouncement:output_type -> raptor.panel.v1.EndAnnouncementResponse
+	36, // 69: raptor.panel.v1.StaffService.ListStaff:output_type -> raptor.panel.v1.ListStaffResponse
+	39, // 70: raptor.panel.v1.StaffService.ListStaffAudit:output_type -> raptor.panel.v1.ListStaffAuditResponse
+	54, // [54:71] is the sub-list for method output_type
+	37, // [37:54] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_staff_proto_init() }
@@ -2835,7 +3329,7 @@ func file_raptor_panel_v1_staff_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_staff_proto_rawDesc), len(file_raptor_panel_v1_staff_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   40,
+			NumMessages:   49,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

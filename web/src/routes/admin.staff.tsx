@@ -97,6 +97,9 @@ const actionWords: Record<string, string> = {
   "org.view": "opened the org",
   "org.suspend": "suspended the org",
   "org.unsuspend": "lifted the org's suspension",
+  "announcement.create": "published an announcement",
+  "announcement.update": "changed an announcement",
+  "announcement.end": "ended an announcement",
 };
 
 function LogPage({
