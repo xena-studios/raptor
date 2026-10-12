@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Cpu, HardDrive, type LucideIcon, MemoryStick, Network, Users } from "lucide-react";
-import { lazy, type ReactNode, Suspense, useState } from "react";
+import { Cpu, HardDrive, MemoryStick, Network, Users } from "lucide-react";
+import { lazy, Suspense, useState } from "react";
 
 import { DetailList } from "@/components/page";
+import { Graph, lastPoints, RangePicker, StatCard } from "@/components/stats";
 import { TimeChart } from "@/components/time-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { message } from "@/lib/errors";
@@ -16,7 +17,6 @@ import {
   useMetrics,
 } from "@/lib/metrics";
 import { can, useServer } from "@/lib/org-data";
-import { cn } from "@/lib/utils";
 
 const Console = lazy(() => import("@/components/console"));
 
@@ -65,27 +65,30 @@ function Overview() {
             )}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-            <CardDescription>Where players reach this server.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DetailList
-              rows={[
-                [
-                  "Connect",
-                  <span key="c" className="font-mono text-xs">
-                    {address}
-                  </span>,
-                ],
-                ["Game", server.eggName || "—"],
-                ["Node", node?.name ?? "—"],
-                ["SFTP ID", <code key="s">{server.id.slice(-8)}</code>],
-              ]}
-            />
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Details</CardTitle>
+              <CardDescription>Where players reach this server.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DetailList
+                rows={[
+                  [
+                    "Connect",
+                    <span key="c" className="font-mono text-xs">
+                      {address}
+                    </span>,
+                  ],
+                  ["Game", server.eggName || "—"],
+                  ["Node", node?.name ?? "—"],
+                  ["SFTP ID", <code key="s">{server.id.slice(-8)}</code>],
+                ]}
+              />
+            </CardContent>
+          </Card>
+          <LastHour metrics={live.data} />
+        </div>
       </div>
 
       <Card>
@@ -96,23 +99,7 @@ function Overview() {
               Sampled every 10 seconds; minutes for a day, then 15 minutes for a week.
             </CardDescription>
           </div>
-          <fieldset className="flex rounded-lg border p-0.5">
-            <legend className="sr-only">Time range</legend>
-            {metricRanges.map((r) => (
-              <button
-                key={r.value}
-                type="button"
-                aria-pressed={range === r.value}
-                onClick={() => setRange(r.value)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground",
-                  range === r.value && "bg-muted font-medium text-foreground",
-                )}
-              >
-                {r.label}
-              </button>
-            ))}
-          </fieldset>
+          <RangePicker value={range} onChange={setRange} />
         </CardHeader>
         <CardContent>
           {history.error ? (
@@ -130,84 +117,90 @@ function Stats({ metrics, running }: { metrics?: Metrics; running: boolean }) {
   const p = metrics?.latest;
   const l = metrics?.limits;
   const live = running && p?.running;
-  const playersToday = Math.max(0, ...(metrics?.points ?? []).map((x) => x.players_max ?? 0));
+  const recent = lastPoints(metrics?.points).map((x) => (x.running ? x : null));
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      <Stat
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <StatCard
         icon={Cpu}
         label="CPU"
         value={live ? formatPercent(p.cpu) : "—"}
         sub={l?.cpu_percent ? `of ${l.cpu_percent}% limit` : "100% is one core"}
         fraction={live && l?.cpu_percent ? p.cpu / l.cpu_percent : undefined}
+        spark={recent.map((x) => x?.cpu ?? null)}
       />
-      <Stat
+      <StatCard
         icon={MemoryStick}
         label="Memory"
         value={live ? formatBytes(p.memory) : "—"}
         sub={l ? `of ${formatBytes(l.memory_bytes)}` : ""}
         fraction={live && l?.memory_bytes ? p.memory / l.memory_bytes : undefined}
       />
-      <Stat
+      <StatCard
         icon={HardDrive}
         label="Disk"
         value={p?.disk ? formatBytes(p.disk) : "—"}
         sub={l?.disk_bytes ? `of ${formatBytes(l.disk_bytes)}` : "No limit"}
         fraction={p?.disk && l?.disk_bytes ? p.disk / l.disk_bytes : undefined}
       />
-      <Stat
+      <StatCard
         icon={Network}
         label="Network"
         value={live ? `↓ ${formatRate(p.rx)}` : "—"}
         sub={live ? `↑ ${formatRate(p.tx)}` : "In and out"}
+        spark={recent.map((x) => (x ? x.rx + x.tx : null))}
       />
-      <Stat
+      <StatCard
         icon={Users}
         label="Players"
+        className="col-span-2 lg:col-span-1"
         value={live && p.players !== undefined ? String(Math.round(p.players)) : "—"}
-        sub={
-          p?.players === undefined && live
-            ? "This game doesn't report players"
-            : `Most in the last hour: ${playersToday}`
+        sub={p?.players === undefined && live ? "This game doesn't report players" : "Online now"}
+        spark={
+          recent.some((x) => x?.players !== undefined)
+            ? recent.map((x) => x?.players ?? null)
+            : undefined
         }
       />
     </div>
   );
 }
 
-function Stat({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  fraction,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  sub: string;
-  fraction?: number;
-}) {
-  const f = fraction === undefined ? undefined : Math.min(1, Math.max(0, fraction));
+// LastHour sums up the last hour: peaks, traffic, and the most players.
+function LastHour({ metrics }: { metrics?: Metrics }) {
+  const pts = (metrics?.points ?? []).filter((p) => p.running);
+  const minutes = pts.reduce((n, p) => n + (p.resolution || 60), 0) / 60;
+  const peakCPU = Math.max(0, ...pts.map((p) => p.cpu_max));
+  const peakMem = Math.max(0, ...pts.map((p) => p.memory_max));
+  const rx = pts.reduce((n, p) => n + p.rx * (p.resolution || 60), 0);
+  const tx = pts.reduce((n, p) => n + p.tx * (p.resolution || 60), 0);
+  const players = pts.some((p) => p.players_max !== undefined)
+    ? Math.max(0, ...pts.map((p) => p.players_max ?? 0))
+    : undefined;
   return (
-    <Card size="sm">
-      <CardContent className="flex flex-col gap-1.5">
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Icon className="size-3.5" /> {label}
-        </p>
-        <p className="text-xl font-semibold tabular-nums">{value}</p>
-        {f !== undefined && (
-          <div className="h-1 overflow-hidden rounded-full bg-muted">
-            <div
-              className={cn(
-                "h-full rounded-full transition-[width]",
-                f > 0.9 ? "bg-destructive" : "bg-[var(--series-1)]",
-              )}
-              style={{ width: `${f * 100}%` }}
-            />
-          </div>
-        )}
-        <p className="truncate text-xs text-muted-foreground">{sub}</p>
-      </CardContent>
+    <Card>
+      <CardHeader>
+        <CardTitle>The last hour</CardTitle>
+        <CardDescription>
+          {pts.length === 0
+            ? "It hasn't run in the last hour."
+            : `Running for ${Math.round(minutes)} of the last 60 minutes.`}
+        </CardDescription>
+      </CardHeader>
+      {pts.length > 0 && (
+        <CardContent>
+          <DetailList
+            rows={[
+              ["Peak CPU", formatPercent(peakCPU)],
+              ["Peak memory", formatBytes(peakMem)],
+              ["Data in", formatBytes(rx)],
+              ["Data out", formatBytes(tx)],
+              ...(players !== undefined
+                ? [["Most players", String(players)] as [string, string]]
+                : []),
+            ]}
+          />
+        </CardContent>
+      )}
     </Card>
   );
 }
@@ -285,17 +278,5 @@ function Graphs({ metrics, range }: { metrics?: Metrics; range: MetricRange }) {
         </Graph>
       )}
     </div>
-  );
-}
-
-function Graph({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium">
-        {title}
-        {note && <span className="ml-2 text-xs font-normal text-muted-foreground">{note}</span>}
-      </h3>
-      {children}
-    </section>
   );
 }

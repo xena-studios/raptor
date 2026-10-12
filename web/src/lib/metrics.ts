@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { commandClient } from "@/lib/transport";
 
@@ -120,6 +120,28 @@ export function useNodeMetrics(nodeId: string, range: MetricRange, enabled: bool
     enabled,
     refetchInterval: range === "1h" ? 10_000 : 60_000,
     placeholderData: (prev) => prev,
+  });
+}
+
+// useNodesMetrics is the last hour of several nodes, for the org's overview,
+// sharing useNodeMetrics' cache. Results are in the order of nodeIds.
+export function useNodesMetrics(nodeIds: string[], enabled: boolean) {
+  return useQueries({
+    queries: nodeIds.map((nodeId) => ({
+      queryKey: ["node-metrics", nodeId, "1h"],
+      queryFn: async () => {
+        const res = await commandClient.execute({
+          nodeId,
+          action: "node.metrics",
+          paramsJson: JSON.stringify({ range: "1h" }),
+        });
+        return JSON.parse(res.resultJson) as NodeMetrics;
+      },
+      enabled,
+      refetchInterval: 10_000,
+      // A node that fails to answer just has no numbers; the page goes on.
+      retry: false,
+    })),
   });
 }
 

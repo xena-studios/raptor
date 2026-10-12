@@ -50,6 +50,7 @@ export function ActivityCard<E>({
   empty = "Nothing yet.",
   action,
   refetchInterval,
+  limit,
 }: {
   title?: string;
   description: string;
@@ -61,6 +62,8 @@ export function ActivityCard<E>({
   action?: ReactNode;
   // How often the first page refreshes, for events that change.
   refetchInterval?: number;
+  // Only the newest few, with no "Show more" (an overview's card).
+  limit?: number;
 }) {
   const [pages, setPages] = useState<string[]>([""]);
   return (
@@ -83,6 +86,7 @@ export function ActivityCard<E>({
             toItem={toItem}
             empty={empty}
             refetchInterval={token ? undefined : refetchInterval}
+            limit={limit}
             onMore={(t) => setPages([...pages, t])}
           />
         ))}
@@ -99,6 +103,7 @@ function Page<E>({
   toItem,
   empty,
   refetchInterval,
+  limit,
   onMore,
 }: {
   token: string;
@@ -108,6 +113,7 @@ function Page<E>({
   toItem: (e: E) => TimelineItem;
   empty: string;
   refetchInterval?: number;
+  limit?: number;
   onMore: (t: string) => void;
 }) {
   const query = useQuery({
@@ -123,8 +129,8 @@ function Page<E>({
   }
   return (
     <>
-      <Timeline items={page.events.map(toItem)} keyPrefix={token} />
-      {last && page.next && (
+      <Timeline items={page.events.slice(0, limit).map(toItem)} keyPrefix={token} />
+      {last && page.next && !limit && (
         <Button
           variant="outline"
           size="sm"
