@@ -21,6 +21,7 @@ const (
 	NodeDisks       = "node.disks"
 	NodeDiskSetup   = "node.disk.setup"
 	NodeDiskDefault = "node.disk.default"
+	NodeDiskGrow    = "node.disk.grow"
 )
 
 // DiskSetupParams are node.disk.setup's params.
@@ -33,15 +34,15 @@ type DiskSetupParams struct {
 	Serial string `json:"serial,omitempty"`
 }
 
-// DiskDefaultParams are node.disk.default's params.
-type DiskDefaultParams struct {
+// DiskParams are node.disk.default's and node.disk.grow's params: a disk.
+type DiskParams struct {
 	Disk string `json:"disk"`
 }
 
 // RegisterDisks adds the disk actions. Setting up a disk formats it, so it's
 // signed by an owner's passkey, never a delegation; Wings only formats
-// empty disks anyway. Picking the default disk isn't signed: it moves
-// nothing.
+// empty disks anyway. Picking the default disk and growing one aren't
+// signed: they move or erase nothing.
 func RegisterDisks(x *command.Executor, d *system.DiskManager) {
 	x.Register(NodeDisks, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, _ command.Envelope) (any, error) {
 		return d.Disks(ctx)
@@ -58,11 +59,18 @@ func RegisterDisks(x *command.Executor, d *system.DiskManager) {
 		return map[string]string{"disk": id}, nil
 	}})
 	x.Register(NodeDiskDefault, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
-		var p DiskDefaultParams
+		var p DiskParams
 		if err := decode(e, &p); err != nil {
 			return nil, err
 		}
 		return nil, d.SetDefault(ctx, p.Disk)
+	}})
+	x.Register(NodeDiskGrow, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DiskParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return d.Grow(ctx, p.Disk)
 	}})
 }
 

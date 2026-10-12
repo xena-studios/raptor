@@ -9,6 +9,8 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -46,7 +48,10 @@ type DataDisk struct {
 	Model      string `json:"model,omitempty"`
 	Total      int64  `json:"total"`
 	Free       int64  `json:"free"`
-	Servers    int64  `json:"servers"`
+	// Size is the disk's own size: more than the filesystem's after the
+	// disk was made bigger, until it's grown.
+	Size    int64 `json:"size,omitempty"`
+	Servers int64 `json:"servers"`
 	// Mounted is false for a disk servers are on that isn't there.
 	Mounted bool `json:"mounted"`
 	// Image: the main volume is an image file on the system disk.
@@ -67,7 +72,14 @@ type DiskManager struct {
 	// AddDisk sets up a disk outside Wings' sandbox (`raptor storage
 	// add-disk` through systemd-run) and returns its ID.
 	AddDisk func(ctx context.Context, device, role string) (string, error)
-	Log     *slog.Logger
+	// GrowDisk grows a data disk's filesystem to fill its disk (`raptor
+	// storage grow-disk` through systemd-run).
+	GrowDisk func(ctx context.Context, id string) error
+	Log      *slog.Logger
+
+	mu     sync.Mutex
+	listed []storage.BlockDevice
+	at     time.Time
 }
 
 // Disks lists the machine's disks and Raptor's data disks.
@@ -76,6 +88,39 @@ func (d *DiskManager) Disks(ctx context.Context) (Disks, error) {
 	if err != nil {
 		return Disks{}, err
 	}
+	d.mu.Lock()
+	d.listed, d.at = devs, time.Now()
+	d.mu.Unlock()
+	return d.disks(ctx, devs)
+}
+
+// Data is the main volume and the data disks, for the health report and
+// the node's storage total, which ask often: the machine's disks are
+// listed at most every 30 seconds (sizes are measured each time).
+func (d *DiskManager) Data(ctx context.Context) []DataDisk {
+	d.mu.Lock()
+	devs, fresh := d.listed, time.Since(d.at) < 30*time.Second
+	d.mu.Unlock()
+	if !fresh {
+		var err error
+		if devs, err = d.List(ctx, d.Layout); err != nil {
+			if d.Log != nil {
+				d.Log.Warn("couldn't list disks", "err", err)
+			}
+			return nil
+		}
+		d.mu.Lock()
+		d.listed, d.at = devs, time.Now()
+		d.mu.Unlock()
+	}
+	out, err := d.disks(ctx, devs)
+	if err != nil && d.Log != nil {
+		d.Log.Warn("couldn't list data disks", "err", err)
+	}
+	return out.Data
+}
+
+func (d *DiskManager) disks(ctx context.Context, devs []storage.BlockDevice) (Disks, error) {
 	counts := map[string]int64{}
 	rows, err := d.DB.Read.CountServersOnDisks(ctx)
 	if err != nil {
@@ -94,7 +139,7 @@ func (d *DiskManager) Disks(ctx context.Context) (Disks, error) {
 		for _, b := range list {
 			if b.DiskID != "" {
 				dd := DataDisk{
-					ID: b.DiskID, Role: storage.RoleServers, Device: b.Path, Model: b.Model, Mounted: true,
+					ID: b.DiskID, Role: storage.RoleServers, Device: b.Path, Model: b.Model, Size: b.Size, Mounted: true,
 					Mountpoint: storage.MountpointFor(d.Layout, b.Use, b.DiskID), Servers: counts[b.DiskID],
 				}
 				if b.Use == storage.UseBackups {
@@ -214,4 +259,35 @@ func (d *DiskManager) Setup(ctx context.Context, device, role string, size int64
 		d.Log.Info("disk set up", "device", device, "role", role, "disk", id)
 	}
 	return id, nil
+}
+
+// Grow grows a data disk's filesystem to fill its disk, after the disk was
+// made bigger at the host. Servers keep running.
+func (d *DiskManager) Grow(ctx context.Context, id string) (DataDisk, error) {
+	disks, err := d.Disks(ctx)
+	if err != nil {
+		return DataDisk{}, err
+	}
+	i := slices.IndexFunc(disks.Data, func(x DataDisk) bool { return x.ID == id })
+	switch {
+	case id == MainDisk:
+		return DataDisk{}, invalidf("the main volume is grown on the node: raptor storage grow -size <new size>")
+	case i < 0:
+		return DataDisk{}, invalidf("there's no disk %s on this node", id)
+	case !disks.Data[i].Mounted:
+		return DataDisk{}, invalidf("disk %s isn't mounted", id)
+	}
+	if err := d.GrowDisk(ctx, id); err != nil {
+		if d.Log != nil {
+			d.Log.Error("growing a disk failed", "disk", id, "err", err)
+		}
+		return DataDisk{}, fmt.Errorf("growing disk %s failed. The node's log has the details: journalctl -u raptor-wings", id)
+	}
+	x := disks.Data[i]
+	before := x.Total
+	x.Total, x.Free, _ = d.Space(x.Mountpoint)
+	if d.Log != nil {
+		d.Log.Info("disk grown", "disk", id, "before", before, "after", x.Total)
+	}
+	return x, nil
 }

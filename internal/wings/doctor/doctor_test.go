@@ -17,6 +17,7 @@ import (
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 )
 
 // fakeSystem is a box made of maps.
@@ -121,7 +122,7 @@ func healthy() (*Env, *fakeSystem, *fakeDocker) {
 			"apt-config dump APT::Periodic::Unattended-Upgrade": `APT::Periodic::Unattended-Upgrade "1";`,
 		},
 		dial: map[string]string{"127.0.0.1:2022": "SSH-2.0-Raptor"},
-		free: map[string]int64{"/var/lib/raptor": 50 << 30, "/var/lib/raptor/volumes": 80 << 30, "/var/lib/docker": 50 << 30},
+		free: map[string]int64{"/var/lib/raptor": 50 << 30, "/var/lib/raptor/volumes": 80 << 30, "/var/lib/docker": 50 << 30, "/var/lib/raptor/disks/abcd1234": 60 << 30},
 		root: true,
 	}
 	dk := &fakeDocker{
@@ -135,6 +136,8 @@ func healthy() (*Env, *fakeSystem, *fakeDocker) {
 			Sftp: &localv1.SFTPStatus{Enabled: true, Port: 2022, HostKeyFingerprint: "SHA256:abc"},
 		},
 		VolumeCheck: func() error { return nil },
+		DataDisks:   []storage.DataMount{{ID: "abcd1234", Role: "servers", Mountpoint: "/var/lib/raptor/disks/abcd1234"}},
+		DiskCheck:   func(string) error { return nil },
 		Firewall:    func(context.Context) bool { return true },
 		HTTPGet:     func(context.Context, string) error { return nil },
 	}
@@ -232,6 +235,10 @@ func TestProblems(t *testing.T) {
 			e.VolumeCheck = func() error { return errors.New("not mounted with project quotas") }
 		}},
 		{"Server data volume", Warn, func(_ *Env, s *fakeSystem, _ *fakeDocker) { s.free["/var/lib/raptor/volumes"] = 5 << 30 }},
+		{"Data disk abcd1234", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
+			e.DiskCheck = func(string) error { return errors.New("nothing is mounted at /var/lib/raptor/disks/abcd1234") }
+		}},
+		{"Data disk abcd1234", Warn, func(_ *Env, s *fakeSystem, _ *fakeDocker) { s.free["/var/lib/raptor/disks/abcd1234"] = 5 << 30 }},
 		{"Host disk", Fail, func(_ *Env, s *fakeSystem, _ *fakeDocker) { s.free["/var/lib/docker"] = 3 << 30 }},
 		{"Host disk", Warn, func(_ *Env, s *fakeSystem, _ *fakeDocker) { s.free["/var/lib/raptor"] = 15 << 30 }},
 		{"Clock", Warn, func(_ *Env, s *fakeSystem, _ *fakeDocker) {

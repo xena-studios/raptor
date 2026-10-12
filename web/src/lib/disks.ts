@@ -33,6 +33,7 @@ export type DataDisk = {
   model?: string;
   total: number;
   free: number;
+  size?: number; // the disk's own size
   servers: number;
   mounted: boolean;
   image?: boolean;
@@ -65,6 +66,16 @@ export function diskName(d: DataDisk): string {
 export function diskSpace(d: DataDisk): string {
   if (!d.mounted) return "Not mounted";
   return `${formatBytes(d.free)} free of ${formatBytes(d.total)}`;
+}
+
+// growable is how much bigger a data disk is than its filesystem: room
+// left after the disk was made bigger at the host, until it's grown. XFS
+// keeps some of a disk for its log (64 MiB on small disks, up to 2 GiB on
+// huge ones), so small differences don't count.
+export function growable(d: DataDisk): number {
+  if (!d.mounted || !d.size || d.id === "main") return 0;
+  const room = d.size - d.total;
+  return room > 256 * 2 ** 20 + d.total / 100 ? room : 0;
 }
 
 // useLabels say what a block device is used for.

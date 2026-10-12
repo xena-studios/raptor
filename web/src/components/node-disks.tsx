@@ -30,6 +30,7 @@ import {
   type NodeDisks as Disks,
   diskName,
   diskSpace,
+  growable,
   useLabels,
   useNodeDisks,
 } from "@/lib/disks";
@@ -71,7 +72,7 @@ export function NodeDisks({
   return (
     <div className="flex flex-col gap-6">
       <ServerData nodeId={nodeId} d={d} disks={servers} />
-      {backups.length > 0 && <BackupDisks disks={backups} />}
+      {backups.length > 0 && <BackupDisks nodeId={nodeId} disks={backups} />}
       <Devices devices={d.devices ?? []} onSetup={setSetup} />
       {setup && (
         <SetupDialog
@@ -127,16 +128,19 @@ function ServerData({ nodeId, d, disks }: { nodeId: string; d: Disks; disks: Dat
                   <span className="truncate font-medium">{diskName(x)}</span>
                   {isDefault && <Badge>Default</Badge>}
                 </div>
-                {!isDefault && x.mounted && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={!!busy}
-                    onClick={() => makeDefault(x.id)}
-                  >
-                    {busy === x.id && <Loader2 className="animate-spin" />} Make default
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  <GrowButton nodeId={nodeId} disk={x} />
+                  {!isDefault && x.mounted && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!!busy}
+                      onClick={() => makeDefault(x.id)}
+                    >
+                      {busy === x.id && <Loader2 className="animate-spin" />} Make default
+                    </Button>
+                  )}
+                </div>
               </div>
               {x.mounted ? (
                 <UsageBar fraction={x.total ? (x.total - x.free) / x.total : 0} />
@@ -167,7 +171,43 @@ function ServerData({ nodeId, d, disks }: { nodeId: string; d: Disks; disks: Dat
   );
 }
 
-function BackupDisks({ disks }: { disks: DataDisk[] }) {
+// GrowButton grows a data disk's filesystem into the room left after the
+// disk was made bigger at the host. Servers keep running.
+function GrowButton({ nodeId, disk }: { nodeId: string; disk: DataDisk }) {
+  const client = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const room = growable(disk);
+  if (!room) return null;
+
+  async function grow() {
+    setBusy(true);
+    setError("");
+    try {
+      await commandClient.execute({
+        nodeId,
+        action: "node.disk.grow",
+        paramsJson: JSON.stringify({ disk: disk.id }),
+      });
+      await client.invalidateQueries({ queryKey: ["node-disks", nodeId] });
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <span className="flex items-center gap-2">
+      {error && <span className="text-sm text-destructive">{error}</span>}
+      <Button size="sm" variant="outline" disabled={busy} onClick={grow}>
+        {busy && <Loader2 className="animate-spin" />} Grow by {formatBytes(room)}
+      </Button>
+    </span>
+  );
+}
+
+function BackupDisks({ nodeId, disks }: { nodeId: string; disks: DataDisk[] }) {
   return (
     <Card>
       <CardHeader>
@@ -179,9 +219,12 @@ function BackupDisks({ disks }: { disks: DataDisk[] }) {
       <CardContent className="flex flex-col gap-3">
         {disks.map((x) => (
           <div key={x.id} className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between gap-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
               <span className="font-medium">{diskName(x)}</span>
-              <span className="text-muted-foreground">{diskSpace(x)}</span>
+              <span className="flex items-center gap-3">
+                <span className="text-muted-foreground">{diskSpace(x)}</span>
+                <GrowButton nodeId={nodeId} disk={x} />
+              </span>
             </div>
             <UsageBar fraction={x.total ? (x.total - x.free) / x.total : 0} />
             <p className="font-mono text-xs text-muted-foreground">{x.mountpoint}</p>

@@ -2,6 +2,8 @@ package actions
 
 import (
 	"context"
+	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -12,6 +14,8 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/metrics"
 	"github.com/xena-studios/raptor/internal/wings/server"
+	"github.com/xena-studios/raptor/internal/wings/storage"
+	"github.com/xena-studios/raptor/internal/wings/system"
 )
 
 // Node health, for the Panel's node page (docs/WINGS.md#doctor): the
@@ -39,6 +43,9 @@ type Health struct {
 	// says what each path holds, for people.
 	Disk   *host.DiskGuard
 	Labels map[string]string
+	// Data lists the data disks (system.DiskManager.Data); mounted ones
+	// are in the report's disks.
+	Data func(ctx context.Context) []system.DataDisk
 	// Run runs the checks (doctor.Run on doctor.LocalEnv by default).
 	Run func(ctx context.Context) []doctor.Result
 
@@ -143,7 +150,13 @@ func (h *Health) Report() Report {
 		if r.DiskTotal > 0 {
 			spaces = append([]host.DiskSpace{{Path: h.Volumes, Total: r.DiskTotal, Free: r.DiskFree}}, spaces...)
 		}
-		r.Disks = groupDisks(spaces, h.Labels)
+		labels := h.Labels
+		if h.Data != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			spaces, labels = withDataDisks(spaces, labels, h.Data(ctx))
+			cancel()
+		}
+		r.Disks = groupDisks(spaces, labels)
 	}
 	if h.Servers != nil {
 		r.Servers = serverUses(h.Servers.List(), h.Metrics)
@@ -155,6 +168,38 @@ func (h *Health) Report() Report {
 	}
 	h.mu.Unlock()
 	return r
+}
+
+// withDataDisks adds the mounted data disks to the disks measured.
+func withDataDisks(spaces []host.DiskSpace, labels map[string]string, data []system.DataDisk) ([]host.DiskSpace, map[string]string) {
+	out := maps.Clone(labels)
+	if out == nil {
+		out = map[string]string{}
+	}
+	for _, d := range data {
+		if d.ID == system.MainDisk || !d.Mounted || d.Total == 0 {
+			continue
+		}
+		spaces = append(spaces, host.DiskSpace{Path: d.Mountpoint, Total: d.Total, Free: d.Free})
+		what := "servers' files"
+		if d.Role == storage.RoleBackups {
+			what = "backups"
+		}
+		out[d.Mountpoint] = fmt.Sprintf("Data disk %s (%s)", d.ID, what)
+	}
+	return spaces, out
+}
+
+// ServerStorage is the space for servers' files: the main volume and the
+// data disks for servers.
+func ServerStorage(data []system.DataDisk) int64 {
+	var total int64
+	for _, d := range data {
+		if d.Role == storage.RoleServers && d.Mounted {
+			total += d.Total
+		}
+	}
+	return total
 }
 
 // groupDisks puts paths on the same filesystem together. Paths measured at

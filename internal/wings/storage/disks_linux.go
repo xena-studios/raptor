@@ -106,3 +106,22 @@ Options=prjquota,noatime,nodev,nosuid
 WantedBy=multi-user.target
 `, filepath.Base(mountpoint), uuid, mountpoint)
 }
+
+// GrowDisk grows a data disk's filesystem to fill its disk, after the disk
+// was made bigger at the host. A disk that's a partition needs the
+// partition grown first.
+func GrowDisk(ctx context.Context, mountpoint string) error {
+	m, ok, err := FindMount(mountpoint)
+	switch {
+	case err != nil:
+		return err
+	case !ok:
+		return fmt.Errorf("nothing is mounted at %s", mountpoint)
+	case m.FSType != "xfs":
+		return fmt.Errorf("%s is %s, not XFS", mountpoint, m.FSType)
+	}
+	if out, err := exec.CommandContext(ctx, "xfs_growfs", mountpoint).CombinedOutput(); err != nil { //nolint:gosec // a data disk's mount point
+		return fmt.Errorf("xfs_growfs: %w: %s", err, bytes.TrimSpace(out))
+	}
+	return nil
+}

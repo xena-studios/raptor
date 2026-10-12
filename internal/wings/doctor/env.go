@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -36,6 +37,8 @@ func LocalEnv(ctx context.Context, path string) (e *Env, closeEnv func()) {
 		Config: cfg, ConfigPath: path, ConfigErr: cfgErr,
 		System:      OS{SpaceFunc: storage.Space},
 		VolumeCheck: (&storage.Volume{Path: cfg.Paths.Volumes, Soft: !cfg.Storage.Quotas}).Check,
+		DataDisks:   storage.DataMounts(storage.LayoutFor(filepath.Dir(cfg.Paths.State), cfg.Paths.Volumes, cfg.Paths.Logs, cfg.Paths.Backups)),
+		DiskCheck:   func(path string) error { return (&storage.Volume{Path: path}).Check() },
 		Firewall:    firewall.Present,
 		HTTPGet:     HTTPReachable,
 		LookupHost:  net.DefaultResolver.LookupHost,

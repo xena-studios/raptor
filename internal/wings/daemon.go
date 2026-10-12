@@ -285,7 +285,7 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 			}
 			return m.HasProjectQuota(), storage.BackingFile(m) != ""
 		},
-		AddDisk: addDisk,
+		AddDisk: addDisk, GrowDisk: growDisk,
 	}
 	actions.RegisterDisks(r.commands, r.disks)
 	sup := &support.Manager{DB: db, Log: log}
@@ -330,12 +330,18 @@ func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
 		path = config.DefaultPath
 	}
 	actions.RegisterNodeMetrics(r.commands, r.metrics, mgr, func() int64 {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if total := actions.ServerStorage(r.disks.Data(ctx)); total > 0 {
+			return total
+		}
 		total, _, _ := storage.Space(volumes)
 		return total
 	})
 	p := r.cfg.Paths
 	actions.RegisterHealth(r.commands, &actions.Health{
 		ConfigPath: path, Volumes: p.Volumes, Space: storage.Space, Servers: mgr, Metrics: r.metrics, Disk: r.disk,
+		Data: r.disks.Data,
 		Labels: map[string]string{
 			p.Volumes: "Servers' files", filepath.Dir(p.State): "Raptor's state", p.Logs: "Logs",
 			p.Tmp: "Temporary files", p.Backups: "Local backups", "/var/lib/docker": "Docker images",
@@ -368,18 +374,9 @@ func (r *runtimeSetup) close() {
 // be in the host's namespace and its unit in /etc/systemd/system, which
 // Wings can't write (docs/WINGS.md#data-disks).
 func addDisk(ctx context.Context, device, role string) (string, error) {
-	exe, err := os.Executable()
+	out, err := storageCommand(ctx, "add-disk", "-device", device, "-role", role, "-json")
 	if err != nil {
 		return "", err
-	}
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-	//nolint:gosec // the device was checked against lsblk; the rest is fixed
-	out, err := exec.CommandContext(ctx, "systemd-run", "--wait", "--pipe", "--collect", "--quiet",
-		"--unit=raptor-add-disk-"+storage.NewDiskID(), "-p", "Type=oneshot", "--",
-		exe, "storage", "add-disk", "-device", device, "-role", role, "-json").CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("%w: %s", err, bytes.TrimSpace(out))
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	var res struct {
@@ -389,6 +386,33 @@ func addDisk(ctx context.Context, device, role string) (string, error) {
 		return "", fmt.Errorf("unexpected output: %s", out)
 	}
 	return res.ID, nil
+}
+
+func growDisk(ctx context.Context, id string) error {
+	_, err := storageCommand(ctx, "grow-disk", "-id", id)
+	return err
+}
+
+// storageCommand runs `raptor storage <command>` outside Wings' sandbox,
+// through systemd-run: mounts must be in the host's namespace, and mount
+// units in /etc/systemd/system, which the sandbox can't write.
+func storageCommand(ctx context.Context, command string, args ...string) ([]byte, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	//nolint:gosec // devices are checked against lsblk and IDs against their pattern; the rest is fixed
+	out, err := exec.CommandContext(ctx, "systemd-run", append([]string{
+		"--wait", "--pipe", "--collect", "--quiet",
+		"--unit=raptor-" + command + "-" + storage.NewDiskID(), "-p", "Type=oneshot", "--",
+		exe, "storage", command,
+	}, args...)...).CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", err, bytes.TrimSpace(out))
+	}
+	return out, nil
 }
 
 // applyHostFirewall loads the node's firewall into the rule set.
