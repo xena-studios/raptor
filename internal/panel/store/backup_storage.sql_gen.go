@@ -93,11 +93,16 @@ func (q *Queries) BackupStorageToPurge(ctx context.Context, before pgtype.Timest
 }
 
 const disableBackupStorage = `-- name: DisableBackupStorage :one
-UPDATE backup_storage SET disabled_at = now() WHERE node_id = $1 AND disabled_at IS NULL RETURNING id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at
+UPDATE backup_storage SET disabled_at = $1 WHERE node_id = $2 AND disabled_at IS NULL RETURNING id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at
 `
 
-func (q *Queries) DisableBackupStorage(ctx context.Context, nodeID pgtype.UUID) (BackupStorage, error) {
-	row := q.db.QueryRow(ctx, disableBackupStorage, nodeID)
+type DisableBackupStorageParams struct {
+	DisabledAt pgtype.Timestamptz
+	NodeID     pgtype.UUID
+}
+
+func (q *Queries) DisableBackupStorage(ctx context.Context, arg DisableBackupStorageParams) (BackupStorage, error) {
+	row := q.db.QueryRow(ctx, disableBackupStorage, arg.DisabledAt, arg.NodeID)
 	var i BackupStorage
 	err := row.Scan(
 		&i.ID,
