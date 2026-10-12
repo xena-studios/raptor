@@ -34,7 +34,7 @@ import { commandClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
 
 // What backup.policy returns.
-export type PlanData = {
+type PlanData = {
   policy: Policy;
   destinations: { id: string; name: string; type: DestinationType }[];
 };

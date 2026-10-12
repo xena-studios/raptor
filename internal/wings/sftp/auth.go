@@ -50,15 +50,6 @@ type Authenticator interface {
 	Password(ctx context.Context, l Login, password string) (Grant, error)
 }
 
-// NoPanel is the Authenticator until the node connection exists: the Panel
-// is always unreachable, so nobody logs in.
-type NoPanel struct{}
-
-// Password implements Authenticator.
-func (NoPanel) Password(context.Context, Login, string) (Grant, error) {
-	return Grant{}, ErrUnavailable
-}
-
 // parseUsername splits an SFTP username, "user.serverid", at its last dot:
 // Panel usernames may contain dots, server IDs never do.
 func parseUsername(s string) (user, server string, ok bool) {

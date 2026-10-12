@@ -4,7 +4,6 @@ package raptor.panel.v1;
 
 import "google/protobuf/timestamp.proto";
 import "raptor/panel/v1/catalog.proto";
-import "raptor/panel/v1/org.proto";
 
 // EggService is the egg library (docs/PANEL.md#eggs): Raptor's built-in
 // eggs, its official ones (managed by staff), and each org's own (imported,
@@ -355,3 +354,36 @@ message ModerateEggRequest {
 }
 
 message ModerateEggResponse {}
+
+// EggReview is what an egg would run on a node.
+message EggReview {
+  string name = 1;
+  string description = 2;
+  string author = 3;
+  // "pterodactyl" or "pelican".
+  string format = 4;
+  repeated EggImage images = 5;
+  // Every registry the images and the install container come from.
+  repeated string registries = 6;
+  string install_container = 7;
+  string install_entrypoint = 8;
+  string install_script = 9;
+  // The startup commands, the default first.
+  repeated string startup = 10;
+  repeated EggVariable variables = 11;
+  repeated string features = 12;
+  // Empty: the egg doesn't say which CPUs it runs on.
+  repeated string arch = 13;
+  repeated EggWarning warnings = 14;
+  // Whether an egg with the same file is already imported.
+  bool duplicate = 15;
+}
+
+message EggWarning {
+  // "registry" (an image from a registry the community eggs don't use),
+  // "pipe_to_shell" (the install script runs a script it downloads),
+  // "no_arch", "claims_certified".
+  string kind = 1;
+  // A sentence for the user.
+  string text = 2;
+}

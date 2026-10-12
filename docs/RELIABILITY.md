@@ -48,7 +48,7 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 - **Console never blocks the game:** stdout is drained continuously into a ring buffer. Slow viewers get dropped lines, never backpressure.
 
 ### Resilient jobs
-- Durable queue, resume/retry with backoff, per-server locks, global limits.
+- Durable queue, resume after a Wings restart, per-server locks, global limits.
 - Image pulls and install downloads: timeouts, retries, progress reporting.
 - Crash loops are detected and stopped (N crashes in M minutes → `crashed`).
 

@@ -3,7 +3,7 @@
 // become a sentence, the rest a plain "it failed". Kept free of imports so
 // `node --test` can check it.
 
-export type RunStep = { type: string; ok: boolean; error: string };
+type RunStep = { type: string; ok: boolean; error: string };
 
 const stepNames: Record<string, string> = {
   command: "Send a command",

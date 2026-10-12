@@ -96,14 +96,6 @@ var (
 	ErrCancelled   = errors.New("job cancelled")
 )
 
-type retryable struct{ err error }
-
-func (r retryable) Error() string { return r.err.Error() }
-func (r retryable) Unwrap() error { return r.err }
-
-// Retryable marks an error as worth retrying later.
-func Retryable(err error) error { return retryable{err} }
-
 // EventStatus is recorded whenever a server's job changes status, so the
 // Panel's mirror fetches the server's jobs again.
 const EventStatus = "job.status"
@@ -120,11 +112,8 @@ type Options struct {
 	DefaultLimit int
 	// Retention of finished jobs and their logs (default 30 days).
 	Retention time.Duration
-	// Backoff for retryable failures: base * 2^(attempt-1), capped (defaults
-	// 30s and 30m).
-	BackoffBase, BackoffMax time.Duration
 	// Poll is how often the queue is checked when nothing wakes it
-	// (default 5s; delayed jobs and retries rely on it).
+	// (default 5s; delayed jobs rely on it).
 	Poll time.Duration
 }
 
@@ -161,12 +150,6 @@ func New(o Options) *Engine {
 	}
 	if o.Retention == 0 {
 		o.Retention = 30 * 24 * time.Hour
-	}
-	if o.BackoffBase == 0 {
-		o.BackoffBase = 30 * time.Second
-	}
-	if o.BackoffMax == 0 {
-		o.BackoffMax = 30 * time.Minute
 	}
 	if o.Poll == 0 {
 		o.Poll = 5 * time.Second
@@ -388,7 +371,7 @@ func (e *Engine) dispatch() {
 		}
 		j := fromRow(r)
 		j.Attempts++
-		e.start(h, j, r.MaxAttempts)
+		e.start(h, j)
 	}
 }
 
@@ -401,7 +384,7 @@ func (e *Engine) release(h Handler, serverID string) {
 	}
 }
 
-func (e *Engine) start(h Handler, j Job, maxAttempts int64) {
+func (e *Engine) start(h Handler, j Job) {
 	ctx, cancel := context.WithCancelCause(e.ctx)
 	log, err := newJobLog(filepath.Join(e.o.LogDir, j.ID+".log"))
 	if err != nil {
@@ -423,7 +406,7 @@ func (e *Engine) start(h Handler, j Job, maxAttempts int64) {
 		if log != nil {
 			log.close()
 		}
-		e.finish(ctx, h, j, maxAttempts, result, runErr)
+		e.finish(ctx, h, j, result, runErr)
 	}()
 }
 
@@ -437,7 +420,7 @@ func safeRun(ctx context.Context, h Handler, j Job, log io.Writer) (result any, 
 	return h.Run(ctx, j, log)
 }
 
-func (e *Engine) finish(ctx context.Context, h Handler, j Job, maxAttempts int64, result any, runErr error) {
+func (e *Engine) finish(ctx context.Context, h Handler, j Job, result any, runErr error) {
 	defer e.release(h, j.ServerID)
 	defer func() {
 		e.mu.Lock()
@@ -469,15 +452,6 @@ func (e *Engine) finish(ctx context.Context, h Handler, j Job, maxAttempts int64
 	status := Failed
 	if errors.Is(context.Cause(ctx), ErrCancelled) {
 		status = Cancelled
-	}
-	var rt retryable
-	if status == Failed && errors.As(runErr, &rt) && int64(j.Attempts) < maxAttempts {
-		delay := min(e.o.BackoffBase<<(j.Attempts-1), e.o.BackoffMax)
-		e.log.Warn("job failed; retrying", "job", j.ID, "type", j.Type, "attempt", j.Attempts, "retry_in", delay.String(), "err", runErr)
-		_, _ = e.transition(db, j.ID, j.ServerID, j.Type, Queued, func(q *store.Queries) (bool, error) {
-			return done(q.RequeueJob(db, store.RequeueJobParams{Error: runErr.Error(), RunAfter: time.Now().Add(delay).UnixMilli(), ID: j.ID}))
-		})
-		return
 	}
 	if _, err := e.transition(db, j.ID, j.ServerID, j.Type, status, func(q *store.Queries) (bool, error) {
 		return done(q.FinishJob(db, store.FinishJobParams{Status: status, Error: runErr.Error(), FinishedAt: sqlInt(now), ID: j.ID}))

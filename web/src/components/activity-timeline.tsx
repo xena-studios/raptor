@@ -144,7 +144,7 @@ function Page<E>({
   );
 }
 
-export function Timeline({ items, keyPrefix = "" }: { items: TimelineItem[]; keyPrefix?: string }) {
+function Timeline({ items, keyPrefix = "" }: { items: TimelineItem[]; keyPrefix?: string }) {
   const days: { label: string; items: TimelineItem[] }[] = [];
   for (const item of items) {
     const label = item.at ? dayLabel(item.at) : "";

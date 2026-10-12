@@ -13,7 +13,7 @@ export type Entry = {
   target_type?: string;
   denied?: boolean;
 };
-export type Listing = { path: string; entries: Entry[]; truncated?: boolean };
+type Listing = { path: string; entries: Entry[]; truncated?: boolean };
 export type Content = Entry & { data: string };
 
 // kind is what an entry acts as: a link acts as what it points to.

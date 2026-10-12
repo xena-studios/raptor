@@ -273,13 +273,12 @@ A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a 
 - **Survives Wings restarts and reboots.** A job that was running when Wings stopped is **resumed** if its handler says re-running it is safe (installs are: the script runs over the existing files again), and otherwise marked failed with "interrupted". Interruptions count as attempts, so a job that crashes Wings can't loop forever.
 - **Checkpoints:** a job can save its progress while it runs; a resumed job gets it back and continues from there instead of starting over (schedule runs continue after their last finished step; a resumed backup sends the egg's post-backup commands first; a resumed restore doesn't take a second safety backup).
 - **Created atomically with what it's for:** a server, its "created" event, and its install job are written in one SQLite transaction.
-- **Retries:** a handler can mark an error as retryable; the job is requeued with exponential backoff (30 s doubling, at most 30 min) until its attempts run out.
 - **Per-server lock:** at most one locked job per server runs at a time.
 - **Global limits** per class: installs `limits.concurrent_installs` (default 2), backups `limits.concurrent_backups` (default 2), schedule runs 32 (they mostly wait), everything else 4.
 - **Cancel** queued or running jobs; deleting a server cancels its jobs first.
 - **Logs:** each job's output is kept in `/var/log/raptor/jobs/<job-id>.log`, the last 10 MB of it, written every 5 seconds while it runs (so a crash loses little) and at the end. Readable live while the job runs.
 - A handler panic fails the job; it never takes Wings down.
-- **Status events:** every change to a server's job's status (queued, running, requeued for a retry, succeeded, failed, cancelled) is a `job.status` event, written in the same transaction, so the Panel's mirror follows it; a server's 50 most recent jobs come with it in `GetServers`. Logs stay on the node.
+- **Status events:** every change to a server's job's status (queued, running, requeued to resume, succeeded, failed, cancelled) is a `job.status` event, written in the same transaction, so the Panel's mirror follows it; a server's 50 most recent jobs come with it in `GetServers`. Logs stay on the node.
 - Finished jobs and their logs are deleted after 30 days.
 
 ## Event outbox

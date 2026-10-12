@@ -22,7 +22,7 @@ func TestCrashTracker(t *testing.T) {
 	}
 
 	// Crashes spread out beyond the window don't add up.
-	c.reset()
+	c.times = nil
 	rec(0, time.Time{})
 	rec(11*time.Minute, time.Time{})
 	if _, loop := rec(22*time.Minute, time.Time{}); loop {
@@ -30,7 +30,7 @@ func TestCrashTracker(t *testing.T) {
 	}
 
 	// Running for the full window resets the counter.
-	c.reset()
+	c.times = nil
 	rec(0, time.Time{})
 	rec(time.Minute, time.Time{})
 	if d, loop := rec(12*time.Minute, t0.Add(time.Minute)); loop || d != 0 {

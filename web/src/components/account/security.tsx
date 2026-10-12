@@ -54,11 +54,11 @@ export const linkErrors: Record<string, string> = {
   oauth_cancelled: "Linking was cancelled.",
 };
 
-export function when(ts: { seconds: bigint; nanos: number } | undefined): string {
+function when(ts: { seconds: bigint; nanos: number } | undefined): string {
   return ts ? timestampDate(ts as Parameters<typeof timestampDate>[0]).toLocaleString() : "never";
 }
 
-export function Section({
+function Section({
   title,
   description,
   children,
@@ -78,11 +78,11 @@ export function Section({
   );
 }
 
-export function ErrorLine({ error }: { error: string }) {
+function ErrorLine({ error }: { error: string }) {
   return error ? <p className="text-sm text-destructive">{error}</p> : null;
 }
 
-export function useRefresh() {
+function useRefresh() {
   const client = useQueryClient();
   return () => client.invalidateQueries();
 }
@@ -610,7 +610,7 @@ export function Devices() {
 }
 
 // ago is "5 minutes ago", "yesterday", or the date.
-export function ago(ts: { seconds: bigint; nanos: number } | undefined): string {
+function ago(ts: { seconds: bigint; nanos: number } | undefined): string {
   if (!ts) return "never";
   const d = timestampDate(ts as Parameters<typeof timestampDate>[0]);
   const s = Math.floor((Date.now() - d.getTime()) / 1000);

@@ -2,7 +2,7 @@
 // `node --test` can check it.
 
 // What the create form needs of a catalog egg (CatalogEgg).
-export type EggSummary = {
+type EggSummary = {
   id: string;
   name: string;
   category: string;
@@ -42,7 +42,7 @@ export function suggestMemoryMiB(category: string, nodeMemoryBytes: number): num
   return Math.max(256, Math.min(want, Math.floor(cap / 256) * 256));
 }
 
-export type Variable = {
+type Variable = {
   name: string;
   env: string;
   default: string;
@@ -70,7 +70,7 @@ export function base64(bytes: Uint8Array): string {
   return btoa(s);
 }
 
-export type CreateForm = {
+type CreateForm = {
   name: string;
   eggId: string;
   egg: Uint8Array;
@@ -196,7 +196,7 @@ export function gameVersion(cfg: ServerConfig, variable?: string): string {
   return /^\d+\.\d+(\.\d+)?$/.test(v.trim()) ? v.trim() : "";
 }
 
-export type SettingsChange = {
+type SettingsChange = {
   name: string;
   image: string;
   variables: Record<string, string>;

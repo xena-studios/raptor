@@ -210,7 +210,7 @@ Recovered backups of servers that aren't on the node show under **Recovered back
 The egg library (`EggService`, `internal/panel/orgs/library.go`): what servers are made from. Three kinds, shown together on an org's **Eggs** page:
 - **Built in:** Raptor's catalog, in the code ([EGGS.md](EGGS.md#built-in-catalog)). Never changed here.
 - **Official:** Raptor's, managed by staff on the admin panel's **Eggs** page (`eggs.org_id` NULL). Orgs see the published ones.
-- **The org's own** (`eggs`, replacing `org_eggs`): imported, made from scratch, or customized copies of any egg they can see. Admins and owners change them; members see them. Up to 100 per org (500 official).
+- **The org's own** (`eggs`): imported, made from scratch, or customized copies of any egg they can see. Admins and owners change them; members see them. Up to 100 per org (500 official).
 
 Each egg has a status: a **draft** can't be deployed, a **published** one can, and an **archived** one is hidden and can't be deployed. Made-from-scratch eggs and copies start as drafts; imports are published. An egg's page shows what it runs: add-ons, runtimes, variables and who can change them, the startup command, ready lines and stop, the install script, the config files Wings edits, the file itself, and every version. From there: **Use egg** (the create-server wizard with it picked), **Customize** or **Duplicate** (a draft copy to edit, which remembers what it's based on), **Export**, and **Edit**.
 
@@ -242,7 +242,7 @@ An egg comes in from a link or an upload: Pterodactyl or Pelican, JSON or YAML.
 2. The app shows all of it, and Import stays off until the admin ticks that they've looked and trust the egg.
 3. **Import** (`ImportEggFile`): the reviewed file, sent back as it was, is parsed again and saved with its SHA-256 and link; the same file can't be imported twice into one library.
 
-An imported egg is never certified, whatever it says. `OrgService`'s older egg calls (`PreviewEgg`, `ImportEgg`, `ListOrgEggs`, `GetOrgEgg`, `DeleteOrgEgg`) still work, on the library.
+An imported egg is never certified, whatever it says.
 
 ## Schedule runs
 

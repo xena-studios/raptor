@@ -99,7 +99,7 @@ export function passkeyCancelled(err: unknown): boolean {
   );
 }
 
-export type Assertion = {
+type Assertion = {
   credentialId: Uint8Array;
   authenticatorData: Uint8Array;
   clientDataJson: Uint8Array;

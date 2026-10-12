@@ -85,7 +85,7 @@ func TestImportEgg(t *testing.T) {
 	}
 
 	// From a GitHub-style link that isn't GitHub: read as given.
-	p, err := alice.orgs.PreviewEgg(ctx, &panelv1.PreviewEggRequest{OrgId: org, Source: &panelv1.PreviewEggRequest_Url{Url: "https://example.com/egg.json"}})
+	p, err := alice.lib.ReviewEggFile(ctx, &panelv1.ReviewEggFileRequest{OrgId: org, Source: &panelv1.ReviewEggFileRequest_Url{Url: "https://example.com/egg.json"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,56 +103,55 @@ func TestImportEgg(t *testing.T) {
 		"https://example.com/missing":  "a 404",
 		"https://example.com:8443/egg": "another port",
 	} {
-		if _, err := alice.orgs.PreviewEgg(ctx, &panelv1.PreviewEggRequest{OrgId: org, Source: &panelv1.PreviewEggRequest_Url{Url: url}}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		if _, err := alice.lib.ReviewEggFile(ctx, &panelv1.ReviewEggFileRequest{OrgId: org, Source: &panelv1.ReviewEggFileRequest_Url{Url: url}}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 			t.Errorf("%s: %v", what, err)
 		}
 	}
-	file, err := alice.orgs.PreviewEgg(ctx, &panelv1.PreviewEggRequest{OrgId: org, Source: &panelv1.PreviewEggRequest_File{File: []byte(importedEgg)}})
+	file, err := alice.lib.ReviewEggFile(ctx, &panelv1.ReviewEggFileRequest{OrgId: org, Source: &panelv1.ReviewEggFileRequest_File{File: []byte(importedEgg)}})
 	if err != nil || file.GetSha256() != p.GetSha256() || file.GetSourceUrl() != "" {
 		t.Errorf("preview from a file: %v, %v", file, err)
 	}
-	if _, err := alice.orgs.PreviewEgg(ctx, &panelv1.PreviewEggRequest{OrgId: org, Source: &panelv1.PreviewEggRequest_File{File: []byte("hello")}}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+	if _, err := alice.lib.ReviewEggFile(ctx, &panelv1.ReviewEggFileRequest{OrgId: org, Source: &panelv1.ReviewEggFileRequest_File{File: []byte("hello")}}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Errorf("not an egg: %v", err)
 	}
-	if _, err := bob.orgs.PreviewEgg(ctx, &panelv1.PreviewEggRequest{OrgId: org, Source: &panelv1.PreviewEggRequest_File{File: []byte(importedEgg)}}); connect.CodeOf(err) != connect.CodePermissionDenied {
+	if _, err := bob.lib.ReviewEggFile(ctx, &panelv1.ReviewEggFileRequest{OrgId: org, Source: &panelv1.ReviewEggFileRequest_File{File: []byte(importedEgg)}}); connect.CodeOf(err) != connect.CodePermissionDenied {
 		t.Errorf("a member previewing: %v", err)
 	}
 
 	// Importing: admins only, once.
-	if _, err := bob.orgs.ImportEgg(ctx, &panelv1.ImportEggRequest{OrgId: org, Egg: p.GetEgg()}); connect.CodeOf(err) != connect.CodePermissionDenied {
+	if _, err := bob.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{OrgId: org, Egg: p.GetEgg()}); connect.CodeOf(err) != connect.CodePermissionDenied {
 		t.Errorf("a member importing: %v", err)
 	}
-	imp, err := alice.orgs.ImportEgg(ctx, &panelv1.ImportEggRequest{OrgId: org, Egg: p.GetEgg(), SourceUrl: p.GetSourceUrl()})
+	imp, err := alice.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{OrgId: org, Egg: p.GetEgg(), SourceUrl: p.GetSourceUrl()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	id := imp.GetEgg().GetId()
-	if imp.GetEgg().GetScope() != "org" || imp.GetEgg().GetCategory() != "other" || imp.GetEgg().GetStatus() != "published" || imp.GetEgg().GetCertified() || imp.GetEgg().GetSourceUrl() != "https://example.com/egg.json" {
-		t.Errorf("imported: %v", imp)
-	}
-	if _, err := alice.orgs.ImportEgg(ctx, &panelv1.ImportEggRequest{OrgId: org, Egg: p.GetEgg()}); connect.CodeOf(err) != connect.CodeAlreadyExists {
+	id := imp.GetId()
+	if _, err := alice.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{OrgId: org, Egg: p.GetEgg()}); connect.CodeOf(err) != connect.CodeAlreadyExists {
 		t.Errorf("imported twice: %v", err)
 	}
-	if again, err := alice.orgs.PreviewEgg(ctx, &panelv1.PreviewEggRequest{OrgId: org, Source: &panelv1.PreviewEggRequest_File{File: []byte(importedEgg)}}); err != nil || !again.GetReview().GetDuplicate() {
+	if again, err := alice.lib.ReviewEggFile(ctx, &panelv1.ReviewEggFileRequest{OrgId: org, Source: &panelv1.ReviewEggFileRequest_File{File: []byte(importedEgg)}}); err != nil || !again.GetReview().GetDuplicate() {
 		t.Errorf("preview of an imported egg: %v, %v", again, err)
 	}
-	if _, err := alice.orgs.ImportEgg(ctx, &panelv1.ImportEggRequest{OrgId: org, Egg: []byte("{}")}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+	if _, err := alice.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{OrgId: org, Egg: []byte("{}")}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Errorf("importing a non-egg: %v", err)
 	}
 
-	// Members list and use it; outsiders can't.
-	list, err := bob.orgs.ListOrgEggs(ctx, &panelv1.ListOrgEggsRequest{OrgId: org})
-	if err != nil || len(list.GetEggs()) != 1 || list.GetEggs()[0].GetImportedByEmail() != "alice@example.com" || list.GetEggs()[0].GetEgg().GetVariables()[0].GetEnv() != "MAX_PLAYERS" {
-		t.Errorf("member's list: %v, %v", list, err)
+	// Members see and use it; outsiders can't.
+	d, err := bob.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: id})
+	if e := d.GetEgg(); err != nil || e.GetScope() != "org" || e.GetCategory() != "other" || e.GetStatus() != "published" ||
+		e.GetCertified() || e.GetSourceUrl() != "https://example.com/egg.json" || e.GetCreatedBy() != "alice@example.com" ||
+		e.GetVariables()[0].GetEnv() != "MAX_PLAYERS" {
+		t.Errorf("member's view: %v, %v", d, err)
 	}
-	got, err := bob.orgs.GetOrgEgg(ctx, &panelv1.GetOrgEggRequest{OrgId: org, EggId: id})
+	got, err := bob.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: org, Id: id})
 	if err != nil || !bytes.Equal(got.GetEgg(), []byte(importedEgg)) {
-		t.Errorf("member's get: %v", err)
+		t.Errorf("member's file: %v", err)
 	}
-	if _, err := carol.orgs.GetOrgEgg(ctx, &panelv1.GetOrgEggRequest{OrgId: org, EggId: id}); connect.CodeOf(err) != connect.CodeNotFound {
-		t.Errorf("outsider's get: %v", err)
+	if _, err := carol.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: org, Id: id}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("outsider's file: %v", err)
 	}
-	if _, err := bob.orgs.DeleteOrgEgg(ctx, &panelv1.DeleteOrgEggRequest{OrgId: org, EggId: id}); connect.CodeOf(err) != connect.CodePermissionDenied {
+	if _, err := bob.lib.DeleteEgg(ctx, &panelv1.DeleteEggRequest{OrgId: org, Id: id}); connect.CodeOf(err) != connect.CodePermissionDenied {
 		t.Errorf("member deleting: %v", err)
 	}
 
@@ -162,17 +161,14 @@ func TestImportEgg(t *testing.T) {
 	}
 
 	// Servers made before the library name the egg "org:<id>".
-	if got, err := bob.orgs.GetOrgEgg(ctx, &panelv1.GetOrgEggRequest{OrgId: org, EggId: "org:" + id}); err != nil || !bytes.Equal(got.GetEgg(), []byte(importedEgg)) {
-		t.Errorf("get by the old ID: %v", err)
+	if got, err := bob.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: org, Id: "org:" + id}); err != nil || !bytes.Equal(got.GetEgg(), []byte(importedEgg)) {
+		t.Errorf("file by the old ID: %v", err)
 	}
 
-	if _, err := alice.orgs.DeleteOrgEgg(ctx, &panelv1.DeleteOrgEggRequest{OrgId: org, EggId: id}); err != nil {
+	if _, err := alice.lib.DeleteEgg(ctx, &panelv1.DeleteEggRequest{OrgId: org, Id: id}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := bob.orgs.GetOrgEgg(ctx, &panelv1.GetOrgEggRequest{OrgId: org, EggId: id}); connect.CodeOf(err) != connect.CodeNotFound {
+	if _, err := bob.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: org, Id: id}); connect.CodeOf(err) != connect.CodeNotFound {
 		t.Errorf("deleted egg: %v", err)
-	}
-	if _, err := alice.orgs.DeleteOrgEgg(ctx, &panelv1.DeleteOrgEggRequest{OrgId: org, EggId: "minecraft/paper"}); connect.CodeOf(err) != connect.CodeNotFound {
-		t.Errorf("deleting a catalog egg: %v", err)
 	}
 }

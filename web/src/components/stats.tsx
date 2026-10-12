@@ -62,7 +62,7 @@ export function UsageBar({ fraction, className }: { fraction: number; className?
 
 // Sparkline is a trend with no axes: its shape, not its numbers. Gaps (null)
 // break the line.
-export function Sparkline({
+function Sparkline({
   values,
   width = 72,
   height = 24,

@@ -19,7 +19,7 @@ export const categories = [
   "other",
 ] as const;
 
-export const categoryNames: Record<string, string> = {
+const categoryNames: Record<string, string> = {
   minecraft: "Minecraft",
   steam: "Steam",
   standalone: "Games",
@@ -48,13 +48,8 @@ export const statusNames: Record<string, string> = {
 };
 
 // official reports whether an egg is Raptor's (built in or official).
-export function official(e: CatalogEgg): boolean {
+function official(e: CatalogEgg): boolean {
   return e.scope === "builtin" || e.scope === "official";
-}
-
-// deployable reports whether servers can be made from an egg.
-export function deployable(e: CatalogEgg): boolean {
-  return e.status === "published";
 }
 
 export function usage(n: number): string {

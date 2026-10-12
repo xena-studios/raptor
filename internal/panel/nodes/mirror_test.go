@@ -321,7 +321,10 @@ func TestMirror(t *testing.T) {
 	waitFor("deleted", func(m map[string]row) bool { _, ok := m["s1"]; return !ok && len(m) == 1 })
 
 	// Dropped: rebuilt from a snapshot on the next sync.
-	if err := mirror.Reset(ctx, nodeID); err != nil {
+	if _, err := r.DB.Exec(ctx, `DELETE FROM m_servers WHERE node_id = $1`, nodeID); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.New(r.DB).SetNodeAcked(ctx, store.SetNodeAckedParams{ID: pgUUID(uuid.MustParse(nodeID)), LastAckedSeq: -1}); err != nil {
 		t.Fatal(err)
 	}
 	fs.set("s3", "Modded", 1, server.Offline)

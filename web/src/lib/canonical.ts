@@ -81,7 +81,7 @@ export async function keyFingerprint(cose: Uint8Array): Promise<string> {
 
 const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
 
-export type PinFields = {
+type PinFields = {
   joinToken: string;
   credentialId: Uint8Array;
   publicKey: Uint8Array;

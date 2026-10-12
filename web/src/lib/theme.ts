@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 // account, so it follows the user to other browsers.
 export type Theme = "system" | "light" | "dark";
 
-export const themes: Theme[] = ["system", "light", "dark"];
+const themes: Theme[] = ["system", "light", "dark"];
 
 const key = "raptor.theme";
 const listeners = new Set<() => void>();
