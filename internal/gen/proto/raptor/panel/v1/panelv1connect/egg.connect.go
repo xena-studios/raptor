@@ -56,6 +56,18 @@ const (
 	// EggServiceImportEggFileProcedure is the fully-qualified name of the EggService's ImportEggFile
 	// RPC.
 	EggServiceImportEggFileProcedure = "/raptor.panel.v1.EggService/ImportEggFile"
+	// EggServiceListCommunityEggsProcedure is the fully-qualified name of the EggService's
+	// ListCommunityEggs RPC.
+	EggServiceListCommunityEggsProcedure = "/raptor.panel.v1.EggService/ListCommunityEggs"
+	// EggServiceShareEggProcedure is the fully-qualified name of the EggService's ShareEgg RPC.
+	EggServiceShareEggProcedure = "/raptor.panel.v1.EggService/ShareEgg"
+	// EggServiceReportEggProcedure is the fully-qualified name of the EggService's ReportEgg RPC.
+	EggServiceReportEggProcedure = "/raptor.panel.v1.EggService/ReportEgg"
+	// EggServiceListEggReportsProcedure is the fully-qualified name of the EggService's ListEggReports
+	// RPC.
+	EggServiceListEggReportsProcedure = "/raptor.panel.v1.EggService/ListEggReports"
+	// EggServiceModerateEggProcedure is the fully-qualified name of the EggService's ModerateEgg RPC.
+	EggServiceModerateEggProcedure = "/raptor.panel.v1.EggService/ModerateEgg"
 )
 
 // EggServiceClient is a client for the raptor.panel.v1.EggService service.
@@ -88,6 +100,18 @@ type EggServiceClient interface {
 	ReviewEggFile(context.Context, *v1.ReviewEggFileRequest) (*v1.ReviewEggFileResponse, error)
 	// ImportEggFile saves a reviewed egg, published.
 	ImportEggFile(context.Context, *v1.ImportEggFileRequest) (*v1.ImportEggFileResponse, error)
+	// ListCommunityEggs lists shared eggs, most added first or newest. Any
+	// signed-in user; with org_id empty (staff), removed ones too.
+	ListCommunityEggs(context.Context, *v1.ListCommunityEggsRequest) (*v1.ListCommunityEggsResponse, error)
+	// ShareEgg shares a published egg with everyone, or stops sharing it.
+	ShareEgg(context.Context, *v1.ShareEggRequest) (*v1.ShareEggResponse, error)
+	// ReportEgg tells Raptor's staff something's wrong with a shared egg.
+	ReportEgg(context.Context, *v1.ReportEggRequest) (*v1.ReportEggResponse, error)
+	// ListEggReports lists open reports (staff).
+	ListEggReports(context.Context, *v1.ListEggReportsRequest) (*v1.ListEggReportsResponse, error)
+	// ModerateEgg takes a shared egg out of the community, puts it back, or
+	// dismisses its reports (staff admins). Its org keeps the egg.
+	ModerateEgg(context.Context, *v1.ModerateEggRequest) (*v1.ModerateEggResponse, error)
 }
 
 // NewEggServiceClient constructs a client for the raptor.panel.v1.EggService service. By default,
@@ -164,21 +188,58 @@ func NewEggServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eggServiceMethods.ByName("ImportEggFile")),
 			connect.WithClientOptions(opts...),
 		),
+		listCommunityEggs: connect.NewClient[v1.ListCommunityEggsRequest, v1.ListCommunityEggsResponse](
+			httpClient,
+			baseURL+EggServiceListCommunityEggsProcedure,
+			connect.WithSchema(eggServiceMethods.ByName("ListCommunityEggs")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		shareEgg: connect.NewClient[v1.ShareEggRequest, v1.ShareEggResponse](
+			httpClient,
+			baseURL+EggServiceShareEggProcedure,
+			connect.WithSchema(eggServiceMethods.ByName("ShareEgg")),
+			connect.WithClientOptions(opts...),
+		),
+		reportEgg: connect.NewClient[v1.ReportEggRequest, v1.ReportEggResponse](
+			httpClient,
+			baseURL+EggServiceReportEggProcedure,
+			connect.WithSchema(eggServiceMethods.ByName("ReportEgg")),
+			connect.WithClientOptions(opts...),
+		),
+		listEggReports: connect.NewClient[v1.ListEggReportsRequest, v1.ListEggReportsResponse](
+			httpClient,
+			baseURL+EggServiceListEggReportsProcedure,
+			connect.WithSchema(eggServiceMethods.ByName("ListEggReports")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		moderateEgg: connect.NewClient[v1.ModerateEggRequest, v1.ModerateEggResponse](
+			httpClient,
+			baseURL+EggServiceModerateEggProcedure,
+			connect.WithSchema(eggServiceMethods.ByName("ModerateEgg")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // eggServiceClient implements EggServiceClient.
 type eggServiceClient struct {
-	listEggs      *connect.Client[v1.EggServiceListEggsRequest, v1.EggServiceListEggsResponse]
-	getEggDetails *connect.Client[v1.GetEggDetailsRequest, v1.GetEggDetailsResponse]
-	getEggFile    *connect.Client[v1.GetEggFileRequest, v1.GetEggFileResponse]
-	createEgg     *connect.Client[v1.CreateEggRequest, v1.CreateEggResponse]
-	updateEgg     *connect.Client[v1.UpdateEggRequest, v1.UpdateEggResponse]
-	customizeEgg  *connect.Client[v1.CustomizeEggRequest, v1.CustomizeEggResponse]
-	setEggStatus  *connect.Client[v1.SetEggStatusRequest, v1.SetEggStatusResponse]
-	deleteEgg     *connect.Client[v1.DeleteEggRequest, v1.DeleteEggResponse]
-	reviewEggFile *connect.Client[v1.ReviewEggFileRequest, v1.ReviewEggFileResponse]
-	importEggFile *connect.Client[v1.ImportEggFileRequest, v1.ImportEggFileResponse]
+	listEggs          *connect.Client[v1.EggServiceListEggsRequest, v1.EggServiceListEggsResponse]
+	getEggDetails     *connect.Client[v1.GetEggDetailsRequest, v1.GetEggDetailsResponse]
+	getEggFile        *connect.Client[v1.GetEggFileRequest, v1.GetEggFileResponse]
+	createEgg         *connect.Client[v1.CreateEggRequest, v1.CreateEggResponse]
+	updateEgg         *connect.Client[v1.UpdateEggRequest, v1.UpdateEggResponse]
+	customizeEgg      *connect.Client[v1.CustomizeEggRequest, v1.CustomizeEggResponse]
+	setEggStatus      *connect.Client[v1.SetEggStatusRequest, v1.SetEggStatusResponse]
+	deleteEgg         *connect.Client[v1.DeleteEggRequest, v1.DeleteEggResponse]
+	reviewEggFile     *connect.Client[v1.ReviewEggFileRequest, v1.ReviewEggFileResponse]
+	importEggFile     *connect.Client[v1.ImportEggFileRequest, v1.ImportEggFileResponse]
+	listCommunityEggs *connect.Client[v1.ListCommunityEggsRequest, v1.ListCommunityEggsResponse]
+	shareEgg          *connect.Client[v1.ShareEggRequest, v1.ShareEggResponse]
+	reportEgg         *connect.Client[v1.ReportEggRequest, v1.ReportEggResponse]
+	listEggReports    *connect.Client[v1.ListEggReportsRequest, v1.ListEggReportsResponse]
+	moderateEgg       *connect.Client[v1.ModerateEggRequest, v1.ModerateEggResponse]
 }
 
 // ListEggs calls raptor.panel.v1.EggService.ListEggs.
@@ -271,6 +332,51 @@ func (c *eggServiceClient) ImportEggFile(ctx context.Context, req *v1.ImportEggF
 	return nil, err
 }
 
+// ListCommunityEggs calls raptor.panel.v1.EggService.ListCommunityEggs.
+func (c *eggServiceClient) ListCommunityEggs(ctx context.Context, req *v1.ListCommunityEggsRequest) (*v1.ListCommunityEggsResponse, error) {
+	response, err := c.listCommunityEggs.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ShareEgg calls raptor.panel.v1.EggService.ShareEgg.
+func (c *eggServiceClient) ShareEgg(ctx context.Context, req *v1.ShareEggRequest) (*v1.ShareEggResponse, error) {
+	response, err := c.shareEgg.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ReportEgg calls raptor.panel.v1.EggService.ReportEgg.
+func (c *eggServiceClient) ReportEgg(ctx context.Context, req *v1.ReportEggRequest) (*v1.ReportEggResponse, error) {
+	response, err := c.reportEgg.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListEggReports calls raptor.panel.v1.EggService.ListEggReports.
+func (c *eggServiceClient) ListEggReports(ctx context.Context, req *v1.ListEggReportsRequest) (*v1.ListEggReportsResponse, error) {
+	response, err := c.listEggReports.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ModerateEgg calls raptor.panel.v1.EggService.ModerateEgg.
+func (c *eggServiceClient) ModerateEgg(ctx context.Context, req *v1.ModerateEggRequest) (*v1.ModerateEggResponse, error) {
+	response, err := c.moderateEgg.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // EggServiceHandler is an implementation of the raptor.panel.v1.EggService service.
 type EggServiceHandler interface {
 	// ListEggs lists the eggs an org can use: its own (any status), then the
@@ -301,6 +407,18 @@ type EggServiceHandler interface {
 	ReviewEggFile(context.Context, *v1.ReviewEggFileRequest) (*v1.ReviewEggFileResponse, error)
 	// ImportEggFile saves a reviewed egg, published.
 	ImportEggFile(context.Context, *v1.ImportEggFileRequest) (*v1.ImportEggFileResponse, error)
+	// ListCommunityEggs lists shared eggs, most added first or newest. Any
+	// signed-in user; with org_id empty (staff), removed ones too.
+	ListCommunityEggs(context.Context, *v1.ListCommunityEggsRequest) (*v1.ListCommunityEggsResponse, error)
+	// ShareEgg shares a published egg with everyone, or stops sharing it.
+	ShareEgg(context.Context, *v1.ShareEggRequest) (*v1.ShareEggResponse, error)
+	// ReportEgg tells Raptor's staff something's wrong with a shared egg.
+	ReportEgg(context.Context, *v1.ReportEggRequest) (*v1.ReportEggResponse, error)
+	// ListEggReports lists open reports (staff).
+	ListEggReports(context.Context, *v1.ListEggReportsRequest) (*v1.ListEggReportsResponse, error)
+	// ModerateEgg takes a shared egg out of the community, puts it back, or
+	// dismisses its reports (staff admins). Its org keeps the egg.
+	ModerateEgg(context.Context, *v1.ModerateEggRequest) (*v1.ModerateEggResponse, error)
 }
 
 // NewEggServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -373,6 +491,38 @@ func NewEggServiceHandler(svc EggServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eggServiceMethods.ByName("ImportEggFile")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eggServiceListCommunityEggsHandler := connect.NewUnaryHandlerSimple(
+		EggServiceListCommunityEggsProcedure,
+		svc.ListCommunityEggs,
+		connect.WithSchema(eggServiceMethods.ByName("ListCommunityEggs")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	eggServiceShareEggHandler := connect.NewUnaryHandlerSimple(
+		EggServiceShareEggProcedure,
+		svc.ShareEgg,
+		connect.WithSchema(eggServiceMethods.ByName("ShareEgg")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eggServiceReportEggHandler := connect.NewUnaryHandlerSimple(
+		EggServiceReportEggProcedure,
+		svc.ReportEgg,
+		connect.WithSchema(eggServiceMethods.ByName("ReportEgg")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eggServiceListEggReportsHandler := connect.NewUnaryHandlerSimple(
+		EggServiceListEggReportsProcedure,
+		svc.ListEggReports,
+		connect.WithSchema(eggServiceMethods.ByName("ListEggReports")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	eggServiceModerateEggHandler := connect.NewUnaryHandlerSimple(
+		EggServiceModerateEggProcedure,
+		svc.ModerateEgg,
+		connect.WithSchema(eggServiceMethods.ByName("ModerateEgg")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.EggService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case EggServiceListEggsProcedure:
@@ -395,6 +545,16 @@ func NewEggServiceHandler(svc EggServiceHandler, opts ...connect.HandlerOption) 
 			eggServiceReviewEggFileHandler.ServeHTTP(w, r)
 		case EggServiceImportEggFileProcedure:
 			eggServiceImportEggFileHandler.ServeHTTP(w, r)
+		case EggServiceListCommunityEggsProcedure:
+			eggServiceListCommunityEggsHandler.ServeHTTP(w, r)
+		case EggServiceShareEggProcedure:
+			eggServiceShareEggHandler.ServeHTTP(w, r)
+		case EggServiceReportEggProcedure:
+			eggServiceReportEggHandler.ServeHTTP(w, r)
+		case EggServiceListEggReportsProcedure:
+			eggServiceListEggReportsHandler.ServeHTTP(w, r)
+		case EggServiceModerateEggProcedure:
+			eggServiceModerateEggHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -442,4 +602,24 @@ func (UnimplementedEggServiceHandler) ReviewEggFile(context.Context, *v1.ReviewE
 
 func (UnimplementedEggServiceHandler) ImportEggFile(context.Context, *v1.ImportEggFileRequest) (*v1.ImportEggFileResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.EggService.ImportEggFile is not implemented"))
+}
+
+func (UnimplementedEggServiceHandler) ListCommunityEggs(context.Context, *v1.ListCommunityEggsRequest) (*v1.ListCommunityEggsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.EggService.ListCommunityEggs is not implemented"))
+}
+
+func (UnimplementedEggServiceHandler) ShareEgg(context.Context, *v1.ShareEggRequest) (*v1.ShareEggResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.EggService.ShareEgg is not implemented"))
+}
+
+func (UnimplementedEggServiceHandler) ReportEgg(context.Context, *v1.ReportEggRequest) (*v1.ReportEggResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.EggService.ReportEgg is not implemented"))
+}
+
+func (UnimplementedEggServiceHandler) ListEggReports(context.Context, *v1.ListEggReportsRequest) (*v1.ListEggReportsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.EggService.ListEggReports is not implemented"))
+}
+
+func (UnimplementedEggServiceHandler) ModerateEgg(context.Context, *v1.ModerateEggRequest) (*v1.ModerateEggResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.EggService.ModerateEgg is not implemented"))
 }

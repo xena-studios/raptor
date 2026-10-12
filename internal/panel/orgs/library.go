@@ -85,10 +85,16 @@ func (l *lib) owns(e store.Egg) bool {
 	return e.OrgID == l.org
 }
 
-// sees reports whether this library can use an egg: its own, or a
-// published official one.
+// sees reports whether this library can use an egg: its own, a published
+// official one, or one another org shares (staff see removed ones too).
 func (l *lib) sees(e store.Egg) bool {
-	return l.owns(e) || (!e.OrgID.Valid && e.Status == "published")
+	switch {
+	case l.owns(e), !e.OrgID.Valid && e.Status == "published":
+		return true
+	case e.SharedAt.Valid && l.official:
+		return true
+	}
+	return e.SharedAt.Valid && !e.RemovedAt.Valid && e.Status == "published"
 }
 
 // tx runs fn for the library orgID names: as the user under row-level
@@ -159,7 +165,7 @@ func (s *Eggs) counts(ctx context.Context, l *lib) (map[string]int32, error) {
 
 // describeEgg is a library egg as the web app lists it. An egg that no
 // longer parses (the parser got stricter) returns an error.
-func describeEgg(e store.Egg, createdBy string) (*panelv1.CatalogEgg, error) {
+func describeEgg(l *lib, e store.Egg, createdBy string) (*panelv1.CatalogEgg, error) {
 	parsed, err := eggs.Parse(e.Egg)
 	if err != nil {
 		return nil, err
@@ -167,8 +173,15 @@ func describeEgg(e store.Egg, createdBy string) (*panelv1.CatalogEgg, error) {
 	p := catalog.Proto(parsed)
 	p.Id, p.Name, p.Summary, p.Category, p.SourceUrl = idString(e.ID), e.Name, e.Summary, e.Category, e.SourceUrl
 	p.Scope, p.Origin, p.Status, p.Version = "org", e.Origin, e.Status, e.Version
-	if !e.OrgID.Valid {
+	switch {
+	case !e.OrgID.Valid:
 		p.Scope = "official"
+	case l.official || e.OrgID != l.org:
+		p.Scope = "community"
+	}
+	p.SharedAt, p.Removed = ts(e.SharedAt), e.RemovedAt.Valid
+	if p.Removed && (l.official || e.OrgID == l.org) {
+		p.RemovedReason = e.RemovedReason
 	}
 	p.ParentId, p.ParentName, p.UpdatedAt, p.CreatedBy = e.ParentID, e.ParentName, ts(e.UpdatedAt), createdBy
 	return p, nil
@@ -211,7 +224,7 @@ func (s *Eggs) ListEggs(ctx context.Context, req *panelv1.EggServiceListEggsRequ
 			}
 		}
 		for _, r := range rows {
-			if p, err := describeEgg(r.egg, r.email.String); err == nil {
+			if p, err := describeEgg(l, r.egg, r.email.String); err == nil {
 				out.Eggs = append(out.Eggs, p)
 			}
 		}
@@ -334,11 +347,17 @@ func (s *Eggs) GetEggDetails(ctx context.Context, req *panelv1.GetEggDetailsRequ
 			out.File, _ = catalog.File(builtin.GetId())
 			return nil
 		}
-		if out.Egg, err = describeEgg(*row, email); err != nil {
+		if out.Egg, err = describeEgg(l, *row, email); err != nil {
 			return connect.NewError(connect.CodeFailedPrecondition, errors.New("this egg no longer reads as an egg; its file has to be fixed"))
 		}
 		out.File = row.Egg
 		out.CanEdit = l.owns(*row) && s.canChange(ctx, l)
+		if pub, err := store.New(s.Orgs.DB).EggPublisher(ctx, row.ID); err == nil {
+			out.Egg.Copies = pub.Copies
+			if out.Egg.GetScope() == "community" {
+				out.Egg.Publisher = pub.Name.String
+			}
+		}
 		versions, err := l.q.ListEggVersions(ctx, row.ID)
 		for _, v := range versions {
 			out.Versions = append(out.Versions, &panelv1.EggVersion{
@@ -626,22 +645,26 @@ func (s *Eggs) CustomizeEgg(ctx context.Context, req *panelv1.CustomizeEggReques
 			file, parent, category, summary = row.Egg, row.Name, row.Category, row.Summary
 		}
 		// A copy of the library's own egg is a duplicate; of anyone
-		// else's, the library's customized version.
-		suffix := " (custom)"
+		// else's, the library's customized version. Added as it is, it
+		// keeps its name and can be deployed.
+		suffix, status, note := " (custom)", "draft", "Copied from "+parent
 		if row != nil && l.owns(*row) {
 			suffix = " (copy)"
 		}
+		if req.GetAsIs() {
+			suffix, status, note = "", "published", "Added from "+parent
+		}
 		name := eggName(parent + suffix)
-		if sp, err := spec.Read(file); err == nil {
+		if sp, err := spec.Read(file); err == nil && suffix != "" {
 			sp.Name = name
 			if edited, err := spec.Write(file, sp); err == nil {
 				file = edited
 			}
 		}
 		created, err := s.create(ctx, l, store.CreateEggParams{
-			Name: name, Summary: summary, Category: category, Origin: "fork", Status: "draft", Egg: file,
+			Name: name, Summary: summary, Category: category, Origin: "fork", Status: status, Egg: file,
 			ParentID: req.GetId(), ParentName: parent,
-		}, "Copied from "+parent)
+		}, note)
 		if err != nil {
 			return err
 		}

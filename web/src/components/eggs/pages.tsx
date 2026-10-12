@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { EggImport } from "@/components/egg-import";
 import { NotFound } from "@/components/error-screen";
-import { PageHeader } from "@/components/page";
+import { PageHeader, tabClass } from "@/components/page";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ import { blankState, categoryName, download, originNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
 
+import { AddEggButton, CommunityList, EggReports, ModerationCard, ReportButton } from "./community";
 import { CustomizeButton, EggDetails } from "./detail";
 import { EggEditor } from "./editor";
 import { EggBadges, EggIcon, EggList, type Library } from "./library";
@@ -62,11 +63,19 @@ function NewEggMenu({ lib }: { lib: Library }) {
   );
 }
 
-// LibraryPage lists the library's eggs.
+// LibraryPage lists the library's eggs, the community's, and (for
+// staff) reports.
 export function LibraryPage({ lib }: { lib: Library }) {
   const canChange = useCanChange(lib);
+  type Tab = "library" | "community" | "reports";
+  const [tab, setTab] = useState<Tab>("library");
   const list = useQuery(EggService.method.listEggs, { orgId: lib.orgId });
   const action = canChange && <NewEggMenu lib={lib} />;
+  const tabs: [Tab, string][] = [
+    ["library", lib.orgId ? "Your library" : "Official"],
+    ["community", "Community"],
+    ...(lib.orgId ? [] : [["reports", "Reports"] as [Tab, string]]),
+  ];
   return (
     <>
       <PageHeader
@@ -78,8 +87,33 @@ export function LibraryPage({ lib }: { lib: Library }) {
         }
         actions={action}
       />
-      {list.error && <p className="text-sm text-destructive">{message(list.error)}</p>}
-      <EggList lib={lib} eggs={list.data?.eggs ?? []} loading={list.isPending} action={action} />
+      <nav aria-label="Egg lists" className="-mb-2 flex gap-4 border-b">
+        {tabs.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={tabClass}
+            data-status={tab === key ? "active" : undefined}
+            aria-current={tab === key ? "page" : undefined}
+            onClick={() => setTab(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      {tab === "library" && (
+        <>
+          {list.error && <p className="text-sm text-destructive">{message(list.error)}</p>}
+          <EggList
+            lib={lib}
+            eggs={list.data?.eggs ?? []}
+            loading={list.isPending}
+            action={action}
+          />
+        </>
+      )}
+      {tab === "community" && <CommunityList lib={lib} />}
+      {tab === "reports" && <EggReports />}
     </>
   );
 }
@@ -94,6 +128,7 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
   }
   if (!egg || !d.data) return <p className="text-sm text-muted-foreground">Loading…</p>;
   const mine = d.data.canEdit;
+  const community = egg.scope === "community";
   return (
     <>
       <PageHeader
@@ -110,6 +145,7 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
           egg.version > 0 ? `v${egg.version}` : "",
           originNames[egg.origin],
           egg.parentName ? `based on ${egg.parentName}` : "",
+          egg.publisher ? `shared by ${egg.publisher}` : "",
         ]
           .filter(Boolean)
           .join(" · ")}
@@ -123,10 +159,22 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
                 <Pencil /> Edit
               </Link>
             )}
+            {community && lib.orgId && <ReportButton lib={lib} id={egg.id} />}
             {canChange && (
-              <CustomizeButton lib={lib} id={egg.id} label={mine ? "Duplicate" : "Customize"} />
+              <CustomizeButton
+                lib={lib}
+                id={egg.id}
+                label={
+                  mine
+                    ? "Duplicate"
+                    : community && !lib.orgId
+                      ? "Make an official copy"
+                      : "Customize"
+                }
+              />
             )}
-            {lib.orgId && canChange && egg.status === "published" && (
+            {community && lib.orgId && canChange && <AddEggButton lib={lib} d={d.data} />}
+            {lib.orgId && !community && canChange && egg.status === "published" && (
               <Link
                 to="/orgs/$orgId/servers/new"
                 params={{ orgId: lib.orgId }}
@@ -139,6 +187,7 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
           </>
         }
       />
+      {community && !lib.orgId && <ModerationCard d={d.data} />}
       <EggDetails d={d.data} />
     </>
   );

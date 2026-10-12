@@ -1127,8 +1127,11 @@ func (x *UpdateEggResponse) GetVersion() int32 {
 type CustomizeEggRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Where the copy goes; empty: the official library (staff).
-	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	Id            string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Id    string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	// Add it as it is: same name, published, ready to deploy (adding a
+	// community egg after reviewing it). Otherwise a draft to edit.
+	AsIs          bool `protobuf:"varint,3,opt,name=as_is,json=asIs,proto3" json:"as_is,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1175,6 +1178,13 @@ func (x *CustomizeEggRequest) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *CustomizeEggRequest) GetAsIs() bool {
+	if x != nil {
+		return x.AsIs
+	}
+	return false
 }
 
 type CustomizeEggResponse struct {
@@ -1680,6 +1690,625 @@ func (x *ImportEggFileResponse) GetId() string {
 	return ""
 }
 
+type ListCommunityEggsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty, for staff: removed eggs too.
+	OrgId    string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Query    string `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	Category string `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	// "popular" (most added) or "new".
+	Sort          string `protobuf:"bytes,4,opt,name=sort,proto3" json:"sort,omitempty"`
+	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommunityEggsRequest) Reset() {
+	*x = ListCommunityEggsRequest{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommunityEggsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommunityEggsRequest) ProtoMessage() {}
+
+func (x *ListCommunityEggsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommunityEggsRequest.ProtoReflect.Descriptor instead.
+func (*ListCommunityEggsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ListCommunityEggsRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *ListCommunityEggsRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *ListCommunityEggsRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *ListCommunityEggsRequest) GetSort() string {
+	if x != nil {
+		return x.Sort
+	}
+	return ""
+}
+
+func (x *ListCommunityEggsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListCommunityEggsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Eggs          []*CatalogEgg          `protobuf:"bytes,1,rep,name=eggs,proto3" json:"eggs,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommunityEggsResponse) Reset() {
+	*x = ListCommunityEggsResponse{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommunityEggsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommunityEggsResponse) ProtoMessage() {}
+
+func (x *ListCommunityEggsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommunityEggsResponse.ProtoReflect.Descriptor instead.
+func (*ListCommunityEggsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListCommunityEggsResponse) GetEggs() []*CatalogEgg {
+	if x != nil {
+		return x.Eggs
+	}
+	return nil
+}
+
+func (x *ListCommunityEggsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type ShareEggRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Shared        bool                   `protobuf:"varint,3,opt,name=shared,proto3" json:"shared,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShareEggRequest) Reset() {
+	*x = ShareEggRequest{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShareEggRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShareEggRequest) ProtoMessage() {}
+
+func (x *ShareEggRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShareEggRequest.ProtoReflect.Descriptor instead.
+func (*ShareEggRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ShareEggRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *ShareEggRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ShareEggRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
+type ShareEggResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShareEggResponse) Reset() {
+	*x = ShareEggResponse{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShareEggResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShareEggResponse) ProtoMessage() {}
+
+func (x *ShareEggResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShareEggResponse.ProtoReflect.Descriptor instead.
+func (*ShareEggResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{28}
+}
+
+type ReportEggRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The org the reporter is looking from.
+	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Id    string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	// malware, broken, spam, or other.
+	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	Details       string `protobuf:"bytes,4,opt,name=details,proto3" json:"details,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportEggRequest) Reset() {
+	*x = ReportEggRequest{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportEggRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportEggRequest) ProtoMessage() {}
+
+func (x *ReportEggRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportEggRequest.ProtoReflect.Descriptor instead.
+func (*ReportEggRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ReportEggRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *ReportEggRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ReportEggRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *ReportEggRequest) GetDetails() string {
+	if x != nil {
+		return x.Details
+	}
+	return ""
+}
+
+type ReportEggResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportEggResponse) Reset() {
+	*x = ReportEggResponse{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportEggResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportEggResponse) ProtoMessage() {}
+
+func (x *ReportEggResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportEggResponse.ProtoReflect.Descriptor instead.
+func (*ReportEggResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{30}
+}
+
+type ListEggReportsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEggReportsRequest) Reset() {
+	*x = ListEggReportsRequest{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEggReportsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEggReportsRequest) ProtoMessage() {}
+
+func (x *ListEggReportsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEggReportsRequest.ProtoReflect.Descriptor instead.
+func (*ListEggReportsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{31}
+}
+
+type EggReport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	EggId         string                 `protobuf:"bytes,2,opt,name=egg_id,json=eggId,proto3" json:"egg_id,omitempty"`
+	EggName       string                 `protobuf:"bytes,3,opt,name=egg_name,json=eggName,proto3" json:"egg_name,omitempty"`
+	Publisher     string                 `protobuf:"bytes,4,opt,name=publisher,proto3" json:"publisher,omitempty"`
+	Reason        string                 `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	Details       string                 `protobuf:"bytes,6,opt,name=details,proto3" json:"details,omitempty"`
+	ReporterEmail string                 `protobuf:"bytes,7,opt,name=reporter_email,json=reporterEmail,proto3" json:"reporter_email,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Already out of the community.
+	Removed       bool `protobuf:"varint,9,opt,name=removed,proto3" json:"removed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EggReport) Reset() {
+	*x = EggReport{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EggReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EggReport) ProtoMessage() {}
+
+func (x *EggReport) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EggReport.ProtoReflect.Descriptor instead.
+func (*EggReport) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *EggReport) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *EggReport) GetEggId() string {
+	if x != nil {
+		return x.EggId
+	}
+	return ""
+}
+
+func (x *EggReport) GetEggName() string {
+	if x != nil {
+		return x.EggName
+	}
+	return ""
+}
+
+func (x *EggReport) GetPublisher() string {
+	if x != nil {
+		return x.Publisher
+	}
+	return ""
+}
+
+func (x *EggReport) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *EggReport) GetDetails() string {
+	if x != nil {
+		return x.Details
+	}
+	return ""
+}
+
+func (x *EggReport) GetReporterEmail() string {
+	if x != nil {
+		return x.ReporterEmail
+	}
+	return ""
+}
+
+func (x *EggReport) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *EggReport) GetRemoved() bool {
+	if x != nil {
+		return x.Removed
+	}
+	return false
+}
+
+type ListEggReportsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reports       []*EggReport           `protobuf:"bytes,1,rep,name=reports,proto3" json:"reports,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEggReportsResponse) Reset() {
+	*x = ListEggReportsResponse{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEggReportsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEggReportsResponse) ProtoMessage() {}
+
+func (x *ListEggReportsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEggReportsResponse.ProtoReflect.Descriptor instead.
+func (*ListEggReportsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *ListEggReportsResponse) GetReports() []*EggReport {
+	if x != nil {
+		return x.Reports
+	}
+	return nil
+}
+
+type ModerateEggRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// "remove", "restore", or "dismiss" (close its reports).
+	Action string `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	// Why, for "remove": shown to the egg's org.
+	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ModerateEggRequest) Reset() {
+	*x = ModerateEggRequest{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModerateEggRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModerateEggRequest) ProtoMessage() {}
+
+func (x *ModerateEggRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModerateEggRequest.ProtoReflect.Descriptor instead.
+func (*ModerateEggRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *ModerateEggRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ModerateEggRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *ModerateEggRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type ModerateEggResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ModerateEggResponse) Reset() {
+	*x = ModerateEggResponse{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModerateEggResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModerateEggResponse) ProtoMessage() {}
+
+func (x *ModerateEggResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModerateEggResponse.ProtoReflect.Descriptor instead.
+func (*ModerateEggResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{35}
+}
+
 var File_raptor_panel_v1_egg_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_egg_proto_rawDesc = "" +
@@ -1771,10 +2400,11 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\fbase_version\x18\b \x01(\x05R\vbaseVersionB\b\n" +
 	"\x06change\"-\n" +
 	"\x11UpdateEggResponse\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\x05R\aversion\"<\n" +
+	"\aversion\x18\x01 \x01(\x05R\aversion\"Q\n" +
 	"\x13CustomizeEggRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\tR\x02id\"&\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x13\n" +
+	"\x05as_is\x18\x03 \x01(\bR\x04asIs\"&\n" +
 	"\x14CustomizeEggResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"T\n" +
 	"\x13SetEggStatusRequest\x12\x15\n" +
@@ -1804,7 +2434,47 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"source_url\x18\x03 \x01(\tR\tsourceUrl\x12\x1a\n" +
 	"\bcategory\x18\x04 \x01(\tR\bcategory\"'\n" +
 	"\x15ImportEggFileResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id2\xbb\a\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x96\x01\n" +
+	"\x18ListCommunityEggsRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x14\n" +
+	"\x05query\x18\x02 \x01(\tR\x05query\x12\x1a\n" +
+	"\bcategory\x18\x03 \x01(\tR\bcategory\x12\x12\n" +
+	"\x04sort\x18\x04 \x01(\tR\x04sort\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"t\n" +
+	"\x19ListCommunityEggsResponse\x12/\n" +
+	"\x04eggs\x18\x01 \x03(\v2\x1b.raptor.panel.v1.CatalogEggR\x04eggs\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"P\n" +
+	"\x0fShareEggRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x16\n" +
+	"\x06shared\x18\x03 \x01(\bR\x06shared\"\x12\n" +
+	"\x10ShareEggResponse\"k\n" +
+	"\x10ReportEggRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\x12\x18\n" +
+	"\adetails\x18\x04 \x01(\tR\adetails\"\x13\n" +
+	"\x11ReportEggResponse\"\x17\n" +
+	"\x15ListEggReportsRequest\"\x99\x02\n" +
+	"\tEggReport\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
+	"\x06egg_id\x18\x02 \x01(\tR\x05eggId\x12\x19\n" +
+	"\begg_name\x18\x03 \x01(\tR\aeggName\x12\x1c\n" +
+	"\tpublisher\x18\x04 \x01(\tR\tpublisher\x12\x16\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason\x12\x18\n" +
+	"\adetails\x18\x06 \x01(\tR\adetails\x12%\n" +
+	"\x0ereporter_email\x18\a \x01(\tR\rreporterEmail\x129\n" +
+	"\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x18\n" +
+	"\aremoved\x18\t \x01(\bR\aremoved\"N\n" +
+	"\x16ListEggReportsResponse\x124\n" +
+	"\areports\x18\x01 \x03(\v2\x1a.raptor.panel.v1.EggReportR\areports\"T\n" +
+	"\x12ModerateEggRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x15\n" +
+	"\x13ModerateEggResponse2\x99\v\n" +
 	"\n" +
 	"EggService\x12h\n" +
 	"\bListEggs\x12*.raptor.panel.v1.EggServiceListEggsRequest\x1a+.raptor.panel.v1.EggServiceListEggsResponse\"\x03\x90\x02\x01\x12c\n" +
@@ -1817,7 +2487,12 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\fSetEggStatus\x12$.raptor.panel.v1.SetEggStatusRequest\x1a%.raptor.panel.v1.SetEggStatusResponse\"\x00\x12T\n" +
 	"\tDeleteEgg\x12!.raptor.panel.v1.DeleteEggRequest\x1a\".raptor.panel.v1.DeleteEggResponse\"\x00\x12`\n" +
 	"\rReviewEggFile\x12%.raptor.panel.v1.ReviewEggFileRequest\x1a&.raptor.panel.v1.ReviewEggFileResponse\"\x00\x12`\n" +
-	"\rImportEggFile\x12%.raptor.panel.v1.ImportEggFileRequest\x1a&.raptor.panel.v1.ImportEggFileResponse\"\x00B\xc8\x01\n" +
+	"\rImportEggFile\x12%.raptor.panel.v1.ImportEggFileRequest\x1a&.raptor.panel.v1.ImportEggFileResponse\"\x00\x12o\n" +
+	"\x11ListCommunityEggs\x12).raptor.panel.v1.ListCommunityEggsRequest\x1a*.raptor.panel.v1.ListCommunityEggsResponse\"\x03\x90\x02\x01\x12Q\n" +
+	"\bShareEgg\x12 .raptor.panel.v1.ShareEggRequest\x1a!.raptor.panel.v1.ShareEggResponse\"\x00\x12T\n" +
+	"\tReportEgg\x12!.raptor.panel.v1.ReportEggRequest\x1a\".raptor.panel.v1.ReportEggResponse\"\x00\x12f\n" +
+	"\x0eListEggReports\x12&.raptor.panel.v1.ListEggReportsRequest\x1a'.raptor.panel.v1.ListEggReportsResponse\"\x03\x90\x02\x01\x12Z\n" +
+	"\vModerateEgg\x12#.raptor.panel.v1.ModerateEggRequest\x1a$.raptor.panel.v1.ModerateEggResponse\"\x00B\xc8\x01\n" +
 	"\x13com.raptor.panel.v1B\bEggProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
 var (
@@ -1832,7 +2507,7 @@ func file_raptor_panel_v1_egg_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_egg_proto_rawDescData
 }
 
-var file_raptor_panel_v1_egg_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_raptor_panel_v1_egg_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_raptor_panel_v1_egg_proto_goTypes = []any{
 	(*EggServiceListEggsRequest)(nil),  // 0: raptor.panel.v1.EggServiceListEggsRequest
 	(*EggServiceListEggsResponse)(nil), // 1: raptor.panel.v1.EggServiceListEggsResponse
@@ -1859,53 +2534,77 @@ var file_raptor_panel_v1_egg_proto_goTypes = []any{
 	(*ReviewEggFileResponse)(nil),      // 22: raptor.panel.v1.ReviewEggFileResponse
 	(*ImportEggFileRequest)(nil),       // 23: raptor.panel.v1.ImportEggFileRequest
 	(*ImportEggFileResponse)(nil),      // 24: raptor.panel.v1.ImportEggFileResponse
-	(*CatalogEgg)(nil),                 // 25: raptor.panel.v1.CatalogEgg
-	(*EggImage)(nil),                   // 26: raptor.panel.v1.EggImage
-	(*EggVariable)(nil),                // 27: raptor.panel.v1.EggVariable
-	(*timestamppb.Timestamp)(nil),      // 28: google.protobuf.Timestamp
-	(*EggWarning)(nil),                 // 29: raptor.panel.v1.EggWarning
-	(*EggReview)(nil),                  // 30: raptor.panel.v1.EggReview
+	(*ListCommunityEggsRequest)(nil),   // 25: raptor.panel.v1.ListCommunityEggsRequest
+	(*ListCommunityEggsResponse)(nil),  // 26: raptor.panel.v1.ListCommunityEggsResponse
+	(*ShareEggRequest)(nil),            // 27: raptor.panel.v1.ShareEggRequest
+	(*ShareEggResponse)(nil),           // 28: raptor.panel.v1.ShareEggResponse
+	(*ReportEggRequest)(nil),           // 29: raptor.panel.v1.ReportEggRequest
+	(*ReportEggResponse)(nil),          // 30: raptor.panel.v1.ReportEggResponse
+	(*ListEggReportsRequest)(nil),      // 31: raptor.panel.v1.ListEggReportsRequest
+	(*EggReport)(nil),                  // 32: raptor.panel.v1.EggReport
+	(*ListEggReportsResponse)(nil),     // 33: raptor.panel.v1.ListEggReportsResponse
+	(*ModerateEggRequest)(nil),         // 34: raptor.panel.v1.ModerateEggRequest
+	(*ModerateEggResponse)(nil),        // 35: raptor.panel.v1.ModerateEggResponse
+	(*CatalogEgg)(nil),                 // 36: raptor.panel.v1.CatalogEgg
+	(*EggImage)(nil),                   // 37: raptor.panel.v1.EggImage
+	(*EggVariable)(nil),                // 38: raptor.panel.v1.EggVariable
+	(*timestamppb.Timestamp)(nil),      // 39: google.protobuf.Timestamp
+	(*EggWarning)(nil),                 // 40: raptor.panel.v1.EggWarning
+	(*EggReview)(nil),                  // 41: raptor.panel.v1.EggReview
 }
 var file_raptor_panel_v1_egg_proto_depIdxs = []int32{
-	25, // 0: raptor.panel.v1.EggServiceListEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
-	26, // 1: raptor.panel.v1.EggSpec.images:type_name -> raptor.panel.v1.EggImage
+	36, // 0: raptor.panel.v1.EggServiceListEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
+	37, // 1: raptor.panel.v1.EggSpec.images:type_name -> raptor.panel.v1.EggImage
 	3,  // 2: raptor.panel.v1.EggSpec.startup:type_name -> raptor.panel.v1.EggStartup
-	27, // 3: raptor.panel.v1.EggSpec.variables:type_name -> raptor.panel.v1.EggVariable
+	38, // 3: raptor.panel.v1.EggSpec.variables:type_name -> raptor.panel.v1.EggVariable
 	4,  // 4: raptor.panel.v1.EggSpec.files:type_name -> raptor.panel.v1.EggConfigFile
 	5,  // 5: raptor.panel.v1.EggConfigFile.find:type_name -> raptor.panel.v1.EggFind
-	28, // 6: raptor.panel.v1.EggVersion.created_at:type_name -> google.protobuf.Timestamp
-	25, // 7: raptor.panel.v1.GetEggDetailsResponse.egg:type_name -> raptor.panel.v1.CatalogEgg
+	39, // 6: raptor.panel.v1.EggVersion.created_at:type_name -> google.protobuf.Timestamp
+	36, // 7: raptor.panel.v1.GetEggDetailsResponse.egg:type_name -> raptor.panel.v1.CatalogEgg
 	2,  // 8: raptor.panel.v1.GetEggDetailsResponse.spec:type_name -> raptor.panel.v1.EggSpec
-	29, // 9: raptor.panel.v1.GetEggDetailsResponse.warnings:type_name -> raptor.panel.v1.EggWarning
+	40, // 9: raptor.panel.v1.GetEggDetailsResponse.warnings:type_name -> raptor.panel.v1.EggWarning
 	6,  // 10: raptor.panel.v1.GetEggDetailsResponse.versions:type_name -> raptor.panel.v1.EggVersion
 	2,  // 11: raptor.panel.v1.CreateEggRequest.spec:type_name -> raptor.panel.v1.EggSpec
 	2,  // 12: raptor.panel.v1.UpdateEggRequest.spec:type_name -> raptor.panel.v1.EggSpec
-	30, // 13: raptor.panel.v1.ReviewEggFileResponse.review:type_name -> raptor.panel.v1.EggReview
-	0,  // 14: raptor.panel.v1.EggService.ListEggs:input_type -> raptor.panel.v1.EggServiceListEggsRequest
-	7,  // 15: raptor.panel.v1.EggService.GetEggDetails:input_type -> raptor.panel.v1.GetEggDetailsRequest
-	9,  // 16: raptor.panel.v1.EggService.GetEggFile:input_type -> raptor.panel.v1.GetEggFileRequest
-	11, // 17: raptor.panel.v1.EggService.CreateEgg:input_type -> raptor.panel.v1.CreateEggRequest
-	13, // 18: raptor.panel.v1.EggService.UpdateEgg:input_type -> raptor.panel.v1.UpdateEggRequest
-	15, // 19: raptor.panel.v1.EggService.CustomizeEgg:input_type -> raptor.panel.v1.CustomizeEggRequest
-	17, // 20: raptor.panel.v1.EggService.SetEggStatus:input_type -> raptor.panel.v1.SetEggStatusRequest
-	19, // 21: raptor.panel.v1.EggService.DeleteEgg:input_type -> raptor.panel.v1.DeleteEggRequest
-	21, // 22: raptor.panel.v1.EggService.ReviewEggFile:input_type -> raptor.panel.v1.ReviewEggFileRequest
-	23, // 23: raptor.panel.v1.EggService.ImportEggFile:input_type -> raptor.panel.v1.ImportEggFileRequest
-	1,  // 24: raptor.panel.v1.EggService.ListEggs:output_type -> raptor.panel.v1.EggServiceListEggsResponse
-	8,  // 25: raptor.panel.v1.EggService.GetEggDetails:output_type -> raptor.panel.v1.GetEggDetailsResponse
-	10, // 26: raptor.panel.v1.EggService.GetEggFile:output_type -> raptor.panel.v1.GetEggFileResponse
-	12, // 27: raptor.panel.v1.EggService.CreateEgg:output_type -> raptor.panel.v1.CreateEggResponse
-	14, // 28: raptor.panel.v1.EggService.UpdateEgg:output_type -> raptor.panel.v1.UpdateEggResponse
-	16, // 29: raptor.panel.v1.EggService.CustomizeEgg:output_type -> raptor.panel.v1.CustomizeEggResponse
-	18, // 30: raptor.panel.v1.EggService.SetEggStatus:output_type -> raptor.panel.v1.SetEggStatusResponse
-	20, // 31: raptor.panel.v1.EggService.DeleteEgg:output_type -> raptor.panel.v1.DeleteEggResponse
-	22, // 32: raptor.panel.v1.EggService.ReviewEggFile:output_type -> raptor.panel.v1.ReviewEggFileResponse
-	24, // 33: raptor.panel.v1.EggService.ImportEggFile:output_type -> raptor.panel.v1.ImportEggFileResponse
-	24, // [24:34] is the sub-list for method output_type
-	14, // [14:24] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	41, // 13: raptor.panel.v1.ReviewEggFileResponse.review:type_name -> raptor.panel.v1.EggReview
+	36, // 14: raptor.panel.v1.ListCommunityEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
+	39, // 15: raptor.panel.v1.EggReport.created_at:type_name -> google.protobuf.Timestamp
+	32, // 16: raptor.panel.v1.ListEggReportsResponse.reports:type_name -> raptor.panel.v1.EggReport
+	0,  // 17: raptor.panel.v1.EggService.ListEggs:input_type -> raptor.panel.v1.EggServiceListEggsRequest
+	7,  // 18: raptor.panel.v1.EggService.GetEggDetails:input_type -> raptor.panel.v1.GetEggDetailsRequest
+	9,  // 19: raptor.panel.v1.EggService.GetEggFile:input_type -> raptor.panel.v1.GetEggFileRequest
+	11, // 20: raptor.panel.v1.EggService.CreateEgg:input_type -> raptor.panel.v1.CreateEggRequest
+	13, // 21: raptor.panel.v1.EggService.UpdateEgg:input_type -> raptor.panel.v1.UpdateEggRequest
+	15, // 22: raptor.panel.v1.EggService.CustomizeEgg:input_type -> raptor.panel.v1.CustomizeEggRequest
+	17, // 23: raptor.panel.v1.EggService.SetEggStatus:input_type -> raptor.panel.v1.SetEggStatusRequest
+	19, // 24: raptor.panel.v1.EggService.DeleteEgg:input_type -> raptor.panel.v1.DeleteEggRequest
+	21, // 25: raptor.panel.v1.EggService.ReviewEggFile:input_type -> raptor.panel.v1.ReviewEggFileRequest
+	23, // 26: raptor.panel.v1.EggService.ImportEggFile:input_type -> raptor.panel.v1.ImportEggFileRequest
+	25, // 27: raptor.panel.v1.EggService.ListCommunityEggs:input_type -> raptor.panel.v1.ListCommunityEggsRequest
+	27, // 28: raptor.panel.v1.EggService.ShareEgg:input_type -> raptor.panel.v1.ShareEggRequest
+	29, // 29: raptor.panel.v1.EggService.ReportEgg:input_type -> raptor.panel.v1.ReportEggRequest
+	31, // 30: raptor.panel.v1.EggService.ListEggReports:input_type -> raptor.panel.v1.ListEggReportsRequest
+	34, // 31: raptor.panel.v1.EggService.ModerateEgg:input_type -> raptor.panel.v1.ModerateEggRequest
+	1,  // 32: raptor.panel.v1.EggService.ListEggs:output_type -> raptor.panel.v1.EggServiceListEggsResponse
+	8,  // 33: raptor.panel.v1.EggService.GetEggDetails:output_type -> raptor.panel.v1.GetEggDetailsResponse
+	10, // 34: raptor.panel.v1.EggService.GetEggFile:output_type -> raptor.panel.v1.GetEggFileResponse
+	12, // 35: raptor.panel.v1.EggService.CreateEgg:output_type -> raptor.panel.v1.CreateEggResponse
+	14, // 36: raptor.panel.v1.EggService.UpdateEgg:output_type -> raptor.panel.v1.UpdateEggResponse
+	16, // 37: raptor.panel.v1.EggService.CustomizeEgg:output_type -> raptor.panel.v1.CustomizeEggResponse
+	18, // 38: raptor.panel.v1.EggService.SetEggStatus:output_type -> raptor.panel.v1.SetEggStatusResponse
+	20, // 39: raptor.panel.v1.EggService.DeleteEgg:output_type -> raptor.panel.v1.DeleteEggResponse
+	22, // 40: raptor.panel.v1.EggService.ReviewEggFile:output_type -> raptor.panel.v1.ReviewEggFileResponse
+	24, // 41: raptor.panel.v1.EggService.ImportEggFile:output_type -> raptor.panel.v1.ImportEggFileResponse
+	26, // 42: raptor.panel.v1.EggService.ListCommunityEggs:output_type -> raptor.panel.v1.ListCommunityEggsResponse
+	28, // 43: raptor.panel.v1.EggService.ShareEgg:output_type -> raptor.panel.v1.ShareEggResponse
+	30, // 44: raptor.panel.v1.EggService.ReportEgg:output_type -> raptor.panel.v1.ReportEggResponse
+	33, // 45: raptor.panel.v1.EggService.ListEggReports:output_type -> raptor.panel.v1.ListEggReportsResponse
+	35, // 46: raptor.panel.v1.EggService.ModerateEgg:output_type -> raptor.panel.v1.ModerateEggResponse
+	32, // [32:47] is the sub-list for method output_type
+	17, // [17:32] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_egg_proto_init() }
@@ -1929,7 +2628,7 @@ func file_raptor_panel_v1_egg_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_egg_proto_rawDesc), len(file_raptor_panel_v1_egg_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   25,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

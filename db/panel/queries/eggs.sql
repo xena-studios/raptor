@@ -43,7 +43,11 @@ UPDATE eggs SET name = @name, summary = @summary, category = @category, egg = @e
 WHERE id = @id;
 
 -- name: SetEggStatus :execrows
-UPDATE eggs SET status = @status, updated_at = now() WHERE id = @id;
+-- Only published eggs are shared: unpublishing takes one out of the
+-- community too.
+UPDATE eggs SET status = @status, updated_at = now(),
+    shared_at = CASE WHEN @status::text = 'published' THEN shared_at END
+WHERE id = @id;
 
 -- name: DeleteEgg :execrows
 DELETE FROM eggs WHERE id = $1;
@@ -74,3 +78,54 @@ WHERE n.org_id = $1 AND s.egg_source <> '' GROUP BY 1;
 
 -- name: OfficialEggExists :one
 SELECT EXISTS (SELECT 1 FROM eggs WHERE org_id IS NULL AND sha256 = $1);
+
+-- Community eggs (docs/PANEL.md#community-eggs).
+
+-- name: SetEggShared :execrows
+UPDATE eggs SET shared_at = CASE WHEN @shared::boolean THEN coalesce(shared_at, now()) END
+WHERE id = @id;
+
+-- name: ListCommunityEggs :many
+-- Shared eggs, by how many orgs added them or by newest; on the Panel's
+-- own connection (the publishers' org names), so it filters itself.
+SELECT sqlc.embed(e), o.name AS org_name,
+    (SELECT count(*) FROM eggs c WHERE c.parent_id = e.id::text)::int AS copies
+FROM eggs e JOIN orgs o ON o.id = e.org_id
+WHERE e.shared_at IS NOT NULL
+  AND (@include_removed::boolean OR (e.removed_at IS NULL AND e.status = 'published'))
+  AND (@query::text = '' OR e.name ILIKE '%' || @query || '%' OR e.summary ILIKE '%' || @query || '%')
+  AND (@category::text = '' OR e.category = @category)
+ORDER BY CASE WHEN @newest::boolean THEN 0 ELSE (SELECT count(*) FROM eggs c WHERE c.parent_id = e.id::text) END DESC,
+    e.shared_at DESC, e.id
+LIMIT @lim OFFSET @off;
+
+-- name: EggPublisher :one
+SELECT o.name, (SELECT count(*) FROM eggs c WHERE c.parent_id = e.id::text)::int AS copies
+FROM eggs e LEFT JOIN orgs o ON o.id = e.org_id WHERE e.id = $1;
+
+-- name: AddEggReport :execrows
+INSERT INTO egg_reports (egg_id, reporter_id, reason, details)
+VALUES (@egg_id, @reporter_id, @reason, @details)
+ON CONFLICT DO NOTHING;
+
+-- name: ListOpenEggReports :many
+SELECT r.id, r.egg_id, r.reason, r.details, r.created_at, coalesce(u.email, '')::text AS reporter_email,
+    e.name AS egg_name, coalesce(o.name, '')::text AS org_name, e.removed_at
+FROM egg_reports r JOIN eggs e ON e.id = r.egg_id
+LEFT JOIN users u ON u.id = r.reporter_id LEFT JOIN orgs o ON o.id = e.org_id
+WHERE r.resolved_at IS NULL ORDER BY r.created_at LIMIT 200;
+
+-- name: CountOpenEggReports :one
+SELECT count(*)::int FROM egg_reports WHERE egg_id = $1 AND resolved_at IS NULL;
+
+-- name: RemoveCommunityEgg :execrows
+UPDATE eggs SET removed_at = now(), removed_reason = @reason, removed_by = @removed_by
+WHERE id = @id AND shared_at IS NOT NULL AND removed_at IS NULL;
+
+-- name: RestoreCommunityEgg :execrows
+UPDATE eggs SET removed_at = NULL, removed_reason = '', removed_by = ''
+WHERE id = @id AND removed_at IS NOT NULL;
+
+-- name: ResolveEggReports :execrows
+UPDATE egg_reports SET resolved_at = now(), resolved_by = @resolved_by, resolution = @resolution
+WHERE egg_id = @egg_id AND resolved_at IS NULL;

@@ -62,6 +62,19 @@ message CatalogEgg {
   string parent_name = 18;
   google.protobuf.Timestamp updated_at = 19;
   string created_by = 20;
+
+  // Community eggs (docs/PANEL.md#community-eggs).
+
+  // The org that made it, for eggs another org shared.
+  string publisher = 21;
+  // When its org shared it with everyone; unset: not shared.
+  google.protobuf.Timestamp shared_at = 22;
+  // How many orgs added it to their eggs.
+  int32 copies = 23;
+  // Set when Raptor's staff took it out of the community, and why. Only
+  // its org and staff see it.
+  bool removed = 24;
+  string removed_reason = 25;
 }
 
 message EggImage {

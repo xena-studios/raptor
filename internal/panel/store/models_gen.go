@@ -64,22 +64,38 @@ type BackupStorageUsage struct {
 }
 
 type Egg struct {
+	ID            pgtype.UUID
+	OrgID         pgtype.UUID
+	Name          string
+	Summary       string
+	Category      string
+	Origin        string
+	Status        string
+	Version       int32
+	Egg           []byte
+	Sha256        string
+	SourceUrl     string
+	ParentID      string
+	ParentName    string
+	CreatedBy     pgtype.UUID
+	CreatedAt     pgtype.Timestamptz
+	UpdatedAt     pgtype.Timestamptz
+	SharedAt      pgtype.Timestamptz
+	RemovedAt     pgtype.Timestamptz
+	RemovedReason string
+	RemovedBy     string
+}
+
+type EggReport struct {
 	ID         pgtype.UUID
-	OrgID      pgtype.UUID
-	Name       string
-	Summary    string
-	Category   string
-	Origin     string
-	Status     string
-	Version    int32
-	Egg        []byte
-	Sha256     string
-	SourceUrl  string
-	ParentID   string
-	ParentName string
-	CreatedBy  pgtype.UUID
+	EggID      pgtype.UUID
+	ReporterID pgtype.UUID
+	Reason     string
+	Details    string
 	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
+	ResolvedAt pgtype.Timestamptz
+	ResolvedBy string
+	Resolution string
 }
 
 type EggVersion struct {

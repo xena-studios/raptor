@@ -20,6 +20,7 @@ import { download, statusNames, usage } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { eggClient } from "@/lib/transport";
 
+import { SharingCard } from "./community";
 import type { Library } from "./library";
 
 // EggManagement publishes, archives, exports, and deletes an egg the
@@ -116,6 +117,7 @@ export function EggManagement({ lib, d }: { lib: Library; d: GetEggDetailsRespon
         </CardContent>
       </Card>
       {error && <p className="text-sm text-destructive lg:col-span-2">{error}</p>}
+      <SharingCard lib={lib} d={d} />
       <Dialog open={!!confirm} onOpenChange={(o) => !o && !busy && setConfirm(undefined)}>
         <DialogContent>
           <DialogHeader>

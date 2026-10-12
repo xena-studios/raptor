@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/catalog.proto.
  */
 export const file_raptor_panel_v1_catalog: GenFile = /*@__PURE__*/
-  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvY2F0YWxvZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIhEKD0xpc3RFZ2dzUmVxdWVzdCK+AwoKQ2F0YWxvZ0VnZxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhEKCWNlcnRpZmllZBgFIAEoCBIMCgRhcmNoGAYgAygJEikKBmltYWdlcxgHIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIvCgl2YXJpYWJsZXMYCCADKAsyHC5yYXB0b3IucGFuZWwudjEuRWdnVmFyaWFibGUSEAoIZmVhdHVyZXMYCSADKAkSEgoKc291cmNlX3VybBgKIAEoCRIPCgdzdW1tYXJ5GAsgASgJEg0KBXNjb3BlGAwgASgJEg4KBm9yaWdpbhgNIAEoCRIOCgZzdGF0dXMYDiABKAkSDwoHdmVyc2lvbhgPIAEoBRIPCgdzZXJ2ZXJzGBAgASgFEhEKCXBhcmVudF9pZBgRIAEoCRITCgtwYXJlbnRfbmFtZRgSIAEoCRIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpjcmVhdGVkX2J5GBQgASgJIiUKCEVnZ0ltYWdlEgwKBG5hbWUYASABKAkSCwoDcmVmGAIgASgJIosBCgtFZ2dWYXJpYWJsZRIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEgsKA2VudhgDIAEoCRIPCgdkZWZhdWx0GAQgASgJEhUKDXVzZXJfdmlld2FibGUYBSABKAgSFQoNdXNlcl9lZGl0YWJsZRgGIAEoCBINCgVydWxlcxgHIAMoCSI9ChBMaXN0RWdnc1Jlc3BvbnNlEikKBGVnZ3MYASADKAsyGy5yYXB0b3IucGFuZWwudjEuQ2F0YWxvZ0VnZyIbCg1HZXRFZ2dSZXF1ZXN0EgoKAmlkGAEgASgJIh0KDkdldEVnZ1Jlc3BvbnNlEgsKA2VnZxgBIAEoDDK2AQoOQ2F0YWxvZ1NlcnZpY2USVAoITGlzdEVnZ3MSIC5yYXB0b3IucGFuZWwudjEuTGlzdEVnZ3NSZXF1ZXN0GiEucmFwdG9yLnBhbmVsLnYxLkxpc3RFZ2dzUmVzcG9uc2UiA5ACARJOCgZHZXRFZ2cSHi5yYXB0b3IucGFuZWwudjEuR2V0RWdnUmVxdWVzdBofLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dSZXNwb25zZSIDkAIBQswBChNjb20ucmFwdG9yLnBhbmVsLnYxQgxDYXRhbG9nUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvY2F0YWxvZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIhEKD0xpc3RFZ2dzUmVxdWVzdCK5BAoKQ2F0YWxvZ0VnZxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhEKCWNlcnRpZmllZBgFIAEoCBIMCgRhcmNoGAYgAygJEikKBmltYWdlcxgHIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIvCgl2YXJpYWJsZXMYCCADKAsyHC5yYXB0b3IucGFuZWwudjEuRWdnVmFyaWFibGUSEAoIZmVhdHVyZXMYCSADKAkSEgoKc291cmNlX3VybBgKIAEoCRIPCgdzdW1tYXJ5GAsgASgJEg0KBXNjb3BlGAwgASgJEg4KBm9yaWdpbhgNIAEoCRIOCgZzdGF0dXMYDiABKAkSDwoHdmVyc2lvbhgPIAEoBRIPCgdzZXJ2ZXJzGBAgASgFEhEKCXBhcmVudF9pZBgRIAEoCRITCgtwYXJlbnRfbmFtZRgSIAEoCRIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpjcmVhdGVkX2J5GBQgASgJEhEKCXB1Ymxpc2hlchgVIAEoCRItCglzaGFyZWRfYXQYFiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmNvcGllcxgXIAEoBRIPCgdyZW1vdmVkGBggASgIEhYKDnJlbW92ZWRfcmVhc29uGBkgASgJIiUKCEVnZ0ltYWdlEgwKBG5hbWUYASABKAkSCwoDcmVmGAIgASgJIosBCgtFZ2dWYXJpYWJsZRIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEgsKA2VudhgDIAEoCRIPCgdkZWZhdWx0GAQgASgJEhUKDXVzZXJfdmlld2FibGUYBSABKAgSFQoNdXNlcl9lZGl0YWJsZRgGIAEoCBINCgVydWxlcxgHIAMoCSI9ChBMaXN0RWdnc1Jlc3BvbnNlEikKBGVnZ3MYASADKAsyGy5yYXB0b3IucGFuZWwudjEuQ2F0YWxvZ0VnZyIbCg1HZXRFZ2dSZXF1ZXN0EgoKAmlkGAEgASgJIh0KDkdldEVnZ1Jlc3BvbnNlEgsKA2VnZxgBIAEoDDK2AQoOQ2F0YWxvZ1NlcnZpY2USVAoITGlzdEVnZ3MSIC5yYXB0b3IucGFuZWwudjEuTGlzdEVnZ3NSZXF1ZXN0GiEucmFwdG9yLnBhbmVsLnYxLkxpc3RFZ2dzUmVzcG9uc2UiA5ACARJOCgZHZXRFZ2cSHi5yYXB0b3IucGFuZWwudjEuR2V0RWdnUmVxdWVzdBofLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dSZXNwb25zZSIDkAIBQswBChNjb20ucmFwdG9yLnBhbmVsLnYxQgxDYXRhbG9nUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.ListEggsRequest
@@ -158,6 +158,40 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
    * @generated from field: string created_by = 20;
    */
   createdBy: string;
+
+  /**
+   * The org that made it, for eggs another org shared.
+   *
+   * @generated from field: string publisher = 21;
+   */
+  publisher: string;
+
+  /**
+   * When its org shared it with everyone; unset: not shared.
+   *
+   * @generated from field: google.protobuf.Timestamp shared_at = 22;
+   */
+  sharedAt?: Timestamp | undefined;
+
+  /**
+   * How many orgs added it to their eggs.
+   *
+   * @generated from field: int32 copies = 23;
+   */
+  copies: number;
+
+  /**
+   * Set when Raptor's staff took it out of the community, and why. Only
+   * its org and staff see it.
+   *
+   * @generated from field: bool removed = 24;
+   */
+  removed: boolean;
+
+  /**
+   * @generated from field: string removed_reason = 25;
+   */
+  removedReason: string;
 };
 
 /**
