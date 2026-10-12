@@ -270,7 +270,17 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 // startMetrics samples every server's resources for local history
 // (docs/WINGS.md#local-metrics).
 func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
-	r.metrics = &metrics.Collector{Servers: mgr, DB: r.db, Log: r.log}
+	volumes := r.cfg.Paths.Volumes
+	r.metrics = &metrics.Collector{
+		Servers: mgr, DB: r.db, Log: r.log, Host: host.ReadSample,
+		HostDisk: func() int64 {
+			total, free, err := storage.Space(volumes)
+			if err != nil {
+				return 0
+			}
+			return total - free
+		},
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	r.stopMetrics, r.metricsDone = cancel, make(chan struct{})
 	go func() {
@@ -284,8 +294,17 @@ func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
 	if path == "" {
 		path = config.DefaultPath
 	}
+	actions.RegisterNodeMetrics(r.commands, r.metrics, mgr, func() int64 {
+		total, _, _ := storage.Space(volumes)
+		return total
+	})
+	p := r.cfg.Paths
 	actions.RegisterHealth(r.commands, &actions.Health{
-		ConfigPath: path, Volumes: r.cfg.Paths.Volumes, Space: storage.Space, Servers: mgr, Metrics: r.metrics,
+		ConfigPath: path, Volumes: p.Volumes, Space: storage.Space, Servers: mgr, Metrics: r.metrics, Disk: r.disk,
+		Labels: map[string]string{
+			p.Volumes: "Servers' files", filepath.Dir(p.State): "Raptor's state", p.Logs: "Logs",
+			p.Tmp: "Temporary files", p.Backups: "Local backups", "/var/lib/docker": "Docker images",
+		},
 	})
 }
 

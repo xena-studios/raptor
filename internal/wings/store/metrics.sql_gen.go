@@ -10,6 +10,23 @@ import (
 	"database/sql"
 )
 
+const deleteHostMetricsBefore = `-- name: DeleteHostMetricsBefore :execrows
+DELETE FROM host_metrics WHERE resolution = ? AND at < ?
+`
+
+type DeleteHostMetricsBeforeParams struct {
+	Resolution int64
+	At         int64
+}
+
+func (q *Queries) DeleteHostMetricsBefore(ctx context.Context, arg DeleteHostMetricsBeforeParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteHostMetricsBefore, arg.Resolution, arg.At)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteMetricsBefore = `-- name: DeleteMetricsBefore :execrows
 DELETE FROM metrics WHERE resolution = ? AND at < ?
 `
@@ -25,6 +42,89 @@ func (q *Queries) DeleteMetricsBefore(ctx context.Context, arg DeleteMetricsBefo
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const hostMetricsBefore = `-- name: HostMetricsBefore :many
+SELECT resolution, at, samples, cpu_avg, cpu_max, memory_avg, memory_max, rx_bytes, tx_bytes, disk_bytes, load_avg FROM host_metrics WHERE resolution = 60 AND at < ? ORDER BY at
+`
+
+func (q *Queries) HostMetricsBefore(ctx context.Context, at int64) ([]HostMetric, error) {
+	rows, err := q.db.QueryContext(ctx, hostMetricsBefore, at)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []HostMetric
+	for rows.Next() {
+		var i HostMetric
+		if err := rows.Scan(
+			&i.Resolution,
+			&i.At,
+			&i.Samples,
+			&i.CpuAvg,
+			&i.CpuMax,
+			&i.MemoryAvg,
+			&i.MemoryMax,
+			&i.RxBytes,
+			&i.TxBytes,
+			&i.DiskBytes,
+			&i.LoadAvg,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listHostMetrics = `-- name: ListHostMetrics :many
+SELECT resolution, at, samples, cpu_avg, cpu_max, memory_avg, memory_max, rx_bytes, tx_bytes, disk_bytes, load_avg FROM host_metrics WHERE resolution = ? AND at >= ? ORDER BY at
+`
+
+type ListHostMetricsParams struct {
+	Resolution int64
+	At         int64
+}
+
+func (q *Queries) ListHostMetrics(ctx context.Context, arg ListHostMetricsParams) ([]HostMetric, error) {
+	rows, err := q.db.QueryContext(ctx, listHostMetrics, arg.Resolution, arg.At)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []HostMetric
+	for rows.Next() {
+		var i HostMetric
+		if err := rows.Scan(
+			&i.Resolution,
+			&i.At,
+			&i.Samples,
+			&i.CpuAvg,
+			&i.CpuMax,
+			&i.MemoryAvg,
+			&i.MemoryMax,
+			&i.RxBytes,
+			&i.TxBytes,
+			&i.DiskBytes,
+			&i.LoadAvg,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listMetrics = `-- name: ListMetrics :many
@@ -114,6 +214,46 @@ func (q *Queries) MetricsBefore(ctx context.Context, at int64) ([]Metric, error)
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertHostMetric = `-- name: UpsertHostMetric :exec
+INSERT INTO host_metrics (resolution, at, samples, cpu_avg, cpu_max, memory_avg, memory_max, rx_bytes, tx_bytes, disk_bytes, load_avg)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (resolution, at) DO UPDATE SET
+    samples = excluded.samples, cpu_avg = excluded.cpu_avg, cpu_max = excluded.cpu_max,
+    memory_avg = excluded.memory_avg, memory_max = excluded.memory_max, rx_bytes = excluded.rx_bytes,
+    tx_bytes = excluded.tx_bytes, disk_bytes = excluded.disk_bytes, load_avg = excluded.load_avg
+`
+
+type UpsertHostMetricParams struct {
+	Resolution int64
+	At         int64
+	Samples    int64
+	CpuAvg     float64
+	CpuMax     float64
+	MemoryAvg  int64
+	MemoryMax  int64
+	RxBytes    int64
+	TxBytes    int64
+	DiskBytes  int64
+	LoadAvg    float64
+}
+
+func (q *Queries) UpsertHostMetric(ctx context.Context, arg UpsertHostMetricParams) error {
+	_, err := q.db.ExecContext(ctx, upsertHostMetric,
+		arg.Resolution,
+		arg.At,
+		arg.Samples,
+		arg.CpuAvg,
+		arg.CpuMax,
+		arg.MemoryAvg,
+		arg.MemoryMax,
+		arg.RxBytes,
+		arg.TxBytes,
+		arg.DiskBytes,
+		arg.LoadAvg,
+	)
+	return err
 }
 
 const upsertMetric = `-- name: UpsertMetric :exec

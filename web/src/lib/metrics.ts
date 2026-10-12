@@ -67,3 +67,65 @@ export function formatBytes(n: number): string {
 
 export const formatRate = (n: number) => `${formatBytes(n)}/s`;
 export const formatPercent = (n: number) => `${n < 10 ? n.toFixed(1) : Math.round(n)}%`;
+
+// What Wings' node.metrics returns (internal/wings/actions/metrics.go): the
+// machine's resources, and what each server uses now.
+export type HostPoint = {
+  at: number;
+  resolution: number;
+  cpu: number; // percent of the whole machine
+  cpu_max: number;
+  memory: number;
+  memory_max: number;
+  rx: number;
+  tx: number;
+  disk: number;
+  load: number;
+};
+
+export type ServerUse = {
+  id: string;
+  state: string;
+  cpu: number;
+  memory: number;
+  disk: number;
+  rx: number;
+  tx: number;
+  players?: number;
+};
+
+export type NodeMetrics = {
+  range: MetricRange;
+  latest: HostPoint;
+  points: HostPoint[];
+  totals: { cpus: number; memory_bytes: number; disk_bytes: number };
+  load: [number, number, number];
+  uptime: number;
+  servers: ServerUse[];
+};
+
+// useNodeMetrics is a node's resources, refreshed like useMetrics. Only
+// admins may ask; pass enabled false for everyone else and offline nodes.
+export function useNodeMetrics(nodeId: string, range: MetricRange, enabled: boolean) {
+  return useQuery({
+    queryKey: ["node-metrics", nodeId, range],
+    queryFn: async () => {
+      const res = await commandClient.execute({
+        nodeId,
+        action: "node.metrics",
+        paramsJson: JSON.stringify({ range }),
+      });
+      return JSON.parse(res.resultJson) as NodeMetrics;
+    },
+    enabled,
+    refetchInterval: range === "1h" ? 10_000 : 60_000,
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function formatUptime(s: number): string {
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+}

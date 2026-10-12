@@ -12,6 +12,7 @@ import {
 import { type ReactNode, useState } from "react";
 
 import { DetailList } from "@/components/page";
+import { UsageBar } from "@/components/stats";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,8 +25,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { message } from "@/lib/errors";
-import { formatBytes, formatPercent } from "@/lib/metrics";
-import { useOrgNodes, useOrgServers } from "@/lib/org-data";
+import { formatBytes, formatUptime } from "@/lib/metrics";
+import { useOrgNodes } from "@/lib/org-data";
 import { commandClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 
@@ -52,27 +53,38 @@ type Report = {
     memory_available: number;
     uptime_seconds: number;
   };
+  details: {
+    os: string;
+    kernel: string;
+    cpu_model: string;
+    memory_cache: number;
+    swap_total: number;
+    swap_free: number;
+    interfaces:
+      | {
+          name: string;
+          up: boolean;
+          physical: boolean;
+          addresses: string[] | null;
+          rx_bytes: number;
+          tx_bytes: number;
+        }[]
+      | null;
+  };
   disk_total: number;
   disk_free: number;
-  servers: { id: string; state: string; cpu: number; memory: number; disk: number }[] | null;
+  disks: { paths: { path: string; label?: string }[]; total: number; free: number }[] | null;
   checks: Check[] | null;
   checked_at?: number;
   checking: boolean;
 };
 
-function uptime(s: number): string {
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
-// The node's health: the machine's resources now, what each server uses,
-// and `raptor doctor`'s checks, run by Wings on the node.
+// The node's health, in detail: `raptor doctor`'s checks, run by Wings on
+// the node, then the machine: its system, load, memory, disks, and network.
+// The overview has the numbers at a glance and over time.
 function Health() {
   const { orgId, nodeId } = Route.useParams();
   const node = useOrgNodes(orgId).data?.nodes.find((n) => n.id === nodeId);
-  const { servers } = useOrgServers(orgId);
   const [starting, setStarting] = useState(false);
   const run = async (action: string) => {
     const res = await commandClient.execute({ nodeId, action, paramsJson: "{}" });
@@ -99,42 +111,13 @@ function Health() {
   if (!r) return <p className="text-sm text-muted-foreground">Asking the node…</p>;
 
   const h = r.host;
-  const memUsed = h.memory_total - h.memory_available;
-  const diskUsed = r.disk_total - r.disk_free;
+  const d = r.details;
   const checks = r.checks ?? [];
   const problems = checks.filter((c) => c.status === "fail" || c.status === "warn");
   const fine = checks.filter((c) => c.status === "pass" || c.status === "skip");
-  const names = new Map(servers.filter((s) => s.node.id === nodeId).map((s) => [s.id, s.name]));
-  const usage = [...(r.servers ?? [])].sort((a, b) => b.memory - a.memory);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Meter
-          label="CPU load"
-          value={`${h.load1.toFixed(2)}`}
-          sub={`${h.cpus} cores · 5 min ${h.load5.toFixed(2)} · 15 min ${h.load15.toFixed(2)}`}
-          fraction={h.cpus ? h.load1 / h.cpus : undefined}
-        />
-        <Meter
-          label="Memory"
-          value={h.memory_total ? formatBytes(memUsed) : "—"}
-          sub={h.memory_total ? `of ${formatBytes(h.memory_total)}` : "Not reported"}
-          fraction={h.memory_total ? memUsed / h.memory_total : undefined}
-        />
-        <Meter
-          label="Server storage"
-          value={r.disk_total ? formatBytes(diskUsed) : "—"}
-          sub={r.disk_total ? `of ${formatBytes(r.disk_total)}` : "Not reported"}
-          fraction={r.disk_total ? diskUsed / r.disk_total : undefined}
-        />
-        <Meter
-          label="Up for"
-          value={h.uptime_seconds ? uptime(h.uptime_seconds) : "—"}
-          sub={`Wings ${node?.wingsVersion || "?"} · ${node?.arch || ""}`}
-        />
-      </div>
-
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
           <div className="space-y-1.5">
@@ -183,83 +166,213 @@ function Health() {
         </CardContent>
       </Card>
 
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>System</CardTitle>
+            <CardDescription>What the machine runs.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DetailList
+              rows={[
+                ["Operating system", d.os || "—"],
+                ["Kernel", d.kernel ? <code key="k">{d.kernel}</code> : "—"],
+                ...(d.cpu_model ? [["Processor", d.cpu_model] as [string, string]] : []),
+                ["Cores", `${h.cpus}${node?.arch ? ` (${node.arch})` : ""}`],
+                ["Up for", h.uptime_seconds ? formatUptime(h.uptime_seconds) : "—"],
+                [
+                  "Started",
+                  h.uptime_seconds
+                    ? new Date(Date.now() - h.uptime_seconds * 1000).toLocaleString()
+                    : "—",
+                ],
+                ["Wings", node?.wingsVersion || "—"],
+              ]}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Load and memory</CardTitle>
+            <CardDescription>
+              Load is how many processes want a core: up to {h.cpus} on this machine is fine.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <div className="grid grid-cols-3 gap-3">
+              {(
+                [
+                  ["1 minute", h.load1],
+                  ["5 minutes", h.load5],
+                  ["15 minutes", h.load15],
+                ] as const
+              ).map(([label, v]) => (
+                <div key={label} className="flex flex-col gap-1.5">
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="text-lg font-semibold tabular-nums">{v.toFixed(2)}</p>
+                  <UsageBar fraction={h.cpus ? v / h.cpus : 0} />
+                </div>
+              ))}
+            </div>
+            <Memory
+              total={h.memory_total}
+              available={h.memory_available}
+              cache={d.memory_cache}
+              swapTotal={d.swap_total}
+              swapFree={d.swap_free}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Servers on this node</CardTitle>
-          <CardDescription>What each uses right now.</CardDescription>
+          <CardTitle>Disks</CardTitle>
+          <CardDescription>
+            Where Raptor keeps servers, backups, and its own state, by filesystem.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {(r.disks ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground">Not reported.</p>
+          )}
+          {(r.disks ?? []).map((disk) => {
+            const used = disk.total - disk.free;
+            return (
+              <div key={disk.paths[0]?.path} className="flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm">
+                  <span className="font-medium">
+                    {disk.paths
+                      .map((p) => p.label)
+                      .filter(Boolean)
+                      .join(", ") || disk.paths[0]?.path}
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {formatBytes(used)} of {formatBytes(disk.total)} · {formatBytes(disk.free)} free
+                  </span>
+                </div>
+                <UsageBar fraction={disk.total ? used / disk.total : 0} />
+                <p className="truncate font-mono text-xs text-muted-foreground">
+                  {disk.paths.map((p) => p.path).join("  ")}
+                </p>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Network</CardTitle>
+          <CardDescription>
+            The machine's interfaces and their traffic since it started. Servers' own interfaces
+            aren't listed: their pages show their traffic.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {usage.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No servers yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Server</TableHead>
-                  <TableHead>State</TableHead>
-                  <TableHead className="text-right">CPU</TableHead>
-                  <TableHead className="text-right">Memory</TableHead>
-                  <TableHead className="text-right">Disk</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Interface</TableHead>
+                <TableHead>Addresses</TableHead>
+                <TableHead className="text-right">In</TableHead>
+                <TableHead className="text-right">Out</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(d.interfaces ?? []).map((i) => (
+                <TableRow key={i.name}>
+                  <TableCell>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "size-2 shrink-0 rounded-full",
+                          i.up ? "bg-emerald-500" : "bg-muted-foreground/40",
+                        )}
+                        title={i.up ? "Up" : "Down"}
+                      />
+                      <span className="font-mono text-xs">{i.name}</span>
+                      {i.physical && <Badge variant="outline">Network card</Badge>}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs whitespace-normal text-muted-foreground">
+                    {(i.addresses ?? []).join(", ") || "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatBytes(i.rx_bytes)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatBytes(i.tx_bytes)}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {usage.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      {names.get(s.id) ?? <code className="text-xs">{s.id.slice(-8)}</code>}
-                    </TableCell>
-                    <TableCell className="capitalize">{s.state.replace("_", " ")}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {s.state === "running" ? formatPercent(s.cpu) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {s.state === "running" ? formatBytes(s.memory) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {s.disk ? formatBytes(s.disk) : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function Meter({
-  label,
-  value,
-  sub,
-  fraction,
+// Memory is what's used by programs, what the kernel caches (and gives back
+// when programs need it), what's free, and swap.
+function Memory({
+  total,
+  available,
+  cache,
+  swapTotal,
+  swapFree,
 }: {
-  label: string;
-  value: string;
-  sub: string;
-  fraction?: number;
+  total: number;
+  available: number;
+  cache: number;
+  swapTotal: number;
+  swapFree: number;
 }) {
-  const f = fraction === undefined ? undefined : Math.min(1, Math.max(0, fraction));
+  if (!total) return <p className="text-sm text-muted-foreground">Memory isn't reported.</p>;
+  const used = total - available;
+  const cached = Math.min(cache, available);
+  const free = Math.max(0, total - used - cached);
+  const parts = [
+    { label: "In use", bytes: used, className: "bg-[var(--series-1)]" },
+    { label: "Cache", bytes: cached, className: "bg-[var(--series-1)]/35" },
+    { label: "Free", bytes: free, className: "bg-muted" },
+  ];
   return (
-    <Card size="sm">
-      <CardContent className="flex flex-col gap-1.5">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-xl font-semibold tabular-nums">{value}</p>
-        {f !== undefined && (
-          <div className="h-1 overflow-hidden rounded-full bg-muted">
-            <div
-              className={cn(
-                "h-full rounded-full",
-                f > 0.9 ? "bg-destructive" : f > 0.75 ? "bg-amber-500" : "bg-[var(--series-1)]",
-              )}
-              style={{ width: `${f * 100}%` }}
-            />
-          </div>
-        )}
-        <p className="truncate text-xs text-muted-foreground">{sub}</p>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="font-medium">Memory</span>
+        <span className="tabular-nums text-muted-foreground">
+          {formatBytes(used)} of {formatBytes(total)} in use
+        </span>
+      </div>
+      <div className="flex h-2 overflow-hidden rounded-full bg-muted">
+        {parts.map((p) => (
+          <div
+            key={p.label}
+            className={p.className}
+            style={{ width: `${(p.bytes / total) * 100}%` }}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        {parts.map((p) => (
+          <span key={p.label} className="flex items-center gap-1.5">
+            <span className={cn("size-2 rounded-sm", p.className)} />
+            {p.label} <span className="text-foreground tabular-nums">{formatBytes(p.bytes)}</span>
+          </span>
+        ))}
+        <span>
+          Swap{" "}
+          <span className="text-foreground tabular-nums">
+            {swapTotal
+              ? `${formatBytes(swapTotal - swapFree)} of ${formatBytes(swapTotal)}`
+              : "none"}
+          </span>
+        </span>
+      </div>
+    </div>
   );
 }
 

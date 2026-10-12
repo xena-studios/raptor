@@ -97,6 +97,7 @@ var actions = map[string]string{
 	"sftp.disconnect":           SFTP,
 	"node.update":               adminOnly,
 	"node.health":               adminOnly,
+	"node.metrics":              adminOnly,
 	"node.doctor":               adminOnly,
 	"keys.add":                  adminOnly,
 	"keys.remove":               adminOnly,
@@ -147,7 +148,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "files.stat", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor",
+		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

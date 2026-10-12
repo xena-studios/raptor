@@ -16,3 +16,20 @@ SELECT * FROM metrics WHERE resolution = 60 AND at < ? ORDER BY server_id, at;
 
 -- name: DeleteMetricsBefore :execrows
 DELETE FROM metrics WHERE resolution = ? AND at < ?;
+
+-- name: UpsertHostMetric :exec
+INSERT INTO host_metrics (resolution, at, samples, cpu_avg, cpu_max, memory_avg, memory_max, rx_bytes, tx_bytes, disk_bytes, load_avg)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (resolution, at) DO UPDATE SET
+    samples = excluded.samples, cpu_avg = excluded.cpu_avg, cpu_max = excluded.cpu_max,
+    memory_avg = excluded.memory_avg, memory_max = excluded.memory_max, rx_bytes = excluded.rx_bytes,
+    tx_bytes = excluded.tx_bytes, disk_bytes = excluded.disk_bytes, load_avg = excluded.load_avg;
+
+-- name: ListHostMetrics :many
+SELECT * FROM host_metrics WHERE resolution = ? AND at >= ? ORDER BY at;
+
+-- name: HostMetricsBefore :many
+SELECT * FROM host_metrics WHERE resolution = 60 AND at < ? ORDER BY at;
+
+-- name: DeleteHostMetricsBefore :execrows
+DELETE FROM host_metrics WHERE resolution = ? AND at < ?;

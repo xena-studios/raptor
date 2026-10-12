@@ -1,7 +1,6 @@
 package host
 
 import (
-	"bufio"
 	"os"
 	"runtime"
 	"strconv"
@@ -31,23 +30,8 @@ func ReadStats() Stats {
 			s.Load15, _ = strconv.ParseFloat(f[2], 64)
 		}
 	}
-	if f, err := os.Open("/proc/meminfo"); err == nil {
-		sc := bufio.NewScanner(f)
-		for sc.Scan() {
-			fields := strings.Fields(sc.Text())
-			if len(fields) < 2 {
-				continue
-			}
-			kb, _ := strconv.ParseInt(fields[1], 10, 64)
-			switch fields[0] {
-			case "MemTotal:":
-				s.MemoryTotal = kb << 10
-			case "MemAvailable:":
-				s.MemoryAvailable = kb << 10
-			}
-		}
-		_ = f.Close()
-	}
+	mem := meminfo()
+	s.MemoryTotal, s.MemoryAvailable = mem["MemTotal"], mem["MemAvailable"]
 	if b, err := os.ReadFile("/proc/uptime"); err == nil {
 		if f := strings.Fields(string(b)); len(f) > 0 {
 			up, _ := strconv.ParseFloat(f[0], 64)
