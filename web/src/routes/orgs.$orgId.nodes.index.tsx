@@ -3,10 +3,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, SquareTerminal } from "lucide-react";
 import { useState } from "react";
 
+import { Hidden } from "@/components/address";
+import { EntityCard, LinkRow } from "@/components/entity-list";
 import { EmptyState, ListToolbar, type ListView, PageHeader } from "@/components/page";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/server-status";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -16,8 +18,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { nodeHostname } from "@/lib/addresses";
 import { isAdmin, when } from "@/lib/format";
-import { formatMemory, useOrgNodes } from "@/lib/org-data";
+import { formatMemory, useOrgNodes, useOrgServers } from "@/lib/org-data";
+import { nodeStatus } from "@/lib/servers";
 
 export const Route = createFileRoute("/orgs/$orgId/nodes/")({
   component: Nodes,
@@ -32,7 +36,14 @@ function Nodes() {
   const [view, setView] = useState<ListView>("grid");
   const q = query.trim().toLowerCase();
   const all = nodes.data?.nodes ?? [];
-  const list = all.filter((n) => !q || n.name.toLowerCase().includes(q) || n.shortId.includes(q));
+  const list = all.filter(
+    (n) => !q || n.name.toLowerCase().includes(q) || n.displayAddress.includes(q),
+  );
+  const { servers } = useOrgServers(orgId);
+  const running = (nodeId: string) => {
+    const on = servers.filter((s) => s.node.id === nodeId);
+    return `${on.filter((s) => s.state === "running").length} running of ${on.length}`;
+  };
   const connect = admin && (
     <Link to="/orgs/$orgId/nodes/new" params={{ orgId }} className={buttonVariants({ size: "sm" })}>
       <Plus /> Connect node
@@ -66,7 +77,21 @@ function Nodes() {
           {view === "grid" ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {list.map((n) => (
-                <NodeCard key={n.id} orgId={orgId} node={n} />
+                <EntityCard
+                  key={n.id}
+                  link={{ to: "/orgs/$orgId/nodes/$nodeId", params: { orgId, nodeId: n.id } }}
+                  title={n.name}
+                  status={nodeStatus(n)}
+                  subtitle={machine(n)}
+                  rows={[
+                    ["Address", <NodeAddress key="a" node={n} />],
+                    ["Servers", running(n.id)],
+                    [
+                      n.connected ? "Wings" : "Last seen",
+                      n.connected ? n.wingsVersion || "—" : when(n.lastSeenAt),
+                    ],
+                  ]}
+                />
               ))}
             </div>
           ) : (
@@ -75,15 +100,18 @@ function Nodes() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Node</TableHead>
-                    <TableHead>Hostname</TableHead>
-                    <TableHead>Machine</TableHead>
-                    <TableHead>Wings</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead className="hidden md:table-cell">Machine</TableHead>
+                    <TableHead className="hidden sm:table-cell">Servers</TableHead>
                     <TableHead className="text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {list.map((n) => (
-                    <TableRow key={n.id}>
+                    <LinkRow
+                      key={n.id}
+                      link={{ to: "/orgs/$orgId/nodes/$nodeId", params: { orgId, nodeId: n.id } }}
+                    >
                       <TableCell>
                         <Link
                           to="/orgs/$orgId/nodes/$nodeId"
@@ -93,15 +121,17 @@ function Nodes() {
                           {n.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        n-{n.shortId}.raptornodes.net
+                      <TableCell>
+                        <NodeAddress node={n} />
                       </TableCell>
-                      <TableCell>{machine(n)}</TableCell>
-                      <TableCell>{n.wingsVersion || "—"}</TableCell>
+                      <TableCell className="hidden text-muted-foreground md:table-cell">
+                        {machine(n)}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{running(n.id)}</TableCell>
                       <TableCell className="text-right">
-                        <Status node={n} />
+                        <StatusBadge status={nodeStatus(n)} />
                       </TableCell>
-                    </TableRow>
+                    </LinkRow>
                   ))}
                 </TableBody>
               </Table>
@@ -121,47 +151,12 @@ function machine(n: Node): string {
   );
 }
 
-function Status({ node }: { node: Node }) {
-  return (
-    <Badge variant={node.connected ? "default" : "outline"}>
-      {node.connected ? "Connected" : "Offline"}
-    </Badge>
-  );
-}
-
-function NodeCard({ orgId, node }: { orgId: string; node: Node }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="truncate">
-          <Link
-            to="/orgs/$orgId/nodes/$nodeId"
-            params={{ orgId, nodeId: node.id }}
-            className="hover:underline"
-          >
-            {node.name}
-          </Link>
-        </CardTitle>
-        <CardDescription className="truncate font-mono text-xs">
-          n-{node.shortId}.raptornodes.net
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2 text-sm">
-        <div className="flex justify-between gap-2">
-          <span className="text-muted-foreground">Machine</span>
-          <span className="truncate">{machine(node)}</span>
-        </div>
-        <div className="flex justify-between gap-2">
-          <span className="text-muted-foreground">Wings</span>
-          <span>{node.wingsVersion || "—"}</span>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-muted-foreground">
-            {node.connected ? "Connected" : `Last seen ${when(node.lastSeenAt)}`}
-          </span>
-          <Status node={node} />
-        </div>
-      </CardContent>
-    </Card>
+// NodeAddress is what players see for the node: its shown address, or its
+// hostname, hidden.
+function NodeAddress({ node }: { node: Node }) {
+  return node.displayAddress ? (
+    <code className="truncate text-xs">{node.displayAddress}</code>
+  ) : (
+    <Hidden value={nodeHostname(node)} label="hostname" />
   );
 }

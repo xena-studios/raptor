@@ -2,13 +2,16 @@ import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 
+import { Hidden } from "@/components/address";
 import { NotFound } from "@/components/error-screen";
 import { PageHeader, RouteTabs, tabClass } from "@/components/page";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/server-status";
 import { buttonVariants } from "@/components/ui/button";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { nodeHostname } from "@/lib/addresses";
 import { isAdmin } from "@/lib/format";
 import { useOrgNodes } from "@/lib/org-data";
+import { nodeStatus } from "@/lib/servers";
 
 // A node's pages: its header, its tabs, and the tab below.
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId")({
@@ -31,14 +34,17 @@ function NodeLayout() {
           title={
             <span className="flex items-center gap-2.5">
               {node?.name ?? "Node"}
-              {node && (
-                <Badge variant={node.connected ? "default" : "outline"}>
-                  {node.connected ? "Connected" : "Offline"}
-                </Badge>
-              )}
+              {node && <StatusBadge status={nodeStatus(node)} />}
             </span>
           }
-          description={node && <span className="font-mono">n-{node.shortId}.raptornodes.net</span>}
+          description={
+            node &&
+            (node.displayAddress ? (
+              <span className="font-mono">{node.displayAddress}</span>
+            ) : (
+              <Hidden value={nodeHostname(node)} label="hostname" />
+            ))
+          }
           actions={
             admin && (
               <Link

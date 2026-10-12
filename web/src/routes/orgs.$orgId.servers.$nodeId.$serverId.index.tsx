@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Cpu, HardDrive, MemoryStick, Network, Users } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 
+import { ServerAddress } from "@/components/address";
 import { DetailList } from "@/components/page";
 import { Graph, lastPoints, RangePicker, StatCard } from "@/components/stats";
 import { TimeChart } from "@/components/time-chart";
@@ -33,8 +34,6 @@ function Overview() {
   const live = useMetrics(nodeId, serverId, "1h");
   const history = useMetrics(nodeId, serverId, range);
   if (!server) return null;
-  const address =
-    node && server.ports[0] ? `n-${node.shortId}.raptornodes.net:${server.ports[0]}` : "—";
   const running = server.state === "running" || server.state === "starting";
 
   return (
@@ -76,9 +75,7 @@ function Overview() {
                 rows={[
                   [
                     "Connect",
-                    <span key="c" className="font-mono text-xs">
-                      {address}
-                    </span>,
+                    node ? <ServerAddress key="c" node={node} port={server.ports[0]} /> : "—",
                   ],
                   ["Game", server.eggName || "—"],
                   ["Node", node?.name ?? "—"],

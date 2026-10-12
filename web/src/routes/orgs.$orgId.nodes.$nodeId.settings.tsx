@@ -1,7 +1,7 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NodeSettings, NodeSFTP } from "@/components/node-settings";
+import { NodeAddress, NodeSettings, NodeSFTP } from "@/components/node-settings";
 import { PairKey } from "@/components/pair-key";
 import { TrustedKeys } from "@/components/trusted-keys";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
@@ -20,6 +20,7 @@ function Settings() {
   return (
     <div className="flex flex-col gap-6">
       {node && <NodeSettings key={node.name} orgId={orgId} nodeId={nodeId} name={node.name} />}
+      {node && <NodeAddress key={node.displayAddress} orgId={orgId} node={node} />}
       {node && <NodeSFTP orgId={orgId} node={node} />}
       <TrustedKeys
         orgId={orgId}

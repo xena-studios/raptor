@@ -331,27 +331,32 @@ SELECT n.id, n.name, n.short_id, n.wings_version, n.last_seen_at, n.created_at,
        coalesce(n.facts->>'arch', '')::text AS arch,
        coalesce((n.facts->>'cpus')::int, 0)::int AS cpus,
        coalesce((n.facts->>'memory_bytes')::bigint, 0)::bigint AS memory_bytes,
-       n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed
+       n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed, n.display_address,
+       coalesce(host(n.public_ipv4), '')::text AS public_ipv4,
+       coalesce(host(n.public_ipv6), '')::text AS public_ipv6
 FROM nodes n LEFT JOIN node_connections c ON c.node_id = n.id
 WHERE n.org_id = $1 AND n.deleted_at IS NULL
 ORDER BY n.created_at
 `
 
 type OrgNodesRow struct {
-	ID           pgtype.UUID
-	Name         string
-	ShortID      string
-	WingsVersion string
-	LastSeenAt   pgtype.Timestamptz
-	CreatedAt    pgtype.Timestamptz
-	Connected    bool
-	Arch         string
-	Cpus         int32
-	MemoryBytes  int64
-	SftpEnabled  bool
-	SftpPort     int32
-	SftpHostKey  string
-	SftpAllowed  bool
+	ID             pgtype.UUID
+	Name           string
+	ShortID        string
+	WingsVersion   string
+	LastSeenAt     pgtype.Timestamptz
+	CreatedAt      pgtype.Timestamptz
+	Connected      bool
+	Arch           string
+	Cpus           int32
+	MemoryBytes    int64
+	SftpEnabled    bool
+	SftpPort       int32
+	SftpHostKey    string
+	SftpAllowed    bool
+	DisplayAddress string
+	PublicIpv4     string
+	PublicIpv6     string
 }
 
 func (q *Queries) OrgNodes(ctx context.Context, orgID pgtype.UUID) ([]OrgNodesRow, error) {
@@ -378,6 +383,9 @@ func (q *Queries) OrgNodes(ctx context.Context, orgID pgtype.UUID) ([]OrgNodesRo
 			&i.SftpPort,
 			&i.SftpHostKey,
 			&i.SftpAllowed,
+			&i.DisplayAddress,
+			&i.PublicIpv4,
+			&i.PublicIpv6,
 		); err != nil {
 			return nil, err
 		}

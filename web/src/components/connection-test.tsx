@@ -9,7 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
-
+import { Hidden } from "@/components/address";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type Cause, diagnose, type Inside, type Verdict } from "@/lib/connection-test";
@@ -40,6 +40,8 @@ export function ConnectionTest({
   orgId: string;
   nodeId: string;
   serverId: string;
+  // The node's own hostname: the test reaches the machine, not a proxy in
+  // front of it, so that's what it names (hidden, like everywhere).
   host: string;
 }) {
   const test = useMutation({
@@ -90,7 +92,7 @@ export function ConnectionTest({
         {test.error && <p className="text-sm text-destructive">{message(test.error)}</p>}
         {test.isPending && (
           <p className="text-sm text-muted-foreground">
-            Connecting to {host} from the internet. This takes up to 5 seconds.
+            Connecting to the node from the internet. This takes up to 5 seconds.
           </p>
         )}
         {r && !r.address && (
@@ -196,7 +198,7 @@ function Row({
 }
 
 function Summary({ v, host }: { v: Verdict; host: string }) {
-  const at = <code className="text-foreground">{`${host}:${v.port}`}</code>;
+  const at = <Hidden value={`${host}:${v.port}`} className="align-middle text-foreground" />;
   switch (v.cause) {
     case "ok":
       return (

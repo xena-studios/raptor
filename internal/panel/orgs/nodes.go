@@ -5,7 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/netip"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -61,6 +65,11 @@ func (s *Service) ListNodes(ctx context.Context, req *panelv1.ListNodesRequest) 
 				Connected: r.Connected, CreatedAt: timestamppb.New(r.CreatedAt.Time),
 				Arch: r.Arch, Cpus: r.Cpus, MemoryBytes: r.MemoryBytes,
 				SftpEnabled: r.SftpEnabled, SftpPort: r.SftpPort, SftpHostKeyFingerprint: r.SftpHostKey, SftpAllowed: r.SftpAllowed,
+				DisplayAddress: r.DisplayAddress,
+			}
+			// The machine's own addresses are for those who run it.
+			if grants == nil {
+				n.PublicIpv4, n.PublicIpv6 = r.PublicIpv4, r.PublicIpv6
 			}
 			if r.LastSeenAt.Valid {
 				n.LastSeenAt = timestamppb.New(r.LastSeenAt.Time)
@@ -236,6 +245,64 @@ func (s *Service) RenameNode(ctx context.Context, req *panelv1.RenameNodeRequest
 	}
 	_ = s.audit(ctx, nil, sess, org, "node.rename", idString(node), nil, map[string]any{"name": name})
 	return &panelv1.RenameNodeResponse{}, nil
+}
+
+// SetNodeDisplayAddress implements OrgService.
+func (s *Service) SetNodeDisplayAddress(ctx context.Context, req *panelv1.SetNodeDisplayAddressRequest) (*panelv1.SetNodeDisplayAddressResponse, error) {
+	addr, err := displayAddress(req.GetDisplayAddress())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	sess, org, node, err := s.nodeOf(ctx, req.GetOrgId(), req.GetNodeId())
+	if err != nil {
+		return nil, err
+	}
+	if _, err := store.New(s.DB).SetNodeDisplayAddress(ctx, store.SetNodeDisplayAddressParams{ID: node, DisplayAddress: addr}); err != nil {
+		return nil, err
+	}
+	_ = s.audit(ctx, nil, sess, org, "node.display_address", idString(node), nil, map[string]any{"address": addr})
+	return &panelv1.SetNodeDisplayAddressResponse{}, nil
+}
+
+// hostLabel is one label of a DNS name.
+var hostLabel = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
+// displayAddress checks a node's shown address: a DNS name or an IP
+// address, with an optional port. It's only text on screen, but it ends up
+// in links players copy, so it has to be an address.
+func displayAddress(s string) (string, error) {
+	s = strings.ToLower(strings.TrimSpace(s))
+	if s == "" {
+		return "", nil
+	}
+	bad := errors.New("the address is a domain or an IP address, with a port if players need one, like play.example.com or play.example.com:25565")
+	if len(s) > 260 {
+		return "", bad
+	}
+	host, port := s, ""
+	if h, p, err := net.SplitHostPort(s); err == nil {
+		host, port = h, p
+	} else if strings.HasPrefix(s, "[") {
+		return "", bad
+	}
+	if port != "" {
+		if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+			return "", bad
+		}
+	}
+	if _, err := netip.ParseAddr(host); err == nil {
+		return s, nil
+	}
+	labels := strings.Split(strings.TrimSuffix(host, "."), ".")
+	if len(host) > 253 || len(labels) < 2 {
+		return "", bad
+	}
+	for _, l := range labels {
+		if !hostLabel.MatchString(l) {
+			return "", bad
+		}
+	}
+	return s, nil
 }
 
 // RemoveNode implements OrgService.

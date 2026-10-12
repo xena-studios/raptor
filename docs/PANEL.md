@@ -221,6 +221,12 @@ The node fires schedules (see [WINGS.md](WINGS.md#scheduler)); the Panel keeps t
 
 `OrgService.ListScheduleRuns` (the `schedules` permission) lists a server's runs, or one schedule's, 25 at a time, newest first. A schedule's "last run" is the newer of the node's and the newest run here, so "Run now" counts. The server's Schedules tab shows them under the schedules, refreshed every 5 seconds: running (with the steps done), ran (with how long and how many steps), failed (at which step, and why), skipped (and why). A step's error is the node's words, so the app shows known ones as a sentence ("the server wasn't running") and anything else as "the backup failed" and the like.
 
+## Node addresses
+
+A node's hostname (`n-<short id>.raptornodes.net`) resolves to the machine's IP address, so showing it is showing the IP. Many owners put a proxy in front of their servers (TCPShield and the like) and stream or share their screen, so the app treats both as private:
+- The hostname and the public IPs are shown as dots until revealed, one at a time, and can be copied without being revealed: in the node and server lists, the node's header and details, a server's address, the Network tab, the connection test, and the SFTP dialog. Only admins and owners get the IPs from `ListNodes`; members never do.
+- A node's **shown address** (`SetNodeDisplayAddress`, admins and owners, in the audit log) is what players connect to instead: a domain or IP, with a port or not. With a port, it's shown as is (a proxy's address); without one, each server's port is added. It's shown in the clear everywhere the hostname would be. The connection test still names the node's own hostname, hidden, because that's what it reaches.
+
 ## Billing (Polar)
 
 - **$12 / node / month.** First node free for the first month.

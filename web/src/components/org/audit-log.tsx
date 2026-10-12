@@ -229,6 +229,14 @@ export function OrgActivity({
       case "node.rename":
         [text, icon] = [`renamed a node to "${str(meta.name)}"`, Server];
         break;
+      case "node.display_address":
+        [text, icon] = [
+          meta.address
+            ? `set ${nodeName(e.target)}'s shown address to ${str(meta.address)}`
+            : `cleared ${nodeName(e.target)}'s shown address`,
+          Server,
+        ];
+        break;
       case "node.remove":
         [text, icon] = [`removed ${nodeName(e.target)}`, Trash2];
         break;
