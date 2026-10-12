@@ -12,7 +12,8 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "node --test src/lib/*.test.ts",
-    "test:csp": "node scripts/csp-check.mjs"
+    "test:csp": "node scripts/csp-check.mjs",
+    "hashes": "node scripts/bundle-hashes.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

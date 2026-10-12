@@ -320,6 +320,15 @@ Both carry their own headers (`web/public/_headers`, `web/verify/_headers`): a C
 
 **Check by hand:** the browser's console on `app.raptorpanel.net` shows no CSP errors through sign-in, the Turnstile check, and the account pages.
 
+### Published bundle hashes
+
+Every release says exactly what the web app is, so anyone can check that `app.raptorpanel.net` serves it unchanged:
+
+- **The build is reproducible.** CI builds the app twice from scratch and fails if any file differs (`node web/scripts/bundle-hashes.mjs` both times).
+- **Each release carries `web-bundle.sha256`.** It holds the SHA-256 of every file the app is built into, in `sha256sum`'s format. Goreleaser builds it from the tag (a before hook), and it's listed in `checksums.txt`, which the offline minisign key signs (`task release:sign`). So it's as trustworthy as the binaries.
+- **Checking the live site:** verify `checksums.txt` with `release/minisign.pub`, check the manifest against it, then run `node web/scripts/verify-deployed.mjs web-bundle.sha256` (or pass another origin). It fetches every listed file from the site and fails on any difference. `_headers` is configuration, not served, so it's skipped. A local build of the tag can be checked with `sha256sum -c web-bundle.sha256` in `web/dist`.
+- The deploy job builds the same commit with the same lockfile and Node version as the release, so a stable release's site matches its manifest. Between a tag and its deploy, the site still serves the previous release.
+
 ## Deploying
 
 Tag a release from `main`, and it deploys itself:

@@ -4,6 +4,7 @@
 # The web app's production build settings: public, so committed.
 !web/.env.production
 dist/
+/web-bundle.sha256
 # wrangler dev's scratch files
 .wrangler/
 # the TanStack router plugin's scratch files
