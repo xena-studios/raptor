@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   Building2,
   Check,
   ChevronsUpDown,
@@ -130,12 +129,12 @@ export function AppShell({
           </SidebarMenu>
           <SidebarMenu>
             <SidebarMenuItem>
-              {admin ? <AdminBadge /> : <OrgSwitcher orgs={list} current={current?.id} />}
+              <OrgSwitcher orgs={list} current={current?.id} admin={admin} />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          {admin ? <AdminNav orgId={current?.id} /> : current && <OrgNav orgId={current.id} />}
+          {admin ? <AdminNav /> : current && <OrgNav orgId={current.id} />}
         </SidebarContent>
         <SidebarFooter>
           {!admin && current && <NodeCount orgId={current.id} />}
@@ -168,24 +167,50 @@ export function AppShell({
 
 type OrgSummary = { id: string; name: string; role: number };
 
-function OrgSwitcher({ orgs, current }: { orgs: OrgSummary[]; current?: string }) {
+// OrgSwitcher is where to work: one of the user's orgs or, for staff,
+// Raptor's admin panel (shown in its place on admin pages).
+function OrgSwitcher({
+  orgs,
+  current,
+  admin,
+}: {
+  orgs: OrgSummary[];
+  current?: string;
+  admin: boolean;
+}) {
   const navigate = useNavigate();
+  const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
+  const role = staff.data?.role ?? "";
   const org = orgs.find((o) => o.id === current);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
           <SidebarMenuButton size="lg" className="border">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold">
-              {initials(org?.name ?? "?")}
-            </span>
+            {admin ? (
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <Shield className="size-4" />
+              </span>
+            ) : (
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold">
+                {initials(org?.name ?? "?")}
+              </span>
+            )}
             <span className="grid min-w-0 flex-1 text-left leading-tight">
-              <span className="truncate font-medium">{org?.name ?? "No org"}</span>
-              {org && (
-                <span className="truncate text-xs text-muted-foreground">
-                  {roleNames[org.role as keyof typeof roleNames]}
-                </span>
-              )}
+              <span className="truncate font-medium">
+                {admin ? "Raptor admin" : (org?.name ?? "No org")}
+              </span>
+              {admin
+                ? role && (
+                    <span className="truncate text-xs text-muted-foreground capitalize">
+                      {role}
+                    </span>
+                  )
+                : org && (
+                    <span className="truncate text-xs text-muted-foreground">
+                      {roleNames[org.role as keyof typeof roleNames]}
+                    </span>
+                  )}
             </span>
             <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
           </SidebarMenuButton>
@@ -200,7 +225,7 @@ function OrgSwitcher({ orgs, current }: { orgs: OrgSummary[]; current?: string }
               onClick={() => navigate({ to: "/orgs/$orgId", params: { orgId: o.id } })}
             >
               <span className="min-w-0 flex-1 truncate">{o.name}</span>
-              {o.id === current && <Check className="size-4" />}
+              {!admin && o.id === current && <Check className="size-4" />}
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>
@@ -208,6 +233,16 @@ function OrgSwitcher({ orgs, current }: { orgs: OrgSummary[]; current?: string }
         <DropdownMenuItem onClick={() => navigate({ to: "/", search: { new: true } })}>
           <Plus className="size-4" /> New org
         </DropdownMenuItem>
+        {role && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+              <Shield className="size-4" />
+              <span className="min-w-0 flex-1 truncate">Raptor admin</span>
+              {admin && <Check className="size-4" />}
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -241,27 +276,8 @@ const adminLinks = [
   { to: "/admin/settings", label: "Settings", icon: ShieldCheck },
 ] as const;
 
-// AdminBadge takes the org switcher's place on admin pages: whose panel
-// this is, and the caller's staff role.
-function AdminBadge() {
-  const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
-  const role = staff.data?.role ?? "";
-  return (
-    <div className="flex h-12 items-center gap-2 rounded-md border p-2 text-sm group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-        <Shield className="size-4" />
-      </span>
-      <span className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
-        <span className="truncate font-medium">Raptor admin</span>
-        {role && <span className="truncate text-xs text-muted-foreground capitalize">{role}</span>}
-      </span>
-    </div>
-  );
-}
-
-// AdminNav is the admin panel's sections, and the way back to the org the
-// user was last in.
-function AdminNav({ orgId }: { orgId?: string }) {
+// AdminNav is the admin panel's sections.
+function AdminNav() {
   const path = useLocation({ select: (l) => l.pathname });
   return (
     <SidebarGroup>
@@ -282,16 +298,6 @@ function AdminNav({ orgId }: { orgId?: string }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
-      </SidebarMenu>
-      <SidebarMenu className="mt-4">
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip="Back to the panel"
-            render={orgId ? <Link to="/orgs/$orgId" params={{ orgId }} /> : <Link to="/" />}
-          >
-            <ArrowLeft /> <span>Back to the panel</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   );
@@ -397,7 +403,6 @@ function NodeCount({ orgId }: { orgId: string }) {
 
 function UserMenu({ session }: { session: GetSessionResponse }) {
   const navigate = useNavigate();
-  const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
   const signOut = useMutation(AuthService.method.signOut);
   const email = session.user?.email ?? "";
   const name = session.user?.name ?? "";
@@ -429,11 +434,6 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            {staff.data?.role && (
-              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
-                <Shield className="size-4" /> Admin panel
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
               <UserRound className="size-4" /> Account settings
             </DropdownMenuItem>
