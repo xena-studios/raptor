@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
@@ -56,9 +57,14 @@ type Collector struct {
 	Now     func() time.Time
 	// Query asks a game for its players (QueryPlayers by default).
 	Query func(ctx context.Context, protocol, addr string) (Players, error)
+	// Host samples the machine (host.ReadSample); nil keeps no history of
+	// it. HostDisk is what's used on the servers' filesystem.
+	Host     func() host.Sample
+	HostDisk func() int64
 
 	mu    sync.Mutex
 	state map[string]*serverState
+	host  hostState
 }
 
 type serverState struct {
@@ -130,6 +136,7 @@ func (c *Collector) Tick(ctx context.Context) {
 	for id := range ids {
 		wg.Go(func() { c.sample(ctx, id) })
 	}
+	wg.Go(func() { c.sampleHost(ctx) })
 	wg.Wait()
 	// Forget servers that are gone (their rows go with them).
 	c.mu.Lock()
@@ -252,6 +259,7 @@ func (c *Collector) Flush(ctx context.Context) {
 	for id, st := range c.state {
 		c.write(ctx, id, Minute, st.bucket)
 	}
+	c.writeHost(ctx, Minute, c.host.bucket)
 }
 
 // Rollup turns minute rows older than a day into 15-minute rows, and drops
@@ -301,8 +309,10 @@ func (c *Collector) Rollup(ctx context.Context) error {
 	if _, err := c.DB.Write.DeleteMetricsBefore(ctx, store.DeleteMetricsBeforeParams{Resolution: Minute, At: cutoff.UnixMilli()}); err != nil {
 		return err
 	}
-	_, err = c.DB.Write.DeleteMetricsBefore(ctx, store.DeleteMetricsBeforeParams{Resolution: QuarterHour, At: now.Add(-keepQuarters).UnixMilli()})
-	return err
+	if _, err = c.DB.Write.DeleteMetricsBefore(ctx, store.DeleteMetricsBeforeParams{Resolution: QuarterHour, At: now.Add(-keepQuarters).UnixMilli()}); err != nil {
+		return err
+	}
+	return c.rollupHost(ctx, cutoff)
 }
 
 // Latest returns a server's most recent sample (zero if none yet).

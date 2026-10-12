@@ -15,6 +15,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/doctor"
+	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/metrics"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -29,6 +30,15 @@ func (f *fakeMetrics) Latest(string) metrics.Point {
 func (f *fakeMetrics) History(_ context.Context, _ string, since time.Time) ([]metrics.Point, error) {
 	f.since = since
 	return []metrics.Point{{At: since, Resolution: metrics.Minute, Samples: 6, CPUAvg: 10, RxBytes: 6000}}, nil
+}
+
+func (f *fakeMetrics) HostLatest() metrics.HostPoint {
+	return metrics.HostPoint{At: time.Now(), Samples: 1, CPUAvg: 12, MemoryAvg: 3 << 30, Load: 0.5}
+}
+
+func (f *fakeMetrics) HostHistory(_ context.Context, since time.Time) ([]metrics.HostPoint, error) {
+	f.since = since
+	return []metrics.HostPoint{{At: since, Resolution: metrics.QuarterHour, Samples: 90, CPUAvg: 20, TxBytes: 9000}}, nil
 }
 
 type fakeMetricServers struct{}
@@ -64,9 +74,10 @@ func TestMetricsAndHealth(t *testing.T) {
 	x := &command.Executor{DB: db, NodeID: "node-1", PanelKey: pub}
 	m := &fakeMetrics{}
 	RegisterMetrics(x, m, fakeMetricServers{})
+	RegisterNodeMetrics(x, m, fakeMetricServers{}, func() int64 { return 100 })
 	ran := make(chan struct{}, 1)
 	RegisterHealth(x, &Health{
-		Servers: fakeMetricServers{}, Metrics: m,
+		Servers: fakeMetricServers{}, Metrics: m, Volumes: "/srv/raptor", Labels: map[string]string{"/srv/raptor": "Servers' files"},
 		Space: func(string) (int64, int64, error) { return 100, 40, nil },
 		Run: func(context.Context) []doctor.Result {
 			ran <- struct{}{}
@@ -94,6 +105,25 @@ func TestMetricsAndHealth(t *testing.T) {
 		t.Errorf("a bad range: %v", err)
 	}
 
+	raw, err = panelRun(t, x, key, NodeMetrics, "", MetricsParams{Range: "7d"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var node struct {
+		Latest  HostMetricPoint   `json:"latest"`
+		Points  []HostMetricPoint `json:"points"`
+		Totals  HostTotals        `json:"totals"`
+		Servers []ServerUse       `json:"servers"`
+	}
+	_ = json.Unmarshal(raw, &node)
+	if node.Latest.CPU != 12 || len(node.Points) != 1 || node.Points[0].Tx != 10 || node.Totals.DiskBytes != 100 ||
+		node.Totals.CPUs == 0 || len(node.Servers) != 1 || node.Servers[0].CPU != 42 {
+		t.Errorf("node metrics: %s", raw)
+	}
+	if d := time.Since(m.since); d < 6*24*time.Hour {
+		t.Errorf("7d asked from %s ago", d)
+	}
+
 	// The first report starts the checks; the next has them.
 	raw, err = panelRun(t, x, key, NodeHealth, "", nil)
 	if err != nil {
@@ -110,7 +140,21 @@ func TestMetricsAndHealth(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if len(rep.Checks) != 1 || rep.DiskFree != 40 || len(rep.Servers) != 1 || rep.Servers[0].CPU != 42 || rep.Host.CPUs == 0 {
+	if len(rep.Checks) != 1 || rep.DiskFree != 40 || len(rep.Servers) != 1 || rep.Servers[0].CPU != 42 || rep.Host.CPUs == 0 ||
+		len(rep.Disks) != 1 || rep.Disks[0].Paths[0].Label != "Servers' files" {
 		t.Errorf("health: %s", raw)
+	}
+}
+
+// Paths on one filesystem are one disk.
+func TestGroupDisks(t *testing.T) {
+	got := groupDisks([]host.DiskSpace{
+		{Path: "/var/lib/raptor/volumes", Total: 100, Free: 40},
+		{Path: "/var/lib/raptor", Total: 100, Free: 40},
+		{Path: "/var/lib/raptor/volumes", Total: 100, Free: 40},
+		{Path: "/mnt/backups", Total: 500, Free: 400},
+	}, map[string]string{"/mnt/backups": "Local backups"})
+	if len(got) != 2 || len(got[0].Paths) != 2 || got[1].Paths[0].Label != "Local backups" {
+		t.Errorf("disks: %+v", got)
 	}
 }

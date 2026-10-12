@@ -8,7 +8,7 @@ SELECT * FROM backup_storage WHERE org_id = $1 AND disabled_at IS NULL;
 INSERT INTO backup_storage (org_id, node_id, key_id, enabled_by) VALUES ($1, $2, $3, $4) RETURNING *;
 
 -- name: DisableBackupStorage :one
-UPDATE backup_storage SET disabled_at = now() WHERE node_id = $1 AND disabled_at IS NULL RETURNING *;
+UPDATE backup_storage SET disabled_at = @disabled_at WHERE node_id = @node_id AND disabled_at IS NULL RETURNING *;
 
 -- name: BackupStorageToPurge :many
 -- Turned off over 30 days ago, data not deleted yet.

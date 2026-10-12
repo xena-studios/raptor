@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
@@ -191,5 +192,46 @@ func TestPlayersUnknown(t *testing.T) {
 	e.step()
 	if l := e.c.Latest("a"); l.PlayersAvg != nil {
 		t.Errorf("players: %v", *l.PlayersAvg)
+	}
+}
+
+// The machine's history: CPU from /proc/stat's jiffies, traffic as rates,
+// minutes rolled up like servers'.
+func TestHostHistory(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t)
+	var busy, total, rx uint64
+	e.c.Host = func() host.Sample {
+		busy, total, rx = busy+250, total+1000, rx+10<<20 // a quarter busy, 1 MB/s
+		return host.Sample{Time: e.now, CPUBusy: busy, CPUTotal: total, MemoryTotal: 8 << 30, MemoryUsed: 3 << 30, RxBytes: rx, Load1: 1.5}
+	}
+	e.c.HostDisk = func() int64 { return 40 << 30 }
+	start := e.now
+	e.c.Tick(ctx)
+	if l := e.c.HostLatest(); l.Samples != 0 || l.MemoryAvg != 3<<30 {
+		t.Fatalf("first sample: %+v", l)
+	}
+	for range 12 {
+		e.step()
+	}
+	if l := e.c.HostLatest(); l.CPUAvg != 25 || l.RxBytes != 1<<20 || l.DiskBytes != 40<<30 || l.Load != 1.5 {
+		t.Fatalf("latest: %+v", l)
+	}
+	h, err := e.c.HostHistory(ctx, start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h) != 3 || h[1].Samples != 6 || h[1].CPUAvg != 25 || h[1].RxBytes != 60<<20 || h[1].MemoryMax != 3<<30 {
+		t.Fatalf("history: %+v", h)
+	}
+
+	e.c.Flush(ctx)
+	e.now = start.Add(25 * time.Hour)
+	if err := e.c.Rollup(ctx); err != nil {
+		t.Fatal(err)
+	}
+	h, _ = e.c.HostHistory(ctx, start)
+	if len(h) != 1 || h[0].Resolution != QuarterHour || h[0].Samples != 12 || h[0].CPUAvg != 25 || h[0].Load != 1.5 {
+		t.Fatalf("rolled up: %+v", h)
 	}
 }

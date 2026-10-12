@@ -46,6 +46,23 @@ func (g *DiskGuard) Watch(paths ...string) {
 	}
 }
 
+// Spaces measures every watched path, low or not.
+func (g *DiskGuard) Spaces() []DiskSpace {
+	if g == nil || g.Space == nil {
+		return nil
+	}
+	g.mu.Lock()
+	paths := slices.Clone(g.paths)
+	g.mu.Unlock()
+	var out []DiskSpace
+	for _, p := range paths {
+		if total, free, err := g.Space(p); err == nil {
+			out = append(out, DiskSpace{Path: p, Total: total, Free: free})
+		}
+	}
+	return out
+}
+
 // Check measures the watched paths and reports whether any is low. It calls
 // OnChange if that changed since the last check.
 func (g *DiskGuard) Check() (low bool, spaces []DiskSpace) {

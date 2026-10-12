@@ -2,6 +2,8 @@ package actions
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,6 +35,10 @@ type Health struct {
 		List() map[string]server.State
 	}
 	Metrics interface{ Latest(id string) metrics.Point }
+	// Disk is the guard watching Wings' and Docker's directories; Labels
+	// says what each path holds, for people.
+	Disk   *host.DiskGuard
+	Labels map[string]string
 	// Run runs the checks (doctor.Run on doctor.LocalEnv by default).
 	Run func(ctx context.Context) []doctor.Result
 
@@ -77,13 +83,51 @@ type ServerUse struct {
 	CPU    float64 `json:"cpu"`    // percent of one core
 	Memory int64   `json:"memory"` // bytes
 	Disk   int64   `json:"disk"`   // bytes
+	Rx     int64   `json:"rx"`     // bytes per second
+	Tx     int64   `json:"tx"`
+	// Players online, if the game answers player queries.
+	Players *int `json:"players,omitempty"`
+}
+
+// serverUses is what each server uses now.
+func serverUses(list map[string]server.State, m interface{ Latest(id string) metrics.Point }) []ServerUse {
+	out := make([]ServerUse, 0, len(list))
+	for id, st := range list {
+		u := ServerUse{ID: id, State: string(st)}
+		if m != nil {
+			p := m.Latest(id)
+			u.CPU, u.Memory, u.Disk, u.Rx, u.Tx = p.CPUAvg, p.MemoryAvg, p.DiskBytes, p.RxBytes, p.TxBytes
+			if p.PlayersMax != nil {
+				n := *p.PlayersMax
+				u.Players = &n
+			}
+		}
+		out = append(out, u)
+	}
+	slices.SortFunc(out, func(a, b ServerUse) int { return strings.Compare(a.ID, b.ID) })
+	return out
+}
+
+// Disk is a filesystem and what Raptor keeps on it.
+type Disk struct {
+	Paths []DiskPath `json:"paths"`
+	Total int64      `json:"total"`
+	Free  int64      `json:"free"`
+}
+
+// DiskPath is a directory Raptor uses.
+type DiskPath struct {
+	Path  string `json:"path"`
+	Label string `json:"label,omitempty"`
 }
 
 // Report is node.health's answer.
 type Report struct {
 	Host      host.Stats      `json:"host"`
+	Details   host.Details    `json:"details"`
 	DiskTotal int64           `json:"disk_total"` // the volumes' filesystem
 	DiskFree  int64           `json:"disk_free"`
+	Disks     []Disk          `json:"disks"`
 	Servers   []ServerUse     `json:"servers"`
 	Checks    []doctor.Result `json:"checks"`
 	CheckedAt int64           `json:"checked_at,omitempty"` // unix ms; 0 if never
@@ -92,19 +136,17 @@ type Report struct {
 
 // Report is the machine now, and the last checks.
 func (h *Health) Report() Report {
-	r := Report{Host: host.ReadStats()}
+	r := Report{Host: host.ReadStats(), Details: host.ReadDetails()}
 	if h.Space != nil {
 		r.DiskTotal, r.DiskFree, _ = h.Space(h.Volumes)
+		spaces := h.Disk.Spaces()
+		if r.DiskTotal > 0 {
+			spaces = append([]host.DiskSpace{{Path: h.Volumes, Total: r.DiskTotal, Free: r.DiskFree}}, spaces...)
+		}
+		r.Disks = groupDisks(spaces, h.Labels)
 	}
 	if h.Servers != nil {
-		for id, st := range h.Servers.List() {
-			u := ServerUse{ID: id, State: string(st)}
-			if h.Metrics != nil {
-				p := h.Metrics.Latest(id)
-				u.CPU, u.Memory, u.Disk = p.CPUAvg, p.MemoryAvg, p.DiskBytes
-			}
-			r.Servers = append(r.Servers, u)
-		}
+		r.Servers = serverUses(h.Servers.List(), h.Metrics)
 	}
 	h.mu.Lock()
 	r.Checks, r.Checking = h.results, h.running
@@ -113,6 +155,23 @@ func (h *Health) Report() Report {
 	}
 	h.mu.Unlock()
 	return r
+}
+
+// groupDisks puts paths on the same filesystem together. Paths measured at
+// the same moment with the same size and free space are on the same one.
+func groupDisks(spaces []host.DiskSpace, labels map[string]string) []Disk {
+	var out []Disk
+	for _, sp := range spaces {
+		p := DiskPath{Path: sp.Path, Label: labels[sp.Path]}
+		i := slices.IndexFunc(out, func(d Disk) bool { return d.Total == sp.Total && d.Free == sp.Free })
+		switch {
+		case i < 0:
+			out = append(out, Disk{Paths: []DiskPath{p}, Total: sp.Total, Free: sp.Free})
+		case !slices.ContainsFunc(out[i].Paths, func(x DiskPath) bool { return x.Path == sp.Path }):
+			out[i].Paths = append(out[i].Paths, p)
+		}
+	}
+	return out
 }
 
 // RegisterHealth adds node.health and node.doctor. Neither changes

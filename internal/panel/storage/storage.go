@@ -104,7 +104,7 @@ func (s *Service) Enable(ctx context.Context, org, node uuid.UUID, by pgtype.UUI
 	var replaced string
 	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		old, err := q.DisableBackupStorage(ctx, pgID(node))
+		old, err := q.DisableBackupStorage(ctx, store.DisableBackupStorageParams{NodeID: pgID(node), DisabledAt: pgtype.Timestamptz{Time: s.now(), Valid: true}})
 		switch {
 		case err == nil:
 			// Replaced, not turned off: the data stays (the new key is for
@@ -134,7 +134,7 @@ func (s *Service) Enable(ctx context.Context, org, node uuid.UUID, by pgtype.UUI
 // or the node itself was removed): the key is deleted now, the data in 30
 // days. A node without it is fine.
 func (s *Service) Disable(ctx context.Context, node uuid.UUID) error {
-	row, err := store.New(s.DB).DisableBackupStorage(ctx, pgID(node))
+	row, err := store.New(s.DB).DisableBackupStorage(ctx, store.DisableBackupStorageParams{NodeID: pgID(node), DisabledAt: pgtype.Timestamptz{Time: s.now(), Valid: true}})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}

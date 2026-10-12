@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/command"
+	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/metrics"
 	"github.com/xena-studios/raptor/internal/wings/server"
 )
@@ -107,6 +108,93 @@ func RegisterMetrics(x *command.Executor, src MetricsSource, servers MetricsServ
 			"limits": MetricLimits{
 				MemoryBytes: srv.Limits.MemoryMiB << 20, DiskBytes: srv.Limits.DiskMiB << 20, CPUPercent: srv.Limits.CPUPercent,
 			},
+		}, nil
+	}})
+}
+
+// NodeMetrics is node.metrics: the machine's resources now and over a range,
+// with what each server uses now, for the node's overview.
+const NodeMetrics = "node.metrics"
+
+// HostMetricPoint is a point of the machine's history as the Panel gets it.
+// Rx and Tx are per second, like MetricPoint's.
+type HostMetricPoint struct {
+	At         int64   `json:"at"`
+	Resolution int     `json:"resolution"`
+	CPU        float64 `json:"cpu"` // percent of the whole machine
+	CPUMax     float64 `json:"cpu_max"`
+	Memory     int64   `json:"memory"` // bytes in use
+	MemoryMax  int64   `json:"memory_max"`
+	Rx         int64   `json:"rx"`
+	Tx         int64   `json:"tx"`
+	Disk       int64   `json:"disk"` // used on the servers' filesystem
+	Load       float64 `json:"load"`
+}
+
+func hostMetricPoint(p metrics.HostPoint) HostMetricPoint {
+	out := HostMetricPoint{
+		At: p.At.UnixMilli(), Resolution: p.Resolution, CPU: p.CPUAvg, CPUMax: p.CPUMax,
+		Memory: p.MemoryAvg, MemoryMax: p.MemoryMax, Rx: p.RxBytes, Tx: p.TxBytes, Disk: p.DiskBytes, Load: p.Load,
+	}
+	if p.Resolution > 0 {
+		out.Rx, out.Tx = p.RxBytes/int64(p.Resolution), p.TxBytes/int64(p.Resolution)
+	}
+	return out
+}
+
+// HostMetricsSource is what node.metrics reads (*metrics.Collector).
+type HostMetricsSource interface {
+	Latest(id string) metrics.Point
+	HostLatest() metrics.HostPoint
+	HostHistory(ctx context.Context, since time.Time) ([]metrics.HostPoint, error)
+}
+
+// HostTotals are what the machine has.
+type HostTotals struct {
+	CPUs        int   `json:"cpus"`
+	MemoryBytes int64 `json:"memory_bytes"`
+	DiskBytes   int64 `json:"disk_bytes"` // the servers' filesystem
+}
+
+// RegisterNodeMetrics adds node.metrics. It isn't signed: it changes
+// nothing. disk returns the servers' filesystem's size.
+func RegisterNodeMetrics(x *command.Executor, src HostMetricsSource, servers interface {
+	List() map[string]server.State
+}, disk func() int64,
+) {
+	x.Register(NodeMetrics, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p MetricsParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		if p.Range == "" {
+			p.Range = "1h"
+		}
+		span, ok := metricRanges[p.Range]
+		if !ok {
+			return nil, errors.New("range must be 1h, 6h, 24h, or 7d")
+		}
+		history, err := src.HostHistory(ctx, time.Now().Add(-span))
+		if err != nil {
+			return nil, err
+		}
+		points := make([]HostMetricPoint, 0, len(history))
+		for _, h := range history {
+			points = append(points, hostMetricPoint(h))
+		}
+		st := host.ReadStats()
+		totals := HostTotals{CPUs: st.CPUs, MemoryBytes: st.MemoryTotal}
+		if disk != nil {
+			totals.DiskBytes = disk()
+		}
+		return map[string]any{
+			"range":   p.Range,
+			"latest":  hostMetricPoint(src.HostLatest()),
+			"points":  points,
+			"totals":  totals,
+			"load":    []float64{st.Load1, st.Load5, st.Load15},
+			"uptime":  st.UptimeSeconds,
+			"servers": serverUses(servers.List(), src),
 		}, nil
 	}})
 }
