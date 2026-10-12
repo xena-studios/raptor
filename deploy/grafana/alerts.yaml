@@ -86,6 +86,14 @@ groups:
           summary: Mirror syncs have been failing for 30 minutes
           description: Pages show stale servers. The Panels' logs name the nodes.
 
+      - alert: RaptorMirrorBehind
+        expr: max(raptor_mirror_backlog_age_seconds{job="raptor-panel"}) > 300
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: A node's events have waited over 5 minutes to reach the Panel
+          description: Its pages are that far behind. The Panels' logs name nodes over a minute behind ("mirror is behind a node").
+
   - name: raptor-replica
     rules:
       - alert: RaptorReplicaGone
