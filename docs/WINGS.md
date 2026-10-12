@@ -220,6 +220,15 @@ How it works:
 - Docker images stay on the host disk (`/var/lib/docker`); only server data lives on the quota volume.
 - Tested by `task e2e:quotas` (see [CONTRIBUTING.md](../CONTRIBUTING.md#runtime-end-to-end-tests)).
 
+## Support access
+
+`internal/wings/support` (docs/PANEL.md#support-access) keeps the support access owners grant Raptor's staff.
+- **`support.grant`** is signed by an owner's passkey (never a delegation). Its params are the grant ID (the Panel's request), the staff member, a level (1 to 3), the reason, the ticket, and the end time (at most 7 days). Grants go in `support_grants`.
+- **Checking:** a command whose Panel grant names a support grant (`Grant.Support`, covered by the Panel's signature) is checked against it. The grant must exist, be unexpired and unrevoked, and belong to the command's user, and its level must cover the action (`nodecmd.SupportLevel`). Passkey-signed actions are refused outright. Refusals are permission errors, and accepted staff commands are logged ("support command").
+- **Ending it:** `support.revoke` ends one or all grants; `support.disable` turns support access off (ending every grant) or on. Neither is signed, since both only take access away.
+- **`support.list`** shows the grants. **`node.logs`** returns the last lines of Wings' journal, for support and owners alike.
+- **On the box:** `raptor support` (status), `sudo raptor support revoke <id>|all`, and `sudo raptor support off|on`, through the local socket. They work with the Panel down.
+
 ## Trash
 
 What the web file manager deletes goes to the server's trash first (`files.delete`; `permanent: true` skips it). It stays there for 7 days, then Wings empties it in its regular prune.
@@ -462,7 +471,7 @@ raptor uninstall [--wipe-data]
 raptor tui                            servers, stats, history graphs, console; power, backup, and command keys (root)
 ```
 
-Implemented: `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` and the hostname check in Phase 3), `keys`, `audit`, `notifications test`, `tui`, and `import pterodactyl` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `support` (Phase 4), `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` and the hostname check in Phase 3), `keys`, `audit`, `notifications test`, `tui`, and `import pterodactyl` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).

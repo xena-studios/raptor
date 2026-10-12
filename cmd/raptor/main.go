@@ -59,6 +59,9 @@ commands:
   keys list | keys reset
               passkeys trusted for signed actions; reset re-pairs the
               owner's passkey from the box (root)
+  support [status] | support revoke <id>|all | support off|on
+              Raptor staff's access to this node: see it, end it, or turn
+              it off (root to change)
   audit [-n N] [-since 72h]
               signed actions and key resets, from the node's own records
   import pterodactyl -key <ptla_…> [-server s] [-dry-run] [-start]
@@ -117,6 +120,8 @@ func run(args []string) error {
 		return doctorCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "keys":
 		return keysCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "support":
+		return supportCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "audit":
 		return auditCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "import":

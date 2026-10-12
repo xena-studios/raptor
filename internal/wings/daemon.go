@@ -46,6 +46,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
+	"github.com/xena-studios/raptor/internal/wings/support"
 	"github.com/xena-studios/raptor/internal/wings/system"
 	"github.com/xena-studios/raptor/internal/wings/update"
 )
@@ -286,6 +287,10 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 		AddDisk: addDisk,
 	}
 	actions.RegisterDisks(r.commands, r.disks)
+	sup := &support.Manager{DB: db, Log: log}
+	r.commands.Support = sup
+	svc.Support = sup
+	actions.RegisterSupport(r.commands, sup)
 	// The host key exists from the first start, SFTP on or not, so its
 	// fingerprint never changes when SFTP is turned on.
 	if r.sftpKey, err = sftp.LoadHostKey(cfg.Identity.SFTPHostKey); err != nil {

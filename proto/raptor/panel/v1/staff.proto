@@ -59,6 +59,16 @@ service StaffService {
   // EndAnnouncement takes one down now. Admins.
   rpc EndAnnouncement(EndAnnouncementRequest) returns (EndAnnouncementResponse) {}
 
+  // RequestSupportAccess asks a node's owner for support access
+  // (docs/PANEL.md#support-access); its owners and admins are emailed.
+  // Staff use it under the grant through CommandService.Execute, naming
+  // the request in `support`.
+  rpc RequestSupportAccess(RequestSupportAccessRequest) returns (RequestSupportAccessResponse) {}
+  // ListSupportRequests lists support requests, newest first.
+  rpc ListSupportRequests(ListSupportRequestsRequest) returns (ListSupportRequestsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // ListStaff lists Raptor's staff.
   rpc ListStaff(ListStaffRequest) returns (ListStaffResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
@@ -363,3 +373,48 @@ message EndAnnouncementRequest {
 }
 
 message EndAnnouncementResponse {}
+
+// SupportRequest is staff asking for access to a node, and what came of it.
+message SupportRequest {
+  string id = 1;
+  string org_id = 2;
+  string org_name = 3;
+  string node_id = 4;
+  string node_name = 5;
+  string staff_email = 6;
+  // 1 diagnostics, 2 operate, 3 manage.
+  int32 level = 7;
+  int32 minutes = 8;
+  string reason = 9;
+  string ticket = 10;
+  // "pending", "approved", "denied", "revoked", or "expired".
+  string status = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp decided_at = 13;
+  // What the owner approved (may be less than asked).
+  int32 granted_level = 14;
+  google.protobuf.Timestamp expires_at = 15;
+  // Whether it's the caller's own request (staff).
+  bool mine = 16;
+  // Who asked: what the owner's passkey signs in support.grant.
+  string staff_id = 17;
+}
+
+message RequestSupportAccessRequest {
+  string node_id = 1;
+  int32 level = 2;
+  // How long, from approval: 15 minutes to 7 days.
+  int32 minutes = 3;
+  string reason = 4;
+  string ticket = 5;
+}
+
+message RequestSupportAccessResponse {
+  string id = 1;
+}
+
+message ListSupportRequestsRequest {}
+
+message ListSupportRequestsResponse {
+  repeated SupportRequest requests = 1;
+}

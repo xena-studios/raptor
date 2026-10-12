@@ -14,6 +14,7 @@ import (
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/events"
+	"github.com/xena-studios/raptor/internal/wings/support"
 )
 
 // service is NodeService: what the Panel calls on the node.
@@ -67,7 +68,9 @@ func commandCode(err error) connect.Code {
 	case errors.Is(err, command.ErrNotEnrolled), errors.Is(err, command.ErrNoTrustedKeys):
 		return connect.CodeFailedPrecondition
 	case errors.Is(err, command.ErrBadGrant), errors.Is(err, command.ErrSignatureNeeded),
-		errors.Is(err, command.ErrUntrustedKey), errors.Is(err, command.ErrSignatureInvalid):
+		errors.Is(err, command.ErrUntrustedKey), errors.Is(err, command.ErrSignatureInvalid),
+		errors.Is(err, command.ErrNoSupport), errors.Is(err, command.ErrSupportSigned),
+		errors.Is(err, support.ErrNoGrant), errors.Is(err, support.ErrLevel), errors.Is(err, support.ErrDisabled):
 		return connect.CodePermissionDenied
 	}
 	return connect.CodeUnknown

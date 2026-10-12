@@ -74,6 +74,12 @@ const (
 	// StaffServiceEndAnnouncementProcedure is the fully-qualified name of the StaffService's
 	// EndAnnouncement RPC.
 	StaffServiceEndAnnouncementProcedure = "/raptor.panel.v1.StaffService/EndAnnouncement"
+	// StaffServiceRequestSupportAccessProcedure is the fully-qualified name of the StaffService's
+	// RequestSupportAccess RPC.
+	StaffServiceRequestSupportAccessProcedure = "/raptor.panel.v1.StaffService/RequestSupportAccess"
+	// StaffServiceListSupportRequestsProcedure is the fully-qualified name of the StaffService's
+	// ListSupportRequests RPC.
+	StaffServiceListSupportRequestsProcedure = "/raptor.panel.v1.StaffService/ListSupportRequests"
 	// StaffServiceListStaffProcedure is the fully-qualified name of the StaffService's ListStaff RPC.
 	StaffServiceListStaffProcedure = "/raptor.panel.v1.StaffService/ListStaff"
 	// StaffServiceListStaffAuditProcedure is the fully-qualified name of the StaffService's
@@ -110,6 +116,13 @@ type StaffServiceClient interface {
 	SaveAnnouncement(context.Context, *v1.SaveAnnouncementRequest) (*v1.SaveAnnouncementResponse, error)
 	// EndAnnouncement takes one down now. Admins.
 	EndAnnouncement(context.Context, *v1.EndAnnouncementRequest) (*v1.EndAnnouncementResponse, error)
+	// RequestSupportAccess asks a node's owner for support access
+	// (docs/PANEL.md#support-access); its owners and admins are emailed.
+	// Staff use it under the grant through CommandService.Execute, naming
+	// the request in `support`.
+	RequestSupportAccess(context.Context, *v1.RequestSupportAccessRequest) (*v1.RequestSupportAccessResponse, error)
+	// ListSupportRequests lists support requests, newest first.
+	ListSupportRequests(context.Context, *v1.ListSupportRequestsRequest) (*v1.ListSupportRequestsResponse, error)
 	// ListStaff lists Raptor's staff.
 	ListStaff(context.Context, *v1.ListStaffRequest) (*v1.ListStaffResponse, error)
 	// ListStaffAudit is what staff did, newest first, 50 at a time.
@@ -225,6 +238,19 @@ func NewStaffServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(staffServiceMethods.ByName("EndAnnouncement")),
 			connect.WithClientOptions(opts...),
 		),
+		requestSupportAccess: connect.NewClient[v1.RequestSupportAccessRequest, v1.RequestSupportAccessResponse](
+			httpClient,
+			baseURL+StaffServiceRequestSupportAccessProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("RequestSupportAccess")),
+			connect.WithClientOptions(opts...),
+		),
+		listSupportRequests: connect.NewClient[v1.ListSupportRequestsRequest, v1.ListSupportRequestsResponse](
+			httpClient,
+			baseURL+StaffServiceListSupportRequestsProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("ListSupportRequests")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		listStaff: connect.NewClient[v1.ListStaffRequest, v1.ListStaffResponse](
 			httpClient,
 			baseURL+StaffServiceListStaffProcedure,
@@ -259,6 +285,8 @@ type staffServiceClient struct {
 	listAnnouncements       *connect.Client[v1.ListAnnouncementsRequest, v1.ListAnnouncementsResponse]
 	saveAnnouncement        *connect.Client[v1.SaveAnnouncementRequest, v1.SaveAnnouncementResponse]
 	endAnnouncement         *connect.Client[v1.EndAnnouncementRequest, v1.EndAnnouncementResponse]
+	requestSupportAccess    *connect.Client[v1.RequestSupportAccessRequest, v1.RequestSupportAccessResponse]
+	listSupportRequests     *connect.Client[v1.ListSupportRequestsRequest, v1.ListSupportRequestsResponse]
 	listStaff               *connect.Client[v1.ListStaffRequest, v1.ListStaffResponse]
 	listStaffAudit          *connect.Client[v1.ListStaffAuditRequest, v1.ListStaffAuditResponse]
 }
@@ -398,6 +426,24 @@ func (c *staffServiceClient) EndAnnouncement(ctx context.Context, req *v1.EndAnn
 	return nil, err
 }
 
+// RequestSupportAccess calls raptor.panel.v1.StaffService.RequestSupportAccess.
+func (c *staffServiceClient) RequestSupportAccess(ctx context.Context, req *v1.RequestSupportAccessRequest) (*v1.RequestSupportAccessResponse, error) {
+	response, err := c.requestSupportAccess.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListSupportRequests calls raptor.panel.v1.StaffService.ListSupportRequests.
+func (c *staffServiceClient) ListSupportRequests(ctx context.Context, req *v1.ListSupportRequestsRequest) (*v1.ListSupportRequestsResponse, error) {
+	response, err := c.listSupportRequests.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListStaff calls raptor.panel.v1.StaffService.ListStaff.
 func (c *staffServiceClient) ListStaff(ctx context.Context, req *v1.ListStaffRequest) (*v1.ListStaffResponse, error) {
 	response, err := c.listStaff.CallUnary(ctx, connect.NewRequest(req))
@@ -445,6 +491,13 @@ type StaffServiceHandler interface {
 	SaveAnnouncement(context.Context, *v1.SaveAnnouncementRequest) (*v1.SaveAnnouncementResponse, error)
 	// EndAnnouncement takes one down now. Admins.
 	EndAnnouncement(context.Context, *v1.EndAnnouncementRequest) (*v1.EndAnnouncementResponse, error)
+	// RequestSupportAccess asks a node's owner for support access
+	// (docs/PANEL.md#support-access); its owners and admins are emailed.
+	// Staff use it under the grant through CommandService.Execute, naming
+	// the request in `support`.
+	RequestSupportAccess(context.Context, *v1.RequestSupportAccessRequest) (*v1.RequestSupportAccessResponse, error)
+	// ListSupportRequests lists support requests, newest first.
+	ListSupportRequests(context.Context, *v1.ListSupportRequestsRequest) (*v1.ListSupportRequestsResponse, error)
 	// ListStaff lists Raptor's staff.
 	ListStaff(context.Context, *v1.ListStaffRequest) (*v1.ListStaffResponse, error)
 	// ListStaffAudit is what staff did, newest first, 50 at a time.
@@ -556,6 +609,19 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(staffServiceMethods.ByName("EndAnnouncement")),
 		connect.WithHandlerOptions(opts...),
 	)
+	staffServiceRequestSupportAccessHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceRequestSupportAccessProcedure,
+		svc.RequestSupportAccess,
+		connect.WithSchema(staffServiceMethods.ByName("RequestSupportAccess")),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceListSupportRequestsHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceListSupportRequestsProcedure,
+		svc.ListSupportRequests,
+		connect.WithSchema(staffServiceMethods.ByName("ListSupportRequests")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	staffServiceListStaffHandler := connect.NewUnaryHandlerSimple(
 		StaffServiceListStaffProcedure,
 		svc.ListStaff,
@@ -602,6 +668,10 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 			staffServiceSaveAnnouncementHandler.ServeHTTP(w, r)
 		case StaffServiceEndAnnouncementProcedure:
 			staffServiceEndAnnouncementHandler.ServeHTTP(w, r)
+		case StaffServiceRequestSupportAccessProcedure:
+			staffServiceRequestSupportAccessHandler.ServeHTTP(w, r)
+		case StaffServiceListSupportRequestsProcedure:
+			staffServiceListSupportRequestsHandler.ServeHTTP(w, r)
 		case StaffServiceListStaffProcedure:
 			staffServiceListStaffHandler.ServeHTTP(w, r)
 		case StaffServiceListStaffAuditProcedure:
@@ -673,6 +743,14 @@ func (UnimplementedStaffServiceHandler) SaveAnnouncement(context.Context, *v1.Sa
 
 func (UnimplementedStaffServiceHandler) EndAnnouncement(context.Context, *v1.EndAnnouncementRequest) (*v1.EndAnnouncementResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.EndAnnouncement is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) RequestSupportAccess(context.Context, *v1.RequestSupportAccessRequest) (*v1.RequestSupportAccessResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.RequestSupportAccess is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) ListSupportRequests(context.Context, *v1.ListSupportRequestsRequest) (*v1.ListSupportRequestsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.ListSupportRequests is not implemented"))
 }
 
 func (UnimplementedStaffServiceHandler) ListStaff(context.Context, *v1.ListStaffRequest) (*v1.ListStaffResponse, error) {

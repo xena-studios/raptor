@@ -25,6 +25,9 @@ message ExecuteRequest {
   string command_id = 5;
   int64 expires_at = 6;
   CommandSignature signature = 7;
+  // Raptor staff only: the support request the owner approved, which the
+  // command runs under (docs/PANEL.md#support-access).
+  string support = 8;
 }
 
 // A WebAuthn assertion over the command's hash

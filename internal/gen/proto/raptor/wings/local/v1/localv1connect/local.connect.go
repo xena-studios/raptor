@@ -92,6 +92,15 @@ const (
 	LocalServiceImportServerProcedure = "/raptor.wings.local.v1.LocalService/ImportServer"
 	// LocalServiceGetMetricsProcedure is the fully-qualified name of the LocalService's GetMetrics RPC.
 	LocalServiceGetMetricsProcedure = "/raptor.wings.local.v1.LocalService/GetMetrics"
+	// LocalServiceListSupportProcedure is the fully-qualified name of the LocalService's ListSupport
+	// RPC.
+	LocalServiceListSupportProcedure = "/raptor.wings.local.v1.LocalService/ListSupport"
+	// LocalServiceRevokeSupportProcedure is the fully-qualified name of the LocalService's
+	// RevokeSupport RPC.
+	LocalServiceRevokeSupportProcedure = "/raptor.wings.local.v1.LocalService/RevokeSupport"
+	// LocalServiceSetSupportEnabledProcedure is the fully-qualified name of the LocalService's
+	// SetSupportEnabled RPC.
+	LocalServiceSetSupportEnabledProcedure = "/raptor.wings.local.v1.LocalService/SetSupportEnabled"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
@@ -169,6 +178,14 @@ type LocalServiceClient interface {
 	ImportServer(context.Context, *v1.ImportServerRequest) (*v1.ImportServerResponse, error)
 	// GetMetrics returns a server's resource history and its latest sample.
 	GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error)
+	// ListSupport lists Raptor staff's support access to this node
+	// (docs/PANEL.md#support-access). The raptor group may look.
+	ListSupport(context.Context, *v1.ListSupportRequest) (*v1.ListSupportResponse, error)
+	// RevokeSupport ends support access now: one grant, or all. Root only.
+	RevokeSupport(context.Context, *v1.RevokeSupportRequest) (*v1.RevokeSupportResponse, error)
+	// SetSupportEnabled turns support access off (ending every grant) or
+	// back on. Root only.
+	SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -324,6 +341,25 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		listSupport: connect.NewClient[v1.ListSupportRequest, v1.ListSupportResponse](
+			httpClient,
+			baseURL+LocalServiceListSupportProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ListSupport")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		revokeSupport: connect.NewClient[v1.RevokeSupportRequest, v1.RevokeSupportResponse](
+			httpClient,
+			baseURL+LocalServiceRevokeSupportProcedure,
+			connect.WithSchema(localServiceMethods.ByName("RevokeSupport")),
+			connect.WithClientOptions(opts...),
+		),
+		setSupportEnabled: connect.NewClient[v1.SetSupportEnabledRequest, v1.SetSupportEnabledResponse](
+			httpClient,
+			baseURL+LocalServiceSetSupportEnabledProcedure,
+			connect.WithSchema(localServiceMethods.ByName("SetSupportEnabled")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -351,6 +387,9 @@ type localServiceClient struct {
 	testNotifications *connect.Client[v1.TestNotificationsRequest, v1.TestNotificationsResponse]
 	importServer      *connect.Client[v1.ImportServerRequest, v1.ImportServerResponse]
 	getMetrics        *connect.Client[v1.GetMetricsRequest, v1.GetMetricsResponse]
+	listSupport       *connect.Client[v1.ListSupportRequest, v1.ListSupportResponse]
+	revokeSupport     *connect.Client[v1.RevokeSupportRequest, v1.RevokeSupportResponse]
+	setSupportEnabled *connect.Client[v1.SetSupportEnabledRequest, v1.SetSupportEnabledResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -543,6 +582,33 @@ func (c *localServiceClient) GetMetrics(ctx context.Context, req *v1.GetMetricsR
 	return nil, err
 }
 
+// ListSupport calls raptor.wings.local.v1.LocalService.ListSupport.
+func (c *localServiceClient) ListSupport(ctx context.Context, req *v1.ListSupportRequest) (*v1.ListSupportResponse, error) {
+	response, err := c.listSupport.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RevokeSupport calls raptor.wings.local.v1.LocalService.RevokeSupport.
+func (c *localServiceClient) RevokeSupport(ctx context.Context, req *v1.RevokeSupportRequest) (*v1.RevokeSupportResponse, error) {
+	response, err := c.revokeSupport.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SetSupportEnabled calls raptor.wings.local.v1.LocalService.SetSupportEnabled.
+func (c *localServiceClient) SetSupportEnabled(ctx context.Context, req *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error) {
+	response, err := c.setSupportEnabled.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
@@ -618,6 +684,14 @@ type LocalServiceHandler interface {
 	ImportServer(context.Context, *v1.ImportServerRequest) (*v1.ImportServerResponse, error)
 	// GetMetrics returns a server's resource history and its latest sample.
 	GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error)
+	// ListSupport lists Raptor staff's support access to this node
+	// (docs/PANEL.md#support-access). The raptor group may look.
+	ListSupport(context.Context, *v1.ListSupportRequest) (*v1.ListSupportResponse, error)
+	// RevokeSupport ends support access now: one grant, or all. Root only.
+	RevokeSupport(context.Context, *v1.RevokeSupportRequest) (*v1.RevokeSupportResponse, error)
+	// SetSupportEnabled turns support access off (ending every grant) or
+	// back on. Root only.
+	SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error)
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -769,6 +843,25 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceListSupportHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceListSupportProcedure,
+		svc.ListSupport,
+		connect.WithSchema(localServiceMethods.ByName("ListSupport")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceRevokeSupportHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceRevokeSupportProcedure,
+		svc.RevokeSupport,
+		connect.WithSchema(localServiceMethods.ByName("RevokeSupport")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceSetSupportEnabledHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceSetSupportEnabledProcedure,
+		svc.SetSupportEnabled,
+		connect.WithSchema(localServiceMethods.ByName("SetSupportEnabled")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
@@ -815,6 +908,12 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceImportServerHandler.ServeHTTP(w, r)
 		case LocalServiceGetMetricsProcedure:
 			localServiceGetMetricsHandler.ServeHTTP(w, r)
+		case LocalServiceListSupportProcedure:
+			localServiceListSupportHandler.ServeHTTP(w, r)
+		case LocalServiceRevokeSupportProcedure:
+			localServiceRevokeSupportHandler.ServeHTTP(w, r)
+		case LocalServiceSetSupportEnabledProcedure:
+			localServiceSetSupportEnabledHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -910,4 +1009,16 @@ func (UnimplementedLocalServiceHandler) ImportServer(context.Context, *v1.Import
 
 func (UnimplementedLocalServiceHandler) GetMetrics(context.Context, *v1.GetMetricsRequest) (*v1.GetMetricsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.GetMetrics is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ListSupport(context.Context, *v1.ListSupportRequest) (*v1.ListSupportResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ListSupport is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) RevokeSupport(context.Context, *v1.RevokeSupportRequest) (*v1.RevokeSupportResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.RevokeSupport is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.SetSupportEnabled is not implemented"))
 }

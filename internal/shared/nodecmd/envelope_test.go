@@ -35,3 +35,21 @@ func TestCanonicalVector(t *testing.T) {
 		t.Errorf("no params: %s", c)
 	}
 }
+
+// A grant without a support ID signs exactly what grants always have; one
+// with it signs something else.
+func TestGrantPayloadSupport(t *testing.T) {
+	g := Grant{UserID: "u", NodeID: "n", CommandID: "c", Action: "node.health", ExpiresAt: 1}
+	plain, err := g.Payload()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(plain) != `{"action":"node.health","command_id":"c","expires_at":1,"node_id":"n","server_id":"","user_id":"u"}` {
+		t.Errorf("payload changed: %s", plain)
+	}
+	g.Support = "s1"
+	with, _ := g.Payload()
+	if string(with) == string(plain) {
+		t.Error("the support grant isn't signed")
+	}
+}

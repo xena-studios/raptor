@@ -270,13 +270,20 @@ Staff publish banners everyone signed in sees, under the app's header (admin pan
 
 ## Support access
 
-1. Staff requests access to a node: level (1 diagnostics / 2 operate / 3 manage), duration, reason, **ticket reference required**.
-2. The owner gets an email + Panel notice and approves (may lower level/duration) or denies. **Approval is signed with the owner's passkey.**
-3. Wings only accepts the support grant with the owner's signature, enforces it like any grant, and checks expiry locally. A compromised Panel or staff account can't grant itself access.
-4. While active: banner in the Panel, notice in `raptor status`. Every staff action goes into the owner's audit log **by staff member name**.
-5. Owner can revoke instantly (Panel or `raptor support revoke`). Nodes can disable support access entirely.
+Raptor's staff can work on a node only with its owner's consent, signed with the owner's passkey and enforced by Wings.
 
-**There is no shell access for staff.** Support uses typed diagnostics (`GetDiagnostics`, `RunDoctor`, `TailWingsLogs`, …).
+1. **Staff ask** from the admin panel (an org's page → a node → "Ask for access"; `RequestSupportAccess`, staff with a passkey confirmed in the last 5 minutes). A request carries a level, a duration (15 minutes to 7 days), a reason, and a **ticket reference**. The org's owners and admins are emailed, and the node's pages show it to them. It goes in the org's log and the staff log.
+2. **The owner decides.** Denying (`DenySupportRequest`) needs no passkey. Approving signs `support.grant` with an owner's passkey (never a delegation): the request's ID, the staff member, the level, and the end time. The owner can approve less than was asked, but not more and not for someone else; the Panel checks that against the request before sending. Wings keeps the grant (`support_grants`), and the Panel records the request as approved once the node accepts it.
+3. **Staff act under it** through `CommandService.Execute` with `support` set to the request. The Panel checks that the caller is staff (passkey within 12 hours), and that the request is theirs, for this node, approved, unexpired, and its level covers the action. It puts the request's ID in the grant it signs (`Grant.Support`). Wings checks every such command again against the grant the owner signed, and refuses anything the grant doesn't cover, anything over or revoked, and anything passkey-signed. The levels, shared by both (`nodecmd.SupportLevel`):
+   - **1, diagnostics:** health, doctor's checks, metrics, disks, system settings, Wings' own log (`node.logs`), servers' metrics and ports, backup destinations and activity, trusted keys.
+   - **2, operate:** level 1, plus starting, stopping, restarting, and killing servers, and their consoles.
+   - **3, manage:** level 2, plus servers' files (not permanent deletes), schedules, and backing up.
+4. **While it lasts,** the node's pages show who has what until when, with "End now". Every staff command, even a look, goes in the org's log as done by staff, in the staff log, and in Wings' own log.
+5. **Ending it:** "End now" (`support.revoke`, not signed: it only takes access away), `sudo raptor support revoke <id>|all` on the box, or turning support access off (node Settings, or `sudo raptor support off`), which ends every grant and refuses new ones until it's turned on again.
+
+**There is no shell access for staff,** and no action that needs the owner's passkey. Support uses typed commands only.
+
+The limit, said plainly: this stops a staff account (or one taken over) from reaching a node without the owner, and makes everything staff do provable on the node. A fully compromised Panel could still send the *unsigned* commands any owner could, as the owner, which is no different from before support access existed. Signed actions stay out of reach.
 
 ## Beginner-focused features
 

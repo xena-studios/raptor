@@ -41,6 +41,8 @@ var (
 	ErrLastOwnerKey     = errors.New("can't remove the last owner key")
 	ErrNoTrustedKeys    = errors.New("no passkeys are trusted on this node yet; they're pinned when the node is linked, or with `raptor keys reset`")
 	ErrSignatureInvalid = errBadAssertion
+	ErrNoSupport        = errors.New("this node doesn't take support access")
+	ErrSupportSigned    = errors.New("staff can't send actions that need the owner's passkey")
 )
 
 // RunError is a command that ran and failed (as opposed to one that was
@@ -88,6 +90,12 @@ type Executor struct {
 	// commands (run or rejected), pairings, and key resets. Notifications
 	// send these straight from the node.
 	OnAudit func(AuditEntry)
+	// Support checks commands from Raptor's staff against the support
+	// access the owner granted (support.Manager). Without it, staff
+	// commands are refused.
+	Support interface {
+		Check(ctx context.Context, grantID, staffID, action string) error
+	}
 
 	handlers map[string]Handler
 }
@@ -168,7 +176,26 @@ func (x *Executor) AuthorizeStream(e Envelope, action string) error {
 	if exp.Sub(now) > MaxLifetime {
 		return fmt.Errorf("%w: expires more than %s from now", ErrExpired, MaxLifetime)
 	}
-	return x.checkGrant(e, now)
+	if err := x.checkGrant(e, now); err != nil {
+		return err
+	}
+	return x.checkSupport(context.Background(), e)
+}
+
+// checkSupport checks a staff member's command against their support
+// grant, if it names one.
+func (x *Executor) checkSupport(ctx context.Context, e Envelope) error {
+	if e.Grant.Support == "" {
+		return nil
+	}
+	if x.Support == nil {
+		return ErrNoSupport
+	}
+	if err := x.Support.Check(ctx, e.Grant.Support, e.UserID, e.Action); err != nil {
+		return err
+	}
+	x.log().Info("support command", "command", e.CommandID, "action", e.Action, "staff", e.UserID, "grant", e.Grant.Support, "server", e.ServerID)
+	return nil
 }
 
 func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
@@ -206,10 +233,16 @@ func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 	if err := x.checkGrant(e, now); err != nil {
 		return Result{}, err
 	}
+	if err := x.checkSupport(ctx, e); err != nil {
+		return Result{}, err
+	}
 
 	signed, err := h.Signed(ctx, e)
 	if err != nil {
 		return Result{}, err
+	}
+	if signed && e.Grant.Support != "" {
+		return Result{}, ErrSupportSigned
 	}
 	var signer []byte
 	if signed {

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { NodeAddress, NodeSettings, NodeSFTP } from "@/components/node-settings";
 import { PairKey } from "@/components/pair-key";
+import { SupportSettings } from "@/components/support-access";
 import { TrustedKeys } from "@/components/trusted-keys";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { useOrgNodes } from "@/lib/org-data";
@@ -22,6 +23,7 @@ function Settings() {
       {node && <NodeSettings key={node.name} orgId={orgId} nodeId={nodeId} name={node.name} />}
       {node && <NodeAddress key={node.displayAddress} orgId={orgId} node={node} />}
       {node && <NodeSFTP orgId={orgId} node={node} />}
+      {node && <SupportSettings nodeId={nodeId} connected={node.connected} />}
       <TrustedKeys
         orgId={orgId}
         nodeId={nodeId}

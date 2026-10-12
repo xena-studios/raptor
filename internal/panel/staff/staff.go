@@ -68,6 +68,15 @@ type caller struct {
 // staff checks the caller is staff with a fresh enough passkey: within
 // ViewFresh to look, ChangeFresh to change (admins only).
 func (s *Service) staff(ctx context.Context, change bool) (*caller, error) {
+	if change {
+		return s.check(ctx, ChangeFresh, true)
+	}
+	return s.check(ctx, ViewFresh, false)
+}
+
+// check checks the caller is staff (an admin, if adminOnly) whose session
+// confirmed a passkey within fresh.
+func (s *Service) check(ctx context.Context, fresh time.Duration, adminOnly bool) (*caller, error) {
 	sess, err := s.Auth.Current(ctx)
 	if err != nil {
 		return nil, err
@@ -85,14 +94,10 @@ func (s *Service) staff(ctx context.Context, change bool) (*caller, error) {
 	} else if n == 0 {
 		return nil, errNoPasskey
 	}
-	fresh := ViewFresh
-	if change {
-		fresh = ChangeFresh
-	}
 	if !sess.PasskeyAt.Valid || s.Auth.Clock().Sub(sess.PasskeyAt.Time) > fresh {
 		return nil, auth.ErrReauth
 	}
-	if change && role != Admin {
+	if adminOnly && role != Admin {
 		return nil, errAdminsOnly
 	}
 	return &caller{sess: sess, role: role}, nil

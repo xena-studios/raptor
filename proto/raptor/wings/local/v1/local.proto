@@ -123,6 +123,17 @@ service LocalService {
   rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ListSupport lists Raptor staff's support access to this node
+  // (docs/PANEL.md#support-access). The raptor group may look.
+  rpc ListSupport(ListSupportRequest) returns (ListSupportResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // RevokeSupport ends support access now: one grant, or all. Root only.
+  rpc RevokeSupport(RevokeSupportRequest) returns (RevokeSupportResponse) {}
+  // SetSupportEnabled turns support access off (ending every grant) or
+  // back on. Root only.
+  rpc SetSupportEnabled(SetSupportEnabledRequest) returns (SetSupportEnabledResponse) {}
 }
 
 // Servers are named in requests by full ID, the last 8 or more characters of
@@ -597,3 +608,38 @@ message GetBackupKeyResponse {
   // "panel" (Raptor keeps an encrypted copy) or "owner" (only the owner).
   string mode = 3;
 }
+
+message SupportGrant {
+  string id = 1;
+  string staff_email = 2;
+  int32 level = 3;
+  string reason = 4;
+  string ticket = 5;
+  string granted_by = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp revoked_at = 9;
+  bool active = 10;
+}
+
+message ListSupportRequest {}
+
+message ListSupportResponse {
+  repeated SupportGrant grants = 1;
+  bool disabled = 2;
+}
+
+message RevokeSupportRequest {
+  string id = 1;
+  bool all = 2;
+}
+
+message RevokeSupportResponse {
+  int64 revoked = 1;
+}
+
+message SetSupportEnabledRequest {
+  bool enabled = 1;
+}
+
+message SetSupportEnabledResponse {}

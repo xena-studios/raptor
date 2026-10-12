@@ -68,6 +68,12 @@ const (
 	OrgServiceListServerAccessProcedure = "/raptor.panel.v1.OrgService/ListServerAccess"
 	// OrgServiceListNodesProcedure is the fully-qualified name of the OrgService's ListNodes RPC.
 	OrgServiceListNodesProcedure = "/raptor.panel.v1.OrgService/ListNodes"
+	// OrgServiceListNodeSupportRequestsProcedure is the fully-qualified name of the OrgService's
+	// ListNodeSupportRequests RPC.
+	OrgServiceListNodeSupportRequestsProcedure = "/raptor.panel.v1.OrgService/ListNodeSupportRequests"
+	// OrgServiceDenySupportRequestProcedure is the fully-qualified name of the OrgService's
+	// DenySupportRequest RPC.
+	OrgServiceDenySupportRequestProcedure = "/raptor.panel.v1.OrgService/DenySupportRequest"
 	// OrgServiceRenameNodeProcedure is the fully-qualified name of the OrgService's RenameNode RPC.
 	OrgServiceRenameNodeProcedure = "/raptor.panel.v1.OrgService/RenameNode"
 	// OrgServiceSetNodeDisplayAddressProcedure is the fully-qualified name of the OrgService's
@@ -180,6 +186,13 @@ type OrgServiceClient interface {
 	// ListNodes lists the org's nodes. Admins and owners see all of them;
 	// members see the ones with servers they have access to.
 	ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error)
+	// ListNodeSupportRequests lists Raptor staff's requests for support
+	// access to a node, newest first. Owners approve one by signing
+	// support.grant with their passkey (CommandService.Execute); the Panel
+	// records it when the node accepts. Admins and owners.
+	ListNodeSupportRequests(context.Context, *v1.ListNodeSupportRequestsRequest) (*v1.ListNodeSupportRequestsResponse, error)
+	// DenySupportRequest turns a request down. Admins and owners.
+	DenySupportRequest(context.Context, *v1.DenySupportRequestRequest) (*v1.DenySupportRequestResponse, error)
 	// RenameNode renames a node. Admins and owners.
 	RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error)
 	// SetNodeDisplayAddress sets what players connect to instead of the
@@ -389,6 +402,19 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		listNodeSupportRequests: connect.NewClient[v1.ListNodeSupportRequestsRequest, v1.ListNodeSupportRequestsResponse](
+			httpClient,
+			baseURL+OrgServiceListNodeSupportRequestsProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ListNodeSupportRequests")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		denySupportRequest: connect.NewClient[v1.DenySupportRequestRequest, v1.DenySupportRequestResponse](
+			httpClient,
+			baseURL+OrgServiceDenySupportRequestProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("DenySupportRequest")),
+			connect.WithClientOptions(opts...),
+		),
 		renameNode: connect.NewClient[v1.RenameNodeRequest, v1.RenameNodeResponse](
 			httpClient,
 			baseURL+OrgServiceRenameNodeProcedure,
@@ -575,48 +601,50 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // orgServiceClient implements OrgServiceClient.
 type orgServiceClient struct {
-	createOrg             *connect.Client[v1.CreateOrgRequest, v1.CreateOrgResponse]
-	listOrgs              *connect.Client[v1.ListOrgsRequest, v1.ListOrgsResponse]
-	renameOrg             *connect.Client[v1.RenameOrgRequest, v1.RenameOrgResponse]
-	listMembers           *connect.Client[v1.ListMembersRequest, v1.ListMembersResponse]
-	setMemberRole         *connect.Client[v1.SetMemberRoleRequest, v1.SetMemberRoleResponse]
-	removeMember          *connect.Client[v1.RemoveMemberRequest, v1.RemoveMemberResponse]
-	inviteMember          *connect.Client[v1.InviteMemberRequest, v1.InviteMemberResponse]
-	listInvitations       *connect.Client[v1.ListInvitationsRequest, v1.ListInvitationsResponse]
-	revokeInvitation      *connect.Client[v1.RevokeInvitationRequest, v1.RevokeInvitationResponse]
-	acceptInvitation      *connect.Client[v1.AcceptInvitationRequest, v1.AcceptInvitationResponse]
-	createJoinToken       *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
-	setServerAccess       *connect.Client[v1.SetServerAccessRequest, v1.SetServerAccessResponse]
-	listServerAccess      *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
-	listNodes             *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
-	renameNode            *connect.Client[v1.RenameNodeRequest, v1.RenameNodeResponse]
-	setNodeDisplayAddress *connect.Client[v1.SetNodeDisplayAddressRequest, v1.SetNodeDisplayAddressResponse]
-	removeNode            *connect.Client[v1.RemoveNodeRequest, v1.RemoveNodeResponse]
-	listServers           *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
-	getServer             *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
-	pinJoinToken          *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
-	listMemberPasskeys    *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
-	listAuditLog          *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
-	listSchedules         *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
-	listScheduleRuns      *connect.Client[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse]
-	setNodeSFTP           *connect.Client[v1.SetNodeSFTPRequest, v1.SetNodeSFTPResponse]
-	getSFTPAccess         *connect.Client[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse]
-	createSFTPAccess      *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
-	revokeSFTPAccess      *connect.Client[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse]
-	testConnection        *connect.Client[v1.TestConnectionRequest, v1.TestConnectionResponse]
-	getBackupStorage      *connect.Client[v1.GetBackupStorageRequest, v1.GetBackupStorageResponse]
-	enableBackupStorage   *connect.Client[v1.EnableBackupStorageRequest, v1.EnableBackupStorageResponse]
-	disableBackupStorage  *connect.Client[v1.DisableBackupStorageRequest, v1.DisableBackupStorageResponse]
-	getBackupKey          *connect.Client[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse]
-	syncBackupKey         *connect.Client[v1.SyncBackupKeyRequest, v1.SyncBackupKeyResponse]
-	listRecoverySources   *connect.Client[v1.ListRecoverySourcesRequest, v1.ListRecoverySourcesResponse]
-	prepareRecovery       *connect.Client[v1.PrepareRecoveryRequest, v1.PrepareRecoveryResponse]
-	previewEgg            *connect.Client[v1.PreviewEggRequest, v1.PreviewEggResponse]
-	importEgg             *connect.Client[v1.ImportEggRequest, v1.ImportEggResponse]
-	listOrgEggs           *connect.Client[v1.ListOrgEggsRequest, v1.ListOrgEggsResponse]
-	getOrgEgg             *connect.Client[v1.GetOrgEggRequest, v1.GetOrgEggResponse]
-	deleteOrgEgg          *connect.Client[v1.DeleteOrgEggRequest, v1.DeleteOrgEggResponse]
-	listBackups           *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
+	createOrg               *connect.Client[v1.CreateOrgRequest, v1.CreateOrgResponse]
+	listOrgs                *connect.Client[v1.ListOrgsRequest, v1.ListOrgsResponse]
+	renameOrg               *connect.Client[v1.RenameOrgRequest, v1.RenameOrgResponse]
+	listMembers             *connect.Client[v1.ListMembersRequest, v1.ListMembersResponse]
+	setMemberRole           *connect.Client[v1.SetMemberRoleRequest, v1.SetMemberRoleResponse]
+	removeMember            *connect.Client[v1.RemoveMemberRequest, v1.RemoveMemberResponse]
+	inviteMember            *connect.Client[v1.InviteMemberRequest, v1.InviteMemberResponse]
+	listInvitations         *connect.Client[v1.ListInvitationsRequest, v1.ListInvitationsResponse]
+	revokeInvitation        *connect.Client[v1.RevokeInvitationRequest, v1.RevokeInvitationResponse]
+	acceptInvitation        *connect.Client[v1.AcceptInvitationRequest, v1.AcceptInvitationResponse]
+	createJoinToken         *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
+	setServerAccess         *connect.Client[v1.SetServerAccessRequest, v1.SetServerAccessResponse]
+	listServerAccess        *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
+	listNodes               *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
+	listNodeSupportRequests *connect.Client[v1.ListNodeSupportRequestsRequest, v1.ListNodeSupportRequestsResponse]
+	denySupportRequest      *connect.Client[v1.DenySupportRequestRequest, v1.DenySupportRequestResponse]
+	renameNode              *connect.Client[v1.RenameNodeRequest, v1.RenameNodeResponse]
+	setNodeDisplayAddress   *connect.Client[v1.SetNodeDisplayAddressRequest, v1.SetNodeDisplayAddressResponse]
+	removeNode              *connect.Client[v1.RemoveNodeRequest, v1.RemoveNodeResponse]
+	listServers             *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
+	getServer               *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
+	pinJoinToken            *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
+	listMemberPasskeys      *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
+	listAuditLog            *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
+	listSchedules           *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
+	listScheduleRuns        *connect.Client[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse]
+	setNodeSFTP             *connect.Client[v1.SetNodeSFTPRequest, v1.SetNodeSFTPResponse]
+	getSFTPAccess           *connect.Client[v1.GetSFTPAccessRequest, v1.GetSFTPAccessResponse]
+	createSFTPAccess        *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
+	revokeSFTPAccess        *connect.Client[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse]
+	testConnection          *connect.Client[v1.TestConnectionRequest, v1.TestConnectionResponse]
+	getBackupStorage        *connect.Client[v1.GetBackupStorageRequest, v1.GetBackupStorageResponse]
+	enableBackupStorage     *connect.Client[v1.EnableBackupStorageRequest, v1.EnableBackupStorageResponse]
+	disableBackupStorage    *connect.Client[v1.DisableBackupStorageRequest, v1.DisableBackupStorageResponse]
+	getBackupKey            *connect.Client[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse]
+	syncBackupKey           *connect.Client[v1.SyncBackupKeyRequest, v1.SyncBackupKeyResponse]
+	listRecoverySources     *connect.Client[v1.ListRecoverySourcesRequest, v1.ListRecoverySourcesResponse]
+	prepareRecovery         *connect.Client[v1.PrepareRecoveryRequest, v1.PrepareRecoveryResponse]
+	previewEgg              *connect.Client[v1.PreviewEggRequest, v1.PreviewEggResponse]
+	importEgg               *connect.Client[v1.ImportEggRequest, v1.ImportEggResponse]
+	listOrgEggs             *connect.Client[v1.ListOrgEggsRequest, v1.ListOrgEggsResponse]
+	getOrgEgg               *connect.Client[v1.GetOrgEggRequest, v1.GetOrgEggResponse]
+	deleteOrgEgg            *connect.Client[v1.DeleteOrgEggRequest, v1.DeleteOrgEggResponse]
+	listBackups             *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
 }
 
 // CreateOrg calls raptor.panel.v1.OrgService.CreateOrg.
@@ -739,6 +767,24 @@ func (c *orgServiceClient) ListServerAccess(ctx context.Context, req *v1.ListSer
 // ListNodes calls raptor.panel.v1.OrgService.ListNodes.
 func (c *orgServiceClient) ListNodes(ctx context.Context, req *v1.ListNodesRequest) (*v1.ListNodesResponse, error) {
 	response, err := c.listNodes.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListNodeSupportRequests calls raptor.panel.v1.OrgService.ListNodeSupportRequests.
+func (c *orgServiceClient) ListNodeSupportRequests(ctx context.Context, req *v1.ListNodeSupportRequestsRequest) (*v1.ListNodeSupportRequestsResponse, error) {
+	response, err := c.listNodeSupportRequests.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DenySupportRequest calls raptor.panel.v1.OrgService.DenySupportRequest.
+func (c *orgServiceClient) DenySupportRequest(ctx context.Context, req *v1.DenySupportRequestRequest) (*v1.DenySupportRequestResponse, error) {
+	response, err := c.denySupportRequest.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -1037,6 +1083,13 @@ type OrgServiceHandler interface {
 	// ListNodes lists the org's nodes. Admins and owners see all of them;
 	// members see the ones with servers they have access to.
 	ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error)
+	// ListNodeSupportRequests lists Raptor staff's requests for support
+	// access to a node, newest first. Owners approve one by signing
+	// support.grant with their passkey (CommandService.Execute); the Panel
+	// records it when the node accepts. Admins and owners.
+	ListNodeSupportRequests(context.Context, *v1.ListNodeSupportRequestsRequest) (*v1.ListNodeSupportRequestsResponse, error)
+	// DenySupportRequest turns a request down. Admins and owners.
+	DenySupportRequest(context.Context, *v1.DenySupportRequestRequest) (*v1.DenySupportRequestResponse, error)
 	// RenameNode renames a node. Admins and owners.
 	RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error)
 	// SetNodeDisplayAddress sets what players connect to instead of the
@@ -1240,6 +1293,19 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		svc.ListNodes,
 		connect.WithSchema(orgServiceMethods.ByName("ListNodes")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceListNodeSupportRequestsHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceListNodeSupportRequestsProcedure,
+		svc.ListNodeSupportRequests,
+		connect.WithSchema(orgServiceMethods.ByName("ListNodeSupportRequests")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceDenySupportRequestHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceDenySupportRequestProcedure,
+		svc.DenySupportRequest,
+		connect.WithSchema(orgServiceMethods.ByName("DenySupportRequest")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orgServiceRenameNodeHandler := connect.NewUnaryHandlerSimple(
@@ -1453,6 +1519,10 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListServerAccessHandler.ServeHTTP(w, r)
 		case OrgServiceListNodesProcedure:
 			orgServiceListNodesHandler.ServeHTTP(w, r)
+		case OrgServiceListNodeSupportRequestsProcedure:
+			orgServiceListNodeSupportRequestsHandler.ServeHTTP(w, r)
+		case OrgServiceDenySupportRequestProcedure:
+			orgServiceDenySupportRequestHandler.ServeHTTP(w, r)
 		case OrgServiceRenameNodeProcedure:
 			orgServiceRenameNodeHandler.ServeHTTP(w, r)
 		case OrgServiceSetNodeDisplayAddressProcedure:
@@ -1572,6 +1642,14 @@ func (UnimplementedOrgServiceHandler) ListServerAccess(context.Context, *v1.List
 
 func (UnimplementedOrgServiceHandler) ListNodes(context.Context, *v1.ListNodesRequest) (*v1.ListNodesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListNodes is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ListNodeSupportRequests(context.Context, *v1.ListNodeSupportRequestsRequest) (*v1.ListNodeSupportRequestsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ListNodeSupportRequests is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) DenySupportRequest(context.Context, *v1.DenySupportRequestRequest) (*v1.DenySupportRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.DenySupportRequest is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error) {

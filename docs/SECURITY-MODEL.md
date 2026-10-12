@@ -163,7 +163,7 @@ Even if every one of these failed, each malicious action would still need a real
 ### Staff and support
 - Staff are made only on the Panel's server (`panel staff add`), never from the web. The admin panel needs a passkey confirmed in the last 12 hours, and every change one in the last 5 minutes; emailed codes and authenticator apps don't count (docs/PANEL.md#staff).
 - Staff can suspend accounts and orgs (signing them out and stopping the Panel managing them, while servers keep running), and see platform counts. They can't sign in as a user, read files or consoles, or send commands to nodes.
-- Support access requires **owner approval signed with the owner's passkey** and verified by Wings (so a compromised Panel or staff account can't grant itself access), is scoped (level 1/2/3), time-limited, revocable, visible, and audited per staff member. Nodes can disable it entirely.
+- Support access requires **owner approval signed with the owner's passkey** and verified by Wings (so a compromised Panel or staff account can't grant itself access), is scoped (level 1/2/3), time-limited (7 days at most), revocable from the Panel or the box, visible on the node's pages, and audited per staff member, reads included. Each staff command names its grant inside the Panel's signed grant, and Wings checks it. Staff can never send passkey-signed actions. Nodes can turn it off entirely (`raptor support off`). A fully compromised Panel can still send the unsigned commands an owner could, as before; support access doesn't widen that.
 - **No shell access for staff.**
 - An internal audit log of staff actions that staff cannot modify (`staff_audit`, append-only by trigger), including who opened which account; suspensions also show in the account's or org's own log.
 

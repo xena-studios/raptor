@@ -36,6 +36,10 @@ type Grant struct {
 	Action    string `json:"action"`
 	ServerID  string `json:"server_id,omitempty"`
 	ExpiresAt int64  `json:"expires_at"`
+	// Support is the support grant a Raptor staff member acts under
+	// (docs/PANEL.md#support-access): the node's owner signed it, and Wings
+	// checks the command against it. Empty for everyone else.
+	Support string `json:"support,omitempty"`
 	// Signature is Ed25519 by the Panel over the canonical JSON of the
 	// fields above.
 	Signature []byte `json:"signature"`
@@ -94,7 +98,9 @@ func (e Envelope) Hash() ([]byte, error) {
 }
 
 // Payload is what the Panel signs for a grant (canonical JSON of every field
-// but the signature). The Panel uses this same function to sign.
+// but the signature). The Panel uses this same function to sign. Support is
+// in it only when set, so every other grant signs the same bytes it always
+// has, and a node that doesn't know support grants refuses them.
 func (g Grant) Payload() ([]byte, error) {
 	raw, err := json.Marshal(struct {
 		UserID    string `json:"user_id"`
@@ -103,7 +109,8 @@ func (g Grant) Payload() ([]byte, error) {
 		Action    string `json:"action"`
 		ServerID  string `json:"server_id"`
 		ExpiresAt int64  `json:"expires_at"`
-	}{g.UserID, g.NodeID, g.CommandID, g.Action, g.ServerID, g.ExpiresAt})
+		Support   string `json:"support,omitempty"`
+	}{g.UserID, g.NodeID, g.CommandID, g.Action, g.ServerID, g.ExpiresAt, g.Support})
 	if err != nil {
 		return nil, err
 	}

@@ -129,6 +129,12 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`ended their SFTP sessions on ${server}`, FolderKey];
     case "node.update":
       return [`updated Wings on ${server}`, Server];
+    case "support.grant":
+      return [`gave Raptor support access to ${server}`, KeyRound];
+    case "support.revoke":
+      return [`ended Raptor support's access to ${server}`, KeyRound];
+    case "support.disable":
+      return [`turned support access ${meta.off === false ? "on" : "off"} on ${server}`, KeyRound];
     case "keys.add":
     case "keys.remove":
     case "keys.pair":
@@ -265,6 +271,15 @@ export function OrgActivity({
         break;
       case "backup_storage.disable":
         [text, icon] = [`turned off Raptor Backup Storage for ${nodeName(e.target)}`, Archive];
+        break;
+      case "support.request":
+        [text, icon] = [
+          `(Raptor support) asked for access to ${nodeName(str(meta.node))}: ${str(meta.reason)} (${str(meta.ticket)})`,
+          KeyRound,
+        ];
+        break;
+      case "support.deny":
+        [text, icon] = ["denied Raptor support's request for access", KeyRound];
         break;
       case "egg.import":
         [text, icon] = [`imported the egg "${str(meta.name)}"`, Egg];

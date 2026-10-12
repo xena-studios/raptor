@@ -20,6 +20,7 @@ import (
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -328,4 +329,57 @@ func (s *Service) RemoveNode(ctx context.Context, req *panelv1.RemoveNodeRequest
 		}
 	}
 	return &panelv1.RemoveNodeResponse{}, nil
+}
+
+// ListNodeSupportRequests implements OrgService.
+func (s *Service) ListNodeSupportRequests(ctx context.Context, req *panelv1.ListNodeSupportRequestsRequest) (*panelv1.ListNodeSupportRequestsResponse, error) {
+	_, org, node, err := s.nodeOf(ctx, req.GetOrgId(), req.GetNodeId())
+	if err != nil {
+		return nil, err
+	}
+	q := store.New(s.DB)
+	rows, err := q.NodeSupportRequests(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+	info, err := q.NodeNameOrg(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+	out := &panelv1.ListNodeSupportRequestsResponse{}
+	for _, r := range rows {
+		if r.OrgID != org {
+			continue
+		}
+		out.Requests = append(out.Requests, staff.RequestProto(r, info.OrgName, info.Name, s.now(), pgtype.UUID{}))
+	}
+	return out, nil
+}
+
+// DenySupportRequest implements OrgService.
+func (s *Service) DenySupportRequest(ctx context.Context, req *panelv1.DenySupportRequestRequest) (*panelv1.DenySupportRequestResponse, error) {
+	rid, err := parseID(req.GetRequestId(), "request")
+	if err != nil {
+		return nil, err
+	}
+	var sess *auth.Session
+	var org pgtype.UUID
+	err = s.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
+		sess = se
+		var err error
+		org, _, err = member(ctx, q, se, req.GetOrgId(), "admin")
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	n, err := store.New(s.DB).DenySupportRequest(ctx, store.DenySupportRequestParams{ID: rid, DecidedBy: sess.UserID, OrgID: org})
+	if err != nil {
+		return nil, err
+	}
+	if n == 0 {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("that request isn't waiting for an answer"))
+	}
+	_ = s.audit(ctx, nil, sess, org, "support.deny", idString(rid), nil, nil)
+	return &panelv1.DenySupportRequestResponse{}, nil
 }

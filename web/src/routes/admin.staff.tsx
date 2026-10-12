@@ -100,6 +100,8 @@ const actionWords: Record<string, string> = {
   "announcement.create": "published an announcement",
   "announcement.update": "changed an announcement",
   "announcement.end": "ended an announcement",
+  "support.request": "asked for support access to node",
+  "support.command": "used support access on node",
 };
 
 function LogPage({
