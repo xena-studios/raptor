@@ -1,6 +1,6 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Copy, Loader2 } from "lucide-react";
+import { CheckCircle2, Copy, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 
 import { useReauth } from "@/components/reauth";
@@ -14,8 +14,8 @@ import { orgClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
 
 // ConnectNode links a new machine: a join token, optionally the owner's
-// passkey pinned to it, the install command, and then the node itself
-// arriving (the page watches for it).
+// passkey pinned to it, the install command, and then the installer's
+// steps as it reports them, until the node itself arrives.
 export function ConnectNode({ orgId, userId }: { orgId: string; userId: string }) {
   const passkeys = useQuery(AuthService.method.listPasskeys, {});
   const withReauth = useReauth();
@@ -34,6 +34,13 @@ export function ConnectNode({ orgId, userId }: { orgId: string; userId: string }
     { refetchInterval: token ? 3_000 : false },
   );
   const arrived = token ? nodes.data?.nodes.find((n) => !known.has(n.id)) : undefined;
+  // What the installer reports as it goes, until the node is up.
+  const progress = useQuery(
+    OrgService.method.getJoinProgress,
+    { orgId, token: token ?? "" },
+    { enabled: !!token, refetchInterval: arrived?.connected ? false : 2_000 },
+  );
+  const steps = progress.data?.steps ?? [];
 
   async function start() {
     setError("");
@@ -141,6 +148,36 @@ export function ConnectNode({ orgId, userId }: { orgId: string; userId: string }
                 {copied ? <CheckCircle2 /> : <Copy />}
               </Button>
             </div>
+            {steps.length > 0 && (
+              <ol className="flex flex-col gap-1.5 rounded-lg border p-3 text-sm">
+                {steps.map((s) => (
+                  <li key={s.name} className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-2">
+                      {s.state === "done" ? (
+                        <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                      ) : s.state === "failed" ? (
+                        <XCircle className="size-4 shrink-0 text-destructive" />
+                      ) : (
+                        <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                      )}
+                      <span className={s.state === "failed" ? "text-destructive" : undefined}>
+                        {s.name}
+                      </span>
+                    </span>
+                    {s.detail && (
+                      <span className="ml-6 font-mono text-xs break-all text-muted-foreground">
+                        {s.detail}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+            {steps.some((s) => s.state === "failed") && !arrived && (
+              <p className="text-sm text-muted-foreground">
+                Fix what failed and run the same command again: it carries on where it stopped.
+              </p>
+            )}
             {arrived ? (
               <p className="flex items-center gap-2 text-sm">
                 <CheckCircle2 className="size-4 text-emerald-500" />
@@ -157,9 +194,11 @@ export function ConnectNode({ orgId, userId }: { orgId: string; userId: string }
                 </span>
               </p>
             ) : (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" /> Waiting for the node to link…
-              </p>
+              steps.length === 0 && (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Waiting for the installer to start…
+                </p>
+              )
             )}
           </CardContent>
         </Card>

@@ -710,3 +710,28 @@ func (s *Service) ListMemberPasskeys(ctx context.Context, req *panelv1.ListMembe
 	}
 	return out, nil
 }
+
+// GetJoinProgress implements OrgService.
+func (s *Service) GetJoinProgress(ctx context.Context, req *panelv1.GetJoinProgressRequest) (*panelv1.GetJoinProgressResponse, error) {
+	if s.Registry == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("nodes can't be linked to this Panel"))
+	}
+	var org pgtype.UUID
+	err := s.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
+		var err error
+		org, _, err = member(ctx, q, se, req.GetOrgId(), "admin")
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	steps, node, err := s.Registry.JoinProgress(ctx, org, req.GetToken())
+	if err != nil {
+		return nil, err
+	}
+	out := &panelv1.GetJoinProgressResponse{NodeId: node}
+	for _, st := range steps {
+		out.Steps = append(out.Steps, &panelv1.JoinStep{Name: st.Name, State: st.State, Detail: st.Detail, At: timestamppb.New(st.At)})
+	}
+	return out, nil
+}

@@ -238,7 +238,31 @@ service EnrollmentService {
   rpc Enroll(EnrollRequest) returns (EnrollResponse) {
     option idempotency_level = IDEMPOTENT;
   }
+
+  // ReportProgress tells the Panel how `raptor bootstrap` is getting on, so
+  // the Add Node page can show it. The join token is the credential.
+  // Best effort: bootstrap carries on if it fails.
+  rpc ReportProgress(ReportProgressRequest) returns (ReportProgressResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
 }
+
+message ReportProgressRequest {
+  // rpt_join_…
+  string token = 1;
+  // Every step so far, in order, the current one last.
+  repeated BootstrapStep steps = 2;
+}
+
+message BootstrapStep {
+  string name = 1;
+  // "running", "done", or "failed".
+  string state = 2;
+  // A note, or why it failed.
+  string detail = 3;
+}
+
+message ReportProgressResponse {}
 
 message EnrollRequest {
   // rpt_join_…

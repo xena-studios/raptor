@@ -1234,6 +1234,158 @@ func (*EventsAvailableResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{16}
 }
 
+type ReportProgressRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// rpt_join_…
+	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	// Every step so far, in order, the current one last.
+	Steps         []*BootstrapStep `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportProgressRequest) Reset() {
+	*x = ReportProgressRequest{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportProgressRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportProgressRequest) ProtoMessage() {}
+
+func (x *ReportProgressRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportProgressRequest.ProtoReflect.Descriptor instead.
+func (*ReportProgressRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ReportProgressRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *ReportProgressRequest) GetSteps() []*BootstrapStep {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+type BootstrapStep struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// "running", "done", or "failed".
+	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// A note, or why it failed.
+	Detail        string `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BootstrapStep) Reset() {
+	*x = BootstrapStep{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BootstrapStep) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BootstrapStep) ProtoMessage() {}
+
+func (x *BootstrapStep) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BootstrapStep.ProtoReflect.Descriptor instead.
+func (*BootstrapStep) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *BootstrapStep) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *BootstrapStep) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *BootstrapStep) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+type ReportProgressResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportProgressResponse) Reset() {
+	*x = ReportProgressResponse{}
+	mi := &file_raptor_node_v1_node_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportProgressResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportProgressResponse) ProtoMessage() {}
+
+func (x *ReportProgressResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_node_v1_node_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportProgressResponse.ProtoReflect.Descriptor instead.
+func (*ReportProgressResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{19}
+}
+
 type EnrollRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// rpt_join_…
@@ -1257,7 +1409,7 @@ type EnrollRequest struct {
 
 func (x *EnrollRequest) Reset() {
 	*x = EnrollRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[17]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1269,7 +1421,7 @@ func (x *EnrollRequest) String() string {
 func (*EnrollRequest) ProtoMessage() {}
 
 func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[17]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1282,7 +1434,7 @@ func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollRequest.ProtoReflect.Descriptor instead.
 func (*EnrollRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{17}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *EnrollRequest) GetToken() string {
@@ -1348,7 +1500,7 @@ type NodeFacts struct {
 
 func (x *NodeFacts) Reset() {
 	*x = NodeFacts{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[18]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1360,7 +1512,7 @@ func (x *NodeFacts) String() string {
 func (*NodeFacts) ProtoMessage() {}
 
 func (x *NodeFacts) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[18]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1525,7 @@ func (x *NodeFacts) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeFacts.ProtoReflect.Descriptor instead.
 func (*NodeFacts) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{18}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *NodeFacts) GetOs() string {
@@ -1431,7 +1583,7 @@ type EnrollResponse struct {
 
 func (x *EnrollResponse) Reset() {
 	*x = EnrollResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[19]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1443,7 +1595,7 @@ func (x *EnrollResponse) String() string {
 func (*EnrollResponse) ProtoMessage() {}
 
 func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[19]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1456,7 +1608,7 @@ func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollResponse.ProtoReflect.Descriptor instead.
 func (*EnrollResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{19}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *EnrollResponse) GetNodeId() string {
@@ -1504,7 +1656,7 @@ type ConsoleRequest struct {
 
 func (x *ConsoleRequest) Reset() {
 	*x = ConsoleRequest{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[20]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1516,7 +1668,7 @@ func (x *ConsoleRequest) String() string {
 func (*ConsoleRequest) ProtoMessage() {}
 
 func (x *ConsoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[20]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1529,7 +1681,7 @@ func (x *ConsoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsoleRequest.ProtoReflect.Descriptor instead.
 func (*ConsoleRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{20}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ConsoleRequest) GetEnvelope() []byte {
@@ -1551,7 +1703,7 @@ type ConsoleResponse struct {
 
 func (x *ConsoleResponse) Reset() {
 	*x = ConsoleResponse{}
-	mi := &file_raptor_node_v1_node_proto_msgTypes[21]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1563,7 +1715,7 @@ func (x *ConsoleResponse) String() string {
 func (*ConsoleResponse) ProtoMessage() {}
 
 func (x *ConsoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_node_v1_node_proto_msgTypes[21]
+	mi := &file_raptor_node_v1_node_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1576,7 +1728,7 @@ func (x *ConsoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsoleResponse.ProtoReflect.Descriptor instead.
 func (*ConsoleResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{21}
+	return file_raptor_node_v1_node_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ConsoleResponse) GetLines() []string {
@@ -1701,7 +1853,15 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"3\n" +
 	"\x16EventsAvailableRequest\x12\x19\n" +
 	"\blast_seq\x18\x01 \x01(\x03R\alastSeq\"\x19\n" +
-	"\x17EventsAvailableResponse\"\xe5\x01\n" +
+	"\x17EventsAvailableResponse\"b\n" +
+	"\x15ReportProgressRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x123\n" +
+	"\x05steps\x18\x02 \x03(\v2\x1d.raptor.node.v1.BootstrapStepR\x05steps\"Q\n" +
+	"\rBootstrapStep\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12\x16\n" +
+	"\x06detail\x18\x03 \x01(\tR\x06detail\"\x18\n" +
+	"\x16ReportProgressResponse\"\xe5\x01\n" +
 	"\rEnrollRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
 	"\n" +
@@ -1737,9 +1897,10 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\aConsole\x12\x1e.raptor.node.v1.ConsoleRequest\x1a\x1f.raptor.node.v1.ConsoleResponse\"\x000\x012\xce\x01\n" +
 	"\fPanelService\x12g\n" +
 	"\x0fEventsAvailable\x12&.raptor.node.v1.EventsAvailableRequest\x1a'.raptor.node.v1.EventsAvailableResponse\"\x03\x90\x02\x02\x12U\n" +
-	"\tSFTPLogin\x12 .raptor.node.v1.SFTPLoginRequest\x1a!.raptor.node.v1.SFTPLoginResponse\"\x03\x90\x02\x012a\n" +
+	"\tSFTPLogin\x12 .raptor.node.v1.SFTPLoginRequest\x1a!.raptor.node.v1.SFTPLoginResponse\"\x03\x90\x02\x012\xc7\x01\n" +
 	"\x11EnrollmentService\x12L\n" +
-	"\x06Enroll\x12\x1d.raptor.node.v1.EnrollRequest\x1a\x1e.raptor.node.v1.EnrollResponse\"\x03\x90\x02\x02B\xc2\x01\n" +
+	"\x06Enroll\x12\x1d.raptor.node.v1.EnrollRequest\x1a\x1e.raptor.node.v1.EnrollResponse\"\x03\x90\x02\x02\x12d\n" +
+	"\x0eReportProgress\x12%.raptor.node.v1.ReportProgressRequest\x1a&.raptor.node.v1.ReportProgressResponse\"\x03\x90\x02\x02B\xc2\x01\n" +
 	"\x12com.raptor.node.v1B\tNodeProtoP\x01ZGgithub.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1;nodev1\xa2\x02\x03RNX\xaa\x02\x0eRaptor.Node.V1\xca\x02\x0eRaptor\\Node\\V1\xe2\x02\x1aRaptor\\Node\\V1\\GPBMetadata\xea\x02\x10Raptor::Node::V1b\x06proto3"
 
 var (
@@ -1754,7 +1915,7 @@ func file_raptor_node_v1_node_proto_rawDescGZIP() []byte {
 	return file_raptor_node_v1_node_proto_rawDescData
 }
 
-var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_raptor_node_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_raptor_node_v1_node_proto_goTypes = []any{
 	(*GetServersRequest)(nil),       // 0: raptor.node.v1.GetServersRequest
 	(*GetServersResponse)(nil),      // 1: raptor.node.v1.GetServersResponse
@@ -1773,12 +1934,15 @@ var file_raptor_node_v1_node_proto_goTypes = []any{
 	(*SFTPLoginResponse)(nil),       // 14: raptor.node.v1.SFTPLoginResponse
 	(*EventsAvailableRequest)(nil),  // 15: raptor.node.v1.EventsAvailableRequest
 	(*EventsAvailableResponse)(nil), // 16: raptor.node.v1.EventsAvailableResponse
-	(*EnrollRequest)(nil),           // 17: raptor.node.v1.EnrollRequest
-	(*NodeFacts)(nil),               // 18: raptor.node.v1.NodeFacts
-	(*EnrollResponse)(nil),          // 19: raptor.node.v1.EnrollResponse
-	(*ConsoleRequest)(nil),          // 20: raptor.node.v1.ConsoleRequest
-	(*ConsoleResponse)(nil),         // 21: raptor.node.v1.ConsoleResponse
-	(*timestamppb.Timestamp)(nil),   // 22: google.protobuf.Timestamp
+	(*ReportProgressRequest)(nil),   // 17: raptor.node.v1.ReportProgressRequest
+	(*BootstrapStep)(nil),           // 18: raptor.node.v1.BootstrapStep
+	(*ReportProgressResponse)(nil),  // 19: raptor.node.v1.ReportProgressResponse
+	(*EnrollRequest)(nil),           // 20: raptor.node.v1.EnrollRequest
+	(*NodeFacts)(nil),               // 21: raptor.node.v1.NodeFacts
+	(*EnrollResponse)(nil),          // 22: raptor.node.v1.EnrollResponse
+	(*ConsoleRequest)(nil),          // 23: raptor.node.v1.ConsoleRequest
+	(*ConsoleResponse)(nil),         // 24: raptor.node.v1.ConsoleResponse
+	(*timestamppb.Timestamp)(nil),   // 25: google.protobuf.Timestamp
 }
 var file_raptor_node_v1_node_proto_depIdxs = []int32{
 	2,  // 0: raptor.node.v1.GetServersResponse.servers:type_name -> raptor.node.v1.Server
@@ -1786,29 +1950,32 @@ var file_raptor_node_v1_node_proto_depIdxs = []int32{
 	5,  // 2: raptor.node.v1.Server.backups:type_name -> raptor.node.v1.Backup
 	3,  // 3: raptor.node.v1.Server.jobs:type_name -> raptor.node.v1.Job
 	12, // 4: raptor.node.v1.EventsResponse.events:type_name -> raptor.node.v1.Event
-	22, // 5: raptor.node.v1.SFTPLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
-	18, // 6: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
-	8,  // 7: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
-	10, // 8: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
-	6,  // 9: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
-	0,  // 10: raptor.node.v1.NodeService.GetServers:input_type -> raptor.node.v1.GetServersRequest
-	20, // 11: raptor.node.v1.NodeService.Console:input_type -> raptor.node.v1.ConsoleRequest
-	15, // 12: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
-	13, // 13: raptor.node.v1.PanelService.SFTPLogin:input_type -> raptor.node.v1.SFTPLoginRequest
-	17, // 14: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
-	9,  // 15: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
-	11, // 16: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
-	7,  // 17: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
-	1,  // 18: raptor.node.v1.NodeService.GetServers:output_type -> raptor.node.v1.GetServersResponse
-	21, // 19: raptor.node.v1.NodeService.Console:output_type -> raptor.node.v1.ConsoleResponse
-	16, // 20: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
-	14, // 21: raptor.node.v1.PanelService.SFTPLogin:output_type -> raptor.node.v1.SFTPLoginResponse
-	19, // 22: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
-	15, // [15:23] is the sub-list for method output_type
-	7,  // [7:15] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	25, // 5: raptor.node.v1.SFTPLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	18, // 6: raptor.node.v1.ReportProgressRequest.steps:type_name -> raptor.node.v1.BootstrapStep
+	21, // 7: raptor.node.v1.EnrollRequest.facts:type_name -> raptor.node.v1.NodeFacts
+	8,  // 8: raptor.node.v1.NodeService.Execute:input_type -> raptor.node.v1.ExecuteRequest
+	10, // 9: raptor.node.v1.NodeService.Events:input_type -> raptor.node.v1.EventsRequest
+	6,  // 10: raptor.node.v1.NodeService.OpenTransfer:input_type -> raptor.node.v1.OpenTransferRequest
+	0,  // 11: raptor.node.v1.NodeService.GetServers:input_type -> raptor.node.v1.GetServersRequest
+	23, // 12: raptor.node.v1.NodeService.Console:input_type -> raptor.node.v1.ConsoleRequest
+	15, // 13: raptor.node.v1.PanelService.EventsAvailable:input_type -> raptor.node.v1.EventsAvailableRequest
+	13, // 14: raptor.node.v1.PanelService.SFTPLogin:input_type -> raptor.node.v1.SFTPLoginRequest
+	20, // 15: raptor.node.v1.EnrollmentService.Enroll:input_type -> raptor.node.v1.EnrollRequest
+	17, // 16: raptor.node.v1.EnrollmentService.ReportProgress:input_type -> raptor.node.v1.ReportProgressRequest
+	9,  // 17: raptor.node.v1.NodeService.Execute:output_type -> raptor.node.v1.ExecuteResponse
+	11, // 18: raptor.node.v1.NodeService.Events:output_type -> raptor.node.v1.EventsResponse
+	7,  // 19: raptor.node.v1.NodeService.OpenTransfer:output_type -> raptor.node.v1.OpenTransferResponse
+	1,  // 20: raptor.node.v1.NodeService.GetServers:output_type -> raptor.node.v1.GetServersResponse
+	24, // 21: raptor.node.v1.NodeService.Console:output_type -> raptor.node.v1.ConsoleResponse
+	16, // 22: raptor.node.v1.PanelService.EventsAvailable:output_type -> raptor.node.v1.EventsAvailableResponse
+	14, // 23: raptor.node.v1.PanelService.SFTPLogin:output_type -> raptor.node.v1.SFTPLoginResponse
+	22, // 24: raptor.node.v1.EnrollmentService.Enroll:output_type -> raptor.node.v1.EnrollResponse
+	19, // 25: raptor.node.v1.EnrollmentService.ReportProgress:output_type -> raptor.node.v1.ReportProgressResponse
+	17, // [17:26] is the sub-list for method output_type
+	8,  // [8:17] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_raptor_node_v1_node_proto_init() }
@@ -1822,7 +1989,7 @@ func file_raptor_node_v1_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_node_v1_node_proto_rawDesc), len(file_raptor_node_v1_node_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

@@ -132,6 +132,7 @@ type JoinToken struct {
 	NodeID    pgtype.UUID
 	CreatedAt pgtype.Timestamptz
 	OwnerPin  []byte
+	Progress  []byte
 }
 
 type MBackup struct {

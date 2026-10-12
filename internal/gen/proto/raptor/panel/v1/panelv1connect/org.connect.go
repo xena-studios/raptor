@@ -60,6 +60,9 @@ const (
 	// OrgServiceCreateJoinTokenProcedure is the fully-qualified name of the OrgService's
 	// CreateJoinToken RPC.
 	OrgServiceCreateJoinTokenProcedure = "/raptor.panel.v1.OrgService/CreateJoinToken"
+	// OrgServiceGetJoinProgressProcedure is the fully-qualified name of the OrgService's
+	// GetJoinProgress RPC.
+	OrgServiceGetJoinProgressProcedure = "/raptor.panel.v1.OrgService/GetJoinProgress"
 	// OrgServiceSetServerAccessProcedure is the fully-qualified name of the OrgService's
 	// SetServerAccess RPC.
 	OrgServiceSetServerAccessProcedure = "/raptor.panel.v1.OrgService/SetServerAccess"
@@ -167,6 +170,9 @@ type OrgServiceClient interface {
 	// Admins and owners, with a recent re-authentication: a node runs as
 	// root, so adding one is a sensitive change.
 	CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error)
+	// GetJoinProgress is how `raptor bootstrap` is getting on with a join
+	// token, and the node once it has linked. Admins and owners.
+	GetJoinProgress(context.Context, *v1.GetJoinProgressRequest) (*v1.GetJoinProgressResponse, error)
 	// SetServerAccess sets what a member may do on one server (no
 	// permissions removes their access). Admins and owners. Admins and owners
 	// themselves can always do everything.
@@ -354,6 +360,13 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+OrgServiceCreateJoinTokenProcedure,
 			connect.WithSchema(orgServiceMethods.ByName("CreateJoinToken")),
+			connect.WithClientOptions(opts...),
+		),
+		getJoinProgress: connect.NewClient[v1.GetJoinProgressRequest, v1.GetJoinProgressResponse](
+			httpClient,
+			baseURL+OrgServiceGetJoinProgressProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("GetJoinProgress")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		setServerAccess: connect.NewClient[v1.SetServerAccessRequest, v1.SetServerAccessResponse](
@@ -554,6 +567,7 @@ type orgServiceClient struct {
 	revokeInvitation        *connect.Client[v1.RevokeInvitationRequest, v1.RevokeInvitationResponse]
 	acceptInvitation        *connect.Client[v1.AcceptInvitationRequest, v1.AcceptInvitationResponse]
 	createJoinToken         *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
+	getJoinProgress         *connect.Client[v1.GetJoinProgressRequest, v1.GetJoinProgressResponse]
 	setServerAccess         *connect.Client[v1.SetServerAccessRequest, v1.SetServerAccessResponse]
 	listServerAccess        *connect.Client[v1.ListServerAccessRequest, v1.ListServerAccessResponse]
 	listNodes               *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
@@ -677,6 +691,15 @@ func (c *orgServiceClient) AcceptInvitation(ctx context.Context, req *v1.AcceptI
 // CreateJoinToken calls raptor.panel.v1.OrgService.CreateJoinToken.
 func (c *orgServiceClient) CreateJoinToken(ctx context.Context, req *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error) {
 	response, err := c.createJoinToken.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetJoinProgress calls raptor.panel.v1.OrgService.GetJoinProgress.
+func (c *orgServiceClient) GetJoinProgress(ctx context.Context, req *v1.GetJoinProgressRequest) (*v1.GetJoinProgressResponse, error) {
+	response, err := c.getJoinProgress.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -966,6 +989,9 @@ type OrgServiceHandler interface {
 	// Admins and owners, with a recent re-authentication: a node runs as
 	// root, so adding one is a sensitive change.
 	CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error)
+	// GetJoinProgress is how `raptor bootstrap` is getting on with a join
+	// token, and the node once it has linked. Admins and owners.
+	GetJoinProgress(context.Context, *v1.GetJoinProgressRequest) (*v1.GetJoinProgressResponse, error)
 	// SetServerAccess sets what a member may do on one server (no
 	// permissions removes their access). Admins and owners. Admins and owners
 	// themselves can always do everything.
@@ -1149,6 +1175,13 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		OrgServiceCreateJoinTokenProcedure,
 		svc.CreateJoinToken,
 		connect.WithSchema(orgServiceMethods.ByName("CreateJoinToken")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceGetJoinProgressHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceGetJoinProgressProcedure,
+		svc.GetJoinProgress,
+		connect.WithSchema(orgServiceMethods.ByName("GetJoinProgress")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	orgServiceSetServerAccessHandler := connect.NewUnaryHandlerSimple(
@@ -1357,6 +1390,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceAcceptInvitationHandler.ServeHTTP(w, r)
 		case OrgServiceCreateJoinTokenProcedure:
 			orgServiceCreateJoinTokenHandler.ServeHTTP(w, r)
+		case OrgServiceGetJoinProgressProcedure:
+			orgServiceGetJoinProgressHandler.ServeHTTP(w, r)
 		case OrgServiceSetServerAccessProcedure:
 			orgServiceSetServerAccessHandler.ServeHTTP(w, r)
 		case OrgServiceListServerAccessProcedure:
@@ -1464,6 +1499,10 @@ func (UnimplementedOrgServiceHandler) AcceptInvitation(context.Context, *v1.Acce
 
 func (UnimplementedOrgServiceHandler) CreateJoinToken(context.Context, *v1.CreateJoinTokenRequest) (*v1.CreateJoinTokenResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.CreateJoinToken is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) GetJoinProgress(context.Context, *v1.GetJoinProgressRequest) (*v1.GetJoinProgressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.GetJoinProgress is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) SetServerAccess(context.Context, *v1.SetServerAccessRequest) (*v1.SetServerAccessResponse, error) {

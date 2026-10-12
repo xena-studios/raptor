@@ -59,6 +59,12 @@ service OrgService {
   // root, so adding one is a sensitive change.
   rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse) {}
 
+  // GetJoinProgress is how `raptor bootstrap` is getting on with a join
+  // token, and the node once it has linked. Admins and owners.
+  rpc GetJoinProgress(GetJoinProgressRequest) returns (GetJoinProgressResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // SetServerAccess sets what a member may do on one server (no
   // permissions removes their access). Admins and owners. Admins and owners
   // themselves can always do everything.
@@ -794,3 +800,22 @@ message DenySupportRequestRequest {
 }
 
 message DenySupportRequestResponse {}
+
+message GetJoinProgressRequest {
+  string org_id = 1;
+  string token = 2;
+}
+
+message JoinStep {
+  string name = 1;
+  // "running", "done", or "failed".
+  string state = 2;
+  string detail = 3;
+  google.protobuf.Timestamp at = 4;
+}
+
+message GetJoinProgressResponse {
+  repeated JoinStep steps = 1;
+  // Set once the node has linked.
+  string node_id = 2;
+}
