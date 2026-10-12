@@ -1,17 +1,22 @@
 import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
+  Building2,
   Check,
   ChevronsUpDown,
   Egg,
+  Gauge,
+  Headset,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Plus,
   Server,
   Settings,
   ShieldCheck,
   SquareTerminal,
   UserRound,
+  Users,
   WifiOff,
 } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
@@ -120,7 +125,10 @@ export function AppShell({
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
-        <SidebarContent>{current && <OrgNav orgId={current.id} />}</SidebarContent>
+        <SidebarContent>
+          {current && <OrgNav orgId={current.id} />}
+          <AdminNav />
+        </SidebarContent>
         <SidebarFooter>
           {current && <NodeCount orgId={current.id} />}
           <UserMenu session={session} />
@@ -211,6 +219,40 @@ function ConnectionBanner() {
 }
 
 // OrgNav is the org's sections; the org's nodes are listed under Nodes.
+// AdminNav is Raptor's admin panel, for staff only (docs/PANEL.md#staff).
+const adminLinks = [
+  { to: "/admin", label: "Overview", icon: Gauge, exact: true },
+  { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/orgs", label: "Orgs", icon: Building2 },
+  { to: "/admin/support", label: "Support", icon: Headset },
+  { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
+  { to: "/admin/settings", label: "Settings", icon: ShieldCheck },
+] as const;
+
+function AdminNav() {
+  const path = useLocation({ select: (l) => l.pathname });
+  const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
+  if (!staff.data?.role) return null;
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Admin</SidebarGroupLabel>
+      <SidebarMenu>
+        {adminLinks.map((l) => (
+          <SidebarMenuItem key={l.to}>
+            <SidebarMenuButton
+              tooltip={l.label}
+              isActive={"exact" in l ? path === l.to || path === `${l.to}/` : path.startsWith(l.to)}
+              render={<Link to={l.to} />}
+            >
+              <l.icon /> <span>{l.label}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
+
 function OrgNav({ orgId }: { orgId: string }) {
   const path = useLocation({ select: (l) => l.pathname });
   const nodes = useQuery(OrgService.method.listNodes, { orgId }, { refetchInterval: 15_000 });
@@ -314,8 +356,6 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
   const signOut = useMutation(AuthService.method.signOut);
   const email = session.user?.email ?? "";
   const name = session.user?.name ?? "";
-  // Raptor's staff get a way into the admin panel; everyone else, nothing.
-  const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -347,11 +387,6 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
               <UserRound className="size-4" /> Account settings
             </DropdownMenuItem>
-            {staff.data?.role && (
-              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
-                <ShieldCheck className="size-4" /> Raptor admin
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem
               onClick={async () => {
                 await signOut.mutateAsync({});

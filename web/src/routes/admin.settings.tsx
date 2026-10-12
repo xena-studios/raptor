@@ -18,11 +18,12 @@ import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
 import { when } from "@/lib/format";
 
-export const Route = createFileRoute("/admin/staff")({
+export const Route = createFileRoute("/admin/settings")({
   component: StaffPage,
 });
 
-// Raptor's staff, and everything they've done (the log can't be changed).
+// The admin panel's settings: Raptor's staff, and everything they've done
+// (the log can't be changed).
 function StaffPage() {
   const staff = useQuery(StaffService.method.listStaff, {});
   const [pages, setPages] = useState<string[]>([""]);
