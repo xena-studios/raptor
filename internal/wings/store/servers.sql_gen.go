@@ -364,6 +364,20 @@ func (q *Queries) SetQuotaProject(ctx context.Context, arg SetQuotaProjectParams
 	return err
 }
 
+const setServerDisk = `-- name: SetServerDisk :exec
+UPDATE servers SET disk_id = ?, version = version + 1, updated_at = unixepoch() WHERE id = ?
+`
+
+type SetServerDiskParams struct {
+	DiskID string
+	ID     string
+}
+
+func (q *Queries) SetServerDisk(ctx context.Context, arg SetServerDiskParams) error {
+	_, err := q.db.ExecContext(ctx, setServerDisk, arg.DiskID, arg.ID)
+	return err
+}
+
 const updateServerConfig = `-- name: UpdateServerConfig :exec
 UPDATE servers
 SET name = ?, image = ?, startup = ?, variables = ?, limits = ?, settings = ?, host_network = ?,

@@ -863,7 +863,7 @@ func (r *runtimeSetup) startSFTP(ctx context.Context, mgr *server.Manager, uid, 
 		r.log.Error("sftp didn't start", "err", err)
 	}
 	// Sessions end when the files are deleted, or an install, wipe, restore,
-	// or final backup starts over them: open handles would otherwise keep writing into files
+	// final backup, or move starts over them: open handles would otherwise keep writing into files
 	// the install script or the restore is replacing.
 	evs, stop := mgr.Events()
 	r.stopSFTPEvents = stop
@@ -871,7 +871,7 @@ func (r *runtimeSetup) startSFTP(ctx context.Context, mgr *server.Manager, uid, 
 		for e := range evs {
 			// Installing covers a wipe, which starts before the install does.
 			st, _ := e.Data["state"].(string)
-			taken := e.Type == server.EventState && (st == string(server.Restoring) || st == string(server.Installing) || st == string(server.Deleting))
+			taken := e.Type == server.EventState && (st == string(server.Restoring) || st == string(server.Installing) || st == string(server.Deleting) || st == string(server.Moving))
 			if e.Type == server.EventDeleted || e.Type == server.EventInstallStarted || taken {
 				if n := svc.Disconnect(e.ServerID); n > 0 {
 					r.log.Info("sftp sessions closed", "server", e.ServerID, "reason", e.Type, "count", n)

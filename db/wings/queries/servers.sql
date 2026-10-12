@@ -53,3 +53,6 @@ SELECT CAST(COALESCE(MAX(quota_project), 999) + 1 AS INTEGER) FROM servers;
 
 -- name: SetQuotaProject :exec
 UPDATE servers SET quota_project = ? WHERE id = ?;
+
+-- name: SetServerDisk :exec
+UPDATE servers SET disk_id = ?, version = version + 1, updated_at = unixepoch() WHERE id = ?;

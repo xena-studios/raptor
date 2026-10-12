@@ -101,6 +101,8 @@ func (m *Manager) CheckFiles(ctx context.Context, id string, write bool) error {
 		return ErrRestoring
 	case state == Deleting:
 		return ErrDeleting
+	case state == Moving:
+		return ErrMoving
 	case !write || !over:
 		return nil
 	}

@@ -975,3 +975,90 @@ func TestDataDisk(t *testing.T) {
 		t.Errorf("a missing disk: %v", err)
 	}
 }
+
+// Moving a server to a data disk and back: its files, links, and trash go
+// with it, the old copy is removed, and a running server runs again.
+func TestMoveDisk(t *testing.T) {
+	e := newEnv(t)
+	e.opts.DisksDir = filepath.Join(e.dir, "disks")
+	if err := os.MkdirAll(filepath.Join(e.opts.DisksDir, "abcd1234"), 0o755); err != nil { //nolint:gosec // test directory
+		t.Fatal(err)
+	}
+	m := e.manager()
+	defer m.Close()
+	ctx := context.Background()
+	id := e.create(m, freePort(t))
+	ready(t, m, id)
+	onMain := filepath.Join(e.opts.VolumesDir, id)
+	onDisk := filepath.Join(e.opts.DisksDir, "abcd1234", id)
+	if err := os.Symlink("installed.txt", filepath.Join(onMain, "link")); err != nil {
+		t.Fatal(err)
+	}
+	trash := filepath.Join(e.opts.VolumesDir, TrashDirName, id)
+	if err := os.MkdirAll(trash, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(trash, "old.txt"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, c := range []struct {
+		to   string
+		want error
+	}{{"", ErrInvalid}, {"gone0000", ErrNoDisk}} {
+		if _, err := m.Move(ctx, id, c.to, "alice"); !errors.Is(err, c.want) {
+			t.Errorf("move to %q: %v", c.to, err)
+		}
+	}
+
+	move := func(to string) {
+		t.Helper()
+		job, err := m.Move(ctx, id, to, "alice")
+		if err != nil {
+			t.Fatal(err)
+		}
+		j, err := m.o.Jobs.Wait(ctx, job)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if j.Status != jobs.Succeeded {
+			t.Fatalf("move job: %s %s", j.Status, j.Error)
+		}
+		if srv, _ := m.Get(ctx, id); srv.Disk != to {
+			t.Fatalf("stored disk %q, want %q", srv.Disk, to)
+		}
+	}
+	move("abcd1234")
+	if b, err := os.ReadFile(filepath.Join(onDisk, "installed.txt")); err != nil || string(b) != "installed\n" {
+		t.Errorf("files on the disk: %q, %v", b, err)
+	}
+	if l, err := os.Readlink(filepath.Join(onDisk, "link")); err != nil || l != "installed.txt" {
+		t.Errorf("link: %q, %v", l, err)
+	}
+	if _, err := os.Stat(filepath.Join(e.opts.DisksDir, "abcd1234", TrashDirName, id, "old.txt")); err != nil {
+		t.Errorf("trash: %v", err)
+	}
+	for _, gone := range []string{onMain, trash} {
+		if _, err := os.Stat(gone); !os.IsNotExist(err) {
+			t.Errorf("%s left: %v", gone, err)
+		}
+	}
+	// It was running, so it starts again, from the new disk.
+	waitState(t, m, id, Starting, 30*time.Second)
+	command(t, m, id, "echo READY")
+	waitState(t, m, id, Running, 30*time.Second)
+	if err := m.Stop(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+
+	move("")
+	if _, err := os.Stat(filepath.Join(onMain, "installed.txt")); err != nil {
+		t.Errorf("back on the main volume: %v", err)
+	}
+	if _, err := os.Stat(onDisk); !os.IsNotExist(err) {
+		t.Errorf("left on the disk: %v", err)
+	}
+	if st, _ := m.Status(id); st.State != Offline {
+		t.Errorf("a stopped server stays stopped: %s", st.State)
+	}
+}

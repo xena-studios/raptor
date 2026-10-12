@@ -18,6 +18,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/store"
+	"github.com/xena-studios/raptor/internal/wings/system"
 )
 
 // Action names.
@@ -26,6 +27,7 @@ const (
 	ServerUpdate    = "server.update"
 	ServerDelete    = "server.delete"
 	ServerReinstall = "server.reinstall"
+	ServerMove      = "server.move" // to another disk
 	ServerStart     = "server.start"
 	ServerStop      = "server.stop"
 	ServerRestart   = "server.restart"
@@ -150,6 +152,12 @@ type ReinstallParams struct {
 	Wipe bool `json:"wipe,omitempty"`
 }
 
+// MoveParams are server.move's params: the disk, "main" or a data disk's
+// ID.
+type MoveParams struct {
+	Disk string `json:"disk"`
+}
+
 // CommandParams are the params of server.command.
 type CommandParams struct {
 	Command string `json:"command"`
@@ -261,6 +269,28 @@ func Register(x *command.Executor, m *server.Manager, d Defaults) {
 			return map[string]string{"job_id": job}, nil
 		},
 	})
+
+	// Moving a server to another disk erases nothing: the old copy is
+	// removed only once the new one is in use. Unsigned, like picking the
+	// default disk.
+	x.Register(ServerMove, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		if err := needServer(e); err != nil {
+			return nil, err
+		}
+		var p MoveParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		disk := p.Disk
+		if disk == system.MainDisk {
+			disk = ""
+		}
+		job, err := m.Move(ctx, e.ServerID, disk, e.UserID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": job}, nil
+	}})
 
 	x.Register(ServerStart, power(server.PowerStart))
 	x.Register(ServerStop, power(server.PowerStop))

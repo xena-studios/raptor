@@ -272,6 +272,8 @@ func (i *instance) startLocked(ctx context.Context, setDesired bool) error {
 		return ErrInstalling
 	case Deleting:
 		return ErrDeleting
+	case Moving:
+		return ErrMoving
 	}
 	m := i.m
 	srv, err := m.Get(ctx, i.id)

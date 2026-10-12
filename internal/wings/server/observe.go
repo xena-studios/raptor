@@ -54,6 +54,8 @@ func (m *Manager) Power(ctx context.Context, id string, a PowerAction, user stri
 		return ErrRestoring
 	case Deleting:
 		return ErrDeleting
+	case Moving:
+		return ErrMoving
 	}
 	m.publish(EventPower, id, 0, map[string]any{"action": string(a), "user": user})
 	return fn(ctx, id)
