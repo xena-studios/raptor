@@ -55,7 +55,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 - `Restart=always`, `OOMScoreAdjust=-900`, `LimitNOFILE=65536`.
 - **Stopping or restarting the service never stops servers:** their containers live in Docker's cgroups, not the service's.
 - `UMask=0077`, and systemd creates `/var/lib/raptor`, `/var/log/raptor`, and `/etc/raptor` as `0700`. `/run/raptor` is `0755` so the `raptor` group can reach the socket.
-- Sandboxing: `ProtectSystem=strict` (writable: `/etc/raptor`, `/var/lib/raptor`, `/var/log/raptor`, `/run/raptor`, and `/usr/local/lib/raptor` for updates), `ProtectHome`, `PrivateTmp`, `NoNewPrivileges`, kernel module/log/clock/hostname/cgroup protection, `RestrictNamespaces`, `RestrictSUIDSGID`, native syscalls only, and only `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK` sockets. `systemd-analyze security` rates it 5.9 (medium). Wings runs `nft` and `systemctl` itself (firewall and slice setup) and both work inside this sandbox. Wings needs root for Docker, quotas, and nftables, so it can't go much lower; this will be revisited as those features land.
+- Sandboxing: `ProtectSystem=strict` (writable: `/etc/raptor`, `/var/lib/raptor`, `/var/log/raptor`, `/run/raptor`, `/usr/local/lib/raptor` for updates, `/mnt`, `/media`, and `/srv` for folder backup destinations, and `/etc/hosts` for the hostname), `ProtectHome`, `PrivateTmp`, `NoNewPrivileges`, kernel module/log/clock/hostname/cgroup protection, `RestrictNamespaces`, `RestrictSUIDSGID`, native syscalls only, and only `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK` sockets. `systemd-analyze security` rates it 5.9 (medium). Wings runs `nft` and `systemctl` itself (firewall and slice setup) and both work inside this sandbox. Wings needs root for Docker, quotas, and nftables, so it can't go much lower; this will be revisited as those features land.
 - On shutdown Wings stops the local API (the socket is removed), detaches from servers (they keep running), and closes the database.
 - When the runtime is ready, Wings starts the server manager, which reconciles with Docker: it reattaches to running servers and starts those that should run ([SERVERS.md](SERVERS.md#after-a-reboot-or-wings-restart)). Server containers run as the `raptor` user's UID/GID, with the host's time zone as `TZ`.
 
@@ -163,7 +163,12 @@ Wings' rules live in their **own nftables table, `inet raptor`**, not in Docker'
 
 - **DNS for installs:** Docker's embedded resolver forwards container queries to the host's resolvers from inside the container's network namespace, so those packets are filtered like any other. Home boxes usually resolve through the router (`192.168.x.1`), so without the DNS exception every install would fail. Wings reads the resolvers from `/etc/resolv.conf`, or from systemd-resolved's upstream list when it points at the local stub.
 - Game servers can still reach private ranges, the host, and each other, because proxies like Velocity talk to backend servers over them.
-- Future per-server rules (IP allowlists, blocks) go in the same table.
+- **The node's firewall** (`internal/wings/firewall/host.go`), set by the owner from the node's System tab (`node.firewall`, passkey-signed), goes in the same table and is reloaded with it. It's stored in `kv` (`host.firewall`) and loaded at every start.
+  - Its rules allow or block TCP, UDP, or both, on ports and ranges, from an address or range, or from anywhere. Allow rules come first, so they make exceptions to block rules ("allow 22 from my address", then "block 22").
+  - The rules apply to the machine (`host_in`, jumped to from `input`) and to game servers (`servers_in`, from `forward` to the server bridge). For servers, ports are matched on the connection's original destination (`ct original proto-dst`), since packets are already translated to the container's port.
+  - **Block incoming connections** drops anything new to the machine itself that no rule allows. Loopback, the container bridges, established connections, ICMP, and DHCP replies stay allowed, and so do SSH (the ports in `sshd_config` and `sshd_config.d`), Raptor's SFTP port, and the ports of servers on the host's network. That list is recomputed every minute, and the table reloaded when it changes. Docker's published ports never reach `input`, so game servers stay reachable.
+  - Wings refuses a rule that blocks SSH from everywhere unless another rule allows some address in. A rule set that fails to load isn't saved.
+  - ufw, if it's on, filters before these rules: its drops win over our accepts. The System tab says so.
 
 ### Resource limits (performance-critical)
 - **Memory:** container limit = server memory + overhead (Pterodactyl-compatible overhead rules), so Java heap = allocated memory doesn't get the container OOM-killed. Swap configurable per server (default: none).
@@ -363,6 +368,15 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
 - **Node metrics** (`node.metrics`, admins): the machine's history over a range (as `server.metrics`), its latest sample, its cores, memory, and server storage, load averages, uptime, and what each server uses now (CPU, memory, disk, traffic, players), for the node's Overview.
 - **Node health** (`node.health`, `node.doctor`, admins): the machine's CPU count, load, memory (with cache and swap), uptime, its OS, kernel, and processor, every disk Raptor uses (the volumes, state, logs, backups, and Docker's directory, grouped by filesystem), its network interfaces (without container veths) with addresses and traffic (`internal/wings/host`), what each server uses now, and `raptor doctor`'s checks, run inside Wings on request (in the background: they take up to a minute) with the last results kept in memory. The doctor's environment is built by `doctor.LocalEnv`, shared with the CLI.
 - **Ports** (`server.ports`, anyone with access): what the server's game listens on, for the Panel's connection test: the container's state, its allocations, and the TCP and UDP sockets listening in its network namespace, read from `/proc/<pid>/net/{tcp,tcp6,udp,udp6}` (`internal/wings/netcheck`) with the container's PID from Docker. Each says whether it's on loopback only.
+
+## System settings
+
+`internal/wings/system`: the machine's own settings, from the node's System tab (admins).
+- `node.system` reads the hostname, time zone, clock sync, the firewall, what stays open, the SSH ports, and whether ufw is on.
+- `node.hostname` sets the hostname through systemd-hostnamed (`hostnamectl`), since Wings' sandbox (`ProtectHostname`, `ProtectSystem=strict`) can't. It also renames the machine on Debian's `127.0.1.1` line in `/etc/hosts`, the one file in `/etc` the unit lets Wings write. Nodes installed before that line was added get a note to change it themselves.
+- `node.time` sets the time zone and clock sync through systemd-timedated. Servers get the new zone as `TZ` the next time they start.
+- `node.firewall` (signed): see [Firewall](#firewall).
+- `node.reboot` (signed) runs `systemctl reboot` three seconds later, so its answer gets back first. `raptor-shutdown.service` stops the servers properly, and those that were running start again with Wings.
 
 ## Files and SFTP
 

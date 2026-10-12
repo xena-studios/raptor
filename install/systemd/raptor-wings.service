@@ -50,6 +50,9 @@ ReadWritePaths=/etc/raptor /var/lib/raptor /var/log/raptor /run/raptor -/usr/loc
 # Folder backup destinations: disks and NAS shares mounted where they usually
 # are (Wings refuses folders anywhere else).
 ReadWritePaths=-/mnt -/media -/srv
+# The 127.0.1.1 line names the machine; Wings renames it with the hostname
+# (hostnamed writes /etc/hostname itself).
+ReadWritePaths=-/etc/hosts
 ProtectHome=yes
 PrivateTmp=yes
 ProtectKernelModules=yes

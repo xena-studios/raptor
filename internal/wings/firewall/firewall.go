@@ -53,6 +53,10 @@ type Rules struct {
 	// containers run in. It's used to block the metadata endpoint for
 	// host-networked servers, which don't go through a bridge.
 	Cgroup string
+	// Host is the node's own firewall, if the owner set one (host.go), and
+	// Open what stays open when it blocks incoming connections.
+	Host *HostRules
+	Open []OpenPort
 }
 
 // Render returns the nftables script for the rules. Loading it replaces the
@@ -72,6 +76,9 @@ func (r Rules) Render() string {
 	w("\t\tiifname { %q, %q } ip daddr { %s } drop", r.ServerBridge, r.InstallBridge, join(v4))
 	w("\t\tiifname { %q, %q } ip6 daddr { %s } drop", r.ServerBridge, r.InstallBridge, join(v6))
 	w("\t\tiifname %q jump install_out", r.InstallBridge)
+	if r.Host != nil {
+		w("\t\toifname %q jump servers_in", r.ServerBridge)
+	}
 	w("\t}")
 
 	w("\tchain install_out {")
@@ -100,7 +107,13 @@ func (r Rules) Render() string {
 	w("\t\ttype filter hook input priority filter - 1; policy accept;")
 	w("\t\tiifname %q ct state established,related accept", r.InstallBridge)
 	w("\t\tiifname %q drop", r.InstallBridge)
+	if r.Host != nil {
+		w("\t\tjump host_in")
+	}
 	w("\t}")
+	if r.Host != nil {
+		r.renderHost(w)
+	}
 
 	if r.Cgroup != "" {
 		w("\tchain output {")
