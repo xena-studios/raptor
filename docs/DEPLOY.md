@@ -316,7 +316,9 @@ Then attach the domains, once, in the dashboard: Workers & Pages → `raptor-app
 
 Both carry their own headers (`web/public/_headers`, `web/verify/_headers`): a Content-Security-Policy that lets the app run only its own scripts, call only the API, frame only the verify page, and never be framed; the verify page may only load Turnstile and only be framed by the app.
 
-**Check:** the browser's console on `app.raptorpanel.net` shows no CSP errors through sign-in, the Turnstile check, and the account pages.
+**Checked in CI:** `pnpm --dir web test:csp` (after a build) serves `dist/` with `_headers`' `/*` headers, the way the Worker does, and loads the pages that work without a session in headless Chromium. Any CSP violation or page error fails the build job. Pages behind sign-in aren't covered there, since there's no API.
+
+**Check by hand:** the browser's console on `app.raptorpanel.net` shows no CSP errors through sign-in, the Turnstile check, and the account pages.
 
 ## Deploying
 
