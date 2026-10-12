@@ -710,6 +710,11 @@ func (m *Manager) deleteNow(ctx context.Context, id, skipJob string, data map[st
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("remove files: %w", err)
 	}
+	if trash, err := m.TrashDir(id); err == nil {
+		if err := os.RemoveAll(trash); err != nil {
+			m.log.Warn("removing the server's trash failed", "server", id, "err", err)
+		}
+	}
 	if vol, err := m.volumeFor(diskOrMain(srv)); srv != nil && err == nil {
 		if err := vol.Release(srv.QuotaProject); err != nil {
 			m.log.Warn("clearing the disk limit failed", "server", id, "err", err)

@@ -15,6 +15,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/fil
 });
 
 function FilesTab() {
+  const session = Route.useRouteContext();
   const { orgId, nodeId, serverId } = Route.useParams();
   const { path, file } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -24,6 +25,8 @@ function FilesTab() {
     <Files
       nodeId={nodeId}
       serverId={serverId}
+      orgId={orgId}
+      userId={session.user?.id ?? ""}
       canWrite={can(server, "files.write")}
       path={path ?? ""}
       file={file}

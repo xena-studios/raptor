@@ -220,6 +220,21 @@ How it works:
 - Docker images stay on the host disk (`/var/lib/docker`); only server data lives on the quota volume.
 - Tested by `task e2e:quotas` (see [CONTRIBUTING.md](../CONTRIBUTING.md#runtime-end-to-end-tests)).
 
+## Trash
+
+What the web file manager deletes goes to the server's trash first (`files.delete`; `permanent: true` skips it). It stays there for 7 days, then Wings empties it in its regular prune.
+- **Where:** `<disk>/.trash/<server id>/<entry id>/<name>` (`internal/wings/files/trash.go`), with a row in `trash` for its original path, size, who deleted it, and when.
+  - The trash is outside the server's directory, so the game, SFTP, and backups never see it.
+  - It's on the same filesystem, so moving there is instant, and the files keep their quota project: **the trash counts toward the server's disk limit** (checked on XFS).
+  - Deleting the server deletes its trash.
+- **Moving safely:** the file's parent directory is opened through the server's `os.Root`, the entry's directory is one Wings just made, and the move is a single `renameat` between the two open directories, so a server swapping a directory for a link mid-way can't redirect it. Restoring is the reverse, with `RENAME_NOREPLACE`.
+  - A directory holding files on the egg's denylist can't be trashed, like deleting it.
+  - If something new is at the original path, the entry comes back beside it as `name (restored).ext`.
+- **Actions:**
+  - `files.trash` lists entries (`files.read`);
+  - `files.trash.restore`, `files.trash.delete` (for good), and `files.trash.empty` need `files.write`.
+- SFTP and the game's own deletes don't go through it.
+
 ## Data disks
 
 Boxes with more than one disk can use them from the node's **Disks** tab, or `raptor storage disks|add-disk` on the box.

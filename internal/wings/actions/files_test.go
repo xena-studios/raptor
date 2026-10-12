@@ -35,6 +35,9 @@ func (s fileServers) FilesDir(id string) (string, error) {
 func (fileServers) CheckFiles(context.Context, string, bool) error   { return nil }
 func (fileServers) Denylist(string) ([]string, error)                { return []string{"server.jar"}, nil }
 func (fileServers) SpaceLeft(context.Context, string) (int64, error) { return -1, nil }
+func (s fileServers) TrashDir(id string) (string, error) {
+	return filepath.Join(filepath.Dir(s.dir), ".trash", id), nil
+}
 
 // The file actions through the executor, as the Panel sends them.
 func TestFileCommands(t *testing.T) {

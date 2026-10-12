@@ -71,7 +71,18 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
     case "files.copy":
       return [`copied files on ${server}`, FileText];
     case "files.delete":
-      return [`deleted files on ${server}`, Trash2];
+      return [
+        meta.permanent
+          ? `deleted files for good on ${server}`
+          : `moved files to the trash on ${server}`,
+        Trash2,
+      ];
+    case "files.trash.restore":
+      return [`restored files from the trash on ${server}`, RefreshCw];
+    case "files.trash.delete":
+      return [`deleted files from the trash for good on ${server}`, Trash2];
+    case "files.trash.empty":
+      return [`emptied the trash on ${server}`, Trash2];
     case "files.chmod":
       return [`changed file permissions on ${server}`, FileText];
     case "files.compress":

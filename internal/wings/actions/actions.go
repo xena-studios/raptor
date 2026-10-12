@@ -72,6 +72,10 @@ const (
 	FilesRename       = "files.rename"
 	FilesCopy         = "files.copy"
 	FilesDelete       = "files.delete"
+	FilesTrash        = "files.trash"
+	FilesTrashRestore = "files.trash.restore"
+	FilesTrashDelete  = "files.trash.delete"
+	FilesTrashEmpty   = "files.trash.empty"
 	FilesChmod        = "files.chmod"
 	FilesCompress     = "files.compress"
 	FilesDecompress   = "files.decompress"
@@ -764,6 +768,11 @@ type FilesParams struct {
 	Name     string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension
 	Size     int64         `json:"size,omitempty"`   // files.upload
 	UploadID string        `json:"upload_id,omitempty"`
+	// Permanent: files.delete deletes for good instead of moving to the
+	// trash.
+	Permanent bool `json:"permanent,omitempty"`
+	// Entries are trash entries (files.trash.restore, files.trash.delete).
+	Entries []string `json:"entries,omitempty"`
 }
 
 // RegisterFiles adds the web file manager's actions
@@ -828,7 +837,22 @@ func RegisterFiles(x *command.Executor, s *files.Service) {
 		return map[string]string{"path": name}, nil
 	}))
 	x.Register(FilesDelete, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
-		return nil, s.Delete(ctx, e.ServerID, p.Dir, p.Names)
+		if p.Permanent {
+			return nil, s.Delete(ctx, e.ServerID, p.Dir, p.Names)
+		}
+		return nil, s.Trash(ctx, e.ServerID, e.UserID, p.Dir, p.Names)
+	}))
+	x.Register(FilesTrash, handler(true, func(ctx context.Context, e command.Envelope, _ FilesParams) (any, error) {
+		return s.ListTrash(ctx, e.ServerID)
+	}))
+	x.Register(FilesTrashRestore, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.Restore(ctx, e.ServerID, p.Entries)
+	}))
+	x.Register(FilesTrashDelete, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.DeleteTrash(ctx, e.ServerID, p.Entries)
+	}))
+	x.Register(FilesTrashEmpty, handler(false, func(ctx context.Context, e command.Envelope, _ FilesParams) (any, error) {
+		return nil, s.EmptyTrash(ctx, e.ServerID)
 	}))
 	x.Register(FilesChmod, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return nil, s.Chmod(ctx, e.ServerID, p.Dir, p.Changes)

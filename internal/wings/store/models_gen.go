@@ -216,6 +216,16 @@ type Server struct {
 	DiskID       string
 }
 
+type Trash struct {
+	ID        string
+	ServerID  string
+	Path      string
+	IsDir     int64
+	Size      int64
+	DeletedAt int64
+	DeletedBy string
+}
+
 type TrustedKey struct {
 	CredentialID []byte
 	UserID       string

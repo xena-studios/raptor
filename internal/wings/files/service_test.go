@@ -51,6 +51,10 @@ func (s *servers) Denylist(string) ([]string, error) {
 	return s.deny, nil
 }
 
+func (s *servers) TrashDir(id string) (string, error) {
+	return filepath.Join(filepath.Dir(s.dir), ".trash", id), nil
+}
+
 func (s *servers) SpaceLeft(context.Context, string) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
