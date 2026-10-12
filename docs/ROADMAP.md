@@ -259,7 +259,7 @@ Found while checking production (Oct 8):
 - [ ] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link (the domain is on the Public Suffix List first)
 - [x] **Audit log** view (the org's Settings, Activity)
 - [ ] **Staff admin panel** (`/admin`) (overview with history, users and orgs, suspending, the staff log, announcements, and support access to nodes (owner-signed grants checked by Wings, three levels, `raptor support` on the box) done; staff consoles under level 2 grants and files under level 3, on the support session page, done; left: revenue once billing exists)
-- [ ] Performance: route code splitting, lazy xterm and editor (xterm and the editor load only when shown, each in its own chunk)
+- [x] Performance: route code splitting, lazy xterm and editor (every route's page is its own chunk (the router plugin's `autoCodeSplitting`); xterm and the editor load only when shown, each in its own chunk; the first load is about 227 KB gzipped, mostly React, the router, and React Query, measured Oct 12, 2026)
 
 **Exit criteria:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, **without help**, in under 15 minutes.
 
