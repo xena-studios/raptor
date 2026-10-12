@@ -116,6 +116,9 @@ func Handler(cfg Config) http.Handler {
 		// An uploaded egg is up to 1 MiB, base64 in JSON.
 		path, handler := panelv1connect.NewOrgServiceHandler(cfg.Orgs, opts(connect.WithReadMaxBytes(2<<20))...)
 		api.Handle(path, handler)
+		// An egg file is up to 1 MiB too, and an edit carries the whole egg.
+		path, handler = panelv1connect.NewEggServiceHandler(&orgs.Eggs{Orgs: cfg.Orgs, Staff: cfg.Staff}, opts(connect.WithReadMaxBytes(2<<20))...)
+		api.Handle(path, handler)
 	}
 	if cfg.Staff != nil {
 		path, handler := panelv1connect.NewStaffServiceHandler(cfg.Staff, opts(connect.WithReadMaxBytes(16<<10))...)

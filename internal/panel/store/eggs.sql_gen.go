@@ -11,8 +11,45 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addEggVersion = `-- name: AddEggVersion :exec
+INSERT INTO egg_versions (egg_id, version, egg, sha256, note, created_by)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type AddEggVersionParams struct {
+	EggID     pgtype.UUID
+	Version   int32
+	Egg       []byte
+	Sha256    string
+	Note      string
+	CreatedBy string
+}
+
+func (q *Queries) AddEggVersion(ctx context.Context, arg AddEggVersionParams) error {
+	_, err := q.db.Exec(ctx, addEggVersion,
+		arg.EggID,
+		arg.Version,
+		arg.Egg,
+		arg.Sha256,
+		arg.Note,
+		arg.CreatedBy,
+	)
+	return err
+}
+
+const countOfficialEggs = `-- name: CountOfficialEggs :one
+SELECT count(*) FROM eggs WHERE org_id IS NULL
+`
+
+func (q *Queries) CountOfficialEggs(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countOfficialEggs)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countOrgEggs = `-- name: CountOrgEggs :one
-SELECT count(*) FROM org_eggs WHERE org_id = $1
+SELECT count(*) FROM eggs WHERE org_id = $1
 `
 
 func (q *Queries) CountOrgEggs(ctx context.Context, orgID pgtype.UUID) (int64, error) {
@@ -22,124 +59,230 @@ func (q *Queries) CountOrgEggs(ctx context.Context, orgID pgtype.UUID) (int64, e
 	return count, err
 }
 
-const createOrgEgg = `-- name: CreateOrgEgg :one
-INSERT INTO org_eggs (org_id, name, egg, sha256, source_url, imported_by)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (org_id, sha256) DO NOTHING
-RETURNING id, org_id, name, egg, sha256, source_url, imported_by, imported_at
+const createEgg = `-- name: CreateEgg :one
+
+INSERT INTO eggs (org_id, name, summary, category, origin, status, egg, sha256, source_url, parent_id, parent_name, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at
 `
 
-type CreateOrgEggParams struct {
+type CreateEggParams struct {
 	OrgID      pgtype.UUID
 	Name       string
+	Summary    string
+	Category   string
+	Origin     string
+	Status     string
 	Egg        []byte
 	Sha256     string
 	SourceUrl  string
-	ImportedBy pgtype.UUID
+	ParentID   string
+	ParentName string
+	CreatedBy  pgtype.UUID
 }
 
-func (q *Queries) CreateOrgEgg(ctx context.Context, arg CreateOrgEggParams) (OrgEgg, error) {
-	row := q.db.QueryRow(ctx, createOrgEgg,
+// The egg library (docs/PANEL.md#eggs). Org eggs go through row-level
+// security as the user; official ones (org_id NULL) through the Panel's
+// own connection, for staff.
+func (q *Queries) CreateEgg(ctx context.Context, arg CreateEggParams) (Egg, error) {
+	row := q.db.QueryRow(ctx, createEgg,
 		arg.OrgID,
 		arg.Name,
+		arg.Summary,
+		arg.Category,
+		arg.Origin,
+		arg.Status,
 		arg.Egg,
 		arg.Sha256,
 		arg.SourceUrl,
-		arg.ImportedBy,
+		arg.ParentID,
+		arg.ParentName,
+		arg.CreatedBy,
 	)
-	var i OrgEgg
+	var i Egg
 	err := row.Scan(
 		&i.ID,
 		&i.OrgID,
 		&i.Name,
+		&i.Summary,
+		&i.Category,
+		&i.Origin,
+		&i.Status,
+		&i.Version,
 		&i.Egg,
 		&i.Sha256,
 		&i.SourceUrl,
-		&i.ImportedBy,
-		&i.ImportedAt,
+		&i.ParentID,
+		&i.ParentName,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const deleteOrgEgg = `-- name: DeleteOrgEgg :execrows
-DELETE FROM org_eggs WHERE org_id = $1 AND id = $2
+const deleteEgg = `-- name: DeleteEgg :execrows
+DELETE FROM eggs WHERE id = $1
 `
 
-type DeleteOrgEggParams struct {
-	OrgID pgtype.UUID
-	ID    pgtype.UUID
-}
-
-func (q *Queries) DeleteOrgEgg(ctx context.Context, arg DeleteOrgEggParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteOrgEgg, arg.OrgID, arg.ID)
+func (q *Queries) DeleteEgg(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteEgg, id)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const getOrgEgg = `-- name: GetOrgEgg :one
-SELECT id, org_id, name, egg, sha256, source_url, imported_by, imported_at FROM org_eggs WHERE org_id = $1 AND id = $2
+const eggServerCounts = `-- name: EggServerCounts :many
+SELECT CASE WHEN egg_source LIKE 'org:%' THEN substr(egg_source, 5) ELSE egg_source END::text AS egg,
+    count(*)::int AS n
+FROM m_servers WHERE egg_source <> '' GROUP BY 1
 `
 
-type GetOrgEggParams struct {
-	OrgID pgtype.UUID
-	ID    pgtype.UUID
+type EggServerCountsRow struct {
+	Egg string
+	N   int32
 }
 
-func (q *Queries) GetOrgEgg(ctx context.Context, arg GetOrgEggParams) (OrgEgg, error) {
-	row := q.db.QueryRow(ctx, getOrgEgg, arg.OrgID, arg.ID)
-	var i OrgEgg
-	err := row.Scan(
-		&i.ID,
-		&i.OrgID,
-		&i.Name,
-		&i.Egg,
-		&i.Sha256,
-		&i.SourceUrl,
-		&i.ImportedBy,
-		&i.ImportedAt,
-	)
-	return i, err
-}
-
-const listOrgEggs = `-- name: ListOrgEggs :many
-SELECT o.id, o.org_id, o.name, o.egg, o.sha256, o.source_url, o.imported_by, o.imported_at, u.email AS imported_by_email
-FROM org_eggs o LEFT JOIN users u ON u.id = o.imported_by
-WHERE o.org_id = $1 ORDER BY o.name, o.id
-`
-
-type ListOrgEggsRow struct {
-	ID              pgtype.UUID
-	OrgID           pgtype.UUID
-	Name            string
-	Egg             []byte
-	Sha256          string
-	SourceUrl       string
-	ImportedBy      pgtype.UUID
-	ImportedAt      pgtype.Timestamptz
-	ImportedByEmail pgtype.Text
-}
-
-func (q *Queries) ListOrgEggs(ctx context.Context, orgID pgtype.UUID) ([]ListOrgEggsRow, error) {
-	rows, err := q.db.Query(ctx, listOrgEggs, orgID)
+// How many servers (on any node) were made from each egg, by the
+// egg_source the web app sends: a library egg's ID (or "org:" and the ID,
+// before the library), or a built-in egg's.
+func (q *Queries) EggServerCounts(ctx context.Context) ([]EggServerCountsRow, error) {
+	rows, err := q.db.Query(ctx, eggServerCounts)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListOrgEggsRow
+	var items []EggServerCountsRow
 	for rows.Next() {
-		var i ListOrgEggsRow
+		var i EggServerCountsRow
+		if err := rows.Scan(&i.Egg, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEgg = `-- name: GetEgg :one
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, u.email AS created_by_email
+FROM eggs e LEFT JOIN users u ON u.id = e.created_by
+WHERE e.id = $1
+`
+
+type GetEggRow struct {
+	Egg            Egg
+	CreatedByEmail pgtype.Text
+}
+
+func (q *Queries) GetEgg(ctx context.Context, id pgtype.UUID) (GetEggRow, error) {
+	row := q.db.QueryRow(ctx, getEgg, id)
+	var i GetEggRow
+	err := row.Scan(
+		&i.Egg.ID,
+		&i.Egg.OrgID,
+		&i.Egg.Name,
+		&i.Egg.Summary,
+		&i.Egg.Category,
+		&i.Egg.Origin,
+		&i.Egg.Status,
+		&i.Egg.Version,
+		&i.Egg.Egg,
+		&i.Egg.Sha256,
+		&i.Egg.SourceUrl,
+		&i.Egg.ParentID,
+		&i.Egg.ParentName,
+		&i.Egg.CreatedBy,
+		&i.Egg.CreatedAt,
+		&i.Egg.UpdatedAt,
+		&i.CreatedByEmail,
+	)
+	return i, err
+}
+
+const getEggForUpdate = `-- name: GetEggForUpdate :one
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at FROM eggs WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetEggForUpdate(ctx context.Context, id pgtype.UUID) (Egg, error) {
+	row := q.db.QueryRow(ctx, getEggForUpdate, id)
+	var i Egg
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Summary,
+		&i.Category,
+		&i.Origin,
+		&i.Status,
+		&i.Version,
+		&i.Egg,
+		&i.Sha256,
+		&i.SourceUrl,
+		&i.ParentID,
+		&i.ParentName,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getEggVersion = `-- name: GetEggVersion :one
+SELECT egg_id, version, egg, sha256, note, created_by, created_at FROM egg_versions WHERE egg_id = $1 AND version = $2
+`
+
+type GetEggVersionParams struct {
+	EggID   pgtype.UUID
+	Version int32
+}
+
+func (q *Queries) GetEggVersion(ctx context.Context, arg GetEggVersionParams) (EggVersion, error) {
+	row := q.db.QueryRow(ctx, getEggVersion, arg.EggID, arg.Version)
+	var i EggVersion
+	err := row.Scan(
+		&i.EggID,
+		&i.Version,
+		&i.Egg,
+		&i.Sha256,
+		&i.Note,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listEggVersions = `-- name: ListEggVersions :many
+SELECT version, sha256, note, created_by, created_at FROM egg_versions
+WHERE egg_id = $1 ORDER BY version DESC LIMIT 100
+`
+
+type ListEggVersionsRow struct {
+	Version   int32
+	Sha256    string
+	Note      string
+	CreatedBy string
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) ListEggVersions(ctx context.Context, eggID pgtype.UUID) ([]ListEggVersionsRow, error) {
+	rows, err := q.db.Query(ctx, listEggVersions, eggID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListEggVersionsRow
+	for rows.Next() {
+		var i ListEggVersionsRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.OrgID,
-			&i.Name,
-			&i.Egg,
+			&i.Version,
 			&i.Sha256,
-			&i.SourceUrl,
-			&i.ImportedBy,
-			&i.ImportedAt,
-			&i.ImportedByEmail,
+			&i.Note,
+			&i.CreatedBy,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -151,8 +294,119 @@ func (q *Queries) ListOrgEggs(ctx context.Context, orgID pgtype.UUID) ([]ListOrg
 	return items, nil
 }
 
+const listLibraryEggs = `-- name: ListLibraryEggs :many
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, u.email AS created_by_email
+FROM eggs e LEFT JOIN users u ON u.id = e.created_by
+WHERE e.org_id = $1 OR (e.org_id IS NULL AND e.status = 'published')
+ORDER BY e.org_id NULLS LAST, e.name, e.id
+`
+
+type ListLibraryEggsRow struct {
+	Egg            Egg
+	CreatedByEmail pgtype.Text
+}
+
+// An org's eggs, and the official ones it can see.
+func (q *Queries) ListLibraryEggs(ctx context.Context, orgID pgtype.UUID) ([]ListLibraryEggsRow, error) {
+	rows, err := q.db.Query(ctx, listLibraryEggs, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLibraryEggsRow
+	for rows.Next() {
+		var i ListLibraryEggsRow
+		if err := rows.Scan(
+			&i.Egg.ID,
+			&i.Egg.OrgID,
+			&i.Egg.Name,
+			&i.Egg.Summary,
+			&i.Egg.Category,
+			&i.Egg.Origin,
+			&i.Egg.Status,
+			&i.Egg.Version,
+			&i.Egg.Egg,
+			&i.Egg.Sha256,
+			&i.Egg.SourceUrl,
+			&i.Egg.ParentID,
+			&i.Egg.ParentName,
+			&i.Egg.CreatedBy,
+			&i.Egg.CreatedAt,
+			&i.Egg.UpdatedAt,
+			&i.CreatedByEmail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOfficialEggs = `-- name: ListOfficialEggs :many
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, u.email AS created_by_email
+FROM eggs e LEFT JOIN users u ON u.id = e.created_by
+WHERE e.org_id IS NULL ORDER BY e.name, e.id
+`
+
+type ListOfficialEggsRow struct {
+	Egg            Egg
+	CreatedByEmail pgtype.Text
+}
+
+func (q *Queries) ListOfficialEggs(ctx context.Context) ([]ListOfficialEggsRow, error) {
+	rows, err := q.db.Query(ctx, listOfficialEggs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOfficialEggsRow
+	for rows.Next() {
+		var i ListOfficialEggsRow
+		if err := rows.Scan(
+			&i.Egg.ID,
+			&i.Egg.OrgID,
+			&i.Egg.Name,
+			&i.Egg.Summary,
+			&i.Egg.Category,
+			&i.Egg.Origin,
+			&i.Egg.Status,
+			&i.Egg.Version,
+			&i.Egg.Egg,
+			&i.Egg.Sha256,
+			&i.Egg.SourceUrl,
+			&i.Egg.ParentID,
+			&i.Egg.ParentName,
+			&i.Egg.CreatedBy,
+			&i.Egg.CreatedAt,
+			&i.Egg.UpdatedAt,
+			&i.CreatedByEmail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const officialEggExists = `-- name: OfficialEggExists :one
+SELECT EXISTS (SELECT 1 FROM eggs WHERE org_id IS NULL AND sha256 = $1)
+`
+
+func (q *Queries) OfficialEggExists(ctx context.Context, sha256 string) (bool, error) {
+	row := q.db.QueryRow(ctx, officialEggExists, sha256)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const orgEggExists = `-- name: OrgEggExists :one
-SELECT EXISTS (SELECT 1 FROM org_eggs WHERE org_id = $1 AND sha256 = $2)
+SELECT EXISTS (SELECT 1 FROM eggs WHERE org_id = $1 AND sha256 = $2)
 `
 
 type OrgEggExistsParams struct {
@@ -165,4 +419,82 @@ func (q *Queries) OrgEggExists(ctx context.Context, arg OrgEggExistsParams) (boo
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const orgEggServerCounts = `-- name: OrgEggServerCounts :many
+SELECT CASE WHEN s.egg_source LIKE 'org:%' THEN substr(s.egg_source, 5) ELSE s.egg_source END::text AS egg,
+    count(*)::int AS n
+FROM m_servers s JOIN nodes n ON n.id = s.node_id
+WHERE n.org_id = $1 AND s.egg_source <> '' GROUP BY 1
+`
+
+type OrgEggServerCountsRow struct {
+	Egg string
+	N   int32
+}
+
+func (q *Queries) OrgEggServerCounts(ctx context.Context, orgID pgtype.UUID) ([]OrgEggServerCountsRow, error) {
+	rows, err := q.db.Query(ctx, orgEggServerCounts, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrgEggServerCountsRow
+	for rows.Next() {
+		var i OrgEggServerCountsRow
+		if err := rows.Scan(&i.Egg, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const setEggStatus = `-- name: SetEggStatus :execrows
+UPDATE eggs SET status = $1, updated_at = now() WHERE id = $2
+`
+
+type SetEggStatusParams struct {
+	Status string
+	ID     pgtype.UUID
+}
+
+func (q *Queries) SetEggStatus(ctx context.Context, arg SetEggStatusParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setEggStatus, arg.Status, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateEgg = `-- name: UpdateEgg :exec
+UPDATE eggs SET name = $1, summary = $2, category = $3, egg = $4, sha256 = $5,
+    version = $6, updated_at = now()
+WHERE id = $7
+`
+
+type UpdateEggParams struct {
+	Name     string
+	Summary  string
+	Category string
+	Egg      []byte
+	Sha256   string
+	Version  int32
+	ID       pgtype.UUID
+}
+
+func (q *Queries) UpdateEgg(ctx context.Context, arg UpdateEggParams) error {
+	_, err := q.db.Exec(ctx, updateEgg,
+		arg.Name,
+		arg.Summary,
+		arg.Category,
+		arg.Egg,
+		arg.Sha256,
+		arg.Version,
+		arg.ID,
+	)
+	return err
 }

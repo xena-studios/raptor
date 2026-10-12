@@ -59,6 +59,7 @@ type browser struct {
 	cmds  panelv1connect.CommandServiceClient
 	eggs  panelv1connect.CatalogServiceClient
 	staff panelv1connect.StaffServiceClient
+	lib   panelv1connect.EggServiceClient
 }
 
 func newBrowser(t *testing.T, srv *httptest.Server, origin string) *browser {
@@ -78,6 +79,7 @@ func newBrowser(t *testing.T, srv *httptest.Server, origin string) *browser {
 		cmds:  panelv1connect.NewCommandServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 		eggs:  panelv1connect.NewCatalogServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 		staff: panelv1connect.NewStaffServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
+		lib:   panelv1connect.NewEggServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 	}
 }
 

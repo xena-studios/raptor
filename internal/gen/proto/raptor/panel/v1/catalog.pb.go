@@ -9,6 +9,7 @@ package panelv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -73,8 +74,28 @@ type CatalogEgg struct {
 	Variables []*EggVariable `protobuf:"bytes,8,rep,name=variables,proto3" json:"variables,omitempty"`
 	// The egg's features: "eula" means the user must accept the game's EULA.
 	Features []string `protobuf:"bytes,9,rep,name=features,proto3" json:"features,omitempty"`
-	// Where the egg comes from: the upstream file at the copied commit.
-	SourceUrl     string `protobuf:"bytes,10,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
+	// Where the egg comes from: the upstream file at the copied commit, or
+	// the link an imported egg was fetched from.
+	SourceUrl string `protobuf:"bytes,10,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
+	// One line for the egg's card.
+	Summary string `protobuf:"bytes,11,opt,name=summary,proto3" json:"summary,omitempty"`
+	// "builtin" (Raptor's catalog, in the code), "official" (Raptor's,
+	// managed by staff), or "org" (the org's own).
+	Scope string `protobuf:"bytes,12,opt,name=scope,proto3" json:"scope,omitempty"`
+	// How it came to be: "builtin", "scratch", "import", or "fork" (a
+	// customized copy).
+	Origin string `protobuf:"bytes,13,opt,name=origin,proto3" json:"origin,omitempty"`
+	// "draft", "published" (can be deployed), or "archived".
+	Status  string `protobuf:"bytes,14,opt,name=status,proto3" json:"status,omitempty"`
+	Version int32  `protobuf:"varint,15,opt,name=version,proto3" json:"version,omitempty"`
+	// How many servers were made from it: the org's own, or everyone's for
+	// official and built-in eggs.
+	Servers int32 `protobuf:"varint,16,opt,name=servers,proto3" json:"servers,omitempty"`
+	// What a customized copy was made from.
+	ParentId      string                 `protobuf:"bytes,17,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	ParentName    string                 `protobuf:"bytes,18,opt,name=parent_name,json=parentName,proto3" json:"parent_name,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedBy     string                 `protobuf:"bytes,20,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -175,6 +196,76 @@ func (x *CatalogEgg) GetFeatures() []string {
 func (x *CatalogEgg) GetSourceUrl() string {
 	if x != nil {
 		return x.SourceUrl
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetOrigin() string {
+	if x != nil {
+		return x.Origin
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *CatalogEgg) GetServers() int32 {
+	if x != nil {
+		return x.Servers
+	}
+	return 0
+}
+
+func (x *CatalogEgg) GetParentId() string {
+	if x != nil {
+		return x.ParentId
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetParentName() string {
+	if x != nil {
+		return x.ParentName
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *CatalogEgg) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
 	}
 	return ""
 }
@@ -462,8 +553,8 @@ var File_raptor_panel_v1_catalog_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\n" +
-	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\"\x11\n" +
-	"\x0fListEggsRequest\"\xca\x02\n" +
+	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x11\n" +
+	"\x0fListEggsRequest\"\xf6\x04\n" +
 	"\n" +
 	"CatalogEgg\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -477,7 +568,20 @@ const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\bfeatures\x18\t \x03(\tR\bfeatures\x12\x1d\n" +
 	"\n" +
 	"source_url\x18\n" +
-	" \x01(\tR\tsourceUrl\"0\n" +
+	" \x01(\tR\tsourceUrl\x12\x18\n" +
+	"\asummary\x18\v \x01(\tR\asummary\x12\x14\n" +
+	"\x05scope\x18\f \x01(\tR\x05scope\x12\x16\n" +
+	"\x06origin\x18\r \x01(\tR\x06origin\x12\x16\n" +
+	"\x06status\x18\x0e \x01(\tR\x06status\x12\x18\n" +
+	"\aversion\x18\x0f \x01(\x05R\aversion\x12\x18\n" +
+	"\aservers\x18\x10 \x01(\x05R\aservers\x12\x1b\n" +
+	"\tparent_id\x18\x11 \x01(\tR\bparentId\x12\x1f\n" +
+	"\vparent_name\x18\x12 \x01(\tR\n" +
+	"parentName\x129\n" +
+	"\n" +
+	"updated_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\x14 \x01(\tR\tcreatedBy\"0\n" +
 	"\bEggImage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\"\xcf\x01\n" +
@@ -514,27 +618,29 @@ func file_raptor_panel_v1_catalog_proto_rawDescGZIP() []byte {
 
 var file_raptor_panel_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_raptor_panel_v1_catalog_proto_goTypes = []any{
-	(*ListEggsRequest)(nil),  // 0: raptor.panel.v1.ListEggsRequest
-	(*CatalogEgg)(nil),       // 1: raptor.panel.v1.CatalogEgg
-	(*EggImage)(nil),         // 2: raptor.panel.v1.EggImage
-	(*EggVariable)(nil),      // 3: raptor.panel.v1.EggVariable
-	(*ListEggsResponse)(nil), // 4: raptor.panel.v1.ListEggsResponse
-	(*GetEggRequest)(nil),    // 5: raptor.panel.v1.GetEggRequest
-	(*GetEggResponse)(nil),   // 6: raptor.panel.v1.GetEggResponse
+	(*ListEggsRequest)(nil),       // 0: raptor.panel.v1.ListEggsRequest
+	(*CatalogEgg)(nil),            // 1: raptor.panel.v1.CatalogEgg
+	(*EggImage)(nil),              // 2: raptor.panel.v1.EggImage
+	(*EggVariable)(nil),           // 3: raptor.panel.v1.EggVariable
+	(*ListEggsResponse)(nil),      // 4: raptor.panel.v1.ListEggsResponse
+	(*GetEggRequest)(nil),         // 5: raptor.panel.v1.GetEggRequest
+	(*GetEggResponse)(nil),        // 6: raptor.panel.v1.GetEggResponse
+	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_catalog_proto_depIdxs = []int32{
 	2, // 0: raptor.panel.v1.CatalogEgg.images:type_name -> raptor.panel.v1.EggImage
 	3, // 1: raptor.panel.v1.CatalogEgg.variables:type_name -> raptor.panel.v1.EggVariable
-	1, // 2: raptor.panel.v1.ListEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
-	0, // 3: raptor.panel.v1.CatalogService.ListEggs:input_type -> raptor.panel.v1.ListEggsRequest
-	5, // 4: raptor.panel.v1.CatalogService.GetEgg:input_type -> raptor.panel.v1.GetEggRequest
-	4, // 5: raptor.panel.v1.CatalogService.ListEggs:output_type -> raptor.panel.v1.ListEggsResponse
-	6, // 6: raptor.panel.v1.CatalogService.GetEgg:output_type -> raptor.panel.v1.GetEggResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	7, // 2: raptor.panel.v1.CatalogEgg.updated_at:type_name -> google.protobuf.Timestamp
+	1, // 3: raptor.panel.v1.ListEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
+	0, // 4: raptor.panel.v1.CatalogService.ListEggs:input_type -> raptor.panel.v1.ListEggsRequest
+	5, // 5: raptor.panel.v1.CatalogService.GetEgg:input_type -> raptor.panel.v1.GetEggRequest
+	4, // 6: raptor.panel.v1.CatalogService.ListEggs:output_type -> raptor.panel.v1.ListEggsResponse
+	6, // 7: raptor.panel.v1.CatalogService.GetEgg:output_type -> raptor.panel.v1.GetEggResponse
+	6, // [6:8] is the sub-list for method output_type
+	4, // [4:6] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_catalog_proto_init() }

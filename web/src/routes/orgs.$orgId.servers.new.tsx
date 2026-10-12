@@ -18,9 +18,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type CatalogEgg, CatalogService } from "@/gen/raptor/panel/v1/catalog_pb";
+import type { CatalogEgg } from "@/gen/raptor/panel/v1/catalog_pb";
+import { EggService } from "@/gen/raptor/panel/v1/egg_pb";
 import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { diskName, diskSpace, serverDisks, useNodeDisks } from "@/lib/disks";
+import { categoryName } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
 import {
@@ -31,32 +33,22 @@ import {
   suggestPort,
 } from "@/lib/servers";
 import { sendSigned } from "@/lib/signed";
-import { catalogClient, orgClient } from "@/lib/transport";
+import { eggClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
 
-type NewServerSearch = { node?: string };
+type NewServerSearch = { node?: string; egg?: string };
 
 export const Route = createFileRoute("/orgs/$orgId/servers/new")({
   validateSearch: (s: Record<string, unknown>): NewServerSearch => ({
     node: typeof s.node === "string" ? s.node : undefined,
+    egg: typeof s.egg === "string" ? s.egg : undefined,
   }),
   component: NewServerPage,
 });
 
 const select =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
-
-const categoryNames: Record<string, string> = {
-  minecraft: "Minecraft",
-  steam: "Steam",
-  software: "Software",
-  standalone: "Games",
-  database: "Databases",
-  generic: "Generic",
-  voice: "Voice",
-  imported: "Imported by your org",
-};
 
 function NewServerPage() {
   const session = Route.useRouteContext();
@@ -109,7 +101,13 @@ function NewServerPage() {
             </Card>
           )}
           {node && (
-            <NewServer key={node.id} orgId={orgId} node={node} userId={session.user?.id ?? ""} />
+            <NewServer
+              key={node.id}
+              orgId={orgId}
+              node={node}
+              userId={session.user?.id ?? ""}
+              eggId={search.egg}
+            />
           )}
         </div>
       )}
@@ -117,21 +115,43 @@ function NewServerPage() {
   );
 }
 
-function NewServer({ orgId, node, userId }: { orgId: string; node: Node; userId: string }) {
-  const catalog = useQuery(CatalogService.method.listEggs, {});
-  const imported = useQuery(OrgService.method.listOrgEggs, { orgId });
+function NewServer({
+  orgId,
+  node,
+  userId,
+  eggId,
+}: {
+  orgId: string;
+  node: Node;
+  userId: string;
+  eggId?: string;
+}) {
+  const catalog = useQuery(EggService.method.listEggs, { orgId });
   const servers = useQuery(OrgService.method.listServers, { orgId, nodeId: node.id });
   const [query, setQuery] = useState("");
-  const [egg, setEgg] = useState<CatalogEgg>();
+  const [picked, setEgg] = useState<CatalogEgg | null>();
+  const published = (catalog.data?.eggs ?? []).filter((e) => e.status === "published");
+  // From an egg's "Use egg": that one, unless this node can't run it.
+  const egg =
+    picked === undefined
+      ? eggsFor(published, node.arch).find((e) => e.id === eggId)
+      : (picked ?? undefined);
 
   const eggs = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const own = (imported.data?.eggs ?? []).flatMap((o) => (o.egg ? [o.egg] : []));
-    // The org's own eggs first: someone imported them to use them.
-    return [...eggsFor(own, node.arch), ...eggsFor(catalog.data?.eggs ?? [], node.arch)].filter(
-      (e) => !q || e.name.toLowerCase().includes(q) || e.category.includes(q),
-    );
-  }, [catalog.data, imported.data, node.arch, query]);
+    const list = (catalog.data?.eggs ?? []).filter((e) => e.status === "published");
+    // The org's own eggs first: someone made them to use them.
+    return [
+      ...eggsFor(
+        list.filter((e) => e.scope === "org"),
+        node.arch,
+      ),
+      ...eggsFor(
+        list.filter((e) => e.scope !== "org"),
+        node.arch,
+      ),
+    ].filter((e) => !q || e.name.toLowerCase().includes(q) || e.category.includes(q));
+  }, [catalog.data, node.arch, query]);
   const usedPorts = (servers.data?.servers ?? []).flatMap((s) => s.ports);
 
   if (egg) {
@@ -142,7 +162,7 @@ function NewServer({ orgId, node, userId }: { orgId: string; node: Node; userId:
         userId={userId}
         egg={egg}
         usedPorts={usedPorts}
-        onBack={() => setEgg(undefined)}
+        onBack={() => setEgg(null)}
       />
     );
   }
@@ -188,7 +208,8 @@ function NewServer({ orgId, node, userId }: { orgId: string; node: Node; userId:
                 )}
               </span>
               <span className="text-xs text-muted-foreground">
-                {categoryNames[e.category] ?? e.category}
+                {e.scope === "org" ? "Your org's · " : ""}
+                {categoryName(e.category)}
               </span>
             </button>
           ))}
@@ -247,9 +268,7 @@ function Settings({
     setError("");
     setBusy(true);
     try {
-      const file = egg.id.startsWith("org:")
-        ? await orgClient.getOrgEgg({ orgId, eggId: egg.id })
-        : await catalogClient.getEgg({ id: egg.id });
+      const file = await eggClient.getEggFile({ orgId, id: egg.id });
       await sendSigned({
         userId,
         nodeId: node.id,
@@ -300,7 +319,7 @@ function Settings({
           <CardTitle className="flex items-center gap-2">
             {egg.name}
             {egg.certified && <Badge variant="secondary">Certified</Badge>}
-            {egg.category === "imported" && <Badge variant="outline">Imported</Badge>}
+            {egg.scope === "org" && <Badge variant="outline">Your org's</Badge>}
           </CardTitle>
           <CardDescription>
             {egg.description.length > 280 ? `${egg.description.slice(0, 280)}…` : egg.description}{" "}

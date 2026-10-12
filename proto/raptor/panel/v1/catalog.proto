@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package raptor.panel.v1;
 
+import "google/protobuf/timestamp.proto";
+
 // CatalogService serves Raptor's built-in egg catalog
 // (docs/EGGS.md#built-in-catalog) to the web app, for creating servers. The
 // same for everyone; any signed-in user.
@@ -34,8 +36,32 @@ message CatalogEgg {
   repeated EggVariable variables = 8;
   // The egg's features: "eula" means the user must accept the game's EULA.
   repeated string features = 9;
-  // Where the egg comes from: the upstream file at the copied commit.
+  // Where the egg comes from: the upstream file at the copied commit, or
+  // the link an imported egg was fetched from.
   string source_url = 10;
+
+  // The rest is the egg library's (EggService); the built-in catalog
+  // leaves it empty.
+
+  // One line for the egg's card.
+  string summary = 11;
+  // "builtin" (Raptor's catalog, in the code), "official" (Raptor's,
+  // managed by staff), or "org" (the org's own).
+  string scope = 12;
+  // How it came to be: "builtin", "scratch", "import", or "fork" (a
+  // customized copy).
+  string origin = 13;
+  // "draft", "published" (can be deployed), or "archived".
+  string status = 14;
+  int32 version = 15;
+  // How many servers were made from it: the org's own, or everyone's for
+  // official and built-in eggs.
+  int32 servers = 16;
+  // What a customized copy was made from.
+  string parent_id = 17;
+  string parent_name = 18;
+  google.protobuf.Timestamp updated_at = 19;
+  string created_by = 20;
 }
 
 message EggImage {

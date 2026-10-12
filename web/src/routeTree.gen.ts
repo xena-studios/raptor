@@ -23,6 +23,8 @@ import { Route as SettingsSecurityRouteImport } from './routes/settings.security
 import { Route as SigninIndexRouteImport } from './routes/signin.index'
 import { Route as SigninLinkRouteImport } from './routes/signin.link'
 import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-factor'
+import { Route as AdminEggsIndexRouteImport } from './routes/admin.eggs.index'
+import { Route as AdminEggsNewRouteImport } from './routes/admin.eggs.new'
 import { Route as AdminOrgsIndexRouteImport } from './routes/admin.orgs.index'
 import { Route as AdminOrgsOrgIdRouteImport } from './routes/admin.orgs.$orgId'
 import { Route as AdminOverviewBillingRouteImport } from './routes/admin.overview.billing'
@@ -34,8 +36,11 @@ import { Route as AdminSupportRequestIdRouteImport } from './routes/admin.suppor
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin.users.$userId'
 import { Route as OrgsOrgIdIndexRouteImport } from './routes/orgs.$orgId.index'
-import { Route as OrgsOrgIdEggsRouteImport } from './routes/orgs.$orgId.eggs'
 import { Route as OrgsOrgIdSettingsRouteImport } from './routes/orgs.$orgId.settings'
+import { Route as AdminEggsEggIdIndexRouteImport } from './routes/admin.eggs.$eggId.index'
+import { Route as AdminEggsEggIdEditRouteImport } from './routes/admin.eggs.$eggId.edit'
+import { Route as OrgsOrgIdEggsIndexRouteImport } from './routes/orgs.$orgId.eggs.index'
+import { Route as OrgsOrgIdEggsNewRouteImport } from './routes/orgs.$orgId.eggs.new'
 import { Route as OrgsOrgIdNodesIndexRouteImport } from './routes/orgs.$orgId.nodes.index'
 import { Route as OrgsOrgIdNodesNodeIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId'
 import { Route as OrgsOrgIdNodesNewRouteImport } from './routes/orgs.$orgId.nodes.new'
@@ -46,6 +51,8 @@ import { Route as OrgsOrgIdSettingsActivityRouteImport } from './routes/orgs.$or
 import { Route as OrgsOrgIdSettingsBackupsRouteImport } from './routes/orgs.$orgId.settings.backups'
 import { Route as OrgsOrgIdSettingsBillingRouteImport } from './routes/orgs.$orgId.settings.billing'
 import { Route as OrgsOrgIdSettingsMembersRouteImport } from './routes/orgs.$orgId.settings.members'
+import { Route as OrgsOrgIdEggsEggIdIndexRouteImport } from './routes/orgs.$orgId.eggs.$eggId.index'
+import { Route as OrgsOrgIdEggsEggIdEditRouteImport } from './routes/orgs.$orgId.eggs.$eggId.edit'
 import { Route as OrgsOrgIdNodesNodeIdIndexRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.index'
 import { Route as OrgsOrgIdNodesNodeIdBackupsRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.backups'
 import { Route as OrgsOrgIdNodesNodeIdDisksRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.disks'
@@ -134,6 +141,16 @@ const SigninSecondFactorRoute = SigninSecondFactorRouteImport.update({
   path: '/signin/second-factor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminEggsIndexRoute = AdminEggsIndexRouteImport.update({
+  id: '/eggs/',
+  path: '/eggs/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEggsNewRoute = AdminEggsNewRouteImport.update({
+  id: '/eggs/new',
+  path: '/eggs/new',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOrgsIndexRoute = AdminOrgsIndexRouteImport.update({
   id: '/orgs/',
   path: '/orgs/',
@@ -190,14 +207,29 @@ const OrgsOrgIdIndexRoute = OrgsOrgIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrgsOrgIdRoute,
 } as any)
-const OrgsOrgIdEggsRoute = OrgsOrgIdEggsRouteImport.update({
-  id: '/eggs',
-  path: '/eggs',
-  getParentRoute: () => OrgsOrgIdRoute,
-} as any)
 const OrgsOrgIdSettingsRoute = OrgsOrgIdSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const AdminEggsEggIdIndexRoute = AdminEggsEggIdIndexRouteImport.update({
+  id: '/eggs/$eggId/',
+  path: '/eggs/$eggId/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEggsEggIdEditRoute = AdminEggsEggIdEditRouteImport.update({
+  id: '/eggs/$eggId/edit',
+  path: '/eggs/$eggId/edit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const OrgsOrgIdEggsIndexRoute = OrgsOrgIdEggsIndexRouteImport.update({
+  id: '/eggs/',
+  path: '/eggs/',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const OrgsOrgIdEggsNewRoute = OrgsOrgIdEggsNewRouteImport.update({
+  id: '/eggs/new',
+  path: '/eggs/new',
   getParentRoute: () => OrgsOrgIdRoute,
 } as any)
 const OrgsOrgIdNodesIndexRoute = OrgsOrgIdNodesIndexRouteImport.update({
@@ -254,6 +286,16 @@ const OrgsOrgIdSettingsMembersRoute =
     path: '/members',
     getParentRoute: () => OrgsOrgIdSettingsRoute,
   } as any)
+const OrgsOrgIdEggsEggIdIndexRoute = OrgsOrgIdEggsEggIdIndexRouteImport.update({
+  id: '/eggs/$eggId/',
+  path: '/eggs/$eggId/',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const OrgsOrgIdEggsEggIdEditRoute = OrgsOrgIdEggsEggIdEditRouteImport.update({
+  id: '/eggs/$eggId/edit',
+  path: '/eggs/$eggId/edit',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
 const OrgsOrgIdNodesNodeIdIndexRoute =
   OrgsOrgIdNodesNodeIdIndexRouteImport.update({
     id: '/',
@@ -372,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/signin/': typeof SigninIndexRoute
+  '/admin/eggs/new': typeof AdminEggsNewRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
   '/admin/overview/billing': typeof AdminOverviewBillingRoute
   '/admin/overview/infrastructure': typeof AdminOverviewInfrastructureRoute
@@ -379,12 +422,14 @@ export interface FileRoutesByFullPath {
   '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
-  '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
+  '/admin/eggs/': typeof AdminEggsIndexRoute
   '/admin/orgs/': typeof AdminOrgsIndexRoute
   '/admin/support/': typeof AdminSupportIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
+  '/admin/eggs/$eggId/edit': typeof AdminEggsEggIdEditRoute
+  '/orgs/$orgId/eggs/new': typeof OrgsOrgIdEggsNewRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRouteWithChildren
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
@@ -392,15 +437,19 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/admin/eggs/$eggId/': typeof AdminEggsEggIdIndexRoute
+  '/orgs/$orgId/eggs/': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers/': typeof OrgsOrgIdServersIndexRoute
   '/orgs/$orgId/settings/': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/eggs/$eggId/edit': typeof OrgsOrgIdEggsEggIdEditRoute
   '/orgs/$orgId/nodes/$nodeId/backups': typeof OrgsOrgIdNodesNodeIdBackupsRoute
   '/orgs/$orgId/nodes/$nodeId/disks': typeof OrgsOrgIdNodesNodeIdDisksRoute
   '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/orgs/$orgId/eggs/$eggId/': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
@@ -425,6 +474,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/signin': typeof SigninIndexRoute
+  '/admin/eggs/new': typeof AdminEggsNewRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
   '/admin/overview/billing': typeof AdminOverviewBillingRoute
   '/admin/overview/infrastructure': typeof AdminOverviewInfrastructureRoute
@@ -432,25 +482,31 @@ export interface FileRoutesByTo {
   '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
-  '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
+  '/admin/eggs': typeof AdminEggsIndexRoute
   '/admin/orgs': typeof AdminOrgsIndexRoute
   '/admin/support': typeof AdminSupportIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
   '/orgs/$orgId': typeof OrgsOrgIdIndexRoute
+  '/admin/eggs/$eggId/edit': typeof AdminEggsEggIdEditRoute
+  '/orgs/$orgId/eggs/new': typeof OrgsOrgIdEggsNewRoute
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/admin/eggs/$eggId': typeof AdminEggsEggIdIndexRoute
+  '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers': typeof OrgsOrgIdServersIndexRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/eggs/$eggId/edit': typeof OrgsOrgIdEggsEggIdEditRoute
   '/orgs/$orgId/nodes/$nodeId/backups': typeof OrgsOrgIdNodesNodeIdBackupsRoute
   '/orgs/$orgId/nodes/$nodeId/disks': typeof OrgsOrgIdNodesNodeIdDisksRoute
   '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
+  '/orgs/$orgId/eggs/$eggId': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
@@ -479,6 +535,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/signin/': typeof SigninIndexRoute
+  '/admin/eggs/new': typeof AdminEggsNewRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
   '/admin/overview/billing': typeof AdminOverviewBillingRoute
   '/admin/overview/infrastructure': typeof AdminOverviewInfrastructureRoute
@@ -486,12 +543,14 @@ export interface FileRoutesById {
   '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
-  '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
+  '/admin/eggs/': typeof AdminEggsIndexRoute
   '/admin/orgs/': typeof AdminOrgsIndexRoute
   '/admin/support/': typeof AdminSupportIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
+  '/admin/eggs/$eggId/edit': typeof AdminEggsEggIdEditRoute
+  '/orgs/$orgId/eggs/new': typeof OrgsOrgIdEggsNewRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRouteWithChildren
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
@@ -499,15 +558,19 @@ export interface FileRoutesById {
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/admin/eggs/$eggId/': typeof AdminEggsEggIdIndexRoute
+  '/orgs/$orgId/eggs/': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
   '/orgs/$orgId/servers/': typeof OrgsOrgIdServersIndexRoute
   '/orgs/$orgId/settings/': typeof OrgsOrgIdSettingsIndexRoute
+  '/orgs/$orgId/eggs/$eggId/edit': typeof OrgsOrgIdEggsEggIdEditRoute
   '/orgs/$orgId/nodes/$nodeId/backups': typeof OrgsOrgIdNodesNodeIdBackupsRoute
   '/orgs/$orgId/nodes/$nodeId/disks': typeof OrgsOrgIdNodesNodeIdDisksRoute
   '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/orgs/$orgId/eggs/$eggId/': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
@@ -537,6 +600,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/settings/'
     | '/signin/'
+    | '/admin/eggs/new'
     | '/admin/orgs/$orgId'
     | '/admin/overview/billing'
     | '/admin/overview/infrastructure'
@@ -544,12 +608,14 @@ export interface FileRouteTypes {
     | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
-    | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/settings'
+    | '/admin/eggs/'
     | '/admin/orgs/'
     | '/admin/support/'
     | '/admin/users/'
     | '/orgs/$orgId/'
+    | '/admin/eggs/$eggId/edit'
+    | '/orgs/$orgId/eggs/new'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
@@ -557,15 +623,19 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
+    | '/admin/eggs/$eggId/'
+    | '/orgs/$orgId/eggs/'
     | '/orgs/$orgId/nodes/'
     | '/orgs/$orgId/servers/'
     | '/orgs/$orgId/settings/'
+    | '/orgs/$orgId/eggs/$eggId/edit'
     | '/orgs/$orgId/nodes/$nodeId/backups'
     | '/orgs/$orgId/nodes/$nodeId/disks'
     | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/orgs/$orgId/eggs/$eggId/'
     | '/orgs/$orgId/nodes/$nodeId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
     | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
@@ -590,6 +660,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/settings'
     | '/signin'
+    | '/admin/eggs/new'
     | '/admin/orgs/$orgId'
     | '/admin/overview/billing'
     | '/admin/overview/infrastructure'
@@ -597,25 +668,31 @@ export interface FileRouteTypes {
     | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
-    | '/orgs/$orgId/eggs'
+    | '/admin/eggs'
     | '/admin/orgs'
     | '/admin/support'
     | '/admin/users'
     | '/orgs/$orgId'
+    | '/admin/eggs/$eggId/edit'
+    | '/orgs/$orgId/eggs/new'
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
+    | '/admin/eggs/$eggId'
+    | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/nodes'
     | '/orgs/$orgId/servers'
     | '/orgs/$orgId/settings'
+    | '/orgs/$orgId/eggs/$eggId/edit'
     | '/orgs/$orgId/nodes/$nodeId/backups'
     | '/orgs/$orgId/nodes/$nodeId/disks'
     | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
+    | '/orgs/$orgId/eggs/$eggId'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
     | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
@@ -643,6 +720,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/settings/'
     | '/signin/'
+    | '/admin/eggs/new'
     | '/admin/orgs/$orgId'
     | '/admin/overview/billing'
     | '/admin/overview/infrastructure'
@@ -650,12 +728,14 @@ export interface FileRouteTypes {
     | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
-    | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/settings'
+    | '/admin/eggs/'
     | '/admin/orgs/'
     | '/admin/support/'
     | '/admin/users/'
     | '/orgs/$orgId/'
+    | '/admin/eggs/$eggId/edit'
+    | '/orgs/$orgId/eggs/new'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
@@ -663,15 +743,19 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
+    | '/admin/eggs/$eggId/'
+    | '/orgs/$orgId/eggs/'
     | '/orgs/$orgId/nodes/'
     | '/orgs/$orgId/servers/'
     | '/orgs/$orgId/settings/'
+    | '/orgs/$orgId/eggs/$eggId/edit'
     | '/orgs/$orgId/nodes/$nodeId/backups'
     | '/orgs/$orgId/nodes/$nodeId/disks'
     | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/orgs/$orgId/eggs/$eggId/'
     | '/orgs/$orgId/nodes/$nodeId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
     | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
@@ -796,6 +880,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SigninSecondFactorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/eggs/': {
+      id: '/admin/eggs/'
+      path: '/eggs'
+      fullPath: '/admin/eggs/'
+      preLoaderRoute: typeof AdminEggsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/eggs/new': {
+      id: '/admin/eggs/new'
+      path: '/eggs/new'
+      fullPath: '/admin/eggs/new'
+      preLoaderRoute: typeof AdminEggsNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/orgs/': {
       id: '/admin/orgs/'
       path: '/orgs'
@@ -873,18 +971,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdIndexRouteImport
       parentRoute: typeof OrgsOrgIdRoute
     }
-    '/orgs/$orgId/eggs': {
-      id: '/orgs/$orgId/eggs'
-      path: '/eggs'
-      fullPath: '/orgs/$orgId/eggs'
-      preLoaderRoute: typeof OrgsOrgIdEggsRouteImport
-      parentRoute: typeof OrgsOrgIdRoute
-    }
     '/orgs/$orgId/settings': {
       id: '/orgs/$orgId/settings'
       path: '/settings'
       fullPath: '/orgs/$orgId/settings'
       preLoaderRoute: typeof OrgsOrgIdSettingsRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/admin/eggs/$eggId/': {
+      id: '/admin/eggs/$eggId/'
+      path: '/eggs/$eggId'
+      fullPath: '/admin/eggs/$eggId/'
+      preLoaderRoute: typeof AdminEggsEggIdIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/eggs/$eggId/edit': {
+      id: '/admin/eggs/$eggId/edit'
+      path: '/eggs/$eggId/edit'
+      fullPath: '/admin/eggs/$eggId/edit'
+      preLoaderRoute: typeof AdminEggsEggIdEditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/orgs/$orgId/eggs/': {
+      id: '/orgs/$orgId/eggs/'
+      path: '/eggs'
+      fullPath: '/orgs/$orgId/eggs/'
+      preLoaderRoute: typeof OrgsOrgIdEggsIndexRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/eggs/new': {
+      id: '/orgs/$orgId/eggs/new'
+      path: '/eggs/new'
+      fullPath: '/orgs/$orgId/eggs/new'
+      preLoaderRoute: typeof OrgsOrgIdEggsNewRouteImport
       parentRoute: typeof OrgsOrgIdRoute
     }
     '/orgs/$orgId/nodes/': {
@@ -956,6 +1075,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/orgs/$orgId/settings/members'
       preLoaderRoute: typeof OrgsOrgIdSettingsMembersRouteImport
       parentRoute: typeof OrgsOrgIdSettingsRoute
+    }
+    '/orgs/$orgId/eggs/$eggId/': {
+      id: '/orgs/$orgId/eggs/$eggId/'
+      path: '/eggs/$eggId'
+      fullPath: '/orgs/$orgId/eggs/$eggId/'
+      preLoaderRoute: typeof OrgsOrgIdEggsEggIdIndexRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/eggs/$eggId/edit': {
+      id: '/orgs/$orgId/eggs/$eggId/edit'
+      path: '/eggs/$eggId/edit'
+      fullPath: '/orgs/$orgId/eggs/$eggId/edit'
+      preLoaderRoute: typeof OrgsOrgIdEggsEggIdEditRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
     }
     '/orgs/$orgId/nodes/$nodeId/': {
       id: '/orgs/$orgId/nodes/$nodeId/'
@@ -1083,6 +1216,7 @@ interface AdminRouteChildren {
   AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminEggsNewRoute: typeof AdminEggsNewRoute
   AdminOrgsOrgIdRoute: typeof AdminOrgsOrgIdRoute
   AdminOverviewBillingRoute: typeof AdminOverviewBillingRoute
   AdminOverviewInfrastructureRoute: typeof AdminOverviewInfrastructureRoute
@@ -1090,15 +1224,19 @@ interface AdminRouteChildren {
   AdminOverviewUsersRoute: typeof AdminOverviewUsersRoute
   AdminSupportRequestIdRoute: typeof AdminSupportRequestIdRoute
   AdminUsersUserIdRoute: typeof AdminUsersUserIdRoute
+  AdminEggsIndexRoute: typeof AdminEggsIndexRoute
   AdminOrgsIndexRoute: typeof AdminOrgsIndexRoute
   AdminSupportIndexRoute: typeof AdminSupportIndexRoute
   AdminUsersIndexRoute: typeof AdminUsersIndexRoute
+  AdminEggsEggIdEditRoute: typeof AdminEggsEggIdEditRoute
+  AdminEggsEggIdIndexRoute: typeof AdminEggsEggIdIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnnouncementsRoute: AdminAnnouncementsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminEggsNewRoute: AdminEggsNewRoute,
   AdminOrgsOrgIdRoute: AdminOrgsOrgIdRoute,
   AdminOverviewBillingRoute: AdminOverviewBillingRoute,
   AdminOverviewInfrastructureRoute: AdminOverviewInfrastructureRoute,
@@ -1106,9 +1244,12 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOverviewUsersRoute: AdminOverviewUsersRoute,
   AdminSupportRequestIdRoute: AdminSupportRequestIdRoute,
   AdminUsersUserIdRoute: AdminUsersUserIdRoute,
+  AdminEggsIndexRoute: AdminEggsIndexRoute,
   AdminOrgsIndexRoute: AdminOrgsIndexRoute,
   AdminSupportIndexRoute: AdminSupportIndexRoute,
   AdminUsersIndexRoute: AdminUsersIndexRoute,
+  AdminEggsEggIdEditRoute: AdminEggsEggIdEditRoute,
+  AdminEggsEggIdIndexRoute: AdminEggsEggIdIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -1212,28 +1353,34 @@ const OrgsOrgIdServersNodeIdServerIdRouteWithChildren =
   )
 
 interface OrgsOrgIdRouteChildren {
-  OrgsOrgIdEggsRoute: typeof OrgsOrgIdEggsRoute
   OrgsOrgIdSettingsRoute: typeof OrgsOrgIdSettingsRouteWithChildren
   OrgsOrgIdIndexRoute: typeof OrgsOrgIdIndexRoute
+  OrgsOrgIdEggsNewRoute: typeof OrgsOrgIdEggsNewRoute
   OrgsOrgIdNodesNodeIdRoute: typeof OrgsOrgIdNodesNodeIdRouteWithChildren
   OrgsOrgIdNodesNewRoute: typeof OrgsOrgIdNodesNewRoute
   OrgsOrgIdServersNewRoute: typeof OrgsOrgIdServersNewRoute
+  OrgsOrgIdEggsIndexRoute: typeof OrgsOrgIdEggsIndexRoute
   OrgsOrgIdNodesIndexRoute: typeof OrgsOrgIdNodesIndexRoute
   OrgsOrgIdServersIndexRoute: typeof OrgsOrgIdServersIndexRoute
+  OrgsOrgIdEggsEggIdEditRoute: typeof OrgsOrgIdEggsEggIdEditRoute
   OrgsOrgIdServersNodeIdServerIdRoute: typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  OrgsOrgIdEggsEggIdIndexRoute: typeof OrgsOrgIdEggsEggIdIndexRoute
 }
 
 const OrgsOrgIdRouteChildren: OrgsOrgIdRouteChildren = {
-  OrgsOrgIdEggsRoute: OrgsOrgIdEggsRoute,
   OrgsOrgIdSettingsRoute: OrgsOrgIdSettingsRouteWithChildren,
   OrgsOrgIdIndexRoute: OrgsOrgIdIndexRoute,
+  OrgsOrgIdEggsNewRoute: OrgsOrgIdEggsNewRoute,
   OrgsOrgIdNodesNodeIdRoute: OrgsOrgIdNodesNodeIdRouteWithChildren,
   OrgsOrgIdNodesNewRoute: OrgsOrgIdNodesNewRoute,
   OrgsOrgIdServersNewRoute: OrgsOrgIdServersNewRoute,
+  OrgsOrgIdEggsIndexRoute: OrgsOrgIdEggsIndexRoute,
   OrgsOrgIdNodesIndexRoute: OrgsOrgIdNodesIndexRoute,
   OrgsOrgIdServersIndexRoute: OrgsOrgIdServersIndexRoute,
+  OrgsOrgIdEggsEggIdEditRoute: OrgsOrgIdEggsEggIdEditRoute,
   OrgsOrgIdServersNodeIdServerIdRoute:
     OrgsOrgIdServersNodeIdServerIdRouteWithChildren,
+  OrgsOrgIdEggsEggIdIndexRoute: OrgsOrgIdEggsEggIdIndexRoute,
 }
 
 const OrgsOrgIdRouteWithChildren = OrgsOrgIdRoute._addFileChildren(

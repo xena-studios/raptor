@@ -127,7 +127,7 @@ func TestImportEgg(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := imp.GetEgg().GetId()
-	if !strings.HasPrefix(id, "org:") || imp.GetEgg().GetCategory() != "imported" || imp.GetEgg().GetCertified() || imp.GetEgg().GetSourceUrl() != "https://example.com/egg.json" {
+	if imp.GetEgg().GetScope() != "org" || imp.GetEgg().GetCategory() != "other" || imp.GetEgg().GetStatus() != "published" || imp.GetEgg().GetCertified() || imp.GetEgg().GetSourceUrl() != "https://example.com/egg.json" {
 		t.Errorf("imported: %v", imp)
 	}
 	if _, err := alice.orgs.ImportEgg(ctx, &panelv1.ImportEggRequest{OrgId: org, Egg: p.GetEgg()}); connect.CodeOf(err) != connect.CodeAlreadyExists {
@@ -159,6 +159,11 @@ func TestImportEgg(t *testing.T) {
 	log, err := alice.orgs.ListAuditLog(ctx, &panelv1.ListAuditLogRequest{OrgId: org})
 	if err != nil || log.GetEvents()[0].GetAction() != "egg.import" || !strings.Contains(log.GetEvents()[0].GetMetadataJson(), "example.com/egg.json") {
 		t.Errorf("audit: %v, %v", log, err)
+	}
+
+	// Servers made before the library name the egg "org:<id>".
+	if got, err := bob.orgs.GetOrgEgg(ctx, &panelv1.GetOrgEggRequest{OrgId: org, EggId: "org:" + id}); err != nil || !bytes.Equal(got.GetEgg(), []byte(importedEgg)) {
+		t.Errorf("get by the old ID: %v", err)
 	}
 
 	if _, err := alice.orgs.DeleteOrgEgg(ctx, &panelv1.DeleteOrgEggRequest{OrgId: org, EggId: id}); err != nil {

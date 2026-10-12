@@ -63,6 +63,35 @@ type BackupStorageUsage struct {
 	MeasuredAt pgtype.Timestamptz
 }
 
+type Egg struct {
+	ID         pgtype.UUID
+	OrgID      pgtype.UUID
+	Name       string
+	Summary    string
+	Category   string
+	Origin     string
+	Status     string
+	Version    int32
+	Egg        []byte
+	Sha256     string
+	SourceUrl  string
+	ParentID   string
+	ParentName string
+	CreatedBy  pgtype.UUID
+	CreatedAt  pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
+}
+
+type EggVersion struct {
+	EggID     pgtype.UUID
+	Version   int32
+	Egg       []byte
+	Sha256    string
+	Note      string
+	CreatedBy string
+	CreatedAt pgtype.Timestamptz
+}
+
 type EmailCode struct {
 	ID            pgtype.UUID
 	Email         string
@@ -220,17 +249,6 @@ type Org struct {
 	CreatedAt       pgtype.Timestamptz
 	SuspendedAt     pgtype.Timestamptz
 	SuspendedReason string
-}
-
-type OrgEgg struct {
-	ID         pgtype.UUID
-	OrgID      pgtype.UUID
-	Name       string
-	Egg        []byte
-	Sha256     string
-	SourceUrl  string
-	ImportedBy pgtype.UUID
-	ImportedAt pgtype.Timestamptz
 }
 
 type OrgInvitation struct {
