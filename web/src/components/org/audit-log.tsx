@@ -23,6 +23,7 @@ import {
   Users,
 } from "lucide-react";
 
+import type { ReactNode } from "react";
 import { describeDevice } from "@/components/account/security";
 import { ActivityCard, type TimelineItem, type TimelinePage } from "@/components/activity-timeline";
 import type { AuditEvent } from "@/gen/raptor/panel/v1/audit_pb";
@@ -91,6 +92,20 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`deleted a backup of ${server}`, Trash2];
     case "backup.lock":
       return [`locked or unlocked a backup of ${server}`, Archive];
+    case "backup.policy.update":
+      return [`changed where ${server}'s backups go`, Archive];
+    case "backup.destination.save":
+      return [`saved a backup destination on ${server}`, Archive];
+    case "backup.destination.delete":
+      return [`removed a backup destination from ${server}`, Trash2];
+    case "backup.destination.test":
+      return [`tested a backup destination on ${server}`, Archive];
+    case "backup.key.mode":
+      return [`changed who keeps ${server}'s backup key`, KeyRound];
+    case "backup.key.show":
+      return [`viewed ${server}'s backup key`, KeyRound];
+    case "backup.recover":
+      return [`recovered backups onto ${server}`, Archive];
     case "schedule.create":
       return [`made a schedule on ${server}`, CalendarClock];
     case "schedule.update":
@@ -110,7 +125,7 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
     case "node.sftp":
       return [`turned SFTP ${meta.enabled === false ? "off" : "on"} on ${server}`, FolderKey];
   }
-  return [`ran ${action} on ${server}`, Activity];
+  return [`changed something on ${server}`, Activity];
 }
 
 // OrgActivity is the org's audit log or, given a server, the commands sent
@@ -119,10 +134,15 @@ export function OrgActivity({
   orgId,
   nodeId = "",
   serverId = "",
+  limit,
+  action,
 }: {
   orgId: string;
   nodeId?: string;
   serverId?: string;
+  // The newest few only, for the org's overview, with action beside the title.
+  limit?: number;
+  action?: ReactNode;
 }) {
   // Names for the IDs the log has.
   const members = useQuery(OrgService.method.listMembers, { orgId });
@@ -261,10 +281,16 @@ export function OrgActivity({
 
   return (
     <ActivityCard
+      title={limit ? "Recent activity" : undefined}
+      limit={limit}
+      action={action}
+      refetchInterval={limit ? 30_000 : undefined}
       description={
-        serverId
-          ? "Everything done to this server: power, console commands, files, backups, and settings."
-          : "Everything done in this org: members, invitations, nodes, access, and servers."
+        limit
+          ? "The latest in this org."
+          : serverId
+            ? "Everything done to this server: power, console commands, files, backups, and settings."
+            : "Everything done in this org: members, invitations, nodes, access, and servers."
       }
       queryKey={["org-activity", orgId, nodeId, serverId]}
       fetchPage={fetchPage}
