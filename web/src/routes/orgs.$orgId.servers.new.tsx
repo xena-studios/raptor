@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type CatalogEgg, CatalogService } from "@/gen/raptor/panel/v1/catalog_pb";
 import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { diskName, diskSpace, serverDisks, useNodeDisks } from "@/lib/disks";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
 import {
@@ -225,6 +226,12 @@ function Settings({
   );
   const [diskGiB, setDiskGiB] = useState("");
   const [eula, setEula] = useState(false);
+  // Nodes with data disks let you pick one; the picker shows only when
+  // there's a choice.
+  const disks = useNodeDisks(node.id, node.connected);
+  const choices = serverDisks(disks.data);
+  const [disk, setDisk] = useState("");
+  const pickedDisk = disk || disks.data?.default || "";
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const needsEula = egg.features.includes("eula");
@@ -258,6 +265,7 @@ function Settings({
             memoryMiB: Math.round(memoryGiB * 1024),
             diskMiB: diskGiB ? Math.round(Number(diskGiB) * 1024) : 0,
             acceptEula: eula,
+            disk: choices.length > 1 ? pickedDisk : undefined,
           },
           defaults,
         ),
@@ -379,6 +387,30 @@ function Settings({
                 </p>
               )}
             </div>
+            {choices.length > 1 && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="data-disk">Disk</Label>
+                <select
+                  id="data-disk"
+                  className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                  value={pickedDisk}
+                  onChange={(e) => setDisk(e.target.value)}
+                >
+                  {choices.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {diskName(d)}
+                      {d.id === disks.data?.default ? " (default)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  {(() => {
+                    const d = choices.find((x) => x.id === pickedDisk);
+                    return d ? `${diskSpace(d)}. Its files stay on this disk.` : "";
+                  })()}
+                </p>
+              </div>
+            )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="disk">Disk limit (GB)</Label>
               <Input

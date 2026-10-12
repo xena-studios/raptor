@@ -213,6 +213,7 @@ type Server struct {
 	CreatedAt    int64
 	UpdatedAt    int64
 	QuotaProject sql.NullInt64
+	DiskID       string
 }
 
 type TrustedKey struct {

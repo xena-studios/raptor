@@ -2,17 +2,21 @@
 package wings
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"maps"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -238,6 +242,7 @@ type runtimeSetup struct {
 	jobs           *jobs.Engine
 	disk           *host.DiskGuard
 	system         *system.Manager
+	disks          *system.DiskManager
 	fwMu           sync.Mutex        // guards rules after setup
 	commands       *command.Executor // receives Panel commands (connected in Phase 3)
 }
@@ -268,6 +273,19 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 		ApplyFirewall: r.applyHostFirewall, Open: r.openPorts,
 	}
 	actions.RegisterSystem(r.commands, r.system)
+	r.disks = &system.DiskManager{
+		DB: db, Log: log, List: storage.ListDisks, Space: storage.Space,
+		Layout: storage.LayoutFor(filepath.Dir(cfg.Paths.State), cfg.Paths.Volumes, cfg.Paths.Logs, cfg.Paths.Backups),
+		Mounted: func(path string) (bool, bool) {
+			m, ok, err := storage.FindMount(path)
+			if err != nil || !ok {
+				return false, false
+			}
+			return m.HasProjectQuota(), storage.BackingFile(m) != ""
+		},
+		AddDisk: addDisk,
+	}
+	actions.RegisterDisks(r.commands, r.disks)
 	// The host key exists from the first start, SFTP on or not, so its
 	// fingerprint never changes when SFTP is turned on.
 	if r.sftpKey, err = sftp.LoadHostKey(cfg.Identity.SFTPHostKey); err != nil {
@@ -337,6 +355,34 @@ func (r *runtimeSetup) close() {
 	if r.servers != nil {
 		r.servers.Close() // stops jobs first
 	}
+}
+
+// addDisk sets up a disk with `raptor storage add-disk`, run by systemd
+// outside Wings' sandbox: formatting is fine in here, but the mount has to
+// be in the host's namespace and its unit in /etc/systemd/system, which
+// Wings can't write (docs/WINGS.md#data-disks).
+func addDisk(ctx context.Context, device, role string) (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	//nolint:gosec // the device was checked against lsblk; the rest is fixed
+	out, err := exec.CommandContext(ctx, "systemd-run", "--wait", "--pipe", "--collect", "--quiet",
+		"--unit=raptor-add-disk-"+storage.NewDiskID(), "-p", "Type=oneshot", "--",
+		exe, "storage", "add-disk", "-device", device, "-role", role, "-json").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("%w: %s", err, bytes.TrimSpace(out))
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	var res struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &res); err != nil || res.ID == "" {
+		return "", fmt.Errorf("unexpected output: %s", out)
+	}
+	return res.ID, nil
 }
 
 // applyHostFirewall loads the node's firewall into the rule set.
@@ -525,6 +571,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		Store:           r.db,
 		Log:             r.log,
 		VolumesDir:      r.cfg.Paths.Volumes,
+		DisksDir:        r.disks.Layout.DisksDir,
 		MachineIDDir:    filepath.Join(filepath.Dir(r.cfg.Paths.Socket), "machine-id"),
 		TmpDir:          r.cfg.Paths.Tmp,
 		LogDir:          r.cfg.Paths.Logs,
@@ -579,6 +626,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	})
 	sched := schedule.New(schedule.Options{Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Backups: bk, Log: r.log})
 	actions.Register(r.commands, mgr, actions.Defaults{
+		Disk: r.disks.ForServer,
 		BackupSchedule: func(ctx context.Context, q *store.Queries, id string) error {
 			_, err := sched.CreateTx(ctx, q, id, schedule.DefaultBackup(tz))
 			return err

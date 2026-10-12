@@ -87,6 +87,8 @@ test("create params send only changed variables", () => {
   assert.equal(p.name, "Survival");
   assert.deepEqual(p.variables, { B: "123" });
   assert.equal(p.accept_eula, undefined);
+  // No disk picked: the key is left out, so the signed bytes match older nodes'.
+  assert.equal("disk" in JSON.parse(JSON.stringify(p)), false);
   assert.deepEqual(p.allocations, [{ ip: "0.0.0.0", port: 25565, primary: true }]);
 });
 

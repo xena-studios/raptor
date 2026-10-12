@@ -48,6 +48,7 @@ func (m *Manager) Reconcile(ctx context.Context) error {
 	var toStart []*instance
 	for _, r := range rows {
 		i := m.newInstance(r.ID, Offline)
+		i.disk = r.DiskID
 		m.mu.Lock()
 		m.servers[r.ID] = i
 		m.mu.Unlock()

@@ -17,7 +17,54 @@ const (
 	NodeTime     = "node.time"
 	NodeFirewall = "node.firewall"
 	NodeReboot   = "node.reboot"
+
+	NodeDisks       = "node.disks"
+	NodeDiskSetup   = "node.disk.setup"
+	NodeDiskDefault = "node.disk.default"
 )
+
+// DiskSetupParams are node.disk.setup's params.
+type DiskSetupParams struct {
+	Device string `json:"device"`
+	Role   string `json:"role"`
+	// Size and Serial are the disk the owner saw: device names can change
+	// between boots, so the signature is for this disk, not a name.
+	Size   int64  `json:"size"`
+	Serial string `json:"serial,omitempty"`
+}
+
+// DiskDefaultParams are node.disk.default's params.
+type DiskDefaultParams struct {
+	Disk string `json:"disk"`
+}
+
+// RegisterDisks adds the disk actions. Setting up a disk formats it, so it's
+// signed by an owner's passkey, never a delegation; Wings only formats
+// empty disks anyway. Picking the default disk isn't signed: it moves
+// nothing.
+func RegisterDisks(x *command.Executor, d *system.DiskManager) {
+	x.Register(NodeDisks, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, _ command.Envelope) (any, error) {
+		return d.Disks(ctx)
+	}})
+	x.Register(NodeDiskSetup, command.Handler{Signed: command.Always, OwnerOnly: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DiskSetupParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		id, err := d.Setup(ctx, p.Device, p.Role, p.Size, p.Serial)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"disk": id}, nil
+	}})
+	x.Register(NodeDiskDefault, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DiskDefaultParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, d.SetDefault(ctx, p.Disk)
+	}})
+}
 
 // HostnameParams are node.hostname's params.
 type HostnameParams struct {

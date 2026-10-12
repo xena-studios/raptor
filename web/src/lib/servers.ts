@@ -80,6 +80,9 @@ export type CreateForm = {
   memoryMiB: number;
   diskMiB: number;
   acceptEula: boolean;
+  // The disk its files go on; undefined is the node's default (and all
+  // there is on nodes without data disks).
+  disk?: string;
 };
 
 // createParams is server.create's params (Wings' actions.CreateParams):
@@ -100,6 +103,7 @@ export function createParams(f: CreateForm, defaults: Record<string, string>) {
     allocations: [{ ip: "0.0.0.0", port: f.port, primary: true }],
     start_after_install: true,
     accept_eula: f.acceptEula || undefined,
+    disk: f.disk || undefined,
   };
 }
 

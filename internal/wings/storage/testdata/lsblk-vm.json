@@ -1,0 +1,296 @@
+{
+ "blockdevices": [
+  {
+   "name": "loop0",
+   "path": "/dev/loop0",
+   "type": "loop",
+   "size": 4294967296,
+   "model": null,
+   "serial": null,
+   "fstype": "xfs",
+   "pttype": null,
+   "label": "raptor",
+   "uuid": "158ab8e4-b262-4ca3-a554-ec88b9300894",
+   "mountpoints": [
+    "/var/lib/raptor/volumes"
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": true
+  },
+  {
+   "name": "loop1",
+   "path": "/dev/loop1",
+   "type": "loop",
+   "size": 3221225472,
+   "model": null,
+   "serial": null,
+   "fstype": "xfs",
+   "pttype": null,
+   "label": "raptor",
+   "uuid": "ccdf992b-5a39-4ace-816a-f6b14cf370c5",
+   "mountpoints": [
+    "/var/lib/raptor-gate/volumes"
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": true
+  },
+  {
+   "name": "vda",
+   "path": "/dev/vda",
+   "type": "disk",
+   "size": 42949672960,
+   "model": null,
+   "serial": null,
+   "fstype": null,
+   "pttype": "gpt",
+   "label": null,
+   "uuid": null,
+   "mountpoints": [
+    null
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": true,
+   "children": [
+    {
+     "name": "vda1",
+     "path": "/dev/vda1",
+     "type": "part",
+     "size": 42815438336,
+     "model": null,
+     "serial": null,
+     "fstype": "ext4",
+     "pttype": "gpt",
+     "label": null,
+     "uuid": "db8fda2d-25d7-4bb8-827d-9c93ea89bf3c",
+     "mountpoints": [
+      "/"
+     ],
+     "ro": false,
+     "rm": false,
+     "rota": true
+    },
+    {
+     "name": "vda15",
+     "path": "/dev/vda15",
+     "type": "part",
+     "size": 133169152,
+     "model": null,
+     "serial": null,
+     "fstype": "vfat",
+     "pttype": "gpt",
+     "label": null,
+     "uuid": "8588-FECA",
+     "mountpoints": [
+      "/boot/efi"
+     ],
+     "ro": false,
+     "rm": false,
+     "rota": true
+    }
+   ]
+  },
+  {
+   "name": "vdb",
+   "path": "/dev/vdb",
+   "type": "disk",
+   "size": 5368709120,
+   "model": null,
+   "serial": null,
+   "fstype": null,
+   "pttype": null,
+   "label": null,
+   "uuid": null,
+   "mountpoints": [
+    null
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": true
+  },
+  {
+   "name": "vdc",
+   "path": "/dev/vdc",
+   "type": "disk",
+   "size": 20043776,
+   "model": null,
+   "serial": null,
+   "fstype": "iso9660",
+   "pttype": null,
+   "label": "cidata",
+   "uuid": "2026-10-11-21-30-13-14",
+   "mountpoints": [
+    "/mnt/lima-cidata"
+   ],
+   "ro": true,
+   "rm": false,
+   "rota": true
+  },
+  {
+   "name": "sdb",
+   "path": "/dev/sdb",
+   "type": "disk",
+   "size": 536870912000,
+   "model": "Test Disk",
+   "serial": null,
+   "fstype": "xfs",
+   "pttype": null,
+   "label": null,
+   "uuid": "u-1",
+   "mountpoints": [
+    "/var/lib/raptor/disks/abcd1234"
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": false
+  },
+  {
+   "name": "sdc",
+   "path": "/dev/sdc",
+   "type": "disk",
+   "size": 536870912000,
+   "model": "Test Disk",
+   "serial": null,
+   "fstype": "xfs",
+   "pttype": null,
+   "label": null,
+   "uuid": "u-2",
+   "mountpoints": [
+    "/srv/raptor-backups-efgh5678"
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": false
+  },
+  {
+   "name": "sdd",
+   "path": "/dev/sdd",
+   "type": "disk",
+   "size": 536870912000,
+   "model": "Test Disk",
+   "serial": null,
+   "fstype": "linux_raid_member",
+   "pttype": null,
+   "label": null,
+   "uuid": null,
+   "mountpoints": [
+    null
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": false
+  },
+  {
+   "name": "sde",
+   "path": "/dev/sde",
+   "type": "disk",
+   "size": 536870912000,
+   "model": "Test Disk",
+   "serial": null,
+   "fstype": null,
+   "pttype": "gpt",
+   "label": null,
+   "uuid": null,
+   "mountpoints": [
+    null
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": false
+  },
+  {
+   "name": "sdf",
+   "path": "/dev/sdf",
+   "type": "disk",
+   "size": 104857600,
+   "model": "Test Disk",
+   "serial": null,
+   "fstype": null,
+   "pttype": null,
+   "label": null,
+   "uuid": null,
+   "mountpoints": [
+    null
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": false
+  },
+  {
+   "name": "sdg",
+   "path": "/dev/sdg",
+   "type": "disk",
+   "size": 536870912000,
+   "model": "Test Disk",
+   "serial": null,
+   "fstype": null,
+   "pttype": null,
+   "label": null,
+   "uuid": null,
+   "mountpoints": [
+    null
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": false,
+   "children": [
+    {
+     "name": "sdg1",
+     "path": "/dev/sdg1",
+     "type": "part",
+     "size": 268435456000,
+     "model": "Test Disk",
+     "serial": null,
+     "fstype": null,
+     "pttype": null,
+     "label": null,
+     "uuid": null,
+     "mountpoints": [
+      null
+     ],
+     "ro": false,
+     "rm": false,
+     "rota": false
+    },
+    {
+     "name": "sdg2",
+     "path": "/dev/sdg2",
+     "type": "part",
+     "size": 268435456000,
+     "model": "Test Disk",
+     "serial": null,
+     "fstype": "ext4",
+     "pttype": null,
+     "label": null,
+     "uuid": null,
+     "mountpoints": [
+      "/mnt/media"
+     ],
+     "ro": false,
+     "rm": false,
+     "rota": false
+    }
+   ]
+  },
+  {
+   "name": "sr0",
+   "path": "/dev/sr0",
+   "type": "disk",
+   "size": 1073741824,
+   "model": "Test Disk",
+   "serial": null,
+   "fstype": null,
+   "pttype": null,
+   "label": null,
+   "uuid": null,
+   "mountpoints": [
+    null
+   ],
+   "ro": false,
+   "rm": false,
+   "rota": false
+  }
+ ]
+}
