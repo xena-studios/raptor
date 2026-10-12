@@ -3,6 +3,7 @@ import { Link, type LinkProps, useLocation, useNavigate } from "@tanstack/react-
 import {
   Building2,
   Check,
+  ChevronRight,
   ChevronsUpDown,
   Egg,
   Gamepad2,
@@ -19,7 +20,7 @@ import {
   Users,
   WifiOff,
 } from "lucide-react";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Announcements } from "@/components/announcements";
 import { NotFound } from "@/components/error-screen";
@@ -44,6 +45,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -60,6 +62,8 @@ import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { useApiDown } from "@/lib/connection";
 import { roleNames } from "@/lib/format";
+import { useOrgNodes, useOrgServers } from "@/lib/org-data";
+import { type ServerStatus, serverStatus } from "@/lib/servers";
 import { getTheme, isTheme, setTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -368,25 +372,164 @@ function AdminNav() {
   );
 }
 
-// nodesShown is how many nodes the sidebar lists under Nodes; the rest are
-// on the Nodes page.
-const nodesShown = 8;
+// subShown is how many nodes or servers the sidebar lists under their
+// section; the rest are on the section's page.
+const subShown = 8;
 
-// OrgNav is the org's sections, with its nodes under Nodes.
+// SubItem is a node or server listed under its section.
+type SubItem = {
+  id: string;
+  name: string;
+  link: Pick<LinkProps, "to" | "params">;
+  active: boolean;
+  // The status dot's color, and what it means for screen readers.
+  dot: string;
+  status: string;
+};
+
+// shownItems is the first few, with the one being looked at always in.
+function shownItems(list: SubItem[]): SubItem[] {
+  const open = list.findIndex((x) => x.active);
+  return list.filter((_, i) => i < subShown - (open >= subShown ? 1 : 0) || i === open);
+}
+
+// useOpen is whether a section's list is open, remembered in the browser
+// (open unless closed before).
+function useOpen(key: string): [boolean, (open: boolean) => void] {
+  const storageKey = `raptor.sidebar.${key}`;
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(storageKey) !== "closed";
+    } catch {
+      return true;
+    }
+  });
+  return [
+    open,
+    (next) => {
+      setOpen(next);
+      try {
+        localStorage.setItem(storageKey, next ? "open" : "closed");
+      } catch {
+        // Private browsing: it stays as it is for this page.
+      }
+    },
+  ];
+}
+
+// NavSection is a section link with its nodes or servers under it, which
+// fold away with the chevron beside it.
+function NavSection({
+  id,
+  link,
+  label,
+  icon,
+  active,
+  items,
+  noun,
+}: {
+  id: string;
+  link: Pick<LinkProps, "to" | "params">;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  items: SubItem[];
+  noun: string;
+}) {
+  const [open, setOpen] = useOpen(id);
+  const listId = `sidebar-${id}`;
+  return (
+    <NavLink link={link} label={label} icon={icon} active={active}>
+      {items.length > 0 && (
+        <>
+          <SidebarMenuAction
+            aria-label={open ? `Hide ${noun}s` : `Show ${noun}s`}
+            aria-expanded={open}
+            aria-controls={listId}
+            onClick={() => setOpen(!open)}
+          >
+            <ChevronRight className={cn("transition-transform", open && "rotate-90")} />
+          </SidebarMenuAction>
+          {open && (
+            <SidebarMenuSub id={listId}>
+              {shownItems(items).map((x) => (
+                <SidebarMenuSubItem key={x.id}>
+                  <SidebarMenuSubButton isActive={x.active} render={<Link {...x.link} />}>
+                    <span className={cn("size-2 shrink-0 rounded-full", x.dot)} />
+                    <span className="truncate">{x.name}</span>
+                    <span className="sr-only">({x.status})</span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              ))}
+              {items.length > subShown && (
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton
+                    className="text-muted-foreground"
+                    render={<Link {...link} />}
+                  >
+                    <span className="truncate">
+                      All {items.length} {noun}s
+                    </span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              )}
+            </SidebarMenuSub>
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+const toneDots: Record<ServerStatus["tone"], string> = {
+  live: "bg-emerald-500",
+  pending: "bg-amber-500",
+  failed: "bg-destructive",
+  stale: "bg-muted-foreground/40",
+  stopped: "bg-muted-foreground/40",
+};
+
+// OrgNav is the org's sections, with its nodes under Nodes and its servers
+// under Servers: live ones first, then by name.
 function OrgNav({ orgId }: { orgId: string }) {
   const path = useLocation({ select: (l) => l.pathname });
-  const nodes = useQuery(OrgService.method.listNodes, { orgId }, { refetchInterval: 15_000 });
-  // Connected first, then by name; the node being looked at is always in
-  // the list, even past the first few.
-  const list = [...(nodes.data?.nodes ?? [])].sort(
-    (a, b) => Number(b.connected) - Number(a.connected) || a.name.localeCompare(b.name),
-  );
+  const nodes = useOrgNodes(orgId);
+  const { servers } = useOrgServers(orgId, 15_000);
   const base = `/orgs/${orgId}`;
-  const open = list.findIndex((n) => path.startsWith(`${base}/nodes/${n.id}`));
-  const shown = list.filter((_, i) => i < nodesShown - (open >= nodesShown ? 1 : 0) || i === open);
   const active = (p: string) =>
     p === base ? path === base || path === `${base}/` : path.startsWith(p);
   const params = { orgId };
+  const byLiveThenName = (a: SubItem & { live: boolean }, b: SubItem & { live: boolean }) =>
+    Number(b.live) - Number(a.live) || a.name.localeCompare(b.name);
+
+  const nodeItems = (nodes.data?.nodes ?? [])
+    .map((n) => ({
+      id: n.id,
+      name: n.name,
+      link: { to: "/orgs/$orgId/nodes/$nodeId" as const, params: { orgId, nodeId: n.id } },
+      active: path.startsWith(`${base}/nodes/${n.id}`),
+      dot: n.connected ? "bg-emerald-500" : "bg-muted-foreground/40",
+      status: n.connected ? "connected" : "offline",
+      live: n.connected,
+    }))
+    .sort(byLiveThenName);
+  const serverItems = servers
+    .map((s) => {
+      const st = serverStatus(s, s.node.connected);
+      return {
+        id: s.id,
+        name: s.name || s.id.slice(-8),
+        link: {
+          to: "/orgs/$orgId/servers/$nodeId/$serverId" as const,
+          params: { orgId, nodeId: s.node.id, serverId: s.id },
+        },
+        active: path.startsWith(`${base}/servers/${s.node.id}/${s.id}`),
+        dot: toneDots[st.tone],
+        status: st.label.toLowerCase(),
+        live: st.tone === "live",
+      };
+    })
+    .sort(byLiveThenName);
 
   return (
     <SidebarGroup>
@@ -398,51 +541,23 @@ function OrgNav({ orgId }: { orgId: string }) {
           icon={LayoutDashboard}
           active={active(base)}
         />
-        <NavLink
+        <NavSection
+          id="nodes"
           link={{ to: "/orgs/$orgId/nodes", params }}
           label="Nodes"
           icon={Server}
           active={active(`${base}/nodes`)}
-        >
-          {list.length > 0 && (
-            <SidebarMenuSub>
-              {shown.map((n) => (
-                <SidebarMenuSubItem key={n.id}>
-                  <SidebarMenuSubButton
-                    isActive={path.startsWith(`${base}/nodes/${n.id}`)}
-                    render={
-                      <Link to="/orgs/$orgId/nodes/$nodeId" params={{ orgId, nodeId: n.id }} />
-                    }
-                  >
-                    <span
-                      className={cn(
-                        "size-2 shrink-0 rounded-full",
-                        n.connected ? "bg-emerald-500" : "bg-muted-foreground/40",
-                      )}
-                    />
-                    <span className="truncate">{n.name}</span>
-                    <span className="sr-only">{n.connected ? "(connected)" : "(offline)"}</span>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              ))}
-              {list.length > nodesShown && (
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    className="text-muted-foreground"
-                    render={<Link to="/orgs/$orgId/nodes" params={params} />}
-                  >
-                    <span className="truncate">All {list.length} nodes</span>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              )}
-            </SidebarMenuSub>
-          )}
-        </NavLink>
-        <NavLink
+          items={nodeItems}
+          noun="node"
+        />
+        <NavSection
+          id="servers"
           link={{ to: "/orgs/$orgId/servers", params }}
           label="Servers"
           icon={Gamepad2}
           active={active(`${base}/servers`)}
+          items={serverItems}
+          noun="server"
         />
         <NavLink
           link={{ to: "/orgs/$orgId/eggs", params }}
@@ -463,7 +578,7 @@ function OrgNav({ orgId }: { orgId: string }) {
 
 // NodeCount is how many of the org's nodes are connected.
 function NodeCount({ orgId }: { orgId: string }) {
-  const nodes = useQuery(OrgService.method.listNodes, { orgId }, { refetchInterval: 15_000 });
+  const nodes = useOrgNodes(orgId);
   const list = nodes.data?.nodes ?? [];
   if (list.length === 0) return null;
   const online = list.filter((n) => n.connected).length;
