@@ -83,7 +83,7 @@ export function LibraryPage({ lib }: { lib: Library }) {
         description={
           lib.orgId
             ? "What servers are made from: your own eggs, and Raptor's. Certified ones are tested with every release."
-            : "Raptor's own eggs, offered to every org beside the built-in ones."
+            : "Raptor's own eggs, offered to every org. Raptor's catalog is seeded here; certified ones are the files the conformance suite tests."
         }
         actions={action}
       />

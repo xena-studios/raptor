@@ -35,7 +35,7 @@ export function categoryName(c: string): string {
 }
 
 export const originNames: Record<string, string> = {
-  builtin: "Built in",
+  catalog: "Raptor's catalog",
   scratch: "From scratch",
   import: "Imported",
   fork: "Customized",
@@ -47,9 +47,9 @@ export const statusNames: Record<string, string> = {
   archived: "Archived",
 };
 
-// official reports whether an egg is Raptor's (built in or official).
+// official reports whether an egg is Raptor's.
 function official(e: CatalogEgg): boolean {
-  return e.scope === "builtin" || e.scope === "official";
+  return e.scope === "official";
 }
 
 export function usage(n: number): string {

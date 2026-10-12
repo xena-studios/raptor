@@ -4,30 +4,18 @@ package raptor.panel.v1;
 
 import "google/protobuf/timestamp.proto";
 
-// CatalogService serves Raptor's built-in egg catalog
-// (docs/EGGS.md#built-in-catalog) to the web app, for creating servers. The
-// same for everyone; any signed-in user.
-service CatalogService {
-  // ListEggs lists every egg, without the egg files themselves.
-  rpc ListEggs(ListEggsRequest) returns (ListEggsResponse) {
-    option idempotency_level = NO_SIDE_EFFECTS;
-  }
-
-  // GetEgg returns one egg's file, as a server created from it gets it.
-  rpc GetEgg(GetEggRequest) returns (GetEggResponse) {
-    option idempotency_level = NO_SIDE_EFFECTS;
-  }
-}
-
-message ListEggsRequest {}
-
+// CatalogEgg is an egg in the library (EggService, docs/PANEL.md#eggs), as
+// lists show it and server creation needs it. (The name is from when it
+// described the built-in catalog, which is now part of the official
+// library.)
 message CatalogEgg {
-  // The catalog's ID, e.g. "minecraft/paper".
   string id = 1;
   string name = 2;
   string description = 3;
-  // "minecraft", "steam", ...: the ID's first part.
+  // "minecraft", "steam", ... (docs/PANEL.md#eggs).
   string category = 4;
+  // The file is the one Raptor's conformance suite tests (eggs/ in the
+  // repository); editing it clears this.
   bool certified = 5;
   // The CPU architectures the game runs on: amd64, arm64.
   repeated string arch = 6;
@@ -36,26 +24,23 @@ message CatalogEgg {
   repeated EggVariable variables = 8;
   // The egg's features: "eula" means the user must accept the game's EULA.
   repeated string features = 9;
-  // Where the egg comes from: the upstream file at the copied commit, or
-  // the link an imported egg was fetched from.
+  // Where the egg comes from: for Raptor's catalog, the upstream file at
+  // the copied commit; for an imported egg, the link it was fetched from.
   string source_url = 10;
-
-  // The rest is the egg library's (EggService); the built-in catalog
-  // leaves it empty.
 
   // One line for the egg's card.
   string summary = 11;
-  // "builtin" (Raptor's catalog, in the code), "official" (Raptor's,
-  // managed by staff), or "org" (the org's own).
+  // "official" (Raptor's, managed by staff), "org" (the org's own), or
+  // "community" (another org's, shared).
   string scope = 12;
-  // How it came to be: "builtin", "scratch", "import", or "fork" (a
-  // customized copy).
+  // How it came to be: "catalog" (Raptor's catalog), "scratch", "import",
+  // or "fork" (a customized copy).
   string origin = 13;
   // "draft", "published" (can be deployed), or "archived".
   string status = 14;
   int32 version = 15;
-  // How many servers were made from it: the org's own, or everyone's for
-  // official and built-in eggs.
+  // How many servers were made from it: the org's, or everyone's in the
+  // official library.
   int32 servers = 16;
   // What a customized copy was made from.
   string parent_id = 17;
@@ -91,18 +76,4 @@ message EggVariable {
   bool user_editable = 6;
   // Laravel validation rules ("required", "max:20", ...), which Wings checks.
   repeated string rules = 7;
-}
-
-message ListEggsResponse {
-  repeated CatalogEgg eggs = 1;
-}
-
-message GetEggRequest {
-  string id = 1;
-}
-
-message GetEggResponse {
-  // The egg file: upstream's, with the catalog's x-raptor block added. The
-  // web app puts it in the signed server.create command as it is.
-  bytes egg = 1;
 }

@@ -2,8 +2,8 @@
 // @generated from file raptor/panel/v1/catalog.proto (package raptor.panel.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,28 +12,18 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/catalog.proto.
  */
 export const file_raptor_panel_v1_catalog: GenFile = /*@__PURE__*/
-  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvY2F0YWxvZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIhEKD0xpc3RFZ2dzUmVxdWVzdCK5BAoKQ2F0YWxvZ0VnZxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhEKCWNlcnRpZmllZBgFIAEoCBIMCgRhcmNoGAYgAygJEikKBmltYWdlcxgHIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIvCgl2YXJpYWJsZXMYCCADKAsyHC5yYXB0b3IucGFuZWwudjEuRWdnVmFyaWFibGUSEAoIZmVhdHVyZXMYCSADKAkSEgoKc291cmNlX3VybBgKIAEoCRIPCgdzdW1tYXJ5GAsgASgJEg0KBXNjb3BlGAwgASgJEg4KBm9yaWdpbhgNIAEoCRIOCgZzdGF0dXMYDiABKAkSDwoHdmVyc2lvbhgPIAEoBRIPCgdzZXJ2ZXJzGBAgASgFEhEKCXBhcmVudF9pZBgRIAEoCRITCgtwYXJlbnRfbmFtZRgSIAEoCRIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpjcmVhdGVkX2J5GBQgASgJEhEKCXB1Ymxpc2hlchgVIAEoCRItCglzaGFyZWRfYXQYFiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmNvcGllcxgXIAEoBRIPCgdyZW1vdmVkGBggASgIEhYKDnJlbW92ZWRfcmVhc29uGBkgASgJIiUKCEVnZ0ltYWdlEgwKBG5hbWUYASABKAkSCwoDcmVmGAIgASgJIosBCgtFZ2dWYXJpYWJsZRIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEgsKA2VudhgDIAEoCRIPCgdkZWZhdWx0GAQgASgJEhUKDXVzZXJfdmlld2FibGUYBSABKAgSFQoNdXNlcl9lZGl0YWJsZRgGIAEoCBINCgVydWxlcxgHIAMoCSI9ChBMaXN0RWdnc1Jlc3BvbnNlEikKBGVnZ3MYASADKAsyGy5yYXB0b3IucGFuZWwudjEuQ2F0YWxvZ0VnZyIbCg1HZXRFZ2dSZXF1ZXN0EgoKAmlkGAEgASgJIh0KDkdldEVnZ1Jlc3BvbnNlEgsKA2VnZxgBIAEoDDK2AQoOQ2F0YWxvZ1NlcnZpY2USVAoITGlzdEVnZ3MSIC5yYXB0b3IucGFuZWwudjEuTGlzdEVnZ3NSZXF1ZXN0GiEucmFwdG9yLnBhbmVsLnYxLkxpc3RFZ2dzUmVzcG9uc2UiA5ACARJOCgZHZXRFZ2cSHi5yYXB0b3IucGFuZWwudjEuR2V0RWdnUmVxdWVzdBofLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dSZXNwb25zZSIDkAIBQswBChNjb20ucmFwdG9yLnBhbmVsLnYxQgxDYXRhbG9nUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvY2F0YWxvZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIrkECgpDYXRhbG9nRWdnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEAoIY2F0ZWdvcnkYBCABKAkSEQoJY2VydGlmaWVkGAUgASgIEgwKBGFyY2gYBiADKAkSKQoGaW1hZ2VzGAcgAygLMhkucmFwdG9yLnBhbmVsLnYxLkVnZ0ltYWdlEi8KCXZhcmlhYmxlcxgIIAMoCzIcLnJhcHRvci5wYW5lbC52MS5FZ2dWYXJpYWJsZRIQCghmZWF0dXJlcxgJIAMoCRISCgpzb3VyY2VfdXJsGAogASgJEg8KB3N1bW1hcnkYCyABKAkSDQoFc2NvcGUYDCABKAkSDgoGb3JpZ2luGA0gASgJEg4KBnN0YXR1cxgOIAEoCRIPCgd2ZXJzaW9uGA8gASgFEg8KB3NlcnZlcnMYECABKAUSEQoJcGFyZW50X2lkGBEgASgJEhMKC3BhcmVudF9uYW1lGBIgASgJEi4KCnVwZGF0ZWRfYXQYEyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmNyZWF0ZWRfYnkYFCABKAkSEQoJcHVibGlzaGVyGBUgASgJEi0KCXNoYXJlZF9hdBgWIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGY29waWVzGBcgASgFEg8KB3JlbW92ZWQYGCABKAgSFgoOcmVtb3ZlZF9yZWFzb24YGSABKAkiJQoIRWdnSW1hZ2USDAoEbmFtZRgBIAEoCRILCgNyZWYYAiABKAkiiwEKC0VnZ1ZhcmlhYmxlEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSCwoDZW52GAMgASgJEg8KB2RlZmF1bHQYBCABKAkSFQoNdXNlcl92aWV3YWJsZRgFIAEoCBIVCg11c2VyX2VkaXRhYmxlGAYgASgIEg0KBXJ1bGVzGAcgAygJQswBChNjb20ucmFwdG9yLnBhbmVsLnYxQgxDYXRhbG9nUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
- * @generated from message raptor.panel.v1.ListEggsRequest
- */
-export type ListEggsRequest = Message<"raptor.panel.v1.ListEggsRequest"> & {
-};
-
-/**
- * Describes the message raptor.panel.v1.ListEggsRequest.
- * Use `create(ListEggsRequestSchema)` to create a new message.
- */
-export const ListEggsRequestSchema: GenMessage<ListEggsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 0);
-
-/**
+ * CatalogEgg is an egg in the library (EggService, docs/PANEL.md#eggs), as
+ * lists show it and server creation needs it. (The name is from when it
+ * described the built-in catalog, which is now part of the official
+ * library.)
+ *
  * @generated from message raptor.panel.v1.CatalogEgg
  */
 export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   /**
-   * The catalog's ID, e.g. "minecraft/paper".
-   *
    * @generated from field: string id = 1;
    */
   id: string;
@@ -49,13 +39,16 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   description: string;
 
   /**
-   * "minecraft", "steam", ...: the ID's first part.
+   * "minecraft", "steam", ... (docs/PANEL.md#eggs).
    *
    * @generated from field: string category = 4;
    */
   category: string;
 
   /**
+   * The file is the one Raptor's conformance suite tests (eggs/ in the
+   * repository); editing it clears this.
+   *
    * @generated from field: bool certified = 5;
    */
   certified: boolean;
@@ -87,8 +80,8 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   features: string[];
 
   /**
-   * Where the egg comes from: the upstream file at the copied commit, or
-   * the link an imported egg was fetched from.
+   * Where the egg comes from: for Raptor's catalog, the upstream file at
+   * the copied commit; for an imported egg, the link it was fetched from.
    *
    * @generated from field: string source_url = 10;
    */
@@ -102,16 +95,16 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   summary: string;
 
   /**
-   * "builtin" (Raptor's catalog, in the code), "official" (Raptor's,
-   * managed by staff), or "org" (the org's own).
+   * "official" (Raptor's, managed by staff), "org" (the org's own), or
+   * "community" (another org's, shared).
    *
    * @generated from field: string scope = 12;
    */
   scope: string;
 
   /**
-   * How it came to be: "builtin", "scratch", "import", or "fork" (a
-   * customized copy).
+   * How it came to be: "catalog" (Raptor's catalog), "scratch", "import",
+   * or "fork" (a customized copy).
    *
    * @generated from field: string origin = 13;
    */
@@ -130,8 +123,8 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   version: number;
 
   /**
-   * How many servers were made from it: the org's own, or everyone's for
-   * official and built-in eggs.
+   * How many servers were made from it: the org's, or everyone's in the
+   * official library.
    *
    * @generated from field: int32 servers = 16;
    */
@@ -199,7 +192,7 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
  * Use `create(CatalogEggSchema)` to create a new message.
  */
 export const CatalogEggSchema: GenMessage<CatalogEgg> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 1);
+  messageDesc(file_raptor_panel_v1_catalog, 0);
 
 /**
  * @generated from message raptor.panel.v1.EggImage
@@ -221,7 +214,7 @@ export type EggImage = Message<"raptor.panel.v1.EggImage"> & {
  * Use `create(EggImageSchema)` to create a new message.
  */
 export const EggImageSchema: GenMessage<EggImage> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 2);
+  messageDesc(file_raptor_panel_v1_catalog, 1);
 
 /**
  * @generated from message raptor.panel.v1.EggVariable
@@ -270,90 +263,5 @@ export type EggVariable = Message<"raptor.panel.v1.EggVariable"> & {
  * Use `create(EggVariableSchema)` to create a new message.
  */
 export const EggVariableSchema: GenMessage<EggVariable> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 3);
-
-/**
- * @generated from message raptor.panel.v1.ListEggsResponse
- */
-export type ListEggsResponse = Message<"raptor.panel.v1.ListEggsResponse"> & {
-  /**
-   * @generated from field: repeated raptor.panel.v1.CatalogEgg eggs = 1;
-   */
-  eggs: CatalogEgg[];
-};
-
-/**
- * Describes the message raptor.panel.v1.ListEggsResponse.
- * Use `create(ListEggsResponseSchema)` to create a new message.
- */
-export const ListEggsResponseSchema: GenMessage<ListEggsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 4);
-
-/**
- * @generated from message raptor.panel.v1.GetEggRequest
- */
-export type GetEggRequest = Message<"raptor.panel.v1.GetEggRequest"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-};
-
-/**
- * Describes the message raptor.panel.v1.GetEggRequest.
- * Use `create(GetEggRequestSchema)` to create a new message.
- */
-export const GetEggRequestSchema: GenMessage<GetEggRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 5);
-
-/**
- * @generated from message raptor.panel.v1.GetEggResponse
- */
-export type GetEggResponse = Message<"raptor.panel.v1.GetEggResponse"> & {
-  /**
-   * The egg file: upstream's, with the catalog's x-raptor block added. The
-   * web app puts it in the signed server.create command as it is.
-   *
-   * @generated from field: bytes egg = 1;
-   */
-  egg: Uint8Array;
-};
-
-/**
- * Describes the message raptor.panel.v1.GetEggResponse.
- * Use `create(GetEggResponseSchema)` to create a new message.
- */
-export const GetEggResponseSchema: GenMessage<GetEggResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 6);
-
-/**
- * CatalogService serves Raptor's built-in egg catalog
- * (docs/EGGS.md#built-in-catalog) to the web app, for creating servers. The
- * same for everyone; any signed-in user.
- *
- * @generated from service raptor.panel.v1.CatalogService
- */
-export const CatalogService: GenService<{
-  /**
-   * ListEggs lists every egg, without the egg files themselves.
-   *
-   * @generated from rpc raptor.panel.v1.CatalogService.ListEggs
-   */
-  listEggs: {
-    methodKind: "unary";
-    input: typeof ListEggsRequestSchema;
-    output: typeof ListEggsResponseSchema;
-  },
-  /**
-   * GetEgg returns one egg's file, as a server created from it gets it.
-   *
-   * @generated from rpc raptor.panel.v1.CatalogService.GetEgg
-   */
-  getEgg: {
-    methodKind: "unary";
-    input: typeof GetEggRequestSchema;
-    output: typeof GetEggResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_raptor_panel_v1_catalog, 0);
+  messageDesc(file_raptor_panel_v1_catalog, 2);
 

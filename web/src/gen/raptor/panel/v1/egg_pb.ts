@@ -1281,19 +1281,20 @@ export const EggWarningSchema: GenMessage<EggWarning> = /*@__PURE__*/
   messageDesc(file_raptor_panel_v1_egg, 38);
 
 /**
- * EggService is the egg library (docs/PANEL.md#eggs): Raptor's built-in
- * eggs, its official ones (managed by staff), and each org's own (imported,
- * made from scratch, or customized copies). An org's admins and owners
- * change the org's eggs; members see them. org_id empty means the official
- * library: staff admins change it, with a passkey from the last 5 minutes.
+ * EggService is the egg library (docs/PANEL.md#eggs): Raptor's official
+ * eggs (managed by staff; Raptor's catalog is seeded into them), and each
+ * org's own (imported, made from scratch, or customized copies) and those
+ * it shares. An org's admins and owners change the org's eggs; members see
+ * them. org_id empty means the official library: staff admins change it,
+ * with a passkey from the last 5 minutes.
  *
  * @generated from service raptor.panel.v1.EggService
  */
 export const EggService: GenService<{
   /**
    * ListEggs lists the eggs an org can use: its own (any status), then the
-   * official and built-in ones. For the official library (staff), every
-   * official egg and the built-in ones.
+   * published official ones. For the official library (staff), every
+   * official egg.
    *
    * @generated from rpc raptor.panel.v1.EggService.ListEggs
    */

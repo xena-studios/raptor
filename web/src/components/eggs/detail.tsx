@@ -413,11 +413,7 @@ function FileView({ d }: { d: GetEggDetailsResponse }) {
 
 function Versions({ d }: { d: GetEggDetailsResponse }) {
   if (d.versions.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Raptor's built-in eggs change with Raptor's releases.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">No versions yet.</p>;
   }
   return (
     <Card className="py-0">

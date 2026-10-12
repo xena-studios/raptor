@@ -73,8 +73,8 @@ const (
 // EggServiceClient is a client for the raptor.panel.v1.EggService service.
 type EggServiceClient interface {
 	// ListEggs lists the eggs an org can use: its own (any status), then the
-	// official and built-in ones. For the official library (staff), every
-	// official egg and the built-in ones.
+	// published official ones. For the official library (staff), every
+	// official egg.
 	ListEggs(context.Context, *v1.EggServiceListEggsRequest) (*v1.EggServiceListEggsResponse, error)
 	// GetEggDetails is one egg: what it runs, as the editor shows it, its
 	// file, and its versions.
@@ -380,8 +380,8 @@ func (c *eggServiceClient) ModerateEgg(ctx context.Context, req *v1.ModerateEggR
 // EggServiceHandler is an implementation of the raptor.panel.v1.EggService service.
 type EggServiceHandler interface {
 	// ListEggs lists the eggs an org can use: its own (any status), then the
-	// official and built-in ones. For the official library (staff), every
-	// official egg and the built-in ones.
+	// published official ones. For the official library (staff), every
+	// official egg.
 	ListEggs(context.Context, *v1.EggServiceListEggsRequest) (*v1.EggServiceListEggsResponse, error)
 	// GetEggDetails is one egg: what it runs, as the editor shows it, its
 	// file, and its versions.

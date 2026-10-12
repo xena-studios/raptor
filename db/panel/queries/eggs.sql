@@ -65,7 +65,7 @@ SELECT EXISTS (SELECT 1 FROM eggs WHERE org_id = $1 AND sha256 = $2);
 -- name: EggServerCounts :many
 -- How many servers (on any node) were made from each egg, by the
 -- egg_source the web app sends: a library egg's ID (or "org:" and the ID,
--- before the library), or a built-in egg's.
+-- before the library), or a catalog ID (before the catalog was in it).
 SELECT CASE WHEN egg_source LIKE 'org:%' THEN substr(egg_source, 5) ELSE egg_source END::text AS egg,
     count(*)::int AS n
 FROM m_servers WHERE egg_source <> '' GROUP BY 1;
@@ -129,3 +129,24 @@ WHERE id = @id AND removed_at IS NOT NULL;
 -- name: ResolveEggReports :execrows
 UPDATE egg_reports SET resolved_at = now(), resolved_by = @resolved_by, resolution = @resolution
 WHERE egg_id = @egg_id AND resolved_at IS NULL;
+
+-- Raptor's catalog in the official library (internal/panel/catalog).
+
+-- name: GetEggByCatalogID :one
+SELECT * FROM eggs WHERE catalog_id = $1;
+
+-- name: AddCatalogEgg :one
+INSERT INTO eggs (org_id, name, category, origin, status, egg, sha256, source_url, catalog_id, certified)
+VALUES (NULL, @name, @category, 'catalog', 'published', @egg, @sha256, @source_url, @catalog_id, @certified)
+RETURNING *;
+
+-- name: UpdateCatalogEgg :exec
+UPDATE eggs SET name = @name, egg = @egg, sha256 = @sha256, version = @version, source_url = @source_url,
+    certified = @certified, updated_at = now()
+WHERE id = @id;
+
+-- name: LatestEggVersion :one
+SELECT version, created_by FROM egg_versions WHERE egg_id = $1 ORDER BY version DESC LIMIT 1;
+
+-- name: ClearEggCertified :exec
+UPDATE eggs SET certified = false WHERE id = $1;

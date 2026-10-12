@@ -84,6 +84,8 @@ type Egg struct {
 	RemovedAt     pgtype.Timestamptz
 	RemovedReason string
 	RemovedBy     string
+	CatalogID     pgtype.Text
+	Certified     bool
 }
 
 type EggReport struct {
