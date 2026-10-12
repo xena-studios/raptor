@@ -1,21 +1,20 @@
 import { useMutation, useQuery } from "@connectrpc/connect-query";
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, type LinkProps, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Building2,
   Check,
   ChevronsUpDown,
   Egg,
-  Gauge,
+  Gamepad2,
   Headset,
   LayoutDashboard,
   LogOut,
+  type LucideIcon,
   Megaphone,
   Plus,
   Server,
   Settings,
   Shield,
-  ShieldCheck,
-  SquareTerminal,
   UserRound,
   Users,
   WifiOff,
@@ -53,7 +52,9 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AuthService, type GetSessionResponse } from "@/gen/raptor/panel/v1/auth_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
@@ -76,9 +77,9 @@ export function lastOrg(): string | null {
 let themeSynced = false;
 
 // The frame around signed-in pages: a sidebar, a top bar, and the page.
-// On the org's pages the sidebar has the org switcher, the org's sections
-// and nodes, and how many nodes are online; on the admin panel's (/admin)
-// it has the admin sections and a way back. The user's menu is in both.
+// The sidebar's switcher picks where to work: one of the user's orgs, or
+// for staff Raptor's admin panel (/admin). Below it are that place's
+// sections (an org's also list its nodes); the user's menu is at the foot.
 export function AppShell({
   session,
   orgId,
@@ -93,9 +94,15 @@ export function AppShell({
   const list = orgs.data?.orgs ?? [];
   const currentId = orgId ?? lastOrg() ?? list[0]?.id;
   const current = list.find((o) => o.id === currentId) ?? list[0];
-  const admin = useLocation({
-    select: (l) => l.pathname === "/admin" || l.pathname.startsWith("/admin/"),
-  });
+  const path = useLocation({ select: (l) => l.pathname });
+  const admin = path === "/admin" || path.startsWith("/admin/");
+  const title = admin
+    ? "Raptor admin"
+    : path === "/settings" || path.startsWith("/settings/")
+      ? "Account settings"
+      : orgId
+        ? current?.name
+        : undefined;
 
   // The account's theme wins once per page load; after that, the
   // Appearance card changes both.
@@ -117,19 +124,27 @@ export function AppShell({
 
   return (
     <SidebarProvider>
+      <CloseOnNavigate path={path} />
       <Sidebar collapsible="icon">
         <SidebarHeader className="gap-3">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" render={<Link to="/" />}>
-                <Logo className="size-8" />
+              <SidebarMenuButton size="lg" tooltip="Raptor" render={<Link to="/" />}>
+                <Logo className="size-8! shrink-0" />
                 <span className="font-heading text-base font-semibold">Raptor</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
           <SidebarMenu>
             <SidebarMenuItem>
-              <OrgSwitcher orgs={list} current={current?.id} admin={admin} />
+              {orgs.isPending ? (
+                <div className="flex h-12 items-center gap-2 rounded-md border p-2 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:p-0">
+                  <Skeleton className="size-8 shrink-0 rounded-md" />
+                  <Skeleton className="h-4 flex-1 group-data-[collapsible=icon]:hidden" />
+                </div>
+              ) : (
+                <Switcher orgs={list} current={current?.id} admin={admin} />
+              )}
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
@@ -146,10 +161,12 @@ export function AppShell({
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-1 h-4" />
-          <span className="truncate text-sm text-muted-foreground">
-            {admin ? "Raptor admin" : current?.name}
-          </span>
+          {title && (
+            <>
+              <Separator orientation="vertical" className="mr-1 h-4" />
+              <span className="truncate text-sm text-muted-foreground">{title}</span>
+            </>
+          )}
         </header>
         <ConnectionBanner />
         <Announcements />
@@ -165,11 +182,44 @@ export function AppShell({
   );
 }
 
+// CloseOnNavigate closes the sidebar on phones once a link in it is
+// followed, so the page shows.
+function CloseOnNavigate({ path }: { path: string }) {
+  const { isMobile, setOpenMobile } = useSidebar();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on each new path
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [path]);
+  return null;
+}
+
+// useMenuSide is where the sidebar's menus open: beside a collapsed
+// sidebar, otherwise next to their trigger.
+function useMenuSide(open: "bottom" | "top"): "bottom" | "top" | "right" {
+  const { state, isMobile } = useSidebar();
+  return !isMobile && state === "collapsed" ? "right" : open;
+}
+
 type OrgSummary = { id: string; name: string; role: number };
 
-// OrgSwitcher is where to work: one of the user's orgs or, for staff,
-// Raptor's admin panel (shown in its place on admin pages).
-function OrgSwitcher({
+// Tile is an org's initials, or the admin panel's shield, in a square.
+function Tile({ name, admin, small }: { name?: string; admin?: boolean; small?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-md font-semibold",
+        small ? "size-6 text-[10px]" : "size-8 text-xs",
+        admin ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
+      )}
+    >
+      {admin ? <Shield className={small ? "size-3.5!" : "size-4!"} /> : initials(name ?? "?")}
+    </span>
+  );
+}
+
+// Switcher is where to work: one of the user's orgs or, for staff, Raptor's
+// admin panel, which it shows on admin pages.
+function Switcher({
   orgs,
   current,
   admin,
@@ -179,44 +229,33 @@ function OrgSwitcher({
   admin: boolean;
 }) {
   const navigate = useNavigate();
+  const side = useMenuSide("bottom");
   const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
   const role = staff.data?.role ?? "";
   const org = orgs.find((o) => o.id === current);
+  const name = admin ? "Raptor admin" : (org?.name ?? "No org yet");
+  const sub = admin
+    ? role.charAt(0).toUpperCase() + role.slice(1)
+    : org && roleNames[org.role as keyof typeof roleNames];
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <SidebarMenuButton size="lg" className="border">
-            {admin ? (
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Shield className="size-4" />
-              </span>
-            ) : (
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold">
-                {initials(org?.name ?? "?")}
-              </span>
-            )}
+          <SidebarMenuButton
+            size="lg"
+            tooltip={name}
+            className="border group-data-[collapsible=icon]:border-0"
+          >
+            <Tile name={org?.name} admin={admin} />
             <span className="grid min-w-0 flex-1 text-left leading-tight">
-              <span className="truncate font-medium">
-                {admin ? "Raptor admin" : (org?.name ?? "No org")}
-              </span>
-              {admin
-                ? role && (
-                    <span className="truncate text-xs text-muted-foreground capitalize">
-                      {role}
-                    </span>
-                  )
-                : org && (
-                    <span className="truncate text-xs text-muted-foreground">
-                      {roleNames[org.role as keyof typeof roleNames]}
-                    </span>
-                  )}
+              <span className="truncate font-medium">{name}</span>
+              {sub && <span className="truncate text-xs text-muted-foreground">{sub}</span>}
             </span>
-            <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+            <ChevronsUpDown className="ml-auto text-muted-foreground" />
           </SidebarMenuButton>
         }
       />
-      <DropdownMenuContent align="start" className="w-60">
+      <DropdownMenuContent align="start" side={side} className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Orgs</DropdownMenuLabel>
           {orgs.map((o) => (
@@ -224,23 +263,29 @@ function OrgSwitcher({
               key={o.id}
               onClick={() => navigate({ to: "/orgs/$orgId", params: { orgId: o.id } })}
             >
+              <Tile name={o.name} small />
               <span className="min-w-0 flex-1 truncate">{o.name}</span>
-              {!admin && o.id === current && <Check className="size-4" />}
+              {!admin && o.id === current && <Check />}
             </DropdownMenuItem>
           ))}
+          <DropdownMenuItem onClick={() => navigate({ to: "/", search: { new: true } })}>
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed">
+              <Plus className="size-3.5!" />
+            </span>
+            <span className="text-muted-foreground">New org</span>
+          </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate({ to: "/", search: { new: true } })}>
-          <Plus className="size-4" /> New org
-        </DropdownMenuItem>
         {role && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
-              <Shield className="size-4" />
-              <span className="min-w-0 flex-1 truncate">Raptor admin</span>
-              {admin && <Check className="size-4" />}
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Staff</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+                <Tile admin small />
+                <span className="min-w-0 flex-1 truncate">Raptor admin</span>
+                {admin && <Check />}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
           </>
         )}
       </DropdownMenuContent>
@@ -264,76 +309,104 @@ function ConnectionBanner() {
   );
 }
 
-// OrgNav is the org's sections; the org's nodes are listed under Nodes.
-// AdminNav is Raptor's admin panel, for staff only (docs/PANEL.md#staff).
+// NavLink is one of a section list's links, the same in every list.
+function NavLink({
+  link,
+  label,
+  icon: Icon,
+  active,
+  children,
+}: {
+  link: Pick<LinkProps, "to" | "params">;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton tooltip={label} isActive={active} render={<Link {...link} />}>
+        <Icon /> <span>{label}</span>
+      </SidebarMenuButton>
+      {children}
+    </SidebarMenuItem>
+  );
+}
+
+// AdminNav is Raptor's admin panel's sections (docs/PANEL.md#staff).
 const adminLinks = [
-  { to: "/admin", label: "Overview", icon: Gauge, exact: true },
+  { to: "/admin", label: "Overview", icon: LayoutDashboard },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/orgs", label: "Orgs", icon: Building2 },
   { to: "/admin/support", label: "Support", icon: Headset },
   { to: "/admin/eggs", label: "Eggs", icon: Egg },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/admin/settings", label: "Settings", icon: ShieldCheck },
+  { to: "/admin/settings", label: "Settings", icon: Settings },
 ] as const;
 
-// AdminNav is the admin panel's sections.
 function AdminNav() {
   const path = useLocation({ select: (l) => l.pathname });
+  const active = (to: string) =>
+    to === "/admin"
+      ? path === "/admin" || path === "/admin/" || path.startsWith("/admin/overview")
+      : path.startsWith(to);
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Admin</SidebarGroupLabel>
+      <SidebarGroupLabel>Manage</SidebarGroupLabel>
       <SidebarMenu>
         {adminLinks.map((l) => (
-          <SidebarMenuItem key={l.to}>
-            <SidebarMenuButton
-              tooltip={l.label}
-              isActive={
-                "exact" in l
-                  ? path === l.to || path === `${l.to}/` || path.startsWith("/admin/overview")
-                  : path.startsWith(l.to)
-              }
-              render={<Link to={l.to} />}
-            >
-              <l.icon /> <span>{l.label}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <NavLink
+            key={l.to}
+            link={{ to: l.to }}
+            label={l.label}
+            icon={l.icon}
+            active={active(l.to)}
+          />
         ))}
       </SidebarMenu>
     </SidebarGroup>
   );
 }
 
+// nodesShown is how many nodes the sidebar lists under Nodes; the rest are
+// on the Nodes page.
+const nodesShown = 8;
+
+// OrgNav is the org's sections, with its nodes under Nodes.
 function OrgNav({ orgId }: { orgId: string }) {
   const path = useLocation({ select: (l) => l.pathname });
   const nodes = useQuery(OrgService.method.listNodes, { orgId }, { refetchInterval: 15_000 });
+  // Connected first, then by name; the node being looked at is always in
+  // the list, even past the first few.
+  const list = [...(nodes.data?.nodes ?? [])].sort(
+    (a, b) => Number(b.connected) - Number(a.connected) || a.name.localeCompare(b.name),
+  );
   const base = `/orgs/${orgId}`;
+  const open = list.findIndex((n) => path.startsWith(`${base}/nodes/${n.id}`));
+  const shown = list.filter((_, i) => i < nodesShown - (open >= nodesShown ? 1 : 0) || i === open);
   const active = (p: string) =>
     p === base ? path === base || path === `${base}/` : path.startsWith(p);
+  const params = { orgId };
 
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Manage</SidebarGroupLabel>
       <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip="Overview"
-            isActive={active(base)}
-            render={<Link to="/orgs/$orgId" params={{ orgId }} />}
-          >
-            <LayoutDashboard /> <span>Overview</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip="Nodes"
-            isActive={active(`${base}/nodes`)}
-            render={<Link to="/orgs/$orgId/nodes" params={{ orgId }} />}
-          >
-            <SquareTerminal /> <span>Nodes</span>
-          </SidebarMenuButton>
-          {(nodes.data?.nodes.length ?? 0) > 0 && (
+        <NavLink
+          link={{ to: "/orgs/$orgId", params }}
+          label="Overview"
+          icon={LayoutDashboard}
+          active={active(base)}
+        />
+        <NavLink
+          link={{ to: "/orgs/$orgId/nodes", params }}
+          label="Nodes"
+          icon={Server}
+          active={active(`${base}/nodes`)}
+        >
+          {list.length > 0 && (
             <SidebarMenuSub>
-              {nodes.data?.nodes.map((n) => (
+              {shown.map((n) => (
                 <SidebarMenuSubItem key={n.id}>
                   <SidebarMenuSubButton
                     isActive={path.startsWith(`${base}/nodes/${n.id}`)}
@@ -346,42 +419,43 @@ function OrgNav({ orgId }: { orgId: string }) {
                         "size-2 shrink-0 rounded-full",
                         n.connected ? "bg-emerald-500" : "bg-muted-foreground/40",
                       )}
-                      title={n.connected ? "Connected" : "Offline"}
                     />
                     <span className="truncate">{n.name}</span>
+                    <span className="sr-only">{n.connected ? "(connected)" : "(offline)"}</span>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
               ))}
+              {list.length > nodesShown && (
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton
+                    className="text-muted-foreground"
+                    render={<Link to="/orgs/$orgId/nodes" params={params} />}
+                  >
+                    <span className="truncate">All {list.length} nodes</span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              )}
             </SidebarMenuSub>
           )}
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip="Servers"
-            isActive={active(`${base}/servers`)}
-            render={<Link to="/orgs/$orgId/servers" params={{ orgId }} />}
-          >
-            <Server /> <span>Servers</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip="Eggs"
-            isActive={active(`${base}/eggs`)}
-            render={<Link to="/orgs/$orgId/eggs" params={{ orgId }} />}
-          >
-            <Egg /> <span>Eggs</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip="Settings"
-            isActive={active(`${base}/settings`)}
-            render={<Link to="/orgs/$orgId/settings" params={{ orgId }} />}
-          >
-            <Settings /> <span>Settings</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        </NavLink>
+        <NavLink
+          link={{ to: "/orgs/$orgId/servers", params }}
+          label="Servers"
+          icon={Gamepad2}
+          active={active(`${base}/servers`)}
+        />
+        <NavLink
+          link={{ to: "/orgs/$orgId/eggs", params }}
+          label="Eggs"
+          icon={Egg}
+          active={active(`${base}/eggs`)}
+        />
+        <NavLink
+          link={{ to: "/orgs/$orgId/settings", params }}
+          label="Settings"
+          icon={Settings}
+          active={active(`${base}/settings`)}
+        />
       </SidebarMenu>
     </SidebarGroup>
   );
@@ -395,14 +469,17 @@ function NodeCount({ orgId }: { orgId: string }) {
   const online = list.filter((n) => n.connected).length;
   return (
     <p className="px-2 text-xs text-muted-foreground tabular-nums group-data-[collapsible=icon]:hidden">
-      <span className={cn(online > 0 && "text-emerald-500")}>{online} online</span> of {list.length}{" "}
-      {list.length === 1 ? "node" : "nodes"}
+      <span className={cn(online > 0 && "text-emerald-600 dark:text-emerald-500")}>
+        {online} online
+      </span>{" "}
+      of {list.length} {list.length === 1 ? "node" : "nodes"}
     </p>
   );
 }
 
 function UserMenu({ session }: { session: GetSessionResponse }) {
   const navigate = useNavigate();
+  const side = useMenuSide("top");
   const signOut = useMutation(AuthService.method.signOut);
   const email = session.user?.email ?? "";
   const name = session.user?.name ?? "";
@@ -412,8 +489,8 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <SidebarMenuButton size="lg">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold uppercase">
+              <SidebarMenuButton size="lg" tooltip={name || email}>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                   {initials(name || email)}
                 </span>
                 <span className="grid min-w-0 flex-1 text-left leading-tight">
@@ -422,11 +499,11 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
                     {email}
                   </span>
                 </span>
-                <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+                <ChevronsUpDown className="ml-auto text-muted-foreground" />
               </SidebarMenuButton>
             }
           />
-          <DropdownMenuContent align="start" side="top" className="w-60">
+          <DropdownMenuContent align="start" side={side} className="w-64">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="grid leading-tight">
                 {name && <span className="truncate font-medium text-foreground">{name}</span>}
@@ -435,7 +512,7 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
-              <UserRound className="size-4" /> Account settings
+              <UserRound /> Account settings
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={async () => {
@@ -443,7 +520,7 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
                 await navigate({ to: "/signin" });
               }}
             >
-              <LogOut className="size-4" /> Sign out
+              <LogOut /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
