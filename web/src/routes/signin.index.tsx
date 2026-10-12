@@ -3,6 +3,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { KeyRound, Mail } from "lucide-react";
 import { type FormEvent, useCallback, useRef, useState } from "react";
 
+import { SourceLink } from "@/components/source-link";
 import { Turnstile, type TurnstileHandle, turnstileOn } from "@/components/turnstile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -226,6 +227,7 @@ function SignIn() {
           )}
         </CardContent>
       </Card>
+      <SourceLink className="mt-4 text-center" />
     </main>
   );
 }
