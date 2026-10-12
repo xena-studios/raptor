@@ -72,7 +72,7 @@ func (q *Queries) CreateEmailCode(ctx context.Context, arg CreateEmailCodeParams
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (user_id, token_hash, expires_at, ip, user_agent, reauth_at)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at
+RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at
 `
 
 type CreateSessionParams struct {
@@ -105,12 +105,13 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.Ip,
 		&i.UserAgent,
 		&i.RevokedAt,
+		&i.PasskeyAt,
 	)
 	return i, err
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme
+INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme, suspended_at, suspended_reason
 `
 
 func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
@@ -128,6 +129,8 @@ func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
 		&i.TotpLastStep,
 		&i.SftpUsername,
 		&i.Theme,
+		&i.SuspendedAt,
+		&i.SuspendedReason,
 	)
 	return i, err
 }
@@ -174,7 +177,7 @@ func (q *Queries) EmailCodeByLink(ctx context.Context, linkTokenHash []byte) (Em
 }
 
 const getSession = `-- name: GetSession :one
-SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at FROM sessions WHERE id = $1
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at FROM sessions WHERE id = $1
 `
 
 func (q *Queries) GetSession(ctx context.Context, id pgtype.UUID) (Session, error) {
@@ -191,12 +194,13 @@ func (q *Queries) GetSession(ctx context.Context, id pgtype.UUID) (Session, erro
 		&i.Ip,
 		&i.UserAgent,
 		&i.RevokedAt,
+		&i.PasskeyAt,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme FROM users WHERE id = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme, suspended_at, suspended_reason FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -214,12 +218,14 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.TotpLastStep,
 		&i.SftpUsername,
 		&i.Theme,
+		&i.SuspendedAt,
+		&i.SuspendedReason,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme FROM users WHERE email = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme, suspended_at, suspended_reason FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -237,6 +243,8 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.TotpLastStep,
 		&i.SftpUsername,
 		&i.Theme,
+		&i.SuspendedAt,
+		&i.SuspendedReason,
 	)
 	return i, err
 }
@@ -271,7 +279,7 @@ func (q *Queries) LatestEmailCode(ctx context.Context, arg LatestEmailCodeParams
 }
 
 const listUserSessions = `-- name: ListUserSessions :many
-SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at FROM sessions
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at FROM sessions
 WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
 ORDER BY last_seen_at DESC
 `
@@ -296,6 +304,7 @@ func (q *Queries) ListUserSessions(ctx context.Context, userID pgtype.UUID) ([]S
 			&i.Ip,
 			&i.UserAgent,
 			&i.RevokedAt,
+			&i.PasskeyAt,
 		); err != nil {
 			return nil, err
 		}
@@ -372,7 +381,7 @@ func (q *Queries) RevokeSessionByToken(ctx context.Context, tokenHash []byte) er
 }
 
 const sessionByToken = `-- name: SessionByToken :one
-SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at FROM sessions WHERE token_hash = $1
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at FROM sessions WHERE token_hash = $1
 `
 
 func (q *Queries) SessionByToken(ctx context.Context, tokenHash []byte) (Session, error) {
@@ -389,6 +398,7 @@ func (q *Queries) SessionByToken(ctx context.Context, tokenHash []byte) (Session
 		&i.Ip,
 		&i.UserAgent,
 		&i.RevokedAt,
+		&i.PasskeyAt,
 	)
 	return i, err
 }
@@ -408,7 +418,7 @@ func (q *Queries) SetSessionReauth(ctx context.Context, arg SetSessionReauthPara
 }
 
 const setUserEmail = `-- name: SetUserEmail :one
-UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme
+UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme, suspended_at, suspended_reason
 `
 
 type SetUserEmailParams struct {
@@ -431,12 +441,14 @@ func (q *Queries) SetUserEmail(ctx context.Context, arg SetUserEmailParams) (Use
 		&i.TotpLastStep,
 		&i.SftpUsername,
 		&i.Theme,
+		&i.SuspendedAt,
+		&i.SuspendedReason,
 	)
 	return i, err
 }
 
 const setUserName = `-- name: SetUserName :one
-UPDATE users SET name = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme
+UPDATE users SET name = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme, suspended_at, suspended_reason
 `
 
 type SetUserNameParams struct {
@@ -459,12 +471,14 @@ func (q *Queries) SetUserName(ctx context.Context, arg SetUserNameParams) (User,
 		&i.TotpLastStep,
 		&i.SftpUsername,
 		&i.Theme,
+		&i.SuspendedAt,
+		&i.SuspendedReason,
 	)
 	return i, err
 }
 
 const setUserTheme = `-- name: SetUserTheme :one
-UPDATE users SET theme = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme
+UPDATE users SET theme = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, sftp_username, theme, suspended_at, suspended_reason
 `
 
 type SetUserThemeParams struct {
@@ -487,6 +501,8 @@ func (q *Queries) SetUserTheme(ctx context.Context, arg SetUserThemeParams) (Use
 		&i.TotpLastStep,
 		&i.SftpUsername,
 		&i.Theme,
+		&i.SuspendedAt,
+		&i.SuspendedReason,
 	)
 	return i, err
 }

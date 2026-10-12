@@ -250,6 +250,9 @@ message Org {
   google.protobuf.Timestamp created_at = 3;
   // The caller's role.
   Role role = 4;
+  // Suspended by Raptor's staff: it can't be managed until they lift it
+  // (its servers keep running).
+  bool suspended = 5;
 }
 
 message CreateOrgRequest {

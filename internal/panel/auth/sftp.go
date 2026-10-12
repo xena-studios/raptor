@@ -77,6 +77,9 @@ func sftpGrant(ctx context.Context, q *store.Queries, node pgtype.UUID, server s
 	if err != nil {
 		return nil, err
 	}
+	if suspended, err := q.OrgSuspended(ctx, org); err != nil || suspended {
+		return nil, errors.Join(errSFTPDenied, err)
+	}
 	perms := slices.Clone(sftpPerms)
 	if m.Role == "member" {
 		g, err := q.ServerGrant(ctx, store.ServerGrantParams{NodeID: node, ServerID: server, UserID: user})

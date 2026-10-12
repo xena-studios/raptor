@@ -33,6 +33,9 @@ type Session struct {
 // hasn't been used from this browser before, after is the email that says
 // so, for the caller to send once the transaction commits.
 func (s *Service) startSession(ctx context.Context, q *store.Queries, user store.User, reauthed bool, method string) (after func(), err error) {
+	if user.SuspendedAt.Valid {
+		return nil, ErrSuspended
+	}
 	token := newToken()
 	var ip *netip.Addr
 	if a := s.clientIP(ctx); a.IsValid() {
@@ -66,6 +69,11 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 	})
 	if err != nil {
 		return nil, err
+	}
+	if method == "passkey" {
+		if err := q.SetSessionPasskey(ctx, store.SetSessionPasskeyParams{ID: sess.ID, PasskeyAt: pgtype.Timestamptz{Time: s.now(), Valid: true}}); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.Audit(ctx, q, Event{
 		User: user.ID, Action: "signin", Target: uuid.UUID(sess.ID.Bytes).String(),
@@ -147,6 +155,9 @@ func (s *Service) lookup(ctx context.Context, token string) (*Session, error) {
 	user, err := q.GetUser(ctx, sess.UserID)
 	if err != nil {
 		return nil, err
+	}
+	if user.SuspendedAt.Valid {
+		return nil, ErrSuspended
 	}
 	// Last seen to the minute is plenty, and saves a write per request.
 	if now.Sub(sess.LastSeenAt.Time) > time.Minute {

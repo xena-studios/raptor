@@ -1,0 +1,307 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// StaffService is Raptor's own admin panel (docs/PANEL.md#staff): platform
+// insight, and looking after accounts and orgs. Only staff (granted with
+// `panel staff add` on the Panel's server) may call it, from a session that
+// confirmed a passkey in the last 12 hours; changes need one in the last 5
+// minutes. Staff can't act on nodes or servers here: support access to a
+// node needs its owner's passkey.
+service StaffService {
+  // GetStaffMe says whether the caller is staff, and as what. Anyone signed in
+  // may ask; non-staff get an empty role.
+  rpc GetStaffMe(GetStaffMeRequest) returns (GetStaffMeResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetOverview is the platform at a glance, with its history.
+  rpc GetOverview(GetOverviewRequest) returns (GetOverviewResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // SuspendUser stops an account signing in and ends its sessions. Admins.
+  rpc SuspendUser(SuspendUserRequest) returns (SuspendUserResponse) {}
+  rpc UnsuspendUser(UnsuspendUserRequest) returns (UnsuspendUserResponse) {}
+  // SignOutUser ends every session of an account. Admins.
+  rpc SignOutUser(SignOutUserRequest) returns (SignOutUserResponse) {}
+
+  rpc SearchOrgs(SearchOrgsRequest) returns (SearchOrgsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc GetStaffOrg(GetStaffOrgRequest) returns (GetStaffOrgResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // SuspendOrg stops the org being used in the Panel. Its nodes and their
+  // game servers keep running. Admins.
+  rpc SuspendOrg(SuspendOrgRequest) returns (SuspendOrgResponse) {}
+  rpc UnsuspendOrg(UnsuspendOrgRequest) returns (UnsuspendOrgResponse) {}
+
+  // ListStaff lists Raptor's staff.
+  rpc ListStaff(ListStaffRequest) returns (ListStaffResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // ListStaffAudit is what staff did, newest first, 50 at a time.
+  rpc ListStaffAudit(ListStaffAuditRequest) returns (ListStaffAuditResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message GetStaffMeRequest {}
+
+message GetStaffMeResponse {
+  // "admin", "support", or "" for everyone else.
+  string role = 1;
+  // Whether the session confirmed a passkey recently enough for staff
+  // pages; if not, the app asks for one.
+  bool passkey_fresh = 2;
+}
+
+message GetOverviewRequest {
+  // How far back the graphs go, in days (default 30, at most 365).
+  int32 days = 1;
+}
+
+message PlatformCounts {
+  int32 users = 1;
+  int32 orgs = 2;
+  int32 nodes = 3;
+  int32 nodes_connected = 4;
+  int32 servers = 5;
+  int32 servers_running = 6;
+  int64 storage_bytes = 7;
+  int32 signups_30d = 8;
+  int32 active_users_30d = 9;
+  int32 storage_nodes = 10;
+}
+
+message PlatformPoint {
+  google.protobuf.Timestamp at = 1;
+  int32 users = 2;
+  int32 orgs = 3;
+  int32 nodes = 4;
+  int32 nodes_connected = 5;
+  int32 servers = 6;
+  int32 servers_running = 7;
+  int64 storage_bytes = 8;
+}
+
+message CountBucket {
+  string name = 1;
+  int32 count = 2;
+}
+
+message OfflineNode {
+  string node_id = 1;
+  string name = 2;
+  string org_id = 3;
+  string org_name = 4;
+  google.protobuf.Timestamp last_seen_at = 5;
+  string wings_version = 6;
+}
+
+message FailingServer {
+  string node_id = 1;
+  string server_id = 2;
+  string name = 3;
+  string state = 4;
+  string install_error = 5;
+  string egg_name = 6;
+  string org_id = 7;
+  string org_name = 8;
+}
+
+message Revenue {
+  // Whether billing exists yet. Until it does, what's below is what Raptor
+  // Backup Storage would bill a month, not money taken.
+  bool billing_live = 1;
+  int64 storage_cents_month = 2;
+  int32 storage_orgs = 3;
+}
+
+message GetOverviewResponse {
+  PlatformCounts counts = 1;
+  repeated PlatformPoint history = 2;
+  repeated CountBucket signups_by_day = 3; // name: YYYY-MM-DD
+  repeated CountBucket wings_versions = 4;
+  repeated CountBucket archs = 5;
+  repeated CountBucket top_eggs = 6;
+  repeated OfflineNode offline_nodes = 7;
+  repeated FailingServer failing_servers = 8;
+  Revenue revenue = 9;
+}
+
+message StaffUser {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp suspended_at = 5;
+  string suspended_reason = 6;
+  int32 orgs = 7;
+  int32 passkeys = 8;
+  google.protobuf.Timestamp last_seen_at = 9;
+  string staff_role = 10;
+}
+
+message SearchUsersRequest {
+  // An email, a name, or an ID; empty lists the newest.
+  string query = 1;
+  int32 offset = 2;
+}
+
+message SearchUsersResponse {
+  repeated StaffUser users = 1;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message UserMembership {
+  string org_id = 1;
+  string org_name = 2;
+  string role = 3;
+  bool org_suspended = 4;
+}
+
+message UserSignin {
+  google.protobuf.Timestamp at = 1;
+  string ip = 2;
+  string user_agent = 3;
+  string method = 4;
+}
+
+message GetUserResponse {
+  StaffUser user = 1;
+  repeated UserMembership memberships = 2;
+  repeated UserSignin sign_ins = 3;
+}
+
+message SuspendUserRequest {
+  string user_id = 1;
+  // Why, for the staff log and the account's own.
+  string reason = 2;
+}
+
+message SuspendUserResponse {}
+
+message UnsuspendUserRequest {
+  string user_id = 1;
+}
+
+message UnsuspendUserResponse {}
+
+message SignOutUserRequest {
+  string user_id = 1;
+}
+
+message SignOutUserResponse {
+  int32 sessions = 1;
+}
+
+message StaffOrg {
+  string id = 1;
+  string name = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp suspended_at = 4;
+  string suspended_reason = 5;
+  int32 members = 6;
+  int32 nodes = 7;
+  int32 servers = 8;
+}
+
+message SearchOrgsRequest {
+  string query = 1;
+  int32 offset = 2;
+}
+
+message SearchOrgsResponse {
+  repeated StaffOrg orgs = 1;
+}
+
+message GetStaffOrgRequest {
+  string org_id = 1;
+}
+
+message StaffOrgMember {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+  string role = 4;
+}
+
+message StaffOrgNode {
+  string id = 1;
+  string name = 2;
+  bool connected = 3;
+  string wings_version = 4;
+  string arch = 5;
+  google.protobuf.Timestamp last_seen_at = 6;
+  google.protobuf.Timestamp created_at = 7;
+  int32 servers = 8;
+}
+
+message GetStaffOrgResponse {
+  StaffOrg org = 1;
+  repeated StaffOrgMember members = 2;
+  repeated StaffOrgNode nodes = 3;
+  int64 storage_bytes = 4;
+}
+
+message SuspendOrgRequest {
+  string org_id = 1;
+  string reason = 2;
+}
+
+message SuspendOrgResponse {}
+
+message UnsuspendOrgRequest {
+  string org_id = 1;
+}
+
+message UnsuspendOrgResponse {}
+
+message StaffMember {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+  string role = 4;
+  google.protobuf.Timestamp added_at = 5;
+  string added_by = 6;
+}
+
+message ListStaffRequest {}
+
+message ListStaffResponse {
+  repeated StaffMember staff = 1;
+}
+
+message StaffAuditEntry {
+  string id = 1;
+  google.protobuf.Timestamp at = 2;
+  string staff_email = 3;
+  string action = 4;
+  string target_type = 5;
+  string target_id = 6;
+  string meta_json = 7;
+  string ip = 8;
+}
+
+message ListStaffAuditRequest {
+  // next_page_token from the previous page.
+  string page_token = 1;
+}
+
+message ListStaffAuditResponse {
+  repeated StaffAuditEntry entries = 1;
+  string next_page_token = 2;
+}

@@ -214,6 +214,15 @@ var (
 // re-authenticated in the last 5 minutes (FAILED_PRECONDITION).
 func (s *Service) RequireReauth(sess *Session) error { return s.requireReauth(sess) }
 
+// ErrReauth asks the app to confirm it's the user (BeginReauth) and retry.
+var ErrReauth = errReauth
+
+// ClientIP is the request's client address (zero if unknown).
+func (s *Service) ClientIP(ctx context.Context) netip.Addr { return s.clientIP(ctx) }
+
+// Clock is the service's clock.
+func (s *Service) Clock() time.Time { return s.now() }
+
 // RateLimit counts an event for key and refuses (RESOURCE_EXHAUSTED) once
 // there are more than max in window, across every Panel instance.
 func (s *Service) RateLimit(ctx context.Context, key string, max int64, window time.Duration) error {

@@ -98,6 +98,9 @@ func (s *Service) authorize(ctx context.Context, q *store.Queries, sess *auth.Se
 	if err != nil {
 		return org, err
 	}
+	if err := auth.OrgUsable(ctx, q, org); err != nil {
+		return org, err
+	}
 	if m.Role == "owner" || m.Role == "admin" {
 		return org, nil
 	}

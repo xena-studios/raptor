@@ -9,6 +9,7 @@ import {
   Plus,
   Server,
   Settings,
+  ShieldCheck,
   SquareTerminal,
   UserRound,
   WifiOff,
@@ -47,6 +48,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AuthService, type GetSessionResponse } from "@/gen/raptor/panel/v1/auth_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { useApiDown } from "@/lib/connection";
 import { roleNames } from "@/lib/format";
 import { getTheme, isTheme, setTheme } from "@/lib/theme";
@@ -310,6 +312,8 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
   const signOut = useMutation(AuthService.method.signOut);
   const email = session.user?.email ?? "";
   const name = session.user?.name ?? "";
+  // Raptor's staff get a way into the admin panel; everyone else, nothing.
+  const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -341,6 +345,11 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
               <UserRound className="size-4" /> Account settings
             </DropdownMenuItem>
+            {staff.data?.role && (
+              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+                <ShieldCheck className="size-4" /> Raptor admin
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={async () => {
                 await signOut.mutateAsync({});

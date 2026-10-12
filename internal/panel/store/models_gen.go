@@ -202,9 +202,11 @@ type OauthFlow struct {
 }
 
 type Org struct {
-	ID        pgtype.UUID
-	Name      string
-	CreatedAt pgtype.Timestamptz
+	ID              pgtype.UUID
+	Name            string
+	CreatedAt       pgtype.Timestamptz
+	SuspendedAt     pgtype.Timestamptz
+	SuspendedReason string
 }
 
 type OrgEgg struct {
@@ -261,6 +263,17 @@ type PendingSignin struct {
 	Attempts  int32
 	ExpiresAt pgtype.Timestamptz
 	CreatedAt pgtype.Timestamptz
+}
+
+type PlatformStat struct {
+	At             pgtype.Timestamptz
+	Users          int32
+	Orgs           int32
+	Nodes          int32
+	NodesConnected int32
+	Servers        int32
+	ServersRunning int32
+	StorageBytes   int64
 }
 
 type RateEvent struct {
@@ -324,6 +337,7 @@ type Session struct {
 	Ip         *netip.Addr
 	UserAgent  string
 	RevokedAt  pgtype.Timestamptz
+	PasskeyAt  pgtype.Timestamptz
 }
 
 type SftpPassword struct {
@@ -347,6 +361,25 @@ type SshKey struct {
 	LastUsedAt  pgtype.Timestamptz
 }
 
+type Staff struct {
+	UserID  pgtype.UUID
+	Role    string
+	AddedAt pgtype.Timestamptz
+	AddedBy string
+}
+
+type StaffAudit struct {
+	ID         pgtype.UUID
+	At         pgtype.Timestamptz
+	StaffID    pgtype.UUID
+	StaffEmail string
+	Action     string
+	TargetType string
+	TargetID   string
+	Meta       []byte
+	Ip         *netip.Addr
+}
+
 type TotpSetup struct {
 	UserID    pgtype.UUID
 	Secret    []byte
@@ -365,6 +398,8 @@ type User struct {
 	TotpLastStep    int64
 	SftpUsername    pgtype.Text
 	Theme           string
+	SuspendedAt     pgtype.Timestamptz
+	SuspendedReason string
 }
 
 type WebauthnCeremony struct {

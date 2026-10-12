@@ -34,6 +34,8 @@ export function TimeChart({
   height = 150,
   from,
   to,
+  gap = 180_000,
+  dots = false,
 }: {
   data: TimePoint[];
   series: Series[];
@@ -47,6 +49,12 @@ export function TimeChart({
   // The time range shown (defaults to the data's).
   from?: number;
   to?: number;
+  // The longest stretch between points that's still one line, in ms
+  // (hourly or daily data needs more than the 3 minutes of live samples).
+  gap?: number;
+  // Mark each point: for sparse data (daily counts), where a lone point
+  // has no line.
+  dots?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -86,7 +94,7 @@ export function TimeChart({
         pen = false;
         continue;
       }
-      if (pen && p.t - prevT > 180_000) pen = false;
+      if (pen && p.t - prevT > gap) pen = false;
       d += `${pen ? "L" : "M"}${x(p.t).toFixed(1)},${y(v).toFixed(1)}`;
       pen = true;
       prevT = p.t;
@@ -202,6 +210,20 @@ export function TimeChart({
                 strokeLinecap="round"
               />
             ))}
+            {dots &&
+              series.map((ser, i) =>
+                data.map((p) =>
+                  p.values[i] == null ? null : (
+                    <circle
+                      key={`${ser.name}-${p.t}`}
+                      cx={x(p.t)}
+                      cy={y(p.values[i] as number)}
+                      r={2.5}
+                      fill={ser.color}
+                    />
+                  ),
+                ),
+              )}
             {hp && (
               <g>
                 <line

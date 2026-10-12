@@ -26,6 +26,8 @@ type Event struct {
 	Action string
 	Target string
 	Meta   map[string]any
+	// Staff: Raptor's staff did it (Actor is the staff member).
+	Staff bool
 }
 
 // Audit records an event with the request's IP and browser, in q (the
@@ -54,8 +56,12 @@ func (s *Service) Audit(ctx context.Context, q *store.Queries, ev Event) error {
 	if c, ok := callOf(ctx); ok {
 		ua = truncate(c.req.Get("User-Agent"), 256)
 	}
+	actor := "user"
+	if ev.Staff {
+		actor = "staff"
+	}
 	err := q.AddAuditEvent(ctx, store.AddAuditEventParams{
-		OrgID: ev.Org, UserID: ev.User, Actor: "user", ActorID: ev.Actor, Action: ev.Action, Target: ev.Target,
+		OrgID: ev.Org, UserID: ev.User, Actor: actor, ActorID: ev.Actor, Action: ev.Action, Target: ev.Target,
 		Ip: ip, UserAgent: ua, Metadata: meta,
 	})
 	if err != nil && own {
