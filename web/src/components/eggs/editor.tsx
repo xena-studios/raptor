@@ -8,6 +8,7 @@ import {
   Cpu,
   FileCheck,
   Loader2,
+  Map as MapIcon,
   Pencil,
   Plug,
   Plus,
@@ -902,7 +903,7 @@ function AddonsTab({ spec, patch }: { spec: EggSpec; patch: Patch }) {
           return (
             <AddonCard
               key={kind}
-              icon={kind === "plugins" ? Plug : Boxes}
+              icon={kind === "plugins" ? Plug : kind === "datapacks" ? MapIcon : Boxes}
               title={meta.label}
               description={meta.description}
               on={!!a}
@@ -915,7 +916,7 @@ function AddonsTab({ spec, patch }: { spec: EggSpec; patch: Patch }) {
                         create(EggAddonSchema, {
                           kind,
                           loaders: meta.dflt,
-                          dir: kind,
+                          dir: meta.dir,
                           version:
                             spec.variables.find((v) => /^(MINECRAFT|MC)_VERSION$/.test(v.env))
                               ?.env ?? "",

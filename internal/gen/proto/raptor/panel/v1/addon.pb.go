@@ -313,7 +313,7 @@ func (x *AddonVersion) GetFile() *AddonFile {
 type SearchAddonsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	// "plugins" or "mods".
+	// "plugins", "mods", or "datapacks".
 	Kind    string   `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	Loaders []string `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
 	// Empty: any.

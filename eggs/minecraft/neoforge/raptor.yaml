@@ -30,3 +30,7 @@ addons:
     loaders: [neoforge]
     dir: mods
     version: MC_VERSION
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+    version: MC_VERSION

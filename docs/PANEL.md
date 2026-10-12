@@ -231,7 +231,7 @@ Unpublishing or archiving a shared egg takes it out of the community.
 
 ### Add-ons
 
-`AddonService` (`internal/panel/orgs/addons.go`, `internal/panel/modrinth`, `internal/panel/hangar`) finds plugins and mods for servers whose egg turns on an add-on ([EGGS.md](EGGS.md#add-ons)): `SearchAddons` and `ListAddonVersions` (from Modrinth, or Hangar with `source: "hangar"`, plugins only), and `IdentifyAddons` (what each installed file is, by SHA-512 on Modrinth and then SHA-256 on Hangar, and the newest version for the server's loaders and game version). Any member of the org, 120 calls a minute each. The Panel asks both with its own user agent and keeps answers for 5 minutes (`internal/panel/webapi`). The web app's CSP allows images from `cdn.modrinth.com` and `hangarcdn.papermc.io` for project icons.
+`AddonService` (`internal/panel/orgs/addons.go`, `internal/panel/modrinth`, `internal/panel/hangar`) finds plugins, mods, and datapacks for servers whose egg turns on an add-on ([EGGS.md](EGGS.md#add-ons)): `SearchAddons` and `ListAddonVersions` (from Modrinth, or Hangar with `source: "hangar"`, plugins only), and `IdentifyAddons` (what each installed file is, by SHA-512 on Modrinth and then SHA-256 on Hangar, and the newest version for the server's loaders and game version). Any member of the org, 120 calls a minute each. The Panel asks both with its own user agent and keeps answers for 5 minutes (`internal/panel/webapi`). The web app's CSP allows images from `cdn.modrinth.com` and `hangarcdn.papermc.io` for project icons.
 
 ### Importing
 

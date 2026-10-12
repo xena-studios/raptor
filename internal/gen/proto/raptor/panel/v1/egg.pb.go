@@ -317,7 +317,7 @@ func (x *EggSpec) GetAddons() []*EggAddon {
 // manager.
 type EggAddon struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// "plugins" or "mods".
+	// "plugins", "mods", or "datapacks".
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Modrinth's loader names: paper, spigot, fabric, ...
 	Loaders []string `protobuf:"bytes,2,rep,name=loaders,proto3" json:"loaders,omitempty"`

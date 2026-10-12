@@ -63,7 +63,7 @@ func (s *Addons) check(ctx context.Context, orgID, kind string, loaders []string
 	}
 	if kind != "" {
 		if _, ok := eggs.AddonKinds[kind]; !ok {
-			return invalid(errors.New("the kind is plugins or mods"))
+			return invalid(errors.New("the kind is plugins, mods, or datapacks"))
 		}
 	}
 	if len(loaders) == 0 {

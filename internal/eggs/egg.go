@@ -145,21 +145,27 @@ type Addon struct {
 	Version string `yaml:"version"`
 }
 
-// AddonKinds are the add-on kinds and the loaders each takes.
+// AddonKinds are the add-on kinds and the loaders each takes. Datapacks
+// run on any Java server; Modrinth names their one loader "datapack".
 var AddonKinds = map[string][]string{
-	"plugins": {"paper", "spigot", "bukkit", "purpur", "folia", "velocity", "bungeecord", "waterfall", "sponge"},
-	"mods":    {"fabric", "forge", "neoforge", "quilt"},
+	"plugins":   {"paper", "spigot", "bukkit", "purpur", "folia", "velocity", "bungeecord", "waterfall", "sponge"},
+	"mods":      {"fabric", "forge", "neoforge", "quilt"},
+	"datapacks": {"datapack"},
 }
 
-// AddonDir is where a kind's files go by default.
-var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods"}
+// AddonDir is where a kind's files go by default: datapacks in the world
+// (server.properties' level-name, "world" unless changed).
+var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods", "datapacks": "world/datapacks"}
+
+// AddonExt is a kind's file extension.
+var AddonExt = map[string]string{"plugins": ".jar", "mods": ".jar", "datapacks": ".zip"}
 
 // CheckAddons validates x-raptor.addons.
 func CheckAddons(addons map[string]Addon) error {
 	for kind, a := range addons {
 		known, ok := AddonKinds[kind]
 		if !ok {
-			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins or mods", kind)
+			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins, mods, or datapacks", kind)
 		}
 		if len(a.Loaders) == 0 {
 			return fmt.Errorf("egg: x-raptor.addons.%s: name its loaders", kind)
@@ -335,6 +341,13 @@ func Parse(data []byte) (*Egg, error) {
 		case "", "minecraft", "source":
 		default:
 			return nil, fmt.Errorf("egg: x-raptor.players.query %q: want minecraft or source", q)
+		}
+		// Kinds this version doesn't know are left out, not refused, so an
+		// egg with a newer kind still runs on an older node.
+		for kind := range e.Raptor.Addons {
+			if _, ok := AddonKinds[kind]; !ok {
+				delete(e.Raptor.Addons, kind)
+			}
 		}
 		if err := CheckAddons(e.Raptor.Addons); err != nil {
 			return nil, err

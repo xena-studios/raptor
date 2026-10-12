@@ -10,7 +10,7 @@ import (
 
 // Add-on actions (docs/EGGS.md#add-ons).
 const (
-	AddonsList    = "addons.list"    // a read: the server's plugins or mods, with their SHA-512s
+	AddonsList    = "addons.list"    // a read: the server's plugins, mods, or datapacks, with their hashes
 	AddonsInstall = "addons.install" // download one from Modrinth, checked against its SHA-512
 )
 

@@ -97,6 +97,8 @@ export const addonKinds: Record<
     description: string;
     loaders: string[];
     dflt: string[];
+    // Where the files go unless the egg says otherwise.
+    dir: string;
   }
 > = {
   plugins: {
@@ -117,6 +119,7 @@ export const addonKinds: Record<
       "sponge",
     ],
     dflt: ["paper", "spigot", "bukkit"],
+    dir: "plugins",
   },
   mods: {
     label: "Mod manager",
@@ -126,6 +129,17 @@ export const addonKinds: Record<
       "Find, install, and update mods from Modrinth, for Fabric, Forge, NeoForge, and Quilt.",
     loaders: ["fabric", "forge", "neoforge", "quilt"],
     dflt: ["fabric"],
+    dir: "mods",
+  },
+  datapacks: {
+    label: "Datapack manager",
+    tab: "Datapacks",
+    noun: "datapack",
+    description:
+      "Find, install, and update datapacks from Modrinth, for any Java server. They go in the world's datapacks folder.",
+    loaders: ["datapack"],
+    dflt: ["datapack"],
+    dir: "world/datapacks",
   },
 };
 

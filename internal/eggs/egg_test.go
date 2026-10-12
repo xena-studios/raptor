@@ -190,6 +190,18 @@ func TestParseXRaptor(t *testing.T) {
 	if plain.InstallTimeout() != DefaultInstallTimeout || !plain.SupportsArch("arm64") {
 		t.Error("defaults wrong")
 	}
+	// An add-on kind from a newer Raptor is left out, so the egg still
+	// runs; a known kind with a bad loader is still refused.
+	e, err = Parse(fmt.Appendf(nil, base, `{"addons": {"datapacks": {"loaders": ["datapack"], "dir": "world/datapacks"}, "shaders": {"loaders": ["iris"]}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := e.Raptor.Addons["shaders"]; ok || e.Raptor.Addons["datapacks"].Dir != "world/datapacks" {
+		t.Errorf("addons: %+v", e.Raptor.Addons)
+	}
+	if _, err := Parse(fmt.Appendf(nil, base, `{"addons": {"datapacks": {"loaders": ["paper"]}}}`)); err == nil {
+		t.Error("a datapack loader that isn't one: expected an error")
+	}
 }
 
 func TestParseRulesKeepsRegexPipes(t *testing.T) {
