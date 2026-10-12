@@ -16,3 +16,8 @@ test:
   done_timeout: 5m
   command: "list"
   expect: "There are 0 of a max of \\d+ players"
+addons:
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+    version: VANILLA_VERSION

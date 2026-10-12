@@ -23,3 +23,7 @@ addons:
     loaders: [purpur, paper, spigot, bukkit]
     dir: plugins
     version: MINECRAFT_VERSION
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+    version: MINECRAFT_VERSION

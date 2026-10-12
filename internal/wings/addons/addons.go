@@ -140,12 +140,14 @@ func (s *Service) addon(ctx context.Context, id, kind string) (eggs.Addon, error
 	return a, nil
 }
 
-// addonFile reports whether name is a file an add-on folder lists.
-func addonFile(name string) (ok, disabled bool) {
+// addonFile reports whether name is a file of a kind (by its extension:
+// .jar, or .zip for datapacks) that its folder lists.
+func addonFile(kind, name string) (ok, disabled bool) {
+	ext := eggs.AddonExt[kind]
 	if base, cut := strings.CutSuffix(name, ".disabled"); cut {
-		return strings.HasSuffix(base, ".jar"), true
+		return ext != "" && strings.HasSuffix(base, ext), true
 	}
-	return strings.HasSuffix(name, ".jar"), false
+	return ext != "" && strings.HasSuffix(name, ext), false
 }
 
 // List lists a server's add-on files of a kind, with their SHA-512s and
@@ -169,7 +171,7 @@ func (s *Service) List(ctx context.Context, id, kind string) (Listing, error) {
 		return out, err
 	}
 	for _, fi := range infos {
-		ok, disabled := addonFile(fi.Name())
+		ok, disabled := addonFile(kind, fi.Name())
 		if !ok || !fi.Mode().IsRegular() {
 			continue
 		}
@@ -231,9 +233,10 @@ func (s *Service) checkURL(u *url.URL) error {
 	return nil
 }
 
-// checkName accepts a plain file name ending in .jar.
-func checkName(name string) error {
-	if name == "" || len(name) > 255 || strings.HasPrefix(name, ".") || strings.ContainsAny(name, `/\`) || !strings.HasSuffix(name, ".jar") {
+// checkName accepts a plain file name with a kind's extension.
+func checkName(kind, name string) error {
+	ext := eggs.AddonExt[kind]
+	if name == "" || len(name) > 255 || strings.HasPrefix(name, ".") || strings.ContainsAny(name, `/\`) || ext == "" || !strings.HasSuffix(name, ext) {
 		return ErrName
 	}
 	for _, r := range name {
@@ -259,11 +262,11 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 	if err != nil {
 		return File{}, err
 	}
-	if err := checkName(p.Filename); err != nil {
+	if err := checkName(p.Kind, p.Filename); err != nil {
 		return File{}, err
 	}
 	if p.Replace != "" {
-		if ok, _ := addonFile(p.Replace); !ok || strings.ContainsAny(p.Replace, `/\`) || strings.HasPrefix(p.Replace, ".") {
+		if ok, _ := addonFile(p.Kind, p.Replace); !ok || strings.ContainsAny(p.Replace, `/\`) || strings.HasPrefix(p.Replace, ".") {
 			return File{}, ErrName
 		}
 	}

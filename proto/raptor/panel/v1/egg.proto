@@ -129,7 +129,7 @@ message EggSpec {
 // EggAddon is an add-on an egg turns on: a plugin installer or a mod
 // manager.
 message EggAddon {
-  // "plugins" or "mods".
+  // "plugins", "mods", or "datapacks".
   string kind = 1;
   // Modrinth's loader names: paper, spigot, fabric, ...
   repeated string loaders = 2;

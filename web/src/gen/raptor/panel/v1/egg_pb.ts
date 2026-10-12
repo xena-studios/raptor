@@ -192,7 +192,7 @@ export const EggSpecSchema: GenMessage<EggSpec> = /*@__PURE__*/
  */
 export type EggAddon = Message<"raptor.panel.v1.EggAddon"> & {
   /**
-   * "plugins" or "mods".
+   * "plugins", "mods", or "datapacks".
    *
    * @generated from field: string kind = 1;
    */

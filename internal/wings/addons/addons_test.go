@@ -35,7 +35,8 @@ func (s *servers) TrashDir(id string) (string, error) {
 
 func (s *servers) Egg(context.Context, string) (*eggs.Egg, error) {
 	return &eggs.Egg{Raptor: eggs.Extension{Addons: map[string]eggs.Addon{
-		"plugins": {Loaders: []string{"paper"}, Dir: "plugins", Version: "MINECRAFT_VERSION"},
+		"plugins":   {Loaders: []string{"paper"}, Dir: "plugins", Version: "MINECRAFT_VERSION"},
+		"datapacks": {Loaders: []string{"datapack"}, Dir: "world/datapacks"},
 	}}}, nil
 }
 
@@ -149,6 +150,17 @@ func TestInstall(t *testing.T) {
 	}
 	if err := os.Remove(filepath.Join(dir, "plugins", "FromHangar.jar")); err != nil {
 		t.Fatal(err)
+	}
+
+	// Datapacks are .zip files, in the world's datapacks folder.
+	if _, err := svc.Install(ctx, srvID, "user", addons.Install{Kind: "datapacks", URL: "https://example.com/v1.jar", Sha512: sum(v1), Filename: "pack.jar"}); !errors.Is(err, addons.ErrName) {
+		t.Errorf("a .jar as a datapack: %v", err)
+	}
+	if _, err := svc.Install(ctx, srvID, "user", addons.Install{Kind: "datapacks", URL: "https://example.com/v1.jar", Sha512: sum(v1), Filename: "Terralith.zip"}); err != nil {
+		t.Fatal(err)
+	}
+	if packs, err := svc.List(ctx, srvID, "datapacks"); err != nil || len(packs.Files) != 1 || packs.Files[0].Name != "Terralith.zip" || packs.Dir != "world/datapacks" {
+		t.Errorf("datapacks: %+v, %v", packs, err)
 	}
 
 	// Updating: the new version in, the old one to the trash.

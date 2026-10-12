@@ -68,7 +68,7 @@ message AddonVersion {
 
 message SearchAddonsRequest {
   string org_id = 1;
-  // "plugins" or "mods".
+  // "plugins", "mods", or "datapacks".
   string kind = 2;
   repeated string loaders = 3;
   // Empty: any.

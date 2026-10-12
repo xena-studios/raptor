@@ -178,7 +178,7 @@ export type SearchAddonsRequest = Message<"raptor.panel.v1.SearchAddonsRequest">
   orgId: string;
 
   /**
-   * "plugins" or "mods".
+   * "plugins", "mods", or "datapacks".
    *
    * @generated from field: string kind = 2;
    */

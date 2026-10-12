@@ -183,7 +183,8 @@ function Addons({
         <CardHeader>
           <CardTitle>Installed {meta?.noun}s</CardTitle>
           <CardDescription>
-            In <code>{list.data?.dir ?? "…"}</code>, for {loaders.map(loaderName).join(", ")}
+            In <code>{list.data?.dir ?? "…"}</code>
+            {kind === "datapacks" ? "" : `, for ${loaders.map(loaderName).join(", ")}`}
             {version ? ` on ${version}` : ""}. Restart the server to load changes.
           </CardDescription>
         </CardHeader>

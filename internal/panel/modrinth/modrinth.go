@@ -120,8 +120,11 @@ func (v Version) Main() (File, bool) {
 
 // projectType is Modrinth's project type for an add-on kind.
 func projectType(kind string) string {
-	if kind == "plugins" {
+	switch kind {
+	case "plugins":
 		return "plugin"
+	case "datapacks":
+		return "datapack"
 	}
 	return "mod"
 }
