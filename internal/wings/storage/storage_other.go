@@ -84,4 +84,7 @@ var ErrNotEmpty = errors.New("the disk isn't empty")
 // SetupDisk isn't supported off Linux.
 func SetupDisk(context.Context, DiskSpec) (string, error) { return "", errLinuxOnly }
 
+// GrowDisk isn't supported off Linux.
+func GrowDisk(context.Context, string) error { return errLinuxOnly }
+
 func hostMounts() map[string][]string { return nil }

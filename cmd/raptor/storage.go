@@ -17,12 +17,13 @@ import (
 // Smallest volume `raptor storage setup` creates. XFS itself needs ~300 MB.
 const minVolume = 1 << 30
 
-// storageCmd is `raptor storage status|setup|grow` (docs/WINGS.md#disk-quotas).
+// storageCmd is `raptor storage status|setup|grow|disks|add-disk|grow-disk`
+// (docs/WINGS.md#disk-quotas, docs/WINGS.md#data-disks).
 // It works on the box directly, not through Wings, so it also works while
 // Wings is stopped.
 func storageCmd(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: raptor storage status|setup|grow|disks|add-disk [flags]")
+		return errors.New("usage: raptor storage status|setup|grow|disks|add-disk|grow-disk [flags]")
 	}
 	fs := flag.NewFlagSet("storage "+args[0], flag.ContinueOnError)
 	path := fs.String("config", config.DefaultPath, "config file")
@@ -33,6 +34,9 @@ func storageCmd(ctx context.Context, args []string) error {
 		role = fs.String("role", storage.RoleServers, `what it's for: "servers" or "backups"`)
 		id = fs.String("id", "", "its disk ID, 8 lowercase letters and digits (default: random)")
 		asJSON = fs.Bool("json", false, "print the result as JSON (for Wings)")
+	}
+	if args[0] == "grow-disk" {
+		id = fs.String("id", "", "the data disk's ID (required; see raptor storage disks)")
 	}
 	var size *string
 	if args[0] == "setup" || args[0] == "grow" {
@@ -64,6 +68,11 @@ func storageCmd(ctx context.Context, args []string) error {
 			return errors.New("must be run as root")
 		}
 		return addDisk(ctx, layout, *device, *role, *id, *asJSON)
+	case "grow-disk":
+		if os.Geteuid() != 0 {
+			return errors.New("must be run as root")
+		}
+		return growDisk(ctx, layout, *id)
 	case "setup", "grow":
 		if os.Geteuid() != 0 {
 			return errors.New("must be run as root")
@@ -248,6 +257,33 @@ func addDisk(ctx context.Context, layout storage.Layout, device, role, id string
 	}
 	fmt.Printf("%s is set up for %s at %s (disk %s)\n", device, role, mp, id)
 	return nil
+}
+
+// growDisk is `raptor storage grow-disk`: grow a data disk's filesystem
+// after its disk was made bigger at the host. Wings runs it from the
+// Panel's Disks tab, through systemd-run like add-disk.
+func growDisk(ctx context.Context, layout storage.Layout, id string) error {
+	if !storage.DiskIDPattern.MatchString(id) {
+		return errors.New("-id is a data disk's ID (see raptor storage disks)")
+	}
+	for _, d := range storage.DataMounts(layout) {
+		if d.ID != id {
+			continue
+		}
+		mp := d.Mountpoint
+		before, _, _ := storage.Space(mp)
+		if err := storage.GrowDisk(ctx, mp); err != nil {
+			return err
+		}
+		after, _, _ := storage.Space(mp)
+		if after <= before {
+			fmt.Printf("%s already fills its disk (%s). Make the disk bigger at your host first; a partition needs growing too (growpart)\n", mp, human(after))
+			return nil
+		}
+		fmt.Printf("grew %s from %s to %s, online\n", mp, human(before), human(after))
+		return nil
+	}
+	return fmt.Errorf("there's no data disk %s on this machine", id)
 }
 
 func printDisks(disks []storage.BlockDevice, indent string) {

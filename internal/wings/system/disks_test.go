@@ -109,4 +109,22 @@ func TestDisks(t *testing.T) {
 	if _, err := d.Setup(ctx, "/dev/sdb", "servers", 500<<30, "S1"); err == nil || errors.Is(err, ErrInvalid) || len(err.Error()) == 0 || strings.Contains(err.Error(), "mkfs") {
 		t.Errorf("a failure reads as a sentence: %v", err)
 	}
+
+	// Growing: a mounted data disk only; the main volume is grown on the node.
+	var grown []string
+	d.GrowDisk = func(_ context.Context, id string) error {
+		grown = append(grown, id)
+		return nil
+	}
+	for _, bad := range []string{MainDisk, "gone0000", "nope"} {
+		if _, err := d.Grow(ctx, bad); !errors.Is(err, ErrInvalid) {
+			t.Errorf("grow %s: %v", bad, err)
+		}
+	}
+	if x, err := d.Grow(ctx, "abcd1234"); err != nil || x.ID != "abcd1234" || x.Size != 500<<30 || len(grown) != 1 {
+		t.Errorf("grow: %+v, %v, %v", x, err, grown)
+	}
+	if n := len(d.Data(ctx)); n != 4 {
+		t.Errorf("data disks: %d", n)
+	}
 }

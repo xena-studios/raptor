@@ -246,7 +246,7 @@ What the web file manager deletes goes to the server's trash first (`files.delet
 
 ## Data disks
 
-Boxes with more than one disk can use them from the node's **Disks** tab, or `raptor storage disks|add-disk` on the box.
+Boxes with more than one disk can use them from the node's **Disks** tab, or `raptor storage disks|add-disk|grow-disk` on the box.
 
 - **Listing** (`node.disks`, admins): `lsblk` (util-linux 2.37+) lists each disk and partition. Mount points come from PID 1's `mountinfo` (the host's view, filesystem roots only), since Wings' sandbox has its own mounts. Each disk says what it's used for:
   - **system:** holds `/`, swap, Raptor's state, logs, local backups, or Docker;
@@ -263,8 +263,10 @@ Boxes with more than one disk can use them from the node's **Disks** tab, or `ra
 - **Which disk servers use:** each server has a `disk_id` (`''` is the main volume), chosen when it's created (`server.create`'s `disk`: `main`, a disk's ID, or the node's default) and never changed. The default (`node.disk.default`, unsigned since it moves nothing) is kept in `kv`.
   - The manager resolves every server path and quota through the server's disk, so files, SFTP, backups, installs, and deletes follow it.
   - A server whose disk isn't mounted won't install or start, exactly like the main volume. The Disks tab shows the disk as not mounted.
+- **Growing one** (`node.disk.grow`, admins, unsigned since it erases and moves nothing): after the disk is made bigger at the host, the Disks tab offers "Grow by …" for any data disk whose device is more than 256 MiB and 1% bigger than its filesystem (XFS keeps some for its log: 64 MiB on small disks, up to 2 GiB on huge ones). Wings runs `raptor storage grow-disk -id <id>` through `systemd-run`, which runs `xfs_growfs` on the mounted disk; servers keep running. A data disk on a partition needs the partition grown first (`growpart`), so the button doesn't show for one until it is. The main volume is grown on the box (`raptor storage grow -size`, an image) or with its own disk.
+- **Health and doctor:** mounted data disks are in the Health tab's disk list, labeled with their ID and role, and `raptor doctor` checks each one ([doctor](#doctor)). The overview's server storage is the main volume plus every mounted data disk for servers. The machine's disks are listed at most every 30 seconds for these, since the overview asks often.
 - Wings finds data disks by where they're mounted, so one set up by hand with `raptor storage add-disk` is the same as one set up from the Panel.
-- Not yet: moving a server to another disk, growing a data disk from the Panel, data disks in doctor's checks and the Health tab's disk list, and the overview's server storage counting them.
+- Not yet: moving a server to another disk.
 
 ## Job engine
 
@@ -520,6 +522,7 @@ Methods are added to the proto as the features behind them are built, so the API
 - The config file; Wings' local API answering and its container runtime ready
 - Docker reachable, version (24+), `live-restore` (fail if off: a Docker restart would stop every server), `userland-proxy` off, systemd cgroup driver
 - The server data volume mounted with quotas (or soft limits), and its free space
+- Each data disk set up on the box, found by its mount point (servers' under `/var/lib/raptor/disks/`, backups' at `/srv/raptor-backups-<id>`): mounted with project quotas (fail: its servers don't start, or backups to it fail), and its free space (warn under 10%)
 - Host disk free space everywhere Wings and Docker keep state, against `limits.host_disk_min_free` (fail below it, warn below twice it)
 - Clock synchronized (NTP). Clock drift breaks connection signatures, grants, and schedules.
 - Wings' nftables table in place

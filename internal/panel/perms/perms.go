@@ -114,6 +114,7 @@ var actions = map[string]string{
 	"node.disks":                adminOnly,
 	"node.disk.setup":           adminOnly,
 	"node.disk.default":         adminOnly,
+	"node.disk.grow":            adminOnly,
 	"node.logs":                 adminOnly,
 	"support.grant":             adminOnly,
 	"support.revoke":            adminOnly,

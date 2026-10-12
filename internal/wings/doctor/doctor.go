@@ -20,6 +20,7 @@ import (
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 )
 
 // Result statuses.
@@ -77,6 +78,10 @@ type Env struct {
 	StatusErr error
 	// VolumeCheck checks the server data volume (storage.Volume.Check).
 	VolumeCheck func() error
+	// DataDisks are the data disks set up (storage.DataMounts), and
+	// DiskCheck checks one is mounted with project quotas.
+	DataDisks []storage.DataMount
+	DiskCheck func(path string) error
 	// Firewall reports whether Wings' nftables table is in place.
 	Firewall func(ctx context.Context) bool
 	// HTTPGet fetches a URL (for the Panel check).

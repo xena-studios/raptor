@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -255,4 +256,29 @@ func Find(disks []BlockDevice, path string) (BlockDevice, bool) {
 		}
 	}
 	return BlockDevice{}, false
+}
+
+// DataMount is a data disk set up on this machine.
+type DataMount struct {
+	ID, Role, Mountpoint string
+}
+
+// DataMounts are the data disks set up on this machine, mounted or not:
+// their mount points stay when a disk is gone.
+func DataMounts(l Layout) []DataMount {
+	var out []DataMount
+	if entries, err := os.ReadDir(l.DisksDir); err == nil {
+		for _, e := range entries {
+			if e.IsDir() && DiskIDPattern.MatchString(e.Name()) {
+				out = append(out, DataMount{ID: e.Name(), Role: RoleServers, Mountpoint: MountpointFor(l, RoleServers, e.Name())})
+			}
+		}
+	}
+	backups, _ := filepath.Glob(BackupsMountPrefix + "*")
+	for _, m := range backups {
+		if id := strings.TrimPrefix(m, BackupsMountPrefix); DiskIDPattern.MatchString(id) {
+			out = append(out, DataMount{ID: id, Role: RoleBackups, Mountpoint: m})
+		}
+	}
+	return out
 }

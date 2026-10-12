@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/xena-studios/raptor/internal/wings/host"
+	"github.com/xena-studios/raptor/internal/wings/storage"
 )
 
 // Supported systems (docs/ROADMAP.md: the systems the installer is tested
@@ -33,6 +34,7 @@ func Checks() []Check {
 		{ID: "wings", Title: "Wings", Run: checkWings},
 		{ID: "docker", Title: "Docker", Run: checkDocker},
 		{ID: "storage", Title: "Server data volume", Run: checkStorage},
+		{ID: "data-disks", Title: "Data disks", Run: checkDataDisks},
 		{ID: "host-disk", Title: "Host disk", Run: checkHostDisk},
 		{ID: "clock", Title: "Clock", Run: checkClock},
 		{ID: "firewall", Title: "Firewall rules", Run: checkFirewall},
@@ -233,6 +235,43 @@ func checkStorage(_ context.Context, e *Env) []Result {
 			"raptor storage grow -size <new size>, or free space (old backups on the local destination, deleted servers' files).")
 	}
 	return pass(detail)
+}
+
+// checkDataDisks checks each data disk set up on the machine
+// (docs/WINGS.md#data-disks): mounted with project quotas, and not full.
+func checkDataDisks(_ context.Context, e *Env) []Result {
+	if len(e.DataDisks) == 0 {
+		return skip("none set up")
+	}
+	out := make([]Result, 0, len(e.DataDisks))
+	for _, d := range e.DataDisks {
+		id, role, path := d.ID, d.Role, d.Mountpoint
+		var r []Result
+		what := "Servers on it don't start, and new servers don't go on it,"
+		if role == storage.RoleBackups {
+			what = "Backups to it fail"
+		}
+		var err error
+		if e.DiskCheck != nil {
+			err = e.DiskCheck(path)
+		}
+		if err != nil {
+			r = fail(err.Error(), what+" until it's back.",
+				"Check the disk is attached, then systemctl start the mount unit for "+path+" (systemctl list-units --type=mount).")
+		} else if total, free, err := e.System.Space(path); err != nil || total == 0 {
+			r = pass(fmt.Sprintf("%s, %s", path, role))
+		} else {
+			detail := fmt.Sprintf("%s, %s, %s free of %s", path, role, host.Bytes(free), host.Bytes(total))
+			r = pass(detail)
+			if free*10 < total {
+				r = warn(detail, "Once it's full, what's on it fails to save, whatever its own limits.",
+					"Free space on it, or grow it: resize it at your host, then xfs_growfs "+path+".")
+			}
+		}
+		r[0].ID, r[0].Title = "data-disk-"+id, "Data disk "+id
+		out = append(out, r...)
+	}
+	return out
 }
 
 func checkHostDisk(ctx context.Context, e *Env) []Result {
