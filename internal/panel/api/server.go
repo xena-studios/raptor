@@ -19,7 +19,6 @@ import (
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
-	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/live"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
@@ -103,8 +102,6 @@ func Handler(cfg Config) http.Handler {
 		// Outside /api: browsers arrive here from the provider's site, by
 		// navigation, without an Origin to check.
 		mux.Handle("GET /oauth/{provider}/callback", cfg.Auth.OAuthCallback())
-		path, handler = panelv1connect.NewCatalogServiceHandler(&catalog.Service{Auth: cfg.Auth}, opts(connect.WithReadMaxBytes(4<<10))...)
-		api.Handle(path, handler)
 	}
 	if cfg.Commands != nil {
 		path, handler := panelv1connect.NewCommandServiceHandler(cfg.Commands, opts(connect.WithReadMaxBytes(7<<20))...)

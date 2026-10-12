@@ -124,11 +124,11 @@ func (s *Eggs) ReportEgg(ctx context.Context, req *panelv1.ReportEggRequest) (*p
 		if l.official {
 			return errNotOfficer
 		}
-		row, _, _, err := s.load(ctx, l, req.GetId())
+		row, _, err := s.load(ctx, l, req.GetId())
 		if err != nil {
 			return err
 		}
-		if row == nil || !row.SharedAt.Valid || l.owns(*row) {
+		if !row.SharedAt.Valid || l.owns(*row) {
 			return invalid(errors.New("only eggs other orgs share can be reported"))
 		}
 		egg, user = row.ID, l.userID()

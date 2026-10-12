@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/eggs/spec"
@@ -28,7 +30,8 @@ import (
 
 // Eggs implements EggService, the egg library (docs/PANEL.md#eggs): an
 // org's own eggs, Raptor's official ones (org_id NULL, changed by staff
-// admins), and the built-in catalog.
+// admins; Raptor's catalog is seeded into them), and those other orgs
+// share.
 type Eggs struct {
 	Orgs *Service
 	// Staff checks staff for the official library (nil: there's none).
@@ -50,7 +53,6 @@ var Categories = []string{"minecraft", "steam", "standalone", "software", "datab
 
 var (
 	errNoEgg      = connect.NewError(connect.CodeNotFound, errors.New("that egg isn't in this library; it may have been deleted"))
-	errBuiltIn    = connect.NewError(connect.CodeFailedPrecondition, errors.New("built-in eggs are part of Raptor and can't be changed; customize one to make your own copy"))
 	errNotOfficer = connect.NewError(connect.CodeNotFound, errors.New("not found"))
 	errNotLive    = connect.NewError(connect.CodeFailedPrecondition, errors.New("only published eggs can be deployed; publish it first"))
 )
@@ -136,7 +138,7 @@ func (s *Eggs) audit(ctx context.Context, l *lib, action, target string, meta ma
 
 // eggID parses a library egg's ID ("org:" and the ID, as servers made
 // before the library name them, works too). ok is false for anything else,
-// such as a built-in egg's "minecraft/paper".
+// such as a catalog ID ("minecraft/paper"), which load looks up.
 func eggID(id string) (pgtype.UUID, bool) {
 	u, err := uuid.Parse(strings.TrimPrefix(id, orgEggPrefix))
 	if err != nil {
@@ -164,14 +166,23 @@ func (s *Eggs) counts(ctx context.Context, l *lib) (map[string]int32, error) {
 	return out, err
 }
 
+// described caches what an egg file says (catalog.Proto), by SHA-256:
+// files never change, and lists show the same official eggs to everyone.
+var described sync.Map
+
 // describeEgg is a library egg as the web app lists it. An egg that no
 // longer parses (the parser got stricter) returns an error.
 func describeEgg(l *lib, e store.Egg, createdBy string) (*panelv1.CatalogEgg, error) {
-	parsed, err := eggs.Parse(e.Egg)
-	if err != nil {
-		return nil, err
+	cached, ok := described.Load(e.Sha256)
+	if !ok {
+		parsed, err := eggs.Parse(e.Egg)
+		if err != nil {
+			return nil, err
+		}
+		cached, _ = described.LoadOrStore(e.Sha256, catalog.Proto(parsed))
 	}
-	p := catalog.Proto(parsed)
+	p := proto.CloneOf(cached.(*panelv1.CatalogEgg))
+	p.Certified = e.Certified
 	p.Id, p.Name, p.Summary, p.Category, p.SourceUrl = idString(e.ID), e.Name, e.Summary, e.Category, e.SourceUrl
 	p.Scope, p.Origin, p.Status, p.Version = "org", e.Origin, e.Status, e.Version
 	switch {
@@ -188,12 +199,14 @@ func describeEgg(l *lib, e store.Egg, createdBy string) (*panelv1.CatalogEgg, er
 	return p, nil
 }
 
-func builtIns() ([]*panelv1.CatalogEgg, error) {
-	list, err := catalog.List()
-	for _, e := range list {
-		e.Scope, e.Origin, e.Status = "builtin", "builtin", "published"
+// servers is how many servers were made from an egg: by its ID, or by its
+// catalog ID for servers made before the catalog was in the library.
+func servers(counts map[string]int32, e store.Egg) int32 {
+	n := counts[idString(e.ID)]
+	if e.CatalogID.Valid {
+		n += counts[e.CatalogID.String]
 	}
-	return list, err
+	return n
 }
 
 // ListEggs implements EggService.
@@ -224,8 +237,13 @@ func (s *Eggs) ListEggs(ctx context.Context, req *panelv1.EggServiceListEggsRequ
 				rows = append(rows, row{r.Egg, r.CreatedByEmail})
 			}
 		}
+		counts, err := s.counts(ctx, l)
+		if err != nil {
+			return err
+		}
 		for _, r := range rows {
 			if p, err := describeEgg(l, r.egg, r.email.String); err == nil {
+				p.Servers = servers(counts, r.egg)
 				out.Eggs = append(out.Eggs, p)
 			}
 		}
@@ -234,44 +252,37 @@ func (s *Eggs) ListEggs(ctx context.Context, req *panelv1.EggServiceListEggsRequ
 	if err != nil {
 		return nil, err
 	}
-	builtin, err := builtIns()
-	if err != nil {
-		return nil, err
-	}
-	out.Eggs = append(out.Eggs, builtin...)
-	counts, err := s.counts(ctx, l)
-	if err != nil {
-		return nil, err
-	}
-	for _, e := range out.Eggs {
-		e.Servers = counts[e.GetId()]
-	}
 	return out, nil
 }
 
-// load finds an egg this library can see: a library egg, or a built-in
-// one (with no row).
-func (s *Eggs) load(ctx context.Context, l *lib, id string) (*store.Egg, string, *panelv1.CatalogEgg, error) {
+// resolve turns an egg's ID into its row's: a library ID as it is, or a
+// catalog ID ("minecraft/paper", as servers made before the catalog was in
+// the library name it) looked up.
+func resolve(ctx context.Context, l *lib, id string) (pgtype.UUID, error) {
 	if u, ok := eggID(id); ok {
-		r, err := l.q.GetEgg(ctx, u)
-		if errors.Is(err, pgx.ErrNoRows) || (err == nil && !l.sees(r.Egg)) {
-			return nil, "", nil, errNoEgg
-		}
-		if err != nil {
-			return nil, "", nil, err
-		}
-		return &r.Egg, r.CreatedByEmail.String, nil, nil
+		return u, nil
 	}
-	list, err := builtIns()
+	r, err := l.q.GetEggByCatalogID(ctx, pgtype.Text{String: id, Valid: true})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return pgtype.UUID{}, errNoEgg
+	}
+	return r.ID, err
+}
+
+// load finds an egg this library can see.
+func (s *Eggs) load(ctx context.Context, l *lib, id string) (*store.Egg, string, error) {
+	u, err := resolve(ctx, l, id)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, "", err
 	}
-	for _, e := range list {
-		if e.GetId() == id {
-			return nil, "", e, nil
-		}
+	r, err := l.q.GetEgg(ctx, u)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && !l.sees(r.Egg)) {
+		return nil, "", errNoEgg
 	}
-	return nil, "", nil, errNoEgg
+	if err != nil {
+		return nil, "", err
+	}
+	return &r.Egg, r.CreatedByEmail.String, nil
 }
 
 func toSpec(p *panelv1.EggSpec) *spec.Spec {
@@ -349,14 +360,9 @@ func (s *Eggs) GetEggDetails(ctx context.Context, req *panelv1.GetEggDetailsRequ
 	var l *lib
 	err := s.tx(ctx, req.GetOrgId(), false, func(lb *lib) error {
 		l = lb
-		row, email, builtin, err := s.load(ctx, l, req.GetId())
+		row, email, err := s.load(ctx, l, req.GetId())
 		if err != nil {
 			return err
-		}
-		if builtin != nil {
-			out.Egg = builtin
-			out.File, _ = catalog.File(builtin.GetId())
-			return nil
 		}
 		if out.Egg, err = describeEgg(l, *row, email); err != nil {
 			return connect.NewError(connect.CodeFailedPrecondition, errors.New("this egg no longer reads as an egg; its file has to be fixed"))
@@ -369,6 +375,11 @@ func (s *Eggs) GetEggDetails(ctx context.Context, req *panelv1.GetEggDetailsRequ
 				out.Egg.Publisher = pub.Name.String
 			}
 		}
+		counts, err := s.counts(ctx, l)
+		if err != nil {
+			return err
+		}
+		out.Egg.Servers = servers(counts, *row)
 		versions, err := l.q.ListEggVersions(ctx, row.ID)
 		for _, v := range versions {
 			out.Versions = append(out.Versions, &panelv1.EggVersion{
@@ -393,11 +404,6 @@ func (s *Eggs) GetEggDetails(ctx context.Context, req *panelv1.GetEggDetailsRequ
 		out.Format = format(r.Egg)
 		out.Lint = r.Egg.Lint()
 	}
-	counts, err := s.counts(ctx, l)
-	if err != nil {
-		return nil, err
-	}
-	out.Egg.Servers = counts[out.Egg.GetId()]
 	return out, nil
 }
 
@@ -424,14 +430,9 @@ func (s *Eggs) GetEggFile(ctx context.Context, req *panelv1.GetEggFileRequest) (
 	}
 	out := &panelv1.GetEggFileResponse{}
 	err := s.tx(ctx, req.GetOrgId(), false, func(l *lib) error {
-		row, _, builtin, err := s.load(ctx, l, req.GetId())
+		row, _, err := s.load(ctx, l, req.GetId())
 		if err != nil {
 			return err
-		}
-		if builtin != nil {
-			out.Egg, _ = catalog.File(builtin.GetId())
-			out.Version = 1
-			return nil
 		}
 		if row.Status != "published" {
 			return errNotLive
@@ -552,12 +553,9 @@ func (s *Eggs) CreateEgg(ctx context.Context, req *panelv1.CreateEggRequest) (*p
 
 // editable loads an egg in this library to change, locked.
 func editable(ctx context.Context, l *lib, id string) (store.Egg, error) {
-	u, ok := eggID(id)
-	if !ok {
-		if _, builtin := catalog.File(id); builtin {
-			return store.Egg{}, errBuiltIn
-		}
-		return store.Egg{}, errNoEgg
+	u, err := resolve(ctx, l, id)
+	if err != nil {
+		return store.Egg{}, err
 	}
 	row, err := l.q.GetEggForUpdate(ctx, u)
 	if err == nil && l.owns(row) {
@@ -622,6 +620,13 @@ func (s *Eggs) UpdateEgg(ctx context.Context, req *panelv1.UpdateEggRequest) (*p
 			out.Version = version
 			return nil
 		}
+		// An edited catalog egg is no longer the file the conformance
+		// suite tests.
+		if row.Certified && sum != row.Sha256 {
+			if err := l.q.ClearEggCertified(ctx, row.ID); err != nil {
+				return err
+			}
+		}
 		if err := l.q.UpdateEgg(ctx, store.UpdateEggParams{
 			ID: row.ID, Name: name, Summary: summary, Category: category, Egg: file, Sha256: sum, Version: version,
 		}); err != nil {
@@ -640,26 +645,16 @@ func (s *Eggs) UpdateEgg(ctx context.Context, req *panelv1.UpdateEggRequest) (*p
 func (s *Eggs) CustomizeEgg(ctx context.Context, req *panelv1.CustomizeEggRequest) (*panelv1.CustomizeEggResponse, error) {
 	out := &panelv1.CustomizeEggResponse{}
 	err := s.tx(ctx, req.GetOrgId(), true, func(l *lib) error {
-		row, _, builtin, err := s.load(ctx, l, req.GetId())
+		row, _, err := s.load(ctx, l, req.GetId())
 		if err != nil {
 			return err
 		}
-		var file []byte
-		var parent, category, summary string
-		if builtin != nil {
-			file, _ = catalog.File(builtin.GetId())
-			parent, category = builtin.GetName(), builtin.GetCategory()
-			if !slices.Contains(Categories, category) {
-				category = "other"
-			}
-		} else {
-			file, parent, category, summary = row.Egg, row.Name, row.Category, row.Summary
-		}
+		file, parent, category, summary := row.Egg, row.Name, row.Category, row.Summary
 		// A copy of the library's own egg is a duplicate; of anyone
 		// else's, the library's customized version. Added as it is, it
 		// keeps its name and can be deployed.
 		suffix, status, note := " (custom)", "draft", "Copied from "+parent
-		if row != nil && l.owns(*row) {
+		if l.owns(*row) {
 			suffix = " (copy)"
 		}
 		if req.GetAsIs() {
@@ -674,7 +669,7 @@ func (s *Eggs) CustomizeEgg(ctx context.Context, req *panelv1.CustomizeEggReques
 		}
 		created, err := s.create(ctx, l, store.CreateEggParams{
 			Name: name, Summary: summary, Category: category, Origin: "fork", Status: status, Egg: file,
-			ParentID: req.GetId(), ParentName: parent,
+			ParentID: idString(row.ID), ParentName: parent,
 		}, note)
 		if err != nil {
 			return err
@@ -725,7 +720,7 @@ func (s *Eggs) DeleteEgg(ctx context.Context, req *panelv1.DeleteEggRequest) (*p
 		if err != nil {
 			return err
 		}
-		if n := counts[idString(row.ID)]; n > 0 {
+		if n := servers(counts, row); n > 0 {
 			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("%s still use this egg; archive it instead", plural(int(n), "server")))
 		}
 		if _, err := l.q.DeleteEgg(ctx, row.ID); err != nil {

@@ -99,7 +99,7 @@ export function EggBadges({
           <BadgeCheck className="size-3" /> Certified
         </Badge>
       )}
-      {showOfficial && !egg.certified && (egg.scope === "official" || egg.scope === "builtin") && (
+      {showOfficial && !egg.certified && egg.scope === "official" && (
         <Badge variant="secondary">Official</Badge>
       )}
       {egg.scope === "community" && <Badge variant="outline">Community</Badge>}
@@ -183,7 +183,7 @@ export function EggList({
       )}
       {[
         [lib.orgId ? "Your org's eggs" : "Official eggs", mine],
-        [lib.orgId ? "Raptor's eggs" : "Built into Raptor", raptors],
+        ["Raptor's eggs", raptors],
       ].map(([title, group]) =>
         (group as CatalogEgg[]).length === 0 ? null : (
           <section key={title as string} className="flex flex-col gap-3">

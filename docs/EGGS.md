@@ -213,7 +213,7 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
 
 ## Egg sources
 
-- Built-in catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and license preserved ([below](#built-in-catalog)).
+- Raptor's catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and license preserved ([below](#built-in-catalog)).
 - Orgs make their own eggs (from scratch, or customized copies) and Raptor's staff publish official ones, in the egg library ([PANEL.md](PANEL.md#eggs)); editing writes into the egg file and keeps the format ([Editing eggs](#editing-eggs)).
 - Users can import eggs from a URL or file. The Panel shows the **image registry and install script** before importing. A malicious egg is effectively a malicious program on the node. Imported eggs belong to the org that imported them ([PANEL.md](PANEL.md#imported-eggs)); eggs that leave parts to another egg (`config.extends`, `copy_script_from`) are refused with a message saying so, since those parts would be missing on the node.
 
@@ -241,7 +241,7 @@ x-raptor:
 
 ## Built-in catalog
 
-`eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`), for the Panel's egg catalog and the conformance suite. One directory per egg, e.g. `eggs/minecraft/paper/`:
+`eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`): the eggs the conformance suite tests, which the Panel seeds into its official egg library ([below](#in-the-official-library)). One directory per egg, e.g. `eggs/minecraft/paper/`:
 - The egg file, an **unmodified copy** of upstream at a pinned commit, under its upstream file name. Updating an egg means replacing the file and the commit.
 - `raptor.yaml`: where it came from (repository, full commit hash, path), its license, whether it's certified, which CPU architectures the game runs on, and how the conformance suite tests it:
 
@@ -276,7 +276,16 @@ test:
 
 A unit test loads every entry and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, and a chosen image is one the egg offers.
 
-The Panel serves the catalog to the web app (`CatalogService`): `ListEggs` describes every egg (name, images, variables and their rules, features, architectures, and a link to the upstream file), and `GetEgg` returns the file a server gets: upstream's, with `raptor.yaml`'s `arch` and `players` added under `x-raptor`, in the same format and key order. The web app puts that file in the passkey-signed `server.create` as it is, so what the user approved is what the node runs.
+### In the official library
+
+The catalog lives in the Panel's database, as official eggs (`internal/panel/catalog`, run when the Panel starts, under an advisory lock so two Panels don't race). Each egg's file is upstream's with `raptor.yaml`'s `arch`, `players`, and `addons` added under `x-raptor`, in the same format and key order; it keeps the catalog's ID (`catalog_id`, e.g. `minecraft/paper`) and whether it's `certified`.
+
+- An egg the library doesn't have is added, published.
+- When the catalog changes (a new release), an egg only the seed has changed gets the new file as a new version. Once staff edit an egg, it's theirs: the seed leaves it alone.
+- Editing a certified egg's file clears `certified`, since it's no longer the file the conformance suite tests.
+- Servers made before the catalog was in the library name the egg by its catalog ID; the library finds it by that ID too, and counts those servers.
+
+Servers get the file in the passkey-signed `server.create` as it is (`EggService.GetEggFile`), so what the user approved is what the node runs.
 
 ### Accepting a EULA
 Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EULA. The web app asks when creating the server and sends `accept_eula: true` in `server.create`, inside what the passkey signs. Wings writes `eula.txt` (`eula=true`, owned by the server's user) once the install succeeds and before the first start. For eggs without the feature the flag does nothing.

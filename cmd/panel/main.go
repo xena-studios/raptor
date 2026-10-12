@@ -24,6 +24,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/api"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/backupkeys"
+	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
@@ -260,6 +261,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey}
 		cfg.Staff = &staff.Service{DB: pool, Auth: cfg.Auth, Log: log}
 		go cfg.Staff.RunStats(ctx)
+		// Raptor's egg catalog, into the official library (docs/PANEL.md#eggs).
+		if _, _, err := catalog.Seed(ctx, pool, log); err != nil {
+			return fmt.Errorf("seeding the egg catalog: %w", err)
+		}
 		cfg.Transfers = router
 		mailer, err := mailer(log)
 		if err != nil {

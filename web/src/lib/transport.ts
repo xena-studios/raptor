@@ -2,7 +2,6 @@ import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
-import { CatalogService } from "@/gen/raptor/panel/v1/catalog_pb";
 import { CommandService } from "@/gen/raptor/panel/v1/command_pb";
 import { EggService } from "@/gen/raptor/panel/v1/egg_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
@@ -26,6 +25,5 @@ export const transport = createConnectTransport({
 export const authClient = createClient(AuthService, transport);
 export const orgClient = createClient(OrgService, transport);
 export const commandClient = createClient(CommandService, transport);
-export const catalogClient = createClient(CatalogService, transport);
 export const staffClient = createClient(StaffService, transport);
 export const eggClient = createClient(EggService, transport);

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"log/slog"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"github.com/xena-studios/raptor/internal/eggs"
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/paneltest"
@@ -152,24 +154,31 @@ func TestEggLibrary(t *testing.T) {
 		t.Errorf("version 1: %v", err)
 	}
 
-	// Built-in eggs: listed, deployable, never changed, and customizable.
+	// Raptor's catalog, seeded into the official library: listed, deployable,
+	// changed only by staff, customizable, and found by its catalog ID too.
+	if _, _, err := catalog.Seed(ctx, db, slog.New(slog.DiscardHandler)); err != nil {
+		t.Fatal(err)
+	}
 	list, err := bob.lib.ListEggs(ctx, &panelv1.EggServiceListEggsRequest{OrgId: org})
 	if err != nil {
 		t.Fatal(err)
 	}
 	var paper *panelv1.CatalogEgg
 	for _, e := range list.GetEggs() {
-		if e.GetId() == "minecraft/paper" {
+		if e.GetName() == "Paper" && e.GetOrigin() == "catalog" {
 			paper = e
 		}
 	}
-	if paper == nil || paper.GetScope() != "builtin" || !paper.GetCertified() || list.GetEggs()[0].GetId() != id {
+	if paper == nil || paper.GetScope() != "official" || !paper.GetCertified() || paper.GetStatus() != "published" || list.GetEggs()[0].GetId() != id {
 		t.Fatalf("list: first %v, paper %v", list.GetEggs()[0], paper)
 	}
 	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: "minecraft/paper", Change: &panelv1.UpdateEggRequest_Spec{Spec: edit}}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
-		t.Errorf("editing a built-in egg: %v", err)
+		t.Errorf("an org editing a catalog egg: %v", err)
 	}
-	custom, err := alice.lib.CustomizeEgg(ctx, &panelv1.CustomizeEggRequest{OrgId: org, Id: "minecraft/paper"})
+	if f, err := bob.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: org, Id: "minecraft/paper"}); err != nil || len(f.GetEgg()) == 0 {
+		t.Errorf("by its catalog ID: %v", err)
+	}
+	custom, err := alice.lib.CustomizeEgg(ctx, &panelv1.CustomizeEggRequest{OrgId: org, Id: paper.GetId()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +186,7 @@ func TestEggLibrary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if e := cd.GetEgg(); e.GetName() != "Paper (custom)" || e.GetOrigin() != "fork" || e.GetParentName() != "Paper" || e.GetParentId() != "minecraft/paper" ||
+	if e := cd.GetEgg(); e.GetName() != "Paper (custom)" || e.GetOrigin() != "fork" || e.GetParentName() != "Paper" || e.GetParentId() != paper.GetId() ||
 		e.GetStatus() != "draft" || e.GetCategory() != "minecraft" || !cd.GetCanEdit() || cd.GetSpec().GetPlayersQuery() != "minecraft" {
 		t.Errorf("customized: %v", cd)
 	}
