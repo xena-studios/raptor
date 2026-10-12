@@ -1,8 +1,10 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Cpu, HardDrive, MemoryStick, Network, Server, Users } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
+import { Hidden } from "@/components/address";
+import { LinkRow } from "@/components/entity-list";
 import { DetailList, EmptyState } from "@/components/page";
 import { StatusBadge } from "@/components/server-status";
 import { Graph, lastPoints, RangePicker, StatCard } from "@/components/stats";
@@ -17,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { nodeHostname } from "@/lib/addresses";
 import { message } from "@/lib/errors";
 import { isAdmin, when } from "@/lib/format";
 import {
@@ -109,12 +112,33 @@ function NodeOverview() {
             {node && (
               <DetailList
                 rows={[
-                  [
-                    "Hostname",
-                    <span key="h" className="font-mono text-xs">
-                      n-{node.shortId}.raptornodes.net
-                    </span>,
-                  ],
+                  ...(node.displayAddress
+                    ? [
+                        [
+                          "Shown address",
+                          <code key="d" className="text-xs">
+                            {node.displayAddress}
+                          </code>,
+                        ] as [string, ReactNode],
+                      ]
+                    : []),
+                  ["Hostname", <Hidden key="h" value={nodeHostname(node)} label="hostname" />],
+                  ...(node.publicIpv4
+                    ? [
+                        ["IPv4", <Hidden key="4" value={node.publicIpv4} label="IP address" />] as [
+                          string,
+                          ReactNode,
+                        ],
+                      ]
+                    : []),
+                  ...(node.publicIpv6
+                    ? [
+                        ["IPv6", <Hidden key="6" value={node.publicIpv6} label="IP address" />] as [
+                          string,
+                          ReactNode,
+                        ],
+                      ]
+                    : []),
                   ["Architecture", node.arch || "—"],
                   ["Cores", node.cpus ? String(node.cpus) : "—"],
                   ["Memory", formatMemory(node.memoryBytes)],
@@ -319,7 +343,13 @@ function ServersCard({
                 const u = use.get(s.id);
                 const on = u?.state === "running";
                 return (
-                  <TableRow key={s.id}>
+                  <LinkRow
+                    key={s.id}
+                    link={{
+                      to: "/orgs/$orgId/servers/$nodeId/$serverId",
+                      params: { orgId, nodeId, serverId: s.id },
+                    }}
+                  >
                     <TableCell>
                       <Link
                         to="/orgs/$orgId/servers/$nodeId/$serverId"
@@ -353,7 +383,7 @@ function ServersCard({
                     <TableCell className="text-right">
                       <StatusBadge status={serverStatus(s, connected)} />
                     </TableCell>
-                  </TableRow>
+                  </LinkRow>
                 );
               })}
             </TableBody>

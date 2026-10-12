@@ -107,6 +107,12 @@ export function createParams(f: CreateForm, defaults: Record<string, string>) {
   };
 }
 
+// nodeStatus is a node's connection as a status, so nodes and servers show
+// theirs the same way.
+export function nodeStatus(n: { connected: boolean }): ServerStatus {
+  return n.connected ? { label: "Connected", tone: "live" } : { label: "Offline", tone: "stopped" };
+}
+
 // A server's state as the page shows it: live from a connected node,
 // pending while it installs, failed with the reason, or stale when its node
 // is offline (the last thing the node reported).

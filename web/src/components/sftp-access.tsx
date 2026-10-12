@@ -3,7 +3,7 @@ import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, FolderKey } from "lucide-react";
 import { useState } from "react";
-
+import { Hidden } from "@/components/address";
 import { DetailList } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import {
@@ -181,7 +181,7 @@ export function SFTPButton({
               <>
                 <DetailList
                   rows={[
-                    ["Host", <CopyValue key="h" value={access.host} />],
+                    ["Host", <Hidden key="h" value={access.host} label="host" />],
                     [
                       "Port",
                       access.port ? (

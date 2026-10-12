@@ -80,7 +80,7 @@ class Live {
         return;
       }
       // Ended: the node went offline (try again), or this can't be watched.
-      w.h.onProblem(m.error || "The console stream ended.", !!m.retry);
+      w.h.onProblem(sentence(m.error) || "The console stream ended.", !!m.retry);
       if (m.retry) {
         w.retry = window.setTimeout(() => {
           if (this.watches.get(m.id) === w && this.open)
@@ -100,3 +100,12 @@ class Live {
 }
 
 export const live = new Live();
+
+// sentence makes the Panel's short reasons ("the node is offline") read as
+// one, before "Trying again…".
+function sentence(s: string | undefined): string {
+  const t = (s ?? "").trim();
+  if (!t) return "";
+  const capital = t.charAt(0).toUpperCase() + t.slice(1);
+  return /[.!?…]$/.test(capital) ? capital : `${capital}.`;
+}

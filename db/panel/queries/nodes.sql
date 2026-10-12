@@ -80,6 +80,9 @@ DELETE FROM m_servers WHERE node_id = $1;
 -- name: ForgetNodeGrants :exec
 DELETE FROM server_grants WHERE node_id = $1;
 
+-- name: SetNodeDisplayAddress :execrows
+UPDATE nodes SET display_address = $2 WHERE id = $1 AND deleted_at IS NULL;
+
 -- name: RenameNode :execrows
 UPDATE nodes SET name = $2 WHERE id = $1 AND deleted_at IS NULL;
 

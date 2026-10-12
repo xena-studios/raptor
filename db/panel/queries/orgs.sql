@@ -67,7 +67,9 @@ SELECT n.id, n.name, n.short_id, n.wings_version, n.last_seen_at, n.created_at,
        coalesce(n.facts->>'arch', '')::text AS arch,
        coalesce((n.facts->>'cpus')::int, 0)::int AS cpus,
        coalesce((n.facts->>'memory_bytes')::bigint, 0)::bigint AS memory_bytes,
-       n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed
+       n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed, n.display_address,
+       coalesce(host(n.public_ipv4), '')::text AS public_ipv4,
+       coalesce(host(n.public_ipv6), '')::text AS public_ipv6
 FROM nodes n LEFT JOIN node_connections c ON c.node_id = n.id
 WHERE n.org_id = $1 AND n.deleted_at IS NULL
 ORDER BY n.created_at;

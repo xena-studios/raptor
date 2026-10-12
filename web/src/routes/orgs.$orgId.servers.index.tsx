@@ -3,10 +3,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Server } from "lucide-react";
 import { useState } from "react";
 
+import { ServerAddress } from "@/components/address";
+import { EntityCard, LinkRow } from "@/components/entity-list";
 import { EmptyState, ListToolbar, type ListView, PageHeader } from "@/components/page";
 import { StatusBadge } from "@/components/server-status";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -23,10 +25,6 @@ import { serverStatus } from "@/lib/servers";
 export const Route = createFileRoute("/orgs/$orgId/servers/")({
   component: Servers,
 });
-
-function connect(s: OrgServer): string {
-  return s.ports[0] ? `n-${s.node.shortId}.raptornodes.net:${s.ports[0]}` : "—";
-}
 
 function Servers() {
   const { orgId } = Route.useParams();
@@ -81,31 +79,17 @@ function Servers() {
           {view === "grid" ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {list.map((s) => (
-                <Card key={`${s.node.id}/${s.id}`}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between gap-2">
-                      <Link
-                        to="/orgs/$orgId/servers/$nodeId/$serverId"
-                        params={link(s)}
-                        className="truncate hover:underline"
-                      >
-                        {s.name}
-                      </Link>
-                      <StatusBadge status={serverStatus(s, s.node.connected)} />
-                    </CardTitle>
-                    <CardDescription className="truncate">{s.eggName || "—"}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-2 text-sm">
-                    <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">Node</span>
-                      <span className="truncate">{s.node.name}</span>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">Connect</span>
-                      <span className="truncate font-mono text-xs">{connect(s)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                <EntityCard
+                  key={`${s.node.id}/${s.id}`}
+                  link={{ to: "/orgs/$orgId/servers/$nodeId/$serverId", params: link(s) }}
+                  title={s.name}
+                  status={serverStatus(s, s.node.connected)}
+                  subtitle={s.eggName || "—"}
+                  rows={[
+                    ["Address", <ServerAddress key="a" node={s.node} port={s.ports[0]} />],
+                    ["Node", s.node.name],
+                  ]}
+                />
               ))}
             </div>
           ) : (
@@ -114,15 +98,18 @@ function Servers() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Server</TableHead>
-                    <TableHead>Game</TableHead>
-                    <TableHead>Node</TableHead>
-                    <TableHead>Connect</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead className="hidden md:table-cell">Game</TableHead>
+                    <TableHead className="hidden sm:table-cell">Node</TableHead>
                     <TableHead className="text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {list.map((s) => (
-                    <TableRow key={`${s.node.id}/${s.id}`}>
+                    <LinkRow
+                      key={`${s.node.id}/${s.id}`}
+                      link={{ to: "/orgs/$orgId/servers/$nodeId/$serverId", params: link(s) }}
+                    >
                       <TableCell>
                         <Link
                           to="/orgs/$orgId/servers/$nodeId/$serverId"
@@ -132,13 +119,17 @@ function Servers() {
                           {s.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{s.eggName || "—"}</TableCell>
-                      <TableCell>{s.node.name}</TableCell>
-                      <TableCell className="font-mono text-xs">{connect(s)}</TableCell>
+                      <TableCell>
+                        <ServerAddress node={s.node} port={s.ports[0]} />
+                      </TableCell>
+                      <TableCell className="hidden text-muted-foreground md:table-cell">
+                        {s.eggName || "—"}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{s.node.name}</TableCell>
                       <TableCell className="text-right">
                         <StatusBadge status={serverStatus(s, s.node.connected)} />
                       </TableCell>
-                    </TableRow>
+                    </LinkRow>
                   ))}
                 </TableBody>
               </Table>
