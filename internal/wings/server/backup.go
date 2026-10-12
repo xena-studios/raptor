@@ -67,6 +67,8 @@ func (m *Manager) Restore(ctx context.Context, id string, start bool, fn func(ct
 		return ErrInstalling
 	case Restoring:
 		return ErrRestoring
+	case Moving:
+		return ErrMoving
 	}
 	// Stopped for good until the restore is done: if Wings stops meanwhile,
 	// a half-restored server must not be started again.

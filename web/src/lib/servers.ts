@@ -143,6 +143,9 @@ export function serverStatus(
         stopping: { label: "Stopping", tone: "pending" },
         crashed: { label: "Crashed", tone: "failed" },
         offline: { label: "Stopped", tone: "stopped" },
+        restoring: { label: "Restoring", tone: "pending" },
+        deleting: { label: "Deleting", tone: "pending" },
+        moving: { label: "Moving", tone: "pending" },
       } as Record<string, ServerStatus>
     )[s.state] ?? { label: s.state || "Unknown", tone: "stopped" };
   }
@@ -166,6 +169,7 @@ export type ServerConfig = {
   host_network: boolean;
   allocations: { ip: string; port: number; primary?: boolean }[];
   egg_hash?: string;
+  disk?: string; // a data disk's ID; absent for the main volume
   egg?: {
     images: { name: string; ref: string }[] | null;
     // As Wings reports them (snake_case JSON).

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { DeleteServer } from "@/components/delete-server";
+import { MoveServer } from "@/components/move-server";
 import { ServerSettings } from "@/components/server-settings";
 import { can, useServer } from "@/lib/org-data";
 
@@ -26,6 +27,7 @@ function SettingsTab() {
         canReinstall={can(server, "reinstall")}
         stopped={["offline", "crashed", "install_failed", ""].includes(server.state)}
       />
+      {can(server, "*") && <MoveServer orgId={orgId} nodeId={nodeId} serverId={serverId} />}
       {can(server, "*") && (
         <DeleteServer
           orgId={orgId}

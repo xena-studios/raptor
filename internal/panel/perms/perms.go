@@ -90,6 +90,7 @@ var actions = map[string]string{
 
 	"server.create":             adminOnly,
 	"server.delete":             adminOnly,
+	"server.move":               adminOnly,
 	"backup.policy.update":      adminOnly,
 	"backup.destination.save":   adminOnly,
 	"backup.destination.delete": adminOnly,

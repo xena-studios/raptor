@@ -100,7 +100,7 @@ type Config struct {
 	HostNetwork bool
 	Allocations []Allocation
 	// Disk is the data disk the server's files are on ("" is the main
-	// volume). It's chosen at creation and never changes.
+	// volume). It's chosen at creation; only a move (Move) changes it.
 	Disk string
 }
 

@@ -154,6 +154,13 @@ func New(o Options) *Manager {
 		MaxAttempts: 3,
 		Run:         m.deleteJob,
 	})
+	o.Jobs.Register(JobMove, jobs.Handler{
+		Class:       "backup",
+		ServerLock:  true,
+		Resumable:   true, // the copy starts over; a switched server only has its old copy removed
+		MaxAttempts: 3,
+		Run:         m.moveJob,
+	})
 	return m
 }
 
@@ -809,9 +816,13 @@ var ErrNoDisk = errors.New("that disk isn't set up for server data on this node"
 func (m *Manager) diskOf(id string) (string, error) {
 	m.mu.Lock()
 	i, ok := m.servers[id]
+	var disk string
+	if ok {
+		disk = i.disk // set under m.mu: a move changes it
+	}
 	m.mu.Unlock()
 	if ok {
-		return i.disk, nil
+		return disk, nil
 	}
 	r, err := m.o.Store.Read.GetServer(context.Background(), id)
 	if err != nil {

@@ -160,7 +160,8 @@ func serverProto(s *server.Server, state string) (*nodev1.Server, error) {
 		Allocations []server.Allocation `json:"allocations"`
 		EggHash     string              `json:"egg_hash"`
 		Egg         *eggInfo            `json:"egg,omitempty"`
-	}{s.Image, s.Startup, s.Variables, s.Limits, s.Settings, s.HostNetwork, s.Allocations, s.EggHash, describeEgg(s)})
+		Disk        string              `json:"disk,omitempty"` // "" is the main volume
+	}{s.Image, s.Startup, s.Variables, s.Limits, s.Settings, s.HostNetwork, s.Allocations, s.EggHash, describeEgg(s), s.Disk})
 	if err != nil {
 		return nil, err
 	}

@@ -50,6 +50,7 @@ Stored in Wings' SQLite (the source of truth) and mirrored to the Panel.
 |---|---|
 | `installing` | An install or reinstall job is running. Power actions are rejected. |
 | `restoring` | A backup is being restored. The server is stopped, power actions are refused, and it starts again afterwards if it was meant to be running ([WINGS.md](WINGS.md#backups)). |
+| `moving` | The server's files are being moved to another disk. The server is stopped, power actions and file access are refused, and it starts again afterwards if it was meant to be running ([WINGS.md](WINGS.md#data-disks)). |
 | `install_failed` | The last install failed. Files are kept. The server can't start until an install succeeds, unless "skip install script" is set. |
 | `offline` | Container not running, by request. |
 | `starting` | Container started, egg "done" string not seen yet. Eggs without a done string go straight to `running`. If `starting` lasts longer than 10 minutes, the Panel shows a warning; Wings doesn't kill it. |
