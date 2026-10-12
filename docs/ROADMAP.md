@@ -277,7 +277,7 @@ Found while checking production (Oct 8):
 - [ ] **Billing (Polar):** $12/node quantity subscription (every enrolled node, any status), daily proration, first-node 1-month trial (once per org, card required), webhooks, ledger, 7-day grace, read-only mode
 - [ ] **Hosted backup storage** + metering (Raptor Backup Storage on B2: 10 GB included per paid node, then $0.012/GB-month) (built: a key per node for its folder, turned on from the node's Backups tab, measured daily, deleted 30 days after it's turned off, usage and an estimate in org settings; left: the bucket and key in production (DEPLOY.md), and charging, with billing)
 - [ ] **Support access:** request/approve/revoke flow, banners, staff console, staff MFA
-- [ ] **Load test** with fake-Wings simulator (thousands of nodes)
+- [ ] **Load test** with fake-Wings simulator (thousands of nodes) (the simulator is built: `cmd/fakewings` enrolls, links, and drives nodes with fake servers and events, and reports handshake and event delivery times; 500 nodes held steady against the dev Panel; left: thousands through Cloudflare against staging)
 - [ ] Status page at `status.raptorpanel.net` (hosted with a different provider than the Panel, DNS not on Cloudflare; a Better Stack page exists, but its record is on Cloudflare)
 - [ ] Docs site (Astro Starlight, `docs.raptorpanel.net`): install guide, provider guides (Hetzner, OVH, Oracle Free Tier, home PC), CLI reference, egg authoring
 - [x] AGPL source link in the Panel footer (deployed commit): the sidebar and the sign-in page link to the commit the API reports (`MetaService.GetVersion`), or the repository for development builds
