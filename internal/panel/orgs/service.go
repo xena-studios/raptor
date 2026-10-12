@@ -153,6 +153,9 @@ func member(ctx context.Context, q *store.Queries, sess *auth.Session, orgID, mi
 	if roleRank[m.Role] < roleRank[min] {
 		return org, "", errDenied
 	}
+	if err := auth.OrgUsable(ctx, q, org); err != nil {
+		return org, "", err
+	}
 	return org, m.Role, nil
 }
 
@@ -201,7 +204,7 @@ func (s *Service) ListOrgs(ctx context.Context, _ *panelv1.ListOrgsRequest) (*pa
 	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
 		rows, err := q.UserOrgs(ctx, sess.UserID)
 		for _, r := range rows {
-			out.Orgs = append(out.Orgs, &panelv1.Org{Id: idString(r.ID), Name: r.Name, CreatedAt: timestamppb.New(r.CreatedAt.Time), Role: roleProto(r.Role)})
+			out.Orgs = append(out.Orgs, &panelv1.Org{Id: idString(r.ID), Name: r.Name, CreatedAt: timestamppb.New(r.CreatedAt.Time), Role: roleProto(r.Role), Suspended: r.Suspended})
 		}
 		return err
 	})

@@ -30,6 +30,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
 	"github.com/xena-studios/raptor/internal/panel/sftpgate"
+	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/panel/support"
@@ -49,6 +50,8 @@ commands:
   join-token <org-id> [name]  a single-use token that links one node (1 hour)
   rollout start <version>   update nodes' Wings in stages (5%, 25%, all)
   rollout status|pause|resume|cancel
+  staff add <email> admin|support   make an account Raptor staff (the only way)
+  staff remove <email> | list
   health                    exit 0 if this Panel answers /healthz (for Docker's health check)
   version                   print version
 
@@ -123,6 +126,17 @@ func run(args []string, log *slog.Logger) error {
 		})
 	case len(args) >= 2 && args[0] == "rollout":
 		return rolloutCmd(ctx, args[1:])
+	case len(args) >= 2 && args[0] == "staff":
+		url := os.Getenv("PANEL_DATABASE_URL")
+		if url == "" {
+			return errors.New("PANEL_DATABASE_URL is not set")
+		}
+		pool, err := store.Open(ctx, url)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		return staff.CLI(ctx, pool, os.Stdout, args[1:])
 	case (len(args) == 2 || len(args) == 3) && args[0] == "join-token":
 		return withRegistry(ctx, func(r *nodes.Registry) error {
 			name := ""
@@ -244,6 +258,8 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		keysConnected = keys.Connected
 		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate, Storage: backupStorage, Keys: keys, Log: log}
 		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey}
+		cfg.Staff = &staff.Service{DB: pool, Auth: cfg.Auth, Log: log}
+		go cfg.Staff.RunStats(ctx)
 		cfg.Transfers = router
 		mailer, err := mailer(log)
 		if err != nil {

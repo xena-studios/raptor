@@ -238,6 +238,28 @@ A node's hostname (`n-<short id>.raptornodes.net`) resolves to the machine's IP 
 - The Panel keeps its own **ledger** for reconciliation.
 - Non-payment: 7-day grace → the Panel goes read-only for unpaid nodes → **servers keep running**. Hosted backup data is kept 30 days, then deleted after email reminders.
 
+## Staff
+
+Raptor's own admin panel, at `/admin` in the app (`internal/panel/staff`, `StaffService`), for staff only.
+
+**Who.** Staff are **admins** (look and act) or **support** (look). They're made only on the Panel's server, with `panel staff add <email> admin|support` (and `remove`, `list`), never from the web, so a staff account that's taken over can't make more. The account must already exist and needs a passkey.
+
+**Getting in.** Every call needs a passkey confirmed by the session in the last **12 hours** (`sessions.passkey_at`, set by signing in or confirming with one). Every change needs one in the last **5 minutes**, through the usual "confirm it's you" dialog. An emailed code or an authenticator app isn't enough. Non-staff get nothing, and `GetStaffMe` just says they aren't staff.
+
+**What it shows.**
+- **Overview:** nodes connected, servers running, users (new and active in 30 days), orgs, and Raptor Backup Storage, with their history (counted every hour into `platform_stats` by one Panel instance) over 7 days to a year; sign-ups per day; Wings versions, architectures, and the most deployed games; offline nodes (gone over an hour) and crashed or failed servers.
+- **Revenue:** billing isn't live, so this is what Raptor Backup Storage would bill a month at today's usage, said as such. Real revenue comes with billing.
+- **Users and orgs:** search, and each one's details: orgs, members, nodes, recent sign-ins, Backup Storage.
+
+**What it can do** (admins):
+- **Suspend an account** (with a reason): it's signed out everywhere and can't sign in. Its orgs and servers keep running.
+- **Sign an account out everywhere.**
+- **Suspend an org** (with a reason): the Panel refuses to manage it (org pages, commands, the console, and SFTP logins), and its members see why. Its nodes and game servers keep running, so players aren't punished for the owner's account.
+
+Staff can't sign in as a user, and can't read or act on servers. Reaching a node needs support access, which its owner signs (below).
+
+**The staff log** (`staff_audit`) records every change and every account or org opened (once per 10 minutes per staff member), with who and from where. A trigger refuses updates, deletes, and truncation, so staff can't edit it. Suspensions also go in the affected account's or org's own log, as done by staff.
+
 ## Support access
 
 1. Staff requests access to a node: level (1 diagnostics / 2 operate / 3 manage), duration, reason, **ticket reference required**.

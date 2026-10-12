@@ -123,13 +123,19 @@ func (q *Queries) CreateInvitation(ctx context.Context, arg CreateInvitationPara
 }
 
 const getOrg = `-- name: GetOrg :one
-SELECT id, name, created_at FROM orgs WHERE id = $1
+SELECT id, name, created_at, suspended_at, suspended_reason FROM orgs WHERE id = $1
 `
 
 func (q *Queries) GetOrg(ctx context.Context, id pgtype.UUID) (Org, error) {
 	row := q.db.QueryRow(ctx, getOrg, id)
 	var i Org
-	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.SuspendedAt,
+		&i.SuspendedReason,
+	)
 	return i, err
 }
 
@@ -548,7 +554,7 @@ func (q *Queries) UserGrantsInOrg(ctx context.Context, arg UserGrantsInOrgParams
 }
 
 const userOrgs = `-- name: UserOrgs :many
-SELECT o.id, o.name, o.created_at, m.role FROM orgs o
+SELECT o.id, o.name, o.created_at, m.role, (o.suspended_at IS NOT NULL)::bool AS suspended FROM orgs o
 JOIN org_members m ON m.org_id = o.id
 WHERE m.user_id = $1
 ORDER BY o.created_at
@@ -559,6 +565,7 @@ type UserOrgsRow struct {
 	Name      string
 	CreatedAt pgtype.Timestamptz
 	Role      string
+	Suspended bool
 }
 
 func (q *Queries) UserOrgs(ctx context.Context, userID pgtype.UUID) ([]UserOrgsRow, error) {
@@ -575,6 +582,7 @@ func (q *Queries) UserOrgs(ctx context.Context, userID pgtype.UUID) ([]UserOrgsR
 			&i.Name,
 			&i.CreatedAt,
 			&i.Role,
+			&i.Suspended,
 		); err != nil {
 			return nil, err
 		}

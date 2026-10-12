@@ -383,6 +383,16 @@ git -C /opt/raptor fetch --tags && git -C /opt/raptor checkout --detach v0.x.y
 /opt/raptor/deploy/scripts/deploy.sh v0.x.y
 ```
 
+### Staff
+
+Staff are made on server #1, once their account exists and has a passkey (docs/PANEL.md#staff):
+
+```bash
+cd /opt/raptor/deploy/primary
+docker compose exec panel-a panel staff add you@example.com admin
+docker compose exec panel-a panel staff list
+```
+
 ## Backups
 
 - **WAL:** every change is archived within 60 seconds (`archive_timeout`), so the most you can lose to a total loss of both servers is about a minute.

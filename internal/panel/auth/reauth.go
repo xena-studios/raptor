@@ -17,6 +17,25 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
+// ErrSuspended refuses a suspended account (docs/PANEL.md#staff).
+var ErrSuspended = connect.NewError(connect.CodePermissionDenied, errors.New("this account is suspended. Write to support@raptorpanel.net if you think it's a mistake"))
+
+// ErrOrgSuspended refuses using a suspended org: its nodes and servers keep
+// running, but the Panel won't manage them until staff lift it.
+var ErrOrgSuspended = connect.NewError(connect.CodeFailedPrecondition, errors.New("this org is suspended, so it can't be managed here for now. Its servers keep running. Write to support@raptorpanel.net about it"))
+
+// OrgUsable refuses a suspended org.
+func OrgUsable(ctx context.Context, q *store.Queries, org pgtype.UUID) error {
+	suspended, err := q.OrgSuspended(ctx, org)
+	if err != nil {
+		return err
+	}
+	if suspended {
+		return ErrOrgSuspended
+	}
+	return nil
+}
+
 // ReauthTTL is how long a re-authentication allows sensitive account
 // changes (docs/PANEL.md#auth).
 const ReauthTTL = 5 * time.Minute
@@ -171,7 +190,11 @@ func (s *Service) reauthPasskey(ctx context.Context, sess *Session, a *panelv1.P
 			}
 			return err
 		}
-		return q.SetSessionReauth(ctx, store.SetSessionReauthParams{ID: sess.ID, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: true}})
+		now := pgtype.Timestamptz{Time: s.now(), Valid: true}
+		if err := q.SetSessionPasskey(ctx, store.SetSessionPasskeyParams{ID: sess.ID, PasskeyAt: now}); err != nil {
+			return err
+		}
+		return q.SetSessionReauth(ctx, store.SetSessionReauthParams{ID: sess.ID, ReauthAt: now})
 	})
 	return failure, err
 }

@@ -161,10 +161,11 @@ Even if every one of these failed, each malicious action would still need a real
 - Full audit log for every mutating action.
 
 ### Staff and support
-- Separate staff accounts with **hardware-key MFA**.
+- Staff are made only on the Panel's server (`panel staff add`), never from the web. The admin panel needs a passkey confirmed in the last 12 hours, and every change one in the last 5 minutes; emailed codes and authenticator apps don't count (docs/PANEL.md#staff).
+- Staff can suspend accounts and orgs (signing them out and stopping the Panel managing them, while servers keep running), and see platform counts. They can't sign in as a user, read files or consoles, or send commands to nodes.
 - Support access requires **owner approval signed with the owner's passkey** and verified by Wings (so a compromised Panel or staff account can't grant itself access), is scoped (level 1/2/3), time-limited, revocable, visible, and audited per staff member. Nodes can disable it entirely.
 - **No shell access for staff.**
-- An internal audit log of staff actions that staff cannot modify.
+- An internal audit log of staff actions that staff cannot modify (`staff_audit`, append-only by trigger), including who opened which account; suspensions also show in the account's or org's own log.
 
 ### Backups
 - Encrypted on the node before upload (Kopia).

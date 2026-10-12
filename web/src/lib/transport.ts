@@ -5,6 +5,7 @@ import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { CatalogService } from "@/gen/raptor/panel/v1/catalog_pb";
 import { CommandService } from "@/gen/raptor/panel/v1/command_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 
 // The API: https://api.raptorpanel.net/api in production (VITE_API_URL, a
 // separate origin; docs/DECISIONS.md #81), /api through Vite's proxy in
@@ -25,3 +26,4 @@ export const authClient = createClient(AuthService, transport);
 export const orgClient = createClient(OrgService, transport);
 export const commandClient = createClient(CommandService, transport);
 export const catalogClient = createClient(CatalogService, transport);
+export const staffClient = createClient(StaffService, transport);

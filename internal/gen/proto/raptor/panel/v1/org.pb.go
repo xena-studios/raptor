@@ -80,7 +80,10 @@ type Org struct {
 	Name      string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// The caller's role.
-	Role          Role `protobuf:"varint,4,opt,name=role,proto3,enum=raptor.panel.v1.Role" json:"role,omitempty"`
+	Role Role `protobuf:"varint,4,opt,name=role,proto3,enum=raptor.panel.v1.Role" json:"role,omitempty"`
+	// Suspended by Raptor's staff: it can't be managed until they lift it
+	// (its servers keep running).
+	Suspended     bool `protobuf:"varint,5,opt,name=suspended,proto3" json:"suspended,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -141,6 +144,13 @@ func (x *Org) GetRole() Role {
 		return x.Role
 	}
 	return Role_ROLE_UNSPECIFIED
+}
+
+func (x *Org) GetSuspended() bool {
+	if x != nil {
+		return x.Suspended
+	}
+	return false
 }
 
 type CreateOrgRequest struct {
@@ -5867,13 +5877,14 @@ var File_raptor_panel_v1_org_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\n" +
-	"\x19raptor/panel/v1/org.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1braptor/panel/v1/audit.proto\x1a\x1araptor/panel/v1/auth.proto\x1a\x1draptor/panel/v1/catalog.proto\"\x8f\x01\n" +
+	"\x19raptor/panel/v1/org.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1braptor/panel/v1/audit.proto\x1a\x1araptor/panel/v1/auth.proto\x1a\x1draptor/panel/v1/catalog.proto\"\xad\x01\n" +
 	"\x03Org\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x129\n" +
 	"\n" +
 	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12)\n" +
-	"\x04role\x18\x04 \x01(\x0e2\x15.raptor.panel.v1.RoleR\x04role\"&\n" +
+	"\x04role\x18\x04 \x01(\x0e2\x15.raptor.panel.v1.RoleR\x04role\x12\x1c\n" +
+	"\tsuspended\x18\x05 \x01(\bR\tsuspended\"&\n" +
 	"\x10CreateOrgRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\";\n" +
 	"\x11CreateOrgResponse\x12&\n" +

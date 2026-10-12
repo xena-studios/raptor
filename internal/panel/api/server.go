@@ -24,6 +24,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/live"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
+	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/transfers"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
@@ -54,6 +55,8 @@ type Config struct {
 	// Commands sends users' commands to their nodes (nil without a
 	// database).
 	Commands *commands.Service
+	// Staff is Raptor's admin panel (nil without a database).
+	Staff *staff.Service
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -112,6 +115,10 @@ func Handler(cfg Config) http.Handler {
 	if cfg.Orgs != nil {
 		// An uploaded egg is up to 1 MiB, base64 in JSON.
 		path, handler := panelv1connect.NewOrgServiceHandler(cfg.Orgs, opts(connect.WithReadMaxBytes(2<<20))...)
+		api.Handle(path, handler)
+	}
+	if cfg.Staff != nil {
+		path, handler := panelv1connect.NewStaffServiceHandler(cfg.Staff, opts(connect.WithReadMaxBytes(16<<10))...)
 		api.Handle(path, handler)
 	}
 	appOrigin := cfg.AppOrigin
