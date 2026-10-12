@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// AddonService finds plugins and mods on Modrinth for servers whose egg
+// turns on an add-on (docs/EGGS.md#add-ons). The Panel asks Modrinth (with
+// its own user agent, and caches), so the browser talks only to Raptor.
+// Installing is the node's addons.install command, which fetches only from
+// Modrinth's CDN and checks the file's SHA-512. Any member of the org.
+service AddonService {
+  // SearchAddons searches Modrinth for a kind's projects that run on the
+  // loaders (and game version, if given).
+  rpc SearchAddons(SearchAddonsRequest) returns (SearchAddonsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ListAddonVersions lists a project's versions for the loaders and game
+  // version, newest first.
+  rpc ListAddonVersions(ListAddonVersionsRequest) returns (ListAddonVersionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // IdentifyAddons says which Modrinth project and version each file is
+  // (by its SHA-512), and the newest version for the loaders and game
+  // version.
+  rpc IdentifyAddons(IdentifyAddonsRequest) returns (IdentifyAddonsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message AddonProject {
+  string id = 1;
+  string slug = 2;
+  string title = 3;
+  string description = 4;
+  string icon_url = 5;
+  int64 downloads = 6;
+  string author = 7;
+  // Its page on Modrinth.
+  string url = 8;
+}
+
+message AddonFile {
+  string url = 1;
+  string filename = 2;
+  int64 size = 3;
+  string sha512 = 4;
+}
+
+message AddonVersion {
+  string id = 1;
+  string project_id = 2;
+  string name = 3;
+  string version_number = 4;
+  repeated string game_versions = 5;
+  repeated string loaders = 6;
+  google.protobuf.Timestamp published_at = 7;
+  // The version's main file.
+  AddonFile file = 8;
+}
+
+message SearchAddonsRequest {
+  string org_id = 1;
+  // "plugins" or "mods".
+  string kind = 2;
+  repeated string loaders = 3;
+  // Empty: any.
+  string game_version = 4;
+  string query = 5;
+  int32 offset = 6;
+}
+
+message SearchAddonsResponse {
+  repeated AddonProject projects = 1;
+  int32 total = 2;
+}
+
+message ListAddonVersionsRequest {
+  string org_id = 1;
+  string project_id = 2;
+  repeated string loaders = 3;
+  string game_version = 4;
+}
+
+message ListAddonVersionsResponse {
+  repeated AddonVersion versions = 1;
+}
+
+message IdentifyAddonsRequest {
+  string org_id = 1;
+  // SHA-512s, from the node's addons.list.
+  repeated string hashes = 2;
+  repeated string loaders = 3;
+  string game_version = 4;
+}
+
+message IdentifiedAddon {
+  string sha512 = 1;
+  AddonProject project = 2;
+  AddonVersion version = 3;
+  // The newest version for the loaders and game version, when it isn't
+  // this one.
+  AddonVersion latest = 4;
+}
+
+message IdentifyAddonsResponse {
+  // Files Modrinth doesn't know are left out.
+  repeated IdentifiedAddon addons = 1;
+}

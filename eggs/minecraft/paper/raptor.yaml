@@ -16,3 +16,8 @@ test:
   done_timeout: 5m
   command: "list"
   expect: "There are 0 of a max of \\d+ players"
+addons:
+  plugins:
+    loaders: [paper, spigot, bukkit]
+    dir: plugins
+    version: MINECRAFT_VERSION

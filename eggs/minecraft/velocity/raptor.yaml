@@ -17,3 +17,7 @@ test:
   done_timeout: 3m
   command: "glist"
   expect: "0 players are currently connected to the proxy"
+addons:
+  plugins:
+    loaders: [velocity]
+    dir: plugins

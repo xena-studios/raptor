@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/egg.proto.
  */
 export const file_raptor_panel_v1_egg: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvZWdnLnByb3RvEg9yYXB0b3IucGFuZWwudjEiKwoZRWdnU2VydmljZUxpc3RFZ2dzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiRwoaRWdnU2VydmljZUxpc3RFZ2dzUmVzcG9uc2USKQoEZWdncxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnIt0DCgdFZ2dTcGVjEgwKBG5hbWUYASABKAkSDgoGYXV0aG9yGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEikKBmltYWdlcxgEIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIsCgdzdGFydHVwGAUgAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1N0YXJ0dXASEQoJc3RvcF90eXBlGAYgASgJEhIKCnN0b3BfdmFsdWUYByABKAkSDAoEZG9uZRgIIAMoCRIWCg5pbnN0YWxsX3NjcmlwdBgJIAEoCRIZChFpbnN0YWxsX2NvbnRhaW5lchgKIAEoCRIaChJpbnN0YWxsX2VudHJ5cG9pbnQYCyABKAkSLwoJdmFyaWFibGVzGAwgAygLMhwucmFwdG9yLnBhbmVsLnYxLkVnZ1ZhcmlhYmxlEi0KBWZpbGVzGA0gAygLMh4ucmFwdG9yLnBhbmVsLnYxLkVnZ0NvbmZpZ0ZpbGUSEAoIZmVhdHVyZXMYDiADKAkSFQoNZmlsZV9kZW55bGlzdBgPIAMoCRIMCgRhcmNoGBAgAygJEhUKDXBsYXllcnNfcXVlcnkYESABKAkSFAoMcGxheWVyc19wb3J0GBIgASgJIisKCkVnZ1N0YXJ0dXASDAoEbmFtZRgBIAEoCRIPCgdjb21tYW5kGAIgASgJIlUKDUVnZ0NvbmZpZ0ZpbGUSDAoEcGF0aBgBIAEoCRIOCgZwYXJzZXIYAiABKAkSJgoEZmluZBgDIAMoCzIYLnJhcHRvci5wYW5lbC52MS5FZ2dGaW5kIjcKB0VnZ0ZpbmQSCwoDa2V5GAEgASgJEhAKCGlmX3ZhbHVlGAIgASgJEg0KBXZhbHVlGAMgASgJIn8KCkVnZ1ZlcnNpb24SDwoHdmVyc2lvbhgBIAEoBRIOCgZzaGEyNTYYAiABKAkSDAoEbm90ZRgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjIKFEdldEVnZ0RldGFpbHNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCSKZAgoVR2V0RWdnRGV0YWlsc1Jlc3BvbnNlEigKA2VnZxgBIAEoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnEiYKBHNwZWMYAiABKAsyGC5yYXB0b3IucGFuZWwudjEuRWdnU3BlYxIMCgRmaWxlGAMgASgMEg4KBmZvcm1hdBgEIAEoCRISCgpyZWdpc3RyaWVzGAUgAygJEi0KCHdhcm5pbmdzGAYgAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1dhcm5pbmcSDAoEbGludBgHIAMoCRIQCghjYW5fZWRpdBgIIAEoCBItCgh2ZXJzaW9ucxgJIAMoCzIbLnJhcHRvci5wYW5lbC52MS5FZ2dWZXJzaW9uIkAKEUdldEVnZ0ZpbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCRIPCgd2ZXJzaW9uGAMgASgFIjIKEkdldEVnZ0ZpbGVSZXNwb25zZRILCgNlZ2cYASABKAwSDwoHdmVyc2lvbhgCIAEoBSJtChBDcmVhdGVFZ2dSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRImCgRzcGVjGAIgASgLMhgucmFwdG9yLnBhbmVsLnYxLkVnZ1NwZWMSDwoHc3VtbWFyeRgDIAEoCRIQCghjYXRlZ29yeRgEIAEoCSIfChFDcmVhdGVFZ2dSZXNwb25zZRIKCgJpZBgBIAEoCSK5AQoQVXBkYXRlRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSKAoEc3BlYxgDIAEoCzIYLnJhcHRvci5wYW5lbC52MS5FZ2dTcGVjSAASDgoEZmlsZRgEIAEoDEgAEg8KB3N1bW1hcnkYBSABKAkSEAoIY2F0ZWdvcnkYBiABKAkSDAoEbm90ZRgHIAEoCRIUCgxiYXNlX3ZlcnNpb24YCCABKAVCCAoGY2hhbmdlIiQKEVVwZGF0ZUVnZ1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAUiQAoTQ3VzdG9taXplRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSDQoFYXNfaXMYAyABKAgiIgoUQ3VzdG9taXplRWdnUmVzcG9uc2USCgoCaWQYASABKAkiQQoTU2V0RWdnU3RhdHVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSDgoGc3RhdHVzGAMgASgJIhYKFFNldEVnZ1N0YXR1c1Jlc3BvbnNlIi4KEERlbGV0ZUVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJIhMKEURlbGV0ZUVnZ1Jlc3BvbnNlIk8KFFJldmlld0VnZ0ZpbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRINCgN1cmwYAiABKAlIABIOCgRmaWxlGAMgASgMSABCCAoGc291cmNlInQKFVJldmlld0VnZ0ZpbGVSZXNwb25zZRILCgNlZ2cYASABKAwSEgoKc291cmNlX3VybBgCIAEoCRIOCgZzaGEyNTYYAyABKAkSKgoGcmV2aWV3GAQgASgLMhoucmFwdG9yLnBhbmVsLnYxLkVnZ1JldmlldyJZChRJbXBvcnRFZ2dGaWxlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCwoDZWdnGAIgASgMEhIKCnNvdXJjZV91cmwYAyABKAkSEAoIY2F0ZWdvcnkYBCABKAkiIwoVSW1wb3J0RWdnRmlsZVJlc3BvbnNlEgoKAmlkGAEgASgJIm0KGExpc3RDb21tdW5pdHlFZ2dzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFcXVlcnkYAiABKAkSEAoIY2F0ZWdvcnkYAyABKAkSDAoEc29ydBgEIAEoCRISCgpwYWdlX3Rva2VuGAUgASgJIl8KGUxpc3RDb21tdW5pdHlFZ2dzUmVzcG9uc2USKQoEZWdncxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSI9Cg9TaGFyZUVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJEg4KBnNoYXJlZBgDIAEoCCISChBTaGFyZUVnZ1Jlc3BvbnNlIk8KEFJlcG9ydEVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJEg4KBnJlYXNvbhgDIAEoCRIPCgdkZXRhaWxzGAQgASgJIhMKEVJlcG9ydEVnZ1Jlc3BvbnNlIhcKFUxpc3RFZ2dSZXBvcnRzUmVxdWVzdCLGAQoJRWdnUmVwb3J0EgoKAmlkGAEgASgJEg4KBmVnZ19pZBgCIAEoCRIQCghlZ2dfbmFtZRgDIAEoCRIRCglwdWJsaXNoZXIYBCABKAkSDgoGcmVhc29uGAUgASgJEg8KB2RldGFpbHMYBiABKAkSFgoOcmVwb3J0ZXJfZW1haWwYByABKAkSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDwoHcmVtb3ZlZBgJIAEoCCJFChZMaXN0RWdnUmVwb3J0c1Jlc3BvbnNlEisKB3JlcG9ydHMYASADKAsyGi5yYXB0b3IucGFuZWwudjEuRWdnUmVwb3J0IkAKEk1vZGVyYXRlRWdnUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZhY3Rpb24YAiABKAkSDgoGcmVhc29uGAMgASgJIhUKE01vZGVyYXRlRWdnUmVzcG9uc2UymQsKCkVnZ1NlcnZpY2USaAoITGlzdEVnZ3MSKi5yYXB0b3IucGFuZWwudjEuRWdnU2VydmljZUxpc3RFZ2dzUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5FZ2dTZXJ2aWNlTGlzdEVnZ3NSZXNwb25zZSIDkAIBEmMKDUdldEVnZ0RldGFpbHMSJS5yYXB0b3IucGFuZWwudjEuR2V0RWdnRGV0YWlsc1JlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuR2V0RWdnRGV0YWlsc1Jlc3BvbnNlIgOQAgESWgoKR2V0RWdnRmlsZRIiLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dGaWxlUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dGaWxlUmVzcG9uc2UiA5ACARJUCglDcmVhdGVFZ2cSIS5yYXB0b3IucGFuZWwudjEuQ3JlYXRlRWdnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5DcmVhdGVFZ2dSZXNwb25zZSIAElQKCVVwZGF0ZUVnZxIhLnJhcHRvci5wYW5lbC52MS5VcGRhdGVFZ2dSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLlVwZGF0ZUVnZ1Jlc3BvbnNlIgASXQoMQ3VzdG9taXplRWdnEiQucmFwdG9yLnBhbmVsLnYxLkN1c3RvbWl6ZUVnZ1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuQ3VzdG9taXplRWdnUmVzcG9uc2UiABJdCgxTZXRFZ2dTdGF0dXMSJC5yYXB0b3IucGFuZWwudjEuU2V0RWdnU3RhdHVzUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5TZXRFZ2dTdGF0dXNSZXNwb25zZSIAElQKCURlbGV0ZUVnZxIhLnJhcHRvci5wYW5lbC52MS5EZWxldGVFZ2dSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZUVnZ1Jlc3BvbnNlIgASYAoNUmV2aWV3RWdnRmlsZRIlLnJhcHRvci5wYW5lbC52MS5SZXZpZXdFZ2dGaWxlUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5SZXZpZXdFZ2dGaWxlUmVzcG9uc2UiABJgCg1JbXBvcnRFZ2dGaWxlEiUucmFwdG9yLnBhbmVsLnYxLkltcG9ydEVnZ0ZpbGVSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkltcG9ydEVnZ0ZpbGVSZXNwb25zZSIAEm8KEUxpc3RDb21tdW5pdHlFZ2dzEikucmFwdG9yLnBhbmVsLnYxLkxpc3RDb21tdW5pdHlFZ2dzUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5MaXN0Q29tbXVuaXR5RWdnc1Jlc3BvbnNlIgOQAgESUQoIU2hhcmVFZ2cSIC5yYXB0b3IucGFuZWwudjEuU2hhcmVFZ2dSZXF1ZXN0GiEucmFwdG9yLnBhbmVsLnYxLlNoYXJlRWdnUmVzcG9uc2UiABJUCglSZXBvcnRFZ2cSIS5yYXB0b3IucGFuZWwudjEuUmVwb3J0RWdnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5SZXBvcnRFZ2dSZXNwb25zZSIAEmYKDkxpc3RFZ2dSZXBvcnRzEiYucmFwdG9yLnBhbmVsLnYxLkxpc3RFZ2dSZXBvcnRzUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5MaXN0RWdnUmVwb3J0c1Jlc3BvbnNlIgOQAgESWgoLTW9kZXJhdGVFZ2cSIy5yYXB0b3IucGFuZWwudjEuTW9kZXJhdGVFZ2dSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLk1vZGVyYXRlRWdnUmVzcG9uc2UiAELIAQoTY29tLnJhcHRvci5wYW5lbC52MUIIRWdnUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_raptor_panel_v1_catalog, file_raptor_panel_v1_org]);
+  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvZWdnLnByb3RvEg9yYXB0b3IucGFuZWwudjEiKwoZRWdnU2VydmljZUxpc3RFZ2dzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiRwoaRWdnU2VydmljZUxpc3RFZ2dzUmVzcG9uc2USKQoEZWdncxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnIogECgdFZ2dTcGVjEgwKBG5hbWUYASABKAkSDgoGYXV0aG9yGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEikKBmltYWdlcxgEIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIsCgdzdGFydHVwGAUgAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1N0YXJ0dXASEQoJc3RvcF90eXBlGAYgASgJEhIKCnN0b3BfdmFsdWUYByABKAkSDAoEZG9uZRgIIAMoCRIWCg5pbnN0YWxsX3NjcmlwdBgJIAEoCRIZChFpbnN0YWxsX2NvbnRhaW5lchgKIAEoCRIaChJpbnN0YWxsX2VudHJ5cG9pbnQYCyABKAkSLwoJdmFyaWFibGVzGAwgAygLMhwucmFwdG9yLnBhbmVsLnYxLkVnZ1ZhcmlhYmxlEi0KBWZpbGVzGA0gAygLMh4ucmFwdG9yLnBhbmVsLnYxLkVnZ0NvbmZpZ0ZpbGUSEAoIZmVhdHVyZXMYDiADKAkSFQoNZmlsZV9kZW55bGlzdBgPIAMoCRIMCgRhcmNoGBAgAygJEhUKDXBsYXllcnNfcXVlcnkYESABKAkSFAoMcGxheWVyc19wb3J0GBIgASgJEikKBmFkZG9ucxgTIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dBZGRvbiJHCghFZ2dBZGRvbhIMCgRraW5kGAEgASgJEg8KB2xvYWRlcnMYAiADKAkSCwoDZGlyGAMgASgJEg8KB3ZlcnNpb24YBCABKAkiKwoKRWdnU3RhcnR1cBIMCgRuYW1lGAEgASgJEg8KB2NvbW1hbmQYAiABKAkiVQoNRWdnQ29uZmlnRmlsZRIMCgRwYXRoGAEgASgJEg4KBnBhcnNlchgCIAEoCRImCgRmaW5kGAMgAygLMhgucmFwdG9yLnBhbmVsLnYxLkVnZ0ZpbmQiNwoHRWdnRmluZBILCgNrZXkYASABKAkSEAoIaWZfdmFsdWUYAiABKAkSDQoFdmFsdWUYAyABKAkifwoKRWdnVmVyc2lvbhIPCgd2ZXJzaW9uGAEgASgFEg4KBnNoYTI1NhgCIAEoCRIMCgRub3RlGAMgASgJEhIKCmNyZWF0ZWRfYnkYBCABKAkSLgoKY3JlYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiMgoUR2V0RWdnRGV0YWlsc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJIpkCChVHZXRFZ2dEZXRhaWxzUmVzcG9uc2USKAoDZWdnGAEgASgLMhsucmFwdG9yLnBhbmVsLnYxLkNhdGFsb2dFZ2cSJgoEc3BlYxgCIAEoCzIYLnJhcHRvci5wYW5lbC52MS5FZ2dTcGVjEgwKBGZpbGUYAyABKAwSDgoGZm9ybWF0GAQgASgJEhIKCnJlZ2lzdHJpZXMYBSADKAkSLQoId2FybmluZ3MYBiADKAsyGy5yYXB0b3IucGFuZWwudjEuRWdnV2FybmluZxIMCgRsaW50GAcgAygJEhAKCGNhbl9lZGl0GAggASgIEi0KCHZlcnNpb25zGAkgAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1ZlcnNpb24iQAoRR2V0RWdnRmlsZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJEg8KB3ZlcnNpb24YAyABKAUiMgoSR2V0RWdnRmlsZVJlc3BvbnNlEgsKA2VnZxgBIAEoDBIPCgd2ZXJzaW9uGAIgASgFIm0KEENyZWF0ZUVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEiYKBHNwZWMYAiABKAsyGC5yYXB0b3IucGFuZWwudjEuRWdnU3BlYxIPCgdzdW1tYXJ5GAMgASgJEhAKCGNhdGVnb3J5GAQgASgJIh8KEUNyZWF0ZUVnZ1Jlc3BvbnNlEgoKAmlkGAEgASgJIrkBChBVcGRhdGVFZ2dSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCRIoCgRzcGVjGAMgASgLMhgucmFwdG9yLnBhbmVsLnYxLkVnZ1NwZWNIABIOCgRmaWxlGAQgASgMSAASDwoHc3VtbWFyeRgFIAEoCRIQCghjYXRlZ29yeRgGIAEoCRIMCgRub3RlGAcgASgJEhQKDGJhc2VfdmVyc2lvbhgIIAEoBUIICgZjaGFuZ2UiJAoRVXBkYXRlRWdnUmVzcG9uc2USDwoHdmVyc2lvbhgBIAEoBSJAChNDdXN0b21pemVFZ2dSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCRINCgVhc19pcxgDIAEoCCIiChRDdXN0b21pemVFZ2dSZXNwb25zZRIKCgJpZBgBIAEoCSJBChNTZXRFZ2dTdGF0dXNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCRIOCgZzdGF0dXMYAyABKAkiFgoUU2V0RWdnU3RhdHVzUmVzcG9uc2UiLgoQRGVsZXRlRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkiEwoRRGVsZXRlRWdnUmVzcG9uc2UiTwoUUmV2aWV3RWdnRmlsZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg0KA3VybBgCIAEoCUgAEg4KBGZpbGUYAyABKAxIAEIICgZzb3VyY2UidAoVUmV2aWV3RWdnRmlsZVJlc3BvbnNlEgsKA2VnZxgBIAEoDBISCgpzb3VyY2VfdXJsGAIgASgJEg4KBnNoYTI1NhgDIAEoCRIqCgZyZXZpZXcYBCABKAsyGi5yYXB0b3IucGFuZWwudjEuRWdnUmV2aWV3IlkKFEltcG9ydEVnZ0ZpbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRILCgNlZ2cYAiABKAwSEgoKc291cmNlX3VybBgDIAEoCRIQCghjYXRlZ29yeRgEIAEoCSIjChVJbXBvcnRFZ2dGaWxlUmVzcG9uc2USCgoCaWQYASABKAkibQoYTGlzdENvbW11bml0eUVnZ3NSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRINCgVxdWVyeRgCIAEoCRIQCghjYXRlZ29yeRgDIAEoCRIMCgRzb3J0GAQgASgJEhIKCnBhZ2VfdG9rZW4YBSABKAkiXwoZTGlzdENvbW11bml0eUVnZ3NSZXNwb25zZRIpCgRlZ2dzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkNhdGFsb2dFZ2cSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIj0KD1NoYXJlRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSDgoGc2hhcmVkGAMgASgIIhIKEFNoYXJlRWdnUmVzcG9uc2UiTwoQUmVwb3J0RWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSDgoGcmVhc29uGAMgASgJEg8KB2RldGFpbHMYBCABKAkiEwoRUmVwb3J0RWdnUmVzcG9uc2UiFwoVTGlzdEVnZ1JlcG9ydHNSZXF1ZXN0IsYBCglFZ2dSZXBvcnQSCgoCaWQYASABKAkSDgoGZWdnX2lkGAIgASgJEhAKCGVnZ19uYW1lGAMgASgJEhEKCXB1Ymxpc2hlchgEIAEoCRIOCgZyZWFzb24YBSABKAkSDwoHZGV0YWlscxgGIAEoCRIWCg5yZXBvcnRlcl9lbWFpbBgHIAEoCRIuCgpjcmVhdGVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIPCgdyZW1vdmVkGAkgASgIIkUKFkxpc3RFZ2dSZXBvcnRzUmVzcG9uc2USKwoHcmVwb3J0cxgBIAMoCzIaLnJhcHRvci5wYW5lbC52MS5FZ2dSZXBvcnQiQAoSTW9kZXJhdGVFZ2dSZXF1ZXN0EgoKAmlkGAEgASgJEg4KBmFjdGlvbhgCIAEoCRIOCgZyZWFzb24YAyABKAkiFQoTTW9kZXJhdGVFZ2dSZXNwb25zZTKZCwoKRWdnU2VydmljZRJoCghMaXN0RWdncxIqLnJhcHRvci5wYW5lbC52MS5FZ2dTZXJ2aWNlTGlzdEVnZ3NSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLkVnZ1NlcnZpY2VMaXN0RWdnc1Jlc3BvbnNlIgOQAgESYwoNR2V0RWdnRGV0YWlscxIlLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dEZXRhaWxzUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dEZXRhaWxzUmVzcG9uc2UiA5ACARJaCgpHZXRFZ2dGaWxlEiIucmFwdG9yLnBhbmVsLnYxLkdldEVnZ0ZpbGVSZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkdldEVnZ0ZpbGVSZXNwb25zZSIDkAIBElQKCUNyZWF0ZUVnZxIhLnJhcHRvci5wYW5lbC52MS5DcmVhdGVFZ2dSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZUVnZ1Jlc3BvbnNlIgASVAoJVXBkYXRlRWdnEiEucmFwdG9yLnBhbmVsLnYxLlVwZGF0ZUVnZ1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuVXBkYXRlRWdnUmVzcG9uc2UiABJdCgxDdXN0b21pemVFZ2cSJC5yYXB0b3IucGFuZWwudjEuQ3VzdG9taXplRWdnUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5DdXN0b21pemVFZ2dSZXNwb25zZSIAEl0KDFNldEVnZ1N0YXR1cxIkLnJhcHRvci5wYW5lbC52MS5TZXRFZ2dTdGF0dXNSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLlNldEVnZ1N0YXR1c1Jlc3BvbnNlIgASVAoJRGVsZXRlRWdnEiEucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZUVnZ1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuRGVsZXRlRWdnUmVzcG9uc2UiABJgCg1SZXZpZXdFZ2dGaWxlEiUucmFwdG9yLnBhbmVsLnYxLlJldmlld0VnZ0ZpbGVSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLlJldmlld0VnZ0ZpbGVSZXNwb25zZSIAEmAKDUltcG9ydEVnZ0ZpbGUSJS5yYXB0b3IucGFuZWwudjEuSW1wb3J0RWdnRmlsZVJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuSW1wb3J0RWdnRmlsZVJlc3BvbnNlIgASbwoRTGlzdENvbW11bml0eUVnZ3MSKS5yYXB0b3IucGFuZWwudjEuTGlzdENvbW11bml0eUVnZ3NSZXF1ZXN0GioucmFwdG9yLnBhbmVsLnYxLkxpc3RDb21tdW5pdHlFZ2dzUmVzcG9uc2UiA5ACARJRCghTaGFyZUVnZxIgLnJhcHRvci5wYW5lbC52MS5TaGFyZUVnZ1JlcXVlc3QaIS5yYXB0b3IucGFuZWwudjEuU2hhcmVFZ2dSZXNwb25zZSIAElQKCVJlcG9ydEVnZxIhLnJhcHRvci5wYW5lbC52MS5SZXBvcnRFZ2dSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLlJlcG9ydEVnZ1Jlc3BvbnNlIgASZgoOTGlzdEVnZ1JlcG9ydHMSJi5yYXB0b3IucGFuZWwudjEuTGlzdEVnZ1JlcG9ydHNSZXF1ZXN0GicucmFwdG9yLnBhbmVsLnYxLkxpc3RFZ2dSZXBvcnRzUmVzcG9uc2UiA5ACARJaCgtNb2RlcmF0ZUVnZxIjLnJhcHRvci5wYW5lbC52MS5Nb2RlcmF0ZUVnZ1JlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuTW9kZXJhdGVFZ2dSZXNwb25zZSIAQsgBChNjb20ucmFwdG9yLnBhbmVsLnYxQghFZ2dQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_raptor_panel_v1_catalog, file_raptor_panel_v1_org]);
 
 /**
  * @generated from message raptor.panel.v1.EggServiceListEggsRequest
@@ -170,6 +170,13 @@ export type EggSpec = Message<"raptor.panel.v1.EggSpec"> & {
    * @generated from field: string players_port = 18;
    */
   playersPort: string;
+
+  /**
+   * Software add-ons servers get (docs/EGGS.md#add-ons).
+   *
+   * @generated from field: repeated raptor.panel.v1.EggAddon addons = 19;
+   */
+  addons: EggAddon[];
 };
 
 /**
@@ -178,6 +185,49 @@ export type EggSpec = Message<"raptor.panel.v1.EggSpec"> & {
  */
 export const EggSpecSchema: GenMessage<EggSpec> = /*@__PURE__*/
   messageDesc(file_raptor_panel_v1_egg, 2);
+
+/**
+ * EggAddon is an add-on an egg turns on: a plugin installer or a mod
+ * manager.
+ *
+ * @generated from message raptor.panel.v1.EggAddon
+ */
+export type EggAddon = Message<"raptor.panel.v1.EggAddon"> & {
+  /**
+   * "plugins" or "mods".
+   *
+   * @generated from field: string kind = 1;
+   */
+  kind: string;
+
+  /**
+   * Modrinth's loader names: paper, spigot, fabric, ...
+   *
+   * @generated from field: repeated string loaders = 2;
+   */
+  loaders: string[];
+
+  /**
+   * Where files go, from the server's directory.
+   *
+   * @generated from field: string dir = 3;
+   */
+  dir: string;
+
+  /**
+   * The variable holding the game version; empty: any version.
+   *
+   * @generated from field: string version = 4;
+   */
+  version: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.EggAddon.
+ * Use `create(EggAddonSchema)` to create a new message.
+ */
+export const EggAddonSchema: GenMessage<EggAddon> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 3);
 
 /**
  * @generated from message raptor.panel.v1.EggStartup
@@ -199,7 +249,7 @@ export type EggStartup = Message<"raptor.panel.v1.EggStartup"> & {
  * Use `create(EggStartupSchema)` to create a new message.
  */
 export const EggStartupSchema: GenMessage<EggStartup> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 3);
+  messageDesc(file_raptor_panel_v1_egg, 4);
 
 /**
  * EggConfigFile is a file Wings edits before every start.
@@ -230,7 +280,7 @@ export type EggConfigFile = Message<"raptor.panel.v1.EggConfigFile"> & {
  * Use `create(EggConfigFileSchema)` to create a new message.
  */
 export const EggConfigFileSchema: GenMessage<EggConfigFile> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 4);
+  messageDesc(file_raptor_panel_v1_egg, 5);
 
 /**
  * @generated from message raptor.panel.v1.EggFind
@@ -259,7 +309,7 @@ export type EggFind = Message<"raptor.panel.v1.EggFind"> & {
  * Use `create(EggFindSchema)` to create a new message.
  */
 export const EggFindSchema: GenMessage<EggFind> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 5);
+  messageDesc(file_raptor_panel_v1_egg, 6);
 
 /**
  * @generated from message raptor.panel.v1.EggVersion
@@ -296,7 +346,7 @@ export type EggVersion = Message<"raptor.panel.v1.EggVersion"> & {
  * Use `create(EggVersionSchema)` to create a new message.
  */
 export const EggVersionSchema: GenMessage<EggVersion> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 6);
+  messageDesc(file_raptor_panel_v1_egg, 7);
 
 /**
  * @generated from message raptor.panel.v1.GetEggDetailsRequest
@@ -318,7 +368,7 @@ export type GetEggDetailsRequest = Message<"raptor.panel.v1.GetEggDetailsRequest
  * Use `create(GetEggDetailsRequestSchema)` to create a new message.
  */
 export const GetEggDetailsRequestSchema: GenMessage<GetEggDetailsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 7);
+  messageDesc(file_raptor_panel_v1_egg, 8);
 
 /**
  * @generated from message raptor.panel.v1.GetEggDetailsResponse
@@ -386,7 +436,7 @@ export type GetEggDetailsResponse = Message<"raptor.panel.v1.GetEggDetailsRespon
  * Use `create(GetEggDetailsResponseSchema)` to create a new message.
  */
 export const GetEggDetailsResponseSchema: GenMessage<GetEggDetailsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 8);
+  messageDesc(file_raptor_panel_v1_egg, 9);
 
 /**
  * @generated from message raptor.panel.v1.GetEggFileRequest
@@ -415,7 +465,7 @@ export type GetEggFileRequest = Message<"raptor.panel.v1.GetEggFileRequest"> & {
  * Use `create(GetEggFileRequestSchema)` to create a new message.
  */
 export const GetEggFileRequestSchema: GenMessage<GetEggFileRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 9);
+  messageDesc(file_raptor_panel_v1_egg, 10);
 
 /**
  * @generated from message raptor.panel.v1.GetEggFileResponse
@@ -437,7 +487,7 @@ export type GetEggFileResponse = Message<"raptor.panel.v1.GetEggFileResponse"> &
  * Use `create(GetEggFileResponseSchema)` to create a new message.
  */
 export const GetEggFileResponseSchema: GenMessage<GetEggFileResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 10);
+  messageDesc(file_raptor_panel_v1_egg, 11);
 
 /**
  * @generated from message raptor.panel.v1.CreateEggRequest
@@ -469,7 +519,7 @@ export type CreateEggRequest = Message<"raptor.panel.v1.CreateEggRequest"> & {
  * Use `create(CreateEggRequestSchema)` to create a new message.
  */
 export const CreateEggRequestSchema: GenMessage<CreateEggRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 11);
+  messageDesc(file_raptor_panel_v1_egg, 12);
 
 /**
  * @generated from message raptor.panel.v1.CreateEggResponse
@@ -486,7 +536,7 @@ export type CreateEggResponse = Message<"raptor.panel.v1.CreateEggResponse"> & {
  * Use `create(CreateEggResponseSchema)` to create a new message.
  */
 export const CreateEggResponseSchema: GenMessage<CreateEggResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 12);
+  messageDesc(file_raptor_panel_v1_egg, 13);
 
 /**
  * @generated from message raptor.panel.v1.UpdateEggRequest
@@ -552,7 +602,7 @@ export type UpdateEggRequest = Message<"raptor.panel.v1.UpdateEggRequest"> & {
  * Use `create(UpdateEggRequestSchema)` to create a new message.
  */
 export const UpdateEggRequestSchema: GenMessage<UpdateEggRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 13);
+  messageDesc(file_raptor_panel_v1_egg, 14);
 
 /**
  * @generated from message raptor.panel.v1.UpdateEggResponse
@@ -569,7 +619,7 @@ export type UpdateEggResponse = Message<"raptor.panel.v1.UpdateEggResponse"> & {
  * Use `create(UpdateEggResponseSchema)` to create a new message.
  */
 export const UpdateEggResponseSchema: GenMessage<UpdateEggResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 14);
+  messageDesc(file_raptor_panel_v1_egg, 15);
 
 /**
  * @generated from message raptor.panel.v1.CustomizeEggRequest
@@ -601,7 +651,7 @@ export type CustomizeEggRequest = Message<"raptor.panel.v1.CustomizeEggRequest">
  * Use `create(CustomizeEggRequestSchema)` to create a new message.
  */
 export const CustomizeEggRequestSchema: GenMessage<CustomizeEggRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 15);
+  messageDesc(file_raptor_panel_v1_egg, 16);
 
 /**
  * @generated from message raptor.panel.v1.CustomizeEggResponse
@@ -618,7 +668,7 @@ export type CustomizeEggResponse = Message<"raptor.panel.v1.CustomizeEggResponse
  * Use `create(CustomizeEggResponseSchema)` to create a new message.
  */
 export const CustomizeEggResponseSchema: GenMessage<CustomizeEggResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 16);
+  messageDesc(file_raptor_panel_v1_egg, 17);
 
 /**
  * @generated from message raptor.panel.v1.SetEggStatusRequest
@@ -647,7 +697,7 @@ export type SetEggStatusRequest = Message<"raptor.panel.v1.SetEggStatusRequest">
  * Use `create(SetEggStatusRequestSchema)` to create a new message.
  */
 export const SetEggStatusRequestSchema: GenMessage<SetEggStatusRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 17);
+  messageDesc(file_raptor_panel_v1_egg, 18);
 
 /**
  * @generated from message raptor.panel.v1.SetEggStatusResponse
@@ -660,7 +710,7 @@ export type SetEggStatusResponse = Message<"raptor.panel.v1.SetEggStatusResponse
  * Use `create(SetEggStatusResponseSchema)` to create a new message.
  */
 export const SetEggStatusResponseSchema: GenMessage<SetEggStatusResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 18);
+  messageDesc(file_raptor_panel_v1_egg, 19);
 
 /**
  * @generated from message raptor.panel.v1.DeleteEggRequest
@@ -682,7 +732,7 @@ export type DeleteEggRequest = Message<"raptor.panel.v1.DeleteEggRequest"> & {
  * Use `create(DeleteEggRequestSchema)` to create a new message.
  */
 export const DeleteEggRequestSchema: GenMessage<DeleteEggRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 19);
+  messageDesc(file_raptor_panel_v1_egg, 20);
 
 /**
  * @generated from message raptor.panel.v1.DeleteEggResponse
@@ -695,7 +745,7 @@ export type DeleteEggResponse = Message<"raptor.panel.v1.DeleteEggResponse"> & {
  * Use `create(DeleteEggResponseSchema)` to create a new message.
  */
 export const DeleteEggResponseSchema: GenMessage<DeleteEggResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 20);
+  messageDesc(file_raptor_panel_v1_egg, 21);
 
 /**
  * @generated from message raptor.panel.v1.ReviewEggFileRequest
@@ -733,7 +783,7 @@ export type ReviewEggFileRequest = Message<"raptor.panel.v1.ReviewEggFileRequest
  * Use `create(ReviewEggFileRequestSchema)` to create a new message.
  */
 export const ReviewEggFileRequestSchema: GenMessage<ReviewEggFileRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 21);
+  messageDesc(file_raptor_panel_v1_egg, 22);
 
 /**
  * @generated from message raptor.panel.v1.ReviewEggFileResponse
@@ -767,7 +817,7 @@ export type ReviewEggFileResponse = Message<"raptor.panel.v1.ReviewEggFileRespon
  * Use `create(ReviewEggFileResponseSchema)` to create a new message.
  */
 export const ReviewEggFileResponseSchema: GenMessage<ReviewEggFileResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 22);
+  messageDesc(file_raptor_panel_v1_egg, 23);
 
 /**
  * @generated from message raptor.panel.v1.ImportEggFileRequest
@@ -801,7 +851,7 @@ export type ImportEggFileRequest = Message<"raptor.panel.v1.ImportEggFileRequest
  * Use `create(ImportEggFileRequestSchema)` to create a new message.
  */
 export const ImportEggFileRequestSchema: GenMessage<ImportEggFileRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 23);
+  messageDesc(file_raptor_panel_v1_egg, 24);
 
 /**
  * @generated from message raptor.panel.v1.ImportEggFileResponse
@@ -818,7 +868,7 @@ export type ImportEggFileResponse = Message<"raptor.panel.v1.ImportEggFileRespon
  * Use `create(ImportEggFileResponseSchema)` to create a new message.
  */
 export const ImportEggFileResponseSchema: GenMessage<ImportEggFileResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 24);
+  messageDesc(file_raptor_panel_v1_egg, 25);
 
 /**
  * @generated from message raptor.panel.v1.ListCommunityEggsRequest
@@ -859,7 +909,7 @@ export type ListCommunityEggsRequest = Message<"raptor.panel.v1.ListCommunityEgg
  * Use `create(ListCommunityEggsRequestSchema)` to create a new message.
  */
 export const ListCommunityEggsRequestSchema: GenMessage<ListCommunityEggsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 25);
+  messageDesc(file_raptor_panel_v1_egg, 26);
 
 /**
  * @generated from message raptor.panel.v1.ListCommunityEggsResponse
@@ -881,7 +931,7 @@ export type ListCommunityEggsResponse = Message<"raptor.panel.v1.ListCommunityEg
  * Use `create(ListCommunityEggsResponseSchema)` to create a new message.
  */
 export const ListCommunityEggsResponseSchema: GenMessage<ListCommunityEggsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 26);
+  messageDesc(file_raptor_panel_v1_egg, 27);
 
 /**
  * @generated from message raptor.panel.v1.ShareEggRequest
@@ -908,7 +958,7 @@ export type ShareEggRequest = Message<"raptor.panel.v1.ShareEggRequest"> & {
  * Use `create(ShareEggRequestSchema)` to create a new message.
  */
 export const ShareEggRequestSchema: GenMessage<ShareEggRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 27);
+  messageDesc(file_raptor_panel_v1_egg, 28);
 
 /**
  * @generated from message raptor.panel.v1.ShareEggResponse
@@ -921,7 +971,7 @@ export type ShareEggResponse = Message<"raptor.panel.v1.ShareEggResponse"> & {
  * Use `create(ShareEggResponseSchema)` to create a new message.
  */
 export const ShareEggResponseSchema: GenMessage<ShareEggResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 28);
+  messageDesc(file_raptor_panel_v1_egg, 29);
 
 /**
  * @generated from message raptor.panel.v1.ReportEggRequest
@@ -957,7 +1007,7 @@ export type ReportEggRequest = Message<"raptor.panel.v1.ReportEggRequest"> & {
  * Use `create(ReportEggRequestSchema)` to create a new message.
  */
 export const ReportEggRequestSchema: GenMessage<ReportEggRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 29);
+  messageDesc(file_raptor_panel_v1_egg, 30);
 
 /**
  * @generated from message raptor.panel.v1.ReportEggResponse
@@ -970,7 +1020,7 @@ export type ReportEggResponse = Message<"raptor.panel.v1.ReportEggResponse"> & {
  * Use `create(ReportEggResponseSchema)` to create a new message.
  */
 export const ReportEggResponseSchema: GenMessage<ReportEggResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 30);
+  messageDesc(file_raptor_panel_v1_egg, 31);
 
 /**
  * @generated from message raptor.panel.v1.ListEggReportsRequest
@@ -983,7 +1033,7 @@ export type ListEggReportsRequest = Message<"raptor.panel.v1.ListEggReportsReque
  * Use `create(ListEggReportsRequestSchema)` to create a new message.
  */
 export const ListEggReportsRequestSchema: GenMessage<ListEggReportsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 31);
+  messageDesc(file_raptor_panel_v1_egg, 32);
 
 /**
  * @generated from message raptor.panel.v1.EggReport
@@ -1042,7 +1092,7 @@ export type EggReport = Message<"raptor.panel.v1.EggReport"> & {
  * Use `create(EggReportSchema)` to create a new message.
  */
 export const EggReportSchema: GenMessage<EggReport> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 32);
+  messageDesc(file_raptor_panel_v1_egg, 33);
 
 /**
  * @generated from message raptor.panel.v1.ListEggReportsResponse
@@ -1059,7 +1109,7 @@ export type ListEggReportsResponse = Message<"raptor.panel.v1.ListEggReportsResp
  * Use `create(ListEggReportsResponseSchema)` to create a new message.
  */
 export const ListEggReportsResponseSchema: GenMessage<ListEggReportsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 33);
+  messageDesc(file_raptor_panel_v1_egg, 34);
 
 /**
  * @generated from message raptor.panel.v1.ModerateEggRequest
@@ -1090,7 +1140,7 @@ export type ModerateEggRequest = Message<"raptor.panel.v1.ModerateEggRequest"> &
  * Use `create(ModerateEggRequestSchema)` to create a new message.
  */
 export const ModerateEggRequestSchema: GenMessage<ModerateEggRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 34);
+  messageDesc(file_raptor_panel_v1_egg, 35);
 
 /**
  * @generated from message raptor.panel.v1.ModerateEggResponse
@@ -1103,7 +1153,7 @@ export type ModerateEggResponse = Message<"raptor.panel.v1.ModerateEggResponse">
  * Use `create(ModerateEggResponseSchema)` to create a new message.
  */
 export const ModerateEggResponseSchema: GenMessage<ModerateEggResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_egg, 35);
+  messageDesc(file_raptor_panel_v1_egg, 36);
 
 /**
  * EggService is the egg library (docs/PANEL.md#eggs): Raptor's built-in

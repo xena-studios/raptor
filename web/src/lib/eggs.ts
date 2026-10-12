@@ -91,6 +91,58 @@ export const addons = {
   },
 } as const;
 
+// addonKinds are the software add-ons an egg can turn on
+// (docs/EGGS.md#add-ons): each is a page on servers made from it.
+export const addonKinds: Record<
+  string,
+  {
+    label: string;
+    tab: string;
+    noun: string;
+    description: string;
+    loaders: string[];
+    dflt: string[];
+  }
+> = {
+  plugins: {
+    label: "Plugin installer",
+    tab: "Plugins",
+    noun: "plugin",
+    description:
+      "Find, install, and update plugins from Modrinth, for Paper, Spigot, Velocity, and more.",
+    loaders: [
+      "paper",
+      "spigot",
+      "bukkit",
+      "purpur",
+      "folia",
+      "velocity",
+      "bungeecord",
+      "waterfall",
+      "sponge",
+    ],
+    dflt: ["paper", "spigot", "bukkit"],
+  },
+  mods: {
+    label: "Mod manager",
+    tab: "Mods",
+    noun: "mod",
+    description:
+      "Find, install, and update mods from Modrinth, for Fabric, Forge, NeoForge, and Quilt.",
+    loaders: ["fabric", "forge", "neoforge", "quilt"],
+    dflt: ["fabric"],
+  },
+};
+
+const loaderNames: Record<string, string> = {
+  bungeecord: "BungeeCord",
+  neoforge: "NeoForge",
+};
+
+export function loaderName(l: string): string {
+  return loaderNames[l] ?? l.charAt(0).toUpperCase() + l.slice(1);
+}
+
 // knownFeatures are the egg features Raptor acts on; others are kept as
 // they are and shown as their names.
 export const knownFeatures = ["eula"];

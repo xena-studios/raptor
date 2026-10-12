@@ -100,6 +100,14 @@ type eggInfo struct {
 	Images    []eggImage    `json:"images"`
 	Variables []eggVariable `json:"variables"`
 	Features  []string      `json:"features,omitempty"`
+	// Addons are the egg's add-on kinds (docs/EGGS.md#add-ons).
+	Addons map[string]eggAddon `json:"addons,omitempty"`
+}
+
+type eggAddon struct {
+	Loaders []string `json:"loaders"`
+	Dir     string   `json:"dir"`
+	Version string   `json:"version,omitempty"`
 }
 
 type eggImage struct {
@@ -123,6 +131,12 @@ func describeEgg(s *server.Server) *eggInfo {
 		return nil
 	}
 	out := &eggInfo{Features: e.Features}
+	for kind, a := range e.Raptor.Addons {
+		if out.Addons == nil {
+			out.Addons = map[string]eggAddon{}
+		}
+		out.Addons[kind] = eggAddon{Loaders: a.Loaders, Dir: a.Dir, Version: a.Version}
+	}
 	for _, i := range e.Images {
 		out.Images = append(out.Images, eggImage{Name: i.Name, Ref: i.Ref})
 	}

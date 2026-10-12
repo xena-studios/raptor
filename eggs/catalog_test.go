@@ -95,3 +95,34 @@ func TestServerEgg(t *testing.T) {
 		}
 	}
 }
+
+// Minecraft servers get the plugin installer or mod manager their software
+// takes, in the egg they're made from.
+func TestAddons(t *testing.T) {
+	all, err := All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{"minecraft/paper": "plugins", "minecraft/velocity": "plugins", "minecraft/fabric": "mods", "minecraft/neoforge": "mods"}
+	for _, e := range all {
+		kind, ok := want[e.ID]
+		if !ok {
+			continue
+		}
+		file, err := e.ServerEgg()
+		if err != nil {
+			t.Fatal(err)
+		}
+		egg, err := eggs.Parse(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a, ok := egg.Raptor.Addons[kind]; !ok || len(a.Loaders) == 0 || a.Dir != kind {
+			t.Errorf("%s: addons %+v", e.ID, egg.Raptor.Addons)
+		}
+		delete(want, e.ID)
+	}
+	if len(want) > 0 {
+		t.Errorf("missing: %v", want)
+	}
+}

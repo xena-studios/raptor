@@ -230,6 +230,10 @@ An org shares a published egg with everyone on Raptor (`ShareEgg`, `egg.share`; 
 
 Unpublishing or archiving a shared egg takes it out of the community.
 
+### Add-ons
+
+`AddonService` (`internal/panel/orgs/addons.go`, `internal/panel/modrinth`) finds plugins and mods for servers whose egg turns on an add-on ([EGGS.md](EGGS.md#add-ons)): `SearchAddons`, `ListAddonVersions`, and `IdentifyAddons` (what each installed file is, by SHA-512, and the newest version for the server's loaders and game version). Any member of the org, 120 calls a minute each. The Panel asks Modrinth with its own user agent and keeps answers for 5 minutes. The web app's CSP allows images from `cdn.modrinth.com` for project icons.
+
 ### Importing
 
 An egg comes in from a link or an upload: Pterodactyl or Pelican, JSON or YAML.

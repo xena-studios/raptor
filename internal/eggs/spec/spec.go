@@ -11,6 +11,7 @@ package spec
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"path"
 	"regexp"
 	"slices"
@@ -53,6 +54,8 @@ type Spec struct {
 	Arch         []string
 	PlayersQuery string
 	PlayersPort  string
+	// Addons are the software add-ons servers get, by kind.
+	Addons map[string]eggs.Addon
 }
 
 // ConfigFile is a file Wings edits before every start.
@@ -100,6 +103,7 @@ func Read(data []byte) (*Spec, error) {
 		Name: e.Name, Author: e.Author, Description: e.Description, Images: e.Images, Startup: e.Startup,
 		Install: e.Install, Variables: e.Variables, Features: e.Features, FileDenylist: e.FileDenylist,
 		Arch: e.Raptor.Arch, PlayersQuery: e.Raptor.Players.Query, PlayersPort: e.Raptor.Players.Port,
+		Addons: e.Raptor.Addons,
 	}
 	switch stop := e.Config.Stop; {
 	case stop.Command != "":
@@ -327,6 +331,15 @@ func (s *Spec) Validate() error {
 	if s.PlayersQuery == "" {
 		s.PlayersPort = ""
 	}
+	for kind, a := range s.Addons {
+		a.Dir = strings.Trim(strings.TrimSpace(a.Dir), "/")
+		a.Version = strings.TrimSpace(a.Version)
+		a.Loaders = compact(a.Loaders)
+		s.Addons[kind] = a
+	}
+	if err := eggs.CheckAddons(s.Addons); err != nil {
+		return bad("%s", strings.TrimPrefix(strings.ReplaceAll(err.Error(), "x-raptor.addons.", "add-ons, "), "egg: "))
+	}
 	return nil
 }
 
@@ -417,7 +430,7 @@ func Write(base []byte, s *Spec) ([]byte, error) {
 	writeVariables(root, s.Variables, ptero)
 
 	ext := get(root, "x-raptor")
-	if ext == nil && (len(s.Arch) > 0 || s.PlayersQuery != "") {
+	if ext == nil && (len(s.Arch) > 0 || s.PlayersQuery != "" || len(s.Addons) > 0) {
 		ext = mapping(root, "x-raptor")
 	}
 	if ext != nil && ext.Kind == yaml.MappingNode {
@@ -437,6 +450,24 @@ func Write(base []byte, s *Spec) ([]byte, error) {
 			set(ext, "players", p)
 		} else {
 			del(ext, "players")
+		}
+		if len(s.Addons) > 0 {
+			addons := &yaml.Node{Kind: yaml.MappingNode}
+			for _, kind := range slices.Sorted(maps.Keys(s.Addons)) {
+				a := s.Addons[kind]
+				n := &yaml.Node{Kind: yaml.MappingNode}
+				loaders := strs(a.Loaders)
+				loaders.Style = yaml.FlowStyle
+				set(n, "loaders", loaders)
+				set(n, "dir", str(a.Dir))
+				if a.Version != "" {
+					set(n, "version", str(a.Version))
+				}
+				set(addons, kind, n)
+			}
+			set(ext, "addons", addons)
+		} else {
+			del(ext, "addons")
 		}
 	}
 

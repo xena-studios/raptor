@@ -21,3 +21,8 @@ test:
   done_timeout: 10m
   command: "list"
   expect: "There are 0 of a max of \\d+ players"
+addons:
+  mods:
+    loaders: [forge]
+    dir: mods
+    version: MC_VERSION

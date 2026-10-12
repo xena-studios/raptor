@@ -122,6 +122,21 @@ message EggSpec {
   string players_query = 17;
   // Where it answers: empty (the server's port), "+1", or a variable.
   string players_port = 18;
+  // Software add-ons servers get (docs/EGGS.md#add-ons).
+  repeated EggAddon addons = 19;
+}
+
+// EggAddon is an add-on an egg turns on: a plugin installer or a mod
+// manager.
+message EggAddon {
+  // "plugins" or "mods".
+  string kind = 1;
+  // Modrinth's loader names: paper, spigot, fabric, ...
+  repeated string loaders = 2;
+  // Where files go, from the server's directory.
+  string dir = 3;
+  // The variable holding the game version; empty: any version.
+  string version = 4;
 }
 
 message EggStartup {

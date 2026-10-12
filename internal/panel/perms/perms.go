@@ -43,11 +43,13 @@ var actions = map[string]string{
 	"server.kill":    Power,
 
 	"files.list":     FilesRead,
+	"addons.list":    FilesRead,
 	"files.stat":     FilesRead,
 	"files.read":     FilesRead,
 	"files.download": FilesRead,
 
 	"files.write":         FilesWrite,
+	"addons.install":      FilesWrite, // a plugin or mod into the egg's folder (docs/EGGS.md#add-ons)
 	"files.mkdir":         FilesWrite,
 	"files.rename":        FilesWrite,
 	"files.copy":          FilesWrite,
@@ -166,7 +168,7 @@ func Valid(p string) bool {
 // audit log.
 func Read(action string) bool {
 	switch action {
-	case "files.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
+	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
 		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true

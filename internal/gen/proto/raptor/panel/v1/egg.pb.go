@@ -143,7 +143,9 @@ type EggSpec struct {
 	// How to ask for the player count: "minecraft", "source", or empty.
 	PlayersQuery string `protobuf:"bytes,17,opt,name=players_query,json=playersQuery,proto3" json:"players_query,omitempty"`
 	// Where it answers: empty (the server's port), "+1", or a variable.
-	PlayersPort   string `protobuf:"bytes,18,opt,name=players_port,json=playersPort,proto3" json:"players_port,omitempty"`
+	PlayersPort string `protobuf:"bytes,18,opt,name=players_port,json=playersPort,proto3" json:"players_port,omitempty"`
+	// Software add-ons servers get (docs/EGGS.md#add-ons).
+	Addons        []*EggAddon `protobuf:"bytes,19,rep,name=addons,proto3" json:"addons,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -304,6 +306,87 @@ func (x *EggSpec) GetPlayersPort() string {
 	return ""
 }
 
+func (x *EggSpec) GetAddons() []*EggAddon {
+	if x != nil {
+		return x.Addons
+	}
+	return nil
+}
+
+// EggAddon is an add-on an egg turns on: a plugin installer or a mod
+// manager.
+type EggAddon struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "plugins" or "mods".
+	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Modrinth's loader names: paper, spigot, fabric, ...
+	Loaders []string `protobuf:"bytes,2,rep,name=loaders,proto3" json:"loaders,omitempty"`
+	// Where files go, from the server's directory.
+	Dir string `protobuf:"bytes,3,opt,name=dir,proto3" json:"dir,omitempty"`
+	// The variable holding the game version; empty: any version.
+	Version       string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EggAddon) Reset() {
+	*x = EggAddon{}
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EggAddon) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EggAddon) ProtoMessage() {}
+
+func (x *EggAddon) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EggAddon.ProtoReflect.Descriptor instead.
+func (*EggAddon) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *EggAddon) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *EggAddon) GetLoaders() []string {
+	if x != nil {
+		return x.Loaders
+	}
+	return nil
+}
+
+func (x *EggAddon) GetDir() string {
+	if x != nil {
+		return x.Dir
+	}
+	return ""
+}
+
+func (x *EggAddon) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
 type EggStartup struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -314,7 +397,7 @@ type EggStartup struct {
 
 func (x *EggStartup) Reset() {
 	*x = EggStartup{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[3]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -326,7 +409,7 @@ func (x *EggStartup) String() string {
 func (*EggStartup) ProtoMessage() {}
 
 func (x *EggStartup) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[3]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +422,7 @@ func (x *EggStartup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EggStartup.ProtoReflect.Descriptor instead.
 func (*EggStartup) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{3}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EggStartup) GetName() string {
@@ -369,7 +452,7 @@ type EggConfigFile struct {
 
 func (x *EggConfigFile) Reset() {
 	*x = EggConfigFile{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[4]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -381,7 +464,7 @@ func (x *EggConfigFile) String() string {
 func (*EggConfigFile) ProtoMessage() {}
 
 func (x *EggConfigFile) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[4]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -394,7 +477,7 @@ func (x *EggConfigFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EggConfigFile.ProtoReflect.Descriptor instead.
 func (*EggConfigFile) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{4}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *EggConfigFile) GetPath() string {
@@ -430,7 +513,7 @@ type EggFind struct {
 
 func (x *EggFind) Reset() {
 	*x = EggFind{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[5]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +525,7 @@ func (x *EggFind) String() string {
 func (*EggFind) ProtoMessage() {}
 
 func (x *EggFind) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[5]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +538,7 @@ func (x *EggFind) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EggFind.ProtoReflect.Descriptor instead.
 func (*EggFind) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{5}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EggFind) GetKey() string {
@@ -492,7 +575,7 @@ type EggVersion struct {
 
 func (x *EggVersion) Reset() {
 	*x = EggVersion{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[6]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -504,7 +587,7 @@ func (x *EggVersion) String() string {
 func (*EggVersion) ProtoMessage() {}
 
 func (x *EggVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[6]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -517,7 +600,7 @@ func (x *EggVersion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EggVersion.ProtoReflect.Descriptor instead.
 func (*EggVersion) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{6}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EggVersion) GetVersion() int32 {
@@ -565,7 +648,7 @@ type GetEggDetailsRequest struct {
 
 func (x *GetEggDetailsRequest) Reset() {
 	*x = GetEggDetailsRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[7]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -577,7 +660,7 @@ func (x *GetEggDetailsRequest) String() string {
 func (*GetEggDetailsRequest) ProtoMessage() {}
 
 func (x *GetEggDetailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[7]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -590,7 +673,7 @@ func (x *GetEggDetailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEggDetailsRequest.ProtoReflect.Descriptor instead.
 func (*GetEggDetailsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{7}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetEggDetailsRequest) GetOrgId() string {
@@ -630,7 +713,7 @@ type GetEggDetailsResponse struct {
 
 func (x *GetEggDetailsResponse) Reset() {
 	*x = GetEggDetailsResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[8]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -642,7 +725,7 @@ func (x *GetEggDetailsResponse) String() string {
 func (*GetEggDetailsResponse) ProtoMessage() {}
 
 func (x *GetEggDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[8]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -655,7 +738,7 @@ func (x *GetEggDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEggDetailsResponse.ProtoReflect.Descriptor instead.
 func (*GetEggDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{8}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetEggDetailsResponse) GetEgg() *CatalogEgg {
@@ -733,7 +816,7 @@ type GetEggFileRequest struct {
 
 func (x *GetEggFileRequest) Reset() {
 	*x = GetEggFileRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[9]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -745,7 +828,7 @@ func (x *GetEggFileRequest) String() string {
 func (*GetEggFileRequest) ProtoMessage() {}
 
 func (x *GetEggFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[9]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -758,7 +841,7 @@ func (x *GetEggFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEggFileRequest.ProtoReflect.Descriptor instead.
 func (*GetEggFileRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{9}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetEggFileRequest) GetOrgId() string {
@@ -792,7 +875,7 @@ type GetEggFileResponse struct {
 
 func (x *GetEggFileResponse) Reset() {
 	*x = GetEggFileResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[10]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -804,7 +887,7 @@ func (x *GetEggFileResponse) String() string {
 func (*GetEggFileResponse) ProtoMessage() {}
 
 func (x *GetEggFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[10]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,7 +900,7 @@ func (x *GetEggFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEggFileResponse.ProtoReflect.Descriptor instead.
 func (*GetEggFileResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{10}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetEggFileResponse) GetEgg() []byte {
@@ -846,7 +929,7 @@ type CreateEggRequest struct {
 
 func (x *CreateEggRequest) Reset() {
 	*x = CreateEggRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[11]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -858,7 +941,7 @@ func (x *CreateEggRequest) String() string {
 func (*CreateEggRequest) ProtoMessage() {}
 
 func (x *CreateEggRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[11]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -871,7 +954,7 @@ func (x *CreateEggRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateEggRequest.ProtoReflect.Descriptor instead.
 func (*CreateEggRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{11}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CreateEggRequest) GetOrgId() string {
@@ -911,7 +994,7 @@ type CreateEggResponse struct {
 
 func (x *CreateEggResponse) Reset() {
 	*x = CreateEggResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[12]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -923,7 +1006,7 @@ func (x *CreateEggResponse) String() string {
 func (*CreateEggResponse) ProtoMessage() {}
 
 func (x *CreateEggResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[12]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -936,7 +1019,7 @@ func (x *CreateEggResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateEggResponse.ProtoReflect.Descriptor instead.
 func (*CreateEggResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{12}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CreateEggResponse) GetId() string {
@@ -968,7 +1051,7 @@ type UpdateEggRequest struct {
 
 func (x *UpdateEggRequest) Reset() {
 	*x = UpdateEggRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[13]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -980,7 +1063,7 @@ func (x *UpdateEggRequest) String() string {
 func (*UpdateEggRequest) ProtoMessage() {}
 
 func (x *UpdateEggRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[13]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -993,7 +1076,7 @@ func (x *UpdateEggRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateEggRequest.ProtoReflect.Descriptor instead.
 func (*UpdateEggRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{13}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateEggRequest) GetOrgId() string {
@@ -1089,7 +1172,7 @@ type UpdateEggResponse struct {
 
 func (x *UpdateEggResponse) Reset() {
 	*x = UpdateEggResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[14]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1101,7 +1184,7 @@ func (x *UpdateEggResponse) String() string {
 func (*UpdateEggResponse) ProtoMessage() {}
 
 func (x *UpdateEggResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[14]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1114,7 +1197,7 @@ func (x *UpdateEggResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateEggResponse.ProtoReflect.Descriptor instead.
 func (*UpdateEggResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{14}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UpdateEggResponse) GetVersion() int32 {
@@ -1138,7 +1221,7 @@ type CustomizeEggRequest struct {
 
 func (x *CustomizeEggRequest) Reset() {
 	*x = CustomizeEggRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[15]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1150,7 +1233,7 @@ func (x *CustomizeEggRequest) String() string {
 func (*CustomizeEggRequest) ProtoMessage() {}
 
 func (x *CustomizeEggRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[15]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1163,7 +1246,7 @@ func (x *CustomizeEggRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomizeEggRequest.ProtoReflect.Descriptor instead.
 func (*CustomizeEggRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{15}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CustomizeEggRequest) GetOrgId() string {
@@ -1196,7 +1279,7 @@ type CustomizeEggResponse struct {
 
 func (x *CustomizeEggResponse) Reset() {
 	*x = CustomizeEggResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1208,7 +1291,7 @@ func (x *CustomizeEggResponse) String() string {
 func (*CustomizeEggResponse) ProtoMessage() {}
 
 func (x *CustomizeEggResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1221,7 +1304,7 @@ func (x *CustomizeEggResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomizeEggResponse.ProtoReflect.Descriptor instead.
 func (*CustomizeEggResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{16}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CustomizeEggResponse) GetId() string {
@@ -1243,7 +1326,7 @@ type SetEggStatusRequest struct {
 
 func (x *SetEggStatusRequest) Reset() {
 	*x = SetEggStatusRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1255,7 +1338,7 @@ func (x *SetEggStatusRequest) String() string {
 func (*SetEggStatusRequest) ProtoMessage() {}
 
 func (x *SetEggStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1268,7 +1351,7 @@ func (x *SetEggStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEggStatusRequest.ProtoReflect.Descriptor instead.
 func (*SetEggStatusRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{17}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SetEggStatusRequest) GetOrgId() string {
@@ -1300,7 +1383,7 @@ type SetEggStatusResponse struct {
 
 func (x *SetEggStatusResponse) Reset() {
 	*x = SetEggStatusResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1312,7 +1395,7 @@ func (x *SetEggStatusResponse) String() string {
 func (*SetEggStatusResponse) ProtoMessage() {}
 
 func (x *SetEggStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1325,7 +1408,7 @@ func (x *SetEggStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEggStatusResponse.ProtoReflect.Descriptor instead.
 func (*SetEggStatusResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{18}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{19}
 }
 
 type DeleteEggRequest struct {
@@ -1338,7 +1421,7 @@ type DeleteEggRequest struct {
 
 func (x *DeleteEggRequest) Reset() {
 	*x = DeleteEggRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1350,7 +1433,7 @@ func (x *DeleteEggRequest) String() string {
 func (*DeleteEggRequest) ProtoMessage() {}
 
 func (x *DeleteEggRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1363,7 +1446,7 @@ func (x *DeleteEggRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteEggRequest.ProtoReflect.Descriptor instead.
 func (*DeleteEggRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{19}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *DeleteEggRequest) GetOrgId() string {
@@ -1388,7 +1471,7 @@ type DeleteEggResponse struct {
 
 func (x *DeleteEggResponse) Reset() {
 	*x = DeleteEggResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1400,7 +1483,7 @@ func (x *DeleteEggResponse) String() string {
 func (*DeleteEggResponse) ProtoMessage() {}
 
 func (x *DeleteEggResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1413,7 +1496,7 @@ func (x *DeleteEggResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteEggResponse.ProtoReflect.Descriptor instead.
 func (*DeleteEggResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{20}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{21}
 }
 
 type ReviewEggFileRequest struct {
@@ -1430,7 +1513,7 @@ type ReviewEggFileRequest struct {
 
 func (x *ReviewEggFileRequest) Reset() {
 	*x = ReviewEggFileRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1442,7 +1525,7 @@ func (x *ReviewEggFileRequest) String() string {
 func (*ReviewEggFileRequest) ProtoMessage() {}
 
 func (x *ReviewEggFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1455,7 +1538,7 @@ func (x *ReviewEggFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReviewEggFileRequest.ProtoReflect.Descriptor instead.
 func (*ReviewEggFileRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{21}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ReviewEggFileRequest) GetOrgId() string {
@@ -1521,7 +1604,7 @@ type ReviewEggFileResponse struct {
 
 func (x *ReviewEggFileResponse) Reset() {
 	*x = ReviewEggFileResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[22]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1533,7 +1616,7 @@ func (x *ReviewEggFileResponse) String() string {
 func (*ReviewEggFileResponse) ProtoMessage() {}
 
 func (x *ReviewEggFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[22]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1546,7 +1629,7 @@ func (x *ReviewEggFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReviewEggFileResponse.ProtoReflect.Descriptor instead.
 func (*ReviewEggFileResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{22}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ReviewEggFileResponse) GetEgg() []byte {
@@ -1590,7 +1673,7 @@ type ImportEggFileRequest struct {
 
 func (x *ImportEggFileRequest) Reset() {
 	*x = ImportEggFileRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[23]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1602,7 +1685,7 @@ func (x *ImportEggFileRequest) String() string {
 func (*ImportEggFileRequest) ProtoMessage() {}
 
 func (x *ImportEggFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[23]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1615,7 +1698,7 @@ func (x *ImportEggFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportEggFileRequest.ProtoReflect.Descriptor instead.
 func (*ImportEggFileRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{23}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ImportEggFileRequest) GetOrgId() string {
@@ -1655,7 +1738,7 @@ type ImportEggFileResponse struct {
 
 func (x *ImportEggFileResponse) Reset() {
 	*x = ImportEggFileResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[24]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1667,7 +1750,7 @@ func (x *ImportEggFileResponse) String() string {
 func (*ImportEggFileResponse) ProtoMessage() {}
 
 func (x *ImportEggFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[24]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1680,7 +1763,7 @@ func (x *ImportEggFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportEggFileResponse.ProtoReflect.Descriptor instead.
 func (*ImportEggFileResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{24}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ImportEggFileResponse) GetId() string {
@@ -1705,7 +1788,7 @@ type ListCommunityEggsRequest struct {
 
 func (x *ListCommunityEggsRequest) Reset() {
 	*x = ListCommunityEggsRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[25]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1717,7 +1800,7 @@ func (x *ListCommunityEggsRequest) String() string {
 func (*ListCommunityEggsRequest) ProtoMessage() {}
 
 func (x *ListCommunityEggsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[25]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1730,7 +1813,7 @@ func (x *ListCommunityEggsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCommunityEggsRequest.ProtoReflect.Descriptor instead.
 func (*ListCommunityEggsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{25}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListCommunityEggsRequest) GetOrgId() string {
@@ -1778,7 +1861,7 @@ type ListCommunityEggsResponse struct {
 
 func (x *ListCommunityEggsResponse) Reset() {
 	*x = ListCommunityEggsResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[26]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1790,7 +1873,7 @@ func (x *ListCommunityEggsResponse) String() string {
 func (*ListCommunityEggsResponse) ProtoMessage() {}
 
 func (x *ListCommunityEggsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[26]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1803,7 +1886,7 @@ func (x *ListCommunityEggsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCommunityEggsResponse.ProtoReflect.Descriptor instead.
 func (*ListCommunityEggsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{26}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListCommunityEggsResponse) GetEggs() []*CatalogEgg {
@@ -1831,7 +1914,7 @@ type ShareEggRequest struct {
 
 func (x *ShareEggRequest) Reset() {
 	*x = ShareEggRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[27]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1843,7 +1926,7 @@ func (x *ShareEggRequest) String() string {
 func (*ShareEggRequest) ProtoMessage() {}
 
 func (x *ShareEggRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[27]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1856,7 +1939,7 @@ func (x *ShareEggRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShareEggRequest.ProtoReflect.Descriptor instead.
 func (*ShareEggRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{27}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ShareEggRequest) GetOrgId() string {
@@ -1888,7 +1971,7 @@ type ShareEggResponse struct {
 
 func (x *ShareEggResponse) Reset() {
 	*x = ShareEggResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[28]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1900,7 +1983,7 @@ func (x *ShareEggResponse) String() string {
 func (*ShareEggResponse) ProtoMessage() {}
 
 func (x *ShareEggResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[28]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1913,7 +1996,7 @@ func (x *ShareEggResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShareEggResponse.ProtoReflect.Descriptor instead.
 func (*ShareEggResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{28}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{29}
 }
 
 type ReportEggRequest struct {
@@ -1930,7 +2013,7 @@ type ReportEggRequest struct {
 
 func (x *ReportEggRequest) Reset() {
 	*x = ReportEggRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[29]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1942,7 +2025,7 @@ func (x *ReportEggRequest) String() string {
 func (*ReportEggRequest) ProtoMessage() {}
 
 func (x *ReportEggRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[29]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1955,7 +2038,7 @@ func (x *ReportEggRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportEggRequest.ProtoReflect.Descriptor instead.
 func (*ReportEggRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{29}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ReportEggRequest) GetOrgId() string {
@@ -1994,7 +2077,7 @@ type ReportEggResponse struct {
 
 func (x *ReportEggResponse) Reset() {
 	*x = ReportEggResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[30]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2006,7 +2089,7 @@ func (x *ReportEggResponse) String() string {
 func (*ReportEggResponse) ProtoMessage() {}
 
 func (x *ReportEggResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[30]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2019,7 +2102,7 @@ func (x *ReportEggResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportEggResponse.ProtoReflect.Descriptor instead.
 func (*ReportEggResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{30}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{31}
 }
 
 type ListEggReportsRequest struct {
@@ -2030,7 +2113,7 @@ type ListEggReportsRequest struct {
 
 func (x *ListEggReportsRequest) Reset() {
 	*x = ListEggReportsRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[31]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2042,7 +2125,7 @@ func (x *ListEggReportsRequest) String() string {
 func (*ListEggReportsRequest) ProtoMessage() {}
 
 func (x *ListEggReportsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[31]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2055,7 +2138,7 @@ func (x *ListEggReportsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEggReportsRequest.ProtoReflect.Descriptor instead.
 func (*ListEggReportsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{31}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{32}
 }
 
 type EggReport struct {
@@ -2076,7 +2159,7 @@ type EggReport struct {
 
 func (x *EggReport) Reset() {
 	*x = EggReport{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[32]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2088,7 +2171,7 @@ func (x *EggReport) String() string {
 func (*EggReport) ProtoMessage() {}
 
 func (x *EggReport) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[32]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2101,7 +2184,7 @@ func (x *EggReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EggReport.ProtoReflect.Descriptor instead.
 func (*EggReport) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{32}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *EggReport) GetId() string {
@@ -2176,7 +2259,7 @@ type ListEggReportsResponse struct {
 
 func (x *ListEggReportsResponse) Reset() {
 	*x = ListEggReportsResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[33]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2188,7 +2271,7 @@ func (x *ListEggReportsResponse) String() string {
 func (*ListEggReportsResponse) ProtoMessage() {}
 
 func (x *ListEggReportsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[33]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2201,7 +2284,7 @@ func (x *ListEggReportsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEggReportsResponse.ProtoReflect.Descriptor instead.
 func (*ListEggReportsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{33}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ListEggReportsResponse) GetReports() []*EggReport {
@@ -2224,7 +2307,7 @@ type ModerateEggRequest struct {
 
 func (x *ModerateEggRequest) Reset() {
 	*x = ModerateEggRequest{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[34]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2236,7 +2319,7 @@ func (x *ModerateEggRequest) String() string {
 func (*ModerateEggRequest) ProtoMessage() {}
 
 func (x *ModerateEggRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[34]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2249,7 +2332,7 @@ func (x *ModerateEggRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModerateEggRequest.ProtoReflect.Descriptor instead.
 func (*ModerateEggRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{34}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ModerateEggRequest) GetId() string {
@@ -2281,7 +2364,7 @@ type ModerateEggResponse struct {
 
 func (x *ModerateEggResponse) Reset() {
 	*x = ModerateEggResponse{}
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2293,7 +2376,7 @@ func (x *ModerateEggResponse) String() string {
 func (*ModerateEggResponse) ProtoMessage() {}
 
 func (x *ModerateEggResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_egg_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_egg_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2306,7 +2389,7 @@ func (x *ModerateEggResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModerateEggResponse.ProtoReflect.Descriptor instead.
 func (*ModerateEggResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{35}
+	return file_raptor_panel_v1_egg_proto_rawDescGZIP(), []int{36}
 }
 
 var File_raptor_panel_v1_egg_proto protoreflect.FileDescriptor
@@ -2317,7 +2400,7 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\x19EggServiceListEggsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"M\n" +
 	"\x1aEggServiceListEggsResponse\x12/\n" +
-	"\x04eggs\x18\x01 \x03(\v2\x1b.raptor.panel.v1.CatalogEggR\x04eggs\"\xa3\x05\n" +
+	"\x04eggs\x18\x01 \x03(\v2\x1b.raptor.panel.v1.CatalogEggR\x04eggs\"\xd6\x05\n" +
 	"\aEggSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06author\x18\x02 \x01(\tR\x06author\x12 \n" +
@@ -2338,7 +2421,13 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\rfile_denylist\x18\x0f \x03(\tR\ffileDenylist\x12\x12\n" +
 	"\x04arch\x18\x10 \x03(\tR\x04arch\x12#\n" +
 	"\rplayers_query\x18\x11 \x01(\tR\fplayersQuery\x12!\n" +
-	"\fplayers_port\x18\x12 \x01(\tR\vplayersPort\":\n" +
+	"\fplayers_port\x18\x12 \x01(\tR\vplayersPort\x121\n" +
+	"\x06addons\x18\x13 \x03(\v2\x19.raptor.panel.v1.EggAddonR\x06addons\"d\n" +
+	"\bEggAddon\x12\x12\n" +
+	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n" +
+	"\aloaders\x18\x02 \x03(\tR\aloaders\x12\x10\n" +
+	"\x03dir\x18\x03 \x01(\tR\x03dir\x12\x18\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\":\n" +
 	"\n" +
 	"EggStartup\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
@@ -2507,104 +2596,106 @@ func file_raptor_panel_v1_egg_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_egg_proto_rawDescData
 }
 
-var file_raptor_panel_v1_egg_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_raptor_panel_v1_egg_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_raptor_panel_v1_egg_proto_goTypes = []any{
 	(*EggServiceListEggsRequest)(nil),  // 0: raptor.panel.v1.EggServiceListEggsRequest
 	(*EggServiceListEggsResponse)(nil), // 1: raptor.panel.v1.EggServiceListEggsResponse
 	(*EggSpec)(nil),                    // 2: raptor.panel.v1.EggSpec
-	(*EggStartup)(nil),                 // 3: raptor.panel.v1.EggStartup
-	(*EggConfigFile)(nil),              // 4: raptor.panel.v1.EggConfigFile
-	(*EggFind)(nil),                    // 5: raptor.panel.v1.EggFind
-	(*EggVersion)(nil),                 // 6: raptor.panel.v1.EggVersion
-	(*GetEggDetailsRequest)(nil),       // 7: raptor.panel.v1.GetEggDetailsRequest
-	(*GetEggDetailsResponse)(nil),      // 8: raptor.panel.v1.GetEggDetailsResponse
-	(*GetEggFileRequest)(nil),          // 9: raptor.panel.v1.GetEggFileRequest
-	(*GetEggFileResponse)(nil),         // 10: raptor.panel.v1.GetEggFileResponse
-	(*CreateEggRequest)(nil),           // 11: raptor.panel.v1.CreateEggRequest
-	(*CreateEggResponse)(nil),          // 12: raptor.panel.v1.CreateEggResponse
-	(*UpdateEggRequest)(nil),           // 13: raptor.panel.v1.UpdateEggRequest
-	(*UpdateEggResponse)(nil),          // 14: raptor.panel.v1.UpdateEggResponse
-	(*CustomizeEggRequest)(nil),        // 15: raptor.panel.v1.CustomizeEggRequest
-	(*CustomizeEggResponse)(nil),       // 16: raptor.panel.v1.CustomizeEggResponse
-	(*SetEggStatusRequest)(nil),        // 17: raptor.panel.v1.SetEggStatusRequest
-	(*SetEggStatusResponse)(nil),       // 18: raptor.panel.v1.SetEggStatusResponse
-	(*DeleteEggRequest)(nil),           // 19: raptor.panel.v1.DeleteEggRequest
-	(*DeleteEggResponse)(nil),          // 20: raptor.panel.v1.DeleteEggResponse
-	(*ReviewEggFileRequest)(nil),       // 21: raptor.panel.v1.ReviewEggFileRequest
-	(*ReviewEggFileResponse)(nil),      // 22: raptor.panel.v1.ReviewEggFileResponse
-	(*ImportEggFileRequest)(nil),       // 23: raptor.panel.v1.ImportEggFileRequest
-	(*ImportEggFileResponse)(nil),      // 24: raptor.panel.v1.ImportEggFileResponse
-	(*ListCommunityEggsRequest)(nil),   // 25: raptor.panel.v1.ListCommunityEggsRequest
-	(*ListCommunityEggsResponse)(nil),  // 26: raptor.panel.v1.ListCommunityEggsResponse
-	(*ShareEggRequest)(nil),            // 27: raptor.panel.v1.ShareEggRequest
-	(*ShareEggResponse)(nil),           // 28: raptor.panel.v1.ShareEggResponse
-	(*ReportEggRequest)(nil),           // 29: raptor.panel.v1.ReportEggRequest
-	(*ReportEggResponse)(nil),          // 30: raptor.panel.v1.ReportEggResponse
-	(*ListEggReportsRequest)(nil),      // 31: raptor.panel.v1.ListEggReportsRequest
-	(*EggReport)(nil),                  // 32: raptor.panel.v1.EggReport
-	(*ListEggReportsResponse)(nil),     // 33: raptor.panel.v1.ListEggReportsResponse
-	(*ModerateEggRequest)(nil),         // 34: raptor.panel.v1.ModerateEggRequest
-	(*ModerateEggResponse)(nil),        // 35: raptor.panel.v1.ModerateEggResponse
-	(*CatalogEgg)(nil),                 // 36: raptor.panel.v1.CatalogEgg
-	(*EggImage)(nil),                   // 37: raptor.panel.v1.EggImage
-	(*EggVariable)(nil),                // 38: raptor.panel.v1.EggVariable
-	(*timestamppb.Timestamp)(nil),      // 39: google.protobuf.Timestamp
-	(*EggWarning)(nil),                 // 40: raptor.panel.v1.EggWarning
-	(*EggReview)(nil),                  // 41: raptor.panel.v1.EggReview
+	(*EggAddon)(nil),                   // 3: raptor.panel.v1.EggAddon
+	(*EggStartup)(nil),                 // 4: raptor.panel.v1.EggStartup
+	(*EggConfigFile)(nil),              // 5: raptor.panel.v1.EggConfigFile
+	(*EggFind)(nil),                    // 6: raptor.panel.v1.EggFind
+	(*EggVersion)(nil),                 // 7: raptor.panel.v1.EggVersion
+	(*GetEggDetailsRequest)(nil),       // 8: raptor.panel.v1.GetEggDetailsRequest
+	(*GetEggDetailsResponse)(nil),      // 9: raptor.panel.v1.GetEggDetailsResponse
+	(*GetEggFileRequest)(nil),          // 10: raptor.panel.v1.GetEggFileRequest
+	(*GetEggFileResponse)(nil),         // 11: raptor.panel.v1.GetEggFileResponse
+	(*CreateEggRequest)(nil),           // 12: raptor.panel.v1.CreateEggRequest
+	(*CreateEggResponse)(nil),          // 13: raptor.panel.v1.CreateEggResponse
+	(*UpdateEggRequest)(nil),           // 14: raptor.panel.v1.UpdateEggRequest
+	(*UpdateEggResponse)(nil),          // 15: raptor.panel.v1.UpdateEggResponse
+	(*CustomizeEggRequest)(nil),        // 16: raptor.panel.v1.CustomizeEggRequest
+	(*CustomizeEggResponse)(nil),       // 17: raptor.panel.v1.CustomizeEggResponse
+	(*SetEggStatusRequest)(nil),        // 18: raptor.panel.v1.SetEggStatusRequest
+	(*SetEggStatusResponse)(nil),       // 19: raptor.panel.v1.SetEggStatusResponse
+	(*DeleteEggRequest)(nil),           // 20: raptor.panel.v1.DeleteEggRequest
+	(*DeleteEggResponse)(nil),          // 21: raptor.panel.v1.DeleteEggResponse
+	(*ReviewEggFileRequest)(nil),       // 22: raptor.panel.v1.ReviewEggFileRequest
+	(*ReviewEggFileResponse)(nil),      // 23: raptor.panel.v1.ReviewEggFileResponse
+	(*ImportEggFileRequest)(nil),       // 24: raptor.panel.v1.ImportEggFileRequest
+	(*ImportEggFileResponse)(nil),      // 25: raptor.panel.v1.ImportEggFileResponse
+	(*ListCommunityEggsRequest)(nil),   // 26: raptor.panel.v1.ListCommunityEggsRequest
+	(*ListCommunityEggsResponse)(nil),  // 27: raptor.panel.v1.ListCommunityEggsResponse
+	(*ShareEggRequest)(nil),            // 28: raptor.panel.v1.ShareEggRequest
+	(*ShareEggResponse)(nil),           // 29: raptor.panel.v1.ShareEggResponse
+	(*ReportEggRequest)(nil),           // 30: raptor.panel.v1.ReportEggRequest
+	(*ReportEggResponse)(nil),          // 31: raptor.panel.v1.ReportEggResponse
+	(*ListEggReportsRequest)(nil),      // 32: raptor.panel.v1.ListEggReportsRequest
+	(*EggReport)(nil),                  // 33: raptor.panel.v1.EggReport
+	(*ListEggReportsResponse)(nil),     // 34: raptor.panel.v1.ListEggReportsResponse
+	(*ModerateEggRequest)(nil),         // 35: raptor.panel.v1.ModerateEggRequest
+	(*ModerateEggResponse)(nil),        // 36: raptor.panel.v1.ModerateEggResponse
+	(*CatalogEgg)(nil),                 // 37: raptor.panel.v1.CatalogEgg
+	(*EggImage)(nil),                   // 38: raptor.panel.v1.EggImage
+	(*EggVariable)(nil),                // 39: raptor.panel.v1.EggVariable
+	(*timestamppb.Timestamp)(nil),      // 40: google.protobuf.Timestamp
+	(*EggWarning)(nil),                 // 41: raptor.panel.v1.EggWarning
+	(*EggReview)(nil),                  // 42: raptor.panel.v1.EggReview
 }
 var file_raptor_panel_v1_egg_proto_depIdxs = []int32{
-	36, // 0: raptor.panel.v1.EggServiceListEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
-	37, // 1: raptor.panel.v1.EggSpec.images:type_name -> raptor.panel.v1.EggImage
-	3,  // 2: raptor.panel.v1.EggSpec.startup:type_name -> raptor.panel.v1.EggStartup
-	38, // 3: raptor.panel.v1.EggSpec.variables:type_name -> raptor.panel.v1.EggVariable
-	4,  // 4: raptor.panel.v1.EggSpec.files:type_name -> raptor.panel.v1.EggConfigFile
-	5,  // 5: raptor.panel.v1.EggConfigFile.find:type_name -> raptor.panel.v1.EggFind
-	39, // 6: raptor.panel.v1.EggVersion.created_at:type_name -> google.protobuf.Timestamp
-	36, // 7: raptor.panel.v1.GetEggDetailsResponse.egg:type_name -> raptor.panel.v1.CatalogEgg
-	2,  // 8: raptor.panel.v1.GetEggDetailsResponse.spec:type_name -> raptor.panel.v1.EggSpec
-	40, // 9: raptor.panel.v1.GetEggDetailsResponse.warnings:type_name -> raptor.panel.v1.EggWarning
-	6,  // 10: raptor.panel.v1.GetEggDetailsResponse.versions:type_name -> raptor.panel.v1.EggVersion
-	2,  // 11: raptor.panel.v1.CreateEggRequest.spec:type_name -> raptor.panel.v1.EggSpec
-	2,  // 12: raptor.panel.v1.UpdateEggRequest.spec:type_name -> raptor.panel.v1.EggSpec
-	41, // 13: raptor.panel.v1.ReviewEggFileResponse.review:type_name -> raptor.panel.v1.EggReview
-	36, // 14: raptor.panel.v1.ListCommunityEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
-	39, // 15: raptor.panel.v1.EggReport.created_at:type_name -> google.protobuf.Timestamp
-	32, // 16: raptor.panel.v1.ListEggReportsResponse.reports:type_name -> raptor.panel.v1.EggReport
-	0,  // 17: raptor.panel.v1.EggService.ListEggs:input_type -> raptor.panel.v1.EggServiceListEggsRequest
-	7,  // 18: raptor.panel.v1.EggService.GetEggDetails:input_type -> raptor.panel.v1.GetEggDetailsRequest
-	9,  // 19: raptor.panel.v1.EggService.GetEggFile:input_type -> raptor.panel.v1.GetEggFileRequest
-	11, // 20: raptor.panel.v1.EggService.CreateEgg:input_type -> raptor.panel.v1.CreateEggRequest
-	13, // 21: raptor.panel.v1.EggService.UpdateEgg:input_type -> raptor.panel.v1.UpdateEggRequest
-	15, // 22: raptor.panel.v1.EggService.CustomizeEgg:input_type -> raptor.panel.v1.CustomizeEggRequest
-	17, // 23: raptor.panel.v1.EggService.SetEggStatus:input_type -> raptor.panel.v1.SetEggStatusRequest
-	19, // 24: raptor.panel.v1.EggService.DeleteEgg:input_type -> raptor.panel.v1.DeleteEggRequest
-	21, // 25: raptor.panel.v1.EggService.ReviewEggFile:input_type -> raptor.panel.v1.ReviewEggFileRequest
-	23, // 26: raptor.panel.v1.EggService.ImportEggFile:input_type -> raptor.panel.v1.ImportEggFileRequest
-	25, // 27: raptor.panel.v1.EggService.ListCommunityEggs:input_type -> raptor.panel.v1.ListCommunityEggsRequest
-	27, // 28: raptor.panel.v1.EggService.ShareEgg:input_type -> raptor.panel.v1.ShareEggRequest
-	29, // 29: raptor.panel.v1.EggService.ReportEgg:input_type -> raptor.panel.v1.ReportEggRequest
-	31, // 30: raptor.panel.v1.EggService.ListEggReports:input_type -> raptor.panel.v1.ListEggReportsRequest
-	34, // 31: raptor.panel.v1.EggService.ModerateEgg:input_type -> raptor.panel.v1.ModerateEggRequest
-	1,  // 32: raptor.panel.v1.EggService.ListEggs:output_type -> raptor.panel.v1.EggServiceListEggsResponse
-	8,  // 33: raptor.panel.v1.EggService.GetEggDetails:output_type -> raptor.panel.v1.GetEggDetailsResponse
-	10, // 34: raptor.panel.v1.EggService.GetEggFile:output_type -> raptor.panel.v1.GetEggFileResponse
-	12, // 35: raptor.panel.v1.EggService.CreateEgg:output_type -> raptor.panel.v1.CreateEggResponse
-	14, // 36: raptor.panel.v1.EggService.UpdateEgg:output_type -> raptor.panel.v1.UpdateEggResponse
-	16, // 37: raptor.panel.v1.EggService.CustomizeEgg:output_type -> raptor.panel.v1.CustomizeEggResponse
-	18, // 38: raptor.panel.v1.EggService.SetEggStatus:output_type -> raptor.panel.v1.SetEggStatusResponse
-	20, // 39: raptor.panel.v1.EggService.DeleteEgg:output_type -> raptor.panel.v1.DeleteEggResponse
-	22, // 40: raptor.panel.v1.EggService.ReviewEggFile:output_type -> raptor.panel.v1.ReviewEggFileResponse
-	24, // 41: raptor.panel.v1.EggService.ImportEggFile:output_type -> raptor.panel.v1.ImportEggFileResponse
-	26, // 42: raptor.panel.v1.EggService.ListCommunityEggs:output_type -> raptor.panel.v1.ListCommunityEggsResponse
-	28, // 43: raptor.panel.v1.EggService.ShareEgg:output_type -> raptor.panel.v1.ShareEggResponse
-	30, // 44: raptor.panel.v1.EggService.ReportEgg:output_type -> raptor.panel.v1.ReportEggResponse
-	33, // 45: raptor.panel.v1.EggService.ListEggReports:output_type -> raptor.panel.v1.ListEggReportsResponse
-	35, // 46: raptor.panel.v1.EggService.ModerateEgg:output_type -> raptor.panel.v1.ModerateEggResponse
-	32, // [32:47] is the sub-list for method output_type
-	17, // [17:32] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	37, // 0: raptor.panel.v1.EggServiceListEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
+	38, // 1: raptor.panel.v1.EggSpec.images:type_name -> raptor.panel.v1.EggImage
+	4,  // 2: raptor.panel.v1.EggSpec.startup:type_name -> raptor.panel.v1.EggStartup
+	39, // 3: raptor.panel.v1.EggSpec.variables:type_name -> raptor.panel.v1.EggVariable
+	5,  // 4: raptor.panel.v1.EggSpec.files:type_name -> raptor.panel.v1.EggConfigFile
+	3,  // 5: raptor.panel.v1.EggSpec.addons:type_name -> raptor.panel.v1.EggAddon
+	6,  // 6: raptor.panel.v1.EggConfigFile.find:type_name -> raptor.panel.v1.EggFind
+	40, // 7: raptor.panel.v1.EggVersion.created_at:type_name -> google.protobuf.Timestamp
+	37, // 8: raptor.panel.v1.GetEggDetailsResponse.egg:type_name -> raptor.panel.v1.CatalogEgg
+	2,  // 9: raptor.panel.v1.GetEggDetailsResponse.spec:type_name -> raptor.panel.v1.EggSpec
+	41, // 10: raptor.panel.v1.GetEggDetailsResponse.warnings:type_name -> raptor.panel.v1.EggWarning
+	7,  // 11: raptor.panel.v1.GetEggDetailsResponse.versions:type_name -> raptor.panel.v1.EggVersion
+	2,  // 12: raptor.panel.v1.CreateEggRequest.spec:type_name -> raptor.panel.v1.EggSpec
+	2,  // 13: raptor.panel.v1.UpdateEggRequest.spec:type_name -> raptor.panel.v1.EggSpec
+	42, // 14: raptor.panel.v1.ReviewEggFileResponse.review:type_name -> raptor.panel.v1.EggReview
+	37, // 15: raptor.panel.v1.ListCommunityEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
+	40, // 16: raptor.panel.v1.EggReport.created_at:type_name -> google.protobuf.Timestamp
+	33, // 17: raptor.panel.v1.ListEggReportsResponse.reports:type_name -> raptor.panel.v1.EggReport
+	0,  // 18: raptor.panel.v1.EggService.ListEggs:input_type -> raptor.panel.v1.EggServiceListEggsRequest
+	8,  // 19: raptor.panel.v1.EggService.GetEggDetails:input_type -> raptor.panel.v1.GetEggDetailsRequest
+	10, // 20: raptor.panel.v1.EggService.GetEggFile:input_type -> raptor.panel.v1.GetEggFileRequest
+	12, // 21: raptor.panel.v1.EggService.CreateEgg:input_type -> raptor.panel.v1.CreateEggRequest
+	14, // 22: raptor.panel.v1.EggService.UpdateEgg:input_type -> raptor.panel.v1.UpdateEggRequest
+	16, // 23: raptor.panel.v1.EggService.CustomizeEgg:input_type -> raptor.panel.v1.CustomizeEggRequest
+	18, // 24: raptor.panel.v1.EggService.SetEggStatus:input_type -> raptor.panel.v1.SetEggStatusRequest
+	20, // 25: raptor.panel.v1.EggService.DeleteEgg:input_type -> raptor.panel.v1.DeleteEggRequest
+	22, // 26: raptor.panel.v1.EggService.ReviewEggFile:input_type -> raptor.panel.v1.ReviewEggFileRequest
+	24, // 27: raptor.panel.v1.EggService.ImportEggFile:input_type -> raptor.panel.v1.ImportEggFileRequest
+	26, // 28: raptor.panel.v1.EggService.ListCommunityEggs:input_type -> raptor.panel.v1.ListCommunityEggsRequest
+	28, // 29: raptor.panel.v1.EggService.ShareEgg:input_type -> raptor.panel.v1.ShareEggRequest
+	30, // 30: raptor.panel.v1.EggService.ReportEgg:input_type -> raptor.panel.v1.ReportEggRequest
+	32, // 31: raptor.panel.v1.EggService.ListEggReports:input_type -> raptor.panel.v1.ListEggReportsRequest
+	35, // 32: raptor.panel.v1.EggService.ModerateEgg:input_type -> raptor.panel.v1.ModerateEggRequest
+	1,  // 33: raptor.panel.v1.EggService.ListEggs:output_type -> raptor.panel.v1.EggServiceListEggsResponse
+	9,  // 34: raptor.panel.v1.EggService.GetEggDetails:output_type -> raptor.panel.v1.GetEggDetailsResponse
+	11, // 35: raptor.panel.v1.EggService.GetEggFile:output_type -> raptor.panel.v1.GetEggFileResponse
+	13, // 36: raptor.panel.v1.EggService.CreateEgg:output_type -> raptor.panel.v1.CreateEggResponse
+	15, // 37: raptor.panel.v1.EggService.UpdateEgg:output_type -> raptor.panel.v1.UpdateEggResponse
+	17, // 38: raptor.panel.v1.EggService.CustomizeEgg:output_type -> raptor.panel.v1.CustomizeEggResponse
+	19, // 39: raptor.panel.v1.EggService.SetEggStatus:output_type -> raptor.panel.v1.SetEggStatusResponse
+	21, // 40: raptor.panel.v1.EggService.DeleteEgg:output_type -> raptor.panel.v1.DeleteEggResponse
+	23, // 41: raptor.panel.v1.EggService.ReviewEggFile:output_type -> raptor.panel.v1.ReviewEggFileResponse
+	25, // 42: raptor.panel.v1.EggService.ImportEggFile:output_type -> raptor.panel.v1.ImportEggFileResponse
+	27, // 43: raptor.panel.v1.EggService.ListCommunityEggs:output_type -> raptor.panel.v1.ListCommunityEggsResponse
+	29, // 44: raptor.panel.v1.EggService.ShareEgg:output_type -> raptor.panel.v1.ShareEggResponse
+	31, // 45: raptor.panel.v1.EggService.ReportEgg:output_type -> raptor.panel.v1.ReportEggResponse
+	34, // 46: raptor.panel.v1.EggService.ListEggReports:output_type -> raptor.panel.v1.ListEggReportsResponse
+	36, // 47: raptor.panel.v1.EggService.ModerateEgg:output_type -> raptor.panel.v1.ModerateEggResponse
+	33, // [33:48] is the sub-list for method output_type
+	18, // [18:33] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_egg_proto_init() }
@@ -2614,11 +2705,11 @@ func file_raptor_panel_v1_egg_proto_init() {
 	}
 	file_raptor_panel_v1_catalog_proto_init()
 	file_raptor_panel_v1_org_proto_init()
-	file_raptor_panel_v1_egg_proto_msgTypes[13].OneofWrappers = []any{
+	file_raptor_panel_v1_egg_proto_msgTypes[14].OneofWrappers = []any{
 		(*UpdateEggRequest_Spec)(nil),
 		(*UpdateEggRequest_File)(nil),
 	}
-	file_raptor_panel_v1_egg_proto_msgTypes[21].OneofWrappers = []any{
+	file_raptor_panel_v1_egg_proto_msgTypes[22].OneofWrappers = []any{
 		(*ReviewEggFileRequest_Url)(nil),
 		(*ReviewEggFileRequest_File)(nil),
 	}
@@ -2628,7 +2719,7 @@ func file_raptor_panel_v1_egg_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_egg_proto_rawDesc), len(file_raptor_panel_v1_egg_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   36,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

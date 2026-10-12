@@ -221,6 +221,24 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
 
 The Panel's egg editor (`internal/eggs/spec`) reads an egg into fields (name, runtimes, startup commands, stop, ready lines, install script, variables, config files, features, and `x-raptor`'s `arch` and `players`) and writes edits back into the same file. Only those fields change; other keys stay, and so does each format's style: Pterodactyl's JSON-encoded `config.files`/`config.startup` and `a|b` rules, Pelican's objects and rule lists. Images are written as an ordered `docker_images` map, which every format reads. The output is JSON. Whitespace in ready lines and in the `file` parser's keys is kept: it's part of the match.
 
+## Add-ons
+
+An egg can turn on software add-ons for its servers, under `x-raptor.addons` (Raptor's own key; other panels ignore it):
+
+```yaml
+x-raptor:
+  addons:
+    plugins:                          # or mods
+      loaders: [paper, spigot, bukkit] # Modrinth's loader names
+      dir: plugins                     # where the files go, inside the server
+      version: MINECRAFT_VERSION       # the variable with the game version (optional)
+```
+
+- **Plugins** (Paper, Spigot, Bukkit, Purpur, Folia, Velocity, BungeeCord, Waterfall, Sponge) and **mods** (Fabric, Forge, NeoForge, Quilt). Each gives servers a page (Plugins, Mods) to search Modrinth, install a version, see what's installed (named from Modrinth by each file's SHA-512), update, and remove (to the server's trash). Results are for the server's game version when its variable holds one (`1.21.1`), and any version when it says `latest`.
+- In the egg editor they're the **Plugin installer** and **Mod manager** cards on the Add-ons tab. The catalog's Minecraft eggs set them in `raptor.yaml` (`addons:`), added to the egg like `players`.
+- **Only Modrinth**, with **Hangar next**. Both publish file hashes. SpigotMC isn't offered: its downloads often go to outside sites without hashes, so Wings couldn't check what it fetched.
+- Installing is the node's `addons.install` (the `files.write` permission): Wings downloads from `cdn.modrinth.com` only, over https (redirects too), keeps the file only if its SHA-512 is the one the Panel passed from Modrinth's listing, and writes it through the server's file system like the file manager (symlink-safe, the denylist, the disk limit). The Panel finds things (`AddonService`, which asks Modrinth with its own user agent and caches answers for 5 minutes), so the browser talks only to Raptor; only the projects' icons load from Modrinth's CDN.
+
 ## Built-in catalog
 
 `eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`), for the Panel's egg catalog and the conformance suite. One directory per egg, e.g. `eggs/minecraft/paper/`:
@@ -237,6 +255,11 @@ certified: true
 arch: [amd64, arm64]
 players:            # optional: how to ask the game for its player count
   query: minecraft  # added to the egg's x-raptor when the Panel creates a server from the catalog
+addons:             # optional: the plugin installer or mod manager (see Add-ons), added the same way
+  plugins:
+    loaders: [paper, spigot, bukkit]
+    dir: plugins
+    version: MINECRAFT_VERSION
 test:
   tier: fast                # fast | slow | manual (manual needs a reason)
   image: ""                 # the user's image choice, if not the egg's default

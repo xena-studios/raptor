@@ -2,12 +2,14 @@ import { create } from "@bufbuild/protobuf";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  Boxes,
   Circle,
   CircleCheck,
   Cpu,
   FileCheck,
   Loader2,
   Pencil,
+  Plug,
   Plus,
   Star,
   Trash2,
@@ -26,6 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EggImageSchema, type EggVariable } from "@/gen/raptor/panel/v1/catalog_pb";
 import {
+  type EggAddon,
+  EggAddonSchema,
   type EggConfigFile,
   EggConfigFileSchema,
   EggFindSchema,
@@ -35,12 +39,14 @@ import {
 import {
   access,
   accessNames,
+  addonKinds,
   addons,
   blockers,
   categories,
   categoryName,
   type EditorState,
   knownFeatures,
+  loaderName,
   parsers,
   signals,
 } from "@/lib/eggs";
@@ -889,6 +895,98 @@ function AddonsTab({ spec, patch }: { spec: EggSpec; patch: Patch }) {
             The port: empty for the server's own, +1 for the next one, or a variable's key.
           </p>
         </AddonCard>
+        {Object.entries(addonKinds).map(([kind, meta]) => {
+          const a = spec.addons.find((x) => x.kind === kind);
+          const set = (next: Partial<EggAddon>) =>
+            patch({ addons: spec.addons.map((x) => (x.kind === kind ? { ...x, ...next } : x)) });
+          return (
+            <AddonCard
+              key={kind}
+              icon={kind === "plugins" ? Plug : Boxes}
+              title={meta.label}
+              description={meta.description}
+              on={!!a}
+              onToggle={() =>
+                patch({
+                  addons: a
+                    ? spec.addons.filter((x) => x.kind !== kind)
+                    : [
+                        ...spec.addons,
+                        create(EggAddonSchema, {
+                          kind,
+                          loaders: meta.dflt,
+                          dir: kind,
+                          version:
+                            spec.variables.find((v) => /^(MINECRAFT|MC)_VERSION$/.test(v.env))
+                              ?.env ?? "",
+                        }),
+                      ],
+                })
+              }
+            >
+              {a && (
+                <div className="flex flex-col gap-3">
+                  <fieldset className="flex flex-wrap gap-x-4 gap-y-1.5">
+                    <legend className="mb-1 text-xs text-muted-foreground">Runs on</legend>
+                    {meta.loaders.map((l) => (
+                      <Label key={l} className="flex items-center gap-1.5 text-sm font-normal">
+                        <input
+                          type="checkbox"
+                          checked={a.loaders.includes(l)}
+                          onChange={(e) =>
+                            set({
+                              loaders: e.target.checked
+                                ? [...a.loaders, l]
+                                : a.loaders.filter((x) => x !== l),
+                            })
+                          }
+                        />
+                        {loaderName(l)}
+                      </Label>
+                    ))}
+                  </fieldset>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="grid gap-1">
+                      <Label
+                        htmlFor={`addon-dir-${kind}`}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Folder
+                      </Label>
+                      <Input
+                        id={`addon-dir-${kind}`}
+                        className="font-mono text-xs"
+                        value={a.dir}
+                        onChange={(e) => set({ dir: e.target.value.trim() })}
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label
+                        htmlFor={`addon-version-${kind}`}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Game version from
+                      </Label>
+                      <select
+                        id={`addon-version-${kind}`}
+                        className={select}
+                        value={a.version}
+                        onChange={(e) => set({ version: e.target.value })}
+                      >
+                        <option value="">Any version</option>
+                        {spec.variables.map((v) => (
+                          <option key={v.env} value={v.env}>
+                            {v.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </AddonCard>
+          );
+        })}
         <AddonCard
           icon={Cpu}
           title="CPUs"

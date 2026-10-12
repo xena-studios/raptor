@@ -181,8 +181,20 @@ export type ServerConfig = {
         }[]
       | null;
     features?: string[];
+    // The egg's add-ons (docs/EGGS.md#add-ons), by kind.
+    addons?: Record<string, { loaders: string[]; dir: string; version?: string }>;
   };
 };
+
+// gameVersion is the server's game version for its add-ons, from the
+// variable the egg names: "1.21.1", or "" when it's "latest" or unset,
+// which means any.
+export function gameVersion(cfg: ServerConfig, variable?: string): string {
+  if (!variable) return "";
+  const v =
+    cfg.variables?.[variable] ?? cfg.egg?.variables?.find((x) => x.env === variable)?.default ?? "";
+  return /^\d+\.\d+(\.\d+)?$/.test(v.trim()) ? v.trim() : "";
+}
 
 export type SettingsChange = {
   name: string;

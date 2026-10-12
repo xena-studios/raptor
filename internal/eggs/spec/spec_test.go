@@ -69,6 +69,7 @@ func TestBlank(t *testing.T) {
 		Features:     []string{"eula"},
 		Arch:         []string{"amd64"},
 		PlayersQuery: "minecraft",
+		Addons:       map[string]eggs.Addon{"plugins": {Loaders: []string{"paper"}, Dir: "plugins", Version: "GREETING"}},
 	}
 	out, err := spec.Write(spec.Blank(time.Unix(0, 0)), s)
 	if err != nil {
@@ -82,7 +83,8 @@ func TestBlank(t *testing.T) {
 		e.Config.Stop.Signal == 0 || len(e.Config.Done) != 2 || e.Install.Script != "echo hi" ||
 		len(e.Variables) != 1 || strings.Join(e.Variables[0].Rules, "|") != "required|string|max:20" ||
 		len(e.Config.Files) != 1 || len(e.Config.Files[0].Find) != 2 || e.Config.Files[0].Find[1].IfValue != "a" ||
-		!e.SupportsArch("amd64") || e.SupportsArch("arm64") || e.Raptor.Players.Query != "minecraft" {
+		!e.SupportsArch("amd64") || e.SupportsArch("arm64") || e.Raptor.Players.Query != "minecraft" ||
+		e.Raptor.Addons["plugins"].Dir != "plugins" {
 		t.Fatalf("unexpected egg: %+v\n%s", e, out)
 	}
 	back, err := spec.Read(out)
@@ -120,6 +122,10 @@ func TestValidate(t *testing.T) {
 		"absolute file": func(s *spec.Spec) { s.Files = []spec.ConfigFile{{Path: "/etc/x", Parser: "file"}} },
 		"bad parser":    func(s *spec.Spec) { s.Files = []spec.ConfigFile{{Path: "x", Parser: "toml"}} },
 		"bad arch":      func(s *spec.Spec) { s.Arch = []string{"riscv"} },
+		"bad addon":     func(s *spec.Spec) { s.Addons = map[string]eggs.Addon{"shaders": {Loaders: []string{"iris"}, Dir: "x"}} },
+		"addon outside": func(s *spec.Spec) {
+			s.Addons = map[string]eggs.Addon{"mods": {Loaders: []string{"fabric"}, Dir: "../mods"}}
+		},
 		"script, no container": func(s *spec.Spec) {
 			s.Install = eggs.Install{Script: "echo"}
 		},

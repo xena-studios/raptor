@@ -1,13 +1,15 @@
+import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { NotFound } from "@/components/error-screen";
 import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { PowerButtons } from "@/components/power-buttons";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
-import type { Server } from "@/gen/raptor/panel/v1/org_pb";
+import { OrgService, type Server } from "@/gen/raptor/panel/v1/org_pb";
+import { addonKinds } from "@/lib/eggs";
 import { can, useServer } from "@/lib/org-data";
-import { serverStatus } from "@/lib/servers";
+import { type ServerConfig, serverStatus } from "@/lib/servers";
 
 // A server's tabs, each shown to those who may use it.
 const base = "/orgs/$orgId/servers/$nodeId/$serverId";
@@ -42,6 +44,18 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId")({
 function ServerLayout() {
   const { orgId, nodeId, serverId } = Route.useParams();
   const { node, server, loaded } = useServer(orgId, nodeId, serverId);
+  // The egg's add-ons (plugins, mods) get a tab each, after Files.
+  const details = useQuery(
+    OrgService.method.getServer,
+    { orgId, nodeId, serverId },
+    { enabled: can(server, "files.read") },
+  );
+  const addonTabs = useMemo(() => {
+    const cfg = details.data?.configJson
+      ? (JSON.parse(details.data.configJson) as ServerConfig)
+      : undefined;
+    return Object.keys(cfg?.egg?.addons ?? {}).filter((k) => addonKinds[k]);
+  }, [details.data?.configJson]);
   const [error, setError] = useState("");
   const status = server && serverStatus(server, node?.connected ?? false);
   const params = { orgId, nodeId, serverId };
@@ -70,7 +84,7 @@ function ServerLayout() {
         <RouteTabs label="Server sections">
           {tabs
             .filter((t) => t.show(server))
-            .map((t) => (
+            .map((t) => [
               <Link
                 key={t.to}
                 to={t.to}
@@ -79,8 +93,20 @@ function ServerLayout() {
                 className={tabClass}
               >
                 {t.label}
-              </Link>
-            ))}
+              </Link>,
+              ...(t.label === "Files"
+                ? addonTabs.map((kind) => (
+                    <Link
+                      key={kind}
+                      to="/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind"
+                      params={{ ...params, kind }}
+                      className={tabClass}
+                    >
+                      {addonKinds[kind]?.tab}
+                    </Link>
+                  ))
+                : []),
+            ])}
         </RouteTabs>
       </div>
       <Outlet />

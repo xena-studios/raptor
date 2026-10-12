@@ -444,6 +444,10 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
 - SFTP host key: Ed25519, generated on the node at first start (whether or not SFTP is on); its fingerprint is reported to the Panel and shown to users. **Nodes need no TLS certificates.**
 - **All file operations use `os.Root`** (symlink-safe, confined to the server directory), in one package (`internal/wings/files`) shared by the web file manager and SFTP.
 
+## Add-ons
+
+`internal/wings/addons` (docs/EGGS.md#add-ons): `addons.list` lists a server's `.jar` files in its egg's add-on folder with their SHA-512s (kept per file while its size and time stay the same), and `addons.install` downloads one from Modrinth's CDN into a hidden `.part` file, checks its SHA-512, renames it into place, and moves the version it replaces to the server's trash. Neither is signed: they need the Panel's grant for the server, like file writes, and Wings decides where files come from and which file is kept.
+
 ## CLI scope
 
 The CLI keeps things running. **It never changes server configuration.** All setup happens in the Panel.

@@ -6,6 +6,8 @@ package eggs
 import (
 	"errors"
 	"fmt"
+	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -124,6 +126,55 @@ type Extension struct {
 		Port string `yaml:"port"`
 	} `yaml:"players"`
 	Certified bool `yaml:"certified"`
+	// Addons are software add-ons servers made from the egg get
+	// (docs/EGGS.md#add-ons): "plugins" or "mods" to their settings.
+	Addons map[string]Addon `yaml:"addons"`
+}
+
+// Addon is an add-on kind an egg turns on: a plugin installer or a mod
+// manager, which installs files from Modrinth into Dir.
+type Addon struct {
+	// Loaders are what the software runs (Modrinth's names: paper, fabric,
+	// ...); add-ons for any of them can be installed.
+	Loaders []string `yaml:"loaders"`
+	// Dir is where the files go, from the server's directory.
+	Dir string `yaml:"dir"`
+	// Version is the variable holding the game version (MINECRAFT_VERSION),
+	// to offer add-ons for it. Empty, or a value that isn't a version
+	// ("latest"): any.
+	Version string `yaml:"version"`
+}
+
+// AddonKinds are the add-on kinds and the loaders each takes.
+var AddonKinds = map[string][]string{
+	"plugins": {"paper", "spigot", "bukkit", "purpur", "folia", "velocity", "bungeecord", "waterfall", "sponge"},
+	"mods":    {"fabric", "forge", "neoforge", "quilt"},
+}
+
+// AddonDir is where a kind's files go by default.
+var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods"}
+
+// CheckAddons validates x-raptor.addons.
+func CheckAddons(addons map[string]Addon) error {
+	for kind, a := range addons {
+		known, ok := AddonKinds[kind]
+		if !ok {
+			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins or mods", kind)
+		}
+		if len(a.Loaders) == 0 {
+			return fmt.Errorf("egg: x-raptor.addons.%s: name its loaders", kind)
+		}
+		for _, l := range a.Loaders {
+			if !slices.Contains(known, l) {
+				return fmt.Errorf("egg: x-raptor.addons.%s: unknown loader %q", kind, l)
+			}
+		}
+		clean := path.Clean(a.Dir)
+		if a.Dir == "" || clean != a.Dir || path.IsAbs(a.Dir) || clean == "." || clean == ".." || strings.HasPrefix(clean, "../") {
+			return fmt.Errorf("egg: x-raptor.addons.%s.dir %q: want a folder inside the server, like plugins", kind, a.Dir)
+		}
+	}
+	return nil
 }
 
 // DefaultInstallTimeout is used when the egg doesn't set x-raptor.install.timeout.
@@ -284,6 +335,9 @@ func Parse(data []byte) (*Egg, error) {
 		case "", "minecraft", "source":
 		default:
 			return nil, fmt.Errorf("egg: x-raptor.players.query %q: want minecraft or source", q)
+		}
+		if err := CheckAddons(e.Raptor.Addons); err != nil {
+			return nil, err
 		}
 	}
 

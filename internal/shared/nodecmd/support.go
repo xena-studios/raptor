@@ -21,6 +21,7 @@ var supportLevels = map[string]int{
 	"files.list": SupportManage, "files.stat": SupportManage, "files.read": SupportManage, "files.write": SupportManage,
 	"files.mkdir": SupportManage, "files.rename": SupportManage, "files.copy": SupportManage, "files.delete": SupportManage,
 	"files.trash": SupportManage, "files.trash.restore": SupportManage,
+	"addons.list": SupportManage, "addons.install": SupportManage,
 	"schedule.create": SupportManage, "schedule.update": SupportManage, "schedule.delete": SupportManage, "schedule.run": SupportManage,
 	"backup.create": SupportManage,
 }

@@ -62,6 +62,8 @@ A server's directory is written by code Raptor doesn't trust: the egg's install 
 
 **Tested:** `TestPathSafety` (in `task e2e:runtime` and CI) uses a hostile egg that plants all of the above, including links to `/etc/passwd`, `/etc`, `/usr`, a root-only host file, and another server's files, then runs install, start, disk usage, SFTP, the web file manager's operations, compressing everything and extracting a hostile archive, reinstall, and delete, and checks that nothing outside the directory changed (content, mode, and owner of the files, and mode and owner of the directories the links point at), nothing hung, and the other server still starts. The suite was checked against deliberately broken Wings builds: an ownership fix that follows symlinks, config edits that resolve paths without `os.Root`, and user file access that opens files without it. It failed on all three. The config parsers' path handling is also fuzzed.
 
+- **Add-on downloads** (plugins, mods; [EGGS.md](EGGS.md#add-ons)) come only from `cdn.modrinth.com` over https, redirects included, and are kept only if their SHA-512 matches the one asked for. A compromised Panel can make a node install a file Modrinth lists, not fetch an arbitrary URL; the file is written like any file manager write (symlink-safe, denylist, disk limit) and runs inside the server's container.
+
 ### Enrollment and identity
 - Join tokens: single-use, 1-hour expiry, org-bound, stored hashed.
 - **Keys are generated on the node and never leave it.** The Panel stores only the public key. The node proves itself on every connection by signing a fresh challenge (the Panel's random nonce and its own, the node ID, the connection's purpose, and a timestamp, so it can't be replayed or used for another connection).
