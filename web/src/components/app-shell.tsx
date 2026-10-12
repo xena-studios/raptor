@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
+  ArrowLeft,
   Building2,
   Check,
   ChevronsUpDown,
@@ -13,6 +14,7 @@ import {
   Plus,
   Server,
   Settings,
+  Shield,
   ShieldCheck,
   SquareTerminal,
   UserRound,
@@ -74,9 +76,10 @@ export function lastOrg(): string | null {
 
 let themeSynced = false;
 
-// The frame around signed-in pages: a sidebar (the org switcher, the org's
-// sections and nodes, how many nodes are online, the user's menu), a top bar,
-// and the page.
+// The frame around signed-in pages: a sidebar, a top bar, and the page.
+// On the org's pages the sidebar has the org switcher, the org's sections
+// and nodes, and how many nodes are online; on the admin panel's (/admin)
+// it has the admin sections and a way back. The user's menu is in both.
 export function AppShell({
   session,
   orgId,
@@ -91,6 +94,9 @@ export function AppShell({
   const list = orgs.data?.orgs ?? [];
   const currentId = orgId ?? lastOrg() ?? list[0]?.id;
   const current = list.find((o) => o.id === currentId) ?? list[0];
+  const admin = useLocation({
+    select: (l) => l.pathname === "/admin" || l.pathname.startsWith("/admin/"),
+  });
 
   // The account's theme wins once per page load; after that, the
   // Appearance card changes both.
@@ -113,7 +119,7 @@ export function AppShell({
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader>
+        <SidebarHeader className="gap-3">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<Link to="/" />}>
@@ -121,17 +127,18 @@ export function AppShell({
                 <span className="font-heading text-base font-semibold">Raptor</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
+          </SidebarMenu>
+          <SidebarMenu>
             <SidebarMenuItem>
-              <OrgSwitcher orgs={list} current={current?.id} />
+              {admin ? <AdminBadge /> : <OrgSwitcher orgs={list} current={current?.id} />}
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          {current && <OrgNav orgId={current.id} />}
-          <AdminNav />
+          {admin ? <AdminNav orgId={current?.id} /> : current && <OrgNav orgId={current.id} />}
         </SidebarContent>
         <SidebarFooter>
-          {current && <NodeCount orgId={current.id} />}
+          {!admin && current && <NodeCount orgId={current.id} />}
           <UserMenu session={session} />
           <SourceLink className="px-2 group-data-[collapsible=icon]:hidden" />
         </SidebarFooter>
@@ -141,7 +148,9 @@ export function AppShell({
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-1 h-4" />
-          <span className="truncate text-sm text-muted-foreground">{current?.name}</span>
+          <span className="truncate text-sm text-muted-foreground">
+            {admin ? "Raptor admin" : current?.name}
+          </span>
         </header>
         <ConnectionBanner />
         <Announcements />
@@ -232,10 +241,28 @@ const adminLinks = [
   { to: "/admin/settings", label: "Settings", icon: ShieldCheck },
 ] as const;
 
-function AdminNav() {
-  const path = useLocation({ select: (l) => l.pathname });
+// AdminBadge takes the org switcher's place on admin pages: whose panel
+// this is, and the caller's staff role.
+function AdminBadge() {
   const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
-  if (!staff.data?.role) return null;
+  const role = staff.data?.role ?? "";
+  return (
+    <div className="flex h-12 items-center gap-2 rounded-md border p-2 text-sm group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+        <Shield className="size-4" />
+      </span>
+      <span className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
+        <span className="truncate font-medium">Raptor admin</span>
+        {role && <span className="truncate text-xs text-muted-foreground capitalize">{role}</span>}
+      </span>
+    </div>
+  );
+}
+
+// AdminNav is the admin panel's sections, and the way back to the org the
+// user was last in.
+function AdminNav({ orgId }: { orgId?: string }) {
+  const path = useLocation({ select: (l) => l.pathname });
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Admin</SidebarGroupLabel>
@@ -255,6 +282,16 @@ function AdminNav() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
+      </SidebarMenu>
+      <SidebarMenu className="mt-4">
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            tooltip="Back to the panel"
+            render={orgId ? <Link to="/orgs/$orgId" params={{ orgId }} /> : <Link to="/" />}
+          >
+            <ArrowLeft /> <span>Back to the panel</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   );
@@ -360,6 +397,7 @@ function NodeCount({ orgId }: { orgId: string }) {
 
 function UserMenu({ session }: { session: GetSessionResponse }) {
   const navigate = useNavigate();
+  const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
   const signOut = useMutation(AuthService.method.signOut);
   const email = session.user?.email ?? "";
   const name = session.user?.name ?? "";
@@ -391,6 +429,11 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            {staff.data?.role && (
+              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+                <Shield className="size-4" /> Admin panel
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
               <UserRound className="size-4" /> Account settings
             </DropdownMenuItem>
