@@ -251,4 +251,102 @@ func TestEggLibrary(t *testing.T) {
 	if err != nil || len(staffLog.GetEntries()) < 2 || staffLog.GetEntries()[0].GetAction() != "egg.publish" {
 		t.Errorf("staff log: %v, %v", staffLog, err)
 	}
+
+	// The community: alice's org shares a published egg; carol's org finds
+	// it, adds it (after reviewing it, in the app), and reports it; staff
+	// take it out.
+	shared, err := alice.lib.CreateEgg(ctx, &panelv1.CreateEggRequest{OrgId: org, Spec: helloSpec("Shared hello"), Category: "generic"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := alice.lib.ShareEgg(ctx, &panelv1.ShareEggRequest{OrgId: org, Id: shared.GetId(), Shared: true}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Errorf("sharing a draft: %v", err)
+	}
+	if _, err := alice.lib.SetEggStatus(ctx, &panelv1.SetEggStatusRequest{OrgId: org, Id: shared.GetId(), Status: "published"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bob.lib.ShareEgg(ctx, &panelv1.ShareEggRequest{OrgId: org, Id: shared.GetId(), Shared: true}); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("a member sharing: %v", err)
+	}
+	if _, err := alice.lib.ShareEgg(ctx, &panelv1.ShareEggRequest{OrgId: org, Id: shared.GetId(), Shared: true}); err != nil {
+		t.Fatal(err)
+	}
+	carolOrg := other.GetOrg().GetId()
+	community, err := carol.lib.ListCommunityEggs(ctx, &panelv1.ListCommunityEggsRequest{OrgId: carolOrg, Query: "hello"})
+	if err != nil || len(community.GetEggs()) != 1 || community.GetEggs()[0].GetPublisher() != "Acme" || community.GetEggs()[0].GetScope() != "community" {
+		t.Fatalf("community: %v, %v", community, err)
+	}
+	if _, err := carol.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: carolOrg, Id: shared.GetId()}); err != nil {
+		t.Errorf("a shared egg's page: %v", err)
+	}
+	added, err := carol.lib.CustomizeEgg(ctx, &panelv1.CustomizeEggRequest{OrgId: carolOrg, Id: shared.GetId(), AsIs: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f, err := carol.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: carolOrg, Id: added.GetId()}); err != nil || len(f.GetEgg()) == 0 {
+		t.Errorf("deploying an added egg: %v", err)
+	}
+	if again, _ := carol.lib.ListCommunityEggs(ctx, &panelv1.ListCommunityEggsRequest{OrgId: carolOrg}); again.GetEggs()[0].GetCopies() != 1 {
+		t.Errorf("copies: %v", again.GetEggs()[0])
+	}
+	if _, err := carol.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: carolOrg, Id: shared.GetId(), Change: &panelv1.UpdateEggRequest_Spec{Spec: edit}}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("editing another org's shared egg: %v", err)
+	}
+	if _, err := alice.lib.ReportEgg(ctx, &panelv1.ReportEggRequest{OrgId: org, Id: shared.GetId(), Reason: "spam"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("reporting your own egg: %v", err)
+	}
+	if _, err := carol.lib.ReportEgg(ctx, &panelv1.ReportEggRequest{OrgId: carolOrg, Id: shared.GetId(), Reason: "malware", Details: "curl | sh"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := carol.lib.ReportEgg(ctx, &panelv1.ReportEggRequest{OrgId: carolOrg, Id: shared.GetId(), Reason: "malware"}); connect.CodeOf(err) != connect.CodeAlreadyExists {
+		t.Errorf("reporting twice: %v", err)
+	}
+	if _, err := carol.lib.ListEggReports(ctx, &panelv1.ListEggReportsRequest{}); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("a customer reading reports: %v", err)
+	}
+	reports, err := admin.lib.ListEggReports(ctx, &panelv1.ListEggReportsRequest{})
+	if err != nil || len(reports.GetReports()) != 1 || reports.GetReports()[0].GetReporterEmail() != "carol@example.com" || reports.GetReports()[0].GetPublisher() != "Acme" {
+		t.Fatalf("reports: %v, %v", reports, err)
+	}
+	if _, err := admin.lib.ModerateEgg(ctx, &panelv1.ModerateEggRequest{Id: shared.GetId(), Action: "remove"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("removing without a reason: %v", err)
+	}
+	if _, err := admin.lib.ModerateEgg(ctx, &panelv1.ModerateEggRequest{Id: shared.GetId(), Action: "remove", Reason: "Runs a script from an unknown host"}); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := carol.lib.ListCommunityEggs(ctx, &panelv1.ListCommunityEggsRequest{OrgId: carolOrg}); len(c.GetEggs()) != 0 {
+		t.Errorf("a removed egg is still listed: %v", c)
+	}
+	if _, err := carol.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: carolOrg, Id: shared.GetId()}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("a removed egg's page: %v", err)
+	}
+	if staffList, _ := admin.lib.ListCommunityEggs(ctx, &panelv1.ListCommunityEggsRequest{}); len(staffList.GetEggs()) != 1 || !staffList.GetEggs()[0].GetRemoved() {
+		t.Errorf("staff's community list: %v", staffList)
+	}
+	mine, err := alice.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: shared.GetId()})
+	if err != nil || !mine.GetEgg().GetRemoved() || mine.GetEgg().GetRemovedReason() != "Runs a script from an unknown host" {
+		t.Errorf("the org's view of its removed egg: %v, %v", mine, err)
+	}
+	if _, err := alice.lib.ShareEgg(ctx, &panelv1.ShareEggRequest{OrgId: org, Id: shared.GetId(), Shared: false}); err != nil {
+		t.Errorf("unsharing a removed egg: %v", err)
+	}
+	if _, err := alice.lib.ShareEgg(ctx, &panelv1.ShareEggRequest{OrgId: org, Id: shared.GetId(), Shared: true}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Errorf("sharing a removed egg again: %v", err)
+	}
+	if r, _ := admin.lib.ListEggReports(ctx, &panelv1.ListEggReportsRequest{}); len(r.GetReports()) != 0 {
+		t.Errorf("reports left open: %v", r)
+	}
+	// Unpublishing a shared egg takes it out of the community.
+	if _, err := admin.lib.ModerateEgg(ctx, &panelv1.ModerateEggRequest{Id: shared.GetId(), Action: "restore"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := alice.lib.ShareEgg(ctx, &panelv1.ShareEggRequest{OrgId: org, Id: shared.GetId(), Shared: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := alice.lib.SetEggStatus(ctx, &panelv1.SetEggStatusRequest{OrgId: org, Id: shared.GetId(), Status: "draft"}); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := carol.lib.ListCommunityEggs(ctx, &panelv1.ListCommunityEggsRequest{OrgId: carolOrg}); len(c.GetEggs()) != 0 {
+		t.Errorf("an unpublished egg is still shared: %v", c)
+	}
 }

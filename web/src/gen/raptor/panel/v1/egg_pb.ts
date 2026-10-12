@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/egg.proto.
  */
 export const file_raptor_panel_v1_egg: GenFile = /*@__PURE__*/
-  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvZWdnLnByb3RvEg9yYXB0b3IucGFuZWwudjEiKwoZRWdnU2VydmljZUxpc3RFZ2dzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiRwoaRWdnU2VydmljZUxpc3RFZ2dzUmVzcG9uc2USKQoEZWdncxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnIt0DCgdFZ2dTcGVjEgwKBG5hbWUYASABKAkSDgoGYXV0aG9yGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEikKBmltYWdlcxgEIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIsCgdzdGFydHVwGAUgAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1N0YXJ0dXASEQoJc3RvcF90eXBlGAYgASgJEhIKCnN0b3BfdmFsdWUYByABKAkSDAoEZG9uZRgIIAMoCRIWCg5pbnN0YWxsX3NjcmlwdBgJIAEoCRIZChFpbnN0YWxsX2NvbnRhaW5lchgKIAEoCRIaChJpbnN0YWxsX2VudHJ5cG9pbnQYCyABKAkSLwoJdmFyaWFibGVzGAwgAygLMhwucmFwdG9yLnBhbmVsLnYxLkVnZ1ZhcmlhYmxlEi0KBWZpbGVzGA0gAygLMh4ucmFwdG9yLnBhbmVsLnYxLkVnZ0NvbmZpZ0ZpbGUSEAoIZmVhdHVyZXMYDiADKAkSFQoNZmlsZV9kZW55bGlzdBgPIAMoCRIMCgRhcmNoGBAgAygJEhUKDXBsYXllcnNfcXVlcnkYESABKAkSFAoMcGxheWVyc19wb3J0GBIgASgJIisKCkVnZ1N0YXJ0dXASDAoEbmFtZRgBIAEoCRIPCgdjb21tYW5kGAIgASgJIlUKDUVnZ0NvbmZpZ0ZpbGUSDAoEcGF0aBgBIAEoCRIOCgZwYXJzZXIYAiABKAkSJgoEZmluZBgDIAMoCzIYLnJhcHRvci5wYW5lbC52MS5FZ2dGaW5kIjcKB0VnZ0ZpbmQSCwoDa2V5GAEgASgJEhAKCGlmX3ZhbHVlGAIgASgJEg0KBXZhbHVlGAMgASgJIn8KCkVnZ1ZlcnNpb24SDwoHdmVyc2lvbhgBIAEoBRIOCgZzaGEyNTYYAiABKAkSDAoEbm90ZRgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjIKFEdldEVnZ0RldGFpbHNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCSKZAgoVR2V0RWdnRGV0YWlsc1Jlc3BvbnNlEigKA2VnZxgBIAEoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnEiYKBHNwZWMYAiABKAsyGC5yYXB0b3IucGFuZWwudjEuRWdnU3BlYxIMCgRmaWxlGAMgASgMEg4KBmZvcm1hdBgEIAEoCRISCgpyZWdpc3RyaWVzGAUgAygJEi0KCHdhcm5pbmdzGAYgAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1dhcm5pbmcSDAoEbGludBgHIAMoCRIQCghjYW5fZWRpdBgIIAEoCBItCgh2ZXJzaW9ucxgJIAMoCzIbLnJhcHRvci5wYW5lbC52MS5FZ2dWZXJzaW9uIkAKEUdldEVnZ0ZpbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCRIPCgd2ZXJzaW9uGAMgASgFIjIKEkdldEVnZ0ZpbGVSZXNwb25zZRILCgNlZ2cYASABKAwSDwoHdmVyc2lvbhgCIAEoBSJtChBDcmVhdGVFZ2dSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRImCgRzcGVjGAIgASgLMhgucmFwdG9yLnBhbmVsLnYxLkVnZ1NwZWMSDwoHc3VtbWFyeRgDIAEoCRIQCghjYXRlZ29yeRgEIAEoCSIfChFDcmVhdGVFZ2dSZXNwb25zZRIKCgJpZBgBIAEoCSK5AQoQVXBkYXRlRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSKAoEc3BlYxgDIAEoCzIYLnJhcHRvci5wYW5lbC52MS5FZ2dTcGVjSAASDgoEZmlsZRgEIAEoDEgAEg8KB3N1bW1hcnkYBSABKAkSEAoIY2F0ZWdvcnkYBiABKAkSDAoEbm90ZRgHIAEoCRIUCgxiYXNlX3ZlcnNpb24YCCABKAVCCAoGY2hhbmdlIiQKEVVwZGF0ZUVnZ1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAUiMQoTQ3VzdG9taXplRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkiIgoUQ3VzdG9taXplRWdnUmVzcG9uc2USCgoCaWQYASABKAkiQQoTU2V0RWdnU3RhdHVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSDgoGc3RhdHVzGAMgASgJIhYKFFNldEVnZ1N0YXR1c1Jlc3BvbnNlIi4KEERlbGV0ZUVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJIhMKEURlbGV0ZUVnZ1Jlc3BvbnNlIk8KFFJldmlld0VnZ0ZpbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRINCgN1cmwYAiABKAlIABIOCgRmaWxlGAMgASgMSABCCAoGc291cmNlInQKFVJldmlld0VnZ0ZpbGVSZXNwb25zZRILCgNlZ2cYASABKAwSEgoKc291cmNlX3VybBgCIAEoCRIOCgZzaGEyNTYYAyABKAkSKgoGcmV2aWV3GAQgASgLMhoucmFwdG9yLnBhbmVsLnYxLkVnZ1JldmlldyJZChRJbXBvcnRFZ2dGaWxlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCwoDZWdnGAIgASgMEhIKCnNvdXJjZV91cmwYAyABKAkSEAoIY2F0ZWdvcnkYBCABKAkiIwoVSW1wb3J0RWdnRmlsZVJlc3BvbnNlEgoKAmlkGAEgASgJMrsHCgpFZ2dTZXJ2aWNlEmgKCExpc3RFZ2dzEioucmFwdG9yLnBhbmVsLnYxLkVnZ1NlcnZpY2VMaXN0RWdnc1JlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuRWdnU2VydmljZUxpc3RFZ2dzUmVzcG9uc2UiA5ACARJjCg1HZXRFZ2dEZXRhaWxzEiUucmFwdG9yLnBhbmVsLnYxLkdldEVnZ0RldGFpbHNSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkdldEVnZ0RldGFpbHNSZXNwb25zZSIDkAIBEloKCkdldEVnZ0ZpbGUSIi5yYXB0b3IucGFuZWwudjEuR2V0RWdnRmlsZVJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuR2V0RWdnRmlsZVJlc3BvbnNlIgOQAgESVAoJQ3JlYXRlRWdnEiEucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZUVnZ1JlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuQ3JlYXRlRWdnUmVzcG9uc2UiABJUCglVcGRhdGVFZ2cSIS5yYXB0b3IucGFuZWwudjEuVXBkYXRlRWdnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5VcGRhdGVFZ2dSZXNwb25zZSIAEl0KDEN1c3RvbWl6ZUVnZxIkLnJhcHRvci5wYW5lbC52MS5DdXN0b21pemVFZ2dSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkN1c3RvbWl6ZUVnZ1Jlc3BvbnNlIgASXQoMU2V0RWdnU3RhdHVzEiQucmFwdG9yLnBhbmVsLnYxLlNldEVnZ1N0YXR1c1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU2V0RWdnU3RhdHVzUmVzcG9uc2UiABJUCglEZWxldGVFZ2cSIS5yYXB0b3IucGFuZWwudjEuRGVsZXRlRWdnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5EZWxldGVFZ2dSZXNwb25zZSIAEmAKDVJldmlld0VnZ0ZpbGUSJS5yYXB0b3IucGFuZWwudjEuUmV2aWV3RWdnRmlsZVJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuUmV2aWV3RWdnRmlsZVJlc3BvbnNlIgASYAoNSW1wb3J0RWdnRmlsZRIlLnJhcHRvci5wYW5lbC52MS5JbXBvcnRFZ2dGaWxlUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5JbXBvcnRFZ2dGaWxlUmVzcG9uc2UiAELIAQoTY29tLnJhcHRvci5wYW5lbC52MUIIRWdnUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_raptor_panel_v1_catalog, file_raptor_panel_v1_org]);
+  fileDesc("ChlyYXB0b3IvcGFuZWwvdjEvZWdnLnByb3RvEg9yYXB0b3IucGFuZWwudjEiKwoZRWdnU2VydmljZUxpc3RFZ2dzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiRwoaRWdnU2VydmljZUxpc3RFZ2dzUmVzcG9uc2USKQoEZWdncxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnIt0DCgdFZ2dTcGVjEgwKBG5hbWUYASABKAkSDgoGYXV0aG9yGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEikKBmltYWdlcxgEIAMoCzIZLnJhcHRvci5wYW5lbC52MS5FZ2dJbWFnZRIsCgdzdGFydHVwGAUgAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1N0YXJ0dXASEQoJc3RvcF90eXBlGAYgASgJEhIKCnN0b3BfdmFsdWUYByABKAkSDAoEZG9uZRgIIAMoCRIWCg5pbnN0YWxsX3NjcmlwdBgJIAEoCRIZChFpbnN0YWxsX2NvbnRhaW5lchgKIAEoCRIaChJpbnN0YWxsX2VudHJ5cG9pbnQYCyABKAkSLwoJdmFyaWFibGVzGAwgAygLMhwucmFwdG9yLnBhbmVsLnYxLkVnZ1ZhcmlhYmxlEi0KBWZpbGVzGA0gAygLMh4ucmFwdG9yLnBhbmVsLnYxLkVnZ0NvbmZpZ0ZpbGUSEAoIZmVhdHVyZXMYDiADKAkSFQoNZmlsZV9kZW55bGlzdBgPIAMoCRIMCgRhcmNoGBAgAygJEhUKDXBsYXllcnNfcXVlcnkYESABKAkSFAoMcGxheWVyc19wb3J0GBIgASgJIisKCkVnZ1N0YXJ0dXASDAoEbmFtZRgBIAEoCRIPCgdjb21tYW5kGAIgASgJIlUKDUVnZ0NvbmZpZ0ZpbGUSDAoEcGF0aBgBIAEoCRIOCgZwYXJzZXIYAiABKAkSJgoEZmluZBgDIAMoCzIYLnJhcHRvci5wYW5lbC52MS5FZ2dGaW5kIjcKB0VnZ0ZpbmQSCwoDa2V5GAEgASgJEhAKCGlmX3ZhbHVlGAIgASgJEg0KBXZhbHVlGAMgASgJIn8KCkVnZ1ZlcnNpb24SDwoHdmVyc2lvbhgBIAEoBRIOCgZzaGEyNTYYAiABKAkSDAoEbm90ZRgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjIKFEdldEVnZ0RldGFpbHNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCSKZAgoVR2V0RWdnRGV0YWlsc1Jlc3BvbnNlEigKA2VnZxgBIAEoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnEiYKBHNwZWMYAiABKAsyGC5yYXB0b3IucGFuZWwudjEuRWdnU3BlYxIMCgRmaWxlGAMgASgMEg4KBmZvcm1hdBgEIAEoCRISCgpyZWdpc3RyaWVzGAUgAygJEi0KCHdhcm5pbmdzGAYgAygLMhsucmFwdG9yLnBhbmVsLnYxLkVnZ1dhcm5pbmcSDAoEbGludBgHIAMoCRIQCghjYW5fZWRpdBgIIAEoCBItCgh2ZXJzaW9ucxgJIAMoCzIbLnJhcHRvci5wYW5lbC52MS5FZ2dWZXJzaW9uIkAKEUdldEVnZ0ZpbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCRIPCgd2ZXJzaW9uGAMgASgFIjIKEkdldEVnZ0ZpbGVSZXNwb25zZRILCgNlZ2cYASABKAwSDwoHdmVyc2lvbhgCIAEoBSJtChBDcmVhdGVFZ2dSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRImCgRzcGVjGAIgASgLMhgucmFwdG9yLnBhbmVsLnYxLkVnZ1NwZWMSDwoHc3VtbWFyeRgDIAEoCRIQCghjYXRlZ29yeRgEIAEoCSIfChFDcmVhdGVFZ2dSZXNwb25zZRIKCgJpZBgBIAEoCSK5AQoQVXBkYXRlRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSKAoEc3BlYxgDIAEoCzIYLnJhcHRvci5wYW5lbC52MS5FZ2dTcGVjSAASDgoEZmlsZRgEIAEoDEgAEg8KB3N1bW1hcnkYBSABKAkSEAoIY2F0ZWdvcnkYBiABKAkSDAoEbm90ZRgHIAEoCRIUCgxiYXNlX3ZlcnNpb24YCCABKAVCCAoGY2hhbmdlIiQKEVVwZGF0ZUVnZ1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAUiQAoTQ3VzdG9taXplRWdnUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSDQoFYXNfaXMYAyABKAgiIgoUQ3VzdG9taXplRWdnUmVzcG9uc2USCgoCaWQYASABKAkiQQoTU2V0RWdnU3RhdHVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSDgoGc3RhdHVzGAMgASgJIhYKFFNldEVnZ1N0YXR1c1Jlc3BvbnNlIi4KEERlbGV0ZUVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJIhMKEURlbGV0ZUVnZ1Jlc3BvbnNlIk8KFFJldmlld0VnZ0ZpbGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRINCgN1cmwYAiABKAlIABIOCgRmaWxlGAMgASgMSABCCAoGc291cmNlInQKFVJldmlld0VnZ0ZpbGVSZXNwb25zZRILCgNlZ2cYASABKAwSEgoKc291cmNlX3VybBgCIAEoCRIOCgZzaGEyNTYYAyABKAkSKgoGcmV2aWV3GAQgASgLMhoucmFwdG9yLnBhbmVsLnYxLkVnZ1JldmlldyJZChRJbXBvcnRFZ2dGaWxlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCwoDZWdnGAIgASgMEhIKCnNvdXJjZV91cmwYAyABKAkSEAoIY2F0ZWdvcnkYBCABKAkiIwoVSW1wb3J0RWdnRmlsZVJlc3BvbnNlEgoKAmlkGAEgASgJIm0KGExpc3RDb21tdW5pdHlFZ2dzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFcXVlcnkYAiABKAkSEAoIY2F0ZWdvcnkYAyABKAkSDAoEc29ydBgEIAEoCRISCgpwYWdlX3Rva2VuGAUgASgJIl8KGUxpc3RDb21tdW5pdHlFZ2dzUmVzcG9uc2USKQoEZWdncxgBIAMoCzIbLnJhcHRvci5wYW5lbC52MS5DYXRhbG9nRWdnEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSI9Cg9TaGFyZUVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJEg4KBnNoYXJlZBgDIAEoCCISChBTaGFyZUVnZ1Jlc3BvbnNlIk8KEFJlcG9ydEVnZ1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJEg4KBnJlYXNvbhgDIAEoCRIPCgdkZXRhaWxzGAQgASgJIhMKEVJlcG9ydEVnZ1Jlc3BvbnNlIhcKFUxpc3RFZ2dSZXBvcnRzUmVxdWVzdCLGAQoJRWdnUmVwb3J0EgoKAmlkGAEgASgJEg4KBmVnZ19pZBgCIAEoCRIQCghlZ2dfbmFtZRgDIAEoCRIRCglwdWJsaXNoZXIYBCABKAkSDgoGcmVhc29uGAUgASgJEg8KB2RldGFpbHMYBiABKAkSFgoOcmVwb3J0ZXJfZW1haWwYByABKAkSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDwoHcmVtb3ZlZBgJIAEoCCJFChZMaXN0RWdnUmVwb3J0c1Jlc3BvbnNlEisKB3JlcG9ydHMYASADKAsyGi5yYXB0b3IucGFuZWwudjEuRWdnUmVwb3J0IkAKEk1vZGVyYXRlRWdnUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZhY3Rpb24YAiABKAkSDgoGcmVhc29uGAMgASgJIhUKE01vZGVyYXRlRWdnUmVzcG9uc2UymQsKCkVnZ1NlcnZpY2USaAoITGlzdEVnZ3MSKi5yYXB0b3IucGFuZWwudjEuRWdnU2VydmljZUxpc3RFZ2dzUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5FZ2dTZXJ2aWNlTGlzdEVnZ3NSZXNwb25zZSIDkAIBEmMKDUdldEVnZ0RldGFpbHMSJS5yYXB0b3IucGFuZWwudjEuR2V0RWdnRGV0YWlsc1JlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuR2V0RWdnRGV0YWlsc1Jlc3BvbnNlIgOQAgESWgoKR2V0RWdnRmlsZRIiLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dGaWxlUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5HZXRFZ2dGaWxlUmVzcG9uc2UiA5ACARJUCglDcmVhdGVFZ2cSIS5yYXB0b3IucGFuZWwudjEuQ3JlYXRlRWdnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5DcmVhdGVFZ2dSZXNwb25zZSIAElQKCVVwZGF0ZUVnZxIhLnJhcHRvci5wYW5lbC52MS5VcGRhdGVFZ2dSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLlVwZGF0ZUVnZ1Jlc3BvbnNlIgASXQoMQ3VzdG9taXplRWdnEiQucmFwdG9yLnBhbmVsLnYxLkN1c3RvbWl6ZUVnZ1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuQ3VzdG9taXplRWdnUmVzcG9uc2UiABJdCgxTZXRFZ2dTdGF0dXMSJC5yYXB0b3IucGFuZWwudjEuU2V0RWdnU3RhdHVzUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5TZXRFZ2dTdGF0dXNSZXNwb25zZSIAElQKCURlbGV0ZUVnZxIhLnJhcHRvci5wYW5lbC52MS5EZWxldGVFZ2dSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZUVnZ1Jlc3BvbnNlIgASYAoNUmV2aWV3RWdnRmlsZRIlLnJhcHRvci5wYW5lbC52MS5SZXZpZXdFZ2dGaWxlUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5SZXZpZXdFZ2dGaWxlUmVzcG9uc2UiABJgCg1JbXBvcnRFZ2dGaWxlEiUucmFwdG9yLnBhbmVsLnYxLkltcG9ydEVnZ0ZpbGVSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkltcG9ydEVnZ0ZpbGVSZXNwb25zZSIAEm8KEUxpc3RDb21tdW5pdHlFZ2dzEikucmFwdG9yLnBhbmVsLnYxLkxpc3RDb21tdW5pdHlFZ2dzUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5MaXN0Q29tbXVuaXR5RWdnc1Jlc3BvbnNlIgOQAgESUQoIU2hhcmVFZ2cSIC5yYXB0b3IucGFuZWwudjEuU2hhcmVFZ2dSZXF1ZXN0GiEucmFwdG9yLnBhbmVsLnYxLlNoYXJlRWdnUmVzcG9uc2UiABJUCglSZXBvcnRFZ2cSIS5yYXB0b3IucGFuZWwudjEuUmVwb3J0RWdnUmVxdWVzdBoiLnJhcHRvci5wYW5lbC52MS5SZXBvcnRFZ2dSZXNwb25zZSIAEmYKDkxpc3RFZ2dSZXBvcnRzEiYucmFwdG9yLnBhbmVsLnYxLkxpc3RFZ2dSZXBvcnRzUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5MaXN0RWdnUmVwb3J0c1Jlc3BvbnNlIgOQAgESWgoLTW9kZXJhdGVFZ2cSIy5yYXB0b3IucGFuZWwudjEuTW9kZXJhdGVFZ2dSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLk1vZGVyYXRlRWdnUmVzcG9uc2UiAELIAQoTY29tLnJhcHRvci5wYW5lbC52MUIIRWdnUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_raptor_panel_v1_catalog, file_raptor_panel_v1_org]);
 
 /**
  * @generated from message raptor.panel.v1.EggServiceListEggsRequest
@@ -586,6 +586,14 @@ export type CustomizeEggRequest = Message<"raptor.panel.v1.CustomizeEggRequest">
    * @generated from field: string id = 2;
    */
   id: string;
+
+  /**
+   * Add it as it is: same name, published, ready to deploy (adding a
+   * community egg after reviewing it). Otherwise a draft to edit.
+   *
+   * @generated from field: bool as_is = 3;
+   */
+  asIs: boolean;
 };
 
 /**
@@ -813,6 +821,291 @@ export const ImportEggFileResponseSchema: GenMessage<ImportEggFileResponse> = /*
   messageDesc(file_raptor_panel_v1_egg, 24);
 
 /**
+ * @generated from message raptor.panel.v1.ListCommunityEggsRequest
+ */
+export type ListCommunityEggsRequest = Message<"raptor.panel.v1.ListCommunityEggsRequest"> & {
+  /**
+   * Empty, for staff: removed eggs too.
+   *
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string query = 2;
+   */
+  query: string;
+
+  /**
+   * @generated from field: string category = 3;
+   */
+  category: string;
+
+  /**
+   * "popular" (most added) or "new".
+   *
+   * @generated from field: string sort = 4;
+   */
+  sort: string;
+
+  /**
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListCommunityEggsRequest.
+ * Use `create(ListCommunityEggsRequestSchema)` to create a new message.
+ */
+export const ListCommunityEggsRequestSchema: GenMessage<ListCommunityEggsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 25);
+
+/**
+ * @generated from message raptor.panel.v1.ListCommunityEggsResponse
+ */
+export type ListCommunityEggsResponse = Message<"raptor.panel.v1.ListCommunityEggsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.CatalogEgg eggs = 1;
+   */
+  eggs: CatalogEgg[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListCommunityEggsResponse.
+ * Use `create(ListCommunityEggsResponseSchema)` to create a new message.
+ */
+export const ListCommunityEggsResponseSchema: GenMessage<ListCommunityEggsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 26);
+
+/**
+ * @generated from message raptor.panel.v1.ShareEggRequest
+ */
+export type ShareEggRequest = Message<"raptor.panel.v1.ShareEggRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string id = 2;
+   */
+  id: string;
+
+  /**
+   * @generated from field: bool shared = 3;
+   */
+  shared: boolean;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ShareEggRequest.
+ * Use `create(ShareEggRequestSchema)` to create a new message.
+ */
+export const ShareEggRequestSchema: GenMessage<ShareEggRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 27);
+
+/**
+ * @generated from message raptor.panel.v1.ShareEggResponse
+ */
+export type ShareEggResponse = Message<"raptor.panel.v1.ShareEggResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.ShareEggResponse.
+ * Use `create(ShareEggResponseSchema)` to create a new message.
+ */
+export const ShareEggResponseSchema: GenMessage<ShareEggResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 28);
+
+/**
+ * @generated from message raptor.panel.v1.ReportEggRequest
+ */
+export type ReportEggRequest = Message<"raptor.panel.v1.ReportEggRequest"> & {
+  /**
+   * The org the reporter is looking from.
+   *
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string id = 2;
+   */
+  id: string;
+
+  /**
+   * malware, broken, spam, or other.
+   *
+   * @generated from field: string reason = 3;
+   */
+  reason: string;
+
+  /**
+   * @generated from field: string details = 4;
+   */
+  details: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ReportEggRequest.
+ * Use `create(ReportEggRequestSchema)` to create a new message.
+ */
+export const ReportEggRequestSchema: GenMessage<ReportEggRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 29);
+
+/**
+ * @generated from message raptor.panel.v1.ReportEggResponse
+ */
+export type ReportEggResponse = Message<"raptor.panel.v1.ReportEggResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.ReportEggResponse.
+ * Use `create(ReportEggResponseSchema)` to create a new message.
+ */
+export const ReportEggResponseSchema: GenMessage<ReportEggResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 30);
+
+/**
+ * @generated from message raptor.panel.v1.ListEggReportsRequest
+ */
+export type ListEggReportsRequest = Message<"raptor.panel.v1.ListEggReportsRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListEggReportsRequest.
+ * Use `create(ListEggReportsRequestSchema)` to create a new message.
+ */
+export const ListEggReportsRequestSchema: GenMessage<ListEggReportsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 31);
+
+/**
+ * @generated from message raptor.panel.v1.EggReport
+ */
+export type EggReport = Message<"raptor.panel.v1.EggReport"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string egg_id = 2;
+   */
+  eggId: string;
+
+  /**
+   * @generated from field: string egg_name = 3;
+   */
+  eggName: string;
+
+  /**
+   * @generated from field: string publisher = 4;
+   */
+  publisher: string;
+
+  /**
+   * @generated from field: string reason = 5;
+   */
+  reason: string;
+
+  /**
+   * @generated from field: string details = 6;
+   */
+  details: string;
+
+  /**
+   * @generated from field: string reporter_email = 7;
+   */
+  reporterEmail: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 8;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * Already out of the community.
+   *
+   * @generated from field: bool removed = 9;
+   */
+  removed: boolean;
+};
+
+/**
+ * Describes the message raptor.panel.v1.EggReport.
+ * Use `create(EggReportSchema)` to create a new message.
+ */
+export const EggReportSchema: GenMessage<EggReport> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 32);
+
+/**
+ * @generated from message raptor.panel.v1.ListEggReportsResponse
+ */
+export type ListEggReportsResponse = Message<"raptor.panel.v1.ListEggReportsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.EggReport reports = 1;
+   */
+  reports: EggReport[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListEggReportsResponse.
+ * Use `create(ListEggReportsResponseSchema)` to create a new message.
+ */
+export const ListEggReportsResponseSchema: GenMessage<ListEggReportsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 33);
+
+/**
+ * @generated from message raptor.panel.v1.ModerateEggRequest
+ */
+export type ModerateEggRequest = Message<"raptor.panel.v1.ModerateEggRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "remove", "restore", or "dismiss" (close its reports).
+   *
+   * @generated from field: string action = 2;
+   */
+  action: string;
+
+  /**
+   * Why, for "remove": shown to the egg's org.
+   *
+   * @generated from field: string reason = 3;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ModerateEggRequest.
+ * Use `create(ModerateEggRequestSchema)` to create a new message.
+ */
+export const ModerateEggRequestSchema: GenMessage<ModerateEggRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 34);
+
+/**
+ * @generated from message raptor.panel.v1.ModerateEggResponse
+ */
+export type ModerateEggResponse = Message<"raptor.panel.v1.ModerateEggResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.ModerateEggResponse.
+ * Use `create(ModerateEggResponseSchema)` to create a new message.
+ */
+export const ModerateEggResponseSchema: GenMessage<ModerateEggResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_egg, 35);
+
+/**
  * EggService is the egg library (docs/PANEL.md#eggs): Raptor's built-in
  * eggs, its official ones (managed by staff), and each org's own (imported,
  * made from scratch, or customized copies). An org's admins and owners
@@ -929,6 +1222,58 @@ export const EggService: GenService<{
     methodKind: "unary";
     input: typeof ImportEggFileRequestSchema;
     output: typeof ImportEggFileResponseSchema;
+  },
+  /**
+   * ListCommunityEggs lists shared eggs, most added first or newest. Any
+   * signed-in user; with org_id empty (staff), removed ones too.
+   *
+   * @generated from rpc raptor.panel.v1.EggService.ListCommunityEggs
+   */
+  listCommunityEggs: {
+    methodKind: "unary";
+    input: typeof ListCommunityEggsRequestSchema;
+    output: typeof ListCommunityEggsResponseSchema;
+  },
+  /**
+   * ShareEgg shares a published egg with everyone, or stops sharing it.
+   *
+   * @generated from rpc raptor.panel.v1.EggService.ShareEgg
+   */
+  shareEgg: {
+    methodKind: "unary";
+    input: typeof ShareEggRequestSchema;
+    output: typeof ShareEggResponseSchema;
+  },
+  /**
+   * ReportEgg tells Raptor's staff something's wrong with a shared egg.
+   *
+   * @generated from rpc raptor.panel.v1.EggService.ReportEgg
+   */
+  reportEgg: {
+    methodKind: "unary";
+    input: typeof ReportEggRequestSchema;
+    output: typeof ReportEggResponseSchema;
+  },
+  /**
+   * ListEggReports lists open reports (staff).
+   *
+   * @generated from rpc raptor.panel.v1.EggService.ListEggReports
+   */
+  listEggReports: {
+    methodKind: "unary";
+    input: typeof ListEggReportsRequestSchema;
+    output: typeof ListEggReportsResponseSchema;
+  },
+  /**
+   * ModerateEgg takes a shared egg out of the community, puts it back, or
+   * dismisses its reports (staff admins). Its org keeps the egg.
+   *
+   * @generated from rpc raptor.panel.v1.EggService.ModerateEgg
+   */
+  moderateEgg: {
+    methodKind: "unary";
+    input: typeof ModerateEggRequestSchema;
+    output: typeof ModerateEggResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_egg, 0);

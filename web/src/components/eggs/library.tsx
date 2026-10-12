@@ -102,6 +102,7 @@ export function EggBadges({
       {showOfficial && !egg.certified && (egg.scope === "official" || egg.scope === "builtin") && (
         <Badge variant="secondary">Official</Badge>
       )}
+      {egg.scope === "community" && <Badge variant="outline">Community</Badge>}
       {egg.status !== "published" && <Badge variant="outline">{statusNames[egg.status]}</Badge>}
     </>
   );
@@ -205,7 +206,7 @@ export function EggList({
   );
 }
 
-function EggCard({ lib, egg }: { lib: Library; egg: CatalogEgg }) {
+export function EggCard({ lib, egg }: { lib: Library; egg: CatalogEgg }) {
   return (
     <Link
       {...lib.detail(egg.id)}
@@ -219,7 +220,11 @@ function EggCard({ lib, egg }: { lib: Library; egg: CatalogEgg }) {
           <EggIcon category={egg.category} />
           <div className="min-w-0 flex-1 space-y-1">
             <CardTitle className="truncate">{egg.name}</CardTitle>
-            <CardDescription className="truncate">{subtitle(egg)}</CardDescription>
+            <CardDescription className="truncate">
+              {egg.publisher
+                ? `${categoryName(egg.category)} · by ${egg.publisher}`
+                : subtitle(egg)}
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="flex flex-1 flex-col gap-3">
@@ -228,7 +233,15 @@ function EggCard({ lib, egg }: { lib: Library; egg: CatalogEgg }) {
           </p>
           <div className="mt-auto flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
             <EggBadges egg={egg} showOfficial={!!lib.orgId} />
-            <span className="ml-auto">{usage(egg.servers)}</span>
+            {egg.removed && <Badge variant="destructive">Removed</Badge>}
+            {egg.sharedAt && egg.scope === "org" && <Badge variant="outline">Shared</Badge>}
+            <span className="ml-auto">
+              {egg.scope === "community"
+                ? egg.copies === 1
+                  ? "Added by 1 org"
+                  : `Added by ${egg.copies} orgs`
+                : usage(egg.servers)}
+            </span>
           </div>
         </CardContent>
       </Card>

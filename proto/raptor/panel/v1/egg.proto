@@ -55,6 +55,30 @@ service EggService {
 
   // ImportEggFile saves a reviewed egg, published.
   rpc ImportEggFile(ImportEggFileRequest) returns (ImportEggFileResponse) {}
+
+  // Community eggs (docs/PANEL.md#community-eggs): eggs orgs share with
+  // everyone on Raptor.
+
+  // ListCommunityEggs lists shared eggs, most added first or newest. Any
+  // signed-in user; with org_id empty (staff), removed ones too.
+  rpc ListCommunityEggs(ListCommunityEggsRequest) returns (ListCommunityEggsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ShareEgg shares a published egg with everyone, or stops sharing it.
+  rpc ShareEgg(ShareEggRequest) returns (ShareEggResponse) {}
+
+  // ReportEgg tells Raptor's staff something's wrong with a shared egg.
+  rpc ReportEgg(ReportEggRequest) returns (ReportEggResponse) {}
+
+  // ListEggReports lists open reports (staff).
+  rpc ListEggReports(ListEggReportsRequest) returns (ListEggReportsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ModerateEgg takes a shared egg out of the community, puts it back, or
+  // dismisses its reports (staff admins). Its org keeps the egg.
+  rpc ModerateEgg(ModerateEggRequest) returns (ModerateEggResponse) {}
 }
 
 message EggServiceListEggsRequest {
@@ -199,6 +223,9 @@ message CustomizeEggRequest {
   // Where the copy goes; empty: the official library (staff).
   string org_id = 1;
   string id = 2;
+  // Add it as it is: same name, published, ready to deploy (adding a
+  // community egg after reviewing it). Otherwise a draft to edit.
+  bool as_is = 3;
 }
 
 message CustomizeEggResponse {
@@ -250,3 +277,66 @@ message ImportEggFileRequest {
 message ImportEggFileResponse {
   string id = 1;
 }
+
+message ListCommunityEggsRequest {
+  // Empty, for staff: removed eggs too.
+  string org_id = 1;
+  string query = 2;
+  string category = 3;
+  // "popular" (most added) or "new".
+  string sort = 4;
+  string page_token = 5;
+}
+
+message ListCommunityEggsResponse {
+  repeated CatalogEgg eggs = 1;
+  string next_page_token = 2;
+}
+
+message ShareEggRequest {
+  string org_id = 1;
+  string id = 2;
+  bool shared = 3;
+}
+
+message ShareEggResponse {}
+
+message ReportEggRequest {
+  // The org the reporter is looking from.
+  string org_id = 1;
+  string id = 2;
+  // malware, broken, spam, or other.
+  string reason = 3;
+  string details = 4;
+}
+
+message ReportEggResponse {}
+
+message ListEggReportsRequest {}
+
+message EggReport {
+  string id = 1;
+  string egg_id = 2;
+  string egg_name = 3;
+  string publisher = 4;
+  string reason = 5;
+  string details = 6;
+  string reporter_email = 7;
+  google.protobuf.Timestamp created_at = 8;
+  // Already out of the community.
+  bool removed = 9;
+}
+
+message ListEggReportsResponse {
+  repeated EggReport reports = 1;
+}
+
+message ModerateEggRequest {
+  string id = 1;
+  // "remove", "restore", or "dismiss" (close its reports).
+  string action = 2;
+  // Why, for "remove": shown to the egg's org.
+  string reason = 3;
+}
+
+message ModerateEggResponse {}

@@ -92,10 +92,20 @@ type CatalogEgg struct {
 	// official and built-in eggs.
 	Servers int32 `protobuf:"varint,16,opt,name=servers,proto3" json:"servers,omitempty"`
 	// What a customized copy was made from.
-	ParentId      string                 `protobuf:"bytes,17,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
-	ParentName    string                 `protobuf:"bytes,18,opt,name=parent_name,json=parentName,proto3" json:"parent_name,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	CreatedBy     string                 `protobuf:"bytes,20,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	ParentId   string                 `protobuf:"bytes,17,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	ParentName string                 `protobuf:"bytes,18,opt,name=parent_name,json=parentName,proto3" json:"parent_name,omitempty"`
+	UpdatedAt  *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedBy  string                 `protobuf:"bytes,20,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	// The org that made it, for eggs another org shared.
+	Publisher string `protobuf:"bytes,21,opt,name=publisher,proto3" json:"publisher,omitempty"`
+	// When its org shared it with everyone; unset: not shared.
+	SharedAt *timestamppb.Timestamp `protobuf:"bytes,22,opt,name=shared_at,json=sharedAt,proto3" json:"shared_at,omitempty"`
+	// How many orgs added it to their eggs.
+	Copies int32 `protobuf:"varint,23,opt,name=copies,proto3" json:"copies,omitempty"`
+	// Set when Raptor's staff took it out of the community, and why. Only
+	// its org and staff see it.
+	Removed       bool   `protobuf:"varint,24,opt,name=removed,proto3" json:"removed,omitempty"`
+	RemovedReason string `protobuf:"bytes,25,opt,name=removed_reason,json=removedReason,proto3" json:"removed_reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -266,6 +276,41 @@ func (x *CatalogEgg) GetUpdatedAt() *timestamppb.Timestamp {
 func (x *CatalogEgg) GetCreatedBy() string {
 	if x != nil {
 		return x.CreatedBy
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetPublisher() string {
+	if x != nil {
+		return x.Publisher
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetSharedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SharedAt
+	}
+	return nil
+}
+
+func (x *CatalogEgg) GetCopies() int32 {
+	if x != nil {
+		return x.Copies
+	}
+	return 0
+}
+
+func (x *CatalogEgg) GetRemoved() bool {
+	if x != nil {
+		return x.Removed
+	}
+	return false
+}
+
+func (x *CatalogEgg) GetRemovedReason() string {
+	if x != nil {
+		return x.RemovedReason
 	}
 	return ""
 }
@@ -554,7 +599,7 @@ var File_raptor_panel_v1_catalog_proto protoreflect.FileDescriptor
 const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\n" +
 	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x11\n" +
-	"\x0fListEggsRequest\"\xf6\x04\n" +
+	"\x0fListEggsRequest\"\xa6\x06\n" +
 	"\n" +
 	"CatalogEgg\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -581,7 +626,12 @@ const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1d\n" +
 	"\n" +
-	"created_by\x18\x14 \x01(\tR\tcreatedBy\"0\n" +
+	"created_by\x18\x14 \x01(\tR\tcreatedBy\x12\x1c\n" +
+	"\tpublisher\x18\x15 \x01(\tR\tpublisher\x127\n" +
+	"\tshared_at\x18\x16 \x01(\v2\x1a.google.protobuf.TimestampR\bsharedAt\x12\x16\n" +
+	"\x06copies\x18\x17 \x01(\x05R\x06copies\x12\x18\n" +
+	"\aremoved\x18\x18 \x01(\bR\aremoved\x12%\n" +
+	"\x0eremoved_reason\x18\x19 \x01(\tR\rremovedReason\"0\n" +
 	"\bEggImage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\"\xcf\x01\n" +
@@ -631,16 +681,17 @@ var file_raptor_panel_v1_catalog_proto_depIdxs = []int32{
 	2, // 0: raptor.panel.v1.CatalogEgg.images:type_name -> raptor.panel.v1.EggImage
 	3, // 1: raptor.panel.v1.CatalogEgg.variables:type_name -> raptor.panel.v1.EggVariable
 	7, // 2: raptor.panel.v1.CatalogEgg.updated_at:type_name -> google.protobuf.Timestamp
-	1, // 3: raptor.panel.v1.ListEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
-	0, // 4: raptor.panel.v1.CatalogService.ListEggs:input_type -> raptor.panel.v1.ListEggsRequest
-	5, // 5: raptor.panel.v1.CatalogService.GetEgg:input_type -> raptor.panel.v1.GetEggRequest
-	4, // 6: raptor.panel.v1.CatalogService.ListEggs:output_type -> raptor.panel.v1.ListEggsResponse
-	6, // 7: raptor.panel.v1.CatalogService.GetEgg:output_type -> raptor.panel.v1.GetEggResponse
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	7, // 3: raptor.panel.v1.CatalogEgg.shared_at:type_name -> google.protobuf.Timestamp
+	1, // 4: raptor.panel.v1.ListEggsResponse.eggs:type_name -> raptor.panel.v1.CatalogEgg
+	0, // 5: raptor.panel.v1.CatalogService.ListEggs:input_type -> raptor.panel.v1.ListEggsRequest
+	5, // 6: raptor.panel.v1.CatalogService.GetEgg:input_type -> raptor.panel.v1.GetEggRequest
+	4, // 7: raptor.panel.v1.CatalogService.ListEggs:output_type -> raptor.panel.v1.ListEggsResponse
+	6, // 8: raptor.panel.v1.CatalogService.GetEgg:output_type -> raptor.panel.v1.GetEggResponse
+	7, // [7:9] is the sub-list for method output_type
+	5, // [5:7] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_catalog_proto_init() }

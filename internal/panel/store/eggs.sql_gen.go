@@ -11,6 +11,32 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addEggReport = `-- name: AddEggReport :execrows
+INSERT INTO egg_reports (egg_id, reporter_id, reason, details)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT DO NOTHING
+`
+
+type AddEggReportParams struct {
+	EggID      pgtype.UUID
+	ReporterID pgtype.UUID
+	Reason     string
+	Details    string
+}
+
+func (q *Queries) AddEggReport(ctx context.Context, arg AddEggReportParams) (int64, error) {
+	result, err := q.db.Exec(ctx, addEggReport,
+		arg.EggID,
+		arg.ReporterID,
+		arg.Reason,
+		arg.Details,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const addEggVersion = `-- name: AddEggVersion :exec
 INSERT INTO egg_versions (egg_id, version, egg, sha256, note, created_by)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -48,6 +74,17 @@ func (q *Queries) CountOfficialEggs(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countOpenEggReports = `-- name: CountOpenEggReports :one
+SELECT count(*)::int FROM egg_reports WHERE egg_id = $1 AND resolved_at IS NULL
+`
+
+func (q *Queries) CountOpenEggReports(ctx context.Context, eggID pgtype.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countOpenEggReports, eggID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countOrgEggs = `-- name: CountOrgEggs :one
 SELECT count(*) FROM eggs WHERE org_id = $1
 `
@@ -63,7 +100,7 @@ const createEgg = `-- name: CreateEgg :one
 
 INSERT INTO eggs (org_id, name, summary, category, origin, status, egg, sha256, source_url, parent_id, parent_name, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at
+RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by
 `
 
 type CreateEggParams struct {
@@ -117,6 +154,10 @@ func (q *Queries) CreateEgg(ctx context.Context, arg CreateEggParams) (Egg, erro
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SharedAt,
+		&i.RemovedAt,
+		&i.RemovedReason,
+		&i.RemovedBy,
 	)
 	return i, err
 }
@@ -131,6 +172,23 @@ func (q *Queries) DeleteEgg(ctx context.Context, id pgtype.UUID) (int64, error) 
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const eggPublisher = `-- name: EggPublisher :one
+SELECT o.name, (SELECT count(*) FROM eggs c WHERE c.parent_id = e.id::text)::int AS copies
+FROM eggs e LEFT JOIN orgs o ON o.id = e.org_id WHERE e.id = $1
+`
+
+type EggPublisherRow struct {
+	Name   pgtype.Text
+	Copies int32
+}
+
+func (q *Queries) EggPublisher(ctx context.Context, id pgtype.UUID) (EggPublisherRow, error) {
+	row := q.db.QueryRow(ctx, eggPublisher, id)
+	var i EggPublisherRow
+	err := row.Scan(&i.Name, &i.Copies)
+	return i, err
 }
 
 const eggServerCounts = `-- name: EggServerCounts :many
@@ -168,7 +226,7 @@ func (q *Queries) EggServerCounts(ctx context.Context) ([]EggServerCountsRow, er
 }
 
 const getEgg = `-- name: GetEgg :one
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
 WHERE e.id = $1
 `
@@ -198,13 +256,17 @@ func (q *Queries) GetEgg(ctx context.Context, id pgtype.UUID) (GetEggRow, error)
 		&i.Egg.CreatedBy,
 		&i.Egg.CreatedAt,
 		&i.Egg.UpdatedAt,
+		&i.Egg.SharedAt,
+		&i.Egg.RemovedAt,
+		&i.Egg.RemovedReason,
+		&i.Egg.RemovedBy,
 		&i.CreatedByEmail,
 	)
 	return i, err
 }
 
 const getEggForUpdate = `-- name: GetEggForUpdate :one
-SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at FROM eggs WHERE id = $1 FOR UPDATE
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by FROM eggs WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetEggForUpdate(ctx context.Context, id pgtype.UUID) (Egg, error) {
@@ -227,6 +289,10 @@ func (q *Queries) GetEggForUpdate(ctx context.Context, id pgtype.UUID) (Egg, err
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SharedAt,
+		&i.RemovedAt,
+		&i.RemovedReason,
+		&i.RemovedBy,
 	)
 	return i, err
 }
@@ -253,6 +319,86 @@ func (q *Queries) GetEggVersion(ctx context.Context, arg GetEggVersionParams) (E
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const listCommunityEggs = `-- name: ListCommunityEggs :many
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, o.name AS org_name,
+    (SELECT count(*) FROM eggs c WHERE c.parent_id = e.id::text)::int AS copies
+FROM eggs e JOIN orgs o ON o.id = e.org_id
+WHERE e.shared_at IS NOT NULL
+  AND ($1::boolean OR (e.removed_at IS NULL AND e.status = 'published'))
+  AND ($2::text = '' OR e.name ILIKE '%' || $2 || '%' OR e.summary ILIKE '%' || $2 || '%')
+  AND ($3::text = '' OR e.category = $3)
+ORDER BY CASE WHEN $4::boolean THEN 0 ELSE (SELECT count(*) FROM eggs c WHERE c.parent_id = e.id::text) END DESC,
+    e.shared_at DESC, e.id
+LIMIT $6 OFFSET $5
+`
+
+type ListCommunityEggsParams struct {
+	IncludeRemoved bool
+	Query          string
+	Category       string
+	Newest         bool
+	Off            int32
+	Lim            int32
+}
+
+type ListCommunityEggsRow struct {
+	Egg     Egg
+	OrgName string
+	Copies  int32
+}
+
+// Shared eggs, by how many orgs added them or by newest; on the Panel's
+// own connection (the publishers' org names), so it filters itself.
+func (q *Queries) ListCommunityEggs(ctx context.Context, arg ListCommunityEggsParams) ([]ListCommunityEggsRow, error) {
+	rows, err := q.db.Query(ctx, listCommunityEggs,
+		arg.IncludeRemoved,
+		arg.Query,
+		arg.Category,
+		arg.Newest,
+		arg.Off,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCommunityEggsRow
+	for rows.Next() {
+		var i ListCommunityEggsRow
+		if err := rows.Scan(
+			&i.Egg.ID,
+			&i.Egg.OrgID,
+			&i.Egg.Name,
+			&i.Egg.Summary,
+			&i.Egg.Category,
+			&i.Egg.Origin,
+			&i.Egg.Status,
+			&i.Egg.Version,
+			&i.Egg.Egg,
+			&i.Egg.Sha256,
+			&i.Egg.SourceUrl,
+			&i.Egg.ParentID,
+			&i.Egg.ParentName,
+			&i.Egg.CreatedBy,
+			&i.Egg.CreatedAt,
+			&i.Egg.UpdatedAt,
+			&i.Egg.SharedAt,
+			&i.Egg.RemovedAt,
+			&i.Egg.RemovedReason,
+			&i.Egg.RemovedBy,
+			&i.OrgName,
+			&i.Copies,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listEggVersions = `-- name: ListEggVersions :many
@@ -295,7 +441,7 @@ func (q *Queries) ListEggVersions(ctx context.Context, eggID pgtype.UUID) ([]Lis
 }
 
 const listLibraryEggs = `-- name: ListLibraryEggs :many
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
 WHERE e.org_id = $1 OR (e.org_id IS NULL AND e.status = 'published')
 ORDER BY e.org_id NULLS LAST, e.name, e.id
@@ -333,6 +479,10 @@ func (q *Queries) ListLibraryEggs(ctx context.Context, orgID pgtype.UUID) ([]Lis
 			&i.Egg.CreatedBy,
 			&i.Egg.CreatedAt,
 			&i.Egg.UpdatedAt,
+			&i.Egg.SharedAt,
+			&i.Egg.RemovedAt,
+			&i.Egg.RemovedReason,
+			&i.Egg.RemovedBy,
 			&i.CreatedByEmail,
 		); err != nil {
 			return nil, err
@@ -346,7 +496,7 @@ func (q *Queries) ListLibraryEggs(ctx context.Context, orgID pgtype.UUID) ([]Lis
 }
 
 const listOfficialEggs = `-- name: ListOfficialEggs :many
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
 WHERE e.org_id IS NULL ORDER BY e.name, e.id
 `
@@ -382,7 +532,61 @@ func (q *Queries) ListOfficialEggs(ctx context.Context) ([]ListOfficialEggsRow, 
 			&i.Egg.CreatedBy,
 			&i.Egg.CreatedAt,
 			&i.Egg.UpdatedAt,
+			&i.Egg.SharedAt,
+			&i.Egg.RemovedAt,
+			&i.Egg.RemovedReason,
+			&i.Egg.RemovedBy,
 			&i.CreatedByEmail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOpenEggReports = `-- name: ListOpenEggReports :many
+SELECT r.id, r.egg_id, r.reason, r.details, r.created_at, coalesce(u.email, '')::text AS reporter_email,
+    e.name AS egg_name, coalesce(o.name, '')::text AS org_name, e.removed_at
+FROM egg_reports r JOIN eggs e ON e.id = r.egg_id
+LEFT JOIN users u ON u.id = r.reporter_id LEFT JOIN orgs o ON o.id = e.org_id
+WHERE r.resolved_at IS NULL ORDER BY r.created_at LIMIT 200
+`
+
+type ListOpenEggReportsRow struct {
+	ID            pgtype.UUID
+	EggID         pgtype.UUID
+	Reason        string
+	Details       string
+	CreatedAt     pgtype.Timestamptz
+	ReporterEmail string
+	EggName       string
+	OrgName       string
+	RemovedAt     pgtype.Timestamptz
+}
+
+func (q *Queries) ListOpenEggReports(ctx context.Context) ([]ListOpenEggReportsRow, error) {
+	rows, err := q.db.Query(ctx, listOpenEggReports)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOpenEggReportsRow
+	for rows.Next() {
+		var i ListOpenEggReportsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.EggID,
+			&i.Reason,
+			&i.Details,
+			&i.CreatedAt,
+			&i.ReporterEmail,
+			&i.EggName,
+			&i.OrgName,
+			&i.RemovedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -453,8 +657,81 @@ func (q *Queries) OrgEggServerCounts(ctx context.Context, orgID pgtype.UUID) ([]
 	return items, nil
 }
 
+const removeCommunityEgg = `-- name: RemoveCommunityEgg :execrows
+UPDATE eggs SET removed_at = now(), removed_reason = $1, removed_by = $2
+WHERE id = $3 AND shared_at IS NOT NULL AND removed_at IS NULL
+`
+
+type RemoveCommunityEggParams struct {
+	Reason    string
+	RemovedBy string
+	ID        pgtype.UUID
+}
+
+func (q *Queries) RemoveCommunityEgg(ctx context.Context, arg RemoveCommunityEggParams) (int64, error) {
+	result, err := q.db.Exec(ctx, removeCommunityEgg, arg.Reason, arg.RemovedBy, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const resolveEggReports = `-- name: ResolveEggReports :execrows
+UPDATE egg_reports SET resolved_at = now(), resolved_by = $1, resolution = $2
+WHERE egg_id = $3 AND resolved_at IS NULL
+`
+
+type ResolveEggReportsParams struct {
+	ResolvedBy string
+	Resolution string
+	EggID      pgtype.UUID
+}
+
+func (q *Queries) ResolveEggReports(ctx context.Context, arg ResolveEggReportsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, resolveEggReports, arg.ResolvedBy, arg.Resolution, arg.EggID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const restoreCommunityEgg = `-- name: RestoreCommunityEgg :execrows
+UPDATE eggs SET removed_at = NULL, removed_reason = '', removed_by = ''
+WHERE id = $1 AND removed_at IS NOT NULL
+`
+
+func (q *Queries) RestoreCommunityEgg(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, restoreCommunityEgg, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const setEggShared = `-- name: SetEggShared :execrows
+
+UPDATE eggs SET shared_at = CASE WHEN $1::boolean THEN coalesce(shared_at, now()) END
+WHERE id = $2
+`
+
+type SetEggSharedParams struct {
+	Shared bool
+	ID     pgtype.UUID
+}
+
+// Community eggs (docs/PANEL.md#community-eggs).
+func (q *Queries) SetEggShared(ctx context.Context, arg SetEggSharedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setEggShared, arg.Shared, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const setEggStatus = `-- name: SetEggStatus :execrows
-UPDATE eggs SET status = $1, updated_at = now() WHERE id = $2
+UPDATE eggs SET status = $1, updated_at = now(),
+    shared_at = CASE WHEN $1::text = 'published' THEN shared_at END
+WHERE id = $2
 `
 
 type SetEggStatusParams struct {
@@ -462,6 +739,8 @@ type SetEggStatusParams struct {
 	ID     pgtype.UUID
 }
 
+// Only published eggs are shared: unpublishing takes one out of the
+// community too.
 func (q *Queries) SetEggStatus(ctx context.Context, arg SetEggStatusParams) (int64, error) {
 	result, err := q.db.Exec(ctx, setEggStatus, arg.Status, arg.ID)
 	if err != nil {

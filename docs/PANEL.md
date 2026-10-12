@@ -220,6 +220,16 @@ Each save that changes the file is a new **version** (`egg_versions`, with who a
 
 What a server gets: `GetEggFile` returns a published egg's file (any version), which the web app puts in the passkey-signed `server.create` as it is. The org's eggs and the official ones are read as the user, under row-level security; official eggs are changed on the Panel's own connection after the staff check (an admin with a passkey from the last 5 minutes), and go in the staff log. Org changes go in the org's audit log: `egg.create`, `egg.update`, `egg.customize`, `egg.publish`, `egg.unpublish`, `egg.archive`, `egg.delete`, `egg.import`.
 
+### Community eggs
+
+An org shares a published egg with everyone on Raptor (`ShareEgg`, `egg.share`; admins and owners, after a reminder that the whole file is public, with the org's name on it). The Eggs page's **Community** tab lists shared eggs (`ListCommunityEggs`: searched and filtered on the Panel, most added first or newest, 30 a page), with who shared each and how many orgs added it.
+
+- **Adding** one (`CustomizeEgg` with `as_is`) copies it into the org, published and ready to deploy, after the same review as an import: images, the install script, the startup command, warnings, and a box saying the admin trusts it. Raptor doesn't check community eggs, and the app says so. The copy is the org's: later edits by the egg's org don't reach it.
+- **Reporting** (`ReportEgg`): anyone in another org, once per egg until staff look, 10 an hour; harmful, broken, spam, or something else, with details. The egg's org isn't told who.
+- **Moderation** (`ListEggReports`, `ModerateEgg`; the admin panel's Eggs page, Community and Reports tabs): staff admins take an egg out of the community with a reason (which closes its reports), put it back, or dismiss its reports. Orgs can't change `removed_at` (column privileges), and a removed egg can't be shared again by its org, which sees why on the egg's page and in its audit log (`egg.community.remove`, by Raptor staff). Copies other orgs already added stay theirs. Staff can also make an official copy of a community egg.
+
+Unpublishing or archiving a shared egg takes it out of the community.
+
 ### Importing
 
 An egg comes in from a link or an upload: Pterodactyl or Pelican, JSON or YAML.

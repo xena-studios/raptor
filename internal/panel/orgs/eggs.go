@@ -152,7 +152,7 @@ func (s *Service) ListOrgEggs(ctx context.Context, req *panelv1.ListOrgEggsReque
 			if r.Egg.OrgID != org || r.Egg.Status != "published" {
 				continue
 			}
-			p, perr := describeEgg(r.Egg, r.CreatedByEmail.String)
+			p, perr := describeEgg(&lib{org: org}, r.Egg, r.CreatedByEmail.String)
 			if perr != nil {
 				continue
 			}
