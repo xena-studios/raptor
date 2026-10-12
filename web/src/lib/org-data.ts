@@ -12,15 +12,20 @@ export function useOrgNodes(orgId: string) {
 }
 
 // useOrgServers is every server the user can see in the org, across its
-// nodes (one ListServers per node), with each server's node.
-export function useOrgServers(orgId: string): { servers: OrgServer[]; pending: boolean } {
+// nodes (one ListServers per node), with each server's node. every is how
+// often it's refreshed (the sidebar asks less often than pages; a shared
+// query refreshes as often as its most eager user).
+export function useOrgServers(
+  orgId: string,
+  every = 5_000,
+): { servers: OrgServer[]; pending: boolean } {
   const nodes = useOrgNodes(orgId);
   const list = nodes.data?.nodes ?? [];
   const results = useQueries({
     queries: list.map((n) => ({
       queryKey: ["org-servers", orgId, n.id],
       queryFn: () => orgClient.listServers({ orgId, nodeId: n.id }),
-      refetchInterval: 5_000,
+      refetchInterval: every,
     })),
   });
   const servers = results.flatMap((r, i) => {
