@@ -32,9 +32,12 @@ type ExecuteRequest struct {
 	// For passkey-signed commands the browser picks these, since they're part
 	// of what the passkey signs: a lowercase UUIDv7, and an expiry (unix
 	// seconds) at most 10 minutes away. Otherwise leave them empty.
-	CommandId     string            `protobuf:"bytes,5,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
-	ExpiresAt     int64             `protobuf:"varint,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Signature     *CommandSignature `protobuf:"bytes,7,opt,name=signature,proto3" json:"signature,omitempty"`
+	CommandId string            `protobuf:"bytes,5,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	ExpiresAt int64             `protobuf:"varint,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Signature *CommandSignature `protobuf:"bytes,7,opt,name=signature,proto3" json:"signature,omitempty"`
+	// Raptor staff only: the support request the owner approved, which the
+	// command runs under (docs/PANEL.md#support-access).
+	Support       string `protobuf:"bytes,8,opt,name=support,proto3" json:"support,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -116,6 +119,13 @@ func (x *ExecuteRequest) GetSignature() *CommandSignature {
 		return x.Signature
 	}
 	return nil
+}
+
+func (x *ExecuteRequest) GetSupport() string {
+	if x != nil {
+		return x.Support
+	}
+	return ""
 }
 
 // A WebAuthn assertion over the command's hash
@@ -254,7 +264,7 @@ var File_raptor_panel_v1_command_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"\x1draptor/panel/v1/command.proto\x12\x0fraptor.panel.v1\"\xfe\x01\n" +
+	"\x1draptor/panel/v1/command.proto\x12\x0fraptor.panel.v1\"\x98\x02\n" +
 	"\x0eExecuteRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x16\n" +
 	"\x06action\x18\x02 \x01(\tR\x06action\x12\x1b\n" +
@@ -265,7 +275,8 @@ const file_raptor_panel_v1_command_proto_rawDesc = "" +
 	"command_id\x18\x05 \x01(\tR\tcommandId\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x06 \x01(\x03R\texpiresAt\x12?\n" +
-	"\tsignature\x18\a \x01(\v2!.raptor.panel.v1.CommandSignatureR\tsignature\"\xae\x01\n" +
+	"\tsignature\x18\a \x01(\v2!.raptor.panel.v1.CommandSignatureR\tsignature\x12\x18\n" +
+	"\asupport\x18\b \x01(\tR\asupport\"\xae\x01\n" +
 	"\x10CommandSignature\x12#\n" +
 	"\rcredential_id\x18\x01 \x01(\fR\fcredentialId\x12-\n" +
 	"\x12authenticator_data\x18\x02 \x01(\fR\x11authenticatorData\x12(\n" +

@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ShieldOff } from "lucide-react";
 import { useState } from "react";
 
+import { RequestSupport } from "@/components/admin/request-support";
 import { SuspendDialog } from "@/components/admin/suspend-dialog";
 import { DetailList } from "@/components/page";
 import { useReauth } from "@/components/reauth";
@@ -38,7 +39,9 @@ function OrgPage() {
   const withReauth = useReauth();
   const client = useQueryClient();
   const [suspending, setSuspending] = useState(false);
+  const [asking, setAsking] = useState<{ id: string; name: string }>();
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   if (org.error) return <p className="text-sm text-destructive">{message(org.error)}</p>;
   const d = org.data;
   if (!d?.org) return <p className="text-sm text-muted-foreground">Loading…</p>;
@@ -151,7 +154,7 @@ function OrgPage() {
           <CardHeader>
             <CardTitle>Nodes</CardTitle>
             <CardDescription>
-              Staff can't reach a node from here: support access needs its owner's passkey.
+              Reaching a node needs support access, which its owner approves with their passkey.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -165,6 +168,9 @@ function OrgPage() {
                     <TableHead>Wings</TableHead>
                     <TableHead>Servers</TableHead>
                     <TableHead className="text-right">Status</TableHead>
+                    <TableHead className="w-28">
+                      <span className="sr-only">Support</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -185,6 +191,15 @@ function OrgPage() {
                       <TableCell className="text-right">
                         <StatusBadge status={nodeStatus(n)} />
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setAsking({ id: n.id, name: n.name })}
+                        >
+                          Ask for access
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -193,6 +208,17 @@ function OrgPage() {
           </CardContent>
         </Card>
       </div>
+      {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
+      {asking && (
+        <RequestSupport
+          nodeId={asking.id}
+          nodeName={asking.name}
+          onClose={() => setAsking(undefined)}
+          onDone={() =>
+            setNotice(`Asked. The org's owners and admins were emailed; it's in the Support tab.`)
+          }
+        />
+      )}
       {suspending && (
         <SuspendDialog
           what={o.name}

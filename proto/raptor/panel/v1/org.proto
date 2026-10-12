@@ -3,6 +3,7 @@ syntax = "proto3";
 package raptor.panel.v1;
 
 import "google/protobuf/timestamp.proto";
+import "raptor/panel/v1/staff.proto";
 import "raptor/panel/v1/audit.proto";
 import "raptor/panel/v1/auth.proto";
 import "raptor/panel/v1/catalog.proto";
@@ -74,6 +75,16 @@ service OrgService {
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ListNodeSupportRequests lists Raptor staff's requests for support
+  // access to a node, newest first. Owners approve one by signing
+  // support.grant with their passkey (CommandService.Execute); the Panel
+  // records it when the node accepts. Admins and owners.
+  rpc ListNodeSupportRequests(ListNodeSupportRequestsRequest) returns (ListNodeSupportRequestsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // DenySupportRequest turns a request down. Admins and owners.
+  rpc DenySupportRequest(DenySupportRequestRequest) returns (DenySupportRequestResponse) {}
 
   // RenameNode renames a node. Admins and owners.
   rpc RenameNode(RenameNodeRequest) returns (RenameNodeResponse) {}
@@ -887,3 +898,19 @@ message PrepareRecoveryResponse {
   // For storage: the destination, as backup.recover takes it (JSON).
   string destination_json = 2;
 }
+
+message ListNodeSupportRequestsRequest {
+  string org_id = 1;
+  string node_id = 2;
+}
+
+message ListNodeSupportRequestsResponse {
+  repeated SupportRequest requests = 1;
+}
+
+message DenySupportRequestRequest {
+  string org_id = 1;
+  string request_id = 2;
+}
+
+message DenySupportRequestResponse {}

@@ -393,6 +393,24 @@ type StaffAudit struct {
 	Ip         *netip.Addr
 }
 
+type SupportRequest struct {
+	ID           pgtype.UUID
+	OrgID        pgtype.UUID
+	NodeID       pgtype.UUID
+	StaffID      pgtype.UUID
+	StaffEmail   string
+	Level        int32
+	Minutes      int32
+	Reason       string
+	Ticket       string
+	Status       string
+	CreatedAt    pgtype.Timestamptz
+	DecidedAt    pgtype.Timestamptz
+	DecidedBy    pgtype.UUID
+	GrantedLevel pgtype.Int4
+	ExpiresAt    pgtype.Timestamptz
+}
+
 type TotpSetup struct {
 	UserID    pgtype.UUID
 	Secret    []byte

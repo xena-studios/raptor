@@ -216,6 +216,20 @@ type Server struct {
 	DiskID       string
 }
 
+type SupportGrant struct {
+	ID         string
+	StaffID    string
+	StaffEmail string
+	Level      int64
+	Reason     string
+	Ticket     string
+	GrantedBy  string
+	CreatedAt  int64
+	ExpiresAt  int64
+	RevokedAt  sql.NullInt64
+	RevokedBy  string
+}
+
 type Trash struct {
 	ID        string
 	ServerID  string

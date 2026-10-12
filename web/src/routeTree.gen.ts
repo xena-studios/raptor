@@ -25,6 +25,8 @@ import { Route as SigninLinkRouteImport } from './routes/signin.link'
 import { Route as SigninSecondFactorRouteImport } from './routes/signin.second-factor'
 import { Route as AdminOrgsIndexRouteImport } from './routes/admin.orgs.index'
 import { Route as AdminOrgsOrgIdRouteImport } from './routes/admin.orgs.$orgId'
+import { Route as AdminSupportIndexRouteImport } from './routes/admin.support.index'
+import { Route as AdminSupportRequestIdRouteImport } from './routes/admin.support.$requestId'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin.users.$userId'
 import { Route as OrgsOrgIdIndexRouteImport } from './routes/orgs.$orgId.index'
@@ -136,6 +138,16 @@ const AdminOrgsIndexRoute = AdminOrgsIndexRouteImport.update({
 const AdminOrgsOrgIdRoute = AdminOrgsOrgIdRouteImport.update({
   id: '/orgs/$orgId',
   path: '/orgs/$orgId',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSupportIndexRoute = AdminSupportIndexRouteImport.update({
+  id: '/support/',
+  path: '/support/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSupportRequestIdRoute = AdminSupportRequestIdRouteImport.update({
+  id: '/support/$requestId',
+  path: '/support/$requestId',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
@@ -336,10 +348,12 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof SettingsIndexRoute
   '/signin/': typeof SigninIndexRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
+  '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
   '/admin/orgs/': typeof AdminOrgsIndexRoute
+  '/admin/support/': typeof AdminSupportIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRouteWithChildren
@@ -383,9 +397,11 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsIndexRoute
   '/signin': typeof SigninIndexRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
+  '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/admin/orgs': typeof AdminOrgsIndexRoute
+  '/admin/support': typeof AdminSupportIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
   '/orgs/$orgId': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
@@ -431,10 +447,12 @@ export interface FileRoutesById {
   '/settings/': typeof SettingsIndexRoute
   '/signin/': typeof SigninIndexRoute
   '/admin/orgs/$orgId': typeof AdminOrgsOrgIdRoute
+  '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
   '/admin/orgs/': typeof AdminOrgsIndexRoute
+  '/admin/support/': typeof AdminSupportIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
   '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRouteWithChildren
@@ -483,10 +501,12 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/signin/'
     | '/admin/orgs/$orgId'
+    | '/admin/support/$requestId'
     | '/admin/users/$userId'
     | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/settings'
     | '/admin/orgs/'
+    | '/admin/support/'
     | '/admin/users/'
     | '/orgs/$orgId/'
     | '/orgs/$orgId/nodes/$nodeId'
@@ -530,9 +550,11 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signin'
     | '/admin/orgs/$orgId'
+    | '/admin/support/$requestId'
     | '/admin/users/$userId'
     | '/orgs/$orgId/eggs'
     | '/admin/orgs'
+    | '/admin/support'
     | '/admin/users'
     | '/orgs/$orgId'
     | '/orgs/$orgId/nodes/new'
@@ -577,10 +599,12 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/signin/'
     | '/admin/orgs/$orgId'
+    | '/admin/support/$requestId'
     | '/admin/users/$userId'
     | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/settings'
     | '/admin/orgs/'
+    | '/admin/support/'
     | '/admin/users/'
     | '/orgs/$orgId/'
     | '/orgs/$orgId/nodes/$nodeId'
@@ -735,6 +759,20 @@ declare module '@tanstack/react-router' {
       path: '/orgs/$orgId'
       fullPath: '/admin/orgs/$orgId'
       preLoaderRoute: typeof AdminOrgsOrgIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/support/': {
+      id: '/admin/support/'
+      path: '/support'
+      fullPath: '/admin/support/'
+      preLoaderRoute: typeof AdminSupportIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/support/$requestId': {
+      id: '/admin/support/$requestId'
+      path: '/support/$requestId'
+      fullPath: '/admin/support/$requestId'
+      preLoaderRoute: typeof AdminSupportRequestIdRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/users/': {
@@ -969,8 +1007,10 @@ interface AdminRouteChildren {
   AdminStaffRoute: typeof AdminStaffRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminOrgsOrgIdRoute: typeof AdminOrgsOrgIdRoute
+  AdminSupportRequestIdRoute: typeof AdminSupportRequestIdRoute
   AdminUsersUserIdRoute: typeof AdminUsersUserIdRoute
   AdminOrgsIndexRoute: typeof AdminOrgsIndexRoute
+  AdminSupportIndexRoute: typeof AdminSupportIndexRoute
   AdminUsersIndexRoute: typeof AdminUsersIndexRoute
 }
 
@@ -979,8 +1019,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminStaffRoute: AdminStaffRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminOrgsOrgIdRoute: AdminOrgsOrgIdRoute,
+  AdminSupportRequestIdRoute: AdminSupportRequestIdRoute,
   AdminUsersUserIdRoute: AdminUsersUserIdRoute,
   AdminOrgsIndexRoute: AdminOrgsIndexRoute,
+  AdminSupportIndexRoute: AdminSupportIndexRoute,
   AdminUsersIndexRoute: AdminUsersIndexRoute,
 }
 

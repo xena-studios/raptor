@@ -35,9 +35,10 @@ func New(panelKey ed25519.PrivateKey, nodeID, userID, action, serverID string, p
 
 // SignGrant adds the Panel's grant to a command whose fields are already
 // set: by New, or by the browser, which picks the ID and expiry itself so
-// its passkey can sign the command before sending it.
+// its passkey can sign the command before sending it. A support grant ID
+// already in e.Grant.Support is kept.
 func SignGrant(panelKey ed25519.PrivateKey, e *Envelope) error {
-	e.Grant = Grant{UserID: e.UserID, NodeID: e.NodeID, CommandID: e.CommandID, Action: e.Action, ServerID: e.ServerID, ExpiresAt: e.ExpiresAt}
+	e.Grant = Grant{UserID: e.UserID, NodeID: e.NodeID, CommandID: e.CommandID, Action: e.Action, ServerID: e.ServerID, ExpiresAt: e.ExpiresAt, Support: e.Grant.Support}
 	p, err := e.Grant.Payload()
 	if err != nil {
 		return err

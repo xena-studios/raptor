@@ -6,6 +6,7 @@ import { Hidden } from "@/components/address";
 import { NotFound } from "@/components/error-screen";
 import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { StatusBadge } from "@/components/server-status";
+import { SupportBanner } from "@/components/support-access";
 import { buttonVariants } from "@/components/ui/button";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { nodeHostname } from "@/lib/addresses";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId")({
 });
 
 function NodeLayout() {
+  const session = Route.useRouteContext();
   const { orgId, nodeId } = Route.useParams();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const admin = isAdmin(orgs.data?.orgs.find((o) => o.id === orgId)?.role);
@@ -113,6 +115,9 @@ function NodeLayout() {
             </Link>
           )}
         </RouteTabs>
+        {admin && node && (
+          <SupportBanner orgId={orgId} nodeId={nodeId} userId={session.user?.id ?? ""} />
+        )}
       </div>
       <Outlet />
     </>

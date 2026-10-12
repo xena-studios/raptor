@@ -169,14 +169,26 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	var sess *auth.Session
 	var org pgtype.UUID
 	nodeID := pgtype.UUID{Bytes: node, Valid: true}
-	err = s.Auth.AsUser(ctx, func(se *auth.Session, q *store.Queries) error {
-		sess = se
-		var err error
-		org, err = s.authorize(ctx, q, se, nodeID, env.Action, env.ServerID)
-		return err
-	})
+	support := req.GetSupport()
+	if support != "" {
+		// Raptor staff, under support access the owner approved.
+		sess, org, err = s.authorizeSupport(ctx, nodeID, support, &env)
+	} else {
+		err = s.Auth.AsUser(ctx, func(se *auth.Session, q *store.Queries) error {
+			sess = se
+			var err error
+			org, err = s.authorize(ctx, q, se, nodeID, env.Action, env.ServerID)
+			return err
+		})
+	}
 	if err != nil {
 		return nil, err
+	}
+	var granted grantParams
+	if env.Action == "support.grant" && support == "" {
+		if granted, err = s.checkSupportGrant(ctx, nodeID, env); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.Auth.RateLimit(ctx, "cmd:user:"+uuid.UUID(sess.UserID.Bytes).String(), commandsPerMin, time.Minute); err != nil {
 		return nil, err
@@ -201,7 +213,7 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	}
 	executed.Add(ctx, 1, metric.WithAttributes(attribute.String("action", env.Action), attribute.String("outcome", outcome)))
 
-	if !perms.Read(env.Action) {
+	if !perms.Read(env.Action) || support != "" { // staff are logged even when they only look
 		meta := map[string]any{"action": env.Action, "node": env.NodeID, "command_id": env.CommandID, "signed": env.Signature != nil}
 		// Params aren't kept (they can hold file contents); whether a delete
 		// skipped the trash is worth knowing.
@@ -223,14 +235,32 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 		if target == "" {
 			target = env.NodeID
 		}
-		_ = s.Auth.Audit(ctx, nil, auth.Event{Org: org, Actor: sess.UserID, Action: "command", Target: target, Meta: meta})
+		if support != "" {
+			meta["support"] = support
+			_ = store.New(s.Auth.DB).AddStaffAudit(context.WithoutCancel(ctx), store.AddStaffAuditParams{
+				StaffID: sess.UserID, StaffEmail: sess.User.Email, Action: "support.command", TargetType: "node",
+				TargetID: env.NodeID, Meta: mustJSON(map[string]any{"action": env.Action, "server": env.ServerID, "request": support}),
+			})
+		}
+		_ = s.Auth.Audit(ctx, nil, auth.Event{Org: org, Actor: sess.UserID, Staff: support != "", Action: "command", Target: target, Meta: meta})
 	}
 	if err != nil {
 		return nil, err
+	}
+	if res.GetError() == "" && support == "" {
+		s.afterSupport(ctx, sess, nodeID, env, granted)
 	}
 	if res.GetError() != "" {
 		// It ran on the node and failed: the node's words, for the user.
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(res.GetError()))
 	}
 	return &panelv1.ExecuteResponse{CommandId: env.CommandID, ResultJson: string(res.GetResult()), Duplicate: res.GetDuplicate()}, nil
+}
+
+func mustJSON(v any) []byte {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return []byte("{}")
+	}
+	return b
 }

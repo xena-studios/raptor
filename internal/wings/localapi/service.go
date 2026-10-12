@@ -21,6 +21,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/storage"
+	"github.com/xena-studios/raptor/internal/wings/support"
 )
 
 // DockerVersioner reports the Docker daemon version.
@@ -47,11 +48,12 @@ type Service struct {
 	PanelURL  string
 	StartedAt time.Time
 	Docker    DockerVersioner
-	Storage   *storage.Volume // nil in tests
-	Updates   Updates         // nil in tests
-	Disk      *host.DiskGuard // nil in tests
-	Notify    Notifications   // nil if none are configured
-	Link      Link            // nil if the node isn't linked
+	Storage   *storage.Volume  // nil in tests
+	Updates   Updates          // nil in tests
+	Disk      *host.DiskGuard  // nil in tests
+	Notify    Notifications    // nil if none are configured
+	Link      Link             // nil if the node isn't linked
+	Support   *support.Manager // nil in tests
 
 	mu       sync.RWMutex
 	commands *command.Executor
