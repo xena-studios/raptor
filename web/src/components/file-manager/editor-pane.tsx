@@ -31,6 +31,7 @@ export function EditorPane({
   serverId,
   path,
   canWrite,
+  transfers = true,
   onBack,
   onClose,
   onDirty,
@@ -40,6 +41,8 @@ export function EditorPane({
   serverId: string;
   path: string;
   canWrite: boolean;
+  // Downloads offered (not to staff under support access).
+  transfers?: boolean;
   onBack: () => void;
   onClose: () => void;
   onDirty: (dirty: boolean) => void;
@@ -141,14 +144,16 @@ export function EditorPane({
           <span className="rounded border px-1.5 text-xs text-muted-foreground">Read-only</span>
         )}
         <div className="ml-auto flex items-center gap-1">
-          <a
-            href={downloadURL(nodeId, serverId, path)}
-            aria-label="Download"
-            title="Download"
-            className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
-          >
-            <Download />
-          </a>
+          {transfers && (
+            <a
+              href={downloadURL(nodeId, serverId, path)}
+              aria-label="Download"
+              title="Download"
+              className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+            >
+              <Download />
+            </a>
+          )}
           {!readOnly && !binary && (
             <Button size="sm" disabled={!dirty || status === "saving"} onClick={() => void save()}>
               {status === "saving" ? <Loader2 className="animate-spin" /> : <Save />} Save
@@ -176,12 +181,14 @@ export function EditorPane({
         {binary && (
           <div className="flex flex-col items-start gap-3 p-4 text-sm text-muted-foreground">
             This isn't a text file, so it can't be edited here.
-            <a
-              href={downloadURL(nodeId, serverId, path)}
-              className={buttonVariants({ size: "sm", variant: "outline" })}
-            >
-              <Download /> Download it
-            </a>
+            {transfers && (
+              <a
+                href={downloadURL(nodeId, serverId, path)}
+                className={buttonVariants({ size: "sm", variant: "outline" })}
+              >
+                <Download /> Download it
+              </a>
+            )}
           </div>
         )}
         {initial !== undefined && !binary && (

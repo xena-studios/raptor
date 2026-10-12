@@ -5,7 +5,9 @@ import { apiURL } from "@/lib/transport";
 // backoff, and starts every watch again; each start sends the console's
 // history with reset set.
 
-type In = { op: "console"; id: string; node: string; server: string } | { op: "close"; id: string };
+type In =
+  | { op: "console"; id: string; node: string; server: string; support?: string }
+  | { op: "close"; id: string };
 
 type Out = {
   id: string;
@@ -23,7 +25,7 @@ type ConsoleHandlers = {
   onProblem: (message: string, retrying: boolean) => void;
 };
 
-type Watch = { node: string; server: string; h: ConsoleHandlers; retry?: number };
+type Watch = { node: string; server: string; h: ConsoleHandlers; support?: string; retry?: number };
 
 function liveURL(): string {
   const u = new URL(`${apiURL}/live`, window.location.href);
@@ -38,11 +40,12 @@ class Live {
   private backoff = 1000;
   private next = 0;
 
-  watchConsole(node: string, server: string, h: ConsoleHandlers): () => void {
+  // support: as Raptor's staff, under that support request.
+  watchConsole(node: string, server: string, h: ConsoleHandlers, support?: string): () => void {
     const id = `c${++this.next}`;
-    this.watches.set(id, { node, server, h });
+    this.watches.set(id, { node, server, h, support });
     this.connect();
-    if (this.open) this.send({ op: "console", id, node, server });
+    if (this.open) this.send({ op: "console", id, node, server, support });
     return () => {
       const w = this.watches.get(id);
       if (w?.retry) clearTimeout(w.retry);
@@ -64,7 +67,7 @@ class Live {
       this.open = true;
       this.backoff = 1000;
       for (const [id, w] of this.watches)
-        this.send({ op: "console", id, node: w.node, server: w.server });
+        this.send({ op: "console", id, node: w.node, server: w.server, support: w.support });
     };
     ws.onmessage = (e) => {
       let m: Out;
@@ -84,7 +87,13 @@ class Live {
       if (m.retry) {
         w.retry = window.setTimeout(() => {
           if (this.watches.get(m.id) === w && this.open)
-            this.send({ op: "console", id: m.id, node: w.node, server: w.server });
+            this.send({
+              op: "console",
+              id: m.id,
+              node: w.node,
+              server: w.server,
+              support: w.support,
+            });
         }, 3000);
       }
     };

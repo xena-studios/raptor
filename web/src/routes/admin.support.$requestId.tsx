@@ -1,9 +1,10 @@
 import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Loader2, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { FolderOpen, Loader2, RefreshCw, SquareTerminal, X } from "lucide-react";
+import { lazy, Suspense, useState } from "react";
 
+import { Files } from "@/components/file-manager";
 import { supportLevels } from "@/components/support-access";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/admin/support/$requestId")({
   component: SupportSession,
 });
 
+const Console = lazy(() => import("@/components/console"));
+
 type Check = { id: string; title: string; status: string; detail?: string; fix?: string };
 type Health = {
   host: {
@@ -44,13 +47,18 @@ type Health = {
 };
 
 // Working on a node under support access: its health and checks, Wings'
-// log, and (at level 2) its servers' power. Every command names the
-// request; the node checks it against what the owner signed.
+// log, (at level 2) its servers' power and consoles, and (at level 3)
+// their files. Every command names the request; the node checks it
+// against what the owner signed.
 function SupportSession() {
   const { requestId } = Route.useParams();
+  const session = Route.useRouteContext();
   const list = useConnectQuery(StaffService.method.listSupportRequests, {});
   const r = list.data?.requests.find((x) => x.id === requestId);
   const [lines, setLines] = useState<string>();
+  // The server whose console or files are open.
+  const [open, setOpen] = useState<{ server: string; view: "console" | "files" }>();
+  const [where, setWhere] = useState<{ path: string; file?: string }>({ path: "" });
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
@@ -85,6 +93,7 @@ function SupportSession() {
   }
   const h = health.data;
   const operate = r.grantedLevel >= 2;
+  const manage = r.grantedLevel >= 3;
 
   async function act(key: string, fn: () => Promise<unknown>) {
     setBusy(key);
@@ -179,9 +188,11 @@ function SupportSession() {
           <CardHeader>
             <CardTitle>Servers</CardTitle>
             <CardDescription>
-              {operate
-                ? "You can start, stop, and restart them."
-                : "Level 1 looks; level 2 can power them."}
+              {manage
+                ? "You can power them, use their consoles, and work on their files."
+                : operate
+                  ? "You can power them and use their consoles. Files need level 3."
+                  : "Level 1 looks; level 2 can power them and use their consoles."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -207,6 +218,37 @@ function SupportSession() {
                     {operate && (
                       <TableCell className="text-right">
                         <span className="inline-flex gap-1">
+                          <Button
+                            size="icon-sm"
+                            variant={
+                              open?.server === s.id && open.view === "console"
+                                ? "secondary"
+                                : "ghost"
+                            }
+                            aria-label="Console"
+                            title="Console"
+                            onClick={() => setOpen({ server: s.id, view: "console" })}
+                          >
+                            <SquareTerminal />
+                          </Button>
+                          {manage && (
+                            <Button
+                              size="icon-sm"
+                              variant={
+                                open?.server === s.id && open.view === "files"
+                                  ? "secondary"
+                                  : "ghost"
+                              }
+                              aria-label="Files"
+                              title="Files"
+                              onClick={() => {
+                                setWhere({ path: "" });
+                                setOpen({ server: s.id, view: "files" });
+                              }}
+                            >
+                              <FolderOpen />
+                            </Button>
+                          )}
                           {(["start", "restart", "stop"] as const).map((a) => (
                             <Button
                               key={a}
@@ -234,6 +276,60 @@ function SupportSession() {
           </CardContent>
         </Card>
       </div>
+
+      {open && operate && (
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1.5">
+              <CardTitle>
+                {open.view === "console" ? "Console" : "Files"} ·{" "}
+                <span className="font-mono">{open.server.slice(-8)}</span>
+              </CardTitle>
+              <CardDescription>
+                {open.view === "console"
+                  ? "Commands you send are logged for the owner, like everything here."
+                  : "No uploads or downloads under support access; deletes go to the server's trash."}
+              </CardDescription>
+            </div>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Close"
+              onClick={() => setOpen(undefined)}
+            >
+              <X />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {open.view === "console" ? (
+              <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+                <Console
+                  key={open.server}
+                  nodeId={r.nodeId}
+                  serverId={open.server}
+                  canWrite
+                  support={requestId}
+                />
+              </Suspense>
+            ) : (
+              manage && (
+                <Files
+                  key={open.server}
+                  nodeId={r.nodeId}
+                  serverId={open.server}
+                  orgId={r.orgId}
+                  userId={session.user?.id ?? ""}
+                  canWrite
+                  path={where.path}
+                  file={where.file}
+                  onNavigate={setWhere}
+                  support={requestId}
+                />
+              )
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">

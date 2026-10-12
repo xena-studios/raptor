@@ -6,16 +6,20 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/commands"
+	"github.com/xena-studios/raptor/internal/panel/live"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/paneltest"
@@ -31,11 +35,12 @@ func TestSupportRequests(t *testing.T) {
 	mail := &inbox{}
 	pub, key, _ := ed25519.GenerateKey(rand.Reader)
 	node := &fakeNode{t: t, panelKey: pub}
+	consoles := &fakeConsoles{t: t, panelKey: pub, push: make(chan string, 1)}
 	authSvc := &auth.Service{DB: db, Mailer: mail, AppURL: appOrigin}
 	staffSvc := &staff.Service{DB: db, Auth: authSvc}
 	srv := httptest.NewTLSServer(Handler(Config{
 		Auth: authSvc, Orgs: &orgs.Service{DB: db, Auth: authSvc, Registry: &nodes.Registry{DB: db, PanelKey: key}},
-		Commands: &commands.Service{Auth: authSvc, Sender: node, PanelKey: key}, Staff: staffSvc, AppOrigin: appOrigin,
+		Commands: &commands.Service{Auth: authSvc, Sender: node, Consoles: consoles, PanelKey: key}, Staff: staffSvc, AppOrigin: appOrigin,
 	}))
 	defer srv.Close()
 	signUp := func(email string) (*browser, string) {
@@ -164,6 +169,55 @@ func TestSupportRequests(t *testing.T) {
 	if _, err := owner.orgs.DenySupportRequest(ctx, &panelv1.DenySupportRequestRequest{OrgId: org, RequestId: r2.GetId()}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Errorf("denying twice: %v", err)
 	}
+	// Level 2: a server's console too, over the live socket, under the
+	// request; the request that was ended can't open one.
+	r3, err := sup.staff.RequestSupportAccess(ctx, &panelv1.RequestSupportAccessRequest{NodeId: nodeID, Level: 2, Minutes: 30, Reason: "lag", Ticket: "T-44"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _ := json.Marshal(map[string]any{
+		"id": r3.GetId(), "staff_id": supID, "staff_email": "support@raptor.example", "level": 2,
+		"reason": "lag", "ticket": "T-44", "expires_at": time.Now().Add(30 * time.Minute).UnixMilli(),
+	})
+	if _, err := owner.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: nodeID, Action: "support.grant", ParamsJson: string(p)}); err != nil {
+		t.Fatal(err)
+	}
+	ws, resp, err := websocket.Dial(ctx, "wss"+strings.TrimPrefix(srv.URL, "https")+"/api/live", &websocket.DialOptions{
+		HTTPClient: sup.http, HTTPHeader: http.Header{"Origin": {appOrigin}},
+	})
+	if resp != nil && resp.Body != nil {
+		_ = resp.Body.Close()
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = ws.CloseNow() }()
+	watch := func(id, request string) live.Out {
+		t.Helper()
+		if err := wsjson.Write(ctx, ws, live.In{Op: "console", ID: id, Node: nodeID, Server: "s1", Support: request}); err != nil {
+			t.Fatal(err)
+		}
+		rctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		var m live.Out
+		if err := wsjson.Read(rctx, ws, &m); err != nil {
+			t.Fatal(err)
+		}
+		return m
+	}
+	if m := watch("old", req.GetId()); m.Type != "ended" || m.Error == "" {
+		t.Errorf("a console under the ended request: %+v", m)
+	}
+	if m := watch("s", r3.GetId()); m.Type != "lines" || m.Lines[0] != "history" {
+		t.Fatalf("a console under level 2: %+v", m)
+	}
+	consoles.mu.Lock()
+	opened := consoles.opened[len(consoles.opened)-1]
+	consoles.mu.Unlock()
+	if opened.Grant.Support != r3.GetId() || opened.UserID != supID {
+		t.Errorf("the console's grant: %+v, user %s", opened.Grant, opened.UserID)
+	}
+
 	// The org's log has it, as staff.
 	var n int
 	_ = db.QueryRow(ctx, "SELECT count(*) FROM audit_log WHERE actor = 'staff' AND (action = 'support.request' OR action = 'command')").Scan(&n)

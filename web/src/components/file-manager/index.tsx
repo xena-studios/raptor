@@ -95,6 +95,7 @@ export function Files({
   actions,
   orgId,
   userId,
+  support,
 }: {
   nodeId: string;
   serverId: string;
@@ -107,8 +108,12 @@ export function Files({
   // For the trash: who deleted what.
   orgId: string;
   userId: string;
+  // Raptor's staff, under this support request: no uploads or downloads,
+  // which support access doesn't cover.
+  support?: string;
 }) {
-  const api = useFilesApi(nodeId, serverId);
+  const api = useFilesApi(nodeId, serverId, support);
+  const transfers = !support;
   const settings = useFileSettings();
   const listing = useListing(api, path);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -319,19 +324,23 @@ export function Files({
               <Button size="sm" variant="outline" disabled={busy} onClick={newFolder}>
                 <FolderPlus /> New Folder
               </Button>
-              <Button size="sm" variant="outline" onClick={() => picker.current?.click()}>
-                <Upload /> Upload
-              </Button>
-              <input
-                ref={picker}
-                type="file"
-                multiple
-                hidden
-                onChange={(e) => {
-                  startUploads(e.target.files);
-                  e.target.value = "";
-                }}
-              />
+              {transfers && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => picker.current?.click()}>
+                    <Upload /> Upload
+                  </Button>
+                  <input
+                    ref={picker}
+                    type="file"
+                    multiple
+                    hidden
+                    onChange={(e) => {
+                      startUploads(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </>
+              )}
             </>
           )}
           {actions}
@@ -434,7 +443,7 @@ export function Files({
         <main
           className="relative flex min-w-0 flex-1 flex-col"
           onDragOver={(e) => {
-            if (!canWrite || file) return;
+            if (!canWrite || file || !transfers) return;
             e.preventDefault();
             setDragging(true);
           }}
@@ -451,6 +460,7 @@ export function Files({
               serverId={serverId}
               path={file}
               canWrite={canWrite}
+              transfers={transfers}
               onBack={() => go({ path })}
               onClose={() => go({ path })}
               onDirty={(d) => {
@@ -628,7 +638,7 @@ export function Files({
                                 e={e}
                                 canWrite={canWrite}
                                 download={
-                                  kind(e) === "file"
+                                  kind(e) === "file" && transfers
                                     ? downloadURL(nodeId, serverId, join(path, e.name))
                                     : undefined
                                 }

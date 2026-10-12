@@ -27,10 +27,12 @@ type Consoles interface {
 const consoleAction = "server.console"
 
 // Console streams a server's console to the signed-in user, if they may
-// watch it (console.read), calling out for each batch until the node hangs
-// up or ctx ends. Access is checked once, when the stream opens: callers
-// reopen long streams to check it again.
-func (s *Service) Console(ctx context.Context, nodeID, serverID string, out func(nodes.ConsoleBatch) error) error {
+// watch it (console.read), or to Raptor's staff under a support request
+// at level 2 or more (support set), calling out for each batch until the
+// node hangs up or ctx ends. Access is checked once, when the stream
+// opens: callers reopen long streams to check it again. Staff watching is
+// logged, like their commands.
+func (s *Service) Console(ctx context.Context, nodeID, serverID, support string, out func(nodes.ConsoleBatch) error) error {
 	if s.Consoles == nil {
 		return connect.NewError(connect.CodeUnavailable, errors.New("consoles aren't available"))
 	}
@@ -39,15 +41,24 @@ func (s *Service) Console(ctx context.Context, nodeID, serverID string, out func
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("which server?"))
 	}
 	env := nodecmd.Envelope{NodeID: node.String(), Action: consoleAction, ServerID: serverID}
-	err = s.Auth.AsUser(ctx, func(sess *auth.Session, q *store.Queries) error {
-		if _, err := s.authorize(ctx, q, sess, pgtype.UUID{Bytes: node, Valid: true}, consoleAction, serverID); err != nil {
+	if support != "" {
+		sess, org, err := s.authorizeSupport(ctx, pgtype.UUID{Bytes: node, Valid: true}, support, &env)
+		if err != nil {
 			return err
 		}
 		env.UserID = uuid.UUID(sess.UserID.Bytes).String()
-		return nil
-	})
-	if err != nil {
-		return err
+		s.auditStaff(ctx, sess, org, support, env, map[string]any{"action": env.Action, "node": env.NodeID})
+	} else {
+		err = s.Auth.AsUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+			if _, err := s.authorize(ctx, q, sess, pgtype.UUID{Bytes: node, Valid: true}, consoleAction, serverID); err != nil {
+				return err
+			}
+			env.UserID = uuid.UUID(sess.UserID.Bytes).String()
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
 	id, err := uuid.NewV7()
 	if err != nil {

@@ -130,3 +130,22 @@ func (s *Service) afterSupport(ctx context.Context, sess *auth.Session, node pgt
 		}
 	}
 }
+
+// auditStaff logs a staff member's command under a support request, in the
+// staff log and the org's (as staff), even when it only looks.
+func (s *Service) auditStaff(ctx context.Context, sess *auth.Session, org pgtype.UUID, support string, env nodecmd.Envelope, meta map[string]any) {
+	meta["support"] = support
+	_ = store.New(s.Auth.DB).AddStaffAudit(context.WithoutCancel(ctx), store.AddStaffAuditParams{
+		StaffID: sess.UserID, StaffEmail: sess.User.Email, Action: "support.command", TargetType: "node",
+		TargetID: env.NodeID, Meta: mustJSON(map[string]any{"action": env.Action, "server": env.ServerID, "request": support}),
+	})
+	_ = s.Auth.Audit(ctx, nil, auth.Event{Org: org, Actor: sess.UserID, Staff: true, Action: "command", Target: auditTarget(env), Meta: meta})
+}
+
+// auditTarget is what a command is about: its server, or its node.
+func auditTarget(env nodecmd.Envelope) string {
+	if env.ServerID != "" {
+		return env.ServerID
+	}
+	return env.NodeID
+}
