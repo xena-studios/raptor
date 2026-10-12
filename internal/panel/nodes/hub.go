@@ -11,11 +11,13 @@ import (
 	"log/slog"
 	"net/http"
 	"net/netip"
+	"regexp"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
@@ -137,7 +139,8 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var connects, _ = telemetry.Meter.Int64Counter("raptor.nodes.connects", metric.WithDescription("Node connections made to this instance"))
 
 // ObserveMetrics reports how many nodes are connected to this instance
-// (raptor.nodes.connected).
+// (raptor.nodes.connected), and by Wings version (raptor.nodes.versions),
+// which shows a rollout's progress and nodes left behind on old versions.
 func (h *Hub) ObserveMetrics() error {
 	_, err := telemetry.Meter.Int64ObservableGauge("raptor.nodes.connected",
 		metric.WithDescription("Nodes connected to this instance"),
@@ -148,7 +151,37 @@ func (h *Hub) ObserveMetrics() error {
 			o.Observe(int64(n))
 			return nil
 		}))
+	if err != nil {
+		return err
+	}
+	_, err = telemetry.Meter.Int64ObservableGauge("raptor.nodes.versions",
+		metric.WithDescription("Nodes connected to this instance, by Wings version"),
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			for v, n := range h.versions() {
+				o.Observe(n, metric.WithAttributes(attribute.String("version", v)))
+			}
+			return nil
+		}))
 	return err
+}
+
+// softwareVersion is a Wings version worth its own series: a release
+// (1.2.3, v1.2.3-rc.1) or a development build.
+var softwareVersion = regexp.MustCompile(`^(v?[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}(-[0-9A-Za-z.]{1,20})?|dev)$`)
+
+// versions counts the connected nodes by Wings version.
+func (h *Hub) versions() map[string]int64 {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	out := map[string]int64{}
+	for _, c := range h.conns {
+		v := c.Hello.Software
+		if !softwareVersion.MatchString(v) {
+			v = "other" // the node says it; it isn't let make new series
+		}
+		out[v]++
+	}
+	return out
 }
 
 // register makes c the node's connection; a node has one, so an older one

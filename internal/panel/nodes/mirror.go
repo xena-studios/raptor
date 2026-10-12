@@ -36,6 +36,103 @@ type Mirror struct {
 	once    sync.Once
 	mu      sync.Mutex
 	pending map[string]chan struct{} // a worker per node with work queued
+	behind  map[string]backlog       // nodes with events not applied yet
+}
+
+// backlog is a node's events the mirror hasn't applied: up to head, the
+// oldest waiting since since.
+type backlog struct {
+	head  int64
+	since time.Time
+}
+
+// lagWarning is how far behind a node's mirror gets before it's logged.
+const lagWarning = time.Minute
+
+// Event lag (docs/ARCHITECTURE.md#mirror-sync): how old events are when
+// the mirror applies them, and the worst node's backlog now. Not per node,
+// so the series don't grow with the nodes; a node that falls behind is
+// logged.
+var eventLag, _ = telemetry.Meter.Float64Histogram("raptor.mirror.event_lag", metric.WithUnit("s"),
+	metric.WithDescription("How old a node's events are when the mirror applies them (the oldest of each batch)"),
+	metric.WithExplicitBucketBoundaries(0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 300, 900))
+
+// ObserveMetrics reports the mirror's backlog: how many nodes have events
+// it hasn't applied (raptor.mirror.nodes_behind), and how long the worst
+// has waited (raptor.mirror.backlog_age).
+func (m *Mirror) ObserveMetrics() error {
+	behind, err := telemetry.Meter.Int64ObservableGauge("raptor.mirror.nodes_behind",
+		metric.WithDescription("Nodes with events the mirror hasn't applied yet"))
+	if err != nil {
+		return err
+	}
+	age, err := telemetry.Meter.Float64ObservableGauge("raptor.mirror.backlog_age", metric.WithUnit("s"),
+		metric.WithDescription("How long the oldest unapplied node event has waited, across nodes"))
+	if err != nil {
+		return err
+	}
+	_, err = telemetry.Meter.RegisterCallback(func(_ context.Context, o metric.Observer) error {
+		n, oldest := m.backlog(time.Now())
+		o.ObserveInt64(behind, int64(n))
+		o.ObserveFloat64(age, oldest.Seconds())
+		return nil
+	}, behind, age)
+	return err
+}
+
+// backlog is how many nodes are behind and the longest wait.
+func (m *Mirror) backlog(now time.Time) (int, time.Duration) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var oldest time.Duration
+	for _, b := range m.behind {
+		oldest = max(oldest, now.Sub(b.since))
+	}
+	return len(m.behind), oldest
+}
+
+// Available is a node saying it has events up to lastSeq: the mirror is
+// behind until it applies them, and a sync is queued.
+func (m *Mirror) Available(nodeID string, lastSeq int64) {
+	m.init()
+	m.mu.Lock()
+	b, ok := m.behind[nodeID]
+	if !ok {
+		b.since = time.Now()
+	}
+	b.head = max(b.head, lastSeq)
+	m.behind[nodeID] = b
+	m.mu.Unlock()
+	m.Notify(nodeID)
+}
+
+// applied records that the mirror has a node's events up to seq.
+func (m *Mirror) applied(nodeID string, seq int64) {
+	m.init()
+	m.mu.Lock()
+	if b, ok := m.behind[nodeID]; ok && seq >= b.head {
+		delete(m.behind, nodeID)
+	}
+	m.mu.Unlock()
+}
+
+// forget drops a node that isn't connected here: it's synced, and counted,
+// where it connects next.
+func (m *Mirror) forget(nodeID string) {
+	m.init()
+	m.mu.Lock()
+	delete(m.behind, nodeID)
+	m.mu.Unlock()
+}
+
+func (m *Mirror) init() {
+	m.once.Do(func() {
+		m.pending = map[string]chan struct{}{}
+		m.behind = map[string]backlog{}
+		if m.Log == nil {
+			m.Log = slog.New(slog.DiscardHandler)
+		}
+	})
 }
 
 // Events per pull.
@@ -44,12 +141,7 @@ const eventBatch = 500
 // Notify asks for a sync of a node: it's coalesced with one already queued,
 // and a node is synced by one worker at a time.
 func (m *Mirror) Notify(nodeID string) {
-	m.once.Do(func() {
-		m.pending = map[string]chan struct{}{}
-		if m.Log == nil {
-			m.Log = slog.New(slog.DiscardHandler)
-		}
-	})
+	m.init()
 	m.mu.Lock()
 	ch, running := m.pending[nodeID]
 	if !running {
@@ -102,6 +194,7 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 	node := pgUUID(id)
 	c, ok := m.Hub.Conn(nodeID)
 	if !ok {
+		m.forget(nodeID)
 		return nil // it syncs when it's back
 	}
 	q := store.New(m.DB)
@@ -123,6 +216,7 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 		}
 		evs := res.GetEvents()
 		if len(evs) == 0 {
+			m.applied(nodeID, acked)
 			return nil
 		}
 		// State changes come with the event; anything else about a server
@@ -197,7 +291,14 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 			return err
 		}
 		acked = last
+		if lag := time.Since(time.UnixMilli(evs[0].GetAt())); evs[0].GetAt() > 0 {
+			eventLag.Record(ctx, max(lag, 0).Seconds())
+			if lag > lagWarning {
+				m.Log.Warn("mirror is behind a node", "node", nodeID, "lag", lag.Round(time.Second), "events", len(evs))
+			}
+		}
 		if len(evs) < eventBatch {
+			m.applied(nodeID, acked)
 			return nil
 		}
 	}
@@ -289,7 +390,7 @@ func (m *Mirror) snapshot(ctx context.Context, node pgtype.UUID, c *Conn) error 
 	if err != nil {
 		return err
 	}
-	return pgx.BeginFunc(ctx, m.DB, func(tx pgx.Tx) error {
+	err = pgx.BeginFunc(ctx, m.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.DeleteMirrorServers(ctx, node); err != nil {
 			return err
@@ -300,6 +401,10 @@ func (m *Mirror) snapshot(ctx context.Context, node pgtype.UUID, c *Conn) error 
 		// Every event up to last_seq is reflected; resume after it.
 		return q.SetNodeAcked(ctx, store.SetNodeAckedParams{ID: node, LastAckedSeq: res.GetLastSeq()})
 	})
+	if err == nil {
+		m.applied(c.NodeID, res.GetLastSeq())
+	}
+	return err
 }
 
 func applyServers(ctx context.Context, q *store.Queries, node pgtype.UUID, res *nodev1.GetServersResponse) error {

@@ -290,7 +290,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			}
 		}
 		mirror := &nodes.Mirror{DB: pool, Hub: cfg.Hub, Log: log}
-		cfg.Hub.EventsAvailable = func(_ context.Context, id string, _ int64) { mirror.Notify(id) }
+		cfg.Hub.EventsAvailable = func(_ context.Context, id string, last int64) { mirror.Available(id, last) }
+		if err := mirror.ObserveMetrics(); err != nil {
+			return err
+		}
 		cfg.Hub.SFTPLogin = cfg.Auth.SFTPLogin
 		bundles, err := supportStore(log)
 		if err != nil {
