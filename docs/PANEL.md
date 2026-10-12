@@ -327,6 +327,8 @@ Raptor's staff can work on a node only with its owner's consent, signed with the
    - **1, diagnostics:** health, doctor's checks, metrics, disks, system settings, Wings' own log (`node.logs`), servers' metrics and ports, backup destinations and activity, trusted keys.
    - **2, operate:** level 1, plus starting, stopping, restarting, and killing servers, and their consoles.
    - **3, manage:** level 2, plus servers' files (not permanent deletes), schedules, and backing up.
+
+   The support session page (`/admin/support/<request>`) has what the level allows: health and checks, Wings' log, and servers' power, plus a server's live console at level 2 and its file manager at level 3. The console stream takes the request too (the live socket's `console` op with `support`), checked like a command (`server.console` is level 2), and each opening is logged like a staff command. Files have no uploads or downloads, which go through file transfers that support access doesn't cover.
 4. **While it lasts,** the node's pages show who has what until when, with "End now". Every staff command, even a look, goes in the org's log as done by staff, in the staff log, and in Wings' own log.
 5. **Ending it:** "End now" (`support.revoke`, not signed: it only takes access away), `sudo raptor support revoke <id>|all` on the box, or turning support access off (node Settings, or `sudo raptor support off`), which ends every grant and refuses new ones until it's turned on again.
 

@@ -258,7 +258,7 @@ Found while checking production (Oct 8):
 - [x] **Connection test** with provider guides (on the Network tab: the Panel probes each port from outside while the node says what the game listens on inside, into one cause per port, with a guide for the provider guessed from reverse DNS; left for later: running it after a server's first start)
 - [ ] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link (the domain is on the Public Suffix List first)
 - [x] **Audit log** view (the org's Settings, Activity)
-- [ ] **Staff admin panel** (`/admin`) (overview with history, users and orgs, suspending, the staff log, announcements, and support access to nodes (owner-signed grants checked by Wings, three levels, `raptor support` on the box) done; left: revenue once billing exists, and staff file and console views under level 2 and 3 grants)
+- [ ] **Staff admin panel** (`/admin`) (overview with history, users and orgs, suspending, the staff log, announcements, and support access to nodes (owner-signed grants checked by Wings, three levels, `raptor support` on the box) done; staff consoles under level 2 grants and files under level 3, on the support session page, done; left: revenue once billing exists)
 - [ ] Performance: route code splitting, lazy xterm and editor (xterm and the editor load only when shown, each in its own chunk)
 
 **Exit criteria:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, **without help**, in under 15 minutes.

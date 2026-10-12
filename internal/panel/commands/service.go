@@ -231,18 +231,11 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 		case res.GetError() != "":
 			meta["error"] = res.GetError()
 		}
-		target := env.ServerID
-		if target == "" {
-			target = env.NodeID
-		}
 		if support != "" {
-			meta["support"] = support
-			_ = store.New(s.Auth.DB).AddStaffAudit(context.WithoutCancel(ctx), store.AddStaffAuditParams{
-				StaffID: sess.UserID, StaffEmail: sess.User.Email, Action: "support.command", TargetType: "node",
-				TargetID: env.NodeID, Meta: mustJSON(map[string]any{"action": env.Action, "server": env.ServerID, "request": support}),
-			})
+			s.auditStaff(ctx, sess, org, support, env, meta)
+		} else {
+			_ = s.Auth.Audit(ctx, nil, auth.Event{Org: org, Actor: sess.UserID, Action: "command", Target: auditTarget(env), Meta: meta})
 		}
-		_ = s.Auth.Audit(ctx, nil, auth.Event{Org: org, Actor: sess.UserID, Staff: support != "", Action: "command", Target: target, Meta: meta})
 	}
 	if err != nil {
 		return nil, err

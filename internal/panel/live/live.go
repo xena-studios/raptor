@@ -47,12 +47,14 @@ type Handler struct {
 }
 
 // In is a message from the browser. Op "console" watches a server's
-// console under the browser's id for it; "close" stops watching.
+// console under the browser's id for it (Support: as Raptor's staff, under
+// that support request); "close" stops watching.
 type In struct {
-	Op     string `json:"op"`
-	ID     string `json:"id"`
-	Node   string `json:"node,omitempty"`
-	Server string `json:"server,omitempty"`
+	Op      string `json:"op"`
+	ID      string `json:"id"`
+	Node    string `json:"node,omitempty"`
+	Server  string `json:"server,omitempty"`
+	Support string `json:"support,omitempty"`
 }
 
 // Out is a message to the browser. Type "lines" carries console lines
@@ -242,7 +244,7 @@ func (s *socket) console(ctx context.Context, m In) {
 	for {
 		sctx, cancel := context.WithTimeout(ctx, recheck)
 		first := true
-		err := s.h.Commands.Console(sctx, m.Node, m.Server, func(b nodes.ConsoleBatch) error {
+		err := s.h.Commands.Console(sctx, m.Node, m.Server, m.Support, func(b nodes.ConsoleBatch) error {
 			s.send(ctx, Out{ID: m.ID, Type: "lines", Lines: b.Lines, Reset: first && b.History})
 			first = false
 			return nil

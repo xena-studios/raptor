@@ -19,10 +19,13 @@ export default function Console({
   nodeId,
   serverId,
   canWrite,
+  support,
 }: {
   nodeId: string;
   serverId: string;
   canWrite: boolean;
+  // Raptor's staff, under this support request.
+  support?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [problem, setProblem] = useState<{ text: string; retrying: boolean }>();
@@ -58,20 +61,25 @@ export default function Console({
     fit.fit();
     const resize = new ResizeObserver(() => fit.fit());
     resize.observe(el);
-    const stop = live.watchConsole(nodeId, serverId, {
-      onLines: (lines, reset) => {
-        if (reset) term.reset();
-        setProblem(undefined);
-        if (lines.length > 0) term.write(`${lines.join("\r\n")}\r\n`);
+    const stop = live.watchConsole(
+      nodeId,
+      serverId,
+      {
+        onLines: (lines, reset) => {
+          if (reset) term.reset();
+          setProblem(undefined);
+          if (lines.length > 0) term.write(`${lines.join("\r\n")}\r\n`);
+        },
+        onProblem: (text, retrying) => setProblem({ text, retrying }),
       },
-      onProblem: (text, retrying) => setProblem({ text, retrying }),
-    });
+      support,
+    );
     return () => {
       stop();
       resize.disconnect();
       term.dispose();
     };
-  }, [nodeId, serverId]);
+  }, [nodeId, serverId, support]);
 
   async function send(e: FormEvent) {
     e.preventDefault();
@@ -85,6 +93,7 @@ export default function Console({
         action: "server.command",
         serverId,
         paramsJson: JSON.stringify({ command: c }),
+        support,
       });
       history.current = [c, ...history.current.filter((h) => h !== c)].slice(0, 50);
       back.current = -1;

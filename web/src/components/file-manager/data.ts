@@ -33,7 +33,8 @@ export function sorted(entries: Entry[]): Entry[] {
 }
 
 // useFilesApi runs file actions on one server and keeps its listings.
-export function useFilesApi(nodeId: string, serverId: string) {
+// support: as Raptor's staff, under that support request.
+export function useFilesApi(nodeId: string, serverId: string, support?: string) {
   const client = useQueryClient();
   async function run<T>(action: string, params: object): Promise<T | undefined> {
     const res = await commandClient.execute({
@@ -41,6 +42,7 @@ export function useFilesApi(nodeId: string, serverId: string) {
       action,
       serverId,
       paramsJson: JSON.stringify(params),
+      support,
     });
     return res.resultJson ? (JSON.parse(res.resultJson) as T) : undefined;
   }
