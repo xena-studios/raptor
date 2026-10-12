@@ -274,6 +274,8 @@ tasks:
           install -m 0755 /tmp/raptor /usr/local/lib/raptor/raptor-dev
           ln -sfn raptor-dev /usr/local/lib/raptor/current
           ln -sfn /usr/local/lib/raptor/current /usr/local/bin/raptor
+          # A running Wings keeps the old binary until it restarts.
+          if systemctl is-active -q raptor-wings; then systemctl restart raptor-wings; fi
         '
         limactl shell {{.VM}} raptor version
 
