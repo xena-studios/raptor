@@ -16,7 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
-import { renderSVG } from "uqr";
+import { encode } from "uqr";
 import { ActivityCard, type TimelineItem, type TimelinePage } from "@/components/activity-timeline";
 import { ProviderIcon } from "@/components/provider-icons";
 import { useReauth } from "@/components/reauth";
@@ -321,12 +321,8 @@ export function Authenticator() {
           }}
         >
           <p className="text-sm">Scan this with your authenticator app, or type the key in.</p>
-          {/* uqr renders the QR code locally: the secret never leaves the page. */}
-          <div
-            className="w-44 rounded-lg bg-white p-2"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: uqr's own SVG, from the Panel's otpauth URL
-            dangerouslySetInnerHTML={{ __html: renderSVG(setup.url) }}
-          />
+          {/* The QR code is made here: the secret never leaves the page. */}
+          <QRCode value={setup.url} className="w-44 rounded-lg bg-white p-2" />
           <code className="break-all text-xs">{setup.secret}</code>
           <Label htmlFor="totp-code">The 6-digit code it shows</Label>
           <Input
@@ -744,4 +740,24 @@ function Fingerprint({ publicKey }: { publicKey: Uint8Array }) {
     keyFingerprint(publicKey).then(setFp);
   }, [publicKey]);
   return <code>{fp}</code>;
+}
+
+// QRCode draws a QR code as SVG, from uqr's matrix: no markup is inserted,
+// so it needs no Trusted Types policy.
+function QRCode({ value, className }: { value: string; className?: string }) {
+  const qr = encode(value, { border: 1 });
+  const path = qr.data
+    .flatMap((row, y) => row.flatMap((dark, x) => (dark ? [`M${x} ${y}h1v1h-1z`] : [])))
+    .join("");
+  return (
+    <svg
+      viewBox={`0 0 ${qr.size} ${qr.size}`}
+      className={className}
+      shapeRendering="crispEdges"
+      role="img"
+      aria-label="QR code for your authenticator app"
+    >
+      <path d={path} fill="#000" />
+    </svg>
+  );
 }
