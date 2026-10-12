@@ -1,12 +1,12 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { NotFound } from "@/components/error-screen";
-import { PageHeader, RouteTabs, tabClass } from "@/components/page";
+import { PageHeader } from "@/components/page";
 import { useReauth } from "@/components/reauth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,15 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const session = Route.useRouteContext();
   const me = useQuery(StaffService.method.getStaffMe, {});
+  const path = useLocation({ select: (l) => l.pathname });
+  const section =
+    [
+      ["/admin/users", "Users"],
+      ["/admin/orgs", "Orgs"],
+      ["/admin/support", "Support"],
+      ["/admin/announcements", "Announcements"],
+      ["/admin/settings", "Settings"],
+    ].find(([p]) => path.startsWith(p as string))?.[1] ?? "Overview";
   return (
     <AppShell session={session}>
       {me.isPending ? (
@@ -37,37 +46,17 @@ function AdminLayout() {
         <>
           <div className="space-y-4">
             <PageHeader
-              eyebrow="Raptor"
+              eyebrow="Raptor admin"
               title={
                 <span className="flex items-center gap-2.5">
-                  Admin
+                  {section}
                   <Badge variant="outline" className="capitalize">
                     {me.data.role}
                   </Badge>
                 </span>
               }
-              description="The platform, its accounts, and its orgs. Everything you do here is logged."
+              description="Everything you do here is logged."
             />
-            <RouteTabs label="Admin sections">
-              <Link to="/admin" activeOptions={{ exact: true }} className={tabClass}>
-                Overview
-              </Link>
-              <Link to="/admin/users" className={tabClass}>
-                Users
-              </Link>
-              <Link to="/admin/orgs" className={tabClass}>
-                Orgs
-              </Link>
-              <Link to="/admin/support" className={tabClass}>
-                Support
-              </Link>
-              <Link to="/admin/announcements" className={tabClass}>
-                Announcements
-              </Link>
-              <Link to="/admin/staff" className={tabClass}>
-                Staff
-              </Link>
-            </RouteTabs>
           </div>
           {me.data.passkeyFresh ? <Outlet /> : <PasskeyGate />}
         </>

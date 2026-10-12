@@ -15,7 +15,7 @@ import { Route as InviteRouteImport } from './routes/invite'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
-import { Route as AdminStaffRouteImport } from './routes/admin.staff'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as OrgsOrgIdRouteImport } from './routes/orgs.$orgId'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as SettingsActivityRouteImport } from './routes/settings.activity'
@@ -90,9 +90,9 @@ const AdminAnnouncementsRoute = AdminAnnouncementsRouteImport.update({
   path: '/announcements',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminStaffRoute = AdminStaffRouteImport.update({
-  id: '/staff',
-  path: '/staff',
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
 const OrgsOrgIdRoute = OrgsOrgIdRouteImport.update({
@@ -338,7 +338,7 @@ export interface FileRoutesByFullPath {
   '/invite': typeof InviteRoute
   '/settings': typeof SettingsRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
-  '/admin/staff': typeof AdminStaffRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -388,7 +388,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/invite': typeof InviteRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
-  '/admin/staff': typeof AdminStaffRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
@@ -437,7 +437,7 @@ export interface FileRoutesById {
   '/invite': typeof InviteRoute
   '/settings': typeof SettingsRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
-  '/admin/staff': typeof AdminStaffRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -491,7 +491,7 @@ export interface FileRouteTypes {
     | '/invite'
     | '/settings'
     | '/admin/announcements'
-    | '/admin/staff'
+    | '/admin/settings'
     | '/orgs/$orgId'
     | '/settings/activity'
     | '/settings/security'
@@ -541,7 +541,7 @@ export interface FileRouteTypes {
     | '/'
     | '/invite'
     | '/admin/announcements'
-    | '/admin/staff'
+    | '/admin/settings'
     | '/settings/activity'
     | '/settings/security'
     | '/signin/link'
@@ -589,7 +589,7 @@ export interface FileRouteTypes {
     | '/invite'
     | '/settings'
     | '/admin/announcements'
-    | '/admin/staff'
+    | '/admin/settings'
     | '/orgs/$orgId'
     | '/settings/activity'
     | '/settings/security'
@@ -691,11 +691,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnnouncementsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/staff': {
-      id: '/admin/staff'
-      path: '/staff'
-      fullPath: '/admin/staff'
-      preLoaderRoute: typeof AdminStaffRouteImport
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/orgs/$orgId': {
@@ -1004,7 +1004,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
-  AdminStaffRoute: typeof AdminStaffRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminOrgsOrgIdRoute: typeof AdminOrgsOrgIdRoute
   AdminSupportRequestIdRoute: typeof AdminSupportRequestIdRoute
@@ -1016,7 +1016,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnnouncementsRoute: AdminAnnouncementsRoute,
-  AdminStaffRoute: AdminStaffRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminOrgsOrgIdRoute: AdminOrgsOrgIdRoute,
   AdminSupportRequestIdRoute: AdminSupportRequestIdRoute,
