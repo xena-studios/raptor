@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/addon.proto.
  */
 export const file_raptor_panel_v1_addon: GenFile = /*@__PURE__*/
-  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSKOAQoMQWRkb25Qcm9qZWN0EgoKAmlkGAEgASgJEgwKBHNsdWcYAiABKAkSDQoFdGl0bGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSEQoJZG93bmxvYWRzGAYgASgDEg4KBmF1dGhvchgHIAEoCRILCgN1cmwYCCABKAkiSAoJQWRkb25GaWxlEgsKA3VybBgBIAEoCRIQCghmaWxlbmFtZRgCIAEoCRIMCgRzaXplGAMgASgDEg4KBnNoYTUxMhgEIAEoCSLYAQoMQWRkb25WZXJzaW9uEgoKAmlkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIWCg52ZXJzaW9uX251bWJlchgEIAEoCRIVCg1nYW1lX3ZlcnNpb25zGAUgAygJEg8KB2xvYWRlcnMYBiADKAkSMAoMcHVibGlzaGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgRmaWxlGAggASgLMhoucmFwdG9yLnBhbmVsLnYxLkFkZG9uRmlsZSJ5ChNTZWFyY2hBZGRvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRraW5kGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg0KBXF1ZXJ5GAUgASgJEg4KBm9mZnNldBgGIAEoBSJWChRTZWFyY2hBZGRvbnNSZXNwb25zZRIvCghwcm9qZWN0cxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSDQoFdG90YWwYAiABKAUiZQoYTGlzdEFkZG9uVmVyc2lvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJIkwKGUxpc3RBZGRvblZlcnNpb25zUmVzcG9uc2USLwoIdmVyc2lvbnMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIl4KFUlkZW50aWZ5QWRkb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDgoGaGFzaGVzGAIgAygJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJIrABCg9JZGVudGlmaWVkQWRkb24SDgoGc2hhNTEyGAEgASgJEi4KB3Byb2plY3QYAiABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Ei4KB3ZlcnNpb24YAyABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uEi0KBmxhdGVzdBgEIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24iSgoWSWRlbnRpZnlBZGRvbnNSZXNwb25zZRIwCgZhZGRvbnMYASADKAsyIC5yYXB0b3IucGFuZWwudjEuSWRlbnRpZmllZEFkZG9uMskCCgxBZGRvblNlcnZpY2USYAoMU2VhcmNoQWRkb25zEiQucmFwdG9yLnBhbmVsLnYxLlNlYXJjaEFkZG9uc1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU2VhcmNoQWRkb25zUmVzcG9uc2UiA5ACARJvChFMaXN0QWRkb25WZXJzaW9ucxIpLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25WZXJzaW9uc1JlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZSIDkAIBEmYKDklkZW50aWZ5QWRkb25zEiYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1Jlc3BvbnNlIgOQAgFCygEKE2NvbS5yYXB0b3IucGFuZWwudjFCCkFkZG9uUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSKeAQoMQWRkb25Qcm9qZWN0EgoKAmlkGAEgASgJEgwKBHNsdWcYAiABKAkSDQoFdGl0bGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSEQoJZG93bmxvYWRzGAYgASgDEg4KBmF1dGhvchgHIAEoCRILCgN1cmwYCCABKAkSDgoGc291cmNlGAkgASgJIlgKCUFkZG9uRmlsZRILCgN1cmwYASABKAkSEAoIZmlsZW5hbWUYAiABKAkSDAoEc2l6ZRgDIAEoAxIOCgZzaGE1MTIYBCABKAkSDgoGc2hhMjU2GAUgASgJItgBCgxBZGRvblZlcnNpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDnZlcnNpb25fbnVtYmVyGAQgASgJEhUKDWdhbWVfdmVyc2lvbnMYBSADKAkSDwoHbG9hZGVycxgGIAMoCRIwCgxwdWJsaXNoZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBGZpbGUYCCABKAsyGi5yYXB0b3IucGFuZWwudjEuQWRkb25GaWxlIokBChNTZWFyY2hBZGRvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRraW5kGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg0KBXF1ZXJ5GAUgASgJEg4KBm9mZnNldBgGIAEoBRIOCgZzb3VyY2UYByABKAkiVgoUU2VhcmNoQWRkb25zUmVzcG9uc2USLwoIcHJvamVjdHMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Eg0KBXRvdGFsGAIgASgFInUKGExpc3RBZGRvblZlcnNpb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRIOCgZzb3VyY2UYBSABKAkiTAoZTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZRIvCgh2ZXJzaW9ucxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24i0QEKFUlkZW50aWZ5QWRkb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDgoGaGFzaGVzGAIgAygJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEkIKBnNoYTI1NhgFIAMoCzIyLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1JlcXVlc3QuU2hhMjU2RW50cnkaLQoLU2hhMjU2RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKwAQoPSWRlbnRpZmllZEFkZG9uEg4KBnNoYTUxMhgBIAEoCRIuCgdwcm9qZWN0GAIgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBIuCgd2ZXJzaW9uGAMgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbhItCgZsYXRlc3QYBCABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIkoKFklkZW50aWZ5QWRkb25zUmVzcG9uc2USMAoGYWRkb25zGAEgAygLMiAucmFwdG9yLnBhbmVsLnYxLklkZW50aWZpZWRBZGRvbjLJAgoMQWRkb25TZXJ2aWNlEmAKDFNlYXJjaEFkZG9ucxIkLnJhcHRvci5wYW5lbC52MS5TZWFyY2hBZGRvbnNSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLlNlYXJjaEFkZG9uc1Jlc3BvbnNlIgOQAgESbwoRTGlzdEFkZG9uVmVyc2lvbnMSKS5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uVmVyc2lvbnNSZXF1ZXN0GioucmFwdG9yLnBhbmVsLnYxLkxpc3RBZGRvblZlcnNpb25zUmVzcG9uc2UiA5ACARJmCg5JZGVudGlmeUFkZG9ucxImLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1JlcXVlc3QaJy5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXNwb25zZSIDkAIBQsoBChNjb20ucmFwdG9yLnBhbmVsLnYxQgpBZGRvblByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.AddonProject
@@ -54,11 +54,18 @@ export type AddonProject = Message<"raptor.panel.v1.AddonProject"> & {
   author: string;
 
   /**
-   * Its page on Modrinth.
+   * Its page on its source.
    *
    * @generated from field: string url = 8;
    */
   url: string;
+
+  /**
+   * "modrinth" or "hangar".
+   *
+   * @generated from field: string source = 9;
+   */
+  source: string;
 };
 
 /**
@@ -88,9 +95,16 @@ export type AddonFile = Message<"raptor.panel.v1.AddonFile"> & {
   size: bigint;
 
   /**
+   * Modrinth's files have a SHA-512, Hangar's a SHA-256.
+   *
    * @generated from field: string sha512 = 4;
    */
   sha512: string;
+
+  /**
+   * @generated from field: string sha256 = 5;
+   */
+  sha256: string;
 };
 
 /**
@@ -191,6 +205,13 @@ export type SearchAddonsRequest = Message<"raptor.panel.v1.SearchAddonsRequest">
    * @generated from field: int32 offset = 6;
    */
   offset: number;
+
+  /**
+   * "modrinth" (the default) or "hangar" (plugins only).
+   *
+   * @generated from field: string source = 7;
+   */
+  source: string;
 };
 
 /**
@@ -245,6 +266,13 @@ export type ListAddonVersionsRequest = Message<"raptor.panel.v1.ListAddonVersion
    * @generated from field: string game_version = 4;
    */
   gameVersion: string;
+
+  /**
+   * The project's source: "modrinth" (the default) or "hangar".
+   *
+   * @generated from field: string source = 5;
+   */
+  source: string;
 };
 
 /**
@@ -296,6 +324,14 @@ export type IdentifyAddonsRequest = Message<"raptor.panel.v1.IdentifyAddonsReque
    * @generated from field: string game_version = 4;
    */
   gameVersion: string;
+
+  /**
+   * The files' SHA-256s, by SHA-512: files Modrinth doesn't know are
+   * looked up on Hangar.
+   *
+   * @generated from field: map<string, string> sha256 = 5;
+   */
+  sha256: { [key: string]: string };
 };
 
 /**
@@ -345,7 +381,7 @@ export const IdentifiedAddonSchema: GenMessage<IdentifiedAddon> = /*@__PURE__*/
  */
 export type IdentifyAddonsResponse = Message<"raptor.panel.v1.IdentifyAddonsResponse"> & {
   /**
-   * Files Modrinth doesn't know are left out.
+   * Files neither knows are left out.
    *
    * @generated from field: repeated raptor.panel.v1.IdentifiedAddon addons = 1;
    */
@@ -360,17 +396,18 @@ export const IdentifyAddonsResponseSchema: GenMessage<IdentifyAddonsResponse> = 
   messageDesc(file_raptor_panel_v1_addon, 9);
 
 /**
- * AddonService finds plugins and mods on Modrinth for servers whose egg
- * turns on an add-on (docs/EGGS.md#add-ons). The Panel asks Modrinth (with
- * its own user agent, and caches), so the browser talks only to Raptor.
- * Installing is the node's addons.install command, which fetches only from
- * Modrinth's CDN and checks the file's SHA-512. Any member of the org.
+ * AddonService finds plugins and mods on Modrinth, and plugins on Hangar,
+ * for servers whose egg turns on an add-on (docs/EGGS.md#add-ons). The
+ * Panel asks them (with its own user agent, and caches), so the browser
+ * talks only to Raptor. Installing is the node's addons.install command,
+ * which fetches only from Modrinth's and Hangar's CDNs and checks the
+ * file's hash. Any member of the org.
  *
  * @generated from service raptor.panel.v1.AddonService
  */
 export const AddonService: GenService<{
   /**
-   * SearchAddons searches Modrinth for a kind's projects that run on the
+   * SearchAddons searches a source for a kind's projects that run on the
    * loaders (and game version, if given).
    *
    * @generated from rpc raptor.panel.v1.AddonService.SearchAddons
@@ -392,9 +429,9 @@ export const AddonService: GenService<{
     output: typeof ListAddonVersionsResponseSchema;
   },
   /**
-   * IdentifyAddons says which Modrinth project and version each file is
-   * (by its SHA-512), and the newest version for the loaders and game
-   * version.
+   * IdentifyAddons says which project and version each file is (on
+   * Modrinth by its SHA-512, then on Hangar by its SHA-256), and the newest
+   * version for the loaders and game version.
    *
    * @generated from rpc raptor.panel.v1.AddonService.IdentifyAddons
    */

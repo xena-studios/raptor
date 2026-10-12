@@ -20,6 +20,7 @@ import (
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/commands"
+	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/live"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
@@ -58,8 +59,10 @@ type Config struct {
 	Commands *commands.Service
 	// Staff is Raptor's admin panel (nil without a database).
 	Staff *staff.Service
-	// Modrinth is where plugins and mods are found (nil: Modrinth's API).
+	// Modrinth is where plugins and mods are found (nil: Modrinth's API),
+	// and Hangar where plugins also are (nil: Hangar's API).
 	Modrinth *modrinth.Client
+	Hangar   *hangar.Client
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -120,12 +123,16 @@ func Handler(cfg Config) http.Handler {
 		// An egg file is up to 1 MiB too, and an edit carries the whole egg.
 		path, handler = panelv1connect.NewEggServiceHandler(&orgs.Eggs{Orgs: cfg.Orgs, Staff: cfg.Staff}, opts(connect.WithReadMaxBytes(2<<20))...)
 		api.Handle(path, handler)
-		mr := cfg.Modrinth
+		ua := "xena-studios/raptor/" + buildinfo.Version + " (raptorpanel.net)"
+		mr, hg := cfg.Modrinth, cfg.Hangar
 		if mr == nil {
-			mr = &modrinth.Client{UserAgent: "xena-studios/raptor/" + buildinfo.Version + " (raptorpanel.net)"}
+			mr = &modrinth.Client{UserAgent: ua}
 		}
-		// A lookup is up to 500 SHA-512s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr}, opts(connect.WithReadMaxBytes(128<<10))...)
+		if hg == nil {
+			hg = &hangar.Client{UserAgent: ua}
+		}
+		// A lookup is up to 500 SHA-512s, with their SHA-256s.
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Staff != nil {

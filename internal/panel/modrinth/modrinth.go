@@ -1,22 +1,20 @@
 // Package modrinth is the Panel's client for Modrinth's API
 // (https://docs.modrinth.com/api/), for the plugin installer and mod
 // manager (docs/EGGS.md#add-ons): search, a project's versions, and what
-// a file is by its SHA-512. Answers are cached for a few minutes, since
-// many servers ask the same things and Modrinth limits each address.
+// a file is by its SHA-512. Answers are cached (webapi).
 package modrinth
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/xena-studios/raptor/internal/panel/webapi"
 )
 
 // DefaultBase is Modrinth's API.
@@ -24,9 +22,6 @@ const DefaultBase = "https://api.modrinth.com/v2"
 
 // Limits.
 const (
-	cacheTTL     = 5 * time.Minute
-	cacheEntries = 2000
-	maxBody      = 8 << 20
 	// PageSize is how many projects a search returns.
 	PageSize = 20
 	// MaxHashes is how many files one lookup takes.
@@ -45,96 +40,22 @@ type Client struct {
 	UserAgent string
 	Now       func() time.Time
 
-	mu    sync.Mutex
-	cache map[string]cached
+	once sync.Once
+	api  *webapi.Client
 }
 
-type cached struct {
-	body []byte
-	at   time.Time
-}
-
-func (c *Client) now() time.Time {
-	if c.Now != nil {
-		return c.Now()
-	}
-	return time.Now()
-}
-
-func (c *Client) http() *http.Client {
-	if c.HTTP != nil {
-		return c.HTTP
-	}
-	return &http.Client{Timeout: 15 * time.Second}
-}
-
-func (c *Client) base() string {
-	if c.Base != "" {
-		return c.Base
-	}
-	return DefaultBase
-}
-
-// do calls the API and decodes its JSON answer into out, from the cache
-// when it's fresh. body, if set, is POSTed.
 func (c *Client) do(ctx context.Context, path string, query url.Values, body any, out any) error {
-	u := c.base() + path
-	if len(query) > 0 {
-		u += "?" + query.Encode()
-	}
-	var payload []byte
-	if body != nil {
-		var err error
-		if payload, err = json.Marshal(body); err != nil {
-			return err
+	c.once.Do(func() {
+		base := c.Base
+		if base == "" {
+			base = DefaultBase
 		}
-	}
-	key := u + "\n" + string(payload)
-	c.mu.Lock()
-	hit, ok := c.cache[key]
-	c.mu.Unlock()
-	if ok && c.now().Sub(hit.at) < cacheTTL {
-		return json.Unmarshal(hit.body, out)
-	}
-	method := http.MethodGet
-	var rd io.Reader
-	if body != nil {
-		method, rd = http.MethodPost, bytes.NewReader(payload)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, u, rd)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("User-Agent", c.UserAgent)
-	req.Header.Set("Accept", "application/json")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	resp, err := c.http().Do(req)
-	if err != nil {
-		return fmt.Errorf("%w (%w)", ErrUnavailable, err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBody))
-	if err != nil {
-		return fmt.Errorf("%w (%w)", ErrUnavailable, err)
-	}
-	switch {
-	case resp.StatusCode == http.StatusNotFound:
-		return ErrNotFound
-	case resp.StatusCode != http.StatusOK:
-		return fmt.Errorf("%w (%s)", ErrUnavailable, resp.Status)
-	}
-	if err := json.Unmarshal(data, out); err != nil {
-		return fmt.Errorf("%w (%w)", ErrUnavailable, err)
-	}
-	c.mu.Lock()
-	if c.cache == nil || len(c.cache) >= cacheEntries {
-		c.cache = map[string]cached{}
-	}
-	c.cache[key] = cached{data, c.now()}
-	c.mu.Unlock()
-	return nil
+		c.api = &webapi.Client{
+			Base: base, HTTP: c.HTTP, UserAgent: c.UserAgent, Now: c.Now,
+			NotFound: ErrNotFound, Unavailable: ErrUnavailable,
+		}
+	})
+	return c.api.Do(ctx, path, query, body, out)
 }
 
 // ErrNotFound is a project or version Modrinth doesn't have.

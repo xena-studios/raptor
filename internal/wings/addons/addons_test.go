@@ -2,6 +2,7 @@ package addons_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
@@ -43,6 +44,11 @@ func sum(b []byte) string {
 	return hex.EncodeToString(h[:])
 }
 
+func sum256(b []byte) string {
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+
 func TestInstall(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir()
@@ -80,10 +86,11 @@ func TestInstall(t *testing.T) {
 	}))
 	defer cdn.Close()
 	tr := cdn.Client().Transport.(*http.Transport).Clone()
+	tr.TLSClientConfig.ServerName = "example.com" // the test certificate's name, for every host
 	tr.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
 		return (&net.Dialer{}).DialContext(ctx, network, cdn.Listener.Addr().String())
 	}
-	svc := &addons.Service{Files: fsvc, Servers: srv, Hosts: []string{"example.com"}}
+	svc := &addons.Service{Files: fsvc, Servers: srv, Hosts: []string{"example.com", addons.HangarHost}}
 	svc.Client = &http.Client{Transport: tr, CheckRedirect: func(*http.Request, []*http.Request) error {
 		return addons.ErrSource // the default client only follows redirects to its hosts
 	}}
@@ -127,6 +134,23 @@ func TestInstall(t *testing.T) {
 		t.Errorf("downloads left behind: %v", left)
 	}
 
+	// Hangar lists SHA-256s; Modrinth's files still need their SHA-512.
+	if _, err := install(addons.Install{URL: "https://" + addons.HangarHost + "/v1.jar", Sha512: sum(v1), Filename: "h.jar"}); err == nil {
+		t.Error("a Hangar file without its SHA-256")
+	}
+	if _, err := install(addons.Install{URL: "https://example.com/v1.jar", Sha256: sum256(v1), Filename: "h.jar"}); err == nil {
+		t.Error("a Modrinth file with only a SHA-256")
+	}
+	if _, err := install(addons.Install{URL: "https://" + addons.HangarHost + "/v2.jar", Sha256: sum256(v1), Filename: "h.jar"}); !errors.Is(err, addons.ErrHash) {
+		t.Errorf("a swapped Hangar file: %v", err)
+	}
+	if _, err := install(addons.Install{URL: "https://" + addons.HangarHost + "/v1.jar", Sha256: sum256(v1), Filename: "FromHangar.jar"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(dir, "plugins", "FromHangar.jar")); err != nil {
+		t.Fatal(err)
+	}
+
 	// Updating: the new version in, the old one to the trash.
 	if _, err := install(addons.Install{URL: "https://example.com/v2.jar", Sha512: sum(v2), Filename: "Hello-2.jar", Replace: "Hello-1.jar"}); err != nil {
 		t.Fatal(err)
@@ -135,7 +159,7 @@ func TestInstall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list.Files) != 1 || list.Files[0].Name != "Hello-2.jar" || list.Files[0].Sha512 != sum(v2) || list.Dir != "plugins" {
+	if len(list.Files) != 1 || list.Files[0].Name != "Hello-2.jar" || list.Files[0].Sha512 != sum(v2) || list.Files[0].Sha256 != sum256(v2) || list.Dir != "plugins" {
 		t.Errorf("list: %+v", list)
 	}
 	trash, err := fsvc.ListTrash(ctx, srvID)
