@@ -22,6 +22,21 @@ service StaffService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // The overview's tabs: deeper looks at users, nodes, billing, and the
+  // Panel's own infrastructure.
+  rpc GetUserInsights(GetUserInsightsRequest) returns (GetUserInsightsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc GetNodeInsights(GetNodeInsightsRequest) returns (GetNodeInsightsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc GetBillingInsights(GetBillingInsightsRequest) returns (GetBillingInsightsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc GetInfrastructure(GetInfrastructureRequest) returns (GetInfrastructureResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
@@ -417,4 +432,119 @@ message ListSupportRequestsRequest {}
 
 message ListSupportRequestsResponse {
   repeated SupportRequest requests = 1;
+}
+
+message GetUserInsightsRequest {
+  int32 days = 1;
+}
+
+message LargeOrg {
+  string id = 1;
+  string name = 2;
+  int32 members = 3;
+  int32 nodes = 4;
+  int32 servers = 5;
+}
+
+message GetUserInsightsResponse {
+  int32 users = 1;
+  int32 active_1d = 2;
+  int32 active_7d = 3;
+  int32 active_30d = 4;
+  int32 with_passkey = 5;
+  int32 with_totp = 6;
+  int32 suspended = 7;
+  int32 without_org = 8;
+  int32 open_invitations = 9;
+  // Sign-ins in the last 30 days, by method.
+  repeated CountBucket signin_methods = 10;
+  repeated CountBucket oauth_providers = 11;
+  repeated PlatformPoint history = 12;
+  repeated CountBucket signups_by_day = 13;
+  // Distinct accounts signing in, per day.
+  repeated CountBucket active_by_day = 14;
+  repeated LargeOrg largest_orgs = 15;
+}
+
+message GetNodeInsightsRequest {
+  int32 days = 1;
+}
+
+message GetNodeInsightsResponse {
+  int32 nodes = 1;
+  int32 connected = 2;
+  int32 cpus = 3;
+  int64 memory_bytes = 4;
+  int32 linked_30d = 5;
+  int32 removed = 6;
+  int32 servers = 7;
+  repeated PlatformPoint history = 8;
+  repeated CountBucket oses = 9;
+  repeated CountBucket archs = 10;
+  repeated CountBucket wings_versions = 11;
+  repeated CountBucket servers_per_node = 12;
+  repeated CountBucket server_states = 13;
+  repeated CountBucket top_eggs = 14;
+  repeated OfflineNode offline_nodes = 15;
+  repeated FailingServer failing_servers = 16;
+}
+
+message GetBillingInsightsRequest {
+  int32 days = 1;
+}
+
+message StorageOrg {
+  string id = 1;
+  string name = 2;
+  int32 nodes = 3;
+  int64 bytes = 4;
+  // What a month would bill at today's usage.
+  int64 cents_month = 5;
+}
+
+message GetBillingInsightsResponse {
+  // Whether billing exists yet; until it does, nothing here is charged.
+  bool billing_live = 1;
+  int64 storage_cents_month = 2;
+  int64 storage_bytes = 3;
+  int64 included_bytes = 4;
+  int32 storage_nodes = 5;
+  int32 cents_per_tb = 6;
+  // Stored bytes per day.
+  repeated StoragePoint storage_by_day = 7;
+  repeated StorageOrg storage_orgs = 8;
+}
+
+message StoragePoint {
+  string day = 1;
+  int64 bytes = 2;
+}
+
+message GetInfrastructureRequest {}
+
+message PanelInstance {
+  string id = 1;
+  google.protobuf.Timestamp started_at = 2;
+  google.protobuf.Timestamp seen_at = 3;
+  int32 nodes = 4;
+}
+
+message TableSize {
+  string name = 1;
+  int64 bytes = 2;
+  int64 rows = 3;
+}
+
+message GetInfrastructureResponse {
+  // The answering Panel's build.
+  string version = 1;
+  repeated PanelInstance instances = 2;
+  int64 database_bytes = 3;
+  repeated TableSize largest_tables = 4;
+  int32 database_connections = 5;
+  int32 live_sessions = 6;
+  int32 sessions_last_hour = 7;
+  // The latest Wings rollout, as `panel rollout status` says it.
+  string rollout = 8;
+  int32 nodes_connected = 9;
 }

@@ -116,6 +116,22 @@ func TestStaff(t *testing.T) {
 	if c := ov.GetCounts(); c.GetUsers() != 3 || c.GetOrgs() != 1 || len(ov.GetHistory()) != 1 || ov.GetRevenue().GetBillingLive() {
 		t.Errorf("overview: %v", ov)
 	}
+	// The overview's tabs.
+	if u, err := admin.staff.GetUserInsights(ctx, &panelv1.GetUserInsightsRequest{}); err != nil || u.GetUsers() != 3 || u.GetWithPasskey() != 1 || len(u.GetSigninMethods()) == 0 || len(u.GetLargestOrgs()) != 1 {
+		t.Errorf("user insights: %v, %v", u, err)
+	}
+	if n, err := admin.staff.GetNodeInsights(ctx, &panelv1.GetNodeInsightsRequest{}); err != nil || n.GetNodes() != 0 {
+		t.Errorf("node insights: %v, %v", n, err)
+	}
+	if b, err := admin.staff.GetBillingInsights(ctx, &panelv1.GetBillingInsightsRequest{}); err != nil || b.GetBillingLive() || b.GetCentsPerTb() != 1200 {
+		t.Errorf("billing insights: %v, %v", b, err)
+	}
+	if i, err := admin.staff.GetInfrastructure(ctx, &panelv1.GetInfrastructureRequest{}); err != nil || i.GetDatabaseBytes() == 0 || len(i.GetLargestTables()) == 0 || i.GetVersion() == "" {
+		t.Errorf("infrastructure: %v, %v", i, err)
+	}
+	if _, err := alice.staff.GetInfrastructure(ctx, &panelv1.GetInfrastructureRequest{}); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("a customer reading infrastructure: %v", err)
+	}
 	if me, _ := admin.staff.GetStaffMe(ctx, &panelv1.GetStaffMeRequest{}); me.GetRole() != staff.Admin || !me.GetPasskeyFresh() {
 		t.Errorf("admin's role: %v", me)
 	}

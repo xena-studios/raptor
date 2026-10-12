@@ -241,7 +241,11 @@ function AdminNav() {
           <SidebarMenuItem key={l.to}>
             <SidebarMenuButton
               tooltip={l.label}
-              isActive={"exact" in l ? path === l.to || path === `${l.to}/` : path.startsWith(l.to)}
+              isActive={
+                "exact" in l
+                  ? path === l.to || path === `${l.to}/` || path.startsWith("/admin/overview")
+                  : path.startsWith(l.to)
+              }
               render={<Link to={l.to} />}
             >
               <l.icon /> <span>{l.label}</span>

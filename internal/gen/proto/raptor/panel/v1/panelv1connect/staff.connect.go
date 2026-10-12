@@ -38,6 +38,18 @@ const (
 	// StaffServiceGetOverviewProcedure is the fully-qualified name of the StaffService's GetOverview
 	// RPC.
 	StaffServiceGetOverviewProcedure = "/raptor.panel.v1.StaffService/GetOverview"
+	// StaffServiceGetUserInsightsProcedure is the fully-qualified name of the StaffService's
+	// GetUserInsights RPC.
+	StaffServiceGetUserInsightsProcedure = "/raptor.panel.v1.StaffService/GetUserInsights"
+	// StaffServiceGetNodeInsightsProcedure is the fully-qualified name of the StaffService's
+	// GetNodeInsights RPC.
+	StaffServiceGetNodeInsightsProcedure = "/raptor.panel.v1.StaffService/GetNodeInsights"
+	// StaffServiceGetBillingInsightsProcedure is the fully-qualified name of the StaffService's
+	// GetBillingInsights RPC.
+	StaffServiceGetBillingInsightsProcedure = "/raptor.panel.v1.StaffService/GetBillingInsights"
+	// StaffServiceGetInfrastructureProcedure is the fully-qualified name of the StaffService's
+	// GetInfrastructure RPC.
+	StaffServiceGetInfrastructureProcedure = "/raptor.panel.v1.StaffService/GetInfrastructure"
 	// StaffServiceSearchUsersProcedure is the fully-qualified name of the StaffService's SearchUsers
 	// RPC.
 	StaffServiceSearchUsersProcedure = "/raptor.panel.v1.StaffService/SearchUsers"
@@ -94,6 +106,12 @@ type StaffServiceClient interface {
 	GetStaffMe(context.Context, *v1.GetStaffMeRequest) (*v1.GetStaffMeResponse, error)
 	// GetOverview is the platform at a glance, with its history.
 	GetOverview(context.Context, *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error)
+	// The overview's tabs: deeper looks at users, nodes, billing, and the
+	// Panel's own infrastructure.
+	GetUserInsights(context.Context, *v1.GetUserInsightsRequest) (*v1.GetUserInsightsResponse, error)
+	GetNodeInsights(context.Context, *v1.GetNodeInsightsRequest) (*v1.GetNodeInsightsResponse, error)
+	GetBillingInsights(context.Context, *v1.GetBillingInsightsRequest) (*v1.GetBillingInsightsResponse, error)
+	GetInfrastructure(context.Context, *v1.GetInfrastructureRequest) (*v1.GetInfrastructureResponse, error)
 	SearchUsers(context.Context, *v1.SearchUsersRequest) (*v1.SearchUsersResponse, error)
 	GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error)
 	// SuspendUser stops an account signing in and ends its sessions. Admins.
@@ -151,6 +169,34 @@ func NewStaffServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+StaffServiceGetOverviewProcedure,
 			connect.WithSchema(staffServiceMethods.ByName("GetOverview")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		getUserInsights: connect.NewClient[v1.GetUserInsightsRequest, v1.GetUserInsightsResponse](
+			httpClient,
+			baseURL+StaffServiceGetUserInsightsProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("GetUserInsights")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		getNodeInsights: connect.NewClient[v1.GetNodeInsightsRequest, v1.GetNodeInsightsResponse](
+			httpClient,
+			baseURL+StaffServiceGetNodeInsightsProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("GetNodeInsights")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		getBillingInsights: connect.NewClient[v1.GetBillingInsightsRequest, v1.GetBillingInsightsResponse](
+			httpClient,
+			baseURL+StaffServiceGetBillingInsightsProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("GetBillingInsights")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		getInfrastructure: connect.NewClient[v1.GetInfrastructureRequest, v1.GetInfrastructureResponse](
+			httpClient,
+			baseURL+StaffServiceGetInfrastructureProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("GetInfrastructure")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
@@ -272,6 +318,10 @@ func NewStaffServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 type staffServiceClient struct {
 	getStaffMe              *connect.Client[v1.GetStaffMeRequest, v1.GetStaffMeResponse]
 	getOverview             *connect.Client[v1.GetOverviewRequest, v1.GetOverviewResponse]
+	getUserInsights         *connect.Client[v1.GetUserInsightsRequest, v1.GetUserInsightsResponse]
+	getNodeInsights         *connect.Client[v1.GetNodeInsightsRequest, v1.GetNodeInsightsResponse]
+	getBillingInsights      *connect.Client[v1.GetBillingInsightsRequest, v1.GetBillingInsightsResponse]
+	getInfrastructure       *connect.Client[v1.GetInfrastructureRequest, v1.GetInfrastructureResponse]
 	searchUsers             *connect.Client[v1.SearchUsersRequest, v1.SearchUsersResponse]
 	getUser                 *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
 	suspendUser             *connect.Client[v1.SuspendUserRequest, v1.SuspendUserResponse]
@@ -303,6 +353,42 @@ func (c *staffServiceClient) GetStaffMe(ctx context.Context, req *v1.GetStaffMeR
 // GetOverview calls raptor.panel.v1.StaffService.GetOverview.
 func (c *staffServiceClient) GetOverview(ctx context.Context, req *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error) {
 	response, err := c.getOverview.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetUserInsights calls raptor.panel.v1.StaffService.GetUserInsights.
+func (c *staffServiceClient) GetUserInsights(ctx context.Context, req *v1.GetUserInsightsRequest) (*v1.GetUserInsightsResponse, error) {
+	response, err := c.getUserInsights.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetNodeInsights calls raptor.panel.v1.StaffService.GetNodeInsights.
+func (c *staffServiceClient) GetNodeInsights(ctx context.Context, req *v1.GetNodeInsightsRequest) (*v1.GetNodeInsightsResponse, error) {
+	response, err := c.getNodeInsights.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetBillingInsights calls raptor.panel.v1.StaffService.GetBillingInsights.
+func (c *staffServiceClient) GetBillingInsights(ctx context.Context, req *v1.GetBillingInsightsRequest) (*v1.GetBillingInsightsResponse, error) {
+	response, err := c.getBillingInsights.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetInfrastructure calls raptor.panel.v1.StaffService.GetInfrastructure.
+func (c *staffServiceClient) GetInfrastructure(ctx context.Context, req *v1.GetInfrastructureRequest) (*v1.GetInfrastructureResponse, error) {
+	response, err := c.getInfrastructure.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -469,6 +555,12 @@ type StaffServiceHandler interface {
 	GetStaffMe(context.Context, *v1.GetStaffMeRequest) (*v1.GetStaffMeResponse, error)
 	// GetOverview is the platform at a glance, with its history.
 	GetOverview(context.Context, *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error)
+	// The overview's tabs: deeper looks at users, nodes, billing, and the
+	// Panel's own infrastructure.
+	GetUserInsights(context.Context, *v1.GetUserInsightsRequest) (*v1.GetUserInsightsResponse, error)
+	GetNodeInsights(context.Context, *v1.GetNodeInsightsRequest) (*v1.GetNodeInsightsResponse, error)
+	GetBillingInsights(context.Context, *v1.GetBillingInsightsRequest) (*v1.GetBillingInsightsResponse, error)
+	GetInfrastructure(context.Context, *v1.GetInfrastructureRequest) (*v1.GetInfrastructureResponse, error)
 	SearchUsers(context.Context, *v1.SearchUsersRequest) (*v1.SearchUsersResponse, error)
 	GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error)
 	// SuspendUser stops an account signing in and ends its sessions. Admins.
@@ -522,6 +614,34 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 		StaffServiceGetOverviewProcedure,
 		svc.GetOverview,
 		connect.WithSchema(staffServiceMethods.ByName("GetOverview")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceGetUserInsightsHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceGetUserInsightsProcedure,
+		svc.GetUserInsights,
+		connect.WithSchema(staffServiceMethods.ByName("GetUserInsights")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceGetNodeInsightsHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceGetNodeInsightsProcedure,
+		svc.GetNodeInsights,
+		connect.WithSchema(staffServiceMethods.ByName("GetNodeInsights")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceGetBillingInsightsHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceGetBillingInsightsProcedure,
+		svc.GetBillingInsights,
+		connect.WithSchema(staffServiceMethods.ByName("GetBillingInsights")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceGetInfrastructureHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceGetInfrastructureProcedure,
+		svc.GetInfrastructure,
+		connect.WithSchema(staffServiceMethods.ByName("GetInfrastructure")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
@@ -642,6 +762,14 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 			staffServiceGetStaffMeHandler.ServeHTTP(w, r)
 		case StaffServiceGetOverviewProcedure:
 			staffServiceGetOverviewHandler.ServeHTTP(w, r)
+		case StaffServiceGetUserInsightsProcedure:
+			staffServiceGetUserInsightsHandler.ServeHTTP(w, r)
+		case StaffServiceGetNodeInsightsProcedure:
+			staffServiceGetNodeInsightsHandler.ServeHTTP(w, r)
+		case StaffServiceGetBillingInsightsProcedure:
+			staffServiceGetBillingInsightsHandler.ServeHTTP(w, r)
+		case StaffServiceGetInfrastructureProcedure:
+			staffServiceGetInfrastructureHandler.ServeHTTP(w, r)
 		case StaffServiceSearchUsersProcedure:
 			staffServiceSearchUsersHandler.ServeHTTP(w, r)
 		case StaffServiceGetUserProcedure:
@@ -691,6 +819,22 @@ func (UnimplementedStaffServiceHandler) GetStaffMe(context.Context, *v1.GetStaff
 
 func (UnimplementedStaffServiceHandler) GetOverview(context.Context, *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.GetOverview is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) GetUserInsights(context.Context, *v1.GetUserInsightsRequest) (*v1.GetUserInsightsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.GetUserInsights is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) GetNodeInsights(context.Context, *v1.GetNodeInsightsRequest) (*v1.GetNodeInsightsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.GetNodeInsights is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) GetBillingInsights(context.Context, *v1.GetBillingInsightsRequest) (*v1.GetBillingInsightsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.GetBillingInsights is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) GetInfrastructure(context.Context, *v1.GetInfrastructureRequest) (*v1.GetInfrastructureResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.GetInfrastructure is not implemented"))
 }
 
 func (UnimplementedStaffServiceHandler) SearchUsers(context.Context, *v1.SearchUsersRequest) (*v1.SearchUsersResponse, error) {

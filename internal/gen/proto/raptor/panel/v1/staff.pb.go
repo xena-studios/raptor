@@ -3316,6 +3316,1041 @@ func (x *ListSupportRequestsResponse) GetRequests() []*SupportRequest {
 	return nil
 }
 
+type GetUserInsightsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Days          int32                  `protobuf:"varint,1,opt,name=days,proto3" json:"days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserInsightsRequest) Reset() {
+	*x = GetUserInsightsRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserInsightsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserInsightsRequest) ProtoMessage() {}
+
+func (x *GetUserInsightsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserInsightsRequest.ProtoReflect.Descriptor instead.
+func (*GetUserInsightsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *GetUserInsightsRequest) GetDays() int32 {
+	if x != nil {
+		return x.Days
+	}
+	return 0
+}
+
+type LargeOrg struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Members       int32                  `protobuf:"varint,3,opt,name=members,proto3" json:"members,omitempty"`
+	Nodes         int32                  `protobuf:"varint,4,opt,name=nodes,proto3" json:"nodes,omitempty"`
+	Servers       int32                  `protobuf:"varint,5,opt,name=servers,proto3" json:"servers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LargeOrg) Reset() {
+	*x = LargeOrg{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LargeOrg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LargeOrg) ProtoMessage() {}
+
+func (x *LargeOrg) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LargeOrg.ProtoReflect.Descriptor instead.
+func (*LargeOrg) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *LargeOrg) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LargeOrg) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LargeOrg) GetMembers() int32 {
+	if x != nil {
+		return x.Members
+	}
+	return 0
+}
+
+func (x *LargeOrg) GetNodes() int32 {
+	if x != nil {
+		return x.Nodes
+	}
+	return 0
+}
+
+func (x *LargeOrg) GetServers() int32 {
+	if x != nil {
+		return x.Servers
+	}
+	return 0
+}
+
+type GetUserInsightsResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Users           int32                  `protobuf:"varint,1,opt,name=users,proto3" json:"users,omitempty"`
+	Active_1D       int32                  `protobuf:"varint,2,opt,name=active_1d,json=active1d,proto3" json:"active_1d,omitempty"`
+	Active_7D       int32                  `protobuf:"varint,3,opt,name=active_7d,json=active7d,proto3" json:"active_7d,omitempty"`
+	Active_30D      int32                  `protobuf:"varint,4,opt,name=active_30d,json=active30d,proto3" json:"active_30d,omitempty"`
+	WithPasskey     int32                  `protobuf:"varint,5,opt,name=with_passkey,json=withPasskey,proto3" json:"with_passkey,omitempty"`
+	WithTotp        int32                  `protobuf:"varint,6,opt,name=with_totp,json=withTotp,proto3" json:"with_totp,omitempty"`
+	Suspended       int32                  `protobuf:"varint,7,opt,name=suspended,proto3" json:"suspended,omitempty"`
+	WithoutOrg      int32                  `protobuf:"varint,8,opt,name=without_org,json=withoutOrg,proto3" json:"without_org,omitempty"`
+	OpenInvitations int32                  `protobuf:"varint,9,opt,name=open_invitations,json=openInvitations,proto3" json:"open_invitations,omitempty"`
+	// Sign-ins in the last 30 days, by method.
+	SigninMethods  []*CountBucket   `protobuf:"bytes,10,rep,name=signin_methods,json=signinMethods,proto3" json:"signin_methods,omitempty"`
+	OauthProviders []*CountBucket   `protobuf:"bytes,11,rep,name=oauth_providers,json=oauthProviders,proto3" json:"oauth_providers,omitempty"`
+	History        []*PlatformPoint `protobuf:"bytes,12,rep,name=history,proto3" json:"history,omitempty"`
+	SignupsByDay   []*CountBucket   `protobuf:"bytes,13,rep,name=signups_by_day,json=signupsByDay,proto3" json:"signups_by_day,omitempty"`
+	// Distinct accounts signing in, per day.
+	ActiveByDay   []*CountBucket `protobuf:"bytes,14,rep,name=active_by_day,json=activeByDay,proto3" json:"active_by_day,omitempty"`
+	LargestOrgs   []*LargeOrg    `protobuf:"bytes,15,rep,name=largest_orgs,json=largestOrgs,proto3" json:"largest_orgs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserInsightsResponse) Reset() {
+	*x = GetUserInsightsResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserInsightsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserInsightsResponse) ProtoMessage() {}
+
+func (x *GetUserInsightsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserInsightsResponse.ProtoReflect.Descriptor instead.
+func (*GetUserInsightsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *GetUserInsightsResponse) GetUsers() int32 {
+	if x != nil {
+		return x.Users
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetActive_1D() int32 {
+	if x != nil {
+		return x.Active_1D
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetActive_7D() int32 {
+	if x != nil {
+		return x.Active_7D
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetActive_30D() int32 {
+	if x != nil {
+		return x.Active_30D
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetWithPasskey() int32 {
+	if x != nil {
+		return x.WithPasskey
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetWithTotp() int32 {
+	if x != nil {
+		return x.WithTotp
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetSuspended() int32 {
+	if x != nil {
+		return x.Suspended
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetWithoutOrg() int32 {
+	if x != nil {
+		return x.WithoutOrg
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetOpenInvitations() int32 {
+	if x != nil {
+		return x.OpenInvitations
+	}
+	return 0
+}
+
+func (x *GetUserInsightsResponse) GetSigninMethods() []*CountBucket {
+	if x != nil {
+		return x.SigninMethods
+	}
+	return nil
+}
+
+func (x *GetUserInsightsResponse) GetOauthProviders() []*CountBucket {
+	if x != nil {
+		return x.OauthProviders
+	}
+	return nil
+}
+
+func (x *GetUserInsightsResponse) GetHistory() []*PlatformPoint {
+	if x != nil {
+		return x.History
+	}
+	return nil
+}
+
+func (x *GetUserInsightsResponse) GetSignupsByDay() []*CountBucket {
+	if x != nil {
+		return x.SignupsByDay
+	}
+	return nil
+}
+
+func (x *GetUserInsightsResponse) GetActiveByDay() []*CountBucket {
+	if x != nil {
+		return x.ActiveByDay
+	}
+	return nil
+}
+
+func (x *GetUserInsightsResponse) GetLargestOrgs() []*LargeOrg {
+	if x != nil {
+		return x.LargestOrgs
+	}
+	return nil
+}
+
+type GetNodeInsightsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Days          int32                  `protobuf:"varint,1,opt,name=days,proto3" json:"days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNodeInsightsRequest) Reset() {
+	*x = GetNodeInsightsRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeInsightsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeInsightsRequest) ProtoMessage() {}
+
+func (x *GetNodeInsightsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeInsightsRequest.ProtoReflect.Descriptor instead.
+func (*GetNodeInsightsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *GetNodeInsightsRequest) GetDays() int32 {
+	if x != nil {
+		return x.Days
+	}
+	return 0
+}
+
+type GetNodeInsightsResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Nodes          int32                  `protobuf:"varint,1,opt,name=nodes,proto3" json:"nodes,omitempty"`
+	Connected      int32                  `protobuf:"varint,2,opt,name=connected,proto3" json:"connected,omitempty"`
+	Cpus           int32                  `protobuf:"varint,3,opt,name=cpus,proto3" json:"cpus,omitempty"`
+	MemoryBytes    int64                  `protobuf:"varint,4,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
+	Linked_30D     int32                  `protobuf:"varint,5,opt,name=linked_30d,json=linked30d,proto3" json:"linked_30d,omitempty"`
+	Removed        int32                  `protobuf:"varint,6,opt,name=removed,proto3" json:"removed,omitempty"`
+	Servers        int32                  `protobuf:"varint,7,opt,name=servers,proto3" json:"servers,omitempty"`
+	History        []*PlatformPoint       `protobuf:"bytes,8,rep,name=history,proto3" json:"history,omitempty"`
+	Oses           []*CountBucket         `protobuf:"bytes,9,rep,name=oses,proto3" json:"oses,omitempty"`
+	Archs          []*CountBucket         `protobuf:"bytes,10,rep,name=archs,proto3" json:"archs,omitempty"`
+	WingsVersions  []*CountBucket         `protobuf:"bytes,11,rep,name=wings_versions,json=wingsVersions,proto3" json:"wings_versions,omitempty"`
+	ServersPerNode []*CountBucket         `protobuf:"bytes,12,rep,name=servers_per_node,json=serversPerNode,proto3" json:"servers_per_node,omitempty"`
+	ServerStates   []*CountBucket         `protobuf:"bytes,13,rep,name=server_states,json=serverStates,proto3" json:"server_states,omitempty"`
+	TopEggs        []*CountBucket         `protobuf:"bytes,14,rep,name=top_eggs,json=topEggs,proto3" json:"top_eggs,omitempty"`
+	OfflineNodes   []*OfflineNode         `protobuf:"bytes,15,rep,name=offline_nodes,json=offlineNodes,proto3" json:"offline_nodes,omitempty"`
+	FailingServers []*FailingServer       `protobuf:"bytes,16,rep,name=failing_servers,json=failingServers,proto3" json:"failing_servers,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetNodeInsightsResponse) Reset() {
+	*x = GetNodeInsightsResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeInsightsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeInsightsResponse) ProtoMessage() {}
+
+func (x *GetNodeInsightsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeInsightsResponse.ProtoReflect.Descriptor instead.
+func (*GetNodeInsightsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *GetNodeInsightsResponse) GetNodes() int32 {
+	if x != nil {
+		return x.Nodes
+	}
+	return 0
+}
+
+func (x *GetNodeInsightsResponse) GetConnected() int32 {
+	if x != nil {
+		return x.Connected
+	}
+	return 0
+}
+
+func (x *GetNodeInsightsResponse) GetCpus() int32 {
+	if x != nil {
+		return x.Cpus
+	}
+	return 0
+}
+
+func (x *GetNodeInsightsResponse) GetMemoryBytes() int64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+func (x *GetNodeInsightsResponse) GetLinked_30D() int32 {
+	if x != nil {
+		return x.Linked_30D
+	}
+	return 0
+}
+
+func (x *GetNodeInsightsResponse) GetRemoved() int32 {
+	if x != nil {
+		return x.Removed
+	}
+	return 0
+}
+
+func (x *GetNodeInsightsResponse) GetServers() int32 {
+	if x != nil {
+		return x.Servers
+	}
+	return 0
+}
+
+func (x *GetNodeInsightsResponse) GetHistory() []*PlatformPoint {
+	if x != nil {
+		return x.History
+	}
+	return nil
+}
+
+func (x *GetNodeInsightsResponse) GetOses() []*CountBucket {
+	if x != nil {
+		return x.Oses
+	}
+	return nil
+}
+
+func (x *GetNodeInsightsResponse) GetArchs() []*CountBucket {
+	if x != nil {
+		return x.Archs
+	}
+	return nil
+}
+
+func (x *GetNodeInsightsResponse) GetWingsVersions() []*CountBucket {
+	if x != nil {
+		return x.WingsVersions
+	}
+	return nil
+}
+
+func (x *GetNodeInsightsResponse) GetServersPerNode() []*CountBucket {
+	if x != nil {
+		return x.ServersPerNode
+	}
+	return nil
+}
+
+func (x *GetNodeInsightsResponse) GetServerStates() []*CountBucket {
+	if x != nil {
+		return x.ServerStates
+	}
+	return nil
+}
+
+func (x *GetNodeInsightsResponse) GetTopEggs() []*CountBucket {
+	if x != nil {
+		return x.TopEggs
+	}
+	return nil
+}
+
+func (x *GetNodeInsightsResponse) GetOfflineNodes() []*OfflineNode {
+	if x != nil {
+		return x.OfflineNodes
+	}
+	return nil
+}
+
+func (x *GetNodeInsightsResponse) GetFailingServers() []*FailingServer {
+	if x != nil {
+		return x.FailingServers
+	}
+	return nil
+}
+
+type GetBillingInsightsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Days          int32                  `protobuf:"varint,1,opt,name=days,proto3" json:"days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBillingInsightsRequest) Reset() {
+	*x = GetBillingInsightsRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBillingInsightsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBillingInsightsRequest) ProtoMessage() {}
+
+func (x *GetBillingInsightsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBillingInsightsRequest.ProtoReflect.Descriptor instead.
+func (*GetBillingInsightsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *GetBillingInsightsRequest) GetDays() int32 {
+	if x != nil {
+		return x.Days
+	}
+	return 0
+}
+
+type StorageOrg struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Nodes int32                  `protobuf:"varint,3,opt,name=nodes,proto3" json:"nodes,omitempty"`
+	Bytes int64                  `protobuf:"varint,4,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	// What a month would bill at today's usage.
+	CentsMonth    int64 `protobuf:"varint,5,opt,name=cents_month,json=centsMonth,proto3" json:"cents_month,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StorageOrg) Reset() {
+	*x = StorageOrg{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StorageOrg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StorageOrg) ProtoMessage() {}
+
+func (x *StorageOrg) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StorageOrg.ProtoReflect.Descriptor instead.
+func (*StorageOrg) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *StorageOrg) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *StorageOrg) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *StorageOrg) GetNodes() int32 {
+	if x != nil {
+		return x.Nodes
+	}
+	return 0
+}
+
+func (x *StorageOrg) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+func (x *StorageOrg) GetCentsMonth() int64 {
+	if x != nil {
+		return x.CentsMonth
+	}
+	return 0
+}
+
+type GetBillingInsightsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether billing exists yet; until it does, nothing here is charged.
+	BillingLive       bool  `protobuf:"varint,1,opt,name=billing_live,json=billingLive,proto3" json:"billing_live,omitempty"`
+	StorageCentsMonth int64 `protobuf:"varint,2,opt,name=storage_cents_month,json=storageCentsMonth,proto3" json:"storage_cents_month,omitempty"`
+	StorageBytes      int64 `protobuf:"varint,3,opt,name=storage_bytes,json=storageBytes,proto3" json:"storage_bytes,omitempty"`
+	IncludedBytes     int64 `protobuf:"varint,4,opt,name=included_bytes,json=includedBytes,proto3" json:"included_bytes,omitempty"`
+	StorageNodes      int32 `protobuf:"varint,5,opt,name=storage_nodes,json=storageNodes,proto3" json:"storage_nodes,omitempty"`
+	CentsPerTb        int32 `protobuf:"varint,6,opt,name=cents_per_tb,json=centsPerTb,proto3" json:"cents_per_tb,omitempty"`
+	// Stored bytes per day.
+	StorageByDay  []*StoragePoint `protobuf:"bytes,7,rep,name=storage_by_day,json=storageByDay,proto3" json:"storage_by_day,omitempty"`
+	StorageOrgs   []*StorageOrg   `protobuf:"bytes,8,rep,name=storage_orgs,json=storageOrgs,proto3" json:"storage_orgs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBillingInsightsResponse) Reset() {
+	*x = GetBillingInsightsResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBillingInsightsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBillingInsightsResponse) ProtoMessage() {}
+
+func (x *GetBillingInsightsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBillingInsightsResponse.ProtoReflect.Descriptor instead.
+func (*GetBillingInsightsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *GetBillingInsightsResponse) GetBillingLive() bool {
+	if x != nil {
+		return x.BillingLive
+	}
+	return false
+}
+
+func (x *GetBillingInsightsResponse) GetStorageCentsMonth() int64 {
+	if x != nil {
+		return x.StorageCentsMonth
+	}
+	return 0
+}
+
+func (x *GetBillingInsightsResponse) GetStorageBytes() int64 {
+	if x != nil {
+		return x.StorageBytes
+	}
+	return 0
+}
+
+func (x *GetBillingInsightsResponse) GetIncludedBytes() int64 {
+	if x != nil {
+		return x.IncludedBytes
+	}
+	return 0
+}
+
+func (x *GetBillingInsightsResponse) GetStorageNodes() int32 {
+	if x != nil {
+		return x.StorageNodes
+	}
+	return 0
+}
+
+func (x *GetBillingInsightsResponse) GetCentsPerTb() int32 {
+	if x != nil {
+		return x.CentsPerTb
+	}
+	return 0
+}
+
+func (x *GetBillingInsightsResponse) GetStorageByDay() []*StoragePoint {
+	if x != nil {
+		return x.StorageByDay
+	}
+	return nil
+}
+
+func (x *GetBillingInsightsResponse) GetStorageOrgs() []*StorageOrg {
+	if x != nil {
+		return x.StorageOrgs
+	}
+	return nil
+}
+
+type StoragePoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Day           string                 `protobuf:"bytes,1,opt,name=day,proto3" json:"day,omitempty"`
+	Bytes         int64                  `protobuf:"varint,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StoragePoint) Reset() {
+	*x = StoragePoint{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StoragePoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StoragePoint) ProtoMessage() {}
+
+func (x *StoragePoint) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StoragePoint.ProtoReflect.Descriptor instead.
+func (*StoragePoint) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *StoragePoint) GetDay() string {
+	if x != nil {
+		return x.Day
+	}
+	return ""
+}
+
+func (x *StoragePoint) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+type GetInfrastructureRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetInfrastructureRequest) Reset() {
+	*x = GetInfrastructureRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetInfrastructureRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetInfrastructureRequest) ProtoMessage() {}
+
+func (x *GetInfrastructureRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetInfrastructureRequest.ProtoReflect.Descriptor instead.
+func (*GetInfrastructureRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{63}
+}
+
+type PanelInstance struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	SeenAt        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=seen_at,json=seenAt,proto3" json:"seen_at,omitempty"`
+	Nodes         int32                  `protobuf:"varint,4,opt,name=nodes,proto3" json:"nodes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PanelInstance) Reset() {
+	*x = PanelInstance{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PanelInstance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PanelInstance) ProtoMessage() {}
+
+func (x *PanelInstance) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PanelInstance.ProtoReflect.Descriptor instead.
+func (*PanelInstance) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{64}
+}
+
+func (x *PanelInstance) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PanelInstance) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *PanelInstance) GetSeenAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SeenAt
+	}
+	return nil
+}
+
+func (x *PanelInstance) GetNodes() int32 {
+	if x != nil {
+		return x.Nodes
+	}
+	return 0
+}
+
+type TableSize struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Bytes         int64                  `protobuf:"varint,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	Rows          int64                  `protobuf:"varint,3,opt,name=rows,proto3" json:"rows,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TableSize) Reset() {
+	*x = TableSize{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TableSize) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TableSize) ProtoMessage() {}
+
+func (x *TableSize) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TableSize.ProtoReflect.Descriptor instead.
+func (*TableSize) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *TableSize) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TableSize) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+func (x *TableSize) GetRows() int64 {
+	if x != nil {
+		return x.Rows
+	}
+	return 0
+}
+
+type GetInfrastructureResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The answering Panel's build.
+	Version             string           `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Instances           []*PanelInstance `protobuf:"bytes,2,rep,name=instances,proto3" json:"instances,omitempty"`
+	DatabaseBytes       int64            `protobuf:"varint,3,opt,name=database_bytes,json=databaseBytes,proto3" json:"database_bytes,omitempty"`
+	LargestTables       []*TableSize     `protobuf:"bytes,4,rep,name=largest_tables,json=largestTables,proto3" json:"largest_tables,omitempty"`
+	DatabaseConnections int32            `protobuf:"varint,5,opt,name=database_connections,json=databaseConnections,proto3" json:"database_connections,omitempty"`
+	LiveSessions        int32            `protobuf:"varint,6,opt,name=live_sessions,json=liveSessions,proto3" json:"live_sessions,omitempty"`
+	SessionsLastHour    int32            `protobuf:"varint,7,opt,name=sessions_last_hour,json=sessionsLastHour,proto3" json:"sessions_last_hour,omitempty"`
+	// The latest Wings rollout, as `panel rollout status` says it.
+	Rollout        string `protobuf:"bytes,8,opt,name=rollout,proto3" json:"rollout,omitempty"`
+	NodesConnected int32  `protobuf:"varint,9,opt,name=nodes_connected,json=nodesConnected,proto3" json:"nodes_connected,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetInfrastructureResponse) Reset() {
+	*x = GetInfrastructureResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetInfrastructureResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetInfrastructureResponse) ProtoMessage() {}
+
+func (x *GetInfrastructureResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetInfrastructureResponse.ProtoReflect.Descriptor instead.
+func (*GetInfrastructureResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *GetInfrastructureResponse) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *GetInfrastructureResponse) GetInstances() []*PanelInstance {
+	if x != nil {
+		return x.Instances
+	}
+	return nil
+}
+
+func (x *GetInfrastructureResponse) GetDatabaseBytes() int64 {
+	if x != nil {
+		return x.DatabaseBytes
+	}
+	return 0
+}
+
+func (x *GetInfrastructureResponse) GetLargestTables() []*TableSize {
+	if x != nil {
+		return x.LargestTables
+	}
+	return nil
+}
+
+func (x *GetInfrastructureResponse) GetDatabaseConnections() int32 {
+	if x != nil {
+		return x.DatabaseConnections
+	}
+	return 0
+}
+
+func (x *GetInfrastructureResponse) GetLiveSessions() int32 {
+	if x != nil {
+		return x.LiveSessions
+	}
+	return 0
+}
+
+func (x *GetInfrastructureResponse) GetSessionsLastHour() int32 {
+	if x != nil {
+		return x.SessionsLastHour
+	}
+	return 0
+}
+
+func (x *GetInfrastructureResponse) GetRollout() string {
+	if x != nil {
+		return x.Rollout
+	}
+	return ""
+}
+
+func (x *GetInfrastructureResponse) GetNodesConnected() int32 {
+	if x != nil {
+		return x.NodesConnected
+	}
+	return 0
+}
+
 var File_raptor_panel_v1_staff_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_staff_proto_rawDesc = "" +
@@ -3562,11 +4597,107 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1c\n" +
 	"\x1aListSupportRequestsRequest\"Z\n" +
 	"\x1bListSupportRequestsResponse\x12;\n" +
-	"\brequests\x18\x01 \x03(\v2\x1f.raptor.panel.v1.SupportRequestR\brequests2\xff\x0e\n" +
+	"\brequests\x18\x01 \x03(\v2\x1f.raptor.panel.v1.SupportRequestR\brequests\",\n" +
+	"\x16GetUserInsightsRequest\x12\x12\n" +
+	"\x04days\x18\x01 \x01(\x05R\x04days\"x\n" +
+	"\bLargeOrg\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
+	"\amembers\x18\x03 \x01(\x05R\amembers\x12\x14\n" +
+	"\x05nodes\x18\x04 \x01(\x05R\x05nodes\x12\x18\n" +
+	"\aservers\x18\x05 \x01(\x05R\aservers\"\xbc\x05\n" +
+	"\x17GetUserInsightsResponse\x12\x14\n" +
+	"\x05users\x18\x01 \x01(\x05R\x05users\x12\x1b\n" +
+	"\tactive_1d\x18\x02 \x01(\x05R\bactive1d\x12\x1b\n" +
+	"\tactive_7d\x18\x03 \x01(\x05R\bactive7d\x12\x1d\n" +
+	"\n" +
+	"active_30d\x18\x04 \x01(\x05R\tactive30d\x12!\n" +
+	"\fwith_passkey\x18\x05 \x01(\x05R\vwithPasskey\x12\x1b\n" +
+	"\twith_totp\x18\x06 \x01(\x05R\bwithTotp\x12\x1c\n" +
+	"\tsuspended\x18\a \x01(\x05R\tsuspended\x12\x1f\n" +
+	"\vwithout_org\x18\b \x01(\x05R\n" +
+	"withoutOrg\x12)\n" +
+	"\x10open_invitations\x18\t \x01(\x05R\x0fopenInvitations\x12C\n" +
+	"\x0esignin_methods\x18\n" +
+	" \x03(\v2\x1c.raptor.panel.v1.CountBucketR\rsigninMethods\x12E\n" +
+	"\x0foauth_providers\x18\v \x03(\v2\x1c.raptor.panel.v1.CountBucketR\x0eoauthProviders\x128\n" +
+	"\ahistory\x18\f \x03(\v2\x1e.raptor.panel.v1.PlatformPointR\ahistory\x12B\n" +
+	"\x0esignups_by_day\x18\r \x03(\v2\x1c.raptor.panel.v1.CountBucketR\fsignupsByDay\x12@\n" +
+	"\ractive_by_day\x18\x0e \x03(\v2\x1c.raptor.panel.v1.CountBucketR\vactiveByDay\x12<\n" +
+	"\flargest_orgs\x18\x0f \x03(\v2\x19.raptor.panel.v1.LargeOrgR\vlargestOrgs\",\n" +
+	"\x16GetNodeInsightsRequest\x12\x12\n" +
+	"\x04days\x18\x01 \x01(\x05R\x04days\"\x8c\x06\n" +
+	"\x17GetNodeInsightsResponse\x12\x14\n" +
+	"\x05nodes\x18\x01 \x01(\x05R\x05nodes\x12\x1c\n" +
+	"\tconnected\x18\x02 \x01(\x05R\tconnected\x12\x12\n" +
+	"\x04cpus\x18\x03 \x01(\x05R\x04cpus\x12!\n" +
+	"\fmemory_bytes\x18\x04 \x01(\x03R\vmemoryBytes\x12\x1d\n" +
+	"\n" +
+	"linked_30d\x18\x05 \x01(\x05R\tlinked30d\x12\x18\n" +
+	"\aremoved\x18\x06 \x01(\x05R\aremoved\x12\x18\n" +
+	"\aservers\x18\a \x01(\x05R\aservers\x128\n" +
+	"\ahistory\x18\b \x03(\v2\x1e.raptor.panel.v1.PlatformPointR\ahistory\x120\n" +
+	"\x04oses\x18\t \x03(\v2\x1c.raptor.panel.v1.CountBucketR\x04oses\x122\n" +
+	"\x05archs\x18\n" +
+	" \x03(\v2\x1c.raptor.panel.v1.CountBucketR\x05archs\x12C\n" +
+	"\x0ewings_versions\x18\v \x03(\v2\x1c.raptor.panel.v1.CountBucketR\rwingsVersions\x12F\n" +
+	"\x10servers_per_node\x18\f \x03(\v2\x1c.raptor.panel.v1.CountBucketR\x0eserversPerNode\x12A\n" +
+	"\rserver_states\x18\r \x03(\v2\x1c.raptor.panel.v1.CountBucketR\fserverStates\x127\n" +
+	"\btop_eggs\x18\x0e \x03(\v2\x1c.raptor.panel.v1.CountBucketR\atopEggs\x12A\n" +
+	"\roffline_nodes\x18\x0f \x03(\v2\x1c.raptor.panel.v1.OfflineNodeR\fofflineNodes\x12G\n" +
+	"\x0ffailing_servers\x18\x10 \x03(\v2\x1e.raptor.panel.v1.FailingServerR\x0efailingServers\"/\n" +
+	"\x19GetBillingInsightsRequest\x12\x12\n" +
+	"\x04days\x18\x01 \x01(\x05R\x04days\"}\n" +
+	"\n" +
+	"StorageOrg\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05nodes\x18\x03 \x01(\x05R\x05nodes\x12\x14\n" +
+	"\x05bytes\x18\x04 \x01(\x03R\x05bytes\x12\x1f\n" +
+	"\vcents_month\x18\x05 \x01(\x03R\n" +
+	"centsMonth\"\x87\x03\n" +
+	"\x1aGetBillingInsightsResponse\x12!\n" +
+	"\fbilling_live\x18\x01 \x01(\bR\vbillingLive\x12.\n" +
+	"\x13storage_cents_month\x18\x02 \x01(\x03R\x11storageCentsMonth\x12#\n" +
+	"\rstorage_bytes\x18\x03 \x01(\x03R\fstorageBytes\x12%\n" +
+	"\x0eincluded_bytes\x18\x04 \x01(\x03R\rincludedBytes\x12#\n" +
+	"\rstorage_nodes\x18\x05 \x01(\x05R\fstorageNodes\x12 \n" +
+	"\fcents_per_tb\x18\x06 \x01(\x05R\n" +
+	"centsPerTb\x12C\n" +
+	"\x0estorage_by_day\x18\a \x03(\v2\x1d.raptor.panel.v1.StoragePointR\fstorageByDay\x12>\n" +
+	"\fstorage_orgs\x18\b \x03(\v2\x1b.raptor.panel.v1.StorageOrgR\vstorageOrgs\"6\n" +
+	"\fStoragePoint\x12\x10\n" +
+	"\x03day\x18\x01 \x01(\tR\x03day\x12\x14\n" +
+	"\x05bytes\x18\x02 \x01(\x03R\x05bytes\"\x1a\n" +
+	"\x18GetInfrastructureRequest\"\xa5\x01\n" +
+	"\rPanelInstance\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
+	"\n" +
+	"started_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x123\n" +
+	"\aseen_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x06seenAt\x12\x14\n" +
+	"\x05nodes\x18\x04 \x01(\x05R\x05nodes\"I\n" +
+	"\tTableSize\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05bytes\x18\x02 \x01(\x03R\x05bytes\x12\x12\n" +
+	"\x04rows\x18\x03 \x01(\x03R\x04rows\"\xa6\x03\n" +
+	"\x19GetInfrastructureResponse\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\x12<\n" +
+	"\tinstances\x18\x02 \x03(\v2\x1e.raptor.panel.v1.PanelInstanceR\tinstances\x12%\n" +
+	"\x0edatabase_bytes\x18\x03 \x01(\x03R\rdatabaseBytes\x12A\n" +
+	"\x0elargest_tables\x18\x04 \x03(\v2\x1a.raptor.panel.v1.TableSizeR\rlargestTables\x121\n" +
+	"\x14database_connections\x18\x05 \x01(\x05R\x13databaseConnections\x12#\n" +
+	"\rlive_sessions\x18\x06 \x01(\x05R\fliveSessions\x12,\n" +
+	"\x12sessions_last_hour\x18\a \x01(\x05R\x10sessionsLastHour\x12\x18\n" +
+	"\arollout\x18\b \x01(\tR\arollout\x12'\n" +
+	"\x0fnodes_connected\x18\t \x01(\x05R\x0enodesConnected2\xba\x12\n" +
 	"\fStaffService\x12Z\n" +
 	"\n" +
 	"GetStaffMe\x12\".raptor.panel.v1.GetStaffMeRequest\x1a#.raptor.panel.v1.GetStaffMeResponse\"\x03\x90\x02\x01\x12]\n" +
-	"\vGetOverview\x12#.raptor.panel.v1.GetOverviewRequest\x1a$.raptor.panel.v1.GetOverviewResponse\"\x03\x90\x02\x01\x12]\n" +
+	"\vGetOverview\x12#.raptor.panel.v1.GetOverviewRequest\x1a$.raptor.panel.v1.GetOverviewResponse\"\x03\x90\x02\x01\x12i\n" +
+	"\x0fGetUserInsights\x12'.raptor.panel.v1.GetUserInsightsRequest\x1a(.raptor.panel.v1.GetUserInsightsResponse\"\x03\x90\x02\x01\x12i\n" +
+	"\x0fGetNodeInsights\x12'.raptor.panel.v1.GetNodeInsightsRequest\x1a(.raptor.panel.v1.GetNodeInsightsResponse\"\x03\x90\x02\x01\x12r\n" +
+	"\x12GetBillingInsights\x12*.raptor.panel.v1.GetBillingInsightsRequest\x1a+.raptor.panel.v1.GetBillingInsightsResponse\"\x03\x90\x02\x01\x12o\n" +
+	"\x11GetInfrastructure\x12).raptor.panel.v1.GetInfrastructureRequest\x1a*.raptor.panel.v1.GetInfrastructureResponse\"\x03\x90\x02\x01\x12]\n" +
 	"\vSearchUsers\x12#.raptor.panel.v1.SearchUsersRequest\x1a$.raptor.panel.v1.SearchUsersResponse\"\x03\x90\x02\x01\x12Q\n" +
 	"\aGetUser\x12\x1f.raptor.panel.v1.GetUserRequest\x1a .raptor.panel.v1.GetUserResponse\"\x03\x90\x02\x01\x12Z\n" +
 	"\vSuspendUser\x12#.raptor.panel.v1.SuspendUserRequest\x1a$.raptor.panel.v1.SuspendUserResponse\"\x00\x12`\n" +
@@ -3601,7 +4732,7 @@ func file_raptor_panel_v1_staff_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_staff_proto_rawDescData
 }
 
-var file_raptor_panel_v1_staff_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
+var file_raptor_panel_v1_staff_proto_msgTypes = make([]protoimpl.MessageInfo, 67)
 var file_raptor_panel_v1_staff_proto_goTypes = []any{
 	(*GetStaffMeRequest)(nil),               // 0: raptor.panel.v1.GetStaffMeRequest
 	(*GetStaffMeResponse)(nil),              // 1: raptor.panel.v1.GetStaffMeResponse
@@ -3657,11 +4788,24 @@ var file_raptor_panel_v1_staff_proto_goTypes = []any{
 	(*RequestSupportAccessResponse)(nil),    // 51: raptor.panel.v1.RequestSupportAccessResponse
 	(*ListSupportRequestsRequest)(nil),      // 52: raptor.panel.v1.ListSupportRequestsRequest
 	(*ListSupportRequestsResponse)(nil),     // 53: raptor.panel.v1.ListSupportRequestsResponse
-	(*timestamppb.Timestamp)(nil),           // 54: google.protobuf.Timestamp
+	(*GetUserInsightsRequest)(nil),          // 54: raptor.panel.v1.GetUserInsightsRequest
+	(*LargeOrg)(nil),                        // 55: raptor.panel.v1.LargeOrg
+	(*GetUserInsightsResponse)(nil),         // 56: raptor.panel.v1.GetUserInsightsResponse
+	(*GetNodeInsightsRequest)(nil),          // 57: raptor.panel.v1.GetNodeInsightsRequest
+	(*GetNodeInsightsResponse)(nil),         // 58: raptor.panel.v1.GetNodeInsightsResponse
+	(*GetBillingInsightsRequest)(nil),       // 59: raptor.panel.v1.GetBillingInsightsRequest
+	(*StorageOrg)(nil),                      // 60: raptor.panel.v1.StorageOrg
+	(*GetBillingInsightsResponse)(nil),      // 61: raptor.panel.v1.GetBillingInsightsResponse
+	(*StoragePoint)(nil),                    // 62: raptor.panel.v1.StoragePoint
+	(*GetInfrastructureRequest)(nil),        // 63: raptor.panel.v1.GetInfrastructureRequest
+	(*PanelInstance)(nil),                   // 64: raptor.panel.v1.PanelInstance
+	(*TableSize)(nil),                       // 65: raptor.panel.v1.TableSize
+	(*GetInfrastructureResponse)(nil),       // 66: raptor.panel.v1.GetInfrastructureResponse
+	(*timestamppb.Timestamp)(nil),           // 67: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_staff_proto_depIdxs = []int32{
-	54, // 0: raptor.panel.v1.PlatformPoint.at:type_name -> google.protobuf.Timestamp
-	54, // 1: raptor.panel.v1.OfflineNode.last_seen_at:type_name -> google.protobuf.Timestamp
+	67, // 0: raptor.panel.v1.PlatformPoint.at:type_name -> google.protobuf.Timestamp
+	67, // 1: raptor.panel.v1.OfflineNode.last_seen_at:type_name -> google.protobuf.Timestamp
 	3,  // 2: raptor.panel.v1.GetOverviewResponse.counts:type_name -> raptor.panel.v1.PlatformCounts
 	4,  // 3: raptor.panel.v1.GetOverviewResponse.history:type_name -> raptor.panel.v1.PlatformPoint
 	5,  // 4: raptor.panel.v1.GetOverviewResponse.signups_by_day:type_name -> raptor.panel.v1.CountBucket
@@ -3671,79 +4815,108 @@ var file_raptor_panel_v1_staff_proto_depIdxs = []int32{
 	6,  // 8: raptor.panel.v1.GetOverviewResponse.offline_nodes:type_name -> raptor.panel.v1.OfflineNode
 	7,  // 9: raptor.panel.v1.GetOverviewResponse.failing_servers:type_name -> raptor.panel.v1.FailingServer
 	8,  // 10: raptor.panel.v1.GetOverviewResponse.revenue:type_name -> raptor.panel.v1.Revenue
-	54, // 11: raptor.panel.v1.StaffUser.created_at:type_name -> google.protobuf.Timestamp
-	54, // 12: raptor.panel.v1.StaffUser.suspended_at:type_name -> google.protobuf.Timestamp
-	54, // 13: raptor.panel.v1.StaffUser.last_seen_at:type_name -> google.protobuf.Timestamp
+	67, // 11: raptor.panel.v1.StaffUser.created_at:type_name -> google.protobuf.Timestamp
+	67, // 12: raptor.panel.v1.StaffUser.suspended_at:type_name -> google.protobuf.Timestamp
+	67, // 13: raptor.panel.v1.StaffUser.last_seen_at:type_name -> google.protobuf.Timestamp
 	10, // 14: raptor.panel.v1.SearchUsersResponse.users:type_name -> raptor.panel.v1.StaffUser
-	54, // 15: raptor.panel.v1.UserSignin.at:type_name -> google.protobuf.Timestamp
+	67, // 15: raptor.panel.v1.UserSignin.at:type_name -> google.protobuf.Timestamp
 	10, // 16: raptor.panel.v1.GetUserResponse.user:type_name -> raptor.panel.v1.StaffUser
 	14, // 17: raptor.panel.v1.GetUserResponse.memberships:type_name -> raptor.panel.v1.UserMembership
 	15, // 18: raptor.panel.v1.GetUserResponse.sign_ins:type_name -> raptor.panel.v1.UserSignin
-	54, // 19: raptor.panel.v1.StaffOrg.created_at:type_name -> google.protobuf.Timestamp
-	54, // 20: raptor.panel.v1.StaffOrg.suspended_at:type_name -> google.protobuf.Timestamp
+	67, // 19: raptor.panel.v1.StaffOrg.created_at:type_name -> google.protobuf.Timestamp
+	67, // 20: raptor.panel.v1.StaffOrg.suspended_at:type_name -> google.protobuf.Timestamp
 	23, // 21: raptor.panel.v1.SearchOrgsResponse.orgs:type_name -> raptor.panel.v1.StaffOrg
-	54, // 22: raptor.panel.v1.StaffOrgNode.last_seen_at:type_name -> google.protobuf.Timestamp
-	54, // 23: raptor.panel.v1.StaffOrgNode.created_at:type_name -> google.protobuf.Timestamp
+	67, // 22: raptor.panel.v1.StaffOrgNode.last_seen_at:type_name -> google.protobuf.Timestamp
+	67, // 23: raptor.panel.v1.StaffOrgNode.created_at:type_name -> google.protobuf.Timestamp
 	23, // 24: raptor.panel.v1.GetStaffOrgResponse.org:type_name -> raptor.panel.v1.StaffOrg
 	27, // 25: raptor.panel.v1.GetStaffOrgResponse.members:type_name -> raptor.panel.v1.StaffOrgMember
 	28, // 26: raptor.panel.v1.GetStaffOrgResponse.nodes:type_name -> raptor.panel.v1.StaffOrgNode
-	54, // 27: raptor.panel.v1.StaffMember.added_at:type_name -> google.protobuf.Timestamp
+	67, // 27: raptor.panel.v1.StaffMember.added_at:type_name -> google.protobuf.Timestamp
 	34, // 28: raptor.panel.v1.ListStaffResponse.staff:type_name -> raptor.panel.v1.StaffMember
-	54, // 29: raptor.panel.v1.StaffAuditEntry.at:type_name -> google.protobuf.Timestamp
+	67, // 29: raptor.panel.v1.StaffAuditEntry.at:type_name -> google.protobuf.Timestamp
 	37, // 30: raptor.panel.v1.ListStaffAuditResponse.entries:type_name -> raptor.panel.v1.StaffAuditEntry
-	54, // 31: raptor.panel.v1.Announcement.starts_at:type_name -> google.protobuf.Timestamp
-	54, // 32: raptor.panel.v1.Announcement.ends_at:type_name -> google.protobuf.Timestamp
-	54, // 33: raptor.panel.v1.Announcement.created_at:type_name -> google.protobuf.Timestamp
+	67, // 31: raptor.panel.v1.Announcement.starts_at:type_name -> google.protobuf.Timestamp
+	67, // 32: raptor.panel.v1.Announcement.ends_at:type_name -> google.protobuf.Timestamp
+	67, // 33: raptor.panel.v1.Announcement.created_at:type_name -> google.protobuf.Timestamp
 	40, // 34: raptor.panel.v1.ListActiveAnnouncementsResponse.announcements:type_name -> raptor.panel.v1.Announcement
 	40, // 35: raptor.panel.v1.ListAnnouncementsResponse.announcements:type_name -> raptor.panel.v1.Announcement
 	40, // 36: raptor.panel.v1.SaveAnnouncementRequest.announcement:type_name -> raptor.panel.v1.Announcement
-	54, // 37: raptor.panel.v1.SupportRequest.created_at:type_name -> google.protobuf.Timestamp
-	54, // 38: raptor.panel.v1.SupportRequest.decided_at:type_name -> google.protobuf.Timestamp
-	54, // 39: raptor.panel.v1.SupportRequest.expires_at:type_name -> google.protobuf.Timestamp
+	67, // 37: raptor.panel.v1.SupportRequest.created_at:type_name -> google.protobuf.Timestamp
+	67, // 38: raptor.panel.v1.SupportRequest.decided_at:type_name -> google.protobuf.Timestamp
+	67, // 39: raptor.panel.v1.SupportRequest.expires_at:type_name -> google.protobuf.Timestamp
 	49, // 40: raptor.panel.v1.ListSupportRequestsResponse.requests:type_name -> raptor.panel.v1.SupportRequest
-	0,  // 41: raptor.panel.v1.StaffService.GetStaffMe:input_type -> raptor.panel.v1.GetStaffMeRequest
-	2,  // 42: raptor.panel.v1.StaffService.GetOverview:input_type -> raptor.panel.v1.GetOverviewRequest
-	11, // 43: raptor.panel.v1.StaffService.SearchUsers:input_type -> raptor.panel.v1.SearchUsersRequest
-	13, // 44: raptor.panel.v1.StaffService.GetUser:input_type -> raptor.panel.v1.GetUserRequest
-	17, // 45: raptor.panel.v1.StaffService.SuspendUser:input_type -> raptor.panel.v1.SuspendUserRequest
-	19, // 46: raptor.panel.v1.StaffService.UnsuspendUser:input_type -> raptor.panel.v1.UnsuspendUserRequest
-	21, // 47: raptor.panel.v1.StaffService.SignOutUser:input_type -> raptor.panel.v1.SignOutUserRequest
-	24, // 48: raptor.panel.v1.StaffService.SearchOrgs:input_type -> raptor.panel.v1.SearchOrgsRequest
-	26, // 49: raptor.panel.v1.StaffService.GetStaffOrg:input_type -> raptor.panel.v1.GetStaffOrgRequest
-	30, // 50: raptor.panel.v1.StaffService.SuspendOrg:input_type -> raptor.panel.v1.SuspendOrgRequest
-	32, // 51: raptor.panel.v1.StaffService.UnsuspendOrg:input_type -> raptor.panel.v1.UnsuspendOrgRequest
-	41, // 52: raptor.panel.v1.StaffService.ListActiveAnnouncements:input_type -> raptor.panel.v1.ListActiveAnnouncementsRequest
-	43, // 53: raptor.panel.v1.StaffService.ListAnnouncements:input_type -> raptor.panel.v1.ListAnnouncementsRequest
-	45, // 54: raptor.panel.v1.StaffService.SaveAnnouncement:input_type -> raptor.panel.v1.SaveAnnouncementRequest
-	47, // 55: raptor.panel.v1.StaffService.EndAnnouncement:input_type -> raptor.panel.v1.EndAnnouncementRequest
-	50, // 56: raptor.panel.v1.StaffService.RequestSupportAccess:input_type -> raptor.panel.v1.RequestSupportAccessRequest
-	52, // 57: raptor.panel.v1.StaffService.ListSupportRequests:input_type -> raptor.panel.v1.ListSupportRequestsRequest
-	35, // 58: raptor.panel.v1.StaffService.ListStaff:input_type -> raptor.panel.v1.ListStaffRequest
-	38, // 59: raptor.panel.v1.StaffService.ListStaffAudit:input_type -> raptor.panel.v1.ListStaffAuditRequest
-	1,  // 60: raptor.panel.v1.StaffService.GetStaffMe:output_type -> raptor.panel.v1.GetStaffMeResponse
-	9,  // 61: raptor.panel.v1.StaffService.GetOverview:output_type -> raptor.panel.v1.GetOverviewResponse
-	12, // 62: raptor.panel.v1.StaffService.SearchUsers:output_type -> raptor.panel.v1.SearchUsersResponse
-	16, // 63: raptor.panel.v1.StaffService.GetUser:output_type -> raptor.panel.v1.GetUserResponse
-	18, // 64: raptor.panel.v1.StaffService.SuspendUser:output_type -> raptor.panel.v1.SuspendUserResponse
-	20, // 65: raptor.panel.v1.StaffService.UnsuspendUser:output_type -> raptor.panel.v1.UnsuspendUserResponse
-	22, // 66: raptor.panel.v1.StaffService.SignOutUser:output_type -> raptor.panel.v1.SignOutUserResponse
-	25, // 67: raptor.panel.v1.StaffService.SearchOrgs:output_type -> raptor.panel.v1.SearchOrgsResponse
-	29, // 68: raptor.panel.v1.StaffService.GetStaffOrg:output_type -> raptor.panel.v1.GetStaffOrgResponse
-	31, // 69: raptor.panel.v1.StaffService.SuspendOrg:output_type -> raptor.panel.v1.SuspendOrgResponse
-	33, // 70: raptor.panel.v1.StaffService.UnsuspendOrg:output_type -> raptor.panel.v1.UnsuspendOrgResponse
-	42, // 71: raptor.panel.v1.StaffService.ListActiveAnnouncements:output_type -> raptor.panel.v1.ListActiveAnnouncementsResponse
-	44, // 72: raptor.panel.v1.StaffService.ListAnnouncements:output_type -> raptor.panel.v1.ListAnnouncementsResponse
-	46, // 73: raptor.panel.v1.StaffService.SaveAnnouncement:output_type -> raptor.panel.v1.SaveAnnouncementResponse
-	48, // 74: raptor.panel.v1.StaffService.EndAnnouncement:output_type -> raptor.panel.v1.EndAnnouncementResponse
-	51, // 75: raptor.panel.v1.StaffService.RequestSupportAccess:output_type -> raptor.panel.v1.RequestSupportAccessResponse
-	53, // 76: raptor.panel.v1.StaffService.ListSupportRequests:output_type -> raptor.panel.v1.ListSupportRequestsResponse
-	36, // 77: raptor.panel.v1.StaffService.ListStaff:output_type -> raptor.panel.v1.ListStaffResponse
-	39, // 78: raptor.panel.v1.StaffService.ListStaffAudit:output_type -> raptor.panel.v1.ListStaffAuditResponse
-	60, // [60:79] is the sub-list for method output_type
-	41, // [41:60] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	5,  // 41: raptor.panel.v1.GetUserInsightsResponse.signin_methods:type_name -> raptor.panel.v1.CountBucket
+	5,  // 42: raptor.panel.v1.GetUserInsightsResponse.oauth_providers:type_name -> raptor.panel.v1.CountBucket
+	4,  // 43: raptor.panel.v1.GetUserInsightsResponse.history:type_name -> raptor.panel.v1.PlatformPoint
+	5,  // 44: raptor.panel.v1.GetUserInsightsResponse.signups_by_day:type_name -> raptor.panel.v1.CountBucket
+	5,  // 45: raptor.panel.v1.GetUserInsightsResponse.active_by_day:type_name -> raptor.panel.v1.CountBucket
+	55, // 46: raptor.panel.v1.GetUserInsightsResponse.largest_orgs:type_name -> raptor.panel.v1.LargeOrg
+	4,  // 47: raptor.panel.v1.GetNodeInsightsResponse.history:type_name -> raptor.panel.v1.PlatformPoint
+	5,  // 48: raptor.panel.v1.GetNodeInsightsResponse.oses:type_name -> raptor.panel.v1.CountBucket
+	5,  // 49: raptor.panel.v1.GetNodeInsightsResponse.archs:type_name -> raptor.panel.v1.CountBucket
+	5,  // 50: raptor.panel.v1.GetNodeInsightsResponse.wings_versions:type_name -> raptor.panel.v1.CountBucket
+	5,  // 51: raptor.panel.v1.GetNodeInsightsResponse.servers_per_node:type_name -> raptor.panel.v1.CountBucket
+	5,  // 52: raptor.panel.v1.GetNodeInsightsResponse.server_states:type_name -> raptor.panel.v1.CountBucket
+	5,  // 53: raptor.panel.v1.GetNodeInsightsResponse.top_eggs:type_name -> raptor.panel.v1.CountBucket
+	6,  // 54: raptor.panel.v1.GetNodeInsightsResponse.offline_nodes:type_name -> raptor.panel.v1.OfflineNode
+	7,  // 55: raptor.panel.v1.GetNodeInsightsResponse.failing_servers:type_name -> raptor.panel.v1.FailingServer
+	62, // 56: raptor.panel.v1.GetBillingInsightsResponse.storage_by_day:type_name -> raptor.panel.v1.StoragePoint
+	60, // 57: raptor.panel.v1.GetBillingInsightsResponse.storage_orgs:type_name -> raptor.panel.v1.StorageOrg
+	67, // 58: raptor.panel.v1.PanelInstance.started_at:type_name -> google.protobuf.Timestamp
+	67, // 59: raptor.panel.v1.PanelInstance.seen_at:type_name -> google.protobuf.Timestamp
+	64, // 60: raptor.panel.v1.GetInfrastructureResponse.instances:type_name -> raptor.panel.v1.PanelInstance
+	65, // 61: raptor.panel.v1.GetInfrastructureResponse.largest_tables:type_name -> raptor.panel.v1.TableSize
+	0,  // 62: raptor.panel.v1.StaffService.GetStaffMe:input_type -> raptor.panel.v1.GetStaffMeRequest
+	2,  // 63: raptor.panel.v1.StaffService.GetOverview:input_type -> raptor.panel.v1.GetOverviewRequest
+	54, // 64: raptor.panel.v1.StaffService.GetUserInsights:input_type -> raptor.panel.v1.GetUserInsightsRequest
+	57, // 65: raptor.panel.v1.StaffService.GetNodeInsights:input_type -> raptor.panel.v1.GetNodeInsightsRequest
+	59, // 66: raptor.panel.v1.StaffService.GetBillingInsights:input_type -> raptor.panel.v1.GetBillingInsightsRequest
+	63, // 67: raptor.panel.v1.StaffService.GetInfrastructure:input_type -> raptor.panel.v1.GetInfrastructureRequest
+	11, // 68: raptor.panel.v1.StaffService.SearchUsers:input_type -> raptor.panel.v1.SearchUsersRequest
+	13, // 69: raptor.panel.v1.StaffService.GetUser:input_type -> raptor.panel.v1.GetUserRequest
+	17, // 70: raptor.panel.v1.StaffService.SuspendUser:input_type -> raptor.panel.v1.SuspendUserRequest
+	19, // 71: raptor.panel.v1.StaffService.UnsuspendUser:input_type -> raptor.panel.v1.UnsuspendUserRequest
+	21, // 72: raptor.panel.v1.StaffService.SignOutUser:input_type -> raptor.panel.v1.SignOutUserRequest
+	24, // 73: raptor.panel.v1.StaffService.SearchOrgs:input_type -> raptor.panel.v1.SearchOrgsRequest
+	26, // 74: raptor.panel.v1.StaffService.GetStaffOrg:input_type -> raptor.panel.v1.GetStaffOrgRequest
+	30, // 75: raptor.panel.v1.StaffService.SuspendOrg:input_type -> raptor.panel.v1.SuspendOrgRequest
+	32, // 76: raptor.panel.v1.StaffService.UnsuspendOrg:input_type -> raptor.panel.v1.UnsuspendOrgRequest
+	41, // 77: raptor.panel.v1.StaffService.ListActiveAnnouncements:input_type -> raptor.panel.v1.ListActiveAnnouncementsRequest
+	43, // 78: raptor.panel.v1.StaffService.ListAnnouncements:input_type -> raptor.panel.v1.ListAnnouncementsRequest
+	45, // 79: raptor.panel.v1.StaffService.SaveAnnouncement:input_type -> raptor.panel.v1.SaveAnnouncementRequest
+	47, // 80: raptor.panel.v1.StaffService.EndAnnouncement:input_type -> raptor.panel.v1.EndAnnouncementRequest
+	50, // 81: raptor.panel.v1.StaffService.RequestSupportAccess:input_type -> raptor.panel.v1.RequestSupportAccessRequest
+	52, // 82: raptor.panel.v1.StaffService.ListSupportRequests:input_type -> raptor.panel.v1.ListSupportRequestsRequest
+	35, // 83: raptor.panel.v1.StaffService.ListStaff:input_type -> raptor.panel.v1.ListStaffRequest
+	38, // 84: raptor.panel.v1.StaffService.ListStaffAudit:input_type -> raptor.panel.v1.ListStaffAuditRequest
+	1,  // 85: raptor.panel.v1.StaffService.GetStaffMe:output_type -> raptor.panel.v1.GetStaffMeResponse
+	9,  // 86: raptor.panel.v1.StaffService.GetOverview:output_type -> raptor.panel.v1.GetOverviewResponse
+	56, // 87: raptor.panel.v1.StaffService.GetUserInsights:output_type -> raptor.panel.v1.GetUserInsightsResponse
+	58, // 88: raptor.panel.v1.StaffService.GetNodeInsights:output_type -> raptor.panel.v1.GetNodeInsightsResponse
+	61, // 89: raptor.panel.v1.StaffService.GetBillingInsights:output_type -> raptor.panel.v1.GetBillingInsightsResponse
+	66, // 90: raptor.panel.v1.StaffService.GetInfrastructure:output_type -> raptor.panel.v1.GetInfrastructureResponse
+	12, // 91: raptor.panel.v1.StaffService.SearchUsers:output_type -> raptor.panel.v1.SearchUsersResponse
+	16, // 92: raptor.panel.v1.StaffService.GetUser:output_type -> raptor.panel.v1.GetUserResponse
+	18, // 93: raptor.panel.v1.StaffService.SuspendUser:output_type -> raptor.panel.v1.SuspendUserResponse
+	20, // 94: raptor.panel.v1.StaffService.UnsuspendUser:output_type -> raptor.panel.v1.UnsuspendUserResponse
+	22, // 95: raptor.panel.v1.StaffService.SignOutUser:output_type -> raptor.panel.v1.SignOutUserResponse
+	25, // 96: raptor.panel.v1.StaffService.SearchOrgs:output_type -> raptor.panel.v1.SearchOrgsResponse
+	29, // 97: raptor.panel.v1.StaffService.GetStaffOrg:output_type -> raptor.panel.v1.GetStaffOrgResponse
+	31, // 98: raptor.panel.v1.StaffService.SuspendOrg:output_type -> raptor.panel.v1.SuspendOrgResponse
+	33, // 99: raptor.panel.v1.StaffService.UnsuspendOrg:output_type -> raptor.panel.v1.UnsuspendOrgResponse
+	42, // 100: raptor.panel.v1.StaffService.ListActiveAnnouncements:output_type -> raptor.panel.v1.ListActiveAnnouncementsResponse
+	44, // 101: raptor.panel.v1.StaffService.ListAnnouncements:output_type -> raptor.panel.v1.ListAnnouncementsResponse
+	46, // 102: raptor.panel.v1.StaffService.SaveAnnouncement:output_type -> raptor.panel.v1.SaveAnnouncementResponse
+	48, // 103: raptor.panel.v1.StaffService.EndAnnouncement:output_type -> raptor.panel.v1.EndAnnouncementResponse
+	51, // 104: raptor.panel.v1.StaffService.RequestSupportAccess:output_type -> raptor.panel.v1.RequestSupportAccessResponse
+	53, // 105: raptor.panel.v1.StaffService.ListSupportRequests:output_type -> raptor.panel.v1.ListSupportRequestsResponse
+	36, // 106: raptor.panel.v1.StaffService.ListStaff:output_type -> raptor.panel.v1.ListStaffResponse
+	39, // 107: raptor.panel.v1.StaffService.ListStaffAudit:output_type -> raptor.panel.v1.ListStaffAuditResponse
+	85, // [85:108] is the sub-list for method output_type
+	62, // [62:85] is the sub-list for method input_type
+	62, // [62:62] is the sub-list for extension type_name
+	62, // [62:62] is the sub-list for extension extendee
+	0,  // [0:62] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_staff_proto_init() }
@@ -3757,7 +4930,7 @@ func file_raptor_panel_v1_staff_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_staff_proto_rawDesc), len(file_raptor_panel_v1_staff_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   54,
+			NumMessages:   67,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

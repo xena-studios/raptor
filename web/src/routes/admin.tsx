@@ -1,12 +1,12 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { NotFound } from "@/components/error-screen";
-import { PageHeader } from "@/components/page";
+import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { useReauth } from "@/components/reauth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,15 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
+// The overview's tabs: the summary of everything, then each part in depth.
+const overviewTabs = [
+  { to: "/admin", label: "Summary" },
+  { to: "/admin/overview/users", label: "Users" },
+  { to: "/admin/overview/nodes", label: "Nodes" },
+  { to: "/admin/overview/billing", label: "Billing" },
+  { to: "/admin/overview/infrastructure", label: "Infrastructure" },
+] as const;
+
 function AdminLayout() {
   const session = Route.useRouteContext();
   const me = useQuery(StaffService.method.getStaffMe, {});
@@ -36,6 +45,7 @@ function AdminLayout() {
       ["/admin/announcements", "Announcements"],
       ["/admin/settings", "Settings"],
     ].find(([p]) => path.startsWith(p as string))?.[1] ?? "Overview";
+  const onOverview = path === "/admin" || path === "/admin/" || path.startsWith("/admin/overview");
   return (
     <AppShell session={session}>
       {me.isPending ? (
@@ -57,7 +67,17 @@ function AdminLayout() {
               }
               description="Everything you do here is logged."
             />
+            {onOverview && (
+              <RouteTabs label="Overview sections">
+                {overviewTabs.map((t) => (
+                  <Link key={t.to} to={t.to} activeOptions={{ exact: true }} className={tabClass}>
+                    {t.label}
+                  </Link>
+                ))}
+              </RouteTabs>
+            )}
           </div>
+
           {me.data.passkeyFresh ? <Outlet /> : <PasskeyGate />}
         </>
       )}
