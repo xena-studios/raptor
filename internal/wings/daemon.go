@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"os"
 	"os/user"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -39,6 +42,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
+	"github.com/xena-studios/raptor/internal/wings/system"
 	"github.com/xena-studios/raptor/internal/wings/update"
 )
 
@@ -233,6 +237,8 @@ type runtimeSetup struct {
 	backupsReady   atomic.Pointer[backup.Manager]
 	jobs           *jobs.Engine
 	disk           *host.DiskGuard
+	system         *system.Manager
+	fwMu           sync.Mutex        // guards rules after setup
 	commands       *command.Executor // receives Panel commands (connected in Phase 3)
 }
 
@@ -257,6 +263,11 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 	})
 	r.commands = &command.Executor{DB: db, NodeID: cfg.NodeID, RP: rp, PanelKey: panelKey, Log: log, Pairing: &command.Pairing{}}
 	svc.SetCommands(r.commands)
+	r.system = &system.Manager{
+		DB: db, Log: log, Hosts: "/etc/hosts", SSHConfig: "/etc/ssh/sshd_config",
+		ApplyFirewall: r.applyHostFirewall, Open: r.openPorts,
+	}
+	actions.RegisterSystem(r.commands, r.system)
 	// The host key exists from the first start, SFTP on or not, so its
 	// fingerprint never changes when SFTP is turned on.
 	if r.sftpKey, err = sftp.LoadHostKey(cfg.Identity.SFTPHostKey); err != nil {
@@ -328,6 +339,48 @@ func (r *runtimeSetup) close() {
 	}
 }
 
+// applyHostFirewall loads the node's firewall into the rule set.
+func (r *runtimeSetup) applyHostFirewall(ctx context.Context, h *firewall.HostRules) error {
+	r.fwMu.Lock()
+	defer r.fwMu.Unlock()
+	if r.rules == nil {
+		return errors.New("the container runtime isn't ready yet")
+	}
+	next := *r.rules
+	next.Host, next.Open = h, r.openPorts(ctx)
+	if err := firewall.Apply(ctx, next); err != nil {
+		return err
+	}
+	r.rules = &next
+	return nil
+}
+
+// openPorts is what stays open when the node's firewall blocks incoming
+// connections: SSH, Raptor's SFTP, and servers on the host's network
+// (Docker's published ports never reach the machine's input chain).
+func (r *runtimeSetup) openPorts(ctx context.Context) []firewall.OpenPort {
+	var out []firewall.OpenPort
+	for _, p := range system.SSHPorts("") {
+		out = append(out, firewall.OpenPort{Protocol: firewall.TCP, Port: p, Why: "SSH"})
+	}
+	if p := r.cfg.Ports.SFTP; p > 0 {
+		out = append(out, firewall.OpenPort{Protocol: firewall.TCP, Port: p, Why: "Raptor's SFTP"})
+	}
+	if mgr := r.serversReady.Load(); mgr != nil {
+		ids := slices.Sorted(maps.Keys(mgr.List()))
+		for _, id := range ids {
+			s, err := mgr.Get(ctx, id)
+			if err != nil || !s.HostNetwork {
+				continue
+			}
+			for _, a := range s.Allocations {
+				out = append(out, firewall.OpenPort{Protocol: firewall.Both, Port: a.Port, Why: s.Name})
+			}
+		}
+	}
+	return out
+}
+
 // prune drops old events, executed commands, and job records.
 func (r *runtimeSetup) prune(ctx context.Context) {
 	if n, err := r.events.Prune(ctx, time.Now()); err != nil {
@@ -382,11 +435,26 @@ func (r *runtimeSetup) ready() {
 }
 
 func (r *runtimeSetup) check(ctx context.Context) {
-	if r.rules == nil {
+	r.fwMu.Lock()
+	ready := r.rules != nil
+	r.fwMu.Unlock()
+	if !ready {
 		if err := r.setup(ctx); err != nil {
 			r.log.Error("runtime setup failed; retrying", "err", err, "retry_in", runtimeCheckInterval.String())
 		}
 		return
+	}
+	r.fwMu.Lock()
+	defer r.fwMu.Unlock()
+	// What stays open changes with servers on the host's network.
+	if r.rules.Host != nil {
+		if open := r.openPorts(ctx); !slices.Equal(open, r.rules.Open) {
+			r.rules.Open = open
+			if err := firewall.Apply(ctx, *r.rules); err != nil {
+				r.log.Error("firewall reapply failed", "err", err)
+			}
+			return
+		}
 	}
 	if !firewall.Present(ctx) {
 		r.log.Warn("firewall table was removed; reapplying", "table", "inet "+firewall.Table)
@@ -425,6 +493,11 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	} else {
 		r.log.Warn("docker doesn't use the systemd cgroup driver; containers run without the raptor.slice memory ceiling")
 	}
+	if h, err := r.system.Firewall(ctx); err != nil {
+		r.log.Error("reading the node's firewall failed; loading without it", "err", err)
+	} else if h != nil {
+		rules.Host, rules.Open = h, r.openPorts(ctx)
+	}
 	if err := firewall.Apply(ctx, rules); err != nil {
 		return fmt.Errorf("firewall: %w", err)
 	}
@@ -457,7 +530,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		LogDir:          r.cfg.Paths.Logs,
 		UID:             uid,
 		GID:             gid,
-		Timezone:        host.Timezone(),
+		Zone:            host.Timezone,
 		DockerInterface: nets.Server.Gateway.String(),
 		ReservedPorts:   []int{r.cfg.Ports.SFTP},
 		Jobs:            r.jobs,
@@ -536,7 +609,9 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.servers = mgr
 	r.svc.SetServers(mgr)
 	r.svc.SetBackups(bk, r.jobs)
+	r.fwMu.Lock()
 	r.rules = &rules
+	r.fwMu.Unlock()
 	r.transfers.Store(fsvc)
 	r.serversReady.Store(mgr)
 	r.schedulesReady.Store(sched)

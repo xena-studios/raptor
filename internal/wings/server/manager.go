@@ -53,7 +53,10 @@ type Options struct {
 	// UID and GID the server containers run as (the raptor user).
 	UID, GID int
 	// Timezone (TZ) and Location (P_SERVER_LOCATION) for every server.
+	// Zone, if set, is asked for the time zone at each start instead, so
+	// changing the machine's applies on the next start.
 	Timezone, Location string
+	Zone               func() string
 	// DockerInterface is the server network's gateway, for
 	// {{config.docker.interface}} in config files.
 	DockerInterface string
@@ -786,13 +789,17 @@ func containerName(id string) string { return "raptor-" + id }
 // runtimeEnv returns the container environment for a server.
 func (m *Manager) runtimeEnv(s *Server) eggs.Runtime {
 	p := s.Primary()
+	tz := m.o.Timezone
+	if m.o.Zone != nil {
+		tz = m.o.Zone()
+	}
 	return eggs.Runtime{
 		ServerID:        s.ID,
 		Startup:         s.Startup,
 		MemoryMiB:       s.Limits.MemoryMiB,
 		IP:              p.IP,
 		Port:            p.Port,
-		Timezone:        m.o.Timezone,
+		Timezone:        tz,
 		Location:        m.o.Location,
 		AllocationLimit: 0, // Raptor has no per-server allocation limits yet
 		Variables:       s.Variables,
