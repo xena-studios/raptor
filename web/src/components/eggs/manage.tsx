@@ -4,7 +4,7 @@ import { Download, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { useReauth } from "@/components/reauth";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/server-status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -59,9 +59,17 @@ export function EggManagement({ lib, d }: { lib: Library; d: GetEggDetailsRespon
         <CardHeader>
           <CardTitle className="flex items-center justify-between gap-2">
             Publishing
-            <Badge variant={egg.status === "published" ? "default" : "secondary"}>
-              {statusNames[egg.status]}
-            </Badge>
+            <StatusBadge
+              status={{
+                label: statusNames[egg.status] ?? egg.status,
+                tone:
+                  egg.status === "published"
+                    ? "live"
+                    : egg.status === "draft"
+                      ? "pending"
+                      : "stopped",
+              }}
+            />
           </CardTitle>
           <CardDescription>
             {lib.orgId

@@ -46,7 +46,10 @@ function SettingsLayout() {
           )}
         </RouteTabs>
       </div>
-      <Outlet />
+      {/* Settings read as one column, the same width on every tab. */}
+      <div className="max-w-3xl">
+        <Outlet />
+      </div>
     </>
   );
 }

@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { User } from "@/gen/raptor/panel/v1/auth_pb";
 import { message } from "@/lib/errors";
+import { dateOnly } from "@/lib/format";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 import { authClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
@@ -264,10 +265,7 @@ export function Details({ user }: { user: User }) {
         <DetailList
           rows={[
             ["Account ID", <code key="id">{user.id}</code>],
-            [
-              "Member since",
-              user.createdAt ? timestampDate(user.createdAt).toLocaleDateString() : "",
-            ],
+            ["Member since", user.createdAt ? dateOnly(timestampDate(user.createdAt)) : ""],
           ]}
         />
       </CardContent>

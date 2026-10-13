@@ -5,17 +5,21 @@ import {
   Archive,
   Building2,
   CalendarClock,
+  Clock,
   Egg,
   FileText,
   FolderKey,
+  HardDrive,
   KeyRound,
   LogOut,
   type LucideIcon,
   Mail,
   Power,
+  Puzzle,
   RefreshCw,
   Server,
   Settings,
+  Shield,
   SquareTerminal,
   Trash2,
   UserMinus,
@@ -141,8 +145,30 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`changed the trusted passkeys on ${server}`, KeyRound];
     case "node.sftp":
       return [`turned SFTP ${meta.enabled === false ? "off" : "on"} on ${server}`, FolderKey];
+    case "server.move":
+      return [`moved ${server} to another disk`, HardDrive];
+    case "server.console":
+      return [`used ${server}'s console`, SquareTerminal];
+    case "addons.install":
+      return [`installed an add-on on ${server}`, Puzzle];
+    case "backup.key":
+      return [`gave Raptor a copy of ${server}'s backup key`, KeyRound];
+    case "node.disk.setup":
+      return [`set up a disk on ${server}`, HardDrive];
+    case "node.disk.grow":
+      return [`grew a disk on ${server}`, HardDrive];
+    case "node.disk.default":
+      return [`changed the default disk on ${server}`, HardDrive];
+    case "node.firewall":
+      return [`changed the firewall on ${server}`, Shield];
+    case "node.hostname":
+      return [`renamed the machine ${server} runs on`, Server];
+    case "node.time":
+      return [`changed the clock settings on ${server}`, Clock];
+    case "node.reboot":
+      return [`restarted the machine ${server} runs on`, RefreshCw];
   }
-  return [`changed something on ${server}`, Activity];
+  return [`made a change on ${server}`, Activity];
 }
 
 // OrgActivity is the org's audit log or, given a server, the commands sent
@@ -287,9 +313,36 @@ export function OrgActivity({
       case "egg.delete":
         [text, icon] = [`removed the imported egg "${str(meta.name)}"`, Egg];
         break;
+      case "egg.create":
+        [text, icon] = [`made the egg "${str(meta.name) || "an egg"}"`, Egg];
+        break;
+      case "egg.update":
+        [text, icon] = [`edited the egg${meta.name ? ` "${str(meta.name)}"` : ""}`, Egg];
+        break;
+      case "egg.customize":
+        [text, icon] = [
+          `made a copy of the egg${meta.name ? ` "${str(meta.name)}"` : ""} to customize`,
+          Egg,
+        ];
+        break;
+      case "backup.recover.prepare":
+        [text, icon] = [`started recovering backups onto ${nodeName(e.target)}`, Archive];
+        break;
+      case "org.suspend":
+        [text, icon] = ["(Raptor staff) suspended the org", Building2];
+        break;
+      case "org.unsuspend":
+        [text, icon] = ["(Raptor staff) lifted the org's suspension", Building2];
+        break;
       case "command": {
-        const server =
-          e.target === str(meta.node) ? nodeName(e.target) : serverName(str(meta.node), e.target);
+        const onNode = e.target === str(meta.node);
+        // A server command aimed at the node is one whose server doesn't
+        // exist yet (or any more), like a create that failed.
+        const server = !onNode
+          ? serverName(str(meta.node), e.target)
+          : str(meta.action).startsWith("server.")
+            ? `a server on ${nodeName(e.target)}`
+            : nodeName(e.target);
         [text, icon] = describeCommand(str(meta.action), server, meta);
         if (meta.error) {
           text += ", which failed";
@@ -297,10 +350,10 @@ export function OrgActivity({
         }
         break;
       }
-      default: {
-        const phrase = e.action.replace(/[._]/g, " ");
-        text = e.target ? `${phrase}: ${e.target}` : phrase;
-      }
+      default:
+        // Something this version of the app has no words for yet: say that
+        // much, never the raw action or an ID.
+        text = "made a change";
     }
     return {
       id: e.id,
@@ -309,7 +362,9 @@ export function OrgActivity({
       actor: e.actorEmail ? person(e.actorEmail) : str(meta.email) || "Someone who left",
       text,
       failed,
-      details: [failed ? str(meta.error) : "", e.userAgent && describeDevice(e.userAgent), e.ip],
+      // A failure's reason is the node's words, not written for people, so
+      // only the fact that it failed is shown.
+      details: [e.userAgent && describeDevice(e.userAgent), e.ip],
     };
   }
 

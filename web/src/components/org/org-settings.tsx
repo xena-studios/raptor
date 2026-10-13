@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Org } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
-import { roleNames } from "@/lib/format";
+import { dateOnly, roleNames } from "@/lib/format";
 import { orgClient } from "@/lib/transport";
 
 // OrgSettings is the org's name: admins and owners can change it.
@@ -96,7 +96,7 @@ export function OrgDetails({ org }: { org: Org }) {
         <DetailList
           rows={[
             ["Org ID", <code key="id">{org.id}</code>],
-            ["Created", org.createdAt ? timestampDate(org.createdAt).toLocaleDateString() : ""],
+            ["Created", org.createdAt ? dateOnly(timestampDate(org.createdAt)) : ""],
             ["Your role", roleNames[org.role as keyof typeof roleNames]],
           ]}
         />

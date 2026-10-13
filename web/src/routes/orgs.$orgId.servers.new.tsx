@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CatalogEgg } from "@/gen/raptor/panel/v1/catalog_pb";
@@ -457,12 +458,7 @@ function Settings({
       </Card>
       {needsEula && (
         <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="mt-0.5"
-            checked={eula}
-            onChange={(e) => setEula(e.target.checked)}
-          />
+          <Checkbox className="mt-0.5" checked={eula} onCheckedChange={(on) => setEula(on)} />
           <span>
             I accept the{" "}
             {egg.category === "minecraft" ? (

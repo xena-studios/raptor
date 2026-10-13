@@ -20,7 +20,7 @@ function General() {
   const { linked, error } = Route.useSearch();
   if (!user) return null;
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       {linked && (
         <Alert>
           <AlertDescription>

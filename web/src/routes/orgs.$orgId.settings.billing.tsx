@@ -21,7 +21,7 @@ function Billing() {
   const count = nodes.data?.nodes.length ?? 0;
   if (nodes.data && count === 0) {
     return (
-      <div className="max-w-3xl">
+      <div>
         <EmptyState
           icon={CreditCard}
           title="No plan yet"
@@ -40,7 +40,7 @@ function Billing() {
     );
   }
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Plan</CardTitle>

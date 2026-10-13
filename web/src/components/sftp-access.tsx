@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { type Node, OrgService, type SFTPAccess } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
+import { dateTime } from "@/lib/format";
 import { commandClient, orgClient } from "@/lib/transport";
 
 const select =
@@ -205,7 +206,7 @@ export function SFTPButton({
                     ],
                     [
                       "Works until",
-                      access.expiresAt ? timestampDate(access.expiresAt).toLocaleString() : "",
+                      access.expiresAt ? dateTime(timestampDate(access.expiresAt)) : "",
                     ],
                   ]}
                 />

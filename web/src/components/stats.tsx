@@ -34,7 +34,9 @@ export function StatCard({
           {Icon && <Icon className="size-3.5" />} {label}
         </p>
         <div className="flex items-end justify-between gap-3">
-          <p className="truncate font-mono text-xl font-medium tabular-nums">{value}</p>
+          <p className="shrink-0 font-mono text-xl font-medium whitespace-nowrap tabular-nums">
+            {value}
+          </p>
           {spark && spark.length > 1 && <Sparkline values={spark} />}
         </div>
         {fraction !== undefined && <UsageBar fraction={fraction} />}
@@ -88,12 +90,21 @@ function Sparkline({
     pen = true;
   });
   return (
-    <svg width={width} height={height} aria-hidden className="shrink-0 overflow-visible">
+    // It gives way to the value: narrower, never pushing it out of view.
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      height={height}
+      aria-hidden
+      className="min-w-0 overflow-visible"
+      style={{ width, maxWidth: "100%" }}
+    >
       <path
         d={d}
         fill="none"
         stroke={color}
         strokeWidth={1.5}
+        vectorEffect="non-scaling-stroke"
         strokeLinejoin="round"
         strokeLinecap="round"
       />

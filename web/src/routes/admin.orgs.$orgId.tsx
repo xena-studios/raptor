@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
-import { when } from "@/lib/format";
+import { since, when } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
 import { nodeStatus } from "@/lib/servers";
 import { staffClient } from "@/lib/transport";
@@ -180,7 +180,7 @@ function OrgPage() {
                         <span className="flex flex-col">
                           <span className="font-medium">{n.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {n.connected ? n.arch : `Last seen ${when(n.lastSeenAt)}`}
+                            {n.connected ? n.arch : `Last seen ${since(n.lastSeenAt)}`}
                           </span>
                         </span>
                       </TableCell>

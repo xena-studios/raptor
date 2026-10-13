@@ -16,7 +16,6 @@ const base = "/orgs/$orgId/servers/$nodeId/$serverId";
 const tabs = [
   { label: "Overview", to: base, exact: true, show: () => true },
   { label: "Files", to: `${base}/files`, show: (s) => can(s, "files.read") },
-  { label: "Databases", to: `${base}/databases`, show: (s) => can(s, "*") },
   { label: "Schedules", to: `${base}/schedules`, show: (s) => can(s, "schedules") },
   { label: "Backups", to: `${base}/backups`, show: (s) => can(s, "backups") },
   { label: "Network", to: `${base}/network`, show: () => true },
@@ -75,7 +74,17 @@ function ServerLayout() {
           description={[server?.eggName, node?.name].filter(Boolean).join(" · ")}
           actions={
             can(server, "power") && (
-              <PowerButtons nodeId={nodeId} serverId={serverId} onError={setError} />
+              <PowerButtons
+                nodeId={nodeId}
+                serverId={serverId}
+                state={
+                  ["pending", "installing", "failed"].includes(server?.installState ?? "")
+                    ? "installing"
+                    : server?.state
+                }
+                offline={!node?.connected}
+                onError={setError}
+              />
             )
           }
         />

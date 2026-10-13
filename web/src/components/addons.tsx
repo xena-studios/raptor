@@ -31,6 +31,7 @@ import { type AddonProject, AddonService } from "@/gen/raptor/panel/v1/addon_pb"
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { addonKinds, loaderName, onHangar, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
+import { dateOnly } from "@/lib/format";
 import { formatBytes as bytes } from "@/lib/metrics";
 import { gameVersion, type ServerConfig } from "@/lib/servers";
 
@@ -483,7 +484,7 @@ function InstallDialog({
               {list.map((x) => (
                 <option key={x.id} value={x.id}>
                   {x.versionNumber} · {x.gameVersions.slice(-3).join(", ")}
-                  {x.publishedAt ? ` · ${timestampDate(x.publishedAt).toLocaleDateString()}` : ""}
+                  {x.publishedAt ? ` · ${dateOnly(timestampDate(x.publishedAt))}` : ""}
                 </option>
               ))}
             </select>

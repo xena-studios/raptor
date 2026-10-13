@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EggImageSchema, type EggVariable } from "@/gen/raptor/panel/v1/catalog_pb";
@@ -931,14 +932,11 @@ function AddonsTab({ spec, patch }: { spec: EggSpec; patch: Patch }) {
                     <legend className="mb-1 text-xs text-muted-foreground">Runs on</legend>
                     {meta.loaders.map((l) => (
                       <Label key={l} className="flex items-center gap-1.5 text-sm font-normal">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={a.loaders.includes(l)}
-                          onChange={(e) =>
+                          onCheckedChange={(on) =>
                             set({
-                              loaders: e.target.checked
-                                ? [...a.loaders, l]
-                                : a.loaders.filter((x) => x !== l),
+                              loaders: on ? [...a.loaders, l] : a.loaders.filter((x) => x !== l),
                             })
                           }
                         />
@@ -1001,14 +999,11 @@ function AddonsTab({ spec, patch }: { spec: EggSpec; patch: Patch }) {
               ["arm64", "ARM"],
             ].map(([a, label]) => (
               <Label key={a} className="flex items-center gap-2 text-sm font-normal">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={spec.arch.includes(a ?? "")}
-                  onChange={(e) =>
+                  onCheckedChange={(on) =>
                     patch({
-                      arch: e.target.checked
-                        ? [...spec.arch, a ?? ""]
-                        : spec.arch.filter((x) => x !== a),
+                      arch: on ? [...spec.arch, a ?? ""] : spec.arch.filter((x) => x !== a),
                     })
                   }
                 />

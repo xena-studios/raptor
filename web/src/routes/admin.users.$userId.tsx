@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
-import { when } from "@/lib/format";
+import { since, when } from "@/lib/format";
 import { staffClient } from "@/lib/transport";
 
 export const Route = createFileRoute("/admin/users/$userId")({
@@ -76,7 +76,7 @@ function UserPage() {
                   </code>,
                 ],
                 ["Joined", when(u.createdAt)],
-                ["Last seen", u.lastSeenAt ? when(u.lastSeenAt) : "Never"],
+                ["Last seen", since(u.lastSeenAt)],
                 ["Passkeys", String(u.passkeys)],
                 ...(u.suspendedAt
                   ? ([

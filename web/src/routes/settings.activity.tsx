@@ -8,7 +8,7 @@ export const Route = createFileRoute("/settings/activity")({
 
 function AccountActivity() {
   return (
-    <div className="max-w-3xl">
+    <div>
       <ActivityLog />
     </div>
   );

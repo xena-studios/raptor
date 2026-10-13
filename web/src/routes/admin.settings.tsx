@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
-import { when } from "@/lib/format";
+import { dateTime, when } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/settings")({
   component: StaffPage,
@@ -140,7 +140,7 @@ function LogPage({
               </span>
               <span
                 className="text-xs text-muted-foreground"
-                title={e.at ? timestampDate(e.at).toLocaleString() : ""}
+                title={e.at ? dateTime(timestampDate(e.at)) : ""}
               >
                 {when(e.at)}
                 {e.ip && ` · ${e.ip}`}

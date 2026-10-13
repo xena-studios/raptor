@@ -31,9 +31,8 @@ const sectionText: Record<SettingsSection, { title: string; description: string 
     description: "The port players connect to. It changes the next time the server starts.",
   },
   general: {
-    title: "Settings",
-    description:
-      "The server's name and limits. Memory applies the next time it starts; the disk limit at once.",
+    title: "Name and limits",
+    description: "Memory applies the next time it starts; the disk limit at once.",
   },
 };
 

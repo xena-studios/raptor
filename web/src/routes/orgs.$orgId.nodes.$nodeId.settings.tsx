@@ -1,7 +1,7 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NodeAddress, NodeSettings, NodeSFTP } from "@/components/node-settings";
+import { NodeAddress, NodeName, NodeRemove, NodeSFTP } from "@/components/node-settings";
 import { PairKey } from "@/components/pair-key";
 import { SupportSettings } from "@/components/support-access";
 import { TrustedKeys } from "@/components/trusted-keys";
@@ -20,7 +20,7 @@ function Settings() {
   const userId = session.user?.id ?? "";
   return (
     <div className="flex flex-col gap-6">
-      {node && <NodeSettings key={node.name} orgId={orgId} nodeId={nodeId} name={node.name} />}
+      {node && <NodeName key={node.name} orgId={orgId} nodeId={nodeId} name={node.name} />}
       {node && <NodeAddress key={node.displayAddress} orgId={orgId} node={node} />}
       {node && <NodeSFTP orgId={orgId} node={node} />}
       {node && <SupportSettings nodeId={nodeId} connected={node.connected} />}
@@ -31,6 +31,7 @@ function Settings() {
         servers={servers.data?.servers ?? []}
       />
       <PairKey nodeId={nodeId} userId={userId} />
+      {node && <NodeRemove orgId={orgId} nodeId={nodeId} name={node.name} />}
     </div>
   );
 }

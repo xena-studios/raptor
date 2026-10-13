@@ -21,7 +21,7 @@ import {
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { nodeHostname } from "@/lib/addresses";
 import { message } from "@/lib/errors";
-import { isAdmin, when } from "@/lib/format";
+import { isAdmin, since, when } from "@/lib/format";
 import {
   formatBytes,
   formatPercent,
@@ -66,7 +66,7 @@ function NodeOverview() {
       {node && !node.connected && (
         <Card size="sm">
           <CardContent className="text-sm text-muted-foreground">
-            {node.name} is offline (last seen {when(node.lastSeenAt)}). Its servers keep running if
+            {node.name} is offline (last seen {since(node.lastSeenAt)}). Its servers keep running if
             the machine is up; what's shown is its last report.
           </CardContent>
         </Card>
@@ -158,7 +158,7 @@ function NodeOverview() {
                     "Servers",
                     `${list.filter((s) => s.state === "running").length} running of ${list.length}`,
                   ],
-                  ["Last seen", node.connected ? "Now" : when(node.lastSeenAt)],
+                  ["Last seen", node.connected ? "Now" : since(node.lastSeenAt)],
                   ["Linked", when(node.createdAt)],
                 ]}
               />

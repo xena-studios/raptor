@@ -25,7 +25,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { EntryIcon } from "@/components/file-manager/icons";
 import { EmptyState } from "@/components/page";
 import { BackupPlan, useBackupPlan } from "@/components/server-backup-plan";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/server-status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -55,7 +55,7 @@ import {
 import { type Backup, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { crumbs, formatSize, join } from "@/lib/files";
-import { isAdmin, when } from "@/lib/format";
+import { dateTime, isAdmin, when } from "@/lib/format";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
@@ -293,7 +293,7 @@ export function ServerBackups({
               <TableBody>
                 {newBackups.map((a) => (
                   <TableRow key={a.job_id}>
-                    <TableCell>{new Date(a.started_at).toLocaleString()}</TableCell>
+                    <TableCell>{dateTime(new Date(a.started_at))}</TableCell>
                     <TableCell>{kindNames[a.backup_kind ?? ""] ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">—</TableCell>
                     <TableCell className="text-right text-muted-foreground">—</TableCell>
@@ -442,17 +442,17 @@ function BackupStatus({ backup, running }: { backup: Backup; running?: Activity 
   }
   if (backup.status === "failed") {
     return (
-      <Badge variant="destructive" title={backup.error}>
-        Failed
-      </Badge>
+      <span title={backup.error}>
+        <StatusBadge status={{ label: "Failed", tone: "failed" }} />
+      </span>
     );
   }
   return backup.warning ? (
-    <Badge variant="outline" title={backup.warning}>
-      Done, with warnings
-    </Badge>
+    <span title={backup.warning}>
+      <StatusBadge status={{ label: "Done, with warnings", tone: "pending" }} />
+    </span>
   ) : (
-    <Badge variant="secondary">Done</Badge>
+    <StatusBadge status={{ label: "Done", tone: "live" }} />
   );
 }
 
