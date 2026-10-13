@@ -18,6 +18,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
@@ -216,7 +217,8 @@ func (s *service) GetServers(_ context.Context, req *nodev1.GetServersRequest) (
 	}
 	for _, srv := range n.servers {
 		if len(want) == 0 || want[srv.GetId()] {
-			out.Servers = append(out.Servers, srv)
+			// A copy: change() edits the node's own while this one is sent.
+			out.Servers = append(out.Servers, proto.CloneOf(srv))
 			delete(want, srv.GetId())
 		}
 	}
