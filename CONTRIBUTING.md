@@ -107,6 +107,10 @@ task e2e:update                           # self-update: an update, two rollback
 
 They need root: they create Wings' networks, load its nftables table, and set up `raptor.slice`, exactly as the daemon does. CI runs them on every PR (the `e2e-runtime` job).
 
+### Design work
+
+The web app follows [docs/DESIGN.md](docs/DESIGN.md), with the brief behind it at the end of [docs/PRODUCT.md](docs/PRODUCT.md#design-brief). The [impeccable](https://github.com/pbakaus/impeccable) skill (Apache-2.0, vendored in `.agents/skills/impeccable`, linked into `.claude/skills`) reads those two files before any design task in Claude Code or Codex: `/impeccable polish <page>`, `critique`, `clarify`, and so on. Its hook (`.claude/settings.json`, `.codex/hooks.json`) runs its detector on UI files after each edit and reports findings in the session; it never blocks. `node .agents/skills/impeccable/scripts/hook-admin.mjs off` turns it off for the project (`.impeccable/config.json`), and your own choices stay in the gitignored `.impeccable/config.local.json`. A clean detector result isn't proof a page is good: look at it in both themes and on a phone.
+
 ### Releases
 
 Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md). The same tag publishes the Panel's server images to GHCR (`raptor-panel`, `raptor-postgres`). A stable tag (`vX.Y.Z`) on `main` then deploys the Panel and the web app to production by itself ([DEPLOY.md](docs/DEPLOY.md#deploying)). Since every release goes live, Panel migrations must work with the version before them: add, backfill, and drop in a later release; never rename in one step.

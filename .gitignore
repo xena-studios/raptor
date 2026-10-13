@@ -22,3 +22,8 @@ bin/
 
 # Local dev state (Panel signing key)
 /.dev/
+
+# Per-machine Claude Code and impeccable state
+.claude/settings.local.json
+.impeccable/config.local.json
+.impeccable/hook.cache.json
