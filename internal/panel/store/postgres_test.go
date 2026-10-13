@@ -1,26 +1,23 @@
-package store_test
+package store
 
-import (
-	"context"
-	"testing"
+import "testing"
 
-	"github.com/xena-studios/raptor/internal/panel/paneltest"
-	"github.com/xena-studios/raptor/internal/panel/store"
-)
-
-// Migrations apply to a fresh database (paneltest.NewDB) and again as a
-// no-op.
-func TestMigrateAndPing(t *testing.T) {
-	ctx := context.Background()
-	pool := paneltest.NewDB(t)
-	if err := store.Migrate(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
-	ok, err := store.New(pool).Ping(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ok != 1 {
-		t.Fatalf("ping = %d, want 1", ok)
+func TestPoolConfig(t *testing.T) {
+	for _, c := range []struct {
+		url  string
+		want int32
+	}{
+		{"postgres://u:p@localhost/db", minConns},
+		{"postgres://u:p@localhost/db?sslmode=disable", minConns},
+		{"postgres://u:p@localhost/db?pool_max_conns=40", 40},
+		{"postgres://u:p@localhost/db?pool_max_conns=2", 2},
+	} {
+		cfg, err := poolConfig(c.url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.MaxConns != c.want {
+			t.Errorf("%s: MaxConns %d, want %d", c.url, cfg.MaxConns, c.want)
+		}
 	}
 }

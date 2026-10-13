@@ -16,7 +16,7 @@ One Go binary, one role (see [ARCHITECTURE.md](ARCHITECTURE.md#panel)):
 - `panel serve api`: Connect API, WebSockets for browsers and nodes, River jobs. Several instances can run; requests for a node held by another instance are forwarded through Postgres `LISTEN/NOTIFY`.
 
 Configured by environment (`panel` with no arguments lists them all):
-- `PANEL_DATABASE_URL`, `PANEL_API_ADDR`.
+- `PANEL_DATABASE_URL`, `PANEL_API_ADDR`. Each instance's pool has at least 16 connections unless the URL sets `pool_max_conns`: its leader loops each hold one for their lock while they use another, so a pool the size of a small server's CPU count can deadlock.
 - `PANEL_SIGNING_KEY`: the file with the Panel's Ed25519 signing key, kept apart from other secrets; nodes pin its public key.
 - `PANEL_DATA_KEY`: the file whose key encrypts TOTP secrets and the copies of nodes' backup keys; without it, two-factor authentication is off and no backup keys are kept. Back it up like the signing key.
 - `PANEL_APP_URL` (the web app's origin, the only one browsers may call from, and the passkey RP ID) and `PANEL_API_URL` (for OAuth callbacks).
