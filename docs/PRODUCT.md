@@ -144,3 +144,32 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 |---|---|
 | `raptorpanel.net` | Landing page; web app (`app.`), API and node connections (`api.`), docs (`docs.`), installer (`get.`), status page (`status.`) |
 | `raptornodes.net` | Node hostnames (`n-k7m2qx9d.raptornodes.net`) and player-facing server subdomains (`smp.raptornodes.net`) |
+
+## Register
+
+product
+
+## Design brief
+
+The web app is an operational tool, so design serves the task. [DESIGN.md](DESIGN.md) is the visual system; this is the why behind it.
+
+**The moment it's built for:** a community owner glancing at whether their server is up, on a laptop or a phone, wanting confidence in a beat. They're capable but short on time and don't speak Docker or Linux, and they shouldn't have to.
+
+**Personality:** calm, precise, trustworthy. An instrument panel you'd leave open all day: a steady console that tells you the truth at a glance.
+
+**Voice:** plain and direct. Name things the way owners think (server, node, egg, port), never the way Docker does (container, image, bind mount). Errors say what happened and what to do, never blame, and never show developer text. Destructive actions say what's lost and ask once. No em dashes and no marketing adjectives in the app.
+
+**Anti-references:**
+- Developer-terminal cosplay: neon, glow, Matrix green. The mono type and dark ink carry meaning (state, identity, data), not "hacker" decoration.
+- Toy dashboards: big hero numbers, confetti, rounded pills everywhere.
+- Generic SaaS: soft shadows, lavender gradients, friendly blobs.
+- Over-confirmation: a dialog for every action. Inline first; confirm only what's destructive or irreversible.
+
+**Principles:**
+1. Colour carries state, never decoration. One red is the only thing that lights up; green, amber, and red appear only to say how something is.
+2. Hairlines over shadows. Grouping comes from rules and tint.
+3. Mono is structure. Data, labels, and states read as console readouts.
+4. Secure by default is visible. Guard rails (protected ports, passkey signatures, install-script reviews) are shown, not hidden.
+5. Eggs over images. People pick games; raw image names never surface.
+
+**Accessibility:** WCAG 2.2 AA. Text meets 4.5:1 (3:1 for large text) in both themes; state is always spelled out, never colour alone; everything works from the keyboard with a visible focus ring; motion respects `prefers-reduced-motion`.

@@ -133,7 +133,7 @@ export function ConnectNode({ orgId, userId }: { orgId: string; userId: string }
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-start gap-2">
-              <code className="flex-1 break-all rounded-md bg-muted p-3 font-mono text-xs">
+              <code className="terminal flex-1 break-all rounded-lg p-3 font-mono text-xs">
                 {command}
               </code>
               <Button
@@ -154,7 +154,7 @@ export function ConnectNode({ orgId, userId }: { orgId: string; userId: string }
                   <li key={s.name} className="flex flex-col gap-0.5">
                     <span className="flex items-center gap-2">
                       {s.state === "done" ? (
-                        <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                        <CheckCircle2 className="size-4 shrink-0 text-ok" />
                       ) : s.state === "failed" ? (
                         <XCircle className="size-4 shrink-0 text-destructive" />
                       ) : (
@@ -180,7 +180,7 @@ export function ConnectNode({ orgId, userId }: { orgId: string; userId: string }
             )}
             {arrived ? (
               <p className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="size-4 text-emerald-500" />
+                <CheckCircle2 className="size-4 text-ok" />
                 <span>
                   <span className="font-medium">{arrived.name}</span> linked
                   {arrived.connected ? " and connected" : ""}.{" "}

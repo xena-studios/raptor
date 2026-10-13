@@ -9,6 +9,9 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
+  // The CSP allows fonts from 'self' only, so small font files stay files
+  // rather than data: URIs.
+  build: { assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined) },
   // Monaco's workers import modules of their own.
   worker: { format: "es" },
   server: {

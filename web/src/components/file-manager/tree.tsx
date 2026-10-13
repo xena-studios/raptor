@@ -95,9 +95,9 @@ function Node({
           }}
         >
           {open ? (
-            <FolderOpen className="size-4 shrink-0 text-sky-500" />
+            <FolderOpen className="size-4 shrink-0 text-chart-2" />
           ) : (
-            <Folder className="size-4 shrink-0 text-sky-500" />
+            <Folder className="size-4 shrink-0 text-chart-2" />
           )}
           <span className="truncate">{name}</span>
         </button>

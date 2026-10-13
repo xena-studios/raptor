@@ -73,8 +73,12 @@ function UsersPage() {
                     {u.name && <span className="text-xs text-muted-foreground">{u.email}</span>}
                   </Link>
                 </TableCell>
-                <TableCell className="hidden tabular-nums sm:table-cell">{u.orgs}</TableCell>
-                <TableCell className="hidden tabular-nums md:table-cell">{u.passkeys}</TableCell>
+                <TableCell className="hidden font-mono text-xs tabular-nums sm:table-cell">
+                  {u.orgs}
+                </TableCell>
+                <TableCell className="hidden font-mono text-xs tabular-nums md:table-cell">
+                  {u.passkeys}
+                </TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
                   {when(u.createdAt)}
                 </TableCell>

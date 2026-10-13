@@ -290,7 +290,7 @@ function EggTable({ lib, eggs }: { lib: Library; eggs: CatalogEgg[] }) {
               <TableCell className="text-right font-mono text-xs text-muted-foreground">
                 {e.version > 0 ? `v${e.version}` : "—"}
               </TableCell>
-              <TableCell className="text-right text-muted-foreground tabular-nums">
+              <TableCell className="text-right text-muted-foreground font-mono text-xs tabular-nums">
                 {e.servers || "—"}
               </TableCell>
             </LinkRow>

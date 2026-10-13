@@ -362,21 +362,21 @@ function ServersCard({
                     <TableCell className="hidden text-muted-foreground sm:table-cell">
                       {s.eggName || "—"}
                     </TableCell>
-                    <TableCell className="hidden tabular-nums md:table-cell">
+                    <TableCell className="hidden font-mono text-xs tabular-nums md:table-cell">
                       {s.ports[0] ?? "—"}
                     </TableCell>
                     {live && (
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className="text-right font-mono text-xs tabular-nums">
                         {on ? formatPercent(u.cpu) : "—"}
                       </TableCell>
                     )}
                     {live && (
-                      <TableCell className="hidden text-right tabular-nums sm:table-cell">
+                      <TableCell className="hidden text-right font-mono text-xs tabular-nums sm:table-cell">
                         {on ? formatBytes(u.memory) : "—"}
                       </TableCell>
                     )}
                     {live && (
-                      <TableCell className="hidden text-right tabular-nums md:table-cell">
+                      <TableCell className="hidden text-right font-mono text-xs tabular-nums md:table-cell">
                         {on && u.players !== undefined ? u.players : "—"}
                       </TableCell>
                     )}

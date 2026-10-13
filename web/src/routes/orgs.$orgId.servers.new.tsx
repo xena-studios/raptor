@@ -204,7 +204,7 @@ function NewServer({
               <span className="flex items-center gap-1.5 font-medium">
                 {e.name}
                 {e.certified && (
-                  <BadgeCheck className="size-4 text-primary" aria-label="Certified" />
+                  <BadgeCheck className="size-4 text-muted-foreground" aria-label="Certified" />
                 )}
               </span>
               <span className="text-xs text-muted-foreground">

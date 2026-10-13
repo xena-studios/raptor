@@ -115,7 +115,7 @@ function NodeInsights() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-4 text-amber-500" /> Offline nodes
+              <AlertTriangle className="size-4 text-warn" /> Offline nodes
             </CardTitle>
             <CardDescription>Gone for over an hour.</CardDescription>
           </CardHeader>

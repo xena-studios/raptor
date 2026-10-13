@@ -114,7 +114,7 @@ function Notices({ d }: { d: GetEggDetailsResponse }) {
             <ul className="flex flex-col gap-1">
               {d.warnings.map((w) => (
                 <li key={w.kind + w.text} className="flex gap-1.5">
-                  <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
+                  <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warn" />
                   {w.text}
                 </li>
               ))}

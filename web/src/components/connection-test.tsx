@@ -152,11 +152,11 @@ const short: Record<Cause, string> = {
 };
 
 function StatusIcon({ cause, className }: { cause: Cause; className?: string }) {
-  if (cause === "ok") return <CheckCircle2 className={cn("text-emerald-500", className)} />;
+  if (cause === "ok") return <CheckCircle2 className={cn("text-ok", className)} />;
   if (cause === "ok_udp" || cause === "local_only" || cause === "unknown")
     return <Info className={cn("text-muted-foreground", className)} />;
   if (cause === "not_running" || cause === "starting")
-    return <AlertTriangle className={cn("text-amber-500", className)} />;
+    return <AlertTriangle className={cn("text-warn", className)} />;
   return <XCircle className={cn("text-destructive", className)} />;
 }
 
@@ -175,16 +175,16 @@ function Row({
     <div
       className={cn(
         "flex gap-3 rounded-lg border p-3 text-sm",
-        tone === "ok" && "border-emerald-500/30 bg-emerald-500/5",
-        tone === "warn" && "border-amber-500/40 bg-amber-500/5",
-        tone === "bad" && "border-destructive/40 bg-destructive/5",
+        tone === "ok" && "border-ok/30 bg-ok-wash",
+        tone === "warn" && "border-warn/40 bg-warn-wash",
+        tone === "bad" && "border-destructive/40 bg-danger-wash",
       )}
     >
       <Icon
         className={cn(
           "mt-0.5 size-4 shrink-0",
-          tone === "ok" && "text-emerald-500",
-          tone === "warn" && "text-amber-500",
+          tone === "ok" && "text-ok",
+          tone === "warn" && "text-warn",
           tone === "bad" && "text-destructive",
           tone === "muted" && "text-muted-foreground",
         )}

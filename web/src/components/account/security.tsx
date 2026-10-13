@@ -402,7 +402,7 @@ export function LinkedAccounts() {
                   ) : linked ? (
                     <>
                       <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
-                        <span className="size-2 rounded-full bg-emerald-500" />
+                        <span className="size-2 rounded-full bg-ok" />
                         Connected
                       </span>
                       <Button

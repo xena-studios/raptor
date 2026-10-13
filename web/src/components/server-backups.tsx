@@ -319,7 +319,7 @@ export function ServerBackups({
                       <TableCell className="max-w-40 truncate">
                         {destName(b.destinationId || "local")}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className="text-right font-mono text-xs tabular-nums">
                         {b.status === "ok" ? formatSize(Number(b.size)) : "—"}
                       </TableCell>
                       <TableCell>
@@ -511,11 +511,11 @@ function Note({
     <div
       className={cn(
         "flex items-start gap-3 rounded-lg border px-3 py-2 text-sm",
-        ok ? "border-emerald-500/30 bg-emerald-500/5" : "border-destructive/40 bg-destructive/5",
+        ok ? "border-ok/30 bg-ok-wash" : "border-destructive/40 bg-danger-wash",
       )}
     >
       {ok ? (
-        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" />
       ) : (
         <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
       )}
@@ -695,7 +695,7 @@ function RestoreDialog({
                           className="flex min-w-0 flex-1 items-center gap-2 text-left hover:underline"
                           onClick={() => setDir(p)}
                         >
-                          <Folder className="size-4 shrink-0 text-sky-500" />
+                          <Folder className="size-4 shrink-0 text-chart-2" />
                           <span className="truncate">{e.name}</span>
                         </button>
                       ) : (

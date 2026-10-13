@@ -125,7 +125,7 @@ export function SFTPButton({
         <FolderKey /> SFTP
         {active && (
           <>
-            <span aria-hidden className="size-2 rounded-full bg-emerald-500" />
+            <span aria-hidden className="size-2 rounded-full bg-ok" />
             <span className="sr-only">(on)</span>
           </>
         )}
@@ -144,7 +144,7 @@ export function SFTPButton({
               SFTP
               {active && (
                 <span className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-                  <span className="size-2 rounded-full bg-emerald-500" /> On
+                  <span className="size-2 rounded-full bg-ok" /> On
                 </span>
               )}
             </DialogTitle>

@@ -133,11 +133,15 @@ function BillingInsights() {
                       {o.name}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{o.nodes}</TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className="text-right font-mono text-xs tabular-nums">
+                    {o.nodes}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs tabular-nums">
                     {formatBytes(Number(o.bytes))}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{dollars(o.centsMonth)}</TableCell>
+                  <TableCell className="text-right font-mono text-xs tabular-nums">
+                    {dollars(o.centsMonth)}
+                  </TableCell>
                 </LinkRow>
               ))}
             </TableBody>

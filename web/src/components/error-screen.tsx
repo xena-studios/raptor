@@ -57,9 +57,9 @@ function BackButton() {
   );
 }
 
-function HomeLink() {
+function HomeLink({ secondary }: { secondary?: boolean }) {
   return (
-    <Link to="/" className={buttonVariants()}>
+    <Link to="/" className={buttonVariants({ variant: secondary ? "outline" : "default" })}>
       <Home /> Go home
     </Link>
   );
@@ -137,7 +137,7 @@ export function RouteError({ error, reset }: { error: unknown; reset: () => void
           <Button onClick={retry}>
             <RefreshCw /> Try again
           </Button>
-          <HomeLink />
+          <HomeLink secondary />
         </>
       }
     />

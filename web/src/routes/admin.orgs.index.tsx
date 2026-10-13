@@ -72,9 +72,13 @@ function OrgsPage() {
                     {o.name}
                   </Link>
                 </TableCell>
-                <TableCell className="hidden tabular-nums sm:table-cell">{o.members}</TableCell>
-                <TableCell className="tabular-nums">{o.nodes}</TableCell>
-                <TableCell className="hidden tabular-nums sm:table-cell">{o.servers}</TableCell>
+                <TableCell className="hidden font-mono text-xs tabular-nums sm:table-cell">
+                  {o.members}
+                </TableCell>
+                <TableCell className="font-mono text-xs tabular-nums">{o.nodes}</TableCell>
+                <TableCell className="hidden font-mono text-xs tabular-nums sm:table-cell">
+                  {o.servers}
+                </TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
                   {when(o.createdAt)}
                 </TableCell>

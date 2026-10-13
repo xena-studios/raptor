@@ -8,9 +8,9 @@ import { type Entry, kind } from "./data";
 export function EntryIcon({ e }: { e: Entry }) {
   const cls = "size-4 shrink-0";
   if (e.denied) return <Lock className={`${cls} text-muted-foreground`} />;
-  if (kind(e) === "dir") return <Folder className={`${cls} text-sky-500`} />;
+  if (kind(e) === "dir") return <Folder className={`${cls} text-chart-2`} />;
   if (e.type === "symlink") return <Link2 className={`${cls} text-muted-foreground`} />;
-  if (isArchive(e.name)) return <FileArchive className={`${cls} text-amber-500`} />;
+  if (isArchive(e.name)) return <FileArchive className={`${cls} text-warn`} />;
   const lang = languageFor(e.name);
   if (lang === "plaintext") {
     return /\.(txt|log|md)$/i.test(e.name) ? (

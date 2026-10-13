@@ -53,12 +53,25 @@ export default function Console({
       scrollback: 5000,
       fontSize: 13,
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-      theme: { background: "#0a0a0a" },
+      // The terminal ink from index.css; xterm needs a colour, not a token.
+      theme: { background: "#0a0c11" },
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(el);
     fit.fit();
+    // xterm measures its font when set, so it switches to the app's mono
+    // once that's loaded.
+    const mono = '"JetBrains Mono Variable", ui-monospace, monospace';
+    let gone = false;
+    document.fonts
+      .load(`13px ${mono}`)
+      .then(() => {
+        if (gone) return;
+        term.options.fontFamily = mono;
+        fit.fit();
+      })
+      .catch(() => {});
     const resize = new ResizeObserver(() => fit.fit());
     resize.observe(el);
     const stop = live.watchConsole(
@@ -75,6 +88,7 @@ export default function Console({
       support,
     );
     return () => {
+      gone = true;
       stop();
       resize.disconnect();
       term.dispose();
@@ -120,10 +134,7 @@ export default function Console({
   return (
     <div className={cn("flex flex-col gap-2", full && "fixed inset-0 z-50 bg-background p-4")}>
       <div
-        className={cn(
-          "relative overflow-hidden rounded-lg border bg-[#0a0a0a] p-2",
-          full && "min-h-0 flex-1",
-        )}
+        className={cn("terminal relative overflow-hidden rounded-lg p-2", full && "min-h-0 flex-1")}
       >
         <div ref={box} className={full ? "h-full" : "h-[28rem]"} />
         <Button
@@ -137,7 +148,7 @@ export default function Console({
           {full ? <Minimize2 /> : <Maximize2 />}
         </Button>
         {problem && (
-          <div className="absolute inset-x-0 top-0 bg-background/90 px-3 py-1.5 text-xs text-muted-foreground">
+          <div className="absolute inset-x-0 top-0 border-b border-white/10 bg-terminal/90 px-3 py-1.5 font-mono text-xs text-zinc-400">
             {problem.text}
             {problem.retrying && " Trying again…"}
           </div>

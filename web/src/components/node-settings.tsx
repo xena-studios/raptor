@@ -216,7 +216,7 @@ export function NodeSFTP({ orgId, node }: { orgId: string; node: Node }) {
           <span
             className={cn(
               "size-2 rounded-full",
-              node.sftpEnabled ? "bg-emerald-500" : "bg-muted-foreground/40",
+              node.sftpEnabled ? "bg-ok" : "bg-muted-foreground/40",
             )}
           />
           {node.sftpEnabled ? `Open now, on port ${node.sftpPort}` : "Closed: nobody is using SFTP"}
