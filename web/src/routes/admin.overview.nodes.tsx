@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
-import { when } from "@/lib/format";
+import { since } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
 
 export const Route = createFileRoute("/admin/overview/nodes")({
@@ -149,7 +149,7 @@ function NodeInsights() {
                         {n.wingsVersion || "—"}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {when(n.lastSeenAt)}
+                        {since(n.lastSeenAt)}
                       </TableCell>
                     </TableRow>
                   ))}

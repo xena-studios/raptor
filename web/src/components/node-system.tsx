@@ -198,7 +198,9 @@ function Machine({ nodeId, s }: { nodeId: string; s: SystemState }) {
         </form>
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-0.5">
-            <Label htmlFor="sys-ntp">Keep the clock in sync</Label>
+            <label htmlFor="sys-ntp" className="block text-sm font-medium">
+              Keep the clock in sync
+            </label>
             <p className="text-xs text-muted-foreground">
               {s.synced
                 ? "In sync with internet time servers."
@@ -294,7 +296,9 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
         )}
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-0.5">
-            <Label htmlFor="fw-block">Block incoming connections</Label>
+            <label htmlFor="fw-block" className="block text-sm font-medium">
+              Block incoming connections
+            </label>
             <p className="text-xs text-muted-foreground">
               New connections to the machine itself are dropped unless a rule allows them. SSH,
               Raptor's SFTP, and servers on the host's network stay open.

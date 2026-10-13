@@ -5,8 +5,12 @@ import {
   CalendarClock,
   CircleCheck,
   CircleX,
+  History,
   LoaderCircle,
+  MoreHorizontal,
+  Pencil,
   Plus,
+  Power,
   SkipForward,
   Trash2,
 } from "lucide-react";
@@ -18,6 +22,7 @@ import { useBackupPlan } from "@/components/server-backup-plan";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +31,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -37,6 +49,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OrgService, type Schedule, type ScheduleRun } from "@/gen/raptor/panel/v1/org_pb";
+import { describeCron } from "@/lib/cron";
 import { message } from "@/lib/errors";
 import { when } from "@/lib/format";
 import { duration, reasonText, skipText, stepFailure, stepName } from "@/lib/schedule-runs";
@@ -67,13 +80,8 @@ type Definition = {
   steps: Step[];
 };
 
-const presets: [string, string][] = [
-  ["@hourly", "Every hour"],
-  ["@daily", "Every day at midnight"],
-  ["0 4 * * *", "Every day at 4:00"],
-  ["0 */6 * * *", "Every 6 hours"],
-  ["@weekly", "Every Sunday at midnight"],
-];
+// Common times, labelled as describeCron says them.
+const presets = ["@hourly", "0 */6 * * *", "0 4 * * *", "@daily", "@weekly"];
 
 function describeStep(s: Step, dest?: (id: string) => string): string {
   switch (s.type) {
@@ -192,8 +200,8 @@ export function ServerSchedules({
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>When</TableHead>
-                  <TableHead>Next run</TableHead>
-                  <TableHead>Last run</TableHead>
+                  <TableHead className="hidden md:table-cell">Next run</TableHead>
+                  <TableHead className="hidden lg:table-cell">Last run</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -210,20 +218,26 @@ export function ServerSchedules({
                         >
                           {s.name}
                         </button>
+                        {!s.enabled && (
+                          <Badge variant="outline" className="ml-2 md:hidden">
+                            Off
+                          </Badge>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           {(def.steps ?? []).map((st) => describeStep(st, placeName)).join(" → ")}
                         </p>
                       </TableCell>
                       <TableCell>
-                        <code className="text-xs">{def.cron}</code>
-                        {def.timezone && def.timezone !== "UTC" && (
-                          <span className="text-xs text-muted-foreground"> {def.timezone}</span>
-                        )}
+                        <span className="block">{describeCron(def.cron) ?? "Custom"}</span>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {def.cron}
+                          {def.timezone && def.timezone !== "UTC" && ` · ${def.timezone}`}
+                        </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {s.enabled ? when(s.nextRun) : <Badge variant="outline">Off</Badge>}
                       </TableCell>
-                      <TableCell>{when(s.lastRun)}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{when(s.lastRun)}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
                           <Button
@@ -234,36 +248,49 @@ export function ServerSchedules({
                           >
                             Run now
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setRunsOf(s.id)}>
-                            Runs
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={busy !== ""}
-                            onClick={() =>
-                              run(s.id, "schedule.update", {
-                                schedule_id: s.id,
-                                ...def,
-                                enabled: !s.enabled,
-                              })
-                            }
-                          >
-                            {s.enabled ? "Turn off" : "Turn on"}
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            aria-label="Delete"
-                            className="text-destructive"
-                            disabled={busy !== ""}
-                            onClick={() => {
-                              if (window.confirm(`Delete the schedule "${s.name}"?`))
-                                run(s.id, "schedule.delete", { schedule_id: s.id });
-                            }}
-                          >
-                            <Trash2 />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  size="icon-sm"
+                                  variant="ghost"
+                                  aria-label={`More for ${s.name}`}
+                                  disabled={busy !== ""}
+                                />
+                              }
+                            >
+                              <MoreHorizontal />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => setEditing({ id: s.id, def })}>
+                                <Pencil /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setRunsOf(s.id)}>
+                                <History /> Show its runs
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  run(s.id, "schedule.update", {
+                                    schedule_id: s.id,
+                                    ...def,
+                                    enabled: !s.enabled,
+                                  })
+                                }
+                              >
+                                <Power /> {s.enabled ? "Turn off" : "Turn on"}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onClick={() => {
+                                  if (window.confirm(`Delete the schedule "${s.name}"?`))
+                                    run(s.id, "schedule.delete", { schedule_id: s.id });
+                                }}
+                              >
+                                <Trash2 /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -484,16 +511,21 @@ function ScheduleEditor({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="sc-cron">When (cron)</Label>
+              <Label htmlFor="sc-cron">When</Label>
               <Input
                 id="sc-cron"
                 required
                 className="font-mono"
+                aria-describedby="sc-cron-says"
                 value={def.cron}
                 onChange={(e) => setDef({ ...def, cron: e.target.value })}
               />
+              <p id="sc-cron-says" className="text-xs text-muted-foreground">
+                {describeCron(def.cron) ??
+                  "A cron expression: minute, hour, day of the month, month, and day of the week."}
+              </p>
               <div className="flex flex-wrap gap-1">
-                {presets.map(([cron, label]) => (
+                {presets.map((cron) => (
                   <Button
                     key={cron}
                     type="button"
@@ -501,7 +533,7 @@ function ScheduleEditor({
                     variant={def.cron === cron ? "secondary" : "outline"}
                     onClick={() => setDef({ ...def, cron })}
                   >
-                    {label}
+                    {describeCron(cron)}
                   </Button>
                 ))}
               </div>
@@ -539,18 +571,16 @@ function ScheduleEditor({
           </div>
           <div className="flex flex-col gap-2 text-sm">
             <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={def.enabled}
-                onChange={(e) => setDef({ ...def, enabled: e.target.checked })}
+                onCheckedChange={(on) => setDef({ ...def, enabled: on })}
               />
-              On
+              Turned on
             </label>
             <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={def.only_when_online ?? false}
-                onChange={(e) => setDef({ ...def, only_when_online: e.target.checked })}
+                onCheckedChange={(on) => setDef({ ...def, only_when_online: on })}
               />
               Skip runs while the server is offline
             </label>
@@ -636,10 +666,9 @@ function ScheduleEditor({
                   />
                 )}
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={s.continue_on_failure ?? false}
-                    onChange={(e) => setStep(i, { ...s, continue_on_failure: e.target.checked })}
+                    onCheckedChange={(on) => setStep(i, { ...s, continue_on_failure: on })}
                   />
                   Carry on if it fails
                 </label>

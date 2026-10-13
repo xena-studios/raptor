@@ -7,6 +7,7 @@ import { nodeCommand, select } from "@/components/backup-destinations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -238,11 +239,7 @@ function PlanDialog({
               return (
                 <div key={id} className="space-y-2 rounded-lg border p-3">
                   <label className="flex items-center gap-2 text-sm font-medium">
-                    <input
-                      type="checkbox"
-                      checked={r.on}
-                      onChange={(e) => setRow(id, { on: e.target.checked })}
-                    />
+                    <Checkbox checked={r.on} onCheckedChange={(on) => setRow(id, { on: on })} />
                     {d.name}
                     <span className="font-normal text-muted-foreground">· {typeNames[d.type]}</span>
                   </label>

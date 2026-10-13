@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { message } from "@/lib/errors";
+import { dateTime } from "@/lib/format";
 import { formatBytes, formatUptime } from "@/lib/metrics";
 import { useOrgNodes } from "@/lib/org-data";
 import { commandClient } from "@/lib/transport";
@@ -126,7 +127,7 @@ function Health() {
               {r.checking
                 ? "Checking the node: Docker, storage, the firewall, the clock, DNS, and the Panel…"
                 : r.checked_at
-                  ? `Checked ${new Date(r.checked_at).toLocaleString()}. The same checks as sudo raptor doctor on the node.`
+                  ? `Checked ${dateTime(new Date(r.checked_at))}. The same checks as sudo raptor doctor on the node.`
                   : "The same checks as sudo raptor doctor on the node."}
             </CardDescription>
           </div>
@@ -182,9 +183,7 @@ function Health() {
                 ["Up for", h.uptime_seconds ? formatUptime(h.uptime_seconds) : "—"],
                 [
                   "Started",
-                  h.uptime_seconds
-                    ? new Date(Date.now() - h.uptime_seconds * 1000).toLocaleString()
-                    : "—",
+                  h.uptime_seconds ? dateTime(new Date(Date.now() - h.uptime_seconds * 1000)) : "—",
                 ],
                 ["Wings", node?.wingsVersion || "—"],
               ]}
@@ -210,7 +209,7 @@ function Health() {
               ).map(([label, v]) => (
                 <div key={label} className="flex flex-col gap-1.5">
                   <p className="text-xs text-muted-foreground">{label}</p>
-                  <p className="text-lg font-semibold tabular-nums">{v.toFixed(2)}</p>
+                  <p className="font-mono text-lg font-medium tabular-nums">{v.toFixed(2)}</p>
                   <UsageBar fraction={h.cpus ? v / h.cpus : 0} />
                 </div>
               ))}

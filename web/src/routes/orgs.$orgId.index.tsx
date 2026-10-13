@@ -18,7 +18,7 @@ import { StatCard, UsageBar } from "@/components/stats";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
-import { isAdmin, when } from "@/lib/format";
+import { isAdmin, since } from "@/lib/format";
 import {
   formatBytes,
   formatPercent,
@@ -367,7 +367,7 @@ function Attention({
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" />
             <span className="min-w-0">
               <span className="font-medium">{n.name}</span> is offline (last seen{" "}
-              {when(n.lastSeenAt)})
+              {since(n.lastSeenAt)})
             </span>
           </Link>
         ))}

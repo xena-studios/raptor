@@ -18,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import type { SupportRequest } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
-import { when } from "@/lib/format";
+import { dateTime, when } from "@/lib/format";
 import { sendSigned } from "@/lib/signed";
 import { commandClient, orgClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
@@ -296,7 +296,9 @@ export function SupportSettings({ nodeId, connected }: { nodeId: string; connect
         ) : state.data ? (
           <>
             <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="support-on">Allow support access</Label>
+              <label htmlFor="support-on" className="block text-sm font-medium">
+                Allow support access
+              </label>
               <Switch
                 id="support-on"
                 checked={!state.data.disabled}
@@ -326,10 +328,10 @@ export function SupportSettings({ nodeId, connected }: { nodeId: string; connect
                       </span>
                       <span className="text-muted-foreground">
                         {live
-                          ? `until ${new Date(g.expires_at).toLocaleString()}`
+                          ? `until ${dateTime(new Date(g.expires_at))}`
                           : g.revoked_at
-                            ? `ended ${new Date(g.revoked_at).toLocaleString()}`
-                            : `ran out ${new Date(g.expires_at).toLocaleString()}`}
+                            ? `ended ${dateTime(new Date(g.revoked_at))}`
+                            : `ran out ${dateTime(new Date(g.expires_at))}`}
                       </span>
                     </li>
                   );

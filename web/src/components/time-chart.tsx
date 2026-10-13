@@ -1,4 +1,5 @@
 import { type PointerEvent, useLayoutEffect, useRef, useState } from "react";
+import { dateTime } from "@/lib/format";
 
 // TimeChart is a line chart over time: thin 2px lines, a hairline grid, a
 // dashed-free limit line, gaps where there's no data, and a crosshair with
@@ -260,7 +261,7 @@ export function TimeChart({
               left: Math.min(Math.max(x(hp.t) + 10, 0), Math.max(0, width - 160)),
             }}
           >
-            <p className="mb-1 text-muted-foreground">{new Date(hp.t).toLocaleString()}</p>
+            <p className="mb-1 text-muted-foreground">{dateTime(new Date(hp.t))}</p>
             {series.map((s, i) => (
               <p key={s.name} className="flex items-center gap-1.5">
                 <span className="h-0.5 w-3 rounded-full" style={{ background: s.color }} />

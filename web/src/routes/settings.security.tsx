@@ -8,7 +8,7 @@ export const Route = createFileRoute("/settings/security")({
 
 function Security() {
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <Passkeys />
       <Authenticator />
       <Devices />

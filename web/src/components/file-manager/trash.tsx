@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
+import { ago as since } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
 
 // The trash (Wings' files.trash*, docs/WINGS.md#trash): what was deleted
@@ -42,11 +43,7 @@ export function useTrash(api: ReturnType<typeof useFilesApi>, nodeId: string, se
 }
 
 function ago(ms: number): string {
-  const s = Math.max(0, (Date.now() - ms) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-  return `${Math.floor(s / 86400)} d ago`;
+  return since(new Date(ms));
 }
 
 function left(ms: number): string {

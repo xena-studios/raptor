@@ -174,25 +174,31 @@ function Overview({ d }: { d: GetEggDetailsResponse }) {
       <div className="flex flex-col gap-6 lg:col-span-2">
         {(on.length > 0 || other.length > 0) && (
           <Section title="Includes" description="What servers made from this egg get.">
-            <div className="flex flex-wrap gap-2">
-              {on.map((a) => (
-                <span
-                  key={a.label}
-                  title={a.description}
-                  className="rounded-md border bg-card px-2 py-1 text-sm"
-                >
-                  {a.label}
-                </span>
-              ))}
-              {other.map((f) => (
-                <span
-                  key={f}
-                  className="rounded-md border px-2 py-1 font-mono text-xs text-muted-foreground"
-                >
-                  {f}
-                </span>
-              ))}
-            </div>
+            {on.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {on.map((a) => (
+                  <span
+                    key={a.label}
+                    title={a.description}
+                    className="rounded-md border bg-card px-2 py-1 text-sm"
+                  >
+                    {a.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {other.length > 0 && (
+              <p className="text-xs text-muted-foreground not-first:mt-3">
+                It also asks for features from other panels that Raptor doesn't have:{" "}
+                {other.map((f, i) => (
+                  <span key={f}>
+                    {i > 0 && ", "}
+                    <code className="font-mono">{f}</code>
+                  </span>
+                ))}
+                . Servers run without them.
+              </p>
+            )}
           </Section>
         )}
         <Section

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { typeNames } from "@/lib/backup-destinations";
 import { message } from "@/lib/errors";
+import { dateTime } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
 import { useOrgNodes } from "@/lib/org-data";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,7 @@ function StorageUsage({ orgId }: { orgId: string }) {
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
           <span>
-            <span className="text-lg font-semibold tabular-nums">{formatBytes(used)}</span>{" "}
+            <span className="font-mono text-lg font-medium tabular-nums">{formatBytes(used)}</span>{" "}
             <span className="text-muted-foreground">of {formatBytes(included)} included</span>
           </span>
           <span className="text-muted-foreground">
@@ -98,7 +99,7 @@ function StorageUsage({ orgId }: { orgId: string }) {
         </div>
         <p className="text-xs text-muted-foreground">
           {d.measuredAt
-            ? `Measured ${timestampDate(d.measuredAt).toLocaleString()}; measured once a day.`
+            ? `Measured ${dateTime(timestampDate(d.measuredAt))}; measured once a day.`
             : "Measured once a day; nothing measured yet."}
           {used > Number(d.softCapBytes) &&
             " Your org stores more than we expected during the beta: get in touch and we'll raise the limit."}

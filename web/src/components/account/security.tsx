@@ -24,6 +24,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ import type { AuditEvent } from "@/gen/raptor/panel/v1/audit_pb";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { keyFingerprint } from "@/lib/canonical";
 import { message } from "@/lib/errors";
+import { dateTime, ago as since } from "@/lib/format";
 import { authClient } from "@/lib/transport";
 import { createPasskey, passkeyCancelled, passkeysSupported } from "@/lib/webauthn";
 
@@ -55,7 +57,7 @@ export const linkErrors: Record<string, string> = {
 };
 
 function when(ts: { seconds: bigint; nanos: number } | undefined): string {
-  return ts ? timestampDate(ts as Parameters<typeof timestampDate>[0]).toLocaleString() : "never";
+  return ts ? dateTime(timestampDate(ts as Parameters<typeof timestampDate>[0])) : "never";
 }
 
 function Section({
@@ -584,11 +586,7 @@ export function Devices() {
             </DialogDescription>
           </DialogHeader>
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={includeThis}
-              onChange={(e) => setIncludeThis(e.target.checked)}
-            />
+            <Checkbox checked={includeThis} onCheckedChange={(on) => setIncludeThis(on)} />
             Sign out of this device too
           </label>
           <DialogFooter>
@@ -605,20 +603,8 @@ export function Devices() {
   );
 }
 
-// ago is "5 minutes ago", "yesterday", or the date.
 function ago(ts: { seconds: bigint; nanos: number } | undefined): string {
-  if (!ts) return "never";
-  const d = timestampDate(ts as Parameters<typeof timestampDate>[0]);
-  const s = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (s < 60) return "just now";
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m} minute${m === 1 ? "" : "s"} ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`;
-  const days = Math.floor(h / 24);
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days} days ago`;
-  return d.toLocaleDateString();
+  return ts ? since(timestampDate(ts as Parameters<typeof timestampDate>[0])) : "never";
 }
 
 const methodNames: Record<string, string> = {
@@ -691,10 +677,9 @@ function describeEvent(action: string, meta: Meta): { text: string; icon: Lucide
       };
     case "email.change":
       return { text: `Changed your email to ${str(meta.to)}`, icon: Mail };
-    default: {
-      const phrase = action.replace(/[._]/g, " ");
-      return { text: phrase.charAt(0).toUpperCase() + phrase.slice(1), icon: Activity };
-    }
+    default:
+      // Something this version of the app has no words for yet.
+      return { text: "Changed something on your account", icon: Activity };
   }
 }
 

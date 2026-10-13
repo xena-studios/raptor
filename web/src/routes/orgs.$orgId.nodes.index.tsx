@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { nodeHostname } from "@/lib/addresses";
-import { isAdmin, when } from "@/lib/format";
+import { isAdmin, since } from "@/lib/format";
 import { formatMemory, useOrgNodes, useOrgServers } from "@/lib/org-data";
 import { nodeStatus } from "@/lib/servers";
 
@@ -88,7 +88,7 @@ function Nodes() {
                     ["Servers", running(n.id)],
                     [
                       n.connected ? "Wings" : "Last seen",
-                      n.connected ? n.wingsVersion || "—" : when(n.lastSeenAt),
+                      n.connected ? n.wingsVersion || "—" : since(n.lastSeenAt),
                     ],
                   ]}
                 />

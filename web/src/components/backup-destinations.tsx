@@ -21,10 +21,10 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +49,7 @@ import {
   typeNames,
 } from "@/lib/backup-destinations";
 import { message } from "@/lib/errors";
+import { dateTime, ago as since } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
 import { useOrgServers } from "@/lib/org-data";
 import { sendSigned } from "@/lib/signed";
@@ -126,12 +127,7 @@ export function where(d: Destination): string {
 }
 
 function ago(iso?: string): string {
-  if (!iso) return "";
-  const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 90) return "just now";
-  if (s < 5400) return `${Math.round(s / 60)} minutes ago`;
-  if (s < 129600) return `${Math.round(s / 3600)} hours ago`;
-  return `${Math.round(s / 86400)} days ago`;
+  return iso ? since(new Date(iso)) : "";
 }
 
 // Health is how a destination has been doing.
@@ -1437,12 +1433,7 @@ export function BackupKey({
               {saved ? "Downloaded" : "Download the key first"}
             </Button>
             <Label className="flex items-start gap-2 font-normal">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={saved}
-                onChange={(e) => setSaved(e.target.checked)}
-              />
+              <Checkbox className="mt-1" checked={saved} onCheckedChange={(on) => setSaved(on)} />
               I've saved the key somewhere safe, away from this node.
             </Label>
           </div>
@@ -1753,7 +1744,7 @@ export function RecoveredBackups({
           {list.map((b) => (
             <li key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 text-sm">
               <span className="min-w-0 flex-1">
-                <span className="block">{new Date(b.created_at).toLocaleString()}</span>
+                <span className="block">{dateTime(new Date(b.created_at))}</span>
                 <span className="block truncate text-xs text-muted-foreground">
                   Server <code>{b.server_id.slice(-8)}</code> · {formatBytes(b.size)} · on{" "}
                   {b.destination_name}

@@ -2,16 +2,17 @@ import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { KeyRound, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { OrgService, Role, type Server } from "@/gen/raptor/panel/v1/org_pb";
 import { keyFingerprint } from "@/lib/canonical";
 import { message } from "@/lib/errors";
+import { dateOnly } from "@/lib/format";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
@@ -119,9 +120,7 @@ export function TrustedKeys({
                 {emails.get(k.user_id) ?? k.user_id} · <code>{k.fingerprint}</code>
                 {k.role === "delegate" &&
                   ` · ${k.actions?.join(", ")} on ${servers.find((s) => s.id === k.server_id)?.name ?? (k.server_id || "every server")}${
-                    k.expires_at
-                      ? ` until ${new Date(k.expires_at * 1000).toLocaleDateString()}`
-                      : ""
+                    k.expires_at ? ` until ${dateOnly(new Date(k.expires_at * 1000))}` : ""
                   }`}
               </p>
             </div>
@@ -306,10 +305,9 @@ function Delegate({
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {delegatable.map((a) => (
           <label key={a.action} className="flex items-center gap-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={actions.includes(a.action)}
-              onChange={() =>
+              onCheckedChange={() =>
                 setActions(
                   actions.includes(a.action)
                     ? actions.filter((x) => x !== a.action)

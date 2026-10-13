@@ -57,6 +57,13 @@ export function Members({
     <div className="flex flex-col gap-3">
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Card>
+        <CardHeader>
+          <CardTitle>Members</CardTitle>
+          <CardDescription>
+            Owners and admins manage everything; members get only the servers they're given, on each
+            server's Access tab.
+          </CardDescription>
+        </CardHeader>
         <CardContent className="flex flex-col divide-y">
           {members.data?.members.map((m) => (
             <div key={m.userId} className="flex items-center justify-between gap-3 py-2 text-sm">

@@ -1,65 +1,287 @@
-# Design: "The Console"
+---
+name: Raptor
+description: The Console, a calm instrument panel for running game servers on your own machines
+colors:
+  signal-red: "oklch(0.66 0.19 25)"
+  signal-red-daylight: "oklch(0.545 0.215 25)"
+  on-signal: "oklch(0.17 0.03 25)"
+  on-signal-daylight: "oklch(0.99 0.01 25)"
+  ink: "oklch(0.145 0.012 25)"
+  ink-raised: "oklch(0.185 0.013 25)"
+  ink-sidebar: "oklch(0.125 0.01 25)"
+  ink-muted: "oklch(0.225 0.014 25)"
+  ink-rule: "oklch(0.3 0.012 25)"
+  bone-text: "oklch(0.96 0.005 25)"
+  ash-text: "oklch(0.68 0.011 25)"
+  daylight: "oklch(0.975 0.004 25)"
+  daylight-raised: "oklch(0.955 0.006 25)"
+  daylight-muted: "oklch(0.92 0.008 25)"
+  daylight-rule: "oklch(0.88 0.01 25)"
+  graphite-text: "oklch(0.18 0.018 25)"
+  slate-text: "oklch(0.46 0.013 25)"
+  ok: "oklch(0.8 0.16 150)"
+  ok-daylight: "oklch(0.51 0.12 150)"
+  warn: "oklch(0.82 0.15 80)"
+  warn-daylight: "oklch(0.52 0.11 70)"
+  danger: "oklch(0.72 0.17 10)"
+  danger-daylight: "oklch(0.53 0.2 10)"
+  terminal-ink: "#0a0c11"
+  series-blue: "#3987e5"
+  series-orange: "#d95926"
+typography:
+  headline:
+    fontFamily: "Hanken Grotesk Variable, system-ui, sans-serif"
+    fontSize: "1.5rem"
+    fontWeight: 700
+    lineHeight: 1.333
+    letterSpacing: "-0.025em"
+  title:
+    fontFamily: "Hanken Grotesk Variable, system-ui, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 500
+    lineHeight: 1.375
+  body:
+    fontFamily: "Hanken Grotesk Variable, system-ui, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.43
+  meta:
+    fontFamily: "Hanken Grotesk Variable, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 400
+    lineHeight: 1.33
+  label:
+    fontFamily: "JetBrains Mono Variable, ui-monospace, monospace"
+    fontSize: "0.75rem"
+    fontWeight: 400
+    letterSpacing: "0.025em"
+  button:
+    fontFamily: "JetBrains Mono Variable, ui-monospace, monospace"
+    fontSize: "0.75rem"
+    fontWeight: 500
+    letterSpacing: "0.05em"
+  kicker:
+    fontFamily: "JetBrains Mono Variable, ui-monospace, monospace"
+    fontSize: "0.7rem"
+    fontWeight: 400
+    letterSpacing: "0.18em"
+  readout:
+    fontFamily: "JetBrains Mono Variable, ui-monospace, monospace"
+    fontSize: "1.25rem"
+    fontWeight: 500
+    fontFeature: "tnum"
+rounded:
+  sm: "2.4px"
+  md: "3.4px"
+  lg: "4px"
+  xl: "5.6px"
+spacing:
+  control: "8px"
+  card: "16px"
+  card-sm: "12px"
+  stack: "24px"
+  page: "24px"
+components:
+  button-primary:
+    backgroundColor: "{colors.signal-red}"
+    textColor: "{colors.on-signal}"
+    typography: "{typography.button}"
+    rounded: "{rounded.lg}"
+    height: "32px"
+    padding: "0 10px"
+  button-outline:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.bone-text}"
+    typography: "{typography.button}"
+    rounded: "{rounded.lg}"
+    height: "32px"
+    padding: "0 10px"
+  button-destructive:
+    textColor: "{colors.danger}"
+    typography: "{typography.button}"
+    rounded: "{rounded.lg}"
+    height: "32px"
+  card:
+    backgroundColor: "{colors.ink-raised}"
+    textColor: "{colors.bone-text}"
+    rounded: "{rounded.xl}"
+    padding: "{spacing.card}"
+  input:
+    textColor: "{colors.bone-text}"
+    typography: "{typography.body}"
+    rounded: "{rounded.lg}"
+    height: "32px"
+    padding: "0 10px"
+  status-chip:
+    textColor: "{colors.ok}"
+    typography: "{typography.label}"
+  badge:
+    textColor: "{colors.bone-text}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    height: "20px"
+    padding: "0 6px"
+  terminal:
+    backgroundColor: "{colors.terminal-ink}"
+    rounded: "{rounded.lg}"
+    padding: "12px"
+---
 
-The web app's visual system. "The Console" is the dark theme and "Daylight" the light one; the theme follows the system unless the user picks one in account settings. Tokens live in [`web/src/index.css`](../web/src/index.css); the brief behind them (register, users, voice, principles) is at the end of [PRODUCT.md](PRODUCT.md#design-brief). It's adapted from the earlier Raptor panel's design.
+# Design System: Raptor
 
-## North star
+The tokens above are what `web/src/index.css` defines: "The Console" is the dark theme, "Daylight" the light one, and the `-daylight` keys are the light theme's values for the same roles. The theme follows the system unless the user picks one on their account. The brief behind all of this (who it's for, the voice, the principles) is in [PRODUCT.md](PRODUCT.md#design-brief).
 
-An instrument panel for people who don't speak Linux: a calm, precise control surface, not a toy and not terminal cosplay. The motifs (mono readouts, bracket chips, hairline rules) carry meaning (state, identity, data), never decoration. When in doubt, quieter and sharper.
+## 1. Overview
 
-## Colour
+**Creative North Star: "The Console"**
 
-OKLCH, with every neutral leaning toward the red (hue 25) so the greys belong to the brand. Never pure black or white. **Restrained:** tinted neutrals plus one red accent (`--primary`) for primary actions, the active nav item, and live readouts; a small set of state colours for state only.
+Raptor is an instrument panel for people who don't speak Linux: a calm, precise control surface you can leave open all day and trust at a glance. It's not a toy and not terminal cosplay. The motifs (mono readouts, bracketed states, hairline rules) carry meaning, state and identity and data, never decoration. When in doubt, quieter and sharper.
 
-| Role | Console (`.dark`) | Daylight (`:root`) |
-| --- | --- | --- |
-| `--background` | `oklch(0.145 0.012 25)` | `oklch(0.975 0.004 25)` |
-| `--foreground` | `oklch(0.96 0.005 25)` | `oklch(0.18 0.018 25)` |
-| `--card` | `oklch(0.185 0.013 25)` | `oklch(0.955 0.006 25)` |
-| `--primary` | `oklch(0.66 0.19 25)` | `oklch(0.545 0.215 25)` |
-| `--muted-foreground` | `oklch(0.68 0.011 25)` | `oklch(0.46 0.013 25)` |
-| `--border` | `oklch(0.3 0.012 25)` | `oklch(0.88 0.01 25)` |
+The surface is deep ink with neutrals tinted toward the brand's red (hue 25), so the greys belong to Raptor rather than to a stock palette. One red lights up: primary actions, the current page, live readouts. Green and amber appear only to say how something is. Everything else is ink, rules, and type. Density is a working tool's density: tables with many rows, cards with many labelled facts, one column of settings.
 
-**State:** `text-ok` / `bg-ok`, `text-warn` / `bg-warn`, `text-destructive`, and their washes for banners (`bg-ok-wash`, `bg-warn-wash`, `bg-danger-wash`, `bg-brand-wash`). Never a palette colour like `emerald-500` or `amber-500`. `--rule-bright` is a brighter hairline. Graphs use `--series-1` and `--series-2`, validated against the card in each theme.
+Layout is plain and repeated. Pages sit in a 72rem column with 24px of padding, start with a header (a `//` kicker or a back link, the title, a sentence, the actions), and stack cards 24px apart. Detail pages put routed tabs under the header. Settings pages keep to a single 48rem column on every tab. Motion is 150 to 250ms, ease-out (`cubic-bezier(0.2, 0.8, 0.2, 1)`), and only conveys state; nothing choreographs a page load, and everything respects reduced motion.
 
-**Terminal ink:** `--color-terminal` (`#0a0c11`) and the `.terminal` utility: a deep cool surface, dark in both themes, for the console (xterm reads the same colour), logs, install commands, and egg scripts.
+What it rejects, in PRODUCT.md's words: developer-terminal cosplay, toy dashboards, generic SaaS, and over-confirmation.
 
-## Type
+**Key Characteristics:**
+- Restrained: tinted ink neutrals and one red accent, under a tenth of any screen.
+- Mono is the chassis: buttons, labels, table heads, states, and every number are JetBrains Mono.
+- State is spelled out, `[ RUNNING ]`, never carried by colour alone.
+- Sharp 4px corners and 1px rules; no shadow lifts a page surface.
+- Machines talk on terminal ink, the same in both themes.
 
-- **Hanken Grotesk** (`--font-sans`, `--font-heading`): headings, body, nav, descriptions.
-- **JetBrains Mono** (`--font-mono`) is the chassis, not just for code: buttons, form labels, table headers, status chips, badges, stat labels and values, and data (IDs, ports, IPs, versions, counts, sizes), with `tabular-nums`.
-- Both are self-hosted (fontsource), and font files are never inlined as `data:` URIs, because the CSP allows fonts from `'self'` only (`web/vite.config.ts`).
-- Fixed rem scale. Page titles `text-2xl font-bold tracking-tight`; card titles `text-base font-medium`; body `text-sm`; meta `text-xs`.
-- Labels and table heads: mono, uppercase, `tracking-wide` / `tracking-wider`. Buttons the same at `text-xs`, except `link` buttons, which stay in sentence case.
+## 2. Colors: The Signal-on-Ink Palette
 
-## Shape and depth
+Warm-tinted ink with a single signal red, and a small state vocabulary that only ever means state.
 
-- **Sharp:** `--radius: 0.25rem`; `rounded-lg` and `rounded-xl` do most of the work. Badges are `rounded-sm`. Nothing pill-soft except avatars.
-- **Hairlines, not shadows:** surfaces are framed by `ring-1 ring-foreground/10` or `border`; dividers are `border-b` / `divide-y`. Floating layers (menus, popovers, sheets) keep a shadow so they read as above the page. The one other light effect is the 1px top highlight on primary buttons.
-- Thin scrollbars in the border colour; selection is the red at 30%.
+### Primary
+- **Signal Red** (`oklch(0.66 0.19 25)`; Daylight `oklch(0.545 0.215 25)`, deeper for contrast on light): primary buttons, the active nav item and tab underline, focus rings, the selection highlight at 30%. A wash of it (`oklch(0.28 0.075 25)`) marks the active sidebar item and flag badges.
 
-## Motion
+### Neutral
+- **Ink** (`oklch(0.145 0.012 25)`): the page.
+- **Raised Ink** (`oklch(0.185 0.013 25)`): cards and popovers.
+- **Sidebar Ink** (`oklch(0.125 0.01 25)`): the sidebar, a step darker than the page so navigation recedes.
+- **Muted Ink** (`oklch(0.225 0.014 25)`): secondary buttons, table row hover, footers.
+- **Rule** (`oklch(0.3 0.012 25)`): every border, divider, and input outline; a brighter rule (`oklch(0.42 0.014 25)`) for scrollbar hover.
+- **Bone** (`oklch(0.96 0.005 25)`): text.
+- **Ash** (`oklch(0.68 0.011 25)`): secondary text, descriptions, table heads; at least 4.5:1 on Raised Ink.
+- Daylight inverts the ladder: Daylight `oklch(0.975 0.004 25)` page, `oklch(0.955 0.006 25)` cards, `oklch(0.88 0.01 25)` rules, Graphite `oklch(0.18 0.018 25)` text, Slate `oklch(0.46 0.013 25)` secondary text.
 
-150–250 ms, ease-out (`--ease-out-quint`), no bounce, no page-load choreography. The one ambient motion is `live-pulse` (opacity 1 → 0.55 over 1.4 s), only on the sidebar's live node count, and off under reduced motion. No glow, ever.
+### State
+- **OK** (`oklch(0.8 0.16 150)`; Daylight `oklch(0.51 0.12 150)`): running, connected, done.
+- **Warn** (`oklch(0.82 0.15 80)`; Daylight `oklch(0.52 0.11 70)`): starting, installing, attention needed.
+- **Danger** (`oklch(0.72 0.17 10)`; Daylight `oklch(0.53 0.2 10)`): failed, crashed, destructive actions.
+- Each has a wash (`ok-wash`, `warn-wash`, `danger-wash`) for banners: a tinted fill with a 30 to 40% border of the same hue.
+- **Graph series**: blue `#3987e5` and orange `#d95926` (Daylight `#2a78d6`, `#eb6834`), validated against the card in each theme.
+- **Terminal Ink** (`#0a0c11`): the console, logs, install commands, and egg scripts, in both themes. Its text is `oklch(0.92 0.008 250)`.
 
-## Motifs
+### Named Rules
+**The One Signal Rule.** Red is for the action you'd take, the place you are, and what's live. A red that decorates (an icon, a heading, a "certified" tick) is a bug.
 
-1. **Bracket status chips** `[ RUNNING ]`: `StatusBadge` in `web/src/components/server-status.tsx`, mono, uppercase, coloured by the tone from `web/src/lib/servers.ts` (live → `ok`, pending → `warn`, failed → `destructive`, stopped → muted, stale → muted and dimmed). The way state is shown for servers and nodes. They don't pulse; a list of breathing chips is noise.
-2. **`// label` kickers:** `PageHeader`'s `eyebrow` (`web/src/components/page.tsx`) and the sidebar's `// manage`. They name the context (the org, "account", "Raptor admin"), never repeat the title, and appear on a few pages, not above every section.
-3. **The node readout:** `[ 3 ONLINE ] / 4 NODES` at the bottom of the sidebar, the only thing that breathes.
-4. **Terminal ink** for anything that's a machine talking.
+**The State-Only Rule.** Green, amber, and danger mean state and nothing else. Palette colours (`emerald-500`, `amber-500`, `sky-500`) are prohibited; use `text-ok`, `text-warn`, `text-destructive`, and the washes.
 
-## Components
+## 3. Typography
 
-Every interactive component has its default, hover, focus, active, disabled, loading, and error states, and looks the same on every page.
+**Body Font:** Hanken Grotesk (with system-ui)
+**Label/Mono Font:** JetBrains Mono (with ui-monospace)
 
-- **Buttons** (`ui/button.tsx`): default is the red with the highlight; `outline`, `secondary`, `ghost`; `destructive` is tinted, not solid red. `active:translate-y-px`.
-- **Badges** (`ui/badge.tsx`): for flags and ownership (`OFFICIAL`, `SHARED`, `DRAFT`), not state, which uses chips. The default badge is a red wash, so a flag never outshouts an action.
-- **Cards** (`ui/card.tsx`): `rounded-xl bg-card ring-1`, footers `border-t bg-muted/50`. Never nested.
-- **Tables** (`ui/table.tsx`): mono uppercase muted heads, `px-3 py-2.5` cells, hairline rows, numeric cells mono and `tabular-nums`.
-- **Stat tiles** (`StatCard` in `stats.tsx`): mono label, mono value. Not hero numbers.
-- **Empty states** (`EmptyState`): a dashed border, a bare muted icon, a title, a sentence that teaches, and the action.
-- **Sidebar** (`app-shell.tsx`): the red mark and wordmark, the org switcher, `// manage`, the node readout, the user's menu.
+**Character:** a quiet grotesque for what people read, and a mono for what machines report. The contrast between them is the hierarchy: sentences are sans, data and controls are mono. Both are self-hosted, and font files are never inlined as `data:` URIs, because the CSP only allows fonts from Raptor itself.
 
-## Bans
+### Hierarchy
+- **Headline** (700, 1.5rem, tracking -0.025em): page titles only, one per page.
+- **Title** (500, 1rem): card titles and the sidebar wordmark.
+- **Body** (400, 0.875rem, 1.43): descriptions, table cells, form values. Prose stays under 75ch.
+- **Meta** (400, 0.75rem): helper text under fields, timestamps, details lines in the activity log.
+- **Label** (JetBrains Mono 400, 0.75rem, +0.025em, uppercase): form labels and table heads.
+- **Button** (JetBrains Mono 500, 0.75rem, +0.05em, uppercase): every button except text links.
+- **Kicker** (JetBrains Mono 400, 0.7rem, +0.18em, uppercase): the `// dev org` line above a page title and the sidebar's `// manage`.
+- **Readout** (JetBrains Mono 500, 1.25rem, tabular figures): stat tile values, load averages, storage used.
 
-No glow or neon. No shadow as elevation for page surfaces. No hero numbers or gradient text. No dot-and-label statuses where a chip fits (the sidebar's lists keep a small dot, which is all the room there is). No pill-soft badges. No palette colours where a state token exists. No filled icon bubbles. Mono is structure, never decoration.
+### Named Rules
+**The Machine Voice Rule.** Every number is mono with tabular figures: ports, IPs, IDs, versions, sizes, percentages, counts, cron expressions. Every sentence is sans. A switch row's title is a sentence (sans, 500), not a field label.
+
+**The One Kicker Rule.** A `//` kicker names the context (the org, "account", "Raptor admin") and appears at most once per page. Kickers above every card are prohibited.
+
+## 4. Elevation
+
+Flat. Depth comes from tone and 1px rules: the sidebar is darker than the page, cards are a step lighter than it, and every surface is framed by a hairline (`ring-1` of the foreground at 10%, or the Rule colour). Page surfaces never cast shadows.
+
+### Shadow Vocabulary
+- **Floating layer** (the menu and popover defaults): dropdowns, popovers, sheets, and dialogs keep a soft shadow, because they genuinely sit above the page.
+- **Key highlight** (`box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.22)`): the top edge of a primary button, like light on a metal key. The only highlight in the system.
+
+### Named Rules
+**The Hairline Rule.** If a card needs a shadow to separate from the page, its tone is wrong. Fix the tone, never add the shadow.
+
+## 5. Components
+
+### Buttons
+- **Character:** small, mono, confident; they read like keys on a panel.
+- **Shape:** 4px corners, 32px tall (28px small, 24px extra-small), 10px side padding, 6px icon gap.
+- **Primary:** Signal Red with its key highlight, for the one main action in view.
+- **Outline:** a Rule border on the page colour, for everything secondary in a header (Start, Restart, Stop; Export, Edit).
+- **Ghost:** no frame, for actions inside rows and toolbars.
+- **Destructive:** tinted, never solid: Danger text on a 10% Danger fill (20% in the dark theme).
+- **States:** hover deepens the fill; focus is a 3px ring of the red at 50%; pressing nudges it down 1px; disabled is 50% opacity; busy swaps the icon for a spinner. A button that can't do anything right now is disabled, not hidden: Start is off while a server runs, Stop while it's stopped.
+
+### Status Chips
+- **Style:** `[ RUNNING ]` in the Label style, coloured by tone: OK for live, Warn for pending, Danger for failed, Ash for stopped, Ash at 60% for stale (the node is offline, so it's the last report).
+- **Use:** every state of a server, node, backup, or egg. They never pulse; a page of breathing chips is noise.
+
+### Badges
+- **Style:** 2.4px corners, 20px tall, Label type. The default is a red wash; outline and secondary for quieter flags.
+- **Use:** flags and ownership (`OFFICIAL`, `SHARED`, `DEFAULT`, `THIS NODE'S DISK`), never state.
+
+### Cards / Containers
+- **Corner Style:** 5.6px.
+- **Background:** Raised Ink, framed by a 10% foreground ring.
+- **Internal Padding:** 16px (12px for the small size), 16px between title and content.
+- **Footer:** a Rule top border on Muted Ink at 50%.
+- Never nested. A card's title says what it holds ("Name and limits", "Remove node"), never the tab's name again.
+
+### Inputs / Fields
+- **Style:** 32px tall, 4px corners, a Rule outline on a transparent fill (Muted Ink at 30% in the dark theme), body type; labels above in the Label style.
+- **Focus:** the outline turns red with a 3px ring of the red at 50%.
+- **Error / Disabled:** a Danger outline and ring; disabled at 50% opacity.
+- Checkboxes and switches are the app's own components, never the browser's.
+
+### Tables
+- Heads in the Label style on Ash; cells 12px by 10px; rows divided by Rules and tinted on hover. Numeric cells are mono and tabular, right-aligned. Row actions are one visible action and a "…" menu for the rest. On phones, secondary columns hide rather than push the actions off-screen.
+
+### Stat Tiles
+- A small card: a Label-style name with its icon, a Readout value, a Meta line, and an optional usage bar or sparkline. The sparkline yields width to the value; the value never truncates.
+
+### Navigation
+- **Sidebar:** Sidebar Ink. The red mark and wordmark at the top, the org switcher (orgs, then "Raptor admin" for staff), the `// manage` kicker, sections with their nodes and servers folded under them (a small status dot each, the one place a dot is allowed), the `[ N ONLINE ] / M NODES` readout, and the user's menu. The active item gets the red wash and red text. Collapsed, it's icons with tooltips; on phones it's a sheet that closes on navigation.
+- **Tabs:** sans body text, Ash at rest, Bone and a 2px red underline when active.
+
+### Terminal
+- **Style:** Terminal Ink, 4px corners, a cool 1px border, 12px padding, JetBrains Mono at 0.75rem (13px in the live console). Banners on it use its own colours, never the page's.
+- **Use:** the live console (xterm), Wings' log, install commands, egg install scripts.
+
+### The Node Readout
+- `[ 1 ONLINE ] / 9 NODES` at the foot of the sidebar: the online count in OK when any node is up, breathing (opacity 1 to 0.55 over 1.4s); the only ambient motion in the app, off under reduced motion.
+
+## 6. Do's and Don'ts
+
+### Do:
+- **Do** keep Signal Red under a tenth of any screen: the primary action, where you are, what's live.
+- **Do** spell every state in words inside a chip: `[ STOPPED ]`, not a grey dot.
+- **Do** set every number in JetBrains Mono with tabular figures.
+- **Do** write dates as "Oct 12, 2026, 9:00 PM" (no seconds) and recent ones as "5 minutes ago"; one formatter, everywhere.
+- **Do** say schedules the way people do ("Every day at 4:00 AM"), with the cron expression beside it in mono.
+- **Do** put destructive actions in their own card at the bottom of a page, with a sentence on what's lost, and ask once.
+- **Do** disable an action that can't do anything right now, and say why when it isn't obvious ("The node is offline").
+- **Do** name things the way owners think: server, node, egg, port; never container, image, or bind mount.
+
+### Don't:
+- **Don't** do developer-terminal cosplay: no neon, no glow, no Matrix green. Mono and ink carry meaning, not "hacker" decoration.
+- **Don't** build toy dashboards: no big hero numbers, no confetti, no rounded pills everywhere.
+- **Don't** drift into generic SaaS: no soft drop shadows on cards, no lavender gradients, no friendly blobs, no glassmorphism.
+- **Don't** over-confirm: no dialog for every action. Inline first; confirm only what's destructive or irreversible.
+- **Don't** show developer text: no raw action names, IDs, node error strings, or permission identifiers. If the app has no words for something, it says "made a change", not `egg customize: 01a1…`.
+- **Don't** ship a tab for a feature that doesn't exist yet.
+- **Don't** use palette colours (`emerald-500`, `amber-500`, `sky-500`) or hardcoded hex outside the terminal.
+- **Don't** round past 6px on any surface or use pill-shaped badges.
+- **Don't** put a kicker above every section, or repeat the page's name as a card's title.
+- **Don't** use a gradient on text, a border-left stripe as an accent, or a shadow to lift a card.

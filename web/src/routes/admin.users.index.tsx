@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
-import { when } from "@/lib/format";
+import { since, when } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/users/")({
   component: UsersPage,
@@ -83,7 +83,7 @@ function UsersPage() {
                   {when(u.createdAt)}
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground sm:table-cell">
-                  {u.lastSeenAt ? when(u.lastSeenAt) : "Never"}
+                  {since(u.lastSeenAt)}
                 </TableCell>
                 <TableCell className="text-right">
                   <span className="inline-flex gap-1.5">
