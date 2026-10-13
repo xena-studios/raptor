@@ -370,7 +370,7 @@ Set up once, after server #1 is running:
    restrict,command="sudo /opt/raptor/deploy/scripts/deploy-from-ci.sh \"$SSH_ORIGINAL_COMMAND\"" ssh-ed25519 AAAA… raptor-deploy
    ```
 
-   Whatever the workflow sends becomes one argument to `deploy-from-ci.sh`. The script accepts only a `vX.Y.Z` tag that exists on GitHub and is on `main`, checks out that tag's `deploy/` files, and runs `deploy.sh`. With this key someone can redeploy a release you already made, and nothing else.
+   Whatever the workflow sends becomes one argument to `deploy-from-ci.sh`. The script accepts only a `vX.Y.Z` tag that exists on GitHub and is on `main`, checks out that tag's `deploy/` files, and runs `deploy.sh`. With this key someone can redeploy a release you already made, and nothing else. One deploy runs at a time (a lock on `/run/raptor-deploy.lock`; a second exits 75). Nothing the deploy starts keeps the lock: before v0.3.2, the 1Password CLI's background `op daemon` inherited it and refused every later deploy. If a deploy says another is running when none is, `sudo fuser -v /run/raptor-deploy.lock` shows what holds it.
 
 3. **GitHub:** Settings → Environments → new environment **`production`**. Under Deployment branches and tags, choose Selected branches and tags and add a **tag** rule `v*`, so only release tags can use it. Add these secrets:
    - `DEPLOY_SSH_KEY`: the private key file's contents. Then `rm -P /tmp/raptor-deploy*`.
