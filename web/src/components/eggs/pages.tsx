@@ -87,7 +87,7 @@ export function LibraryPage({ lib }: { lib: Library }) {
         }
         actions={action}
       />
-      <nav aria-label="Egg lists" className="-mb-2 flex gap-4 border-b">
+      <nav aria-label="Egg lists" className="flex gap-4 border-b">
         {tabs.map(([key, label]) => (
           <button
             key={key}

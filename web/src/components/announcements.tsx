@@ -22,7 +22,7 @@ function dismissed(): string[] {
 
 export const levelStyles = {
   info: { icon: Info, className: "border-[var(--series-1)]/30 bg-[var(--series-1)]/10" },
-  warning: { icon: TriangleAlert, className: "border-amber-500/40 bg-amber-500/10" },
+  warning: { icon: TriangleAlert, className: "border-warn/40 bg-warn-wash" },
   maintenance: { icon: Wrench, className: "border-violet-500/40 bg-violet-500/10" },
 } as const;
 

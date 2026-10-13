@@ -176,7 +176,7 @@ function Overview() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-1">
-              <p className="text-2xl font-semibold tabular-nums">
+              <p className="font-mono text-2xl font-medium tabular-nums">
                 {dollars(d.revenue?.storageCentsMonth ?? 0n)}
                 <span className="ml-1 text-sm font-normal text-muted-foreground">/ month</span>
               </p>
@@ -196,7 +196,7 @@ function Overview() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-4 text-amber-500" /> Offline nodes
+              <AlertTriangle className="size-4 text-warn" /> Offline nodes
             </CardTitle>
             <CardDescription>Gone for over an hour, most recently seen first.</CardDescription>
           </CardHeader>

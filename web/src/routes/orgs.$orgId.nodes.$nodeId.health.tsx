@@ -156,7 +156,7 @@ function Health() {
           )}
           {checks.length > 0 && problems.length === 0 && (
             <p className="flex items-center gap-2 text-sm">
-              <CheckCircle2 className="size-4 text-emerald-500" /> Everything checks out.
+              <CheckCircle2 className="size-4 text-ok" /> Everything checks out.
             </p>
           )}
           {problems.map((c) => (
@@ -288,7 +288,7 @@ function Health() {
                       <span
                         className={cn(
                           "size-2 shrink-0 rounded-full",
-                          i.up ? "bg-emerald-500" : "bg-muted-foreground/40",
+                          i.up ? "bg-ok" : "bg-muted-foreground/40",
                         )}
                         title={i.up ? "Up" : "Down"}
                       />
@@ -299,10 +299,10 @@ function Health() {
                   <TableCell className="font-mono text-xs whitespace-normal text-muted-foreground">
                     {(i.addresses ?? []).join(", ") || "—"}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className="text-right font-mono text-xs tabular-nums">
                     {formatBytes(i.rx_bytes)}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className="text-right font-mono text-xs tabular-nums">
                     {formatBytes(i.tx_bytes)}
                   </TableCell>
                 </TableRow>
@@ -382,13 +382,13 @@ function Problem({ c }: { c: Check }) {
     <div
       className={cn(
         "flex gap-3 rounded-lg border p-3 text-sm",
-        failed ? "border-destructive/40 bg-destructive/5" : "border-amber-500/40 bg-amber-500/5",
+        failed ? "border-destructive/40 bg-danger-wash" : "border-warn/40 bg-warn-wash",
       )}
     >
       {failed ? (
         <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
       ) : (
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" />
       )}
       <div className="min-w-0 space-y-1">
         <p className="font-medium">
@@ -424,7 +424,7 @@ function Fine({ checks }: { checks: Check[] }) {
         onClick={() => setOpen(!open)}
       >
         <span className="flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-500" />
+          <CheckCircle2 className="size-4 text-ok" />
           {checks.filter((c) => c.status === "pass").length} passed
           {checks.some((c) => c.status === "skip") &&
             `, ${checks.filter((c) => c.status === "skip").length} didn't apply`}
@@ -438,7 +438,7 @@ function Fine({ checks }: { checks: Check[] }) {
               c.title,
               <span key={c.id} className="flex items-center justify-end gap-1.5">
                 {c.status === "pass" ? (
-                  <CheckCircle2 className="size-3.5 shrink-0 text-emerald-500" />
+                  <CheckCircle2 className="size-3.5 shrink-0 text-ok" />
                 ) : (
                   <CircleMinus className="size-3.5 shrink-0 text-muted-foreground" />
                 )}

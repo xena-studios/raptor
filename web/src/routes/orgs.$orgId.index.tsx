@@ -27,7 +27,7 @@ import {
   useNodesMetrics,
 } from "@/lib/metrics";
 import { type OrgServer, useOrgNodes, useOrgServers } from "@/lib/org-data";
-import { serverStatus } from "@/lib/servers";
+import { nodeStatus, serverStatus } from "@/lib/servers";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/orgs/$orgId/")({
@@ -339,7 +339,7 @@ function Attention({
       <CardContent className="flex flex-col gap-2 text-sm">
         {none && (
           <p className="flex items-center gap-2 text-muted-foreground">
-            <CheckCircle2 className="size-4 text-emerald-500" />
+            <CheckCircle2 className="size-4 text-ok" />
             Every node is connected and no server has crashed.
           </p>
         )}
@@ -364,7 +364,7 @@ function Attention({
             params={{ orgId, nodeId: n.id }}
             className="flex items-start gap-2 hover:underline"
           >
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" />
             <span className="min-w-0">
               <span className="font-medium">{n.name}</span> is offline (last seen{" "}
               {when(n.lastSeenAt)})
@@ -407,16 +407,8 @@ function NodesCard({
               className="-mx-2 flex flex-col gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted/50"
             >
               <span className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "size-2 shrink-0 rounded-full",
-                    n.connected ? "bg-emerald-500" : "bg-muted-foreground/40",
-                  )}
-                />
                 <span className="min-w-0 flex-1 truncate font-medium">{n.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {n.connected ? "Connected" : "Offline"}
-                </span>
+                <StatusBadge status={nodeStatus(n)} />
               </span>
               {m && (
                 <span className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">

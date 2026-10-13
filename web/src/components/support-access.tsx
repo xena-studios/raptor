@@ -72,9 +72,9 @@ export function SupportBanner({
       {pending.map((r) => (
         <div
           key={r.id}
-          className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm"
+          className="flex flex-wrap items-center gap-3 rounded-lg border border-warn/40 bg-warn-wash p-3 text-sm"
         >
-          <Headset className="size-4 shrink-0 text-amber-500" />
+          <Headset className="size-4 shrink-0 text-warn" />
           <span className="min-w-0 flex-1">
             <span className="font-medium">Raptor support ({r.staffEmail})</span> asks for{" "}
             {supportLevels[r.level]?.name.toLowerCase()} access for {durationText(r.minutes)}:{" "}

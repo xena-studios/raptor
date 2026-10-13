@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // The pieces every page is built from: a header, routed tabs, list
 // toolbars, empty states, and label/value lists.
 
-// PageHeader is a page's title, with a small label or a back link above
+// PageHeader is a page's title, with a // label or a back link above
 // it, a description under it, and actions on the right.
 export function PageHeader({
   title,
@@ -32,15 +32,19 @@ export function PageHeader({
             to={back.to}
             params={back.params}
             search={back.search}
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex w-fit items-center gap-1 font-mono text-xs tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground"
           >
             <ChevronLeft className="size-4" />
             {back.label}
           </Link>
         ) : (
-          eyebrow && <p className="text-sm text-muted-foreground">{eyebrow}</p>
+          eyebrow && (
+            <p className="font-mono text-[0.7rem] tracking-[0.18em] text-muted-foreground uppercase">
+              {`// ${eyebrow}`}
+            </p>
+          )
         )}
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="font-heading text-2xl font-bold tracking-tight">{title}</h1>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}

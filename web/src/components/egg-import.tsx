@@ -232,9 +232,9 @@ export function EggImport({
                   {r.warnings.map((w) => (
                     <li
                       key={w.kind + w.text}
-                      className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 text-sm"
+                      className="flex gap-2 rounded-lg border border-warn/30 bg-warn-wash p-2.5 text-sm"
                     >
-                      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-500" />
+                      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" />
                       <span>{w.text}</span>
                     </li>
                   ))}
@@ -268,12 +268,12 @@ export function EggImport({
                 title="Install script"
                 note={`Runs once, in ${r.installContainer || "the default container"}${r.installEntrypoint ? ` with ${r.installEntrypoint}` : ""}.`}
               >
-                <pre className="max-h-72 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed whitespace-pre">
+                <pre className="max-h-72 overflow-auto terminal rounded-lg p-3 font-mono text-xs leading-relaxed whitespace-pre">
                   {r.installScript || "(none)"}
                 </pre>
               </Section>
               <Section title="Startup command">
-                <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap break-all">
+                <pre className="overflow-x-auto terminal rounded-lg p-3 font-mono text-xs whitespace-pre-wrap break-all">
                   {r.startup[0] || "(none)"}
                 </pre>
               </Section>

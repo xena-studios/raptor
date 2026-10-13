@@ -80,7 +80,9 @@ function Infrastructure() {
                   <TableRow key={i.id}>
                     <TableCell className="font-mono text-xs">{i.id}</TableCell>
                     <TableCell className="text-muted-foreground">{when(i.startedAt)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{i.nodes}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">
+                      {i.nodes}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

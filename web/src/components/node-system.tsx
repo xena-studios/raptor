@@ -286,8 +286,8 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         {s.ufw && (
-          <p className="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-500" />
+          <p className="flex gap-2 rounded-lg border border-warn/40 bg-warn-wash p-3 text-sm">
+            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-warn" />
             ufw is on too. It filters connections to the machine before these rules, so an address
             ufw blocks stays blocked whatever is allowed here. Game servers aren't affected.
           </p>
@@ -421,7 +421,7 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
           )}
           {saved && !changed && (
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <CheckCircle2 className="size-4 text-emerald-500" /> Saved and loaded on the node.
+              <CheckCircle2 className="size-4 text-ok" /> Saved and loaded on the node.
             </span>
           )}
         </div>

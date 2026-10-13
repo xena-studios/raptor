@@ -135,7 +135,7 @@ export function AppShell({
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" tooltip="Raptor" render={<Link to="/" />}>
                 <Logo className="size-8! shrink-0" />
-                <span className="font-heading text-base font-semibold">Raptor</span>
+                <span className="font-heading text-base font-bold tracking-tight">Raptor</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -167,7 +167,7 @@ export function AppShell({
           <SidebarTrigger className="-ml-1" />
           {title && (
             <>
-              <Separator orientation="vertical" className="mr-1 h-4" />
+              <Separator orientation="vertical" className="mr-1 h-4 self-center!" />
               <span className="truncate text-sm text-muted-foreground">{title}</span>
             </>
           )}
@@ -211,7 +211,7 @@ function Tile({ name, admin, small }: { name?: string; admin?: boolean; small?: 
   return (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-md font-semibold",
+        "flex shrink-0 items-center justify-center rounded-md font-mono font-semibold",
         small ? "size-6 text-[10px]" : "size-8 text-xs",
         admin ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
       )}
@@ -305,9 +305,9 @@ function ConnectionBanner() {
   return (
     <div
       role="status"
-      className="flex items-center justify-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm"
+      className="flex items-center justify-center gap-2 border-b border-warn/30 bg-warn-wash px-4 py-2 text-sm"
     >
-      <WifiOff className="size-4 shrink-0 text-amber-500" />
+      <WifiOff className="size-4 shrink-0 text-warn" />
       Can't reach Raptor right now. What you see may be out of date; this clears when it's back.
     </div>
   );
@@ -356,7 +356,9 @@ function AdminNav() {
       : path.startsWith(to);
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Manage</SidebarGroupLabel>
+      <SidebarGroupLabel className="font-mono text-[0.7rem] tracking-[0.18em] uppercase">
+        {"// manage"}
+      </SidebarGroupLabel>
       <SidebarMenu>
         {adminLinks.map((l) => (
           <NavLink
@@ -482,8 +484,8 @@ function NavSection({
 }
 
 const toneDots: Record<ServerStatus["tone"], string> = {
-  live: "bg-emerald-500",
-  pending: "bg-amber-500",
+  live: "bg-ok",
+  pending: "bg-warn",
   failed: "bg-destructive",
   stale: "bg-muted-foreground/40",
   stopped: "bg-muted-foreground/40",
@@ -508,7 +510,7 @@ function OrgNav({ orgId }: { orgId: string }) {
       name: n.name,
       link: { to: "/orgs/$orgId/nodes/$nodeId" as const, params: { orgId, nodeId: n.id } },
       active: path.startsWith(`${base}/nodes/${n.id}`),
-      dot: n.connected ? "bg-emerald-500" : "bg-muted-foreground/40",
+      dot: n.connected ? "bg-ok" : "bg-muted-foreground/40",
       status: n.connected ? "connected" : "offline",
       live: n.connected,
     }))
@@ -533,7 +535,9 @@ function OrgNav({ orgId }: { orgId: string }) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Manage</SidebarGroupLabel>
+      <SidebarGroupLabel className="font-mono text-[0.7rem] tracking-[0.18em] uppercase">
+        {"// manage"}
+      </SidebarGroupLabel>
       <SidebarMenu>
         <NavLink
           link={{ to: "/orgs/$orgId", params }}
@@ -583,11 +587,20 @@ function NodeCount({ orgId }: { orgId: string }) {
   if (list.length === 0) return null;
   const online = list.filter((n) => n.connected).length;
   return (
-    <p className="px-2 text-xs text-muted-foreground tabular-nums group-data-[collapsible=icon]:hidden">
-      <span className={cn(online > 0 && "text-emerald-600 dark:text-emerald-500")}>
-        {online} online
-      </span>{" "}
-      of {list.length} {list.length === 1 ? "node" : "nodes"}
+    <p className="px-2 font-mono text-xs uppercase tabular-nums group-data-[collapsible=icon]:hidden">
+      <span
+        className={cn(
+          online > 0
+            ? "animate-[live-pulse_1.4s_ease-in-out_infinite] text-ok motion-reduce:animate-none"
+            : "text-muted-foreground",
+        )}
+      >
+        [ {online} online ]
+      </span>
+      <span className="text-muted-foreground">
+        {" "}
+        / {list.length} {list.length === 1 ? "node" : "nodes"}
+      </span>
     </p>
   );
 }

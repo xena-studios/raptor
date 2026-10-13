@@ -30,11 +30,11 @@ export function StatCard({
   return (
     <Card size="sm" className={cn("relative", className)}>
       <CardContent className="flex flex-col gap-1.5">
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5 font-mono text-[0.7rem] tracking-wider text-muted-foreground uppercase">
           {Icon && <Icon className="size-3.5" />} {label}
         </p>
         <div className="flex items-end justify-between gap-3">
-          <p className="truncate text-xl font-semibold tabular-nums">{value}</p>
+          <p className="truncate font-mono text-xl font-medium tabular-nums">{value}</p>
           {spark && spark.length > 1 && <Sparkline values={spark} />}
         </div>
         {fraction !== undefined && <UsageBar fraction={fraction} />}
@@ -52,7 +52,7 @@ export function UsageBar({ fraction, className }: { fraction: number; className?
       <div
         className={cn(
           "h-full rounded-full transition-[width]",
-          f > 0.9 ? "bg-destructive" : f > 0.75 ? "bg-amber-500" : "bg-[var(--series-1)]",
+          f > 0.9 ? "bg-destructive" : f > 0.75 ? "bg-warn" : "bg-[var(--series-1)]",
         )}
         style={{ width: `${f * 100}%` }}
       />

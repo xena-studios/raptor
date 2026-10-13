@@ -187,7 +187,7 @@ function OrgPage() {
                       <TableCell className="text-muted-foreground">
                         {n.wingsVersion || "—"}
                       </TableCell>
-                      <TableCell className="tabular-nums">{n.servers}</TableCell>
+                      <TableCell className="font-mono text-xs tabular-nums">{n.servers}</TableCell>
                       <TableCell className="text-right">
                         <StatusBadge status={nodeStatus(n)} />
                       </TableCell>

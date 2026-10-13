@@ -170,9 +170,9 @@ function SupportSession() {
                     c.status === "fail"
                       ? "bg-destructive"
                       : c.status === "warn"
-                        ? "bg-amber-500"
+                        ? "bg-warn"
                         : c.status === "pass"
-                          ? "bg-emerald-500"
+                          ? "bg-ok"
                           : "bg-muted-foreground/40",
                   )}
                 />
@@ -210,7 +210,7 @@ function SupportSession() {
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-xs">{s.id.slice(-8)}</TableCell>
                     <TableCell className="capitalize">{s.state.replace("_", " ")}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell className="text-right font-mono text-xs tabular-nums">
                       {s.state === "running"
                         ? `${formatPercent(s.cpu)} · ${formatBytes(s.memory)}`
                         : "—"}
@@ -356,7 +356,7 @@ function SupportSession() {
         </CardHeader>
         <CardContent>
           {lines !== undefined && (
-            <pre className="max-h-[32rem] overflow-auto rounded-lg border bg-[#0a0a0a] p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-zinc-200">
+            <pre className="max-h-[32rem] overflow-auto terminal rounded-lg p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap">
               {lines || "Nothing logged."}
             </pre>
           )}

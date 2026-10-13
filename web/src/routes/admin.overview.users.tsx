@@ -150,8 +150,12 @@ function UserInsights() {
                         {o.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{o.members}</TableCell>
-                    <TableCell className="text-right tabular-nums">{o.servers}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">
+                      {o.members}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">
+                      {o.servers}
+                    </TableCell>
                   </LinkRow>
                 ))}
               </TableBody>

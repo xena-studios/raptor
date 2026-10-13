@@ -92,7 +92,7 @@ function StorageUsage({ orgId }: { orgId: string }) {
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
-            className={cn("h-full rounded-full", share >= 1 ? "bg-amber-500" : "bg-primary")}
+            className={cn("h-full rounded-full", share >= 1 ? "bg-warn" : "bg-primary")}
             style={{ width: `${share * 100}%` }}
           />
         </div>

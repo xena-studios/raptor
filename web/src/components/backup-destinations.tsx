@@ -154,7 +154,7 @@ export function Health({ d }: { d: Destination }) {
   if (st?.last_ok_at) {
     return (
       <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <CheckCircle2 className="size-3.5 text-emerald-500" /> Worked {ago(st.last_ok_at)}
+        <CheckCircle2 className="size-3.5 text-ok" /> Worked {ago(st.last_ok_at)}
       </span>
     );
   }
@@ -303,12 +303,7 @@ export function NodeDestinations({
                     {d.type !== "local" && ` · Upload: ${formatSpeed(d.upload_limit)}`}
                   </p>
                   {notice?.id === d.id && (
-                    <p
-                      className={cn(
-                        "text-sm",
-                        notice.ok ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
-                      )}
-                    >
+                    <p className={cn("text-sm", notice.ok ? "text-ok" : "text-destructive")}>
                       {notice.text}
                     </p>
                   )}
@@ -1075,7 +1070,7 @@ function DestinationDialog({
               <p
                 className={cn(
                   "flex items-start gap-1.5 text-sm",
-                  result.ok ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
+                  result.ok ? "text-ok" : "text-destructive",
                 )}
               >
                 {result.ok ? (
@@ -1146,7 +1141,7 @@ function HostKey({
 }) {
   if (fetched) {
     return (
-      <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+      <div className="space-y-2 rounded-lg border border-warn/30 bg-warn-wash p-3 text-sm">
         <p className="font-medium">Is this the server's key?</p>
         <p className="text-muted-foreground">
           Compare it with what the server shows (<code>ssh-keygen -lf</code> on its host key, or
@@ -1164,7 +1159,7 @@ function HostKey({
       <span className="flex items-center gap-1.5">
         {pinned ? (
           <>
-            <ShieldCheck className="size-4 text-emerald-500" /> Host key trusted
+            <ShieldCheck className="size-4 text-ok" /> Host key trusted
           </>
         ) : (
           <span className="text-muted-foreground">The server's host key isn't checked yet.</span>
@@ -1752,14 +1747,7 @@ export function RecoveredBackups({
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {result && (
-          <p
-            className={cn(
-              "text-sm",
-              result.ok ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
-            )}
-          >
-            {result.text}
-          </p>
+          <p className={cn("text-sm", result.ok ? "text-ok" : "text-destructive")}>{result.text}</p>
         )}
         <ul className="divide-y rounded-lg border">
           {list.map((b) => (

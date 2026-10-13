@@ -283,7 +283,9 @@ function Devices({
                     {d.model && <span className="text-xs text-muted-foreground">{d.model}</span>}
                   </span>
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{formatBytes(d.size)}</TableCell>
+                <TableCell className="text-right font-mono text-xs tabular-nums">
+                  {formatBytes(d.size)}
+                </TableCell>
                 <TableCell>
                   <Badge variant={d.use === "empty" ? "default" : "outline"}>
                     {useLabels[d.use] ?? d.use}
@@ -369,8 +371,7 @@ function SetupDialog({
         {done ? (
           <div className="flex flex-col gap-3 text-sm">
             <p className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-emerald-500" /> {device.path} is set up as disk{" "}
-              {done}.
+              <CheckCircle2 className="size-4 text-ok" /> {device.path} is set up as disk {done}.
             </p>
             <p className="text-muted-foreground">
               {role === "servers"

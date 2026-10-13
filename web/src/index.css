@@ -1,13 +1,28 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/hanken-grotesk";
+@import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: "Hanken Grotesk Variable", system-ui, sans-serif;
   --font-heading: var(--font-sans);
-  --font-sans: "Geist Variable", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --ease-out-quint: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* State, and only state: text-ok, bg-warn-wash, and so on. Never a
+     palette colour like emerald or amber. */
+  --color-ok: var(--ok);
+  --color-ok-wash: var(--ok-wash);
+  --color-warn: var(--warn);
+  --color-warn-wash: var(--warn-wash);
+  --color-danger-wash: var(--danger-wash);
+  --color-brand-wash: var(--brand-wash);
+  --color-rule-bright: var(--rule-bright);
+  /* The console's ink, the same in both themes; xterm reads it too. */
+  --color-terminal: #0a0c11;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,7 +55,7 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-md: calc(var(--radius) * 0.85);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
@@ -49,88 +64,144 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  /* "Daylight": the light theme. Neutrals lean toward the red (hue 25);
+     the red is deeper than in the dark theme, for contrast. */
+  --background: oklch(0.975 0.004 25);
+  --foreground: oklch(0.18 0.018 25);
+  --card: oklch(0.955 0.006 25);
+  --card-foreground: oklch(0.18 0.018 25);
   /* Graph series, validated against the card (light: #2a78d6, #eb6834). */
   --series-1: #2a78d6;
   --series-2: #eb6834;
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover: oklch(0.985 0.004 25);
+  --popover-foreground: oklch(0.18 0.018 25);
+  --primary: oklch(0.545 0.215 25);
+  --primary-foreground: oklch(0.99 0.01 25);
+  --secondary: oklch(0.92 0.008 25);
+  --secondary-foreground: oklch(0.28 0.018 25);
+  --muted: oklch(0.92 0.008 25);
+  --muted-foreground: oklch(0.46 0.013 25);
+  --accent: oklch(0.89 0.01 25);
+  --accent-foreground: oklch(0.28 0.018 25);
+  --destructive: oklch(0.53 0.2 10);
+  --border: oklch(0.88 0.01 25);
+  --input: oklch(0.88 0.01 25);
+  --ring: oklch(0.545 0.2 25);
+  --chart-1: oklch(0.55 0.21 25);
+  --chart-2: oklch(0.6 0.13 228);
+  --chart-3: oklch(0.56 0.12 264);
+  --chart-4: oklch(0.51 0.12 150);
+  --chart-5: oklch(0.62 0.16 65);
+  --radius: 0.25rem;
+  --ok: oklch(0.51 0.12 150);
+  --ok-wash: oklch(0.93 0.06 150);
+  --warn: oklch(0.52 0.11 70);
+  --warn-wash: oklch(0.93 0.07 80);
+  --danger-wash: oklch(0.93 0.06 10);
+  --brand-wash: oklch(0.93 0.03 25);
+  --rule-bright: oklch(0.74 0.013 25);
+  --sidebar: oklch(0.955 0.006 25);
+  --sidebar-foreground: oklch(0.18 0.018 25);
+  --sidebar-primary: oklch(0.545 0.215 25);
+  --sidebar-primary-foreground: oklch(0.99 0.01 25);
+  --sidebar-accent: oklch(0.93 0.03 25);
+  --sidebar-accent-foreground: oklch(0.45 0.17 25);
+  --sidebar-border: oklch(0.88 0.01 25);
+  --sidebar-ring: oklch(0.545 0.2 25);
 }
 
+/* "The Console": deep ink, one red that lights up, hairlines instead of
+   shadows. Comes after :root so it wins. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
+  --background: oklch(0.145 0.012 25);
+  --foreground: oklch(0.96 0.005 25);
+  --card: oklch(0.185 0.013 25);
+  --card-foreground: oklch(0.96 0.005 25);
   /* Stepped for the dark card, and validated against it. */
   --series-1: #3987e5;
   --series-2: #d95926;
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --popover: oklch(0.185 0.013 25);
+  --popover-foreground: oklch(0.96 0.005 25);
+  --primary: oklch(0.66 0.19 25);
+  --primary-foreground: oklch(0.17 0.03 25);
+  --secondary: oklch(0.225 0.014 25);
+  --secondary-foreground: oklch(0.96 0.005 25);
+  --muted: oklch(0.225 0.014 25);
+  --muted-foreground: oklch(0.68 0.011 25);
+  --accent: oklch(0.275 0.016 25);
+  --accent-foreground: oklch(0.96 0.005 25);
+  --destructive: oklch(0.72 0.17 10);
+  --border: oklch(0.3 0.012 25);
+  --input: oklch(0.3 0.012 25);
+  --ring: oklch(0.66 0.19 25);
+  --chart-1: oklch(0.66 0.19 25);
+  --chart-2: oklch(0.74 0.13 228);
+  --chart-3: oklch(0.7 0.1 264);
+  --chart-4: oklch(0.78 0.16 150);
+  --chart-5: oklch(0.76 0.15 65);
+  --ok: oklch(0.8 0.16 150);
+  --ok-wash: oklch(0.3 0.07 150);
+  --warn: oklch(0.82 0.15 80);
+  --warn-wash: oklch(0.3 0.07 80);
+  --danger-wash: oklch(0.3 0.1 10);
+  --brand-wash: oklch(0.28 0.075 25);
+  --rule-bright: oklch(0.42 0.014 25);
+  --sidebar: oklch(0.125 0.01 25);
+  --sidebar-foreground: oklch(0.96 0.005 25);
+  --sidebar-primary: oklch(0.66 0.19 25);
+  --sidebar-primary-foreground: oklch(0.17 0.03 25);
+  --sidebar-accent: oklch(0.28 0.075 25);
+  --sidebar-accent-foreground: oklch(0.82 0.095 25);
+  --sidebar-border: oklch(0.28 0.012 25);
+  --sidebar-ring: oklch(0.66 0.19 25);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* On html, so the overscroll area matches the page. */
+    @apply bg-background font-sans;
+    -webkit-font-smoothing: antialiased;
+  }
   body {
     @apply bg-background text-foreground;
   }
-  html {
-    @apply font-sans;
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 30%, transparent);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  /* A primary button catches light on its top edge, like a metal key. */
+  [data-slot="button"][data-variant="default"]:not(:disabled) {
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.22);
+  }
+}
+
+@layer utilities {
+  /* Logs and commands: the console's ink, dark in both themes. */
+  .terminal {
+    background: var(--color-terminal);
+    color: oklch(0.92 0.008 250);
+    border: 1px solid oklch(0.3 0.014 250);
+  }
+}
+
+/* Live readouts breathe: alpha only, no glow. */
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
   }
 }
