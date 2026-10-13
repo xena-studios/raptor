@@ -6,6 +6,10 @@
 # browsers and nodes never see both down.
 #   deploy.sh v1.2.3            (or: deploy.sh latest)
 set -euo pipefail
+# deploy-from-ci.sh holds its lock on fd 9; anything started here that
+# outlives the deploy (op's daemon did) must not take it along, or it keeps
+# every later deploy out. The lock stays held by the parent.
+exec 9>&-
 cd "$(dirname "$0")/../primary"
 TAG=${1:?usage: deploy.sh <version>}
 export PANEL_IMAGE=${PANEL_REPO:-ghcr.io/xena-studios/raptor-panel}:$TAG

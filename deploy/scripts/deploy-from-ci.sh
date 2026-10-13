@@ -28,7 +28,9 @@ main() {
 		{ echo "deploy-from-ci: $tag isn't on main" >&2; exit 2; }
 	git -C "$repo" checkout -q --detach "$commit"
 	echo "deploy-from-ci: $tag ($commit)"
-	"$repo/deploy/scripts/deploy.sh" "$tag"
+	# The lock isn't passed on: a process that outlives the deploy (op's
+	# daemon did, after v0.3.0) would hold it and refuse every later deploy.
+	"$repo/deploy/scripts/deploy.sh" "$tag" 9>&-
 }
 
 main "$@"
