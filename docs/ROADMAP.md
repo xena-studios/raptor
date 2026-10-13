@@ -18,13 +18,13 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 ## Next up
 
-*As of Oct 8, 2026.* The Panel is live on one server (raptor-1, v0.1.0) with backups, monitoring, and automatic deploys. Phases 0–1 are met; Phase 2 is missing only its week-long soak; Phase 3 is built, and what's left is mostly proving it in production. In order:
+*As of Oct 12, 2026.* The Panel is live on one server (raptor-1, v0.2.0, with v0.3.0 being prepared) with backups, monitoring, and automatic deploys. Phases 0–1 are met; Phase 2 is missing only its week-long soak; Phase 3 is built, and what's left is mostly proving it in production. Phase 4's pages are built apart from Steam Workshop add-ons, subdomains, and billing; its open boxes wait on the exit test in production. In order:
 
 1. **Link a real node to production** through `get.raptorpanel.net` and `api.raptorpanel.net`, and run a server on it. This closes the 3.0 gate's last box, and checks node DNS on `raptornodes.net`, the install script, and doctor's hostname check against the real zone. Then deploy a release while the server runs (Phase 3's exit criteria: no game impact).
 2. **Test the alert chain end to end**: one alert from Grafana to the phone, plus the synthetic check failing for real.
 3. **Start the week-long soak** (`task soak:start`); it runs on its own while the rest happens.
 4. **Business track items that take weeks**: the Public Suffix List request for `raptornodes.net` (not on the list yet, and user subdomains wait for it), the business entity, `security@raptorpanel.net`.
-5. **Phase 4, in the order the exit test needs it**: create-server wizard → console → files → node pages (live enrollment, health, remove) → backups → schedules → users → egg catalog → connection test → subdomains → audit log view.
+5. **Phase 4's exit test in production**: a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
 6. **In the release after v0.3.0:** turn `db/panel/pending/drop_sftp_username.sql` into a migration and delete the folder (and its line in `sqlc.yaml`). v0.3.0 drops `ssh_keys` and no longer reads `users.sftp_username`, but v0.2.0's generated queries still name the column, so it can only go once v0.2.0 never runs against the database again.
 7. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the docs site.
 

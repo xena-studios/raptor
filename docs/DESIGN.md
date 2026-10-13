@@ -129,7 +129,7 @@ components:
 
 # Design System: Raptor
 
-The tokens above are what `web/src/index.css` defines: "The Console" is the dark theme, "Daylight" the light one, and the `-daylight` keys are the light theme's values for the same roles. The theme follows the system unless the user picks one on their account. The brief behind all of this (who it's for, the voice, the principles) is in [PRODUCT.md](PRODUCT.md#design-brief).
+The tokens above are what `web/src/index.css` defines: "The Console" is the dark theme, "Daylight" the light one, and the `-daylight` keys are the light theme's values for the same roles. The theme follows the system unless the user picks one on their account. The brief behind all of this (who it's for, the voice, the principles) is in [PRODUCT.md](PRODUCT.md#design-brief). Design work goes through the vendored impeccable skill, which reads both files first ([CONTRIBUTING.md](../CONTRIBUTING.md#design-work)).
 
 ## 1. Overview
 
