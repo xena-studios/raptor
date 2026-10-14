@@ -301,6 +301,21 @@ Customers' offsite backups ([PANEL.md](PANEL.md#raptor-backup-storage)), in one 
 3. **The vault:** `Raptor Backup Storage` with `key_id`, `application_key`, `bucket_id`, `endpoint` (without `https://`), and `region`. The next deploy sets `PANEL_BACKUP_STORAGE_*`, and the app offers it on every node's Backups tab.
 4. **Check**, with a test node: turn it on, take a backup to it, and see the node's folder in the bucket. Then, with the node's key (from its `state.db`, `backup_destinations`, on the test node only) and the `b2` command line: listing or reading another node's folder is refused; deleting one of its own files only hides it (the old version is still there); deleting a version (`b2 file delete` with its ID) is refused; and a backup and Kopia's cleanup on the node still work. The next day, org settings → Backups shows the usage.
 
+## Billing
+
+Billing is off until the Panel has Polar's token and product ([PANEL.md](PANEL.md#billing-polar)); nothing is enforced without them. Try it all in Polar's **sandbox** first (`sandbox.polar.sh`, test cards, and `PANEL_POLAR_API=https://sandbox-api.polar.sh` on a development Panel), including a failed payment, before the production item goes in the vault.
+
+1. **Polar → Settings → General → Features:** turn on seat-based pricing (in beta at the time of writing).
+2. **Products → New:** "Raptor node", a monthly subscription, pricing **seat-based**, fixed $12 per seat. No trial on the product: the Panel asks for the free month at checkout, only for an org that hasn't had one. Note its ID.
+3. **Settings → Developers → New token** (an organization access token) with the scopes `checkouts:write`, `subscriptions:read`, `subscriptions:write`, and `customer_sessions:write`, and no others. No expiry, like the deploy token; rotate it by hand if it leaks.
+4. **Settings → Webhooks → Add endpoint:** `https://api.raptorpanel.net/billing/polar/webhook`, format **Raw**, events `subscription.*` (all of them) and `order.paid`, `order.refunded`. Copy its secret (`whsec_…`). The "API: no challenges" WAF rule already lets Polar's servers through; Polar doesn't follow redirects and gives up after 10 seconds.
+5. **Settings → Customer portal:** let customers update their card, see invoices, and cancel. Leave plan changes off: seats follow nodes, set by the Panel.
+6. 1Password item **Polar** in Raptor production: `token`, `product_id`, `webhook_secret`. The next deploy picks it up (`deploy/secrets/optional/polar.env.tpl`).
+
+Then check: an org's Billing page offers the free month; checkout lands back on it and the plan appears within seconds (the webhook) or 5 minutes (the sweep). The Panel logs `billing: subscription updated` when it changes seats.
+
+Orgs that already have nodes when billing turns on have 7 days to start a plan (they're emailed), then their nodes go read-only. Tell beta users before you turn it on.
+
 ## Static sites
 
 Three Cloudflare Workers with static assets and no code: `raptor-app` serves the web app's build (`web/dist`) and sends every unknown path to `index.html`; `raptor-verify` serves the Turnstile page (`web/verify`); `raptor-site` serves the landing page (`site/dist`). Their settings are in [`web/wrangler.jsonc`](../web/wrangler.jsonc), [`web/wrangler.verify.jsonc`](../web/wrangler.verify.jsonc), and [`site/wrangler.jsonc`](../site/wrangler.jsonc). They're in the same account as the zones: whoever controls the DNS account controls these hostnames anyway (DECISIONS #203).

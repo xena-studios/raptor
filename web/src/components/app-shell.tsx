@@ -24,6 +24,7 @@ import {
 import { type ReactNode, useEffect, useState } from "react";
 
 import { Announcements } from "@/components/announcements";
+import { BillingBanner } from "@/components/billing-banner";
 import { NotFound } from "@/components/error-screen";
 import { Logo } from "@/components/logo";
 import { SourceLink } from "@/components/source-link";
@@ -175,6 +176,7 @@ export function AppShell({
         </header>
         <ConnectionBanner />
         <Announcements />
+        {orgId && !admin && <BillingBanner orgId={orgId} />}
         <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-6">
           {orgId && orgs.data && !list.some((o) => o.id === orgId) ? (
             <NotFound full={false} what="org" />

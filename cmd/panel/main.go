@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -24,6 +25,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/api"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/backupkeys"
+	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/dns"
@@ -81,6 +83,10 @@ environment:
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
   PANEL_CLOUDFLARE_DNS_TOKEN   Cloudflare API token that can edit that zone's DNS
   PANEL_CLOUDFLARE_ZONE_ID     the zone's ID
+  PANEL_POLAR_TOKEN            Polar organization access token; billing is off without it
+  PANEL_POLAR_PRODUCT_ID       the seat-based product ($12 per node a month)
+  PANEL_POLAR_WEBHOOK_SECRET   the webhook endpoint's secret (whsec_…)
+  PANEL_POLAR_API              https://sandbox-api.polar.sh for Polar's sandbox
   PANEL_SUBDOMAINS=1           offer player subdomains on the node domain (only once
                                it's on the Public Suffix List: docs/PANEL.md#subdomains)
   PANEL_SUPPORT_S3_ENDPOINT, _REGION, _BUCKET, _ACCESS_KEY, _SECRET_KEY
@@ -260,8 +266,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		keys := &backupkeys.Keeper{DB: pool, Sender: router, PanelKey: reg.PanelKey, DataKey: cfg.Auth.DataKey, Log: log}
 		go keys.Run(ctx, 15*time.Minute)
 		keysConnected = keys.Connected
-		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate, Storage: backupStorage, Keys: keys, Log: log}
-		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey}
+		bill := billingService(pool, log)
+		cfg.Billing = bill
+		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate, Storage: backupStorage, Keys: keys, Billing: bill, Log: log}
+		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey, Billing: bill}
 		cfg.Staff = &staff.Service{DB: pool, Auth: cfg.Auth, Log: log}
 		go cfg.Staff.RunStats(ctx)
 		// Raptor's egg catalog, into the official library (docs/PANEL.md#eggs).
@@ -274,6 +282,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			return err
 		}
 		cfg.Auth.Mailer = countEmails(mailer)
+		if bill.Enabled() {
+			bill.Mailer = cfg.Auth.Mailer
+			go bill.Run(ctx, 5*time.Minute)
+		}
 		nodeDomain := envOr("PANEL_NODE_DOMAIN", "raptornodes.net")
 		addrs := &nodes.Addresses{Store: reg, Domain: nodeDomain, Log: log}
 		names := &subdomains.Syncer{DB: pool, Domain: nodeDomain, Log: log}
@@ -300,6 +312,11 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.Orgs.NodeRemoved = func(ctx context.Context, id string) {
 			router.Drop(ctx, id)
 			go addrs.ForgetWithRetry(ctx, id)
+			if nid, err := uuid.Parse(id); err == nil {
+				if org, err := store.New(pool).NodeOrgAny(ctx, pgtype.UUID{Bytes: nid, Valid: true}); err == nil {
+					bill.NodesChanged(uuid.UUID(org.Bytes))
+				}
+			}
 			// Its storage key goes now, its stored backups in 30 days.
 			if nid, err := uuid.Parse(id); err == nil {
 				if err := backupStorage.Disable(ctx, nid); err != nil {
@@ -330,6 +347,25 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 // backupStorage is Raptor Backup Storage, offered when its B2 settings are
 // set (docs/DEPLOY.md#secrets): a key that can make keys and list and
 // delete files, the bucket's ID, and its S3 endpoint.
+// billingService is billing through Polar, off unless its token and
+// product are set (docs/DEPLOY.md#billing).
+func billingService(pool *pgxpool.Pool, log *slog.Logger) *billing.Service {
+	s := &billing.Service{
+		DB: pool, ProductID: os.Getenv("PANEL_POLAR_PRODUCT_ID"), WebhookSecret: os.Getenv("PANEL_POLAR_WEBHOOK_SECRET"),
+		AppURL: envOr("PANEL_APP_URL", "https://app.raptorpanel.net"), Log: log,
+	}
+	if tok := os.Getenv("PANEL_POLAR_TOKEN"); tok != "" {
+		s.Polar = &billing.Polar{Token: tok, API: os.Getenv("PANEL_POLAR_API")}
+	}
+	switch {
+	case !s.Enabled():
+		log.Warn("PANEL_POLAR_TOKEN or PANEL_POLAR_PRODUCT_ID is not set: billing is off")
+	case s.WebhookSecret == "":
+		log.Warn("PANEL_POLAR_WEBHOOK_SECRET is not set: Polar's webhooks are refused, and plans only update hourly")
+	}
+	return s
+}
+
 func backupStorage(pool *pgxpool.Pool, router storage.Sender, key ed25519.PrivateKey, log *slog.Logger) *storage.Service {
 	s := &storage.Service{
 		DB: pool, Sender: router, PanelKey: key, Log: log,
