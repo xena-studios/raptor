@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/url"
 	"os"
 	"slices"
@@ -98,6 +99,14 @@ type Executor struct {
 	}
 
 	handlers map[string]Handler
+}
+
+// Handlers returns every action Wings answers, the built-in key actions
+// included, so tests can check which need a signature.
+func (x *Executor) Handlers() map[string]Handler {
+	out := x.keyHandlers()
+	maps.Copy(out, x.handlers)
+	return out
 }
 
 // Result is what running (or re-running) a command returned.
