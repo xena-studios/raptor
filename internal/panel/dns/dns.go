@@ -1,7 +1,8 @@
 // Package dns keeps node hostnames pointing at their nodes
 // (docs/ARCHITECTURE.md#node-dns): n-<short-id>.<node domain> (raptornodes.net)
 // has an A record for the node's IPv4 address and an AAAA record for its
-// IPv6 one, DNS-only, with a short TTL.
+// IPv6 one, DNS-only, with a short TTL. Player subdomains are a CNAME to
+// their node's hostname, and an SRV record for Minecraft.
 package dns
 
 import (
@@ -38,13 +39,21 @@ type Cloudflare struct {
 }
 
 type cfRecord struct {
-	ID      string `json:"id,omitempty"`
-	Type    string `json:"type"`
-	Name    string `json:"name"`
-	Content string `json:"content"`
-	TTL     int    `json:"ttl"`
-	Proxied bool   `json:"proxied"`
-	Comment string `json:"comment,omitempty"`
+	ID      string  `json:"id,omitempty"`
+	Type    string  `json:"type"`
+	Name    string  `json:"name"`
+	Content string  `json:"content,omitempty"`
+	Data    *cfData `json:"data,omitempty"` // SRV
+	TTL     int     `json:"ttl"`
+	Proxied bool    `json:"proxied"`
+	Comment string  `json:"comment,omitempty"`
+}
+
+type cfData struct {
+	Priority int    `json:"priority"`
+	Weight   int    `json:"weight"`
+	Port     int    `json:"port"`
+	Target   string `json:"target"`
 }
 
 type cfResponse struct {
@@ -107,13 +116,42 @@ func (c *Cloudflare) Set(ctx context.Context, name, typ string, addr netip.Addr)
 	if typ != "A" && typ != "AAAA" {
 		return errors.New("record type must be A or AAAA")
 	}
+	if !addr.IsValid() {
+		return c.put(ctx, typ, name, nil)
+	}
+	return c.put(ctx, typ, name, &cfRecord{Type: typ, Name: name, Content: addr.String(), TTL: TTL, Comment: "Raptor node"})
+}
+
+// SetCNAME makes name an alias of target; an empty target removes it.
+func (c *Cloudflare) SetCNAME(ctx context.Context, name, target string) error {
+	if target == "" {
+		return c.put(ctx, "CNAME", name, nil)
+	}
+	return c.put(ctx, "CNAME", name, &cfRecord{Type: "CNAME", Name: name, Content: target, TTL: TTL, Comment: "Raptor subdomain"})
+}
+
+// SetSRV makes name's SRV record point at target's port; port 0 removes
+// it.
+func (c *Cloudflare) SetSRV(ctx context.Context, name string, port int, target string) error {
+	if port == 0 {
+		return c.put(ctx, "SRV", name, nil)
+	}
+	return c.put(ctx, "SRV", name, &cfRecord{
+		Type: "SRV", Name: name, TTL: TTL, Comment: "Raptor subdomain",
+		Data: &cfData{Priority: 0, Weight: 5, Port: port, Target: target},
+	})
+}
+
+// put makes rec name's only record of typ, or removes them all if rec is
+// nil.
+func (c *Cloudflare) put(ctx context.Context, typ, name string, rec *cfRecord) error {
 	base := "/zones/" + url.PathEscape(c.ZoneID) + "/dns_records"
 	var existing []cfRecord
 	q := url.Values{"type": {typ}, "name": {name}}
 	if err := c.call(ctx, http.MethodGet, base+"?"+q.Encode(), nil, &existing); err != nil {
 		return err
 	}
-	if !addr.IsValid() {
+	if rec == nil {
 		for _, r := range existing {
 			if err := c.call(ctx, http.MethodDelete, base+"/"+url.PathEscape(r.ID), nil, nil); err != nil {
 				return err
@@ -121,7 +159,6 @@ func (c *Cloudflare) Set(ctx context.Context, name, typ string, addr netip.Addr)
 		}
 		return nil
 	}
-	rec := cfRecord{Type: typ, Name: name, Content: addr.String(), TTL: TTL, Proxied: false, Comment: "Raptor node"}
 	if len(existing) == 0 {
 		return c.call(ctx, http.MethodPost, base, rec, nil)
 	}

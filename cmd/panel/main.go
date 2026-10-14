@@ -34,6 +34,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/subdomains"
 	"github.com/xena-studios/raptor/internal/panel/support"
 	"github.com/xena-studios/raptor/internal/panel/telemetry"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
@@ -80,6 +81,8 @@ environment:
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
   PANEL_CLOUDFLARE_DNS_TOKEN   Cloudflare API token that can edit that zone's DNS
   PANEL_CLOUDFLARE_ZONE_ID     the zone's ID
+  PANEL_SUBDOMAINS=1           offer player subdomains on the node domain (only once
+                               it's on the Public Suffix List: docs/PANEL.md#subdomains)
   PANEL_SUPPORT_S3_ENDPOINT, _REGION, _BUCKET, _ACCESS_KEY, _SECRET_KEY
                                where nodes' support bundles go (doctor -upload); the
                                key should only be able to upload
@@ -271,12 +274,27 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			return err
 		}
 		cfg.Auth.Mailer = countEmails(mailer)
-		addrs := &nodes.Addresses{Store: reg, Domain: envOr("PANEL_NODE_DOMAIN", "raptornodes.net"), Log: log}
+		nodeDomain := envOr("PANEL_NODE_DOMAIN", "raptornodes.net")
+		addrs := &nodes.Addresses{Store: reg, Domain: nodeDomain, Log: log}
+		names := &subdomains.Syncer{DB: pool, Domain: nodeDomain, Log: log}
 		if tok := os.Getenv("PANEL_CLOUDFLARE_DNS_TOKEN"); tok != "" {
-			addrs.DNS = &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}
+			zone := &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}
+			addrs.DNS, names.DNS = zone, zone
 		} else {
 			log.Warn("PANEL_CLOUDFLARE_DNS_TOKEN is not set: node hostnames aren't updated")
 		}
+		// Released subdomains' records are cleaned up even while new ones
+		// aren't offered.
+		go names.Run(ctx, time.Minute)
+		cfg.Subdomains = &orgs.Subdomains{Orgs: cfg.Orgs, Sync: func() {
+			if err := names.Sync(context.WithoutCancel(ctx)); err != nil {
+				log.Warn("subdomain sync failed", "err", err)
+			}
+		}}
+		if os.Getenv("PANEL_SUBDOMAINS") == "1" {
+			cfg.Subdomains.Domain = nodeDomain
+		}
+		cfg.Staff.SyncSubdomains = cfg.Subdomains.Sync
 		cfg.Hub.ClientIPHeader = os.Getenv("PANEL_CLIENT_IP_HEADER")
 		cfg.Hub.OnAddress = addrs.Seen
 		cfg.Orgs.NodeRemoved = func(ctx context.Context, id string) {

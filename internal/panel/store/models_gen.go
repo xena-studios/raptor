@@ -420,6 +420,27 @@ type StaffAudit struct {
 	Ip         *netip.Addr
 }
 
+type Subdomain struct {
+	ID         pgtype.UUID
+	OrgID      pgtype.UUID
+	NodeID     pgtype.UUID
+	ServerID   string
+	Name       string
+	CreatedBy  pgtype.UUID
+	CreatedAt  pgtype.Timestamptz
+	ReleasedAt pgtype.Timestamptz
+	DnsTarget  string
+	DnsPort    int32
+	DnsError   string
+}
+
+type SubdomainBan struct {
+	Name      string
+	Reason    string
+	StaffID   pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
 type SupportRequest struct {
 	ID           pgtype.UUID
 	OrgID        pgtype.UUID

@@ -48,6 +48,9 @@ type Service struct {
 	DB   *pgxpool.Pool
 	Auth *auth.Service
 	Log  *slog.Logger
+	// SyncSubdomains writes subdomains' records now, after a ban (nil:
+	// the next sweep does).
+	SyncSubdomains func()
 }
 
 var _ panelv1connect.StaffServiceHandler = (*Service)(nil)

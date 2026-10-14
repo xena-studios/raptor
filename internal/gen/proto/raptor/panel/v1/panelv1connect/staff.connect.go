@@ -74,6 +74,9 @@ const (
 	// StaffServiceUnsuspendOrgProcedure is the fully-qualified name of the StaffService's UnsuspendOrg
 	// RPC.
 	StaffServiceUnsuspendOrgProcedure = "/raptor.panel.v1.StaffService/UnsuspendOrg"
+	// StaffServiceBanSubdomainProcedure is the fully-qualified name of the StaffService's BanSubdomain
+	// RPC.
+	StaffServiceBanSubdomainProcedure = "/raptor.panel.v1.StaffService/BanSubdomain"
 	// StaffServiceListActiveAnnouncementsProcedure is the fully-qualified name of the StaffService's
 	// ListActiveAnnouncements RPC.
 	StaffServiceListActiveAnnouncementsProcedure = "/raptor.panel.v1.StaffService/ListActiveAnnouncements"
@@ -125,6 +128,9 @@ type StaffServiceClient interface {
 	// game servers keep running. Admins.
 	SuspendOrg(context.Context, *v1.SuspendOrgRequest) (*v1.SuspendOrgResponse, error)
 	UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error)
+	// BanSubdomain takes a player subdomain away for abuse, and keeps anyone
+	// from claiming the name again (docs/PANEL.md#subdomains). Admins.
+	BanSubdomain(context.Context, *v1.BanSubdomainRequest) (*v1.BanSubdomainResponse, error)
 	// ListActiveAnnouncements is what to show everyone right now. Anyone
 	// signed in may ask.
 	ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error)
@@ -258,6 +264,12 @@ func NewStaffServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(staffServiceMethods.ByName("UnsuspendOrg")),
 			connect.WithClientOptions(opts...),
 		),
+		banSubdomain: connect.NewClient[v1.BanSubdomainRequest, v1.BanSubdomainResponse](
+			httpClient,
+			baseURL+StaffServiceBanSubdomainProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("BanSubdomain")),
+			connect.WithClientOptions(opts...),
+		),
 		listActiveAnnouncements: connect.NewClient[v1.ListActiveAnnouncementsRequest, v1.ListActiveAnnouncementsResponse](
 			httpClient,
 			baseURL+StaffServiceListActiveAnnouncementsProcedure,
@@ -331,6 +343,7 @@ type staffServiceClient struct {
 	getStaffOrg             *connect.Client[v1.GetStaffOrgRequest, v1.GetStaffOrgResponse]
 	suspendOrg              *connect.Client[v1.SuspendOrgRequest, v1.SuspendOrgResponse]
 	unsuspendOrg            *connect.Client[v1.UnsuspendOrgRequest, v1.UnsuspendOrgResponse]
+	banSubdomain            *connect.Client[v1.BanSubdomainRequest, v1.BanSubdomainResponse]
 	listActiveAnnouncements *connect.Client[v1.ListActiveAnnouncementsRequest, v1.ListActiveAnnouncementsResponse]
 	listAnnouncements       *connect.Client[v1.ListAnnouncementsRequest, v1.ListAnnouncementsResponse]
 	saveAnnouncement        *connect.Client[v1.SaveAnnouncementRequest, v1.SaveAnnouncementResponse]
@@ -476,6 +489,15 @@ func (c *staffServiceClient) UnsuspendOrg(ctx context.Context, req *v1.Unsuspend
 	return nil, err
 }
 
+// BanSubdomain calls raptor.panel.v1.StaffService.BanSubdomain.
+func (c *staffServiceClient) BanSubdomain(ctx context.Context, req *v1.BanSubdomainRequest) (*v1.BanSubdomainResponse, error) {
+	response, err := c.banSubdomain.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListActiveAnnouncements calls raptor.panel.v1.StaffService.ListActiveAnnouncements.
 func (c *staffServiceClient) ListActiveAnnouncements(ctx context.Context, req *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error) {
 	response, err := c.listActiveAnnouncements.CallUnary(ctx, connect.NewRequest(req))
@@ -574,6 +596,9 @@ type StaffServiceHandler interface {
 	// game servers keep running. Admins.
 	SuspendOrg(context.Context, *v1.SuspendOrgRequest) (*v1.SuspendOrgResponse, error)
 	UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error)
+	// BanSubdomain takes a player subdomain away for abuse, and keeps anyone
+	// from claiming the name again (docs/PANEL.md#subdomains). Admins.
+	BanSubdomain(context.Context, *v1.BanSubdomainRequest) (*v1.BanSubdomainResponse, error)
 	// ListActiveAnnouncements is what to show everyone right now. Anyone
 	// signed in may ask.
 	ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error)
@@ -703,6 +728,12 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(staffServiceMethods.ByName("UnsuspendOrg")),
 		connect.WithHandlerOptions(opts...),
 	)
+	staffServiceBanSubdomainHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceBanSubdomainProcedure,
+		svc.BanSubdomain,
+		connect.WithSchema(staffServiceMethods.ByName("BanSubdomain")),
+		connect.WithHandlerOptions(opts...),
+	)
 	staffServiceListActiveAnnouncementsHandler := connect.NewUnaryHandlerSimple(
 		StaffServiceListActiveAnnouncementsProcedure,
 		svc.ListActiveAnnouncements,
@@ -788,6 +819,8 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 			staffServiceSuspendOrgHandler.ServeHTTP(w, r)
 		case StaffServiceUnsuspendOrgProcedure:
 			staffServiceUnsuspendOrgHandler.ServeHTTP(w, r)
+		case StaffServiceBanSubdomainProcedure:
+			staffServiceBanSubdomainHandler.ServeHTTP(w, r)
 		case StaffServiceListActiveAnnouncementsProcedure:
 			staffServiceListActiveAnnouncementsHandler.ServeHTTP(w, r)
 		case StaffServiceListAnnouncementsProcedure:
@@ -871,6 +904,10 @@ func (UnimplementedStaffServiceHandler) SuspendOrg(context.Context, *v1.SuspendO
 
 func (UnimplementedStaffServiceHandler) UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.UnsuspendOrg is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) BanSubdomain(context.Context, *v1.BanSubdomainRequest) (*v1.BanSubdomainResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.BanSubdomain is not implemented"))
 }
 
 func (UnimplementedStaffServiceHandler) ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error) {

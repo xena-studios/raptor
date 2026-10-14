@@ -40,7 +40,7 @@ export function Hidden({
   );
 }
 
-function CopyButton({ value, label = "address" }: { value: string; label?: string }) {
+export function CopyButton({ value, label = "address" }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <Button
