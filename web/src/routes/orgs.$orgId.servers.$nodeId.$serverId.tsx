@@ -43,18 +43,24 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId")({
 function ServerLayout() {
   const { orgId, nodeId, serverId } = Route.useParams();
   const { node, server, loaded } = useServer(orgId, nodeId, serverId);
-  // The egg's add-ons (plugins, mods) get a tab each, after Files.
+  // The egg's add-ons (plugins, mods) get a tab each after Files, and
+  // Steam Workshop items one for those who change its startup.
   const details = useQuery(
     OrgService.method.getServer,
     { orgId, nodeId, serverId },
-    { enabled: can(server, "files.read") },
+    { enabled: can(server, "files.read") || can(server, "startup") },
   );
-  const addonTabs = useMemo(() => {
+  const { addonTabs, workshop } = useMemo(() => {
     const cfg = details.data?.configJson
       ? (JSON.parse(details.data.configJson) as ServerConfig)
       : undefined;
-    return Object.keys(cfg?.egg?.addons ?? {}).filter((k) => addonKinds[k]);
-  }, [details.data?.configJson]);
+    return {
+      addonTabs: can(server, "files.read")
+        ? Object.keys(cfg?.egg?.addons ?? {}).filter((k) => addonKinds[k])
+        : [],
+      workshop: !!cfg?.egg?.workshop && can(server, "startup"),
+    };
+  }, [details.data?.configJson, server]);
   const [error, setError] = useState("");
   const status = server && serverStatus(server, node?.connected ?? false);
   const params = { orgId, nodeId, serverId };
@@ -114,6 +120,18 @@ function ServerLayout() {
                       {addonKinds[kind]?.tab}
                     </Link>
                   ))
+                : []),
+              ...(t.label === "Files" && workshop
+                ? [
+                    <Link
+                      key="workshop"
+                      to="/orgs/$orgId/servers/$nodeId/$serverId/workshop"
+                      params={params}
+                      className={tabClass}
+                    >
+                      Workshop
+                    </Link>,
+                  ]
                 : []),
             ])}
         </RouteTabs>

@@ -129,6 +129,41 @@ type Extension struct {
 	// Addons are software add-ons servers made from the egg get
 	// (docs/EGGS.md#add-ons): "plugins" or "mods" to their settings.
 	Addons map[string]Addon `yaml:"addons"`
+	// Workshop turns on Steam Workshop items for games that download them
+	// themselves (docs/EGGS.md#steam-workshop); nil if the egg has none.
+	Workshop *Workshop `yaml:"workshop"`
+}
+
+// Workshop says where a game takes Steam Workshop items: the IDs go in a
+// variable, and the game (or its install script) downloads them. Raptor
+// downloads nothing.
+type Workshop struct {
+	// AppID is the game whose Workshop the items are from.
+	AppID int64 `yaml:"app_id"`
+	// Variable holds the IDs: one collection's (Collection), or items',
+	// comma-separated.
+	Variable   string `yaml:"variable"`
+	Collection bool   `yaml:"collection"`
+	// Apply is what makes the game pick up a change: "restart" (the
+	// default) or "reinstall".
+	Apply string `yaml:"apply"`
+}
+
+// CheckWorkshop validates x-raptor.workshop against the egg's variables.
+func CheckWorkshop(w *Workshop, vars []Variable) error {
+	if w == nil {
+		return nil
+	}
+	if w.AppID <= 0 {
+		return errors.New("egg: x-raptor.workshop.app_id: want the game's Steam app ID")
+	}
+	if !slices.ContainsFunc(vars, func(v Variable) bool { return v.Env == w.Variable }) {
+		return fmt.Errorf("egg: x-raptor.workshop.variable %q: not one of the egg's variables", w.Variable)
+	}
+	if w.Apply != "" && w.Apply != "restart" && w.Apply != "reinstall" {
+		return fmt.Errorf("egg: x-raptor.workshop.apply %q: want restart or reinstall", w.Apply)
+	}
+	return nil
 }
 
 // Addon is an add-on kind an egg turns on: a plugin installer or a mod
@@ -350,6 +385,9 @@ func Parse(data []byte) (*Egg, error) {
 			}
 		}
 		if err := CheckAddons(e.Raptor.Addons); err != nil {
+			return nil, err
+		}
+		if err := CheckWorkshop(e.Raptor.Workshop, e.Variables); err != nil {
 			return nil, err
 		}
 	}

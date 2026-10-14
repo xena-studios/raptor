@@ -7,6 +7,12 @@ source:
 license: MIT
 certified: false
 arch: [amd64]
+# The install script downloads the items (workshop_download_item), so a
+# change takes a reinstall.
+workshop:
+  app_id: 393380
+  variable: WORKSHOP_ITEMS
+  apply: reinstall
 test:
   tier: slow
   memory_mib: 8192

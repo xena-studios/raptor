@@ -3,6 +3,7 @@ package orgs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
+	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -27,6 +29,7 @@ type Addons struct {
 	Orgs     *Service
 	Modrinth *modrinth.Client
 	Hangar   *hangar.Client
+	Steam    *steam.Client
 }
 
 // Add-on sources.
@@ -49,16 +52,7 @@ var (
 // check lets members of the org in, a bounded number of times a minute,
 // and checks the kind and loaders.
 func (s *Addons) check(ctx context.Context, orgID, kind string, loaders []string, version string) error {
-	var user string
-	err := s.Orgs.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
-		_, _, err := member(ctx, q, sess, orgID, "member")
-		user = idString(sess.UserID)
-		return err
-	})
-	if err != nil {
-		return err
-	}
-	if err := s.Orgs.Auth.RateLimit(ctx, "addons:user:"+user, addonCallsPerMinute, time.Minute); err != nil {
+	if err := s.allow(ctx, orgID); err != nil {
 		return err
 	}
 	if kind != "" {
@@ -84,6 +78,20 @@ func (s *Addons) check(ctx context.Context, orgID, kind string, loaders []string
 	return nil
 }
 
+// allow lets members of the org in, a bounded number of times a minute.
+func (s *Addons) allow(ctx context.Context, orgID string) error {
+	var user string
+	err := s.Orgs.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		_, _, err := member(ctx, q, sess, orgID, "member")
+		user = idString(sess.UserID)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	return s.Orgs.Auth.RateLimit(ctx, "addons:user:"+user, addonCallsPerMinute, time.Minute)
+}
+
 func modrinthError(err error) error {
 	switch {
 	case errors.Is(err, modrinth.ErrNotFound), errors.Is(err, hangar.ErrNotFound):
@@ -92,6 +100,8 @@ func modrinthError(err error) error {
 		return connect.NewError(connect.CodeUnavailable, modrinth.ErrUnavailable)
 	case errors.Is(err, hangar.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, hangar.ErrUnavailable)
+	case errors.Is(err, steam.ErrUnavailable):
+		return connect.NewError(connect.CodeUnavailable, steam.ErrUnavailable)
 	}
 	return err
 }
@@ -360,4 +370,40 @@ func (s *Addons) identifyOnHangar(ctx context.Context, req *panelv1.IdentifyAddo
 		out.Addons = append(out.Addons, a)
 	}
 	return nil
+}
+
+// workshopID is a Steam Workshop item's ID.
+var workshopID = regexp.MustCompile(`^[0-9]{1,20}$`)
+
+// LookupWorkshopItems names Steam Workshop items and collections.
+func (s *Addons) LookupWorkshopItems(ctx context.Context, req *panelv1.LookupWorkshopItemsRequest) (*panelv1.LookupWorkshopItemsResponse, error) {
+	if err := s.allow(ctx, req.GetOrgId()); err != nil {
+		return nil, err
+	}
+	ids := req.GetIds()
+	if len(ids) > steam.MaxItems {
+		return nil, invalid(fmt.Errorf("at most %d items at a time", steam.MaxItems))
+	}
+	for _, id := range ids {
+		if !workshopID.MatchString(id) {
+			return nil, invalid(errors.New("a Workshop ID is the number at the end of its link"))
+		}
+	}
+	items, err := s.Steam.Items(ctx, ids)
+	if err != nil {
+		return nil, modrinthError(err)
+	}
+	out := &panelv1.LookupWorkshopItemsResponse{}
+	for _, id := range ids {
+		it, ok := items[id]
+		if !ok {
+			continue
+		}
+		delete(items, id) // once, if it's asked for twice
+		out.Items = append(out.Items, &panelv1.WorkshopItem{
+			Id: it.ID, AppId: it.AppID, Title: it.Title, PreviewUrl: it.Preview, Size: it.Size,
+			UpdatedAt: timestamppb.New(it.Updated), Collection: it.Collection, Children: it.Children,
+		})
+	}
+	return out, nil
 }

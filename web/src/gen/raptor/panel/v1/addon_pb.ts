@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/addon.proto.
  */
 export const file_raptor_panel_v1_addon: GenFile = /*@__PURE__*/
-  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSKeAQoMQWRkb25Qcm9qZWN0EgoKAmlkGAEgASgJEgwKBHNsdWcYAiABKAkSDQoFdGl0bGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSEQoJZG93bmxvYWRzGAYgASgDEg4KBmF1dGhvchgHIAEoCRILCgN1cmwYCCABKAkSDgoGc291cmNlGAkgASgJIlgKCUFkZG9uRmlsZRILCgN1cmwYASABKAkSEAoIZmlsZW5hbWUYAiABKAkSDAoEc2l6ZRgDIAEoAxIOCgZzaGE1MTIYBCABKAkSDgoGc2hhMjU2GAUgASgJItgBCgxBZGRvblZlcnNpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDnZlcnNpb25fbnVtYmVyGAQgASgJEhUKDWdhbWVfdmVyc2lvbnMYBSADKAkSDwoHbG9hZGVycxgGIAMoCRIwCgxwdWJsaXNoZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBGZpbGUYCCABKAsyGi5yYXB0b3IucGFuZWwudjEuQWRkb25GaWxlIokBChNTZWFyY2hBZGRvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRraW5kGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg0KBXF1ZXJ5GAUgASgJEg4KBm9mZnNldBgGIAEoBRIOCgZzb3VyY2UYByABKAkiVgoUU2VhcmNoQWRkb25zUmVzcG9uc2USLwoIcHJvamVjdHMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Eg0KBXRvdGFsGAIgASgFInUKGExpc3RBZGRvblZlcnNpb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRIOCgZzb3VyY2UYBSABKAkiTAoZTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZRIvCgh2ZXJzaW9ucxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24i0QEKFUlkZW50aWZ5QWRkb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDgoGaGFzaGVzGAIgAygJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEkIKBnNoYTI1NhgFIAMoCzIyLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1JlcXVlc3QuU2hhMjU2RW50cnkaLQoLU2hhMjU2RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKwAQoPSWRlbnRpZmllZEFkZG9uEg4KBnNoYTUxMhgBIAEoCRIuCgdwcm9qZWN0GAIgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBIuCgd2ZXJzaW9uGAMgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbhItCgZsYXRlc3QYBCABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIkoKFklkZW50aWZ5QWRkb25zUmVzcG9uc2USMAoGYWRkb25zGAEgAygLMiAucmFwdG9yLnBhbmVsLnYxLklkZW50aWZpZWRBZGRvbjLJAgoMQWRkb25TZXJ2aWNlEmAKDFNlYXJjaEFkZG9ucxIkLnJhcHRvci5wYW5lbC52MS5TZWFyY2hBZGRvbnNSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLlNlYXJjaEFkZG9uc1Jlc3BvbnNlIgOQAgESbwoRTGlzdEFkZG9uVmVyc2lvbnMSKS5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uVmVyc2lvbnNSZXF1ZXN0GioucmFwdG9yLnBhbmVsLnYxLkxpc3RBZGRvblZlcnNpb25zUmVzcG9uc2UiA5ACARJmCg5JZGVudGlmeUFkZG9ucxImLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1JlcXVlc3QaJy5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXNwb25zZSIDkAIBQsoBChNjb20ucmFwdG9yLnBhbmVsLnYxQgpBZGRvblByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSKeAQoMQWRkb25Qcm9qZWN0EgoKAmlkGAEgASgJEgwKBHNsdWcYAiABKAkSDQoFdGl0bGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSEQoJZG93bmxvYWRzGAYgASgDEg4KBmF1dGhvchgHIAEoCRILCgN1cmwYCCABKAkSDgoGc291cmNlGAkgASgJIlgKCUFkZG9uRmlsZRILCgN1cmwYASABKAkSEAoIZmlsZW5hbWUYAiABKAkSDAoEc2l6ZRgDIAEoAxIOCgZzaGE1MTIYBCABKAkSDgoGc2hhMjU2GAUgASgJItgBCgxBZGRvblZlcnNpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDnZlcnNpb25fbnVtYmVyGAQgASgJEhUKDWdhbWVfdmVyc2lvbnMYBSADKAkSDwoHbG9hZGVycxgGIAMoCRIwCgxwdWJsaXNoZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBGZpbGUYCCABKAsyGi5yYXB0b3IucGFuZWwudjEuQWRkb25GaWxlIokBChNTZWFyY2hBZGRvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRraW5kGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg0KBXF1ZXJ5GAUgASgJEg4KBm9mZnNldBgGIAEoBRIOCgZzb3VyY2UYByABKAkiVgoUU2VhcmNoQWRkb25zUmVzcG9uc2USLwoIcHJvamVjdHMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Eg0KBXRvdGFsGAIgASgFInUKGExpc3RBZGRvblZlcnNpb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRIOCgZzb3VyY2UYBSABKAkiTAoZTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZRIvCgh2ZXJzaW9ucxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24i0QEKFUlkZW50aWZ5QWRkb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDgoGaGFzaGVzGAIgAygJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEkIKBnNoYTI1NhgFIAMoCzIyLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1JlcXVlc3QuU2hhMjU2RW50cnkaLQoLU2hhMjU2RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKwAQoPSWRlbnRpZmllZEFkZG9uEg4KBnNoYTUxMhgBIAEoCRIuCgdwcm9qZWN0GAIgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBIuCgd2ZXJzaW9uGAMgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbhItCgZsYXRlc3QYBCABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIkoKFklkZW50aWZ5QWRkb25zUmVzcG9uc2USMAoGYWRkb25zGAEgAygLMiAucmFwdG9yLnBhbmVsLnYxLklkZW50aWZpZWRBZGRvbiI5ChpMb29rdXBXb3Jrc2hvcEl0ZW1zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCwoDaWRzGAIgAygJIrIBCgxXb3Jrc2hvcEl0ZW0SCgoCaWQYASABKAkSDgoGYXBwX2lkGAIgASgDEg0KBXRpdGxlGAMgASgJEhMKC3ByZXZpZXdfdXJsGAQgASgJEgwKBHNpemUYBSABKAMSLgoKdXBkYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKY29sbGVjdGlvbhgHIAEoCBIQCghjaGlsZHJlbhgIIAMoCSJLChtMb29rdXBXb3Jrc2hvcEl0ZW1zUmVzcG9uc2USLAoFaXRlbXMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuV29ya3Nob3BJdGVtMsADCgxBZGRvblNlcnZpY2USYAoMU2VhcmNoQWRkb25zEiQucmFwdG9yLnBhbmVsLnYxLlNlYXJjaEFkZG9uc1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU2VhcmNoQWRkb25zUmVzcG9uc2UiA5ACARJvChFMaXN0QWRkb25WZXJzaW9ucxIpLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25WZXJzaW9uc1JlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZSIDkAIBEmYKDklkZW50aWZ5QWRkb25zEiYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1Jlc3BvbnNlIgOQAgESdQoTTG9va3VwV29ya3Nob3BJdGVtcxIrLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVxdWVzdBosLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVzcG9uc2UiA5ACAULKAQoTY29tLnJhcHRvci5wYW5lbC52MUIKQWRkb25Qcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.AddonProject
@@ -396,6 +396,109 @@ export const IdentifyAddonsResponseSchema: GenMessage<IdentifyAddonsResponse> = 
   messageDesc(file_raptor_panel_v1_addon, 9);
 
 /**
+ * @generated from message raptor.panel.v1.LookupWorkshopItemsRequest
+ */
+export type LookupWorkshopItemsRequest = Message<"raptor.panel.v1.LookupWorkshopItemsRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * Item or collection IDs (digits), at most 100.
+   *
+   * @generated from field: repeated string ids = 2;
+   */
+  ids: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.LookupWorkshopItemsRequest.
+ * Use `create(LookupWorkshopItemsRequestSchema)` to create a new message.
+ */
+export const LookupWorkshopItemsRequestSchema: GenMessage<LookupWorkshopItemsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 10);
+
+/**
+ * @generated from message raptor.panel.v1.WorkshopItem
+ */
+export type WorkshopItem = Message<"raptor.panel.v1.WorkshopItem"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The game it's for: an item for another game won't load.
+   *
+   * @generated from field: int64 app_id = 2;
+   */
+  appId: bigint;
+
+  /**
+   * @generated from field: string title = 3;
+   */
+  title: string;
+
+  /**
+   * Its image, on images.steamusercontent.com; empty if none.
+   *
+   * @generated from field: string preview_url = 4;
+   */
+  previewUrl: string;
+
+  /**
+   * Bytes; 0 for a collection.
+   *
+   * @generated from field: int64 size = 5;
+   */
+  size: bigint;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 6;
+   */
+  updatedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: bool collection = 7;
+   */
+  collection: boolean;
+
+  /**
+   * A collection's items, in its order.
+   *
+   * @generated from field: repeated string children = 8;
+   */
+  children: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.WorkshopItem.
+ * Use `create(WorkshopItemSchema)` to create a new message.
+ */
+export const WorkshopItemSchema: GenMessage<WorkshopItem> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 11);
+
+/**
+ * @generated from message raptor.panel.v1.LookupWorkshopItemsResponse
+ */
+export type LookupWorkshopItemsResponse = Message<"raptor.panel.v1.LookupWorkshopItemsResponse"> & {
+  /**
+   * IDs Steam doesn't have, or that aren't public, are left out.
+   *
+   * @generated from field: repeated raptor.panel.v1.WorkshopItem items = 1;
+   */
+  items: WorkshopItem[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.LookupWorkshopItemsResponse.
+ * Use `create(LookupWorkshopItemsResponseSchema)` to create a new message.
+ */
+export const LookupWorkshopItemsResponseSchema: GenMessage<LookupWorkshopItemsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 12);
+
+/**
  * AddonService finds plugins and mods on Modrinth, and plugins on Hangar,
  * for servers whose egg turns on an add-on (docs/EGGS.md#add-ons). The
  * Panel asks them (with its own user agent, and caches), so the browser
@@ -439,6 +542,18 @@ export const AddonService: GenService<{
     methodKind: "unary";
     input: typeof IdentifyAddonsRequestSchema;
     output: typeof IdentifyAddonsResponseSchema;
+  },
+  /**
+   * LookupWorkshopItems says what Steam Workshop items and collections are,
+   * by ID, for games whose egg takes them (docs/EGGS.md#steam-workshop).
+   * The game downloads them itself; this only names them.
+   *
+   * @generated from rpc raptor.panel.v1.AddonService.LookupWorkshopItems
+   */
+  lookupWorkshopItems: {
+    methodKind: "unary";
+    input: typeof LookupWorkshopItemsRequestSchema;
+    output: typeof LookupWorkshopItemsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_addon, 0);

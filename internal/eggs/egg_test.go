@@ -204,6 +204,27 @@ func TestParseXRaptor(t *testing.T) {
 	}
 }
 
+func TestParseWorkshop(t *testing.T) {
+	base := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"variables": [{"env_variable": "MODS"}], "x-raptor": {"workshop": %s}}`
+	e, err := Parse(fmt.Appendf(nil, base, `{"app_id": 346110, "variable": "MODS", "apply": "reinstall"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w := e.Raptor.Workshop; w == nil || w.AppID != 346110 || w.Variable != "MODS" || w.Collection || w.Apply != "reinstall" {
+		t.Errorf("workshop: %+v", w)
+	}
+	for _, bad := range []string{
+		`{"variable": "MODS"}`,               // no app
+		`{"app_id": 1, "variable": "OTHER"}`, // not the egg's
+		`{"app_id": 1, "variable": "MODS", "apply": "reboot"}`,
+	} {
+		if _, err := Parse(fmt.Appendf(nil, base, bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
+	}
+}
+
 func TestParseRulesKeepsRegexPipes(t *testing.T) {
 	e, err := Parse([]byte(`{"meta":{"version":"PTDL_v2"},"docker_images":{"a":"b"},"startup":"x",
 		"variables":[{"env_variable":"V","rules":"required|regex:/^(a|b)$/i|max:5"}]}`))

@@ -240,6 +240,24 @@ x-raptor:
 - **What's installed** is named from Modrinth by each file's SHA-512, then, for files Modrinth doesn't know, from Hangar by its SHA-256 (`addons.list` gives both). Hangar looks up one file per request, so at most 50 a listing. An update is offered for a Hangar file only when the file is one of the project's listed versions, so it's never a step back. Files neither knows show as added by hand.
 - Installing is the node's `addons.install` (the `files.write` permission): Wings downloads from `cdn.modrinth.com` and `hangarcdn.papermc.io` only, over https (redirects too), keeps the file only if its hash is the one the Panel passed from the source's listing (a SHA-512 from Modrinth's CDN, a SHA-256 from Hangar's), and writes it through the server's file system like the file manager (symlink-safe, the denylist, the disk limit). A file from Modrinth's CDN always needs its SHA-512. Hangar versions hosted elsewhere (an external link, no hash) aren't offered. The Panel finds things (`AddonService`, which asks Modrinth and Hangar with its own user agent and caches answers for 5 minutes), so the browser talks only to Raptor; only the projects' icons load from their CDNs.
 
+## Steam Workshop
+
+Games that download Steam Workshop items themselves take them under `x-raptor.workshop` (#264):
+
+```yaml
+x-raptor:
+  workshop:
+    app_id: 4000          # the game whose Workshop the items are from
+    variable: WORKSHOP_ID # the egg variable the game reads them from
+    collection: true      # one collection's ID; otherwise items' IDs, comma-separated
+    apply: restart        # or reinstall, when the install script downloads them
+```
+
+- **Raptor downloads nothing.** The game (`+host_workshop_collection`, `-automanagedmods`) or the egg's install script (`workshop_download_item`) fetches the items; Raptor edits the variable. So there's no new download path on the node, and nothing for Wings to check: what runs is what the game would run with the same IDs typed into Startup.
+- Servers get a **Workshop** tab (for those with the `startup` permission, which changing variables already needs): the items or collection named from Steam with their pictures, a box that takes a Workshop link or ID, shows what it is, and refuses items for another game; for games that take a list, a collection's link adds its items. Saving is `server.update` with the variable, unsigned like any variable. The page says whether a restart or a reinstall picks the change up.
+- The Panel names the IDs (`AddonService.LookupWorkshopItems`, from Steam's public `ISteamRemoteStorage` API, which needs no key; cached like Modrinth). Items that aren't public, or are banned, are left out. Previews load only from `images.steamusercontent.com`, which the app's CSP allows. There's no search: Steam's search API needs a key, and the Workshop's own site is better at browsing, so the page links to it.
+- The catalog sets it in `raptor.yaml` (`workshop:`) for Garry's Mod (a collection, at start), ARK (mods, at start), and Squad (items, at reinstall). `variable` must be one of the egg's variables, and `apply` `restart` or `reinstall`; anything else rejects the egg.
+
 ## Built-in catalog
 
 `eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`): the eggs the conformance suite tests, which the Panel seeds into its official egg library ([below](#in-the-official-library)). One directory per egg, e.g. `eggs/minecraft/paper/`:

@@ -7,6 +7,10 @@ source:
 license: MIT
 certified: false
 arch: [amd64]
+# The game downloads the mods when it starts (-automanagedmods).
+workshop:
+  app_id: 346110
+  variable: MOD_ID
 test:
   tier: slow
   memory_mib: 8192

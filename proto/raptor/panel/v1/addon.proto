@@ -29,6 +29,13 @@ service AddonService {
   rpc IdentifyAddons(IdentifyAddonsRequest) returns (IdentifyAddonsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // LookupWorkshopItems says what Steam Workshop items and collections are,
+  // by ID, for games whose egg takes them (docs/EGGS.md#steam-workshop).
+  // The game downloads them itself; this only names them.
+  rpc LookupWorkshopItems(LookupWorkshopItemsRequest) returns (LookupWorkshopItemsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 message AddonProject {
@@ -120,4 +127,30 @@ message IdentifiedAddon {
 message IdentifyAddonsResponse {
   // Files neither knows are left out.
   repeated IdentifiedAddon addons = 1;
+}
+
+message LookupWorkshopItemsRequest {
+  string org_id = 1;
+  // Item or collection IDs (digits), at most 100.
+  repeated string ids = 2;
+}
+
+message WorkshopItem {
+  string id = 1;
+  // The game it's for: an item for another game won't load.
+  int64 app_id = 2;
+  string title = 3;
+  // Its image, on images.steamusercontent.com; empty if none.
+  string preview_url = 4;
+  // Bytes; 0 for a collection.
+  int64 size = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  bool collection = 7;
+  // A collection's items, in its order.
+  repeated string children = 8;
+}
+
+message LookupWorkshopItemsResponse {
+  // IDs Steam doesn't have, or that aren't public, are left out.
+  repeated WorkshopItem items = 1;
 }

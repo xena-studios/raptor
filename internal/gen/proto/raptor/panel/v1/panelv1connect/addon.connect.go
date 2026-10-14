@@ -42,6 +42,9 @@ const (
 	// AddonServiceIdentifyAddonsProcedure is the fully-qualified name of the AddonService's
 	// IdentifyAddons RPC.
 	AddonServiceIdentifyAddonsProcedure = "/raptor.panel.v1.AddonService/IdentifyAddons"
+	// AddonServiceLookupWorkshopItemsProcedure is the fully-qualified name of the AddonService's
+	// LookupWorkshopItems RPC.
+	AddonServiceLookupWorkshopItemsProcedure = "/raptor.panel.v1.AddonService/LookupWorkshopItems"
 )
 
 // AddonServiceClient is a client for the raptor.panel.v1.AddonService service.
@@ -56,6 +59,10 @@ type AddonServiceClient interface {
 	// Modrinth by its SHA-512, then on Hangar by its SHA-256), and the newest
 	// version for the loaders and game version.
 	IdentifyAddons(context.Context, *v1.IdentifyAddonsRequest) (*v1.IdentifyAddonsResponse, error)
+	// LookupWorkshopItems says what Steam Workshop items and collections are,
+	// by ID, for games whose egg takes them (docs/EGGS.md#steam-workshop).
+	// The game downloads them itself; this only names them.
+	LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error)
 }
 
 // NewAddonServiceClient constructs a client for the raptor.panel.v1.AddonService service. By
@@ -90,14 +97,22 @@ func NewAddonServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		lookupWorkshopItems: connect.NewClient[v1.LookupWorkshopItemsRequest, v1.LookupWorkshopItemsResponse](
+			httpClient,
+			baseURL+AddonServiceLookupWorkshopItemsProcedure,
+			connect.WithSchema(addonServiceMethods.ByName("LookupWorkshopItems")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // addonServiceClient implements AddonServiceClient.
 type addonServiceClient struct {
-	searchAddons      *connect.Client[v1.SearchAddonsRequest, v1.SearchAddonsResponse]
-	listAddonVersions *connect.Client[v1.ListAddonVersionsRequest, v1.ListAddonVersionsResponse]
-	identifyAddons    *connect.Client[v1.IdentifyAddonsRequest, v1.IdentifyAddonsResponse]
+	searchAddons        *connect.Client[v1.SearchAddonsRequest, v1.SearchAddonsResponse]
+	listAddonVersions   *connect.Client[v1.ListAddonVersionsRequest, v1.ListAddonVersionsResponse]
+	identifyAddons      *connect.Client[v1.IdentifyAddonsRequest, v1.IdentifyAddonsResponse]
+	lookupWorkshopItems *connect.Client[v1.LookupWorkshopItemsRequest, v1.LookupWorkshopItemsResponse]
 }
 
 // SearchAddons calls raptor.panel.v1.AddonService.SearchAddons.
@@ -127,6 +142,15 @@ func (c *addonServiceClient) IdentifyAddons(ctx context.Context, req *v1.Identif
 	return nil, err
 }
 
+// LookupWorkshopItems calls raptor.panel.v1.AddonService.LookupWorkshopItems.
+func (c *addonServiceClient) LookupWorkshopItems(ctx context.Context, req *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error) {
+	response, err := c.lookupWorkshopItems.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AddonServiceHandler is an implementation of the raptor.panel.v1.AddonService service.
 type AddonServiceHandler interface {
 	// SearchAddons searches a source for a kind's projects that run on the
@@ -139,6 +163,10 @@ type AddonServiceHandler interface {
 	// Modrinth by its SHA-512, then on Hangar by its SHA-256), and the newest
 	// version for the loaders and game version.
 	IdentifyAddons(context.Context, *v1.IdentifyAddonsRequest) (*v1.IdentifyAddonsResponse, error)
+	// LookupWorkshopItems says what Steam Workshop items and collections are,
+	// by ID, for games whose egg takes them (docs/EGGS.md#steam-workshop).
+	// The game downloads them itself; this only names them.
+	LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error)
 }
 
 // NewAddonServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -169,6 +197,13 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	addonServiceLookupWorkshopItemsHandler := connect.NewUnaryHandlerSimple(
+		AddonServiceLookupWorkshopItemsProcedure,
+		svc.LookupWorkshopItems,
+		connect.WithSchema(addonServiceMethods.ByName("LookupWorkshopItems")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AddonService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AddonServiceSearchAddonsProcedure:
@@ -177,6 +212,8 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 			addonServiceListAddonVersionsHandler.ServeHTTP(w, r)
 		case AddonServiceIdentifyAddonsProcedure:
 			addonServiceIdentifyAddonsHandler.ServeHTTP(w, r)
+		case AddonServiceLookupWorkshopItemsProcedure:
+			addonServiceLookupWorkshopItemsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -196,4 +233,8 @@ func (UnimplementedAddonServiceHandler) ListAddonVersions(context.Context, *v1.L
 
 func (UnimplementedAddonServiceHandler) IdentifyAddons(context.Context, *v1.IdentifyAddonsRequest) (*v1.IdentifyAddonsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.IdentifyAddons is not implemented"))
+}
+
+func (UnimplementedAddonServiceHandler) LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.LookupWorkshopItems is not implemented"))
 }

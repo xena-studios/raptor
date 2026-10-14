@@ -13,6 +13,8 @@ import {
   suggestMemoryMiB,
   suggestPort,
   updateParams,
+  workshopIds,
+  workshopRef,
 } from "./servers.ts";
 
 test("eggs a node can run, certified first", () => {
@@ -182,4 +184,25 @@ test("gameVersion is the server's version, or any when it isn't one", () => {
   assert.equal(gameVersion(cfg("latest"), "MINECRAFT_VERSION"), "");
   assert.equal(gameVersion(cfg(), "MINECRAFT_VERSION"), "");
   assert.equal(gameVersion(cfg("1.21.1"), undefined), "");
+});
+
+test("workshopRef takes a Workshop link or an ID, and nothing else", () => {
+  assert.equal(workshopRef(" 104691717 "), "104691717");
+  assert.equal(
+    workshopRef("https://steamcommunity.com/sharedfiles/filedetails/?id=104691717&searchtext="),
+    "104691717",
+  );
+  assert.equal(
+    workshopRef("https://steamcommunity.com/workshop/filedetails/?id=157384458"),
+    "157384458",
+  );
+  assert.equal(workshopRef("https://evil.example.net/?id=104691717"), undefined);
+  assert.equal(workshopRef("https://steamcommunity.com.evil.net/?id=1"), undefined);
+  assert.equal(workshopRef("PAC3"), undefined);
+});
+
+test("workshopIds reads a variable's IDs once each", () => {
+  assert.deepEqual(workshopIds("1,2, 3,,2"), ["1", "2", "3"]);
+  assert.deepEqual(workshopIds(""), []);
+  assert.deepEqual(workshopIds("abc,4"), ["4"]);
 });
