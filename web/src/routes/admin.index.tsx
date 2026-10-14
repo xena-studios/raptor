@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 
 import { Breakdown, DaysPicker, dollars } from "@/components/admin/insights";
+import { StatusBadge } from "@/components/server-status";
 import { Graph, StatCard } from "@/components/stats";
 import { TimeChart } from "@/components/time-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
 import { since } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
+import { serverStatus } from "@/lib/servers";
 
 export const Route = createFileRoute("/admin/")({
   component: Overview,
@@ -271,11 +273,8 @@ function Overview() {
                           {s.orgName}
                         </Link>
                       </TableCell>
-                      <TableCell
-                        className="text-right text-destructive"
-                        title={s.installError || undefined}
-                      >
-                        {s.state === "install_failed" ? "Install failed" : "Crashed"}
+                      <TableCell className="text-right" title={s.installError || undefined}>
+                        <StatusBadge status={serverStatus({ ...s, installState: "" }, true)} />
                       </TableCell>
                     </TableRow>
                   ))}

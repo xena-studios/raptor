@@ -5,6 +5,7 @@ import { FolderOpen, Loader2, RefreshCw, SquareTerminal, X } from "lucide-react"
 import { lazy, Suspense, useState } from "react";
 
 import { Files } from "@/components/file-manager";
+import { StatusBadge } from "@/components/server-status";
 import { supportLevels } from "@/components/support-access";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
 import { when } from "@/lib/format";
 import { formatBytes, formatPercent, formatUptime } from "@/lib/metrics";
+import { serverStatus } from "@/lib/servers";
 import { commandClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 
@@ -209,7 +211,11 @@ function SupportSession() {
                 {(h?.servers ?? []).map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-xs">{s.id.slice(-8)}</TableCell>
-                    <TableCell className="capitalize">{s.state.replace("_", " ")}</TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        status={serverStatus({ ...s, installState: "", installError: "" }, true)}
+                      />
+                    </TableCell>
                     <TableCell className="text-right font-mono text-xs tabular-nums">
                       {s.state === "running"
                         ? `${formatPercent(s.cpu)} · ${formatBytes(s.memory)}`
