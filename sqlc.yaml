@@ -3,7 +3,6 @@ sql:
   - engine: postgresql
     schema:
       - db/panel/migrations
-      - db/panel/pending
     queries: db/panel/queries
     gen:
       go:
