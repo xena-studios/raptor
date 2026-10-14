@@ -71,6 +71,8 @@ type Conn struct {
 	Since   time.Time
 	Session *nodelink.Session
 	Node    nodev1connect.NodeServiceClient
+
+	health atomic.Pointer[nodev1.ReportHealthRequest] // the node's latest report
 }
 
 func (h *Hub) init() {
@@ -140,8 +142,12 @@ var connects, _ = telemetry.Meter.Int64Counter("raptor.nodes.connects", metric.W
 
 // ObserveMetrics reports how many nodes are connected to this instance
 // (raptor.nodes.connected), and by Wings version (raptor.nodes.versions),
-// which shows a rollout's progress and nodes left behind on old versions.
+// which shows a rollout's progress and nodes left behind on old versions,
+// and the nodes' own health (observeHealth).
 func (h *Hub) ObserveMetrics() error {
+	if err := h.observeHealth(); err != nil {
+		return err
+	}
 	_, err := telemetry.Meter.Int64ObservableGauge("raptor.nodes.connected",
 		metric.WithDescription("Nodes connected to this instance"),
 		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {

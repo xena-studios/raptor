@@ -53,6 +53,9 @@ const (
 	PanelServiceEventsAvailableProcedure = "/raptor.node.v1.PanelService/EventsAvailable"
 	// PanelServiceSFTPLoginProcedure is the fully-qualified name of the PanelService's SFTPLogin RPC.
 	PanelServiceSFTPLoginProcedure = "/raptor.node.v1.PanelService/SFTPLogin"
+	// PanelServiceReportHealthProcedure is the fully-qualified name of the PanelService's ReportHealth
+	// RPC.
+	PanelServiceReportHealthProcedure = "/raptor.node.v1.PanelService/ReportHealth"
 	// EnrollmentServiceEnrollProcedure is the fully-qualified name of the EnrollmentService's Enroll
 	// RPC.
 	EnrollmentServiceEnrollProcedure = "/raptor.node.v1.EnrollmentService/Enroll"
@@ -309,6 +312,10 @@ type PanelServiceClient interface {
 	// SFTPLogin asks whether a temporary password may log in to a server on this node
 	// over SFTP, and with which permissions. PERMISSION_DENIED if not.
 	SFTPLogin(context.Context, *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error)
+	// ReportHealth is the node's own health: the host disk and doctor's
+	// checks. Wings sends it on connecting and whenever it changes; the Panel
+	// keeps the latest with the connection, for its telemetry.
+	ReportHealth(context.Context, *v1.ReportHealthRequest) (*v1.ReportHealthResponse, error)
 }
 
 // NewPanelServiceClient constructs a client for the raptor.node.v1.PanelService service. By
@@ -336,6 +343,13 @@ func NewPanelServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		reportHealth: connect.NewClient[v1.ReportHealthRequest, v1.ReportHealthResponse](
+			httpClient,
+			baseURL+PanelServiceReportHealthProcedure,
+			connect.WithSchema(panelServiceMethods.ByName("ReportHealth")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -343,6 +357,7 @@ func NewPanelServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 type panelServiceClient struct {
 	eventsAvailable *connect.Client[v1.EventsAvailableRequest, v1.EventsAvailableResponse]
 	sFTPLogin       *connect.Client[v1.SFTPLoginRequest, v1.SFTPLoginResponse]
+	reportHealth    *connect.Client[v1.ReportHealthRequest, v1.ReportHealthResponse]
 }
 
 // EventsAvailable calls raptor.node.v1.PanelService.EventsAvailable.
@@ -363,6 +378,15 @@ func (c *panelServiceClient) SFTPLogin(ctx context.Context, req *v1.SFTPLoginReq
 	return nil, err
 }
 
+// ReportHealth calls raptor.node.v1.PanelService.ReportHealth.
+func (c *panelServiceClient) ReportHealth(ctx context.Context, req *v1.ReportHealthRequest) (*v1.ReportHealthResponse, error) {
+	response, err := c.reportHealth.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // PanelServiceHandler is an implementation of the raptor.node.v1.PanelService service.
 type PanelServiceHandler interface {
 	// EventsAvailable tells the Panel the node has events up to last_seq, so
@@ -371,6 +395,10 @@ type PanelServiceHandler interface {
 	// SFTPLogin asks whether a temporary password may log in to a server on this node
 	// over SFTP, and with which permissions. PERMISSION_DENIED if not.
 	SFTPLogin(context.Context, *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error)
+	// ReportHealth is the node's own health: the host disk and doctor's
+	// checks. Wings sends it on connecting and whenever it changes; the Panel
+	// keeps the latest with the connection, for its telemetry.
+	ReportHealth(context.Context, *v1.ReportHealthRequest) (*v1.ReportHealthResponse, error)
 }
 
 // NewPanelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -394,12 +422,21 @@ func NewPanelServiceHandler(svc PanelServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	panelServiceReportHealthHandler := connect.NewUnaryHandlerSimple(
+		PanelServiceReportHealthProcedure,
+		svc.ReportHealth,
+		connect.WithSchema(panelServiceMethods.ByName("ReportHealth")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.node.v1.PanelService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PanelServiceEventsAvailableProcedure:
 			panelServiceEventsAvailableHandler.ServeHTTP(w, r)
 		case PanelServiceSFTPLoginProcedure:
 			panelServiceSFTPLoginHandler.ServeHTTP(w, r)
+		case PanelServiceReportHealthProcedure:
+			panelServiceReportHealthHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -415,6 +452,10 @@ func (UnimplementedPanelServiceHandler) EventsAvailable(context.Context, *v1.Eve
 
 func (UnimplementedPanelServiceHandler) SFTPLogin(context.Context, *v1.SFTPLoginRequest) (*v1.SFTPLoginResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.PanelService.SFTPLogin is not implemented"))
+}
+
+func (UnimplementedPanelServiceHandler) ReportHealth(context.Context, *v1.ReportHealthRequest) (*v1.ReportHealthResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.node.v1.PanelService.ReportHealth is not implemented"))
 }
 
 // EnrollmentServiceClient is a client for the raptor.node.v1.EnrollmentService service.

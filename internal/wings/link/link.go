@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/command"
@@ -53,6 +54,9 @@ type Config struct {
 	Servers   func() Servers
 	Schedules func() Schedules
 	Backups   func() Backups
+	// Health returns the node's health for the Panel (nil until it's
+	// known); it's sent on connecting and whenever it changes.
+	Health func() *nodev1.ReportHealthRequest
 	// Jobs lists servers' jobs for the Panel's mirror.
 	Jobs Jobs
 	Log  *slog.Logger
@@ -60,6 +64,7 @@ type Config struct {
 	// For tests.
 	HTTPClient             *http.Client
 	MinBackoff, MaxBackoff time.Duration
+	HealthEvery            time.Duration
 	Keepalive              nodelink.Keepalive
 }
 
@@ -100,6 +105,9 @@ func New(cfg Config) *Link {
 	}
 	if cfg.MaxBackoff == 0 {
 		cfg.MaxBackoff = MaxBackoff
+	}
+	if cfg.HealthEvery == 0 {
+		cfg.HealthEvery = healthEvery
 	}
 	log := cfg.Log
 	if log == nil {
@@ -214,6 +222,9 @@ func (l *Link) connect(ctx context.Context) error {
 	if l.cfg.Events != nil {
 		panel := nodev1connect.NewPanelServiceClient(s.Client(), nodelink.BaseURL)
 		go l.announceEvents(sctx, s, panel)
+	}
+	if l.cfg.Health != nil {
+		go l.reportHealth(sctx, s, nodev1connect.NewPanelServiceClient(s.Client(), nodelink.BaseURL))
 	}
 	select {
 	case <-s.Done():
