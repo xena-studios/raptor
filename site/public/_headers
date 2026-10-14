@@ -1,0 +1,16 @@
+# Response headers for raptorpanel.net (Cloudflare Workers reads this file
+# from the build output; docs/DEPLOY.md#static-sites). The build fills in the
+# inline-script placeholder below with the hashes of any inline scripts
+# (scripts/headers.mjs); the page has none today. No passkeys live on this
+# origin (docs/DECISIONS.md #82), and it loads nothing from anywhere else.
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self' __INLINE_SCRIPTS__; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), publickey-credentials-get=(), publickey-credentials-create=()
+  Cross-Origin-Opener-Policy: same-origin
+
+# Hashed build files never change.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable

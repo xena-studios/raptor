@@ -121,3 +121,26 @@ jobs:
         run: |
           pnpm dlx wrangler@4 deploy --message "$GITHUB_REF_NAME ($GITHUB_SHA)"
           pnpm dlx wrangler@4 deploy -c wrangler.verify.jsonc --message "$GITHUB_REF_NAME ($GITHUB_SHA)"
+
+  # The landing page says what's released, so it ships with the release,
+  # after the Panel.
+  site:
+    needs: deploy
+    runs-on: ubuntu-24.04
+    environment: production
+    concurrency:
+      group: production-site
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: pnpm --dir site install --frozen-lockfile
+      - run: pnpm --dir site build
+      - name: Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        working-directory: site
+        run: pnpm dlx wrangler@4 deploy --message "$GITHUB_REF_NAME ($GITHUB_SHA)"

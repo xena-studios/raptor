@@ -222,6 +222,29 @@ tasks:
     cmds:
       - scripts/sign-release.sh {{.TAG}}
 
+  site:dev:
+    desc: Run the landing page's dev server (site/, raptorpanel.net)
+    deps: [site:install]
+    dir: site
+    cmds:
+      - pnpm dev
+
+  site:build:
+    desc: Build the landing page into site/dist and check its CSP
+    deps: [site:install]
+    dir: site
+    cmds:
+      - pnpm build
+      - pnpm test:csp
+
+  site:install:
+    internal: true
+    dir: site
+    sources: [package.json, pnpm-lock.yaml]
+    generates: [node_modules/.modules.yaml]
+    cmds:
+      - pnpm install --frozen-lockfile
+
   web:install:
     internal: true
     dir: web
