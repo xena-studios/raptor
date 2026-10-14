@@ -63,6 +63,42 @@ type BackupStorageUsage struct {
 	MeasuredAt pgtype.Timestamptz
 }
 
+type BillingAccount struct {
+	OrgID             pgtype.UUID
+	SubscriptionID    string
+	Status            string
+	Seats             int32
+	CurrentPeriodEnd  pgtype.Timestamptz
+	TrialEnd          pgtype.Timestamptz
+	CancelAtPeriodEnd bool
+	PastDueAt         pgtype.Timestamptz
+	TrialUsed         bool
+	UnpaidSince       pgtype.Timestamptz
+	UnpaidNotified    []string
+	Nodes             int32
+	AutoCanceled      bool
+	FetchedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
+}
+
+type BillingLedger struct {
+	ID          pgtype.UUID
+	OrgID       pgtype.UUID
+	Kind        string
+	Quantity    int32
+	AmountCents int64
+	Currency    string
+	PolarRef    string
+	Data        []byte
+	At          pgtype.Timestamptz
+}
+
+type BillingWebhook struct {
+	ID         string
+	Type       string
+	ReceivedAt pgtype.Timestamptz
+}
+
 type Egg struct {
 	ID            pgtype.UUID
 	OrgID         pgtype.UUID

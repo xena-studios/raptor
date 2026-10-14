@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// BillingService is an org's plan, through Polar (docs/PANEL.md#billing-polar):
+// one subscription per org whose seats follow its linked nodes. Members of
+// the org see it; owners start and manage it.
+service BillingService {
+  // GetBilling says where the org stands.
+  rpc GetBilling(GetBillingRequest) returns (GetBillingResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // StartCheckout returns a link to Polar's checkout for a plan (the first
+  // month free, once per org). Owners.
+  rpc StartCheckout(StartCheckoutRequest) returns (StartCheckoutResponse) {}
+
+  // OpenBillingPortal returns a link to Polar's customer portal: the card,
+  // invoices, and cancelling. Owners.
+  rpc OpenBillingPortal(OpenBillingPortalRequest) returns (OpenBillingPortalResponse) {}
+
+  // EndTrial ends the free month now, so more nodes can be linked. Owners.
+  rpc EndTrial(EndTrialRequest) returns (EndTrialResponse) {}
+}
+
+message GetBillingRequest {
+  string org_id = 1;
+}
+
+message GetBillingResponse {
+  // False while this Panel doesn't charge; the rest is then empty.
+  bool enabled = 1;
+  // Polar's status: trialing, active, past_due, canceled, unpaid, …;
+  // empty if the org never had a plan.
+  string status = 2;
+  int32 seats = 3;
+  int32 nodes = 4;
+  int64 node_price_cents = 5;
+  google.protobuf.Timestamp current_period_end = 6;
+  google.protobuf.Timestamp trial_end = 7;
+  bool cancel_at_period_end = 8;
+  // Set while the org is unpaid: when its nodes go (or went) read-only.
+  google.protobuf.Timestamp read_only_at = 9;
+  bool read_only = 10;
+  bool trial_available = 11;
+}
+
+message StartCheckoutRequest {
+  string org_id = 1;
+}
+
+message StartCheckoutResponse {
+  string url = 1;
+}
+
+message OpenBillingPortalRequest {
+  string org_id = 1;
+}
+
+message OpenBillingPortalResponse {
+  string url = 1;
+}
+
+message EndTrialRequest {
+  string org_id = 1;
+}
+
+message EndTrialResponse {}

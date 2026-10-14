@@ -24,6 +24,7 @@ import (
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/perms"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/panel/telemetry"
@@ -43,6 +44,8 @@ type Service struct {
 	Consoles Consoles
 	PanelKey ed25519.PrivateKey
 	Now      func() time.Time
+	// Billing refuses changes to an unpaid org's nodes (nil: off).
+	Billing *billing.Service
 }
 
 var _ panelv1connect.CommandServiceHandler = (*Service)(nil)
@@ -183,6 +186,13 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	}
 	if err != nil {
 		return nil, err
+	}
+	// An unpaid org's nodes are read-only; taking support access away still
+	// works. Staff helping under support access aren't stopped.
+	if support == "" && !perms.Read(env.Action) && env.Action != "support.revoke" && env.Action != "support.disable" {
+		if err := s.Billing.CheckWrite(ctx, uuid.UUID(org.Bytes)); err != nil {
+			return nil, err
+		}
 	}
 	var granted grantParams
 	if env.Action == "support.grant" && support == "" {

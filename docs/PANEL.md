@@ -85,8 +85,11 @@ schedule_runs    id, node_id, server_id, schedule_id, run_key, status, reason, s
                  started_at, finished_at (history from events, not rebuilt)
 
 -- billing
-billing_customers   org_id, polar_customer_id
-billing_ledger      id, org_id, kind, quantity, period, polar_ref, at
+billing_accounts    org_id, subscription_id, status, seats, current_period_end, trial_end,
+                    cancel_at_period_end, past_due_at, trial_used, unpaid_since, unpaid_notified,
+                    nodes, auto_canceled, fetched_at
+billing_ledger      id, org_id, kind, quantity, amount_cents, currency, polar_ref, data, at
+billing_webhooks    id, type, received_at
 subdomains          id, org_id, node_id, server_id, name, created_by, created_at, released_at,
                     dns_target, dns_port, dns_error
 subdomain_bans      name, reason, staff_id, created_at
@@ -262,11 +265,16 @@ A node's hostname (`n-<short id>.raptornodes.net`) resolves to the machine's IP 
 - **$12 / node / month.** First node free for the first month.
 - Hosted add-ons (backup storage GB-months, relay GB later) are metered usage.
 - **Every enrolled node is billed, regardless of status** (online, offline, or unreachable). A node stops being billed only when it's removed from the Panel.
-- Implemented as a Polar subscription with a **per-unit quantity** equal to the org's enrolled node count, updated on enroll/removal. Changes are **prorated daily**.
-- **Trial:** the first node is free for one month, **once per org**, and a **card is required at signup** (this cuts throwaway re-trial accounts).
+- Implemented as a Polar **seat-based subscription** (`internal/panel/billing`, `BillingService`; #266), seats = the org's linked nodes. The org's ID is Polar's external customer ID, so the Panel never stores card or customer details.
+  - **Starting:** an owner's "Start your free month" on Settings → Billing opens Polar's checkout (`StartCheckout`) for one seat per node (at least one). Without a plan in force, no join tokens: Add Node sends owners to Billing first.
+  - **Webhooks** (`POST /billing/polar/webhook` on the API, Standard Webhooks signatures, each delivery handled once) only say which subscription changed: the Panel fetches it from Polar, so deliveries out of order can't leave an old state. `billing_accounts` is the Panel's copy of what it last fetched.
+  - **A sweep** every 5 minutes (one instance, by advisory lock; also right after a webhook or a node's removal) fetches each subscription at least hourly, in case a webhook was lost, and keeps seats equal to nodes (`proration_behavior: prorate`, so a change shows up prorated on the next invoice). Removing the last node sets the plan to end with the period, and linking one again takes that back; an owner's own cancellation in the portal is never undone.
+  - **Owners** manage the card, invoices, and cancelling in Polar's customer portal (`OpenBillingPortal`). Members see the plan.
+- **Trial:** the first node is free for one month, **once per org**, and a **card is required at signup** (this cuts throwaway re-trial accounts). It's asked for at checkout only if the org hasn't had one and has at most one node. Linking a second node ends the free month (the sweep sets `trial_end` to now); Add Node says so first, and owners can end it early.
 - **Raptor Backup Storage:** 10 GB included per paid node (pooled across the org; a trial node counts), then $0.012 per GB-month ($12/TB), metered daily from object storage usage. Backed by Backblaze B2 (about $6.95/TB): roughly 30% left after B2, payment fees, and API calls. During beta, a soft cap of 500 GB per org, raised on request.
-- The Panel keeps its own **ledger** for reconciliation.
-- Non-payment: 7-day grace → the Panel goes read-only for unpaid nodes → **servers keep running**. Hosted backup data is kept 30 days, then deleted after email reminders.
+- The Panel keeps its own **ledger** for reconciliation (`billing_ledger`): every subscription state it sees, orders paid and refunded with their amounts, the seat changes it made, and unpaid spells.
+- Non-payment: 7-day grace → the Panel goes read-only for unpaid nodes → **servers keep running**. An org is unpaid when it has nodes and no plan that's trialing or active; a failed payment (`past_due`) counts from when it failed. Owners are emailed when it starts and when the nodes go read-only, and every page of the org says when. Read-only means `CommandService` refuses everything but reads (and ending support access), and no join tokens; the org can still remove nodes and pay. Hosted backup data is kept 30 days, then deleted after email reminders.
+- **Not yet:** charging for Raptor Backup Storage over the included 10 GB (it's measured, and shown as an estimate).
 
 ## Staff
 

@@ -26,6 +26,7 @@ import (
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/backupkeys"
+	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
@@ -67,7 +68,9 @@ type Service struct {
 	Storage *storage.Service
 	// Keys keeps copies of nodes' backup keys (nil: none kept).
 	Keys *backupkeys.Keeper
-	Log  *slog.Logger
+	// Billing charges for nodes (nil, or without Polar: off).
+	Billing *billing.Service
+	Log     *slog.Logger
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)
@@ -552,6 +555,9 @@ func (s *Service) CreateJoinToken(ctx context.Context, req *panelv1.CreateJoinTo
 		return nil, err
 	}
 	if err := s.Auth.RequireReauth(sess); err != nil {
+		return nil, err
+	}
+	if err := s.Billing.CheckAddNode(ctx, uuid.UUID(org.Bytes)); err != nil {
 		return nil, err
 	}
 	if err := s.Auth.RateLimit(ctx, "join:org:"+idString(org), joinTokensHour, time.Hour); err != nil {
