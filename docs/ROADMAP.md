@@ -22,7 +22,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 1. **Deploy a release while a server runs on the production node** (Phase 3's exit criteria: no game impact).
 2. **Test the alert chain end to end**: one alert from Grafana to the phone, plus the synthetic check failing for real.
-3. **Business track items that take weeks**: the Public Suffix List request for `raptornodes.net` (not on the list yet, and user subdomains wait for it), the business entity, `security@raptorpanel.net`.
+3. **Business track items that take weeks**: the Public Suffix List request for `raptornodes.net` (not on the list yet; subdomains are on without it, #267), the business entity, `security@raptorpanel.net`.
 4. **Phase 4's exit test in production**: a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
 5. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the help center (its install and provider guides first, since the exit test above is "without help"), and last, the week-long soak (`task soak:start`), so it runs against the code that launches.
 
@@ -254,7 +254,7 @@ Found while checking production (Oct 8):
 - [x] **Add-ons** ([EGGS.md](EGGS.md#add-ons)): an egg turns on a plugin installer or mod manager; servers get a Plugins or Mods page to search Modrinth, install a version, see what's installed, update, and remove; Wings fetches only from Modrinth's CDN and keeps a file only if its SHA-512 matches; the catalog's Minecraft eggs have them
 - [x] **Hangar** for the plugin installer (PaperMC's plugins that aren't on Modrinth), and more add-on kinds (datapacks, Steam Workshop) (Hangar: search, versions, installing from its CDN by SHA-256, and naming installed files and offering updates; datapacks: a third kind, `.zip` files from Modrinth into the world's datapacks folder, on every catalog Java egg; Steam Workshop: a Workshop tab that edits the variable the game reads item or collection IDs from, named from Steam, on Garry's Mod, ARK, and Squad ([EGGS.md](EGGS.md#steam-workshop)))
 - [x] **Connection test** with provider guides (on the Network tab: the Panel probes each port from outside while the node says what the game listens on inside, into one cause per port, with a guide for the provider guessed from reverse DNS; left for later: running it after a server's first start)
-- [ ] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link (the domain is on the Public Suffix List first) (built, off behind `PANEL_SUBDOMAINS`: a CNAME to the node and an SRV record for Minecraft, kept in step by a sweep, names held 30 days after release, a Subdomain card on the Network tab, staff bans, and `abuse@raptorpanel.net` on the landing page ([PANEL.md](PANEL.md#beginner-focused-features)); left: the Public Suffix List, the `abuse@` mailbox, then turning it on)
+- [x] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link (a CNAME to the node and an SRV record for Minecraft, kept in step by a sweep, names held 30 days after release, a Subdomain card on the Network tab, staff bans, and `abuse@raptorpanel.net` on the landing page ([PANEL.md](PANEL.md#beginner-focused-features)); on in production since v0.4.1, before the Public Suffix List (#267), which is still to do on the business track)
 - [x] **Audit log** view (the org's Settings, Activity)
 - [ ] **Staff admin panel** (`/admin`) (overview with history, users and orgs, suspending, the staff log, announcements, and support access to nodes (owner-signed grants checked by Wings, three levels, `raptor support` on the box) done; staff consoles under level 2 grants and files under level 3, on the support session page, done; left: revenue once billing exists)
 - [x] Performance: route code splitting, lazy xterm and editor (every route's page is its own chunk (the router plugin's `autoCodeSplitting`); xterm and the editor load only when shown, each in its own chunk; the first load is about 227 KB gzipped, mostly React, the router, and React Query, measured Oct 12, 2026)
@@ -295,7 +295,7 @@ Found while checking production (Oct 8):
 | Now | Reserve GitHub org, social handles, Discord server |
 | Now | Landing page on `raptorpanel.net` (Astro, `site/`; live, no waitlist: DECISIONS #261) |
 | Now | Register `raptornodes.com` if available and redirect it (`raptorpanel.com` belongs to someone else) |
-| By Phase 4 | Apply to add `raptornodes.net` to the Public Suffix List (takes weeks; must be done before user subdomains) |
+| By launch | Apply to add `raptornodes.net` to the Public Suffix List (takes weeks; subdomains went on before it, #267) |
 | By Phase 3 | Business entity (needed for Polar payouts) |
 | By Phase 3 | `security@raptorpanel.net` mailbox |
 | Before subdomains | `abuse@raptorpanel.net` mailbox (the landing page links to it; reports of `raptornodes.net` names) |
