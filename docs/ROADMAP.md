@@ -26,7 +26,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 4. **Business track items that take weeks**: the Public Suffix List request for `raptornodes.net` (not on the list yet, and user subdomains wait for it), the business entity, `security@raptorpanel.net`.
 5. **Phase 4's exit test in production**: a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
 6. **In the release after v0.3.0:** turn `db/panel/pending/drop_sftp_username.sql` into a migration and delete the folder (and its line in `sqlc.yaml`). v0.3.0 drops `ssh_keys` and no longer reads `users.sftp_username`, but v0.2.0's generated queries still name the column, so it can only go once v0.2.0 never runs against the database again.
-7. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the docs site.
+7. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the help center. Its install and provider guides come first, since the exit test above is "without help".
 
 Found while checking production (Oct 8):
 - `raptorpanel.net` itself answers nothing (no record), so `raptornodes.net`'s redirect lands on a dead page. The landing page is still to do.
@@ -280,7 +280,7 @@ Found while checking production (Oct 8):
 - [ ] **Support access:** request/approve/revoke flow, banners, staff console, staff MFA
 - [ ] **Load test** with fake-Wings simulator (thousands of nodes) (the simulator is built: `cmd/fakewings` enrolls, links, and drives nodes with fake servers and events, and reports handshake and event delivery times; 500 nodes held steady against the dev Panel; left: thousands through Cloudflare against staging)
 - [ ] Status page at `status.raptorpanel.net` (hosted with a different provider than the Panel, DNS not on Cloudflare; a Better Stack page exists, but its record is on Cloudflare)
-- [ ] Docs site (Astro Starlight, `docs.raptorpanel.net`): install guide, provider guides (Hetzner, OVH, Oracle Free Tier, home PC), CLI reference, egg authoring
+- [ ] Help center on Featurebase (`help.raptorpanel.net`, [DECISIONS](DECISIONS.md) #260): install guide, provider guides (Hetzner, OVH, Bloom, home PC), CLI reference, egg authoring, troubleshooting; the support inbox, feedback, and changelog; links to it from the app (the user menu, Add Node, the connection test, failed installs), with none of its scripts
 - [x] AGPL source link in the Panel footer (deployed commit): the sidebar and the sign-in page link to the commit the API reports (`MetaService.GetVersion`), or the repository for development builds
 
 **Exit criteria (launch gate):**

@@ -50,8 +50,10 @@ It's served as static files **from separate static hosting, not the API servers*
 
 The API is deliberately **not** served under `/api` on the app's origin: whoever serves a response controls its headers, so a compromised API on that origin could serve a page that asks passkeys to sign, or a service worker that replaces the app (decision 81). In development the Vite dev server still proxies `/api` to the local API.
 
-### Landing page and docs
-The landing page (`raptorpanel.net`) is an **Astro** site in `site/`, and the docs (`docs.raptorpanel.net`) will be **Astro Starlight** in `docs-site/`. Both are static, deploy separately from the web app, and never share its origin or CSP. Analytics and marketing scripts live here, never in the web app.
+### Landing page and help center
+The landing page (`raptorpanel.net`) is an **Astro** site in `site/`: static, deployed separately from the web app, never sharing its origin or CSP. Analytics and marketing scripts live there, never in the web app.
+
+Help for owners (guides, the support inbox, feedback, the changelog) is on **Featurebase**, at `help.raptorpanel.net`, not in this repository (decision 260). The web app links to it and loads none of its scripts: no chat widget or SDK on the origin passkeys sign from.
 
 ### Hostnames
 
@@ -60,7 +62,7 @@ The landing page (`raptorpanel.net`) is an **Astro** site in `site/`, and the do
 | `raptorpanel.net` | Landing page + waitlist (`www` redirects here) | Static, Cloudflare proxy |
 | `app.raptorpanel.net` | Web app; passkey RP ID | Static, separate deploy credentials |
 | `api.raptorpanel.net` | `panel serve api`: Connect API, browser WebSockets, node connections | Panel servers, Cloudflare proxy |
-| `docs.raptorpanel.net` | Docs site | Static |
+| `help.raptorpanel.net` | Help center, support inbox, feedback, changelog | Featurebase (custom domain) |
 | `get.raptorpanel.net` | Install script | Static |
 | `verify.raptorpanel.net` | The Turnstile page the sign-in form embeds (`web/verify`), apart from the app's origin | Static |
 | `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |
@@ -261,7 +263,6 @@ raptor/
   web/                # React app (src/gen = generated TS protobuf); web/verify: the Turnstile page
   deploy/             # the Panel's servers: images, Compose, Caddy, Postgres, scripts (docs/DEPLOY.md)
   site/               # Astro landing page (planned)
-  docs-site/          # Astro Starlight docs (planned)
   install/            # get.raptorpanel.net bash script
   tools/              # go.mod pinning dev tools (go tool -modfile=tools/go.mod ...)
   scripts/            # CI/release helper scripts
