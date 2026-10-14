@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -58,7 +59,10 @@ type Meta struct {
 	// Addons are the software add-ons servers get (the egg's
 	// x-raptor.addons, docs/EGGS.md#add-ons), added like Players.
 	Addons map[string]eggs.Addon `yaml:"addons"`
-	Test   Test                  `yaml:"test"`
+	// Workshop says where the game takes Steam Workshop items (the egg's
+	// x-raptor.workshop, docs/EGGS.md#steam-workshop), added like Players.
+	Workshop *eggs.Workshop `yaml:"workshop"`
+	Test     Test           `yaml:"test"`
 }
 
 // Tier says when the conformance suite runs an egg.
@@ -173,7 +177,8 @@ func load(dir string) (Entry, error) {
 }
 
 func (e *Entry) validate() error {
-	if _, err := eggs.Parse(e.Egg); err != nil {
+	egg, err := eggs.Parse(e.Egg)
+	if err != nil {
 		return err
 	}
 	s := e.Source
@@ -198,6 +203,9 @@ func (e *Entry) validate() error {
 		}
 	}
 	if err := eggs.CheckAddons(e.Addons); err != nil {
+		return err
+	}
+	if err := eggs.CheckWorkshop(e.Workshop, egg.Variables); err != nil {
 		return err
 	}
 	t := e.Test
@@ -269,6 +277,18 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(addons, kind, n)
 		}
 		set(ext, "addons", addons)
+	}
+	if w := e.Workshop; w != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "app_id", &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: strconv.FormatInt(w.AppID, 10)})
+		set(n, "variable", str(w.Variable))
+		if w.Collection {
+			set(n, "collection", &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!bool", Value: "true"})
+		}
+		if w.Apply != "" {
+			set(n, "apply", str(w.Apply))
+		}
+		set(ext, "workshop", n)
 	}
 	if path.Ext(e.File) == ".json" {
 		return ordered.EncodeJSON(root, "    ")

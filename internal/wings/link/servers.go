@@ -102,6 +102,16 @@ type eggInfo struct {
 	Features  []string      `json:"features,omitempty"`
 	// Addons are the egg's add-on kinds (docs/EGGS.md#add-ons).
 	Addons map[string]eggAddon `json:"addons,omitempty"`
+	// Workshop is where the game takes Steam Workshop items
+	// (docs/EGGS.md#steam-workshop).
+	Workshop *eggWorkshop `json:"workshop,omitempty"`
+}
+
+type eggWorkshop struct {
+	AppID      int64  `json:"app_id"`
+	Variable   string `json:"variable"`
+	Collection bool   `json:"collection,omitempty"`
+	Apply      string `json:"apply"`
 }
 
 type eggAddon struct {
@@ -136,6 +146,13 @@ func describeEgg(s *server.Server) *eggInfo {
 			out.Addons = map[string]eggAddon{}
 		}
 		out.Addons[kind] = eggAddon{Loaders: a.Loaders, Dir: a.Dir, Version: a.Version}
+	}
+	if w := e.Raptor.Workshop; w != nil {
+		apply := w.Apply
+		if apply == "" {
+			apply = "restart"
+		}
+		out.Workshop = &eggWorkshop{AppID: w.AppID, Variable: w.Variable, Collection: w.Collection, Apply: apply}
 	}
 	for _, i := range e.Images {
 		out.Images = append(out.Images, eggImage{Name: i.Name, Ref: i.Ref})

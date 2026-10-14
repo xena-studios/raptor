@@ -17,6 +17,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/paneltest"
+	"github.com/xena-studios/raptor/internal/panel/steam"
 )
 
 // The plugin installer's Modrinth lookups: members only, checked, and
@@ -77,12 +78,40 @@ func TestAddons(t *testing.T) {
 		}
 	}))
 	defer hg.Close()
+	st := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.ParseForm() != nil {
+			http.Error(w, "post a form", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/ISteamRemoteStorage/GetPublishedFileDetails/v1/":
+			_, _ = io.WriteString(w, `{"response":{"result":1,"publishedfiledetails":[
+				{"publishedfileid":"104691717","result":1,"consumer_app_id":4000,"title":"PAC3","file_size":"8707689","time_updated":1760000000,
+				 "preview_url":"https://images.steamusercontent.com/ugc/1/A/"},
+				{"publishedfileid":"157384458","result":1,"consumer_app_id":4000,"title":"Zombie Survival","file_size":"0","preview_url":"https://evil.example.net/x.png"},
+				{"publishedfileid":"5","result":9}]}}`)
+		case "/ISteamRemoteStorage/GetCollectionDetails/v1/":
+			if r.PostForm.Get("collectioncount") != "3" || r.PostForm.Get("publishedfileids[1]") != "157384458" {
+				http.Error(w, "bad form", http.StatusBadRequest)
+				return
+			}
+			_, _ = io.WriteString(w, `{"response":{"result":1,"collectiondetails":[
+				{"publishedfileid":"104691717","result":9},
+				{"publishedfileid":"157384458","result":1,"children":[{"publishedfileid":"105462463"},{"publishedfileid":"110984714"}]},
+				{"publishedfileid":"5","result":9}]}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer st.Close()
 
 	authSvc := &auth.Service{DB: db, Mailer: mail, AppURL: appOrigin}
 	srv := httptest.NewTLSServer(Handler(Config{
 		Auth: authSvc, Orgs: &orgs.Service{DB: db, Auth: authSvc}, AppOrigin: appOrigin,
 		Modrinth: &modrinth.Client{Base: mr.URL, UserAgent: "test"},
 		Hangar:   &hangar.Client{Base: hg.URL, UserAgent: "test"},
+		Steam:    &steam.Client{Base: st.URL, UserAgent: "test"},
 	}))
 	defer srv.Close()
 	signUp := func(email string) *browser {
@@ -175,5 +204,24 @@ func TestAddons(t *testing.T) {
 	}
 	if _, err := alice.addons.IdentifyAddons(ctx, &panelv1.IdentifyAddonsRequest{OrgId: org, Hashes: []string{h1}, Sha256: map[string]string{h1: "nope"}, Loaders: []string{"paper"}}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Errorf("a bad SHA-256: %v", err)
+	}
+
+	// Steam Workshop: items and collections named, previews only from
+	// Steam's image host, and what Steam doesn't have left out.
+	ws, err := alice.addons.LookupWorkshopItems(ctx, &panelv1.LookupWorkshopItemsRequest{OrgId: org, Ids: []string{"104691717", "157384458", "5"}})
+	if err != nil || len(ws.GetItems()) != 2 {
+		t.Fatalf("workshop: %v, %v", ws, err)
+	}
+	if it := ws.GetItems()[0]; it.GetTitle() != "PAC3" || it.GetAppId() != 4000 || it.GetCollection() || it.GetSize() != 8707689 || it.GetPreviewUrl() == "" {
+		t.Errorf("item: %v", it)
+	}
+	if c := ws.GetItems()[1]; !c.GetCollection() || len(c.GetChildren()) != 2 || c.GetPreviewUrl() != "" {
+		t.Errorf("collection: %v", c)
+	}
+	if _, err := alice.addons.LookupWorkshopItems(ctx, &panelv1.LookupWorkshopItemsRequest{OrgId: org, Ids: []string{"12&itemcount=900"}}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("a bad workshop ID: %v", err)
+	}
+	if _, err := carol.addons.LookupWorkshopItems(ctx, &panelv1.LookupWorkshopItemsRequest{OrgId: org, Ids: []string{"5"}}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("an outsider looking up workshop items: %v", err)
 	}
 }

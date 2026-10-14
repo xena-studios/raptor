@@ -9,6 +9,12 @@ certified: false
 arch: [amd64]
 players:
   query: source
+# The game downloads the collection's items when it starts
+# (+host_workshop_collection).
+workshop:
+  app_id: 4000
+  variable: WORKSHOP_ID
+  collection: true
 test:
   tier: slow
   memory_mib: 2048

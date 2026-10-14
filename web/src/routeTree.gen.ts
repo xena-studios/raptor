@@ -69,6 +69,7 @@ import { Route as OrgsOrgIdServersNodeIdServerIdNetworkRouteImport } from './rou
 import { Route as OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.schedules'
 import { Route as OrgsOrgIdServersNodeIdServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.settings'
 import { Route as OrgsOrgIdServersNodeIdServerIdStartupRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.startup'
+import { Route as OrgsOrgIdServersNodeIdServerIdWorkshopRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.workshop'
 import { Route as OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.addons.$kind'
 
 const IndexRoute = IndexRouteImport.update({
@@ -392,6 +393,12 @@ const OrgsOrgIdServersNodeIdServerIdStartupRoute =
     path: '/startup',
     getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
   } as any)
+const OrgsOrgIdServersNodeIdServerIdWorkshopRoute =
+  OrgsOrgIdServersNodeIdServerIdWorkshopRouteImport.update({
+    id: '/workshop',
+    path: '/workshop',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
 const OrgsOrgIdServersNodeIdServerIdAddonsKindRoute =
   OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport.update({
     id: '/addons/$kind',
@@ -459,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
@@ -516,6 +524,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
@@ -580,6 +589,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
@@ -645,6 +655,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
     | '/orgs/$orgId/servers/$nodeId/$serverId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   fileRoutesByTo: FileRoutesByTo
@@ -702,6 +713,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   id:
@@ -765,6 +777,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
     | '/orgs/$orgId/servers/$nodeId/$serverId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   fileRoutesById: FileRoutesById
@@ -1202,6 +1215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdStartupRouteImport
       parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
     }
+    '/orgs/$orgId/servers/$nodeId/$serverId/workshop': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
+      path: '/workshop'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdWorkshopRouteImport
+      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
     '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': {
       id: '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
       path: '/addons/$kind'
@@ -1319,6 +1339,7 @@ interface OrgsOrgIdServersNodeIdServerIdRouteChildren {
   OrgsOrgIdServersNodeIdServerIdSchedulesRoute: typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
   OrgsOrgIdServersNodeIdServerIdSettingsRoute: typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   OrgsOrgIdServersNodeIdServerIdStartupRoute: typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
+  OrgsOrgIdServersNodeIdServerIdWorkshopRoute: typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
   OrgsOrgIdServersNodeIdServerIdIndexRoute: typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
   OrgsOrgIdServersNodeIdServerIdAddonsKindRoute: typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
@@ -1341,6 +1362,8 @@ const OrgsOrgIdServersNodeIdServerIdRouteChildren: OrgsOrgIdServersNodeIdServerI
       OrgsOrgIdServersNodeIdServerIdSettingsRoute,
     OrgsOrgIdServersNodeIdServerIdStartupRoute:
       OrgsOrgIdServersNodeIdServerIdStartupRoute,
+    OrgsOrgIdServersNodeIdServerIdWorkshopRoute:
+      OrgsOrgIdServersNodeIdServerIdWorkshopRoute,
     OrgsOrgIdServersNodeIdServerIdIndexRoute:
       OrgsOrgIdServersNodeIdServerIdIndexRoute,
     OrgsOrgIdServersNodeIdServerIdAddonsKindRoute:

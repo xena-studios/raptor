@@ -26,6 +26,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/staff"
+	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/transfers"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
@@ -63,6 +64,8 @@ type Config struct {
 	// and Hangar where plugins also are (nil: Hangar's API).
 	Modrinth *modrinth.Client
 	Hangar   *hangar.Client
+	// Steam names Workshop items (nil: Steam's Web API).
+	Steam *steam.Client
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -131,8 +134,12 @@ func Handler(cfg Config) http.Handler {
 		if hg == nil {
 			hg = &hangar.Client{UserAgent: ua}
 		}
+		st := cfg.Steam
+		if st == nil {
+			st = &steam.Client{UserAgent: ua}
+		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Staff != nil {

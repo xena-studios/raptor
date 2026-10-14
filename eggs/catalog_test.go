@@ -126,3 +126,34 @@ func TestAddons(t *testing.T) {
 		t.Errorf("missing: %v", want)
 	}
 }
+
+// Games that download Steam Workshop items themselves get the picker, in
+// the egg they're made from.
+func TestWorkshop(t *testing.T) {
+	all, err := All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]eggs.Workshop{
+		"steam/gmod":  {AppID: 4000, Variable: "WORKSHOP_ID", Collection: true},
+		"steam/ark":   {AppID: 346110, Variable: "MOD_ID"},
+		"steam/squad": {AppID: 393380, Variable: "WORKSHOP_ITEMS", Apply: "reinstall"},
+	}
+	for _, e := range all {
+		file, err := e.ServerEgg()
+		if err != nil {
+			t.Fatal(err)
+		}
+		egg, err := eggs.Parse(file)
+		if err != nil {
+			t.Fatalf("%s: %v", e.ID, err)
+		}
+		w, ok := want[e.ID]
+		switch {
+		case !ok && egg.Raptor.Workshop != nil:
+			t.Errorf("%s: unexpected workshop %+v", e.ID, egg.Raptor.Workshop)
+		case ok && (egg.Raptor.Workshop == nil || *egg.Raptor.Workshop != w):
+			t.Errorf("%s: workshop %+v, want %+v", e.ID, egg.Raptor.Workshop, w)
+		}
+	}
+}

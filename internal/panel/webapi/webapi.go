@@ -71,14 +71,18 @@ func (c *Client) unavailable(cause any) error {
 }
 
 // Do calls the API and decodes its JSON answer into out, from the cache
-// when it's fresh. body, if set, is POSTed.
+// when it's fresh. body, if set, is POSTed: as a form if it's url.Values
+// (Steam's API), as JSON otherwise.
 func (c *Client) Do(ctx context.Context, path string, query url.Values, body any, out any) error {
 	u := c.Base + path
 	if len(query) > 0 {
 		u += "?" + query.Encode()
 	}
 	var payload []byte
-	if body != nil {
+	contentType := "application/json"
+	if form, ok := body.(url.Values); ok {
+		payload, contentType = []byte(form.Encode()), "application/x-www-form-urlencoded"
+	} else if body != nil {
 		var err error
 		if payload, err = json.Marshal(body); err != nil {
 			return err
@@ -103,7 +107,7 @@ func (c *Client) Do(ctx context.Context, path string, query url.Values, body any
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Accept", "application/json")
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", contentType)
 	}
 	resp, err := c.http().Do(req)
 	if err != nil {

@@ -187,8 +187,42 @@ export type ServerConfig = {
     features?: string[];
     // The egg's add-ons (docs/EGGS.md#add-ons), by kind.
     addons?: Record<string, { loaders: string[]; dir: string; version?: string }>;
+    // Where the game takes Steam Workshop items (docs/EGGS.md#steam-workshop).
+    workshop?: Workshop;
   };
 };
+
+export type Workshop = {
+  app_id: number;
+  variable: string;
+  // The variable takes one collection's ID; otherwise items', comma-separated.
+  collection?: boolean;
+  // What makes the game download a change.
+  apply: "restart" | "reinstall";
+};
+
+// workshopIds are the IDs in a Workshop variable's value.
+export function workshopIds(value: string): string[] {
+  return value
+    .split(/[\s,]+/)
+    .filter((id) => /^[0-9]{1,20}$/.test(id))
+    .filter((id, i, all) => all.indexOf(id) === i);
+}
+
+// workshopRef is the ID in a Workshop link
+// (steamcommunity.com/sharedfiles/filedetails/?id=123) or a bare ID.
+export function workshopRef(input: string): string | undefined {
+  const s = input.trim();
+  if (/^[0-9]{1,20}$/.test(s)) return s;
+  try {
+    const u = new URL(s);
+    const id = u.searchParams.get("id") ?? "";
+    if (/(^|\.)steamcommunity\.com$/.test(u.hostname) && /^[0-9]{1,20}$/.test(id)) return id;
+  } catch {
+    // not a link
+  }
+  return undefined;
+}
 
 // gameVersion is the server's game version for its add-ons, from the
 // variable the egg names: "1.21.1", or "" when it's "latest" or unset,
