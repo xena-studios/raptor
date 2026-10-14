@@ -20,6 +20,8 @@ x-panel: &panel
     PANEL_MAIL_FROM: "Raptor <account@mail.raptorpanel.net>"
     PANEL_MAIL_REPLY_TO: support@raptorpanel.net
     PANEL_NODE_DOMAIN: raptornodes.net
+    # Player subdomains, on before the Public Suffix List (DECISIONS #267).
+    PANEL_SUBDOMAINS: "1"
   volumes:
     - ${RAPTOR_RUN:-/run/raptor}/keys:/keys:ro
   depends_on:
