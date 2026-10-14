@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/doctor"
 	"github.com/xena-studios/raptor/internal/wings/host"
@@ -81,6 +82,44 @@ func (h *Health) Start() {
 		h.results, h.ranAt, h.running = results, time.Now(), false
 		h.mu.Unlock()
 	}()
+}
+
+// Watch runs the checks a minute after it's called and then every interval
+// until ctx ends, so the Panel hears of problems no one asked about
+// (Summary).
+func (h *Health) Watch(ctx context.Context, interval time.Duration) {
+	t := time.NewTimer(time.Minute)
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			h.Start()
+			t.Reset(interval)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// Summary is the node's health for the Panel: the host disk now, and the
+// checks that failed or warned in the last run.
+func (h *Health) Summary() *nodev1.ReportHealthRequest {
+	out := &nodev1.ReportHealthRequest{}
+	out.HostDiskLow, _ = h.Disk.Check()
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if !h.ranAt.IsZero() {
+		out.CheckedAt = h.ranAt.UnixMilli()
+	}
+	for _, r := range h.results {
+		switch {
+		case r.Status == doctor.Fail && !slices.Contains(out.Failing, r.ID):
+			out.Failing = append(out.Failing, r.ID)
+		case r.Status == doctor.Warn && !slices.Contains(out.Warning, r.ID):
+			out.Warning = append(out.Warning, r.ID)
+		}
+	}
+	return out
 }
 
 // ServerUse is one server's use of the machine right now.

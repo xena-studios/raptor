@@ -18,6 +18,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
@@ -49,6 +50,7 @@ type fixture struct {
 	servers  *fakeServers
 	nodeKey  ed25519.PrivateKey
 	panelPub ed25519.PublicKey
+	health   atomic.Pointer[nodev1.ReportHealthRequest]
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -99,9 +101,10 @@ func newFixture(t *testing.T) *fixture {
 	f.servers = &fakeServers{consoles: map[string]*server.Console{}}
 	f.link = New(Config{
 		PanelURL: "http://" + f.proxy.Addr, NodeID: nodeID, NodeKey: nodePriv, PanelKey: panelPub,
-		Commands: x, Events: f.outbox, MinBackoff: 10 * time.Millisecond, MaxBackoff: 50 * time.Millisecond,
+		Commands: x, Events: f.outbox, MinBackoff: 10 * time.Millisecond, MaxBackoff: 50 * time.Millisecond, HealthEvery: 10 * time.Millisecond,
 		Transfers: func() Transfers { return f.files },
 		Servers:   func() Servers { return f.servers },
+		Health:    f.health.Load,
 	})
 	f.nodeKey, f.panelPub = nodePriv, panelPub
 	done := make(chan struct{})
@@ -256,6 +259,35 @@ func TestEvents(t *testing.T) {
 	if _, err := c.Node.Events(ctx, &nodev1.EventsRequest{AfterSeq: 9}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Errorf("Panel ahead: %v", err)
 	}
+}
+
+func TestReportHealth(t *testing.T) {
+	f := newFixture(t)
+	c, err := f.hub.Wait(context.Background(), nodeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitFor := func(want *nodev1.ReportHealthRequest) {
+		t.Helper()
+		deadline := time.Now().Add(5 * time.Second)
+		for !proto.Equal(c.Health(), want) {
+			if time.Now().After(deadline) {
+				t.Fatalf("the Panel has %v, want %v", c.Health(), want)
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+	}
+	// Nothing to say until the node knows.
+	time.Sleep(50 * time.Millisecond)
+	if c.Health() != nil {
+		t.Errorf("reported before known: %v", c.Health())
+	}
+	sick := &nodev1.ReportHealthRequest{HostDiskLow: true, Failing: []string{"firewall"}, Warning: []string{"ssh"}, CheckedAt: 1}
+	f.health.Store(sick)
+	waitFor(sick)
+	well := &nodev1.ReportHealthRequest{CheckedAt: 2}
+	f.health.Store(well)
+	waitFor(well)
 }
 
 func TestBackoff(t *testing.T) {

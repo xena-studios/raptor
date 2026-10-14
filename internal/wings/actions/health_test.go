@@ -1,8 +1,11 @@
 package actions
 
 import (
+	"slices"
 	"testing"
+	"time"
 
+	"github.com/xena-studios/raptor/internal/wings/doctor"
 	"github.com/xena-studios/raptor/internal/wings/host"
 	"github.com/xena-studios/raptor/internal/wings/system"
 )
@@ -32,5 +35,27 @@ func TestDataDisksInHealth(t *testing.T) {
 	}
 	if n := ServerStorage(data); n != 600 {
 		t.Errorf("server storage = %d, want the main volume and the servers' data disk", n)
+	}
+}
+
+// The Panel hears the host disk now, and each check that failed or warned
+// once, however many results it gave.
+func TestHealthSummary(t *testing.T) {
+	h := &Health{Disk: &host.DiskGuard{MinFree: 100, Space: func(string) (int64, int64, error) { return 1000, 10, nil }}}
+	h.Disk.Watch("/var/lib/raptor")
+	if s := h.Summary(); !s.GetHostDiskLow() || s.GetCheckedAt() != 0 || len(s.GetFailing()) != 0 {
+		t.Errorf("before the checks: %v", s)
+	}
+	h.results = []doctor.Result{
+		{ID: "os", Status: doctor.Pass},
+		{ID: "data-disks", Status: doctor.Fail},
+		{ID: "data-disks", Status: doctor.Fail},
+		{ID: "ssh", Status: doctor.Warn},
+		{ID: "clock", Status: doctor.Skip},
+	}
+	h.ranAt = time.UnixMilli(1234)
+	s := h.Summary()
+	if !slices.Equal(s.GetFailing(), []string{"data-disks"}) || !slices.Equal(s.GetWarning(), []string{"ssh"}) || s.GetCheckedAt() != 1234 {
+		t.Errorf("summary: %v", s)
 	}
 }

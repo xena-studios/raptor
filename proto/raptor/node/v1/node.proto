@@ -199,7 +199,27 @@ service PanelService {
   rpc SFTPLogin(SFTPLoginRequest) returns (SFTPLoginResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ReportHealth is the node's own health: the host disk and doctor's
+  // checks. Wings sends it on connecting and whenever it changes; the Panel
+  // keeps the latest with the connection, for its telemetry.
+  rpc ReportHealth(ReportHealthRequest) returns (ReportHealthResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
 }
+
+message ReportHealthRequest {
+  // The host disk is below limits.host_disk_min_free: installs and image
+  // pulls are refused until space is freed.
+  bool host_disk_low = 1;
+  // IDs of doctor's checks that failed, and that warned, in its last run.
+  repeated string failing = 2;
+  repeated string warning = 3;
+  // When doctor last ran, in Unix milliseconds; 0 if it hasn't yet.
+  int64 checked_at = 4;
+}
+
+message ReportHealthResponse {}
 
 message SFTPLoginRequest {
   // The part of the SFTP username before the last dot.

@@ -94,6 +94,38 @@ groups:
           summary: A node's events have waited over 5 minutes to reach the Panel
           description: Its pages are that far behind. The Panels' logs name nodes over a minute behind ("mirror is behind a node").
 
+      # One owner's machine having a problem is theirs to fix, and doctor
+      # tells them; many at once is usually Raptor (a release, or the
+      # Panel). Both need at least 3 nodes and a tenth of those reporting.
+      - alert: RaptorNodesFailingCheck
+        expr: >-
+          (sum by (check) (raptor_nodes_doctor_checks{job="raptor-panel",status="fail"}) >= 3)
+          and
+          (sum by (check) (raptor_nodes_doctor_checks{job="raptor-panel",status="fail"}) > 0.1 * scalar(sum(raptor_nodes_health_reporting{job="raptor-panel"})))
+        for: 2h
+        labels: {severity: warning}
+        annotations:
+          summary: 'Doctor''s "{{ $labels.check }}" check is failing on many nodes'
+          description: >-
+            More than a tenth of the nodes fail it, which points at Raptor
+            rather than their owners. Did it start with a Wings release
+            (Nodes by Wings version)? The Panels' logs name the nodes ("node
+            unhealthy").
+
+      - alert: RaptorNodesDiskLow
+        expr: >-
+          (sum(raptor_nodes_host_disk_low{job="raptor-panel"}) >= 3)
+          and
+          (sum(raptor_nodes_host_disk_low{job="raptor-panel"}) > 0.1 * scalar(sum(raptor_nodes_health_reporting{job="raptor-panel"})))
+        for: 2h
+        labels: {severity: warning}
+        annotations:
+          summary: Many nodes' host disks are below their minimum free space
+          description: >-
+            They refuse installs and image pulls. Many at once suggests Raptor
+            is filling them: logs, local backups, or images not pruned. The
+            Panels' logs name the nodes ("node unhealthy").
+
   - name: raptor-replica
     rules:
       - alert: RaptorReplicaGone

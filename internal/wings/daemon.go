@@ -23,6 +23,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
@@ -243,6 +244,7 @@ type runtimeSetup struct {
 	backupsReady   atomic.Pointer[backup.Manager]
 	jobs           *jobs.Engine
 	disk           *host.DiskGuard
+	health         atomic.Pointer[actions.Health]
 	system         *system.Manager
 	disks          *system.DiskManager
 	fwMu           sync.Mutex        // guards rules after setup
@@ -339,14 +341,17 @@ func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
 		return total
 	})
 	p := r.cfg.Paths
-	actions.RegisterHealth(r.commands, &actions.Health{
+	health := &actions.Health{
 		ConfigPath: path, Volumes: p.Volumes, Space: storage.Space, Servers: mgr, Metrics: r.metrics, Disk: r.disk,
 		Data: r.disks.Data,
 		Labels: map[string]string{
 			p.Volumes: "Servers' files", filepath.Dir(p.State): "Raptor's state", p.Logs: "Logs",
 			p.Tmp: "Temporary files", p.Backups: "Local backups", "/var/lib/docker": "Docker images",
 		},
-	})
+	}
+	actions.RegisterHealth(r.commands, health)
+	r.health.Store(health)
+	go health.Watch(ctx, time.Hour)
 }
 
 func (r *runtimeSetup) close() {
@@ -747,6 +752,12 @@ func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
 		Backups: func() link.Backups {
 			if b := rt.backupsReady.Load(); b != nil {
 				return b
+			}
+			return nil
+		},
+		Health: func() *nodev1.ReportHealthRequest {
+			if h := rt.health.Load(); h != nil {
+				return h.Summary()
 			}
 			return nil
 		},

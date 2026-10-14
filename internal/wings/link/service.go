@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/proto"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
@@ -162,6 +163,42 @@ func (l *Link) announceEvents(ctx context.Context, s *nodelink.Session, panel no
 				return
 			}
 		case <-retry:
+		case <-s.Done():
+			return
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// healthEvery is how often the node's health is looked at; it's sent only
+// when it changed (doctor's results change at most hourly, the host disk
+// any time).
+const healthEvery = time.Minute
+
+// reportHealth sends the node's health to the Panel on connecting and
+// whenever it changes, until the connection drops. A Panel from before
+// ReportHealth doesn't get asked again on this connection.
+func (l *Link) reportHealth(ctx context.Context, s *nodelink.Session, panel nodev1connect.PanelServiceClient) {
+	var sent *nodev1.ReportHealthRequest
+	t := time.NewTicker(l.cfg.HealthEvery)
+	defer t.Stop()
+	for {
+		if h := l.cfg.Health(); h != nil && !proto.Equal(h, sent) {
+			cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			_, err := panel.ReportHealth(cctx, h)
+			cancel()
+			switch {
+			case err == nil:
+				sent = h
+			case connect.CodeOf(err) == connect.CodeUnimplemented:
+				return
+			case ctx.Err() == nil:
+				l.log.Debug("reporting health failed", "err", err)
+			}
+		}
+		select {
+		case <-t.C:
 		case <-s.Done():
 			return
 		case <-ctx.Done():

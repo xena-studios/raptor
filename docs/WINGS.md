@@ -309,7 +309,7 @@ Every change on the node is appended to `events` with a **monotonic sequence num
 `internal/wings/link` keeps the node connected to the Panel ([ARCHITECTURE.md](ARCHITECTURE.md#node-connection)); the wire protocol, shared with the Panel, is `internal/shared/nodelink`.
 - **Only a linked node connects:** `node_id` set, the node key (`identity.key`: the base64 Ed25519 seed, generated on the box, mode `0600`; Wings won't use one other users can read) and the pinned Panel key present. If one is missing, Wings logs why and runs without the Panel.
 - **Always reconnecting, never required:** full-jitter backoff from 1 s to 60 s; servers, schedules, and backups don't notice the connection at all.
-- **What the Panel can call:** `Execute` (a command, through the executor above) and `Events` (the [outbox](#event-outbox), which it acknowledges by asking for what comes after). Wings calls `EventsAvailable` on the Panel whenever there are new events.
+- **What the Panel can call:** `Execute` (a command, through the executor above) and `Events` (the [outbox](#event-outbox), which it acknowledges by asking for what comes after). Wings calls `EventsAvailable` on the Panel whenever there are new events, and `ReportHealth` on connecting and whenever its own health changes (looked at every minute): whether the host disk is low, and which of [doctor](#doctor)'s checks failed or warned in its last run.
 - `raptor status` shows the connection: connected for how long, the last ping's round trip, and reconnects; or why it isn't connected.
 
 ## Scheduler
@@ -539,6 +539,8 @@ Methods are added to the proto as the features behind them are built, so the API
 - Wings installed in the self-update layout
 
 `-bundle` writes a redacted `.tar.gz` to `/var/tmp` (root-only): doctor's results, the Wings, shutdown hook, and Docker logs, Docker's version, info, containers, and networks, system state (kernel, memory, disks, mounts, units, the nftables table, addresses), the config file, and the install log and last update if present. **No server files, no secrets:** keys (PEM blocks), values of fields named like secrets (password, token, key…), bearer tokens, and passwords in URLs are replaced with `[redacted]`. `-upload` (which implies `-bundle`) sends it to the Panel over HTTPS (`POST /support/bundles`) and prints a support code like `RPT-7K2M-QX9D` to give to support. A linked node signs the upload with its node key, so support sees which node it's from; nodes that aren't linked, often the ones that need help, can upload too, with tighter limits (#207). If the upload fails, the bundle is still on disk to send another way.
+
+Wings also runs the checks itself, a minute after it starts and then hourly, and on request from the node page (`node.doctor`). A linked node sends which failed and warned to the Panel (`ReportHealth`), whose telemetry counts nodes per check rather than naming them, and logs the nodes by name (#262).
 
 ## Updates
 
