@@ -1,0 +1,18 @@
+# The private link to the other server (deploy/scripts/wireguard.sh), at
+# every boot, before the firewall and the stack: Postgres binds to wg0's
+# address. Only on servers whose /etc/raptor/stack.env sets WG_ADDRESS.
+[Unit]
+Description=Raptor private link (WireGuard to the other server)
+After=network-online.target
+Wants=network-online.target
+Before=raptor-firewall.service raptor-stack.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/raptor/stack.env
+ExecStart=/opt/raptor/deploy/scripts/wireguard.sh up
+ExecStop=/opt/raptor/deploy/scripts/wireguard.sh down
+
+[Install]
+WantedBy=multi-user.target

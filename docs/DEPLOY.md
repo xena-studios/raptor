@@ -17,7 +17,7 @@ browsers, nodes ──▶  api.raptorpanel.net ──client cert──▶ server
                                                          ├─ panel-a ┐
                                                          └─ panel-b ┴─▶ Postgres (primary)
                                                                           │  WAL, backups ──▶ object storage
-                                                         private network  │                  (another provider)
+                                                         WireGuard (wg0)  │                  (another provider)
                                                                           ▼
                                                          server #2: Postgres (streaming replica)
                                                          + the same Caddy and Panels, stopped,
@@ -37,7 +37,7 @@ You need:
 
 | What | Notes |
 |---|---|
-| Two Linux servers | Same provider and region, **different datacenters**, joined by a **private network**. Debian 13 (or 12, or Ubuntu 24.04), x86-64 or arm64. 4 vCPU, 8 GB RAM, 80 GB NVMe each is plenty at launch; the Panel itself is small, Postgres gets the rest. Hetzner Cloud (two locations in one network zone, e.g. `fsn1` and `nbg1`, with a Cloud Network) is a cheap fit; any provider with private networking works. |
+| Two Linux servers | Same provider, **different datacenters** (raptor-1 is OVH Vint Hill, raptor-2 OVH Hillsboro), joined by a WireGuard tunnel ([the private link](#the-private-link)), so they don't need the provider's private networking. Debian 13 (or 12, or Ubuntu 24.04), x86-64 or arm64. 4 vCPU, 8 GB RAM, 80 GB NVMe each is plenty at launch; the Panel itself is small, Postgres gets the rest. |
 | Object storage | S3-compatible, at a **different provider** from the servers (a provider outage or account problem mustn't take the database and its backups together). Backblaze B2 or Wasabi are fine. One bucket, private, versioning off (pgBackRest manages its own retention), and an access key that can only use that bucket. |
 | Cloudflare | `raptorpanel.net` and `raptornodes.net` as zones. The free plan works for both to start; `raptornodes.net` needs a plan with enough DNS records once you pass the free plan's limit (one record per node). |
 | 1Password | A vault called **Raptor production**, and a service account that can read it (and nothing else). |
@@ -53,7 +53,7 @@ Server #1 runs everything by itself; server #2 only adds a standby. You can laun
 - **What you give up:** a failover in minutes. Without server #2, recovering from a dead server #1 means a new server and a restore from the archive ([Backups](#backups)): 30 to 60 minutes, losing at most the last minute of writes (WAL is archived every 60 seconds). Zero-downtime deploys don't change: both Panels still run on server #1.
 - **Size:** 2 vCPU, 4 GB RAM, 40 GB NVMe is enough at launch (Postgres's settings assume 4 GB or more). Pick a plan you can resize in place.
 - **Skip:** private addresses (leave `PRIVATE_IP` out of `primary/.env`, and Postgres listens only on the server itself), [Server #2](#server-2), and the *Replica gone* and *Replica behind* alerts. There's no replication slot until a replica connects, so nothing holds WAL for one that doesn't exist.
-- **Adding server #2 later:** put both servers on a private network, set `PRIVATE_IP` in `primary/.env` and `PEER_PRIVATE_IP=10.0.0.3` in server #1's `/etc/raptor/stack.env`, then `systemctl restart raptor-firewall` and `cd /opt/raptor/deploy/primary && docker compose up -d postgres` (a few seconds of database downtime). Then [Server #2](#server-2), and turn the two replica alerts on.
+- **Adding server #2 later:** set up [the private link](#the-private-link) on both servers (`apt-get install -y wireguard-tools` on server #1 first, and copy the new units: `cp /opt/raptor/deploy/systemd/* /etc/systemd/system/ && systemctl daemon-reload`), set `PRIVATE_IP=10.0.0.2` in server #1's `primary/.env`, then `systemctl enable --now raptor-wireguard && systemctl restart raptor-firewall` and `cd /opt/raptor/deploy/primary && docker compose up -d postgres` (a few seconds of database downtime). Then [Server #2](#server-2), and turn the two replica alerts on.
 
 ## Secrets
 
@@ -154,7 +154,7 @@ As root, on a fresh install:
 
 ```bash
 apt-get update && apt-get -y upgrade
-apt-get install -y ca-certificates curl git gnupg ufw unattended-upgrades jq
+apt-get install -y ca-certificates curl git gnupg ufw unattended-upgrades jq wireguard-tools
 dpkg-reconfigure -plow unattended-upgrades
 
 # Docker, from Docker's repository.
@@ -196,18 +196,39 @@ Check the secrets come through:
 /opt/raptor/deploy/scripts/secrets.sh && ls -l /run/raptor /run/raptor/keys
 ```
 
-The firewall. Name the other server's private address in the server's settings (on server #1, `10.0.0.3`; on server #2, `10.0.0.2`; on a lone server #1, skip this line):
+#### The private link
 
-```bash
-echo PEER_PRIVATE_IP=10.0.0.3 >> /etc/raptor/stack.env
-```
+With two servers, Postgres replication runs over a private link between them. OVH's VPSs can't join a vRack, so it's a WireGuard tunnel (`wg0`, #268): server #1 is `10.0.0.2` and server #2 `10.0.0.3` on it, and nothing else uses it. On a lone server #1, skip this.
 
-It allows SSH, 443 from Cloudflare's addresses only, and Postgres from the other server only (with no other server, from nowhere). Docker publishes ports around ufw, so 443 is filtered in Docker's own chain (`DOCKER-USER`) and Postgres is only bound to the private address. Those Docker rules don't survive a reboot by themselves, so `raptor-firewall.service` applies them at every boot, from the last list of Cloudflare's addresses it fetched if it can't fetch a new one (with no list at all, 443 stays closed). It runs below; restart it now and then to pick up changes to Cloudflare's list: `systemctl restart raptor-firewall`.
+1. Make each server's key pair on your Mac (`brew install wireguard-tools`), once per server:
+
+   ```bash
+   wg genkey | tee /dev/stderr | wg pubkey
+   ```
+
+   The first line is the private key: put it in 1Password, Raptor production, as an item named **`WireGuard <the server's short hostname>`** (`WireGuard raptor-1`, `WireGuard raptor-2`) with the field `private_key`, and nowhere else. The second is the public key, which isn't secret.
+2. On each server, its settings, naming the *other* server (on server #1 shown; on server #2, swap the addresses and use server #1's public key and public IP):
+
+   ```bash
+   cat >> /etc/raptor/stack.env <<EOF
+   WG_ADDRESS=10.0.0.2/24
+   PEER_PRIVATE_IP=10.0.0.3
+   WG_PEER_PUBLIC_KEY=<the other server's public key>
+   WG_PEER_ENDPOINT=<the other server's public IPv4>:51820
+   EOF
+   ```
+
+3. Start it with the units below (`raptor-wireguard.service`), then check from either server: `wg show` lists the peer with a recent handshake, and `ping -c3 10.0.0.3` (or `.2`) answers. The private key goes from 1Password into the interface through a pipe: it's never written to disk.
+
+The provider's firewall, if you use it, needs UDP 51820 open between the two servers too.
+
+The firewall allows SSH, 443 from Cloudflare's addresses only, WireGuard's UDP port from the other server's public address only, and Postgres only from the other server through `wg0` (with no other server, from nowhere). Docker publishes ports around ufw, so 443 and Postgres are filtered in Docker's own chain (`DOCKER-USER`), and Postgres is also bound to the private address only. Those Docker rules don't survive a reboot by themselves, so `raptor-firewall.service` applies them at every boot, from the last list of Cloudflare's addresses it fetched if it can't fetch a new one (with no list at all, 443 stays closed). It runs below; restart it now and then to pick up changes to Cloudflare's list: `systemctl restart raptor-firewall`.
 
 The boot unit, timers, and the server's settings:
 
 ```bash
 cp /opt/raptor/deploy/systemd/* /etc/systemd/system/ && systemctl daemon-reload
+systemctl enable --now raptor-wireguard.service   # with two servers only (above)
 systemctl enable --now raptor-firewall.service
 systemctl enable raptor-stack.service
 ufw status && iptables -S DOCKER-USER | head -3

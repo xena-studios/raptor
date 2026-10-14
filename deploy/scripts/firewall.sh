@@ -2,7 +2,9 @@
 # The server's firewall (docs/DEPLOY.md#both-servers), with ufw: SSH, HTTPS
 # from Cloudflare only (api.raptorpanel.net is proxied; anything else
 # reaching the origin is refused here and again by Authenticated Origin
-# Pulls), and Postgres only from the other server, on the private network.
+# Pulls), and Postgres only from the other server, through the private link
+# (wg0, deploy/scripts/wireguard.sh), whose UDP port only that server may
+# reach.
 #   firewall.sh [other server's private IP]
 # The other server's address comes from the argument or PEER_PRIVATE_IP in
 # /etc/raptor/stack.env; with neither (one server), Postgres takes no
@@ -28,7 +30,10 @@ ufw default deny incoming
 ufw default allow outgoing
 ufw allow OpenSSH
 if [[ -n $PEER ]]; then
-  ufw allow from "$PEER" to any port 5432 proto tcp
+  ufw allow in on wg0 from "$PEER" to any port 5432 proto tcp
+fi
+if [[ -n ${WG_PEER_ENDPOINT:-} ]]; then
+  ufw allow from "${WG_PEER_ENDPOINT%:*}" to any port 51820 proto udp
 fi
 ufw --force enable
 
@@ -51,6 +56,13 @@ for cidr in $ranges; do
 done
 iptables -A DOCKER-USER -p tcp --dport 443 -j DROP
 ip6tables -A DOCKER-USER -p tcp --dport 443 -j DROP
+# Docker-published Postgres: the other server, through wg0, and nothing
+# else (binding to the private address alone isn't a firewall).
+if [[ -n $PEER ]]; then
+  iptables -A DOCKER-USER -i wg0 -s "$PEER" -p tcp --dport 5432 -j RETURN
+fi
+iptables -A DOCKER-USER -p tcp --dport 5432 -j DROP
+ip6tables -A DOCKER-USER -p tcp --dport 5432 -j DROP
 iptables -A DOCKER-USER -j RETURN
 ip6tables -A DOCKER-USER -j RETURN
-echo "firewall: SSH, 443 from Cloudflare ($(wc -w <<<"$ranges") ranges), 5432 from ${PEER:-nowhere}"
+echo "firewall: SSH, 443 from Cloudflare ($(wc -w <<<"$ranges") ranges), 5432 from ${PEER:-nowhere} on wg0, 51820/udp from ${WG_PEER_ENDPOINT:-nowhere}"
