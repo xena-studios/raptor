@@ -59,6 +59,9 @@ service StaffService {
   // game servers keep running. Admins.
   rpc SuspendOrg(SuspendOrgRequest) returns (SuspendOrgResponse) {}
   rpc UnsuspendOrg(UnsuspendOrgRequest) returns (UnsuspendOrgResponse) {}
+  // BanSubdomain takes a player subdomain away for abuse, and keeps anyone
+  // from claiming the name again (docs/PANEL.md#subdomains). Admins.
+  rpc BanSubdomain(BanSubdomainRequest) returns (BanSubdomainResponse) {}
 
   // ListActiveAnnouncements is what to show everyone right now. Anyone
   // signed in may ask.
@@ -302,6 +305,17 @@ message SuspendOrgRequest {
 }
 
 message SuspendOrgResponse {}
+
+message BanSubdomainRequest {
+  // The label ("smp"), or the full name ("smp.raptornodes.net").
+  string name = 1;
+  string reason = 2;
+}
+
+message BanSubdomainResponse {
+  // The org that had it, if one did.
+  string org_id = 1;
+}
 
 message UnsuspendOrgRequest {
   string org_id = 1;

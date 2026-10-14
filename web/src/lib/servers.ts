@@ -189,6 +189,8 @@ export type ServerConfig = {
     addons?: Record<string, { loaders: string[]; dir: string; version?: string }>;
     // Where the game takes Steam Workshop items (docs/EGGS.md#steam-workshop).
     workshop?: Workshop;
+    // How the game answers player queries ("minecraft": Java edition).
+    players?: string;
   };
 };
 

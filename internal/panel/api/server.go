@@ -55,6 +55,8 @@ type Config struct {
 	Auth *auth.Service
 	// Orgs manages orgs, members, and invitations (nil without a database).
 	Orgs *orgs.Service
+	// Subdomains serves player subdomains (nil without a database).
+	Subdomains *orgs.Subdomains
 	// Commands sends users' commands to their nodes (nil without a
 	// database).
 	Commands *commands.Service
@@ -140,6 +142,10 @@ func Handler(cfg Config) http.Handler {
 		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
 		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st}, opts(connect.WithReadMaxBytes(256<<10))...)
+		api.Handle(path, handler)
+	}
+	if cfg.Subdomains != nil {
+		path, handler := panelv1connect.NewSubdomainServiceHandler(cfg.Subdomains, opts(connect.WithReadMaxBytes(16<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Staff != nil {

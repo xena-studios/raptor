@@ -2054,6 +2054,104 @@ func (*SuspendOrgResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{31}
 }
 
+type BanSubdomainRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The label ("smp"), or the full name ("smp.raptornodes.net").
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BanSubdomainRequest) Reset() {
+	*x = BanSubdomainRequest{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BanSubdomainRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BanSubdomainRequest) ProtoMessage() {}
+
+func (x *BanSubdomainRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BanSubdomainRequest.ProtoReflect.Descriptor instead.
+func (*BanSubdomainRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *BanSubdomainRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *BanSubdomainRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type BanSubdomainResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The org that had it, if one did.
+	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BanSubdomainResponse) Reset() {
+	*x = BanSubdomainResponse{}
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BanSubdomainResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BanSubdomainResponse) ProtoMessage() {}
+
+func (x *BanSubdomainResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BanSubdomainResponse.ProtoReflect.Descriptor instead.
+func (*BanSubdomainResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *BanSubdomainResponse) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
 type UnsuspendOrgRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
@@ -2063,7 +2161,7 @@ type UnsuspendOrgRequest struct {
 
 func (x *UnsuspendOrgRequest) Reset() {
 	*x = UnsuspendOrgRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[32]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2075,7 +2173,7 @@ func (x *UnsuspendOrgRequest) String() string {
 func (*UnsuspendOrgRequest) ProtoMessage() {}
 
 func (x *UnsuspendOrgRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[32]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2088,7 +2186,7 @@ func (x *UnsuspendOrgRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsuspendOrgRequest.ProtoReflect.Descriptor instead.
 func (*UnsuspendOrgRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{32}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *UnsuspendOrgRequest) GetOrgId() string {
@@ -2106,7 +2204,7 @@ type UnsuspendOrgResponse struct {
 
 func (x *UnsuspendOrgResponse) Reset() {
 	*x = UnsuspendOrgResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[33]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2118,7 +2216,7 @@ func (x *UnsuspendOrgResponse) String() string {
 func (*UnsuspendOrgResponse) ProtoMessage() {}
 
 func (x *UnsuspendOrgResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[33]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2131,7 +2229,7 @@ func (x *UnsuspendOrgResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsuspendOrgResponse.ProtoReflect.Descriptor instead.
 func (*UnsuspendOrgResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{33}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{35}
 }
 
 type StaffMember struct {
@@ -2148,7 +2246,7 @@ type StaffMember struct {
 
 func (x *StaffMember) Reset() {
 	*x = StaffMember{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[34]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2160,7 +2258,7 @@ func (x *StaffMember) String() string {
 func (*StaffMember) ProtoMessage() {}
 
 func (x *StaffMember) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[34]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2173,7 +2271,7 @@ func (x *StaffMember) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StaffMember.ProtoReflect.Descriptor instead.
 func (*StaffMember) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{34}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *StaffMember) GetUserId() string {
@@ -2226,7 +2324,7 @@ type ListStaffRequest struct {
 
 func (x *ListStaffRequest) Reset() {
 	*x = ListStaffRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2238,7 +2336,7 @@ func (x *ListStaffRequest) String() string {
 func (*ListStaffRequest) ProtoMessage() {}
 
 func (x *ListStaffRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2251,7 +2349,7 @@ func (x *ListStaffRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListStaffRequest.ProtoReflect.Descriptor instead.
 func (*ListStaffRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{35}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{37}
 }
 
 type ListStaffResponse struct {
@@ -2263,7 +2361,7 @@ type ListStaffResponse struct {
 
 func (x *ListStaffResponse) Reset() {
 	*x = ListStaffResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[36]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2275,7 +2373,7 @@ func (x *ListStaffResponse) String() string {
 func (*ListStaffResponse) ProtoMessage() {}
 
 func (x *ListStaffResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[36]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2288,7 +2386,7 @@ func (x *ListStaffResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListStaffResponse.ProtoReflect.Descriptor instead.
 func (*ListStaffResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{36}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ListStaffResponse) GetStaff() []*StaffMember {
@@ -2314,7 +2412,7 @@ type StaffAuditEntry struct {
 
 func (x *StaffAuditEntry) Reset() {
 	*x = StaffAuditEntry{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[37]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2326,7 +2424,7 @@ func (x *StaffAuditEntry) String() string {
 func (*StaffAuditEntry) ProtoMessage() {}
 
 func (x *StaffAuditEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[37]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2339,7 +2437,7 @@ func (x *StaffAuditEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StaffAuditEntry.ProtoReflect.Descriptor instead.
 func (*StaffAuditEntry) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{37}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *StaffAuditEntry) GetId() string {
@@ -2408,7 +2506,7 @@ type ListStaffAuditRequest struct {
 
 func (x *ListStaffAuditRequest) Reset() {
 	*x = ListStaffAuditRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[38]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2420,7 +2518,7 @@ func (x *ListStaffAuditRequest) String() string {
 func (*ListStaffAuditRequest) ProtoMessage() {}
 
 func (x *ListStaffAuditRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[38]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2433,7 +2531,7 @@ func (x *ListStaffAuditRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListStaffAuditRequest.ProtoReflect.Descriptor instead.
 func (*ListStaffAuditRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{38}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ListStaffAuditRequest) GetPageToken() string {
@@ -2453,7 +2551,7 @@ type ListStaffAuditResponse struct {
 
 func (x *ListStaffAuditResponse) Reset() {
 	*x = ListStaffAuditResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[39]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2465,7 +2563,7 @@ func (x *ListStaffAuditResponse) String() string {
 func (*ListStaffAuditResponse) ProtoMessage() {}
 
 func (x *ListStaffAuditResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[39]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2478,7 +2576,7 @@ func (x *ListStaffAuditResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListStaffAuditResponse.ProtoReflect.Descriptor instead.
 func (*ListStaffAuditResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{39}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ListStaffAuditResponse) GetEntries() []*StaffAuditEntry {
@@ -2516,7 +2614,7 @@ type Announcement struct {
 
 func (x *Announcement) Reset() {
 	*x = Announcement{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[40]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2528,7 +2626,7 @@ func (x *Announcement) String() string {
 func (*Announcement) ProtoMessage() {}
 
 func (x *Announcement) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[40]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2541,7 +2639,7 @@ func (x *Announcement) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Announcement.ProtoReflect.Descriptor instead.
 func (*Announcement) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{40}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *Announcement) GetId() string {
@@ -2615,7 +2713,7 @@ type ListActiveAnnouncementsRequest struct {
 
 func (x *ListActiveAnnouncementsRequest) Reset() {
 	*x = ListActiveAnnouncementsRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[41]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2627,7 +2725,7 @@ func (x *ListActiveAnnouncementsRequest) String() string {
 func (*ListActiveAnnouncementsRequest) ProtoMessage() {}
 
 func (x *ListActiveAnnouncementsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[41]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2640,7 +2738,7 @@ func (x *ListActiveAnnouncementsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListActiveAnnouncementsRequest.ProtoReflect.Descriptor instead.
 func (*ListActiveAnnouncementsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{41}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{43}
 }
 
 type ListActiveAnnouncementsResponse struct {
@@ -2652,7 +2750,7 @@ type ListActiveAnnouncementsResponse struct {
 
 func (x *ListActiveAnnouncementsResponse) Reset() {
 	*x = ListActiveAnnouncementsResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[42]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2664,7 +2762,7 @@ func (x *ListActiveAnnouncementsResponse) String() string {
 func (*ListActiveAnnouncementsResponse) ProtoMessage() {}
 
 func (x *ListActiveAnnouncementsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[42]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2677,7 +2775,7 @@ func (x *ListActiveAnnouncementsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListActiveAnnouncementsResponse.ProtoReflect.Descriptor instead.
 func (*ListActiveAnnouncementsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{42}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ListActiveAnnouncementsResponse) GetAnnouncements() []*Announcement {
@@ -2695,7 +2793,7 @@ type ListAnnouncementsRequest struct {
 
 func (x *ListAnnouncementsRequest) Reset() {
 	*x = ListAnnouncementsRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[43]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2707,7 +2805,7 @@ func (x *ListAnnouncementsRequest) String() string {
 func (*ListAnnouncementsRequest) ProtoMessage() {}
 
 func (x *ListAnnouncementsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[43]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2720,7 +2818,7 @@ func (x *ListAnnouncementsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAnnouncementsRequest.ProtoReflect.Descriptor instead.
 func (*ListAnnouncementsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{43}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{45}
 }
 
 type ListAnnouncementsResponse struct {
@@ -2732,7 +2830,7 @@ type ListAnnouncementsResponse struct {
 
 func (x *ListAnnouncementsResponse) Reset() {
 	*x = ListAnnouncementsResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[44]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2744,7 +2842,7 @@ func (x *ListAnnouncementsResponse) String() string {
 func (*ListAnnouncementsResponse) ProtoMessage() {}
 
 func (x *ListAnnouncementsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[44]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2757,7 +2855,7 @@ func (x *ListAnnouncementsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAnnouncementsResponse.ProtoReflect.Descriptor instead.
 func (*ListAnnouncementsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{44}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ListAnnouncementsResponse) GetAnnouncements() []*Announcement {
@@ -2778,7 +2876,7 @@ type SaveAnnouncementRequest struct {
 
 func (x *SaveAnnouncementRequest) Reset() {
 	*x = SaveAnnouncementRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[45]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2790,7 +2888,7 @@ func (x *SaveAnnouncementRequest) String() string {
 func (*SaveAnnouncementRequest) ProtoMessage() {}
 
 func (x *SaveAnnouncementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[45]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2803,7 +2901,7 @@ func (x *SaveAnnouncementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveAnnouncementRequest.ProtoReflect.Descriptor instead.
 func (*SaveAnnouncementRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{45}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *SaveAnnouncementRequest) GetAnnouncement() *Announcement {
@@ -2822,7 +2920,7 @@ type SaveAnnouncementResponse struct {
 
 func (x *SaveAnnouncementResponse) Reset() {
 	*x = SaveAnnouncementResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[46]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2834,7 +2932,7 @@ func (x *SaveAnnouncementResponse) String() string {
 func (*SaveAnnouncementResponse) ProtoMessage() {}
 
 func (x *SaveAnnouncementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[46]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2847,7 +2945,7 @@ func (x *SaveAnnouncementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveAnnouncementResponse.ProtoReflect.Descriptor instead.
 func (*SaveAnnouncementResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{46}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *SaveAnnouncementResponse) GetId() string {
@@ -2866,7 +2964,7 @@ type EndAnnouncementRequest struct {
 
 func (x *EndAnnouncementRequest) Reset() {
 	*x = EndAnnouncementRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[47]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2878,7 +2976,7 @@ func (x *EndAnnouncementRequest) String() string {
 func (*EndAnnouncementRequest) ProtoMessage() {}
 
 func (x *EndAnnouncementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[47]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2891,7 +2989,7 @@ func (x *EndAnnouncementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EndAnnouncementRequest.ProtoReflect.Descriptor instead.
 func (*EndAnnouncementRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{47}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *EndAnnouncementRequest) GetId() string {
@@ -2909,7 +3007,7 @@ type EndAnnouncementResponse struct {
 
 func (x *EndAnnouncementResponse) Reset() {
 	*x = EndAnnouncementResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[48]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2921,7 +3019,7 @@ func (x *EndAnnouncementResponse) String() string {
 func (*EndAnnouncementResponse) ProtoMessage() {}
 
 func (x *EndAnnouncementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[48]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2934,7 +3032,7 @@ func (x *EndAnnouncementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EndAnnouncementResponse.ProtoReflect.Descriptor instead.
 func (*EndAnnouncementResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{48}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{50}
 }
 
 // SupportRequest is staff asking for access to a node, and what came of it.
@@ -2968,7 +3066,7 @@ type SupportRequest struct {
 
 func (x *SupportRequest) Reset() {
 	*x = SupportRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[49]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2980,7 +3078,7 @@ func (x *SupportRequest) String() string {
 func (*SupportRequest) ProtoMessage() {}
 
 func (x *SupportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[49]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2993,7 +3091,7 @@ func (x *SupportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SupportRequest.ProtoReflect.Descriptor instead.
 func (*SupportRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{49}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *SupportRequest) GetId() string {
@@ -3129,7 +3227,7 @@ type RequestSupportAccessRequest struct {
 
 func (x *RequestSupportAccessRequest) Reset() {
 	*x = RequestSupportAccessRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[50]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3141,7 +3239,7 @@ func (x *RequestSupportAccessRequest) String() string {
 func (*RequestSupportAccessRequest) ProtoMessage() {}
 
 func (x *RequestSupportAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[50]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3154,7 +3252,7 @@ func (x *RequestSupportAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestSupportAccessRequest.ProtoReflect.Descriptor instead.
 func (*RequestSupportAccessRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{50}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *RequestSupportAccessRequest) GetNodeId() string {
@@ -3201,7 +3299,7 @@ type RequestSupportAccessResponse struct {
 
 func (x *RequestSupportAccessResponse) Reset() {
 	*x = RequestSupportAccessResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[51]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3213,7 +3311,7 @@ func (x *RequestSupportAccessResponse) String() string {
 func (*RequestSupportAccessResponse) ProtoMessage() {}
 
 func (x *RequestSupportAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[51]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3226,7 +3324,7 @@ func (x *RequestSupportAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestSupportAccessResponse.ProtoReflect.Descriptor instead.
 func (*RequestSupportAccessResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{51}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *RequestSupportAccessResponse) GetId() string {
@@ -3244,7 +3342,7 @@ type ListSupportRequestsRequest struct {
 
 func (x *ListSupportRequestsRequest) Reset() {
 	*x = ListSupportRequestsRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[52]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3256,7 +3354,7 @@ func (x *ListSupportRequestsRequest) String() string {
 func (*ListSupportRequestsRequest) ProtoMessage() {}
 
 func (x *ListSupportRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[52]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3269,7 +3367,7 @@ func (x *ListSupportRequestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSupportRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListSupportRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{52}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{54}
 }
 
 type ListSupportRequestsResponse struct {
@@ -3281,7 +3379,7 @@ type ListSupportRequestsResponse struct {
 
 func (x *ListSupportRequestsResponse) Reset() {
 	*x = ListSupportRequestsResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[53]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3293,7 +3391,7 @@ func (x *ListSupportRequestsResponse) String() string {
 func (*ListSupportRequestsResponse) ProtoMessage() {}
 
 func (x *ListSupportRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[53]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3306,7 +3404,7 @@ func (x *ListSupportRequestsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSupportRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListSupportRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{53}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ListSupportRequestsResponse) GetRequests() []*SupportRequest {
@@ -3325,7 +3423,7 @@ type GetUserInsightsRequest struct {
 
 func (x *GetUserInsightsRequest) Reset() {
 	*x = GetUserInsightsRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[54]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3337,7 +3435,7 @@ func (x *GetUserInsightsRequest) String() string {
 func (*GetUserInsightsRequest) ProtoMessage() {}
 
 func (x *GetUserInsightsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[54]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3350,7 +3448,7 @@ func (x *GetUserInsightsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserInsightsRequest.ProtoReflect.Descriptor instead.
 func (*GetUserInsightsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{54}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *GetUserInsightsRequest) GetDays() int32 {
@@ -3373,7 +3471,7 @@ type LargeOrg struct {
 
 func (x *LargeOrg) Reset() {
 	*x = LargeOrg{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[55]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3385,7 +3483,7 @@ func (x *LargeOrg) String() string {
 func (*LargeOrg) ProtoMessage() {}
 
 func (x *LargeOrg) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[55]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3398,7 +3496,7 @@ func (x *LargeOrg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LargeOrg.ProtoReflect.Descriptor instead.
 func (*LargeOrg) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{55}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *LargeOrg) GetId() string {
@@ -3461,7 +3559,7 @@ type GetUserInsightsResponse struct {
 
 func (x *GetUserInsightsResponse) Reset() {
 	*x = GetUserInsightsResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[56]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3473,7 +3571,7 @@ func (x *GetUserInsightsResponse) String() string {
 func (*GetUserInsightsResponse) ProtoMessage() {}
 
 func (x *GetUserInsightsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[56]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3486,7 +3584,7 @@ func (x *GetUserInsightsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserInsightsResponse.ProtoReflect.Descriptor instead.
 func (*GetUserInsightsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{56}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *GetUserInsightsResponse) GetUsers() int32 {
@@ -3603,7 +3701,7 @@ type GetNodeInsightsRequest struct {
 
 func (x *GetNodeInsightsRequest) Reset() {
 	*x = GetNodeInsightsRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[57]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3615,7 +3713,7 @@ func (x *GetNodeInsightsRequest) String() string {
 func (*GetNodeInsightsRequest) ProtoMessage() {}
 
 func (x *GetNodeInsightsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[57]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3628,7 +3726,7 @@ func (x *GetNodeInsightsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNodeInsightsRequest.ProtoReflect.Descriptor instead.
 func (*GetNodeInsightsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{57}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *GetNodeInsightsRequest) GetDays() int32 {
@@ -3662,7 +3760,7 @@ type GetNodeInsightsResponse struct {
 
 func (x *GetNodeInsightsResponse) Reset() {
 	*x = GetNodeInsightsResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[58]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3674,7 +3772,7 @@ func (x *GetNodeInsightsResponse) String() string {
 func (*GetNodeInsightsResponse) ProtoMessage() {}
 
 func (x *GetNodeInsightsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[58]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3687,7 +3785,7 @@ func (x *GetNodeInsightsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNodeInsightsResponse.ProtoReflect.Descriptor instead.
 func (*GetNodeInsightsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{58}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GetNodeInsightsResponse) GetNodes() int32 {
@@ -3811,7 +3909,7 @@ type GetBillingInsightsRequest struct {
 
 func (x *GetBillingInsightsRequest) Reset() {
 	*x = GetBillingInsightsRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[59]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3823,7 +3921,7 @@ func (x *GetBillingInsightsRequest) String() string {
 func (*GetBillingInsightsRequest) ProtoMessage() {}
 
 func (x *GetBillingInsightsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[59]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3836,7 +3934,7 @@ func (x *GetBillingInsightsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBillingInsightsRequest.ProtoReflect.Descriptor instead.
 func (*GetBillingInsightsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{59}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *GetBillingInsightsRequest) GetDays() int32 {
@@ -3860,7 +3958,7 @@ type StorageOrg struct {
 
 func (x *StorageOrg) Reset() {
 	*x = StorageOrg{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[60]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3872,7 +3970,7 @@ func (x *StorageOrg) String() string {
 func (*StorageOrg) ProtoMessage() {}
 
 func (x *StorageOrg) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[60]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3885,7 +3983,7 @@ func (x *StorageOrg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageOrg.ProtoReflect.Descriptor instead.
 func (*StorageOrg) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{60}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *StorageOrg) GetId() string {
@@ -3941,7 +4039,7 @@ type GetBillingInsightsResponse struct {
 
 func (x *GetBillingInsightsResponse) Reset() {
 	*x = GetBillingInsightsResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[61]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3953,7 +4051,7 @@ func (x *GetBillingInsightsResponse) String() string {
 func (*GetBillingInsightsResponse) ProtoMessage() {}
 
 func (x *GetBillingInsightsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[61]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3966,7 +4064,7 @@ func (x *GetBillingInsightsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBillingInsightsResponse.ProtoReflect.Descriptor instead.
 func (*GetBillingInsightsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{61}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *GetBillingInsightsResponse) GetBillingLive() bool {
@@ -4035,7 +4133,7 @@ type StoragePoint struct {
 
 func (x *StoragePoint) Reset() {
 	*x = StoragePoint{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[62]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4047,7 +4145,7 @@ func (x *StoragePoint) String() string {
 func (*StoragePoint) ProtoMessage() {}
 
 func (x *StoragePoint) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[62]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4060,7 +4158,7 @@ func (x *StoragePoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoragePoint.ProtoReflect.Descriptor instead.
 func (*StoragePoint) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{62}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *StoragePoint) GetDay() string {
@@ -4085,7 +4183,7 @@ type GetInfrastructureRequest struct {
 
 func (x *GetInfrastructureRequest) Reset() {
 	*x = GetInfrastructureRequest{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[63]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4097,7 +4195,7 @@ func (x *GetInfrastructureRequest) String() string {
 func (*GetInfrastructureRequest) ProtoMessage() {}
 
 func (x *GetInfrastructureRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[63]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4110,7 +4208,7 @@ func (x *GetInfrastructureRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInfrastructureRequest.ProtoReflect.Descriptor instead.
 func (*GetInfrastructureRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{63}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{65}
 }
 
 type PanelInstance struct {
@@ -4125,7 +4223,7 @@ type PanelInstance struct {
 
 func (x *PanelInstance) Reset() {
 	*x = PanelInstance{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[64]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4137,7 +4235,7 @@ func (x *PanelInstance) String() string {
 func (*PanelInstance) ProtoMessage() {}
 
 func (x *PanelInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[64]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4150,7 +4248,7 @@ func (x *PanelInstance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PanelInstance.ProtoReflect.Descriptor instead.
 func (*PanelInstance) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{64}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *PanelInstance) GetId() string {
@@ -4192,7 +4290,7 @@ type TableSize struct {
 
 func (x *TableSize) Reset() {
 	*x = TableSize{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[65]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4204,7 +4302,7 @@ func (x *TableSize) String() string {
 func (*TableSize) ProtoMessage() {}
 
 func (x *TableSize) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[65]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4217,7 +4315,7 @@ func (x *TableSize) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TableSize.ProtoReflect.Descriptor instead.
 func (*TableSize) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{65}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *TableSize) GetName() string {
@@ -4260,7 +4358,7 @@ type GetInfrastructureResponse struct {
 
 func (x *GetInfrastructureResponse) Reset() {
 	*x = GetInfrastructureResponse{}
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[66]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4272,7 +4370,7 @@ func (x *GetInfrastructureResponse) String() string {
 func (*GetInfrastructureResponse) ProtoMessage() {}
 
 func (x *GetInfrastructureResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_staff_proto_msgTypes[66]
+	mi := &file_raptor_panel_v1_staff_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4285,7 +4383,7 @@ func (x *GetInfrastructureResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInfrastructureResponse.ProtoReflect.Descriptor instead.
 func (*GetInfrastructureResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{66}
+	return file_raptor_panel_v1_staff_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *GetInfrastructureResponse) GetVersion() string {
@@ -4508,7 +4606,12 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\x11SuspendOrgRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x14\n" +
-	"\x12SuspendOrgResponse\",\n" +
+	"\x12SuspendOrgResponse\"A\n" +
+	"\x13BanSubdomainRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"-\n" +
+	"\x14BanSubdomainResponse\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\",\n" +
 	"\x13UnsuspendOrgRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\x16\n" +
 	"\x14UnsuspendOrgResponse\"\xb6\x01\n" +
@@ -4689,7 +4792,7 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\rlive_sessions\x18\x06 \x01(\x05R\fliveSessions\x12,\n" +
 	"\x12sessions_last_hour\x18\a \x01(\x05R\x10sessionsLastHour\x12\x18\n" +
 	"\arollout\x18\b \x01(\tR\arollout\x12'\n" +
-	"\x0fnodes_connected\x18\t \x01(\x05R\x0enodesConnected2\xba\x12\n" +
+	"\x0fnodes_connected\x18\t \x01(\x05R\x0enodesConnected2\x99\x13\n" +
 	"\fStaffService\x12Z\n" +
 	"\n" +
 	"GetStaffMe\x12\".raptor.panel.v1.GetStaffMeRequest\x1a#.raptor.panel.v1.GetStaffMeResponse\"\x03\x90\x02\x01\x12]\n" +
@@ -4708,7 +4811,8 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\vGetStaffOrg\x12#.raptor.panel.v1.GetStaffOrgRequest\x1a$.raptor.panel.v1.GetStaffOrgResponse\"\x03\x90\x02\x01\x12W\n" +
 	"\n" +
 	"SuspendOrg\x12\".raptor.panel.v1.SuspendOrgRequest\x1a#.raptor.panel.v1.SuspendOrgResponse\"\x00\x12]\n" +
-	"\fUnsuspendOrg\x12$.raptor.panel.v1.UnsuspendOrgRequest\x1a%.raptor.panel.v1.UnsuspendOrgResponse\"\x00\x12\x81\x01\n" +
+	"\fUnsuspendOrg\x12$.raptor.panel.v1.UnsuspendOrgRequest\x1a%.raptor.panel.v1.UnsuspendOrgResponse\"\x00\x12]\n" +
+	"\fBanSubdomain\x12$.raptor.panel.v1.BanSubdomainRequest\x1a%.raptor.panel.v1.BanSubdomainResponse\"\x00\x12\x81\x01\n" +
 	"\x17ListActiveAnnouncements\x12/.raptor.panel.v1.ListActiveAnnouncementsRequest\x1a0.raptor.panel.v1.ListActiveAnnouncementsResponse\"\x03\x90\x02\x01\x12o\n" +
 	"\x11ListAnnouncements\x12).raptor.panel.v1.ListAnnouncementsRequest\x1a*.raptor.panel.v1.ListAnnouncementsResponse\"\x03\x90\x02\x01\x12i\n" +
 	"\x10SaveAnnouncement\x12(.raptor.panel.v1.SaveAnnouncementRequest\x1a).raptor.panel.v1.SaveAnnouncementResponse\"\x00\x12f\n" +
@@ -4732,7 +4836,7 @@ func file_raptor_panel_v1_staff_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_staff_proto_rawDescData
 }
 
-var file_raptor_panel_v1_staff_proto_msgTypes = make([]protoimpl.MessageInfo, 67)
+var file_raptor_panel_v1_staff_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
 var file_raptor_panel_v1_staff_proto_goTypes = []any{
 	(*GetStaffMeRequest)(nil),               // 0: raptor.panel.v1.GetStaffMeRequest
 	(*GetStaffMeResponse)(nil),              // 1: raptor.panel.v1.GetStaffMeResponse
@@ -4766,46 +4870,48 @@ var file_raptor_panel_v1_staff_proto_goTypes = []any{
 	(*GetStaffOrgResponse)(nil),             // 29: raptor.panel.v1.GetStaffOrgResponse
 	(*SuspendOrgRequest)(nil),               // 30: raptor.panel.v1.SuspendOrgRequest
 	(*SuspendOrgResponse)(nil),              // 31: raptor.panel.v1.SuspendOrgResponse
-	(*UnsuspendOrgRequest)(nil),             // 32: raptor.panel.v1.UnsuspendOrgRequest
-	(*UnsuspendOrgResponse)(nil),            // 33: raptor.panel.v1.UnsuspendOrgResponse
-	(*StaffMember)(nil),                     // 34: raptor.panel.v1.StaffMember
-	(*ListStaffRequest)(nil),                // 35: raptor.panel.v1.ListStaffRequest
-	(*ListStaffResponse)(nil),               // 36: raptor.panel.v1.ListStaffResponse
-	(*StaffAuditEntry)(nil),                 // 37: raptor.panel.v1.StaffAuditEntry
-	(*ListStaffAuditRequest)(nil),           // 38: raptor.panel.v1.ListStaffAuditRequest
-	(*ListStaffAuditResponse)(nil),          // 39: raptor.panel.v1.ListStaffAuditResponse
-	(*Announcement)(nil),                    // 40: raptor.panel.v1.Announcement
-	(*ListActiveAnnouncementsRequest)(nil),  // 41: raptor.panel.v1.ListActiveAnnouncementsRequest
-	(*ListActiveAnnouncementsResponse)(nil), // 42: raptor.panel.v1.ListActiveAnnouncementsResponse
-	(*ListAnnouncementsRequest)(nil),        // 43: raptor.panel.v1.ListAnnouncementsRequest
-	(*ListAnnouncementsResponse)(nil),       // 44: raptor.panel.v1.ListAnnouncementsResponse
-	(*SaveAnnouncementRequest)(nil),         // 45: raptor.panel.v1.SaveAnnouncementRequest
-	(*SaveAnnouncementResponse)(nil),        // 46: raptor.panel.v1.SaveAnnouncementResponse
-	(*EndAnnouncementRequest)(nil),          // 47: raptor.panel.v1.EndAnnouncementRequest
-	(*EndAnnouncementResponse)(nil),         // 48: raptor.panel.v1.EndAnnouncementResponse
-	(*SupportRequest)(nil),                  // 49: raptor.panel.v1.SupportRequest
-	(*RequestSupportAccessRequest)(nil),     // 50: raptor.panel.v1.RequestSupportAccessRequest
-	(*RequestSupportAccessResponse)(nil),    // 51: raptor.panel.v1.RequestSupportAccessResponse
-	(*ListSupportRequestsRequest)(nil),      // 52: raptor.panel.v1.ListSupportRequestsRequest
-	(*ListSupportRequestsResponse)(nil),     // 53: raptor.panel.v1.ListSupportRequestsResponse
-	(*GetUserInsightsRequest)(nil),          // 54: raptor.panel.v1.GetUserInsightsRequest
-	(*LargeOrg)(nil),                        // 55: raptor.panel.v1.LargeOrg
-	(*GetUserInsightsResponse)(nil),         // 56: raptor.panel.v1.GetUserInsightsResponse
-	(*GetNodeInsightsRequest)(nil),          // 57: raptor.panel.v1.GetNodeInsightsRequest
-	(*GetNodeInsightsResponse)(nil),         // 58: raptor.panel.v1.GetNodeInsightsResponse
-	(*GetBillingInsightsRequest)(nil),       // 59: raptor.panel.v1.GetBillingInsightsRequest
-	(*StorageOrg)(nil),                      // 60: raptor.panel.v1.StorageOrg
-	(*GetBillingInsightsResponse)(nil),      // 61: raptor.panel.v1.GetBillingInsightsResponse
-	(*StoragePoint)(nil),                    // 62: raptor.panel.v1.StoragePoint
-	(*GetInfrastructureRequest)(nil),        // 63: raptor.panel.v1.GetInfrastructureRequest
-	(*PanelInstance)(nil),                   // 64: raptor.panel.v1.PanelInstance
-	(*TableSize)(nil),                       // 65: raptor.panel.v1.TableSize
-	(*GetInfrastructureResponse)(nil),       // 66: raptor.panel.v1.GetInfrastructureResponse
-	(*timestamppb.Timestamp)(nil),           // 67: google.protobuf.Timestamp
+	(*BanSubdomainRequest)(nil),             // 32: raptor.panel.v1.BanSubdomainRequest
+	(*BanSubdomainResponse)(nil),            // 33: raptor.panel.v1.BanSubdomainResponse
+	(*UnsuspendOrgRequest)(nil),             // 34: raptor.panel.v1.UnsuspendOrgRequest
+	(*UnsuspendOrgResponse)(nil),            // 35: raptor.panel.v1.UnsuspendOrgResponse
+	(*StaffMember)(nil),                     // 36: raptor.panel.v1.StaffMember
+	(*ListStaffRequest)(nil),                // 37: raptor.panel.v1.ListStaffRequest
+	(*ListStaffResponse)(nil),               // 38: raptor.panel.v1.ListStaffResponse
+	(*StaffAuditEntry)(nil),                 // 39: raptor.panel.v1.StaffAuditEntry
+	(*ListStaffAuditRequest)(nil),           // 40: raptor.panel.v1.ListStaffAuditRequest
+	(*ListStaffAuditResponse)(nil),          // 41: raptor.panel.v1.ListStaffAuditResponse
+	(*Announcement)(nil),                    // 42: raptor.panel.v1.Announcement
+	(*ListActiveAnnouncementsRequest)(nil),  // 43: raptor.panel.v1.ListActiveAnnouncementsRequest
+	(*ListActiveAnnouncementsResponse)(nil), // 44: raptor.panel.v1.ListActiveAnnouncementsResponse
+	(*ListAnnouncementsRequest)(nil),        // 45: raptor.panel.v1.ListAnnouncementsRequest
+	(*ListAnnouncementsResponse)(nil),       // 46: raptor.panel.v1.ListAnnouncementsResponse
+	(*SaveAnnouncementRequest)(nil),         // 47: raptor.panel.v1.SaveAnnouncementRequest
+	(*SaveAnnouncementResponse)(nil),        // 48: raptor.panel.v1.SaveAnnouncementResponse
+	(*EndAnnouncementRequest)(nil),          // 49: raptor.panel.v1.EndAnnouncementRequest
+	(*EndAnnouncementResponse)(nil),         // 50: raptor.panel.v1.EndAnnouncementResponse
+	(*SupportRequest)(nil),                  // 51: raptor.panel.v1.SupportRequest
+	(*RequestSupportAccessRequest)(nil),     // 52: raptor.panel.v1.RequestSupportAccessRequest
+	(*RequestSupportAccessResponse)(nil),    // 53: raptor.panel.v1.RequestSupportAccessResponse
+	(*ListSupportRequestsRequest)(nil),      // 54: raptor.panel.v1.ListSupportRequestsRequest
+	(*ListSupportRequestsResponse)(nil),     // 55: raptor.panel.v1.ListSupportRequestsResponse
+	(*GetUserInsightsRequest)(nil),          // 56: raptor.panel.v1.GetUserInsightsRequest
+	(*LargeOrg)(nil),                        // 57: raptor.panel.v1.LargeOrg
+	(*GetUserInsightsResponse)(nil),         // 58: raptor.panel.v1.GetUserInsightsResponse
+	(*GetNodeInsightsRequest)(nil),          // 59: raptor.panel.v1.GetNodeInsightsRequest
+	(*GetNodeInsightsResponse)(nil),         // 60: raptor.panel.v1.GetNodeInsightsResponse
+	(*GetBillingInsightsRequest)(nil),       // 61: raptor.panel.v1.GetBillingInsightsRequest
+	(*StorageOrg)(nil),                      // 62: raptor.panel.v1.StorageOrg
+	(*GetBillingInsightsResponse)(nil),      // 63: raptor.panel.v1.GetBillingInsightsResponse
+	(*StoragePoint)(nil),                    // 64: raptor.panel.v1.StoragePoint
+	(*GetInfrastructureRequest)(nil),        // 65: raptor.panel.v1.GetInfrastructureRequest
+	(*PanelInstance)(nil),                   // 66: raptor.panel.v1.PanelInstance
+	(*TableSize)(nil),                       // 67: raptor.panel.v1.TableSize
+	(*GetInfrastructureResponse)(nil),       // 68: raptor.panel.v1.GetInfrastructureResponse
+	(*timestamppb.Timestamp)(nil),           // 69: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_staff_proto_depIdxs = []int32{
-	67, // 0: raptor.panel.v1.PlatformPoint.at:type_name -> google.protobuf.Timestamp
-	67, // 1: raptor.panel.v1.OfflineNode.last_seen_at:type_name -> google.protobuf.Timestamp
+	69, // 0: raptor.panel.v1.PlatformPoint.at:type_name -> google.protobuf.Timestamp
+	69, // 1: raptor.panel.v1.OfflineNode.last_seen_at:type_name -> google.protobuf.Timestamp
 	3,  // 2: raptor.panel.v1.GetOverviewResponse.counts:type_name -> raptor.panel.v1.PlatformCounts
 	4,  // 3: raptor.panel.v1.GetOverviewResponse.history:type_name -> raptor.panel.v1.PlatformPoint
 	5,  // 4: raptor.panel.v1.GetOverviewResponse.signups_by_day:type_name -> raptor.panel.v1.CountBucket
@@ -4815,42 +4921,42 @@ var file_raptor_panel_v1_staff_proto_depIdxs = []int32{
 	6,  // 8: raptor.panel.v1.GetOverviewResponse.offline_nodes:type_name -> raptor.panel.v1.OfflineNode
 	7,  // 9: raptor.panel.v1.GetOverviewResponse.failing_servers:type_name -> raptor.panel.v1.FailingServer
 	8,  // 10: raptor.panel.v1.GetOverviewResponse.revenue:type_name -> raptor.panel.v1.Revenue
-	67, // 11: raptor.panel.v1.StaffUser.created_at:type_name -> google.protobuf.Timestamp
-	67, // 12: raptor.panel.v1.StaffUser.suspended_at:type_name -> google.protobuf.Timestamp
-	67, // 13: raptor.panel.v1.StaffUser.last_seen_at:type_name -> google.protobuf.Timestamp
+	69, // 11: raptor.panel.v1.StaffUser.created_at:type_name -> google.protobuf.Timestamp
+	69, // 12: raptor.panel.v1.StaffUser.suspended_at:type_name -> google.protobuf.Timestamp
+	69, // 13: raptor.panel.v1.StaffUser.last_seen_at:type_name -> google.protobuf.Timestamp
 	10, // 14: raptor.panel.v1.SearchUsersResponse.users:type_name -> raptor.panel.v1.StaffUser
-	67, // 15: raptor.panel.v1.UserSignin.at:type_name -> google.protobuf.Timestamp
+	69, // 15: raptor.panel.v1.UserSignin.at:type_name -> google.protobuf.Timestamp
 	10, // 16: raptor.panel.v1.GetUserResponse.user:type_name -> raptor.panel.v1.StaffUser
 	14, // 17: raptor.panel.v1.GetUserResponse.memberships:type_name -> raptor.panel.v1.UserMembership
 	15, // 18: raptor.panel.v1.GetUserResponse.sign_ins:type_name -> raptor.panel.v1.UserSignin
-	67, // 19: raptor.panel.v1.StaffOrg.created_at:type_name -> google.protobuf.Timestamp
-	67, // 20: raptor.panel.v1.StaffOrg.suspended_at:type_name -> google.protobuf.Timestamp
+	69, // 19: raptor.panel.v1.StaffOrg.created_at:type_name -> google.protobuf.Timestamp
+	69, // 20: raptor.panel.v1.StaffOrg.suspended_at:type_name -> google.protobuf.Timestamp
 	23, // 21: raptor.panel.v1.SearchOrgsResponse.orgs:type_name -> raptor.panel.v1.StaffOrg
-	67, // 22: raptor.panel.v1.StaffOrgNode.last_seen_at:type_name -> google.protobuf.Timestamp
-	67, // 23: raptor.panel.v1.StaffOrgNode.created_at:type_name -> google.protobuf.Timestamp
+	69, // 22: raptor.panel.v1.StaffOrgNode.last_seen_at:type_name -> google.protobuf.Timestamp
+	69, // 23: raptor.panel.v1.StaffOrgNode.created_at:type_name -> google.protobuf.Timestamp
 	23, // 24: raptor.panel.v1.GetStaffOrgResponse.org:type_name -> raptor.panel.v1.StaffOrg
 	27, // 25: raptor.panel.v1.GetStaffOrgResponse.members:type_name -> raptor.panel.v1.StaffOrgMember
 	28, // 26: raptor.panel.v1.GetStaffOrgResponse.nodes:type_name -> raptor.panel.v1.StaffOrgNode
-	67, // 27: raptor.panel.v1.StaffMember.added_at:type_name -> google.protobuf.Timestamp
-	34, // 28: raptor.panel.v1.ListStaffResponse.staff:type_name -> raptor.panel.v1.StaffMember
-	67, // 29: raptor.panel.v1.StaffAuditEntry.at:type_name -> google.protobuf.Timestamp
-	37, // 30: raptor.panel.v1.ListStaffAuditResponse.entries:type_name -> raptor.panel.v1.StaffAuditEntry
-	67, // 31: raptor.panel.v1.Announcement.starts_at:type_name -> google.protobuf.Timestamp
-	67, // 32: raptor.panel.v1.Announcement.ends_at:type_name -> google.protobuf.Timestamp
-	67, // 33: raptor.panel.v1.Announcement.created_at:type_name -> google.protobuf.Timestamp
-	40, // 34: raptor.panel.v1.ListActiveAnnouncementsResponse.announcements:type_name -> raptor.panel.v1.Announcement
-	40, // 35: raptor.panel.v1.ListAnnouncementsResponse.announcements:type_name -> raptor.panel.v1.Announcement
-	40, // 36: raptor.panel.v1.SaveAnnouncementRequest.announcement:type_name -> raptor.panel.v1.Announcement
-	67, // 37: raptor.panel.v1.SupportRequest.created_at:type_name -> google.protobuf.Timestamp
-	67, // 38: raptor.panel.v1.SupportRequest.decided_at:type_name -> google.protobuf.Timestamp
-	67, // 39: raptor.panel.v1.SupportRequest.expires_at:type_name -> google.protobuf.Timestamp
-	49, // 40: raptor.panel.v1.ListSupportRequestsResponse.requests:type_name -> raptor.panel.v1.SupportRequest
+	69, // 27: raptor.panel.v1.StaffMember.added_at:type_name -> google.protobuf.Timestamp
+	36, // 28: raptor.panel.v1.ListStaffResponse.staff:type_name -> raptor.panel.v1.StaffMember
+	69, // 29: raptor.panel.v1.StaffAuditEntry.at:type_name -> google.protobuf.Timestamp
+	39, // 30: raptor.panel.v1.ListStaffAuditResponse.entries:type_name -> raptor.panel.v1.StaffAuditEntry
+	69, // 31: raptor.panel.v1.Announcement.starts_at:type_name -> google.protobuf.Timestamp
+	69, // 32: raptor.panel.v1.Announcement.ends_at:type_name -> google.protobuf.Timestamp
+	69, // 33: raptor.panel.v1.Announcement.created_at:type_name -> google.protobuf.Timestamp
+	42, // 34: raptor.panel.v1.ListActiveAnnouncementsResponse.announcements:type_name -> raptor.panel.v1.Announcement
+	42, // 35: raptor.panel.v1.ListAnnouncementsResponse.announcements:type_name -> raptor.panel.v1.Announcement
+	42, // 36: raptor.panel.v1.SaveAnnouncementRequest.announcement:type_name -> raptor.panel.v1.Announcement
+	69, // 37: raptor.panel.v1.SupportRequest.created_at:type_name -> google.protobuf.Timestamp
+	69, // 38: raptor.panel.v1.SupportRequest.decided_at:type_name -> google.protobuf.Timestamp
+	69, // 39: raptor.panel.v1.SupportRequest.expires_at:type_name -> google.protobuf.Timestamp
+	51, // 40: raptor.panel.v1.ListSupportRequestsResponse.requests:type_name -> raptor.panel.v1.SupportRequest
 	5,  // 41: raptor.panel.v1.GetUserInsightsResponse.signin_methods:type_name -> raptor.panel.v1.CountBucket
 	5,  // 42: raptor.panel.v1.GetUserInsightsResponse.oauth_providers:type_name -> raptor.panel.v1.CountBucket
 	4,  // 43: raptor.panel.v1.GetUserInsightsResponse.history:type_name -> raptor.panel.v1.PlatformPoint
 	5,  // 44: raptor.panel.v1.GetUserInsightsResponse.signups_by_day:type_name -> raptor.panel.v1.CountBucket
 	5,  // 45: raptor.panel.v1.GetUserInsightsResponse.active_by_day:type_name -> raptor.panel.v1.CountBucket
-	55, // 46: raptor.panel.v1.GetUserInsightsResponse.largest_orgs:type_name -> raptor.panel.v1.LargeOrg
+	57, // 46: raptor.panel.v1.GetUserInsightsResponse.largest_orgs:type_name -> raptor.panel.v1.LargeOrg
 	4,  // 47: raptor.panel.v1.GetNodeInsightsResponse.history:type_name -> raptor.panel.v1.PlatformPoint
 	5,  // 48: raptor.panel.v1.GetNodeInsightsResponse.oses:type_name -> raptor.panel.v1.CountBucket
 	5,  // 49: raptor.panel.v1.GetNodeInsightsResponse.archs:type_name -> raptor.panel.v1.CountBucket
@@ -4860,18 +4966,18 @@ var file_raptor_panel_v1_staff_proto_depIdxs = []int32{
 	5,  // 53: raptor.panel.v1.GetNodeInsightsResponse.top_eggs:type_name -> raptor.panel.v1.CountBucket
 	6,  // 54: raptor.panel.v1.GetNodeInsightsResponse.offline_nodes:type_name -> raptor.panel.v1.OfflineNode
 	7,  // 55: raptor.panel.v1.GetNodeInsightsResponse.failing_servers:type_name -> raptor.panel.v1.FailingServer
-	62, // 56: raptor.panel.v1.GetBillingInsightsResponse.storage_by_day:type_name -> raptor.panel.v1.StoragePoint
-	60, // 57: raptor.panel.v1.GetBillingInsightsResponse.storage_orgs:type_name -> raptor.panel.v1.StorageOrg
-	67, // 58: raptor.panel.v1.PanelInstance.started_at:type_name -> google.protobuf.Timestamp
-	67, // 59: raptor.panel.v1.PanelInstance.seen_at:type_name -> google.protobuf.Timestamp
-	64, // 60: raptor.panel.v1.GetInfrastructureResponse.instances:type_name -> raptor.panel.v1.PanelInstance
-	65, // 61: raptor.panel.v1.GetInfrastructureResponse.largest_tables:type_name -> raptor.panel.v1.TableSize
+	64, // 56: raptor.panel.v1.GetBillingInsightsResponse.storage_by_day:type_name -> raptor.panel.v1.StoragePoint
+	62, // 57: raptor.panel.v1.GetBillingInsightsResponse.storage_orgs:type_name -> raptor.panel.v1.StorageOrg
+	69, // 58: raptor.panel.v1.PanelInstance.started_at:type_name -> google.protobuf.Timestamp
+	69, // 59: raptor.panel.v1.PanelInstance.seen_at:type_name -> google.protobuf.Timestamp
+	66, // 60: raptor.panel.v1.GetInfrastructureResponse.instances:type_name -> raptor.panel.v1.PanelInstance
+	67, // 61: raptor.panel.v1.GetInfrastructureResponse.largest_tables:type_name -> raptor.panel.v1.TableSize
 	0,  // 62: raptor.panel.v1.StaffService.GetStaffMe:input_type -> raptor.panel.v1.GetStaffMeRequest
 	2,  // 63: raptor.panel.v1.StaffService.GetOverview:input_type -> raptor.panel.v1.GetOverviewRequest
-	54, // 64: raptor.panel.v1.StaffService.GetUserInsights:input_type -> raptor.panel.v1.GetUserInsightsRequest
-	57, // 65: raptor.panel.v1.StaffService.GetNodeInsights:input_type -> raptor.panel.v1.GetNodeInsightsRequest
-	59, // 66: raptor.panel.v1.StaffService.GetBillingInsights:input_type -> raptor.panel.v1.GetBillingInsightsRequest
-	63, // 67: raptor.panel.v1.StaffService.GetInfrastructure:input_type -> raptor.panel.v1.GetInfrastructureRequest
+	56, // 64: raptor.panel.v1.StaffService.GetUserInsights:input_type -> raptor.panel.v1.GetUserInsightsRequest
+	59, // 65: raptor.panel.v1.StaffService.GetNodeInsights:input_type -> raptor.panel.v1.GetNodeInsightsRequest
+	61, // 66: raptor.panel.v1.StaffService.GetBillingInsights:input_type -> raptor.panel.v1.GetBillingInsightsRequest
+	65, // 67: raptor.panel.v1.StaffService.GetInfrastructure:input_type -> raptor.panel.v1.GetInfrastructureRequest
 	11, // 68: raptor.panel.v1.StaffService.SearchUsers:input_type -> raptor.panel.v1.SearchUsersRequest
 	13, // 69: raptor.panel.v1.StaffService.GetUser:input_type -> raptor.panel.v1.GetUserRequest
 	17, // 70: raptor.panel.v1.StaffService.SuspendUser:input_type -> raptor.panel.v1.SuspendUserRequest
@@ -4880,40 +4986,42 @@ var file_raptor_panel_v1_staff_proto_depIdxs = []int32{
 	24, // 73: raptor.panel.v1.StaffService.SearchOrgs:input_type -> raptor.panel.v1.SearchOrgsRequest
 	26, // 74: raptor.panel.v1.StaffService.GetStaffOrg:input_type -> raptor.panel.v1.GetStaffOrgRequest
 	30, // 75: raptor.panel.v1.StaffService.SuspendOrg:input_type -> raptor.panel.v1.SuspendOrgRequest
-	32, // 76: raptor.panel.v1.StaffService.UnsuspendOrg:input_type -> raptor.panel.v1.UnsuspendOrgRequest
-	41, // 77: raptor.panel.v1.StaffService.ListActiveAnnouncements:input_type -> raptor.panel.v1.ListActiveAnnouncementsRequest
-	43, // 78: raptor.panel.v1.StaffService.ListAnnouncements:input_type -> raptor.panel.v1.ListAnnouncementsRequest
-	45, // 79: raptor.panel.v1.StaffService.SaveAnnouncement:input_type -> raptor.panel.v1.SaveAnnouncementRequest
-	47, // 80: raptor.panel.v1.StaffService.EndAnnouncement:input_type -> raptor.panel.v1.EndAnnouncementRequest
-	50, // 81: raptor.panel.v1.StaffService.RequestSupportAccess:input_type -> raptor.panel.v1.RequestSupportAccessRequest
-	52, // 82: raptor.panel.v1.StaffService.ListSupportRequests:input_type -> raptor.panel.v1.ListSupportRequestsRequest
-	35, // 83: raptor.panel.v1.StaffService.ListStaff:input_type -> raptor.panel.v1.ListStaffRequest
-	38, // 84: raptor.panel.v1.StaffService.ListStaffAudit:input_type -> raptor.panel.v1.ListStaffAuditRequest
-	1,  // 85: raptor.panel.v1.StaffService.GetStaffMe:output_type -> raptor.panel.v1.GetStaffMeResponse
-	9,  // 86: raptor.panel.v1.StaffService.GetOverview:output_type -> raptor.panel.v1.GetOverviewResponse
-	56, // 87: raptor.panel.v1.StaffService.GetUserInsights:output_type -> raptor.panel.v1.GetUserInsightsResponse
-	58, // 88: raptor.panel.v1.StaffService.GetNodeInsights:output_type -> raptor.panel.v1.GetNodeInsightsResponse
-	61, // 89: raptor.panel.v1.StaffService.GetBillingInsights:output_type -> raptor.panel.v1.GetBillingInsightsResponse
-	66, // 90: raptor.panel.v1.StaffService.GetInfrastructure:output_type -> raptor.panel.v1.GetInfrastructureResponse
-	12, // 91: raptor.panel.v1.StaffService.SearchUsers:output_type -> raptor.panel.v1.SearchUsersResponse
-	16, // 92: raptor.panel.v1.StaffService.GetUser:output_type -> raptor.panel.v1.GetUserResponse
-	18, // 93: raptor.panel.v1.StaffService.SuspendUser:output_type -> raptor.panel.v1.SuspendUserResponse
-	20, // 94: raptor.panel.v1.StaffService.UnsuspendUser:output_type -> raptor.panel.v1.UnsuspendUserResponse
-	22, // 95: raptor.panel.v1.StaffService.SignOutUser:output_type -> raptor.panel.v1.SignOutUserResponse
-	25, // 96: raptor.panel.v1.StaffService.SearchOrgs:output_type -> raptor.panel.v1.SearchOrgsResponse
-	29, // 97: raptor.panel.v1.StaffService.GetStaffOrg:output_type -> raptor.panel.v1.GetStaffOrgResponse
-	31, // 98: raptor.panel.v1.StaffService.SuspendOrg:output_type -> raptor.panel.v1.SuspendOrgResponse
-	33, // 99: raptor.panel.v1.StaffService.UnsuspendOrg:output_type -> raptor.panel.v1.UnsuspendOrgResponse
-	42, // 100: raptor.panel.v1.StaffService.ListActiveAnnouncements:output_type -> raptor.panel.v1.ListActiveAnnouncementsResponse
-	44, // 101: raptor.panel.v1.StaffService.ListAnnouncements:output_type -> raptor.panel.v1.ListAnnouncementsResponse
-	46, // 102: raptor.panel.v1.StaffService.SaveAnnouncement:output_type -> raptor.panel.v1.SaveAnnouncementResponse
-	48, // 103: raptor.panel.v1.StaffService.EndAnnouncement:output_type -> raptor.panel.v1.EndAnnouncementResponse
-	51, // 104: raptor.panel.v1.StaffService.RequestSupportAccess:output_type -> raptor.panel.v1.RequestSupportAccessResponse
-	53, // 105: raptor.panel.v1.StaffService.ListSupportRequests:output_type -> raptor.panel.v1.ListSupportRequestsResponse
-	36, // 106: raptor.panel.v1.StaffService.ListStaff:output_type -> raptor.panel.v1.ListStaffResponse
-	39, // 107: raptor.panel.v1.StaffService.ListStaffAudit:output_type -> raptor.panel.v1.ListStaffAuditResponse
-	85, // [85:108] is the sub-list for method output_type
-	62, // [62:85] is the sub-list for method input_type
+	34, // 76: raptor.panel.v1.StaffService.UnsuspendOrg:input_type -> raptor.panel.v1.UnsuspendOrgRequest
+	32, // 77: raptor.panel.v1.StaffService.BanSubdomain:input_type -> raptor.panel.v1.BanSubdomainRequest
+	43, // 78: raptor.panel.v1.StaffService.ListActiveAnnouncements:input_type -> raptor.panel.v1.ListActiveAnnouncementsRequest
+	45, // 79: raptor.panel.v1.StaffService.ListAnnouncements:input_type -> raptor.panel.v1.ListAnnouncementsRequest
+	47, // 80: raptor.panel.v1.StaffService.SaveAnnouncement:input_type -> raptor.panel.v1.SaveAnnouncementRequest
+	49, // 81: raptor.panel.v1.StaffService.EndAnnouncement:input_type -> raptor.panel.v1.EndAnnouncementRequest
+	52, // 82: raptor.panel.v1.StaffService.RequestSupportAccess:input_type -> raptor.panel.v1.RequestSupportAccessRequest
+	54, // 83: raptor.panel.v1.StaffService.ListSupportRequests:input_type -> raptor.panel.v1.ListSupportRequestsRequest
+	37, // 84: raptor.panel.v1.StaffService.ListStaff:input_type -> raptor.panel.v1.ListStaffRequest
+	40, // 85: raptor.panel.v1.StaffService.ListStaffAudit:input_type -> raptor.panel.v1.ListStaffAuditRequest
+	1,  // 86: raptor.panel.v1.StaffService.GetStaffMe:output_type -> raptor.panel.v1.GetStaffMeResponse
+	9,  // 87: raptor.panel.v1.StaffService.GetOverview:output_type -> raptor.panel.v1.GetOverviewResponse
+	58, // 88: raptor.panel.v1.StaffService.GetUserInsights:output_type -> raptor.panel.v1.GetUserInsightsResponse
+	60, // 89: raptor.panel.v1.StaffService.GetNodeInsights:output_type -> raptor.panel.v1.GetNodeInsightsResponse
+	63, // 90: raptor.panel.v1.StaffService.GetBillingInsights:output_type -> raptor.panel.v1.GetBillingInsightsResponse
+	68, // 91: raptor.panel.v1.StaffService.GetInfrastructure:output_type -> raptor.panel.v1.GetInfrastructureResponse
+	12, // 92: raptor.panel.v1.StaffService.SearchUsers:output_type -> raptor.panel.v1.SearchUsersResponse
+	16, // 93: raptor.panel.v1.StaffService.GetUser:output_type -> raptor.panel.v1.GetUserResponse
+	18, // 94: raptor.panel.v1.StaffService.SuspendUser:output_type -> raptor.panel.v1.SuspendUserResponse
+	20, // 95: raptor.panel.v1.StaffService.UnsuspendUser:output_type -> raptor.panel.v1.UnsuspendUserResponse
+	22, // 96: raptor.panel.v1.StaffService.SignOutUser:output_type -> raptor.panel.v1.SignOutUserResponse
+	25, // 97: raptor.panel.v1.StaffService.SearchOrgs:output_type -> raptor.panel.v1.SearchOrgsResponse
+	29, // 98: raptor.panel.v1.StaffService.GetStaffOrg:output_type -> raptor.panel.v1.GetStaffOrgResponse
+	31, // 99: raptor.panel.v1.StaffService.SuspendOrg:output_type -> raptor.panel.v1.SuspendOrgResponse
+	35, // 100: raptor.panel.v1.StaffService.UnsuspendOrg:output_type -> raptor.panel.v1.UnsuspendOrgResponse
+	33, // 101: raptor.panel.v1.StaffService.BanSubdomain:output_type -> raptor.panel.v1.BanSubdomainResponse
+	44, // 102: raptor.panel.v1.StaffService.ListActiveAnnouncements:output_type -> raptor.panel.v1.ListActiveAnnouncementsResponse
+	46, // 103: raptor.panel.v1.StaffService.ListAnnouncements:output_type -> raptor.panel.v1.ListAnnouncementsResponse
+	48, // 104: raptor.panel.v1.StaffService.SaveAnnouncement:output_type -> raptor.panel.v1.SaveAnnouncementResponse
+	50, // 105: raptor.panel.v1.StaffService.EndAnnouncement:output_type -> raptor.panel.v1.EndAnnouncementResponse
+	53, // 106: raptor.panel.v1.StaffService.RequestSupportAccess:output_type -> raptor.panel.v1.RequestSupportAccessResponse
+	55, // 107: raptor.panel.v1.StaffService.ListSupportRequests:output_type -> raptor.panel.v1.ListSupportRequestsResponse
+	38, // 108: raptor.panel.v1.StaffService.ListStaff:output_type -> raptor.panel.v1.ListStaffResponse
+	41, // 109: raptor.panel.v1.StaffService.ListStaffAudit:output_type -> raptor.panel.v1.ListStaffAuditResponse
+	86, // [86:110] is the sub-list for method output_type
+	62, // [62:86] is the sub-list for method input_type
 	62, // [62:62] is the sub-list for extension type_name
 	62, // [62:62] is the sub-list for extension extendee
 	0,  // [0:62] is the sub-list for field type_name
@@ -4930,7 +5038,7 @@ func file_raptor_panel_v1_staff_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_staff_proto_rawDesc), len(file_raptor_panel_v1_staff_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   67,
+			NumMessages:   69,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

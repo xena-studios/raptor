@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminSubdomainsRouteImport } from './routes/admin.subdomains'
 import { Route as OrgsOrgIdRouteImport } from './routes/orgs.$orgId'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as SettingsActivityRouteImport } from './routes/settings.activity'
@@ -105,6 +106,11 @@ const AdminAnnouncementsRoute = AdminAnnouncementsRouteImport.update({
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSubdomainsRoute = AdminSubdomainsRouteImport.update({
+  id: '/subdomains',
+  path: '/subdomains',
   getParentRoute: () => AdminRoute,
 } as any)
 const OrgsOrgIdRoute = OrgsOrgIdRouteImport.update({
@@ -413,6 +419,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/subdomains': typeof AdminSubdomainsRoute
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -475,6 +482,7 @@ export interface FileRoutesByTo {
   '/invite': typeof InviteRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/subdomains': typeof AdminSubdomainsRoute
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
@@ -536,6 +544,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/subdomains': typeof AdminSubdomainsRoute
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -602,6 +611,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/announcements'
     | '/admin/settings'
+    | '/admin/subdomains'
     | '/orgs/$orgId'
     | '/settings/activity'
     | '/settings/security'
@@ -664,6 +674,7 @@ export interface FileRouteTypes {
     | '/invite'
     | '/admin/announcements'
     | '/admin/settings'
+    | '/admin/subdomains'
     | '/settings/activity'
     | '/settings/security'
     | '/signin/link'
@@ -724,6 +735,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/announcements'
     | '/admin/settings'
+    | '/admin/subdomains'
     | '/orgs/$orgId'
     | '/settings/activity'
     | '/settings/security'
@@ -842,6 +854,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/admin/settings'
       preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/subdomains': {
+      id: '/admin/subdomains'
+      path: '/subdomains'
+      fullPath: '/admin/subdomains'
+      preLoaderRoute: typeof AdminSubdomainsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/orgs/$orgId': {
@@ -1235,6 +1254,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminSubdomainsRoute: typeof AdminSubdomainsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminEggsNewRoute: typeof AdminEggsNewRoute
   AdminOrgsOrgIdRoute: typeof AdminOrgsOrgIdRoute
@@ -1255,6 +1275,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnnouncementsRoute: AdminAnnouncementsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminSubdomainsRoute: AdminSubdomainsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminEggsNewRoute: AdminEggsNewRoute,
   AdminOrgsOrgIdRoute: AdminOrgsOrgIdRoute,
