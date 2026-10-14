@@ -1,0 +1,212 @@
+---
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import Logo from "../components/Logo.astro";
+import "../styles/site.css";
+
+const app = "https://app.raptorpanel.net";
+const source = "https://github.com/xena-studios/raptor";
+const title = "Raptor: game servers on your own machines";
+const description =
+  "Raptor turns a Linux box you own or rent into a game server host you manage from your browser. Open source, in early development.";
+
+// What the installer prints, step by step (cmd/raptor/bootstrap.go).
+const install: [kind: string, text: string][] = [
+  ["prompt", "$ curl -fsSL https://get.raptorpanel.net | sudo bash -s -- \\"],
+  ["prompt cont", "-token rpt_join_…"],
+  ["step", "==> Checking the box"],
+  ["note", "Debian GNU/Linux 12 (bookworm), amd64, systemd, cgroups v2"],
+  ["step", "==> Installing packages"],
+  ["step", "==> Docker"],
+  ["note", "merged live-restore, userland-proxy off, log rotation"],
+  ["step", "==> The raptor user"],
+  ["step", "==> Server data volume"],
+  ["note", "image: an XFS image file on this disk, with hard limits"],
+  ["step", "==> Services"],
+  ["note", "raptor-wings and raptor-shutdown enabled and started"],
+  ["step", "==> Linking to the Panel"],
+  ["done", "Linked. Your node is online."],
+];
+
+const claims: [string, string][] = [
+  [
+    "Dangerous actions need your passkey.",
+    "Deleting a server, restoring a backup, or changing what code runs is signed on your device and checked by your node. Not even Raptor can do them without you.",
+  ],
+  [
+    "Your servers don't need us to keep running.",
+    "The node runs your servers, schedules, backups, and crash restarts on its own. If Raptor goes offline, your games stay up.",
+  ],
+  [
+    "Your files stay on your machine.",
+    "Players connect straight to your node. Backups are encrypted with your node's own key and go where you choose: the node itself, S3-compatible storage, SFTP, and more.",
+  ],
+  [
+    "Disk limits the kernel enforces.",
+    "Each server gets a hard limit, so one that fills its disk can't take the others down with it.",
+  ],
+  [
+    "Open source, all of it.",
+    "Raptor is AGPL-3.0, and the app links to the exact commit it's running.",
+  ],
+];
+
+// The catalog's eggs (eggs/<category>/<egg>), counted at build time so the
+// number stays true.
+// The build runs in site/.
+const eggs = join(process.cwd(), "..", "eggs");
+const catalog = readdirSync(eggs, { withFileTypes: true })
+  .filter((d) => d.isDirectory())
+  .flatMap((d) => readdirSync(join(eggs, d.name), { withFileTypes: true }))
+  .filter((d) => d.isDirectory()).length;
+
+const games: [string, string][] = [
+  ["Minecraft", "Paper, Purpur, Fabric, Forge, NeoForge, Quilt, Vanilla, Bedrock"],
+  ["Proxies", "Velocity, BungeeCord"],
+  ["Steam", "Rust, Valheim, Palworld, ARK, CS2, Satisfactory, and more"],
+  ["Standalone", "Terraria, Factorio, Vintage Story, OpenTTD, and more"],
+  ["Bots and apps", "Node.js, Python, Bun"],
+  ["Voice", "TeamSpeak, Mumble"],
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href="https://raptorpanel.net/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#1a1314" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8f5f5" media="(prefers-color-scheme: light)" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content="https://raptorpanel.net/" />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <a class="skip button small" href="#main">Skip to content</a>
+    <header class="wrap top">
+      <a class="brand" href="/" aria-label="Raptor, home"><Logo />Raptor</a>
+      <nav aria-label="Main">
+        <a href={source}>GitHub</a>
+        <a class="button small" href={app}>Sign in</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <div class="wrap hero">
+        <div>
+          <p class="chip">[ Early development ]</p>
+          <h1>Game servers on your own machines, <span class="accent">run from one place.</span></h1>
+          <p class="lead">
+            Bring a Linux box you own or rent. Paste one command on it, then create servers and
+            manage their consoles, files, backups, and schedules from your browser. There's no
+            panel to install and nothing to keep updated.
+          </p>
+          <div class="actions">
+            <a class="button primary" href={app}>Sign in</a>
+            <a class="button" href={source}>Read the source</a>
+          </div>
+        </div>
+
+        <figure class="terminal" aria-label="Linking a node: the installer checks the machine, installs Docker and Raptor, and links it">
+          <div class="terminal-bar" aria-hidden="true">
+            <span>root@your-box</span>
+            <span class="live">[ Connected ]</span>
+          </div>
+          <pre aria-hidden="true">{
+            install.map(([kind, text], i) => (
+              <span class={`line ${kind}`} style={`--i: ${i}`}>{text}</span>
+            ))
+          }</pre>
+        </figure>
+      </div>
+
+      <section aria-labelledby="how">
+        <div class="wrap">
+          <h2 id="how">From a bare machine to a server your friends can join.</h2>
+          <ol class="steps">
+            <li>
+              <h3>Connect a node</h3>
+              <p>In the app, choose Connect node. You get one command, with a token that works once, for an hour.</p>
+            </li>
+            <li>
+              <h3>Paste it on your machine</h3>
+              <p>It installs Docker and Raptor, sets up disk limits, and links the machine. Debian 12 or 13, or Ubuntu 24.04, on x86 or ARM.</p>
+            </li>
+            <li>
+              <h3>Create a server</h3>
+              <p>Pick a game and name it. Raptor installs and starts it, and players connect straight to your machine.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section aria-labelledby="yours">
+        <div class="wrap">
+          <h2 id="yours">Your machine stays yours.</h2>
+          <p class="intro">
+            Raptor manages your servers without owning them. The parts that could hurt you are the
+            parts that need you.
+          </p>
+          <dl class="claims">
+            {claims.map(([term, reason]) => (
+              <div>
+                <dt>{term}</dt>
+                <dd>{reason}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <section aria-labelledby="games">
+        <div class="wrap games">
+          <div>
+            <h2 id="games">Runs what Pterodactyl runs.</h2>
+            <p class="intro">
+              Raptor reads Pterodactyl and Pelican eggs, so anything with one can run, and its
+              catalog has {catalog} ready to pick. Already on Pterodactyl? <code>raptor import pterodactyl</code>{" "}
+              moves your servers over on the same machine.
+            </p>
+          </div>
+          <ul class="certified" aria-label="Supported games and apps">
+            {games.map(([name, detail]) => (
+              <li><span>{name}</span><span>{detail}</span></li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <aside class="status" aria-labelledby="status">
+      <div class="wrap">
+        <div>
+          <h2 id="status">Raptor is in early development.</h2>
+          <p class="intro">
+            It runs, and you can use it, but there's no billing, support, or uptime promise yet.
+            Follow along, or read every line, on GitHub.
+          </p>
+        </div>
+        <div class="actions">
+          <a class="button" href={source}>GitHub</a>
+          <a class="button primary" href={app}>Sign in</a>
+        </div>
+      </div>
+    </aside>
+
+    <footer>
+      <div class="wrap">
+        <span>Raptor is open source under the AGPL-3.0.</span>
+        <nav aria-label="Footer">
+          <a href={source}>Source</a>
+          <a href="https://status.raptorpanel.net">Status</a>
+          <a href={app}>Sign in</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

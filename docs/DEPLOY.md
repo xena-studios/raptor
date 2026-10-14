@@ -10,6 +10,7 @@ The why behind these choices is in [PANEL.md](PANEL.md#hosting), [RELIABILITY.md
                        Cloudflare (proxy, WAF, Turnstile)
 browsers ──https──▶  app.raptorpanel.net     (Worker: web/dist)
                      verify.raptorpanel.net  (Worker: web/verify)
+                     raptorpanel.net         (Worker: site/dist; www redirects here)
                      get.raptorpanel.net     (redirect to the latest install.sh)
 browsers, nodes ──▶  api.raptorpanel.net ──client cert──▶ server #1
                                                          Caddy :443
@@ -89,7 +90,8 @@ Then the service account: 1Password → Developer → Service accounts → new, 
    | Name | Type | Content | Proxy |
    |---|---|---|---|
    | `api` | A | server #1's public IPv4 | Proxied |
-   | `app`, `verify` | | made by Workers when you attach the domains, [below](#static-sites) | Proxied |
+   | `app`, `verify`, `@` | | made by Workers when you attach the domains, [below](#static-sites) | Proxied |
+   | `www` | AAAA | `100::` | Proxied (a placeholder: the redirect rule answers) |
    | `get` | AAAA | `100::` | Proxied (a placeholder: the redirect rule answers) |
    | `grafana` | CNAME | `raptor.grafana.net` | **DNS only** (Grafana gets its own certificate; [Monitoring](#monitoring)) |
 
@@ -128,6 +130,8 @@ Then the service account: 1Password → Developer → Service accounts → new, 
    - Security level: medium or lower. Under-attack mode breaks the API and nodes: don't turn it on for `api`.
 6. **Network:** WebSockets on (the default). **Caching → Cache Rules:** a rule bypassing the cache for `api.raptorpanel.net`.
 7. **Rules → Redirect Rules:** `get.raptorpanel.net` → `https://github.com/xena-studios/raptor/releases/latest/download/install.sh`, status 302. The script checks the binary against the SHA-256 it was generated with (`task release:sign`), so where it's served from isn't a trust boundary; GitHub's "latest" skips pre-releases.
+
+   And `www.raptorpanel.net/*` → `https://raptorpanel.net/${1}`, status 301, preserving the query string.
 
 **Check:** after the servers are up, `curl -fsS -o /dev/null -w '%{http_code}\n' https://api.raptorpanel.net/healthz` prints `200`, and `curl -k --resolve api.raptorpanel.net:443:<server #1 IP> https://api.raptorpanel.net/healthz` from anywhere but Cloudflare fails (the firewall drops it; with the firewall off, Caddy wants a client certificate).
 
@@ -299,7 +303,7 @@ Customers' offsite backups ([PANEL.md](PANEL.md#raptor-backup-storage)), in one 
 
 ## Static sites
 
-Two Cloudflare Workers with static assets and no code: `raptor-app` serves the web app's build (`web/dist`) and sends every unknown path to `index.html`; `raptor-verify` serves the Turnstile page (`web/verify`). Their settings are in [`web/wrangler.jsonc`](../web/wrangler.jsonc) and [`web/wrangler.verify.jsonc`](../web/wrangler.verify.jsonc). They're in the same account as the zones: whoever controls the DNS account controls these hostnames anyway (DECISIONS #203).
+Three Cloudflare Workers with static assets and no code: `raptor-app` serves the web app's build (`web/dist`) and sends every unknown path to `index.html`; `raptor-verify` serves the Turnstile page (`web/verify`); `raptor-site` serves the landing page (`site/dist`). Their settings are in [`web/wrangler.jsonc`](../web/wrangler.jsonc), [`web/wrangler.verify.jsonc`](../web/wrangler.verify.jsonc), and [`site/wrangler.jsonc`](../site/wrangler.jsonc). They're in the same account as the zones: whoever controls the DNS account controls these hostnames anyway (DECISIONS #203).
 
 The deploy token can only change Workers: My Profile → API Tokens → Create Token → Custom: **Account → Workers Scripts → Edit**, for this account only. No DNS or zone permissions. Put it in the vault (item `Cloudflare Workers deploy`).
 
@@ -310,13 +314,16 @@ cd web && pnpm install --frozen-lockfile && pnpm build      # reads web/.env.pro
 export CLOUDFLARE_API_TOKEN=<workers token> CLOUDFLARE_ACCOUNT_ID=<account id>
 pnpm dlx wrangler@4 deploy
 pnpm dlx wrangler@4 deploy -c wrangler.verify.jsonc
+cd ../site && pnpm install --frozen-lockfile && pnpm build && pnpm dlx wrangler@4 deploy
 ```
 
-Then attach the domains, once, in the dashboard: Workers & Pages → `raptor-app` → Settings → Domains & Routes → Add → **Custom domain** → `app.raptorpanel.net`, and the same for `raptor-verify` with `verify.raptorpanel.net`. Cloudflare creates the DNS records and certificates. The domains stay out of the config on purpose: deploying a custom domain from wrangler needs DNS edit permission (and, outside a terminal, wrangler overwrites conflicting DNS records), which the deploy token shouldn't have. Deploys leave domains they don't mention alone. Neither Worker has a `workers.dev` or preview address, so the custom domains are the only way in.
+Then attach the domains, once, in the dashboard: Workers & Pages → `raptor-app` → Settings → Domains & Routes → Add → **Custom domain** → `app.raptorpanel.net`, and the same for `raptor-verify` with `verify.raptorpanel.net` and `raptor-site` with `raptorpanel.net`. Cloudflare creates the DNS records and certificates. The domains stay out of the config on purpose: deploying a custom domain from wrangler needs DNS edit permission (and, outside a terminal, wrangler overwrites conflicting DNS records), which the deploy token shouldn't have. Deploys leave domains they don't mention alone. No Worker has a `workers.dev` or preview address, so the custom domains are the only way in.
 
 Both carry their own headers (`web/public/_headers`, `web/verify/_headers`): a Content-Security-Policy that lets the app run only its own scripts, call only the API, frame only the verify page, and never be framed; the verify page may only load Turnstile and only be framed by the app. The app also requires **Trusted Types** (`require-trusted-types-for 'script'`), so no plain string reaches a sink that runs code or markup. The app's code inserts no markup; the editor's workers go through the `raptor-workers` policy (`web/src/lib/trusted-types.ts`: same origin, `/assets/` only); Monaco and xterm use their own policies. Policy names aren't restricted (no `trusted-types` directive), since Monaco creates some lazily in features a test wouldn't reach.
 
 **Checked in CI:** `pnpm --dir web test:csp` (after a build) serves `dist/` with `_headers`' `/*` headers, the way the Worker does, and loads the pages that work without a session in headless Chromium. Any CSP violation or page error fails the build job. Pages behind sign-in aren't covered there, since there's no API.
+
+**The landing page** (`site/public/_headers`) runs no scripts at all: `script-src 'self'` plus the hash of any inline script the build emits (`site/scripts/headers.mjs`; none today), nothing loaded from elsewhere, and no forms. CI's `site` job loads it under those headers in both themes and fails on any violation, page error, or failed request (`pnpm --dir site test:csp`).
 
 **Check by hand:** the browser's console on `app.raptorpanel.net` shows no CSP errors through sign-in, the Turnstile check, and the account pages.
 
@@ -338,7 +345,7 @@ git checkout main && git pull
 git tag v0.x.y && git push origin v0.x.y
 ```
 
-The release workflow builds and pushes the images. Then, for a stable tag (`vX.Y.Z`, not `-rc.1` and the like), it deploys the Panel to server #1 and then the web app and the Turnstile page, in that order. The Wings binaries in the same release still wait for you to sign them (`task release:sign`). Nodes only update from signed releases, and the signing key never goes near CI.
+The release workflow builds and pushes the images. Then, for a stable tag (`vX.Y.Z`, not `-rc.1` and the like), it deploys the Panel to server #1 and then the web app, the Turnstile page, and the landing page. The Wings binaries in the same release still wait for you to sign them (`task release:sign`). Nodes only update from signed releases, and the signing key never goes near CI.
 
 On the server, `deploy.sh` runs the migrations first. They must work with the version still running: add columns, backfill, and drop in a later release; never rename in one step. Then it replaces one Panel at a time. A Panel shutting down answers 503 to Caddy's health check, stops getting new requests, and hands its node connections to the other over 20 seconds; nodes reconnect with jitter. Browsers see nothing; game servers never notice. If the new version doesn't become healthy, the job fails with the old one still serving the other half. Fix it and tag a new version, or redeploy the previous one by hand (below). A failed deploy stops before the web app, so the web app never runs ahead of the API.
 

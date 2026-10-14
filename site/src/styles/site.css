@@ -1,0 +1,466 @@
+/* raptorpanel.net, in Raptor's own system (docs/DESIGN.md): The Console in
+   the dark, Daylight in the light, one red, Hanken Grotesk for words and
+   JetBrains Mono for anything the machine says. */
+@import "@fontsource-variable/hanken-grotesk";
+@import "@fontsource-variable/jetbrains-mono";
+
+:root {
+  color-scheme: dark light;
+  --sans: "Hanken Grotesk Variable", system-ui, sans-serif;
+  --mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --bg: oklch(0.145 0.012 25);
+  --raised: oklch(0.185 0.013 25);
+  --rule: oklch(0.3 0.012 25);
+  --text: oklch(0.96 0.005 25);
+  --muted: oklch(0.72 0.011 25);
+  --red: oklch(0.66 0.19 25);
+  --on-red: oklch(0.17 0.03 25);
+  --warn: oklch(0.82 0.15 80);
+  --ok: oklch(0.8 0.16 150);
+  --terminal: #0a0c11;
+  --terminal-text: oklch(0.9 0.005 25);
+  --terminal-dim: oklch(0.62 0.01 25);
+  /* The terminal's hairline: its foreground at 8%, as DESIGN.md's rules. */
+  --terminal-rule: oklch(1 0 0 / 0.08);
+
+  --page: clamp(1.25rem, 4vw, 3rem);
+  --measure: 62ch;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: oklch(0.975 0.004 25);
+    --raised: oklch(0.955 0.006 25);
+    --rule: oklch(0.88 0.01 25);
+    --text: oklch(0.18 0.018 25);
+    --muted: oklch(0.44 0.013 25);
+    --red: oklch(0.545 0.215 25);
+    --on-red: oklch(0.99 0.01 25);
+    --warn: oklch(0.5 0.11 70);
+    --ok: oklch(0.5 0.12 150);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  font-kerning: normal;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.875em;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: var(--page);
+}
+
+.skip {
+  position: absolute;
+  left: var(--page);
+  top: -4rem;
+}
+.skip:focus {
+  top: 1rem;
+}
+
+/* Header */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1.25rem;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+.brand svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.top nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+.top nav a:not(.button) {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9375rem;
+}
+.top nav a:not(.button):hover {
+  color: var(--text);
+}
+
+/* Buttons, as in the app: mono, uppercase, 4px corners. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+.button:hover {
+  border-color: var(--muted);
+}
+.button.primary {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--on-red);
+}
+.button.primary:hover {
+  background: color-mix(in oklch, var(--red) 88%, var(--text));
+}
+.button.small {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+}
+
+/* Hero */
+.hero {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4.5rem);
+  align-items: center;
+  padding-block: clamp(3rem, 9vw, 7rem) clamp(4rem, 10vw, 8rem);
+}
+@media (min-width: 62rem) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  }
+}
+.chip {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+h1 {
+  margin: 1.25rem 0 0;
+  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+h1 .accent {
+  color: var(--red);
+}
+.lead {
+  max-width: 34rem;
+  margin: 1.5rem 0 0;
+  font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+.fine {
+  margin: 1.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* The terminal: what the install actually prints. */
+.terminal {
+  margin: 0;
+  border-radius: 6px;
+  background: var(--terminal);
+  color: var(--terminal-text);
+  outline: 1px solid var(--terminal-rule);
+  outline-offset: -1px;
+  overflow: hidden;
+}
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--terminal-rule);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--terminal-dim);
+}
+.terminal-bar .live {
+  color: oklch(0.8 0.16 150);
+}
+.terminal pre {
+  margin: 0;
+  padding: 1.125rem 1.25rem 1.375rem;
+  font-family: var(--mono);
+  font-size: clamp(0.75rem, 0.7rem + 0.2vw, 0.8125rem);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  /* "==>" as typed, not JetBrains Mono's arrow. */
+  font-variant-ligatures: none;
+}
+/* Wrapped lines hang under their text, as a terminal's output reads. */
+.terminal .line {
+  display: block;
+  padding-left: 4ch;
+  text-indent: -4ch;
+  animation: type-in 420ms var(--ease) both;
+  animation-delay: calc(var(--i) * 260ms + 300ms);
+}
+.terminal .prompt {
+  color: oklch(0.66 0.19 25);
+}
+.terminal .step {
+  color: var(--terminal-text);
+  font-weight: 500;
+}
+.terminal .note,
+.terminal .cont {
+  text-indent: 0;
+}
+.terminal .note {
+  color: var(--terminal-dim);
+}
+.terminal .done {
+  color: oklch(0.8 0.16 150);
+}
+@keyframes type-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+    filter: blur(2px);
+  }
+}
+
+/* Sections */
+section {
+  padding-block: clamp(4rem, 9vw, 7rem);
+  border-top: 1px solid var(--rule);
+}
+h2 {
+  margin: 0;
+  max-width: 22ch;
+  font-size: clamp(1.875rem, 1.4rem + 1.8vw, 2.75rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.intro {
+  max-width: var(--measure);
+  margin: 1.25rem 0 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* How it works: a real sequence, so it's numbered. */
+.steps {
+  display: grid;
+  gap: 2.5rem;
+  margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+@media (min-width: 52rem) {
+  .steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(2rem, 4vw, 3.5rem);
+  }
+}
+.steps li {
+  counter-increment: step;
+  padding-top: 1.25rem;
+  border-top: 2px solid var(--text);
+}
+.steps li::before {
+  content: counter(step);
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  color: var(--red);
+}
+.steps h3 {
+  margin: 0.5rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.steps p {
+  margin: 0.625rem 0 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* What stays yours: a ruled list, term beside its reason. */
+.claims {
+  margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+}
+.claims div {
+  display: grid;
+  gap: 0.375rem 2rem;
+  padding-block: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+.claims div:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+@media (min-width: 52rem) {
+  .claims div {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: baseline;
+  }
+}
+.claims dt {
+  font-size: 1.1875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.claims dd {
+  margin: 0;
+  max-width: var(--measure);
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* Games */
+.games {
+  display: grid;
+  gap: 2.5rem;
+}
+@media (min-width: 62rem) {
+  .games {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.certified {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 0.875rem;
+}
+.certified li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+.certified li:first-child {
+  border-top: 1px solid var(--rule);
+}
+.certified span:last-child {
+  color: var(--muted);
+  text-align: right;
+}
+@media (max-width: 36rem) {
+  .certified li {
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+  .certified span:last-child {
+    text-align: left;
+  }
+}
+
+/* Footer: the honest status, then the links. */
+.status {
+  background: var(--raised);
+  border-top: 1px solid var(--rule);
+}
+.status .wrap {
+  display: grid;
+  gap: 1.5rem;
+  padding-block: clamp(3rem, 7vw, 5rem);
+}
+@media (min-width: 52rem) {
+  .status .wrap {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+}
+.status h2 {
+  max-width: 26ch;
+}
+footer {
+  border-top: 1px solid var(--rule);
+}
+footer .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1.75rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+footer a {
+  text-decoration: none;
+}
+footer a:hover {
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal .line {
+    animation: none;
+  }
+  .button {
+    transition: none;
+  }
+}

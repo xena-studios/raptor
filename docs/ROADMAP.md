@@ -29,7 +29,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 7. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the help center. Its install and provider guides come first, since the exit test above is "without help".
 
 Found while checking production (Oct 8):
-- `raptorpanel.net` itself answers nothing (no record), so `raptornodes.net`'s redirect lands on a dead page. The landing page is still to do.
+- `raptorpanel.net` itself answers nothing (no record), so `raptornodes.net`'s redirect lands on a dead page. The landing page is built (`site/`) and deploys with the next release; its domain still has to be attached ([DEPLOY.md](DEPLOY.md#static-sites)).
 - `raptorpanel.com` is registered at Namecheap and redirects to `gig.raptorsheets.com`. If that isn't yours, the "register `raptorpanel.com`" task isn't done; if it is, point it at `raptorpanel.net`.
 - `status.raptorpanel.net` is a Better Stack page, but its DNS is on Cloudflare, which the plan said to avoid (a Cloudflare outage would take the status page down with the API).
 
@@ -296,7 +296,7 @@ Found while checking production (Oct 8):
 | When | Task |
 |---|---|
 | Now | Reserve GitHub org, social handles, Discord server |
-| Now | Landing page + waitlist on `raptorpanel.net` (Astro, `site/`) |
+| Now | Landing page on `raptorpanel.net` (Astro, `site/`; built, no waitlist: DECISIONS #261) |
 | Now | Register `raptorpanel.com` (and `raptornodes.com` if available) and redirect them |
 | By Phase 4 | Apply to add `raptornodes.net` to the Public Suffix List (takes weeks; must be done before user subdomains) |
 | By Phase 3 | Business entity (needed for Polar payouts) |

@@ -64,6 +64,21 @@ jobs:
             CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -o /tmp/raptor-$arch ./cmd/raptor
           done
 
+  # raptorpanel.net: builds, loads under its CSP in both themes with no
+  # violation or failed request, and its Worker config parses.
+  site:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - working-directory: site
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm exec playwright install --with-deps --only-shell chromium
+          pnpm test:csp
+          pnpm dlx wrangler@4 deploy --dry-run
+
   # The Panel's server images and compose files (deploy/) still build and
   # parse; the full rehearsal is local: task deploy:rehearse.
   deploy:
