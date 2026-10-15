@@ -10,6 +10,67 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AlertChannel struct {
+	ID           pgtype.UUID
+	OrgID        pgtype.UUID
+	Type         string
+	Name         string
+	Config       []byte
+	Secret       []byte
+	Hint         string
+	FailingSince pgtype.Timestamptz
+	LastError    string
+	LastSentAt   pgtype.Timestamptz
+	DisabledAt   pgtype.Timestamptz
+	CreatedBy    pgtype.UUID
+	CreatedAt    pgtype.Timestamptz
+}
+
+type AlertDelivery struct {
+	ID        pgtype.UUID
+	OrgID     pgtype.UUID
+	RuleID    pgtype.UUID
+	ChannelID pgtype.UUID
+	Message   []byte
+	Status    string
+	Attempts  int32
+	NextAt    pgtype.Timestamptz
+	Error     string
+	CreatedAt pgtype.Timestamptz
+	SentAt    pgtype.Timestamptz
+}
+
+type AlertRule struct {
+	ID             pgtype.UUID
+	OrgID          pgtype.UUID
+	Name           string
+	Condition      string
+	NodeID         pgtype.UUID
+	ServerID       string
+	Threshold      float64
+	ForMinutes     int32
+	ChannelIds     []pgtype.UUID
+	NotifyResolved bool
+	Enabled        bool
+	CreatedBy      pgtype.UUID
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
+}
+
+type AlertState struct {
+	RuleID pgtype.UUID
+	Target string
+	Since  pgtype.Timestamptz
+}
+
+type AlertTelegramLink struct {
+	TokenHash []byte
+	OrgID     pgtype.UUID
+	UserID    pgtype.UUID
+	ExpiresAt pgtype.Timestamptz
+	ChannelID pgtype.UUID
+}
+
 type Announcement struct {
 	ID        pgtype.UUID
 	Level     string
@@ -254,6 +315,8 @@ type Node struct {
 	SftpHostKey     string
 	SftpAllowed     bool
 	DisplayAddress  string
+	AlertsHash      string
+	AlertsError     string
 }
 
 type NodeConnection struct {

@@ -110,9 +110,12 @@ service LocalService {
   // Root only.
   rpc PinOwnerKey(PinOwnerKeyRequest) returns (PinOwnerKeyResponse) {}
 
-  // TestNotifications sends a test message to every notification target in
-  // config.yml and reports how each went. Root only.
-  rpc TestNotifications(TestNotificationsRequest) returns (TestNotificationsResponse) {}
+  // TestNotifications is gone: alerts are set and tested in the Panel
+  // (DECISIONS #269). Kept so older raptor CLIs get a clear answer; it
+  // always fails with FAILED_PRECONDITION.
+  rpc TestNotifications(TestNotificationsRequest) returns (TestNotificationsResponse) {
+    option deprecated = true;
+  }
 
   // ImportServer creates a server from another panel's (raptor import):
   // its configuration, and a copy of its directory. The original is left
@@ -502,18 +505,6 @@ message CancelKeyResetRequest {
 
 message CancelKeyResetResponse {}
 
-message TestNotificationsRequest {}
-
-message TestNotificationsResponse {
-  repeated NotificationResult results = 1;
-}
-
-// NotificationResult is how a test message went for one target.
-message NotificationResult {
-  string target = 1;
-  // Empty if it was delivered.
-  string error = 2;
-}
 
 message GetMetricsRequest {
   string server = 1;
@@ -643,3 +634,20 @@ message SetSupportEnabledRequest {
 }
 
 message SetSupportEnabledResponse {}
+
+message TestNotificationsRequest {
+  option deprecated = true;
+}
+
+message TestNotificationsResponse {
+  option deprecated = true;
+  repeated NotificationResult results = 1;
+}
+
+// NotificationResult is how a test message went for one target.
+message NotificationResult {
+  option deprecated = true;
+  string target = 1;
+  // Empty if it was delivered.
+  string error = 2;
+}

@@ -189,6 +189,11 @@ func (s *Service) CreateOrg(ctx context.Context, req *panelv1.CreateOrgRequest) 
 		if err := q.AddOrgMember(ctx, store.AddOrgMemberParams{OrgID: o.ID, UserID: sess.UserID, Role: "owner"}); err != nil {
 			return err
 		}
+		// Owners are emailed about crash loops, offline nodes, and low disk
+		// until they change it (docs/PANEL.md#alerts).
+		if err := q.CreateAlertDefaults(ctx, o.ID); err != nil {
+			return err
+		}
 		if err := s.audit(ctx, q, sess, o.ID, "org.create", "", nil, map[string]any{"name": name}); err != nil {
 			return err
 		}

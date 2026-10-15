@@ -62,6 +62,7 @@ type browser struct {
 	addons panelv1connect.AddonServiceClient
 	subs   panelv1connect.SubdomainServiceClient
 	bill   panelv1connect.BillingServiceClient
+	alerts panelv1connect.AlertServiceClient
 }
 
 func newBrowser(t *testing.T, srv *httptest.Server, origin string) *browser {
@@ -84,6 +85,7 @@ func newBrowser(t *testing.T, srv *httptest.Server, origin string) *browser {
 		addons: panelv1connect.NewAddonServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 		subs:   panelv1connect.NewSubdomainServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 		bill:   panelv1connect.NewBillingServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
+		alerts: panelv1connect.NewAlertServiceClient(&c, srv.URL+"/api", connect.WithInterceptors(withOrigin)),
 	}
 }
 

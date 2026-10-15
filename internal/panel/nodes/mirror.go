@@ -32,6 +32,9 @@ type Mirror struct {
 	DB  *pgxpool.Pool
 	Hub *Hub
 	Log *slog.Logger
+	// Alerts queues the alerts a batch of events raises, in the transaction
+	// that applies it (alerts.Service.Ingest); nil: none.
+	Alerts func(ctx context.Context, q *store.Queries, node pgtype.UUID, evs []*nodev1.Event) error
 
 	once    sync.Once
 	mu      sync.Mutex
@@ -245,7 +248,8 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 				if json.Unmarshal(e.GetData(), &d) == nil && d.State != "" {
 					states[sid] = d.State
 				}
-			case "server.console.command":
+			case "server.console.command", "security.audit", "alert.fired", "alert.resolved":
+				// Nothing about the server itself changed.
 			case "schedule.run.queued", "schedule.run.skipped", "schedule.run.finished",
 				"schedule.deleted", "server.deleted":
 				runs = append(runs, e)
@@ -283,6 +287,11 @@ func (m *Mirror) Sync(ctx context.Context, nodeID string) error {
 			if servers != nil {
 				if err := applyServers(ctx, q, node, servers); err != nil {
 					return err
+				}
+			}
+			if m.Alerts != nil {
+				if err := m.Alerts(ctx, q, node, evs); err != nil {
+					return fmt.Errorf("alerts: %w", err)
 				}
 			}
 			return q.SetNodeAcked(ctx, store.SetNodeAckedParams{ID: node, LastAckedSeq: last})

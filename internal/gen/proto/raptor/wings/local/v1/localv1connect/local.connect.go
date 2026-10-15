@@ -169,8 +169,11 @@ type LocalServiceClient interface {
 	// it names the join token used. Only while the node trusts no owner key.
 	// Root only.
 	PinOwnerKey(context.Context, *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error)
-	// TestNotifications sends a test message to every notification target in
-	// config.yml and reports how each went. Root only.
+	// TestNotifications is gone: alerts are set and tested in the Panel
+	// (DECISIONS #269). Kept so older raptor CLIs get a clear answer; it
+	// always fails with FAILED_PRECONDITION.
+	//
+	// Deprecated: do not use.
 	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
 	// ImportServer creates a server from another panel's (raptor import):
 	// its configuration, and a copy of its directory. The original is left
@@ -556,6 +559,8 @@ func (c *localServiceClient) PinOwnerKey(ctx context.Context, req *v1.PinOwnerKe
 }
 
 // TestNotifications calls raptor.wings.local.v1.LocalService.TestNotifications.
+//
+// Deprecated: do not use.
 func (c *localServiceClient) TestNotifications(ctx context.Context, req *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {
 	response, err := c.testNotifications.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
@@ -675,8 +680,11 @@ type LocalServiceHandler interface {
 	// it names the join token used. Only while the node trusts no owner key.
 	// Root only.
 	PinOwnerKey(context.Context, *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error)
-	// TestNotifications sends a test message to every notification target in
-	// config.yml and reports how each went. Root only.
+	// TestNotifications is gone: alerts are set and tested in the Panel
+	// (DECISIONS #269). Kept so older raptor CLIs get a clear answer; it
+	// always fails with FAILED_PRECONDITION.
+	//
+	// Deprecated: do not use.
 	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
 	// ImportServer creates a server from another panel's (raptor import):
 	// its configuration, and a copy of its directory. The original is left

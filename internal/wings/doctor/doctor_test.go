@@ -217,10 +217,9 @@ func TestProblems(t *testing.T) {
 			s.cmds["systemctl is-enabled raptor-shutdown.service"] = "disabled\n"
 		}},
 		{"Config file", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) { e.ConfigErr = errors.New("limits: bad size") }},
-		{"Config file", Warn, func(e *Env, s *fakeSystem, _ *fakeDocker) {
+		{"Config file", Warn, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
 			e.ConfigPath = "/etc/raptor/config.yml"
-			e.Config.Notifications = []config.Notification{{Type: "discord", URL: "https://discord.com/api/webhooks/1/x"}}
-			s.modes = map[string]fs.FileMode{e.ConfigPath: 0o644}
+			e.Config.Notifications = []any{map[string]any{"type": "discord"}}
 		}},
 		{"Wings", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) { e.Status, e.StatusErr = nil, errors.New("no such file") }},
 		{"Wings", Warn, func(e *Env, _ *fakeSystem, _ *fakeDocker) { e.Status.Servers = nil }},

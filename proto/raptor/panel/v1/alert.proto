@@ -1,0 +1,240 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// AlertService is an org's alerts (docs/PANEL.md#alerts): channels (where
+// alerts go: email, Discord, Slack, Telegram, ntfy, a webhook) and rules
+// (what's worth one, where). Admins and owners see and change them.
+service AlertService {
+  // ListAlertChannels lists the org's channels, and the channel types this
+  // Panel offers.
+  rpc ListAlertChannels(ListAlertChannelsRequest) returns (ListAlertChannelsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // CreateAlertChannel adds a channel. Telegram chats are added with
+  // ConnectTelegram instead.
+  rpc CreateAlertChannel(CreateAlertChannelRequest) returns (CreateAlertChannelResponse) {}
+
+  // UpdateAlertChannel renames a channel, replaces its URL or secret, or
+  // turns it on (forgetting its failures) or off.
+  rpc UpdateAlertChannel(UpdateAlertChannelRequest) returns (UpdateAlertChannelResponse) {}
+
+  // DeleteAlertChannel removes a channel, and takes it out of every rule.
+  rpc DeleteAlertChannel(DeleteAlertChannelRequest) returns (DeleteAlertChannelResponse) {}
+
+  // TestAlertChannel sends a test alert now; error says why it didn't
+  // arrive.
+  rpc TestAlertChannel(TestAlertChannelRequest) returns (TestAlertChannelResponse) {}
+
+  // ConnectTelegram makes a link that opens a chat with Raptor's bot (or
+  // adds it to a group); the chat becomes a channel once it's opened.
+  rpc ConnectTelegram(ConnectTelegramRequest) returns (ConnectTelegramResponse) {}
+
+  // ListAlertRules lists the org's rules, and every condition a rule can
+  // have.
+  rpc ListAlertRules(ListAlertRulesRequest) returns (ListAlertRulesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // SaveAlertRule adds a rule (no id) or changes one.
+  rpc SaveAlertRule(SaveAlertRuleRequest) returns (SaveAlertRuleResponse) {}
+
+  rpc DeleteAlertRule(DeleteAlertRuleRequest) returns (DeleteAlertRuleResponse) {}
+
+  // ListAlertHistory lists the org's latest alerts, one per channel each
+  // went to (kept 30 days).
+  rpc ListAlertHistory(ListAlertHistoryRequest) returns (ListAlertHistoryResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message AlertChannel {
+  string id = 1;
+  // email, discord, slack, telegram, ntfy, webhook.
+  string type = 2;
+  string name = 3;
+  // What it sends to, without its secret: "Owners", a member's email,
+  // "discord.com/api/webhooks/123456…", a Telegram chat's title.
+  string target = 4;
+  bool enabled = 5;
+  // Failing since the first alert it couldn't deliver (turned off after 3
+  // days of it); error is the last failure.
+  google.protobuf.Timestamp failing_since = 6;
+  string error = 7;
+  google.protobuf.Timestamp last_sent_at = 8;
+  google.protobuf.Timestamp created_at = 9;
+  // Email: "owners", "admins", or a member's user ID.
+  string email_to = 10;
+}
+
+message ListAlertChannelsRequest {
+  string org_id = 1;
+}
+
+message ListAlertChannelsResponse {
+  repeated AlertChannel channels = 1;
+  // Channel types this Panel can add (Telegram only with its bot set up;
+  // ones with secrets only with PANEL_DATA_KEY).
+  repeated string types = 2;
+  // How many an org may have.
+  int32 limit = 3;
+}
+
+message CreateAlertChannelRequest {
+  string org_id = 1;
+  string type = 2;
+  string name = 3;
+  // Discord or Slack webhook URL, or the webhook's endpoint.
+  string url = 4;
+  // Signs a webhook's requests (optional).
+  string secret = 5;
+  // Email: "owners", "admins", or a member's user ID.
+  string email_to = 6;
+  // ntfy: the server (empty: ntfy.sh), topic, and access token (optional).
+  string ntfy_server = 7;
+  string ntfy_topic = 8;
+  string ntfy_token = 9;
+}
+
+message CreateAlertChannelResponse {
+  AlertChannel channel = 1;
+}
+
+message UpdateAlertChannelRequest {
+  string org_id = 1;
+  string id = 2;
+  string name = 3;
+  bool enabled = 4;
+  // Set to replace what it sends to (the type's fields, as when creating);
+  // left empty, it's kept.
+  string url = 5;
+  string secret = 6;
+  string ntfy_topic = 7;
+  string ntfy_token = 8;
+  string ntfy_server = 9;
+  string email_to = 10;
+}
+
+message UpdateAlertChannelResponse {
+  AlertChannel channel = 1;
+}
+
+message DeleteAlertChannelRequest {
+  string org_id = 1;
+  string id = 2;
+}
+
+message DeleteAlertChannelResponse {}
+
+message TestAlertChannelRequest {
+  string org_id = 1;
+  string id = 2;
+}
+
+message TestAlertChannelResponse {
+  bool ok = 1;
+  string error = 2;
+}
+
+message ConnectTelegramRequest {
+  string org_id = 1;
+}
+
+message ConnectTelegramResponse {
+  // Opens a private chat with the bot.
+  string chat_url = 1;
+  // Adds the bot to a group.
+  string group_url = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message AlertCondition {
+  string id = 1;
+  string label = 2;
+  // "server": can apply to one server, a node, or the org; "node": a node
+  // or the org.
+  string scope = 3;
+  // Threshold conditions take a threshold (in unit) and how long it must
+  // hold; Wings evaluates them, from v0.5.0.
+  bool threshold = 4;
+  string unit = 5;
+  // It ends with a "resolved" alert.
+  bool resolves = 6;
+}
+
+message AlertRule {
+  string id = 1;
+  string name = 2;
+  string condition = 3;
+  // Empty: every node in the org.
+  string node_id = 4;
+  // Empty: every server (on the node, or in the org).
+  string server_id = 5;
+  double threshold = 6;
+  // Thresholds: how long it must hold; node_offline: the grace before it
+  // counts (at least 1).
+  int32 for_minutes = 7;
+  repeated string channel_ids = 8;
+  bool notify_resolved = 9;
+  bool enabled = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+
+message ListAlertRulesRequest {
+  string org_id = 1;
+}
+
+message ListAlertRulesResponse {
+  repeated AlertRule rules = 1;
+  repeated AlertCondition conditions = 2;
+  int32 limit = 3;
+}
+
+message SaveAlertRuleRequest {
+  string org_id = 1;
+  AlertRule rule = 2;
+}
+
+message SaveAlertRuleResponse {
+  AlertRule rule = 1;
+}
+
+message DeleteAlertRuleRequest {
+  string org_id = 1;
+  string id = 2;
+}
+
+message DeleteAlertRuleResponse {}
+
+message AlertHistoryEntry {
+  string id = 1;
+  string rule_id = 2;
+  string channel_id = 3;
+  string condition = 4;
+  string level = 5;
+  string title = 6;
+  string text = 7;
+  bool resolved = 8;
+  string node_id = 9;
+  string node_name = 10;
+  string server_id = 11;
+  string server_name = 12;
+  // pending, sent, failed, dropped.
+  string status = 13;
+  string error = 14;
+  google.protobuf.Timestamp at = 15;
+  google.protobuf.Timestamp sent_at = 16;
+}
+
+message ListAlertHistoryRequest {
+  string org_id = 1;
+  // At most 200; 0 means 50.
+  int32 limit = 2;
+}
+
+message ListAlertHistoryResponse {
+  repeated AlertHistoryEntry entries = 1;
+}

@@ -42,7 +42,6 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/link"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 	"github.com/xena-studios/raptor/internal/wings/metrics"
-	"github.com/xena-studios/raptor/internal/wings/notify"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/sftp"
@@ -50,6 +49,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/store"
 	"github.com/xena-studios/raptor/internal/wings/support"
 	"github.com/xena-studios/raptor/internal/wings/system"
+	"github.com/xena-studios/raptor/internal/wings/thresholds"
 	"github.com/xena-studios/raptor/internal/wings/update"
 )
 
@@ -133,17 +133,10 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Updates:   updates,
 	}
 	svc.Disk = disk
-	notifier := newNotifier(cfg, db, log)
-	if notifier != nil {
-		svc.Notify = notifier
-		go notifier.Run(ctx)
-	}
 	rt, err := newRuntimeSetup(dc, cfg, log, db, svc)
 	if err == nil {
 		rt.disk = disk
-		if notifier != nil {
-			rt.commands.OnAudit = func(command.AuditEntry) { notifier.Wake() }
-		}
+		rt.commands.OnAudit = auditEvents(rt.events, log)
 	}
 	if err != nil {
 		return err
@@ -351,6 +344,20 @@ func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
 	}
 	actions.RegisterHealth(r.commands, health)
 	r.health.Store(health)
+	// Threshold alerts, from the rules the Panel sends (docs/WINGS.md#threshold-alerts).
+	alerts := &thresholds.Evaluator{
+		DB: r.db, Outbox: r.events, Metrics: r.metrics, Servers: mgr, Log: r.log,
+		Host: func() thresholds.Host {
+			st := host.ReadStats()
+			total, _, _ := storage.Space(volumes)
+			return thresholds.Host{CPUs: st.CPUs, MemoryBytes: st.MemoryTotal, DiskBytes: total}
+		},
+	}
+	if err := alerts.Load(context.Background()); err != nil {
+		r.log.Error("reading threshold alert rules failed", "err", err)
+	}
+	actions.RegisterAlerts(r.commands, alerts)
+	go alerts.Run(ctx)
 	go health.Watch(ctx, time.Hour)
 }
 
@@ -770,14 +777,20 @@ func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
 	})
 }
 
-// newNotifier sends notifications straight from the node to the targets in
-// config.yml (nil if there are none).
-func newNotifier(cfg config.Config, db *store.DB, log *slog.Logger) *notify.Notifier {
-	if len(cfg.Notifications) == 0 {
-		return nil
+// auditEvents raises a security.audit event for every finished entry in
+// the node's audit log (a signed action run, failed, or rejected; a
+// pairing; a key reset), so the org's security alerts see them
+// (docs/PANEL.md#alerts). The audit log itself stays on the node.
+func auditEvents(o *events.Outbox, log *slog.Logger) func(command.AuditEntry) {
+	return func(a command.AuditEntry) {
+		_, err := o.Append(context.Background(), events.Event{Type: "security.audit", ServerID: a.ServerID, Data: map[string]any{
+			"action": a.Action, "outcome": a.Outcome, "detail": a.Detail, "command_id": a.CommandID,
+			"user_id": a.UserID, "key_name": a.KeyName, "fingerprint": a.Fingerprint,
+		}})
+		if err != nil {
+			log.Error("recording a security event failed", "action", a.Action, "err", err)
+		}
 	}
-	name, _ := os.Hostname()
-	return &notify.Notifier{Targets: cfg.Notifications, DB: db, Outbox: events.New(db), Node: name, NodeID: cfg.NodeID, Log: log}
 }
 
 // eventStateRestored is recorded when a corrupt state database was replaced
