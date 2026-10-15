@@ -69,3 +69,21 @@ SELECT org_id FROM nodes WHERE id = $1;
 -- name: SetSweptNodes :exec
 INSERT INTO billing_accounts (org_id, nodes, auto_canceled) VALUES ($1, $2, $3)
 ON CONFLICT (org_id) DO UPDATE SET nodes = EXCLUDED.nodes, auto_canceled = EXCLUDED.auto_canceled, updated_at = now();
+
+-- Staff insights (the admin panel's Billing tab).
+
+-- name: BillingPlanCounts :many
+SELECT status, count(*)::int AS orgs, coalesce(sum(seats), 0)::int AS seats
+FROM billing_accounts WHERE subscription_id <> '' GROUP BY status ORDER BY status;
+
+-- name: BillingUnpaidCounts :one
+SELECT count(*) FILTER (WHERE unpaid_since IS NOT NULL)::int AS unpaid,
+       count(*) FILTER (WHERE unpaid_since < now() - interval '7 days')::int AS read_only
+FROM billing_accounts;
+
+-- name: RevenueByMonth :many
+SELECT to_char(date_trunc('month', at), 'YYYY-MM') AS month,
+       coalesce(sum(amount_cents) FILTER (WHERE kind = 'order.paid'), 0)::bigint AS paid_cents,
+       coalesce(sum(amount_cents) FILTER (WHERE kind = 'order.refunded'), 0)::bigint AS refunded_cents
+FROM billing_ledger WHERE kind IN ('order.paid', 'order.refunded') AND at >= $1
+GROUP BY 1 ORDER BY 1;

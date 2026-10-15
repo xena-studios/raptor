@@ -162,11 +162,18 @@ message FailingServer {
 }
 
 message Revenue {
-  // Whether billing exists yet. Until it does, what's below is what Raptor
-  // Backup Storage would bill a month, not money taken.
+  // Whether this Panel charges (Polar is set up). Raptor Backup Storage
+  // isn't charged yet either way: storage_cents_month is what it would bill.
   bool billing_live = 1;
   int64 storage_cents_month = 2;
   int32 storage_orgs = 3;
+  // From billing (docs/PANEL.md#billing-polar): seats on active and
+  // past-due plans at the node price, orgs on them, orgs on the free month,
+  // and orders paid less refunds in the last 30 days (recent_paid_cents).
+  int64 mrr_cents = 4;
+  int32 paying_orgs = 5;
+  int32 trialing_orgs = 6;
+  int64 recent_paid_cents = 7;
 }
 
 message GetOverviewResponse {
@@ -527,6 +534,29 @@ message GetBillingInsightsResponse {
   // Stored bytes per day.
   repeated StoragePoint storage_by_day = 7;
   repeated StorageOrg storage_orgs = 8;
+  // From billing: recurring revenue (seats on active and past-due plans at
+  // the node price), those seats, orgs by plan status, unpaid orgs and those
+  // already read-only, and paid revenue by month from the ledger.
+  int64 mrr_cents = 9;
+  int32 seats_billed = 10;
+  repeated PlanCount plans = 11;
+  int32 unpaid_orgs = 12;
+  int32 read_only_orgs = 13;
+  repeated RevenueMonth revenue_by_month = 14;
+}
+
+message PlanCount {
+  // Polar's status: trialing, active, past_due, canceled, …
+  string status = 1;
+  int32 orgs = 2;
+  int32 seats = 3;
+}
+
+message RevenueMonth {
+  // "2026-10".
+  string month = 1;
+  int64 paid_cents = 2;
+  int64 refunded_cents = 3;
 }
 
 message StoragePoint {

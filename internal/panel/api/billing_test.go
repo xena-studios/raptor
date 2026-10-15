@@ -28,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/paneltest"
+	"github.com/xena-studios/raptor/internal/panel/staff"
 )
 
 // fakePolar is the part of Polar's API billing uses.
@@ -140,6 +141,7 @@ func TestBilling(t *testing.T) {
 	node := &fakeNode{t: t, panelKey: pub}
 	srv := httptest.NewTLSServer(Handler(Config{
 		Auth: authSvc, Orgs: orgSvc, Billing: bill, AppOrigin: appOrigin,
+		Staff:    &staff.Service{DB: db, Auth: authSvc, BillingLive: bill.Enabled},
 		Commands: &commands.Service{Auth: authSvc, Sender: node, PanelKey: key, Billing: bill},
 	}))
 	defer srv.Close()
@@ -306,6 +308,32 @@ func TestBilling(t *testing.T) {
 	}
 	if _, err := alice.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: n1, Action: "server.start", ServerId: "s1"}); err != nil {
 		t.Errorf("a change once paid: %v", err)
+	}
+
+	// Staff see it: recurring revenue from the seats on active plans, and
+	// payments by month from the ledger.
+	admin, adminID := signUp("admin@raptor.example")
+	var out bytes.Buffer
+	if err := staff.CLI(ctx, db, &out, []string{"add", "admin@raptor.example", "admin"}); err != nil {
+		t.Fatal(err)
+	}
+	exec(`INSERT INTO passkeys (user_id, credential_id, credential, name) VALUES ($1::uuid, $2, '{}', 'key')`, adminID, []byte(adminID))
+	exec(`UPDATE sessions SET passkey_at = now() WHERE user_id = $1`, adminID)
+	exec(`INSERT INTO billing_ledger (org_id, kind, amount_cents, currency) VALUES ($1, 'order.paid', 1200, 'usd'), ($1, 'order.refunded', 200, 'usd')`, org)
+	ins, err := admin.staff.GetBillingInsights(ctx, &panelv1.GetBillingInsightsRequest{Days: 30})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ins.GetBillingLive() || ins.GetMrrCents() != 1200 || ins.GetSeatsBilled() != 1 || len(ins.GetRevenueByMonth()) != 1 ||
+		ins.GetRevenueByMonth()[0].GetPaidCents() != 1200 || ins.GetRevenueByMonth()[0].GetRefundedCents() != 200 {
+		t.Errorf("billing insights: %v", ins)
+	}
+	ov, err := admin.staff.GetOverview(ctx, &panelv1.GetOverviewRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := ov.GetRevenue(); !r.GetBillingLive() || r.GetMrrCents() != 1200 || r.GetPayingOrgs() != 1 || r.GetRecentPaidCents() != 1000 {
+		t.Errorf("overview revenue: %v", r)
 	}
 	// The owner cancels in Polar's portal: the sweep leaves it alone.
 	polar.mu.Lock()

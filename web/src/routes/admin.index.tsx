@@ -173,18 +173,27 @@ function Overview() {
               </CardTitle>
               <CardDescription>
                 {d.revenue?.billingLive
-                  ? "From billing."
-                  : "Billing isn't live yet, so nothing is charged. This is what Raptor Backup Storage would bill a month at today's usage."}
+                  ? "Recurring revenue from paid plans."
+                  : "Billing is off on this Panel, so nothing is charged."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-1">
-              <p className="font-mono text-2xl font-medium tabular-nums">
-                {dollars(d.revenue?.storageCentsMonth ?? 0n)}
-                <span className="ml-1 text-sm font-normal text-muted-foreground">/ month</span>
-              </p>
+              {d.revenue?.billingLive && (
+                <>
+                  <p className="font-mono text-2xl font-medium tabular-nums">
+                    {dollars(d.revenue.mrrCents)}
+                    <span className="ml-1 text-sm font-normal text-muted-foreground">/ month</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {d.revenue.payingOrgs} paying orgs, {d.revenue.trialingOrgs} on the free month;{" "}
+                    {dollars(d.revenue.recentPaidCents)} paid in the last 30 days.
+                  </p>
+                </>
+              )}
               <p className="text-xs text-muted-foreground">
-                Backup Storage, from {d.revenue?.storageOrgs ?? 0} orgs (10 GB a node included, then
-                $12 a TB).
+                Backup Storage isn't charged yet: it would bill{" "}
+                {dollars(d.revenue?.storageCentsMonth ?? 0n)} a month, from{" "}
+                {d.revenue?.storageOrgs ?? 0} orgs (10 GB a node included, then $12 a TB).
               </p>
             </CardContent>
           </Card>

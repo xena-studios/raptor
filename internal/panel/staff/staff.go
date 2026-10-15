@@ -27,6 +27,7 @@ import (
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
@@ -51,7 +52,12 @@ type Service struct {
 	// SyncSubdomains writes subdomains' records now, after a ban (nil:
 	// the next sweep does).
 	SyncSubdomains func()
+	// BillingLive reports whether the Panel charges (billing.Service.Enabled;
+	// nil: it doesn't).
+	BillingLive func() bool
 }
+
+func (s *Service) billingLive() bool { return s.BillingLive != nil && s.BillingLive() }
 
 var _ panelv1connect.StaffServiceHandler = (*Service)(nil)
 
@@ -264,14 +270,35 @@ func (s *Service) GetOverview(ctx context.Context, req *panelv1.GetOverviewReque
 			EggName: f.EggName, OrgId: id(f.OrgID), OrgName: f.OrgName,
 		})
 	}
-	// No billing yet: what Raptor Backup Storage would bill a month.
+	// Billing's plans and payments, and what Raptor Backup Storage would
+	// bill a month (it isn't charged yet).
 	storageOrgs, err := q.StorageByOrg(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rev := &panelv1.Revenue{StorageOrgs: int32(len(storageOrgs))} //nolint:gosec // a count of orgs
+	rev := &panelv1.Revenue{StorageOrgs: int32(len(storageOrgs)), BillingLive: s.billingLive()} //nolint:gosec // a count of orgs
 	for _, o := range storageOrgs {
 		rev.StorageCentsMonth += storage.Estimate(o.Bytes, int(o.Nodes))
+	}
+	plans, err := q.BillingPlanCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range plans {
+		switch p.Status {
+		case "active", "past_due":
+			rev.MrrCents += int64(p.Seats) * billing.NodePriceCents
+			rev.PayingOrgs += p.Orgs
+		case "trialing":
+			rev.TrialingOrgs += p.Orgs
+		}
+	}
+	months, err := q.RevenueByMonth(ctx, pgtype.Timestamptz{Time: time.Now().AddDate(0, 0, -30), Valid: true})
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range months {
+		rev.RecentPaidCents += m.PaidCents - m.RefundedCents
 	}
 	out.Revenue = rev
 	return out, nil

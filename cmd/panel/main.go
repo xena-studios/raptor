@@ -307,6 +307,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			cfg.Subdomains.Domain = nodeDomain
 		}
 		cfg.Staff.SyncSubdomains = cfg.Subdomains.Sync
+		cfg.Staff.BillingLive = bill.Enabled
 		cfg.Hub.ClientIPHeader = os.Getenv("PANEL_CLIENT_IP_HEADER")
 		cfg.Hub.OnAddress = addrs.Seen
 		cfg.Orgs.NodeRemoved = func(ctx context.Context, id string) {
