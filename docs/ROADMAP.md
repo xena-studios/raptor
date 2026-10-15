@@ -18,13 +18,13 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 ## Next up
 
-*As of Oct 14, 2026.* The Panel is live on one server (raptor-1, v0.3.2) with backups, monitoring, and automatic deploys, and a real node is linked to it. Phases 0–1 are met; Phase 2 is missing only its week-long soak, which now runs last, just before launch; Phase 3 is built, and what's left is mostly proving it in production. Phase 4's pages are built apart from billing; subdomains are built and wait on the Public Suffix List; its open boxes wait on the exit test in production. In order:
+*As of Oct 14, 2026.* The Panel is live on raptor-1 (v0.4.1), with raptor-2 as a streaming replica, backups, monitoring, and automatic deploys, and a real node is linked to it. Phases 0–1 are met; Phase 2 is missing only its week-long soak, which now runs last, just before launch; Phase 3 is built, and what's left is mostly proving it in production. Phase 4's pages are built apart from billing; subdomains are built and wait on the Public Suffix List; its open boxes wait on the exit test in production. In order:
 
 1. **Deploy a release while a server runs on the production node** (Phase 3's exit criteria: no game impact).
 2. **Test the alert chain end to end**: one alert from Grafana to the phone, plus the synthetic check failing for real.
 3. **Business track items that take weeks**: the Public Suffix List request for `raptornodes.net` (not on the list yet; subdomains are on without it, #267), the business entity, `security@raptorpanel.net`.
 4. **Phase 4's exit test in production**: a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
-5. **Before launch, not before**: server #2 and a failover drill (#212), billing, the load test, the help center (its install and provider guides first, since the exit test above is "without help"), and last, the week-long soak (`task soak:start`), so it runs against the code that launches.
+5. **Before launch, not before**: a failover drill on raptor-1 and raptor-2 (#212; server #2 is live), billing, the load test, the help center (its install and provider guides first, since the exit test above is "without help"), and last, the week-long soak (`task soak:start`), so it runs against the code that launches.
 
 Found while checking production (Oct 8):
 - `raptorpanel.com` belongs to someone else (it redirects to `gig.raptorsheets.com`), so it's off the list.
@@ -197,7 +197,7 @@ Found while checking production (Oct 8):
 
 ### 3.1 Infrastructure
 - [x] Server #1 (primary); Docker Compose; Caddy (live since Oct 8, 2026 on **raptor-1**, an OVH VPS-1 in Vint Hill running Debian 13, per [DEPLOY.md](DEPLOY.md); two Panels behind Caddy with per-hostname origin pulls, the firewall reapplied at boot; `task deploy:rehearse` still stands up both servers' stacks on one machine)
-- [ ] Server #2 (Postgres replica): deliberately later (#212). It's needed before launch, whose gate includes a tested failover; the runbook and the rehearsal are ready, and DEPLOY.md's single-server section says what changes.
+- [x] Server #2 (Postgres replica) (live since Oct 14, 2026: **raptor-2**, an OVH VPS in Hillsboro, Oregon, streaming from raptor-1 over a WireGuard tunnel (#268), about 66 ms behind; it has the deploy user and both host keys, so a failover only changes `DEPLOY_HOST`. The failover drill on the real servers is a launch-prep item)
 - [x] pgBackRest WAL archive to object storage in another location; **restore test** (Backblaze B2, `us-east-005`; encrypted WAL archive and backups, daily and monthly timers, and a daily restore test that compares the restored copy with the primary at one exact WAL position, each pinging a dead man's switch; passing in production)
 - [x] DNS: hostnames from [ARCHITECTURE.md](ARCHITECTURE.md#hostnames); `api.raptorpanel.net` behind the Cloudflare proxy (origin locked to Cloudflare, WAF rule for node connections, no AAAA); `raptornodes.net` DNS-only, apex redirecting to `raptorpanel.net`; `app.` and `verify.` on Workers with strict CSP; `get.` redirecting to the latest `install.sh`
 - [ ] Domain account hardening: hardware-key 2FA on the registrar and Cloudflare (no SMS recovery), registrar lock, scoped API tokens (both zones are on Cloudflare Registrar with transfers locked; every token is scoped (deploy: Workers only, DNS: `raptornodes.net` only, filtered by address); left: confirm hardware-key 2FA with no SMS recovery on Cloudflare, GitHub, 1Password, Grafana, B2, OVH, and Resend)
@@ -271,7 +271,7 @@ Found while checking production (Oct 8):
 - [ ] Watch: install success rate, time to first server, support tickets per user
 
 ### Launch prep
-- [ ] **Server #2** and a failover drill on the real servers ([DEPLOY.md](DEPLOY.md#failover))
+- [ ] **Server #2** and a failover drill on the real servers ([DEPLOY.md](DEPLOY.md#failover)) (server #2 is live and replicating; left: the `raptor-replica` alerts in Grafana, and the drill)
 - [ ] **Billing (Polar):** $12/node quantity subscription (every enrolled node, any status), daily proration, first-node 1-month trial (once per org, card required), webhooks, ledger, 7-day grace, read-only mode (built, off until Polar's token and product are set: a seat-based subscription whose seats follow nodes, checkout with the free month once, webhooks that fetch the subscription, a sweep for seats and missed webhooks, the ledger, 7 days then read-only with emails, the Billing page, the customer portal, and a banner while unpaid ([PANEL.md](PANEL.md#billing-polar)); left: the Polar account and product ([DEPLOY.md](DEPLOY.md#billing)), and the end-to-end test in Polar's sandbox, a failed payment and read-only mode included)
 - [ ] **Hosted backup storage** + metering (Raptor Backup Storage on B2: 10 GB included per paid node, then $0.012/GB-month) (built: a key per node for its folder, turned on from the node's Backups tab, measured daily, deleted 30 days after it's turned off, usage and an estimate in org settings; left: the bucket and key in production (DEPLOY.md), and charging, with billing)
 - [x] **Support access:** request/approve/revoke flow, banners, staff console, staff MFA (staff ask from the admin panel; owners approve by signing `support.grant` with a passkey; banners on the node's pages; "End now" and `raptor support revoke`; the support session page with health, logs, consoles, and files by level; staff need a passkey within 12 hours, and 5 minutes for changes ([PANEL.md](PANEL.md#support-access)))
