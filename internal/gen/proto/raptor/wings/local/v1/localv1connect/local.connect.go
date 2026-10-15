@@ -84,6 +84,9 @@ const (
 	// LocalServicePinOwnerKeyProcedure is the fully-qualified name of the LocalService's PinOwnerKey
 	// RPC.
 	LocalServicePinOwnerKeyProcedure = "/raptor.wings.local.v1.LocalService/PinOwnerKey"
+	// LocalServiceTestNotificationsProcedure is the fully-qualified name of the LocalService's
+	// TestNotifications RPC.
+	LocalServiceTestNotificationsProcedure = "/raptor.wings.local.v1.LocalService/TestNotifications"
 	// LocalServiceImportServerProcedure is the fully-qualified name of the LocalService's ImportServer
 	// RPC.
 	LocalServiceImportServerProcedure = "/raptor.wings.local.v1.LocalService/ImportServer"
@@ -166,6 +169,12 @@ type LocalServiceClient interface {
 	// it names the join token used. Only while the node trusts no owner key.
 	// Root only.
 	PinOwnerKey(context.Context, *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error)
+	// TestNotifications is gone: alerts are set and tested in the Panel
+	// (DECISIONS #269). Kept so older raptor CLIs get a clear answer; it
+	// always fails with FAILED_PRECONDITION.
+	//
+	// Deprecated: do not use.
+	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
 	// ImportServer creates a server from another panel's (raptor import):
 	// its configuration, and a copy of its directory. The original is left
 	// as it was. Root only.
@@ -316,6 +325,12 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("PinOwnerKey")),
 			connect.WithClientOptions(opts...),
 		),
+		testNotifications: connect.NewClient[v1.TestNotificationsRequest, v1.TestNotificationsResponse](
+			httpClient,
+			baseURL+LocalServiceTestNotificationsProcedure,
+			connect.WithSchema(localServiceMethods.ByName("TestNotifications")),
+			connect.WithClientOptions(opts...),
+		),
 		importServer: connect.NewClient[v1.ImportServerRequest, v1.ImportServerResponse](
 			httpClient,
 			baseURL+LocalServiceImportServerProcedure,
@@ -372,6 +387,7 @@ type localServiceClient struct {
 	confirmKeyReset   *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
 	cancelKeyReset    *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
 	pinOwnerKey       *connect.Client[v1.PinOwnerKeyRequest, v1.PinOwnerKeyResponse]
+	testNotifications *connect.Client[v1.TestNotificationsRequest, v1.TestNotificationsResponse]
 	importServer      *connect.Client[v1.ImportServerRequest, v1.ImportServerResponse]
 	getMetrics        *connect.Client[v1.GetMetricsRequest, v1.GetMetricsResponse]
 	listSupport       *connect.Client[v1.ListSupportRequest, v1.ListSupportResponse]
@@ -542,6 +558,17 @@ func (c *localServiceClient) PinOwnerKey(ctx context.Context, req *v1.PinOwnerKe
 	return nil, err
 }
 
+// TestNotifications calls raptor.wings.local.v1.LocalService.TestNotifications.
+//
+// Deprecated: do not use.
+func (c *localServiceClient) TestNotifications(ctx context.Context, req *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {
+	response, err := c.testNotifications.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ImportServer calls raptor.wings.local.v1.LocalService.ImportServer.
 func (c *localServiceClient) ImportServer(ctx context.Context, req *v1.ImportServerRequest) (*v1.ImportServerResponse, error) {
 	response, err := c.importServer.CallUnary(ctx, connect.NewRequest(req))
@@ -653,6 +680,12 @@ type LocalServiceHandler interface {
 	// it names the join token used. Only while the node trusts no owner key.
 	// Root only.
 	PinOwnerKey(context.Context, *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error)
+	// TestNotifications is gone: alerts are set and tested in the Panel
+	// (DECISIONS #269). Kept so older raptor CLIs get a clear answer; it
+	// always fails with FAILED_PRECONDITION.
+	//
+	// Deprecated: do not use.
+	TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error)
 	// ImportServer creates a server from another panel's (raptor import):
 	// its configuration, and a copy of its directory. The original is left
 	// as it was. Root only.
@@ -799,6 +832,12 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("PinOwnerKey")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceTestNotificationsHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceTestNotificationsProcedure,
+		svc.TestNotifications,
+		connect.WithSchema(localServiceMethods.ByName("TestNotifications")),
+		connect.WithHandlerOptions(opts...),
+	)
 	localServiceImportServerHandler := connect.NewUnaryHandlerSimple(
 		LocalServiceImportServerProcedure,
 		svc.ImportServer,
@@ -871,6 +910,8 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceCancelKeyResetHandler.ServeHTTP(w, r)
 		case LocalServicePinOwnerKeyProcedure:
 			localServicePinOwnerKeyHandler.ServeHTTP(w, r)
+		case LocalServiceTestNotificationsProcedure:
+			localServiceTestNotificationsHandler.ServeHTTP(w, r)
 		case LocalServiceImportServerProcedure:
 			localServiceImportServerHandler.ServeHTTP(w, r)
 		case LocalServiceGetMetricsProcedure:
@@ -964,6 +1005,10 @@ func (UnimplementedLocalServiceHandler) CancelKeyReset(context.Context, *v1.Canc
 
 func (UnimplementedLocalServiceHandler) PinOwnerKey(context.Context, *v1.PinOwnerKeyRequest) (*v1.PinOwnerKeyResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.PinOwnerKey is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) TestNotifications(context.Context, *v1.TestNotificationsRequest) (*v1.TestNotificationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.TestNotifications is not implemented"))
 }
 
 func (UnimplementedLocalServiceHandler) ImportServer(context.Context, *v1.ImportServerRequest) (*v1.ImportServerResponse, error) {
