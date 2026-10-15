@@ -22,7 +22,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 1. **Prove production:** deploy a release while a game server runs on the production node and confirm the game doesn't notice (Phase 3's exit criteria); import the Grafana alerts and dashboard (the `raptor-replica` group, and the node-health alerts and panels from #186) and send one alert to the phone.
 2. **The launch gate's two drills:** a failover from raptor-1 to raptor-2 on the real servers ([DEPLOY.md](DEPLOY.md#failover)), and billing end to end on a throwaway org: the free month, a second node ending it, a failed payment, read-only mode, and paying again.
-3. **Business track items that take weeks:** the Public Suffix List request for `raptornodes.net` (subdomains are on without it, #267), the business entity (Polar payouts need it), and the `security@` and `abuse@` mailboxes.
+3. **Business track items that take weeks:** the Public Suffix List request for `raptornodes.net` (subdomains are on without it, #267), the business entity (Polar payouts need it).
 4. **Phase 4's exit test in production:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
 5. **Before launch:** the private beta, charging for Raptor Backup Storage, the load test, the help center (its install and provider guides first, since the exit test is "without help"), the status page off Cloudflare's DNS, and last, the week-long soak (`task soak:start`), so it runs against the code that launches.
 
@@ -293,8 +293,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 | Now | Register `raptornodes.com` if available and redirect it (`raptorpanel.com` belongs to someone else) |
 | By launch | Apply to add `raptornodes.net` to the Public Suffix List (takes weeks; subdomains went on before it, #267) |
 | Now (overdue) | Business entity (Polar pays out to it) |
-| Now (overdue) | `security@raptorpanel.net` mailbox (SECURITY.md points to it) |
-| Now | `abuse@raptorpanel.net` mailbox (the landing page links to it, and subdomains are on) |
+| Done | `security@raptorpanel.net` mailbox (SECURITY.md points to it; Cloudflare Email Routing, Oct 15) |
+| Done | `abuse@raptorpanel.net` mailbox (the landing page links to it; Cloudflare Email Routing, Oct 15) |
 | By Phase 5 | Terms of Service, Privacy Policy, DPA (covering support access and player data) |
 | By launch | Polar account verified for payouts (the product and webhooks are set up and billing is on, since Oct 14) |
 | Ongoing | Share progress publicly (devlogs, Discord) to build the beta list |
