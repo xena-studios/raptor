@@ -26,7 +26,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Announcements } from "@/components/announcements";
 import { BillingBanner } from "@/components/billing-banner";
 import { NotFound } from "@/components/error-screen";
-import { Logo } from "@/components/logo";
+import { Logo, RaptorMark, Wordmark } from "@/components/logo";
 import { SourceLink } from "@/components/source-link";
 import {
   DropdownMenu,
@@ -136,8 +136,9 @@ export function AppShell({
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" tooltip="Raptor" render={<Link to="/" />}>
-                <Logo className="size-8! shrink-0" />
-                <span className="font-heading text-base font-bold tracking-tight">Raptor</span>
+                <Logo className="hidden size-8! shrink-0 group-data-[collapsible=icon]:block" />
+                <RaptorMark className="h-7! w-auto! shrink-0 group-data-[collapsible=icon]:hidden" />
+                <Wordmark className="h-3! w-auto! text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

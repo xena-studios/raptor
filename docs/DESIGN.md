@@ -285,3 +285,12 @@ Flat. Depth comes from tone and 1px rules: the sidebar is darker than the page, 
 - **Don't** round past 6px on any surface or use pill-shaped badges.
 - **Don't** put a kicker above every section, or repeat the page's name as a card's title.
 - **Don't** use a gradient on text, a border-left stripe as an accent, or a shadow to lift a card.
+
+## 7. Brand
+
+The marks are in [`web/src/components/logo.tsx`](../web/src/components/logo.tsx); the site's header (`site/src/components/Logo.astro`) and both favicons are copies of them, so change them together.
+
+- **The full logo** is the running raptor in Signal Red beside the **RAPTOR** wordmark: Archivo ExtraBold (800) at width 118 with 0.06em tracking, outlined to a path so no font loads for it. Wherever the wordmark appears, the raptor is beside it: the site's header, the full-page error screens, and the expanded sidebar. The raptor is wide, so it never appears alone at small sizes.
+- **The small mark** is an R whose leg is a raptor's sickle claw, in Signal Red on its own: the collapsed sidebar, and anywhere 32px or more with no room for the full logo. It's never beside the wordmark. **The favicons** put the same R in Ink on a Signal Red tile with 6px corners, because at 16px a bare letter turns into a thin mark among the other tabs, and the tile stays a solid shape; app icons and avatars use the tile too.
+- Both are one flat colour each: no gradients, outlines, or shadows. The raptor, the small mark, and the favicon's tile are Signal Red (its Daylight value in the light theme) and the wordmark is the text colour, Bone or Graphite.
+- Archivo is only the wordmark's letters. The app and the site keep Hanken Grotesk and JetBrains Mono.
