@@ -18,17 +18,13 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 ## Next up
 
-*As of Oct 14, 2026.* The Panel is live on raptor-1 (v0.4.1), with raptor-2 as a streaming replica, backups, monitoring, and automatic deploys, and a real node is linked to it. Phases 0–1 are met; Phase 2 is missing only its week-long soak, which now runs last, just before launch; Phase 3 is built, and what's left is mostly proving it in production. Phase 4's pages are built apart from billing; subdomains are built and wait on the Public Suffix List; its open boxes wait on the exit test in production. In order:
+*As of Oct 15, 2026.* Production runs v0.4.1 on raptor-1, with raptor-2 as a streaming replica over WireGuard, backups, monitoring, and automatic deploys; a real node is linked. Billing (Polar), Raptor Backup Storage, and player subdomains are on. Phases 0–1 are met. Phase 2 is missing only its week-long soak, which runs last, just before launch. Phase 3 is built, and what's left is proving it in production. Phase 4 is built; its open boxes wait on the exit test. What's left before launch is mostly proving things on the real servers, in this order:
 
-1. **Deploy a release while a server runs on the production node** (Phase 3's exit criteria: no game impact).
-2. **Test the alert chain end to end**: one alert from Grafana to the phone, plus the synthetic check failing for real.
-3. **Business track items that take weeks**: the Public Suffix List request for `raptornodes.net` (not on the list yet; subdomains are on without it, #267), the business entity, `security@raptorpanel.net`.
-4. **Phase 4's exit test in production**: a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
-5. **Before launch, not before**: a failover drill on raptor-1 and raptor-2 (#212; server #2 is live), billing, the load test, the help center (its install and provider guides first, since the exit test above is "without help"), and last, the week-long soak (`task soak:start`), so it runs against the code that launches.
-
-Found while checking production (Oct 8):
-- `raptorpanel.com` belongs to someone else (it redirects to `gig.raptorsheets.com`), so it's off the list.
-- `status.raptorpanel.net` is a Better Stack page, but its DNS is on Cloudflare, which the plan said to avoid (a Cloudflare outage would take the status page down with the API).
+1. **Prove production:** deploy a release while a game server runs on the production node and confirm the game doesn't notice (Phase 3's exit criteria); import the Grafana alerts and dashboard (the `raptor-replica` group, and the node-health alerts and panels from #186) and send one alert to the phone.
+2. **The launch gate's two drills:** a failover from raptor-1 to raptor-2 on the real servers ([DEPLOY.md](DEPLOY.md#failover)), and billing end to end on a throwaway org: the free month, a second node ending it, a failed payment, read-only mode, and paying again.
+3. **Business track items that take weeks:** the Public Suffix List request for `raptornodes.net` (subdomains are on without it, #267), the business entity (Polar payouts need it), and the `security@` and `abuse@` mailboxes.
+4. **Phase 4's exit test in production:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
+5. **Before launch:** the private beta, charging for Raptor Backup Storage, the load test, the help center (its install and provider guides first, since the exit test is "without help"), the status page off Cloudflare's DNS, and last, the week-long soak (`task soak:start`), so it runs against the code that launches.
 
 ---
 
@@ -254,9 +250,9 @@ Found while checking production (Oct 8):
 - [x] **Add-ons** ([EGGS.md](EGGS.md#add-ons)): an egg turns on a plugin installer or mod manager; servers get a Plugins or Mods page to search Modrinth, install a version, see what's installed, update, and remove; Wings fetches only from Modrinth's CDN and keeps a file only if its SHA-512 matches; the catalog's Minecraft eggs have them
 - [x] **Hangar** for the plugin installer (PaperMC's plugins that aren't on Modrinth), and more add-on kinds (datapacks, Steam Workshop) (Hangar: search, versions, installing from its CDN by SHA-256, and naming installed files and offering updates; datapacks: a third kind, `.zip` files from Modrinth into the world's datapacks folder, on every catalog Java egg; Steam Workshop: a Workshop tab that edits the variable the game reads item or collection IDs from, named from Steam, on Garry's Mod, ARK, and Squad ([EGGS.md](EGGS.md#steam-workshop)))
 - [x] **Connection test** with provider guides (on the Network tab: the Panel probes each port from outside while the node says what the game listens on inside, into one cause per port, with a guide for the provider guessed from reverse DNS; left for later: running it after a server's first start)
-- [x] **Subdomains** on `raptornodes.net` (A + SRV), reserved names, abuse report link (a CNAME to the node and an SRV record for Minecraft, kept in step by a sweep, names held 30 days after release, a Subdomain card on the Network tab, staff bans, and `abuse@raptorpanel.net` on the landing page ([PANEL.md](PANEL.md#beginner-focused-features)); on in production since v0.4.1, before the Public Suffix List (#267), which is still to do on the business track)
+- [x] **Subdomains** on `raptornodes.net` (a CNAME to the node, and SRV for Minecraft), reserved names, abuse report link (a CNAME to the node and an SRV record for Minecraft, kept in step by a sweep, names held 30 days after release, a Subdomain card on the Network tab, staff bans, and `abuse@raptorpanel.net` on the landing page ([PANEL.md](PANEL.md#beginner-focused-features)); on in production since v0.4.1, before the Public Suffix List (#267), which is still to do on the business track)
 - [x] **Audit log** view (the org's Settings, Activity)
-- [ ] **Staff admin panel** (`/admin`) (overview with history, users and orgs, suspending, the staff log, announcements, and support access to nodes (owner-signed grants checked by Wings, three levels, `raptor support` on the box) done; staff consoles under level 2 grants and files under level 3, on the support session page, done; left: revenue once billing exists)
+- [x] **Staff admin panel** (`/admin`) (overview with history, users and orgs, suspending, the staff log, announcements, support access to nodes (owner-signed grants checked by Wings, three levels, `raptor support` on the box), staff consoles under level 2 grants and files under level 3, and revenue: recurring revenue, plans, unpaid orgs, and payments by month from the billing ledger)
 - [x] Performance: route code splitting, lazy xterm and editor (every route's page is its own chunk (the router plugin's `autoCodeSplitting`); xterm and the editor load only when shown, each in its own chunk; the first load is about 227 KB gzipped, mostly React, the router, and React Query, measured Oct 12, 2026)
 
 **Exit criteria:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, **without help**, in under 15 minutes.
@@ -272,8 +268,8 @@ Found while checking production (Oct 8):
 
 ### Launch prep
 - [ ] **Server #2** and a failover drill on the real servers ([DEPLOY.md](DEPLOY.md#failover)) (server #2 is live and replicating; left: the `raptor-replica` alerts in Grafana, and the drill)
-- [ ] **Billing (Polar):** $12/node quantity subscription (every enrolled node, any status), daily proration, first-node 1-month trial (once per org, card required), webhooks, ledger, 7-day grace, read-only mode (built, off until Polar's token and product are set: a seat-based subscription whose seats follow nodes, checkout with the free month once, webhooks that fetch the subscription, a sweep for seats and missed webhooks, the ledger, 7 days then read-only with emails, the Billing page, the customer portal, and a banner while unpaid ([PANEL.md](PANEL.md#billing-polar)); left: the Polar account and product ([DEPLOY.md](DEPLOY.md#billing)), and the end-to-end test in Polar's sandbox, a failed payment and read-only mode included)
-- [ ] **Hosted backup storage** + metering (Raptor Backup Storage on B2: 10 GB included per paid node, then $0.012/GB-month) (built: a key per node for its folder, turned on from the node's Backups tab, measured daily, deleted 30 days after it's turned off, usage and an estimate in org settings; left: the bucket and key in production (DEPLOY.md), and charging, with billing)
+- [ ] **Billing (Polar):** $12/node quantity subscription (every enrolled node, any status), daily proration, first-node 1-month trial (once per org, card required), webhooks, ledger, 7-day grace, read-only mode (built and on in production since v0.4.1: a seat-based subscription whose seats follow nodes, checkout with the free month once, webhooks that fetch the subscription, a sweep for seats and missed webhooks, the ledger, 7 days then read-only with emails, the Billing page, the customer portal, a banner while unpaid, and revenue in the admin panel ([PANEL.md](PANEL.md#billing-polar)); left: the end-to-end test on a throwaway org, a failed payment and read-only mode included, which the launch gate needs)
+- [ ] **Hosted backup storage** + metering (Raptor Backup Storage on B2: 10 GB included per paid node, then $0.012/GB-month) (built: a key per node for its folder, turned on from the node's Backups tab, measured daily, deleted 30 days after it's turned off, usage and an estimate in org settings; its bucket and key are in production since v0.4.1; left: charging for use over the included 10 GB, with a metered price in Polar)
 - [x] **Support access:** request/approve/revoke flow, banners, staff console, staff MFA (staff ask from the admin panel; owners approve by signing `support.grant` with a passkey; banners on the node's pages; "End now" and `raptor support revoke`; the support session page with health, logs, consoles, and files by level; staff need a passkey within 12 hours, and 5 minutes for changes ([PANEL.md](PANEL.md#support-access)))
 - [ ] **Load test** with fake-Wings simulator (thousands of nodes) (the simulator is built: `cmd/fakewings` enrolls, links, and drives nodes with fake servers and events, and reports handshake and event delivery times; 500 nodes held steady against the dev Panel; left: thousands through Cloudflare against staging)
 - [ ] Status page at `status.raptorpanel.net` (hosted with a different provider than the Panel, DNS not on Cloudflare; a Better Stack page exists, but its record is on Cloudflare)
@@ -296,11 +292,11 @@ Found while checking production (Oct 8):
 | Now | Landing page on `raptorpanel.net` (Astro, `site/`; live, no waitlist: DECISIONS #261) |
 | Now | Register `raptornodes.com` if available and redirect it (`raptorpanel.com` belongs to someone else) |
 | By launch | Apply to add `raptornodes.net` to the Public Suffix List (takes weeks; subdomains went on before it, #267) |
-| By Phase 3 | Business entity (needed for Polar payouts) |
-| By Phase 3 | `security@raptorpanel.net` mailbox |
-| Before subdomains | `abuse@raptorpanel.net` mailbox (the landing page links to it; reports of `raptornodes.net` names) |
+| Now (overdue) | Business entity (Polar pays out to it) |
+| Now (overdue) | `security@raptorpanel.net` mailbox (SECURITY.md points to it) |
+| Now | `abuse@raptorpanel.net` mailbox (the landing page links to it, and subdomains are on) |
 | By Phase 5 | Terms of Service, Privacy Policy, DPA (covering support access and player data) |
-| By Phase 5 | Polar account verified; products and trial configured |
+| By launch | Polar account verified for payouts (the product and webhooks are set up and billing is on, since Oct 14) |
 | Ongoing | Share progress publicly (devlogs, Discord) to build the beta list |
 
 ---
@@ -308,7 +304,7 @@ Found while checking production (Oct 8):
 ## After launch (unordered)
 
 - Server transfers between nodes (direct node-to-node)
-- Mod/plugin manager (Modrinth, CurseForge, Steam Workshop)
+- CurseForge for the mod manager (Modrinth, Hangar, datapacks, and Steam Workshop are built; CurseForge's terms and API key need a look first)
 - Connection relay for CGNAT users (paid add-on)
 - Queued config edits for offline nodes
 - Public API keys + webhooks

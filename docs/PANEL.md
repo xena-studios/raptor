@@ -297,7 +297,7 @@ Raptor's own admin panel, at `/admin` in the app (`internal/panel/staff`, `Staff
   - nodes and servers over time;
   - operating systems, Wings versions, architectures, server states, and the most deployed games;
   - offline nodes and failing servers.
-- **Billing:** what Raptor Backup Storage would bill a month (billing isn't live, and it says so), storage over time, and each org's storage and bill.
+- **Billing:** recurring revenue (seats on active and past-due plans at the node price), paying orgs, orgs on the free month, unpaid and read-only orgs, orgs by plan status, and orders paid less refunds by month from `billing_ledger`; then Raptor Backup Storage, which isn't charged yet: what it would bill a month, storage over time, and each org's storage. With billing off, it says so.
 - **Infrastructure:**
   - the Panel's instances and the node connections each holds;
   - the database's size, connections, and largest tables;
@@ -307,7 +307,7 @@ Raptor's own admin panel, at `/admin` in the app (`internal/panel/staff`, `Staff
 
 The Summary:
 - **Overview:** nodes connected, servers running, users (new and active in 30 days), orgs, and Raptor Backup Storage, with their history (counted every hour into `platform_stats` by one Panel instance) over 7 days to a year; sign-ups per day; Wings versions, architectures, and the most deployed games; offline nodes (gone over an hour) and crashed or failed servers.
-- **Revenue:** billing isn't live, so this is what Raptor Backup Storage would bill a month at today's usage, said as such. Real revenue comes with billing.
+- **Revenue:** recurring revenue from paid plans, paying orgs and free months, and what was paid in the last 30 days; and what Raptor Backup Storage would bill a month, said as not charged yet.
 - **Users and orgs:** search, and each one's details: orgs, members, nodes, recent sign-ins, Backup Storage.
 
 **What it can do** (admins):

@@ -133,6 +133,57 @@ func (q *Queries) BillingOrgs(ctx context.Context) ([]BillingOrgsRow, error) {
 	return items, nil
 }
 
+const billingPlanCounts = `-- name: BillingPlanCounts :many
+
+SELECT status, count(*)::int AS orgs, coalesce(sum(seats), 0)::int AS seats
+FROM billing_accounts WHERE subscription_id <> '' GROUP BY status ORDER BY status
+`
+
+type BillingPlanCountsRow struct {
+	Status string
+	Orgs   int32
+	Seats  int32
+}
+
+// Staff insights (the admin panel's Billing tab).
+func (q *Queries) BillingPlanCounts(ctx context.Context) ([]BillingPlanCountsRow, error) {
+	rows, err := q.db.Query(ctx, billingPlanCounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BillingPlanCountsRow
+	for rows.Next() {
+		var i BillingPlanCountsRow
+		if err := rows.Scan(&i.Status, &i.Orgs, &i.Seats); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const billingUnpaidCounts = `-- name: BillingUnpaidCounts :one
+SELECT count(*) FILTER (WHERE unpaid_since IS NOT NULL)::int AS unpaid,
+       count(*) FILTER (WHERE unpaid_since < now() - interval '7 days')::int AS read_only
+FROM billing_accounts
+`
+
+type BillingUnpaidCountsRow struct {
+	Unpaid   int32
+	ReadOnly int32
+}
+
+func (q *Queries) BillingUnpaidCounts(ctx context.Context) (BillingUnpaidCountsRow, error) {
+	row := q.db.QueryRow(ctx, billingUnpaidCounts)
+	var i BillingUnpaidCountsRow
+	err := row.Scan(&i.Unpaid, &i.ReadOnly)
+	return i, err
+}
+
 const forgetWebhook = `-- name: ForgetWebhook :exec
 DELETE FROM billing_webhooks WHERE id = $1
 `
@@ -236,6 +287,40 @@ func (q *Queries) OrgOwnerEmails(ctx context.Context, orgID pgtype.UUID) ([]stri
 			return nil, err
 		}
 		items = append(items, email)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueByMonth = `-- name: RevenueByMonth :many
+SELECT to_char(date_trunc('month', at), 'YYYY-MM') AS month,
+       coalesce(sum(amount_cents) FILTER (WHERE kind = 'order.paid'), 0)::bigint AS paid_cents,
+       coalesce(sum(amount_cents) FILTER (WHERE kind = 'order.refunded'), 0)::bigint AS refunded_cents
+FROM billing_ledger WHERE kind IN ('order.paid', 'order.refunded') AND at >= $1
+GROUP BY 1 ORDER BY 1
+`
+
+type RevenueByMonthRow struct {
+	Month         string
+	PaidCents     int64
+	RefundedCents int64
+}
+
+func (q *Queries) RevenueByMonth(ctx context.Context, at pgtype.Timestamptz) ([]RevenueByMonthRow, error) {
+	rows, err := q.db.Query(ctx, revenueByMonth, at)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RevenueByMonthRow
+	for rows.Next() {
+		var i RevenueByMonthRow
+		if err := rows.Scan(&i.Month, &i.PaidCents, &i.RefundedCents); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

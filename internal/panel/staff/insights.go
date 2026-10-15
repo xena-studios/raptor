@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
+	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
@@ -215,6 +216,33 @@ func (s *Service) GetBillingInsights(ctx context.Context, req *panelv1.GetBillin
 	}
 	for _, u := range usage {
 		out.StorageByDay = append(out.StorageByDay, &panelv1.StoragePoint{Day: u.Day.Time.Format(time.DateOnly), Bytes: u.Bytes})
+	}
+
+	// Billing: plans, recurring revenue, who's unpaid, and a year of
+	// payments by month.
+	out.BillingLive = s.billingLive()
+	plans, err := q.BillingPlanCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range plans {
+		out.Plans = append(out.Plans, &panelv1.PlanCount{Status: p.Status, Orgs: p.Orgs, Seats: p.Seats})
+		if p.Status == "active" || p.Status == "past_due" {
+			out.SeatsBilled += p.Seats
+		}
+	}
+	out.MrrCents = int64(out.SeatsBilled) * billing.NodePriceCents
+	unpaid, err := q.BillingUnpaidCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out.UnpaidOrgs, out.ReadOnlyOrgs = unpaid.Unpaid, unpaid.ReadOnly
+	months, err := q.RevenueByMonth(ctx, pgtype.Timestamptz{Time: time.Now().AddDate(-1, 0, 0), Valid: true})
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range months {
+		out.RevenueByMonth = append(out.RevenueByMonth, &panelv1.RevenueMonth{Month: m.Month, PaidCents: m.PaidCents, RefundedCents: m.RefundedCents})
 	}
 	return out, nil
 }
