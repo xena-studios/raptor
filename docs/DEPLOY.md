@@ -430,6 +430,7 @@ Set up once, after server #1 is running:
 
    If you want a final check before production, add yourself as a required reviewer on the environment: every deploy then waits for one click.
 4. Settings → Variables → **`DEPLOY_ENABLED`** = `true`. Until it's set, releases build and stop there.
+5. **Server #2, ready for a failover:** the same deploy user, sudoers line, and `authorized_keys` line (the same public key: copy it from server #1's `/home/deploy/.ssh/authorized_keys`), and add server #2's host key to `DEPLOY_KNOWN_HOSTS` (both lines, one per server). Deploys keep going to `DEPLOY_HOST`, server #1, and a standby refuses them anyway (`deploy.sh` reads `ROLE` from `/etc/raptor/stack.env`). After a failover only `DEPLOY_HOST` changes.
 
 SSH stays open to the internet (GitHub's runners have no fixed addresses). It takes keys only, and this key can do nothing but the above.
 
@@ -489,7 +490,7 @@ docker compose --profile failover up -d --wait
 echo COMPOSE_PROFILES=failover >> /etc/raptor/stack.env    # it already says ROLE=replica
 ```
 
-4. In Cloudflare, point `api` (A and AAAA) at server #2's public address. Proxied records change within seconds, and nodes and browsers reconnect by themselves.
+4. In Cloudflare, point `api` (A and AAAA) at server #2's public address. Proxied records change within seconds, and nodes and browsers reconnect by themselves. In GitHub, set the `production` environment's `DEPLOY_HOST` to server #2's public address, so releases deploy here (its deploy user and host key are already set up: [Automatic deploys](#automatic-deploys)).
 5. Backups now run here: the timers read `ROLE` from `/etc/raptor/stack.env`. `systemctl enable --now raptor-backup.timer raptor-restore-test.timer`, and run `../scripts/backup.sh full` once.
 6. Update the firewall's Postgres rule if server #1 comes back at a new address.
 

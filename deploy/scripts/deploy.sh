@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploys a Panel version to server #1 without downtime (docs/DEPLOY.md#deploying):
+# Deploys a Panel version to the primary without downtime (docs/DEPLOY.md#deploying):
 # migrations first (always backward compatible with the running version),
 # then one Panel at a time. Each one, on its way out, answers 503 to Caddy's
 # health check and hands its node connections to the other over 20 s, so
@@ -10,7 +10,30 @@ set -euo pipefail
 # outlives the deploy (op's daemon did) must not take it along, or it keeps
 # every later deploy out. The lock stays held by the parent.
 exec 9>&-
-cd "$(dirname "$0")/../primary"
+# Which stack this server runs (/etc/raptor/stack.env): server #1's, or
+# server #2's after a failover (ROLE=replica with the failover profile). A
+# standby replica takes no deploys: they go to the primary.
+if [ -f /etc/raptor/stack.env ]; then
+  set -a
+  # shellcheck source=/dev/null
+  . /etc/raptor/stack.env
+  set +a
+fi
+case "${ROLE:-primary}" in
+primary) stack=primary ;;
+replica)
+  if [[ ",${COMPOSE_PROFILES:-}," != *,failover,* ]]; then
+    echo "deploy: this server is a standby replica; deploys go to the primary (DEPLOY_HOST)" >&2
+    exit 1
+  fi
+  stack=replica
+  ;;
+*)
+  echo "deploy: unknown ROLE=$ROLE in /etc/raptor/stack.env" >&2
+  exit 1
+  ;;
+esac
+cd "$(dirname "$0")/../$stack"
 TAG=${1:?usage: deploy.sh <version>}
 export PANEL_IMAGE=${PANEL_REPO:-ghcr.io/xena-studios/raptor-panel}:$TAG
 [ "${SKIP_SECRETS:-}" = 1 ] || ../scripts/secrets.sh
@@ -45,7 +68,7 @@ done
 # release changes it, restart Caddy: about a second of dropped connections,
 # which browsers and nodes reconnect from.
 running=$(docker compose exec -T caddy cat /etc/caddy/Caddyfile 2>/dev/null | sha256sum | cut -d' ' -f1)
-if [ "$running" != "$(sha256sum <Caddyfile | cut -d' ' -f1)" ]; then
+if [ "$running" != "$(sha256sum <../primary/Caddyfile | cut -d' ' -f1)" ]; then
   echo "deploy: the Caddyfile changed; restarting Caddy"
   docker compose up -d --no-deps --force-recreate caddy
 fi
