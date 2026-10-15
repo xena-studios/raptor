@@ -18,9 +18,9 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 
 ## Next up
 
-*As of Oct 15, 2026.* Production runs v0.4.1 on raptor-1, with raptor-2 as a streaming replica over WireGuard, backups, monitoring, and automatic deploys; a real node is linked. Billing (Polar), Raptor Backup Storage, and player subdomains are on. Phases 0–1 are met. Phase 2 is missing only its week-long soak, which runs last, just before launch. Phase 3 is built, and what's left is proving it in production. Phase 4 is built; its open boxes wait on the exit test. What's left before launch is mostly proving things on the real servers, in this order:
+*As of Oct 15, 2026.* Production runs v0.4.2 on raptor-1, with raptor-2 as a streaming replica over WireGuard, backups, monitoring, and automatic deploys; a real node is linked. Billing (Polar), Raptor Backup Storage, and player subdomains are on. Phases 0–1 are met. Phase 2 is missing only its week-long soak, which runs last, just before launch. Phase 3 is built and proven in production: v0.4.2 deployed on Oct 15 while a player stayed connected to a game server on the production node, which never noticed. Phase 4 is built; its open boxes wait on the exit test. What's left before launch is mostly proving things on the real servers, in this order:
 
-1. **Prove production:** deploy a release while a game server runs on the production node and confirm the game doesn't notice (Phase 3's exit criteria). Monitoring is done: all 13 alert rules and the dashboard are imported, and paging reaches the phone (since Oct 15; IRM needed an escalation chain). Worth a look: the uptime check's `/healthz` sometimes averages 3–4 s for 5 minutes from Oregon and Montreal (normally 100–200 ms).
+1. **Watch the API latency:** the uptime check's `/healthz` sometimes averages 3–4 s for 5 minutes from Oregon and Montreal (normally 100–200 ms). If it pages, match the time against the Panel and Postgres metrics. Monitoring itself is done: all 13 alert rules and the dashboard are imported, and paging reaches the phone (since Oct 15; IRM needed an escalation chain).
 2. **The launch gate's two drills:** a failover from raptor-1 to raptor-2 on the real servers ([DEPLOY.md](DEPLOY.md#failover)), and billing end to end on a throwaway org: the free month, a second node ending it, a failed payment, read-only mode, and paying again.
 3. **Business track items that take weeks:** the Public Suffix List request for `raptornodes.net` (subdomains are on without it, #267), the business entity (Polar payouts need it).
 4. **Phase 4's exit test in production:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
@@ -226,6 +226,8 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Automatic Wings updates: the Panel starts updates in stages (5% → 25% → 100%, halted if failures rise) through a `node.update` command; the health check requires the node connection to come back
 
 **Exit criteria:** on fresh Debian 12, Debian 13, and Ubuntu 24.04 VMs (amd64 + arm64), one command links the node and it shows Connected; dropping node connections and redeploying the Panel both work without game impact; the mirror rebuilds correctly after being dropped.
+
+**Status:** redeploying the Panel without game impact is proven in production: v0.4.2 deployed on Oct 15, 2026 (both Panel instances replaced one at a time) while a player stayed connected to a game server on the production node; the server kept running and the player wasn't disconnected.
 
 ---
 
