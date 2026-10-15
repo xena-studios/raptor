@@ -2,7 +2,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, Home, RefreshCw, WifiOff } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { Logo } from "@/components/logo";
+import { RaptorMark, Wordmark } from "@/components/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { unreachable } from "@/lib/connection";
 
@@ -31,8 +31,9 @@ function ErrorScreen({
       }
     >
       {full && (
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold">
-          <Logo className="size-8" /> Raptor
+        <Link to="/" className="flex items-center gap-3">
+          <RaptorMark className="h-8 w-auto" />
+          <Wordmark className="h-4 w-auto" />
         </Link>
       )}
       <div className="flex max-w-md flex-col items-center gap-3 text-center">
