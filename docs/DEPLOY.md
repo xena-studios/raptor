@@ -73,8 +73,9 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `Support bundles storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key` | [Below](#support-bundles). |
 | `Raptor Backup Storage` | `key_id`, `application_key`, `bucket_id`, `endpoint`, `region` | Optional: without it the Panel doesn't offer it. [Below](#raptor-backup-storage). |
 | `Grafana Cloud OTLP` | `endpoint`, `headers` | [Below](#monitoring). |
+| `Telegram alerts bot` | `token`, `webhook_secret` | Optional: without it the app doesn't offer Telegram alerts. In Telegram, message @BotFather: `/newbot`, a name (`Raptor Alerts`) and a username ending in `bot`; the token is what it answers. `webhook_secret`: `openssl rand -hex 32`. Then in @BotFather, `/setuserpic` with the logo and `/setdescription` ("Alerts from Raptor. Connect a chat from your org's settings, Alerts."). The Panel points the bot's webhook at itself when it starts. |
 
-The Google, Discord, `raptornodes.net` DNS, support bundle, and Grafana items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
+The Google, Discord, `raptornodes.net` DNS, support bundle, Grafana, and Telegram items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
 
 Rotate anything that was ever pasted in a chat or a terminal history.
 

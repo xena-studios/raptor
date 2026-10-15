@@ -110,10 +110,6 @@ service LocalService {
   // Root only.
   rpc PinOwnerKey(PinOwnerKeyRequest) returns (PinOwnerKeyResponse) {}
 
-  // TestNotifications sends a test message to every notification target in
-  // config.yml and reports how each went. Root only.
-  rpc TestNotifications(TestNotificationsRequest) returns (TestNotificationsResponse) {}
-
   // ImportServer creates a server from another panel's (raptor import):
   // its configuration, and a copy of its directory. The original is left
   // as it was. Root only.
@@ -502,18 +498,6 @@ message CancelKeyResetRequest {
 
 message CancelKeyResetResponse {}
 
-message TestNotificationsRequest {}
-
-message TestNotificationsResponse {
-  repeated NotificationResult results = 1;
-}
-
-// NotificationResult is how a test message went for one target.
-message NotificationResult {
-  string target = 1;
-  // Empty if it was delivered.
-  string error = 2;
-}
 
 message GetMetricsRequest {
   string server = 1;

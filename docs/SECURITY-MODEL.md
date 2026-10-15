@@ -132,7 +132,7 @@ If the Panel simply told Wings which keys to trust, a compromised Panel would se
 - A **strict Content Security Policy** (no inline scripts, no third-party scripts, `script-src` limited to the app's own hashed bundles, Trusted Types).
 - **Reproducible builds:** each release publishes the bundle hashes, so anyone can check that the deployed app matches the public source.
 - **The domain accounts are part of this boundary:** whoever controls DNS or the static host controls the app. The registrar and Cloudflare accounts use hardware-key 2FA, the domains have registrar lock, and API tokens are scoped so the Panel servers can't change DNS or the web app.
-- **Alerts straight from the node:** Wings reports every signed dangerous action (including rejected attempts) to the owner through a channel configured on the node in `config.yml` (a Discord or generic webhook; see [WINGS.md](WINGS.md#notifications)), not through the Panel, and `raptor audit` lists them from the node's own records. A tampered action gets noticed even if the Panel hides it.
+- **The node's own records:** every signed dangerous action, including rejected attempts, is in the node's audit log, which `raptor audit` lists on the box whatever the Panel says. The node also raises a `security.audit` event for each, which the Panel turns into alerts for rules that ask (email, Discord, Telegram, …; [PANEL.md](PANEL.md#alerts)). Since alerts moved to the Panel (DECISIONS #269), a compromised Panel could keep those alerts from being sent; it still can't make a passkey sign, so it can only hide a rejected attempt, not carry one out.
 
 Even if every one of these failed, each malicious action would still need a real person's passkey at that moment, bound to one command. That turns "one Panel breach controls every node" into "an attacker must trick specific users, one action at a time".
 
@@ -159,7 +159,8 @@ Even if every one of these failed, each malicious action would still need a real
 - Email codes: 10-minute expiry, single use, limited attempts, stored hashed. Rate limits and Cloudflare Turnstile protect the send endpoint; Turnstile runs on its own origin (`verify.raptorpanel.net`), so even Cloudflare's script can't reach the app's passkeys.
 - **XSS:** console output, file contents, and egg metadata are untrusted and always escaped. xterm.js renders console output, never `innerHTML`.
 - Postgres row-level security by `org_id`, in addition to application checks.
-- Rate limiting on auth, join-token creation, subdomain creation, and bundle uploads.
+- Rate limiting on auth, join-token creation, subdomain creation, alert changes and tests, and bundle uploads.
+- **Alert channels can't reach the Panel's network:** webhook, ntfy, Discord, and Slack requests connect only to public addresses, checked per connection, with no redirects or proxy (DECISIONS #272). Their URLs and secrets are sealed with `PANEL_DATA_KEY`. Email alerts go only to members of the org. Telegram's webhook takes updates only with its secret token.
 - Scoped API keys (later).
 - Full audit log for every mutating action.
 

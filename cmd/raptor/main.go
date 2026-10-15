@@ -69,8 +69,6 @@ commands:
               files are copied, Pterodactyl's are left as they were
   tui         a terminal view of the servers: stats, console, power and
               backup keys (actions as root)
-  notifications test
-              send a test message to each target in config.yml (root)
   doctor [-json] [-bundle]
               check the node and say how to fix what's wrong (as root);
               -bundle writes a redacted diagnostics file for support
@@ -136,8 +134,6 @@ func run(args []string) error {
 		return linkCmd(ctx, args[1:], true)
 	case len(args) >= 1 && args[0] == "unlink":
 		return unlinkCmd(ctx, args[1:])
-	case len(args) >= 1 && args[0] == "notifications":
-		return notificationsCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
 		return wingsRun(ctx, args[2:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "backup-worker":

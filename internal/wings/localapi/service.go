@@ -51,7 +51,6 @@ type Service struct {
 	Storage   *storage.Volume  // nil in tests
 	Updates   Updates          // nil in tests
 	Disk      *host.DiskGuard  // nil in tests
-	Notify    Notifications    // nil if none are configured
 	Link      Link             // nil if the node isn't linked
 	Support   *support.Manager // nil in tests
 

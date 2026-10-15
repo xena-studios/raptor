@@ -49,6 +49,7 @@ import { Route as OrgsOrgIdServersIndexRouteImport } from './routes/orgs.$orgId.
 import { Route as OrgsOrgIdServersNewRouteImport } from './routes/orgs.$orgId.servers.new'
 import { Route as OrgsOrgIdSettingsIndexRouteImport } from './routes/orgs.$orgId.settings.index'
 import { Route as OrgsOrgIdSettingsActivityRouteImport } from './routes/orgs.$orgId.settings.activity'
+import { Route as OrgsOrgIdSettingsAlertsRouteImport } from './routes/orgs.$orgId.settings.alerts'
 import { Route as OrgsOrgIdSettingsBackupsRouteImport } from './routes/orgs.$orgId.settings.backups'
 import { Route as OrgsOrgIdSettingsBillingRouteImport } from './routes/orgs.$orgId.settings.billing'
 import { Route as OrgsOrgIdSettingsMembersRouteImport } from './routes/orgs.$orgId.settings.members'
@@ -275,6 +276,11 @@ const OrgsOrgIdSettingsActivityRoute =
     path: '/activity',
     getParentRoute: () => OrgsOrgIdSettingsRoute,
   } as any)
+const OrgsOrgIdSettingsAlertsRoute = OrgsOrgIdSettingsAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => OrgsOrgIdSettingsRoute,
+} as any)
 const OrgsOrgIdSettingsBackupsRoute =
   OrgsOrgIdSettingsBackupsRouteImport.update({
     id: '/backups',
@@ -448,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/alerts': typeof OrgsOrgIdSettingsAlertsRoute
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
@@ -508,6 +515,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/alerts': typeof OrgsOrgIdSettingsAlertsRoute
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
@@ -573,6 +581,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
+  '/orgs/$orgId/settings/alerts': typeof OrgsOrgIdSettingsAlertsRoute
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
@@ -640,6 +649,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/alerts'
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
@@ -700,6 +710,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/alerts'
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
@@ -764,6 +775,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/new'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
+    | '/orgs/$orgId/settings/alerts'
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
@@ -1087,6 +1099,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdSettingsActivityRouteImport
       parentRoute: typeof OrgsOrgIdSettingsRoute
     }
+    '/orgs/$orgId/settings/alerts': {
+      id: '/orgs/$orgId/settings/alerts'
+      path: '/alerts'
+      fullPath: '/orgs/$orgId/settings/alerts'
+      preLoaderRoute: typeof OrgsOrgIdSettingsAlertsRouteImport
+      parentRoute: typeof OrgsOrgIdSettingsRoute
+    }
     '/orgs/$orgId/settings/backups': {
       id: '/orgs/$orgId/settings/backups'
       path: '/backups'
@@ -1313,6 +1332,7 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 
 interface OrgsOrgIdSettingsRouteChildren {
   OrgsOrgIdSettingsActivityRoute: typeof OrgsOrgIdSettingsActivityRoute
+  OrgsOrgIdSettingsAlertsRoute: typeof OrgsOrgIdSettingsAlertsRoute
   OrgsOrgIdSettingsBackupsRoute: typeof OrgsOrgIdSettingsBackupsRoute
   OrgsOrgIdSettingsBillingRoute: typeof OrgsOrgIdSettingsBillingRoute
   OrgsOrgIdSettingsMembersRoute: typeof OrgsOrgIdSettingsMembersRoute
@@ -1321,6 +1341,7 @@ interface OrgsOrgIdSettingsRouteChildren {
 
 const OrgsOrgIdSettingsRouteChildren: OrgsOrgIdSettingsRouteChildren = {
   OrgsOrgIdSettingsActivityRoute: OrgsOrgIdSettingsActivityRoute,
+  OrgsOrgIdSettingsAlertsRoute: OrgsOrgIdSettingsAlertsRoute,
   OrgsOrgIdSettingsBackupsRoute: OrgsOrgIdSettingsBackupsRoute,
   OrgsOrgIdSettingsBillingRoute: OrgsOrgIdSettingsBillingRoute,
   OrgsOrgIdSettingsMembersRoute: OrgsOrgIdSettingsMembersRoute,

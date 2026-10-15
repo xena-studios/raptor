@@ -13,7 +13,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 
+	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 	"github.com/xena-studios/raptor/internal/wings/backup"
@@ -105,7 +107,17 @@ func TestMirror(t *testing.T) {
 	defer cancel()
 	hub := &Hub{PanelKey: r.PanelKey, NodeKey: r.NodeKey}
 	defer hub.Close()
-	mirror := &Mirror{DB: r.DB, Hub: hub}
+	// Every batch goes to alerts, in the transaction that applies it.
+	var alertMu sync.Mutex
+	var alerted []string
+	mirror := &Mirror{DB: r.DB, Hub: hub, Alerts: func(_ context.Context, _ *store.Queries, _ pgtype.UUID, evs []*nodev1.Event) error {
+		alertMu.Lock()
+		defer alertMu.Unlock()
+		for _, e := range evs {
+			alerted = append(alerted, e.GetType()+" "+e.GetServerId())
+		}
+		return nil
+	}}
 	hub.EventsAvailable = func(_ context.Context, id string, _ int64) { mirror.Notify(id) }
 	mux := http.NewServeMux()
 	mux.Handle("GET "+nodelink.Path, hub)
@@ -315,6 +327,20 @@ func TestMirror(t *testing.T) {
 	waitRuns("finished alone", "sc2", `succeeded scheduled  [{"ok": true, "type": "wait"}]`)
 	appendEvent("schedule.deleted", "s2", map[string]any{"schedule_id": "sc1"})
 	waitRuns("schedule deleted", "", `succeeded scheduled  [{"ok": true, "type": "wait"}]`)
+
+	// Security events go to alerts, and change nothing in the mirror.
+	appendEvent("security.audit", "s2", map[string]any{"action": "server.delete", "outcome": "rejected"})
+	for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(50 * time.Millisecond) {
+		alertMu.Lock()
+		got := slices.Contains(alerted, "security.audit s2") && slices.Contains(alerted, "server.state s2")
+		alertMu.Unlock()
+		if got {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("alerts got %v", alerted)
+		}
+	}
 
 	fs.remove("s1")
 	appendEvent("server.deleted", "s1", nil)

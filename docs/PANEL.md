@@ -23,6 +23,8 @@ Configured by environment (`panel` with no arguments lists them all):
 - `PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID` and `_CLIENT_SECRET`, `PANEL_TURNSTILE_SECRET`, `PANEL_CLIENT_IP_HEADER`, `PANEL_NODE_DOMAIN`, `PANEL_CLOUDFLARE_DNS_TOKEN`, `PANEL_CLOUDFLARE_ZONE_ID`, `PANEL_SUBDOMAINS` (`1` to offer player subdomains, once the node domain is on the Public Suffix List).
 - `PANEL_RESEND_API_KEY`, `PANEL_MAIL_FROM` (as `Raptor <account@mail.raptorpanel.net>`; not `no-reply`, which costs deliverability and trust), and `PANEL_MAIL_REPLY_TO` (a mailbox someone reads, as `support@raptorpanel.net`, so "this wasn't me" replies reach a person): email through Resend from `mail.raptorpanel.net`, with click and open tracking off (they'd rewrite sign-in links and add pixels to security mail) and TLS enforced. `PANEL_MAIL_LOG=1`, development only, sends emails (codes included) to the log instead, and to `PANEL_MAIL_LOG_FILE` as plain text if set (`task dev:mail` shows them); setting both is an error, and with neither, email sign-in and invitations are off.
 
+- `PANEL_TELEGRAM_BOT_TOKEN` and `PANEL_TELEGRAM_WEBHOOK_SECRET` (32 or more random characters): Raptor's Telegram bot for alerts; without them, Telegram channels aren't offered. `PANEL_ALERTS_ALLOW_PRIVATE=1`, development only, lets alert channels reach private addresses.
+
 Admin commands on the same binary: `panel migrate`, `panel keygen <path>`, and, for development and operators, `panel org create <name>` (an org with no members) and `panel join-token <org-id>`; users make orgs and join tokens through the API (`OrgService`). `panel rollout start <version>` (and `status`, `pause`, `resume`, `cancel`) runs a staged Wings update ([WINGS.md](WINGS.md#updates)).
 
 ## Stack
@@ -90,6 +92,15 @@ billing_accounts    org_id, subscription_id, status, seats, current_period_end, 
                     nodes, auto_canceled, fetched_at
 billing_ledger      id, org_id, kind, quantity, amount_cents, currency, polar_ref, data, at
 billing_webhooks    id, type, received_at
+
+-- alerts
+alert_channels      id, org_id, type, name, config, secret (sealed), hint, failing_since, last_error,
+                    last_sent_at, disabled_at
+alert_rules         id, org_id, name, condition, node_id, server_id, threshold, for_minutes,
+                    channel_ids, notify_resolved, enabled
+alert_deliveries    id, org_id, rule_id, channel_id, message, status, attempts, next_at, error
+
+-- subdomains
 subdomains          id, org_id, node_id, server_id, name, created_by, created_at, released_at,
                     dns_target, dns_port, dns_error
 subdomain_bans      name, reason, staff_id, created_at
@@ -259,6 +270,18 @@ The node fires schedules (see [WINGS.md](WINGS.md#scheduler)); the Panel keeps t
 A node's hostname (`n-<short id>.raptornodes.net`) resolves to the machine's IP address, so showing it is showing the IP. Many owners put a proxy in front of their servers (TCPShield and the like) and stream or share their screen, so the app treats both as private:
 - The hostname and the public IPs are shown as dots until revealed, one at a time, and can be copied without being revealed: in the node and server lists, the node's header and details, a server's address, the Network tab, the connection test, and the SFTP dialog. Only admins and owners get the IPs from `ListNodes`; members never do.
 - A node's **shown address** (`SetNodeDisplayAddress`, admins and owners, in the audit log) is what players connect to instead: a domain or IP, with a port or not. With a port, it's shown as is (a proxy's address); without one, each server's port is added. It's shown in the clear everywhere the hostname would be. The connection test still names the node's own hostname, hidden, because that's what it reaches.
+
+## Alerts
+
+`internal/panel/alerts`, `AlertService` (`internal/panel/orgs/alerts.go`), the org's settings, Alerts. Admins and owners manage them; members don't see them.
+
+- **Channels** (up to 20 an org) are where alerts go: **email** (the org's owners, owners and admins, or one member; never an address outside the org, so the Panel can't be used to send mail anywhere), **Discord** and **Slack** (incoming webhook URLs, only on their own hostnames), **Telegram** (Raptor's bot: Connect Telegram makes a one-time link, valid 15 minutes, that opens a chat with the bot or adds it to a group; `/start` with the link's token adds that chat as a channel), **ntfy** (a topic on ntfy.sh or another server, with an optional token: free phone push), and **webhooks** (JSON, signed like Wings' were: `X-Raptor-Signature: sha256=<hex HMAC-SHA256 of "<timestamp>.<body>">` with `X-Raptor-Timestamp` and `X-Raptor-Event`). Webhook URLs, the signing secret, ntfy topics, and tokens are sealed with `PANEL_DATA_KEY` (bound to the org) and never shown again; the app shows a hint. Every channel has a test button.
+- **Rules** (up to 100) are a condition, where it applies (every node, one node, or one server), and the channels it goes to. Conditions: a server crashed, down after repeated crashes, install finished or failed, backup failed, restore finished or failed, over its disk limit; a node offline (after a grace, 5 minutes by default), its disk low, Wings updated or rolled back, signed actions and passkey changes (`security`); and thresholds: a server's CPU, memory, or disk above a percent, or the node's, for a while. Conditions that end (a node back online, disk space back, a threshold back under) say so too unless the rule says not to.
+- **New orgs** start with an email channel to their owners and rules for crash loops, offline nodes, and low disk (the migration gave existing orgs the same).
+- **Where alerts come from.** Most are node events: the mirror hands each batch to `Ingest` in the transaction that applies it, which matches them against the node's org's rules and queues one delivery per channel, so an alert is queued exactly when its event is applied, once. Events more than 6 hours old when they arrive (a node cut off for a long time) don't alert. Thresholds are evaluated on the node, which has the metrics ([WINGS.md](WINGS.md#threshold-alerts)): the Panel sends each connected node its rules (`node.alerts`) when they change, it connects, or its Wings version changes, and they come back as `alert.fired` and `alert.resolved` events naming the rule. The Panel watches for nodes going offline itself: no live instance holding its connection, past the rule's grace counted both from when the node was last seen and from when this instance first noticed (so a Panel restart, which briefly leaves nodes held by nobody, isn't taken for nodes going offline).
+- **Sending.** One instance at a time sends (an advisory lock), every 3 seconds, a worker per channel. A send that fails is retried 3 times over about 12 minutes; a 4xx other than 429 (or a Telegram chat that's gone) isn't retried. At most 20 alerts a minute go to a channel; the rest are dropped and counted in the next one. A channel that fails every alert for 3 days is turned off and the org's owners are emailed; turning it back on clears that.
+- **Never the Panel's own network:** channels connect only to public addresses, checked on every connection (DNS can change after a URL is saved), with no redirects followed and no proxy, so a webhook can't be pointed at the WireGuard link, Postgres, or a metadata address.
+- **History:** every delivery, with its status and error, kept 30 days; the app shows the last 50.
 
 ## Billing (Polar)
 

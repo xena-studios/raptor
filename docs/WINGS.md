@@ -101,7 +101,6 @@ updates:
   automatic: true                # the Panel's staged rollouts may update this node
 log:
   level: info
-notifications: []                # see Notifications below
 ```
 
 - Unknown keys are an error, so typos don't go unnoticed.
@@ -388,26 +387,19 @@ Exact rules (what counts as a crash, backoff, crash-loop thresholds) are in [SER
 - Restart with backoff. After N crashes in M minutes, stop and mark `crashed` (no infinite restart loops).
 - On by default.
 
-## Notifications
+## Alerts
 
-Sent **directly from Wings** so they work during Panel outages: Discord webhooks and generic webhooks. (Email will go through the Panel.) Targets are set in `config.yml` **on the box**, never by the Panel: alerts about signed actions exist to catch a compromised Panel, which mustn't be able to silence them.
+Alerts are set in the Panel (the org's settings, Alerts; [PANEL.md](PANEL.md#alerts)) and sent from there, by email, Discord, Slack, Telegram, ntfy, or a webhook. Wings' part is to raise the events they come from, which reach the Panel through the event outbox like every other event: crashes and crash loops, installs finished or failed, failed backups and restores, the host disk low or recovered, a server over its disk limit, Wings updates and rollbacks, and `security.audit` for every finished entry in the node's audit log (a signed action run, failed, or rejected; a pairing; a key reset), carrying the action, outcome, detail, user, and key. The audit log itself stays on the node (`raptor audit`).
 
-```yaml
-notifications:
-  - name: ops                    # optional, for logs and the test command
-    type: discord
-    url: https://discord.com/api/webhooks/<id>/<token>
-    events: [security, crash]    # optional; default: all of them
-  - type: webhook
-    url: https://example.com/raptor
-    secret: <random string>      # optional: signs each request
-```
+Before v0.5.0, Wings sent Discord and webhook notifications itself, to targets in `config.yml`. That's gone (DECISIONS #269): a `notifications` section in an old `config.yml` still loads, is ignored, and `raptor doctor` warns about it.
 
-- **Categories:** `security` (every signed action, run, failed, or **rejected**, plus passkey pairings and key resets, from the audit log), `crash` (a crash; a crash loop), `backup` (a failed backup or restore, a restore done, a deletion kept because its final backup failed), `disk` (the host disk low or recovered, a server over its soft disk limit), `install` (a failed install), `update` (a Wings update, or its rollback).
-- **Discord:** an embed with the title, details (for crashes, the last console lines), node, and server; colored by level (info, warning, critical); no mentions.
-- **Webhooks:** a JSON `POST` (`category`, `level`, `type`, `title`, `text`, `server_id`, `server_name`, `node`, `node_id`, `at`, `data`) with `X-Raptor-Event` and `X-Raptor-Timestamp`, and, with a `secret`, `X-Raptor-Signature: sha256=<hex HMAC-SHA256 of "<timestamp>.<body>">`. Receivers should check the signature and reject old timestamps.
-- **Delivery:** Wings reads the event outbox and the audit log with cursors kept in SQLite, so a restart neither loses nor repeats notifications. Signed actions arrive in order, once they've finished. Each send is tried 4 times over about 40 seconds (a 4xx other than 429 isn't retried); a target that still fails is skipped for 5 minutes so it doesn't hold up the others, and what it missed is counted in its next message. At most 20 messages a minute go to each target; the rest are counted and summarized the same way. History from before notifications were configured isn't sent.
-- `raptor notifications test` (root) sends a test message to every target and says how each went. Changing targets takes a Wings restart (servers keep running). Webhook URLs are secrets (anyone with a Discord webhook URL can post to it): `raptor doctor` warns if `config.yml` is readable by other users.
+### Threshold alerts
+
+`internal/wings/thresholds`: the metrics are on the node, so threshold rules are evaluated there. The Panel sends the org's threshold rules that apply to the node with `node.alerts` (not signed: alerts are routine, and a Panel that wanted to hide something could simply not send them), whenever they change, the node connects, or its Wings version changes; each replaces the last, and they're kept in `state.db`.
+
+- **Conditions:** a server's CPU (of its CPU limit, or of the whole machine without one), memory (of its limit), or disk (of its limit; servers without one aren't checked) above a percent, for every server on the node or one; the machine's CPU, memory, or the servers' filesystem above a percent.
+- **When:** checked every sample (10 seconds). A rule fires once it has held for its duration (`alert.fired`, with the rule, the value, and the threshold, and the server for server rules) and resolves once the value has been back under for a minute (`alert.resolved`), so a value hovering at the threshold doesn't flap.
+- **Restarts:** what's firing is kept in `state.db`, so a Wings restart neither repeats an alert nor misses its resolution. A rule that's removed or changed starts over without a resolved event; a server that's deleted takes its state with it.
 
 ## Local metrics
 
@@ -475,13 +467,12 @@ raptor storage status|setup|grow        volume state; create the image volume; g
 raptor support status|revoke          see / end active support access
 raptor keys list|reset                trusted passkeys for signed actions; reset = re-pair from the box
 raptor audit                          signed dangerous actions, from the node's own records
-raptor notifications test             a test message to each notification target in config.yml
 raptor import pterodactyl             migrate servers from Pterodactyl Wings
 raptor uninstall [--wipe-data]
 raptor tui                            servers, stats, history graphs, console; power, backup, and command keys (root)
 ```
 
-Implemented: `support` (Phase 4), `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` and the hostname check in Phase 3), `keys`, `audit`, `notifications test`, `tui`, and `import pterodactyl` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Implemented: `support` (Phase 4), `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` and the hostname check in Phase 3), `keys`, `audit`, `tui`, and `import pterodactyl` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
 
 - **`<server>`** is a server's full ID, its **short ID** (the last 8 characters, shown by `ps`; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
@@ -493,7 +484,7 @@ Implemented: `support` (Phase 4), `status`, `ps`, `start|stop|restart|kill`, `co
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, `Update`, `ListKeys`, `ListAudit`, the key reset (`StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset`), `TestNotifications`, `GetMetrics`, and `ImportServer`. `doctor` runs in the CLI itself rather than through the API, so it works while Wings is down. The full planned set:
+Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, `Update`, `ListKeys`, `ListAudit`, the key reset (`StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset`), `GetMetrics`, and `ImportServer`. `doctor` runs in the CLI itself rather than through the API, so it works while Wings is down. The full planned set:
 
 | Method | Purpose |
 |---|---|
@@ -510,7 +501,6 @@ Methods are added to the proto as the features behind them are built, so the API
 | `Link`, `Unlink`, `Relink` | Panel linking |
 | `Update` | Self-update: check (anyone with socket access) or install (root); `GetStatus` reports the outcome |
 | `ListKeys`, `ListAudit` | Trusted passkeys and delegations; signed actions and key resets (for the `raptor` group) |
-| `TestNotifications` | A test message to every notification target (root only) |
 | `GetMetrics` | A server's resource history and latest sample (for the `raptor` group) |
 | `ImportServer` | A server from another panel, its files copied in (root only) |
 | `StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset` | Re-pairing the owner's passkey from the box (root only) |

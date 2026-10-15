@@ -5,7 +5,8 @@ import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { isAdmin } from "@/lib/format";
 
-// The org's settings: general, members, billing, and the audit log.
+// The org's settings: general, members, billing, backups, alerts, and the
+// audit log.
 export const Route = createFileRoute("/orgs/$orgId/settings")({
   component: SettingsLayout,
 });
@@ -37,6 +38,11 @@ function SettingsLayout() {
           {admin && (
             <Link to="/orgs/$orgId/settings/backups" params={{ orgId }} className={tabClass}>
               Backups
+            </Link>
+          )}
+          {admin && (
+            <Link to="/orgs/$orgId/settings/alerts" params={{ orgId }} className={tabClass}>
+              Alerts
             </Link>
           )}
           {admin && (

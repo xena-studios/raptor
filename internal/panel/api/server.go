@@ -18,6 +18,7 @@ import (
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/meta/v1/metav1connect"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1/nodev1connect"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
+	"github.com/xena-studios/raptor/internal/panel/alerts"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/commands"
@@ -60,6 +61,8 @@ type Config struct {
 	Subdomains *orgs.Subdomains
 	// Billing receives Polar's webhooks (nil, or without Polar: none).
 	Billing *billing.Service
+	// Alerts serves an org's alerts (nil without a database).
+	Alerts *orgs.Alerts
 	// Commands sends users' commands to their nodes (nil without a
 	// database).
 	Commands *commands.Service
@@ -151,6 +154,10 @@ func Handler(cfg Config) http.Handler {
 		path, handler := panelv1connect.NewBillingServiceHandler(&orgs.Billing{Orgs: cfg.Orgs}, opts(connect.WithReadMaxBytes(16<<10))...)
 		api.Handle(path, handler)
 	}
+	if cfg.Alerts != nil {
+		path, handler := panelv1connect.NewAlertServiceHandler(cfg.Alerts, opts(connect.WithReadMaxBytes(16<<10))...)
+		api.Handle(path, handler)
+	}
 	if cfg.Subdomains != nil {
 		path, handler := panelv1connect.NewSubdomainServiceHandler(cfg.Subdomains, opts(connect.WithReadMaxBytes(16<<10))...)
 		api.Handle(path, handler)
@@ -185,6 +192,10 @@ func Handler(cfg Config) http.Handler {
 	if cfg.Billing.Enabled() {
 		// Polar's webhooks: signed, from Polar's servers, not a browser.
 		mux.Handle("POST "+billing.WebhookPath, cfg.Billing)
+	}
+	if cfg.Alerts != nil && cfg.Alerts.Alerts.Telegram != nil {
+		// The alerts bot's updates: from Telegram, with the webhook's secret.
+		mux.Handle("POST "+alerts.TelegramPath, http.MaxBytesHandler(cfg.Alerts.Alerts.Telegram, 1<<20))
 	}
 	return mux
 }

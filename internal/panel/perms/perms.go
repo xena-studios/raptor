@@ -103,6 +103,7 @@ var actions = map[string]string{
 	"backup.recover":            adminOnly,
 	"backup.orphans":            adminOnly,
 	"node.sftp":                 adminOnly,
+	"node.alerts":               adminOnly,
 	"sftp.disconnect":           SFTP,
 	"node.update":               adminOnly,
 	"node.health":               adminOnly,

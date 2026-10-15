@@ -22,6 +22,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/xena-studios/raptor/internal/panel/alerts"
 	"github.com/xena-studios/raptor/internal/panel/api"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/backupkeys"
@@ -198,8 +199,9 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		if route != "" && !nodelink.ValidRoute(route) {
 			return fmt.Errorf("PANEL_INSTANCE_ROUTE %q: want a path like /i/panel-a", route)
 		}
-		// Set once the backup key keeper exists, below.
+		// Set once the backup key keeper and alerts exist, below.
 		var keysConnected func(ctx context.Context, nodeID string)
+		var alertsConnected func()
 		cfg.Hub = &nodes.Hub{
 			PanelKey: reg.PanelKey, NodeKey: reg.NodeKey, Log: log, Route: route,
 			OnConnect: func(ctx context.Context, h nodelink.Hello) {
@@ -209,6 +211,9 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 				}
 				if keysConnected != nil {
 					go keysConnected(ctx, h.NodeID)
+				}
+				if alertsConnected != nil {
+					alertsConnected()
 				}
 			},
 			OnDisconnect: func(ctx context.Context, id string) {
@@ -326,6 +331,15 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			}
 		}
 		mirror := &nodes.Mirror{DB: pool, Hub: cfg.Hub, Log: log}
+		alertSvc, err := alertService(ctx, pool, cfg.Auth, router, reg.PanelKey, cfg.AppOrigin, log)
+		if err != nil {
+			return err
+		}
+		go alertSvc.Run(ctx, 3*time.Second)
+		// A node that connects gets its threshold rules.
+		alertsConnected = alertSvc.RulesChanged
+		mirror.Alerts = alertSvc.Ingest
+		cfg.Alerts = &orgs.Alerts{Orgs: cfg.Orgs, Alerts: alertSvc}
 		cfg.Hub.EventsAvailable = func(_ context.Context, id string, last int64) { mirror.Available(id, last) }
 		if err := mirror.ObserveMetrics(); err != nil {
 			return err
@@ -343,6 +357,57 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		log.Warn("PANEL_DATABASE_URL is not set: nodes can't enroll or connect")
 	}
 	return api.Run(ctx, cfg, log)
+}
+
+// alertService sends orgs' alerts (docs/PANEL.md#alerts), with Telegram
+// when the bot's token and webhook secret are set (docs/DEPLOY.md#secrets).
+func alertService(ctx context.Context, pool *pgxpool.Pool, a *auth.Service, nodes alerts.Sender, key ed25519.PrivateKey, appURL string, log *slog.Logger) (*alerts.Service, error) {
+	s := &alerts.Service{
+		DB: pool, DataKey: a.DataKey, AppURL: appURL, Nodes: nodes, PanelKey: key, Log: log,
+		AllowPrivate: os.Getenv("PANEL_ALERTS_ALLOW_PRIVATE") == "1",
+	}
+	if a.Mailer != nil {
+		s.Mail = a.Mailer.Send
+	}
+	if s.AllowPrivate {
+		log.Warn("PANEL_ALERTS_ALLOW_PRIVATE=1: alert channels can reach private addresses (development only)")
+	}
+	if len(s.DataKey) != 32 {
+		log.Warn("PANEL_DATA_KEY is not set: only email and Telegram alert channels can be added")
+	}
+	tok := os.Getenv("PANEL_TELEGRAM_BOT_TOKEN")
+	if tok == "" {
+		log.Warn("PANEL_TELEGRAM_BOT_TOKEN is not set: Telegram alerts are off")
+		return s, nil
+	}
+	secret := os.Getenv("PANEL_TELEGRAM_WEBHOOK_SECRET")
+	if len(secret) < 32 {
+		return nil, errors.New("PANEL_TELEGRAM_WEBHOOK_SECRET must be set, at least 32 characters, with PANEL_TELEGRAM_BOT_TOKEN")
+	}
+	bot := &alerts.TelegramBot{Token: tok, WebhookSecret: secret, OnStart: s.TelegramStart}
+	s.Telegram = bot
+	hook := envOr("PANEL_API_URL", "https://api.raptorpanel.net") + alerts.TelegramPath
+	// Telegram being unreachable at startup mustn't stop the Panel: keep
+	// trying; until it works, chats can't be connected (alerts to ones
+	// already connected still go).
+	go func() {
+		for wait := 5 * time.Second; ; wait = min(wait*2, 10*time.Minute) {
+			sctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			err := bot.Setup(sctx, hook)
+			cancel()
+			if err == nil {
+				log.Info("telegram alerts bot", "username", bot.Username())
+				return
+			}
+			log.Warn("setting up the Telegram bot failed; trying again", "err", err, "in", wait)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(wait):
+			}
+		}
+	}()
+	return s, nil
 }
 
 // backupStorage is Raptor Backup Storage, offered when its B2 settings are

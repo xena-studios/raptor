@@ -74,7 +74,7 @@ Does the actual work: runs servers in Docker containers, runs schedules and back
 **Automation**
 - Multi-step schedules (warn players → wait → back up → restart) in your timezone
 - Backups on by default: incremental, deduplicated, encrypted. Stored on the box, in your own S3/B2, or in Raptor's hosted storage.
-- Discord and webhook alerts sent directly from your box
+- Alerts by email, Discord, Slack, Telegram, ntfy, or webhook: a server down or crashing, an install finished, a node offline, disk low, CPU or memory above a threshold, and every signed dangerous action. New orgs start with their owners emailed about the serious ones.
 
 **Teams**
 - Organizations with members and roles

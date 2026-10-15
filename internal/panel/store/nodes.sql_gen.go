@@ -51,7 +51,7 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 const createNode = `-- name: CreateNode :one
 INSERT INTO nodes (org_id, name, short_id, public_key, facts, wings_version)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error
 `
 
 type CreateNodeParams struct {
@@ -96,6 +96,8 @@ func (q *Queries) CreateNode(ctx context.Context, arg CreateNodeParams) (Node, e
 		&i.SftpHostKey,
 		&i.SftpAllowed,
 		&i.DisplayAddress,
+		&i.AlertsHash,
+		&i.AlertsError,
 	)
 	return i, err
 }
@@ -209,7 +211,7 @@ func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (
 }
 
 const getNode = `-- name: GetNode :one
-SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address FROM nodes WHERE id = $1
+SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error FROM nodes WHERE id = $1
 `
 
 func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
@@ -238,6 +240,8 @@ func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
 		&i.SftpHostKey,
 		&i.SftpAllowed,
 		&i.DisplayAddress,
+		&i.AlertsHash,
+		&i.AlertsError,
 	)
 	return i, err
 }
@@ -299,7 +303,7 @@ const relinkNode = `-- name: RelinkNode :one
 UPDATE nodes
 SET public_key = $2, wings_version = $3, facts = $4, key_revoked_at = NULL, deleted_at = NULL
 WHERE id = $1
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error
 `
 
 type RelinkNodeParams struct {
@@ -340,6 +344,8 @@ func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, e
 		&i.SftpHostKey,
 		&i.SftpAllowed,
 		&i.DisplayAddress,
+		&i.AlertsHash,
+		&i.AlertsError,
 	)
 	return i, err
 }
