@@ -165,7 +165,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 # The 1Password CLI.
-curl -sS https://downloads.1password.com/linux/keys/1password.asc | gpg --dearmor -o /usr/share/keyrings/1password-archive-keyring.gpg
+curl -fsSL https://downloads.1password.com/linux/keys/1password.asc | gpg --dearmor -o /usr/share/keyrings/1password-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" \
   > /etc/apt/sources.list.d/1password.list
 apt-get update && apt-get install -y 1password-cli
@@ -173,9 +173,14 @@ apt-get update && apt-get install -y 1password-cli
 # The deploy files.
 git clone https://github.com/xena-studios/raptor.git /opt/raptor
 install -d -m 0700 /etc/raptor /etc/raptor/tls
+
+# Everything there? Four versions, or the step that failed.
+op --version && docker --version && wg --version && ufw --version | head -1
 ```
 
 (On Ubuntu, use `ubuntu` in Docker's repository URL.)
+
+A pasted block carries on past a failed line, so check that last line's output before going on. If the first `apt-get install` fails, `gpg` is missing, the 1Password keyring is never written, and from then on every `apt-get update` fails on its repository and skips what follows: remove `/etc/apt/sources.list.d/1password.list`, install the packages, and add it again.
 
 SSH: keys only (`PasswordAuthentication no`, `PermitRootLogin prohibit-password` in `/etc/ssh/sshd_config`), and your provider's firewall, if it has one, open for 22 and 443 only.
 
