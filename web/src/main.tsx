@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 
 import { NotFound, RouteError } from "@/components/error-screen";
 import { ReauthProvider } from "@/components/reauth";
+import { ToastProvider } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { reportResult } from "@/lib/connection";
 import { transport } from "@/lib/transport";
@@ -45,7 +46,9 @@ createRoot(root).render(
       <QueryClientProvider client={queryClient}>
         <ReauthProvider>
           <TooltipProvider>
-            <RouterProvider router={router} />
+            <ToastProvider>
+              <RouterProvider router={router} />
+            </ToastProvider>
           </TooltipProvider>
         </ReauthProvider>
       </QueryClientProvider>

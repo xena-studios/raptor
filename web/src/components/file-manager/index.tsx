@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import { message } from "@/lib/errors";
 import { type ArchiveFormat, setFileSettings, useFileSettings } from "@/lib/file-settings";
 import {
@@ -127,7 +128,8 @@ export function Files({
   const [anchor, setAnchor] = useState<string>();
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  // Deleting asks first (it all goes to the trash, which can put it back).
+  const [confirmDelete, setConfirmDelete] = useState<{ dir: string; names: string[] }>();
   const [busy, setBusy] = useState(false);
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -178,16 +180,17 @@ export function Files({
     }
   }
 
+  // act runs a change, then confirms it in a toast (done).
   async function act(fn: () => Promise<unknown>, done?: string) {
     setBusy(true);
     setError("");
-    setNotice("");
     try {
       await fn();
-      if (done) setNotice(done);
+      if (done) toast.success(done);
       setSelected(new Set());
       await api.refresh();
     } catch (err) {
+      // Failures stay in view, above the list, until the next action.
       setError(message(err));
     } finally {
       setBusy(false);
@@ -241,6 +244,7 @@ export function Files({
             onProgress: (f) => update(u.key, { progress: f }),
           });
           update(u.key, { progress: 1, done: true });
+          toast.success(`Uploaded ${u.name}.`);
           void api.refresh();
         } catch (err) {
           if (!u.abort.signal.aborted) update(u.key, { error: message(err) });
@@ -261,14 +265,18 @@ export function Files({
         void act(async () => {
           await api.run("files.write", { path: join(dir, name), data: "" });
           go({ path: dir, file: join(dir, name) });
-        }),
+        }, `Created ${name}.`),
     });
   const newFolder = (dir = path) =>
     setAsk({
       title: "New folder",
       initial: "",
       action: "Create",
-      done: (name) => void act(() => api.run("files.mkdir", { path: join(dir, name) })),
+      done: (name) =>
+        void act(
+          () => api.run("files.mkdir", { path: join(dir, name) }),
+          `Created the folder ${name}.`,
+        ),
     });
   const rename = (e: Entry, dir = path) =>
     setAsk({
@@ -276,15 +284,19 @@ export function Files({
       initial: e.name,
       action: "Rename",
       done: (name) =>
-        void act(() => api.run("files.rename", { dir, moves: [{ from: e.name, to: name }] })),
+        void act(
+          () => api.run("files.rename", { dir, moves: [{ from: e.name, to: name }] }),
+          `Renamed ${e.name} to ${name}.`,
+        ),
     });
   const compress = (names: string[], dir = path) => setCompressing({ dir, names });
   // Deleting moves to the trash, always: it can be put back from there, or
   // purged.
-  const askDelete = (names: string[], dir = path) =>
+  const askDelete = (names: string[], dir = path) => setConfirmDelete({ dir, names });
+  const trashThem = ({ dir, names }: { dir: string; names: string[] }) =>
     void act(
       () => api.run("files.delete", { dir, names }),
-      `Moved ${names.length === 1 ? `"${names[0]}"` : `${names.length} items`} to the trash.`,
+      `Moved ${names.length === 1 ? names[0] : `${names.length} items`} to the trash.`,
     );
   const decompress = (e: Entry, dir = path) =>
     void act(
@@ -315,7 +327,11 @@ export function Files({
     rowHit.current = false;
   }
 
-  const copyPath = (p: string) => void navigator.clipboard.writeText(`/${p}`);
+  const copyPath = (p: string) =>
+    void navigator.clipboard.writeText(`/${p}`).then(
+      () => toast.success("Path copied", `/${p}`),
+      () => toast.error("Couldn't copy the path"),
+    );
   const duplicate = (e: Entry, dir = path) =>
     void act(() => api.run("files.copy", { path: join(dir, e.name) }), `Made a copy of ${e.name}.`);
   const outlined = (name: string) =>
@@ -594,10 +610,9 @@ export function Files({
             />
           ) : (
             <>
-              {(error || notice || uploads.length > 0 || selected.size > 0) && (
+              {(error || uploads.length > 0 || selected.size > 0) && (
                 <div className="flex shrink-0 flex-col gap-2 border-b px-4 py-2">
                   {error && <p className="text-sm text-destructive">{error}</p>}
-                  {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
                   {selected.size > 0 && canWrite && (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="font-medium">{selected.size} selected</span>
@@ -827,6 +842,41 @@ export function Files({
         />
       )}
       {ask && <NameDialog ask={ask} onClose={() => setAsk(undefined)} />}
+      <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(undefined)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Move{" "}
+              {confirmDelete?.names.length === 1
+                ? `"${confirmDelete.names[0]}"`
+                : `${confirmDelete?.names.length} items`}{" "}
+              to the trash?
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDelete?.names.length === 1 ? "It" : "They"} can be put back from the trash for
+              7 days, folders with everything in them. Until then{" "}
+              {confirmDelete?.names.length === 1 ? "it still counts" : "they still count"} toward
+              the server's disk limit.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete(undefined)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              autoFocus
+              disabled={busy}
+              onClick={() => {
+                if (confirmDelete) trashThem(confirmDelete);
+                setConfirmDelete(undefined);
+              }}
+            >
+              <Trash2 /> Move to trash
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
