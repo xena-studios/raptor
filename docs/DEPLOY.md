@@ -22,7 +22,7 @@ browsers, nodes ──▶  api.raptorpanel.net ──client cert──▶ server
                                                          server #2: Postgres (streaming replica)
                                                          + the same Caddy and Panels, stopped,
                                                            for a failover
-nodes' hostnames:    n-<id>.raptornodes.net  (DNS only, written by the Panel)
+nodes' hostnames:    <short id>.raptornodes.net  (DNS only, written by the Panel)
 ```
 
 - **Server #1** runs everything: Caddy (TLS from Cloudflare's Origin CA, and only Cloudflare's client certificate gets in), two Panel instances (so a deploy never takes the API down), and Postgres with pgBackRest.

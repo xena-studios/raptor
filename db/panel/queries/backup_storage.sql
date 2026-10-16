@@ -1,6 +1,3 @@
--- name: ActiveBackupStorage :one
-SELECT * FROM backup_storage WHERE node_id = $1 AND disabled_at IS NULL;
-
 -- name: OrgBackupStorage :many
 SELECT * FROM backup_storage WHERE org_id = $1 AND disabled_at IS NULL;
 

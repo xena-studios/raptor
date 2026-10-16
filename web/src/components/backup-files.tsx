@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   ArchiveRestore,
   ArrowLeft,
@@ -51,11 +52,10 @@ import { message } from "@/lib/errors";
 import { setFileSettings, useFileSettings } from "@/lib/file-settings";
 import { baseName, crumbs, formatSize, join, parent } from "@/lib/files";
 import { when } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
 
 // A restore of some files from this backup, as backup.activity reports it.
-export type Pull = {
+type Pull = {
   job_id: string;
   status: "queued" | "running" | "ok" | "failed";
   folder?: string;

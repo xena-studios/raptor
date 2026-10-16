@@ -1,9 +1,10 @@
+import { cn } from "cn";
+
 import type { ServerStatus } from "@/lib/servers";
-import { cn } from "@/lib/utils";
 
 // toneText is the one place state gets colour; the label always spells it
 // out too, so colour never carries it alone.
-export const toneText: Record<ServerStatus["tone"], string> = {
+const toneText: Record<ServerStatus["tone"], string> = {
   live: "text-ok",
   pending: "text-warn",
   failed: "text-destructive",

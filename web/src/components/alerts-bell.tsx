@@ -1,6 +1,7 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import { Bell, BellOff, Settings2, X } from "lucide-react";
 import { useState } from "react";
 
@@ -18,7 +19,6 @@ import { AlertService, type Notification } from "@/gen/raptor/panel/v1/alert_pb"
 import { message } from "@/lib/errors";
 import { ago } from "@/lib/format";
 import { shortId } from "@/lib/short-id";
-import { cn } from "@/lib/utils";
 
 // AlertsBell is the inbox at the top of every page: the alerts sent to the
 // user, from all their orgs, to read and dismiss; and, behind its settings

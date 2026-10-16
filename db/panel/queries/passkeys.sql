@@ -3,9 +3,6 @@
 UPDATE users SET webauthn_handle = COALESCE(webauthn_handle, @handle::bytea) WHERE id = $1
 RETURNING webauthn_handle;
 
--- name: GetUserByWebAuthnHandle :one
-SELECT * FROM users WHERE webauthn_handle = $1;
-
 -- name: CreatePasskey :one
 INSERT INTO passkeys (user_id, credential_id, credential, name) VALUES ($1, $2, $3, $4)
 RETURNING *;

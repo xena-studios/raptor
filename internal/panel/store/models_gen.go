@@ -333,7 +333,6 @@ type Node struct {
 	SftpPort        int32
 	SftpHostKey     string
 	SftpAllowed     bool
-	DisplayAddress  string
 	AlertsHash      string
 	AlertsError     string
 	Hostname        string

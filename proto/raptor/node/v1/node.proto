@@ -318,7 +318,7 @@ message NodeFacts {
 
 message EnrollResponse {
   string node_id = 1;
-  // The node's hostname is n-<short_id>.raptornodes.net.
+  // The node's hostname is <short_id>.raptornodes.net.
   string short_id = 2;
   // The Panel's Ed25519 signing key, which the node pins.
   bytes panel_key = 3;
@@ -326,7 +326,7 @@ message EnrollResponse {
   // (nodecmd.OwnerPin as JSON); empty if they didn't. The node checks it
   // and pins the key (LocalService.PinOwnerKey).
   bytes owner_pin = 4;
-  // The node's full hostname, n-<short_id>.<the Panel's node domain>,
+  // The node's full hostname, <short_id>.<the Panel's node domain>,
   // which the node keeps for raptor doctor's hostname check.
   string hostname = 5;
 }

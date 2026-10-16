@@ -1,6 +1,7 @@
 import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   Archive,
   ArchiveRestore,
@@ -54,7 +55,6 @@ import { dateTime, isAdmin, when } from "@/lib/format";
 import { shortId } from "@/lib/short-id";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
 
 const kindNames: Record<string, string> = {

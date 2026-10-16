@@ -2,6 +2,7 @@ import "@xterm/xterm/css/xterm.css";
 
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
+import { cn } from "cn";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 
@@ -10,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { message } from "@/lib/errors";
 import { live } from "@/lib/live";
 import { commandClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 // Console shows a server's live console (xterm.js renders the output, so
 // it's never HTML) and, with console.write, a line to send commands.

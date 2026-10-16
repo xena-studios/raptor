@@ -1,6 +1,7 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import { ChevronRight } from "lucide-react";
 
 import { Health, useDestinations, where } from "@/components/backup-destinations";
@@ -13,7 +14,6 @@ import { dateTime } from "@/lib/format";
 import { useIds } from "@/lib/ids";
 import { formatBytes } from "@/lib/metrics";
 import { useOrgNodes } from "@/lib/org-data";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/orgs/$orgId/settings/backups")({
   component: Backups,

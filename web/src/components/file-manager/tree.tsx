@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { join, parent } from "@/lib/files";
-import { cn } from "@/lib/utils";
 import { type Entry, kind, sorted, type useFilesApi, useListing } from "./data";
 import { EntryIcon } from "./icons";
 import type { MenuTarget } from "./index";

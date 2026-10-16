@@ -1,11 +1,10 @@
+import { cn } from "cn";
 import type { LucideIcon } from "lucide-react";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 
 import { type ChartData, ChartSlot, ExportButtons } from "@/components/chart-export";
-
 import { Card, CardContent } from "@/components/ui/card";
 import { type MetricRange, metricRanges } from "@/lib/metrics";
-import { cn } from "@/lib/utils";
 
 // The overview pages' building blocks: a stat with its trend, a usage bar,
 // a time range picker, and a titled graph.

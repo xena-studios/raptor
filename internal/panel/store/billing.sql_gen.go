@@ -206,47 +206,6 @@ func (q *Queries) NodeOrgAny(ctx context.Context, id pgtype.UUID) (pgtype.UUID, 
 	return org_id, err
 }
 
-const orgLedger = `-- name: OrgLedger :many
-SELECT kind, quantity, amount_cents, currency, polar_ref, at FROM billing_ledger
-WHERE org_id = $1 ORDER BY at DESC LIMIT 50
-`
-
-type OrgLedgerRow struct {
-	Kind        string
-	Quantity    int32
-	AmountCents int64
-	Currency    string
-	PolarRef    string
-	At          pgtype.Timestamptz
-}
-
-func (q *Queries) OrgLedger(ctx context.Context, orgID pgtype.UUID) ([]OrgLedgerRow, error) {
-	rows, err := q.db.Query(ctx, orgLedger, orgID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []OrgLedgerRow
-	for rows.Next() {
-		var i OrgLedgerRow
-		if err := rows.Scan(
-			&i.Kind,
-			&i.Quantity,
-			&i.AmountCents,
-			&i.Currency,
-			&i.PolarRef,
-			&i.At,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const orgName = `-- name: OrgName :one
 SELECT name FROM orgs WHERE id = $1
 `

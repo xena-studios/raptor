@@ -1,6 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   Boxes,
   Circle,
@@ -55,7 +56,6 @@ import {
 import { message } from "@/lib/errors";
 import { useFileSettings } from "@/lib/file-settings";
 import { eggClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 import type { Library } from "./library";
 import { field, select, VariableDialog } from "./variable-dialog";

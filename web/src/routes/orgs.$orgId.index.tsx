@@ -1,5 +1,6 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -29,7 +30,6 @@ import {
 } from "@/lib/metrics";
 import { type OrgServer, useOrgNodes, useOrgServers } from "@/lib/org-data";
 import { nodeStatus, serverStatus } from "@/lib/servers";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/orgs/$orgId/")({
   component: Overview,

@@ -1,7 +1,7 @@
 import { useQuery } from "@connectrpc/connect-query";
+import { cn } from "cn";
 
 import { MetaService } from "@/gen/raptor/meta/v1/meta_pb";
-import { cn } from "@/lib/utils";
 
 const repo = "https://github.com/xena-studios/raptor";
 

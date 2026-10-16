@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { cn } from "cn";
 import { type FormEvent, useState } from "react";
 
 import { useReauth } from "@/components/reauth";
@@ -11,7 +12,6 @@ import { Switch } from "@/components/ui/switch";
 import type { Node } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { orgClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 // NodeName renames a node (admins and owners).
 export function NodeName({

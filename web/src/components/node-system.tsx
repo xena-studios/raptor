@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { cn } from "cn";
 import {
   CheckCircle2,
   ChevronRight,
@@ -28,7 +29,6 @@ import type { Node } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { sendSigned } from "@/lib/signed";
 import { commandClient, orgClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
 import { timeZones } from "@/lib/zones";
 

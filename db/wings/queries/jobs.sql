@@ -12,9 +12,6 @@ ORDER BY created_at DESC LIMIT sqlc.arg(lim);
 -- name: RunnableJobs :many
 SELECT * FROM jobs WHERE status = 'queued' AND run_after <= ? ORDER BY run_after, created_at LIMIT 100;
 
--- name: NextRunAfter :one
-SELECT CAST(COALESCE(MIN(run_after), 0) AS INTEGER) FROM jobs WHERE status = 'queued';
-
 -- name: ActiveJobsForServer :one
 SELECT COUNT(*) FROM jobs WHERE server_id = ? AND status IN ('queued', 'running');
 

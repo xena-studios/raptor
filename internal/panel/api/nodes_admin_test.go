@@ -86,10 +86,6 @@ func TestRenameAndRemoveNode(t *testing.T) {
 	if _, err := db.Exec(ctx, `INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at) VALUES ($1, 's1', 'smp', 1, now(), now())`, nodeID); err != nil {
 		t.Fatal(err)
 	}
-	//nolint:staticcheck // the deprecated RPC still answers, with an error
-	if _, err := alice.orgs.SetNodeDisplayAddress(ctx, &panelv1.SetNodeDisplayAddressRequest{OrgId: org, NodeId: nodeID, DisplayAddress: "x.example.com"}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
-		t.Errorf("a node's shown address: %v", err)
-	}
 	set := func(c *browser, server, addr string) error {
 		_, err := c.orgs.SetServerDisplayAddress(ctx, &panelv1.SetServerDisplayAddressRequest{OrgId: org, NodeId: nodeID, ServerId: server, DisplayAddress: addr})
 		return err

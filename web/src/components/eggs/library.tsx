@@ -1,4 +1,5 @@
 import { Link, type LinkProps } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   AppWindow,
   BadgeCheck,
@@ -28,7 +29,6 @@ import {
 } from "@/components/ui/table";
 import type { CatalogEgg } from "@/gen/raptor/panel/v1/catalog_pb";
 import { categories, categoryName, originNames, sortEggs, statusNames, usage } from "@/lib/eggs";
-import { cn } from "@/lib/utils";
 
 // The egg library's two places: an org's Eggs page, and the admin panel's
 // official library. The pages are the same; links and wording differ.
