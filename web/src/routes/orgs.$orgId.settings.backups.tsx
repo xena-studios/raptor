@@ -10,6 +10,7 @@ import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { typeNames } from "@/lib/backup-destinations";
 import { message } from "@/lib/errors";
 import { dateTime } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 import { formatBytes } from "@/lib/metrics";
 import { useOrgNodes } from "@/lib/org-data";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/orgs/$orgId/settings/backups")({
 // Destinations live on each node (with their credentials, which never
 // leave it), so they're added and changed on the node's Backups tab.
 function Backups() {
-  const { orgId } = Route.useParams();
+  const { orgId } = useIds();
   const nodes = useOrgNodes(orgId).data?.nodes ?? [];
   const offline = nodes.filter((n) => !n.connected);
   return (

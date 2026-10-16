@@ -9,6 +9,7 @@ import { Graph, lastPoints, RangePicker, StatCard } from "@/components/stats";
 import { TimeChart } from "@/components/time-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { message } from "@/lib/errors";
+import { useIds } from "@/lib/ids";
 import {
   formatBytes,
   formatPercent,
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/")(
 // The server's overview: how it's doing now, its console, where players
 // reach it, and its resources over time.
 function Overview() {
-  const { orgId, nodeId, serverId } = Route.useParams();
+  const { orgId, nodeId, serverId } = useIds();
   const { node, server } = useServer(orgId, nodeId, serverId);
   const [range, setRange] = useState<MetricRange>("1h");
   const live = useMetrics(nodeId, serverId, "1h");

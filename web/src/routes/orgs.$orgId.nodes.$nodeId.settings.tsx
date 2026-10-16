@@ -1,11 +1,13 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute } from "@tanstack/react-router";
 
+import { IdsCard } from "@/components/ids-card";
 import { NodeName, NodeRemove, NodeSFTP } from "@/components/node-settings";
 import { PairKey } from "@/components/pair-key";
 import { SupportSettings } from "@/components/support-access";
 import { TrustedKeys } from "@/components/trusted-keys";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { useIds } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
 
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId/settings")({
@@ -14,7 +16,7 @@ export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId/settings")({
 
 function Settings() {
   const session = Route.useRouteContext();
-  const { orgId, nodeId } = Route.useParams();
+  const { orgId, nodeId } = useIds();
   const node = useOrgNodes(orgId).data?.nodes.find((n) => n.id === nodeId);
   const servers = useQuery(OrgService.method.listServers, { orgId, nodeId });
   const userId = session.user?.id ?? "";
@@ -30,6 +32,7 @@ function Settings() {
         servers={servers.data?.servers ?? []}
       />
       <PairKey nodeId={nodeId} userId={userId} />
+      {node && <IdsCard id={nodeId} what="node" />}
       {node && <NodeRemove orgId={orgId} nodeId={nodeId} name={node.name} />}
     </div>
   );

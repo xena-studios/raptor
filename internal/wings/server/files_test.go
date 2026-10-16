@@ -11,12 +11,12 @@ func TestResolve(t *testing.T) {
 	b := "0199a000-0000-7000-8000-00000000bbbb"
 	m := &Manager{servers: map[string]*instance{a: nil, b: nil}}
 
-	for ref, want := range map[string]string{a: a, "0000aaaa": a, "0000BBBB": b} {
+	for ref, want := range map[string]string{a: a, "0000aaaa": a, "0000BBBB": b, "00000000aaaa": a} {
 		if got, err := m.Resolve(ref); err != nil || got != want {
 			t.Errorf("Resolve(%q) = %q, %v; want %q", ref, got, err, want)
 		}
 	}
-	for _, ref := range []string{"0199a000", "000aaaa", "00000000aaaa", "", "ffffaaaa"} {
+	for _, ref := range []string{"0199a000", "000aaaa", "0000000aaaa", "", "ffffaaaa"} {
 		if _, err := m.Resolve(ref); !errors.Is(err, ErrNotFound) {
 			t.Errorf("Resolve(%q): %v, want not found", ref, err)
 		}

@@ -4,13 +4,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LeaveOrg, OrgDetails, OrgSettings } from "@/components/org/org-settings";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { isAdmin } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 
 export const Route = createFileRoute("/orgs/$orgId/settings/")({
   component: General,
 });
 
 function General() {
-  const { orgId } = Route.useParams();
+  const { orgId } = useIds();
   const { user } = Route.useRouteContext();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const org = orgs.data?.orgs.find((o) => o.id === orgId);

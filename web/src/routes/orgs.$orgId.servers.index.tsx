@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { isAdmin } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 import { type OrgServer, useOrgServers } from "@/lib/org-data";
 import { serverStatus } from "@/lib/servers";
 
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/")({
 });
 
 function Servers() {
-  const { orgId } = Route.useParams();
+  const { orgId } = useIds();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const admin = isAdmin(orgs.data?.orgs.find((o) => o.id === orgId)?.role);
   const { servers, pending } = useOrgServers(orgId);

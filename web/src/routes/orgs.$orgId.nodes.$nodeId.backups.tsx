@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BackupKey, NodeDestinations, RecoveredBackups } from "@/components/backup-destinations";
 import { Card, CardContent } from "@/components/ui/card";
 import { OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
+import { useIds } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
 
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId/backups")({
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId/backups")({
 
 // A node's backup destinations (admins).
 function Backups() {
-  const { orgId, nodeId } = Route.useParams();
+  const { orgId, nodeId } = useIds();
   const session = Route.useRouteContext();
   const node = useOrgNodes(orgId).data?.nodes.find((n) => n.id === nodeId);
   const orgs = useQuery(OrgService.method.listOrgs, {});

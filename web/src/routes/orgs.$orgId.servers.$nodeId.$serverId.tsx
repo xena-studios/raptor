@@ -1,5 +1,5 @@
 import { useQuery } from "@connectrpc/connect-query";
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
 import { NotFound } from "@/components/error-screen";
@@ -8,6 +8,7 @@ import { PowerButtons } from "@/components/power-buttons";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
 import { OrgService, type Server } from "@/gen/raptor/panel/v1/org_pb";
 import { addonKinds } from "@/lib/eggs";
+import { canonical, resolveServer, shortId, useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 import { type ServerConfig, serverStatus } from "@/lib/servers";
 
@@ -37,11 +38,20 @@ const tabs = [
 // A server's pages: its header with the power buttons, its tabs, and the
 // tab below.
 export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId")({
+  params: {
+    parse: (p) => p,
+    stringify: ({ nodeId, serverId }) => ({ nodeId: shortId(nodeId), serverId: shortId(serverId) }),
+  },
+  beforeLoad: async ({ location, params }) => {
+    const href = canonical(location.href, params);
+    if (href) throw redirect({ href, replace: true });
+    await resolveServer(params.orgId, params.nodeId, params.serverId);
+  },
   component: ServerLayout,
 });
 
 function ServerLayout() {
-  const { orgId, nodeId, serverId } = Route.useParams();
+  const { orgId, nodeId, serverId } = useIds();
   const { node, server, loaded } = useServer(orgId, nodeId, serverId);
   // The egg's add-ons (plugins, mods) get a tab each after Files, and
   // Steam Workshop items one for those who change its startup.

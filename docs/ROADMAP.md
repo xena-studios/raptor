@@ -258,6 +258,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] **Audit log** view (the org's Settings, Activity)
 - [x] **Staff admin panel** (`/admin`) (overview with history, users and orgs, suspending, the staff log, announcements, support access to nodes (owner-signed grants checked by Wings, three levels, `raptor support` on the box), staff consoles under level 2 grants and files under level 3, and revenue: recurring revenue, plans, unpaid orgs, and payments by month from the billing ledger)
 - [x] Performance: route code splitting, lazy xterm and editor (every route's page is its own chunk (the router plugin's `autoCodeSplitting`); xterm and the editor load only when shown, each in its own chunk; the first load is about 227 KB gzipped, mostly React, the router, and React Query, measured Oct 12, 2026)
+- [x] Short URLs: orgs, nodes, and servers by their short IDs (a UUID's last part), old full-ID links redirected, both IDs on the Settings tabs ([PANEL.md](PANEL.md#urls), #280)
 
 **Exit criteria:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, **without help**, in under 15 minutes.
 

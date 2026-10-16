@@ -7,6 +7,7 @@ import { ShownAddress } from "@/components/server-address";
 import { ServerSettings } from "@/components/server-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { nodeHostname } from "@/lib/addresses";
+import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
 export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/network")({
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/net
 
 function NetworkTab() {
   const session = Route.useRouteContext();
-  const { orgId, nodeId, serverId } = Route.useParams();
+  const { orgId, nodeId, serverId } = useIds();
   const { node, server } = useServer(orgId, nodeId, serverId);
   if (!server) return null;
   const host = node ? nodeHostname(node) : "";

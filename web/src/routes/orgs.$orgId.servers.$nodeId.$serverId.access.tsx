@@ -2,13 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { Access } from "@/components/server-access";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useIds } from "@/lib/ids";
 
 export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/access")({
   component: AccessTab,
 });
 
 function AccessTab() {
-  const { orgId, nodeId, serverId } = Route.useParams();
+  const { orgId, nodeId, serverId } = useIds();
   return (
     <Card>
       <CardHeader>

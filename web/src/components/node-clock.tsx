@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { sameId } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
 import {
   city,
@@ -59,13 +60,16 @@ function useNow(): Date {
 }
 
 // The node a path is about: a node's pages, or a server's.
-const nodePath = /^\/orgs\/([^/]+)\/(?:nodes|servers)\/([0-9a-f-]{36})(?:\/|$)/;
+const nodePath = /^\/orgs\/([^/]+)\/(?:nodes|servers)\/([0-9a-f-]+)(?:\/|$)/;
 
 export function NodeClock({ orgId }: { orgId: string }) {
   const path = useLocation({ select: (l) => l.pathname });
   const m = nodePath.exec(path);
   const nodes = useOrgNodes(orgId);
-  const node = m && m[1] === orgId ? nodes.data?.nodes.find((n) => n.id === m[2]) : undefined;
+  const node =
+    m && sameId(m[1] ?? "", orgId)
+      ? nodes.data?.nodes.find((n) => sameId(n.id, m[2] ?? ""))
+      : undefined;
   if (!node?.timezone || !validZone(node.timezone)) return null;
   return <ZoneClock tz={node.timezone} name={node.name} />;
 }

@@ -213,7 +213,7 @@ func backupRestore(ctx context.Context, args []string, in io.Reader, tty bool) e
 func confirmRestore(list []*localv1.BackupInfo, ref string, in io.Reader, out io.Writer, tty bool) error {
 	var b *localv1.BackupInfo
 	for _, x := range list {
-		if x.GetId() == ref || (len(ref) >= shortID && strings.HasSuffix(x.GetId(), ref)) {
+		if x.GetId() == ref || (len(ref) >= minShortID && strings.HasSuffix(x.GetId(), ref)) {
 			b = x
 			break
 		}

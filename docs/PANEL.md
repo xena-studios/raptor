@@ -263,6 +263,15 @@ The node fires schedules (see [WINGS.md](WINGS.md#scheduler)); the Panel keeps t
 
 `OrgService.ListScheduleRuns` (the `schedules` permission) lists a server's runs, or one schedule's, 25 at a time, newest first. A schedule's "last run" is the newer of the node's and the newest run here, so "Run now" counts. The server's Schedules tab shows them under the schedules, refreshed every 5 seconds: running (with the steps done), ran (with how long and how many steps), failed (at which step, and why), skipped (and why). A step's error is the node's words, so the app shows known ones as a sentence ("the server wasn't running") and anything else as "the backup failed" and the like.
 
+## URLs
+
+Orgs, nodes, and servers each have two IDs: the full one (a UUIDv7) and a **short ID**, its last part (`01a131b9-f6ae-7a48-9b53-4b5e5f2ce0f8` → `4b5e5f2ce0f8`), random in a UUIDv7 (#280). The app's URLs carry the short ones: `/orgs/d1c671ecf959/servers/3fe2ea243894/4b5e5f2ce0f8/settings`.
+
+- The routes turn them back into full IDs before a page loads (`web/src/lib/ids.ts`): the org's from `ListOrgs`, a node's from its org's `ListNodes`, a server's from its node's `ListServers`, each looked up once and remembered. Pages read them with `useIds()` and only ever work with full IDs, so the API is unchanged.
+- Links are built from full IDs as before; the routes' `params.stringify` shortens them.
+- Old links with full IDs still work: they're redirected to the short URL.
+- A node's or server's Settings tab shows both IDs (the IDs card). A node's short ID is also its hostname, `<short ID>.raptornodes.net` (#279). `raptor ps` shows servers' short IDs, and Wings takes them, or the 8 characters it used to show, anywhere it asks for a server.
+
 ## Node addresses
 
 A node's hostname (`<short id>.raptornodes.net`) resolves to the machine's IP address, so showing it is showing the IP. Many owners put a proxy in front of their servers (TCPShield and the like) and stream or share their screen, so the app treats both as private:

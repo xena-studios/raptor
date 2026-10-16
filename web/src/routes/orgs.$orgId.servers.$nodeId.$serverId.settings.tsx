@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { DeleteServer } from "@/components/delete-server";
+import { IdsCard } from "@/components/ids-card";
 import { MoveServer } from "@/components/move-server";
 import { ServerSettings } from "@/components/server-settings";
+import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
 export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/settings")({
@@ -11,7 +13,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/set
 
 function SettingsTab() {
   const session = Route.useRouteContext();
-  const { orgId, nodeId, serverId } = Route.useParams();
+  const { orgId, nodeId, serverId } = useIds();
   const { server } = useServer(orgId, nodeId, serverId);
   if (!server) return null;
   const userId = session.user?.id ?? "";
@@ -27,6 +29,7 @@ function SettingsTab() {
         canReinstall={can(server, "reinstall")}
         stopped={["offline", "crashed", "install_failed", ""].includes(server.state)}
       />
+      <IdsCard id={serverId} what="server" />
       {can(server, "*") && <MoveServer orgId={orgId} nodeId={nodeId} serverId={serverId} />}
       {can(server, "*") && (
         <DeleteServer
