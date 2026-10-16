@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/netip"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -24,8 +25,9 @@ type Config struct {
 	// Path is the file it was loaded from ("" if parsed from bytes).
 	Path   string `yaml:"-"`
 	NodeID string `yaml:"node_id"`
-	// Hostname is the node's name in DNS (n-<short id>.raptornodes.net),
-	// set when it links; the Panel keeps the record pointed at the node.
+	// Hostname is the node's name in DNS (<short id>.raptornodes.net, the
+	// short ID being the node ID's last part), set when it links; the Panel
+	// keeps the record pointed at the node.
 	Hostname string   `yaml:"hostname"`
 	Panel    Panel    `yaml:"panel"`
 	Identity Identity `yaml:"identity"`
@@ -170,10 +172,27 @@ func Parse(data []byte) (Config, error) {
 	if err := dec.Decode(&cfg); err != nil && !errors.Is(err, io.EOF) {
 		return Config{}, fmt.Errorf("config: %w", err)
 	}
+	cfg.Hostname = currentHostname(cfg.NodeID, cfg.Hostname)
 	if err := cfg.Validate(); err != nil {
 		return Config{}, fmt.Errorf("config: %w", err)
 	}
 	return cfg, nil
+}
+
+// oldHostname is a hostname from before nodes' short IDs were their IDs'
+// last part: n-<8 characters>.<domain>.
+var oldHostname = regexp.MustCompile(`^n-[a-z0-9]{8}\.(.+)$`)
+
+// currentHostname is the node's hostname now, for a config written when
+// it was n-<old short ID>.<domain>: the Panel renamed every node to
+// <short ID>.<domain> (docs/DECISIONS.md #279).
+func currentHostname(nodeID, host string) string {
+	m := oldHostname.FindStringSubmatch(host)
+	i := strings.LastIndexByte(nodeID, '-')
+	if m == nil || i < 0 || len(nodeID)-i-1 != 12 {
+		return host
+	}
+	return nodeID[i+1:] + "." + m[1]
 }
 
 // Validate checks values the YAML types can't.

@@ -6,7 +6,7 @@
 
 // nodeHostname is the node's own hostname, which resolves to its IP.
 export function nodeHostname(n: { shortId: string }): string {
-  return `n-${n.shortId}.raptornodes.net`;
+  return `${n.shortId}.raptornodes.net`;
 }
 
 // hasPort reports whether a shown address has its own port ("host:port",

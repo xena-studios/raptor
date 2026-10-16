@@ -19,6 +19,17 @@ import (
 // table (rate limits, every node) needs its own.
 func NewDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
+	pool := EmptyDB(t)
+	if err := store.Migrate(context.Background(), pool); err != nil {
+		t.Fatal(err)
+	}
+	return pool
+}
+
+// EmptyDB is NewDB without the migrations, for tests of the migrations
+// themselves.
+func EmptyDB(t *testing.T) *pgxpool.Pool {
+	t.Helper()
 	url := os.Getenv("PANEL_TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("PANEL_TEST_DATABASE_URL not set")
@@ -46,8 +57,5 @@ func NewDB(t *testing.T) *pgxpool.Pool {
 		pool.Close()
 		_, _ = admin.Exec(context.Background(), "DROP DATABASE "+name+" WITH (FORCE)")
 	})
-	if err := store.Migrate(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
 	return pool
 }

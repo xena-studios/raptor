@@ -193,7 +193,7 @@ func TestEggLibrary(t *testing.T) {
 
 	// Deleting: not while a server uses it; archive instead.
 	var node string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'egg12345', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&node); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&node); err != nil {
 		t.Fatal(err)
 	}
 	exec(`INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at, egg_source) VALUES ($1, 's1', 'hi', 1, now(), now(), $2)`, node, id)

@@ -108,7 +108,7 @@ func TestCommands(t *testing.T) {
 		t.Fatal(err)
 	}
 	var nodeID string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, facts) VALUES ($1, 'box', 'abcd1234', decode(repeat('00', 32), 'hex'),
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key, facts) VALUES ($1, 'box', decode(repeat('00', 32), 'hex'),
 		'{"os": "debian", "arch": "arm64", "cpus": 4, "memory_bytes": 8589934592}') RETURNING id`, org).Scan(&nodeID); err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func TestCommands(t *testing.T) {
 		t.Fatal(err)
 	}
 	nodes, err := alice.orgs.ListNodes(ctx, &panelv1.ListNodesRequest{OrgId: org})
-	if err != nil || len(nodes.GetNodes()) != 1 || !nodes.GetNodes()[0].GetConnected() || nodes.GetNodes()[0].GetShortId() != "abcd1234" {
+	if err != nil || len(nodes.GetNodes()) != 1 || !nodes.GetNodes()[0].GetConnected() || !strings.HasSuffix(nodeID, "-"+nodes.GetNodes()[0].GetShortId()) {
 		t.Fatalf("owner's nodes: %v, %v", nodes, err)
 	}
 	if n := nodes.GetNodes()[0]; n.GetArch() != "arm64" || n.GetCpus() != 4 || n.GetMemoryBytes() != 8<<30 {

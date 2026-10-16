@@ -44,7 +44,6 @@ function AdminLayout() {
       ["/admin/support", "Support"],
       ["/admin/announcements", "Announcements"],
       ["/admin/eggs", "Eggs"],
-      ["/admin/subdomains", "Subdomains"],
       ["/admin/settings", "Settings"],
     ].find(([p]) => path.startsWith(p as string))?.[1] ?? "Overview";
   const onOverview = path === "/admin" || path === "/admin/" || path.startsWith("/admin/overview");

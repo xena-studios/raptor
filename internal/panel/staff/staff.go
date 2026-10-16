@@ -49,9 +49,6 @@ type Service struct {
 	DB   *pgxpool.Pool
 	Auth *auth.Service
 	Log  *slog.Logger
-	// SyncSubdomains writes subdomains' records now, after a ban (nil:
-	// the next sweep does).
-	SyncSubdomains func()
 	// BillingLive reports whether the Panel charges (billing.Service.Enabled;
 	// nil: it doesn't).
 	BillingLive func() bool

@@ -13,14 +13,14 @@ func TestSetLink(t *testing.T) {
 	if err := os.WriteFile(p, []byte(orig), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := SetLink(p, "0192f0a4-0000-7000-8000-000000000001", "https://api.example.net", "n-abcd1234.raptornodes.net"); err != nil {
+	if err := SetLink(p, "0192f0a4-0000-7000-8000-000000000001", "https://api.example.net", "000000000001.raptornodes.net"); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.NodeID != "0192f0a4-0000-7000-8000-000000000001" || cfg.Panel.URL != "https://api.example.net" || cfg.Hostname != "n-abcd1234.raptornodes.net" ||
+	if cfg.NodeID != "0192f0a4-0000-7000-8000-000000000001" || cfg.Panel.URL != "https://api.example.net" || cfg.Hostname != "000000000001.raptornodes.net" ||
 		cfg.Panel.AppURL != "https://app.example.net" || cfg.Log.Level != "debug" {
 		t.Errorf("config: %+v", cfg)
 	}
@@ -63,5 +63,22 @@ func TestSetQuotas(t *testing.T) {
 	b, _ := os.ReadFile(p)
 	if !strings.Contains(string(b), "# mine") || !strings.Contains(string(b), "quotas: false") {
 		t.Errorf("file:\n%s", b)
+	}
+}
+
+func TestOldHostname(t *testing.T) {
+	id := "0199a000-0000-7000-8000-1a2b3c4d5e6f"
+	for host, want := range map[string]string{
+		"n-k7m2qx9d.raptornodes.net":   "1a2b3c4d5e6f.raptornodes.net",
+		"n-k7m2qx9d.nodes.example.com": "1a2b3c4d5e6f.nodes.example.com",
+		"1a2b3c4d5e6f.raptornodes.net": "1a2b3c4d5e6f.raptornodes.net",
+		"":                             "",
+	} {
+		if got := currentHostname(id, host); got != want {
+			t.Errorf("currentHostname(%q) = %q, want %q", host, got, want)
+		}
+	}
+	if got := currentHostname("", "n-k7m2qx9d.raptornodes.net"); got != "n-k7m2qx9d.raptornodes.net" {
+		t.Errorf("without a node ID: %q", got)
 	}
 }

@@ -54,8 +54,9 @@ func TestEnroll(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.GetShortId()) != 8 || !ed25519.PublicKey(res.GetPanelKey()).Equal(r.PanelKey.Public()) ||
-		res.GetHostname() != "n-"+res.GetShortId()+".raptornodes.net" {
+	// The short ID is the last part of the node's ID.
+	if !strings.HasSuffix(res.GetNodeId(), "-"+res.GetShortId()) || len(res.GetShortId()) != 12 || !ed25519.PublicKey(res.GetPanelKey()).Equal(r.PanelKey.Public()) ||
+		res.GetHostname() != res.GetShortId()+".raptornodes.net" {
 		t.Errorf("enrolled: %v", res)
 	}
 	got, err := r.NodeKey(ctx, res.GetNodeId())
@@ -104,20 +105,6 @@ func TestEnroll(t *testing.T) {
 	}
 	if _, err := r.NodeKey(ctx, res.GetNodeId()); err == nil || !strings.Contains(err.Error(), "revoked") {
 		t.Errorf("revoked node: %v", err)
-	}
-}
-
-func TestShortID(t *testing.T) {
-	seen := map[string]bool{}
-	for range 1000 {
-		s, err := newShortID()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(s) != 8 || strings.ContainsAny(s, "01ilo") || seen[s] {
-			t.Fatalf("short ID %q", s)
-		}
-		seen[s] = true
 	}
 }
 

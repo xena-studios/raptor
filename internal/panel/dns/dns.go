@@ -1,8 +1,7 @@
 // Package dns keeps node hostnames pointing at their nodes
-// (docs/ARCHITECTURE.md#node-dns): n-<short-id>.<node domain> (raptornodes.net)
+// (docs/ARCHITECTURE.md#node-dns): <short-id>.<node domain> (raptornodes.net)
 // has an A record for the node's IPv4 address and an AAAA record for its
-// IPv6 one, DNS-only, with a short TTL. Player subdomains are a CNAME to
-// their node's hostname, and an SRV record for Minecraft.
+// IPv6 one, DNS-only, with a short TTL. The zone is only for nodes.
 package dns
 
 import (
@@ -22,6 +21,8 @@ type Provider interface {
 	// Set makes name's record of type ("A" or "AAAA") point at addr, creating
 	// it if needed; an invalid addr removes it.
 	Set(ctx context.Context, name, typ string, addr netip.Addr) error
+	// Remove deletes name's records of type (A, AAAA, CNAME, or SRV).
+	Remove(ctx context.Context, name, typ string) error
 }
 
 // TTL of node records: short, so a home connection's new address spreads
@@ -122,24 +123,14 @@ func (c *Cloudflare) Set(ctx context.Context, name, typ string, addr netip.Addr)
 	return c.put(ctx, typ, name, &cfRecord{Type: typ, Name: name, Content: addr.String(), TTL: TTL, Comment: "Raptor node"})
 }
 
-// SetCNAME makes name an alias of target; an empty target removes it.
-func (c *Cloudflare) SetCNAME(ctx context.Context, name, target string) error {
-	if target == "" {
-		return c.put(ctx, "CNAME", name, nil)
+// Remove deletes name's records of typ (A, AAAA, CNAME, or SRV).
+func (c *Cloudflare) Remove(ctx context.Context, name, typ string) error {
+	switch typ {
+	case "A", "AAAA", "CNAME", "SRV":
+	default:
+		return fmt.Errorf("record type %q", typ)
 	}
-	return c.put(ctx, "CNAME", name, &cfRecord{Type: "CNAME", Name: name, Content: target, TTL: TTL, Comment: "Raptor subdomain"})
-}
-
-// SetSRV makes name's SRV record point at target's port; port 0 removes
-// it.
-func (c *Cloudflare) SetSRV(ctx context.Context, name string, port int, target string) error {
-	if port == 0 {
-		return c.put(ctx, "SRV", name, nil)
-	}
-	return c.put(ctx, "SRV", name, &cfRecord{
-		Type: "SRV", Name: name, TTL: TTL, Comment: "Raptor subdomain",
-		Data: &cfData{Priority: 0, Weight: 5, Port: port, Target: target},
-	})
+	return c.put(ctx, typ, name, nil)
 }
 
 // put makes rec name's only record of typ, or removes them all if rec is

@@ -57,8 +57,6 @@ type Config struct {
 	Auth *auth.Service
 	// Orgs manages orgs, members, and invitations (nil without a database).
 	Orgs *orgs.Service
-	// Subdomains serves player subdomains (nil without a database).
-	Subdomains *orgs.Subdomains
 	// Billing receives Polar's webhooks (nil, or without Polar: none).
 	Billing *billing.Service
 	// Alerts serves an org's alerts (nil without a database).
@@ -156,10 +154,6 @@ func Handler(cfg Config) http.Handler {
 	}
 	if cfg.Alerts != nil {
 		path, handler := panelv1connect.NewAlertServiceHandler(cfg.Alerts, opts(connect.WithReadMaxBytes(16<<10))...)
-		api.Handle(path, handler)
-	}
-	if cfg.Subdomains != nil {
-		path, handler := panelv1connect.NewSubdomainServiceHandler(cfg.Subdomains, opts(connect.WithReadMaxBytes(16<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Staff != nil {

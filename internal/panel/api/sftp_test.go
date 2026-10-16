@@ -48,7 +48,7 @@ func TestSFTPPasswords(t *testing.T) {
 	}
 	org := created.GetOrg().GetId()
 	var node string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, sftp_enabled, sftp_port, sftp_host_key) VALUES ($1, 'box', 'abcd1234', decode(repeat('00', 32), 'hex'), true, 2022, 'SHA256:host') RETURNING id`, org).Scan(&node); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key, sftp_enabled, sftp_port, sftp_host_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex'), true, 2022, 'SHA256:host') RETURNING id`, org).Scan(&node); err != nil {
 		t.Fatal(err)
 	}
 	server := "0192f0a4-0000-7000-8000-0000abcdef12"
@@ -77,7 +77,7 @@ func TestSFTPPasswords(t *testing.T) {
 	a := res.GetAccess()
 	// Wings that doesn't list sftp-username gets the server's short ID in
 	// the username.
-	if a.GetHost() != "n-abcd1234.raptornodes.net" || a.GetPort() != 2022 || !strings.HasSuffix(a.GetUsername(), ".abcdef12") ||
+	if !strings.HasSuffix(node, "-"+strings.TrimSuffix(a.GetHost(), ".raptornodes.net")) || a.GetPort() != 2022 || !strings.HasSuffix(a.GetUsername(), ".abcdef12") ||
 		len(res.GetPassword()) != 27 || a.GetHostKeyFingerprint() != "SHA256:host" {
 		t.Errorf("access: %v, password %q", a, res.GetPassword())
 	}

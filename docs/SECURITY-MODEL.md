@@ -159,7 +159,7 @@ Even if every one of these failed, each malicious action would still need a real
 - Email codes: 10-minute expiry, single use, limited attempts, stored hashed. Rate limits and Cloudflare Turnstile protect the send endpoint; Turnstile runs on its own origin (`verify.raptorpanel.net`), so even Cloudflare's script can't reach the app's passkeys.
 - **XSS:** console output, file contents, and egg metadata are untrusted and always escaped. xterm.js renders console output, never `innerHTML`.
 - Postgres row-level security by `org_id`, in addition to application checks.
-- Rate limiting on auth, join-token creation, subdomain creation, alert changes and tests, and bundle uploads.
+- Rate limiting on auth, join-token creation, alert changes and tests, and bundle uploads.
 - **Alert channels can't reach the Panel's network:** webhook, ntfy, Discord, and Slack requests connect only to public addresses, checked per connection, with no redirects or proxy (DECISIONS #272). Their URLs and secrets are sealed with `PANEL_DATA_KEY`. Email alerts go only to members of the org. Telegram's webhook takes updates only with its secret token.
 - Scoped API keys (later).
 - Full audit log for every mutating action.

@@ -7,7 +7,6 @@ import {
   ChevronsUpDown,
   Egg,
   Gamepad2,
-  Globe,
   Headset,
   LayoutDashboard,
   LogOut,
@@ -351,7 +350,6 @@ const adminLinks = [
   { to: "/admin/support", label: "Support", icon: Headset },
   { to: "/admin/eggs", label: "Eggs", icon: Egg },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/admin/subdomains", label: "Subdomains", icon: Globe },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ] as const;
 

@@ -6,8 +6,8 @@ lint:
     - STANDARD
 # A removed field's number must be reserved, so it's never reused for
 # something else. raptor.panel.v1 is the Panel's API for its own web app,
-# which ships with it, so calls and messages the app no longer uses can be
-# removed there; the node and Wings APIs keep them, since nodes update on
+# which ships with it, so calls, messages, and whole files the app no longer
+# uses can be removed there; the node and Wings APIs keep them, since nodes update on
 # their own schedule (docs/DECISIONS.md #252).
 breaking:
   use:
@@ -19,3 +19,4 @@ breaking:
     SERVICE_NO_DELETE: [proto/raptor/panel]
     RPC_NO_DELETE: [proto/raptor/panel]
     MESSAGE_NO_DELETE: [proto/raptor/panel]
+    FILE_NO_DELETE: [proto/raptor/panel]

@@ -122,7 +122,7 @@ func TestFileTransfers(t *testing.T) {
 		t.Fatal(err)
 	}
 	org := created.GetOrg().GetId()
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'xfer1234', $2) RETURNING id`, org, []byte(nodePub)).Scan(&nodeID); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', $2) RETURNING id`, org, []byte(nodePub)).Scan(&nodeID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(ctx, `INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at) VALUES ($1, 's1', 'mc', 1, now(), now())`, nodeID); err != nil {

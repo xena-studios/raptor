@@ -15,6 +15,7 @@ import (
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
@@ -31,7 +32,7 @@ func sftpAccess(n store.Node, serverID, username string, expires pgtype.Timestam
 		username += "." + short
 	}
 	return &panelv1.SFTPAccess{
-		Host: "n-" + n.ShortID + ".raptornodes.net", Port: n.SftpPort, Username: username,
+		Host: nodes.Hostname(n.ShortID, ""), Port: n.SftpPort, Username: username,
 		ExpiresAt: timestamppb.New(expires.Time), HostKeyFingerprint: n.SftpHostKey,
 	}
 }

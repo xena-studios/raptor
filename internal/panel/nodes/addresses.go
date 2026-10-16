@@ -18,7 +18,7 @@ import (
 )
 
 // Addresses records where each node connects from and keeps its hostname,
-// n-<short-id>.<Domain>, pointing there (docs/ARCHITECTURE.md#node-dns).
+// <short-id>.<Domain>, pointing there (docs/ARCHITECTURE.md#node-dns).
 type Addresses struct {
 	Store  *Registry
 	DNS    dns.Provider // nil: addresses are recorded, no DNS is written
@@ -186,4 +186,42 @@ func (a *Addresses) ForgetWithRetry(ctx context.Context, nodeID string) {
 		wait *= 2
 	}
 	a.log().Error("gave up removing a removed node's DNS records", "node", nodeID)
+}
+
+// Retire deletes the records that should go (dns_retired: nodes' old
+// n-<id> hostnames, player subdomains), every so often until there are
+// none. Each is forgotten once it's deleted.
+func (a *Addresses) Retire(ctx context.Context, every time.Duration) {
+	if a.DNS == nil || a.Domain == "" {
+		return
+	}
+	for {
+		if err := a.retire(ctx); err != nil {
+			a.log().Warn("removing retired DNS records failed; retrying", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(every):
+		}
+	}
+}
+
+func (a *Addresses) retire(ctx context.Context) error {
+	q := a.Store.q()
+	rows, err := q.RetiredDNS(ctx)
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		name := r.Name + "." + a.Domain
+		if err := a.DNS.Remove(ctx, name, r.Type); err != nil {
+			return err
+		}
+		if err := q.ForgetRetiredDNS(ctx, store.ForgetRetiredDNSParams(r)); err != nil {
+			return err
+		}
+		a.log().Info("retired DNS record removed", "name", name, "type", r.Type)
+	}
+	return nil
 }

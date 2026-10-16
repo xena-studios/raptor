@@ -20,7 +20,7 @@ Configured by environment (`panel` with no arguments lists them all):
 - `PANEL_SIGNING_KEY`: the file with the Panel's Ed25519 signing key, kept apart from other secrets; nodes pin its public key.
 - `PANEL_DATA_KEY`: the file whose key encrypts TOTP secrets and the copies of nodes' backup keys; without it, two-factor authentication is off and no backup keys are kept. Back it up like the signing key.
 - `PANEL_APP_URL` (the web app's origin, the only one browsers may call from, and the passkey RP ID) and `PANEL_API_URL` (for OAuth callbacks).
-- `PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID` and `_CLIENT_SECRET`, `PANEL_TURNSTILE_SECRET`, `PANEL_CLIENT_IP_HEADER`, `PANEL_NODE_DOMAIN`, `PANEL_CLOUDFLARE_DNS_TOKEN`, `PANEL_CLOUDFLARE_ZONE_ID`, `PANEL_SUBDOMAINS` (`1` to offer player subdomains, once the node domain is on the Public Suffix List).
+- `PANEL_{GOOGLE,GITHUB,DISCORD}_CLIENT_ID` and `_CLIENT_SECRET`, `PANEL_TURNSTILE_SECRET`, `PANEL_CLIENT_IP_HEADER`, `PANEL_NODE_DOMAIN`, `PANEL_CLOUDFLARE_DNS_TOKEN`, `PANEL_CLOUDFLARE_ZONE_ID`.
 - `PANEL_RESEND_API_KEY`, `PANEL_MAIL_FROM` (as `Raptor <account@mail.raptorpanel.net>`; not `no-reply`, which costs deliverability and trust), and `PANEL_MAIL_REPLY_TO` (a mailbox someone reads, as `support@raptorpanel.net`, so "this wasn't me" replies reach a person): email through Resend from `mail.raptorpanel.net`, with click and open tracking off (they'd rewrite sign-in links and add pixels to security mail) and TLS enforced. `PANEL_MAIL_LOG=1`, development only, sends emails (codes included) to the log instead, and to `PANEL_MAIL_LOG_FILE` as plain text if set (`task dev:mail` shows them); setting both is an error, and with neither, email sign-in and invitations are off.
 
 - `PANEL_TELEGRAM_BOT_TOKEN` and `PANEL_TELEGRAM_WEBHOOK_SECRET` (32 or more random characters): Raptor's Telegram bot for alerts; without them, Telegram channels aren't offered. `PANEL_ALERTS_ALLOW_PRIVATE=1`, development only, lets alert channels reach private addresses.
@@ -100,10 +100,8 @@ alert_rules         id, org_id, name, condition, node_id, server_id, threshold, 
                     channel_ids, notify_resolved, enabled
 alert_deliveries    id, org_id, rule_id, channel_id, message, status, attempts, next_at, error
 
--- subdomains
-subdomains          id, org_id, node_id, server_id, name, created_by, created_at, released_at,
-                    dns_target, dns_port, dns_error
-subdomain_bans      name, reason, staff_id, created_at
+-- node DNS
+dns_retired         name, type     (records to delete: old n- hostnames, player subdomains)
 ```
 
 IDs are UUIDv7. Every tenant-scoped row carries `org_id`, and Postgres row-level security backs up application-level checks.
@@ -267,7 +265,7 @@ The node fires schedules (see [WINGS.md](WINGS.md#scheduler)); the Panel keeps t
 
 ## Node addresses
 
-A node's hostname (`n-<short id>.raptornodes.net`) resolves to the machine's IP address, so showing it is showing the IP. Many owners put a proxy in front of their servers (TCPShield and the like) and stream or share their screen, so the app treats both as private:
+A node's hostname (`<short id>.raptornodes.net`) resolves to the machine's IP address, so showing it is showing the IP. Many owners put a proxy in front of their servers (TCPShield and the like) and stream or share their screen, so the app treats both as private:
 - The hostname and the public IPs are shown as dots until revealed, one at a time, and can be copied without being revealed: in the node and server lists, the node's header and details, a server's address, the Network tab, the connection test, and the SFTP dialog. Only admins and owners get the IPs from `ListNodes`; members never do.
 - A server's **shown address** (`SetServerDisplayAddress`, admins and owners, on its Network tab, in the audit log) is what players connect to instead: a domain or IP, with a port or not. With a port, it's shown as is (a proxy's address); without one, the server's port is added. It's shown in the clear wherever the server's address is. It's a server's, not a node's: servers on one machine are often behind different proxies or domains, and the node's own pages (its header, details, and the node list) always show the node's hostname, hidden. A server without one shows its node's hostname, hidden. Migration 42 moved each node's old shown address onto its servers; `SetNodeDisplayAddress` now fails, and new servers start without one. The connection test still names the node's own hostname, hidden, because that's what it reaches.
 
@@ -384,14 +382,7 @@ The limit, said plainly: this stops a staff account (or one taken over) from rea
 ## Beginner-focused features
 
 - **Connection test:** on demand, from the server's Network tab. The Panel (`OrgService.TestConnection`, `internal/panel/orgs/connection.go`) opens a TCP connection to each of the server's ports (at most 16, in parallel, 5 seconds each) on the node's public IPv4, or IPv6 without one. A connection that's accepted and then closed within 750 ms is "closed", not reachable: Docker's port forwarder accepts even with nothing behind it, and a game waits for the player to speak. Allocations on 127.0.0.1 aren't probed ("local_only"). At the same time the browser asks the node what the game listens on (`server.ports`, a read with `View`), and `web/src/lib/connection-test.ts` puts both into one cause per port: reachable, UDP only (a TCP probe can't tell), not running, nothing listening yet, listening on other ports (named), listening on 127.0.0.1 only, or listening but not reachable: a firewall. A firewall gets a step-by-step guide for the provider, guessed from the node's reverse DNS (Hetzner, OVH, AWS, Google Cloud, Azure, Oracle, DigitalOcean, Linode, Vultr, a home connection) and changeable, with the port filled in. Ten tests a minute per user. Not yet: running it after a server's first start.
-- **Subdomains** (`SubdomainService`, `internal/panel/subdomains`; #265): `<name>.raptornodes.net`, one per server, at most 20 per org, added and removed by admins and owners on the server's Network tab.
-  - **On in production** (`PANEL_SUBDOMAINS=1` in `deploy/primary/compose.yaml`), before `raptornodes.net` is on the Public Suffix List (#267, which overrides #85's order). Without the variable `ListSubdomains` says they're off with an empty domain and the app shows nothing.
-  - **Names:** 3 to 32 of `a-z`, `0-9`, and inner hyphens; no doubled hyphens (punycode can pass for other names); reserved names (`www`, `api`, `mail`, `status`, `abuse`, `panel`, and similar) and anything starting with `n-` are refused, so player names never collide with node hostnames. One namespace across every org, checked by the Panel's own connection.
-  - **Records:** a CNAME to the server's node (`n-<short-id>.raptornodes.net`), so it follows the node's address with no work of its own, and for Minecraft Java servers (the egg's `players: minecraft`, which Wings reports) an SRV record `_minecraft._tcp.<name>` with the server's port, so players type the name alone. Never the node's shown address: that's whatever an admin typed, and a `raptornodes.net` name mustn't point at a site that isn't the owner's machine. Behind a proxy, use your own domain.
-  - **Kept in step, not written per request:** a sweep every minute (one instance at a time, by advisory lock) compares what each subdomain should point at with what it last wrote (`dns_target`, `dns_port`) and writes the difference: a new port, a removed server or node (which releases the name), a removal. Creating and removing also start a sweep at once. A write that fails is recorded and shown, and retried by the next sweep.
-  - **Released names** stay the org's for 30 days, so players' saved addresses don't reach someone else's server the next day; after that anyone can claim them.
-  - **Abuse:** the landing page links to `abuse@raptorpanel.net`. Staff ban a name from the admin panel's Subdomains page (`StaffService.BanSubdomain`, admins, with a recent passkey): it's released at once, its records go on the next sweep, the org's log says so, and the name can never be claimed again (`subdomain_bans`). Creating and removing are limited to 20 an hour per user, checks to 60 a minute.
-- **Node DNS:** the Panel creates `n-<short-id>.raptornodes.net` at enrollment and updates its A/AAAA records whenever Wings reports a new public IP. Deleted nodes' names are never reused.
+- **Node DNS:** the Panel creates `<short-id>.raptornodes.net` (the short ID is the node ID's last part) at enrollment and updates its A/AAAA records whenever Wings reports a new public IP. Deleted nodes' names are never reused. The zone is only for nodes: player subdomains were removed (#279), and their records deleted.
 - **Safe defaults:** backups on, crash restart on.
 - **Node health page:** security and configuration warnings reported by `doctor`.
 

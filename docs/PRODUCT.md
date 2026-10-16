@@ -64,12 +64,11 @@ Does the actual work: runs servers in Docker containers, runs schedules and back
 - Crash detection and automatic restart, on by default
 - Real disk limits enforced by the kernel, with instant usage reporting
 - **Connection test:** the Panel checks from outside whether players can reach your server, and tells you how to fix your provider's firewall if they can't
-- **Free subdomains** with SRV records, so players type `smp.raptornodes.net` instead of an IP and port
 
 **Files**
 - Web file manager with a code editor, uploads and downloads up to 1 GB per file
 - SFTP directly to your box at full speed for anything bigger (turn it on per node)
-- Every node gets its own hostname (`n-k7m2qx9d.raptornodes.net`) that follows your IP, even on a home connection
+- Every node gets its own hostname (`1cdd002cd9a3.raptornodes.net`) that follows your IP, even on a home connection
 
 **Automation**
 - Multi-step schedules (warn players → wait → back up → restart) in your timezone
@@ -143,7 +142,7 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 | Domain | Use |
 |---|---|
 | `raptorpanel.net` | Landing page; web app (`app.`), API and node connections (`api.`), help center (`help.`, on Featurebase), installer (`get.`), status page (`status.`) |
-| `raptornodes.net` | Node hostnames (`n-k7m2qx9d.raptornodes.net`) and player-facing server subdomains (`smp.raptornodes.net`) |
+| `raptornodes.net` | Node hostnames (`1cdd002cd9a3.raptornodes.net`), nothing else |
 
 ## Register
 

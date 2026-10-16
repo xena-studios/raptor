@@ -4,10 +4,10 @@ import { test } from "node:test";
 import { hasPort, serverAddress } from "./addresses.ts";
 
 test("server addresses", () => {
-  const n = { shortId: "abcd2345" };
+  const n = { shortId: "1a2b3c4d5e6f" };
   const s = { displayAddress: "" };
   assert.deepEqual(serverAddress(n, s, 25565), {
-    text: "n-abcd2345.raptornodes.net:25565",
+    text: "1a2b3c4d5e6f.raptornodes.net:25565",
     private: true,
   });
   assert.deepEqual(serverAddress(n, { displayAddress: "play.example.com" }, 25565), {

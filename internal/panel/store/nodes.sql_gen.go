@@ -63,15 +63,14 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 }
 
 const createNode = `-- name: CreateNode :one
-INSERT INTO nodes (org_id, name, short_id, public_key, facts, wings_version)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities
+INSERT INTO nodes (org_id, name, public_key, facts, wings_version)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, org_id, name, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities, short_id
 `
 
 type CreateNodeParams struct {
 	OrgID        pgtype.UUID
 	Name         string
-	ShortID      string
 	PublicKey    []byte
 	Facts        []byte
 	WingsVersion string
@@ -81,7 +80,6 @@ func (q *Queries) CreateNode(ctx context.Context, arg CreateNodeParams) (Node, e
 	row := q.db.QueryRow(ctx, createNode,
 		arg.OrgID,
 		arg.Name,
-		arg.ShortID,
 		arg.PublicKey,
 		arg.Facts,
 		arg.WingsVersion,
@@ -91,7 +89,6 @@ func (q *Queries) CreateNode(ctx context.Context, arg CreateNodeParams) (Node, e
 		&i.ID,
 		&i.OrgID,
 		&i.Name,
-		&i.ShortID,
 		&i.PublicKey,
 		&i.Facts,
 		&i.WingsVersion,
@@ -119,6 +116,7 @@ func (q *Queries) CreateNode(ctx context.Context, arg CreateNodeParams) (Node, e
 		&i.HostnameError,
 		&i.SystemReadAt,
 		&i.Capabilities,
+		&i.ShortID,
 	)
 	return i, err
 }
@@ -197,6 +195,20 @@ func (q *Queries) ForgetNodeServers(ctx context.Context, nodeID pgtype.UUID) err
 	return err
 }
 
+const forgetRetiredDNS = `-- name: ForgetRetiredDNS :exec
+DELETE FROM dns_retired WHERE name = $1 AND type = $2
+`
+
+type ForgetRetiredDNSParams struct {
+	Name string
+	Type string
+}
+
+func (q *Queries) ForgetRetiredDNS(ctx context.Context, arg ForgetRetiredDNSParams) error {
+	_, err := q.db.Exec(ctx, forgetRetiredDNS, arg.Name, arg.Type)
+	return err
+}
+
 const getJoinProgress = `-- name: GetJoinProgress :one
 SELECT progress, node_id FROM join_tokens WHERE token_hash = $1 AND org_id = $2
 `
@@ -241,7 +253,7 @@ func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (
 }
 
 const getNode = `-- name: GetNode :one
-SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities FROM nodes WHERE id = $1
+SELECT id, org_id, name, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities, short_id FROM nodes WHERE id = $1
 `
 
 func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
@@ -251,7 +263,6 @@ func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
 		&i.ID,
 		&i.OrgID,
 		&i.Name,
-		&i.ShortID,
 		&i.PublicKey,
 		&i.Facts,
 		&i.WingsVersion,
@@ -279,6 +290,7 @@ func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
 		&i.HostnameError,
 		&i.SystemReadAt,
 		&i.Capabilities,
+		&i.ShortID,
 	)
 	return i, err
 }
@@ -395,7 +407,7 @@ const relinkNode = `-- name: RelinkNode :one
 UPDATE nodes
 SET public_key = $2, wings_version = $3, facts = $4, key_revoked_at = NULL, deleted_at = NULL
 WHERE id = $1
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities
+RETURNING id, org_id, name, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities, short_id
 `
 
 type RelinkNodeParams struct {
@@ -417,7 +429,6 @@ func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, e
 		&i.ID,
 		&i.OrgID,
 		&i.Name,
-		&i.ShortID,
 		&i.PublicKey,
 		&i.Facts,
 		&i.WingsVersion,
@@ -445,6 +456,7 @@ func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, e
 		&i.HostnameError,
 		&i.SystemReadAt,
 		&i.Capabilities,
+		&i.ShortID,
 	)
 	return i, err
 }
@@ -479,6 +491,30 @@ func (q *Queries) RenameNode(ctx context.Context, arg RenameNodeParams) (int64, 
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const retiredDNS = `-- name: RetiredDNS :many
+SELECT name, type FROM dns_retired ORDER BY name, type LIMIT 100
+`
+
+func (q *Queries) RetiredDNS(ctx context.Context) ([]DnsRetired, error) {
+	rows, err := q.db.Query(ctx, retiredDNS)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DnsRetired
+	for rows.Next() {
+		var i DnsRetired
+		if err := rows.Scan(&i.Name, &i.Type); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setJoinProgress = `-- name: SetJoinProgress :execrows
@@ -676,17 +712,6 @@ type SetServerDisplayAddressParams struct {
 func (q *Queries) SetServerDisplayAddress(ctx context.Context, arg SetServerDisplayAddressParams) error {
 	_, err := q.db.Exec(ctx, setServerDisplayAddress, arg.NodeID, arg.ServerID, arg.DisplayAddress)
 	return err
-}
-
-const shortIDTaken = `-- name: ShortIDTaken :one
-SELECT EXISTS (SELECT 1 FROM nodes WHERE short_id = $1)
-`
-
-func (q *Queries) ShortIDTaken(ctx context.Context, shortID string) (bool, error) {
-	row := q.db.QueryRow(ctx, shortIDTaken, shortID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const useJoinToken = `-- name: UseJoinToken :exec

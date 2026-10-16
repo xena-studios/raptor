@@ -66,7 +66,7 @@ func TestRecoveryAPI(t *testing.T) {
 	newNode := func(org, name string, removed bool) string {
 		t.Helper()
 		var id string
-		if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, deleted_at) VALUES ($1, $2, substr(md5(random()::text), 1, 8), decode(repeat('00', 32), 'hex'), CASE WHEN $3 THEN now() END) RETURNING id`, org, name, removed).Scan(&id); err != nil {
+		if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key, deleted_at) VALUES ($1, $2, decode(repeat('00', 32), 'hex'), CASE WHEN $3 THEN now() END) RETURNING id`, org, name, removed).Scan(&id); err != nil {
 			t.Fatal(err)
 		}
 		return id

@@ -18,7 +18,7 @@
                                                    │ WebSocket (wss://api.raptorpanel.net),
                                                    │ yamux inside, opened OUTBOUND by Wings
                 ┌──────────────────────────────────┼─────────────────────────────┐
-                │ Owner's Linux box                │   n-<short-id>.raptornodes.net (DNS only)
+                │ Owner's Linux box                │   <short-id>.raptornodes.net (DNS only)  
                 │   ┌──────────────────────────────┴────────────┐                │
                 │   │ Wings (raptor-wings.service)              │◄── raptor CLI  │
                 │   │ SQLite state · job engine · scheduler     │   (unix socket)│
@@ -67,7 +67,7 @@ Help for owners (guides, the support inbox, feedback, the changelog) is on **Fea
 | `verify.raptorpanel.net` | The Turnstile page the sign-in form embeds (`web/verify`), apart from the app's origin | Static |
 | `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |
 | Mail sending subdomain | SPF/DKIM for transactional email | Resend |
-| `n-<short-id>.raptornodes.net`, `<name>.raptornodes.net` | Node hostnames and player subdomains | DNS-only; the apex redirects to `raptorpanel.net` |
+| `<short-id>.raptornodes.net` | Node hostnames, nothing else (#279) | DNS-only; the apex redirects to `raptorpanel.net` |
 
 ### Wings
 A single Go binary (`raptor`) that is both the daemon (`raptor wings run`) and the CLI. Runs on the owner's box as a systemd service. See [WINGS.md](WINGS.md).
@@ -82,7 +82,7 @@ Every piece of data has **exactly one owner**. Nothing is merged.
 | Auth, sessions | Panel (built in, passwordless) | — |
 | Billing, subscriptions, ledger | Panel (Polar) | — |
 | Node identity | Panel stores each node's public key | Wings holds its private key (generated on the box, never leaves it) |
-| Node DNS (`n-<short-id>.raptornodes.net`) | Panel | Wings reports its public IP |
+| Node DNS (`<short-id>.raptornodes.net`) | Panel | Wings reports its public IP |
 | Permission grants (user → server → perms) | Panel | Wings enforces signed grants; caches SFTP public keys |
 | Servers, config, allocations | **Wings** | Panel keeps a read-only **mirror** |
 | Schedules, backup config, backup index | **Wings** | mirrored |
@@ -177,7 +177,7 @@ How the console gets there (built; stats come later):
 | Operation | Path |
 |---|---|
 | Browse, rename, edit, upload, download (up to **1 GB per file**) | Browser → Cloudflare → Panel → node connection → Wings |
-| Anything larger, or bulk transfers | **SFTP**, straight to `n-<short-id>.raptornodes.net` (port shown in the Panel). Never touches the Panel. |
+| Anything larger, or bulk transfers | **SFTP**, straight to `<short-id>.raptornodes.net` (port shown in the Panel). Never touches the Panel. |
 | Hosted backups | Downloaded from backup storage with a short-lived signed link, not through the Panel |
 
 - **Uploads and downloads through the Panel** are sent in chunks under 100 MB (Cloudflare's request limit), resumable, and carried on a **separate short-lived outbound connection** that Wings opens for the transfer, so a large transfer never makes the console lag. With two Panel instances behind one proxy, the transfer connection must reach the instance that asked for it: each instance has its own route through the proxy (`/i/panel-a`), sent in `OpenTransfer`, and Wings dials it. If the browser's request reaches the instance that doesn't hold the node, it asks the holder (a forwarded request, through Postgres like a command) to have the node open the transfer to the asking instance's route, so the file's bytes never pass between instances. In the browser, an upload starts with the `files.upload` command, then sends its chunks to `PUT /api/files/upload?node=…&server=…&upload=…&offset=…` (`internal/panel/transfers`); each chunk first checks, with `files.upload.status` as the user, that the upload is this server's and where it's up to, and a chunk at another offset gets `409` and the state to resume from. A download is `GET /api/files/download?node=…&server=…&path=…`, which starts it with `files.download` as the user and streams the file whole, as an attachment. Transfer connections are kept between chunks and closed after a minute idle. Transfers are to be rate limited per org (not yet). Files over the cap show "use SFTP for files this large" with the connection details.
@@ -188,14 +188,14 @@ How the console gets there (built; stats come later):
 
 ## Node DNS
 
-Every node gets a hostname: **`n-<short-id>.raptornodes.net`**, e.g. `n-k7m2qx9d.raptornodes.net`.
-- Owners can use it for SFTP and give it to players (`n-k7m2qx9d.raptornodes.net:25565`) instead of an IP.
-- The short ID is **random** (not sequential or guessable) and **never reused**: deleted node names stay retired, so old DNS caches and saved addresses never point at someone else's box. The internal node UUID stays the database key.
+Every node gets a hostname: **`<short-id>.raptornodes.net`**, e.g. `1cdd002cd9a3.raptornodes.net`. The zone is **only for nodes** (#279).
+- Owners can use it for SFTP and give it to players (`1cdd002cd9a3.raptornodes.net:25565`) instead of an IP.
+- The short ID is the **last part of the node's ID** (`01a14621-e529-7833-b8b3-1cdd002cd9a3` → `1cdd002cd9a3`; a generated column, so it can't drift). In a UUIDv7 that part is random, so it's not sequential or guessable, and it's **never reused**: node rows are never deleted, so old DNS caches and saved addresses never point at someone else's box. Enrollment retries with a new ID in the unlikely case two match.
+- Until #279 hostnames were `n-<8 random characters>.raptornodes.net`. Migration 45 queued those records for deletion (`dns_retired`, which `nodes.Addresses.Retire` empties), and a node gets its new records when it next connects; Wings works out the new name from an old `config.yml` itself.
 - **Dynamic DNS:** the Panel takes the node's public address from its connection (`CF-Connecting-IP`, trusted only because the origin accepts nothing but Cloudflare; `PANEL_CLIENT_IP_HEADER`) and updates the A or AAAA record (60 s TTL, DNS-only) whenever it changes, through a Cloudflare API token scoped to the zone (`internal/panel/dns`, `nodes.Addresses`). Only public addresses get records: a node seen from a private or CGNAT address keeps its last public record. The record appears once the node first connects from a public address. A node gets the record for the address family it connects over; a dual-stack box's other family comes when Wings reports its addresses itself (later).
-- **Player subdomains** (`smp.raptornodes.net`) share the zone: a CNAME to the server's node hostname, plus an SRV record for Minecraft. They can't start with `n-` or use reserved names, so they never collide with node hostnames. They're on before the zone is on the Public Suffix List (#267) ([PANEL.md](PANEL.md#beginner-focused-features)).
 - The hostname points at the owner's real IP, often a home connection without DDoS protection. Players see the IP when they connect anyway; the future connection relay add-on is for owners who want to hide it.
-- **Public Suffix List:** `raptornodes.net` is listed before launch (subdomains went on before it: #267), so each subdomain counts as its own registered domain. Otherwise every owner getting a Let's Encrypt certificate for their subdomain shares one rate limit, and one subdomain could set cookies for the others.
-- **Record volume:** each node is one record and each player subdomain two (A + SRV). Cloudflare caps records per zone on Free plans, so `raptornodes.net` needs a plan (or DNS provider) with a quota sized for launch. Decide before launch.
+- **Public Suffix List:** `raptornodes.net` should be listed before launch, so each node's hostname counts as its own registered domain: otherwise owners getting Let's Encrypt certificates for their nodes (a web map, say) share one rate limit, and a web page on one node could set cookies for the others. Less pressing since player subdomains are gone (#279).
+- **Record volume:** each node is one or two records (A, AAAA). Cloudflare caps records per zone on Free plans, so `raptornodes.net` needs a plan (or DNS provider) with a quota sized for launch. Decide before launch.
 
 ## Ports on the node
 
@@ -211,7 +211,7 @@ Every node gets a hostname: **`n-<short-id>.raptornodes.net`**, e.g. `n-k7m2qx9d
 2. The owner's passkey signs that the node linking with this token should trust it (`nodecmd.OwnerPin`; optional, `raptor keys reset` pairs one later), and the owner runs `curl -fsSL https://get.raptorpanel.net | sudo bash -s -- -token rpt_join_…`
 3. The bash script (`install/get.sh.tmpl`, filled in by `scripts/make-install-script.sh` when a release is signed, from the checksums just verified against the signing key) checks root, systemd, distro, and architecture, downloads the `raptor` binary, **verifies it against the SHA-256 embedded in the script** (a mismatch installs nothing), installs it as `/usr/local/lib/raptor/raptor-<version>` (linked from `/usr/local/bin/raptor`, [WINGS.md](WINGS.md#updates)), and runs `raptor bootstrap`. All later updates are verified by the binary itself with minisign.
 4. `raptor bootstrap` runs preflight checks (systemd, not a container, amd64 or arm64, cgroups v2, Debian 12/13 or Ubuntu 24.04 unless `-force`), installs Docker CE from Docker's repository (held), **merges** Raptor's settings into `daemon.json` (asking before restarting Docker if containers are running), creates the `raptor` user, puts the binary in the update layout, installs the systemd units and a minimal `config.yml`, sets up the server data volume (it explains the trade-offs and asks: an XFS image with hard limits, the default; an XFS data disk; or soft limits), starts Wings, **generates a keypair locally**, and enrolls (`raptor link`): it sends the public key, join token, and hardware facts. `-yes` takes the defaults without asking.
-5. The Panel validates and burns the token, stores the node's public key, assigns a node ID and short ID, creates `n-<short-id>.raptornodes.net`, and returns them (the node saves its hostname in `config.yml` for `raptor doctor`'s check).
+5. The Panel validates and burns the token, stores the node's public key, assigns a node ID and short ID, creates `<short-id>.raptornodes.net`, and returns them (the node saves its hostname in `config.yml` for `raptor doctor`'s check).
 6. Wings writes `/etc/raptor/config.yml`, installs `raptor-wings.service`, starts, and connects. The Panel UI flips to **Connected**.
 
 Every step is idempotent. Re-running the command after a failure resumes.
@@ -236,7 +236,7 @@ Every step is idempotent. Re-running the command after a failure resumes.
 | Google / Discord / GitHub down | That provider's sign-in fails; other methods and existing sessions work. |
 | Polar down | Billing actions fail. Nothing else is affected. |
 | Node connection drops mid-command | The command is retried with the same `command_id`. No duplicates. |
-| Node's public IP changes | Wings reports the new IP; the Panel updates `n-<short-id>.raptornodes.net`. |
+| Node's public IP changes | Wings reports the new IP; the Panel updates `<short-id>.raptornodes.net`. |
 | Wings crashes or updates | **Containers keep running** (they belong to Docker). Wings reattaches on start. |
 | Docker restarts | `live-restore` keeps containers running. |
 | Box shuts down | `raptor-shutdown.service` gracefully stops every server (egg stop command) before Docker stops. |
