@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { duration, filename, summarize } from "./chart-image.ts";
+import { duration, filename, gridSteps, summarize } from "./chart-image.ts";
 
 test("summaries", () => {
   const data = [
@@ -28,4 +28,12 @@ test("durations", () => {
   assert.equal(duration(6 * 3600_000), "6 hours");
   assert.equal(duration(7 * 86400_000), "7 days");
   assert.equal(duration(15 * 60_000), "15 minutes");
+});
+
+test("grid steps land on round values", () => {
+  // 5 MB/s in fifths (1, 2, 3…), 200% in quarters (50, 100…), 2.5 in fifths.
+  assert.equal(gridSteps(5e6), 5);
+  assert.equal(gridSteps(200), 4);
+  assert.equal(gridSteps(2.5), 5);
+  assert.equal(gridSteps(1000), 4);
 });

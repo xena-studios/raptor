@@ -4,6 +4,8 @@
 // series' latest, low, average, and peak), so the picture makes sense on
 // its own in a support thread or a Discord channel.
 
+import { raptorBox, raptorPath, wordmarkBox, wordmarkPath } from "./brand.ts";
+
 export type ImageSeries = { name: string; color: string };
 export type ImagePoint = { t: number; values: (number | null)[] };
 
@@ -76,26 +78,85 @@ function niceMax(v: number): number {
   return 10 * exp;
 }
 
-// Colors are the page's (its theme), read from CSS variables.
+// gridSteps is how many even steps the axis is cut into so each lands on
+// a round value: 5 for a maximum of 2.5, 5, or 10 (×10ⁿ), 4 for 1 or 2.
+export function gridSteps(max: number): number {
+  const m = max / 10 ** Math.floor(Math.log10(max));
+  return m === 1 || m === 2 ? 4 : 5;
+}
+
+// Colors are the page's (its theme), read from CSS variables. The page has
+// them in oklch; a canvas reads them back as plain RGB, so they can be
+// made see-through.
 function cssColor(value: string): string {
   const probe = document.createElement("span");
   probe.style.color = value;
   probe.style.display = "none";
   document.body.appendChild(probe);
-  const c = getComputedStyle(probe).color;
+  const c = getComputedStyle(probe).color || "#888";
   probe.remove();
-  return c || "#888";
+  const g = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  if (!g) return c;
+  g.fillStyle = c;
+  g.fillRect(0, 0, 1, 1);
+  const [r = 0, gr = 0, b = 0] = g.getImageData(0, 0, 1, 1).data;
+  return `rgb(${r}, ${gr}, ${b})`;
 }
 
 const W = 1200;
 const H = 675;
-// The app's own font, as the page has it.
+// The app's own fonts, as the page has them.
 const family = () =>
   getComputedStyle(document.body).fontFamily || 'ui-sans-serif, system-ui, "Segoe UI", sans-serif';
+const mono = () =>
+  getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() ||
+  "ui-monospace, monospace";
 const font = (size: number, weight = 400) => `${weight} ${size}px ${family()}`;
+const monoFont = (size: number, weight = 400) => `${weight} ${size}px ${mono()}`;
+
+// withAlpha is a CSS color made see-through ("rgb(…)" as the page gives it).
+function withAlpha(color: string, a: number): string {
+  const m = color.match(/rgba?\(([^)]+)\)/);
+  if (!m?.[1]) return color;
+  const [r, g, b] = m[1].split(/[ ,/]+/).filter(Boolean);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+// logo draws the running raptor and the wordmark, h tall, from (x, y) at
+// the top left; it returns how wide it is.
+function logo(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  h: number,
+  red: string,
+  ink: string,
+) {
+  const sr = h / raptorBox.h;
+  g.save();
+  g.translate(x - raptorBox.x * sr, y - raptorBox.y * sr);
+  g.scale(sr, sr);
+  g.fillStyle = red;
+  g.fill(new Path2D(raptorPath), "evenodd");
+  g.restore();
+  const rw = raptorBox.w * sr;
+  const wh = h * 0.42;
+  const sw = wh / wordmarkBox.h;
+  const wx = x + rw + h * 0.28;
+  g.save();
+  g.translate(wx - wordmarkBox.x * sw, y + (h - wh) / 2 - wordmarkBox.y * sw);
+  g.scale(sw, sw);
+  g.fillStyle = ink;
+  g.fill(new Path2D(wordmarkPath));
+  g.restore();
+  return wx - x + wordmarkBox.w * sw;
+}
 
 // render draws the picture at twice its size, for sharp text on screens
-// that zoom.
+// that zoom. It's the app's own surface edge to edge (docs/DESIGN.md: the
+// Console): the logo, what the chart is, a readout of each line's numbers
+// between hairlines, the chart, and when and where it was saved. No boxes:
+// grouping comes from rules, data is mono, colour only marks the lines.
 export function render(c: ChartImage, at = new Date()): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   const scale = 2;
@@ -104,71 +165,105 @@ export function render(c: ChartImage, at = new Date()): HTMLCanvasElement {
   const g = canvas.getContext("2d");
   if (!g) return canvas;
   g.scale(scale, scale);
-  const bg = cssColor("var(--card)");
+  const surface = cssColor("var(--card)");
   const fg = cssColor("var(--foreground)");
   const muted = cssColor("var(--muted-foreground)");
-  const border = cssColor("var(--border)");
+  const rule = cssColor("var(--border)");
   const brand = cssColor("var(--primary)");
   const colors = c.series.map((s) => cssColor(s.color));
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const pad = 40;
+  const left = pad;
+  const right = W - pad;
+  const hairline = (y: number) => {
+    g.strokeStyle = rule;
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(0, Math.round(y) + 0.5);
+    g.lineTo(W, Math.round(y) + 0.5);
+    g.stroke();
+  };
 
-  g.fillStyle = bg;
+  g.fillStyle = surface;
   g.fillRect(0, 0, W, H);
   g.textBaseline = "alphabetic";
 
-  // Header: Raptor, then what the chart is.
-  const left = 48;
-  g.fillStyle = brand;
-  g.font = font(13, 800);
-  g.fillText("RAPTOR", left, 44);
+  // The logo, and where it's from.
+  logo(g, left, 22, 22, brand, fg);
   g.fillStyle = muted;
-  g.font = font(13);
+  g.font = monoFont(12);
   g.textAlign = "right";
-  g.fillText(`Saved ${at.toLocaleString()}`, W - left, 44);
+  g.fillText("raptorpanel.net", right, 38);
   g.textAlign = "left";
+  hairline(64);
 
+  // What it's about, and what it is.
+  let y = 100;
+  if (c.subject) {
+    g.fillStyle = muted;
+    g.font = monoFont(12);
+    g.fillText(`// ${c.subject.toLowerCase()}`, left, y);
+    y += 34;
+  } else {
+    y += 12;
+  }
   g.fillStyle = fg;
   g.font = font(30, 700);
-  g.fillText(c.title, left, 88);
-  let yText = 88;
-  if (c.subject) {
-    yText += 28;
-    g.font = font(18, 500);
-    g.fillText(c.subject, left, yText);
-  }
-  yText += 24;
+  g.fillText(c.title, left, y);
+  y += 26;
   g.fillStyle = muted;
   g.font = font(14);
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  g.fillText(
-    [c.note, `${rangeLabel(c.from, c.to)}, times in ${tz}`].filter(Boolean).join(" · "),
-    left,
-    yText,
-  );
+  g.fillText([c.note, rangeLabel(c.from, c.to)].filter(Boolean).join(" · "), left, y);
+  y += 22;
+  hairline(y);
 
-  // Legend: each series' numbers.
-  yText += 34;
-  let xLegend = left;
+  // The readout: one row per line, its swatch and name, then now, low,
+  // average, and peak, each a mono label over its value.
+  const rowH = 52;
+  const cols = [
+    { key: "now", label: "NOW" },
+    { key: "min", label: "LOW" },
+    { key: "avg", label: "AVERAGE" },
+    { key: "max", label: "PEAK" },
+  ] as const;
+  const nameW = 220;
+  const colW = (right - left - nameW) / cols.length;
   c.series.forEach((s, i) => {
     const sum = summarize(c.data, i);
+    const top = y + i * rowH;
+    if (i > 0) {
+      g.strokeStyle = rule;
+      g.beginPath();
+      g.moveTo(left, Math.round(top) + 0.5);
+      g.lineTo(right, Math.round(top) + 0.5);
+      g.stroke();
+    }
     g.fillStyle = colors[i] ?? fg;
-    g.fillRect(xLegend, yText - 9, 18, 4);
-    xLegend += 26;
+    g.fillRect(left, top + 21, 10, 10);
     g.fillStyle = fg;
     g.font = font(15, 600);
-    g.fillText(s.name, xLegend, yText);
-    xLegend += g.measureText(s.name).width + 10;
-    g.fillStyle = muted;
-    g.font = font(14);
-    const nums =
-      sum.last === undefined
-        ? "no data"
-        : `now ${c.format(sum.last)} · low ${c.format(sum.min ?? 0)} · average ${c.format(sum.avg ?? 0)} · peak ${c.format(sum.max ?? 0)}`;
-    g.fillText(nums, xLegend, yText);
-    xLegend += g.measureText(nums).width + 32;
+    g.fillText(s.name, left + 20, top + 31);
+    cols.forEach((col, k) => {
+      const cx = left + nameW + k * colW;
+      g.strokeStyle = rule;
+      g.beginPath();
+      g.moveTo(Math.round(cx) + 0.5, top + 12);
+      g.lineTo(Math.round(cx) + 0.5, top + rowH - 12);
+      g.stroke();
+      g.fillStyle = muted;
+      g.font = monoFont(10, 500);
+      g.fillText(col.label, cx + 16, top + 22);
+      const v = col.key === "now" ? sum.last : sum[col.key];
+      g.fillStyle = fg;
+      g.font = monoFont(col.key === "now" ? 17 : 15, col.key === "now" ? 600 : 500);
+      g.fillText(v === undefined ? "—" : c.format(v), cx + 16, top + 41);
+    });
   });
+  y += Math.max(1, c.series.length) * rowH;
+  hairline(y);
 
   // The chart.
-  const box = { l: left + 64, r: W - left, t: yText + 30, b: H - 72 };
+  g.font = monoFont(11);
   const t0 = c.from;
   const span = Math.max(1, c.to - c.from);
   const dataMax = Math.max(
@@ -177,23 +272,31 @@ export function render(c: ChartImage, at = new Date()): HTMLCanvasElement {
   );
   const showLimit = c.limit !== undefined && c.limit > 0 && c.limit <= dataMax * 2.5;
   const yMax = niceMax(
-    Math.max(dataMax * 1.05, showLimit ? (c.limit ?? 0) * 1.05 : 0, c.minMax ?? 1),
+    Math.max(dataMax * 1.08, showLimit ? (c.limit ?? 0) * 1.08 : 0, c.minMax ?? 1),
   );
+  const steps = gridSteps(yMax);
+  const fractions = Array.from({ length: steps + 1 }, (_, k) => k / steps);
+  const yLabelW = Math.max(...fractions.map((f) => g.measureText(c.format(f * yMax)).width));
+  const footer = H - 44;
+  const box = { l: left + yLabelW + 14, r: right - 70, t: y + 30, b: footer - 40 };
   const x = (t: number) => box.l + ((t - t0) / span) * (box.r - box.l);
-  const y = (v: number) => box.b - (v / yMax) * (box.b - box.t);
+  const yv = (v: number) => box.b - (v / yMax) * (box.b - box.t);
 
+  // The grid, quiet: dotted guides and a solid baseline.
   g.lineWidth = 1;
-  g.font = font(12);
-  for (const f of [0, 0.25, 0.5, 0.75, 1]) {
+  for (const f of fractions) {
     const v = f * yMax;
-    g.strokeStyle = border;
+    const yy = Math.round(yv(v)) + 0.5;
+    g.strokeStyle = f === 0 ? rule : withAlpha(rule, 0.7);
+    g.setLineDash(f === 0 ? [] : [1, 4]);
     g.beginPath();
-    g.moveTo(box.l, Math.round(y(v)) + 0.5);
-    g.lineTo(box.r, Math.round(y(v)) + 0.5);
+    g.moveTo(box.l, yy);
+    g.lineTo(box.r, yy);
     g.stroke();
+    g.setLineDash([]);
     g.fillStyle = muted;
     g.textAlign = "right";
-    g.fillText(c.format(v), box.l - 10, y(v) + 4);
+    g.fillText(c.format(v), box.l - 12, yy + 4);
   }
   const ticks = 5;
   for (let i = 0; i < ticks; i++) {
@@ -204,57 +307,108 @@ export function render(c: ChartImage, at = new Date()): HTMLCanvasElement {
       span > 36 * 3600_000
         ? d.toLocaleString(undefined, { weekday: "short", day: "numeric", hour: "numeric" })
         : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    g.fillStyle = muted;
     g.fillText(label, x(t), box.b + 22);
   }
   g.textAlign = "left";
 
+  // The limit: dashed, named at its end.
   if (showLimit && c.limit !== undefined) {
-    g.strokeStyle = muted;
-    g.setLineDash([6, 4]);
+    const ly = Math.round(yv(c.limit)) + 0.5;
+    g.strokeStyle = withAlpha(fg, 0.5);
+    g.setLineDash([6, 5]);
     g.beginPath();
-    g.moveTo(box.l, y(c.limit));
-    g.lineTo(box.r, y(c.limit));
+    g.moveTo(box.l, ly);
+    g.lineTo(box.r, ly);
     g.stroke();
     g.setLineDash([]);
     g.fillStyle = muted;
-    g.textAlign = "right";
-    g.fillText(`${c.limitLabel ?? "Limit"} ${c.format(c.limit)}`, box.r, y(c.limit) - 6);
-    g.textAlign = "left";
+    g.font = monoFont(11, 500);
+    g.fillText(
+      `${(c.limitLabel ?? "Limit").toUpperCase()} ${c.format(c.limit)}`,
+      box.r + 10,
+      ly + 4,
+    );
   }
 
-  g.lineWidth = 3;
-  g.lineJoin = "round";
-  g.lineCap = "round";
-  c.series.forEach((_, i) => {
-    g.strokeStyle = colors[i] ?? fg;
-    g.fillStyle = colors[i] ?? fg;
-    g.beginPath();
-    let pen = false;
+  // Each line, split where it stopped: a soft fill under it, the line, and
+  // a ringed dot with its value at its latest point.
+  const runs = (i: number) => {
+    const out: { t: number; v: number }[][] = [];
+    let cur: { t: number; v: number }[] = [];
     let prev = 0;
     for (const p of c.data) {
       const v = p.values[i];
-      if (v == null) {
-        pen = false;
-        continue;
+      if (v == null || (cur.length > 0 && p.t - prev > c.gap)) {
+        if (cur.length) out.push(cur);
+        cur = [];
       }
-      if (pen && p.t - prev > c.gap) pen = false;
-      if (pen) g.lineTo(x(p.t), y(v));
-      else g.moveTo(x(p.t), y(v));
-      pen = true;
-      prev = p.t;
-    }
-    g.stroke();
-    if (c.dots) {
-      for (const p of c.data) {
-        const v = p.values[i];
-        if (v == null) continue;
-        g.beginPath();
-        g.arc(x(p.t), y(v), 3.5, 0, Math.PI * 2);
-        g.fill();
+      if (v != null) {
+        cur.push({ t: p.t, v });
+        prev = p.t;
       }
     }
+    if (cur.length) out.push(cur);
+    return out;
+  };
+  const ends: { x: number; y: number; color: string; text: string }[] = [];
+  c.series.forEach((_, i) => {
+    const color = colors[i] ?? fg;
+    const rs = runs(i);
+    const fill = g.createLinearGradient(0, box.t, 0, box.b);
+    fill.addColorStop(0, withAlpha(color, c.series.length > 1 ? 0.12 : 0.22));
+    fill.addColorStop(1, withAlpha(color, 0));
+    for (const r of rs) {
+      if (r.length < 2) continue;
+      g.beginPath();
+      g.moveTo(x(r[0]?.t ?? 0), box.b);
+      for (const p of r) g.lineTo(x(p.t), yv(p.v));
+      g.lineTo(x(r[r.length - 1]?.t ?? 0), box.b);
+      g.closePath();
+      g.fillStyle = fill;
+      g.fill();
+    }
+    g.strokeStyle = color;
+    g.lineWidth = 2;
+    g.lineJoin = "round";
+    g.lineCap = "round";
+    for (const r of rs) {
+      g.beginPath();
+      for (const [k, p] of r.entries()) {
+        if (k) g.lineTo(x(p.t), yv(p.v));
+        else g.moveTo(x(p.t), yv(p.v));
+      }
+      g.stroke();
+      if (c.dots || r.length === 1) {
+        g.fillStyle = color;
+        for (const p of r) {
+          g.beginPath();
+          g.arc(x(p.t), yv(p.v), 3, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+    }
+    const last = rs[rs.length - 1]?.at(-1);
+    if (last) ends.push({ x: x(last.t), y: yv(last.v), color, text: c.format(last.v) });
   });
-  if (c.data.length === 0) {
+  ends.sort((a, b) => a.y - b.y);
+  let floor = -Infinity;
+  for (const e of ends) {
+    g.beginPath();
+    g.arc(e.x, e.y, 4.5, 0, Math.PI * 2);
+    g.fillStyle = e.color;
+    g.fill();
+    g.lineWidth = 2;
+    g.strokeStyle = surface;
+    g.stroke();
+    const ly = Math.max(e.y + 4, floor + 16);
+    floor = ly;
+    g.fillStyle = fg;
+    g.font = monoFont(12, 600);
+    g.textAlign = "left";
+    g.fillText(e.text, box.r + 10, ly);
+  }
+  if (ends.length === 0) {
     g.fillStyle = muted;
     g.font = font(16);
     g.textAlign = "center";
@@ -262,9 +416,19 @@ export function render(c: ChartImage, at = new Date()): HTMLCanvasElement {
     g.textAlign = "left";
   }
 
+  // When it was saved, and in which time zone.
+  hairline(footer);
   g.fillStyle = muted;
-  g.font = font(12);
-  g.fillText("raptorpanel.net", left, H - 24);
+  g.font = monoFont(11);
+  g.textAlign = "left";
+  g.fillText(`Times in ${tz}`, left, footer + 27);
+  g.textAlign = "right";
+  g.fillText(
+    `Saved ${at.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`,
+    right,
+    footer + 27,
+  );
+  g.textAlign = "left";
   return canvas;
 }
 
