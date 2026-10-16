@@ -9,25 +9,18 @@ export function nodeHostname(n: { shortId: string }): string {
   return `${n.shortId}.raptornodes.net`;
 }
 
-// hasPort reports whether a shown address has its own port ("host:port",
-// "[v6]:port"), which is shown as is.
-export function hasPort(addr: string): boolean {
-  return /^\[.+\]:\d+$/.test(addr) || (/:\d+$/.test(addr) && addr.split(":").length === 2);
-}
-
 // serverAddress is where players reach a server on a port: its shown
-// address if the owner set one, or its node's hostname. private says
-// whether it reveals the machine.
+// address exactly as the owner typed it (with a port only if they put one:
+// a domain with an SRV record, or a proxy, often needs none), or its
+// node's hostname with the port. private says whether it reveals the
+// machine.
 export function serverAddress(
   node: { shortId: string },
   server: { displayAddress: string },
   port: number | undefined,
 ): { text: string; private: boolean } {
   const shown = server.displayAddress;
-  if (shown) {
-    if (hasPort(shown) || !port) return { text: shown, private: false };
-    return { text: `${shown}:${port}`, private: false };
-  }
+  if (shown) return { text: shown, private: false };
   const host = nodeHostname(node);
   return { text: port ? `${host}:${port}` : host, private: true };
 }

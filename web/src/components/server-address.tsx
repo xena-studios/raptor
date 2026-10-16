@@ -49,8 +49,8 @@ export function ShownAddress({
         <CardDescription>
           What players connect to, shown everywhere for this server instead of the node's hostname.
           Use it for a proxy like TCPShield, or your own domain. The node's hostname and IP address
-          stay hidden until you reveal them. With a port (play.example.com:25565), it's shown as is;
-          without one, the server's port is added.
+          stay hidden until you reveal them. It's shown exactly as you type it: add the port
+          (play.example.com:25565) if players need one.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
