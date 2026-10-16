@@ -6,7 +6,7 @@ import { can, useServer } from "@/lib/org-data";
 
 const Console = lazy(() => import("@/components/console"));
 
-export const Route = createFileRoute("/popout/$orgId/servers/$nodeId/$serverId/console")({
+export const Route = createFileRoute("/popout/$orgId/servers/$serverId/console")({
   component: ConsolePopout,
 });
 

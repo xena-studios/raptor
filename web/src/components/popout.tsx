@@ -13,9 +13,8 @@ export type Popout =
 
 export function popoutPath(p: Popout): string {
   const org = shortId(p.orgId);
-  const node = shortId(p.nodeId);
-  if (p.kind === "node-stats") return `/popout/${org}/nodes/${node}/stats`;
-  return `/popout/${org}/servers/${node}/${shortId(p.serverId)}/${p.kind}`;
+  if (p.kind === "node-stats") return `/popout/${org}/nodes/${shortId(p.nodeId)}/stats`;
+  return `/popout/${org}/servers/${shortId(p.serverId)}/${p.kind}`;
 }
 
 // open opens the pop-out in a window of its own, or brings it back to the

@@ -119,3 +119,12 @@ DELETE FROM org_members WHERE org_id = $1;
 
 -- name: MarkOrgDeleted :exec
 UPDATE orgs SET deleted_at = now() WHERE id = $1;
+
+-- name: FindOrgServers :many
+-- The servers in an org with this ID or short ID (the ID's last part), on
+-- nodes that are still in it.
+SELECT s.node_id, s.server_id FROM m_servers s
+JOIN nodes n ON n.id = s.node_id
+WHERE n.org_id = @org_id AND n.deleted_at IS NULL
+  AND (s.server_id = @ref OR split_part(s.server_id, '-', 5) = @ref)
+LIMIT 3;

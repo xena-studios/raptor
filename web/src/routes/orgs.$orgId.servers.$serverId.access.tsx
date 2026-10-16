@@ -4,7 +4,7 @@ import { Access } from "@/components/server-access";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useIds } from "@/lib/ids";
 
-export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/access")({
+export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/access")({
   component: AccessTab,
 });
 

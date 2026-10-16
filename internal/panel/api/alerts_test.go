@@ -270,7 +270,7 @@ func TestAlerts(t *testing.T) {
 	var m alerts.Message
 	_ = json.Unmarshal(hook.bodies[1], &m)
 	if m.Condition != "crash" || m.Server != "smp" || m.Node != "box-1" || m.Org != "Acme" || m.Rule != "smp crashes" || !strings.Contains(m.Text, "boom") ||
-		m.URL != appOrigin+"/orgs/"+acme+"/servers/"+nodeID+"/s1" {
+		m.URL != appOrigin+"/orgs/"+acme[strings.LastIndexByte(acme, '-')+1:]+"/servers/s1" {
 		t.Errorf("crash alert: %+v", m)
 	}
 	if got := mail.mail[len(mail.mail)-1]; !strings.HasPrefix(got, "bob@example.com\n") || !strings.Contains(got, "Install finished") || !strings.Contains(got, "Server: rust\nNode: box-1") {

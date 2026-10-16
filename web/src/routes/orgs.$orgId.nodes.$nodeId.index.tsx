@@ -101,7 +101,6 @@ function NodeOverview() {
           <ServersCard
             className="lg:col-span-2"
             orgId={orgId}
-            nodeId={nodeId}
             list={list}
             loaded={!!servers.data}
             connected={!!node?.connected}
@@ -163,14 +162,7 @@ function NodeOverview() {
       </div>
 
       {showLive && (
-        <ServersCard
-          orgId={orgId}
-          nodeId={nodeId}
-          list={list}
-          loaded={!!servers.data}
-          connected
-          use={use}
-        />
+        <ServersCard orgId={orgId} list={list} loaded={!!servers.data} connected use={use} />
       )}
     </div>
   );
@@ -178,7 +170,6 @@ function NodeOverview() {
 
 function ServersCard({
   orgId,
-  nodeId,
   list,
   loaded,
   connected,
@@ -186,7 +177,6 @@ function ServersCard({
   className,
 }: {
   orgId: string;
-  nodeId: string;
   list: {
     id: string;
     name: string;
@@ -234,14 +224,14 @@ function ServersCard({
                   <LinkRow
                     key={s.id}
                     link={{
-                      to: "/orgs/$orgId/servers/$nodeId/$serverId",
-                      params: { orgId, nodeId, serverId: s.id },
+                      to: "/orgs/$orgId/servers/$serverId",
+                      params: { orgId, serverId: s.id },
                     }}
                   >
                     <TableCell>
                       <Link
-                        to="/orgs/$orgId/servers/$nodeId/$serverId"
-                        params={{ orgId, nodeId, serverId: s.id }}
+                        to="/orgs/$orgId/servers/$serverId"
+                        params={{ orgId, serverId: s.id }}
                         className="font-medium hover:underline"
                       >
                         {s.name}

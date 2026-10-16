@@ -285,8 +285,8 @@ function ServersCard({
               return (
                 <li key={`${s.node.id}/${s.id}`}>
                   <Link
-                    to="/orgs/$orgId/servers/$nodeId/$serverId"
-                    params={{ orgId, nodeId: s.node.id, serverId: s.id }}
+                    to="/orgs/$orgId/servers/$serverId"
+                    params={{ orgId, serverId: s.id }}
                     className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 text-sm hover:bg-muted/50"
                   >
                     <div className="min-w-0 flex-1">
@@ -347,8 +347,8 @@ function Attention({
         {failing.slice(0, 4).map((s) => (
           <Link
             key={`${s.node.id}/${s.id}`}
-            to="/orgs/$orgId/servers/$nodeId/$serverId"
-            params={{ orgId, nodeId: s.node.id, serverId: s.id }}
+            to="/orgs/$orgId/servers/$serverId"
+            params={{ orgId, serverId: s.id }}
             className="flex items-start gap-2 hover:underline"
           >
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />

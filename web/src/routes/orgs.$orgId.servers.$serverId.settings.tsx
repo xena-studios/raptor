@@ -7,7 +7,7 @@ import { ServerSettings } from "@/components/server-settings";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
-export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/settings")({
+export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/settings")({
   component: SettingsTab,
 });
 

@@ -10,7 +10,7 @@ import { orgClient } from "@/lib/transport";
 
 export { canonical, sameId, shortId } from "@/lib/short-id";
 
-// Full IDs by scope and short ID: orgs, an org's nodes, a node's servers.
+// Full IDs by scope and short ID: orgs, and an org's nodes.
 const known = new Map<string, string>();
 const key = (scope: string, short: string) => `${scope}/${short}`;
 
@@ -28,7 +28,6 @@ function fullId(scope: string, param: string | undefined): string {
 
 const orgScope = "org";
 const nodeScope = (org: string) => `node:${org}`;
-const serverScope = (node: string) => `server:${node}`;
 
 async function resolve(scope: string, param: string, list: () => Promise<string[]>) {
   if (param.includes("-") || known.has(key(scope, param))) return;
@@ -52,21 +51,26 @@ export function resolveNode(orgParam: string, param: string): Promise<void> {
   );
 }
 
-// resolveServer looks up a server's full ID (after its node's).
-export async function resolveServer(
-  orgParam: string,
-  nodeParam: string,
-  param: string,
-): Promise<void> {
-  await resolveNode(orgParam, nodeParam);
+// Servers by org and ID (full or short): the server's full ID and its
+// node's. A server's URL doesn't name its node; the Panel finds it.
+const servers = new Map<string, { nodeId: string; serverId: string }>();
+const serverKey = (org: string, ref: string) => `${org}/${shortId(ref).toLowerCase()}`;
+
+// resolveServer looks up a server, and the node it's on, from a URL's ID
+// (after its org's).
+export async function resolveServer(orgParam: string, param: string): Promise<void> {
   const orgId = fullId(orgScope, orgParam);
-  const nodeId = fullId(nodeScope(orgId), nodeParam);
-  return resolve(serverScope(nodeId), param, async () =>
-    (await orgClient.listServers({ orgId, nodeId })).servers.map((s) => s.id),
-  );
+  if (servers.has(serverKey(orgId, param))) return;
+  try {
+    const r = await orgClient.findServer({ orgId, server: param });
+    servers.set(serverKey(orgId, param), { nodeId: r.nodeId, serverId: r.serverId });
+  } catch {
+    // Not found: the page says so when it looks for the server.
+  }
 }
 
-// useIds is the page's full org, node, and server IDs ("" for none).
+// useIds is the page's full org, node, and server IDs ("" for none): a
+// server's page gets its node from the server.
 export function useIds(): { orgId: string; nodeId: string; serverId: string } {
   const p = useParams({ strict: false }) as {
     orgId?: string;
@@ -74,6 +78,9 @@ export function useIds(): { orgId: string; nodeId: string; serverId: string } {
     serverId?: string;
   };
   const orgId = fullId(orgScope, p.orgId);
-  const nodeId = fullId(nodeScope(orgId), p.nodeId);
-  return { orgId, nodeId, serverId: fullId(serverScope(nodeId), p.serverId) };
+  if (p.serverId) {
+    const found = servers.get(serverKey(orgId, p.serverId));
+    return { orgId, nodeId: found?.nodeId ?? "", serverId: found?.serverId ?? p.serverId };
+  }
+  return { orgId, nodeId: fullId(nodeScope(orgId), p.nodeId), serverId: "" };
 }

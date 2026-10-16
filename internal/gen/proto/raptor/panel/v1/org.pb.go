@@ -5753,6 +5753,111 @@ func (x *GetJoinProgressResponse) GetNodeId() string {
 	return ""
 }
 
+type FindServerRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// The server's full ID or short ID.
+	Server        string `protobuf:"bytes,2,opt,name=server,proto3" json:"server,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindServerRequest) Reset() {
+	*x = FindServerRequest{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[100]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindServerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindServerRequest) ProtoMessage() {}
+
+func (x *FindServerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[100]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindServerRequest.ProtoReflect.Descriptor instead.
+func (*FindServerRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{100}
+}
+
+func (x *FindServerRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *FindServerRequest) GetServer() string {
+	if x != nil {
+		return x.Server
+	}
+	return ""
+}
+
+type FindServerResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	ServerId      string                 `protobuf:"bytes,2,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindServerResponse) Reset() {
+	*x = FindServerResponse{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[101]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindServerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindServerResponse) ProtoMessage() {}
+
+func (x *FindServerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[101]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindServerResponse.ProtoReflect.Descriptor instead.
+func (*FindServerResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{101}
+}
+
+func (x *FindServerResponse) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *FindServerResponse) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
 var File_raptor_panel_v1_org_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_org_proto_rawDesc = "" +
@@ -6140,14 +6245,20 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x02at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"c\n" +
 	"\x17GetJoinProgressResponse\x12/\n" +
 	"\x05steps\x18\x01 \x03(\v2\x19.raptor.panel.v1.JoinStepR\x05steps\x12\x17\n" +
-	"\anode_id\x18\x02 \x01(\tR\x06nodeId*M\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"B\n" +
+	"\x11FindServerRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x16\n" +
+	"\x06server\x18\x02 \x01(\tR\x06server\"J\n" +
+	"\x12FindServerResponse\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tserver_id\x18\x02 \x01(\tR\bserverId*M\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vROLE_MEMBER\x10\x01\x12\x0e\n" +
 	"\n" +
 	"ROLE_ADMIN\x10\x02\x12\x0e\n" +
 	"\n" +
-	"ROLE_OWNER\x10\x032\xc9\"\n" +
+	"ROLE_OWNER\x10\x032\xa5#\n" +
 	"\n" +
 	"OrgService\x12T\n" +
 	"\tCreateOrg\x12!.raptor.panel.v1.CreateOrgRequest\x1a\".raptor.panel.v1.CreateOrgResponse\"\x00\x12T\n" +
@@ -6176,7 +6287,9 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\n" +
 	"RemoveNode\x12\".raptor.panel.v1.RemoveNodeRequest\x1a#.raptor.panel.v1.RemoveNodeResponse\"\x00\x12]\n" +
 	"\vListServers\x12#.raptor.panel.v1.ListServersRequest\x1a$.raptor.panel.v1.ListServersResponse\"\x03\x90\x02\x01\x12W\n" +
-	"\tGetServer\x12!.raptor.panel.v1.GetServerRequest\x1a\".raptor.panel.v1.GetServerResponse\"\x03\x90\x02\x01\x12]\n" +
+	"\tGetServer\x12!.raptor.panel.v1.GetServerRequest\x1a\".raptor.panel.v1.GetServerResponse\"\x03\x90\x02\x01\x12Z\n" +
+	"\n" +
+	"FindServer\x12\".raptor.panel.v1.FindServerRequest\x1a#.raptor.panel.v1.FindServerResponse\"\x03\x90\x02\x01\x12]\n" +
 	"\fPinJoinToken\x12$.raptor.panel.v1.PinJoinTokenRequest\x1a%.raptor.panel.v1.PinJoinTokenResponse\"\x00\x12r\n" +
 	"\x12ListMemberPasskeys\x12*.raptor.panel.v1.ListMemberPasskeysRequest\x1a+.raptor.panel.v1.ListMemberPasskeysResponse\"\x03\x90\x02\x01\x12`\n" +
 	"\fListAuditLog\x12$.raptor.panel.v1.ListAuditLogRequest\x1a%.raptor.panel.v1.ListAuditLogResponse\"\x03\x90\x02\x01\x12c\n" +
@@ -6210,7 +6323,7 @@ func file_raptor_panel_v1_org_proto_rawDescGZIP() []byte {
 }
 
 var file_raptor_panel_v1_org_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_raptor_panel_v1_org_proto_msgTypes = make([]protoimpl.MessageInfo, 100)
+var file_raptor_panel_v1_org_proto_msgTypes = make([]protoimpl.MessageInfo, 102)
 var file_raptor_panel_v1_org_proto_goTypes = []any{
 	(Role)(0),                               // 0: raptor.panel.v1.Role
 	(*Org)(nil),                             // 1: raptor.panel.v1.Org
@@ -6313,57 +6426,59 @@ var file_raptor_panel_v1_org_proto_goTypes = []any{
 	(*GetJoinProgressRequest)(nil),          // 98: raptor.panel.v1.GetJoinProgressRequest
 	(*JoinStep)(nil),                        // 99: raptor.panel.v1.JoinStep
 	(*GetJoinProgressResponse)(nil),         // 100: raptor.panel.v1.GetJoinProgressResponse
-	(*timestamppb.Timestamp)(nil),           // 101: google.protobuf.Timestamp
-	(*AuditEvent)(nil),                      // 102: raptor.panel.v1.AuditEvent
-	(*Passkey)(nil),                         // 103: raptor.panel.v1.Passkey
-	(*SupportRequest)(nil),                  // 104: raptor.panel.v1.SupportRequest
+	(*FindServerRequest)(nil),               // 101: raptor.panel.v1.FindServerRequest
+	(*FindServerResponse)(nil),              // 102: raptor.panel.v1.FindServerResponse
+	(*timestamppb.Timestamp)(nil),           // 103: google.protobuf.Timestamp
+	(*AuditEvent)(nil),                      // 104: raptor.panel.v1.AuditEvent
+	(*Passkey)(nil),                         // 105: raptor.panel.v1.Passkey
+	(*SupportRequest)(nil),                  // 106: raptor.panel.v1.SupportRequest
 }
 var file_raptor_panel_v1_org_proto_depIdxs = []int32{
-	101, // 0: raptor.panel.v1.Org.created_at:type_name -> google.protobuf.Timestamp
+	103, // 0: raptor.panel.v1.Org.created_at:type_name -> google.protobuf.Timestamp
 	0,   // 1: raptor.panel.v1.Org.role:type_name -> raptor.panel.v1.Role
 	1,   // 2: raptor.panel.v1.CreateOrgResponse.org:type_name -> raptor.panel.v1.Org
 	1,   // 3: raptor.panel.v1.ListOrgsResponse.orgs:type_name -> raptor.panel.v1.Org
 	0,   // 4: raptor.panel.v1.Member.role:type_name -> raptor.panel.v1.Role
-	101, // 5: raptor.panel.v1.Member.joined_at:type_name -> google.protobuf.Timestamp
+	103, // 5: raptor.panel.v1.Member.joined_at:type_name -> google.protobuf.Timestamp
 	10,  // 6: raptor.panel.v1.ListMembersResponse.members:type_name -> raptor.panel.v1.Member
 	0,   // 7: raptor.panel.v1.SetMemberRoleRequest.role:type_name -> raptor.panel.v1.Role
 	0,   // 8: raptor.panel.v1.Invitation.role:type_name -> raptor.panel.v1.Role
-	101, // 9: raptor.panel.v1.Invitation.created_at:type_name -> google.protobuf.Timestamp
-	101, // 10: raptor.panel.v1.Invitation.expires_at:type_name -> google.protobuf.Timestamp
+	103, // 9: raptor.panel.v1.Invitation.created_at:type_name -> google.protobuf.Timestamp
+	103, // 10: raptor.panel.v1.Invitation.expires_at:type_name -> google.protobuf.Timestamp
 	0,   // 11: raptor.panel.v1.InviteMemberRequest.role:type_name -> raptor.panel.v1.Role
 	17,  // 12: raptor.panel.v1.InviteMemberResponse.invitation:type_name -> raptor.panel.v1.Invitation
 	17,  // 13: raptor.panel.v1.ListInvitationsResponse.invitations:type_name -> raptor.panel.v1.Invitation
 	1,   // 14: raptor.panel.v1.AcceptInvitationResponse.org:type_name -> raptor.panel.v1.Org
-	101, // 15: raptor.panel.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
-	102, // 16: raptor.panel.v1.ListAuditLogResponse.events:type_name -> raptor.panel.v1.AuditEvent
+	103, // 15: raptor.panel.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
+	104, // 16: raptor.panel.v1.ListAuditLogResponse.events:type_name -> raptor.panel.v1.AuditEvent
 	33,  // 17: raptor.panel.v1.ListServerAccessResponse.access:type_name -> raptor.panel.v1.ServerAccess
-	101, // 18: raptor.panel.v1.Node.last_seen_at:type_name -> google.protobuf.Timestamp
-	101, // 19: raptor.panel.v1.Node.created_at:type_name -> google.protobuf.Timestamp
+	103, // 18: raptor.panel.v1.Node.last_seen_at:type_name -> google.protobuf.Timestamp
+	103, // 19: raptor.panel.v1.Node.created_at:type_name -> google.protobuf.Timestamp
 	36,  // 20: raptor.panel.v1.ListNodesResponse.nodes:type_name -> raptor.panel.v1.Node
 	49,  // 21: raptor.panel.v1.ListServersResponse.servers:type_name -> raptor.panel.v1.Server
 	49,  // 22: raptor.panel.v1.GetServerResponse.server:type_name -> raptor.panel.v1.Server
-	103, // 23: raptor.panel.v1.ListMemberPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
+	105, // 23: raptor.panel.v1.ListMemberPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
 	59,  // 24: raptor.panel.v1.ListSchedulesResponse.schedules:type_name -> raptor.panel.v1.Schedule
-	101, // 25: raptor.panel.v1.Schedule.next_run:type_name -> google.protobuf.Timestamp
-	101, // 26: raptor.panel.v1.Schedule.last_run:type_name -> google.protobuf.Timestamp
+	103, // 25: raptor.panel.v1.Schedule.next_run:type_name -> google.protobuf.Timestamp
+	103, // 26: raptor.panel.v1.Schedule.last_run:type_name -> google.protobuf.Timestamp
 	62,  // 27: raptor.panel.v1.ListScheduleRunsResponse.runs:type_name -> raptor.panel.v1.ScheduleRun
 	63,  // 28: raptor.panel.v1.ScheduleRun.steps:type_name -> raptor.panel.v1.ScheduleRunStep
-	101, // 29: raptor.panel.v1.ScheduleRun.scheduled_for:type_name -> google.protobuf.Timestamp
-	101, // 30: raptor.panel.v1.ScheduleRun.started_at:type_name -> google.protobuf.Timestamp
-	101, // 31: raptor.panel.v1.ScheduleRun.finished_at:type_name -> google.protobuf.Timestamp
+	103, // 29: raptor.panel.v1.ScheduleRun.scheduled_for:type_name -> google.protobuf.Timestamp
+	103, // 30: raptor.panel.v1.ScheduleRun.started_at:type_name -> google.protobuf.Timestamp
+	103, // 31: raptor.panel.v1.ScheduleRun.finished_at:type_name -> google.protobuf.Timestamp
 	66,  // 32: raptor.panel.v1.ListBackupsResponse.backups:type_name -> raptor.panel.v1.Backup
-	101, // 33: raptor.panel.v1.Backup.created_at:type_name -> google.protobuf.Timestamp
-	101, // 34: raptor.panel.v1.Backup.finished_at:type_name -> google.protobuf.Timestamp
-	101, // 35: raptor.panel.v1.Backup.expires_at:type_name -> google.protobuf.Timestamp
+	103, // 33: raptor.panel.v1.Backup.created_at:type_name -> google.protobuf.Timestamp
+	103, // 34: raptor.panel.v1.Backup.finished_at:type_name -> google.protobuf.Timestamp
+	103, // 35: raptor.panel.v1.Backup.expires_at:type_name -> google.protobuf.Timestamp
 	69,  // 36: raptor.panel.v1.GetSFTPAccessResponse.access:type_name -> raptor.panel.v1.SFTPAccess
-	101, // 37: raptor.panel.v1.SFTPAccess.expires_at:type_name -> google.protobuf.Timestamp
+	103, // 37: raptor.panel.v1.SFTPAccess.expires_at:type_name -> google.protobuf.Timestamp
 	69,  // 38: raptor.panel.v1.CreateSFTPAccessResponse.access:type_name -> raptor.panel.v1.SFTPAccess
 	78,  // 39: raptor.panel.v1.TestConnectionResponse.ports:type_name -> raptor.panel.v1.PortProbe
-	101, // 40: raptor.panel.v1.GetBackupStorageResponse.measured_at:type_name -> google.protobuf.Timestamp
-	101, // 41: raptor.panel.v1.GetBackupKeyResponse.stored_at:type_name -> google.protobuf.Timestamp
+	103, // 40: raptor.panel.v1.GetBackupStorageResponse.measured_at:type_name -> google.protobuf.Timestamp
+	103, // 41: raptor.panel.v1.GetBackupKeyResponse.stored_at:type_name -> google.protobuf.Timestamp
 	90,  // 42: raptor.panel.v1.ListRecoverySourcesResponse.sources:type_name -> raptor.panel.v1.RecoverySource
-	104, // 43: raptor.panel.v1.ListNodeSupportRequestsResponse.requests:type_name -> raptor.panel.v1.SupportRequest
-	101, // 44: raptor.panel.v1.JoinStep.at:type_name -> google.protobuf.Timestamp
+	106, // 43: raptor.panel.v1.ListNodeSupportRequestsResponse.requests:type_name -> raptor.panel.v1.SupportRequest
+	103, // 44: raptor.panel.v1.JoinStep.at:type_name -> google.protobuf.Timestamp
 	99,  // 45: raptor.panel.v1.GetJoinProgressResponse.steps:type_name -> raptor.panel.v1.JoinStep
 	2,   // 46: raptor.panel.v1.OrgService.CreateOrg:input_type -> raptor.panel.v1.CreateOrgRequest
 	4,   // 47: raptor.panel.v1.OrgService.ListOrgs:input_type -> raptor.panel.v1.ListOrgsRequest
@@ -6390,69 +6505,71 @@ var file_raptor_panel_v1_org_proto_depIdxs = []int32{
 	46,  // 68: raptor.panel.v1.OrgService.RemoveNode:input_type -> raptor.panel.v1.RemoveNodeRequest
 	48,  // 69: raptor.panel.v1.OrgService.ListServers:input_type -> raptor.panel.v1.ListServersRequest
 	51,  // 70: raptor.panel.v1.OrgService.GetServer:input_type -> raptor.panel.v1.GetServerRequest
-	53,  // 71: raptor.panel.v1.OrgService.PinJoinToken:input_type -> raptor.panel.v1.PinJoinTokenRequest
-	55,  // 72: raptor.panel.v1.OrgService.ListMemberPasskeys:input_type -> raptor.panel.v1.ListMemberPasskeysRequest
-	28,  // 73: raptor.panel.v1.OrgService.ListAuditLog:input_type -> raptor.panel.v1.ListAuditLogRequest
-	57,  // 74: raptor.panel.v1.OrgService.ListSchedules:input_type -> raptor.panel.v1.ListSchedulesRequest
-	60,  // 75: raptor.panel.v1.OrgService.ListScheduleRuns:input_type -> raptor.panel.v1.ListScheduleRunsRequest
-	74,  // 76: raptor.panel.v1.OrgService.SetNodeSFTP:input_type -> raptor.panel.v1.SetNodeSFTPRequest
-	67,  // 77: raptor.panel.v1.OrgService.GetSFTPAccess:input_type -> raptor.panel.v1.GetSFTPAccessRequest
-	70,  // 78: raptor.panel.v1.OrgService.CreateSFTPAccess:input_type -> raptor.panel.v1.CreateSFTPAccessRequest
-	72,  // 79: raptor.panel.v1.OrgService.RevokeSFTPAccess:input_type -> raptor.panel.v1.RevokeSFTPAccessRequest
-	76,  // 80: raptor.panel.v1.OrgService.TestConnection:input_type -> raptor.panel.v1.TestConnectionRequest
-	79,  // 81: raptor.panel.v1.OrgService.GetBackupStorage:input_type -> raptor.panel.v1.GetBackupStorageRequest
-	81,  // 82: raptor.panel.v1.OrgService.EnableBackupStorage:input_type -> raptor.panel.v1.EnableBackupStorageRequest
-	83,  // 83: raptor.panel.v1.OrgService.DisableBackupStorage:input_type -> raptor.panel.v1.DisableBackupStorageRequest
-	85,  // 84: raptor.panel.v1.OrgService.GetBackupKey:input_type -> raptor.panel.v1.GetBackupKeyRequest
-	87,  // 85: raptor.panel.v1.OrgService.SyncBackupKey:input_type -> raptor.panel.v1.SyncBackupKeyRequest
-	89,  // 86: raptor.panel.v1.OrgService.ListRecoverySources:input_type -> raptor.panel.v1.ListRecoverySourcesRequest
-	92,  // 87: raptor.panel.v1.OrgService.PrepareRecovery:input_type -> raptor.panel.v1.PrepareRecoveryRequest
-	64,  // 88: raptor.panel.v1.OrgService.ListBackups:input_type -> raptor.panel.v1.ListBackupsRequest
-	3,   // 89: raptor.panel.v1.OrgService.CreateOrg:output_type -> raptor.panel.v1.CreateOrgResponse
-	5,   // 90: raptor.panel.v1.OrgService.ListOrgs:output_type -> raptor.panel.v1.ListOrgsResponse
-	7,   // 91: raptor.panel.v1.OrgService.RenameOrg:output_type -> raptor.panel.v1.RenameOrgResponse
-	9,   // 92: raptor.panel.v1.OrgService.DeleteOrg:output_type -> raptor.panel.v1.DeleteOrgResponse
-	12,  // 93: raptor.panel.v1.OrgService.ListMembers:output_type -> raptor.panel.v1.ListMembersResponse
-	14,  // 94: raptor.panel.v1.OrgService.SetMemberRole:output_type -> raptor.panel.v1.SetMemberRoleResponse
-	16,  // 95: raptor.panel.v1.OrgService.RemoveMember:output_type -> raptor.panel.v1.RemoveMemberResponse
-	19,  // 96: raptor.panel.v1.OrgService.InviteMember:output_type -> raptor.panel.v1.InviteMemberResponse
-	21,  // 97: raptor.panel.v1.OrgService.ListInvitations:output_type -> raptor.panel.v1.ListInvitationsResponse
-	23,  // 98: raptor.panel.v1.OrgService.RevokeInvitation:output_type -> raptor.panel.v1.RevokeInvitationResponse
-	25,  // 99: raptor.panel.v1.OrgService.AcceptInvitation:output_type -> raptor.panel.v1.AcceptInvitationResponse
-	27,  // 100: raptor.panel.v1.OrgService.CreateJoinToken:output_type -> raptor.panel.v1.CreateJoinTokenResponse
-	100, // 101: raptor.panel.v1.OrgService.GetJoinProgress:output_type -> raptor.panel.v1.GetJoinProgressResponse
-	31,  // 102: raptor.panel.v1.OrgService.SetServerAccess:output_type -> raptor.panel.v1.SetServerAccessResponse
-	34,  // 103: raptor.panel.v1.OrgService.ListServerAccess:output_type -> raptor.panel.v1.ListServerAccessResponse
-	37,  // 104: raptor.panel.v1.OrgService.ListNodes:output_type -> raptor.panel.v1.ListNodesResponse
-	95,  // 105: raptor.panel.v1.OrgService.ListNodeSupportRequests:output_type -> raptor.panel.v1.ListNodeSupportRequestsResponse
-	97,  // 106: raptor.panel.v1.OrgService.DenySupportRequest:output_type -> raptor.panel.v1.DenySupportRequestResponse
-	39,  // 107: raptor.panel.v1.OrgService.RenameNode:output_type -> raptor.panel.v1.RenameNodeResponse
-	41,  // 108: raptor.panel.v1.OrgService.SetNodeHostname:output_type -> raptor.panel.v1.SetNodeHostnameResponse
-	43,  // 109: raptor.panel.v1.OrgService.SetNodeDisplayAddress:output_type -> raptor.panel.v1.SetNodeDisplayAddressResponse
-	45,  // 110: raptor.panel.v1.OrgService.SetServerDisplayAddress:output_type -> raptor.panel.v1.SetServerDisplayAddressResponse
-	47,  // 111: raptor.panel.v1.OrgService.RemoveNode:output_type -> raptor.panel.v1.RemoveNodeResponse
-	50,  // 112: raptor.panel.v1.OrgService.ListServers:output_type -> raptor.panel.v1.ListServersResponse
-	52,  // 113: raptor.panel.v1.OrgService.GetServer:output_type -> raptor.panel.v1.GetServerResponse
-	54,  // 114: raptor.panel.v1.OrgService.PinJoinToken:output_type -> raptor.panel.v1.PinJoinTokenResponse
-	56,  // 115: raptor.panel.v1.OrgService.ListMemberPasskeys:output_type -> raptor.panel.v1.ListMemberPasskeysResponse
-	29,  // 116: raptor.panel.v1.OrgService.ListAuditLog:output_type -> raptor.panel.v1.ListAuditLogResponse
-	58,  // 117: raptor.panel.v1.OrgService.ListSchedules:output_type -> raptor.panel.v1.ListSchedulesResponse
-	61,  // 118: raptor.panel.v1.OrgService.ListScheduleRuns:output_type -> raptor.panel.v1.ListScheduleRunsResponse
-	75,  // 119: raptor.panel.v1.OrgService.SetNodeSFTP:output_type -> raptor.panel.v1.SetNodeSFTPResponse
-	68,  // 120: raptor.panel.v1.OrgService.GetSFTPAccess:output_type -> raptor.panel.v1.GetSFTPAccessResponse
-	71,  // 121: raptor.panel.v1.OrgService.CreateSFTPAccess:output_type -> raptor.panel.v1.CreateSFTPAccessResponse
-	73,  // 122: raptor.panel.v1.OrgService.RevokeSFTPAccess:output_type -> raptor.panel.v1.RevokeSFTPAccessResponse
-	77,  // 123: raptor.panel.v1.OrgService.TestConnection:output_type -> raptor.panel.v1.TestConnectionResponse
-	80,  // 124: raptor.panel.v1.OrgService.GetBackupStorage:output_type -> raptor.panel.v1.GetBackupStorageResponse
-	82,  // 125: raptor.panel.v1.OrgService.EnableBackupStorage:output_type -> raptor.panel.v1.EnableBackupStorageResponse
-	84,  // 126: raptor.panel.v1.OrgService.DisableBackupStorage:output_type -> raptor.panel.v1.DisableBackupStorageResponse
-	86,  // 127: raptor.panel.v1.OrgService.GetBackupKey:output_type -> raptor.panel.v1.GetBackupKeyResponse
-	88,  // 128: raptor.panel.v1.OrgService.SyncBackupKey:output_type -> raptor.panel.v1.SyncBackupKeyResponse
-	91,  // 129: raptor.panel.v1.OrgService.ListRecoverySources:output_type -> raptor.panel.v1.ListRecoverySourcesResponse
-	93,  // 130: raptor.panel.v1.OrgService.PrepareRecovery:output_type -> raptor.panel.v1.PrepareRecoveryResponse
-	65,  // 131: raptor.panel.v1.OrgService.ListBackups:output_type -> raptor.panel.v1.ListBackupsResponse
-	89,  // [89:132] is the sub-list for method output_type
-	46,  // [46:89] is the sub-list for method input_type
+	101, // 71: raptor.panel.v1.OrgService.FindServer:input_type -> raptor.panel.v1.FindServerRequest
+	53,  // 72: raptor.panel.v1.OrgService.PinJoinToken:input_type -> raptor.panel.v1.PinJoinTokenRequest
+	55,  // 73: raptor.panel.v1.OrgService.ListMemberPasskeys:input_type -> raptor.panel.v1.ListMemberPasskeysRequest
+	28,  // 74: raptor.panel.v1.OrgService.ListAuditLog:input_type -> raptor.panel.v1.ListAuditLogRequest
+	57,  // 75: raptor.panel.v1.OrgService.ListSchedules:input_type -> raptor.panel.v1.ListSchedulesRequest
+	60,  // 76: raptor.panel.v1.OrgService.ListScheduleRuns:input_type -> raptor.panel.v1.ListScheduleRunsRequest
+	74,  // 77: raptor.panel.v1.OrgService.SetNodeSFTP:input_type -> raptor.panel.v1.SetNodeSFTPRequest
+	67,  // 78: raptor.panel.v1.OrgService.GetSFTPAccess:input_type -> raptor.panel.v1.GetSFTPAccessRequest
+	70,  // 79: raptor.panel.v1.OrgService.CreateSFTPAccess:input_type -> raptor.panel.v1.CreateSFTPAccessRequest
+	72,  // 80: raptor.panel.v1.OrgService.RevokeSFTPAccess:input_type -> raptor.panel.v1.RevokeSFTPAccessRequest
+	76,  // 81: raptor.panel.v1.OrgService.TestConnection:input_type -> raptor.panel.v1.TestConnectionRequest
+	79,  // 82: raptor.panel.v1.OrgService.GetBackupStorage:input_type -> raptor.panel.v1.GetBackupStorageRequest
+	81,  // 83: raptor.panel.v1.OrgService.EnableBackupStorage:input_type -> raptor.panel.v1.EnableBackupStorageRequest
+	83,  // 84: raptor.panel.v1.OrgService.DisableBackupStorage:input_type -> raptor.panel.v1.DisableBackupStorageRequest
+	85,  // 85: raptor.panel.v1.OrgService.GetBackupKey:input_type -> raptor.panel.v1.GetBackupKeyRequest
+	87,  // 86: raptor.panel.v1.OrgService.SyncBackupKey:input_type -> raptor.panel.v1.SyncBackupKeyRequest
+	89,  // 87: raptor.panel.v1.OrgService.ListRecoverySources:input_type -> raptor.panel.v1.ListRecoverySourcesRequest
+	92,  // 88: raptor.panel.v1.OrgService.PrepareRecovery:input_type -> raptor.panel.v1.PrepareRecoveryRequest
+	64,  // 89: raptor.panel.v1.OrgService.ListBackups:input_type -> raptor.panel.v1.ListBackupsRequest
+	3,   // 90: raptor.panel.v1.OrgService.CreateOrg:output_type -> raptor.panel.v1.CreateOrgResponse
+	5,   // 91: raptor.panel.v1.OrgService.ListOrgs:output_type -> raptor.panel.v1.ListOrgsResponse
+	7,   // 92: raptor.panel.v1.OrgService.RenameOrg:output_type -> raptor.panel.v1.RenameOrgResponse
+	9,   // 93: raptor.panel.v1.OrgService.DeleteOrg:output_type -> raptor.panel.v1.DeleteOrgResponse
+	12,  // 94: raptor.panel.v1.OrgService.ListMembers:output_type -> raptor.panel.v1.ListMembersResponse
+	14,  // 95: raptor.panel.v1.OrgService.SetMemberRole:output_type -> raptor.panel.v1.SetMemberRoleResponse
+	16,  // 96: raptor.panel.v1.OrgService.RemoveMember:output_type -> raptor.panel.v1.RemoveMemberResponse
+	19,  // 97: raptor.panel.v1.OrgService.InviteMember:output_type -> raptor.panel.v1.InviteMemberResponse
+	21,  // 98: raptor.panel.v1.OrgService.ListInvitations:output_type -> raptor.panel.v1.ListInvitationsResponse
+	23,  // 99: raptor.panel.v1.OrgService.RevokeInvitation:output_type -> raptor.panel.v1.RevokeInvitationResponse
+	25,  // 100: raptor.panel.v1.OrgService.AcceptInvitation:output_type -> raptor.panel.v1.AcceptInvitationResponse
+	27,  // 101: raptor.panel.v1.OrgService.CreateJoinToken:output_type -> raptor.panel.v1.CreateJoinTokenResponse
+	100, // 102: raptor.panel.v1.OrgService.GetJoinProgress:output_type -> raptor.panel.v1.GetJoinProgressResponse
+	31,  // 103: raptor.panel.v1.OrgService.SetServerAccess:output_type -> raptor.panel.v1.SetServerAccessResponse
+	34,  // 104: raptor.panel.v1.OrgService.ListServerAccess:output_type -> raptor.panel.v1.ListServerAccessResponse
+	37,  // 105: raptor.panel.v1.OrgService.ListNodes:output_type -> raptor.panel.v1.ListNodesResponse
+	95,  // 106: raptor.panel.v1.OrgService.ListNodeSupportRequests:output_type -> raptor.panel.v1.ListNodeSupportRequestsResponse
+	97,  // 107: raptor.panel.v1.OrgService.DenySupportRequest:output_type -> raptor.panel.v1.DenySupportRequestResponse
+	39,  // 108: raptor.panel.v1.OrgService.RenameNode:output_type -> raptor.panel.v1.RenameNodeResponse
+	41,  // 109: raptor.panel.v1.OrgService.SetNodeHostname:output_type -> raptor.panel.v1.SetNodeHostnameResponse
+	43,  // 110: raptor.panel.v1.OrgService.SetNodeDisplayAddress:output_type -> raptor.panel.v1.SetNodeDisplayAddressResponse
+	45,  // 111: raptor.panel.v1.OrgService.SetServerDisplayAddress:output_type -> raptor.panel.v1.SetServerDisplayAddressResponse
+	47,  // 112: raptor.panel.v1.OrgService.RemoveNode:output_type -> raptor.panel.v1.RemoveNodeResponse
+	50,  // 113: raptor.panel.v1.OrgService.ListServers:output_type -> raptor.panel.v1.ListServersResponse
+	52,  // 114: raptor.panel.v1.OrgService.GetServer:output_type -> raptor.panel.v1.GetServerResponse
+	102, // 115: raptor.panel.v1.OrgService.FindServer:output_type -> raptor.panel.v1.FindServerResponse
+	54,  // 116: raptor.panel.v1.OrgService.PinJoinToken:output_type -> raptor.panel.v1.PinJoinTokenResponse
+	56,  // 117: raptor.panel.v1.OrgService.ListMemberPasskeys:output_type -> raptor.panel.v1.ListMemberPasskeysResponse
+	29,  // 118: raptor.panel.v1.OrgService.ListAuditLog:output_type -> raptor.panel.v1.ListAuditLogResponse
+	58,  // 119: raptor.panel.v1.OrgService.ListSchedules:output_type -> raptor.panel.v1.ListSchedulesResponse
+	61,  // 120: raptor.panel.v1.OrgService.ListScheduleRuns:output_type -> raptor.panel.v1.ListScheduleRunsResponse
+	75,  // 121: raptor.panel.v1.OrgService.SetNodeSFTP:output_type -> raptor.panel.v1.SetNodeSFTPResponse
+	68,  // 122: raptor.panel.v1.OrgService.GetSFTPAccess:output_type -> raptor.panel.v1.GetSFTPAccessResponse
+	71,  // 123: raptor.panel.v1.OrgService.CreateSFTPAccess:output_type -> raptor.panel.v1.CreateSFTPAccessResponse
+	73,  // 124: raptor.panel.v1.OrgService.RevokeSFTPAccess:output_type -> raptor.panel.v1.RevokeSFTPAccessResponse
+	77,  // 125: raptor.panel.v1.OrgService.TestConnection:output_type -> raptor.panel.v1.TestConnectionResponse
+	80,  // 126: raptor.panel.v1.OrgService.GetBackupStorage:output_type -> raptor.panel.v1.GetBackupStorageResponse
+	82,  // 127: raptor.panel.v1.OrgService.EnableBackupStorage:output_type -> raptor.panel.v1.EnableBackupStorageResponse
+	84,  // 128: raptor.panel.v1.OrgService.DisableBackupStorage:output_type -> raptor.panel.v1.DisableBackupStorageResponse
+	86,  // 129: raptor.panel.v1.OrgService.GetBackupKey:output_type -> raptor.panel.v1.GetBackupKeyResponse
+	88,  // 130: raptor.panel.v1.OrgService.SyncBackupKey:output_type -> raptor.panel.v1.SyncBackupKeyResponse
+	91,  // 131: raptor.panel.v1.OrgService.ListRecoverySources:output_type -> raptor.panel.v1.ListRecoverySourcesResponse
+	93,  // 132: raptor.panel.v1.OrgService.PrepareRecovery:output_type -> raptor.panel.v1.PrepareRecoveryResponse
+	65,  // 133: raptor.panel.v1.OrgService.ListBackups:output_type -> raptor.panel.v1.ListBackupsResponse
+	90,  // [90:134] is the sub-list for method output_type
+	46,  // [46:90] is the sub-list for method input_type
 	46,  // [46:46] is the sub-list for extension type_name
 	46,  // [46:46] is the sub-list for extension extendee
 	0,   // [0:46] is the sub-list for field type_name
@@ -6472,7 +6589,7 @@ func file_raptor_panel_v1_org_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_org_proto_rawDesc), len(file_raptor_panel_v1_org_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   100,
+			NumMessages:   102,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

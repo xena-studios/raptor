@@ -533,10 +533,10 @@ function OrgNav({ orgId }: { orgId: string }) {
         id: s.id,
         name: s.name || s.id.slice(-8),
         link: {
-          to: "/orgs/$orgId/servers/$nodeId/$serverId" as const,
-          params: { orgId, nodeId: s.node.id, serverId: s.id },
+          to: "/orgs/$orgId/servers/$serverId" as const,
+          params: { orgId, serverId: s.id },
         },
-        active: path.startsWith(`${base}/servers/${shortId(s.node.id)}/${shortId(s.id)}`),
+        active: path.startsWith(`${base}/servers/${shortId(s.id)}`),
         dot: toneDots[st.tone],
         status: st.label.toLowerCase(),
         live: st.tone === "live",

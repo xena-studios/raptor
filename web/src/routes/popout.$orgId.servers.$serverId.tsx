@@ -9,15 +9,15 @@ import { canonical, resolveServer, shortId, useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 import { serverStatus } from "@/lib/servers";
 
-export const Route = createFileRoute("/popout/$orgId/servers/$nodeId/$serverId")({
+export const Route = createFileRoute("/popout/$orgId/servers/$serverId")({
   params: {
     parse: (p) => p,
-    stringify: ({ nodeId, serverId }) => ({ nodeId: shortId(nodeId), serverId: shortId(serverId) }),
+    stringify: ({ serverId }) => ({ serverId: shortId(serverId) }),
   },
   beforeLoad: async ({ location, params }) => {
     const href = canonical(location.href, params);
     if (href) throw redirect({ href, replace: true });
-    await resolveServer(params.orgId, params.nodeId, params.serverId);
+    await resolveServer(params.orgId, params.serverId);
   },
   component: ServerPopout,
 });
@@ -50,11 +50,7 @@ function ServerPopout() {
         }
         error={error}
         back={
-          <Link
-            to="/orgs/$orgId/servers/$nodeId/$serverId"
-            params={{ orgId, nodeId, serverId }}
-            target="_blank"
-          >
+          <Link to="/orgs/$orgId/servers/$serverId" params={{ orgId, serverId }} target="_blank">
             Open in Raptor
           </Link>
         }

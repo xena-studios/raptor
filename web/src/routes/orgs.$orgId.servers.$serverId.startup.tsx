@@ -4,7 +4,7 @@ import { ServerSettings } from "@/components/server-settings";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
-export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/startup")({
+export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/startup")({
   component: StartupTab,
 });
 
