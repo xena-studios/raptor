@@ -13,6 +13,7 @@ import { BillingService, type GetBillingResponse } from "@/gen/raptor/panel/v1/b
 import { OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
 import type { ServerStatus } from "@/lib/servers";
 
@@ -53,7 +54,7 @@ function planStatus(b: GetBillingResponse): ServerStatus {
 }
 
 function Billing() {
-  const { orgId } = Route.useParams();
+  const { orgId } = useIds();
   const { checkout } = Route.useSearch();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const owner = orgs.data?.orgs.find((o) => o.id === orgId)?.role === Role.OWNER;

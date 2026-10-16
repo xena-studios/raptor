@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ServerBackups } from "@/components/server-backups";
+import { useIds } from "@/lib/ids";
 
 export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/backups")({
   component: BackupsTab,
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/bac
 
 function BackupsTab() {
   const session = Route.useRouteContext();
-  const { orgId, nodeId, serverId } = Route.useParams();
+  const { orgId, nodeId, serverId } = useIds();
   return (
     <ServerBackups
       orgId={orgId}

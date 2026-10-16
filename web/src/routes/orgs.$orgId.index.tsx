@@ -19,6 +19,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { isAdmin, since } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 import {
   formatBytes,
   formatPercent,
@@ -40,7 +41,7 @@ const shown = 10;
 // needs attention, and the latest activity. Admins see the machines' live
 // numbers (node.metrics); members see their servers.
 function Overview() {
-  const { orgId } = Route.useParams();
+  const { orgId } = useIds();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const org = orgs.data?.orgs.find((o) => o.id === orgId);
   const nodes = useOrgNodes(orgId);

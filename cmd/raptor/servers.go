@@ -22,9 +22,13 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 )
 
-// Short IDs shown by ps: the random end of the UUIDv7 (its start is a
-// timestamp that servers created together share). Wings accepts them.
-const shortID = 8
+// Short IDs shown by ps: the UUIDv7's last part, its random end (its start
+// is a timestamp that servers created together share), as the Panel's URLs
+// show it. Wings accepts them, and the 8 characters ps showed before.
+const (
+	shortID    = 12
+	minShortID = 8
+)
 
 // parseArgs parses flags anywhere among the arguments (`raptor logs srv -f`
 // as well as `raptor logs -f srv`) and returns the positional ones.

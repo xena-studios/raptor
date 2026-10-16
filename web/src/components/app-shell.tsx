@@ -64,6 +64,7 @@ import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { useApiDown } from "@/lib/connection";
 import { roleNames } from "@/lib/format";
+import { shortId } from "@/lib/ids";
 import { useOrgNodes, useOrgServers } from "@/lib/org-data";
 import { type ServerStatus, serverStatus } from "@/lib/servers";
 import { getTheme, isTheme, setTheme } from "@/lib/theme";
@@ -502,7 +503,7 @@ function OrgNav({ orgId }: { orgId: string }) {
   const path = useLocation({ select: (l) => l.pathname });
   const nodes = useOrgNodes(orgId);
   const { servers } = useOrgServers(orgId, 15_000);
-  const base = `/orgs/${orgId}`;
+  const base = `/orgs/${shortId(orgId)}`;
   const active = (p: string) =>
     p === base ? path === base || path === `${base}/` : path.startsWith(p);
   const params = { orgId };
@@ -514,7 +515,7 @@ function OrgNav({ orgId }: { orgId: string }) {
       id: n.id,
       name: n.name,
       link: { to: "/orgs/$orgId/nodes/$nodeId" as const, params: { orgId, nodeId: n.id } },
-      active: path.startsWith(`${base}/nodes/${n.id}`),
+      active: path.startsWith(`${base}/nodes/${shortId(n.id)}`),
       dot: n.connected ? "bg-ok" : "bg-muted-foreground/40",
       status: n.connected ? "connected" : "offline",
       live: n.connected,
@@ -530,7 +531,7 @@ function OrgNav({ orgId }: { orgId: string }) {
           to: "/orgs/$orgId/servers/$nodeId/$serverId" as const,
           params: { orgId, nodeId: s.node.id, serverId: s.id },
         },
-        active: path.startsWith(`${base}/servers/${s.node.id}/${s.id}`),
+        active: path.startsWith(`${base}/servers/${shortId(s.node.id)}/${shortId(s.id)}`),
         dot: toneDots[st.tone],
         status: st.label.toLowerCase(),
         live: st.tone === "live",

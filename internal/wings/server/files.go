@@ -9,11 +9,15 @@ import (
 	"github.com/xena-studios/raptor/internal/eggs"
 )
 
-// shortIDLen is the length of a server's short ID: the last characters of
-// its ID, the same short ID `raptor ps` shows. Not the first ones, as in
-// Pterodactyl: IDs are UUIDv7, which start with a timestamp that servers
-// created within about a minute of each other share.
-const shortIDLen = 8
+// Short IDs: the last characters of a server's ID. Not the first ones, as
+// in Pterodactyl: IDs are UUIDv7, which start with a timestamp that
+// servers created within about a minute of each other share. shortIDLen is
+// the ID's last part, as `raptor ps` and the Panel's URLs show it;
+// oldShortIDLen is the 8 characters they showed before (DECISIONS #280).
+const (
+	shortIDLen    = 12
+	oldShortIDLen = 8
+)
 
 // Resolve returns the ID of the server ref names: its full ID, or its short
 // ID when exactly one server has it.
@@ -24,7 +28,7 @@ func (m *Manager) Resolve(ref string) (string, error) {
 	if _, ok := m.servers[ref]; ok {
 		return ref, nil
 	}
-	if len(ref) != shortIDLen {
+	if len(ref) != shortIDLen && len(ref) != oldShortIDLen {
 		return "", ErrNotFound
 	}
 	found := ""

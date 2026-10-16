@@ -6,6 +6,7 @@ import { ConnectNode } from "@/components/org/connect-node";
 import { EmptyState, PageHeader } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
 import { BillingService } from "@/gen/raptor/panel/v1/billing_pb";
+import { useIds } from "@/lib/ids";
 
 export const Route = createFileRoute("/orgs/$orgId/nodes/new")({
   component: NewNode,
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/orgs/$orgId/nodes/new")({
 
 function NewNode() {
   const session = Route.useRouteContext();
-  const { orgId } = Route.useParams();
+  const { orgId } = useIds();
   // With billing on, a node needs a plan; a second ends the free month.
   const billing = useQuery(BillingService.method.getBilling, { orgId });
   const b = billing.data;

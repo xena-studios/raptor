@@ -387,8 +387,8 @@ func state(s string) string {
 }
 
 func shortID(id string) string {
-	if len(id) > 8 {
-		return id[len(id)-8:]
+	if len(id) > 12 {
+		return id[len(id)-12:]
 	}
 	return id
 }
@@ -419,9 +419,9 @@ func (m Model) list(b *strings.Builder) {
 		b.WriteString(dimStyle.Render("No servers on this node.") + "\n")
 		return
 	}
-	fmt.Fprintf(b, "%-24s %-8s %-15s %6s %10s %10s  %s\n", "NAME", "ID", "STATE", "CPU", "MEMORY", "DISK", "ADDRESS")
+	fmt.Fprintf(b, "%-24s %-12s %-15s %6s %10s %10s  %s\n", "NAME", "ID", "STATE", "CPU", "MEMORY", "DISK", "ADDRESS")
 	for i, s := range m.servers {
-		row := fmt.Sprintf("%-24s %-8s %-15s %5.0f%% %10s %10s  %s", trunc(s.GetName(), 24), shortID(s.GetId()), s.GetState(),
+		row := fmt.Sprintf("%-24s %-12s %-15s %5.0f%% %10s %10s  %s", trunc(s.GetName(), 24), shortID(s.GetId()), s.GetState(),
 			s.GetCpuPercent(), host.Bytes(s.GetMemoryBytes()), host.Bytes(s.GetDiskBytes()), s.GetAddress())
 		if i == m.cursor {
 			row = selStyle.Render(row)

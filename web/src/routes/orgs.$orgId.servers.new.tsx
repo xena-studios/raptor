@@ -26,6 +26,7 @@ import { diskName, diskSpace, serverDisks, useNodeDisks } from "@/lib/disks";
 import { categoryName } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 import {
   createParams,
   eggsFor,
@@ -53,7 +54,7 @@ const select =
 
 function NewServerPage() {
   const session = Route.useRouteContext();
-  const { orgId } = Route.useParams();
+  const { orgId } = useIds();
   const search = Route.useSearch();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const org = orgs.data?.orgs.find((o) => o.id === orgId);

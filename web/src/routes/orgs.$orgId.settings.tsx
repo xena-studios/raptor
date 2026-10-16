@@ -4,6 +4,7 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { isAdmin } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 
 // The org's settings: general, members, billing, backups, alerts, and the
 // audit log.
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/orgs/$orgId/settings")({
 });
 
 function SettingsLayout() {
-  const { orgId } = Route.useParams();
+  const { orgId } = useIds();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const org = orgs.data?.orgs.find((o) => o.id === orgId);
   const admin = isAdmin(org?.role);

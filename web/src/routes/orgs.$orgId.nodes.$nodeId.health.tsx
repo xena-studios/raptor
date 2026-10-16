@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { message } from "@/lib/errors";
 import { dateTime } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 import { formatBytes, formatUptime } from "@/lib/metrics";
 import { useOrgNodes } from "@/lib/org-data";
 import { commandClient } from "@/lib/transport";
@@ -84,7 +85,7 @@ type Report = {
 // the node, then the machine: its system, load, memory, disks, and network.
 // The overview has the numbers at a glance and over time.
 function Health() {
-  const { orgId, nodeId } = Route.useParams();
+  const { orgId, nodeId } = useIds();
   const node = useOrgNodes(orgId).data?.nodes.find((n) => n.id === nodeId);
   const [starting, setStarting] = useState(false);
   const run = async (action: string) => {

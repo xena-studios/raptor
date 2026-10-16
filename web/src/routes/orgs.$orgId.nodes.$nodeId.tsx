@@ -1,5 +1,5 @@
 import { useQuery } from "@connectrpc/connect-query";
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 
 import { Hidden } from "@/components/address";
@@ -11,17 +11,27 @@ import { buttonVariants } from "@/components/ui/button";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { nodeHostname } from "@/lib/addresses";
 import { isAdmin } from "@/lib/format";
+import { canonical, resolveNode, shortId, useIds } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
 import { nodeStatus } from "@/lib/servers";
 
 // A node's pages: its header, its tabs, and the tab below.
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId")({
+  params: {
+    parse: (p) => p,
+    stringify: ({ nodeId }) => ({ nodeId: shortId(nodeId) }),
+  },
+  beforeLoad: async ({ location, params }) => {
+    const href = canonical(location.href, params);
+    if (href) throw redirect({ href, replace: true });
+    await resolveNode(params.orgId, params.nodeId);
+  },
   component: NodeLayout,
 });
 
 function NodeLayout() {
   const session = Route.useRouteContext();
-  const { orgId, nodeId } = Route.useParams();
+  const { orgId, nodeId } = useIds();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const admin = isAdmin(orgs.data?.orgs.find((o) => o.id === orgId)?.role);
   const nodes = useOrgNodes(orgId);

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { Files } from "@/components/file-manager";
 import { SFTPButton } from "@/components/sftp-access";
+import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
 type FilesSearch = { path?: string; file?: string };
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/fil
 
 function FilesTab() {
   const session = Route.useRouteContext();
-  const { orgId, nodeId, serverId } = Route.useParams();
+  const { orgId, nodeId, serverId } = useIds();
   const { path, file } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { node, server } = useServer(orgId, nodeId, serverId);

@@ -23,6 +23,7 @@ import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { nodeHostname } from "@/lib/addresses";
 import { message } from "@/lib/errors";
 import { isAdmin, since, when } from "@/lib/format";
+import { useIds } from "@/lib/ids";
 import {
   formatBytes,
   formatPercent,
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId/")({
 // The node's overview: the machine now and over time (admins), what each
 // server on it uses, and what the machine is.
 function NodeOverview() {
-  const { orgId, nodeId } = Route.useParams();
+  const { orgId, nodeId } = useIds();
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const admin = isAdmin(orgs.data?.orgs.find((o) => o.id === orgId)?.role);
   const nodes = useOrgNodes(orgId);
