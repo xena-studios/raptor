@@ -16,11 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Node } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { sendSigned } from "@/lib/signed";
-import { commandClient } from "@/lib/transport";
+import { commandClient, orgClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
+import { timeZones } from "@/lib/zones";
 
 // The machine's own settings, from the node's System tab: its hostname,
 // time zone and clock, firewall, and rebooting it (Wings' node.* system
@@ -48,25 +50,14 @@ type SystemState = {
 const select =
   "h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
-function timeZones(): string[] {
-  const intl = Intl as typeof Intl & { supportedValuesOf?: (k: string) => string[] };
-  return ["UTC", ...(intl.supportedValuesOf?.("timeZone") ?? []).filter((z) => z !== "UTC")];
-}
-
 async function run<T>(nodeId: string, action: string, params: unknown = {}): Promise<T> {
   const res = await commandClient.execute({ nodeId, action, paramsJson: JSON.stringify(params) });
   return (res.resultJson ? JSON.parse(res.resultJson) : null) as T;
 }
 
-export function NodeSystem({
-  nodeId,
-  userId,
-  connected,
-}: {
-  nodeId: string;
-  userId: string;
-  connected: boolean;
-}) {
+export function NodeSystem({ orgId, node, userId }: { orgId: string; node: Node; userId: string }) {
+  const nodeId = node.id;
+  const connected = node.connected;
   const state = useQuery({
     queryKey: ["node-system", nodeId],
     queryFn: () => run<SystemState>(nodeId, "node.system"),
@@ -86,16 +77,36 @@ export function NodeSystem({
   if (!s) return <p className="text-sm text-muted-foreground">Asking the node…</p>;
   return (
     <div className="flex flex-col gap-6">
-      <Machine key={`${s.hostname}/${s.timezone}`} nodeId={nodeId} s={s} />
+      <Machine
+        key={`${s.hostname}/${s.timezone}/${node.hostnameCustom}`}
+        orgId={orgId}
+        node={node}
+        s={s}
+      />
       <Firewall key={JSON.stringify(s.firewall)} nodeId={nodeId} userId={userId} s={s} />
       <Reboot nodeId={nodeId} userId={userId} />
     </div>
   );
 }
 
-function Machine({ nodeId, s }: { nodeId: string; s: SystemState }) {
+// hostnameFor is the hostname a node's name makes, as the Panel makes it
+// (machines.Want).
+function hostnameFor(node: Node): string {
+  const h = node.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 63)
+    .replace(/-+$/, "");
+  return h || `n-${node.shortId}`;
+}
+
+function Machine({ orgId, node, s }: { orgId: string; node: Node; s: SystemState }) {
+  const nodeId = node.id;
   const client = useQueryClient();
-  const [hostname, setHostname] = useState(s.hostname);
+  const follows = !node.hostnameCustom;
+  const [hostname, setHostname] = useState(follows ? s.hostname : node.hostnameCustom);
+  const [custom, setCustom] = useState(!follows);
   const [tz, setTz] = useState(s.timezone);
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<{ ok: boolean; text: string }>();
@@ -115,12 +126,16 @@ function Machine({ nodeId, s }: { nodeId: string; s: SystemState }) {
     }
   }
 
+  function setHostnameTo(value: string) {
+    change("hostname", async () => {
+      const r = await orgClient.setNodeHostname({ orgId, nodeId, hostname: value });
+      await client.invalidateQueries();
+      return r.note;
+    });
+  }
   function saveHostname(e: FormEvent) {
     e.preventDefault();
-    change("hostname", async () => {
-      const r = await run<{ note: string }>(nodeId, "node.hostname", { hostname });
-      return r?.note;
-    });
+    setHostnameTo(hostname);
   }
   function saveTz(e: FormEvent) {
     e.preventDefault();
@@ -140,25 +155,62 @@ function Machine({ nodeId, s }: { nodeId: string; s: SystemState }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        <form onSubmit={saveHostname} className="flex items-end gap-2">
-          <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="sys-hostname">Hostname</Label>
-            <Input
-              id="sys-hostname"
-              value={hostname}
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(e) => setHostname(e.target.value)}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <label htmlFor="sys-follow" className="block text-sm font-medium">
+                Hostname follows the node's name
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Renaming the node renames the machine: "{node.name}" is{" "}
+                <code>{hostnameFor(node)}</code>.
+              </p>
+            </div>
+            <Switch
+              id="sys-follow"
+              checked={!custom}
+              disabled={!!busy}
+              onCheckedChange={(on) => {
+                setCustom(!on);
+                if (on) {
+                  setHostname(hostnameFor(node));
+                  if (!follows) setHostnameTo("");
+                }
+              }}
             />
           </div>
-          <Button
-            type="submit"
-            variant="outline"
-            disabled={!!busy || !hostname.trim() || hostname === s.hostname}
-          >
-            {busy === "hostname" && <Loader2 className="animate-spin" />} Rename
-          </Button>
-        </form>
+          <form onSubmit={saveHostname} className="flex items-end gap-2">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="sys-hostname">Hostname</Label>
+              <Input
+                id="sys-hostname"
+                value={custom ? hostname : s.hostname}
+                readOnly={!custom}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(e) => setHostname(e.target.value)}
+              />
+            </div>
+            {custom && (
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={
+                  !!busy ||
+                  !hostname.trim() ||
+                  (hostname === node.hostnameCustom && hostname === s.hostname)
+                }
+              >
+                {busy === "hostname" && <Loader2 className="animate-spin" />} Rename
+              </Button>
+            )}
+          </form>
+          {node.hostnameError && (
+            <p className="text-xs text-destructive">
+              The node refused the last hostname it was sent: {node.hostnameError}
+            </p>
+          )}
+        </div>
         <form onSubmit={saveTz} className="flex flex-col gap-1.5">
           <Label htmlFor="sys-tz">Time zone</Label>
           <div className="flex items-end gap-2">

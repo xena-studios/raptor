@@ -20,6 +20,7 @@ import (
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/machines"
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
@@ -66,6 +67,7 @@ func (s *Service) ListNodes(ctx context.Context, req *panelv1.ListNodesRequest) 
 				Connected: r.Connected, CreatedAt: timestamppb.New(r.CreatedAt.Time),
 				Arch: r.Arch, Cpus: r.Cpus, MemoryBytes: r.MemoryBytes,
 				SftpEnabled: r.SftpEnabled, SftpPort: r.SftpPort, SftpHostKeyFingerprint: r.SftpHostKey, SftpAllowed: r.SftpAllowed,
+				MachineHostname: r.Hostname, HostnameCustom: r.HostnameCustom, HostnameError: r.HostnameError, Timezone: r.Timezone,
 			}
 			// The machine's own addresses are for those who run it.
 			if grants == nil {
@@ -246,8 +248,47 @@ func (s *Service) RenameNode(ctx context.Context, req *panelv1.RenameNodeRequest
 		return nil, err
 	}
 	_ = s.audit(ctx, nil, sess, org, "node.rename", idString(node), nil, map[string]any{"name": name})
+	if s.Machines != nil {
+		s.Machines.Kick() // the machine's hostname follows
+	}
 	return &panelv1.RenameNodeResponse{}, nil
 }
+
+// SetNodeHostname implements OrgService.
+func (s *Service) SetNodeHostname(ctx context.Context, req *panelv1.SetNodeHostnameRequest) (*panelv1.SetNodeHostnameResponse, error) {
+	if s.Machines == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("nodes aren't managed by this Panel"))
+	}
+	custom := strings.ToLower(strings.TrimSpace(req.GetHostname()))
+	if len(custom) > 253 || (custom != "" && !machineHostname.MatchString(custom)) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a hostname is letters, digits, and hyphens (dots between parts), like game-box-1"))
+	}
+	sess, org, node, err := s.nodeOf(ctx, req.GetOrgId(), req.GetNodeId())
+	if err != nil {
+		return nil, err
+	}
+	q := store.New(s.DB)
+	n, err := q.SetNodeHostnameCustom(ctx, store.SetNodeHostnameCustomParams{ID: node, HostnameCustom: custom})
+	if err != nil {
+		return nil, err
+	}
+	want := machines.Want(n.Name, n.ShortID, custom)
+	note, err := s.Machines.SetHostname(ctx, node, idString(node), want)
+	var refused machines.ErrRefused
+	switch {
+	case errors.As(err, &refused):
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(refused.Reason))
+	case err != nil:
+		// Saved; it's sent when the node is back.
+		s.Machines.Kick()
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("saved, but the node didn't answer: its hostname changes when it's back online"))
+	}
+	_ = s.audit(ctx, nil, sess, org, "node.hostname", idString(node), nil, map[string]any{"hostname": want, "follows_name": custom == ""})
+	return &panelv1.SetNodeHostnameResponse{Note: note}, nil
+}
+
+// machineHostname is RFC 1123, as Wings checks it.
+var machineHostname = regexp.MustCompile(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$`)
 
 // SetNodeDisplayAddress implements OrgService. Shown addresses are
 // servers' now.

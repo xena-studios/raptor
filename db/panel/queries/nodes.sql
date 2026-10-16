@@ -23,7 +23,7 @@ SELECT * FROM nodes WHERE id = $1;
 -- name: NodeConnected :exec
 -- A node on a new Wings version gets a fresh mirror snapshot (last_acked_seq
 -- -1), so what a new version reports about servers shows up at once.
-UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3,
+UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3, system_read_at = NULL,
     last_acked_seq = CASE WHEN wings_version <> '' AND wings_version <> $2 THEN -1 ELSE last_acked_seq END
 WHERE id = $1;
 
@@ -104,3 +104,37 @@ DELETE FROM server_addresses WHERE node_id = $1 AND server_id = $2;
 
 -- name: ForgetNodeServerAddresses :exec
 DELETE FROM server_addresses WHERE node_id = $1;
+
+-- name: MachinesToSync :many
+-- Connected nodes whose settings haven't been read since they connected, or
+-- whose hostname isn't what it should be.
+SELECT n.id, n.name, n.short_id, n.hostname, n.hostname_custom, n.hostname_tried,
+       (n.system_read_at IS NOT NULL)::bool AS read
+FROM nodes n
+WHERE n.deleted_at IS NULL AND n.key_revoked_at IS NULL
+  AND EXISTS (SELECT 1 FROM node_connections c JOIN panel_instances i ON i.id = c.instance_id
+              WHERE c.node_id = n.id AND i.seen_at > now() - interval '20 seconds');
+
+-- name: SetNodeSystem :exec
+-- What the machine reported. A hostname changed on the machine itself
+-- (not by the Panel) is asked for again.
+UPDATE nodes SET
+    hostname = @hostname, timezone = @timezone, system_read_at = now(),
+    hostname_tried = CASE WHEN hostname <> '' AND hostname <> @hostname THEN '' ELSE hostname_tried END
+WHERE id = $1;
+
+-- name: SetNodeTimezone :exec
+UPDATE nodes SET timezone = $2 WHERE id = $1;
+
+-- name: SetNodeHostnameTried :exec
+-- The Panel asked the node for a hostname: what it is now if it took it,
+-- or why not.
+UPDATE nodes SET hostname_tried = @tried, hostname_error = @error,
+    hostname = CASE WHEN @error::text = '' THEN @tried ELSE hostname END
+WHERE id = $1;
+
+-- name: SetNodeHostnameCustom :one
+-- '' follows the node's name again. Clearing tried has it applied now.
+UPDATE nodes SET hostname_custom = $2, hostname_tried = '', hostname_error = ''
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING name, short_id;

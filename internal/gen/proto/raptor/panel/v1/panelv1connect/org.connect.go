@@ -79,6 +79,9 @@ const (
 	OrgServiceDenySupportRequestProcedure = "/raptor.panel.v1.OrgService/DenySupportRequest"
 	// OrgServiceRenameNodeProcedure is the fully-qualified name of the OrgService's RenameNode RPC.
 	OrgServiceRenameNodeProcedure = "/raptor.panel.v1.OrgService/RenameNode"
+	// OrgServiceSetNodeHostnameProcedure is the fully-qualified name of the OrgService's
+	// SetNodeHostname RPC.
+	OrgServiceSetNodeHostnameProcedure = "/raptor.panel.v1.OrgService/SetNodeHostname"
 	// OrgServiceSetNodeDisplayAddressProcedure is the fully-qualified name of the OrgService's
 	// SetNodeDisplayAddress RPC.
 	OrgServiceSetNodeDisplayAddressProcedure = "/raptor.panel.v1.OrgService/SetNodeDisplayAddress"
@@ -194,6 +197,10 @@ type OrgServiceClient interface {
 	DenySupportRequest(context.Context, *v1.DenySupportRequestRequest) (*v1.DenySupportRequestResponse, error)
 	// RenameNode renames a node. Admins and owners.
 	RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error)
+	// SetNodeHostname sets the machine's own hostname, or ('') has it follow
+	// the node's name, which is the default: renaming the node renames the
+	// machine. The node must be connected. Admins and owners.
+	SetNodeHostname(context.Context, *v1.SetNodeHostnameRequest) (*v1.SetNodeHostnameResponse, error)
 	// SetNodeDisplayAddress is replaced by SetServerDisplayAddress: a shown
 	// address is a server's. It fails with FailedPrecondition.
 	//
@@ -416,6 +423,12 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("RenameNode")),
 			connect.WithClientOptions(opts...),
 		),
+		setNodeHostname: connect.NewClient[v1.SetNodeHostnameRequest, v1.SetNodeHostnameResponse](
+			httpClient,
+			baseURL+OrgServiceSetNodeHostnameProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("SetNodeHostname")),
+			connect.WithClientOptions(opts...),
+		),
 		setNodeDisplayAddress: connect.NewClient[v1.SetNodeDisplayAddressRequest, v1.SetNodeDisplayAddressResponse](
 			httpClient,
 			baseURL+OrgServiceSetNodeDisplayAddressProcedure,
@@ -588,6 +601,7 @@ type orgServiceClient struct {
 	listNodeSupportRequests *connect.Client[v1.ListNodeSupportRequestsRequest, v1.ListNodeSupportRequestsResponse]
 	denySupportRequest      *connect.Client[v1.DenySupportRequestRequest, v1.DenySupportRequestResponse]
 	renameNode              *connect.Client[v1.RenameNodeRequest, v1.RenameNodeResponse]
+	setNodeHostname         *connect.Client[v1.SetNodeHostnameRequest, v1.SetNodeHostnameResponse]
 	setNodeDisplayAddress   *connect.Client[v1.SetNodeDisplayAddressRequest, v1.SetNodeDisplayAddressResponse]
 	setServerDisplayAddress *connect.Client[v1.SetServerDisplayAddressRequest, v1.SetServerDisplayAddressResponse]
 	removeNode              *connect.Client[v1.RemoveNodeRequest, v1.RemoveNodeResponse]
@@ -769,6 +783,15 @@ func (c *orgServiceClient) DenySupportRequest(ctx context.Context, req *v1.DenyS
 // RenameNode calls raptor.panel.v1.OrgService.RenameNode.
 func (c *orgServiceClient) RenameNode(ctx context.Context, req *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error) {
 	response, err := c.renameNode.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SetNodeHostname calls raptor.panel.v1.OrgService.SetNodeHostname.
+func (c *orgServiceClient) SetNodeHostname(ctx context.Context, req *v1.SetNodeHostnameRequest) (*v1.SetNodeHostnameResponse, error) {
+	response, err := c.setNodeHostname.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -1036,6 +1059,10 @@ type OrgServiceHandler interface {
 	DenySupportRequest(context.Context, *v1.DenySupportRequestRequest) (*v1.DenySupportRequestResponse, error)
 	// RenameNode renames a node. Admins and owners.
 	RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error)
+	// SetNodeHostname sets the machine's own hostname, or ('') has it follow
+	// the node's name, which is the default: renaming the node renames the
+	// machine. The node must be connected. Admins and owners.
+	SetNodeHostname(context.Context, *v1.SetNodeHostnameRequest) (*v1.SetNodeHostnameResponse, error)
 	// SetNodeDisplayAddress is replaced by SetServerDisplayAddress: a shown
 	// address is a server's. It fails with FailedPrecondition.
 	//
@@ -1254,6 +1281,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("RenameNode")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceSetNodeHostnameHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceSetNodeHostnameProcedure,
+		svc.SetNodeHostname,
+		connect.WithSchema(orgServiceMethods.ByName("SetNodeHostname")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceSetNodeDisplayAddressHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceSetNodeDisplayAddressProcedure,
 		svc.SetNodeDisplayAddress,
@@ -1441,6 +1474,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceDenySupportRequestHandler.ServeHTTP(w, r)
 		case OrgServiceRenameNodeProcedure:
 			orgServiceRenameNodeHandler.ServeHTTP(w, r)
+		case OrgServiceSetNodeHostnameProcedure:
+			orgServiceSetNodeHostnameHandler.ServeHTTP(w, r)
 		case OrgServiceSetNodeDisplayAddressProcedure:
 			orgServiceSetNodeDisplayAddressHandler.ServeHTTP(w, r)
 		case OrgServiceSetServerDisplayAddressProcedure:
@@ -1566,6 +1601,10 @@ func (UnimplementedOrgServiceHandler) DenySupportRequest(context.Context, *v1.De
 
 func (UnimplementedOrgServiceHandler) RenameNode(context.Context, *v1.RenameNodeRequest) (*v1.RenameNodeResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.RenameNode is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) SetNodeHostname(context.Context, *v1.SetNodeHostnameRequest) (*v1.SetNodeHostnameResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.SetNodeHostname is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) SetNodeDisplayAddress(context.Context, *v1.SetNodeDisplayAddressRequest) (*v1.SetNodeDisplayAddressResponse, error) {

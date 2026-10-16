@@ -419,6 +419,7 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
 - `node.system` reads the hostname, time zone, clock sync, the firewall, what stays open, the SSH ports, and whether ufw is on.
 - `node.hostname` sets the hostname through systemd-hostnamed (`hostnamectl`), since Wings' sandbox (`ProtectHostname`, `ProtectSystem=strict`) can't. It also renames the machine on Debian's `127.0.1.1` line in `/etc/hosts`, the one file in `/etc` the unit lets Wings write. Nodes installed before that line was added get a note to change it themselves.
 - `node.time` sets the time zone and clock sync through systemd-timedated. Servers get the new zone as `TZ` the next time they start.
+- The Panel runs `node.system` itself (as `panel:machine`) each time the node connects, to show the machine's time zone and keep its hostname following the node's name, and sends `node.hostname` when it doesn't (see [PANEL.md](PANEL.md#hostname-and-time-zone)).
 - `node.firewall` (signed): see [Firewall](#firewall).
 - `node.reboot` (signed) runs `systemctl reboot` three seconds later, so its answer gets back first. `raptor-shutdown.service` stops the servers properly, and those that were running start again with Wings.
 

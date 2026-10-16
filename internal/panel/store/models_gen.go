@@ -317,6 +317,12 @@ type Node struct {
 	DisplayAddress  string
 	AlertsHash      string
 	AlertsError     string
+	Hostname        string
+	Timezone        string
+	HostnameCustom  string
+	HostnameTried   string
+	HostnameError   string
+	SystemReadAt    pgtype.Timestamptz
 }
 
 type NodeConnection struct {
