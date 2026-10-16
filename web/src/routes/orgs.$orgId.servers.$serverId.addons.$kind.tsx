@@ -1,20 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { WorkshopPage } from "@/components/workshop";
+import { AddonsPage } from "@/components/addons";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
-// A server's Steam Workshop items (docs/EGGS.md#steam-workshop).
-export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/workshop")({
-  component: function Workshop() {
+// A server's plugins or mods (docs/EGGS.md#add-ons).
+export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/addons/$kind")({
+  component: function Addons() {
+    const { kind } = Route.useParams();
     const { orgId, nodeId, serverId } = useIds();
     const { server } = useServer(orgId, nodeId, serverId);
     return (
-      <WorkshopPage
+      <AddonsPage
+        key={kind}
         orgId={orgId}
         nodeId={nodeId}
         serverId={serverId}
-        canWrite={can(server, "startup")}
+        kind={kind}
+        canWrite={can(server, "files.write")}
       />
     );
   },

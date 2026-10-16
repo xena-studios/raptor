@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -247,16 +248,20 @@ func maps(m map[string]any) map[string]any {
 	return out
 }
 
+// short is an ID's last part, its short ID.
+func short(id string) string { return id[strings.LastIndexByte(id, '-')+1:] }
+
 func (s *Service) link(org pgtype.UUID, node, server string) string {
 	if s.AppURL == "" {
 		return ""
 	}
-	base := s.AppURL + "/orgs/" + uuid.UUID(org.Bytes).String()
+	// Short IDs, as the app's own URLs have them (docs/PANEL.md#urls).
+	base := s.AppURL + "/orgs/" + short(uuid.UUID(org.Bytes).String())
 	switch {
 	case server != "" && node != "":
-		return base + "/servers/" + node + "/" + server
+		return base + "/servers/" + short(server)
 	case node != "":
-		return base + "/nodes/" + node
+		return base + "/nodes/" + short(node)
 	}
 	return base + "/settings/alerts"
 }

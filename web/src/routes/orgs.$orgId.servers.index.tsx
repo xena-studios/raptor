@@ -51,7 +51,7 @@ function Servers() {
       <Plus /> Deploy server
     </Link>
   );
-  const link = (s: OrgServer) => ({ orgId, nodeId: s.node.id, serverId: s.id });
+  const link = (s: OrgServer) => ({ orgId, serverId: s.id });
 
   return (
     <>
@@ -82,7 +82,7 @@ function Servers() {
               {list.map((s) => (
                 <EntityCard
                   key={`${s.node.id}/${s.id}`}
-                  link={{ to: "/orgs/$orgId/servers/$nodeId/$serverId", params: link(s) }}
+                  link={{ to: "/orgs/$orgId/servers/$serverId", params: link(s) }}
                   title={s.name}
                   status={serverStatus(s, s.node.connected)}
                   subtitle={s.eggName || "—"}
@@ -112,11 +112,11 @@ function Servers() {
                   {list.map((s) => (
                     <LinkRow
                       key={`${s.node.id}/${s.id}`}
-                      link={{ to: "/orgs/$orgId/servers/$nodeId/$serverId", params: link(s) }}
+                      link={{ to: "/orgs/$orgId/servers/$serverId", params: link(s) }}
                     >
                       <TableCell>
                         <Link
-                          to="/orgs/$orgId/servers/$nodeId/$serverId"
+                          to="/orgs/$orgId/servers/$serverId"
                           params={link(s)}
                           className="font-medium hover:underline"
                         >

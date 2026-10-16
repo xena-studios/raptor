@@ -133,6 +133,46 @@ func (q *Queries) ExpireOrgJoinTokens(ctx context.Context, orgID pgtype.UUID) er
 	return err
 }
 
+const findOrgServers = `-- name: FindOrgServers :many
+SELECT s.node_id, s.server_id FROM m_servers s
+JOIN nodes n ON n.id = s.node_id
+WHERE n.org_id = $1 AND n.deleted_at IS NULL
+  AND (s.server_id = $2 OR split_part(s.server_id, '-', 5) = $2)
+LIMIT 3
+`
+
+type FindOrgServersParams struct {
+	OrgID pgtype.UUID
+	Ref   string
+}
+
+type FindOrgServersRow struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+// The servers in an org with this ID or short ID (the ID's last part), on
+// nodes that are still in it.
+func (q *Queries) FindOrgServers(ctx context.Context, arg FindOrgServersParams) ([]FindOrgServersRow, error) {
+	rows, err := q.db.Query(ctx, findOrgServers, arg.OrgID, arg.Ref)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindOrgServersRow
+	for rows.Next() {
+		var i FindOrgServersRow
+		if err := rows.Scan(&i.NodeID, &i.ServerID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOrg = `-- name: GetOrg :one
 SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at FROM orgs WHERE id = $1
 `

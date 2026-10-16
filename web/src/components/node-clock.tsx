@@ -1,11 +1,10 @@
-import { useLocation } from "@tanstack/react-router";
 import { Clock, Plus, X } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { sameId } from "@/lib/ids";
+import { sameId, useIds } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
 import {
   city,
@@ -59,16 +58,13 @@ function useNow(): Date {
   return now;
 }
 
-// The node a path is about: a node's pages, or a server's.
-const nodePath = /^\/orgs\/([^/]+)\/(?:nodes|servers)\/([0-9a-f-]+)(?:\/|$)/;
-
+// The node the page is about: a node's pages, or a server's (its node).
 export function NodeClock({ orgId }: { orgId: string }) {
-  const path = useLocation({ select: (l) => l.pathname });
-  const m = nodePath.exec(path);
+  const ids = useIds();
   const nodes = useOrgNodes(orgId);
   const node =
-    m && sameId(m[1] ?? "", orgId)
-      ? nodes.data?.nodes.find((n) => sameId(n.id, m[2] ?? ""))
+    ids.nodeId && sameId(ids.orgId, orgId)
+      ? nodes.data?.nodes.find((n) => n.id === ids.nodeId)
       : undefined;
   if (!node?.timezone || !validZone(node.timezone)) return null;
   return <ZoneClock tz={node.timezone} name={node.name} />;

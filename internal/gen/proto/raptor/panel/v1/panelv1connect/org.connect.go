@@ -96,6 +96,8 @@ const (
 	OrgServiceListServersProcedure = "/raptor.panel.v1.OrgService/ListServers"
 	// OrgServiceGetServerProcedure is the fully-qualified name of the OrgService's GetServer RPC.
 	OrgServiceGetServerProcedure = "/raptor.panel.v1.OrgService/GetServer"
+	// OrgServiceFindServerProcedure is the fully-qualified name of the OrgService's FindServer RPC.
+	OrgServiceFindServerProcedure = "/raptor.panel.v1.OrgService/FindServer"
 	// OrgServicePinJoinTokenProcedure is the fully-qualified name of the OrgService's PinJoinToken RPC.
 	OrgServicePinJoinTokenProcedure = "/raptor.panel.v1.OrgService/PinJoinToken"
 	// OrgServiceListMemberPasskeysProcedure is the fully-qualified name of the OrgService's
@@ -231,6 +233,10 @@ type OrgServiceClient interface {
 	// images and variables, for the settings page: variables can hold
 	// secrets (tokens, passwords), so nobody else gets them.
 	GetServer(context.Context, *v1.GetServerRequest) (*v1.GetServerResponse, error)
+	// FindServer finds a server in the org by its ID or short ID (the ID's
+	// last part, as in the app's URLs), and says which node it's on. Anyone
+	// who can see the server.
+	FindServer(context.Context, *v1.FindServerRequest) (*v1.FindServerResponse, error)
 	// PinJoinToken attaches the owner's passkey, signed in the browser over
 	// the token (nodecmd.OwnerPin), to a new join token: the node that links
 	// with it checks the signature and trusts that passkey from the start.
@@ -473,6 +479,13 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		findServer: connect.NewClient[v1.FindServerRequest, v1.FindServerResponse](
+			httpClient,
+			baseURL+OrgServiceFindServerProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("FindServer")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		pinJoinToken: connect.NewClient[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse](
 			httpClient,
 			baseURL+OrgServicePinJoinTokenProcedure,
@@ -620,6 +633,7 @@ type orgServiceClient struct {
 	removeNode              *connect.Client[v1.RemoveNodeRequest, v1.RemoveNodeResponse]
 	listServers             *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
 	getServer               *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
+	findServer              *connect.Client[v1.FindServerRequest, v1.FindServerResponse]
 	pinJoinToken            *connect.Client[v1.PinJoinTokenRequest, v1.PinJoinTokenResponse]
 	listMemberPasskeys      *connect.Client[v1.ListMemberPasskeysRequest, v1.ListMemberPasskeysResponse]
 	listAuditLog            *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
@@ -861,6 +875,15 @@ func (c *orgServiceClient) ListServers(ctx context.Context, req *v1.ListServersR
 // GetServer calls raptor.panel.v1.OrgService.GetServer.
 func (c *orgServiceClient) GetServer(ctx context.Context, req *v1.GetServerRequest) (*v1.GetServerResponse, error) {
 	response, err := c.getServer.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// FindServer calls raptor.panel.v1.OrgService.FindServer.
+func (c *orgServiceClient) FindServer(ctx context.Context, req *v1.FindServerRequest) (*v1.FindServerResponse, error) {
+	response, err := c.findServer.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -1113,6 +1136,10 @@ type OrgServiceHandler interface {
 	// images and variables, for the settings page: variables can hold
 	// secrets (tokens, passwords), so nobody else gets them.
 	GetServer(context.Context, *v1.GetServerRequest) (*v1.GetServerResponse, error)
+	// FindServer finds a server in the org by its ID or short ID (the ID's
+	// last part, as in the app's URLs), and says which node it's on. Anyone
+	// who can see the server.
+	FindServer(context.Context, *v1.FindServerRequest) (*v1.FindServerResponse, error)
 	// PinJoinToken attaches the owner's passkey, signed in the browser over
 	// the token (nodecmd.OwnerPin), to a new join token: the node that links
 	// with it checks the signature and trusts that passkey from the start.
@@ -1351,6 +1378,13 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceFindServerHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceFindServerProcedure,
+		svc.FindServer,
+		connect.WithSchema(orgServiceMethods.ByName("FindServer")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServicePinJoinTokenHandler := connect.NewUnaryHandlerSimple(
 		OrgServicePinJoinTokenProcedure,
 		svc.PinJoinToken,
@@ -1520,6 +1554,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListServersHandler.ServeHTTP(w, r)
 		case OrgServiceGetServerProcedure:
 			orgServiceGetServerHandler.ServeHTTP(w, r)
+		case OrgServiceFindServerProcedure:
+			orgServiceFindServerHandler.ServeHTTP(w, r)
 		case OrgServicePinJoinTokenProcedure:
 			orgServicePinJoinTokenHandler.ServeHTTP(w, r)
 		case OrgServiceListMemberPasskeysProcedure:
@@ -1663,6 +1699,10 @@ func (UnimplementedOrgServiceHandler) ListServers(context.Context, *v1.ListServe
 
 func (UnimplementedOrgServiceHandler) GetServer(context.Context, *v1.GetServerRequest) (*v1.GetServerResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.GetServer is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) FindServer(context.Context, *v1.FindServerRequest) (*v1.FindServerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.FindServer is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) PinJoinToken(context.Context, *v1.PinJoinTokenRequest) (*v1.PinJoinTokenResponse, error) {

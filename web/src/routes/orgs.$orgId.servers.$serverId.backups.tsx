@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ServerBackups } from "@/components/server-backups";
 import { useIds } from "@/lib/ids";
 
-export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/backups")({
+export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/backups")({
   component: BackupsTab,
 });
 

@@ -137,6 +137,13 @@ service OrgService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // FindServer finds a server in the org by its ID or short ID (the ID's
+  // last part, as in the app's URLs), and says which node it's on. Anyone
+  // who can see the server.
+  rpc FindServer(FindServerRequest) returns (FindServerResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // PinJoinToken attaches the owner's passkey, signed in the browser over
   // the token (nodecmd.OwnerPin), to a new join token: the node that links
   // with it checks the signature and trusts that passkey from the start.
@@ -873,4 +880,15 @@ message GetJoinProgressResponse {
   repeated JoinStep steps = 1;
   // Set once the node has linked.
   string node_id = 2;
+}
+
+message FindServerRequest {
+  string org_id = 1;
+  // The server's full ID or short ID.
+  string server = 2;
+}
+
+message FindServerResponse {
+  string node_id = 1;
+  string server_id = 2;
 }

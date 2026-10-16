@@ -10,7 +10,7 @@ import { useIds } from "@/lib/ids";
 import { type MetricRange, useMetrics } from "@/lib/metrics";
 import { useServer } from "@/lib/org-data";
 
-export const Route = createFileRoute("/popout/$orgId/servers/$nodeId/$serverId/stats")({
+export const Route = createFileRoute("/popout/$orgId/servers/$serverId/stats")({
   component: StatsPopout,
 });
 

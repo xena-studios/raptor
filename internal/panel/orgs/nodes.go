@@ -212,6 +212,41 @@ func serverAccess(ctx context.Context, q *store.Queries, sess *auth.Session, org
 	return org, node, perms, nil
 }
 
+// FindServer implements OrgService. A short ID two servers share, or that
+// only finds servers the user can't see, finds nothing.
+func (s *Service) FindServer(ctx context.Context, req *panelv1.FindServerRequest) (*panelv1.FindServerResponse, error) {
+	ref := strings.ToLower(strings.TrimSpace(req.GetServer()))
+	if ref == "" || len(ref) > 64 {
+		return nil, errNoServer
+	}
+	out := &panelv1.FindServerResponse{}
+	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "member")
+		if err != nil {
+			return err
+		}
+		rows, err := q.FindOrgServers(ctx, store.FindOrgServersParams{OrgID: org, Ref: ref})
+		if err != nil {
+			return err
+		}
+		var found []store.FindOrgServersRow
+		for _, r := range rows {
+			if _, _, _, err := serverAccess(ctx, q, sess, req.GetOrgId(), idString(r.NodeID), r.ServerID); err == nil {
+				found = append(found, r)
+			}
+		}
+		if len(found) != 1 {
+			return errNoServer
+		}
+		out.NodeId, out.ServerId = idString(found[0].NodeID), found[0].ServerID
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // nodeOf checks the signed-in user is an admin or owner of the org the
 // node is in.
 func (s *Service) nodeOf(ctx context.Context, orgID, nodeID string) (*auth.Session, pgtype.UUID, pgtype.UUID, error) {

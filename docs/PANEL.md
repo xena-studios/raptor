@@ -266,11 +266,11 @@ The node fires schedules (see [WINGS.md](WINGS.md#scheduler)); the Panel keeps t
 
 ## URLs
 
-Orgs, nodes, and servers each have two IDs: the full one (a UUIDv7) and a **short ID**, its last part (`01a131b9-f6ae-7a48-9b53-4b5e5f2ce0f8` → `4b5e5f2ce0f8`), random in a UUIDv7 (#280). The app's URLs carry the short ones: `/orgs/d1c671ecf959/servers/3fe2ea243894/4b5e5f2ce0f8/settings`.
+Orgs, nodes, and servers each have two IDs: the full one (a UUIDv7) and a **short ID**, its last part (`01a131b9-f6ae-7a48-9b53-4b5e5f2ce0f8` → `4b5e5f2ce0f8`), random in a UUIDv7 (#280). The app's URLs carry the short ones, and a server's has only its own (not its node's): `/orgs/d1c671ecf959/servers/4b5e5f2ce0f8/settings` (#285).
 
-- The routes turn them back into full IDs before a page loads (`web/src/lib/ids.ts`): the org's from `ListOrgs`, a node's from its org's `ListNodes`, a server's from its node's `ListServers`, each looked up once and remembered. Pages read them with `useIds()` and only ever work with full IDs, so the API is unchanged.
+- The routes turn them back into full IDs before a page loads (`web/src/lib/ids.ts`): the org's from `ListOrgs`, a node's from its org's `ListNodes`, and a server's, with the node it's on, from `FindServer` (by full or short ID, in the org; a short ID two servers share, or one the user can't see, finds nothing), each looked up once and remembered. Pages read them with `useIds()` and only ever work with full IDs, so the API is unchanged.
 - Links are built from full IDs as before; the routes' `params.stringify` shortens them.
-- Old links with full IDs still work: they're redirected to the short URL.
+- Old links still work: full IDs are redirected to short ones, and `/servers/<node>/<server>/…` to `/servers/<server>/…`. Alert emails link with short IDs.
 - A node's or server's Settings tab shows both IDs (the IDs card). A node's short ID is also its hostname, `<short ID>.raptornodes.net` (#279). `raptor ps` shows servers' short IDs, and Wings takes them, or the 8 characters it used to show, anywhere it asks for a server.
 
 ## Node addresses

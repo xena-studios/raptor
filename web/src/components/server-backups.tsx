@@ -262,8 +262,8 @@ export function ServerBackups({
               onDismiss={() => setDismissed(new Set(dismissed).add(a.job_id))}
               filesLink={(folder) => (
                 <Link
-                  to="/orgs/$orgId/servers/$nodeId/$serverId/files"
-                  params={{ orgId, nodeId, serverId }}
+                  to="/orgs/$orgId/servers/$serverId/files"
+                  params={{ orgId, serverId }}
                   search={{ path: folder }}
                   className="inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline"
                 >

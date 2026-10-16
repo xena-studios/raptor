@@ -10,7 +10,7 @@ import { nodeHostname } from "@/lib/addresses";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
-export const Route = createFileRoute("/orgs/$orgId/servers/$nodeId/$serverId/network")({
+export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/network")({
   component: NetworkTab,
 });
 

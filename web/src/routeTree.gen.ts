@@ -47,6 +47,7 @@ import { Route as OrgsOrgIdNodesIndexRouteImport } from './routes/orgs.$orgId.no
 import { Route as OrgsOrgIdNodesNodeIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId'
 import { Route as OrgsOrgIdNodesNewRouteImport } from './routes/orgs.$orgId.nodes.new'
 import { Route as OrgsOrgIdServersIndexRouteImport } from './routes/orgs.$orgId.servers.index'
+import { Route as OrgsOrgIdServersServerIdRouteImport } from './routes/orgs.$orgId.servers.$serverId'
 import { Route as OrgsOrgIdServersNewRouteImport } from './routes/orgs.$orgId.servers.new'
 import { Route as OrgsOrgIdSettingsIndexRouteImport } from './routes/orgs.$orgId.settings.index'
 import { Route as OrgsOrgIdSettingsActivityRouteImport } from './routes/orgs.$orgId.settings.activity'
@@ -55,6 +56,7 @@ import { Route as OrgsOrgIdSettingsBackupsRouteImport } from './routes/orgs.$org
 import { Route as OrgsOrgIdSettingsBillingRouteImport } from './routes/orgs.$orgId.settings.billing'
 import { Route as OrgsOrgIdSettingsMembersRouteImport } from './routes/orgs.$orgId.settings.members'
 import { Route as PopoutOrgIdNodesNodeIdRouteImport } from './routes/popout.$orgId.nodes.$nodeId'
+import { Route as PopoutOrgIdServersServerIdRouteImport } from './routes/popout.$orgId.servers.$serverId'
 import { Route as OrgsOrgIdEggsEggIdIndexRouteImport } from './routes/orgs.$orgId.eggs.$eggId.index'
 import { Route as OrgsOrgIdEggsEggIdEditRouteImport } from './routes/orgs.$orgId.eggs.$eggId.edit'
 import { Route as OrgsOrgIdNodesNodeIdIndexRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.index'
@@ -64,22 +66,22 @@ import { Route as OrgsOrgIdNodesNodeIdHealthRouteImport } from './routes/orgs.$o
 import { Route as OrgsOrgIdNodesNodeIdSettingsRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.settings'
 import { Route as OrgsOrgIdNodesNodeIdSystemRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.system'
 import { Route as OrgsOrgIdServersNodeIdServerIdRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId'
+import { Route as OrgsOrgIdServersServerIdIndexRouteImport } from './routes/orgs.$orgId.servers.$serverId.index'
+import { Route as OrgsOrgIdServersServerIdAccessRouteImport } from './routes/orgs.$orgId.servers.$serverId.access'
+import { Route as OrgsOrgIdServersServerIdActivityRouteImport } from './routes/orgs.$orgId.servers.$serverId.activity'
+import { Route as OrgsOrgIdServersServerIdBackupsRouteImport } from './routes/orgs.$orgId.servers.$serverId.backups'
+import { Route as OrgsOrgIdServersServerIdFilesRouteImport } from './routes/orgs.$orgId.servers.$serverId.files'
+import { Route as OrgsOrgIdServersServerIdNetworkRouteImport } from './routes/orgs.$orgId.servers.$serverId.network'
+import { Route as OrgsOrgIdServersServerIdSchedulesRouteImport } from './routes/orgs.$orgId.servers.$serverId.schedules'
+import { Route as OrgsOrgIdServersServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$serverId.settings'
+import { Route as OrgsOrgIdServersServerIdStartupRouteImport } from './routes/orgs.$orgId.servers.$serverId.startup'
+import { Route as OrgsOrgIdServersServerIdWorkshopRouteImport } from './routes/orgs.$orgId.servers.$serverId.workshop'
 import { Route as PopoutOrgIdNodesNodeIdStatsRouteImport } from './routes/popout.$orgId.nodes.$nodeId.stats'
-import { Route as PopoutOrgIdServersNodeIdServerIdRouteImport } from './routes/popout.$orgId.servers.$nodeId.$serverId'
-import { Route as OrgsOrgIdServersNodeIdServerIdIndexRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.index'
-import { Route as OrgsOrgIdServersNodeIdServerIdAccessRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.access'
-import { Route as OrgsOrgIdServersNodeIdServerIdActivityRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.activity'
-import { Route as OrgsOrgIdServersNodeIdServerIdBackupsRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.backups'
-import { Route as OrgsOrgIdServersNodeIdServerIdFilesRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.files'
-import { Route as OrgsOrgIdServersNodeIdServerIdNetworkRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.network'
-import { Route as OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.schedules'
-import { Route as OrgsOrgIdServersNodeIdServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.settings'
-import { Route as OrgsOrgIdServersNodeIdServerIdStartupRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.startup'
-import { Route as OrgsOrgIdServersNodeIdServerIdWorkshopRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.workshop'
-import { Route as PopoutOrgIdServersNodeIdServerIdConsoleRouteImport } from './routes/popout.$orgId.servers.$nodeId.$serverId.console'
-import { Route as PopoutOrgIdServersNodeIdServerIdFilesRouteImport } from './routes/popout.$orgId.servers.$nodeId.$serverId.files'
-import { Route as PopoutOrgIdServersNodeIdServerIdStatsRouteImport } from './routes/popout.$orgId.servers.$nodeId.$serverId.stats'
-import { Route as OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.addons.$kind'
+import { Route as PopoutOrgIdServersServerIdConsoleRouteImport } from './routes/popout.$orgId.servers.$serverId.console'
+import { Route as PopoutOrgIdServersServerIdFilesRouteImport } from './routes/popout.$orgId.servers.$serverId.files'
+import { Route as PopoutOrgIdServersServerIdStatsRouteImport } from './routes/popout.$orgId.servers.$serverId.stats'
+import { Route as OrgsOrgIdServersNodeIdServerIdSplatRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.$'
+import { Route as OrgsOrgIdServersServerIdAddonsKindRouteImport } from './routes/orgs.$orgId.servers.$serverId.addons.$kind'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -272,6 +274,12 @@ const OrgsOrgIdServersIndexRoute = OrgsOrgIdServersIndexRouteImport.update({
   path: '/servers/',
   getParentRoute: () => OrgsOrgIdRoute,
 } as any)
+const OrgsOrgIdServersServerIdRoute =
+  OrgsOrgIdServersServerIdRouteImport.update({
+    id: '/servers/$serverId',
+    path: '/servers/$serverId',
+    getParentRoute: () => OrgsOrgIdRoute,
+  } as any)
 const OrgsOrgIdServersNewRoute = OrgsOrgIdServersNewRouteImport.update({
   id: '/servers/new',
   path: '/servers/new',
@@ -316,6 +324,12 @@ const PopoutOrgIdNodesNodeIdRoute = PopoutOrgIdNodesNodeIdRouteImport.update({
   path: '/nodes/$nodeId',
   getParentRoute: () => PopoutOrgIdRoute,
 } as any)
+const PopoutOrgIdServersServerIdRoute =
+  PopoutOrgIdServersServerIdRouteImport.update({
+    id: '/servers/$serverId',
+    path: '/servers/$serverId',
+    getParentRoute: () => PopoutOrgIdRoute,
+  } as any)
 const OrgsOrgIdEggsEggIdIndexRoute = OrgsOrgIdEggsEggIdIndexRouteImport.update({
   id: '/eggs/$eggId/',
   path: '/eggs/$eggId/',
@@ -368,101 +382,101 @@ const OrgsOrgIdServersNodeIdServerIdRoute =
     path: '/servers/$nodeId/$serverId',
     getParentRoute: () => OrgsOrgIdRoute,
   } as any)
+const OrgsOrgIdServersServerIdIndexRoute =
+  OrgsOrgIdServersServerIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdAccessRoute =
+  OrgsOrgIdServersServerIdAccessRouteImport.update({
+    id: '/access',
+    path: '/access',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdActivityRoute =
+  OrgsOrgIdServersServerIdActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdBackupsRoute =
+  OrgsOrgIdServersServerIdBackupsRouteImport.update({
+    id: '/backups',
+    path: '/backups',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdFilesRoute =
+  OrgsOrgIdServersServerIdFilesRouteImport.update({
+    id: '/files',
+    path: '/files',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdNetworkRoute =
+  OrgsOrgIdServersServerIdNetworkRouteImport.update({
+    id: '/network',
+    path: '/network',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdSchedulesRoute =
+  OrgsOrgIdServersServerIdSchedulesRouteImport.update({
+    id: '/schedules',
+    path: '/schedules',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdSettingsRoute =
+  OrgsOrgIdServersServerIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdStartupRoute =
+  OrgsOrgIdServersServerIdStartupRouteImport.update({
+    id: '/startup',
+    path: '/startup',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdWorkshopRoute =
+  OrgsOrgIdServersServerIdWorkshopRouteImport.update({
+    id: '/workshop',
+    path: '/workshop',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
 const PopoutOrgIdNodesNodeIdStatsRoute =
   PopoutOrgIdNodesNodeIdStatsRouteImport.update({
     id: '/stats',
     path: '/stats',
     getParentRoute: () => PopoutOrgIdNodesNodeIdRoute,
   } as any)
-const PopoutOrgIdServersNodeIdServerIdRoute =
-  PopoutOrgIdServersNodeIdServerIdRouteImport.update({
-    id: '/servers/$nodeId/$serverId',
-    path: '/servers/$nodeId/$serverId',
-    getParentRoute: () => PopoutOrgIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdIndexRoute =
-  OrgsOrgIdServersNodeIdServerIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdAccessRoute =
-  OrgsOrgIdServersNodeIdServerIdAccessRouteImport.update({
-    id: '/access',
-    path: '/access',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdActivityRoute =
-  OrgsOrgIdServersNodeIdServerIdActivityRouteImport.update({
-    id: '/activity',
-    path: '/activity',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdBackupsRoute =
-  OrgsOrgIdServersNodeIdServerIdBackupsRouteImport.update({
-    id: '/backups',
-    path: '/backups',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdFilesRoute =
-  OrgsOrgIdServersNodeIdServerIdFilesRouteImport.update({
-    id: '/files',
-    path: '/files',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdNetworkRoute =
-  OrgsOrgIdServersNodeIdServerIdNetworkRouteImport.update({
-    id: '/network',
-    path: '/network',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdSchedulesRoute =
-  OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport.update({
-    id: '/schedules',
-    path: '/schedules',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdSettingsRoute =
-  OrgsOrgIdServersNodeIdServerIdSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdStartupRoute =
-  OrgsOrgIdServersNodeIdServerIdStartupRouteImport.update({
-    id: '/startup',
-    path: '/startup',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const OrgsOrgIdServersNodeIdServerIdWorkshopRoute =
-  OrgsOrgIdServersNodeIdServerIdWorkshopRouteImport.update({
-    id: '/workshop',
-    path: '/workshop',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
-  } as any)
-const PopoutOrgIdServersNodeIdServerIdConsoleRoute =
-  PopoutOrgIdServersNodeIdServerIdConsoleRouteImport.update({
+const PopoutOrgIdServersServerIdConsoleRoute =
+  PopoutOrgIdServersServerIdConsoleRouteImport.update({
     id: '/console',
     path: '/console',
-    getParentRoute: () => PopoutOrgIdServersNodeIdServerIdRoute,
+    getParentRoute: () => PopoutOrgIdServersServerIdRoute,
   } as any)
-const PopoutOrgIdServersNodeIdServerIdFilesRoute =
-  PopoutOrgIdServersNodeIdServerIdFilesRouteImport.update({
+const PopoutOrgIdServersServerIdFilesRoute =
+  PopoutOrgIdServersServerIdFilesRouteImport.update({
     id: '/files',
     path: '/files',
-    getParentRoute: () => PopoutOrgIdServersNodeIdServerIdRoute,
+    getParentRoute: () => PopoutOrgIdServersServerIdRoute,
   } as any)
-const PopoutOrgIdServersNodeIdServerIdStatsRoute =
-  PopoutOrgIdServersNodeIdServerIdStatsRouteImport.update({
+const PopoutOrgIdServersServerIdStatsRoute =
+  PopoutOrgIdServersServerIdStatsRouteImport.update({
     id: '/stats',
     path: '/stats',
-    getParentRoute: () => PopoutOrgIdServersNodeIdServerIdRoute,
+    getParentRoute: () => PopoutOrgIdServersServerIdRoute,
   } as any)
-const OrgsOrgIdServersNodeIdServerIdAddonsKindRoute =
-  OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport.update({
+const OrgsOrgIdServersNodeIdServerIdSplatRoute =
+  OrgsOrgIdServersNodeIdServerIdSplatRouteImport.update({
+    id: '/$',
+    path: '/$',
+    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const OrgsOrgIdServersServerIdAddonsKindRoute =
+  OrgsOrgIdServersServerIdAddonsKindRouteImport.update({
     id: '/addons/$kind',
     path: '/addons/$kind',
-    getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -500,6 +514,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/eggs/new': typeof OrgsOrgIdEggsNewRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRouteWithChildren
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
+  '/orgs/$orgId/servers/$serverId': typeof OrgsOrgIdServersServerIdRouteWithChildren
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
   '/orgs/$orgId/settings/alerts': typeof OrgsOrgIdSettingsAlertsRoute
@@ -507,6 +522,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
   '/popout/$orgId/nodes/$nodeId': typeof PopoutOrgIdNodesNodeIdRouteWithChildren
+  '/popout/$orgId/servers/$serverId': typeof PopoutOrgIdServersServerIdRouteWithChildren
   '/admin/eggs/$eggId/': typeof AdminEggsEggIdIndexRoute
   '/orgs/$orgId/eggs/': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
@@ -519,24 +535,24 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/orgs/$orgId/servers/$serverId/access': typeof OrgsOrgIdServersServerIdAccessRoute
+  '/orgs/$orgId/servers/$serverId/activity': typeof OrgsOrgIdServersServerIdActivityRoute
+  '/orgs/$orgId/servers/$serverId/backups': typeof OrgsOrgIdServersServerIdBackupsRoute
+  '/orgs/$orgId/servers/$serverId/files': typeof OrgsOrgIdServersServerIdFilesRoute
+  '/orgs/$orgId/servers/$serverId/network': typeof OrgsOrgIdServersServerIdNetworkRoute
+  '/orgs/$orgId/servers/$serverId/schedules': typeof OrgsOrgIdServersServerIdSchedulesRoute
+  '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
+  '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
+  '/orgs/$orgId/servers/$serverId/workshop': typeof OrgsOrgIdServersServerIdWorkshopRoute
   '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
-  '/popout/$orgId/servers/$nodeId/$serverId': typeof PopoutOrgIdServersNodeIdServerIdRouteWithChildren
+  '/popout/$orgId/servers/$serverId/console': typeof PopoutOrgIdServersServerIdConsoleRoute
+  '/popout/$orgId/servers/$serverId/files': typeof PopoutOrgIdServersServerIdFilesRoute
+  '/popout/$orgId/servers/$serverId/stats': typeof PopoutOrgIdServersServerIdStatsRoute
   '/orgs/$orgId/eggs/$eggId/': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/backups': typeof OrgsOrgIdServersNodeIdServerIdBackupsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/network': typeof OrgsOrgIdServersNodeIdServerIdNetworkRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/console': typeof PopoutOrgIdServersNodeIdServerIdConsoleRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/files': typeof PopoutOrgIdServersNodeIdServerIdFilesRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/stats': typeof PopoutOrgIdServersNodeIdServerIdStatsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
+  '/orgs/$orgId/servers/$serverId/': typeof OrgsOrgIdServersServerIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
+  '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -575,6 +591,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
   '/popout/$orgId/nodes/$nodeId': typeof PopoutOrgIdNodesNodeIdRouteWithChildren
+  '/popout/$orgId/servers/$serverId': typeof PopoutOrgIdServersServerIdRouteWithChildren
   '/admin/eggs/$eggId': typeof AdminEggsEggIdIndexRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes': typeof OrgsOrgIdNodesIndexRoute
@@ -586,24 +603,25 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/orgs/$orgId/servers/$serverId/access': typeof OrgsOrgIdServersServerIdAccessRoute
+  '/orgs/$orgId/servers/$serverId/activity': typeof OrgsOrgIdServersServerIdActivityRoute
+  '/orgs/$orgId/servers/$serverId/backups': typeof OrgsOrgIdServersServerIdBackupsRoute
+  '/orgs/$orgId/servers/$serverId/files': typeof OrgsOrgIdServersServerIdFilesRoute
+  '/orgs/$orgId/servers/$serverId/network': typeof OrgsOrgIdServersServerIdNetworkRoute
+  '/orgs/$orgId/servers/$serverId/schedules': typeof OrgsOrgIdServersServerIdSchedulesRoute
+  '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
+  '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
+  '/orgs/$orgId/servers/$serverId/workshop': typeof OrgsOrgIdServersServerIdWorkshopRoute
   '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
-  '/popout/$orgId/servers/$nodeId/$serverId': typeof PopoutOrgIdServersNodeIdServerIdRouteWithChildren
+  '/popout/$orgId/servers/$serverId/console': typeof PopoutOrgIdServersServerIdConsoleRoute
+  '/popout/$orgId/servers/$serverId/files': typeof PopoutOrgIdServersServerIdFilesRoute
+  '/popout/$orgId/servers/$serverId/stats': typeof PopoutOrgIdServersServerIdStatsRoute
   '/orgs/$orgId/eggs/$eggId': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdIndexRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/backups': typeof OrgsOrgIdServersNodeIdServerIdBackupsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/network': typeof OrgsOrgIdServersNodeIdServerIdNetworkRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/console': typeof PopoutOrgIdServersNodeIdServerIdConsoleRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/files': typeof PopoutOrgIdServersNodeIdServerIdFilesRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/stats': typeof PopoutOrgIdServersNodeIdServerIdStatsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
+  '/orgs/$orgId/servers/$serverId': typeof OrgsOrgIdServersServerIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
+  '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -641,6 +659,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/eggs/new': typeof OrgsOrgIdEggsNewRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdRouteWithChildren
   '/orgs/$orgId/nodes/new': typeof OrgsOrgIdNodesNewRoute
+  '/orgs/$orgId/servers/$serverId': typeof OrgsOrgIdServersServerIdRouteWithChildren
   '/orgs/$orgId/servers/new': typeof OrgsOrgIdServersNewRoute
   '/orgs/$orgId/settings/activity': typeof OrgsOrgIdSettingsActivityRoute
   '/orgs/$orgId/settings/alerts': typeof OrgsOrgIdSettingsAlertsRoute
@@ -648,6 +667,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
   '/popout/$orgId/nodes/$nodeId': typeof PopoutOrgIdNodesNodeIdRouteWithChildren
+  '/popout/$orgId/servers/$serverId': typeof PopoutOrgIdServersServerIdRouteWithChildren
   '/admin/eggs/$eggId/': typeof AdminEggsEggIdIndexRoute
   '/orgs/$orgId/eggs/': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
@@ -660,24 +680,24 @@ export interface FileRoutesById {
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/orgs/$orgId/servers/$serverId/access': typeof OrgsOrgIdServersServerIdAccessRoute
+  '/orgs/$orgId/servers/$serverId/activity': typeof OrgsOrgIdServersServerIdActivityRoute
+  '/orgs/$orgId/servers/$serverId/backups': typeof OrgsOrgIdServersServerIdBackupsRoute
+  '/orgs/$orgId/servers/$serverId/files': typeof OrgsOrgIdServersServerIdFilesRoute
+  '/orgs/$orgId/servers/$serverId/network': typeof OrgsOrgIdServersServerIdNetworkRoute
+  '/orgs/$orgId/servers/$serverId/schedules': typeof OrgsOrgIdServersServerIdSchedulesRoute
+  '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
+  '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
+  '/orgs/$orgId/servers/$serverId/workshop': typeof OrgsOrgIdServersServerIdWorkshopRoute
   '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
-  '/popout/$orgId/servers/$nodeId/$serverId': typeof PopoutOrgIdServersNodeIdServerIdRouteWithChildren
+  '/popout/$orgId/servers/$serverId/console': typeof PopoutOrgIdServersServerIdConsoleRoute
+  '/popout/$orgId/servers/$serverId/files': typeof PopoutOrgIdServersServerIdFilesRoute
+  '/popout/$orgId/servers/$serverId/stats': typeof PopoutOrgIdServersServerIdStatsRoute
   '/orgs/$orgId/eggs/$eggId/': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/activity': typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/backups': typeof OrgsOrgIdServersNodeIdServerIdBackupsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/files': typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/network': typeof OrgsOrgIdServersNodeIdServerIdNetworkRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/schedules': typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/console': typeof PopoutOrgIdServersNodeIdServerIdConsoleRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/files': typeof PopoutOrgIdServersNodeIdServerIdFilesRoute
-  '/popout/$orgId/servers/$nodeId/$serverId/stats': typeof PopoutOrgIdServersNodeIdServerIdStatsRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
-  '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
+  '/orgs/$orgId/servers/$serverId/': typeof OrgsOrgIdServersServerIdIndexRoute
+  '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
+  '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -716,6 +736,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/eggs/new'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/nodes/new'
+    | '/orgs/$orgId/servers/$serverId'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
     | '/orgs/$orgId/settings/alerts'
@@ -723,6 +744,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
     | '/popout/$orgId/nodes/$nodeId'
+    | '/popout/$orgId/servers/$serverId'
     | '/admin/eggs/$eggId/'
     | '/orgs/$orgId/eggs/'
     | '/orgs/$orgId/nodes/'
@@ -735,24 +757,24 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/orgs/$orgId/servers/$serverId/access'
+    | '/orgs/$orgId/servers/$serverId/activity'
+    | '/orgs/$orgId/servers/$serverId/backups'
+    | '/orgs/$orgId/servers/$serverId/files'
+    | '/orgs/$orgId/servers/$serverId/network'
+    | '/orgs/$orgId/servers/$serverId/schedules'
+    | '/orgs/$orgId/servers/$serverId/settings'
+    | '/orgs/$orgId/servers/$serverId/startup'
+    | '/orgs/$orgId/servers/$serverId/workshop'
     | '/popout/$orgId/nodes/$nodeId/stats'
-    | '/popout/$orgId/servers/$nodeId/$serverId'
+    | '/popout/$orgId/servers/$serverId/console'
+    | '/popout/$orgId/servers/$serverId/files'
+    | '/popout/$orgId/servers/$serverId/stats'
     | '/orgs/$orgId/eggs/$eggId/'
     | '/orgs/$orgId/nodes/$nodeId/'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/access'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/backups'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/files'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/network'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
-    | '/popout/$orgId/servers/$nodeId/$serverId/console'
-    | '/popout/$orgId/servers/$nodeId/$serverId/files'
-    | '/popout/$orgId/servers/$nodeId/$serverId/stats'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
+    | '/orgs/$orgId/servers/$serverId/'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/$'
+    | '/orgs/$orgId/servers/$serverId/addons/$kind'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -791,6 +813,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
     | '/popout/$orgId/nodes/$nodeId'
+    | '/popout/$orgId/servers/$serverId'
     | '/admin/eggs/$eggId'
     | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/nodes'
@@ -802,24 +825,25 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
+    | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/orgs/$orgId/servers/$serverId/access'
+    | '/orgs/$orgId/servers/$serverId/activity'
+    | '/orgs/$orgId/servers/$serverId/backups'
+    | '/orgs/$orgId/servers/$serverId/files'
+    | '/orgs/$orgId/servers/$serverId/network'
+    | '/orgs/$orgId/servers/$serverId/schedules'
+    | '/orgs/$orgId/servers/$serverId/settings'
+    | '/orgs/$orgId/servers/$serverId/startup'
+    | '/orgs/$orgId/servers/$serverId/workshop'
     | '/popout/$orgId/nodes/$nodeId/stats'
-    | '/popout/$orgId/servers/$nodeId/$serverId'
+    | '/popout/$orgId/servers/$serverId/console'
+    | '/popout/$orgId/servers/$serverId/files'
+    | '/popout/$orgId/servers/$serverId/stats'
     | '/orgs/$orgId/eggs/$eggId'
     | '/orgs/$orgId/nodes/$nodeId'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/access'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/backups'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/files'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/network'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
-    | '/popout/$orgId/servers/$nodeId/$serverId/console'
-    | '/popout/$orgId/servers/$nodeId/$serverId/files'
-    | '/popout/$orgId/servers/$nodeId/$serverId/stats'
-    | '/orgs/$orgId/servers/$nodeId/$serverId'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
+    | '/orgs/$orgId/servers/$serverId'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/$'
+    | '/orgs/$orgId/servers/$serverId/addons/$kind'
   id:
     | '__root__'
     | '/'
@@ -856,6 +880,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/eggs/new'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/nodes/new'
+    | '/orgs/$orgId/servers/$serverId'
     | '/orgs/$orgId/servers/new'
     | '/orgs/$orgId/settings/activity'
     | '/orgs/$orgId/settings/alerts'
@@ -863,6 +888,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
     | '/popout/$orgId/nodes/$nodeId'
+    | '/popout/$orgId/servers/$serverId'
     | '/admin/eggs/$eggId/'
     | '/orgs/$orgId/eggs/'
     | '/orgs/$orgId/nodes/'
@@ -875,24 +901,24 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/orgs/$orgId/servers/$serverId/access'
+    | '/orgs/$orgId/servers/$serverId/activity'
+    | '/orgs/$orgId/servers/$serverId/backups'
+    | '/orgs/$orgId/servers/$serverId/files'
+    | '/orgs/$orgId/servers/$serverId/network'
+    | '/orgs/$orgId/servers/$serverId/schedules'
+    | '/orgs/$orgId/servers/$serverId/settings'
+    | '/orgs/$orgId/servers/$serverId/startup'
+    | '/orgs/$orgId/servers/$serverId/workshop'
     | '/popout/$orgId/nodes/$nodeId/stats'
-    | '/popout/$orgId/servers/$nodeId/$serverId'
+    | '/popout/$orgId/servers/$serverId/console'
+    | '/popout/$orgId/servers/$serverId/files'
+    | '/popout/$orgId/servers/$serverId/stats'
     | '/orgs/$orgId/eggs/$eggId/'
     | '/orgs/$orgId/nodes/$nodeId/'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/access'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/activity'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/backups'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/files'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/network'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
-    | '/popout/$orgId/servers/$nodeId/$serverId/console'
-    | '/popout/$orgId/servers/$nodeId/$serverId/files'
-    | '/popout/$orgId/servers/$nodeId/$serverId/stats'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/'
-    | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
+    | '/orgs/$orgId/servers/$serverId/'
+    | '/orgs/$orgId/servers/$nodeId/$serverId/$'
+    | '/orgs/$orgId/servers/$serverId/addons/$kind'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1175,6 +1201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersIndexRouteImport
       parentRoute: typeof OrgsOrgIdRoute
     }
+    '/orgs/$orgId/servers/$serverId': {
+      id: '/orgs/$orgId/servers/$serverId'
+      path: '/servers/$serverId'
+      fullPath: '/orgs/$orgId/servers/$serverId'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
     '/orgs/$orgId/servers/new': {
       id: '/orgs/$orgId/servers/new'
       path: '/servers/new'
@@ -1229,6 +1262,13 @@ declare module '@tanstack/react-router' {
       path: '/nodes/$nodeId'
       fullPath: '/popout/$orgId/nodes/$nodeId'
       preLoaderRoute: typeof PopoutOrgIdNodesNodeIdRouteImport
+      parentRoute: typeof PopoutOrgIdRoute
+    }
+    '/popout/$orgId/servers/$serverId': {
+      id: '/popout/$orgId/servers/$serverId'
+      path: '/servers/$serverId'
+      fullPath: '/popout/$orgId/servers/$serverId'
+      preLoaderRoute: typeof PopoutOrgIdServersServerIdRouteImport
       parentRoute: typeof PopoutOrgIdRoute
     }
     '/orgs/$orgId/eggs/$eggId/': {
@@ -1294,6 +1334,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdRouteImport
       parentRoute: typeof OrgsOrgIdRoute
     }
+    '/orgs/$orgId/servers/$serverId/': {
+      id: '/orgs/$orgId/servers/$serverId/'
+      path: '/'
+      fullPath: '/orgs/$orgId/servers/$serverId/'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdIndexRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/access': {
+      id: '/orgs/$orgId/servers/$serverId/access'
+      path: '/access'
+      fullPath: '/orgs/$orgId/servers/$serverId/access'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdAccessRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/activity': {
+      id: '/orgs/$orgId/servers/$serverId/activity'
+      path: '/activity'
+      fullPath: '/orgs/$orgId/servers/$serverId/activity'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdActivityRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/backups': {
+      id: '/orgs/$orgId/servers/$serverId/backups'
+      path: '/backups'
+      fullPath: '/orgs/$orgId/servers/$serverId/backups'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdBackupsRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/files': {
+      id: '/orgs/$orgId/servers/$serverId/files'
+      path: '/files'
+      fullPath: '/orgs/$orgId/servers/$serverId/files'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdFilesRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/network': {
+      id: '/orgs/$orgId/servers/$serverId/network'
+      path: '/network'
+      fullPath: '/orgs/$orgId/servers/$serverId/network'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdNetworkRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/schedules': {
+      id: '/orgs/$orgId/servers/$serverId/schedules'
+      path: '/schedules'
+      fullPath: '/orgs/$orgId/servers/$serverId/schedules'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdSchedulesRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/settings': {
+      id: '/orgs/$orgId/servers/$serverId/settings'
+      path: '/settings'
+      fullPath: '/orgs/$orgId/servers/$serverId/settings'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdSettingsRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/startup': {
+      id: '/orgs/$orgId/servers/$serverId/startup'
+      path: '/startup'
+      fullPath: '/orgs/$orgId/servers/$serverId/startup'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdStartupRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/workshop': {
+      id: '/orgs/$orgId/servers/$serverId/workshop'
+      path: '/workshop'
+      fullPath: '/orgs/$orgId/servers/$serverId/workshop'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdWorkshopRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
     '/popout/$orgId/nodes/$nodeId/stats': {
       id: '/popout/$orgId/nodes/$nodeId/stats'
       path: '/stats'
@@ -1301,110 +1411,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PopoutOrgIdNodesNodeIdStatsRouteImport
       parentRoute: typeof PopoutOrgIdNodesNodeIdRoute
     }
-    '/popout/$orgId/servers/$nodeId/$serverId': {
-      id: '/popout/$orgId/servers/$nodeId/$serverId'
-      path: '/servers/$nodeId/$serverId'
-      fullPath: '/popout/$orgId/servers/$nodeId/$serverId'
-      preLoaderRoute: typeof PopoutOrgIdServersNodeIdServerIdRouteImport
-      parentRoute: typeof PopoutOrgIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/'
-      path: '/'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdIndexRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/access': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/access'
-      path: '/access'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/access'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdAccessRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/activity': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/activity'
-      path: '/activity'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/activity'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdActivityRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/backups': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/backups'
-      path: '/backups'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/backups'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdBackupsRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/files': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/files'
-      path: '/files'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/files'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdFilesRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/network': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/network'
-      path: '/network'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/network'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdNetworkRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/schedules': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
-      path: '/schedules'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/schedules'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/settings': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/settings'
-      path: '/settings'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/settings'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdSettingsRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/startup': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/startup'
-      path: '/startup'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/startup'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdStartupRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/orgs/$orgId/servers/$nodeId/$serverId/workshop': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
-      path: '/workshop'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdWorkshopRouteImport
-      parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
-    }
-    '/popout/$orgId/servers/$nodeId/$serverId/console': {
-      id: '/popout/$orgId/servers/$nodeId/$serverId/console'
+    '/popout/$orgId/servers/$serverId/console': {
+      id: '/popout/$orgId/servers/$serverId/console'
       path: '/console'
-      fullPath: '/popout/$orgId/servers/$nodeId/$serverId/console'
-      preLoaderRoute: typeof PopoutOrgIdServersNodeIdServerIdConsoleRouteImport
-      parentRoute: typeof PopoutOrgIdServersNodeIdServerIdRoute
+      fullPath: '/popout/$orgId/servers/$serverId/console'
+      preLoaderRoute: typeof PopoutOrgIdServersServerIdConsoleRouteImport
+      parentRoute: typeof PopoutOrgIdServersServerIdRoute
     }
-    '/popout/$orgId/servers/$nodeId/$serverId/files': {
-      id: '/popout/$orgId/servers/$nodeId/$serverId/files'
+    '/popout/$orgId/servers/$serverId/files': {
+      id: '/popout/$orgId/servers/$serverId/files'
       path: '/files'
-      fullPath: '/popout/$orgId/servers/$nodeId/$serverId/files'
-      preLoaderRoute: typeof PopoutOrgIdServersNodeIdServerIdFilesRouteImport
-      parentRoute: typeof PopoutOrgIdServersNodeIdServerIdRoute
+      fullPath: '/popout/$orgId/servers/$serverId/files'
+      preLoaderRoute: typeof PopoutOrgIdServersServerIdFilesRouteImport
+      parentRoute: typeof PopoutOrgIdServersServerIdRoute
     }
-    '/popout/$orgId/servers/$nodeId/$serverId/stats': {
-      id: '/popout/$orgId/servers/$nodeId/$serverId/stats'
+    '/popout/$orgId/servers/$serverId/stats': {
+      id: '/popout/$orgId/servers/$serverId/stats'
       path: '/stats'
-      fullPath: '/popout/$orgId/servers/$nodeId/$serverId/stats'
-      preLoaderRoute: typeof PopoutOrgIdServersNodeIdServerIdStatsRouteImport
-      parentRoute: typeof PopoutOrgIdServersNodeIdServerIdRoute
+      fullPath: '/popout/$orgId/servers/$serverId/stats'
+      preLoaderRoute: typeof PopoutOrgIdServersServerIdStatsRouteImport
+      parentRoute: typeof PopoutOrgIdServersServerIdRoute
     }
-    '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': {
-      id: '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
-      path: '/addons/$kind'
-      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
-      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport
+    '/orgs/$orgId/servers/$nodeId/$serverId/$': {
+      id: '/orgs/$orgId/servers/$nodeId/$serverId/$'
+      path: '/$'
+      fullPath: '/orgs/$orgId/servers/$nodeId/$serverId/$'
+      preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdSplatRouteImport
       parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
+    }
+    '/orgs/$orgId/servers/$serverId/addons/$kind': {
+      id: '/orgs/$orgId/servers/$serverId/addons/$kind'
+      path: '/addons/$kind'
+      fullPath: '/orgs/$orgId/servers/$serverId/addons/$kind'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdAddonsKindRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
     }
   }
 }
@@ -1465,36 +1505,33 @@ const PopoutOrgIdNodesNodeIdRouteWithChildren =
     PopoutOrgIdNodesNodeIdRouteChildren,
   )
 
-interface PopoutOrgIdServersNodeIdServerIdRouteChildren {
-  PopoutOrgIdServersNodeIdServerIdConsoleRoute: typeof PopoutOrgIdServersNodeIdServerIdConsoleRoute
-  PopoutOrgIdServersNodeIdServerIdFilesRoute: typeof PopoutOrgIdServersNodeIdServerIdFilesRoute
-  PopoutOrgIdServersNodeIdServerIdStatsRoute: typeof PopoutOrgIdServersNodeIdServerIdStatsRoute
+interface PopoutOrgIdServersServerIdRouteChildren {
+  PopoutOrgIdServersServerIdConsoleRoute: typeof PopoutOrgIdServersServerIdConsoleRoute
+  PopoutOrgIdServersServerIdFilesRoute: typeof PopoutOrgIdServersServerIdFilesRoute
+  PopoutOrgIdServersServerIdStatsRoute: typeof PopoutOrgIdServersServerIdStatsRoute
 }
 
-const PopoutOrgIdServersNodeIdServerIdRouteChildren: PopoutOrgIdServersNodeIdServerIdRouteChildren =
+const PopoutOrgIdServersServerIdRouteChildren: PopoutOrgIdServersServerIdRouteChildren =
   {
-    PopoutOrgIdServersNodeIdServerIdConsoleRoute:
-      PopoutOrgIdServersNodeIdServerIdConsoleRoute,
-    PopoutOrgIdServersNodeIdServerIdFilesRoute:
-      PopoutOrgIdServersNodeIdServerIdFilesRoute,
-    PopoutOrgIdServersNodeIdServerIdStatsRoute:
-      PopoutOrgIdServersNodeIdServerIdStatsRoute,
+    PopoutOrgIdServersServerIdConsoleRoute:
+      PopoutOrgIdServersServerIdConsoleRoute,
+    PopoutOrgIdServersServerIdFilesRoute: PopoutOrgIdServersServerIdFilesRoute,
+    PopoutOrgIdServersServerIdStatsRoute: PopoutOrgIdServersServerIdStatsRoute,
   }
 
-const PopoutOrgIdServersNodeIdServerIdRouteWithChildren =
-  PopoutOrgIdServersNodeIdServerIdRoute._addFileChildren(
-    PopoutOrgIdServersNodeIdServerIdRouteChildren,
+const PopoutOrgIdServersServerIdRouteWithChildren =
+  PopoutOrgIdServersServerIdRoute._addFileChildren(
+    PopoutOrgIdServersServerIdRouteChildren,
   )
 
 interface PopoutOrgIdRouteChildren {
   PopoutOrgIdNodesNodeIdRoute: typeof PopoutOrgIdNodesNodeIdRouteWithChildren
-  PopoutOrgIdServersNodeIdServerIdRoute: typeof PopoutOrgIdServersNodeIdServerIdRouteWithChildren
+  PopoutOrgIdServersServerIdRoute: typeof PopoutOrgIdServersServerIdRouteWithChildren
 }
 
 const PopoutOrgIdRouteChildren: PopoutOrgIdRouteChildren = {
   PopoutOrgIdNodesNodeIdRoute: PopoutOrgIdNodesNodeIdRouteWithChildren,
-  PopoutOrgIdServersNodeIdServerIdRoute:
-    PopoutOrgIdServersNodeIdServerIdRouteWithChildren,
+  PopoutOrgIdServersServerIdRoute: PopoutOrgIdServersServerIdRouteWithChildren,
 }
 
 const PopoutOrgIdRouteWithChildren = PopoutOrgIdRoute._addFileChildren(
@@ -1570,44 +1607,53 @@ const OrgsOrgIdNodesNodeIdRouteChildren: OrgsOrgIdNodesNodeIdRouteChildren = {
 const OrgsOrgIdNodesNodeIdRouteWithChildren =
   OrgsOrgIdNodesNodeIdRoute._addFileChildren(OrgsOrgIdNodesNodeIdRouteChildren)
 
+interface OrgsOrgIdServersServerIdRouteChildren {
+  OrgsOrgIdServersServerIdAccessRoute: typeof OrgsOrgIdServersServerIdAccessRoute
+  OrgsOrgIdServersServerIdActivityRoute: typeof OrgsOrgIdServersServerIdActivityRoute
+  OrgsOrgIdServersServerIdBackupsRoute: typeof OrgsOrgIdServersServerIdBackupsRoute
+  OrgsOrgIdServersServerIdFilesRoute: typeof OrgsOrgIdServersServerIdFilesRoute
+  OrgsOrgIdServersServerIdNetworkRoute: typeof OrgsOrgIdServersServerIdNetworkRoute
+  OrgsOrgIdServersServerIdSchedulesRoute: typeof OrgsOrgIdServersServerIdSchedulesRoute
+  OrgsOrgIdServersServerIdSettingsRoute: typeof OrgsOrgIdServersServerIdSettingsRoute
+  OrgsOrgIdServersServerIdStartupRoute: typeof OrgsOrgIdServersServerIdStartupRoute
+  OrgsOrgIdServersServerIdWorkshopRoute: typeof OrgsOrgIdServersServerIdWorkshopRoute
+  OrgsOrgIdServersServerIdIndexRoute: typeof OrgsOrgIdServersServerIdIndexRoute
+  OrgsOrgIdServersServerIdAddonsKindRoute: typeof OrgsOrgIdServersServerIdAddonsKindRoute
+}
+
+const OrgsOrgIdServersServerIdRouteChildren: OrgsOrgIdServersServerIdRouteChildren =
+  {
+    OrgsOrgIdServersServerIdAccessRoute: OrgsOrgIdServersServerIdAccessRoute,
+    OrgsOrgIdServersServerIdActivityRoute:
+      OrgsOrgIdServersServerIdActivityRoute,
+    OrgsOrgIdServersServerIdBackupsRoute: OrgsOrgIdServersServerIdBackupsRoute,
+    OrgsOrgIdServersServerIdFilesRoute: OrgsOrgIdServersServerIdFilesRoute,
+    OrgsOrgIdServersServerIdNetworkRoute: OrgsOrgIdServersServerIdNetworkRoute,
+    OrgsOrgIdServersServerIdSchedulesRoute:
+      OrgsOrgIdServersServerIdSchedulesRoute,
+    OrgsOrgIdServersServerIdSettingsRoute:
+      OrgsOrgIdServersServerIdSettingsRoute,
+    OrgsOrgIdServersServerIdStartupRoute: OrgsOrgIdServersServerIdStartupRoute,
+    OrgsOrgIdServersServerIdWorkshopRoute:
+      OrgsOrgIdServersServerIdWorkshopRoute,
+    OrgsOrgIdServersServerIdIndexRoute: OrgsOrgIdServersServerIdIndexRoute,
+    OrgsOrgIdServersServerIdAddonsKindRoute:
+      OrgsOrgIdServersServerIdAddonsKindRoute,
+  }
+
+const OrgsOrgIdServersServerIdRouteWithChildren =
+  OrgsOrgIdServersServerIdRoute._addFileChildren(
+    OrgsOrgIdServersServerIdRouteChildren,
+  )
+
 interface OrgsOrgIdServersNodeIdServerIdRouteChildren {
-  OrgsOrgIdServersNodeIdServerIdAccessRoute: typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
-  OrgsOrgIdServersNodeIdServerIdActivityRoute: typeof OrgsOrgIdServersNodeIdServerIdActivityRoute
-  OrgsOrgIdServersNodeIdServerIdBackupsRoute: typeof OrgsOrgIdServersNodeIdServerIdBackupsRoute
-  OrgsOrgIdServersNodeIdServerIdFilesRoute: typeof OrgsOrgIdServersNodeIdServerIdFilesRoute
-  OrgsOrgIdServersNodeIdServerIdNetworkRoute: typeof OrgsOrgIdServersNodeIdServerIdNetworkRoute
-  OrgsOrgIdServersNodeIdServerIdSchedulesRoute: typeof OrgsOrgIdServersNodeIdServerIdSchedulesRoute
-  OrgsOrgIdServersNodeIdServerIdSettingsRoute: typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
-  OrgsOrgIdServersNodeIdServerIdStartupRoute: typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
-  OrgsOrgIdServersNodeIdServerIdWorkshopRoute: typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
-  OrgsOrgIdServersNodeIdServerIdIndexRoute: typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
-  OrgsOrgIdServersNodeIdServerIdAddonsKindRoute: typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
+  OrgsOrgIdServersNodeIdServerIdSplatRoute: typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
 }
 
 const OrgsOrgIdServersNodeIdServerIdRouteChildren: OrgsOrgIdServersNodeIdServerIdRouteChildren =
   {
-    OrgsOrgIdServersNodeIdServerIdAccessRoute:
-      OrgsOrgIdServersNodeIdServerIdAccessRoute,
-    OrgsOrgIdServersNodeIdServerIdActivityRoute:
-      OrgsOrgIdServersNodeIdServerIdActivityRoute,
-    OrgsOrgIdServersNodeIdServerIdBackupsRoute:
-      OrgsOrgIdServersNodeIdServerIdBackupsRoute,
-    OrgsOrgIdServersNodeIdServerIdFilesRoute:
-      OrgsOrgIdServersNodeIdServerIdFilesRoute,
-    OrgsOrgIdServersNodeIdServerIdNetworkRoute:
-      OrgsOrgIdServersNodeIdServerIdNetworkRoute,
-    OrgsOrgIdServersNodeIdServerIdSchedulesRoute:
-      OrgsOrgIdServersNodeIdServerIdSchedulesRoute,
-    OrgsOrgIdServersNodeIdServerIdSettingsRoute:
-      OrgsOrgIdServersNodeIdServerIdSettingsRoute,
-    OrgsOrgIdServersNodeIdServerIdStartupRoute:
-      OrgsOrgIdServersNodeIdServerIdStartupRoute,
-    OrgsOrgIdServersNodeIdServerIdWorkshopRoute:
-      OrgsOrgIdServersNodeIdServerIdWorkshopRoute,
-    OrgsOrgIdServersNodeIdServerIdIndexRoute:
-      OrgsOrgIdServersNodeIdServerIdIndexRoute,
-    OrgsOrgIdServersNodeIdServerIdAddonsKindRoute:
-      OrgsOrgIdServersNodeIdServerIdAddonsKindRoute,
+    OrgsOrgIdServersNodeIdServerIdSplatRoute:
+      OrgsOrgIdServersNodeIdServerIdSplatRoute,
   }
 
 const OrgsOrgIdServersNodeIdServerIdRouteWithChildren =
@@ -1621,6 +1667,7 @@ interface OrgsOrgIdRouteChildren {
   OrgsOrgIdEggsNewRoute: typeof OrgsOrgIdEggsNewRoute
   OrgsOrgIdNodesNodeIdRoute: typeof OrgsOrgIdNodesNodeIdRouteWithChildren
   OrgsOrgIdNodesNewRoute: typeof OrgsOrgIdNodesNewRoute
+  OrgsOrgIdServersServerIdRoute: typeof OrgsOrgIdServersServerIdRouteWithChildren
   OrgsOrgIdServersNewRoute: typeof OrgsOrgIdServersNewRoute
   OrgsOrgIdEggsIndexRoute: typeof OrgsOrgIdEggsIndexRoute
   OrgsOrgIdNodesIndexRoute: typeof OrgsOrgIdNodesIndexRoute
@@ -1636,6 +1683,7 @@ const OrgsOrgIdRouteChildren: OrgsOrgIdRouteChildren = {
   OrgsOrgIdEggsNewRoute: OrgsOrgIdEggsNewRoute,
   OrgsOrgIdNodesNodeIdRoute: OrgsOrgIdNodesNodeIdRouteWithChildren,
   OrgsOrgIdNodesNewRoute: OrgsOrgIdNodesNewRoute,
+  OrgsOrgIdServersServerIdRoute: OrgsOrgIdServersServerIdRouteWithChildren,
   OrgsOrgIdServersNewRoute: OrgsOrgIdServersNewRoute,
   OrgsOrgIdEggsIndexRoute: OrgsOrgIdEggsIndexRoute,
   OrgsOrgIdNodesIndexRoute: OrgsOrgIdNodesIndexRoute,
