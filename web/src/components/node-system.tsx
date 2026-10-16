@@ -1,5 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, Plus, Power, ShieldAlert, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Loader2,
+  Plus,
+  Power,
+  ShieldAlert,
+  Trash2,
+} from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +53,22 @@ type SystemState = {
   open: { protocol: string; port: number; why: string }[] | null;
   ssh_ports: number[];
   ufw: boolean;
+  ruleset?: Listed[];
+  ruleset_truncated?: boolean;
+  ruleset_error?: string;
+};
+
+// Listed is one rule on the machine, whoever's (Wings' firewall.Listed).
+type Listed = {
+  table: string;
+  chain: string;
+  hook?: string;
+  rule: string;
+  policy?: boolean;
+  owner: "raptor" | "yours" | "docker" | "ufw" | "fail2ban" | "other";
+  needed: boolean;
+  why: string;
+  index?: number;
 };
 
 const select =
@@ -84,6 +108,7 @@ export function NodeSystem({ orgId, node, userId }: { orgId: string; node: Node;
         s={s}
       />
       <Firewall key={JSON.stringify(s.firewall)} nodeId={nodeId} userId={userId} s={s} />
+      <Ruleset s={s} />
       <Reboot nodeId={nodeId} userId={userId} />
     </div>
   );
@@ -482,6 +507,128 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
           )}
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+const owners: { owner: Listed["owner"]; title: string; about: string }[] = [
+  {
+    owner: "raptor",
+    title: "Raptor's",
+    about:
+      "Keep install containers off your network and the cloud metadata service, and send connections through your rules. Raptor puts them back if they're removed.",
+  },
+  { owner: "yours", title: "Yours", about: "The rules above, as they're loaded." },
+  {
+    owner: "docker",
+    title: "Docker's",
+    about:
+      "Servers run in Docker containers: these send players to them and let them reach the internet. Docker keeps them up to date.",
+  },
+  { owner: "ufw", title: "ufw's", about: "ufw is on. Manage these with the ufw command." },
+  {
+    owner: "fail2ban",
+    title: "fail2ban's",
+    about: "Blocks for addresses that keep failing to log in.",
+  },
+  {
+    owner: "other",
+    title: "Something else's",
+    about:
+      "Not from Raptor or Docker: your provider's image, a script, or another program. Raptor doesn't change them.",
+  },
+];
+
+// Ruleset is every rule on the machine (nft list ruleset), grouped by whose
+// it is, with what each does and which ones Raptor needs.
+function Ruleset({ s }: { s: SystemState }) {
+  const [open, setOpen] = useState<string[]>(["other"]);
+  const list = s.ruleset ?? [];
+  if (!s.ruleset && !s.ruleset_error) return null; // an older Wings
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Every rule on the machine</CardTitle>
+        <CardDescription>
+          Everything in the machine's firewall (nftables), whoever put it there. Rules marked{" "}
+          <Badge variant="outline">Needed</Badge> keep servers working: leave them alone.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {s.ruleset_error && <p className="text-sm text-destructive">{s.ruleset_error}</p>}
+        {owners.map((g) => {
+          const rules = list.filter((l) => l.owner === g.owner);
+          if (rules.length === 0) return null;
+          const shown = open.includes(g.owner);
+          return (
+            <div key={g.owner} className="rounded-lg border">
+              <button
+                type="button"
+                className="flex w-full items-start gap-3 p-3 text-left"
+                aria-expanded={shown}
+                onClick={() =>
+                  setOpen(shown ? open.filter((o) => o !== g.owner) : [...open, g.owner])
+                }
+              >
+                <ChevronRight
+                  className={cn(
+                    "mt-0.5 size-4 shrink-0 transition-transform",
+                    shown && "rotate-90",
+                  )}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    {g.title}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {rules.length} {rules.length === 1 ? "rule" : "rules"}
+                    </span>
+                    {rules.some((r) => r.needed) && <Badge variant="outline">Needed</Badge>}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">{g.about}</span>
+                </span>
+              </button>
+              {shown && (
+                <ul className="divide-y border-t">
+                  {rules.map((r, i) => (
+                    <li
+                      // biome-ignore lint/suspicious/noArrayIndexKey: rules have no IDs; their order is the rule set's
+                      key={i}
+                      className="flex flex-col gap-1 px-3 py-2"
+                    >
+                      <code
+                        className={cn(
+                          "text-xs break-all",
+                          r.policy && "font-semibold text-destructive",
+                        )}
+                      >
+                        {r.rule}
+                      </code>
+                      <span className="text-xs text-muted-foreground">{r.why}</span>
+                      <span className="font-mono text-[11px] text-muted-foreground/70">
+                        {r.table} › {r.chain}
+                        {r.hook ? ` (${r.hook})` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+        {list.length === 0 && !s.ruleset_error && (
+          <p className="text-sm text-muted-foreground">The machine has no firewall rules.</p>
+        )}
+        {s.ruleset_truncated && (
+          <p className="text-xs text-muted-foreground">
+            Only the first {list.length} rules are shown. Run <code>sudo nft list ruleset</code> on
+            the machine for all of them.
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Rules loaded with the older iptables-legacy tools aren't shown: run{" "}
+          <code>sudo iptables-legacy -S</code> to see them.
+        </p>
       </CardContent>
     </Card>
   );

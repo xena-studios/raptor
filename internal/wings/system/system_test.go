@@ -35,6 +35,8 @@ func (f *fakeHost) run(_ context.Context, name string, args ...string) ([]byte, 
 		f.tz = args[1]
 	case name == "timedatectl" && args[0] == "set-ntp":
 		f.ntp = args[1] == "true"
+	case call == "nft list ruleset":
+		return []byte("table ip nat {\n\tchain DOCKER {\n\t\tiifname \"raptor0\" counter packets 0 bytes 0 return\n\t}\n}\n"), nil
 	case call == "systemctl reboot":
 	default:
 		return nil, errors.New("unexpected " + call)
@@ -89,6 +91,9 @@ func TestHostnameAndTime(t *testing.T) {
 	st, err := m.State(ctx)
 	if err != nil || st.Hostname != "other" || st.Timezone != "Europe/Berlin" || st.NTP || len(st.SSHPorts) != 1 || st.SSHPorts[0] != 2200 {
 		t.Errorf("state: %+v, %v", st, err)
+	}
+	if len(st.Ruleset) != 1 || st.Ruleset[0].Owner != firewall.OwnerDocker || st.RulesetError != "" {
+		t.Errorf("rule set: %+v %q", st.Ruleset, st.RulesetError)
 	}
 }
 

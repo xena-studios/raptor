@@ -59,12 +59,44 @@ type Rules struct {
 	Open []OpenPort
 }
 
+// Why each of Raptor's rules is there. Each rule carries its reason as an
+// nftables comment, so the System tab can explain the machine's whole rule
+// set (List). They're fixed text: nothing an owner typed goes into the rule
+// set.
+const (
+	whyMetadata    = "Servers and installs can't reach the cloud metadata service, which hands out the machine's credentials"
+	whyInstallJump = "Install containers' traffic goes through install_out"
+	whyServersJump = "Connections to servers go through your rules (servers_in)"
+	whyDNS         = "Install containers may ask the machine's DNS resolvers, even on a private network"
+	whyInstallOK   = "Private ranges you let install containers reach"
+	whyPrivate     = "Install containers can't reach the machine's own or private networks, only the internet"
+	whyInstallBack = "Replies to install containers' own connections get back"
+	whyInstallHost = "Install containers can't connect to the machine itself"
+	whyHostJump    = "Connections to the machine go through your rules (host_in)"
+	whyLocal       = "The machine's own and its containers' networks aren't the outside world: not filtered"
+	whyContainers  = "Docker's container networks aren't the outside world: not filtered"
+	whyEstablished = "Replies to connections already allowed get back"
+	whyICMP        = "Ping and the network's control messages (IPv6 needs them to work)"
+	whyDHCP        = "Answers from the network's DHCP server, so the machine keeps its address"
+	whyOpen        = "Always open while incoming connections are blocked: "
+	whyDropRest    = "Blocking incoming connections: anything not allowed above is dropped"
+	whyServerNets  = "Traffic from servers' own networks isn't filtered here"
+	whyHostMeta    = "Servers on the host's network can't reach the cloud metadata service either"
+	// yoursPrefix marks one of the owner's rules ("yours 3" is the third),
+	// whose note is shown from the saved rules.
+	yoursPrefix = "yours "
+)
+
 // Render returns the nftables script for the rules. Loading it replaces the
 // table atomically: the empty "table" line creates it if it's missing so the
 // "delete" can't fail.
 func (r Rules) Render() string {
 	var b strings.Builder
 	w := func(format string, a ...any) { fmt.Fprintf(&b, format+"\n", a...) }
+	// rule writes a rule with why it's there.
+	rule := func(why, format string, a ...any) {
+		fmt.Fprintf(&b, "\t\t"+format+" comment \"%s\"\n", append(a, comment(why))...)
+	}
 
 	v4, v6 := split(metadata)
 	w("table inet %s", Table)
@@ -73,31 +105,31 @@ func (r Rules) Render() string {
 
 	w("\tchain forward {")
 	w("\t\ttype filter hook forward priority filter - 1; policy accept;")
-	w("\t\tiifname { %q, %q } ip daddr { %s } drop", r.ServerBridge, r.InstallBridge, join(v4))
-	w("\t\tiifname { %q, %q } ip6 daddr { %s } drop", r.ServerBridge, r.InstallBridge, join(v6))
-	w("\t\tiifname %q jump install_out", r.InstallBridge)
+	rule(whyMetadata, "iifname { %q, %q } ip daddr { %s } drop", r.ServerBridge, r.InstallBridge, join(v4))
+	rule(whyMetadata, "iifname { %q, %q } ip6 daddr { %s } drop", r.ServerBridge, r.InstallBridge, join(v6))
+	rule(whyInstallJump, "iifname %q jump install_out", r.InstallBridge)
 	if r.Host != nil {
-		w("\t\toifname %q jump servers_in", r.ServerBridge)
+		rule(whyServersJump, "oifname %q jump servers_in", r.ServerBridge)
 	}
 	w("\t}")
 
 	w("\tchain install_out {")
 	dns4, dns6 := split(r.DNS)
 	if len(dns4) > 0 {
-		w("\t\tip daddr { %s } meta l4proto { tcp, udp } th dport 53 accept", join(dns4))
+		rule(whyDNS, "ip daddr { %s } meta l4proto { tcp, udp } th dport 53 accept", join(dns4))
 	}
 	if len(dns6) > 0 {
-		w("\t\tip6 daddr { %s } meta l4proto { tcp, udp } th dport 53 accept", join(dns6))
+		rule(whyDNS, "ip6 daddr { %s } meta l4proto { tcp, udp } th dport 53 accept", join(dns6))
 	}
 	allow4, allow6 := splitPrefixes(r.InstallAllow)
 	if len(allow4) > 0 {
-		w("\t\tip daddr { %s } accept", join(allow4))
+		rule(whyInstallOK, "ip daddr { %s } accept", join(allow4))
 	}
 	if len(allow6) > 0 {
-		w("\t\tip6 daddr { %s } accept", join(allow6))
+		rule(whyInstallOK, "ip6 daddr { %s } accept", join(allow6))
 	}
-	w("\t\tip daddr { %s } drop", strings.Join(blockedV4, ", "))
-	w("\t\tip6 daddr { %s } drop", strings.Join(blockedV6, ", "))
+	rule(whyPrivate, "ip daddr { %s } drop", strings.Join(blockedV4, ", "))
+	rule(whyPrivate, "ip6 daddr { %s } drop", strings.Join(blockedV6, ", "))
 	w("\t}")
 
 	// Traffic from install containers to the host itself never reaches the
@@ -105,21 +137,21 @@ func (r Rules) Render() string {
 	// through Docker's resolver inside the container).
 	w("\tchain input {")
 	w("\t\ttype filter hook input priority filter - 1; policy accept;")
-	w("\t\tiifname %q ct state established,related accept", r.InstallBridge)
-	w("\t\tiifname %q drop", r.InstallBridge)
+	rule(whyInstallBack, "iifname %q ct state established,related accept", r.InstallBridge)
+	rule(whyInstallHost, "iifname %q drop", r.InstallBridge)
 	if r.Host != nil {
-		w("\t\tjump host_in")
+		rule(whyHostJump, "jump host_in")
 	}
 	w("\t}")
 	if r.Host != nil {
-		r.renderHost(w)
+		r.renderHost(w, rule)
 	}
 
 	if r.Cgroup != "" {
 		w("\tchain output {")
 		w("\t\ttype filter hook output priority filter - 1; policy accept;")
-		w("\t\tsocket cgroupv2 level %d %q ip daddr { %s } drop", strings.Count(r.Cgroup, "/")+1, r.Cgroup, join(v4))
-		w("\t\tsocket cgroupv2 level %d %q ip6 daddr { %s } drop", strings.Count(r.Cgroup, "/")+1, r.Cgroup, join(v6))
+		rule(whyHostMeta, "socket cgroupv2 level %d %q ip daddr { %s } drop", strings.Count(r.Cgroup, "/")+1, r.Cgroup, join(v4))
+		rule(whyHostMeta, "socket cgroupv2 level %d %q ip6 daddr { %s } drop", strings.Count(r.Cgroup, "/")+1, r.Cgroup, join(v6))
 		w("\t}")
 	}
 
@@ -218,3 +250,22 @@ func splitPrefixes(ps []netip.Prefix) (v4, v6 []string) {
 }
 
 func join(s []string) string { return strings.Join(s, ", ") }
+
+// maxComment is nftables' limit on a comment, less room for multi-byte
+// characters it might count differently.
+const maxComment = 120
+
+// comment makes text safe inside an nftables comment: the reasons are
+// fixed, but an open port's names a server, and nftables has no escapes
+// in quoted strings, so a quote or backslash would end it early.
+func comment(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		ok := r == ' ' || strings.ContainsRune(".,:;()'+/_-", r) ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+		if ok && b.Len() < maxComment {
+			b.WriteRune(r)
+		}
+	}
+	return strings.TrimSpace(b.String())
+}
