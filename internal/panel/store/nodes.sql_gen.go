@@ -12,6 +12,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const clearServerDisplayAddress = `-- name: ClearServerDisplayAddress :exec
+DELETE FROM server_addresses WHERE node_id = $1 AND server_id = $2
+`
+
+type ClearServerDisplayAddressParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) ClearServerDisplayAddress(ctx context.Context, arg ClearServerDisplayAddressParams) error {
+	_, err := q.db.Exec(ctx, clearServerDisplayAddress, arg.NodeID, arg.ServerID)
+	return err
+}
+
 const createJoinToken = `-- name: CreateJoinToken :one
 INSERT INTO join_tokens (org_id, token_hash, name, expires_at)
 VALUES ($1, $2, $3, $4)
@@ -155,6 +169,15 @@ DELETE FROM m_schedules WHERE node_id = $1
 
 func (q *Queries) ForgetNodeSchedules(ctx context.Context, nodeID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, forgetNodeSchedules, nodeID)
+	return err
+}
+
+const forgetNodeServerAddresses = `-- name: ForgetNodeServerAddresses :exec
+DELETE FROM server_addresses WHERE node_id = $1
+`
+
+func (q *Queries) ForgetNodeServerAddresses(ctx context.Context, nodeID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, forgetNodeServerAddresses, nodeID)
 	return err
 }
 
@@ -437,23 +460,6 @@ func (q *Queries) SetNodeDNS(ctx context.Context, arg SetNodeDNSParams) error {
 	return err
 }
 
-const setNodeDisplayAddress = `-- name: SetNodeDisplayAddress :execrows
-UPDATE nodes SET display_address = $2 WHERE id = $1 AND deleted_at IS NULL
-`
-
-type SetNodeDisplayAddressParams struct {
-	ID             pgtype.UUID
-	DisplayAddress string
-}
-
-func (q *Queries) SetNodeDisplayAddress(ctx context.Context, arg SetNodeDisplayAddressParams) (int64, error) {
-	result, err := q.db.Exec(ctx, setNodeDisplayAddress, arg.ID, arg.DisplayAddress)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const setNodeIPv4 = `-- name: SetNodeIPv4 :exec
 UPDATE nodes SET public_ipv4 = $2 WHERE id = $1
 `
@@ -500,6 +506,22 @@ func (q *Queries) SetNodeSFTP(ctx context.Context, arg SetNodeSFTPParams) error 
 		arg.SftpPort,
 		arg.SftpHostKey,
 	)
+	return err
+}
+
+const setServerDisplayAddress = `-- name: SetServerDisplayAddress :exec
+INSERT INTO server_addresses (node_id, server_id, display_address) VALUES ($1, $2, $3)
+ON CONFLICT (node_id, server_id) DO UPDATE SET display_address = excluded.display_address, updated_at = now()
+`
+
+type SetServerDisplayAddressParams struct {
+	NodeID         pgtype.UUID
+	ServerID       string
+	DisplayAddress string
+}
+
+func (q *Queries) SetServerDisplayAddress(ctx context.Context, arg SetServerDisplayAddressParams) error {
+	_, err := q.db.Exec(ctx, setServerDisplayAddress, arg.NodeID, arg.ServerID, arg.DisplayAddress)
 	return err
 }
 

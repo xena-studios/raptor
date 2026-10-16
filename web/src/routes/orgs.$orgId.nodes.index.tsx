@@ -36,9 +36,7 @@ function Nodes() {
   const [view, setView] = useState<ListView>("grid");
   const q = query.trim().toLowerCase();
   const all = nodes.data?.nodes ?? [];
-  const list = all.filter(
-    (n) => !q || n.name.toLowerCase().includes(q) || n.displayAddress.includes(q),
-  );
+  const list = all.filter((n) => !q || n.name.toLowerCase().includes(q));
   const { servers } = useOrgServers(orgId);
   const running = (nodeId: string) => {
     const on = servers.filter((s) => s.node.id === nodeId);
@@ -151,12 +149,7 @@ function machine(n: Node): string {
   );
 }
 
-// NodeAddress is what players see for the node: its shown address, or its
-// hostname, hidden.
+// NodeAddress is the node's own hostname, hidden.
 function NodeAddress({ node }: { node: Node }) {
-  return node.displayAddress ? (
-    <code className="truncate text-xs">{node.displayAddress}</code>
-  ) : (
-    <Hidden value={nodeHostname(node)} label="hostname" />
-  );
+  return <Hidden value={nodeHostname(node)} label="hostname" />;
 }

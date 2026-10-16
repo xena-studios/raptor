@@ -465,6 +465,13 @@ type ScheduleRun struct {
 	FinishedAt   pgtype.Timestamptz
 }
 
+type ServerAddress struct {
+	NodeID         pgtype.UUID
+	ServerID       string
+	DisplayAddress string
+	UpdatedAt      pgtype.Timestamptz
+}
+
 type ServerGrant struct {
 	OrgID       pgtype.UUID
 	UserID      pgtype.UUID

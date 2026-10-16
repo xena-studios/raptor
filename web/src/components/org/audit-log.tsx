@@ -280,6 +280,14 @@ export function OrgActivity({
           Server,
         ];
         break;
+      case "server.display_address":
+        [text, icon] = [
+          meta.address
+            ? `set ${serverName(str(meta.node), e.target)}'s shown address to ${str(meta.address)}`
+            : `cleared ${serverName(str(meta.node), e.target)}'s shown address`,
+          Server,
+        ];
+        break;
       case "node.remove":
         [text, icon] = [`removed ${nodeName(e.target)}`, Trash2];
         break;

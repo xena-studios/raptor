@@ -67,7 +67,7 @@ SELECT n.id, n.name, n.short_id, n.wings_version, n.last_seen_at, n.created_at,
        coalesce(n.facts->>'arch', '')::text AS arch,
        coalesce((n.facts->>'cpus')::int, 0)::int AS cpus,
        coalesce((n.facts->>'memory_bytes')::bigint, 0)::bigint AS memory_bytes,
-       n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed, n.display_address,
+       n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed,
        coalesce(host(n.public_ipv4), '')::text AS public_ipv4,
        coalesce(host(n.public_ipv6), '')::text AS public_ipv6
 FROM nodes n LEFT JOIN node_connections c ON c.node_id = n.id
@@ -75,14 +75,20 @@ WHERE n.org_id = $1 AND n.deleted_at IS NULL
 ORDER BY n.created_at;
 
 -- name: NodeServers :many
-SELECT server_id, name, state, egg_name, install_state, install_error,
-       coalesce(config->'allocations', '[]')::jsonb AS allocations
-FROM m_servers WHERE node_id = $1 ORDER BY name, server_id;
+SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
+       coalesce(s.config->'allocations', '[]')::jsonb AS allocations,
+       coalesce(a.display_address, '')::text AS display_address
+FROM m_servers s
+LEFT JOIN server_addresses a ON a.node_id = s.node_id AND a.server_id = s.server_id
+WHERE s.node_id = $1 ORDER BY s.name, s.server_id;
 
 -- name: NodeServer :one
-SELECT server_id, name, state, egg_name, install_state, install_error,
-       coalesce(config->'allocations', '[]')::jsonb AS allocations, config
-FROM m_servers WHERE node_id = $1 AND server_id = $2;
+SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
+       coalesce(s.config->'allocations', '[]')::jsonb AS allocations, s.config,
+       coalesce(a.display_address, '')::text AS display_address
+FROM m_servers s
+LEFT JOIN server_addresses a ON a.node_id = s.node_id AND a.server_id = s.server_id
+WHERE s.node_id = $1 AND s.server_id = $2;
 
 -- name: UserGrantsInOrg :many
 -- A member's server grants in an org.

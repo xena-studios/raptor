@@ -308,7 +308,7 @@ func (r *Registry) Remove(ctx context.Context, nodeID string) (bool, error) {
 		}
 		removed = true
 		for _, forget := range []func(context.Context, pgtype.UUID) error{
-			q.ForgetNodeJobs, q.ForgetNodeBackups, q.ForgetNodeSchedules, q.ForgetNodeServers, q.ForgetNodeGrants,
+			q.ForgetNodeJobs, q.ForgetNodeBackups, q.ForgetNodeSchedules, q.ForgetNodeServers, q.ForgetNodeGrants, q.ForgetNodeServerAddresses,
 		} {
 			if err := forget(ctx, pgUUID(id)); err != nil {
 				return err

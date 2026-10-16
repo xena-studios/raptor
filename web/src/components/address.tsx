@@ -60,18 +60,20 @@ export function CopyButton({ value, label = "address" }: { value: string; label?
   );
 }
 
-// ServerAddress is where players connect: the owner's shown address in the
-// clear, or the node's own hostname hidden.
+// ServerAddress is where players connect: the server's shown address in
+// the clear, or its node's hostname hidden.
 export function ServerAddress({
   node,
+  server,
   port,
   className,
 }: {
-  node: { shortId: string; displayAddress: string };
+  node: { shortId: string };
+  server: { displayAddress: string };
   port?: number;
   className?: string;
 }) {
-  const a = serverAddress(node, port);
+  const a = serverAddress(node, server, port);
   if (a.private) return <Hidden value={a.text} className={className} />;
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-0.5", className)}>

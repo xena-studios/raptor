@@ -86,7 +86,10 @@ function Servers() {
                   status={serverStatus(s, s.node.connected)}
                   subtitle={s.eggName || "—"}
                   rows={[
-                    ["Address", <ServerAddress key="a" node={s.node} port={s.ports[0]} />],
+                    [
+                      "Address",
+                      <ServerAddress key="a" node={s.node} server={s} port={s.ports[0]} />,
+                    ],
                     ["Node", s.node.name],
                   ]}
                 />
@@ -120,7 +123,7 @@ function Servers() {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <ServerAddress node={s.node} port={s.ports[0]} />
+                        <ServerAddress node={s.node} server={s} port={s.ports[0]} />
                       </TableCell>
                       <TableCell className="hidden text-muted-foreground md:table-cell">
                         {s.eggName || "—"}
