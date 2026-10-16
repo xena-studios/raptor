@@ -112,16 +112,6 @@ function NodeOverview() {
             {node && (
               <DetailList
                 rows={[
-                  ...(node.displayAddress
-                    ? [
-                        [
-                          "Shown address",
-                          <code key="d" className="text-xs">
-                            {node.displayAddress}
-                          </code>,
-                        ] as [string, ReactNode],
-                      ]
-                    : []),
                   ["Hostname", <Hidden key="h" value={nodeHostname(node)} label="hostname" />],
                   ...(node.publicIpv4
                     ? [

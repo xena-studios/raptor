@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ServerAddress } from "@/components/address";
 import { ConnectionTest } from "@/components/connection-test";
 import { DetailList } from "@/components/page";
+import { ShownAddress } from "@/components/server-address";
 import { ServerSettings } from "@/components/server-settings";
 import { SubdomainCard } from "@/components/subdomain";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +45,7 @@ function NetworkTab() {
               <DetailList
                 rows={server.ports.map((p, i) => [
                   i === 0 ? "Primary" : `Port ${i + 1}`,
-                  node ? <ServerAddress key={p} node={node} port={p} /> : "—",
+                  node ? <ServerAddress key={p} node={node} server={server} port={p} /> : "—",
                 ])}
               />
             )}
@@ -60,6 +61,15 @@ function NetworkTab() {
             admin={can(server, "*")}
             canReinstall={false}
             stopped={false}
+          />
+        )}
+        {can(server, "*") && (
+          <ShownAddress
+            key={server.displayAddress}
+            orgId={orgId}
+            nodeId={nodeId}
+            serverId={serverId}
+            current={server.displayAddress}
           />
         )}
         <SubdomainCard

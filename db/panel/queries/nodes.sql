@@ -80,9 +80,6 @@ DELETE FROM m_servers WHERE node_id = $1;
 -- name: ForgetNodeGrants :exec
 DELETE FROM server_grants WHERE node_id = $1;
 
--- name: SetNodeDisplayAddress :execrows
-UPDATE nodes SET display_address = $2 WHERE id = $1 AND deleted_at IS NULL;
-
 -- name: RenameNode :execrows
 UPDATE nodes SET name = $2 WHERE id = $1 AND deleted_at IS NULL;
 
@@ -97,3 +94,13 @@ WHERE token_hash = @token_hash AND created_at > now() - interval '3 hours';
 
 -- name: GetJoinProgress :one
 SELECT progress, node_id FROM join_tokens WHERE token_hash = @token_hash AND org_id = @org_id;
+
+-- name: SetServerDisplayAddress :exec
+INSERT INTO server_addresses (node_id, server_id, display_address) VALUES ($1, $2, $3)
+ON CONFLICT (node_id, server_id) DO UPDATE SET display_address = excluded.display_address, updated_at = now();
+
+-- name: ClearServerDisplayAddress :exec
+DELETE FROM server_addresses WHERE node_id = $1 AND server_id = $2;
+
+-- name: ForgetNodeServerAddresses :exec
+DELETE FROM server_addresses WHERE node_id = $1;

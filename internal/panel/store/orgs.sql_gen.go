@@ -188,9 +188,12 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID pgtype.UUID) ([]pgtyp
 }
 
 const nodeServer = `-- name: NodeServer :one
-SELECT server_id, name, state, egg_name, install_state, install_error,
-       coalesce(config->'allocations', '[]')::jsonb AS allocations, config
-FROM m_servers WHERE node_id = $1 AND server_id = $2
+SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
+       coalesce(s.config->'allocations', '[]')::jsonb AS allocations, s.config,
+       coalesce(a.display_address, '')::text AS display_address
+FROM m_servers s
+LEFT JOIN server_addresses a ON a.node_id = s.node_id AND a.server_id = s.server_id
+WHERE s.node_id = $1 AND s.server_id = $2
 `
 
 type NodeServerParams struct {
@@ -199,14 +202,15 @@ type NodeServerParams struct {
 }
 
 type NodeServerRow struct {
-	ServerID     string
-	Name         string
-	State        string
-	EggName      string
-	InstallState string
-	InstallError string
-	Allocations  []byte
-	Config       []byte
+	ServerID       string
+	Name           string
+	State          string
+	EggName        string
+	InstallState   string
+	InstallError   string
+	Allocations    []byte
+	Config         []byte
+	DisplayAddress string
 }
 
 func (q *Queries) NodeServer(ctx context.Context, arg NodeServerParams) (NodeServerRow, error) {
@@ -221,24 +225,29 @@ func (q *Queries) NodeServer(ctx context.Context, arg NodeServerParams) (NodeSer
 		&i.InstallError,
 		&i.Allocations,
 		&i.Config,
+		&i.DisplayAddress,
 	)
 	return i, err
 }
 
 const nodeServers = `-- name: NodeServers :many
-SELECT server_id, name, state, egg_name, install_state, install_error,
-       coalesce(config->'allocations', '[]')::jsonb AS allocations
-FROM m_servers WHERE node_id = $1 ORDER BY name, server_id
+SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
+       coalesce(s.config->'allocations', '[]')::jsonb AS allocations,
+       coalesce(a.display_address, '')::text AS display_address
+FROM m_servers s
+LEFT JOIN server_addresses a ON a.node_id = s.node_id AND a.server_id = s.server_id
+WHERE s.node_id = $1 ORDER BY s.name, s.server_id
 `
 
 type NodeServersRow struct {
-	ServerID     string
-	Name         string
-	State        string
-	EggName      string
-	InstallState string
-	InstallError string
-	Allocations  []byte
+	ServerID       string
+	Name           string
+	State          string
+	EggName        string
+	InstallState   string
+	InstallError   string
+	Allocations    []byte
+	DisplayAddress string
 }
 
 func (q *Queries) NodeServers(ctx context.Context, nodeID pgtype.UUID) ([]NodeServersRow, error) {
@@ -258,6 +267,7 @@ func (q *Queries) NodeServers(ctx context.Context, nodeID pgtype.UUID) ([]NodeSe
 			&i.InstallState,
 			&i.InstallError,
 			&i.Allocations,
+			&i.DisplayAddress,
 		); err != nil {
 			return nil, err
 		}
@@ -337,7 +347,7 @@ SELECT n.id, n.name, n.short_id, n.wings_version, n.last_seen_at, n.created_at,
        coalesce(n.facts->>'arch', '')::text AS arch,
        coalesce((n.facts->>'cpus')::int, 0)::int AS cpus,
        coalesce((n.facts->>'memory_bytes')::bigint, 0)::bigint AS memory_bytes,
-       n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed, n.display_address,
+       n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed,
        coalesce(host(n.public_ipv4), '')::text AS public_ipv4,
        coalesce(host(n.public_ipv6), '')::text AS public_ipv6
 FROM nodes n LEFT JOIN node_connections c ON c.node_id = n.id
@@ -346,23 +356,22 @@ ORDER BY n.created_at
 `
 
 type OrgNodesRow struct {
-	ID             pgtype.UUID
-	Name           string
-	ShortID        string
-	WingsVersion   string
-	LastSeenAt     pgtype.Timestamptz
-	CreatedAt      pgtype.Timestamptz
-	Connected      bool
-	Arch           string
-	Cpus           int32
-	MemoryBytes    int64
-	SftpEnabled    bool
-	SftpPort       int32
-	SftpHostKey    string
-	SftpAllowed    bool
-	DisplayAddress string
-	PublicIpv4     string
-	PublicIpv6     string
+	ID           pgtype.UUID
+	Name         string
+	ShortID      string
+	WingsVersion string
+	LastSeenAt   pgtype.Timestamptz
+	CreatedAt    pgtype.Timestamptz
+	Connected    bool
+	Arch         string
+	Cpus         int32
+	MemoryBytes  int64
+	SftpEnabled  bool
+	SftpPort     int32
+	SftpHostKey  string
+	SftpAllowed  bool
+	PublicIpv4   string
+	PublicIpv6   string
 }
 
 func (q *Queries) OrgNodes(ctx context.Context, orgID pgtype.UUID) ([]OrgNodesRow, error) {
@@ -389,7 +398,6 @@ func (q *Queries) OrgNodes(ctx context.Context, orgID pgtype.UUID) ([]OrgNodesRo
 			&i.SftpPort,
 			&i.SftpHostKey,
 			&i.SftpAllowed,
-			&i.DisplayAddress,
 			&i.PublicIpv4,
 			&i.PublicIpv6,
 		); err != nil {

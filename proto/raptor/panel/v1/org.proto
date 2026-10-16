@@ -94,10 +94,16 @@ service OrgService {
   // RenameNode renames a node. Admins and owners.
   rpc RenameNode(RenameNodeRequest) returns (RenameNodeResponse) {}
 
-  // SetNodeDisplayAddress sets what players connect to instead of the
-  // node's hostname: a proxy's domain, or the owner's own name. Admins and
-  // owners.
-  rpc SetNodeDisplayAddress(SetNodeDisplayAddressRequest) returns (SetNodeDisplayAddressResponse) {}
+  // SetNodeDisplayAddress is replaced by SetServerDisplayAddress: a shown
+  // address is a server's. It fails with FailedPrecondition.
+  rpc SetNodeDisplayAddress(SetNodeDisplayAddressRequest) returns (SetNodeDisplayAddressResponse) {
+    option deprecated = true;
+  }
+
+  // SetServerDisplayAddress sets what players connect to for a server
+  // instead of its node's hostname: a proxy's domain, or the owner's own
+  // name. Admins and owners.
+  rpc SetServerDisplayAddress(SetServerDisplayAddressRequest) returns (SetServerDisplayAddressResponse) {}
 
   // RemoveNode takes a node out of the org: its key is refused from now
   // on, its DNS name stops pointing at it, and its mirror and members'
@@ -420,9 +426,8 @@ message Node {
   string sftp_host_key_fingerprint = 13;
   // Whether admins allow SFTP on the node at all.
   bool sftp_allowed = 14;
-  // What players connect to instead of the hostname ("host" or
-  // "host:port"), if the owner set one; '' shows the hostname.
-  string display_address = 15;
+  // Always '': shown addresses are servers' now (Server.display_address).
+  string display_address = 15 [deprecated = true];
   // The addresses the node connects from (its hostname points at them).
   // Admins and owners only; the app shows them hidden until revealed.
   string public_ipv4 = 16;
@@ -450,6 +455,16 @@ message SetNodeDisplayAddressRequest {
 
 message SetNodeDisplayAddressResponse {}
 
+message SetServerDisplayAddressRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+  // "host" or "host:port"; '' goes back to the node's.
+  string display_address = 4;
+}
+
+message SetServerDisplayAddressResponse {}
+
 message RemoveNodeRequest {
   string org_id = 1;
   string node_id = 2;
@@ -476,6 +491,9 @@ message Server {
   // install_error).
   string install_state = 7;
   string install_error = 8;
+  // What players connect to instead of the node's hostname ("host" or
+  // "host:port"), if the owner set one; '' shows the hostname.
+  string display_address = 9;
 }
 
 message ListServersResponse {

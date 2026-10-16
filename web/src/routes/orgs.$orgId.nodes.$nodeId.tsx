@@ -39,14 +39,7 @@ function NodeLayout() {
               {node && <StatusBadge status={nodeStatus(node)} />}
             </span>
           }
-          description={
-            node &&
-            (node.displayAddress ? (
-              <span className="font-mono">{node.displayAddress}</span>
-            ) : (
-              <Hidden value={nodeHostname(node)} label="hostname" />
-            ))
-          }
+          description={node && <Hidden value={nodeHostname(node)} label="hostname" />}
           actions={
             admin && (
               <Link

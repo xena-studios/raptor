@@ -66,7 +66,6 @@ func (s *Service) ListNodes(ctx context.Context, req *panelv1.ListNodesRequest) 
 				Connected: r.Connected, CreatedAt: timestamppb.New(r.CreatedAt.Time),
 				Arch: r.Arch, Cpus: r.Cpus, MemoryBytes: r.MemoryBytes,
 				SftpEnabled: r.SftpEnabled, SftpPort: r.SftpPort, SftpHostKeyFingerprint: r.SftpHostKey, SftpAllowed: r.SftpAllowed,
-				DisplayAddress: r.DisplayAddress,
 			}
 			// The machine's own addresses are for those who run it.
 			if grants == nil {
@@ -116,6 +115,7 @@ func (s *Service) ListServers(ctx context.Context, req *panelv1.ListServersReque
 			out.Servers = append(out.Servers, &panelv1.Server{
 				Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, Permissions: perms,
 				Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
+				DisplayAddress: r.DisplayAddress,
 			})
 		}
 		return err
@@ -171,6 +171,7 @@ func (s *Service) GetServer(ctx context.Context, req *panelv1.GetServerRequest) 
 		out.Server = &panelv1.Server{
 			Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, Permissions: perms,
 			Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
+			DisplayAddress: r.DisplayAddress,
 		}
 		if slices.Contains(perms, "*") || slices.Contains(perms, "startup") {
 			out.ConfigJson = string(r.Config)
@@ -248,8 +249,14 @@ func (s *Service) RenameNode(ctx context.Context, req *panelv1.RenameNodeRequest
 	return &panelv1.RenameNodeResponse{}, nil
 }
 
-// SetNodeDisplayAddress implements OrgService.
-func (s *Service) SetNodeDisplayAddress(ctx context.Context, req *panelv1.SetNodeDisplayAddressRequest) (*panelv1.SetNodeDisplayAddressResponse, error) {
+// SetNodeDisplayAddress implements OrgService. Shown addresses are
+// servers' now.
+func (s *Service) SetNodeDisplayAddress(context.Context, *panelv1.SetNodeDisplayAddressRequest) (*panelv1.SetNodeDisplayAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("a shown address is set for each server now, on its Network tab"))
+}
+
+// SetServerDisplayAddress implements OrgService.
+func (s *Service) SetServerDisplayAddress(ctx context.Context, req *panelv1.SetServerDisplayAddressRequest) (*panelv1.SetServerDisplayAddressResponse, error) {
 	addr, err := displayAddress(req.GetDisplayAddress())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -258,11 +265,23 @@ func (s *Service) SetNodeDisplayAddress(ctx context.Context, req *panelv1.SetNod
 	if err != nil {
 		return nil, err
 	}
-	if _, err := store.New(s.DB).SetNodeDisplayAddress(ctx, store.SetNodeDisplayAddressParams{ID: node, DisplayAddress: addr}); err != nil {
+	q := store.New(s.DB)
+	if _, err := q.NodeServer(ctx, store.NodeServerParams{NodeID: node, ServerID: req.GetServerId()}); errors.Is(err, pgx.ErrNoRows) {
+		return nil, errNoServer
+	} else if err != nil {
 		return nil, err
 	}
-	_ = s.audit(ctx, nil, sess, org, "node.display_address", idString(node), nil, map[string]any{"address": addr})
-	return &panelv1.SetNodeDisplayAddressResponse{}, nil
+	p := store.SetServerDisplayAddressParams{NodeID: node, ServerID: req.GetServerId(), DisplayAddress: addr}
+	if addr == "" {
+		err = q.ClearServerDisplayAddress(ctx, store.ClearServerDisplayAddressParams{NodeID: node, ServerID: p.ServerID})
+	} else {
+		err = q.SetServerDisplayAddress(ctx, p)
+	}
+	if err != nil {
+		return nil, err
+	}
+	_ = s.audit(ctx, nil, sess, org, "server.display_address", p.ServerID, nil, map[string]any{"node": idString(node), "address": addr})
+	return &panelv1.SetServerDisplayAddressResponse{}, nil
 }
 
 // hostLabel is one label of a DNS name.

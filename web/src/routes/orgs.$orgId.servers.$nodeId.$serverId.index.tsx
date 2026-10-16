@@ -75,7 +75,11 @@ function Overview() {
                 rows={[
                   [
                     "Connect",
-                    node ? <ServerAddress key="c" node={node} port={server.ports[0]} /> : "—",
+                    node ? (
+                      <ServerAddress key="c" node={node} server={server} port={server.ports[0]} />
+                    ) : (
+                      "—"
+                    ),
                   ],
                   ["Game", server.eggName || "—"],
                   ["Node", node?.name ?? "—"],

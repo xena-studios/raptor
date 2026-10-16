@@ -78,30 +78,58 @@ func TestRenameAndRemoveNode(t *testing.T) {
 		t.Fatalf("after renaming: %v", list)
 	}
 
-	// The shown address: admins set it; everyone sees it; only admins see
-	// the machine's own address.
+	// The shown address is a server's: admins set it; everyone who sees the
+	// server sees it; only admins see the machine's own address.
 	if _, err := db.Exec(ctx, "UPDATE nodes SET public_ipv4 = '203.0.113.9' WHERE id = $1", nodeID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := bob.orgs.SetNodeDisplayAddress(ctx, &panelv1.SetNodeDisplayAddressRequest{OrgId: org, NodeId: nodeID, DisplayAddress: "x.example.com"}); connect.CodeOf(err) != connect.CodePermissionDenied {
-		t.Errorf("a member setting the address: %v", err)
-	}
-	if _, err := alice.orgs.SetNodeDisplayAddress(ctx, &panelv1.SetNodeDisplayAddressRequest{OrgId: org, NodeId: nodeID, DisplayAddress: "http://x"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
-		t.Errorf("a bad address: %v", err)
-	}
-	if _, err := alice.orgs.SetNodeDisplayAddress(ctx, &panelv1.SetNodeDisplayAddressRequest{OrgId: org, NodeId: nodeID, DisplayAddress: "Play.Example.com"}); err != nil {
+	if _, err := db.Exec(ctx, `INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at) VALUES ($1, 's1', 'smp', 1, now(), now())`, nodeID); err != nil {
 		t.Fatal(err)
 	}
+	//nolint:staticcheck // the deprecated RPC still answers, with an error
+	if _, err := alice.orgs.SetNodeDisplayAddress(ctx, &panelv1.SetNodeDisplayAddressRequest{OrgId: org, NodeId: nodeID, DisplayAddress: "x.example.com"}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Errorf("a node's shown address: %v", err)
+	}
+	set := func(c *browser, server, addr string) error {
+		_, err := c.orgs.SetServerDisplayAddress(ctx, &panelv1.SetServerDisplayAddressRequest{OrgId: org, NodeId: nodeID, ServerId: server, DisplayAddress: addr})
+		return err
+	}
+	if err := set(bob, "s1", "x.example.com"); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("a member setting the address: %v", err)
+	}
+	if err := set(alice, "s1", "http://x"); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("a bad address: %v", err)
+	}
+	if err := set(alice, "nope", "x.example.com"); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("an unknown server: %v", err)
+	}
+	if err := set(alice, "s1", "Play.Example.com"); err != nil {
+		t.Fatal(err)
+	}
+	servers, _ := alice.orgs.ListServers(ctx, &panelv1.ListServersRequest{OrgId: org, NodeId: nodeID})
+	if s := servers.GetServers(); len(s) != 1 || s[0].GetDisplayAddress() != "play.example.com" {
+		t.Errorf("an admin's view: %v", servers)
+	}
 	list, _ = alice.orgs.ListNodes(ctx, &panelv1.ListNodesRequest{OrgId: org})
-	if n := list.GetNodes()[0]; n.GetDisplayAddress() != "play.example.com" || n.GetPublicIpv4() != "203.0.113.9" {
-		t.Errorf("an admin's view: %v", n)
+	if n := list.GetNodes()[0]; n.GetPublicIpv4() != "203.0.113.9" {
+		t.Errorf("an admin's view of the node: %v", n)
 	}
 	if _, err := db.Exec(ctx, "INSERT INTO server_grants (org_id, user_id, node_id, server_id, permissions) VALUES ($1, $2, $3, 's1', '{console.read}')", org, bobID, nodeID); err != nil {
 		t.Fatal(err)
 	}
 	list, _ = bob.orgs.ListNodes(ctx, &panelv1.ListNodesRequest{OrgId: org})
-	if len(list.GetNodes()) != 1 || list.GetNodes()[0].GetPublicIpv4() != "" || list.GetNodes()[0].GetDisplayAddress() != "play.example.com" {
+	if len(list.GetNodes()) != 1 || list.GetNodes()[0].GetPublicIpv4() != "" {
 		t.Errorf("a member's view: %v", list)
+	}
+	got, err := bob.orgs.GetServer(ctx, &panelv1.GetServerRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"})
+	if err != nil || got.GetServer().GetDisplayAddress() != "play.example.com" {
+		t.Errorf("a member's view of the server: %v %v", got, err)
+	}
+	if err := set(alice, "s1", ""); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = bob.orgs.GetServer(ctx, &panelv1.GetServerRequest{OrgId: org, NodeId: nodeID, ServerId: "s1"}); got.GetServer().GetDisplayAddress() != "" {
+		t.Errorf("after clearing: %v", got)
 	}
 
 	if _, err := bob.orgs.RemoveNode(ctx, &panelv1.RemoveNodeRequest{OrgId: org, NodeId: nodeID}); connect.CodeOf(err) != connect.CodePermissionDenied {
