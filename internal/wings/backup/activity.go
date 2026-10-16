@@ -158,6 +158,36 @@ func (m *Manager) Browse(ctx context.Context, serverID, id, dir string) ([]engin
 	return list, json.Unmarshal(out, &list)
 }
 
+// MaxRead is the largest file Read hands back, as for the file manager's
+// editor.
+const MaxRead = 4 << 20
+
+// Read reads one file of a server's backup, to look at.
+func (m *Manager) Read(ctx context.Context, serverID, id, name string) (engine.ReadResult, error) {
+	b, err := m.Restorable(ctx, serverID, id)
+	if err != nil {
+		return engine.ReadResult{}, err
+	}
+	if b.Status != StatusOK {
+		return engine.ReadResult{}, ErrNotReady
+	}
+	src, err := m.o.Servers.BackupSource(ctx, serverID)
+	if err != nil {
+		return engine.ReadResult{}, err
+	}
+	out, err := m.run(ctx, b.DestinationID, request{Op: opRead, Read: &engine.ReadRequest{
+		SnapshotID: b.snapshotID, Path: name, Deny: src.Denylist, Max: MaxRead,
+	}}, nil, io.Discard)
+	if errors.Is(err, engine.ErrTooLarge) {
+		return engine.ReadResult{}, fmt.Errorf("%w to open here (over %d MiB); restore it to look at it", engine.ErrTooLarge, MaxRead>>20)
+	}
+	if err != nil {
+		return engine.ReadResult{}, err
+	}
+	var r engine.ReadResult
+	return r, json.Unmarshal(out, &r)
+}
+
 type extractPayload struct {
 	BackupID string   `json:"backup_id"`
 	Paths    []string `json:"paths"`

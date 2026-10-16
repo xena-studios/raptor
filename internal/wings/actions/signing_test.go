@@ -17,7 +17,7 @@ import (
 var signing = map[string]string{
 	"addons.install": "never", "addons.list": "never",
 
-	"backup.activity": "never", "backup.browse": "never", "backup.create": "never",
+	"backup.activity": "never", "backup.browse": "never", "backup.read": "never", "backup.create": "never",
 	"backup.delete": "always", "backup.destination.delete": "always",
 	"backup.destination.save": "depends", // adding or changing one; not Raptor Backup Storage
 	"backup.destination.test": "never", "backup.destinations": "never", "backup.extract": "never",

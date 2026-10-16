@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path"
@@ -317,3 +318,68 @@ func (p *pickIter) Next(ctx context.Context) (kfs.Entry, error) {
 }
 
 func (p *pickIter) Close() { p.it.Close() }
+
+// ReadRequest reads one file of a snapshot, to look at.
+type ReadRequest struct {
+	SnapshotID string   `json:"snapshot_id"`
+	Path       string   `json:"path"`
+	Deny       []string `json:"deny,omitempty"`
+	// Max > 0 refuses a file larger than this.
+	Max int64 `json:"max,omitempty"`
+}
+
+// ReadResult is a file read from a snapshot.
+type ReadResult struct {
+	Name       string `json:"name"`
+	Size       int64  `json:"size"`
+	ModifiedAt int64  `json:"modified_at"` // unix ms
+	Data       []byte `json:"data"`
+}
+
+// Read reads one file of a snapshot.
+func (e *Engine) Read(ctx context.Context, req ReadRequest) (ReadResult, error) {
+	elems, err := cleanPath(req.Path)
+	if err != nil {
+		return ReadResult{}, err
+	}
+	if elems == nil {
+		return ReadResult{}, fmt.Errorf("%w: %q isn't a file", ErrBadPath, req.Path)
+	}
+	root, rep, err := e.snapshotRoot(ctx, req.SnapshotID)
+	if err != nil {
+		return ReadResult{}, err
+	}
+	defer func() { _ = rep.Close(ctx) }()
+	p := strings.Join(elems, "/")
+	if files.Compile(req.Deny).Denied(p, false) {
+		return ReadResult{}, fmt.Errorf("%w: %q", ErrBadPath, req.Path)
+	}
+	ent, err := snapshotfs.GetNestedEntry(ctx, root, elems)
+	if err != nil {
+		return ReadResult{}, fmt.Errorf("%w: %q", ErrBadPath, req.Path)
+	}
+	f, ok := ent.(kfs.File)
+	if !ok {
+		return ReadResult{}, fmt.Errorf("%w: %q isn't a file", ErrBadPath, req.Path)
+	}
+	if req.Max > 0 && f.Size() > req.Max {
+		return ReadResult{}, fmt.Errorf("%w (%d bytes, limit %d)", ErrTooLarge, f.Size(), req.Max)
+	}
+	r, err := f.Open(ctx)
+	if err != nil {
+		return ReadResult{}, err
+	}
+	defer func() { _ = r.Close() }()
+	lim := f.Size() + 1
+	if req.Max > 0 {
+		lim = req.Max + 1
+	}
+	data, err := io.ReadAll(io.LimitReader(r, lim))
+	if err != nil {
+		return ReadResult{}, err
+	}
+	if req.Max > 0 && int64(len(data)) > req.Max {
+		return ReadResult{}, fmt.Errorf("%w (limit %d bytes)", ErrTooLarge, req.Max)
+	}
+	return ReadResult{Name: f.Name(), Size: f.Size(), ModifiedAt: f.ModTime().UnixMilli(), Data: data}, nil
+}

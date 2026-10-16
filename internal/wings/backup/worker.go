@@ -30,6 +30,7 @@ const (
 	opMaintain = "maintain"
 	opBrowse   = "browse"
 	opExtract  = "extract"
+	opRead     = "read"
 	opTest     = "test" // write, read, and remove a small file
 	opSize     = "size" // add up what the repository stores
 	opList     = "list" // the server backups in the repository
@@ -46,6 +47,7 @@ type request struct {
 	Delete   []string                `json:"delete,omitempty"`
 	Browse   *engine.BrowseRequest   `json:"browse,omitempty"`
 	Extract  *engine.ExtractRequest  `json:"extract,omitempty"`
+	Read     *engine.ReadRequest     `json:"read,omitempty"`
 }
 
 // message is a line the worker writes on its stdout: progress, then one
@@ -85,6 +87,11 @@ func execute(ctx context.Context, req request, progress func(engine.Progress)) (
 			break
 		}
 		return e.Extract(ctx, *req.Extract, progress)
+	case opRead:
+		if req.Read == nil {
+			break
+		}
+		return e.Read(ctx, *req.Read)
 	case opTest:
 		return nil, e.Test(ctx)
 	case opSize:

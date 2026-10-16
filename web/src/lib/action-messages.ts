@@ -93,7 +93,7 @@ const commands: Record<string, string> = {
   "backup.restore": "Restoring the backup",
   "backup.delete": "Backup deleted",
   "backup.lock": "Backup updated",
-  "backup.extract": "Extracting from the backup",
+  "backup.extract": "Restoring to .restore",
   "backup.policy.update": "Backup plan saved",
   "backup.destination.save": "Backup destination saved",
   "backup.destination.delete": "Backup destination removed",

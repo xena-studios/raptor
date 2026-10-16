@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Download, Loader2, Save, X } from "lucide-react";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
+
 import { Button, buttonVariants } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { message } from "@/lib/errors";
@@ -32,6 +33,8 @@ export function EditorPane({
   path,
   canWrite,
   transfers = true,
+  badge,
+  actions,
   onBack,
   onClose,
   onDirty,
@@ -43,6 +46,9 @@ export function EditorPane({
   canWrite: boolean;
   // Downloads offered (not to staff under support access).
   transfers?: boolean;
+  // Shown after the name, and before the buttons.
+  badge?: ReactNode;
+  actions?: ReactNode;
   onBack: () => void;
   onClose: () => void;
   onDirty: (dirty: boolean) => void;
@@ -50,7 +56,7 @@ export function EditorPane({
   const settings = useFileSettings();
   // Read once: saving doesn't reload the file, which would reset the editor.
   const file = useQuery({
-    queryKey: ["file", nodeId, serverId, path],
+    queryKey: api.contentKey(path),
     queryFn: () => api.run<Content>("files.read", { path }),
     gcTime: 0,
     staleTime: Number.POSITIVE_INFINITY,
@@ -146,7 +152,9 @@ export function EditorPane({
         {readOnly && canWrite && (
           <span className="rounded border px-1.5 text-xs text-muted-foreground">Read-only</span>
         )}
+        {badge}
         <div className="ml-auto flex items-center gap-1">
+          {actions}
           {transfers && (
             <a
               href={downloadURL(nodeId, serverId, path)}
@@ -183,7 +191,9 @@ export function EditorPane({
         {file.error && <p className="p-4 text-sm text-destructive">{message(file.error)}</p>}
         {binary && (
           <div className="flex flex-col items-start gap-3 p-4 text-sm text-muted-foreground">
-            This isn't a text file, so it can't be edited here.
+            {canWrite
+              ? "This isn't a text file, so it can't be edited here."
+              : "This isn't a text file, so it can't be shown here."}
             {transfers && (
               <a
                 href={downloadURL(nodeId, serverId, path)}
