@@ -1,5 +1,7 @@
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+
+import { type ChartData, ChartSlot, ExportButtons } from "@/components/chart-export";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { type MetricRange, metricRanges } from "@/lib/metrics";
@@ -149,13 +151,20 @@ export function Graph({
   note?: string;
   children: ReactNode;
 }) {
+  const chart = useRef<ChartData | undefined>(undefined);
+  const [ready, setReady] = useState(false);
+  const markReady = useCallback(() => setReady(true), []);
+  const slot = useMemo(() => ({ ref: chart, ready: markReady }), [markReady]);
   return (
     <section className="flex min-w-0 flex-col gap-2">
-      <h3 className="text-sm font-medium">
-        {title}
-        {note && <span className="ml-2 text-xs font-normal text-muted-foreground">{note}</span>}
+      <h3 className="flex min-h-6 items-center text-sm font-medium">
+        <span>
+          {title}
+          {note && <span className="ml-2 text-xs font-normal text-muted-foreground">{note}</span>}
+        </span>
+        {ready && <ExportButtons title={title} note={note} chart={chart} />}
       </h3>
-      {children}
+      <ChartSlot value={slot}>{children}</ChartSlot>
     </section>
   );
 }

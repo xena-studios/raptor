@@ -3,6 +3,7 @@ import { Cpu, HardDrive, MemoryStick, Network, Users } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 
 import { ServerAddress } from "@/components/address";
+import { ChartSubject } from "@/components/chart-export";
 import { DetailList } from "@/components/page";
 import { Graph, lastPoints, RangePicker, StatCard } from "@/components/stats";
 import { TimeChart } from "@/components/time-chart";
@@ -106,7 +107,9 @@ function Overview() {
           {history.error ? (
             <p className="text-sm text-destructive">{message(history.error)}</p>
           ) : (
-            <Graphs metrics={history.data} range={range} />
+            <ChartSubject value={node ? `${server.name} on ${node.name}` : server.name}>
+              <Graphs metrics={history.data} range={range} />
+            </ChartSubject>
           )}
         </CardContent>
       </Card>

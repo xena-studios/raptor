@@ -4,6 +4,7 @@ import { Cpu, HardDrive, MemoryStick, Network, Server, Users } from "lucide-reac
 import { type ReactNode, useState } from "react";
 
 import { Hidden } from "@/components/address";
+import { ChartSubject } from "@/components/chart-export";
 import { LinkRow } from "@/components/entity-list";
 import { DetailList, EmptyState } from "@/components/page";
 import { StatusBadge } from "@/components/server-status";
@@ -88,7 +89,9 @@ function NodeOverview() {
               {history.error ? (
                 <p className="text-sm text-destructive">{message(history.error)}</p>
               ) : (
-                <Graphs m={history.data} range={range} />
+                <ChartSubject value={node?.name}>
+                  <Graphs m={history.data} range={range} />
+                </ChartSubject>
               )}
             </CardContent>
           </Card>
