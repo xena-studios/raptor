@@ -25,7 +25,7 @@ const (
 type AlertChannel struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// email, discord, slack, telegram, ntfy, webhook.
+	// email (someone's own only), discord, slack, telegram, ntfy, webhook.
 	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// What it sends to, without its secret: "Owners", a member's email,
@@ -34,12 +34,10 @@ type AlertChannel struct {
 	Enabled bool   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Failing since the first alert it couldn't deliver (turned off after 3
 	// days of it); error is the last failure.
-	FailingSince *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=failing_since,json=failingSince,proto3" json:"failing_since,omitempty"`
-	Error        string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
-	LastSentAt   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_sent_at,json=lastSentAt,proto3" json:"last_sent_at,omitempty"`
-	CreatedAt    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	// Email: "owners", "admins", or a member's user ID.
-	EmailTo       string `protobuf:"bytes,10,opt,name=email_to,json=emailTo,proto3" json:"email_to,omitempty"`
+	FailingSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=failing_since,json=failingSince,proto3" json:"failing_since,omitempty"`
+	Error         string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	LastSentAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_sent_at,json=lastSentAt,proto3" json:"last_sent_at,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -137,16 +135,10 @@ func (x *AlertChannel) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *AlertChannel) GetEmailTo() string {
-	if x != nil {
-		return x.EmailTo
-	}
-	return ""
-}
-
 type ListAlertChannelsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty: the user's own channels.
+	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -194,7 +186,7 @@ type ListAlertChannelsResponse struct {
 	// Channel types this Panel can add (Telegram only with its bot set up;
 	// ones with secrets only with PANEL_DATA_KEY).
 	Types []string `protobuf:"bytes,2,rep,name=types,proto3" json:"types,omitempty"`
-	// How many an org may have.
+	// How many an org (or a person) may have.
 	Limit         int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -253,15 +245,14 @@ func (x *ListAlertChannelsResponse) GetLimit() int32 {
 
 type CreateAlertChannelRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	Type  string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Name  string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// Empty: a channel of the user's own.
+	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Type  string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Name  string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// Discord or Slack webhook URL, or the webhook's endpoint.
 	Url string `protobuf:"bytes,4,opt,name=url,proto3" json:"url,omitempty"`
 	// Signs a webhook's requests (optional).
 	Secret string `protobuf:"bytes,5,opt,name=secret,proto3" json:"secret,omitempty"`
-	// Email: "owners", "admins", or a member's user ID.
-	EmailTo string `protobuf:"bytes,6,opt,name=email_to,json=emailTo,proto3" json:"email_to,omitempty"`
 	// ntfy: the server (empty: ntfy.sh), topic, and access token (optional).
 	NtfyServer    string `protobuf:"bytes,7,opt,name=ntfy_server,json=ntfyServer,proto3" json:"ntfy_server,omitempty"`
 	NtfyTopic     string `protobuf:"bytes,8,opt,name=ntfy_topic,json=ntfyTopic,proto3" json:"ntfy_topic,omitempty"`
@@ -335,13 +326,6 @@ func (x *CreateAlertChannelRequest) GetSecret() string {
 	return ""
 }
 
-func (x *CreateAlertChannelRequest) GetEmailTo() string {
-	if x != nil {
-		return x.EmailTo
-	}
-	return ""
-}
-
 func (x *CreateAlertChannelRequest) GetNtfyServer() string {
 	if x != nil {
 		return x.NtfyServer
@@ -408,11 +392,12 @@ func (x *CreateAlertChannelResponse) GetChannel() *AlertChannel {
 }
 
 type UpdateAlertChannelRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	OrgId   string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	Id      string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	Name    string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Enabled bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty: one of the user's own channels.
+	OrgId   string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Id      string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Name    string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Enabled bool   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Set to replace what it sends to (the type's fields, as when creating);
 	// left empty, it's kept.
 	Url           string `protobuf:"bytes,5,opt,name=url,proto3" json:"url,omitempty"`
@@ -420,7 +405,6 @@ type UpdateAlertChannelRequest struct {
 	NtfyTopic     string `protobuf:"bytes,7,opt,name=ntfy_topic,json=ntfyTopic,proto3" json:"ntfy_topic,omitempty"`
 	NtfyToken     string `protobuf:"bytes,8,opt,name=ntfy_token,json=ntfyToken,proto3" json:"ntfy_token,omitempty"`
 	NtfyServer    string `protobuf:"bytes,9,opt,name=ntfy_server,json=ntfyServer,proto3" json:"ntfy_server,omitempty"`
-	EmailTo       string `protobuf:"bytes,10,opt,name=email_to,json=emailTo,proto3" json:"email_to,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -518,13 +502,6 @@ func (x *UpdateAlertChannelRequest) GetNtfyServer() string {
 	return ""
 }
 
-func (x *UpdateAlertChannelRequest) GetEmailTo() string {
-	if x != nil {
-		return x.EmailTo
-	}
-	return ""
-}
-
 type UpdateAlertChannelResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Channel       *AlertChannel          `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
@@ -570,9 +547,10 @@ func (x *UpdateAlertChannelResponse) GetChannel() *AlertChannel {
 }
 
 type DeleteAlertChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty: one of the user's own channels.
+	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Id            string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -658,9 +636,10 @@ func (*DeleteAlertChannelResponse) Descriptor() ([]byte, []int) {
 }
 
 type TestAlertChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty: one of the user's own channels.
+	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Id            string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -762,8 +741,9 @@ func (x *TestAlertChannelResponse) GetError() string {
 }
 
 type ConnectTelegramRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty: a chat for the user's own alerts.
+	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -968,13 +948,21 @@ type AlertRule struct {
 	Threshold float64 `protobuf:"fixed64,6,opt,name=threshold,proto3" json:"threshold,omitempty"`
 	// Thresholds: how long it must hold; node_offline: the grace before it
 	// counts (at least 1).
-	ForMinutes     int32                  `protobuf:"varint,7,opt,name=for_minutes,json=forMinutes,proto3" json:"for_minutes,omitempty"`
+	ForMinutes int32 `protobuf:"varint,7,opt,name=for_minutes,json=forMinutes,proto3" json:"for_minutes,omitempty"`
+	// The org's team channels it posts to.
 	ChannelIds     []string               `protobuf:"bytes,8,rep,name=channel_ids,json=channelIds,proto3" json:"channel_ids,omitempty"`
 	NotifyResolved bool                   `protobuf:"varint,9,opt,name=notify_resolved,json=notifyResolved,proto3" json:"notify_resolved,omitempty"`
 	Enabled        bool                   `protobuf:"varint,10,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Who it tells: everyone in the org with one of these roles ("owner",
+	// "admin", "member"), and these members. Each is told in their inbox and
+	// on the channels of their own they've set up; members only about
+	// servers they have access to. A rule tells someone, or posts to a
+	// channel, or both.
+	NotifyRoles   []string `protobuf:"bytes,12,rep,name=notify_roles,json=notifyRoles,proto3" json:"notify_roles,omitempty"`
+	NotifyUserIds []string `protobuf:"bytes,13,rep,name=notify_user_ids,json=notifyUserIds,proto3" json:"notify_user_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AlertRule) Reset() {
@@ -1080,6 +1068,20 @@ func (x *AlertRule) GetEnabled() bool {
 func (x *AlertRule) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *AlertRule) GetNotifyRoles() []string {
+	if x != nil {
+		return x.NotifyRoles
+	}
+	return nil
+}
+
+func (x *AlertRule) GetNotifyUserIds() []string {
+	if x != nil {
+		return x.NotifyUserIds
 	}
 	return nil
 }
@@ -1387,10 +1389,13 @@ type AlertHistoryEntry struct {
 	ServerId   string                 `protobuf:"bytes,11,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
 	ServerName string                 `protobuf:"bytes,12,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
 	// pending, sent, failed, dropped.
-	Status        string                 `protobuf:"bytes,13,opt,name=status,proto3" json:"status,omitempty"`
-	Error         string                 `protobuf:"bytes,14,opt,name=error,proto3" json:"error,omitempty"`
-	At            *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=at,proto3" json:"at,omitempty"`
-	SentAt        *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=sent_at,json=sentAt,proto3" json:"sent_at,omitempty"`
+	Status string                 `protobuf:"bytes,13,opt,name=status,proto3" json:"status,omitempty"`
+	Error  string                 `protobuf:"bytes,14,opt,name=error,proto3" json:"error,omitempty"`
+	At     *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=at,proto3" json:"at,omitempty"`
+	SentAt *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=sent_at,json=sentAt,proto3" json:"sent_at,omitempty"`
+	// Set when it went to someone's own channel (channel_id isn't one of the
+	// org's): whose, and which, as "Alice: Email".
+	ChannelLabel  string `protobuf:"bytes,17,opt,name=channel_label,json=channelLabel,proto3" json:"channel_label,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1537,6 +1542,13 @@ func (x *AlertHistoryEntry) GetSentAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *AlertHistoryEntry) GetChannelLabel() string {
+	if x != nil {
+		return x.ChannelLabel
+	}
+	return ""
+}
+
 type ListAlertHistoryRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
@@ -1634,11 +1646,413 @@ func (x *ListAlertHistoryResponse) GetEntries() []*AlertHistoryEntry {
 	return nil
 }
 
+// Notification is an alert in someone's inbox.
+type Notification struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrgId     string                 `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	OrgName   string                 `protobuf:"bytes,3,opt,name=org_name,json=orgName,proto3" json:"org_name,omitempty"`
+	Condition string                 `protobuf:"bytes,4,opt,name=condition,proto3" json:"condition,omitempty"`
+	// info, warning, critical.
+	Level      string                 `protobuf:"bytes,5,opt,name=level,proto3" json:"level,omitempty"`
+	Title      string                 `protobuf:"bytes,6,opt,name=title,proto3" json:"title,omitempty"`
+	Text       string                 `protobuf:"bytes,7,opt,name=text,proto3" json:"text,omitempty"`
+	Resolved   bool                   `protobuf:"varint,8,opt,name=resolved,proto3" json:"resolved,omitempty"`
+	NodeId     string                 `protobuf:"bytes,9,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeName   string                 `protobuf:"bytes,10,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
+	ServerId   string                 `protobuf:"bytes,11,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	ServerName string                 `protobuf:"bytes,12,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
+	At         *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=at,proto3" json:"at,omitempty"`
+	// The inbox was opened since it came.
+	Seen          bool `protobuf:"varint,14,opt,name=seen,proto3" json:"seen,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Notification) Reset() {
+	*x = Notification{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Notification) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Notification) ProtoMessage() {}
+
+func (x *Notification) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Notification.ProtoReflect.Descriptor instead.
+func (*Notification) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *Notification) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Notification) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *Notification) GetOrgName() string {
+	if x != nil {
+		return x.OrgName
+	}
+	return ""
+}
+
+func (x *Notification) GetCondition() string {
+	if x != nil {
+		return x.Condition
+	}
+	return ""
+}
+
+func (x *Notification) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *Notification) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Notification) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *Notification) GetResolved() bool {
+	if x != nil {
+		return x.Resolved
+	}
+	return false
+}
+
+func (x *Notification) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *Notification) GetNodeName() string {
+	if x != nil {
+		return x.NodeName
+	}
+	return ""
+}
+
+func (x *Notification) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+func (x *Notification) GetServerName() string {
+	if x != nil {
+		return x.ServerName
+	}
+	return ""
+}
+
+func (x *Notification) GetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.At
+	}
+	return nil
+}
+
+func (x *Notification) GetSeen() bool {
+	if x != nil {
+		return x.Seen
+	}
+	return false
+}
+
+type ListNotificationsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// At most 100; 0 means 50.
+	Limit         int32 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListNotificationsRequest) Reset() {
+	*x = ListNotificationsRequest{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListNotificationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListNotificationsRequest) ProtoMessage() {}
+
+func (x *ListNotificationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListNotificationsRequest.ProtoReflect.Descriptor instead.
+func (*ListNotificationsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ListNotificationsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListNotificationsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Notifications []*Notification        `protobuf:"bytes,1,rep,name=notifications,proto3" json:"notifications,omitempty"`
+	// How many came since the inbox was last opened.
+	Unseen        int32 `protobuf:"varint,2,opt,name=unseen,proto3" json:"unseen,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListNotificationsResponse) Reset() {
+	*x = ListNotificationsResponse{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListNotificationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListNotificationsResponse) ProtoMessage() {}
+
+func (x *ListNotificationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListNotificationsResponse.ProtoReflect.Descriptor instead.
+func (*ListNotificationsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListNotificationsResponse) GetNotifications() []*Notification {
+	if x != nil {
+		return x.Notifications
+	}
+	return nil
+}
+
+func (x *ListNotificationsResponse) GetUnseen() int32 {
+	if x != nil {
+		return x.Unseen
+	}
+	return 0
+}
+
+type SeeNotificationsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SeeNotificationsRequest) Reset() {
+	*x = SeeNotificationsRequest{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SeeNotificationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SeeNotificationsRequest) ProtoMessage() {}
+
+func (x *SeeNotificationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SeeNotificationsRequest.ProtoReflect.Descriptor instead.
+func (*SeeNotificationsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{27}
+}
+
+type SeeNotificationsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SeeNotificationsResponse) Reset() {
+	*x = SeeNotificationsResponse{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SeeNotificationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SeeNotificationsResponse) ProtoMessage() {}
+
+func (x *SeeNotificationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SeeNotificationsResponse.ProtoReflect.Descriptor instead.
+func (*SeeNotificationsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{28}
+}
+
+type DismissNotificationsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty: all of them.
+	Ids           []string `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DismissNotificationsRequest) Reset() {
+	*x = DismissNotificationsRequest{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DismissNotificationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DismissNotificationsRequest) ProtoMessage() {}
+
+func (x *DismissNotificationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DismissNotificationsRequest.ProtoReflect.Descriptor instead.
+func (*DismissNotificationsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *DismissNotificationsRequest) GetIds() []string {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+type DismissNotificationsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DismissNotificationsResponse) Reset() {
+	*x = DismissNotificationsResponse{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DismissNotificationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DismissNotificationsResponse) ProtoMessage() {}
+
+func (x *DismissNotificationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DismissNotificationsResponse.ProtoReflect.Descriptor instead.
+func (*DismissNotificationsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{30}
+}
+
 var File_raptor_panel_v1_alert_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\n" +
-	"\x1braptor/panel/v1/alert.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe3\x02\n" +
+	"\x1braptor/panel/v1/alert.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\x02\n" +
 	"\fAlertChannel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x12\n" +
@@ -1650,30 +2064,28 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\flast_sent_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastSentAt\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x19\n" +
-	"\bemail_to\x18\n" +
-	" \x01(\tR\aemailTo\"1\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtJ\x04\b\n" +
+	"\x10\vR\bemail_to\"1\n" +
 	"\x18ListAlertChannelsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\x82\x01\n" +
 	"\x19ListAlertChannelsResponse\x129\n" +
 	"\bchannels\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AlertChannelR\bchannels\x12\x14\n" +
 	"\x05types\x18\x02 \x03(\tR\x05types\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\xfe\x01\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\xf3\x01\n" +
 	"\x19CreateAlertChannelRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x10\n" +
 	"\x03url\x18\x04 \x01(\tR\x03url\x12\x16\n" +
-	"\x06secret\x18\x05 \x01(\tR\x06secret\x12\x19\n" +
-	"\bemail_to\x18\x06 \x01(\tR\aemailTo\x12\x1f\n" +
+	"\x06secret\x18\x05 \x01(\tR\x06secret\x12\x1f\n" +
 	"\vntfy_server\x18\a \x01(\tR\n" +
 	"ntfyServer\x12\x1d\n" +
 	"\n" +
 	"ntfy_topic\x18\b \x01(\tR\tntfyTopic\x12\x1d\n" +
 	"\n" +
-	"ntfy_token\x18\t \x01(\tR\tntfyToken\"U\n" +
+	"ntfy_token\x18\t \x01(\tR\tntfyTokenJ\x04\b\x06\x10\aR\bemail_to\"U\n" +
 	"\x1aCreateAlertChannelResponse\x127\n" +
-	"\achannel\x18\x01 \x01(\v2\x1d.raptor.panel.v1.AlertChannelR\achannel\"\x94\x02\n" +
+	"\achannel\x18\x01 \x01(\v2\x1d.raptor.panel.v1.AlertChannelR\achannel\"\x89\x02\n" +
 	"\x19UpdateAlertChannelRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n" +
@@ -1686,9 +2098,8 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\n" +
 	"ntfy_token\x18\b \x01(\tR\tntfyToken\x12\x1f\n" +
 	"\vntfy_server\x18\t \x01(\tR\n" +
-	"ntfyServer\x12\x19\n" +
-	"\bemail_to\x18\n" +
-	" \x01(\tR\aemailTo\"U\n" +
+	"ntfyServerJ\x04\b\n" +
+	"\x10\vR\bemail_to\"U\n" +
 	"\x1aUpdateAlertChannelResponse\x127\n" +
 	"\achannel\x18\x01 \x01(\v2\x1d.raptor.panel.v1.AlertChannelR\achannel\"B\n" +
 	"\x19DeleteAlertChannelRequest\x12\x15\n" +
@@ -1714,7 +2125,7 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\x05scope\x18\x03 \x01(\tR\x05scope\x12\x1c\n" +
 	"\tthreshold\x18\x04 \x01(\bR\tthreshold\x12\x12\n" +
 	"\x04unit\x18\x05 \x01(\tR\x04unit\x12\x1a\n" +
-	"\bresolves\x18\x06 \x01(\bR\bresolves\"\xe1\x02\n" +
+	"\bresolves\x18\x06 \x01(\bR\bresolves\"\xac\x03\n" +
 	"\tAlertRule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
@@ -1730,7 +2141,9 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\aenabled\x18\n" +
 	" \x01(\bR\aenabled\x129\n" +
 	"\n" +
-	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\".\n" +
+	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12!\n" +
+	"\fnotify_roles\x18\f \x03(\tR\vnotifyRoles\x12&\n" +
+	"\x0fnotify_user_ids\x18\r \x03(\tR\rnotifyUserIds\".\n" +
 	"\x15ListAlertRulesRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\xa1\x01\n" +
 	"\x16ListAlertRulesResponse\x120\n" +
@@ -1747,7 +2160,7 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\x16DeleteAlertRuleRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\"\x19\n" +
-	"\x17DeleteAlertRuleResponse\"\xd8\x03\n" +
+	"\x17DeleteAlertRuleResponse\"\xfd\x03\n" +
 	"\x11AlertHistoryEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\arule_id\x18\x02 \x01(\tR\x06ruleId\x12\x1d\n" +
@@ -1767,12 +2180,40 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\x06status\x18\r \x01(\tR\x06status\x12\x14\n" +
 	"\x05error\x18\x0e \x01(\tR\x05error\x12*\n" +
 	"\x02at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x123\n" +
-	"\asent_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\"F\n" +
+	"\asent_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\x12#\n" +
+	"\rchannel_label\x18\x11 \x01(\tR\fchannelLabel\"F\n" +
 	"\x17ListAlertHistoryRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"X\n" +
 	"\x18ListAlertHistoryResponse\x12<\n" +
-	"\aentries\x18\x01 \x03(\v2\".raptor.panel.v1.AlertHistoryEntryR\aentries2\xc5\b\n" +
+	"\aentries\x18\x01 \x03(\v2\".raptor.panel.v1.AlertHistoryEntryR\aentries\"\xfe\x02\n" +
+	"\fNotification\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
+	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12\x19\n" +
+	"\borg_name\x18\x03 \x01(\tR\aorgName\x12\x1c\n" +
+	"\tcondition\x18\x04 \x01(\tR\tcondition\x12\x14\n" +
+	"\x05level\x18\x05 \x01(\tR\x05level\x12\x14\n" +
+	"\x05title\x18\x06 \x01(\tR\x05title\x12\x12\n" +
+	"\x04text\x18\a \x01(\tR\x04text\x12\x1a\n" +
+	"\bresolved\x18\b \x01(\bR\bresolved\x12\x17\n" +
+	"\anode_id\x18\t \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tnode_name\x18\n" +
+	" \x01(\tR\bnodeName\x12\x1b\n" +
+	"\tserver_id\x18\v \x01(\tR\bserverId\x12\x1f\n" +
+	"\vserver_name\x18\f \x01(\tR\n" +
+	"serverName\x12*\n" +
+	"\x02at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12\x12\n" +
+	"\x04seen\x18\x0e \x01(\bR\x04seen\"0\n" +
+	"\x18ListNotificationsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\"x\n" +
+	"\x19ListNotificationsResponse\x12C\n" +
+	"\rnotifications\x18\x01 \x03(\v2\x1d.raptor.panel.v1.NotificationR\rnotifications\x12\x16\n" +
+	"\x06unseen\x18\x02 \x01(\x05R\x06unseen\"\x19\n" +
+	"\x17SeeNotificationsRequest\"\x1a\n" +
+	"\x18SeeNotificationsResponse\"/\n" +
+	"\x1bDismissNotificationsRequest\x12\x10\n" +
+	"\x03ids\x18\x01 \x03(\tR\x03ids\"\x1e\n" +
+	"\x1cDismissNotificationsResponse2\x98\v\n" +
 	"\fAlertService\x12o\n" +
 	"\x11ListAlertChannels\x12).raptor.panel.v1.ListAlertChannelsRequest\x1a*.raptor.panel.v1.ListAlertChannelsResponse\"\x03\x90\x02\x01\x12o\n" +
 	"\x12CreateAlertChannel\x12*.raptor.panel.v1.CreateAlertChannelRequest\x1a+.raptor.panel.v1.CreateAlertChannelResponse\"\x00\x12o\n" +
@@ -1783,7 +2224,10 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\x0eListAlertRules\x12&.raptor.panel.v1.ListAlertRulesRequest\x1a'.raptor.panel.v1.ListAlertRulesResponse\"\x03\x90\x02\x01\x12`\n" +
 	"\rSaveAlertRule\x12%.raptor.panel.v1.SaveAlertRuleRequest\x1a&.raptor.panel.v1.SaveAlertRuleResponse\"\x00\x12f\n" +
 	"\x0fDeleteAlertRule\x12'.raptor.panel.v1.DeleteAlertRuleRequest\x1a(.raptor.panel.v1.DeleteAlertRuleResponse\"\x00\x12l\n" +
-	"\x10ListAlertHistory\x12(.raptor.panel.v1.ListAlertHistoryRequest\x1a).raptor.panel.v1.ListAlertHistoryResponse\"\x03\x90\x02\x01B\xca\x01\n" +
+	"\x10ListAlertHistory\x12(.raptor.panel.v1.ListAlertHistoryRequest\x1a).raptor.panel.v1.ListAlertHistoryResponse\"\x03\x90\x02\x01\x12o\n" +
+	"\x11ListNotifications\x12).raptor.panel.v1.ListNotificationsRequest\x1a*.raptor.panel.v1.ListNotificationsResponse\"\x03\x90\x02\x01\x12i\n" +
+	"\x10SeeNotifications\x12(.raptor.panel.v1.SeeNotificationsRequest\x1a).raptor.panel.v1.SeeNotificationsResponse\"\x00\x12u\n" +
+	"\x14DismissNotifications\x12,.raptor.panel.v1.DismissNotificationsRequest\x1a-.raptor.panel.v1.DismissNotificationsResponse\"\x00B\xca\x01\n" +
 	"\x13com.raptor.panel.v1B\n" +
 	"AlertProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
@@ -1799,75 +2243,90 @@ func file_raptor_panel_v1_alert_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_alert_proto_rawDescData
 }
 
-var file_raptor_panel_v1_alert_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_raptor_panel_v1_alert_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_raptor_panel_v1_alert_proto_goTypes = []any{
-	(*AlertChannel)(nil),               // 0: raptor.panel.v1.AlertChannel
-	(*ListAlertChannelsRequest)(nil),   // 1: raptor.panel.v1.ListAlertChannelsRequest
-	(*ListAlertChannelsResponse)(nil),  // 2: raptor.panel.v1.ListAlertChannelsResponse
-	(*CreateAlertChannelRequest)(nil),  // 3: raptor.panel.v1.CreateAlertChannelRequest
-	(*CreateAlertChannelResponse)(nil), // 4: raptor.panel.v1.CreateAlertChannelResponse
-	(*UpdateAlertChannelRequest)(nil),  // 5: raptor.panel.v1.UpdateAlertChannelRequest
-	(*UpdateAlertChannelResponse)(nil), // 6: raptor.panel.v1.UpdateAlertChannelResponse
-	(*DeleteAlertChannelRequest)(nil),  // 7: raptor.panel.v1.DeleteAlertChannelRequest
-	(*DeleteAlertChannelResponse)(nil), // 8: raptor.panel.v1.DeleteAlertChannelResponse
-	(*TestAlertChannelRequest)(nil),    // 9: raptor.panel.v1.TestAlertChannelRequest
-	(*TestAlertChannelResponse)(nil),   // 10: raptor.panel.v1.TestAlertChannelResponse
-	(*ConnectTelegramRequest)(nil),     // 11: raptor.panel.v1.ConnectTelegramRequest
-	(*ConnectTelegramResponse)(nil),    // 12: raptor.panel.v1.ConnectTelegramResponse
-	(*AlertCondition)(nil),             // 13: raptor.panel.v1.AlertCondition
-	(*AlertRule)(nil),                  // 14: raptor.panel.v1.AlertRule
-	(*ListAlertRulesRequest)(nil),      // 15: raptor.panel.v1.ListAlertRulesRequest
-	(*ListAlertRulesResponse)(nil),     // 16: raptor.panel.v1.ListAlertRulesResponse
-	(*SaveAlertRuleRequest)(nil),       // 17: raptor.panel.v1.SaveAlertRuleRequest
-	(*SaveAlertRuleResponse)(nil),      // 18: raptor.panel.v1.SaveAlertRuleResponse
-	(*DeleteAlertRuleRequest)(nil),     // 19: raptor.panel.v1.DeleteAlertRuleRequest
-	(*DeleteAlertRuleResponse)(nil),    // 20: raptor.panel.v1.DeleteAlertRuleResponse
-	(*AlertHistoryEntry)(nil),          // 21: raptor.panel.v1.AlertHistoryEntry
-	(*ListAlertHistoryRequest)(nil),    // 22: raptor.panel.v1.ListAlertHistoryRequest
-	(*ListAlertHistoryResponse)(nil),   // 23: raptor.panel.v1.ListAlertHistoryResponse
-	(*timestamppb.Timestamp)(nil),      // 24: google.protobuf.Timestamp
+	(*AlertChannel)(nil),                 // 0: raptor.panel.v1.AlertChannel
+	(*ListAlertChannelsRequest)(nil),     // 1: raptor.panel.v1.ListAlertChannelsRequest
+	(*ListAlertChannelsResponse)(nil),    // 2: raptor.panel.v1.ListAlertChannelsResponse
+	(*CreateAlertChannelRequest)(nil),    // 3: raptor.panel.v1.CreateAlertChannelRequest
+	(*CreateAlertChannelResponse)(nil),   // 4: raptor.panel.v1.CreateAlertChannelResponse
+	(*UpdateAlertChannelRequest)(nil),    // 5: raptor.panel.v1.UpdateAlertChannelRequest
+	(*UpdateAlertChannelResponse)(nil),   // 6: raptor.panel.v1.UpdateAlertChannelResponse
+	(*DeleteAlertChannelRequest)(nil),    // 7: raptor.panel.v1.DeleteAlertChannelRequest
+	(*DeleteAlertChannelResponse)(nil),   // 8: raptor.panel.v1.DeleteAlertChannelResponse
+	(*TestAlertChannelRequest)(nil),      // 9: raptor.panel.v1.TestAlertChannelRequest
+	(*TestAlertChannelResponse)(nil),     // 10: raptor.panel.v1.TestAlertChannelResponse
+	(*ConnectTelegramRequest)(nil),       // 11: raptor.panel.v1.ConnectTelegramRequest
+	(*ConnectTelegramResponse)(nil),      // 12: raptor.panel.v1.ConnectTelegramResponse
+	(*AlertCondition)(nil),               // 13: raptor.panel.v1.AlertCondition
+	(*AlertRule)(nil),                    // 14: raptor.panel.v1.AlertRule
+	(*ListAlertRulesRequest)(nil),        // 15: raptor.panel.v1.ListAlertRulesRequest
+	(*ListAlertRulesResponse)(nil),       // 16: raptor.panel.v1.ListAlertRulesResponse
+	(*SaveAlertRuleRequest)(nil),         // 17: raptor.panel.v1.SaveAlertRuleRequest
+	(*SaveAlertRuleResponse)(nil),        // 18: raptor.panel.v1.SaveAlertRuleResponse
+	(*DeleteAlertRuleRequest)(nil),       // 19: raptor.panel.v1.DeleteAlertRuleRequest
+	(*DeleteAlertRuleResponse)(nil),      // 20: raptor.panel.v1.DeleteAlertRuleResponse
+	(*AlertHistoryEntry)(nil),            // 21: raptor.panel.v1.AlertHistoryEntry
+	(*ListAlertHistoryRequest)(nil),      // 22: raptor.panel.v1.ListAlertHistoryRequest
+	(*ListAlertHistoryResponse)(nil),     // 23: raptor.panel.v1.ListAlertHistoryResponse
+	(*Notification)(nil),                 // 24: raptor.panel.v1.Notification
+	(*ListNotificationsRequest)(nil),     // 25: raptor.panel.v1.ListNotificationsRequest
+	(*ListNotificationsResponse)(nil),    // 26: raptor.panel.v1.ListNotificationsResponse
+	(*SeeNotificationsRequest)(nil),      // 27: raptor.panel.v1.SeeNotificationsRequest
+	(*SeeNotificationsResponse)(nil),     // 28: raptor.panel.v1.SeeNotificationsResponse
+	(*DismissNotificationsRequest)(nil),  // 29: raptor.panel.v1.DismissNotificationsRequest
+	(*DismissNotificationsResponse)(nil), // 30: raptor.panel.v1.DismissNotificationsResponse
+	(*timestamppb.Timestamp)(nil),        // 31: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_alert_proto_depIdxs = []int32{
-	24, // 0: raptor.panel.v1.AlertChannel.failing_since:type_name -> google.protobuf.Timestamp
-	24, // 1: raptor.panel.v1.AlertChannel.last_sent_at:type_name -> google.protobuf.Timestamp
-	24, // 2: raptor.panel.v1.AlertChannel.created_at:type_name -> google.protobuf.Timestamp
+	31, // 0: raptor.panel.v1.AlertChannel.failing_since:type_name -> google.protobuf.Timestamp
+	31, // 1: raptor.panel.v1.AlertChannel.last_sent_at:type_name -> google.protobuf.Timestamp
+	31, // 2: raptor.panel.v1.AlertChannel.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 3: raptor.panel.v1.ListAlertChannelsResponse.channels:type_name -> raptor.panel.v1.AlertChannel
 	0,  // 4: raptor.panel.v1.CreateAlertChannelResponse.channel:type_name -> raptor.panel.v1.AlertChannel
 	0,  // 5: raptor.panel.v1.UpdateAlertChannelResponse.channel:type_name -> raptor.panel.v1.AlertChannel
-	24, // 6: raptor.panel.v1.ConnectTelegramResponse.expires_at:type_name -> google.protobuf.Timestamp
-	24, // 7: raptor.panel.v1.AlertRule.created_at:type_name -> google.protobuf.Timestamp
+	31, // 6: raptor.panel.v1.ConnectTelegramResponse.expires_at:type_name -> google.protobuf.Timestamp
+	31, // 7: raptor.panel.v1.AlertRule.created_at:type_name -> google.protobuf.Timestamp
 	14, // 8: raptor.panel.v1.ListAlertRulesResponse.rules:type_name -> raptor.panel.v1.AlertRule
 	13, // 9: raptor.panel.v1.ListAlertRulesResponse.conditions:type_name -> raptor.panel.v1.AlertCondition
 	14, // 10: raptor.panel.v1.SaveAlertRuleRequest.rule:type_name -> raptor.panel.v1.AlertRule
 	14, // 11: raptor.panel.v1.SaveAlertRuleResponse.rule:type_name -> raptor.panel.v1.AlertRule
-	24, // 12: raptor.panel.v1.AlertHistoryEntry.at:type_name -> google.protobuf.Timestamp
-	24, // 13: raptor.panel.v1.AlertHistoryEntry.sent_at:type_name -> google.protobuf.Timestamp
+	31, // 12: raptor.panel.v1.AlertHistoryEntry.at:type_name -> google.protobuf.Timestamp
+	31, // 13: raptor.panel.v1.AlertHistoryEntry.sent_at:type_name -> google.protobuf.Timestamp
 	21, // 14: raptor.panel.v1.ListAlertHistoryResponse.entries:type_name -> raptor.panel.v1.AlertHistoryEntry
-	1,  // 15: raptor.panel.v1.AlertService.ListAlertChannels:input_type -> raptor.panel.v1.ListAlertChannelsRequest
-	3,  // 16: raptor.panel.v1.AlertService.CreateAlertChannel:input_type -> raptor.panel.v1.CreateAlertChannelRequest
-	5,  // 17: raptor.panel.v1.AlertService.UpdateAlertChannel:input_type -> raptor.panel.v1.UpdateAlertChannelRequest
-	7,  // 18: raptor.panel.v1.AlertService.DeleteAlertChannel:input_type -> raptor.panel.v1.DeleteAlertChannelRequest
-	9,  // 19: raptor.panel.v1.AlertService.TestAlertChannel:input_type -> raptor.panel.v1.TestAlertChannelRequest
-	11, // 20: raptor.panel.v1.AlertService.ConnectTelegram:input_type -> raptor.panel.v1.ConnectTelegramRequest
-	15, // 21: raptor.panel.v1.AlertService.ListAlertRules:input_type -> raptor.panel.v1.ListAlertRulesRequest
-	17, // 22: raptor.panel.v1.AlertService.SaveAlertRule:input_type -> raptor.panel.v1.SaveAlertRuleRequest
-	19, // 23: raptor.panel.v1.AlertService.DeleteAlertRule:input_type -> raptor.panel.v1.DeleteAlertRuleRequest
-	22, // 24: raptor.panel.v1.AlertService.ListAlertHistory:input_type -> raptor.panel.v1.ListAlertHistoryRequest
-	2,  // 25: raptor.panel.v1.AlertService.ListAlertChannels:output_type -> raptor.panel.v1.ListAlertChannelsResponse
-	4,  // 26: raptor.panel.v1.AlertService.CreateAlertChannel:output_type -> raptor.panel.v1.CreateAlertChannelResponse
-	6,  // 27: raptor.panel.v1.AlertService.UpdateAlertChannel:output_type -> raptor.panel.v1.UpdateAlertChannelResponse
-	8,  // 28: raptor.panel.v1.AlertService.DeleteAlertChannel:output_type -> raptor.panel.v1.DeleteAlertChannelResponse
-	10, // 29: raptor.panel.v1.AlertService.TestAlertChannel:output_type -> raptor.panel.v1.TestAlertChannelResponse
-	12, // 30: raptor.panel.v1.AlertService.ConnectTelegram:output_type -> raptor.panel.v1.ConnectTelegramResponse
-	16, // 31: raptor.panel.v1.AlertService.ListAlertRules:output_type -> raptor.panel.v1.ListAlertRulesResponse
-	18, // 32: raptor.panel.v1.AlertService.SaveAlertRule:output_type -> raptor.panel.v1.SaveAlertRuleResponse
-	20, // 33: raptor.panel.v1.AlertService.DeleteAlertRule:output_type -> raptor.panel.v1.DeleteAlertRuleResponse
-	23, // 34: raptor.panel.v1.AlertService.ListAlertHistory:output_type -> raptor.panel.v1.ListAlertHistoryResponse
-	25, // [25:35] is the sub-list for method output_type
-	15, // [15:25] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	31, // 15: raptor.panel.v1.Notification.at:type_name -> google.protobuf.Timestamp
+	24, // 16: raptor.panel.v1.ListNotificationsResponse.notifications:type_name -> raptor.panel.v1.Notification
+	1,  // 17: raptor.panel.v1.AlertService.ListAlertChannels:input_type -> raptor.panel.v1.ListAlertChannelsRequest
+	3,  // 18: raptor.panel.v1.AlertService.CreateAlertChannel:input_type -> raptor.panel.v1.CreateAlertChannelRequest
+	5,  // 19: raptor.panel.v1.AlertService.UpdateAlertChannel:input_type -> raptor.panel.v1.UpdateAlertChannelRequest
+	7,  // 20: raptor.panel.v1.AlertService.DeleteAlertChannel:input_type -> raptor.panel.v1.DeleteAlertChannelRequest
+	9,  // 21: raptor.panel.v1.AlertService.TestAlertChannel:input_type -> raptor.panel.v1.TestAlertChannelRequest
+	11, // 22: raptor.panel.v1.AlertService.ConnectTelegram:input_type -> raptor.panel.v1.ConnectTelegramRequest
+	15, // 23: raptor.panel.v1.AlertService.ListAlertRules:input_type -> raptor.panel.v1.ListAlertRulesRequest
+	17, // 24: raptor.panel.v1.AlertService.SaveAlertRule:input_type -> raptor.panel.v1.SaveAlertRuleRequest
+	19, // 25: raptor.panel.v1.AlertService.DeleteAlertRule:input_type -> raptor.panel.v1.DeleteAlertRuleRequest
+	22, // 26: raptor.panel.v1.AlertService.ListAlertHistory:input_type -> raptor.panel.v1.ListAlertHistoryRequest
+	25, // 27: raptor.panel.v1.AlertService.ListNotifications:input_type -> raptor.panel.v1.ListNotificationsRequest
+	27, // 28: raptor.panel.v1.AlertService.SeeNotifications:input_type -> raptor.panel.v1.SeeNotificationsRequest
+	29, // 29: raptor.panel.v1.AlertService.DismissNotifications:input_type -> raptor.panel.v1.DismissNotificationsRequest
+	2,  // 30: raptor.panel.v1.AlertService.ListAlertChannels:output_type -> raptor.panel.v1.ListAlertChannelsResponse
+	4,  // 31: raptor.panel.v1.AlertService.CreateAlertChannel:output_type -> raptor.panel.v1.CreateAlertChannelResponse
+	6,  // 32: raptor.panel.v1.AlertService.UpdateAlertChannel:output_type -> raptor.panel.v1.UpdateAlertChannelResponse
+	8,  // 33: raptor.panel.v1.AlertService.DeleteAlertChannel:output_type -> raptor.panel.v1.DeleteAlertChannelResponse
+	10, // 34: raptor.panel.v1.AlertService.TestAlertChannel:output_type -> raptor.panel.v1.TestAlertChannelResponse
+	12, // 35: raptor.panel.v1.AlertService.ConnectTelegram:output_type -> raptor.panel.v1.ConnectTelegramResponse
+	16, // 36: raptor.panel.v1.AlertService.ListAlertRules:output_type -> raptor.panel.v1.ListAlertRulesResponse
+	18, // 37: raptor.panel.v1.AlertService.SaveAlertRule:output_type -> raptor.panel.v1.SaveAlertRuleResponse
+	20, // 38: raptor.panel.v1.AlertService.DeleteAlertRule:output_type -> raptor.panel.v1.DeleteAlertRuleResponse
+	23, // 39: raptor.panel.v1.AlertService.ListAlertHistory:output_type -> raptor.panel.v1.ListAlertHistoryResponse
+	26, // 40: raptor.panel.v1.AlertService.ListNotifications:output_type -> raptor.panel.v1.ListNotificationsResponse
+	28, // 41: raptor.panel.v1.AlertService.SeeNotifications:output_type -> raptor.panel.v1.SeeNotificationsResponse
+	30, // 42: raptor.panel.v1.AlertService.DismissNotifications:output_type -> raptor.panel.v1.DismissNotificationsResponse
+	30, // [30:43] is the sub-list for method output_type
+	17, // [17:30] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_alert_proto_init() }
@@ -1881,7 +2340,7 @@ func file_raptor_panel_v1_alert_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_alert_proto_rawDesc), len(file_raptor_panel_v1_alert_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

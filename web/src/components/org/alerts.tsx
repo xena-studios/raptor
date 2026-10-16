@@ -26,7 +26,7 @@ import {
   type AlertRule,
   AlertService,
 } from "@/gen/raptor/panel/v1/alert_pb";
-import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { type Member, OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { dateTime } from "@/lib/format";
 import { useOrgNodes, useOrgServers } from "@/lib/org-data";
@@ -40,8 +40,9 @@ const typeNames: Record<string, string> = {
   webhook: "Webhook",
 };
 
-// Alerts is an org's alerts (docs/PANEL.md#alerts): where they go, what's
-// worth one, and what was sent.
+// Alerts is an org's alerts (docs/PANEL.md#alerts): what's worth one and
+// who hears about it, the team's channels, and what was sent. How each
+// person is told is theirs to set (MyChannels, from the bell).
 export function Alerts({ orgId }: { orgId: string }) {
   const channels = useQuery(AlertService.method.listAlertChannels, { orgId });
   const rules = useQuery(AlertService.method.listAlertRules, { orgId });
@@ -51,16 +52,25 @@ export function Alerts({ orgId }: { orgId: string }) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
   return (
     <div className="flex flex-col gap-6">
-      <Channels orgId={orgId} channels={channels.data.channels} types={channels.data.types} />
       <Rules
         orgId={orgId}
         rules={rules.data.rules}
         conditions={rules.data.conditions}
         channels={channels.data.channels}
       />
+      <Channels orgId={orgId} channels={channels.data.channels} types={channels.data.types} />
       <History orgId={orgId} channels={channels.data.channels} />
     </div>
   );
+}
+
+// MyChannels is how the signed-in user is told about alerts sent to them,
+// beside their inbox: their own channels.
+export function MyChannels() {
+  const channels = useQuery(AlertService.method.listAlertChannels, { orgId: "" });
+  if (channels.error) return <p className="text-sm text-destructive">{message(channels.error)}</p>;
+  if (!channels.data) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  return <ChannelList orgId="" channels={channels.data.channels} types={channels.data.types} />;
 }
 
 function useRefresh() {
@@ -68,7 +78,36 @@ function useRefresh() {
   return () => client.invalidateQueries();
 }
 
+// Channels are an org's team channels: a Discord or Slack channel, a
+// group chat, a webhook, which everyone on the team reads.
 function Channels({
+  orgId,
+  channels,
+  types,
+}: {
+  orgId: string;
+  channels: AlertChannel[];
+  types: string[];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Team channels</CardTitle>
+        <CardDescription>
+          Places the whole team reads, like a Discord or Slack channel. Rules can post to them as
+          well as telling people.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChannelList orgId={orgId} channels={channels} types={types} />
+      </CardContent>
+    </Card>
+  );
+}
+
+// ChannelList lists channels, an org's (orgId) or the user's own (no
+// orgId), with adding, testing, editing, and removing.
+function ChannelList({
   orgId,
   channels,
   types,
@@ -80,29 +119,25 @@ function Channels({
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<AlertChannel>();
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="space-y-1.5">
-          <CardTitle>Channels</CardTitle>
-          <CardDescription>
-            Where alerts go. Rules below pick which channels hear about what.
-          </CardDescription>
+    <div className="flex flex-col gap-3">
+      {channels.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {orgId ? "No team channels." : "None: you're only told here, in the app."}
+        </p>
+      ) : (
+        <ul className="divide-y rounded-lg border">
+          {channels.map((c) => (
+            <ChannelRow key={c.id} orgId={orgId} channel={c} onEdit={() => setEditing(c)} />
+          ))}
+        </ul>
+      )}
+      {types.length > 0 && (
+        <div>
+          <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
+            <Plus /> {orgId ? "Add a team channel" : "Add a way to be told"}
+          </Button>
         </div>
-        <Button size="sm" onClick={() => setAdding(true)}>
-          <Plus /> Add channel
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {channels.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No channels: alerts go nowhere.</p>
-        ) : (
-          <ul className="divide-y rounded-lg border">
-            {channels.map((c) => (
-              <ChannelRow key={c.id} orgId={orgId} channel={c} onEdit={() => setEditing(c)} />
-            ))}
-          </ul>
-        )}
-      </CardContent>
+      )}
       {adding && <ChannelDialog orgId={orgId} types={types} onClose={() => setAdding(false)} />}
       {editing && (
         <ChannelDialog
@@ -112,7 +147,7 @@ function Channels({
           onClose={() => setEditing(undefined)}
         />
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -191,7 +226,14 @@ function ChannelRow({
           className="text-muted-foreground hover:text-destructive"
           disabled={remove.isPending}
           onClick={async () => {
-            if (!window.confirm(`Remove ${c.name}? Rules stop sending to it.`)) return;
+            if (
+              !window.confirm(
+                orgId
+                  ? `Remove ${c.name}? Rules stop posting to it.`
+                  : `Remove ${c.name}? You won't be told there any more.`,
+              )
+            )
+              return;
             try {
               await remove.mutateAsync({ orgId, id: c.id });
               await refresh();
@@ -250,14 +292,12 @@ function ChannelDialog({
   onClose: () => void;
 }) {
   const refresh = useRefresh();
-  const members = useQuery(OrgService.method.listMembers, { orgId });
   const create = useMutation(AlertService.method.createAlertChannel);
   const update = useMutation(AlertService.method.updateAlertChannel);
-  const [type, setType] = useState(channel?.type ?? types[0] ?? "email");
+  const [type, setType] = useState(channel?.type ?? types[0] ?? "ntfy");
   const [name, setName] = useState(channel?.name ?? "");
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState("");
-  const [emailTo, setEmailTo] = useState(channel?.emailTo || "owners");
   const [ntfyServer, setNtfyServer] = useState("");
   const [ntfyTopic, setNtfyTopic] = useState("");
   const [ntfyToken, setNtfyToken] = useState("");
@@ -277,10 +317,9 @@ function ChannelDialog({
           name,
           enabled: channel.enabled,
           ...fields,
-          emailTo: type === "email" ? emailTo : "",
         });
       } else {
-        await create.mutateAsync({ orgId, type, name, emailTo, ...fields });
+        await create.mutateAsync({ orgId, type, name, ...fields });
       }
       await refresh();
       onClose();
@@ -294,7 +333,13 @@ function ChannelDialog({
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>{editing ? `Edit ${channel.name}` : "Add a channel"}</DialogTitle>
+            <DialogTitle>
+              {editing
+                ? `Edit ${channel.name}`
+                : orgId
+                  ? "Add a team channel"
+                  : "Add a way to be told"}
+            </DialogTitle>
             <DialogDescription>
               {editing
                 ? "Leave the address empty to keep the one it has."
@@ -331,22 +376,9 @@ function ChannelDialog({
                 />
               </Field>
               {type === "email" && (
-                <Field id="channel-to" label="Send to" hint="Emails go to members of the org only.">
-                  <select
-                    id="channel-to"
-                    className={select}
-                    value={emailTo}
-                    onChange={(e) => setEmailTo(e.target.value)}
-                  >
-                    <option value="owners">The org's owners</option>
-                    <option value="admins">The org's owners and admins</option>
-                    {members.data?.members.map((m) => (
-                      <option key={m.userId} value={m.userId}>
-                        {m.name ? `${m.name} (${m.email})` : m.email}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <p className="text-sm text-muted-foreground">
+                  Alerts are emailed to your account's address. Change it in your account settings.
+                </p>
               )}
               {(type === "discord" || type === "slack" || type === "webhook") && (
                 <Field
@@ -455,7 +487,9 @@ function TelegramConnect({ orgId }: { orgId: string }) {
       {!d ? (
         <>
           <p className="text-muted-foreground">
-            Raptor's bot posts alerts to a private chat with you, or to a group it's added to.
+            {orgId
+              ? "Raptor's bot posts alerts to a group chat it's added to, or a private chat."
+              : "Raptor's bot sends you your alerts in a private chat, or in a group it's added to."}
           </p>
           <div>
             <Button
@@ -511,6 +545,37 @@ function scopeText(r: AlertRule, nodes: Map<string, string>, servers: Map<string
   return "Every node";
 }
 
+const roleOptions = [
+  { id: "owner", label: "Owners" },
+  { id: "admin", label: "Admins" },
+  { id: "member", label: "Members" },
+];
+
+const roleOf: Record<Role, string> = {
+  [Role.UNSPECIFIED]: "",
+  [Role.MEMBER]: "member",
+  [Role.ADMIN]: "admin",
+  [Role.OWNER]: "owner",
+};
+
+// audienceText is who a rule reaches: "Owners, Bob · #ops".
+function audienceText(
+  r: AlertRule,
+  members: Map<string, string>,
+  channels: Map<string, string>,
+): string {
+  const people = [
+    ...roleOptions.filter((o) => r.notifyRoles.includes(o.id)).map((o) => o.label),
+    ...r.notifyUserIds.map((id) => members.get(id) ?? "a former member"),
+  ];
+  const chans = r.channelIds.map((id) => channels.get(id) ?? "?");
+  return [people.join(", "), chans.join(", ")].filter(Boolean).join(" · ") || "nobody";
+}
+
+function memberName(m: Member): string {
+  return m.name || m.email;
+}
+
 function conditionText(r: AlertRule, c?: AlertCondition): string {
   if (!c) return r.condition;
   if (c.threshold) return `${c.label} ${r.threshold}${c.unit} for ${r.forMinutes} min`;
@@ -537,6 +602,8 @@ function Rules({
   const nodeNames = new Map(nodes.map((n) => [n.id, n.name]));
   const serverNames = new Map(servers.map((s) => [`${s.node.id}/${s.id}`, s.name]));
   const channelNames = new Map(channels.map((c) => [c.id, c.name]));
+  const members = useQuery(OrgService.method.listMembers, { orgId });
+  const memberNames = new Map((members.data?.members ?? []).map((m) => [m.userId, memberName(m)]));
   const byId = new Map(conditions.map((c) => [c.id, c]));
   const [editing, setEditing] = useState<AlertRule | "new">();
   const [error, setError] = useState("");
@@ -546,11 +613,11 @@ function Rules({
         <div className="space-y-1.5">
           <CardTitle>Rules</CardTitle>
           <CardDescription>
-            What's worth an alert, and where it goes. Thresholds are checked on the node every 10
-            seconds.
+            What's worth an alert, and who hears about it. Each person picks how they're told, from
+            the bell at the top of the page. Thresholds are checked on the node every 10 seconds.
           </CardDescription>
         </div>
-        <Button size="sm" disabled={channels.length === 0} onClick={() => setEditing("new")}>
+        <Button size="sm" onClick={() => setEditing("new")}>
           <Plus /> Add rule
         </Button>
       </CardHeader>
@@ -568,8 +635,7 @@ function Rules({
                   <span className="truncate text-xs text-muted-foreground">
                     {r.name ? `${conditionText(r, byId.get(r.condition))} · ` : ""}
                     {scopeText(r, nodeNames, serverNames)} →{" "}
-                    {r.channelIds.map((id) => channelNames.get(id) ?? "?").join(", ") ||
-                      "no channels"}
+                    {audienceText(r, memberNames, channelNames)}
                   </span>
                 </span>
                 <Switch
@@ -654,9 +720,12 @@ function RuleDialog({
   const [serverId, setServerId] = useState(rule?.serverId ?? "");
   const [threshold, setThreshold] = useState(String(rule?.threshold || 90));
   const [forMinutes, setForMinutes] = useState(String(rule?.forMinutes || 5));
-  const [picked, setPicked] = useState<string[]>(
-    rule?.channelIds ?? channels.slice(0, 1).map((c) => c.id),
-  );
+  const members = useQuery(OrgService.method.listMembers, { orgId });
+  const [picked, setPicked] = useState<string[]>(rule?.channelIds ?? []);
+  const [roles, setRoles] = useState<string[]>(rule?.notifyRoles ?? ["owner", "admin"]);
+  const [people, setPeople] = useState<string[]>(rule?.notifyUserIds ?? []);
+  // People already told by a picked role aren't listed to pick again.
+  const others = (members.data?.members ?? []).filter((m) => !roles.includes(roleOf[m.role]));
   const [resolved, setResolved] = useState(rule?.notifyResolved ?? true);
   const [error, setError] = useState("");
   const c = conditions.find((x) => x.id === condition);
@@ -678,6 +747,8 @@ function RuleDialog({
           threshold: c?.threshold ? Number(threshold) : 0,
           forMinutes: timed ? Number(forMinutes) : 0,
           channelIds: picked,
+          notifyRoles: roles,
+          notifyUserIds: people.filter((id) => others.some((m) => m.userId === id)),
           notifyResolved: resolved,
           enabled: rule?.enabled ?? true,
         },
@@ -695,7 +766,9 @@ function RuleDialog({
         <form onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{rule ? "Edit the rule" : "Add a rule"}</DialogTitle>
-            <DialogDescription>An alert goes to every channel picked.</DialogDescription>
+            <DialogDescription>
+              Everyone picked is told in Raptor and the ways they've set up for themselves.
+            </DialogDescription>
           </DialogHeader>
           <Field id="rule-condition" label="When">
             <select
@@ -801,21 +874,62 @@ function RuleDialog({
           )}
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1.5 font-mono text-xs leading-none tracking-wide uppercase">
-              Send to
+              Tell
             </legend>
-            {channels.map((ch) => (
-              <label key={ch.id} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={picked.includes(ch.id)}
-                  onCheckedChange={(on) =>
-                    setPicked(on ? [...picked, ch.id] : picked.filter((x) => x !== ch.id))
-                  }
-                />
-                {ch.name}
-                <span className="text-xs text-muted-foreground">{typeNames[ch.type]}</span>
-              </label>
-            ))}
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {roleOptions.map((o) => (
+                <label key={o.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={roles.includes(o.id)}
+                    onCheckedChange={(on) =>
+                      setRoles(on ? [...roles, o.id] : roles.filter((x) => x !== o.id))
+                    }
+                  />
+                  {o.label}
+                </label>
+              ))}
+            </div>
+            {others.length > 0 && (
+              <div className="flex max-h-36 flex-col gap-2 overflow-auto rounded-lg border p-2">
+                {others.map((m) => (
+                  <label key={m.userId} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={people.includes(m.userId)}
+                      onCheckedChange={(on) =>
+                        setPeople(on ? [...people, m.userId] : people.filter((x) => x !== m.userId))
+                      }
+                    />
+                    <span className="truncate">{memberName(m)}</span>
+                    {m.name && (
+                      <span className="truncate text-xs text-muted-foreground">{m.email}</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Members are only told about servers they have access to.
+            </p>
           </fieldset>
+          {channels.length > 0 && (
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1.5 font-mono text-xs leading-none tracking-wide uppercase">
+                Also post to
+              </legend>
+              {channels.map((ch) => (
+                <label key={ch.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={picked.includes(ch.id)}
+                    onCheckedChange={(on) =>
+                      setPicked(on ? [...picked, ch.id] : picked.filter((x) => x !== ch.id))
+                    }
+                  />
+                  {ch.name}
+                  <span className="text-xs text-muted-foreground">{typeNames[ch.type]}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
           {c?.resolves && (
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={resolved} onCheckedChange={(on) => setResolved(on)} />
@@ -835,7 +949,15 @@ function RuleDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={save.isPending || picked.length === 0}>
+            <Button
+              type="submit"
+              disabled={
+                save.isPending ||
+                (picked.length === 0 &&
+                  roles.length === 0 &&
+                  !people.some((id) => others.some((m) => m.userId === id)))
+              }
+            >
               {save.isPending && <Loader2 className="animate-spin" />}
               Save
             </Button>
@@ -865,7 +987,10 @@ function History({ orgId, channels }: { orgId: string; channels: AlertChannel[] 
     <Card>
       <CardHeader>
         <CardTitle>Recent alerts</CardTitle>
-        <CardDescription>The last 50, one line per channel. Kept 30 days.</CardDescription>
+        <CardDescription>
+          The last 50, one line for each channel and each person's own way of being told. Kept 30
+          days.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {history.error && <p className="text-sm text-destructive">{message(history.error)}</p>}
@@ -879,7 +1004,7 @@ function History({ orgId, channels }: { orgId: string; channels: AlertChannel[] 
                   <span className="truncate text-sm">{e.title}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {[e.serverName, e.nodeName].filter(Boolean).join(" on ") || "—"} ·{" "}
-                    {names.get(e.channelId) ?? "a removed channel"} ·{" "}
+                    {e.channelLabel || names.get(e.channelId) || "a removed channel"} ·{" "}
                     {e.at ? dateTime(timestampDate(e.at)) : ""}
                   </span>
                   {e.error && e.status !== "sent" && (

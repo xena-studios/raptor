@@ -24,6 +24,7 @@ type AlertChannel struct {
 	DisabledAt   pgtype.Timestamptz
 	CreatedBy    pgtype.UUID
 	CreatedAt    pgtype.Timestamptz
+	UserID       pgtype.UUID
 }
 
 type AlertDelivery struct {
@@ -38,6 +39,18 @@ type AlertDelivery struct {
 	Error     string
 	CreatedAt pgtype.Timestamptz
 	SentAt    pgtype.Timestamptz
+	Label     string
+}
+
+type AlertNotification struct {
+	ID          pgtype.UUID
+	UserID      pgtype.UUID
+	OrgID       pgtype.UUID
+	RuleID      pgtype.UUID
+	Message     []byte
+	CreatedAt   pgtype.Timestamptz
+	SeenAt      pgtype.Timestamptz
+	DismissedAt pgtype.Timestamptz
 }
 
 type AlertRule struct {
@@ -55,6 +68,8 @@ type AlertRule struct {
 	CreatedBy      pgtype.UUID
 	CreatedAt      pgtype.Timestamptz
 	UpdatedAt      pgtype.Timestamptz
+	NotifyRoles    []string
+	NotifyUserIds  []pgtype.UUID
 }
 
 type AlertState struct {

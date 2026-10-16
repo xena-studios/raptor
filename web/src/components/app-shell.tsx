@@ -21,7 +21,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
-
+import { AlertsBell } from "@/components/alerts-bell";
 import { Announcements } from "@/components/announcements";
 import { BillingBanner } from "@/components/billing-banner";
 import { NotFound } from "@/components/error-screen";
@@ -185,7 +185,10 @@ export function AppShell({
               <span className="truncate text-sm text-muted-foreground">{title}</span>
             </>
           )}
-          {orgId && !admin && <NodeClock orgId={orgId} />}
+          <div className="ml-auto flex items-center gap-1">
+            {orgId && !admin && <NodeClock orgId={orgId} />}
+            <AlertsBell />
+          </div>
         </header>
         <ConnectionBanner />
         <Announcements />

@@ -18,8 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 )
 
@@ -44,9 +42,6 @@ type ChannelInput struct {
 	URL string
 	// Secret signs a webhook's requests (optional).
 	Secret string
-	// EmailTo: "owners", "admins" (owners and admins), or a member's user
-	// ID.
-	EmailTo string
 	// ntfy: the server (empty: ntfy.sh), the topic, and an access token
 	// (optional).
 	NtfyServer, NtfyTopic, NtfyToken string
@@ -102,16 +97,8 @@ func prepare(in ChannelInput, allowPrivate bool) (config, secret, string, error)
 	var s secret
 	switch in.Type {
 	case Email:
-		switch to := strings.TrimSpace(in.EmailTo); to {
-		case "owners", "admins":
-			c.To = to
-		default:
-			id, err := uuid.Parse(to)
-			if err != nil {
-				return c, s, "", invalid("pick who gets the emails")
-			}
-			c.To = id.String()
-		}
+		// Someone's own email: their account's address.
+		c.To = "me"
 		return c, s, "", nil
 	case Discord:
 		u, err := parseHTTPS(in.URL, false)
@@ -326,14 +313,14 @@ func emailText(m Message) (string, string) {
 		b.WriteString("\n" + m.URL + "\n")
 	}
 	if m.Condition == "test" {
-		b.WriteString("\nSomeone in this org sent a test to this channel. Change alerts in the org's settings, under Alerts.\n")
+		b.WriteString("\nYou sent a test to your email from Raptor. Change how you're told about alerts from the bell at the top of any page.\n")
 		return subject, b.String()
 	}
 	b.WriteString("\nYou get this because of an alert rule")
 	if m.Rule != "" {
 		b.WriteString(" (" + m.Rule + ")")
 	}
-	b.WriteString(" in this org. Change alerts in the org's settings, under Alerts.\n")
+	b.WriteString(" in this org that tells you. Change how you're told from the bell at the top of any page in Raptor; the org's admins choose which alerts you get.\n")
 	return subject, b.String()
 }
 

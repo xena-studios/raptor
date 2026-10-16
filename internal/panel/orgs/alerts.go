@@ -10,7 +10,6 @@ import (
 	"unicode/utf8"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -50,16 +49,43 @@ func (a *Alerts) admin(ctx context.Context, orgID string) (*auth.Session, pgtype
 	return sess, org, err
 }
 
-// changing checks the user may change the org's alerts, and how often.
-func (a *Alerts) changing(ctx context.Context, orgID string) (*auth.Session, pgtype.UUID, error) {
-	sess, org, err := a.admin(ctx, orgID)
+// scope is whose channels a call is about: the org's (its admins and
+// owners only) or, with no org, the signed-in user's own.
+func (a *Alerts) scope(ctx context.Context, orgID string) (*auth.Session, alerts.Owner, error) {
+	if orgID != "" {
+		sess, org, err := a.admin(ctx, orgID)
+		return sess, alerts.Owner{Org: org}, err
+	}
+	var sess *auth.Session
+	err := a.Orgs.asUser(ctx, func(se *auth.Session, _ *store.Queries) error {
+		sess = se
+		return nil
+	})
 	if err != nil {
-		return nil, org, err
+		return nil, alerts.Owner{}, err
+	}
+	return sess, alerts.Owner{User: sess.UserID}, nil
+}
+
+// changing checks the user may change these alerts, and how often.
+func (a *Alerts) changing(ctx context.Context, orgID string) (*auth.Session, alerts.Owner, error) {
+	sess, owner, err := a.scope(ctx, orgID)
+	if err != nil {
+		return nil, owner, err
 	}
 	if err := a.Orgs.Auth.RateLimit(ctx, "alerts:user:"+idString(sess.UserID), alertChangesPerHour, time.Hour); err != nil {
-		return nil, org, err
+		return nil, owner, err
 	}
-	return sess, org, nil
+	return sess, owner, nil
+}
+
+// changingRules is changing for an org's rules.
+func (a *Alerts) changingRules(ctx context.Context, orgID string) (*auth.Session, pgtype.UUID, error) {
+	if orgID == "" {
+		return nil, pgtype.UUID{}, connect.NewError(connect.CodeInvalidArgument, errors.New("rules are an org's"))
+	}
+	sess, owner, err := a.changing(ctx, orgID)
+	return sess, owner.Org, err
 }
 
 func alertInput(err error) error {
@@ -89,69 +115,85 @@ func stampOf(t pgtype.Timestamptz) *timestamppb.Timestamp {
 }
 
 // channelTarget says what a channel sends to, without its secret.
-func (a *Alerts) channelTarget(ctx context.Context, org pgtype.UUID, typ string, raw []byte, hint string) (target, emailTo string) {
+func (a *Alerts) channelTarget(ctx context.Context, owner alerts.Owner, typ string, raw []byte, hint string) string {
 	var c struct {
-		To        string `json:"to"`
 		ChatTitle string `json:"chat_title"`
 	}
 	_ = json.Unmarshal(raw, &c)
 	switch typ {
 	case alerts.Email:
-		switch c.To {
-		case "owners":
-			return "The org's owners", c.To
-		case "admins":
-			return "The org's owners and admins", c.To
-		}
-		if id, err := uuid.Parse(c.To); err == nil {
-			emails, _ := store.New(a.Orgs.DB).AlertRecipients(ctx, store.AlertRecipientsParams{OrgID: org, Users: []pgtype.UUID{{Bytes: id, Valid: true}}})
-			if len(emails) > 0 {
-				return emails[0], c.To
+		if owner.User.Valid {
+			if email, err := store.New(a.Orgs.DB).UserEmail(ctx, owner.User); err == nil {
+				return email
 			}
-			return "A former member (nobody gets these)", c.To
 		}
+		return "Your account's email"
 	case alerts.Telegram:
-		return c.ChatTitle, ""
+		return c.ChatTitle
 	}
-	return hint, ""
+	return hint
 }
 
-func (a *Alerts) channel(ctx context.Context, org pgtype.UUID, ch store.AlertChannel) *panelv1.AlertChannel {
-	target, to := a.channelTarget(ctx, org, ch.Type, ch.Config, ch.Hint)
+func (a *Alerts) channel(ctx context.Context, owner alerts.Owner, ch store.AlertChannel) *panelv1.AlertChannel {
 	return &panelv1.AlertChannel{
-		Id: idString(ch.ID), Type: ch.Type, Name: ch.Name, Target: target, Enabled: !ch.DisabledAt.Valid,
-		FailingSince: stampOf(ch.FailingSince), Error: ch.LastError, LastSentAt: stampOf(ch.LastSentAt),
-		CreatedAt: timestamppb.New(ch.CreatedAt.Time), EmailTo: to,
+		Id: idString(ch.ID), Type: ch.Type, Name: ch.Name, Target: a.channelTarget(ctx, owner, ch.Type, ch.Config, ch.Hint),
+		Enabled: !ch.DisabledAt.Valid, FailingSince: stampOf(ch.FailingSince), Error: ch.LastError,
+		LastSentAt: stampOf(ch.LastSentAt), CreatedAt: timestamppb.New(ch.CreatedAt.Time),
 	}
+}
+
+// ownerParams are the org and user columns that pick out an owner's
+// channels.
+func ownerParams(o alerts.Owner) (org, user pgtype.UUID) {
+	return o.Org, o.User
 }
 
 // ListAlertChannels implements AlertService.
 func (a *Alerts) ListAlertChannels(ctx context.Context, req *panelv1.ListAlertChannelsRequest) (*panelv1.ListAlertChannelsResponse, error) {
-	var org pgtype.UUID
-	var rows []store.OrgAlertChannelsRow
-	err := a.Orgs.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
-		var err error
-		if org, _, err = member(ctx, q, sess, req.GetOrgId(), "admin"); err != nil {
+	_, owner, err := a.scope(ctx, req.GetOrgId())
+	if err != nil {
+		return nil, err
+	}
+	var rows []store.AlertChannel
+	err = a.Orgs.asUser(ctx, func(_ *auth.Session, q *store.Queries) error {
+		if owner.User.Valid {
+			list, err := q.UserAlertChannels(ctx, owner.User)
+			for _, r := range list {
+				rows = append(rows, store.AlertChannel{
+					ID: r.ID, Type: r.Type, Name: r.Name, Config: r.Config, Hint: r.Hint, FailingSince: r.FailingSince,
+					LastError: r.LastError, LastSentAt: r.LastSentAt, DisabledAt: r.DisabledAt, CreatedAt: r.CreatedAt,
+				})
+			}
 			return err
 		}
-		rows, err = q.OrgAlertChannels(ctx, org)
+		list, err := q.OrgAlertChannels(ctx, owner.Org)
+		for _, r := range list {
+			rows = append(rows, store.AlertChannel{
+				ID: r.ID, Type: r.Type, Name: r.Name, Config: r.Config, Hint: r.Hint, FailingSince: r.FailingSince,
+				LastError: r.LastError, LastSentAt: r.LastSentAt, DisabledAt: r.DisabledAt, CreatedAt: r.CreatedAt,
+			})
+		}
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	out := &panelv1.ListAlertChannelsResponse{Limit: alerts.ChannelsPerOrg, Types: []string{alerts.Email}}
-	if len(a.Alerts.DataKey) == 32 {
-		out.Types = append(out.Types, alerts.Discord, alerts.Slack, alerts.Ntfy, alerts.Webhook)
+	out := &panelv1.ListAlertChannelsResponse{Limit: alerts.ChannelsPerOrg}
+	if owner.User.Valid {
+		out.Limit = alerts.ChannelsPerUser
+		// One email channel each: their account's address.
+		if !slices.ContainsFunc(rows, func(c store.AlertChannel) bool { return c.Type == alerts.Email }) {
+			out.Types = append(out.Types, alerts.Email)
+		}
 	}
 	if a.Alerts.Telegram != nil && a.Alerts.Telegram.Username() != "" {
 		out.Types = append(out.Types, alerts.Telegram)
 	}
+	if len(a.Alerts.DataKey) == 32 {
+		out.Types = append(out.Types, alerts.Ntfy, alerts.Discord, alerts.Slack, alerts.Webhook)
+	}
 	for _, r := range rows {
-		out.Channels = append(out.Channels, a.channel(ctx, org, store.AlertChannel{
-			ID: r.ID, Type: r.Type, Name: r.Name, Config: r.Config, Hint: r.Hint, FailingSince: r.FailingSince,
-			LastError: r.LastError, LastSentAt: r.LastSentAt, DisabledAt: r.DisabledAt, CreatedAt: r.CreatedAt,
-		}))
+		out.Channels = append(out.Channels, a.channel(ctx, owner, r))
 	}
 	return out, nil
 }
@@ -163,77 +205,82 @@ var channelLabels = map[string]string{
 
 // CreateAlertChannel implements AlertService.
 func (a *Alerts) CreateAlertChannel(ctx context.Context, req *panelv1.CreateAlertChannelRequest) (*panelv1.CreateAlertChannelResponse, error) {
-	sess, org, err := a.changing(ctx, req.GetOrgId())
+	sess, owner, err := a.changing(ctx, req.GetOrgId())
 	if err != nil {
 		return nil, err
+	}
+	if req.GetType() == alerts.Email && !owner.User.Valid {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("email goes to people: pick them in a rule, and each sets up their own"))
 	}
 	name, err := alertName(req.GetName(), channelLabels[req.GetType()])
 	if err != nil {
 		return nil, err
 	}
 	in := alerts.ChannelInput{
-		Type: req.GetType(), URL: req.GetUrl(), Secret: req.GetSecret(), EmailTo: req.GetEmailTo(),
+		Type: req.GetType(), URL: req.GetUrl(), Secret: req.GetSecret(),
 		NtfyServer: req.GetNtfyServer(), NtfyTopic: req.GetNtfyTopic(), NtfyToken: req.GetNtfyToken(),
 	}
-	if err := a.emailMember(ctx, org, in.Type, in.EmailTo); err != nil {
-		return nil, err
-	}
-	p, err := a.Alerts.Prepare(org, in)
+	p, err := a.Alerts.Prepare(owner, in)
 	if err != nil {
 		return nil, alertInput(err)
 	}
+	org, user := ownerParams(owner)
 	var ch store.AlertChannel
 	err = pgx.BeginFunc(ctx, a.Orgs.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		n, err := q.CountOrgAlertChannels(ctx, org)
-		if err != nil {
-			return err
-		}
-		if n >= alerts.ChannelsPerOrg {
-			return connect.NewError(connect.CodeResourceExhausted, errors.New("an org can have 20 alert channels"))
+		if user.Valid {
+			n, err := q.CountUserAlertChannels(ctx, user)
+			if err != nil {
+				return err
+			}
+			if n >= alerts.ChannelsPerUser {
+				return connect.NewError(connect.CodeResourceExhausted, errors.New("you can have 10 alert channels of your own"))
+			}
+			if in.Type == alerts.Email {
+				list, err := q.UserAlertChannels(ctx, user)
+				if err != nil {
+					return err
+				}
+				if slices.ContainsFunc(list, func(c store.UserAlertChannelsRow) bool { return c.Type == alerts.Email }) {
+					return connect.NewError(connect.CodeAlreadyExists, errors.New("you already have an email channel"))
+				}
+			}
+		} else {
+			n, err := q.CountOrgAlertChannels(ctx, org)
+			if err != nil {
+				return err
+			}
+			if n >= alerts.ChannelsPerOrg {
+				return connect.NewError(connect.CodeResourceExhausted, errors.New("an org can have 20 alert channels"))
+			}
 		}
 		id, err := q.InsertAlertChannel(ctx, store.InsertAlertChannelParams{
-			OrgID: org, Type: in.Type, Name: name, Config: p.Config, Secret: p.Secret, Hint: p.Hint, CreatedBy: sess.UserID,
+			OrgID: org, UserID: user, Type: in.Type, Name: name, Config: p.Config, Secret: p.Secret, Hint: p.Hint, CreatedBy: sess.UserID,
 		})
 		if err != nil {
 			return err
 		}
-		if ch, err = q.GetAlertChannel(ctx, store.GetAlertChannelParams{ID: id, OrgID: org}); err != nil {
+		if ch, err = q.GetAlertChannel(ctx, store.GetAlertChannelParams{ID: id, OrgID: org, UserID: user}); err != nil {
 			return err
+		}
+		if user.Valid {
+			return nil
 		}
 		return a.Orgs.audit(ctx, q, sess, org, "alert.channel.create", name, nil, map[string]any{"type": in.Type})
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &panelv1.CreateAlertChannelResponse{Channel: a.channel(ctx, org, ch)}, nil
+	return &panelv1.CreateAlertChannelResponse{Channel: a.channel(ctx, owner, ch)}, nil
 }
 
-// emailMember checks an email channel names someone in the org.
-func (a *Alerts) emailMember(ctx context.Context, org pgtype.UUID, typ, to string) error {
-	if typ != alerts.Email || to == "owners" || to == "admins" {
-		return nil
-	}
-	id, err := uuid.Parse(to)
-	if err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("pick who gets the emails"))
-	}
-	emails, err := store.New(a.Orgs.DB).AlertRecipients(ctx, store.AlertRecipientsParams{OrgID: org, Users: []pgtype.UUID{{Bytes: id, Valid: true}}})
-	if err != nil {
-		return err
-	}
-	if len(emails) == 0 {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("emails go to members of the org only"))
-	}
-	return nil
-}
-
-func (a *Alerts) getChannel(ctx context.Context, q *store.Queries, org pgtype.UUID, id string) (store.AlertChannel, error) {
+func (a *Alerts) getChannel(ctx context.Context, q *store.Queries, owner alerts.Owner, id string) (store.AlertChannel, error) {
 	cid, err := parseID(id, "channel")
 	if err != nil {
 		return store.AlertChannel{}, err
 	}
-	ch, err := q.GetAlertChannel(ctx, store.GetAlertChannelParams{ID: cid, OrgID: org})
+	org, user := ownerParams(owner)
+	ch, err := q.GetAlertChannel(ctx, store.GetAlertChannelParams{ID: cid, OrgID: org, UserID: user})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ch, connect.NewError(connect.CodeNotFound, errors.New("no such channel"))
 	}
@@ -242,14 +289,15 @@ func (a *Alerts) getChannel(ctx context.Context, q *store.Queries, org pgtype.UU
 
 // UpdateAlertChannel implements AlertService.
 func (a *Alerts) UpdateAlertChannel(ctx context.Context, req *panelv1.UpdateAlertChannelRequest) (*panelv1.UpdateAlertChannelResponse, error) {
-	sess, org, err := a.changing(ctx, req.GetOrgId())
+	sess, owner, err := a.changing(ctx, req.GetOrgId())
 	if err != nil {
 		return nil, err
 	}
+	org, user := ownerParams(owner)
 	var ch store.AlertChannel
 	err = pgx.BeginFunc(ctx, a.Orgs.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		cur, err := a.getChannel(ctx, q, org, req.GetId())
+		cur, err := a.getChannel(ctx, q, owner, req.GetId())
 		if err != nil {
 			return err
 		}
@@ -257,25 +305,20 @@ func (a *Alerts) UpdateAlertChannel(ctx context.Context, req *panelv1.UpdateAler
 		if err != nil {
 			return err
 		}
-		params := store.UpdateAlertChannelParams{ID: cur.ID, OrgID: org, Name: name, Enabled: req.GetEnabled()}
+		params := store.UpdateAlertChannelParams{ID: cur.ID, OrgID: org, UserID: user, Name: name, Enabled: req.GetEnabled()}
 		in := alerts.ChannelInput{
-			Type: cur.Type, URL: req.GetUrl(), Secret: req.GetSecret(), EmailTo: req.GetEmailTo(),
+			Type: cur.Type, URL: req.GetUrl(), Secret: req.GetSecret(),
 			NtfyServer: req.GetNtfyServer(), NtfyTopic: req.GetNtfyTopic(), NtfyToken: req.GetNtfyToken(),
 		}
 		change := false
 		switch cur.Type {
-		case alerts.Email:
-			change = in.EmailTo != ""
 		case alerts.Discord, alerts.Slack, alerts.Webhook:
 			change = in.URL != ""
 		case alerts.Ntfy:
 			change = in.NtfyTopic != ""
 		}
 		if change {
-			if err := a.emailMember(ctx, org, in.Type, in.EmailTo); err != nil {
-				return err
-			}
-			p, err := a.Alerts.Prepare(org, in)
+			p, err := a.Alerts.Prepare(owner, in)
 			if err != nil {
 				return alertInput(err)
 			}
@@ -284,34 +327,43 @@ func (a *Alerts) UpdateAlertChannel(ctx context.Context, req *panelv1.UpdateAler
 		if _, err := q.UpdateAlertChannel(ctx, params); err != nil {
 			return err
 		}
-		if ch, err = q.GetAlertChannel(ctx, store.GetAlertChannelParams{ID: cur.ID, OrgID: org}); err != nil {
+		if ch, err = q.GetAlertChannel(ctx, store.GetAlertChannelParams{ID: cur.ID, OrgID: org, UserID: user}); err != nil {
 			return err
+		}
+		if user.Valid {
+			return nil
 		}
 		return a.Orgs.audit(ctx, q, sess, org, "alert.channel.update", name, nil, map[string]any{"enabled": req.GetEnabled(), "target_changed": change})
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &panelv1.UpdateAlertChannelResponse{Channel: a.channel(ctx, org, ch)}, nil
+	return &panelv1.UpdateAlertChannelResponse{Channel: a.channel(ctx, owner, ch)}, nil
 }
 
 // DeleteAlertChannel implements AlertService.
 func (a *Alerts) DeleteAlertChannel(ctx context.Context, req *panelv1.DeleteAlertChannelRequest) (*panelv1.DeleteAlertChannelResponse, error) {
-	sess, org, err := a.changing(ctx, req.GetOrgId())
+	sess, owner, err := a.changing(ctx, req.GetOrgId())
 	if err != nil {
 		return nil, err
 	}
+	org, user := ownerParams(owner)
 	err = pgx.BeginFunc(ctx, a.Orgs.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		ch, err := a.getChannel(ctx, q, org, req.GetId())
+		ch, err := a.getChannel(ctx, q, owner, req.GetId())
 		if err != nil {
 			return err
 		}
-		if err := q.RemoveChannelFromRules(ctx, store.RemoveChannelFromRulesParams{OrgID: org, ChannelID: ch.ID}); err != nil {
+		if org.Valid {
+			if err := q.RemoveChannelFromRules(ctx, store.RemoveChannelFromRulesParams{OrgID: org, ChannelID: ch.ID}); err != nil {
+				return err
+			}
+		}
+		if _, err := q.DeleteAlertChannel(ctx, store.DeleteAlertChannelParams{ID: ch.ID, OrgID: org, UserID: user}); err != nil {
 			return err
 		}
-		if _, err := q.DeleteAlertChannel(ctx, store.DeleteAlertChannelParams{ID: ch.ID, OrgID: org}); err != nil {
-			return err
+		if user.Valid {
+			return nil
 		}
 		return a.Orgs.audit(ctx, q, sess, org, "alert.channel.delete", ch.Name, nil, map[string]any{"type": ch.Type})
 	})
@@ -323,7 +375,7 @@ func (a *Alerts) DeleteAlertChannel(ctx context.Context, req *panelv1.DeleteAler
 
 // TestAlertChannel implements AlertService.
 func (a *Alerts) TestAlertChannel(ctx context.Context, req *panelv1.TestAlertChannelRequest) (*panelv1.TestAlertChannelResponse, error) {
-	sess, org, err := a.admin(ctx, req.GetOrgId())
+	sess, owner, err := a.scope(ctx, req.GetOrgId())
 	if err != nil {
 		return nil, err
 	}
@@ -331,12 +383,15 @@ func (a *Alerts) TestAlertChannel(ctx context.Context, req *panelv1.TestAlertCha
 		return nil, err
 	}
 	q := store.New(a.Orgs.DB)
-	ch, err := a.getChannel(ctx, q, org, req.GetId())
+	ch, err := a.getChannel(ctx, q, owner, req.GetId())
 	if err != nil {
 		return nil, err
 	}
-	name, _ := q.OrgName(ctx, org)
-	if err := a.Alerts.Test(ctx, org, ch, name); err != nil {
+	var name string
+	if owner.Org.Valid {
+		name, _ = q.OrgName(ctx, owner.Org)
+	}
+	if err := a.Alerts.Test(ctx, owner, ch, name); err != nil {
 		return &panelv1.TestAlertChannelResponse{Error: err.Error()}, nil //nolint:nilerr // a failed test is an answer
 	}
 	return &panelv1.TestAlertChannelResponse{Ok: true}, nil
@@ -344,11 +399,11 @@ func (a *Alerts) TestAlertChannel(ctx context.Context, req *panelv1.TestAlertCha
 
 // ConnectTelegram implements AlertService.
 func (a *Alerts) ConnectTelegram(ctx context.Context, req *panelv1.ConnectTelegramRequest) (*panelv1.ConnectTelegramResponse, error) {
-	sess, org, err := a.changing(ctx, req.GetOrgId())
+	sess, owner, err := a.changing(ctx, req.GetOrgId())
 	if err != nil {
 		return nil, err
 	}
-	chat, group, expires, err := a.Alerts.TelegramLink(ctx, org, sess.UserID)
+	chat, group, expires, err := a.Alerts.TelegramLink(ctx, owner.Org, sess.UserID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
@@ -364,11 +419,14 @@ func conditionsProto() []*panelv1.AlertCondition {
 }
 
 func ruleProto(id pgtype.UUID, name, condition string, node pgtype.UUID, server string, threshold float64, forMinutes int32,
-	channels []pgtype.UUID, resolved, enabled bool, created pgtype.Timestamptz,
+	channels []pgtype.UUID, roles []string, users []pgtype.UUID, resolved, enabled bool, created pgtype.Timestamptz,
 ) *panelv1.AlertRule {
 	r := &panelv1.AlertRule{
 		Id: idString(id), Name: name, Condition: condition, ServerId: server, Threshold: threshold, ForMinutes: forMinutes,
-		NotifyResolved: resolved, Enabled: enabled, CreatedAt: timestamppb.New(created.Time),
+		NotifyResolved: resolved, Enabled: enabled, CreatedAt: timestamppb.New(created.Time), NotifyRoles: roles,
+	}
+	for _, u := range users {
+		r.NotifyUserIds = append(r.NotifyUserIds, idString(u))
 	}
 	if node.Valid {
 		r.NodeId = idString(node)
@@ -392,7 +450,7 @@ func (a *Alerts) ListAlertRules(ctx context.Context, req *panelv1.ListAlertRules
 			return err
 		}
 		for _, r := range rows {
-			out.Rules = append(out.Rules, ruleProto(r.ID, r.Name, r.Condition, r.NodeID, r.ServerID, r.Threshold, r.ForMinutes, r.ChannelIds, r.NotifyResolved, r.Enabled, r.CreatedAt))
+			out.Rules = append(out.Rules, ruleProto(r.ID, r.Name, r.Condition, r.NodeID, r.ServerID, r.Threshold, r.ForMinutes, r.ChannelIds, r.NotifyRoles, r.NotifyUserIds, r.NotifyResolved, r.Enabled, r.CreatedAt))
 		}
 		return nil
 	})
@@ -408,7 +466,7 @@ func invalidRule(msg string) error {
 
 // SaveAlertRule implements AlertService.
 func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRequest) (*panelv1.SaveAlertRuleResponse, error) {
-	sess, org, err := a.changing(ctx, req.GetOrgId())
+	sess, org, err := a.changingRules(ctx, req.GetOrgId())
 	if err != nil {
 		return nil, err
 	}
@@ -453,10 +511,29 @@ func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRe
 			return nil, err
 		}
 	}
-	if len(in.GetChannelIds()) == 0 {
-		return nil, invalidRule("pick at least one channel")
+	var roles []string
+	for _, r := range in.GetNotifyRoles() {
+		if !slices.Contains([]string{"owner", "admin", "member"}, r) {
+			return nil, invalidRule("people are picked by role: owner, admin, or member")
+		}
+		if !slices.Contains(roles, r) {
+			roles = append(roles, r)
+		}
 	}
-	var channels []pgtype.UUID
+	var users []pgtype.UUID
+	for _, id := range in.GetNotifyUserIds() {
+		uid, err := parseID(id, "user")
+		if err != nil {
+			return nil, err
+		}
+		if !slices.Contains(users, uid) {
+			users = append(users, uid)
+		}
+	}
+	if len(in.GetChannelIds()) == 0 && len(roles) == 0 && len(users) == 0 {
+		return nil, invalidRule("pick who hears about it, or a channel")
+	}
+	channels := []pgtype.UUID{}
 	for _, id := range in.GetChannelIds() {
 		cid, err := parseID(id, "channel")
 		if err != nil {
@@ -485,6 +562,21 @@ func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRe
 		if int(n) != len(channels) {
 			return connect.NewError(connect.CodeNotFound, errors.New("no such channel"))
 		}
+		if len(users) > 0 {
+			n, err := q.OrgMembersExist(ctx, store.OrgMembersExistParams{OrgID: org, Ids: users})
+			if err != nil {
+				return err
+			}
+			if int(n) != len(users) {
+				return connect.NewError(connect.CodeNotFound, errors.New("only people in the org can be told"))
+			}
+		}
+		if roles == nil {
+			roles = []string{}
+		}
+		if users == nil {
+			users = []pgtype.UUID{}
+		}
 		var id pgtype.UUID
 		action := "alert.rule.update"
 		if in.GetId() == "" {
@@ -498,7 +590,8 @@ func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRe
 			}
 			id, err = q.InsertAlertRule(ctx, store.InsertAlertRuleParams{
 				OrgID: org, Name: name, Condition: c.ID, NodeID: node, ServerID: in.GetServerId(), Threshold: threshold,
-				ForMinutes: forMinutes, ChannelIds: channels, NotifyResolved: in.GetNotifyResolved(), Enabled: in.GetEnabled(), CreatedBy: sess.UserID,
+				ForMinutes: forMinutes, ChannelIds: channels, NotifyRoles: roles, NotifyUserIds: users,
+				NotifyResolved: in.GetNotifyResolved(), Enabled: in.GetEnabled(), CreatedBy: sess.UserID,
 			})
 			if err != nil {
 				return err
@@ -510,7 +603,8 @@ func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRe
 			}
 			id, err = q.UpdateAlertRule(ctx, store.UpdateAlertRuleParams{
 				ID: rid, OrgID: org, Name: name, Condition: c.ID, NodeID: node, ServerID: in.GetServerId(), Threshold: threshold,
-				ForMinutes: forMinutes, ChannelIds: channels, NotifyResolved: in.GetNotifyResolved(), Enabled: in.GetEnabled(),
+				ForMinutes: forMinutes, ChannelIds: channels, NotifyRoles: roles, NotifyUserIds: users,
+				NotifyResolved: in.GetNotifyResolved(), Enabled: in.GetEnabled(),
 			})
 			if errors.Is(err, pgx.ErrNoRows) {
 				return connect.NewError(connect.CodeNotFound, errors.New("no such rule"))
@@ -519,7 +613,7 @@ func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRe
 				return err
 			}
 		}
-		saved = ruleProto(id, name, c.ID, node, in.GetServerId(), threshold, forMinutes, channels, in.GetNotifyResolved(), in.GetEnabled(),
+		saved = ruleProto(id, name, c.ID, node, in.GetServerId(), threshold, forMinutes, channels, roles, users, in.GetNotifyResolved(), in.GetEnabled(),
 			pgtype.Timestamptz{Time: time.Now(), Valid: true})
 		return a.Orgs.audit(ctx, q, sess, org, action, c.ID, nil, map[string]any{"rule": idString(id), "enabled": in.GetEnabled()})
 	})
@@ -532,7 +626,7 @@ func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRe
 
 // DeleteAlertRule implements AlertService.
 func (a *Alerts) DeleteAlertRule(ctx context.Context, req *panelv1.DeleteAlertRuleRequest) (*panelv1.DeleteAlertRuleResponse, error) {
-	sess, org, err := a.changing(ctx, req.GetOrgId())
+	sess, org, err := a.changingRules(ctx, req.GetOrgId())
 	if err != nil {
 		return nil, err
 	}
@@ -580,6 +674,7 @@ func (a *Alerts) ListAlertHistory(ctx context.Context, req *panelv1.ListAlertHis
 				Id: idString(r.ID), ChannelId: idString(r.ChannelID), Condition: m.Condition, Level: m.Level, Title: m.Title,
 				Text: m.Text, Resolved: m.Resolved, NodeId: m.NodeID, NodeName: m.Node, ServerId: m.ServerID, ServerName: m.Server,
 				Status: r.Status, Error: r.Error, At: timestamppb.New(r.CreatedAt.Time), SentAt: stampOf(r.SentAt),
+				ChannelLabel: r.Label,
 			}
 			if r.RuleID.Valid {
 				e.RuleId = idString(r.RuleID)
@@ -592,4 +687,66 @@ func (a *Alerts) ListAlertHistory(ctx context.Context, req *panelv1.ListAlertHis
 		return nil, err
 	}
 	return out, nil
+}
+
+// ListNotifications implements AlertService.
+func (a *Alerts) ListNotifications(ctx context.Context, req *panelv1.ListNotificationsRequest) (*panelv1.ListNotificationsResponse, error) {
+	limit := req.GetLimit()
+	if limit <= 0 {
+		limit = 50
+	}
+	limit = min(limit, 100)
+	out := &panelv1.ListNotificationsResponse{}
+	err := a.Orgs.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		rows, err := q.UserNotifications(ctx, store.UserNotificationsParams{UserID: sess.UserID, Limit: limit})
+		if err != nil {
+			return err
+		}
+		for _, r := range rows {
+			var m alerts.Message
+			_ = json.Unmarshal(r.Message, &m)
+			out.Notifications = append(out.Notifications, &panelv1.Notification{
+				Id: idString(r.ID), OrgId: idString(r.OrgID), OrgName: r.OrgName, Condition: m.Condition, Level: m.Level,
+				Title: m.Title, Text: m.Text, Resolved: m.Resolved, NodeId: m.NodeID, NodeName: m.Node,
+				ServerId: m.ServerID, ServerName: m.Server, At: timestamppb.New(r.CreatedAt.Time), Seen: r.SeenAt.Valid,
+			})
+		}
+		n, err := q.CountUnseenNotifications(ctx, sess.UserID)
+		out.Unseen = int32(min(n, 999)) //nolint:gosec // capped
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SeeNotifications implements AlertService.
+func (a *Alerts) SeeNotifications(ctx context.Context, _ *panelv1.SeeNotificationsRequest) (*panelv1.SeeNotificationsResponse, error) {
+	err := a.Orgs.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		return q.SeeNotifications(ctx, sess.UserID)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &panelv1.SeeNotificationsResponse{}, nil
+}
+
+// DismissNotifications implements AlertService.
+func (a *Alerts) DismissNotifications(ctx context.Context, req *panelv1.DismissNotificationsRequest) (*panelv1.DismissNotificationsResponse, error) {
+	ids := []pgtype.UUID{}
+	for _, id := range req.GetIds() {
+		nid, err := parseID(id, "notification")
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, nid)
+	}
+	err := a.Orgs.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		return q.DismissNotifications(ctx, store.DismissNotificationsParams{UserID: sess.UserID, Ids: ids})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &panelv1.DismissNotificationsResponse{}, nil
 }

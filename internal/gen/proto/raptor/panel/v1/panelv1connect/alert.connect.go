@@ -63,12 +63,21 @@ const (
 	// AlertServiceListAlertHistoryProcedure is the fully-qualified name of the AlertService's
 	// ListAlertHistory RPC.
 	AlertServiceListAlertHistoryProcedure = "/raptor.panel.v1.AlertService/ListAlertHistory"
+	// AlertServiceListNotificationsProcedure is the fully-qualified name of the AlertService's
+	// ListNotifications RPC.
+	AlertServiceListNotificationsProcedure = "/raptor.panel.v1.AlertService/ListNotifications"
+	// AlertServiceSeeNotificationsProcedure is the fully-qualified name of the AlertService's
+	// SeeNotifications RPC.
+	AlertServiceSeeNotificationsProcedure = "/raptor.panel.v1.AlertService/SeeNotifications"
+	// AlertServiceDismissNotificationsProcedure is the fully-qualified name of the AlertService's
+	// DismissNotifications RPC.
+	AlertServiceDismissNotificationsProcedure = "/raptor.panel.v1.AlertService/DismissNotifications"
 )
 
 // AlertServiceClient is a client for the raptor.panel.v1.AlertService service.
 type AlertServiceClient interface {
-	// ListAlertChannels lists the org's channels, and the channel types this
-	// Panel offers.
+	// ListAlertChannels lists the org's channels (or the user's own), and the
+	// channel types this Panel offers for them.
 	ListAlertChannels(context.Context, *v1.ListAlertChannelsRequest) (*v1.ListAlertChannelsResponse, error)
 	// CreateAlertChannel adds a channel. Telegram chats are added with
 	// ConnectTelegram instead.
@@ -93,6 +102,14 @@ type AlertServiceClient interface {
 	// ListAlertHistory lists the org's latest alerts, one per channel each
 	// went to (kept 30 days).
 	ListAlertHistory(context.Context, *v1.ListAlertHistoryRequest) (*v1.ListAlertHistoryResponse, error)
+	// ListNotifications is the signed-in user's inbox: the alerts sent to
+	// them, from every org they're in, newest first (kept 30 days).
+	ListNotifications(context.Context, *v1.ListNotificationsRequest) (*v1.ListNotificationsResponse, error)
+	// SeeNotifications marks the inbox seen (it was opened).
+	SeeNotifications(context.Context, *v1.SeeNotificationsRequest) (*v1.SeeNotificationsResponse, error)
+	// DismissNotifications clears alerts from the inbox: the ones named, or
+	// all of them.
+	DismissNotifications(context.Context, *v1.DismissNotificationsRequest) (*v1.DismissNotificationsResponse, error)
 }
 
 // NewAlertServiceClient constructs a client for the raptor.panel.v1.AlertService service. By
@@ -169,21 +186,43 @@ func NewAlertServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		listNotifications: connect.NewClient[v1.ListNotificationsRequest, v1.ListNotificationsResponse](
+			httpClient,
+			baseURL+AlertServiceListNotificationsProcedure,
+			connect.WithSchema(alertServiceMethods.ByName("ListNotifications")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		seeNotifications: connect.NewClient[v1.SeeNotificationsRequest, v1.SeeNotificationsResponse](
+			httpClient,
+			baseURL+AlertServiceSeeNotificationsProcedure,
+			connect.WithSchema(alertServiceMethods.ByName("SeeNotifications")),
+			connect.WithClientOptions(opts...),
+		),
+		dismissNotifications: connect.NewClient[v1.DismissNotificationsRequest, v1.DismissNotificationsResponse](
+			httpClient,
+			baseURL+AlertServiceDismissNotificationsProcedure,
+			connect.WithSchema(alertServiceMethods.ByName("DismissNotifications")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // alertServiceClient implements AlertServiceClient.
 type alertServiceClient struct {
-	listAlertChannels  *connect.Client[v1.ListAlertChannelsRequest, v1.ListAlertChannelsResponse]
-	createAlertChannel *connect.Client[v1.CreateAlertChannelRequest, v1.CreateAlertChannelResponse]
-	updateAlertChannel *connect.Client[v1.UpdateAlertChannelRequest, v1.UpdateAlertChannelResponse]
-	deleteAlertChannel *connect.Client[v1.DeleteAlertChannelRequest, v1.DeleteAlertChannelResponse]
-	testAlertChannel   *connect.Client[v1.TestAlertChannelRequest, v1.TestAlertChannelResponse]
-	connectTelegram    *connect.Client[v1.ConnectTelegramRequest, v1.ConnectTelegramResponse]
-	listAlertRules     *connect.Client[v1.ListAlertRulesRequest, v1.ListAlertRulesResponse]
-	saveAlertRule      *connect.Client[v1.SaveAlertRuleRequest, v1.SaveAlertRuleResponse]
-	deleteAlertRule    *connect.Client[v1.DeleteAlertRuleRequest, v1.DeleteAlertRuleResponse]
-	listAlertHistory   *connect.Client[v1.ListAlertHistoryRequest, v1.ListAlertHistoryResponse]
+	listAlertChannels    *connect.Client[v1.ListAlertChannelsRequest, v1.ListAlertChannelsResponse]
+	createAlertChannel   *connect.Client[v1.CreateAlertChannelRequest, v1.CreateAlertChannelResponse]
+	updateAlertChannel   *connect.Client[v1.UpdateAlertChannelRequest, v1.UpdateAlertChannelResponse]
+	deleteAlertChannel   *connect.Client[v1.DeleteAlertChannelRequest, v1.DeleteAlertChannelResponse]
+	testAlertChannel     *connect.Client[v1.TestAlertChannelRequest, v1.TestAlertChannelResponse]
+	connectTelegram      *connect.Client[v1.ConnectTelegramRequest, v1.ConnectTelegramResponse]
+	listAlertRules       *connect.Client[v1.ListAlertRulesRequest, v1.ListAlertRulesResponse]
+	saveAlertRule        *connect.Client[v1.SaveAlertRuleRequest, v1.SaveAlertRuleResponse]
+	deleteAlertRule      *connect.Client[v1.DeleteAlertRuleRequest, v1.DeleteAlertRuleResponse]
+	listAlertHistory     *connect.Client[v1.ListAlertHistoryRequest, v1.ListAlertHistoryResponse]
+	listNotifications    *connect.Client[v1.ListNotificationsRequest, v1.ListNotificationsResponse]
+	seeNotifications     *connect.Client[v1.SeeNotificationsRequest, v1.SeeNotificationsResponse]
+	dismissNotifications *connect.Client[v1.DismissNotificationsRequest, v1.DismissNotificationsResponse]
 }
 
 // ListAlertChannels calls raptor.panel.v1.AlertService.ListAlertChannels.
@@ -276,10 +315,37 @@ func (c *alertServiceClient) ListAlertHistory(ctx context.Context, req *v1.ListA
 	return nil, err
 }
 
+// ListNotifications calls raptor.panel.v1.AlertService.ListNotifications.
+func (c *alertServiceClient) ListNotifications(ctx context.Context, req *v1.ListNotificationsRequest) (*v1.ListNotificationsResponse, error) {
+	response, err := c.listNotifications.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SeeNotifications calls raptor.panel.v1.AlertService.SeeNotifications.
+func (c *alertServiceClient) SeeNotifications(ctx context.Context, req *v1.SeeNotificationsRequest) (*v1.SeeNotificationsResponse, error) {
+	response, err := c.seeNotifications.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DismissNotifications calls raptor.panel.v1.AlertService.DismissNotifications.
+func (c *alertServiceClient) DismissNotifications(ctx context.Context, req *v1.DismissNotificationsRequest) (*v1.DismissNotificationsResponse, error) {
+	response, err := c.dismissNotifications.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AlertServiceHandler is an implementation of the raptor.panel.v1.AlertService service.
 type AlertServiceHandler interface {
-	// ListAlertChannels lists the org's channels, and the channel types this
-	// Panel offers.
+	// ListAlertChannels lists the org's channels (or the user's own), and the
+	// channel types this Panel offers for them.
 	ListAlertChannels(context.Context, *v1.ListAlertChannelsRequest) (*v1.ListAlertChannelsResponse, error)
 	// CreateAlertChannel adds a channel. Telegram chats are added with
 	// ConnectTelegram instead.
@@ -304,6 +370,14 @@ type AlertServiceHandler interface {
 	// ListAlertHistory lists the org's latest alerts, one per channel each
 	// went to (kept 30 days).
 	ListAlertHistory(context.Context, *v1.ListAlertHistoryRequest) (*v1.ListAlertHistoryResponse, error)
+	// ListNotifications is the signed-in user's inbox: the alerts sent to
+	// them, from every org they're in, newest first (kept 30 days).
+	ListNotifications(context.Context, *v1.ListNotificationsRequest) (*v1.ListNotificationsResponse, error)
+	// SeeNotifications marks the inbox seen (it was opened).
+	SeeNotifications(context.Context, *v1.SeeNotificationsRequest) (*v1.SeeNotificationsResponse, error)
+	// DismissNotifications clears alerts from the inbox: the ones named, or
+	// all of them.
+	DismissNotifications(context.Context, *v1.DismissNotificationsRequest) (*v1.DismissNotificationsResponse, error)
 }
 
 // NewAlertServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -376,6 +450,25 @@ func NewAlertServiceHandler(svc AlertServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	alertServiceListNotificationsHandler := connect.NewUnaryHandlerSimple(
+		AlertServiceListNotificationsProcedure,
+		svc.ListNotifications,
+		connect.WithSchema(alertServiceMethods.ByName("ListNotifications")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	alertServiceSeeNotificationsHandler := connect.NewUnaryHandlerSimple(
+		AlertServiceSeeNotificationsProcedure,
+		svc.SeeNotifications,
+		connect.WithSchema(alertServiceMethods.ByName("SeeNotifications")),
+		connect.WithHandlerOptions(opts...),
+	)
+	alertServiceDismissNotificationsHandler := connect.NewUnaryHandlerSimple(
+		AlertServiceDismissNotificationsProcedure,
+		svc.DismissNotifications,
+		connect.WithSchema(alertServiceMethods.ByName("DismissNotifications")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AlertService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AlertServiceListAlertChannelsProcedure:
@@ -398,6 +491,12 @@ func NewAlertServiceHandler(svc AlertServiceHandler, opts ...connect.HandlerOpti
 			alertServiceDeleteAlertRuleHandler.ServeHTTP(w, r)
 		case AlertServiceListAlertHistoryProcedure:
 			alertServiceListAlertHistoryHandler.ServeHTTP(w, r)
+		case AlertServiceListNotificationsProcedure:
+			alertServiceListNotificationsHandler.ServeHTTP(w, r)
+		case AlertServiceSeeNotificationsProcedure:
+			alertServiceSeeNotificationsHandler.ServeHTTP(w, r)
+		case AlertServiceDismissNotificationsProcedure:
+			alertServiceDismissNotificationsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -445,4 +544,16 @@ func (UnimplementedAlertServiceHandler) DeleteAlertRule(context.Context, *v1.Del
 
 func (UnimplementedAlertServiceHandler) ListAlertHistory(context.Context, *v1.ListAlertHistoryRequest) (*v1.ListAlertHistoryResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.ListAlertHistory is not implemented"))
+}
+
+func (UnimplementedAlertServiceHandler) ListNotifications(context.Context, *v1.ListNotificationsRequest) (*v1.ListNotificationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.ListNotifications is not implemented"))
+}
+
+func (UnimplementedAlertServiceHandler) SeeNotifications(context.Context, *v1.SeeNotificationsRequest) (*v1.SeeNotificationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.SeeNotifications is not implemented"))
+}
+
+func (UnimplementedAlertServiceHandler) DismissNotifications(context.Context, *v1.DismissNotificationsRequest) (*v1.DismissNotificationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.DismissNotifications is not implemented"))
 }
