@@ -27,7 +27,14 @@ import { Label } from "@/components/ui/label";
 import type { User } from "@/gen/raptor/panel/v1/auth_pb";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
-import { setTheme, type Theme, useTheme } from "@/lib/theme";
+import {
+  setTheme,
+  setThemeStyle,
+  type Theme,
+  type ThemeStyle,
+  useTheme,
+  useThemeStyle,
+} from "@/lib/theme";
 import { authClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 
@@ -204,17 +211,27 @@ const themeOptions: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "dark", label: "Dark", icon: Moon },
 ];
 
-// Appearance picks the theme, here and on the account, so it follows the
-// user to other browsers.
+const styleOptions: { value: ThemeStyle; label: string; note: string }[] = [
+  { value: "standard", label: "Standard", note: "Raptor's colours." },
+  {
+    value: "contrast",
+    label: "High contrast",
+    note: "Stronger text, borders, and focus, for low vision.",
+  },
+  { value: "calm", label: "Calm", note: "Neutral greys; red only where it matters." },
+];
+
+// Appearance picks the theme's mode and style, here and on the account, so
+// they follow the user to other browsers.
 export function Appearance() {
   const theme = useTheme();
+  const style = useThemeStyle();
   const [error, setError] = useState("");
 
-  async function pick(t: Theme) {
-    setTheme(t);
+  async function save(change: { theme?: Theme; themeStyle?: ThemeStyle }) {
     setError("");
     try {
-      await authClient.updateProfile({ theme: t });
+      await authClient.updateProfile(change);
     } catch (err) {
       setError(`Couldn't save it to your account: ${message(err)}`);
     }
@@ -228,28 +245,105 @@ export function Appearance() {
           How Raptor looks. It's saved to your account, so your other browsers use it too.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <fieldset className="grid grid-cols-3 gap-2 sm:max-w-md">
-          <legend className="sr-only">Theme</legend>
-          {themeOptions.map(({ value, label, icon: Icon }) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={theme === value}
-              onClick={() => pick(value)}
-              className={cn(
-                "flex flex-col items-center gap-2 rounded-lg border p-3 text-sm transition-colors hover:bg-muted",
-                theme === value && "border-primary bg-muted",
-              )}
-            >
-              <Icon className="size-5" />
-              {label}
-            </button>
-          ))}
+      <CardContent className="flex flex-col gap-5">
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-medium">Mode</legend>
+          <div className="grid grid-cols-3 gap-2 sm:max-w-md">
+            {themeOptions.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={theme === value}
+                onClick={() => {
+                  setTheme(value);
+                  void save({ theme: value });
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-lg border p-3 text-sm transition-colors hover:bg-muted",
+                  theme === value && "border-primary bg-muted",
+                )}
+              >
+                <Icon className="size-5" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-medium">Style</legend>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {styleOptions.map(({ value, label, note }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={style === value}
+                onClick={() => {
+                  setThemeStyle(value);
+                  void save({ themeStyle: value });
+                }}
+                className={cn(
+                  "flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-colors hover:bg-muted",
+                  style === value && "border-primary bg-muted",
+                )}
+              >
+                <StyleSwatch style={value} />
+                <span className="font-medium">{label}</span>
+                <span className="text-xs text-muted-foreground">{note}</span>
+              </button>
+            ))}
+          </div>
         </fieldset>
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+// Each style's page, red, text, and secondary text, light and dark, as in
+// index.css: StyleSwatch draws them whatever the page is in now.
+const swatches: Record<ThemeStyle, Record<"light" | "dark", [string, string, string, string]>> = {
+  standard: {
+    light: [
+      "oklch(0.975 0.004 25)",
+      "oklch(0.545 0.215 25)",
+      "oklch(0.18 0.018 25)",
+      "oklch(0.46 0.013 25)",
+    ],
+    dark: [
+      "oklch(0.145 0.012 25)",
+      "oklch(0.66 0.19 25)",
+      "oklch(0.96 0.005 25)",
+      "oklch(0.68 0.011 25)",
+    ],
+  },
+  contrast: {
+    light: ["oklch(1 0 0)", "oklch(0.46 0.19 25)", "oklch(0.12 0 0)", "oklch(0.3 0 0)"],
+    dark: ["oklch(0.08 0 0)", "oklch(0.76 0.16 25)", "oklch(1 0 0)", "oklch(0.88 0 0)"],
+  },
+  calm: {
+    light: ["oklch(0.975 0 0)", "oklch(0.52 0.15 25)", "oklch(0.2 0 0)", "oklch(0.45 0 0)"],
+    dark: ["oklch(0.16 0 0)", "oklch(0.64 0.13 25)", "oklch(0.92 0 0)", "oklch(0.68 0 0)"],
+  },
+};
+
+// StyleSwatch is a tiny picture of a style in the current mode: its page,
+// its red, and two lines of text.
+function StyleSwatch({ style }: { style: ThemeStyle }) {
+  useTheme();
+  const mode = document.documentElement.classList.contains("dark") ? "dark" : "light";
+  const [page, red, text, muted] = swatches[style][mode];
+  return (
+    <span
+      aria-hidden
+      className="flex h-10 w-full items-center gap-2 rounded-md border px-2"
+      style={{ background: page, borderColor: style === "contrast" ? text : undefined }}
+    >
+      <span className="h-5 w-8 rounded-sm" style={{ background: red }} />
+      <span className="flex flex-1 flex-col gap-1">
+        <span className="h-1.5 w-4/5 rounded-full" style={{ background: text }} />
+        <span className="h-1.5 w-1/2 rounded-full" style={{ background: muted }} />
+      </span>
+    </span>
   );
 }
 

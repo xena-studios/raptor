@@ -81,6 +81,9 @@ UPDATE users SET name = $2 WHERE id = $1 RETURNING *;
 -- name: SetUserTheme :one
 UPDATE users SET theme = $2 WHERE id = $1 RETURNING *;
 
+-- name: SetUserThemeStyle :one
+UPDATE users SET theme_style = $2 WHERE id = $1 RETURNING *;
+
 -- name: SetUserEmail :one
 UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 RETURNING *;
 

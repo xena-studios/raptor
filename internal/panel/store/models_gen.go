@@ -577,6 +577,7 @@ type User struct {
 	Theme           string
 	SuspendedAt     pgtype.Timestamptz
 	SuspendedReason string
+	ThemeStyle      string
 }
 
 type WebauthnCeremony struct {

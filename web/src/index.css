@@ -156,6 +156,185 @@
   --sidebar-ring: oklch(0.66 0.19 25);
 }
 
+/* High contrast, for low vision: near-black on white (or white on black),
+   borders and secondary text that read on their own, a deeper (or
+   brighter) red, and a focus ring that can't be missed. Every pair here
+   is at least 7:1 (borders 3:1). */
+.contrast:not(.dark) {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.12 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.12 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.12 0 0);
+  --primary: oklch(0.46 0.19 25);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.93 0 0);
+  --secondary-foreground: oklch(0.12 0 0);
+  --muted: oklch(0.94 0 0);
+  --muted-foreground: oklch(0.3 0 0);
+  --accent: oklch(0.9 0 0);
+  --accent-foreground: oklch(0.12 0 0);
+  --destructive: oklch(0.45 0.19 10);
+  --border: oklch(0.42 0 0);
+  --input: oklch(0.42 0 0);
+  --ring: oklch(0.46 0.19 25);
+  --series-1: #1258b8;
+  --series-2: #b8410f;
+  --chart-1: oklch(0.46 0.19 25);
+  --chart-2: oklch(0.45 0.13 245);
+  --chart-3: oklch(0.42 0.14 290);
+  --chart-4: oklch(0.42 0.12 150);
+  --chart-5: oklch(0.48 0.13 60);
+  --ok: oklch(0.4 0.11 150);
+  --ok-wash: oklch(0.95 0.05 150);
+  --warn: oklch(0.42 0.1 65);
+  --warn-wash: oklch(0.95 0.06 85);
+  --danger-wash: oklch(0.95 0.04 10);
+  --brand-wash: oklch(0.94 0.03 25);
+  --rule-bright: oklch(0.3 0 0);
+  --sidebar: oklch(0.97 0 0);
+  --sidebar-foreground: oklch(0.12 0 0);
+  --sidebar-primary: oklch(0.46 0.19 25);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.9 0.03 25);
+  --sidebar-accent-foreground: oklch(0.36 0.16 25);
+  --sidebar-border: oklch(0.42 0 0);
+  --sidebar-ring: oklch(0.46 0.19 25);
+}
+
+.dark.contrast {
+  --background: oklch(0.08 0 0);
+  --foreground: oklch(1 0 0);
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.12 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.76 0.16 25);
+  --primary-foreground: oklch(0.1 0 0);
+  --secondary: oklch(0.2 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.88 0 0);
+  --accent: oklch(0.28 0 0);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.8 0.14 10);
+  --border: oklch(0.7 0 0);
+  --input: oklch(0.7 0 0);
+  --ring: oklch(0.8 0.15 25);
+  --series-1: #6aa8ff;
+  --series-2: #ff8a55;
+  --chart-1: oklch(0.76 0.16 25);
+  --chart-2: oklch(0.82 0.11 228);
+  --chart-3: oklch(0.8 0.1 290);
+  --chart-4: oklch(0.86 0.15 150);
+  --chart-5: oklch(0.86 0.14 75);
+  --ok: oklch(0.88 0.15 150);
+  --ok-wash: oklch(0.25 0.06 150);
+  --warn: oklch(0.9 0.13 85);
+  --warn-wash: oklch(0.26 0.06 80);
+  --danger-wash: oklch(0.26 0.08 10);
+  --brand-wash: oklch(0.25 0.06 25);
+  --rule-bright: oklch(0.8 0 0);
+  --sidebar: oklch(0.05 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(0.76 0.16 25);
+  --sidebar-primary-foreground: oklch(0.1 0 0);
+  --sidebar-accent: oklch(0.3 0.07 25);
+  --sidebar-accent-foreground: oklch(0.93 0.06 25);
+  --sidebar-border: oklch(0.62 0 0);
+  --sidebar-ring: oklch(0.8 0.15 25);
+}
+
+/* Calm: the same layout with the colour turned down. Greys are true
+   greys (no lean toward the red), washes are grey, charts and states are
+   muted; the red stays, quieter, on what's primary or dangerous. */
+.calm:not(.dark) {
+  --background: oklch(0.975 0 0);
+  --foreground: oklch(0.2 0 0);
+  --card: oklch(0.955 0 0);
+  --card-foreground: oklch(0.2 0 0);
+  --popover: oklch(0.985 0 0);
+  --popover-foreground: oklch(0.2 0 0);
+  --primary: oklch(0.52 0.15 25);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.92 0 0);
+  --secondary-foreground: oklch(0.28 0 0);
+  --muted: oklch(0.92 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.89 0 0);
+  --accent-foreground: oklch(0.28 0 0);
+  --destructive: oklch(0.52 0.17 15);
+  --border: oklch(0.87 0 0);
+  --input: oklch(0.87 0 0);
+  --ring: oklch(0.55 0 0);
+  --series-1: #55708f;
+  --series-2: #9a6f55;
+  --chart-1: oklch(0.5 0.08 25);
+  --chart-2: oklch(0.55 0.05 240);
+  --chart-3: oklch(0.5 0.04 280);
+  --chart-4: oklch(0.52 0.05 150);
+  --chart-5: oklch(0.6 0.06 70);
+  --ok: oklch(0.48 0.06 150);
+  --ok-wash: oklch(0.93 0 0);
+  --warn: oklch(0.5 0.07 70);
+  --warn-wash: oklch(0.93 0.015 80);
+  --danger-wash: oklch(0.93 0.02 15);
+  --brand-wash: oklch(0.92 0 0);
+  --rule-bright: oklch(0.72 0 0);
+  --sidebar: oklch(0.955 0 0);
+  --sidebar-foreground: oklch(0.2 0 0);
+  --sidebar-primary: oklch(0.52 0.15 25);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.9 0 0);
+  --sidebar-accent-foreground: oklch(0.2 0 0);
+  --sidebar-border: oklch(0.87 0 0);
+  --sidebar-ring: oklch(0.55 0 0);
+}
+
+.dark.calm {
+  --background: oklch(0.16 0 0);
+  --foreground: oklch(0.92 0 0);
+  --card: oklch(0.195 0 0);
+  --card-foreground: oklch(0.92 0 0);
+  --popover: oklch(0.195 0 0);
+  --popover-foreground: oklch(0.92 0 0);
+  --primary: oklch(0.64 0.13 25);
+  --primary-foreground: oklch(0.15 0 0);
+  --secondary: oklch(0.235 0 0);
+  --secondary-foreground: oklch(0.92 0 0);
+  --muted: oklch(0.235 0 0);
+  --muted-foreground: oklch(0.68 0 0);
+  --accent: oklch(0.28 0 0);
+  --accent-foreground: oklch(0.92 0 0);
+  --destructive: oklch(0.7 0.13 15);
+  --border: oklch(0.3 0 0);
+  --input: oklch(0.3 0 0);
+  --ring: oklch(0.6 0 0);
+  --series-1: #7f9bbd;
+  --series-2: #bf9274;
+  --chart-1: oklch(0.65 0.09 25);
+  --chart-2: oklch(0.7 0.05 228);
+  --chart-3: oklch(0.68 0.04 280);
+  --chart-4: oklch(0.72 0.06 150);
+  --chart-5: oklch(0.74 0.06 75);
+  --ok: oklch(0.75 0.07 150);
+  --ok-wash: oklch(0.26 0 0);
+  --warn: oklch(0.78 0.07 80);
+  --warn-wash: oklch(0.27 0.015 80);
+  --danger-wash: oklch(0.27 0.03 15);
+  --brand-wash: oklch(0.26 0 0);
+  --rule-bright: oklch(0.42 0 0);
+  --sidebar: oklch(0.135 0 0);
+  --sidebar-foreground: oklch(0.92 0 0);
+  --sidebar-primary: oklch(0.64 0.13 25);
+  --sidebar-primary-foreground: oklch(0.15 0 0);
+  --sidebar-accent: oklch(0.26 0 0);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.28 0 0);
+  --sidebar-ring: oklch(0.6 0 0);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -193,6 +372,19 @@
     color: oklch(0.92 0.008 250);
     border: 1px solid oklch(0.3 0.014 250);
   }
+}
+
+/* High contrast: focus is always a solid ring, clear of the control.
+   Unlayered, so it wins over the utilities' outline-none. */
+.contrast :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* High contrast: cards, dialogs, and menus are outlined with a faint ring
+   of the text colour; here it's a full border colour. */
+.contrast .ring-foreground\/10 {
+  --tw-ring-color: var(--border);
 }
 
 /* Live readouts breathe: alpha only, no glow. */

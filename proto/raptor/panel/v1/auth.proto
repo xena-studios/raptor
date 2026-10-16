@@ -180,6 +180,9 @@ message User {
   google.protobuf.Timestamp created_at = 6;
   // "system", "light", or "dark".
   string theme = 7;
+  // "standard", "contrast" (high contrast), or "calm" (neutral, less
+  // colour).
+  string theme_style = 8;
 }
 
 message GetSessionRequest {}
@@ -429,6 +432,7 @@ message UpdateProfileRequest {
   // Unset fields stay as they are.
   optional string name = 1;
   optional string theme = 2;
+  optional string theme_style = 3;
 }
 
 message UpdateProfileResponse {

@@ -21,6 +21,8 @@ import (
 // Themes are the looks an account can pick.
 var themes = []string{"system", "light", "dark"}
 
+var themeStyles = []string{"standard", "contrast", "calm"}
+
 // MaxNameLen is the longest name an account can have, in characters.
 const MaxNameLen = 64
 
@@ -54,6 +56,14 @@ func (s *Service) UpdateProfile(ctx context.Context, req *panelv1.UpdateProfileR
 				return invalid(errors.New("the theme is system, light, or dark"))
 			}
 			if user, err = q.SetUserTheme(ctx, store.SetUserThemeParams{ID: sess.UserID, Theme: req.GetTheme()}); err != nil {
+				return err
+			}
+		}
+		if req.ThemeStyle != nil {
+			if !slices.Contains(themeStyles, req.GetThemeStyle()) {
+				return invalid(errors.New("the theme's style is standard, contrast, or calm"))
+			}
+			if user, err = q.SetUserThemeStyle(ctx, store.SetUserThemeStyleParams{ID: sess.UserID, ThemeStyle: req.GetThemeStyle()}); err != nil {
 				return err
 			}
 		}

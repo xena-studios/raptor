@@ -59,6 +59,15 @@ func TestAccountSettings(t *testing.T) {
 	if _, err := alice.auth.UpdateProfile(ctx, &panelv1.UpdateProfileRequest{Theme: ptr("purple")}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Errorf("an unknown theme: %v", err)
 	}
+	if res.GetUser().GetThemeStyle() != "standard" {
+		t.Errorf("default style: %q", res.GetUser().GetThemeStyle())
+	}
+	if res, err := alice.auth.UpdateProfile(ctx, &panelv1.UpdateProfileRequest{ThemeStyle: ptr("calm")}); err != nil || res.GetUser().GetThemeStyle() != "calm" || res.GetUser().GetTheme() != "light" {
+		t.Errorf("style: %v, %v", res.GetUser(), err)
+	}
+	if _, err := alice.auth.UpdateProfile(ctx, &panelv1.UpdateProfileRequest{ThemeStyle: ptr("neon")}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("an unknown style: %v", err)
+	}
 	if _, err := alice.auth.UpdateProfile(ctx, &panelv1.UpdateProfileRequest{Name: ptr(strings.Repeat("a", 65))}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Errorf("a long name: %v", err)
 	}
