@@ -1,4 +1,5 @@
 import { type PointerEvent, useLayoutEffect, useRef, useState } from "react";
+import { useChartSlot } from "@/components/chart-export";
 import { dateTime } from "@/lib/format";
 
 // TimeChart is a line chart over time: thin 2px lines, a hairline grid, a
@@ -69,6 +70,8 @@ export function TimeChart({
 
   const t0 = from ?? data[0]?.t ?? 0;
   const t1 = to ?? data[data.length - 1]?.t ?? 1;
+  // In a Graph, it can be saved as a picture.
+  useChartSlot({ data, series, format, limit, limitLabel, minMax, from: t0, to: t1, gap, dots });
   const span = Math.max(1, t1 - t0);
   const dataMax = Math.max(
     0,

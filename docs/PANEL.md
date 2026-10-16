@@ -279,6 +279,10 @@ A node's hostname (`n-<short id>.raptornodes.net`) resolves to the machine's IP 
 - A sync runs on one instance at a time (an advisory lock), when a node connects or is renamed and every minute: a connected node whose hostname isn't what it should be is sent `node.hostname`. A refusal is kept (`hostname_error`, shown on the System tab) and not sent again until what it should be changes. A hostname changed on the machine by hand is seen on the next connection and put back.
 - **The node's time** is in the header of the node's pages and its servers' pages (servers run on the node's time zone, as `TZ`): the time there and its zone. Opening it shows that time in your own zone, UTC, and zones you add (kept in the browser, up to 8), with how far each is from the node, and converts a time you pick on the node to each of them. It isn't shown until the Panel has read the zone.
 
+## Charts
+
+Every chart in a titled graph (a node's and a server's resources, the staff overview) has **Save as a picture** and **Copy as a picture** (where the browser can put images on the clipboard). The picture is drawn from the chart's data on a canvas, not screenshotted, at 2400×1350 in the page's theme, with what it shows written on it, so it makes sense on its own in a support thread or a Discord channel: Raptor, the chart's title and note, what it's about (the node, or the server and its node), the time range and the time zone it's in, each series' latest, low, average, and peak over the range, the limit line, and when it was saved. Files are named like `raptor-smp-on-basement-box-cpu-2026-10-16-1405.png`. Nothing is sent anywhere (`web/src/lib/chart-image.ts`).
+
 ## Alerts
 
 `internal/panel/alerts`, `AlertService` (`internal/panel/orgs/alerts.go`), the org's settings, Alerts. Admins and owners manage them; members don't see them.
