@@ -27,6 +27,7 @@ import { BillingBanner } from "@/components/billing-banner";
 import { NotFound } from "@/components/error-screen";
 import { Logo, RaptorMark, Wordmark } from "@/components/logo";
 import { NodeClock } from "@/components/node-clock";
+import { NewOrgDialog } from "@/components/org/new-org-dialog";
 import { SourceLink } from "@/components/source-link";
 import {
   DropdownMenu,
@@ -240,6 +241,7 @@ function Switcher({
 }) {
   const navigate = useNavigate();
   const side = useMenuSide("bottom");
+  const [making, setMaking] = useState(false);
   const staff = useQuery(StaffService.method.getStaffMe, {}, { staleTime: 5 * 60_000 });
   const role = staff.data?.role ?? "";
   const org = orgs.find((o) => o.id === current);
@@ -248,58 +250,61 @@ function Switcher({
     ? role.charAt(0).toUpperCase() + role.slice(1)
     : org && roleNames[org.role as keyof typeof roleNames];
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <SidebarMenuButton
-            size="lg"
-            tooltip={name}
-            className="border group-data-[collapsible=icon]:border-0"
-          >
-            <Tile name={org?.name} admin={admin} />
-            <span className="grid min-w-0 flex-1 text-left leading-tight">
-              <span className="truncate font-medium">{name}</span>
-              {sub && <span className="truncate text-xs text-muted-foreground">{sub}</span>}
-            </span>
-            <ChevronsUpDown className="ml-auto text-muted-foreground" />
-          </SidebarMenuButton>
-        }
-      />
-      <DropdownMenuContent align="start" side={side} className="w-64">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Orgs</DropdownMenuLabel>
-          {orgs.map((o) => (
-            <DropdownMenuItem
-              key={o.id}
-              onClick={() => navigate({ to: "/orgs/$orgId", params: { orgId: o.id } })}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <SidebarMenuButton
+              size="lg"
+              tooltip={name}
+              className="border group-data-[collapsible=icon]:border-0"
             >
-              <Tile name={o.name} small />
-              <span className="min-w-0 flex-1 truncate">{o.name}</span>
-              {!admin && o.id === current && <Check />}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuItem onClick={() => navigate({ to: "/", search: { new: true } })}>
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed">
-              <Plus className="size-3.5!" />
-            </span>
-            <span className="text-muted-foreground">New org</span>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        {role && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Staff</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
-                <Tile admin small />
-                <span className="min-w-0 flex-1 truncate">Raptor admin</span>
-                {admin && <Check />}
+              <Tile name={org?.name} admin={admin} />
+              <span className="grid min-w-0 flex-1 text-left leading-tight">
+                <span className="truncate font-medium">{name}</span>
+                {sub && <span className="truncate text-xs text-muted-foreground">{sub}</span>}
+              </span>
+              <ChevronsUpDown className="ml-auto text-muted-foreground" />
+            </SidebarMenuButton>
+          }
+        />
+        <DropdownMenuContent align="start" side={side} className="w-64">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Orgs</DropdownMenuLabel>
+            {orgs.map((o) => (
+              <DropdownMenuItem
+                key={o.id}
+                onClick={() => navigate({ to: "/orgs/$orgId", params: { orgId: o.id } })}
+              >
+                <Tile name={o.name} small />
+                <span className="min-w-0 flex-1 truncate">{o.name}</span>
+                {!admin && o.id === current && <Check />}
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+            ))}
+            <DropdownMenuItem onClick={() => setMaking(true)}>
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed">
+                <Plus className="size-3.5!" />
+              </span>
+              <span className="text-muted-foreground">New org</span>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          {role && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Staff</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+                  <Tile admin small />
+                  <span className="min-w-0 flex-1 truncate">Raptor admin</span>
+                  {admin && <Check />}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <NewOrgDialog open={making} onOpenChange={setMaking} />
+    </>
   );
 }
 

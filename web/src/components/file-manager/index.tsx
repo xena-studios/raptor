@@ -69,7 +69,7 @@ import { EditorPane } from "./editor-pane";
 import { EntryIcon } from "./icons";
 import { SettingsMenu } from "./settings";
 import { ShortcutsDialog } from "./shortcuts";
-import { TrashDialog, useTrash } from "./trash";
+import { TrashView, useTrash } from "./trash";
 import { Tree } from "./tree";
 
 type PendingUpload = {
@@ -138,7 +138,6 @@ export function Files({
   const [ask, setAsk] = useState<NameAsk>();
   // What's being deleted or compressed: names in a folder (the one shown,
   // or one in the tree).
-  const [confirmDelete, setConfirmDelete] = useState<{ dir: string; names: string[] }>();
   const [compressing, setCompressing] = useState<{ dir: string; names: string[] }>();
   const dirty = useRef(false);
   const picker = useRef<HTMLInputElement>(null);
@@ -162,6 +161,7 @@ export function Files({
     setSelected(new Set());
     setQuery("");
     setError("");
+    setTrashOpen(false);
     onNavigate(to);
   }
 
@@ -279,7 +279,13 @@ export function Files({
         void act(() => api.run("files.rename", { dir, moves: [{ from: e.name, to: name }] })),
     });
   const compress = (names: string[], dir = path) => setCompressing({ dir, names });
-  const askDelete = (names: string[], dir = path) => setConfirmDelete({ dir, names });
+  // Deleting moves to the trash, always: it can be put back from there, or
+  // purged.
+  const askDelete = (names: string[], dir = path) =>
+    void act(
+      () => api.run("files.delete", { dir, names }),
+      `Moved ${names.length === 1 ? `"${names[0]}"` : `${names.length} items`} to the trash.`,
+    );
   const decompress = (e: Entry, dir = path) =>
     void act(
       () => api.run("files.decompress", { path: join(dir, e.name), dest: dir }),
@@ -423,6 +429,7 @@ export function Files({
           <Button
             size="sm"
             variant="ghost"
+            className="md:hidden"
             aria-label="Trash"
             title="Trash: deleted files, for 7 days"
             onClick={() => setTrashOpen(true)}
@@ -505,6 +512,24 @@ export function Files({
                 </ContextMenuContent>
               </ContextMenu>
             </div>
+            <div className="shrink-0 border-t p-1.5">
+              <button
+                type="button"
+                className={cn(
+                  "flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted",
+                  trashOpen && "bg-muted font-medium",
+                )}
+                onClick={() => setTrashOpen(true)}
+              >
+                <Trash2 className="size-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1">Trash</span>
+                {(trash.data?.length ?? 0) > 0 && (
+                  <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                    {trash.data?.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </aside>
         ) : (
           <div className="hidden shrink-0 border-r p-1.5 md:block">
@@ -515,6 +540,16 @@ export function Files({
               onClick={() => setFileSettings({ treeOpen: true })}
             >
               <PanelLeftOpen />
+            </Button>
+            <Button
+              size="icon-xs"
+              variant={trashOpen ? "secondary" : "ghost"}
+              className="mt-1 flex"
+              aria-label="Trash"
+              title="Trash"
+              onClick={() => setTrashOpen(true)}
+            >
+              <Trash2 />
             </Button>
           </div>
         )}
@@ -532,7 +567,17 @@ export function Files({
           }}
           onDrop={onDrop}
         >
-          {file ? (
+          {trashOpen ? (
+            <TrashView
+              api={api}
+              nodeId={nodeId}
+              serverId={serverId}
+              orgId={orgId}
+              userId={userId}
+              canWrite={canWrite}
+              onClose={() => setTrashOpen(false)}
+            />
+          ) : file ? (
             <EditorPane
               key={file}
               api={api}
@@ -782,70 +827,6 @@ export function Files({
         />
       )}
       {ask && <NameDialog ask={ask} onClose={() => setAsk(undefined)} />}
-      {trashOpen && (
-        <TrashDialog
-          api={api}
-          nodeId={nodeId}
-          serverId={serverId}
-          orgId={orgId}
-          userId={userId}
-          canWrite={canWrite}
-          onClose={() => setTrashOpen(false)}
-        />
-      )}
-      <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(undefined)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Delete{" "}
-              {confirmDelete?.names.length === 1
-                ? `"${confirmDelete.names[0]}"`
-                : `${confirmDelete?.names.length} items`}
-              ?
-            </DialogTitle>
-            <DialogDescription>
-              {confirmDelete?.names.length === 1 ? "It goes" : "They go"} to the trash, with
-              everything in folders, and can be restored for 7 days.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-between">
-            <Button
-              variant="ghost"
-              className="text-destructive"
-              disabled={busy}
-              onClick={() => {
-                const { dir, names } = confirmDelete ?? { dir: path, names: [] };
-                setConfirmDelete(undefined);
-                void act(
-                  () => api.run("files.delete", { dir, names, permanent: true }),
-                  "Deleted for good.",
-                );
-              }}
-            >
-              Delete permanently
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setConfirmDelete(undefined)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={busy}
-                onClick={() => {
-                  const { dir, names } = confirmDelete ?? { dir: path, names: [] };
-                  setConfirmDelete(undefined);
-                  void act(
-                    () => api.run("files.delete", { dir, names }),
-                    `Moved ${names.length === 1 ? `"${names[0]}"` : `${names.length} items`} to the trash.`,
-                  );
-                }}
-              >
-                <Trash2 /> Move to trash
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
