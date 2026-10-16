@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Files } from "@/components/file-manager";
+import { PopoutButton } from "@/components/popout";
 import { SFTPButton } from "@/components/sftp-access";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
@@ -33,10 +34,12 @@ function FilesTab() {
       file={file}
       onNavigate={(to) => navigate({ search: { path: to.path || undefined, file: to.file } })}
       actions={
-        node &&
-        can(server, "sftp") && (
-          <SFTPButton orgId={orgId} node={node} serverId={serverId} admin={can(server, "*")} />
-        )
+        <>
+          {node && can(server, "sftp") && (
+            <SFTPButton orgId={orgId} node={node} serverId={serverId} admin={can(server, "*")} />
+          )}
+          <PopoutButton to={{ kind: "files", orgId, nodeId, serverId }} label="the file manager" />
+        </>
       }
     />
   );

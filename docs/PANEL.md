@@ -286,6 +286,14 @@ A node's hostname (`<short id>.raptornodes.net`) resolves to the machine's IP ad
 - A sync runs on one instance at a time (an advisory lock), when a node connects or is renamed and every minute: a connected node whose hostname isn't what it should be is sent `node.hostname`. A refusal is kept (`hostname_error`, shown on the System tab) and not sent again until what it should be changes. A hostname changed on the machine by hand is seen on the next connection and put back.
 - **The node's time** is in the header of the node's pages and its servers' pages (servers run on the node's time zone, as `TZ`): the time there and its zone. Opening it shows that time in your own zone, UTC, and zones you add (kept in the browser, up to 8), with how far each is from the node, and converts a time you pick on the node to each of them. It isn't shown until the Panel has read the zone.
 
+## Pop-outs
+
+A server's console, file manager, and stats, and a node's stats (admins), each open in a window of their own from the button with the arrow out of a box (on the Console card, the Resources card, and the file manager's toolbar): no sidebar, just the server or node, its state, its power buttons, and a link back to it in the app. The pages are `/popout/<org>/servers/<node>/<server>/{console,files,stats}` and `/popout/<org>/nodes/<node>/stats` (`web/src/routes/popout.*`), with the same short IDs and permissions as the app's own pages. Each pop-out is one window by name: opening it again brings it to the front. A middle click or Ctrl/Cmd-click opens it in a tab instead (#282).
+
+## Code editor
+
+Monaco (the file manager and egg scripts) is drawn in the app's colors, not a theme of its own: the text and gutter on the card, and the parts Monaco draws itself (suggestions, hovers, the find box, the right-click menu, the command palette) on the popover's colors with the app's accent, focus ring, corners, and type (`raptorTheme` in `web/src/components/monaco.tsx`). It follows the app's theme as it changes, the OS's included. There's no separate editor theme to pick (#281).
+
 ## Charts
 
 Every chart in a titled graph (a node's and a server's resources, the staff overview) has **Save as a picture** and **Copy as a picture** (where the browser can put images on the clipboard). The picture is drawn from the chart's data on a canvas, not screenshotted, at 2400×1350 in the page's theme, with what it shows written on it, so it makes sense on its own in a support thread or a Discord channel: Raptor, the chart's title and note, what it's about (the node, or the server and its node), the time range and the time zone it's in, each series' latest, low, average, and peak over the range, the limit line, and when it was saved. Files are named like `raptor-smp-on-basement-box-cpu-2026-10-16-1405.png`. Nothing is sent anywhere (`web/src/lib/chart-image.ts`).

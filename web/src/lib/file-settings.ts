@@ -10,23 +10,12 @@ export type FileSettings = {
   hideAutocomplete: boolean;
   // Save the open file a few seconds after typing stops.
   autoSave: boolean;
-  // "auto" follows the app's theme.
-  editorTheme: EditorTheme;
   treeOpen: boolean;
   // The format the last archive was made in.
   archiveFormat: ArchiveFormat;
 };
 
 export type ArchiveFormat = "zip" | "tar.gz" | "tar.zst" | "tar";
-
-export type EditorTheme = "auto" | "dark" | "light" | "hc-black";
-
-export const editorThemes: { value: EditorTheme; label: string }[] = [
-  { value: "auto", label: "Match Raptor" },
-  { value: "dark", label: "Dark" },
-  { value: "light", label: "Light" },
-  { value: "hc-black", label: "High contrast" },
-];
 
 const defaults: FileSettings = {
   singleClick: true,
@@ -35,7 +24,6 @@ const defaults: FileSettings = {
   hideIndentGuides: false,
   hideAutocomplete: false,
   autoSave: false,
-  editorTheme: "auto",
   treeOpen: true,
   archiveFormat: "zip",
 };

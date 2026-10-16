@@ -63,7 +63,7 @@ import { cn } from "@/lib/utils";
 import { type Entry, kind, sorted, useFilesApi, useListing } from "./data";
 import { EditorPane } from "./editor-pane";
 import { EntryIcon } from "./icons";
-import { SettingsMenu, ThemeMenu } from "./settings";
+import { SettingsMenu } from "./settings";
 import { ShortcutsDialog } from "./shortcuts";
 import { TrashDialog, useTrash } from "./trash";
 import { Tree } from "./tree";
@@ -96,6 +96,7 @@ export function Files({
   orgId,
   userId,
   support,
+  fill,
 }: {
   nodeId: string;
   serverId: string;
@@ -111,6 +112,8 @@ export function Files({
   // Raptor's staff, under this support request: no uploads or downloads,
   // which support access doesn't cover.
   support?: string;
+  // Fill the parent's height (a pop-out window) instead of the page's.
+  fill?: boolean;
 }) {
   const api = useFilesApi(nodeId, serverId, support);
   const transfers = !support;
@@ -283,7 +286,11 @@ export function Files({
     <div
       className={cn(
         "flex flex-col overflow-hidden rounded-xl border bg-card",
-        full ? "fixed inset-0 z-50 rounded-none border-0" : "h-[calc(100svh-15rem)] min-h-[32rem]",
+        full
+          ? "fixed inset-0 z-50 rounded-none border-0"
+          : fill
+            ? "h-full min-h-0 rounded-none border-0"
+            : "h-[calc(100svh-15rem)] min-h-[32rem]",
       )}
     >
       {/* The toolbar: where you are, what you can make, and the settings. */}
@@ -371,7 +378,6 @@ export function Files({
             )}
           </Button>
           <SettingsMenu />
-          <ThemeMenu />
           <Button
             size="icon-sm"
             variant="ghost"

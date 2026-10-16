@@ -1,15 +1,9 @@
-import { Check, Palette, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
-import {
-  editorThemes,
-  type FileSettings,
-  setFileSettings,
-  useFileSettings,
-} from "@/lib/file-settings";
-import { cn } from "@/lib/utils";
+import { type FileSettings, setFileSettings, useFileSettings } from "@/lib/file-settings";
 
 const toggles: { key: keyof FileSettings; title: string; description: string }[] = [
   {
@@ -74,38 +68,6 @@ export function SettingsMenu() {
             </li>
           ))}
         </ul>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-export function ThemeMenu() {
-  const s = useFileSettings();
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button size="icon-sm" variant="ghost" aria-label="Editor theme" title="Editor theme" />
-        }
-      >
-        <Palette />
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-56 p-1">
-        <p className="px-3 py-2 text-xs font-medium text-muted-foreground">Editor theme</p>
-        {editorThemes.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            className={cn(
-              "flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm hover:bg-muted",
-              s.editorTheme === t.value && "font-medium",
-            )}
-            onClick={() => setFileSettings({ editorTheme: t.value })}
-          >
-            {t.label}
-            {s.editorTheme === t.value && <Check className="size-4" />}
-          </button>
-        ))}
       </PopoverContent>
     </Popover>
   );
