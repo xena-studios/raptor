@@ -798,8 +798,10 @@ type FilesParams struct {
 	Name     string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension
 	Size     int64         `json:"size,omitempty"`   // files.upload
 	UploadID string        `json:"upload_id,omitempty"`
-	// Permanent: files.delete deletes for good instead of moving to the
-	// trash.
+	// Permanent is what older web apps sent to files.delete to skip the
+	// trash. It's ignored: deleting always moves to the trash, and only
+	// purging the trash (files.trash.delete, files.trash.empty) deletes for
+	// good (docs/DECISIONS.md #287).
 	Permanent bool `json:"permanent,omitempty"`
 	// Entries are trash entries (files.trash.restore, files.trash.delete).
 	Entries []string `json:"entries,omitempty"`
@@ -867,9 +869,6 @@ func RegisterFiles(x *command.Executor, s *files.Service) {
 		return map[string]string{"path": name}, nil
 	}))
 	x.Register(FilesDelete, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
-		if p.Permanent {
-			return nil, s.Delete(ctx, e.ServerID, p.Dir, p.Names)
-		}
 		return nil, s.Trash(ctx, e.ServerID, e.UserID, p.Dir, p.Names)
 	}))
 	x.Register(FilesTrash, handler(true, func(ctx context.Context, e command.Envelope, _ FilesParams) (any, error) {

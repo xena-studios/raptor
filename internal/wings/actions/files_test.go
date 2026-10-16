@@ -133,8 +133,17 @@ func TestFileCommands(t *testing.T) {
 	if _, err := svc.WriteChunk(ctx, up.ID, 0, strings.NewReader("abc")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := send(FilesDelete, FilesParams{Dir: "/", Names: []string{"config", "up.txt"}}); err != nil {
+	// Asking for a permanent delete (as older web apps did) still trashes:
+	// only purging the trash deletes for good.
+	if _, err := send(FilesDelete, FilesParams{Dir: "/", Names: []string{"config", "up.txt"}, Permanent: true}); err != nil {
 		t.Fatal(err)
+	}
+	raw, err = send(FilesTrash, FilesParams{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(raw); !strings.Contains(got, `"/config"`) || !strings.Contains(got, `"/up.txt"`) {
+		t.Errorf("not in the trash: %s", got)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "config")); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("config wasn't deleted: %v", err)

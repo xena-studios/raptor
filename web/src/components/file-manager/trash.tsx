@@ -5,6 +5,14 @@ import { useState } from "react";
 
 import type { useFilesApi } from "@/components/file-manager/data";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
@@ -67,7 +75,9 @@ export function TrashView({
   const members = useConnectQuery(OrgService.method.listMembers, { orgId }, { retry: false });
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-  const [emptying, setEmptying] = useState(false);
+  // What's about to be purged for good: one entry, or everything. Purging
+  // is the only way anything is deleted for good, so it always asks.
+  const [purging, setPurging] = useState<TrashEntry | "all" | null>(null);
   const entries = trash.data ?? [];
   const total = entries.reduce((n, e) => n + e.size, 0);
 
@@ -117,39 +127,17 @@ export function TrashView({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {canWrite &&
-            entries.length > 0 &&
-            (emptying ? (
-              <>
-                <span className="text-sm">Purge all {entries.length}?</span>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={!!busy}
-                  onClick={() =>
-                    act("empty", async () => {
-                      await api.run("files.trash.empty", {});
-                      setEmptying(false);
-                      return "The trash is empty.";
-                    })
-                  }
-                >
-                  {busy === "empty" && <Loader2 className="animate-spin" />} Purge
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setEmptying(false)}>
-                  Keep
-                </Button>
-              </>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-destructive"
-                onClick={() => setEmptying(true)}
-              >
-                <Trash2 /> Empty trash
-              </Button>
-            ))}
+          {canWrite && entries.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive"
+              disabled={!!busy}
+              onClick={() => setPurging("all")}
+            >
+              <Trash2 /> Empty trash
+            </Button>
+          )}
           <Button size="sm" variant="ghost" onClick={onClose}>
             Back to files
           </Button>
@@ -200,12 +188,7 @@ export function TrashView({
                       aria-label={`Purge ${e.path}`}
                       title="Purge: delete it for good"
                       disabled={!!busy}
-                      onClick={() =>
-                        act(`d${e.id}`, async () => {
-                          await api.run("files.trash.delete", { entries: [e.id] });
-                          return `Purged ${e.path}.`;
-                        })
-                      }
+                      onClick={() => setPurging(e)}
                     >
                       <Trash2 />
                     </Button>
@@ -216,6 +199,48 @@ export function TrashView({
           </ul>
         )}
       </div>
+      <Dialog open={purging !== null} onOpenChange={(o) => !o && setPurging(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {purging === "all"
+                ? `Delete all ${entries.length} ${entries.length === 1 ? "item" : "items"} in the trash for good?`
+                : `Delete ${purging?.path} for good?`}
+            </DialogTitle>
+            <DialogDescription>
+              {purging === "all"
+                ? `${formatBytes(total)} goes, and frees that much of the server's disk. None of it can be put back.`
+                : `It can't be put back afterwards${purging?.is_dir ? ", nor anything in it" : ""}.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPurging(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!!busy}
+              onClick={() => {
+                const what = purging;
+                setPurging(null);
+                if (what === "all") {
+                  void act("empty", async () => {
+                    await api.run("files.trash.empty", {});
+                    return "The trash is empty.";
+                  });
+                } else if (what) {
+                  void act(`d${what.id}`, async () => {
+                    await api.run("files.trash.delete", { entries: [what.id] });
+                    return `Purged ${what.path}.`;
+                  });
+                }
+              }}
+            >
+              <Trash2 /> Delete for good
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

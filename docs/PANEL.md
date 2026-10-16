@@ -297,7 +297,7 @@ Right-clicking in the file manager opens a menu as a desktop file manager does (
 
 ## File manager trash
 
-Deleting in the file manager always moves to the server's trash ([WINGS.md](WINGS.md#trash)), after one warning that says it can be put back for 7 days and still counts toward the disk limit; there's no "delete permanently" (#286). The trash is a place in the file manager, at the bottom of the folder sidebar with how many items it holds (and a button in the toolbar on small screens, where the sidebar is hidden); opening it shows its items in the main pane, each with Restore and Purge, and Empty trash purges them all. It still counts toward the server's disk limit until it's purged (#284).
+Deleting in the file manager always moves to the server's trash ([WINGS.md](WINGS.md#trash)), after one warning that says it can be put back for 7 days and still counts toward the disk limit; there's no "delete permanently" (#286). The trash is a place in the file manager, at the bottom of the folder sidebar with how many items it holds (and a button in the toolbar on small screens, where the sidebar is hidden); opening it shows its items in the main pane, each with Restore and Purge, and Empty trash purges them all. Purging is the only way anything is deleted for good, so it asks first (one item, or all of them and how much space that frees). It still counts toward the server's disk limit until it's purged (#284).
 
 ## Toasts
 
