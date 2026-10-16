@@ -222,9 +222,12 @@ message ReportHealthRequest {
 message ReportHealthResponse {}
 
 message SFTPLoginRequest {
-  // The part of the SFTP username before the last dot.
+  // The SFTP username: the login alone (t-…), or for usernames of the
+  // older form (t-….<server short ID>) the part before the last dot.
   string username = 1;
-  // The server's full ID (Wings resolved the short one).
+  // The server's full ID, when the username named one (Wings resolved the
+  // short one); empty for the login alone, and the Panel answers with the
+  // password's server.
   string server_id = 2;
   // public_key: SSH keys are gone (DECISIONS #223). Older Wings still
   // send it; it's ignored.
@@ -240,6 +243,8 @@ message SFTPLoginResponse {
   repeated string permissions = 2;
   // When the password stops working; the node ends its sessions then.
   google.protobuf.Timestamp expires_at = 3;
+  // The server the password is for: its files are what the login sees.
+  string server_id = 4;
 }
 
 message EventsAvailableRequest {

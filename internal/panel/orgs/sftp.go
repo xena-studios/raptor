@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"connectrpc.com/connect"
@@ -15,16 +16,22 @@ import (
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
-// sftpAccess is how to connect with a temporary password.
+// sftpAccess is how to connect with a temporary password. The username is
+// the login alone; a node whose Wings is too old to find the server from
+// the password gets the server's short ID after it.
 func sftpAccess(n store.Node, serverID, username string, expires pgtype.Timestamptz) *panelv1.SFTPAccess {
-	short := serverID
-	if len(short) > 8 {
-		short = short[len(short)-8:]
+	if !slices.Contains(n.Capabilities, nodelink.CapSFTPUsername) {
+		short := serverID
+		if len(short) > 8 {
+			short = short[len(short)-8:]
+		}
+		username += "." + short
 	}
 	return &panelv1.SFTPAccess{
-		Host: "n-" + n.ShortID + ".raptornodes.net", Port: n.SftpPort, Username: username + "." + short,
+		Host: "n-" + n.ShortID + ".raptornodes.net", Port: n.SftpPort, Username: username,
 		ExpiresAt: timestamppb.New(expires.Time), HostKeyFingerprint: n.SftpHostKey,
 	}
 }

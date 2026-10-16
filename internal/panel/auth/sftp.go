@@ -48,15 +48,19 @@ func (s *Service) sftpPasswordLogin(ctx context.Context, q *store.Queries, node 
 		return nil, err
 	}
 	match := subtle.ConstantTimeCompare(hash(req.GetPassword()), row.SecretHash) == 1
-	if !match || row.NodeID != node || row.ServerID != req.GetServerId() || !row.ExpiresAt.Time.After(s.now()) {
+	// A username of the older form names its server too, and it must be
+	// the password's.
+	server := req.GetServerId() == "" || row.ServerID == req.GetServerId()
+	if !match || row.NodeID != node || !server || !row.ExpiresAt.Time.After(s.now()) {
 		return nil, errSFTPDenied
 	}
-	perms, err := sftpGrant(ctx, q, node, req.GetServerId(), row.UserID)
+	perms, err := sftpGrant(ctx, q, node, row.ServerID, row.UserID)
 	if err != nil {
 		return nil, err
 	}
 	return &nodev1.SFTPLoginResponse{
 		UserId: uuid.UUID(row.UserID.Bytes).String(), Permissions: perms, ExpiresAt: timestamppb.New(row.ExpiresAt.Time),
+		ServerId: row.ServerID,
 	}, nil
 }
 

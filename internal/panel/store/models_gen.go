@@ -323,6 +323,7 @@ type Node struct {
 	HostnameTried   string
 	HostnameError   string
 	SystemReadAt    pgtype.Timestamptz
+	Capabilities    []string
 }
 
 type NodeConnection struct {
@@ -503,10 +504,11 @@ type Session struct {
 }
 
 type SftpPassword struct {
-	ID         pgtype.UUID
-	UserID     pgtype.UUID
-	NodeID     pgtype.UUID
-	ServerID   string
+	ID       pgtype.UUID
+	UserID   pgtype.UUID
+	NodeID   pgtype.UUID
+	ServerID string
+	// The whole SFTP username (t-…); nodes without sftp-username get it as t-….<server short ID>.
 	Username   string
 	SecretHash []byte
 	ExpiresAt  pgtype.Timestamptz
