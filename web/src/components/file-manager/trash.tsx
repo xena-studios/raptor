@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type { useFilesApi } from "@/components/file-manager/data";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { ago as since } from "@/lib/format";
@@ -66,7 +67,6 @@ export function TrashView({
   const members = useConnectQuery(OrgService.method.listMembers, { orgId }, { retry: false });
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [emptying, setEmptying] = useState(false);
   const entries = trash.data ?? [];
   const total = entries.reduce((n, e) => n + e.size, 0);
@@ -80,10 +80,9 @@ export function TrashView({
   async function act(key: string, fn: () => Promise<string | undefined>) {
     setBusy(key);
     setError("");
-    setNotice("");
     try {
       const done = await fn();
-      if (done) setNotice(done);
+      if (done) toast.success(done);
       await client.invalidateQueries({ queryKey: ["files", nodeId, serverId] });
     } catch (err) {
       setError(message(err));
@@ -156,9 +155,8 @@ export function TrashView({
           </Button>
         </div>
       </div>
-      {(notice || error || trash.error) && (
+      {(error || trash.error) && (
         <div className="shrink-0 px-4 pt-3 text-sm">
-          {notice && <p className="text-muted-foreground">{notice}</p>}
           {error && <p className="text-destructive">{error}</p>}
           {trash.error && <p className="text-destructive">{message(trash.error)}</p>}
         </div>

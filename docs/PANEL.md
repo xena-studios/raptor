@@ -297,7 +297,11 @@ Right-clicking in the file manager opens a menu as a desktop file manager does (
 
 ## File manager trash
 
-Deleting in the file manager always moves to the server's trash ([WINGS.md](WINGS.md#trash)), with no confirmation and no "delete permanently": it can be put back for 7 days. The trash is a place in the file manager, at the bottom of the folder sidebar with how many items it holds (and a button in the toolbar on small screens, where the sidebar is hidden); opening it shows its items in the main pane, each with Restore and Purge, and Empty trash purges them all. It still counts toward the server's disk limit until it's purged (#284).
+Deleting in the file manager always moves to the server's trash ([WINGS.md](WINGS.md#trash)), after one warning that says it can be put back for 7 days and still counts toward the disk limit; there's no "delete permanently" (#286). The trash is a place in the file manager, at the bottom of the folder sidebar with how many items it holds (and a button in the toolbar on small screens, where the sidebar is hidden); opening it shows its items in the main pane, each with Restore and Purge, and Empty trash purges them all. It still counts toward the server's disk limit until it's purged (#284).
+
+## Toasts
+
+What the file manager does is confirmed in a toast in the corner, gone after four seconds: created, renamed, copied, compressed or extracted, uploaded, moved to the trash, restored, purged, and a path copied. Failures stay in view above the list instead, until the next action. Toasts are Base UI's, with one global manager (`toast.success`, `toast.error` from `web/src/components/ui/toast.tsx`), so any page can raise one; urgent ones (errors) are announced to screen readers right away.
 
 ## Code editor
 
