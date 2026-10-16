@@ -11,14 +11,19 @@ export function sameId(a: string, b: string): boolean {
   return a === b || shortId(a) === shortId(b);
 }
 
-// canonical is the URL with its full IDs made short, or undefined if it
-// has none: old links keep working, and land on the short URL.
+// The params that have short forms; others (an egg's ID) are left alone.
+const shortened = ["orgId", "nodeId", "serverId"];
+
+// canonical is the URL with its full org, node, and server IDs made short,
+// or undefined if it has none: old links keep working, and land on the
+// short URL.
 export function canonical(
   href: string,
   params: Record<string, string | undefined>,
 ): string | undefined {
   let out = href;
-  for (const p of Object.values(params)) {
+  for (const k of shortened) {
+    const p = params[k];
     if (p?.includes("-")) out = out.replace(p, shortId(p));
   }
   return out === href ? undefined : out;
