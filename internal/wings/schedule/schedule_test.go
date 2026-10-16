@@ -51,10 +51,12 @@ func (f *servers) Status(id string) (server.Status, error) {
 }
 
 func (f *servers) Power(ctx context.Context, _ string, a server.PowerAction, user string) error {
-	f.record("power " + string(a) + " by " + user)
+	// hold is read before the call is recorded: a test that sees the call
+	// and then lets go mustn't make this one return early.
 	f.mu.Lock()
 	hold := f.hold
 	f.mu.Unlock()
+	f.record("power " + string(a) + " by " + user)
 	if hold {
 		<-ctx.Done()
 		return ctx.Err()
