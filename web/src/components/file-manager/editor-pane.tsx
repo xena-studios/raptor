@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Download, Loader2, Save, X } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-
 import { Button, buttonVariants } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { message } from "@/lib/errors";
 import { loadDraft, saveDraft, useFileSettings } from "@/lib/file-settings";
 import {
@@ -88,7 +88,9 @@ export function EditorPane({
   const dirty = text !== undefined && saved !== undefined && text !== saved;
   useEffect(() => onDirty(dirty), [dirty, onDirty]);
 
-  async function save(value = text) {
+  // save writes the file; a save someone asked for (not auto-save) says so
+  // in a toast.
+  async function save(value = text, auto = false) {
     if (readOnly || value === undefined) return;
     clearTimeout(timer.current);
     setStatus("saving");
@@ -99,6 +101,7 @@ export function EditorPane({
       saveDraft(nodeId, serverId, path, null);
       setRestored(false);
       setStatus("saved");
+      if (!auto) toast.success(`Saved ${baseName(path)}`);
     } catch (err) {
       setError(message(err));
       setStatus("error");
@@ -111,7 +114,7 @@ export function EditorPane({
     saveDraft(nodeId, serverId, path, value === saved ? null : value);
     clearTimeout(timer.current);
     if (settings.autoSave && value !== saved) {
-      timer.current = setTimeout(() => void save(value), autoSaveDelay);
+      timer.current = setTimeout(() => void save(value, true), autoSaveDelay);
     }
   }
   useEffect(() => () => clearTimeout(timer.current), []);

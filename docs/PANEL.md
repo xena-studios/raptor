@@ -301,7 +301,11 @@ Deleting in the file manager always moves to the server's trash ([WINGS.md](WING
 
 ## Toasts
 
-What the file manager does is confirmed in a toast in the corner, gone after four seconds: created, renamed, copied, compressed or extracted, uploaded, moved to the trash, restored, purged, and a path copied. Failures stay in view above the list instead, until the next action. Toasts are Base UI's, with one global manager (`toast.success`, `toast.error` from `web/src/components/ui/toast.tsx`), so any page can raise one; urgent ones (errors) are announced to screen readers right away.
+Every change made in the app is confirmed in a toast in the corner, gone after four seconds: renaming an org or a node, saving your profile, inviting someone, saving a schedule or a backup plan, starting a server, and the rest. An interceptor on the API transport (`web/src/lib/action-toasts.ts`) raises it once the Panel, or the node for a command, says it's done, with what it says listed per call in `web/src/lib/action-messages.ts` (and per Wings action for `CommandService.Execute`). Calls that aren't listed stay quiet: reads, sign-in steps, redirects (checkout), and calls whose result the page shows itself (a connection test, a join token).
+
+The file manager says what it did itself, with the file names: created, renamed, copied, compressed or extracted, uploaded, moved to the trash, restored, purged, a path copied, and a file saved from the editor (not auto-saves). Failures stay in view on the page instead of a toast.
+
+Toasts are Base UI's (`web/src/components/ui/toast.tsx`, no other library), with one global manager, so code outside components can raise one; errors are announced to screen readers right away.
 
 ## Code editor
 

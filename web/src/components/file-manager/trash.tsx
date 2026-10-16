@@ -2,7 +2,6 @@ import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { File, Folder, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
-
 import type { useFilesApi } from "@/components/file-manager/data";
 import { Button } from "@/components/ui/button";
 import {
