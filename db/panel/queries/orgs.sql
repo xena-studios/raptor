@@ -105,3 +105,6 @@ SELECT count(*) FROM nodes WHERE org_id = $1 AND deleted_at IS NULL;
 -- name: RevokeOrgInvitations :exec
 UPDATE org_invitations SET revoked_at = now()
 WHERE org_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL;
+
+-- name: MirrorServerExists :one
+SELECT EXISTS (SELECT 1 FROM m_servers WHERE node_id = $1 AND server_id = $2);

@@ -70,7 +70,7 @@ func TestSupportRequests(t *testing.T) {
 	created, _ := owner.orgs.CreateOrg(ctx, &panelv1.CreateOrgRequest{Name: "Acme"})
 	org := created.GetOrg().GetId()
 	var nodeID string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'supp1234', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&nodeID); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&nodeID); err != nil {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer

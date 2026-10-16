@@ -143,7 +143,7 @@ func TestAlerts(t *testing.T) {
 	acme := res.GetOrg().GetId()
 	exec("INSERT INTO org_members (org_id, user_id, role) VALUES ($1, $2, 'member')", acme, bobID)
 	var nodeID string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, last_seen_at) VALUES ($1, 'box-1', 'acme1234', decode(repeat('00', 32), 'hex'), now()) RETURNING id`, acme).Scan(&nodeID); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key, last_seen_at) VALUES ($1, 'box-1', decode(repeat('00', 32), 'hex'), now()) RETURNING id`, acme).Scan(&nodeID); err != nil {
 		t.Fatal(err)
 	}
 	exec(`INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at) VALUES ($1, 's1', 'smp', 1, now(), now()), ($1, 's2', 'rust', 1, now(), now())`, nodeID)

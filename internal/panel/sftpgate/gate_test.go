@@ -49,7 +49,7 @@ func TestGate(t *testing.T) {
 	if err := db.QueryRow(ctx, "INSERT INTO orgs (name) VALUES ('org') RETURNING id").Scan(&org); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'gate1234', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&nodeID); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&nodeID); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.QueryRow(ctx, "INSERT INTO users (email) VALUES ('a@example.com') RETURNING id").Scan(&user); err != nil {

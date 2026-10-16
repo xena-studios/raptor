@@ -81,7 +81,7 @@ func TestUpload(t *testing.T) {
 	if err := db.QueryRow(ctx, "INSERT INTO orgs (name) VALUES ('Acme') RETURNING id").Scan(&org); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.QueryRow(ctx, "INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'abcd1234', $2) RETURNING id", org, []byte(pub)).Scan(&node); err != nil {
+	if err := db.QueryRow(ctx, "INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', $2) RETURNING id", org, []byte(pub)).Scan(&node); err != nil {
 		t.Fatal(err)
 	}
 	code, err := doctor.Upload(ctx, srv.Client(), srv.URL, path, node, key, now)

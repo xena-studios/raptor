@@ -70,8 +70,8 @@ func TestRollout(t *testing.T) {
 		pub := make([]byte, 32)
 		_, _ = rand.Read(pub)
 		var id string
-		if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, wings_version)
-			VALUES ($1, $2, $3, $4, '1.0.0') RETURNING id::text`, org, fmt.Sprint("n", i), fmt.Sprintf("node%04d", i), pub).Scan(&id); err != nil {
+		if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key, wings_version)
+			VALUES ($1, $2, $3, '1.0.0') RETURNING id::text`, org, fmt.Sprint("n", i), pub).Scan(&id); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := db.Exec(ctx, "INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'i1')", id); err != nil {
@@ -185,12 +185,12 @@ func TestRolloutDone(t *testing.T) {
 	var org string
 	_ = db.QueryRow(ctx, "INSERT INTO orgs (name) VALUES ('o') RETURNING id::text").Scan(&org)
 	_, _ = db.Exec(ctx, "INSERT INTO panel_instances (id) VALUES ('i1')")
-	for i := range 3 {
+	for range 3 {
 		pub := make([]byte, 32)
 		_, _ = rand.Read(pub)
 		var id string
-		_ = db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, wings_version)
-			VALUES ($1, 'n', $2, $3, '1.0.0') RETURNING id::text`, org, fmt.Sprintf("done%04d", i), pub).Scan(&id)
+		_ = db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key, wings_version)
+			VALUES ($1, 'n', $2, '1.0.0') RETURNING id::text`, org, pub).Scan(&id)
 		_, _ = db.Exec(ctx, "INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'i1')", id)
 	}
 	_, key, _ := ed25519.GenerateKey(nil)

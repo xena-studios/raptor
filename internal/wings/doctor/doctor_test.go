@@ -146,9 +146,9 @@ func healthy() (*Env, *fakeSystem, *fakeDocker) {
 
 // linked makes the node linked, with its hostname pointing at it.
 func linked(e *Env) {
-	e.Config.NodeID, e.Config.Hostname = "node-1", "n-abcd1234.raptornodes.net"
+	e.Config.NodeID, e.Config.Hostname = "node-1", "1a2b3c4d5e6f.raptornodes.net"
 	e.LookupHost = func(_ context.Context, host string) ([]string, error) {
-		if host != "n-abcd1234.raptornodes.net" {
+		if host != "1a2b3c4d5e6f.raptornodes.net" {
 			return nil, errors.New("no such host")
 		}
 		return []string{"203.0.113.7"}, nil
@@ -161,7 +161,7 @@ func TestHostname(t *testing.T) {
 	linked(e)
 	s.exists[e.Config.Identity.Key] = true
 	got := byTitle(Run(context.Background(), e))["Node hostname"]
-	if got.Status != Pass || !strings.Contains(got.Detail, "n-abcd1234.raptornodes.net → 203.0.113.7") {
+	if got.Status != Pass || !strings.Contains(got.Detail, "1a2b3c4d5e6f.raptornodes.net → 203.0.113.7") {
 		t.Errorf("pointing at the node: %+v", got)
 	}
 	// Linked by an older version: nothing to check.

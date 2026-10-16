@@ -27,6 +27,13 @@ func (f *fakeDNS) Set(_ context.Context, name, typ string, addr netip.Addr) erro
 	return nil
 }
 
+func (f *fakeDNS) Remove(_ context.Context, name, typ string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sets = append(f.sets, name+" "+typ+" removed")
+	return nil
+}
+
 func TestAddresses(t *testing.T) {
 	r := newRegistry(t)
 	ctx := context.Background()
@@ -40,7 +47,10 @@ func TestAddresses(t *testing.T) {
 	f := &fakeDNS{}
 	a := &Addresses{Store: r, DNS: f, Domain: "raptornodes.net"}
 	hello := nodelink.Hello{NodeID: res.GetNodeId()}
-	name := "n-" + res.GetShortId() + ".raptornodes.net"
+	name := res.GetShortId() + ".raptornodes.net"
+	if !strings.HasSuffix(res.GetNodeId(), "-"+res.GetShortId()) || len(res.GetShortId()) != 12 || res.GetHostname() != name {
+		t.Fatalf("short ID %q, hostname %q, for node %s", res.GetShortId(), res.GetHostname(), res.GetNodeId())
+	}
 	seen := func(addr string) {
 		t.Helper()
 		ip := netip.MustParseAddr(addr)
@@ -94,5 +104,26 @@ func TestClientIP(t *testing.T) {
 	r.Header.Set("CF-Connecting-IP", "nonsense")
 	if got := ClientIP(r, "CF-Connecting-IP"); got.String() != "172.68.1.1" {
 		t.Errorf("bad header: %s", got)
+	}
+}
+
+func TestRetire(t *testing.T) {
+	r := newRegistry(t)
+	ctx := context.Background()
+	if _, err := r.DB.Exec(ctx, `INSERT INTO dns_retired (name, type) VALUES ('n-k7m2qx9d', 'A'), ('smp', 'CNAME'), ('_minecraft._tcp.smp', 'SRV')`); err != nil {
+		t.Fatal(err)
+	}
+	f := &fakeDNS{}
+	a := &Addresses{Store: r, DNS: f, Domain: "raptornodes.net"}
+	if err := a.retire(ctx); err != nil {
+		t.Fatal(err)
+	}
+	want := "_minecraft._tcp.smp.raptornodes.net SRV removed, n-k7m2qx9d.raptornodes.net A removed, smp.raptornodes.net CNAME removed"
+	if got := strings.Join(f.sets, ", "); got != want {
+		t.Errorf("removed: %s, want %s", got, want)
+	}
+	var left int
+	if err := r.DB.QueryRow(ctx, "SELECT count(*) FROM dns_retired").Scan(&left); err != nil || left != 0 {
+		t.Errorf("%d left, %v", left, err)
 	}
 }

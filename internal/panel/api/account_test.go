@@ -133,7 +133,7 @@ func TestAccountSettings(t *testing.T) {
 		t.Fatal(err)
 	}
 	var nodeID string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'acct1234', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&nodeID); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&nodeID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := alice.auth.DeleteAccount(ctx, &panelv1.DeleteAccountRequest{}); connect.CodeOf(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), "nodes") {

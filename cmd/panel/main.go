@@ -38,7 +38,6 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
-	"github.com/xena-studios/raptor/internal/panel/subdomains"
 	"github.com/xena-studios/raptor/internal/panel/support"
 	"github.com/xena-studios/raptor/internal/panel/telemetry"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
@@ -89,8 +88,6 @@ environment:
   PANEL_POLAR_PRODUCT_ID       the seat-based product ($12 per node a month)
   PANEL_POLAR_WEBHOOK_SECRET   the webhook endpoint's secret (whsec_…)
   PANEL_POLAR_API              https://sandbox-api.polar.sh for Polar's sandbox
-  PANEL_SUBDOMAINS=1           offer player subdomains on the node domain (only once
-                               it's on the Public Suffix List: docs/PANEL.md#subdomains)
   PANEL_SUPPORT_S3_ENDPOINT, _REGION, _BUCKET, _ACCESS_KEY, _SECRET_KEY
                                where nodes' support bundles go (doctor -upload); the
                                key should only be able to upload
@@ -299,25 +296,14 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		}
 		nodeDomain := envOr("PANEL_NODE_DOMAIN", "raptornodes.net")
 		addrs := &nodes.Addresses{Store: reg, Domain: nodeDomain, Log: log}
-		names := &subdomains.Syncer{DB: pool, Domain: nodeDomain, Log: log}
 		if tok := os.Getenv("PANEL_CLOUDFLARE_DNS_TOKEN"); tok != "" {
-			zone := &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}
-			addrs.DNS, names.DNS = zone, zone
+			addrs.DNS = &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}
 		} else {
 			log.Warn("PANEL_CLOUDFLARE_DNS_TOKEN is not set: node hostnames aren't updated")
 		}
-		// Released subdomains' records are cleaned up even while new ones
-		// aren't offered.
-		go names.Run(ctx, time.Minute)
-		cfg.Subdomains = &orgs.Subdomains{Orgs: cfg.Orgs, Sync: func() {
-			if err := names.Sync(context.WithoutCancel(ctx)); err != nil {
-				log.Warn("subdomain sync failed", "err", err)
-			}
-		}}
-		if os.Getenv("PANEL_SUBDOMAINS") == "1" {
-			cfg.Subdomains.Domain = nodeDomain
-		}
-		cfg.Staff.SyncSubdomains = cfg.Subdomains.Sync
+		// Records that should go (old hostnames, player subdomains) are
+		// deleted in the background.
+		go addrs.Retire(ctx, time.Minute)
 		cfg.Staff.BillingLive = bill.Enabled
 		cfg.Hub.ClientIPHeader = os.Getenv("PANEL_CLIENT_IP_HEADER")
 		cfg.Hub.OnAddress = addrs.Seen

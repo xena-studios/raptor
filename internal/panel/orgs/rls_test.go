@@ -31,7 +31,7 @@ func TestRowLevelSecurity(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'abcd1234', decode(repeat('00', 32), 'hex')) RETURNING id`, globex).Scan(&node); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex')) RETURNING id`, globex).Scan(&node); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(ctx, `INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at) VALUES ($1, 's1', 'mc', 1, now(), now())`, node); err != nil {
@@ -149,7 +149,7 @@ func TestRowLevelSecurity(t *testing.T) {
 	})
 	// A member can't do what owners and admins do, even in their own org.
 	var acmeNode string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box2', 'efgh5678', decode(repeat('00', 32), 'hex')) RETURNING id`, acme).Scan(&acmeNode); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box2', decode(repeat('00', 32), 'hex')) RETURNING id`, acme).Scan(&acmeNode); err != nil {
 		t.Fatal(err)
 	}
 	as(bob, func(tx pgx.Tx) {

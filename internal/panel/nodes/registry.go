@@ -17,6 +17,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -91,21 +92,6 @@ func (r *Registry) CreateJoinToken(ctx context.Context, orgID, name string) (str
 		return "", err
 	}
 	return token, nil
-}
-
-// Short IDs: 8 characters from a lowercase alphabet without look-alikes
-// (no 0/o, 1/l/i), random, never reused (docs/ARCHITECTURE.md#node-dns).
-const shortIDAlphabet = "abcdefghjkmnpqrstuvwxyz23456789"
-
-func newShortID() (string, error) {
-	b := make([]byte, 8)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	for i := range b {
-		b[i] = shortIDAlphabet[int(b[i])%len(shortIDAlphabet)]
-	}
-	return string(b), nil
 }
 
 // Enrollment errors, shown to the person running `raptor link`.
@@ -195,22 +181,20 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 			}
 			return q.UseJoinToken(ctx, store.UseJoinTokenParams{ID: jt.ID, NodeID: node.ID})
 		}
-		for range 10 {
-			short, err := newShortID()
-			if err != nil {
+		// The short ID is the last part of the node's ID (random in a
+		// UUIDv7), so two can match; a new ID, then.
+		for range 5 {
+			err := pgx.BeginFunc(ctx, tx, func(sp pgx.Tx) error {
+				var err error
+				node, err = store.New(sp).CreateNode(ctx, store.CreateNodeParams{
+					OrgID: jt.OrgID, Name: name, PublicKey: key, Facts: facts,
+					WingsVersion: truncate(req.GetWingsVersion(), 64),
+				})
 				return err
-			}
-			taken, err := q.ShortIDTaken(ctx, short)
-			if err != nil {
-				return err
-			}
-			if taken {
+			})
+			if pe := (*pgconn.PgError)(nil); errors.As(err, &pe) && pe.Code == "23505" && pe.ConstraintName == "nodes_short_id_key" {
 				continue
 			}
-			node, err = q.CreateNode(ctx, store.CreateNodeParams{
-				OrgID: jt.OrgID, Name: name, ShortID: short, PublicKey: key, Facts: facts,
-				WingsVersion: truncate(req.GetWingsVersion(), 64),
-			})
 			if err != nil {
 				return err
 			}
@@ -230,12 +214,12 @@ func (r *Registry) Enroll(ctx context.Context, req *nodev1.EnrollRequest) (*node
 	}, nil
 }
 
-// Hostname is a node's hostname: n-<short ID>.<domain>.
+// Hostname is a node's hostname: <short ID>.<domain>.
 func Hostname(shortID, domain string) string {
 	if domain == "" {
 		domain = "raptornodes.net"
 	}
-	return "n-" + shortID + "." + domain
+	return shortID + "." + domain
 }
 
 func truncate(s string, n int) string {

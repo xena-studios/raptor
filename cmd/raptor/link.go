@@ -164,7 +164,7 @@ func doLink(ctx context.Context, o linkOptions) error {
 	}
 	host := res.GetHostname()
 	if host == "" { // a Panel from before hostnames were sent
-		host = "n-" + res.GetShortId() + ".raptornodes.net"
+		host = res.GetShortId() + ".raptornodes.net"
 	}
 	fmt.Printf("%s as node %s (%s)\n", verb, res.GetNodeId(), host)
 	fmt.Printf("Panel key pinned: %s\n", base64.StdEncoding.EncodeToString(res.GetPanelKey()))

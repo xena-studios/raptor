@@ -187,6 +187,22 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID pgtype.UUID) ([]pgtyp
 	return items, nil
 }
 
+const mirrorServerExists = `-- name: MirrorServerExists :one
+SELECT EXISTS (SELECT 1 FROM m_servers WHERE node_id = $1 AND server_id = $2)
+`
+
+type MirrorServerExistsParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) MirrorServerExists(ctx context.Context, arg MirrorServerExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, mirrorServerExists, arg.NodeID, arg.ServerID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const nodeServer = `-- name: NodeServer :one
 SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
        coalesce(s.config->'allocations', '[]')::jsonb AS allocations, s.config,

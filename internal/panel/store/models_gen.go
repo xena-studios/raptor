@@ -160,6 +160,11 @@ type BillingWebhook struct {
 	ReceivedAt pgtype.Timestamptz
 }
 
+type DnsRetired struct {
+	Name string
+	Type string
+}
+
 type Egg struct {
 	ID            pgtype.UUID
 	OrgID         pgtype.UUID
@@ -296,7 +301,6 @@ type Node struct {
 	ID              pgtype.UUID
 	OrgID           pgtype.UUID
 	Name            string
-	ShortID         string
 	PublicKey       []byte
 	Facts           []byte
 	WingsVersion    string
@@ -324,6 +328,7 @@ type Node struct {
 	HostnameError   string
 	SystemReadAt    pgtype.Timestamptz
 	Capabilities    []string
+	ShortID         string
 }
 
 type NodeConnection struct {
@@ -532,27 +537,6 @@ type StaffAudit struct {
 	TargetID   string
 	Meta       []byte
 	Ip         *netip.Addr
-}
-
-type Subdomain struct {
-	ID         pgtype.UUID
-	OrgID      pgtype.UUID
-	NodeID     pgtype.UUID
-	ServerID   string
-	Name       string
-	CreatedBy  pgtype.UUID
-	CreatedAt  pgtype.Timestamptz
-	ReleasedAt pgtype.Timestamptz
-	DnsTarget  string
-	DnsPort    int32
-	DnsError   string
-}
-
-type SubdomainBan struct {
-	Name      string
-	Reason    string
-	StaffID   pgtype.UUID
-	CreatedAt pgtype.Timestamptz
 }
 
 type SupportRequest struct {

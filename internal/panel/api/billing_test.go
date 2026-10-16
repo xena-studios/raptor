@@ -234,20 +234,20 @@ func TestBilling(t *testing.T) {
 	}
 
 	// One node: the free month. A second ends it, and seats follow.
-	newNode := func(short string) string {
+	newNode := func() string {
 		t.Helper()
 		var id string
-		if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', $2, decode(repeat('00', 32), 'hex')) RETURNING id`, org, short).Scan(&id); err != nil {
+		if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&id); err != nil {
 			t.Fatal(err)
 		}
 		return id
 	}
-	n1 := newNode("bill0001")
+	n1 := newNode()
 	sweep()
 	if len(polar.patches) != 0 {
 		t.Errorf("one node on the free month changed the plan: %v", polar.patches)
 	}
-	newNode("bill0002")
+	newNode()
 	sweep()
 	if b := get(); b.GetStatus() != "active" || b.GetSeats() != 2 || b.GetNodes() != 2 {
 		t.Errorf("after a second node: %v (patches %v)", b, polar.patches)

@@ -50,7 +50,7 @@ func TestBackupStorageAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	var node string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key) VALUES ($1, 'box', 'bs123456', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&node); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(&node); err != nil {
 		t.Fatal(err)
 	}
 

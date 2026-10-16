@@ -126,34 +126,23 @@ func TestCloudflare(t *testing.T) {
 	}
 }
 
-func TestCloudflareSubdomainRecords(t *testing.T) {
+func TestCloudflareRemove(t *testing.T) {
 	f := &fakeCloudflare{records: map[string]cfRecord{}}
 	srv := httptest.NewServer(f)
 	defer srv.Close()
 	cf := &Cloudflare{Token: "tok", ZoneID: "zone1", API: srv.URL}
 	ctx := context.Background()
-	node := "n-abcd2345.raptornodes.net"
-
-	if err := cf.SetCNAME(ctx, "smp.raptornodes.net", node); err != nil {
+	name := "n-abcd2345.raptornodes.net"
+	if err := cf.Set(ctx, name, "A", netip.MustParseAddr("203.0.113.7")); err != nil {
 		t.Fatal(err)
 	}
-	if r := f.get("smp.raptornodes.net", "CNAME"); len(r) != 1 || r[0].Content != node || r[0].Proxied {
-		t.Fatalf("cname: %+v", r)
-	}
-	srvName := "_minecraft._tcp.smp.raptornodes.net"
-	if err := cf.SetSRV(ctx, srvName, 25570, node); err != nil {
+	if err := cf.Remove(ctx, name, "A"); err != nil {
 		t.Fatal(err)
 	}
-	if r := f.get(srvName, "SRV"); len(r) != 1 || r[0].Data == nil || r[0].Data.Port != 25570 || r[0].Data.Target != node || r[0].Content != "" {
-		t.Fatalf("srv: %+v", r)
+	if len(f.get(name, "A")) != 0 {
+		t.Fatal("record left after removing it")
 	}
-	if err := cf.SetSRV(ctx, srvName, 0, ""); err != nil {
-		t.Fatal(err)
-	}
-	if err := cf.SetCNAME(ctx, "smp.raptornodes.net", ""); err != nil {
-		t.Fatal(err)
-	}
-	if len(f.get(srvName, "SRV"))+len(f.get("smp.raptornodes.net", "CNAME")) != 0 {
-		t.Fatal("records left after removing them")
+	if err := cf.Remove(ctx, name, "TXT"); err == nil {
+		t.Error("removed a TXT record")
 	}
 }

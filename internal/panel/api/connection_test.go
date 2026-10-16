@@ -68,7 +68,7 @@ func TestConnectionTest(t *testing.T) {
 	created, _ := b.orgs.CreateOrg(ctx, &panelv1.CreateOrgRequest{Name: "Acme"})
 	org := created.GetOrg().GetId()
 	var node string
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, public_ipv4) VALUES ($1, 'box', 'conn1234', decode(repeat('00', 32), 'hex'), '203.0.113.7') RETURNING id`, org).Scan(&node); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key, public_ipv4) VALUES ($1, 'box', decode(repeat('00', 32), 'hex'), '203.0.113.7') RETURNING id`, org).Scan(&node); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(ctx, `INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at, config) VALUES ($1, 's1', 'mc', 1, now(), now(),

@@ -58,7 +58,7 @@ func TestSync(t *testing.T) {
 	if err := db.QueryRow(ctx, "INSERT INTO orgs (name) VALUES ('acme') RETURNING id").Scan(&org); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, short_id, public_key, last_seen_at) VALUES ($1, 'Basement Box', 'acme1234', decode(repeat('00', 32), 'hex'), now()) RETURNING id`, org).Scan(&node); err != nil {
+	if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key, last_seen_at) VALUES ($1, 'Basement Box', decode(repeat('00', 32), 'hex'), now()) RETURNING id`, org).Scan(&node); err != nil {
 		t.Fatal(err)
 	}
 	exec("INSERT INTO panel_instances (id) VALUES ('test')")

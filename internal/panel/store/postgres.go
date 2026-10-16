@@ -51,6 +51,11 @@ func Open(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 
 // Migrate applies all pending migrations.
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
+	return MigrateTo(ctx, pool, 0)
+}
+
+// MigrateTo applies pending migrations up to version (0: all of them).
+func MigrateTo(ctx context.Context, pool *pgxpool.Pool, version int64) error {
 	db := stdlib.OpenDBFromPool(pool)
 	defer func() { _ = db.Close() }()
 
@@ -58,7 +63,12 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	if err != nil {
 		return fmt.Errorf("migrations: %w", err)
 	}
-	if _, err := p.Up(ctx); err != nil {
+	if version == 0 {
+		_, err = p.Up(ctx)
+	} else {
+		_, err = p.UpTo(ctx, version)
+	}
+	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	return nil
