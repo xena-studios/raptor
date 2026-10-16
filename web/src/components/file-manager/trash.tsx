@@ -1,26 +1,19 @@
 import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Folder, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { File, Folder, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import type { useFilesApi } from "@/components/file-manager/data";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { ago as since } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
 
-// The trash (Wings' files.trash*, docs/WINGS.md#trash): what was deleted
-// from the file manager, for 7 days, to put back or delete for good. It
-// counts toward the server's disk limit until it's gone.
+// The trash (Wings' files.trash*, docs/WINGS.md#trash): everything deleted
+// in the file manager goes here, for 7 days, to put back or purge. It
+// counts toward the server's disk limit until it's gone. It's a place in
+// the file manager (the sidebar's Trash), not a dialog.
 
 type TrashEntry = {
   id: string;
@@ -51,7 +44,7 @@ function left(ms: number): string {
   return days <= 1 ? "goes within a day" : `goes in ${days} days`;
 }
 
-export function TrashDialog({
+export function TrashView({
   api,
   nodeId,
   serverId,
@@ -111,30 +104,78 @@ export function TrashDialog({
     });
 
   return (
-    <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Trash</DialogTitle>
-          <DialogDescription>
-            Deleted files stay here for {keepDays} days, then go for good. They still count toward
-            the server's disk limit until then.
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b px-4 py-3">
+        <div className="min-w-0 space-y-1">
+          <h3 className="flex items-center gap-2 text-sm font-medium">
+            <Trash2 className="size-4 text-muted-foreground" /> Trash
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            What's deleted stays here for {keepDays} days, then goes for good. It still counts
+            toward the server's disk limit until then.
             {entries.length > 0 &&
               ` ${entries.length} ${entries.length === 1 ? "item" : "items"}, ${formatBytes(total)}.`}
-          </DialogDescription>
-        </DialogHeader>
-        {trash.error && <p className="text-sm text-destructive">{message(trash.error)}</p>}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {canWrite &&
+            entries.length > 0 &&
+            (emptying ? (
+              <>
+                <span className="text-sm">Purge all {entries.length}?</span>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={!!busy}
+                  onClick={() =>
+                    act("empty", async () => {
+                      await api.run("files.trash.empty", {});
+                      setEmptying(false);
+                      return "The trash is empty.";
+                    })
+                  }
+                >
+                  {busy === "empty" && <Loader2 className="animate-spin" />} Purge
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEmptying(false)}>
+                  Keep
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive"
+                onClick={() => setEmptying(true)}
+              >
+                <Trash2 /> Empty trash
+              </Button>
+            ))}
+          <Button size="sm" variant="ghost" onClick={onClose}>
+            Back to files
+          </Button>
+        </div>
+      </div>
+      {(notice || error || trash.error) && (
+        <div className="shrink-0 px-4 pt-3 text-sm">
+          {notice && <p className="text-muted-foreground">{notice}</p>}
+          {error && <p className="text-destructive">{error}</p>}
+          {trash.error && <p className="text-destructive">{message(trash.error)}</p>}
+        </div>
+      )}
+      <div className="min-h-0 flex-1 overflow-auto p-4">
         {trash.isPending ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : entries.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">The trash is empty.</p>
+          <p className="py-10 text-center text-sm text-muted-foreground">The trash is empty.</p>
         ) : (
-          <ul className="-mx-1 flex max-h-[50vh] flex-col divide-y overflow-y-auto">
+          <ul className="flex flex-col divide-y rounded-lg border">
             {entries.map((e) => (
-              <li key={e.id} className="flex items-center gap-3 px-1 py-2 text-sm">
+              <li key={e.id} className="flex items-center gap-3 px-3 py-2 text-sm">
                 {e.is_dir ? (
                   <Folder className="size-4 shrink-0 text-muted-foreground" />
                 ) : (
-                  <Trash2 className="size-4 shrink-0 text-muted-foreground" />
+                  <File className="size-4 shrink-0 text-muted-foreground" />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-mono text-xs">{e.path}</p>
@@ -158,13 +199,13 @@ export function TrashDialog({
                       size="icon-sm"
                       variant="ghost"
                       className="text-destructive"
-                      aria-label={`Delete ${e.path} for good`}
-                      title="Delete for good"
+                      aria-label={`Purge ${e.path}`}
+                      title="Purge: delete it for good"
                       disabled={!!busy}
                       onClick={() =>
                         act(`d${e.id}`, async () => {
                           await api.run("files.trash.delete", { entries: [e.id] });
-                          return undefined;
+                          return `Purged ${e.path}.`;
                         })
                       }
                     >
@@ -176,48 +217,7 @@ export function TrashDialog({
             ))}
           </ul>
         )}
-        {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <DialogFooter className="sm:justify-between">
-          {canWrite && entries.length > 0 ? (
-            emptying ? (
-              <div className="flex items-center gap-2 text-sm">
-                <span>Delete all {entries.length} for good?</span>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={!!busy}
-                  onClick={() =>
-                    act("empty", async () => {
-                      await api.run("files.trash.empty", {});
-                      setEmptying(false);
-                      return "The trash is empty.";
-                    })
-                  }
-                >
-                  {busy === "empty" && <Loader2 className="animate-spin" />} Empty trash
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setEmptying(false)}>
-                  Keep
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                className="text-destructive"
-                onClick={() => setEmptying(true)}
-              >
-                <Trash2 /> Empty trash
-              </Button>
-            )
-          ) : (
-            <span />
-          )}
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

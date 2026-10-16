@@ -261,6 +261,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Short URLs: orgs, nodes, and servers by their short IDs (a UUID's last part), old full-ID links redirected, both IDs on the Settings tabs ([PANEL.md](PANEL.md#urls), #280)
 - [x] Pop-outs: a server's console, files, and stats, and a node's stats, each in a window of its own ([PANEL.md](PANEL.md#pop-outs), #282)
 - [x] Owners delete orgs (once their nodes are removed); Raptor Backup Storage is a choice in Add destination, not a banner; right-click menus in the file manager's list and tree (#283)
+- [x] The trash lives in the file manager's sidebar and deleting always goes there (purged from the trash); New org opens a dialog from the org switcher (#284)
 
 **Exit criteria:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, **without help**, in under 15 minutes.
 

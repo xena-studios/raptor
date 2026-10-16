@@ -295,6 +295,10 @@ A server's console, file manager, and stats, and a node's stats (admins), each o
 
 Right-clicking in the file manager opens a menu as a desktop file manager does (`ListMenu` in `web/src/components/file-manager/index.tsx`), in the list and in the folder tree alike: on a file, Open, Download, Rename, Make a copy, Compress or Extract here, Copy path, Delete; on a folder, the same plus New file and New folder inside it; on several selected items, Compress and Delete for all of them; on empty space, New file, New folder, Upload files, Copy folder path, Refresh. Right-clicking never changes the selection: the item the menu is for is outlined while it's open, and right-clicking inside a selection acts on the whole selection (#283). The `...` button on each row stays, for touch and keyboards.
 
+## File manager trash
+
+Deleting in the file manager always moves to the server's trash ([WINGS.md](WINGS.md#trash)), with no confirmation and no "delete permanently": it can be put back for 7 days. The trash is a place in the file manager, at the bottom of the folder sidebar with how many items it holds (and a button in the toolbar on small screens, where the sidebar is hidden); opening it shows its items in the main pane, each with Restore and Purge, and Empty trash purges them all. It still counts toward the server's disk limit until it's purged (#284).
+
 ## Code editor
 
 Monaco (the file manager and egg scripts) is drawn in the app's colors, not a theme of its own: the text and gutter on the card, and the parts Monaco draws itself (suggestions, hovers, the find box, the right-click menu, the command palette) on the popover's colors with the app's accent, focus ring, corners, and type (`raptorTheme` in `web/src/components/monaco.tsx`). It follows the app's theme as it changes, the OS's included. There's no separate editor theme to pick (#281).
