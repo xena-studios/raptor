@@ -68,7 +68,14 @@ import { roleNames } from "@/lib/format";
 import { shortId } from "@/lib/ids";
 import { useOrgNodes, useOrgServers } from "@/lib/org-data";
 import { type ServerStatus, serverStatus } from "@/lib/servers";
-import { getTheme, isTheme, setTheme } from "@/lib/theme";
+import {
+  getTheme,
+  getThemeStyle,
+  isTheme,
+  isThemeStyle,
+  setTheme,
+  setThemeStyle,
+} from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 // The org the app shows when a page isn't about one (the last one opened).
@@ -116,10 +123,12 @@ export function AppShell({
   // Appearance card changes both.
   useEffect(() => {
     const t = session.user?.theme;
-    if (themeSynced || !isTheme(t)) return;
+    const s = session.user?.themeStyle;
+    if (themeSynced || !session.user) return;
     themeSynced = true;
-    if (t !== getTheme()) setTheme(t);
-  }, [session.user?.theme]);
+    if (isTheme(t) && t !== getTheme()) setTheme(t);
+    if (isThemeStyle(s) && s !== getThemeStyle()) setThemeStyle(s);
+  }, [session.user]);
 
   useEffect(() => {
     if (!orgId) return;

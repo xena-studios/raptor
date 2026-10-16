@@ -317,7 +317,10 @@ type User struct {
 	TotpEnabled bool                   `protobuf:"varint,4,opt,name=totp_enabled,json=totpEnabled,proto3" json:"totp_enabled,omitempty"`
 	CreatedAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// "system", "light", or "dark".
-	Theme         string `protobuf:"bytes,7,opt,name=theme,proto3" json:"theme,omitempty"`
+	Theme string `protobuf:"bytes,7,opt,name=theme,proto3" json:"theme,omitempty"`
+	// "standard", "contrast" (high contrast), or "calm" (neutral, less
+	// colour).
+	ThemeStyle    string `protobuf:"bytes,8,opt,name=theme_style,json=themeStyle,proto3" json:"theme_style,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -390,6 +393,13 @@ func (x *User) GetCreatedAt() *timestamppb.Timestamp {
 func (x *User) GetTheme() string {
 	if x != nil {
 		return x.Theme
+	}
+	return ""
+}
+
+func (x *User) GetThemeStyle() string {
+	if x != nil {
+		return x.ThemeStyle
 	}
 	return ""
 }
@@ -2925,6 +2935,7 @@ type UpdateProfileRequest struct {
 	// Unset fields stay as they are.
 	Name          *string `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	Theme         *string `protobuf:"bytes,2,opt,name=theme,proto3,oneof" json:"theme,omitempty"`
+	ThemeStyle    *string `protobuf:"bytes,3,opt,name=theme_style,json=themeStyle,proto3,oneof" json:"theme_style,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2969,6 +2980,13 @@ func (x *UpdateProfileRequest) GetName() string {
 func (x *UpdateProfileRequest) GetTheme() string {
 	if x != nil && x.Theme != nil {
 		return *x.Theme
+	}
+	return ""
+}
+
+func (x *UpdateProfileRequest) GetThemeStyle() string {
+	if x != nil && x.ThemeStyle != nil {
+		return *x.ThemeStyle
 	}
 	return ""
 }
@@ -3286,7 +3304,7 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x12\x1f\n" +
 	"\vnew_account\x18\x02 \x01(\bR\n" +
 	"newAccount\x124\n" +
-	"\x16second_factor_required\x18\x03 \x01(\bR\x14secondFactorRequired\"\xc9\x01\n" +
+	"\x16second_factor_required\x18\x03 \x01(\bR\x14secondFactorRequired\"\xea\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -3294,7 +3312,9 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\ftotp_enabled\x18\x04 \x01(\bR\vtotpEnabled\x129\n" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x14\n" +
-	"\x05theme\x18\a \x01(\tR\x05themeJ\x04\b\x05\x10\x06R\rsftp_username\"\x13\n" +
+	"\x05theme\x18\a \x01(\tR\x05theme\x12\x1f\n" +
+	"\vtheme_style\x18\b \x01(\tR\n" +
+	"themeStyleJ\x04\b\x05\x10\x06R\rsftp_username\"\x13\n" +
 	"\x11GetSessionRequest\"\xa3\x01\n" +
 	"\x12GetSessionResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x122\n" +
@@ -3430,12 +3450,15 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"page_token\x18\x01 \x01(\tR\tpageToken\"s\n" +
 	"\x14ListActivityResponse\x123\n" +
 	"\x06events\x18\x01 \x03(\v2\x1b.raptor.panel.v1.AuditEventR\x06events\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"]\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x93\x01\n" +
 	"\x14UpdateProfileRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x19\n" +
-	"\x05theme\x18\x02 \x01(\tH\x01R\x05theme\x88\x01\x01B\a\n" +
+	"\x05theme\x18\x02 \x01(\tH\x01R\x05theme\x88\x01\x01\x12$\n" +
+	"\vtheme_style\x18\x03 \x01(\tH\x02R\n" +
+	"themeStyle\x88\x01\x01B\a\n" +
 	"\x05_nameB\b\n" +
-	"\x06_theme\"B\n" +
+	"\x06_themeB\x0e\n" +
+	"\f_theme_style\"B\n" +
 	"\x15UpdateProfileResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\"6\n" +
 	"\x17StartEmailChangeRequest\x12\x1b\n" +
