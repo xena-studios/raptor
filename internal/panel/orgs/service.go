@@ -365,6 +365,57 @@ func (s *Service) RemoveMember(ctx context.Context, req *panelv1.RemoveMemberReq
 	return &panelv1.RemoveMemberResponse{}, nil
 }
 
+// DeleteOrg implements OrgService. The org must have no nodes: removing
+// them is what lets go of their DNS names, backup storage, and billing
+// seats, so deleting skips none of that. Its row stays (marked), with its
+// audit log; nobody is in it any more, so nobody sees it.
+func (s *Service) DeleteOrg(ctx context.Context, req *panelv1.DeleteOrgRequest) (*panelv1.DeleteOrgResponse, error) {
+	var sess *auth.Session
+	var org pgtype.UUID
+	err := s.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
+		var err error
+		sess = se
+		org, _, err = member(ctx, q, se, req.GetOrgId(), "owner")
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := s.Auth.RequireReauth(sess); err != nil {
+		return nil, err
+	}
+	// As the Panel: the members' rows aren't the user's to delete under the
+	// requests' role. The join tokens go first, which waits for a node
+	// joining with one right now, so the count after sees it.
+	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.ExpireOrgJoinTokens(ctx, org); err != nil {
+			return err
+		}
+		nodes, err := q.CountOrgNodes(ctx, org)
+		if err != nil {
+			return err
+		}
+		if nodes > 0 {
+			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("the org still has %d node%s: remove them first (each node's Settings tab)", nodes, map[bool]string{true: "", false: "s"}[nodes == 1]))
+		}
+		if err := s.audit(ctx, q, sess, org, "org.delete", idString(org), nil, nil); err != nil {
+			return err
+		}
+		if err := q.RevokeOrgInvitations(ctx, org); err != nil {
+			return err
+		}
+		if err := q.RemoveOrgMembers(ctx, org); err != nil {
+			return err
+		}
+		return q.MarkOrgDeleted(ctx, org)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &panelv1.DeleteOrgResponse{}, nil
+}
+
 func invitationProto(i store.OrgInvitation) *panelv1.Invitation {
 	return &panelv1.Invitation{
 		Id: idString(i.ID), Email: i.Email, Role: roleProto(i.Role),

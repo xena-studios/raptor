@@ -122,8 +122,19 @@ func (q *Queries) CreateInvitation(ctx context.Context, arg CreateInvitationPara
 	return i, err
 }
 
+const expireOrgJoinTokens = `-- name: ExpireOrgJoinTokens :exec
+UPDATE join_tokens SET expires_at = least(expires_at, now())
+WHERE org_id = $1 AND used_at IS NULL
+`
+
+// Locks the org's unused join tokens, so no node joins while it's deleted.
+func (q *Queries) ExpireOrgJoinTokens(ctx context.Context, orgID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, expireOrgJoinTokens, orgID)
+	return err
+}
+
 const getOrg = `-- name: GetOrg :one
-SELECT id, name, created_at, suspended_at, suspended_reason FROM orgs WHERE id = $1
+SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at FROM orgs WHERE id = $1
 `
 
 func (q *Queries) GetOrg(ctx context.Context, id pgtype.UUID) (Org, error) {
@@ -135,6 +146,7 @@ func (q *Queries) GetOrg(ctx context.Context, id pgtype.UUID) (Org, error) {
 		&i.CreatedAt,
 		&i.SuspendedAt,
 		&i.SuspendedReason,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -185,6 +197,15 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID pgtype.UUID) ([]pgtyp
 		return nil, err
 	}
 	return items, nil
+}
+
+const markOrgDeleted = `-- name: MarkOrgDeleted :exec
+UPDATE orgs SET deleted_at = now() WHERE id = $1
+`
+
+func (q *Queries) MarkOrgDeleted(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, markOrgDeleted, id)
+	return err
 }
 
 const mirrorServerExists = `-- name: MirrorServerExists :one
@@ -488,6 +509,15 @@ func (q *Queries) RemoveOrgMember(ctx context.Context, arg RemoveOrgMemberParams
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const removeOrgMembers = `-- name: RemoveOrgMembers :exec
+DELETE FROM org_members WHERE org_id = $1
+`
+
+func (q *Queries) RemoveOrgMembers(ctx context.Context, orgID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, removeOrgMembers, orgID)
+	return err
 }
 
 const renameOrg = `-- name: RenameOrg :exec

@@ -195,7 +195,7 @@ func (q *Queries) FailingServers(ctx context.Context) ([]FailingServersRow, erro
 }
 
 const getOrgForStaff = `-- name: GetOrgForStaff :one
-SELECT id, name, created_at, suspended_at, suspended_reason FROM orgs WHERE id = $1
+SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at FROM orgs WHERE id = $1
 `
 
 func (q *Queries) GetOrgForStaff(ctx context.Context, id pgtype.UUID) (Org, error) {
@@ -207,6 +207,7 @@ func (q *Queries) GetOrgForStaff(ctx context.Context, id pgtype.UUID) (Org, erro
 		&i.CreatedAt,
 		&i.SuspendedAt,
 		&i.SuspendedReason,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -563,7 +564,7 @@ func (q *Queries) OrgSuspended(ctx context.Context, id pgtype.UUID) (bool, error
 const platformCounts = `-- name: PlatformCounts :one
 SELECT
     (SELECT count(*) FROM users)::int AS users,
-    (SELECT count(*) FROM orgs)::int AS orgs,
+    (SELECT count(*) FROM orgs WHERE deleted_at IS NULL)::int AS orgs,
     (SELECT count(*) FROM nodes WHERE deleted_at IS NULL)::int AS nodes,
     (SELECT count(*) FROM node_connections c JOIN nodes n ON n.id = c.node_id WHERE n.deleted_at IS NULL)::int AS nodes_connected,
     (SELECT count(*) FROM m_servers s JOIN nodes n ON n.id = s.node_id WHERE n.deleted_at IS NULL)::int AS servers,

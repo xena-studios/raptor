@@ -36,6 +36,7 @@ export function PopoutButton({ to, label }: { to: Popout; label: string }): Reac
       variant="ghost"
       aria-label={`Open ${label} in its own window`}
       title={`Open ${label} in its own window`}
+      nativeButton={false}
       render={
         <a
           href={popoutPath(to)}

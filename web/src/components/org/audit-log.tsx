@@ -237,6 +237,9 @@ export function OrgActivity({
       case "member.leave":
         [text, icon] = ["left the org", LogOut];
         break;
+      case "org.delete":
+        [text, icon] = ["deleted the org", Trash2];
+        break;
       case "account.delete":
         [text, icon] = ["deleted their account and left the org", UserMinus];
         break;

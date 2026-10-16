@@ -24,6 +24,11 @@ service OrgService {
   // RenameOrg renames an org. Admins and owners.
   rpc RenameOrg(RenameOrgRequest) returns (RenameOrgResponse) {}
 
+  // DeleteOrg deletes an org: everyone is taken out of it, and its
+  // invitations and join tokens stop working. Owners, after confirming it's
+  // them, once it has no nodes.
+  rpc DeleteOrg(DeleteOrgRequest) returns (DeleteOrgResponse) {}
+
   // ListMembers lists an org's members. Any member.
   rpc ListMembers(ListMembersRequest) returns (ListMembersResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
@@ -277,6 +282,12 @@ message RenameOrgRequest {
 }
 
 message RenameOrgResponse {}
+
+message DeleteOrgRequest {
+  string org_id = 1;
+}
+
+message DeleteOrgResponse {}
 
 message Member {
   string user_id = 1;

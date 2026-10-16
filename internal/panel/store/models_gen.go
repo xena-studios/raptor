@@ -379,6 +379,7 @@ type Org struct {
 	CreatedAt       pgtype.Timestamptz
 	SuspendedAt     pgtype.Timestamptz
 	SuspendedReason string
+	DeletedAt       pgtype.Timestamptz
 }
 
 type OrgInvitation struct {

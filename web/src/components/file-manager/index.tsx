@@ -1,10 +1,13 @@
 import {
   ChevronRight,
+  Copy,
   Download,
   FileArchive,
   FilePlus,
+  FolderOpen,
   FolderPlus,
   Keyboard,
+  Link2,
   Maximize2,
   Minimize2,
   MoreHorizontal,
@@ -29,6 +32,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import {
   Dialog,
   DialogContent,
@@ -132,10 +136,17 @@ export function Files({
   const [trashOpen, setTrashOpen] = useState(false);
   const trash = useTrash(api, nodeId, serverId);
   const [ask, setAsk] = useState<NameAsk>();
-  const [confirmDelete, setConfirmDelete] = useState<string[]>();
-  const [compressing, setCompressing] = useState<string[]>();
+  // What's being deleted or compressed: names in a folder (the one shown,
+  // or one in the tree).
+  const [confirmDelete, setConfirmDelete] = useState<{ dir: string; names: string[] }>();
+  const [compressing, setCompressing] = useState<{ dir: string; names: string[] }>();
   const dirty = useRef(false);
   const picker = useRef<HTMLInputElement>(null);
+  // What the right-click menu is about, and whether it's open (the item
+  // it's for is outlined meanwhile; right-clicking never selects).
+  const [menuFor, setMenuFor] = useState<MenuTarget>({ dir: path, items: null });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const rowHit = useRef(false);
 
   const entries = sorted(listing.data?.entries ?? []).filter((e) =>
     e.name.toLowerCase().includes(query.trim().toLowerCase()),
@@ -241,36 +252,37 @@ export function Files({
     setUploads((list) => list.map((u) => (u.key === key ? { ...u, ...change } : u)));
   }
 
-  const newFile = () =>
+  const newFile = (dir = path) =>
     setAsk({
       title: "New file",
       initial: "",
       action: "Create",
       done: (name) =>
         void act(async () => {
-          await api.run("files.write", { path: join(path, name), data: "" });
-          go({ path, file: join(path, name) });
+          await api.run("files.write", { path: join(dir, name), data: "" });
+          go({ path: dir, file: join(dir, name) });
         }),
     });
-  const newFolder = () =>
+  const newFolder = (dir = path) =>
     setAsk({
       title: "New folder",
       initial: "",
       action: "Create",
-      done: (name) => void act(() => api.run("files.mkdir", { path: join(path, name) })),
+      done: (name) => void act(() => api.run("files.mkdir", { path: join(dir, name) })),
     });
-  const rename = (e: Entry) =>
+  const rename = (e: Entry, dir = path) =>
     setAsk({
       title: `Rename ${e.name}`,
       initial: e.name,
       action: "Rename",
       done: (name) =>
-        void act(() => api.run("files.rename", { dir: path, moves: [{ from: e.name, to: name }] })),
+        void act(() => api.run("files.rename", { dir, moves: [{ from: e.name, to: name }] })),
     });
-  const compress = (names: string[]) => setCompressing(names);
-  const decompress = (e: Entry) =>
+  const compress = (names: string[], dir = path) => setCompressing({ dir, names });
+  const askDelete = (names: string[], dir = path) => setConfirmDelete({ dir, names });
+  const decompress = (e: Entry, dir = path) =>
     void act(
-      () => api.run("files.decompress", { path: join(path, e.name), dest: path }),
+      () => api.run("files.decompress", { path: join(dir, e.name), dest: dir }),
       `Extracting ${e.name}. Its files appear here when it's done.`,
     );
 
@@ -281,6 +293,49 @@ export function Files({
   }
 
   const allSelected = entries.length > 0 && entries.every((e) => selected.has(e.name));
+
+  // Right-clicking a row is about it alone, or about the selection if
+  // it's part of one. It doesn't change the selection.
+  function rowMenu(e: Entry) {
+    rowHit.current = true;
+    const items =
+      selected.has(e.name) && selected.size > 1 ? entries.filter((x) => selected.has(x.name)) : [e];
+    setMenuFor({ dir: path, items, from: "list" });
+  }
+
+  // Right-clicking anywhere else in the list is about the folder shown.
+  function areaMenu() {
+    if (!rowHit.current) setMenuFor({ dir: path, items: null, from: "list" });
+    rowHit.current = false;
+  }
+
+  const copyPath = (p: string) => void navigator.clipboard.writeText(`/${p}`);
+  const duplicate = (e: Entry, dir = path) =>
+    void act(() => api.run("files.copy", { path: join(dir, e.name) }), `Made a copy of ${e.name}.`);
+  const outlined = (name: string) =>
+    menuOpen &&
+    menuFor.from === "list" &&
+    menuFor.dir === path &&
+    !!menuFor.items?.some((x) => x.name === name);
+  const menuProps = {
+    target: menuFor,
+    canWrite,
+    download: (e: Entry, dir: string) =>
+      kind(e) === "file" && transfers
+        ? downloadURL(nodeId, serverId, join(dir, e.name))
+        : undefined,
+    onOpen: (e: Entry, dir: string) => openEntry(dir, e),
+    onRename: rename,
+    onDuplicate: duplicate,
+    onExtract: decompress,
+    onCompress: compress,
+    onDelete: askDelete,
+    onCopyPath: copyPath,
+    onNewFile: newFile,
+    onNewFolder: newFolder,
+    onUpload: transfers ? () => picker.current?.click() : undefined,
+    onRefresh: () => void api.refresh(),
+  };
 
   return (
     <div
@@ -325,10 +380,10 @@ export function Files({
         <div className="flex flex-wrap items-center gap-1.5">
           {canWrite && (
             <>
-              <Button size="sm" variant="outline" disabled={busy} onClick={newFile}>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => newFile()}>
                 <FilePlus /> New File
               </Button>
-              <Button size="sm" variant="outline" disabled={busy} onClick={newFolder}>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => newFolder()}>
                 <FolderPlus /> New Folder
               </Button>
               {transfers && (
@@ -423,13 +478,32 @@ export function Files({
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-auto px-1.5 pb-2">
-              <Tree
-                api={api}
-                current={path}
-                openFile={file}
-                onFolder={(p) => go({ path: p })}
-                onFile={(p, e) => openEntry(parent(p), e)}
-              />
+              <ContextMenu onOpenChange={setMenuOpen}>
+                <ContextMenuTrigger
+                  render={<div />}
+                  onContextMenu={() => {
+                    // Below the tree's rows: the server's root.
+                    if (!rowHit.current) setMenuFor({ dir: "", items: null, from: "tree" });
+                    rowHit.current = false;
+                  }}
+                >
+                  <Tree
+                    api={api}
+                    current={path}
+                    openFile={file}
+                    menuFor={menuOpen ? menuFor : undefined}
+                    onFolder={(p) => go({ path: p })}
+                    onFile={(p, e) => openEntry(parent(p), e)}
+                    onMenu={(t) => {
+                      rowHit.current = true;
+                      setMenuFor({ ...t, from: "tree" });
+                    }}
+                  />
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ListMenu {...menuProps} />
+                </ContextMenuContent>
+              </ContextMenu>
             </div>
           </aside>
         ) : (
@@ -495,7 +569,7 @@ export function Files({
                         variant="outline"
                         className="text-destructive"
                         disabled={busy}
-                        onClick={() => setConfirmDelete([...selected])}
+                        onClick={() => askDelete([...selected])}
                       >
                         <Trash2 /> Delete
                       </Button>
@@ -544,134 +618,144 @@ export function Files({
                   )}
                 </div>
               )}
-              <div className="min-h-0 flex-1 overflow-auto p-4">
-                <div className="overflow-hidden rounded-lg border">
-                  <table className="w-full text-sm">
-                    <thead className="text-left text-xs text-muted-foreground">
-                      <tr className="border-b">
-                        {canWrite && (
-                          <th className="w-10 px-3 py-2.5">
-                            <Checkbox
-                              aria-label="Select everything here"
-                              checked={allSelected}
-                              onCheckedChange={(v) =>
-                                setSelected(v ? new Set(entries.map((e) => e.name)) : new Set())
-                              }
-                            />
-                          </th>
-                        )}
-                        <th className="px-3 py-2.5 font-medium">Name</th>
-                        <th className="w-28 px-3 py-2.5 text-right font-medium">Size</th>
-                        <th className="hidden w-52 px-3 py-2.5 font-medium lg:table-cell">
-                          Modified
-                        </th>
-                        <th className="w-12 px-2 py-2.5" />
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {listing.isPending && (
-                        <tr>
-                          <td className="px-3 py-3 text-muted-foreground" colSpan={5}>
-                            Loading…
-                          </td>
-                        </tr>
-                      )}
-                      {listing.error && (
-                        <tr>
-                          <td className="px-3 py-3 text-destructive" colSpan={5}>
-                            {message(listing.error)}
-                          </td>
-                        </tr>
-                      )}
-                      {listing.data && entries.length === 0 && (
-                        <tr>
-                          <td className="px-3 py-6 text-center text-muted-foreground" colSpan={5}>
-                            {query ? `Nothing here matches "${query}".` : "This folder is empty."}
-                          </td>
-                        </tr>
-                      )}
-                      {entries.map((e) => (
-                        <tr
-                          key={e.name}
-                          className={cn(
-                            "cursor-default select-none",
-                            e.denied ? "opacity-50" : "hover:bg-muted/50",
-                            selected.has(e.name) && "bg-muted",
-                          )}
-                          onClick={(ev) => rowClick(e, ev)}
-                          onDoubleClick={() => !settings.singleClick && openEntry(path, e)}
-                        >
+              <ContextMenu onOpenChange={setMenuOpen}>
+                <ContextMenuTrigger
+                  onContextMenu={areaMenu}
+                  render={<div className="min-h-0 flex-1 overflow-auto p-4" />}
+                >
+                  <div className="overflow-hidden rounded-lg border">
+                    <table className="w-full text-sm">
+                      <thead className="text-left text-xs text-muted-foreground">
+                        <tr className="border-b">
                           {canWrite && (
-                            // biome-ignore lint/a11y/useKeyWithClickEvents: the checkbox inside takes the keyboard
-                            <td className="px-3 py-2.5" onClick={(ev) => ev.stopPropagation()}>
+                            <th className="w-10 px-3 py-2.5">
                               <Checkbox
-                                aria-label={`Select ${e.name}`}
-                                disabled={e.denied}
-                                checked={selected.has(e.name)}
-                                onCheckedChange={() =>
-                                  select(e, { shiftKey: false, metaKey: false, ctrlKey: false })
+                                aria-label="Select everything here"
+                                checked={allSelected}
+                                onCheckedChange={(v) =>
+                                  setSelected(v ? new Set(entries.map((e) => e.name)) : new Set())
                                 }
                               />
-                            </td>
+                            </th>
                           )}
-                          <td className="px-3 py-2.5">
-                            <span
-                              className="flex items-center gap-2.5"
-                              title={
-                                e.denied ? "The game's egg doesn't allow opening this" : e.target
-                              }
-                            >
-                              <EntryIcon e={e} />
-                              <span className="break-all">{e.name}</span>
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
-                            {kind(e) === "file" ? formatSize(e.size) : "—"}
-                          </td>
-                          <td className="hidden px-3 py-2.5 text-muted-foreground lg:table-cell">
-                            {new Date(e.modified_at).toLocaleString(undefined, {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })}
-                          </td>
-                          {/* biome-ignore lint/a11y/useKeyWithClickEvents: the menu button inside takes the keyboard */}
-                          <td
-                            className="px-2 py-1 text-right"
-                            onClick={(ev) => ev.stopPropagation()}
-                          >
-                            {!e.denied && (
-                              <RowMenu
-                                e={e}
-                                canWrite={canWrite}
-                                download={
-                                  kind(e) === "file" && transfers
-                                    ? downloadURL(nodeId, serverId, join(path, e.name))
-                                    : undefined
-                                }
-                                onOpen={() => openEntry(path, e)}
-                                onRename={() => rename(e)}
-                                onExtract={() => decompress(e)}
-                                onCompress={() => compress([e.name])}
-                                onDelete={() => setConfirmDelete([e.name])}
-                              />
-                            )}
-                          </td>
+                          <th className="px-3 py-2.5 font-medium">Name</th>
+                          <th className="w-28 px-3 py-2.5 text-right font-medium">Size</th>
+                          <th className="hidden w-52 px-3 py-2.5 font-medium lg:table-cell">
+                            Modified
+                          </th>
+                          <th className="w-12 px-2 py-2.5" />
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {listing.data?.truncated && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Only the first 10,000 entries are shown. Use SFTP for folders this large.
-                  </p>
-                )}
-                <div className="mt-2 flex justify-end">
-                  <Button size="xs" variant="ghost" onClick={() => void api.refresh()}>
-                    <RefreshCw /> Refresh
-                  </Button>
-                </div>
-              </div>
+                      </thead>
+                      <tbody className="divide-y">
+                        {listing.isPending && (
+                          <tr>
+                            <td className="px-3 py-3 text-muted-foreground" colSpan={5}>
+                              Loading…
+                            </td>
+                          </tr>
+                        )}
+                        {listing.error && (
+                          <tr>
+                            <td className="px-3 py-3 text-destructive" colSpan={5}>
+                              {message(listing.error)}
+                            </td>
+                          </tr>
+                        )}
+                        {listing.data && entries.length === 0 && (
+                          <tr>
+                            <td className="px-3 py-6 text-center text-muted-foreground" colSpan={5}>
+                              {query ? `Nothing here matches "${query}".` : "This folder is empty."}
+                            </td>
+                          </tr>
+                        )}
+                        {entries.map((e) => (
+                          <tr
+                            key={e.name}
+                            className={cn(
+                              "cursor-default select-none",
+                              e.denied ? "opacity-50" : "hover:bg-muted/50",
+                              selected.has(e.name) && "bg-muted",
+                              outlined(e.name) && "outline-2 -outline-offset-2 outline-primary/60",
+                            )}
+                            onClick={(ev) => rowClick(e, ev)}
+                            onDoubleClick={() => !settings.singleClick && openEntry(path, e)}
+                            onContextMenu={() => rowMenu(e)}
+                          >
+                            {canWrite && (
+                              // biome-ignore lint/a11y/useKeyWithClickEvents: the checkbox inside takes the keyboard
+                              <td className="px-3 py-2.5" onClick={(ev) => ev.stopPropagation()}>
+                                <Checkbox
+                                  aria-label={`Select ${e.name}`}
+                                  disabled={e.denied}
+                                  checked={selected.has(e.name)}
+                                  onCheckedChange={() =>
+                                    select(e, { shiftKey: false, metaKey: false, ctrlKey: false })
+                                  }
+                                />
+                              </td>
+                            )}
+                            <td className="px-3 py-2.5">
+                              <span
+                                className="flex items-center gap-2.5"
+                                title={
+                                  e.denied ? "The game's egg doesn't allow opening this" : e.target
+                                }
+                              >
+                                <EntryIcon e={e} />
+                                <span className="break-all">{e.name}</span>
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
+                              {kind(e) === "file" ? formatSize(e.size) : "—"}
+                            </td>
+                            <td className="hidden px-3 py-2.5 text-muted-foreground lg:table-cell">
+                              {new Date(e.modified_at).toLocaleString(undefined, {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </td>
+                            {/* biome-ignore lint/a11y/useKeyWithClickEvents: the menu button inside takes the keyboard */}
+                            <td
+                              className="px-2 py-1 text-right"
+                              onClick={(ev) => ev.stopPropagation()}
+                            >
+                              {!e.denied && (
+                                <RowMenu
+                                  e={e}
+                                  canWrite={canWrite}
+                                  download={
+                                    kind(e) === "file" && transfers
+                                      ? downloadURL(nodeId, serverId, join(path, e.name))
+                                      : undefined
+                                  }
+                                  onOpen={() => openEntry(path, e)}
+                                  onRename={() => rename(e)}
+                                  onExtract={() => decompress(e)}
+                                  onCompress={() => compress([e.name])}
+                                  onDelete={() => askDelete([e.name])}
+                                />
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {listing.data?.truncated && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Only the first 10,000 entries are shown. Use SFTP for folders this large.
+                    </p>
+                  )}
+                  <div className="mt-2 flex justify-end">
+                    <Button size="xs" variant="ghost" onClick={() => void api.refresh()}>
+                      <RefreshCw /> Refresh
+                    </Button>
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ListMenu {...menuProps} />
+                </ContextMenuContent>
+              </ContextMenu>
               {dragging && (
                 <div className="pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-background/80 text-sm font-medium">
                   Drop to upload to /{path}
@@ -685,13 +769,13 @@ export function Files({
       <ShortcutsDialog open={shortcuts} onOpenChange={setShortcuts} />
       {compressing && (
         <CompressDialog
-          names={compressing}
+          names={compressing.names}
           onClose={() => setCompressing(undefined)}
           onCompress={(format, name) => {
-            const names = compressing;
+            const { dir, names } = compressing;
             setCompressing(undefined);
             void act(
-              () => api.run("files.compress", { dir: path, names, format, name }),
+              () => api.run("files.compress", { dir, names, format, name }),
               `Compressing into ${name}.${format}. It appears here when it's done.`,
             );
           }}
@@ -714,14 +798,14 @@ export function Files({
           <DialogHeader>
             <DialogTitle>
               Delete{" "}
-              {confirmDelete?.length === 1
-                ? `"${confirmDelete[0]}"`
-                : `${confirmDelete?.length} items`}
+              {confirmDelete?.names.length === 1
+                ? `"${confirmDelete.names[0]}"`
+                : `${confirmDelete?.names.length} items`}
               ?
             </DialogTitle>
             <DialogDescription>
-              {confirmDelete?.length === 1 ? "It goes" : "They go"} to the trash, with everything in
-              folders, and can be restored for 7 days.
+              {confirmDelete?.names.length === 1 ? "It goes" : "They go"} to the trash, with
+              everything in folders, and can be restored for 7 days.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-between">
@@ -730,10 +814,10 @@ export function Files({
               className="text-destructive"
               disabled={busy}
               onClick={() => {
-                const names = confirmDelete ?? [];
+                const { dir, names } = confirmDelete ?? { dir: path, names: [] };
                 setConfirmDelete(undefined);
                 void act(
-                  () => api.run("files.delete", { dir: path, names, permanent: true }),
+                  () => api.run("files.delete", { dir, names, permanent: true }),
                   "Deleted for good.",
                 );
               }}
@@ -748,10 +832,10 @@ export function Files({
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  const names = confirmDelete ?? [];
+                  const { dir, names } = confirmDelete ?? { dir: path, names: [] };
                   setConfirmDelete(undefined);
                   void act(
-                    () => api.run("files.delete", { dir: path, names }),
+                    () => api.run("files.delete", { dir, names }),
                     `Moved ${names.length === 1 ? `"${names[0]}"` : `${names.length} items`} to the trash.`,
                   );
                 }}
@@ -763,6 +847,164 @@ export function Files({
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// MenuTarget is what a right-click menu is about: items in a folder, or
+// (items null) the folder itself.
+export type MenuTarget = {
+  dir: string;
+  items: Entry[] | null;
+  // Where it was right-clicked: only that one is outlined.
+  from?: "list" | "tree";
+};
+
+// ListMenu is the right-click menu, in the list or the tree: for one item,
+// several, or a folder.
+function ListMenu({
+  target,
+  canWrite,
+  download,
+  onOpen,
+  onRename,
+  onDuplicate,
+  onExtract,
+  onCompress,
+  onDelete,
+  onCopyPath,
+  onNewFile,
+  onNewFolder,
+  onUpload,
+  onRefresh,
+}: {
+  target: MenuTarget;
+  canWrite: boolean;
+  download: (e: Entry, dir: string) => string | undefined;
+  onOpen: (e: Entry, dir: string) => void;
+  onRename: (e: Entry, dir: string) => void;
+  onDuplicate: (e: Entry, dir: string) => void;
+  onExtract: (e: Entry, dir: string) => void;
+  onCompress: (names: string[], dir: string) => void;
+  onDelete: (names: string[], dir: string) => void;
+  onCopyPath: (p: string) => void;
+  onNewFile: (dir: string) => void;
+  onNewFolder: (dir: string) => void;
+  onUpload?: () => void;
+  onRefresh: () => void;
+}) {
+  const { dir } = target;
+  const inside = (folder: string) =>
+    canWrite && (
+      <>
+        <DropdownMenuItem onClick={() => onNewFile(folder)}>
+          <FilePlus /> New file
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNewFolder(folder)}>
+          <FolderPlus /> New folder
+        </DropdownMenuItem>
+      </>
+    );
+  if (target.items === null) {
+    return (
+      <>
+        {inside(dir)}
+        {canWrite && onUpload && (
+          <DropdownMenuItem onClick={onUpload}>
+            <Upload /> Upload files
+          </DropdownMenuItem>
+        )}
+        {canWrite && <DropdownMenuSeparator />}
+        <DropdownMenuItem onClick={() => onCopyPath(dir)}>
+          <Link2 /> Copy folder path
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onRefresh}>
+          <RefreshCw /> Refresh
+        </DropdownMenuItem>
+      </>
+    );
+  }
+  const items = target.items.filter((e) => !e.denied);
+  if (items.length === 0) {
+    return (
+      <p className="px-2 py-1.5 text-sm text-muted-foreground">
+        The game's egg doesn't allow opening this.
+      </p>
+    );
+  }
+  const names = items.map((e) => e.name);
+  if (items.length > 1) {
+    return (
+      <>
+        <p className="px-1.5 py-1 text-xs font-medium text-muted-foreground">
+          {items.length} items
+        </p>
+        {canWrite && (
+          <>
+            <DropdownMenuItem onClick={() => onCompress(names, dir)}>
+              <FileArchive /> Compress
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={() => onDelete(names, dir)}>
+              <Trash2 /> Delete
+            </DropdownMenuItem>
+          </>
+        )}
+      </>
+    );
+  }
+  const e = items[0] as Entry;
+  const url = download(e, dir);
+  const isDir = kind(e) === "dir";
+  return (
+    <>
+      <DropdownMenuItem onClick={() => onOpen(e, dir)}>
+        {isDir ? <FolderOpen /> : <Pencil />} Open
+      </DropdownMenuItem>
+      {url && (
+        <DropdownMenuItem onClick={() => window.location.assign(url)}>
+          <Download /> Download
+        </DropdownMenuItem>
+      )}
+      {isDir && canWrite && (
+        <>
+          <DropdownMenuSeparator />
+          {inside(join(dir, e.name))}
+        </>
+      )}
+      {canWrite && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => onRename(e, dir)}>
+            <Pencil /> Rename
+          </DropdownMenuItem>
+          {kind(e) === "file" && (
+            <DropdownMenuItem onClick={() => onDuplicate(e, dir)}>
+              <Copy /> Make a copy
+            </DropdownMenuItem>
+          )}
+          {kind(e) === "file" && isArchive(e.name) ? (
+            <DropdownMenuItem onClick={() => onExtract(e, dir)}>
+              <PackageOpen /> Extract here
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => onCompress([e.name], dir)}>
+              <FileArchive /> Compress
+            </DropdownMenuItem>
+          )}
+        </>
+      )}
+      <DropdownMenuItem onClick={() => onCopyPath(join(dir, e.name))}>
+        <Link2 /> Copy path
+      </DropdownMenuItem>
+      {canWrite && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={() => onDelete([e.name], dir)}>
+            <Trash2 /> Delete
+          </DropdownMenuItem>
+        </>
+      )}
+    </>
   );
 }
 

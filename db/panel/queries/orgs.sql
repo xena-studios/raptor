@@ -108,3 +108,14 @@ WHERE org_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL;
 
 -- name: MirrorServerExists :one
 SELECT EXISTS (SELECT 1 FROM m_servers WHERE node_id = $1 AND server_id = $2);
+
+-- name: ExpireOrgJoinTokens :exec
+-- Locks the org's unused join tokens, so no node joins while it's deleted.
+UPDATE join_tokens SET expires_at = least(expires_at, now())
+WHERE org_id = $1 AND used_at IS NULL;
+
+-- name: RemoveOrgMembers :exec
+DELETE FROM org_members WHERE org_id = $1;
+
+-- name: MarkOrgDeleted :exec
+UPDATE orgs SET deleted_at = now() WHERE id = $1;
