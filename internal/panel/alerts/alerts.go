@@ -1,7 +1,9 @@
 // Package alerts sends an org's alerts (docs/PANEL.md#alerts): rules say
 // what's worth one (a crash, a finished install, a node offline, CPU above a
-// threshold, …), channels say where it goes (email, Discord, Slack,
-// Telegram, ntfy, a webhook).
+// threshold, …) and who hears about it: people, who each get it in their
+// inbox and on the channels of their own they've set up (email, Telegram,
+// ntfy, …), and the org's team channels (Discord, Slack, Telegram, ntfy, a
+// webhook).
 //
 // Most alerts come from nodes' events, which the mirror reads in order: it
 // hands each batch to Ingest in the same transaction that applies it, so an
@@ -43,7 +45,9 @@ import (
 // Limits and timing.
 const (
 	ChannelsPerOrg = 20
-	RulesPerOrg    = 100
+	// ChannelsPerUser is how many channels of their own a person may have.
+	ChannelsPerUser = 10
+	RulesPerOrg     = 100
 	// perMinute alerts go to a channel a minute; more are dropped and
 	// counted in the next one sent (a crash loop shouldn't flood a chat).
 	perMinute = 20
@@ -222,7 +226,8 @@ func (s *Service) Ingest(ctx context.Context, q *store.Queries, node pgtype.UUID
 			}
 			mm := m
 			mm.Rule = r.Name
-			if err := s.queue(ctx, q, n.OrgID, r.ID, chans, mm); err != nil {
+			who := People{Roles: r.NotifyRoles, Users: r.NotifyUserIds, Node: node, Server: m.ServerID}
+			if err := s.queue(ctx, q, n.OrgID, r.ID, chans, who, mm); err != nil {
 				return err
 			}
 		}
@@ -266,13 +271,54 @@ func (s *Service) link(org pgtype.UUID, node, server string) string {
 	return base + "/settings/alerts"
 }
 
-func (s *Service) queue(ctx context.Context, q *store.Queries, org, rule pgtype.UUID, chans []pgtype.UUID, m Message) error {
+// People are who a rule tells about something on a node (and maybe one
+// of its servers): everyone in the org with one of the roles, and the
+// members named. Members who aren't admins or owners only hear about what
+// they have access to.
+type People struct {
+	Roles  []string
+	Users  []pgtype.UUID
+	Node   pgtype.UUID
+	Server string
+}
+
+// queue queues an alert to the rule's team channels and to its people: in
+// each one's inbox, and to each of their own channels that's on.
+func (s *Service) queue(ctx context.Context, q *store.Queries, org, rule pgtype.UUID, chans []pgtype.UUID, who People, m Message) error {
 	body, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 	for _, c := range chans {
 		if err := q.InsertAlertDelivery(ctx, store.InsertAlertDeliveryParams{OrgID: org, RuleID: rule, ChannelID: c, Message: body}); err != nil {
+			return err
+		}
+	}
+	if len(who.Roles) == 0 && len(who.Users) == 0 {
+		return nil
+	}
+	people, err := q.AlertPeople(ctx, store.AlertPeopleParams{
+		OrgID: org, Roles: who.Roles, Users: who.Users, NodeID: who.Node, ServerID: who.Server,
+	})
+	if err != nil || len(people) == 0 {
+		return err
+	}
+	ids := make([]pgtype.UUID, 0, len(people))
+	names := map[pgtype.UUID]string{}
+	for _, p := range people {
+		ids = append(ids, p.UserID)
+		names[p.UserID] = p.Name
+		if err := q.InsertAlertNotification(ctx, store.InsertAlertNotificationParams{UserID: p.UserID, OrgID: org, RuleID: rule, Message: body}); err != nil {
+			return err
+		}
+	}
+	own, err := q.ActiveUserAlertChannels(ctx, ids)
+	if err != nil {
+		return err
+	}
+	for _, c := range own {
+		label := names[c.UserID] + ": " + c.Name
+		if err := q.InsertAlertDelivery(ctx, store.InsertAlertDeliveryParams{OrgID: org, RuleID: rule, ChannelID: c.ID, Message: body, Label: label}); err != nil {
 			return err
 		}
 	}
@@ -339,6 +385,9 @@ func (s *Service) tick(ctx context.Context, syncNodes, prune bool) {
 		if err := q.PruneAlertDeliveries(ctx); err != nil {
 			s.Log.Warn("alerts: pruning history failed", "err", err)
 		}
+		if err := q.PruneAlertNotifications(ctx); err != nil {
+			s.Log.Warn("alerts: pruning inboxes failed", "err", err)
+		}
 		if err := q.PruneTelegramLinks(ctx); err != nil {
 			s.Log.Warn("alerts: pruning Telegram links failed", "err", err)
 		}
@@ -391,7 +440,7 @@ func (s *Service) Offline(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			return s.queue(ctx, q, g.OrgID, g.RuleID, chans, m)
+			return s.queue(ctx, q, g.OrgID, g.RuleID, chans, People{Roles: g.NotifyRoles, Users: g.NotifyUserIds, Node: g.NodeID}, m)
 		})
 		if err != nil {
 			return err
@@ -420,7 +469,9 @@ func (s *Service) Offline(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			return s.queue(ctx, q, b.OrgID, b.RuleID, chans, m)
+			nodeID, _ := uuid.Parse(b.Target)
+			who := People{Roles: b.NotifyRoles, Users: b.NotifyUserIds, Node: pgtype.UUID{Bytes: nodeID, Valid: true}}
+			return s.queue(ctx, q, b.OrgID, b.RuleID, chans, who, m)
 		})
 		if err != nil {
 			return err
@@ -511,7 +562,7 @@ func (s *Service) deliver(ctx context.Context, r store.DueAlertDeliveriesRow) {
 	if suppressed > 0 {
 		m.Text += fmt.Sprintf("\n\n(%d earlier alerts to this channel weren't sent: more than %d a minute.)", suppressed, perMinute)
 	}
-	t, err := s.target(ctx, r.OrgID, r.Type, r.Config, r.Secret)
+	t, err := s.target(ctx, channelOwner(r.OrgID, r.UserID), r.Type, r.Config, r.Secret)
 	if err == nil {
 		sctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		err = s.send.send(sctx, t, m)
@@ -539,7 +590,8 @@ func (s *Service) deliver(ctx context.Context, r store.DueAlertDeliveriesRow) {
 }
 
 // failed records a channel that failed an alert for good, and turns it off
-// once it's been failing for failingFor, telling the org's owners.
+// once it's been failing for failingFor, telling the org's owners (or, for
+// someone's own channel, them).
 func (s *Service) failed(ctx context.Context, channel pgtype.UUID, cause error) {
 	q := store.New(s.DB)
 	c, err := q.AlertChannelFailed(ctx, store.AlertChannelFailedParams{ID: channel, LastError: cause.Error()})
@@ -553,10 +605,22 @@ func (s *Service) failed(ctx context.Context, channel pgtype.UUID, cause error) 
 	if s.Mail == nil {
 		return
 	}
-	org, _ := q.OrgName(ctx, c.OrgID)
-	owners, _ := q.OrgOwnerEmails(ctx, c.OrgID)
-	body := fmt.Sprintf("The alert channel %q in %s has failed every alert for 3 days, so it's turned off.\n\nThe last error: %s\n\nFix it and turn it back on in the org's settings, under Alerts:\n%s\n",
-		c.Name, org, cause, s.link(c.OrgID, "", ""))
+	var owners []string
+	var body string
+	if c.UserID.Valid {
+		email, err := q.UserEmail(ctx, c.UserID)
+		if err != nil {
+			return
+		}
+		owners = []string{email}
+		body = fmt.Sprintf("Your alert channel %q has failed every alert for 3 days, so it's turned off.\n\nThe last error: %s\n\nFix it and turn it back on in Raptor: the bell at the top of the page, then its settings.\n",
+			c.Name, cause)
+	} else {
+		org, _ := q.OrgName(ctx, c.OrgID)
+		owners, _ = q.OrgOwnerEmails(ctx, c.OrgID)
+		body = fmt.Sprintf("The alert channel %q in %s has failed every alert for 3 days, so it's turned off.\n\nThe last error: %s\n\nFix it and turn it back on in the org's settings, under Alerts:\n%s\n",
+			c.Name, org, cause, s.link(c.OrgID, "", ""))
+	}
 	for _, to := range owners {
 		if err := s.Mail(ctx, to, "Raptor: an alert channel was turned off", body); err != nil {
 			s.Log.Warn("alerts: emailing an owner failed", "err", err)
@@ -564,39 +628,43 @@ func (s *Service) failed(ctx context.Context, channel pgtype.UUID, cause error) 
 	}
 }
 
+// Owner is whose a channel is: an org's (a team channel) or a user's own.
+// A channel's secret is sealed to its owner.
+type Owner struct {
+	Org  pgtype.UUID
+	User pgtype.UUID
+}
+
+func channelOwner(org, user pgtype.UUID) Owner {
+	if user.Valid {
+		return Owner{User: user}
+	}
+	return Owner{Org: org}
+}
+
 // target opens a channel for sending.
-func (s *Service) target(ctx context.Context, org pgtype.UUID, typ string, rawConfig, sealed []byte) (target, error) {
+func (s *Service) target(ctx context.Context, owner Owner, typ string, rawConfig, sealed []byte) (target, error) {
 	t := target{Type: typ}
 	if err := json.Unmarshal(rawConfig, &t.Config); err != nil {
 		return t, permanent{errors.New("unreadable channel")}
 	}
 	if len(sealed) > 0 {
-		sec, err := s.open(org, sealed)
+		sec, err := s.open(owner, sealed)
 		if err != nil {
 			return t, permanent{err}
 		}
 		t.Secret = sec
 	}
 	if typ == Email {
-		var roles []string
-		var users []pgtype.UUID
-		switch t.Config.To {
-		case "owners":
-			roles = []string{"owner"}
-		case "admins":
-			roles = []string{"owner", "admin"}
-		default:
-			id, err := uuid.Parse(t.Config.To)
-			if err != nil {
-				return t, permanent{errors.New("unreadable channel")}
-			}
-			users = []pgtype.UUID{{Bytes: id, Valid: true}}
+		// Email is someone's own: it goes to their account's address.
+		if !owner.User.Valid || t.Config.To != "me" {
+			return t, permanent{errors.New("email goes to people now: pick them in the rule")}
 		}
-		emails, err := store.New(s.DB).AlertRecipients(ctx, store.AlertRecipientsParams{OrgID: org, Roles: roles, Users: users})
+		email, err := store.New(s.DB).UserEmail(ctx, owner.User)
 		if err != nil {
 			return t, err
 		}
-		t.Emails = emails
+		t.Emails = []string{email}
 	}
 	return t, nil
 }
@@ -612,13 +680,16 @@ func (s *Service) aead() (cipher.AEAD, error) {
 	return cipher.NewGCM(block)
 }
 
-// aad binds a sealed secret to its org, so one copied to another org's
-// channel doesn't open.
-func aad(org pgtype.UUID) []byte {
-	return append([]byte("raptor alert channel v1\x00"), org.Bytes[:]...)
+// aad binds a sealed secret to its org (or, for someone's own channel, to
+// them), so one copied to another's channel doesn't open.
+func aad(o Owner) []byte {
+	if o.User.Valid {
+		return append([]byte("raptor personal alert channel v1\x00"), o.User.Bytes[:]...)
+	}
+	return append([]byte("raptor alert channel v1\x00"), o.Org.Bytes[:]...)
 }
 
-func (s *Service) seal(org pgtype.UUID, sec secret) ([]byte, error) {
+func (s *Service) seal(owner Owner, sec secret) ([]byte, error) {
 	a, err := s.aead()
 	if err != nil {
 		return nil, err
@@ -631,10 +702,10 @@ func (s *Service) seal(org pgtype.UUID, sec secret) ([]byte, error) {
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
 	}
-	return a.Seal(append([]byte{1}, nonce...), nonce, pt, aad(org)), nil
+	return a.Seal(append([]byte{1}, nonce...), nonce, pt, aad(owner)), nil
 }
 
-func (s *Service) open(org pgtype.UUID, sealed []byte) (secret, error) {
+func (s *Service) open(owner Owner, sealed []byte) (secret, error) {
 	var sec secret
 	a, err := s.aead()
 	if err != nil {
@@ -644,7 +715,7 @@ func (s *Service) open(org pgtype.UUID, sealed []byte) (secret, error) {
 	if len(sealed) < n || sealed[0] != 1 {
 		return sec, errors.New("unknown sealed channel format")
 	}
-	pt, err := a.Open(nil, sealed[1:n], sealed[n:], aad(org))
+	pt, err := a.Open(nil, sealed[1:n], sealed[n:], aad(owner))
 	if err != nil {
 		return sec, errors.New("the channel's secret can't be opened")
 	}
@@ -658,8 +729,9 @@ type Prepared struct {
 	Hint   string
 }
 
-// Prepare checks a channel an admin entered and seals its secret.
-func (s *Service) Prepare(org pgtype.UUID, in ChannelInput) (Prepared, error) {
+// Prepare checks a channel someone entered and seals its secret to its
+// owner.
+func (s *Service) Prepare(owner Owner, in ChannelInput) (Prepared, error) {
 	s.init()
 	c, sec, hint, err := prepare(in, s.AllowPrivate)
 	if err != nil {
@@ -671,7 +743,7 @@ func (s *Service) Prepare(org pgtype.UUID, in ChannelInput) (Prepared, error) {
 	}
 	out := Prepared{Config: cfg, Hint: hint}
 	if sec != (secret{}) {
-		if out.Secret, err = s.seal(org, sec); err != nil {
+		if out.Secret, err = s.seal(owner, sec); err != nil {
 			return Prepared{}, err
 		}
 	}
@@ -679,15 +751,20 @@ func (s *Service) Prepare(org pgtype.UUID, in ChannelInput) (Prepared, error) {
 }
 
 // Test sends a test alert to one channel now, without retries.
-func (s *Service) Test(ctx context.Context, org pgtype.UUID, ch store.AlertChannel, orgName string) error {
+func (s *Service) Test(ctx context.Context, owner Owner, ch store.AlertChannel, orgName string) error {
 	s.init()
-	t, err := s.target(ctx, org, ch.Type, ch.Config, ch.Secret)
+	t, err := s.target(ctx, owner, ch.Type, ch.Config, ch.Secret)
 	if err != nil {
 		return err
 	}
 	m := Message{
 		Condition: "test", Level: Info, Type: "test", Title: "Test alert", Org: orgName, At: s.Now(),
-		Text: "Alerts from Raptor reach this channel.", URL: s.link(org, "", ""),
+		Text: "Alerts from Raptor reach this channel.",
+	}
+	if owner.Org.Valid {
+		m.URL = s.link(owner.Org, "", "")
+	} else {
+		m.Text = "Your alerts from Raptor reach this channel."
 	}
 	sctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -698,8 +775,9 @@ func (s *Service) Test(ctx context.Context, org pgtype.UUID, ch store.AlertChann
 	return nil
 }
 
-// TelegramLink makes a Connect Telegram link for an org: opening it starts
-// a chat with the bot (or adds it to a group), which then becomes a channel.
+// TelegramLink makes a Connect Telegram link for an org (org set) or for
+// the user's own alerts: opening it starts a chat with the bot (or adds it
+// to a group), which then becomes a channel.
 func (s *Service) TelegramLink(ctx context.Context, org, user pgtype.UUID) (chat, group string, expires time.Time, err error) {
 	if s.Telegram == nil || s.Telegram.Username() == "" {
 		return "", "", time.Time{}, errors.New("this Panel doesn't have a Telegram bot")
@@ -725,16 +803,24 @@ func (s *Service) TelegramStart(ctx context.Context, chatID int64, title, token 
 	s.init()
 	hash := sha256.Sum256([]byte(token))
 	var org string
+	var personal bool
 	err := pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		l, err := q.UseTelegramLink(ctx, hash[:])
 		if err != nil {
 			return err
 		}
-		if n, err := q.CountOrgAlertChannels(ctx, l.OrgID); err != nil || n >= ChannelsPerOrg {
-			if err == nil {
-				err = InputError{"limit"}
-			}
+		personal = !l.OrgID.Valid
+		var n int64
+		if personal {
+			n, err = q.CountUserAlertChannels(ctx, l.UserID)
+		} else {
+			n, err = q.CountOrgAlertChannels(ctx, l.OrgID)
+		}
+		if err == nil && (personal && n >= ChannelsPerUser || !personal && n >= ChannelsPerOrg) {
+			err = InputError{"limit"}
+		}
+		if err != nil {
 			return err
 		}
 		cfg, _ := json.Marshal(config{ChatID: chatID, ChatTitle: title})
@@ -742,14 +828,19 @@ func (s *Service) TelegramStart(ctx context.Context, chatID int64, title, token 
 		if title != "" {
 			name += ": " + title
 		}
-		id, err := q.InsertAlertChannel(ctx, store.InsertAlertChannelParams{
-			OrgID: l.OrgID, Type: Telegram, Name: truncate(name, 60), Config: cfg, CreatedBy: l.UserID,
-		})
+		p := store.InsertAlertChannelParams{OrgID: l.OrgID, Type: Telegram, Name: truncate(name, 60), Config: cfg, CreatedBy: l.UserID}
+		if personal {
+			p.UserID = l.UserID
+		}
+		id, err := q.InsertAlertChannel(ctx, p)
 		if err != nil {
 			return err
 		}
 		if err := q.SetTelegramLinkChannel(ctx, store.SetTelegramLinkChannelParams{TokenHash: hash[:], ChannelID: id}); err != nil {
 			return err
+		}
+		if personal {
+			return nil
 		}
 		org, err = q.OrgName(ctx, l.OrgID)
 		return err
@@ -758,11 +849,16 @@ func (s *Service) TelegramStart(ctx context.Context, chatID int64, title, token 
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 		return "That link has expired or was already used. Make a new one in Raptor: the org's settings, Alerts, Connect Telegram."
+	case errors.As(err, &ie) && personal:
+		return fmt.Sprintf("You already have %d alert channels of your own, the most you can have. Remove one in Raptor first.", ChannelsPerUser)
 	case errors.As(err, &ie):
 		return fmt.Sprintf("Your org already has %d alert channels, the most it can have. Remove one in Raptor first.", ChannelsPerOrg)
 	case err != nil:
 		s.Log.Error("alerts: connecting a Telegram chat failed", "err", err)
 		return "Something went wrong connecting this chat. Try again in a minute."
+	}
+	if personal {
+		return "Connected. Your alerts from Raptor come here too."
 	}
 	return fmt.Sprintf("Connected. This chat can now get alerts for %s: pick it in the org's alert rules in Raptor.", org)
 }

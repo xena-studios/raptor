@@ -4,12 +4,16 @@ package raptor.panel.v1;
 
 import "google/protobuf/timestamp.proto";
 
-// AlertService is an org's alerts (docs/PANEL.md#alerts): channels (where
-// alerts go: email, Discord, Slack, Telegram, ntfy, a webhook) and rules
-// (what's worth one, where). Admins and owners see and change them.
+// AlertService is alerts (docs/PANEL.md#alerts): an org's rules (what's
+// worth one, and who hears about it) and team channels (Discord, Slack,
+// Telegram, ntfy, a webhook), which admins and owners see and change; and
+// each person's own channels (their email, Telegram, ntfy, …) and inbox.
+//
+// The channel calls work on the org's team channels, or, with no org_id,
+// on the signed-in user's own.
 service AlertService {
-  // ListAlertChannels lists the org's channels, and the channel types this
-  // Panel offers.
+  // ListAlertChannels lists the org's channels (or the user's own), and the
+  // channel types this Panel offers for them.
   rpc ListAlertChannels(ListAlertChannelsRequest) returns (ListAlertChannelsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
@@ -49,11 +53,24 @@ service AlertService {
   rpc ListAlertHistory(ListAlertHistoryRequest) returns (ListAlertHistoryResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ListNotifications is the signed-in user's inbox: the alerts sent to
+  // them, from every org they're in, newest first (kept 30 days).
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // SeeNotifications marks the inbox seen (it was opened).
+  rpc SeeNotifications(SeeNotificationsRequest) returns (SeeNotificationsResponse) {}
+
+  // DismissNotifications clears alerts from the inbox: the ones named, or
+  // all of them.
+  rpc DismissNotifications(DismissNotificationsRequest) returns (DismissNotificationsResponse) {}
 }
 
 message AlertChannel {
   string id = 1;
-  // email, discord, slack, telegram, ntfy, webhook.
+  // email (someone's own only), discord, slack, telegram, ntfy, webhook.
   string type = 2;
   string name = 3;
   // What it sends to, without its secret: "Owners", a member's email,
@@ -66,11 +83,13 @@ message AlertChannel {
   string error = 7;
   google.protobuf.Timestamp last_sent_at = 8;
   google.protobuf.Timestamp created_at = 9;
-  // Email: "owners", "admins", or a member's user ID.
-  string email_to = 10;
+  // email_to: email channels are people's own now.
+  reserved 10;
+  reserved "email_to";
 }
 
 message ListAlertChannelsRequest {
+  // Empty: the user's own channels.
   string org_id = 1;
 }
 
@@ -79,11 +98,12 @@ message ListAlertChannelsResponse {
   // Channel types this Panel can add (Telegram only with its bot set up;
   // ones with secrets only with PANEL_DATA_KEY).
   repeated string types = 2;
-  // How many an org may have.
+  // How many an org (or a person) may have.
   int32 limit = 3;
 }
 
 message CreateAlertChannelRequest {
+  // Empty: a channel of the user's own.
   string org_id = 1;
   string type = 2;
   string name = 3;
@@ -91,8 +111,8 @@ message CreateAlertChannelRequest {
   string url = 4;
   // Signs a webhook's requests (optional).
   string secret = 5;
-  // Email: "owners", "admins", or a member's user ID.
-  string email_to = 6;
+  reserved 6;
+  reserved "email_to";
   // ntfy: the server (empty: ntfy.sh), topic, and access token (optional).
   string ntfy_server = 7;
   string ntfy_topic = 8;
@@ -104,6 +124,7 @@ message CreateAlertChannelResponse {
 }
 
 message UpdateAlertChannelRequest {
+  // Empty: one of the user's own channels.
   string org_id = 1;
   string id = 2;
   string name = 3;
@@ -115,7 +136,8 @@ message UpdateAlertChannelRequest {
   string ntfy_topic = 7;
   string ntfy_token = 8;
   string ntfy_server = 9;
-  string email_to = 10;
+  reserved 10;
+  reserved "email_to";
 }
 
 message UpdateAlertChannelResponse {
@@ -123,6 +145,7 @@ message UpdateAlertChannelResponse {
 }
 
 message DeleteAlertChannelRequest {
+  // Empty: one of the user's own channels.
   string org_id = 1;
   string id = 2;
 }
@@ -130,6 +153,7 @@ message DeleteAlertChannelRequest {
 message DeleteAlertChannelResponse {}
 
 message TestAlertChannelRequest {
+  // Empty: one of the user's own channels.
   string org_id = 1;
   string id = 2;
 }
@@ -140,6 +164,7 @@ message TestAlertChannelResponse {
 }
 
 message ConnectTelegramRequest {
+  // Empty: a chat for the user's own alerts.
   string org_id = 1;
 }
 
@@ -177,10 +202,18 @@ message AlertRule {
   // Thresholds: how long it must hold; node_offline: the grace before it
   // counts (at least 1).
   int32 for_minutes = 7;
+  // The org's team channels it posts to.
   repeated string channel_ids = 8;
   bool notify_resolved = 9;
   bool enabled = 10;
   google.protobuf.Timestamp created_at = 11;
+  // Who it tells: everyone in the org with one of these roles ("owner",
+  // "admin", "member"), and these members. Each is told in their inbox and
+  // on the channels of their own they've set up; members only about
+  // servers they have access to. A rule tells someone, or posts to a
+  // channel, or both.
+  repeated string notify_roles = 12;
+  repeated string notify_user_ids = 13;
 }
 
 message ListAlertRulesRequest {
@@ -227,6 +260,9 @@ message AlertHistoryEntry {
   string error = 14;
   google.protobuf.Timestamp at = 15;
   google.protobuf.Timestamp sent_at = 16;
+  // Set when it went to someone's own channel (channel_id isn't one of the
+  // org's): whose, and which, as "Alice: Email".
+  string channel_label = 17;
 }
 
 message ListAlertHistoryRequest {
@@ -238,3 +274,45 @@ message ListAlertHistoryRequest {
 message ListAlertHistoryResponse {
   repeated AlertHistoryEntry entries = 1;
 }
+
+// Notification is an alert in someone's inbox.
+message Notification {
+  string id = 1;
+  string org_id = 2;
+  string org_name = 3;
+  string condition = 4;
+  // info, warning, critical.
+  string level = 5;
+  string title = 6;
+  string text = 7;
+  bool resolved = 8;
+  string node_id = 9;
+  string node_name = 10;
+  string server_id = 11;
+  string server_name = 12;
+  google.protobuf.Timestamp at = 13;
+  // The inbox was opened since it came.
+  bool seen = 14;
+}
+
+message ListNotificationsRequest {
+  // At most 100; 0 means 50.
+  int32 limit = 1;
+}
+
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  // How many came since the inbox was last opened.
+  int32 unseen = 2;
+}
+
+message SeeNotificationsRequest {}
+
+message SeeNotificationsResponse {}
+
+message DismissNotificationsRequest {
+  // Empty: all of them.
+  repeated string ids = 1;
+}
+
+message DismissNotificationsResponse {}

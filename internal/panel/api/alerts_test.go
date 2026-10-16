@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -73,11 +74,14 @@ func (f *fakeTelegram) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Alerts: new orgs start with their owners emailed; admins manage
-// channels and rules, members can't see them; node events become alerts on
-// the rules that match, sent to their channels; nodes going offline and
-// coming back alert; threshold rules go to nodes; Telegram chats connect
-// with a link; channels that keep failing are turned off.
+// Alerts: new orgs start with their owners told, and everyone has their own
+// email channel; admins manage team channels and rules, members can't see
+// them; node events become alerts on the rules that match, sent to their
+// people (in their inbox and on their own channels; members only about what
+// they can see) and team channels; nodes going offline and coming back
+// alert; threshold rules go to nodes; Telegram chats connect with a link,
+// for an org or for someone's own alerts; channels that keep failing are
+// turned off.
 func TestAlerts(t *testing.T) {
 	db := paneltest.NewDB(t)
 	ctx := context.Background()
@@ -135,7 +139,7 @@ func TestAlerts(t *testing.T) {
 	}
 	alice, _ := signUp("alice@example.com")
 	bob, bobID := signUp("bob@example.com")
-	carol, _ := signUp("carol@example.com")
+	carol, carolID := signUp("carol@example.com")
 	res, err := alice.orgs.CreateOrg(ctx, &panelv1.CreateOrgRequest{Name: "Acme"})
 	if err != nil {
 		t.Fatal(err)
@@ -150,14 +154,26 @@ func TestAlerts(t *testing.T) {
 	nodeUUID := pgtype.UUID{}
 	_ = nodeUUID.Scan(nodeID)
 
-	// The starting alerts.
+	// The starting alerts: the owners are told, by their own email.
 	chans, err := alice.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{OrgId: acme})
-	if err != nil || len(chans.GetChannels()) != 1 || chans.GetChannels()[0].GetEmailTo() != "owners" || len(chans.GetTypes()) != 6 {
+	if err != nil || len(chans.GetChannels()) != 0 || len(chans.GetTypes()) != 5 || slices.Contains(chans.GetTypes(), "email") {
 		t.Fatalf("starting channels: %v, %v", chans, err)
 	}
-	owners := chans.GetChannels()[0].GetId()
+	mine, err := alice.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{})
+	if err != nil || len(mine.GetChannels()) != 1 || mine.GetChannels()[0].GetType() != "email" || mine.GetChannels()[0].GetTarget() != "alice@example.com" ||
+		slices.Contains(mine.GetTypes(), "email") {
+		t.Fatalf("alice's own channels: %v, %v", mine, err)
+	}
+	aliceEmail := mine.GetChannels()[0].GetId()
+	if theirs, err := bob.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{}); err != nil || len(theirs.GetChannels()) != 1 || theirs.GetChannels()[0].GetId() == aliceEmail {
+		t.Errorf("bob's own channels: %v, %v", theirs, err)
+	}
+	if _, err := bob.alerts.UpdateAlertChannel(ctx, &panelv1.UpdateAlertChannelRequest{Id: aliceEmail, Name: "mine"}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("bob changing alice's channel: %v", err)
+	}
 	rules, err := alice.alerts.ListAlertRules(ctx, &panelv1.ListAlertRulesRequest{OrgId: acme})
-	if err != nil || len(rules.GetRules()) != 3 || len(rules.GetConditions()) != len(alerts.Conditions) {
+	if err != nil || len(rules.GetRules()) != 3 || len(rules.GetConditions()) != len(alerts.Conditions) ||
+		!slices.Equal(rules.GetRules()[0].GetNotifyRoles(), []string{"owner"}) || len(rules.GetRules()[0].GetChannelIds()) != 0 {
 		t.Fatalf("starting rules: %v, %v", rules, err)
 	}
 	if _, err := bob.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{OrgId: acme}); connect.CodeOf(err) != connect.CodePermissionDenied {
@@ -173,7 +189,7 @@ func TestAlerts(t *testing.T) {
 		{Type: "slack", Url: "https://hooks.slack.com.evil.example/services/x"},
 		{Type: "webhook", Url: "ftp://example.com"},
 		{Type: "ntfy", NtfyTopic: "has spaces"},
-		{Type: "email", EmailTo: "someone@else.example"},
+		{Type: "email"}, // email is people's own
 		{Type: "telegram"},
 		{Type: "sms"},
 	} {
@@ -182,7 +198,7 @@ func TestAlerts(t *testing.T) {
 			t.Errorf("%s %v: %v", bad.GetType(), bad, err)
 		}
 	}
-	if _, err := bob.alerts.CreateAlertChannel(ctx, &panelv1.CreateAlertChannelRequest{OrgId: acme, Type: "email", EmailTo: "owners"}); connect.CodeOf(err) != connect.CodePermissionDenied {
+	if _, err := bob.alerts.CreateAlertChannel(ctx, &panelv1.CreateAlertChannelRequest{OrgId: acme, Type: "ntfy", NtfyTopic: "bobs-topic"}); connect.CodeOf(err) != connect.CodePermissionDenied {
 		t.Errorf("a member adding a channel: %v", err)
 	}
 	discord, err := alice.alerts.CreateAlertChannel(ctx, &panelv1.CreateAlertChannelRequest{OrgId: acme, Type: "discord", Url: "https://discordapp.com/api/webhooks/123456789/tok-en_x"})
@@ -200,10 +216,11 @@ func TestAlerts(t *testing.T) {
 	if err := db.QueryRow(ctx, "SELECT secret FROM alert_channels WHERE id = $1", wh.GetChannel().GetId()).Scan(&sealed); err != nil || bytes.Contains(sealed, []byte("s3cret")) {
 		t.Errorf("the webhook's secret is stored in the clear: %v", err)
 	}
-	bobMail, err := alice.alerts.CreateAlertChannel(ctx, &panelv1.CreateAlertChannelRequest{OrgId: acme, Type: "email", EmailTo: bobID})
-	if err != nil || bobMail.GetChannel().GetTarget() != "bob@example.com" {
-		t.Fatalf("emailing a member: %v, %v", bobMail, err)
+	if _, err := alice.alerts.CreateAlertChannel(ctx, &panelv1.CreateAlertChannelRequest{Type: "email"}); connect.CodeOf(err) != connect.CodeAlreadyExists {
+		t.Errorf("a second email channel of one's own: %v", err)
 	}
+	// Bob may see the rust server, not smp.
+	exec("INSERT INTO server_grants (org_id, user_id, node_id, server_id, permissions) VALUES ($1, $2, $3, 's2', '{files.read}')", acme, bobID, nodeID)
 
 	// A test alert, signed.
 	tst, err := alice.alerts.TestAlertChannel(ctx, &panelv1.TestAlertChannelRequest{OrgId: acme, Id: wh.GetChannel().GetId()})
@@ -220,6 +237,7 @@ func TestAlerts(t *testing.T) {
 	for _, bad := range []*panelv1.AlertRule{
 		{Condition: "nope", ChannelIds: []string{whID}},
 		{Condition: "crash"},
+		{Condition: "crash", NotifyRoles: []string{"boss"}},
 		{Condition: "cpu_high", Threshold: 150, ForMinutes: 5, ChannelIds: []string{whID}},
 		{Condition: "cpu_high", Threshold: 90, ForMinutes: 0, ChannelIds: []string{whID}},
 		{Condition: "node_disk_low", NodeId: nodeID, ServerId: "s1", ChannelIds: []string{whID}},
@@ -242,7 +260,10 @@ func TestAlerts(t *testing.T) {
 		return res.GetRule().GetId()
 	}
 	save(&panelv1.AlertRule{Name: "smp crashes", Condition: "crash", NodeId: nodeID, ServerId: "s1", ChannelIds: []string{whID}})
-	save(&panelv1.AlertRule{Condition: "install_finished", ChannelIds: []string{bobMail.GetChannel().GetId()}})
+	if _, err := alice.alerts.SaveAlertRule(ctx, &panelv1.SaveAlertRuleRequest{OrgId: acme, Rule: &panelv1.AlertRule{Condition: "crash", NotifyUserIds: []string{carolID}}}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("telling someone outside the org: %v", err)
+	}
+	save(&panelv1.AlertRule{Condition: "install_finished", NotifyUserIds: []string{bobID}})
 	cpu := save(&panelv1.AlertRule{Condition: "cpu_high", Threshold: 90, ForMinutes: 5, ChannelIds: []string{whID}, NotifyResolved: true})
 
 	// Events become alerts on the rules that match.
@@ -261,6 +282,7 @@ func TestAlerts(t *testing.T) {
 		&nodev1.Event{Type: "server.crashed", ServerId: "s2", At: at, Data: data(map[string]any{"exit_code": 1})}, // no rule for s2
 		&nodev1.Event{Type: "server.crashed", ServerId: "s1", At: at, Data: data(map[string]any{"exit_code": 137, "reason": "oom", "console": []string{"boom"}})},
 		&nodev1.Event{Type: "server.install.finished", ServerId: "s2", At: at},
+		&nodev1.Event{Type: "server.install.finished", ServerId: "s1", At: at}, // bob can't see smp
 		&nodev1.Event{Type: "server.state", ServerId: "s1", At: at},
 		&nodev1.Event{Type: "server.crashed", ServerId: "s1", At: clock().Add(-7 * time.Hour).UnixMilli()}, // stale
 	)
@@ -275,6 +297,36 @@ func TestAlerts(t *testing.T) {
 	}
 	if got := mail.mail[len(mail.mail)-1]; !strings.HasPrefix(got, "bob@example.com\n") || !strings.Contains(got, "Install finished") || !strings.Contains(got, "Server: rust\nNode: box-1") {
 		t.Errorf("install email: %q", got)
+	}
+	if got := mail.mail[len(mail.mail)-2]; strings.HasPrefix(got, "bob@example.com\n") {
+		t.Errorf("bob was told about a server he can't see: %q", got)
+	}
+	// It's in bob's inbox too, once.
+	box, err := bob.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{})
+	if err != nil || len(box.GetNotifications()) != 1 || box.GetUnseen() != 1 || box.GetNotifications()[0].GetServerName() != "rust" ||
+		box.GetNotifications()[0].GetOrgName() != "Acme" || box.GetNotifications()[0].GetSeen() {
+		t.Fatalf("bob's inbox: %v, %v", box, err)
+	}
+	if box, _ := alice.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); len(box.GetNotifications()) != 0 {
+		t.Errorf("alice's inbox has bob's alert: %v", box)
+	}
+	if _, err := bob.alerts.SeeNotifications(ctx, &panelv1.SeeNotificationsRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	if box, _ := bob.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); box.GetUnseen() != 0 || !box.GetNotifications()[0].GetSeen() {
+		t.Errorf("seen: %v", box)
+	}
+	if _, err := alice.alerts.DismissNotifications(ctx, &panelv1.DismissNotificationsRequest{Ids: []string{box.GetNotifications()[0].GetId()}}); err != nil {
+		t.Fatal(err)
+	}
+	if box, _ := bob.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); len(box.GetNotifications()) != 1 {
+		t.Errorf("alice dismissed bob's alert: %v", box)
+	}
+	if _, err := bob.alerts.DismissNotifications(ctx, &panelv1.DismissNotificationsRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	if box, _ := bob.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); len(box.GetNotifications()) != 0 {
+		t.Errorf("after dismissing everything: %v", box)
 	}
 
 	// A threshold firing on the node names its rule; resolving is sent too.
@@ -334,6 +386,27 @@ func TestAlerts(t *testing.T) {
 	if len(mail.mail) != before+2 || !strings.Contains(mail.mail[before+1], "Node back online") {
 		t.Fatalf("back online: %q", mail.mail[before:])
 	}
+	if box, _ := alice.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); len(box.GetNotifications()) != 2 ||
+		box.GetNotifications()[0].GetTitle() != "Node back online" || box.GetNotifications()[1].GetNodeName() != "box-1" {
+		t.Errorf("alice's inbox: %v", box)
+	}
+	// Turning her email off, she's only told in the app.
+	if _, err := alice.alerts.UpdateAlertChannel(ctx, &panelv1.UpdateAlertChannelRequest{Id: aliceEmail, Name: "Email", Enabled: false}); err != nil {
+		t.Fatal(err)
+	}
+	exec("DELETE FROM node_connections")
+	advance(10 * time.Minute)
+	offline()
+	advance(10 * time.Minute)
+	offline()
+	if len(mail.mail) != before+2 {
+		t.Errorf("emailed with her email turned off: %q", mail.mail[before+2:])
+	}
+	if box, _ := alice.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); len(box.GetNotifications()) != 3 {
+		t.Errorf("the inbox after: %v", box)
+	}
+	exec("INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'test')", nodeID)
+	offline()
 
 	// Telegram: a link, /start in the chat, and the chat is a channel.
 	link, err := alice.alerts.ConnectTelegram(ctx, &panelv1.ConnectTelegramRequest{OrgId: acme})
@@ -374,6 +447,23 @@ func TestAlerts(t *testing.T) {
 	}
 	if tst, err := alice.alerts.TestAlertChannel(ctx, &panelv1.TestAlertChannelRequest{OrgId: acme, Id: tgID}); err != nil || !tst.GetOk() {
 		t.Fatalf("telegram test: %v, %v", tst, err)
+	}
+	// And a chat for bob's own alerts.
+	link, err = bob.alerts.ConnectTelegram(ctx, &panelv1.ConnectTelegramRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	update(bot.WebhookSecret, "/start "+strings.TrimPrefix(link.GetChatUrl(), "https://t.me/RaptorAlertsBot?start="))
+	tg.mu.Lock()
+	if last := tg.sent[len(tg.sent)-1]["text"].(string); !strings.Contains(last, "Your alerts") {
+		t.Errorf("bot reply to a personal link: %q", last)
+	}
+	tg.mu.Unlock()
+	if theirs, _ := bob.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{}); len(theirs.GetChannels()) != 2 || theirs.GetChannels()[1].GetType() != "telegram" {
+		t.Errorf("bob's own channels after Telegram: %v", theirs)
+	}
+	if chans, _ := alice.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{OrgId: acme}); len(chans.GetChannels()) != 3 {
+		t.Errorf("bob's chat became an org channel: %v", chans)
 	}
 
 	// A channel that fails: retried, then failed; after 3 days of it, off,
@@ -440,8 +530,11 @@ func TestAlerts(t *testing.T) {
 			}
 		}
 	}
-	if _, err := alice.alerts.DeleteAlertChannel(ctx, &panelv1.DeleteAlertChannelRequest{OrgId: acme, Id: owners}); err != nil {
+	if _, err := alice.alerts.DeleteAlertChannel(ctx, &panelv1.DeleteAlertChannelRequest{Id: aliceEmail}); err != nil {
 		t.Fatal(err)
+	}
+	if mine, _ := alice.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{}); len(mine.GetChannels()) != 0 || !slices.Contains(mine.GetTypes(), "email") {
+		t.Errorf("after removing her email: %v", mine)
 	}
 }
 
@@ -457,15 +550,15 @@ func TestAlertsPrivateAddresses(t *testing.T) {
 	if err := db.QueryRow(context.Background(), "INSERT INTO orgs (name) VALUES ('x') RETURNING id").Scan(&org); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.Prepare(org, alerts.ChannelInput{Type: "webhook", URL: hooks.URL}); err == nil {
+	if _, err := svc.Prepare(alerts.Owner{Org: org}, alerts.ChannelInput{Type: "webhook", URL: hooks.URL}); err == nil {
 		t.Error("an http:// webhook was accepted")
 	}
-	p, err := svc.Prepare(org, alerts.ChannelInput{Type: "webhook", URL: strings.Replace(hooks.URL, "http://", "https://", 1)})
+	p, err := svc.Prepare(alerts.Owner{Org: org}, alerts.ChannelInput{Type: "webhook", URL: strings.Replace(hooks.URL, "http://", "https://", 1)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ch := store.AlertChannel{OrgID: org, Type: "webhook", Config: p.Config, Secret: p.Secret}
-	if err := svc.Test(context.Background(), org, ch, "x"); err == nil || !strings.Contains(err.Error(), "public internet") {
+	if err := svc.Test(context.Background(), alerts.Owner{Org: org}, ch, "x"); err == nil || !strings.Contains(err.Error(), "public internet") {
 		t.Errorf("a webhook to 127.0.0.1: %v", err)
 	}
 	if hook.count() != 0 {

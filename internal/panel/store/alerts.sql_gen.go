@@ -36,10 +36,49 @@ func (q *Queries) ActiveAlertChannels(ctx context.Context, ids []pgtype.UUID) ([
 	return items, nil
 }
 
+const activeUserAlertChannels = `-- name: ActiveUserAlertChannels :many
+SELECT id, user_id, type, name FROM alert_channels
+WHERE user_id = ANY ($1::uuid[]) AND disabled_at IS NULL
+ORDER BY user_id, created_at
+`
+
+type ActiveUserAlertChannelsRow struct {
+	ID     pgtype.UUID
+	UserID pgtype.UUID
+	Type   string
+	Name   string
+}
+
+// The people's own channels that are on.
+func (q *Queries) ActiveUserAlertChannels(ctx context.Context, users []pgtype.UUID) ([]ActiveUserAlertChannelsRow, error) {
+	rows, err := q.db.Query(ctx, activeUserAlertChannels, users)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ActiveUserAlertChannelsRow
+	for rows.Next() {
+		var i ActiveUserAlertChannelsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Type,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const alertChannelFailed = `-- name: AlertChannelFailed :one
 UPDATE alert_channels SET failing_since = coalesce(failing_since, now()), last_error = $2
 WHERE id = $1
-RETURNING org_id, name, failing_since, disabled_at
+RETURNING org_id, user_id, name, failing_since, disabled_at
 `
 
 type AlertChannelFailedParams struct {
@@ -49,6 +88,7 @@ type AlertChannelFailedParams struct {
 
 type AlertChannelFailedRow struct {
 	OrgID        pgtype.UUID
+	UserID       pgtype.UUID
 	Name         string
 	FailingSince pgtype.Timestamptz
 	DisabledAt   pgtype.Timestamptz
@@ -59,6 +99,7 @@ func (q *Queries) AlertChannelFailed(ctx context.Context, arg AlertChannelFailed
 	var i AlertChannelFailedRow
 	err := row.Scan(
 		&i.OrgID,
+		&i.UserID,
 		&i.Name,
 		&i.FailingSince,
 		&i.DisabledAt,
@@ -139,7 +180,7 @@ func (q *Queries) AlertNode(ctx context.Context, id pgtype.UUID) (AlertNodeRow, 
 }
 
 const alertOfflineNodes = `-- name: AlertOfflineNodes :many
-SELECT r.id AS rule_id, r.org_id, r.channel_ids, r.for_minutes, n.id AS node_id, n.name AS node_name, n.last_seen_at
+SELECT r.id AS rule_id, r.org_id, r.channel_ids, r.notify_roles, r.notify_user_ids, r.for_minutes, n.id AS node_id, n.name AS node_name, n.last_seen_at
 FROM alert_rules r
 JOIN nodes n ON n.org_id = r.org_id AND (r.node_id IS NULL OR r.node_id = n.id)
 WHERE r.enabled AND r.condition = 'node_offline'
@@ -150,13 +191,15 @@ WHERE r.enabled AND r.condition = 'node_offline'
 `
 
 type AlertOfflineNodesRow struct {
-	RuleID     pgtype.UUID
-	OrgID      pgtype.UUID
-	ChannelIds []pgtype.UUID
-	ForMinutes int32
-	NodeID     pgtype.UUID
-	NodeName   string
-	LastSeenAt pgtype.Timestamptz
+	RuleID        pgtype.UUID
+	OrgID         pgtype.UUID
+	ChannelIds    []pgtype.UUID
+	NotifyRoles   []string
+	NotifyUserIds []pgtype.UUID
+	ForMinutes    int32
+	NodeID        pgtype.UUID
+	NodeName      string
+	LastSeenAt    pgtype.Timestamptz
 }
 
 // Nodes with a node_offline rule that it hasn't fired for, that no live
@@ -175,6 +218,8 @@ func (q *Queries) AlertOfflineNodes(ctx context.Context) ([]AlertOfflineNodesRow
 			&i.RuleID,
 			&i.OrgID,
 			&i.ChannelIds,
+			&i.NotifyRoles,
+			&i.NotifyUserIds,
 			&i.ForMinutes,
 			&i.NodeID,
 			&i.NodeName,
@@ -190,33 +235,53 @@ func (q *Queries) AlertOfflineNodes(ctx context.Context) ([]AlertOfflineNodesRow
 	return items, nil
 }
 
-const alertRecipients = `-- name: AlertRecipients :many
-SELECT u.email FROM org_members m JOIN users u ON u.id = m.user_id
-WHERE m.org_id = $1 AND (m.role = ANY ($2::text[]) OR m.user_id = ANY ($3::uuid[]))
-ORDER BY u.email
+const alertPeople = `-- name: AlertPeople :many
+SELECT m.user_id, coalesce(nullif(u.name, ''), u.email)::text AS name
+FROM org_members m JOIN users u ON u.id = m.user_id
+WHERE m.org_id = $1
+  AND (m.role = ANY ($2::text[]) OR m.user_id = ANY ($3::uuid[]))
+  AND (m.role IN ('owner', 'admin') OR EXISTS (
+      SELECT 1 FROM server_grants g
+      WHERE g.org_id = m.org_id AND g.user_id = m.user_id AND g.node_id = $4::uuid
+        AND ($5::text = '' OR g.server_id = $5::text)))
+ORDER BY m.user_id
 `
 
-type AlertRecipientsParams struct {
-	OrgID pgtype.UUID
-	Roles []string
-	Users []pgtype.UUID
+type AlertPeopleParams struct {
+	OrgID    pgtype.UUID
+	Roles    []string
+	Users    []pgtype.UUID
+	NodeID   pgtype.UUID
+	ServerID string
 }
 
-// Who an email channel reaches: the org's members with one of the roles,
-// or the one member named.
-func (q *Queries) AlertRecipients(ctx context.Context, arg AlertRecipientsParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, alertRecipients, arg.OrgID, arg.Roles, arg.Users)
+type AlertPeopleRow struct {
+	UserID pgtype.UUID
+	Name   string
+}
+
+// Who a rule tells about something on a node (and maybe one of its
+// servers): the org's members with one of the roles, or named. Members
+// (not admins or owners) only hear about what they have access to.
+func (q *Queries) AlertPeople(ctx context.Context, arg AlertPeopleParams) ([]AlertPeopleRow, error) {
+	rows, err := q.db.Query(ctx, alertPeople,
+		arg.OrgID,
+		arg.Roles,
+		arg.Users,
+		arg.NodeID,
+		arg.ServerID,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []AlertPeopleRow
 	for rows.Next() {
-		var email string
-		if err := rows.Scan(&email); err != nil {
+		var i AlertPeopleRow
+		if err := rows.Scan(&i.UserID, &i.Name); err != nil {
 			return nil, err
 		}
-		items = append(items, email)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -225,7 +290,7 @@ func (q *Queries) AlertRecipients(ctx context.Context, arg AlertRecipientsParams
 }
 
 const alertRulesForNode = `-- name: AlertRulesForNode :many
-SELECT r.id, r.name, r.condition, r.server_id, r.threshold, r.for_minutes, r.channel_ids, r.notify_resolved
+SELECT r.id, r.name, r.condition, r.server_id, r.threshold, r.for_minutes, r.channel_ids, r.notify_roles, r.notify_user_ids, r.notify_resolved
 FROM alert_rules r JOIN nodes n ON n.org_id = r.org_id
 WHERE n.id = $1 AND r.enabled AND (r.node_id IS NULL OR r.node_id = n.id)
 `
@@ -238,6 +303,8 @@ type AlertRulesForNodeRow struct {
 	Threshold      float64
 	ForMinutes     int32
 	ChannelIds     []pgtype.UUID
+	NotifyRoles    []string
+	NotifyUserIds  []pgtype.UUID
 	NotifyResolved bool
 }
 
@@ -260,6 +327,8 @@ func (q *Queries) AlertRulesForNode(ctx context.Context, id pgtype.UUID) ([]Aler
 			&i.Threshold,
 			&i.ForMinutes,
 			&i.ChannelIds,
+			&i.NotifyRoles,
+			&i.NotifyUserIds,
 			&i.NotifyResolved,
 		); err != nil {
 			return nil, err
@@ -357,6 +426,28 @@ func (q *Queries) CountOrgAlertRules(ctx context.Context, orgID pgtype.UUID) (in
 	return count, err
 }
 
+const countUnseenNotifications = `-- name: CountUnseenNotifications :one
+SELECT count(*) FROM alert_notifications WHERE user_id = $1 AND dismissed_at IS NULL AND seen_at IS NULL
+`
+
+func (q *Queries) CountUnseenNotifications(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countUnseenNotifications, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countUserAlertChannels = `-- name: CountUserAlertChannels :one
+SELECT count(*) FROM alert_channels WHERE user_id = $1
+`
+
+func (q *Queries) CountUserAlertChannels(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countUserAlertChannels, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createAlertDefaults = `-- name: CreateAlertDefaults :exec
 SELECT raptor_alert_defaults($1)
 `
@@ -368,16 +459,19 @@ func (q *Queries) CreateAlertDefaults(ctx context.Context, org pgtype.UUID) erro
 }
 
 const deleteAlertChannel = `-- name: DeleteAlertChannel :one
-DELETE FROM alert_channels WHERE id = $1 AND org_id = $2 RETURNING id
+DELETE FROM alert_channels
+WHERE id = $1 AND org_id IS NOT DISTINCT FROM $2::uuid AND user_id IS NOT DISTINCT FROM $3::uuid
+RETURNING id
 `
 
 type DeleteAlertChannelParams struct {
-	ID    pgtype.UUID
-	OrgID pgtype.UUID
+	ID     pgtype.UUID
+	OrgID  pgtype.UUID
+	UserID pgtype.UUID
 }
 
 func (q *Queries) DeleteAlertChannel(ctx context.Context, arg DeleteAlertChannelParams) (pgtype.UUID, error) {
-	row := q.db.QueryRow(ctx, deleteAlertChannel, arg.ID, arg.OrgID)
+	row := q.db.QueryRow(ctx, deleteAlertChannel, arg.ID, arg.OrgID, arg.UserID)
 	var id pgtype.UUID
 	err := row.Scan(&id)
 	return id, err
@@ -422,9 +516,26 @@ func (q *Queries) DisableAlertChannel(ctx context.Context, id pgtype.UUID) error
 	return err
 }
 
+const dismissNotifications = `-- name: DismissNotifications :exec
+UPDATE alert_notifications SET dismissed_at = now(), seen_at = coalesce(seen_at, now())
+WHERE user_id = $1 AND dismissed_at IS NULL
+  AND (cardinality($2::uuid[]) = 0 OR id = ANY ($2::uuid[]))
+`
+
+type DismissNotificationsParams struct {
+	UserID pgtype.UUID
+	Ids    []pgtype.UUID
+}
+
+// Dismisses these (or, with none named, all of them).
+func (q *Queries) DismissNotifications(ctx context.Context, arg DismissNotificationsParams) error {
+	_, err := q.db.Exec(ctx, dismissNotifications, arg.UserID, arg.Ids)
+	return err
+}
+
 const dueAlertDeliveries = `-- name: DueAlertDeliveries :many
 SELECT d.id, d.org_id, d.channel_id, d.message, d.attempts,
-       c.type, c.name AS channel_name, c.config, c.secret, c.disabled_at
+       c.type, c.name AS channel_name, c.config, c.secret, c.disabled_at, c.user_id
 FROM alert_deliveries d JOIN alert_channels c ON c.id = d.channel_id
 WHERE d.status = 'pending' AND d.next_at <= now()
 ORDER BY d.created_at LIMIT $1
@@ -441,6 +552,7 @@ type DueAlertDeliveriesRow struct {
 	Config      []byte
 	Secret      []byte
 	DisabledAt  pgtype.Timestamptz
+	UserID      pgtype.UUID
 }
 
 // Alerts to send now, with their channels, oldest first.
@@ -464,6 +576,7 @@ func (q *Queries) DueAlertDeliveries(ctx context.Context, limit int32) ([]DueAle
 			&i.Config,
 			&i.Secret,
 			&i.DisabledAt,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -476,16 +589,19 @@ func (q *Queries) DueAlertDeliveries(ctx context.Context, limit int32) ([]DueAle
 }
 
 const getAlertChannel = `-- name: GetAlertChannel :one
-SELECT id, org_id, type, name, config, secret, hint, failing_since, last_error, last_sent_at, disabled_at, created_by, created_at FROM alert_channels WHERE id = $1 AND org_id = $2
+SELECT id, org_id, type, name, config, secret, hint, failing_since, last_error, last_sent_at, disabled_at, created_by, created_at, user_id FROM alert_channels
+WHERE id = $1 AND org_id IS NOT DISTINCT FROM $2::uuid AND user_id IS NOT DISTINCT FROM $3::uuid
 `
 
 type GetAlertChannelParams struct {
-	ID    pgtype.UUID
-	OrgID pgtype.UUID
+	ID     pgtype.UUID
+	OrgID  pgtype.UUID
+	UserID pgtype.UUID
 }
 
+// An org's channel (user NULL) or a user's own (org NULL).
 func (q *Queries) GetAlertChannel(ctx context.Context, arg GetAlertChannelParams) (AlertChannel, error) {
-	row := q.db.QueryRow(ctx, getAlertChannel, arg.ID, arg.OrgID)
+	row := q.db.QueryRow(ctx, getAlertChannel, arg.ID, arg.OrgID, arg.UserID)
 	var i AlertChannel
 	err := row.Scan(
 		&i.ID,
@@ -501,35 +617,38 @@ func (q *Queries) GetAlertChannel(ctx context.Context, arg GetAlertChannelParams
 		&i.DisabledAt,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const insertAlertChannel = `-- name: InsertAlertChannel :one
-INSERT INTO alert_channels (org_id, type, name, config, secret, hint, created_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO alert_channels (org_id, user_id, type, name, config, secret, hint, created_by)
+VALUES ($7, $8, $1, $2, $3, $4, $5, $6)
 RETURNING id
 `
 
 type InsertAlertChannelParams struct {
-	OrgID     pgtype.UUID
 	Type      string
 	Name      string
 	Config    []byte
 	Secret    []byte
 	Hint      string
 	CreatedBy pgtype.UUID
+	OrgID     pgtype.UUID
+	UserID    pgtype.UUID
 }
 
 func (q *Queries) InsertAlertChannel(ctx context.Context, arg InsertAlertChannelParams) (pgtype.UUID, error) {
 	row := q.db.QueryRow(ctx, insertAlertChannel,
-		arg.OrgID,
 		arg.Type,
 		arg.Name,
 		arg.Config,
 		arg.Secret,
 		arg.Hint,
 		arg.CreatedBy,
+		arg.OrgID,
+		arg.UserID,
 	)
 	var id pgtype.UUID
 	err := row.Scan(&id)
@@ -537,7 +656,7 @@ func (q *Queries) InsertAlertChannel(ctx context.Context, arg InsertAlertChannel
 }
 
 const insertAlertDelivery = `-- name: InsertAlertDelivery :exec
-INSERT INTO alert_deliveries (org_id, rule_id, channel_id, message) VALUES ($1, $2, $3, $4)
+INSERT INTO alert_deliveries (org_id, rule_id, channel_id, message, label) VALUES ($1, $2, $3, $4, $5)
 `
 
 type InsertAlertDeliveryParams struct {
@@ -545,6 +664,7 @@ type InsertAlertDeliveryParams struct {
 	RuleID    pgtype.UUID
 	ChannelID pgtype.UUID
 	Message   []byte
+	Label     string
 }
 
 func (q *Queries) InsertAlertDelivery(ctx context.Context, arg InsertAlertDeliveryParams) error {
@@ -553,13 +673,36 @@ func (q *Queries) InsertAlertDelivery(ctx context.Context, arg InsertAlertDelive
 		arg.RuleID,
 		arg.ChannelID,
 		arg.Message,
+		arg.Label,
+	)
+	return err
+}
+
+const insertAlertNotification = `-- name: InsertAlertNotification :exec
+INSERT INTO alert_notifications (user_id, org_id, rule_id, message) VALUES ($1, $2, $3, $4)
+`
+
+type InsertAlertNotificationParams struct {
+	UserID  pgtype.UUID
+	OrgID   pgtype.UUID
+	RuleID  pgtype.UUID
+	Message []byte
+}
+
+func (q *Queries) InsertAlertNotification(ctx context.Context, arg InsertAlertNotificationParams) error {
+	_, err := q.db.Exec(ctx, insertAlertNotification,
+		arg.UserID,
+		arg.OrgID,
+		arg.RuleID,
+		arg.Message,
 	)
 	return err
 }
 
 const insertAlertRule = `-- name: InsertAlertRule :one
-INSERT INTO alert_rules (org_id, name, condition, node_id, server_id, threshold, for_minutes, channel_ids, notify_resolved, enabled, created_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO alert_rules (org_id, name, condition, node_id, server_id, threshold, for_minutes, channel_ids, notify_roles, notify_user_ids,
+    notify_resolved, enabled, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING id
 `
 
@@ -572,6 +715,8 @@ type InsertAlertRuleParams struct {
 	Threshold      float64
 	ForMinutes     int32
 	ChannelIds     []pgtype.UUID
+	NotifyRoles    []string
+	NotifyUserIds  []pgtype.UUID
 	NotifyResolved bool
 	Enabled        bool
 	CreatedBy      pgtype.UUID
@@ -587,6 +732,8 @@ func (q *Queries) InsertAlertRule(ctx context.Context, arg InsertAlertRuleParams
 		arg.Threshold,
 		arg.ForMinutes,
 		arg.ChannelIds,
+		arg.NotifyRoles,
+		arg.NotifyUserIds,
 		arg.NotifyResolved,
 		arg.Enabled,
 		arg.CreatedBy,
@@ -612,22 +759,22 @@ func (q *Queries) InsertAlertState(ctx context.Context, arg InsertAlertStatePara
 }
 
 const insertTelegramLink = `-- name: InsertTelegramLink :exec
-INSERT INTO alert_telegram_links (token_hash, org_id, user_id, expires_at) VALUES ($1, $2, $3, $4)
+INSERT INTO alert_telegram_links (token_hash, org_id, user_id, expires_at) VALUES ($1, $4, $2, $3)
 `
 
 type InsertTelegramLinkParams struct {
 	TokenHash []byte
-	OrgID     pgtype.UUID
 	UserID    pgtype.UUID
 	ExpiresAt pgtype.Timestamptz
+	OrgID     pgtype.UUID
 }
 
 func (q *Queries) InsertTelegramLink(ctx context.Context, arg InsertTelegramLinkParams) error {
 	_, err := q.db.Exec(ctx, insertTelegramLink,
 		arg.TokenHash,
-		arg.OrgID,
 		arg.UserID,
 		arg.ExpiresAt,
+		arg.OrgID,
 	)
 	return err
 }
@@ -681,7 +828,7 @@ func (q *Queries) NodeThresholdRules(ctx context.Context, arg NodeThresholdRules
 }
 
 const nodesBackOnline = `-- name: NodesBackOnline :many
-SELECT s.rule_id, s.target, s.since, r.org_id, r.channel_ids, r.notify_resolved, r.enabled,
+SELECT s.rule_id, s.target, s.since, r.org_id, r.channel_ids, r.notify_roles, r.notify_user_ids, r.notify_resolved, r.enabled,
        n.name AS node_name, (n.deleted_at IS NOT NULL)::bool AS node_removed
 FROM alert_states s
 JOIN alert_rules r ON r.id = s.rule_id
@@ -698,6 +845,8 @@ type NodesBackOnlineRow struct {
 	Since          pgtype.Timestamptz
 	OrgID          pgtype.UUID
 	ChannelIds     []pgtype.UUID
+	NotifyRoles    []string
+	NotifyUserIds  []pgtype.UUID
 	NotifyResolved bool
 	Enabled        bool
 	NodeName       string
@@ -721,6 +870,8 @@ func (q *Queries) NodesBackOnline(ctx context.Context) ([]NodesBackOnlineRow, er
 			&i.Since,
 			&i.OrgID,
 			&i.ChannelIds,
+			&i.NotifyRoles,
+			&i.NotifyUserIds,
 			&i.NotifyResolved,
 			&i.Enabled,
 			&i.NodeName,
@@ -789,7 +940,7 @@ func (q *Queries) OrgAlertChannels(ctx context.Context, orgID pgtype.UUID) ([]Or
 }
 
 const orgAlertHistory = `-- name: OrgAlertHistory :many
-SELECT d.id, d.rule_id, d.channel_id, d.message, d.status, d.attempts, d.error, d.created_at, d.sent_at
+SELECT d.id, d.rule_id, d.channel_id, d.label, d.message, d.status, d.attempts, d.error, d.created_at, d.sent_at
 FROM alert_deliveries d WHERE d.org_id = $1 ORDER BY d.created_at DESC LIMIT $2
 `
 
@@ -802,6 +953,7 @@ type OrgAlertHistoryRow struct {
 	ID        pgtype.UUID
 	RuleID    pgtype.UUID
 	ChannelID pgtype.UUID
+	Label     string
 	Message   []byte
 	Status    string
 	Attempts  int32
@@ -824,6 +976,7 @@ func (q *Queries) OrgAlertHistory(ctx context.Context, arg OrgAlertHistoryParams
 			&i.ID,
 			&i.RuleID,
 			&i.ChannelID,
+			&i.Label,
 			&i.Message,
 			&i.Status,
 			&i.Attempts,
@@ -842,7 +995,8 @@ func (q *Queries) OrgAlertHistory(ctx context.Context, arg OrgAlertHistoryParams
 }
 
 const orgAlertRules = `-- name: OrgAlertRules :many
-SELECT id, name, condition, node_id, server_id, threshold, for_minutes, channel_ids, notify_resolved, enabled, created_at
+SELECT id, name, condition, node_id, server_id, threshold, for_minutes, channel_ids, notify_roles, notify_user_ids,
+       notify_resolved, enabled, created_at
 FROM alert_rules WHERE org_id = $1 ORDER BY created_at
 `
 
@@ -855,6 +1009,8 @@ type OrgAlertRulesRow struct {
 	Threshold      float64
 	ForMinutes     int32
 	ChannelIds     []pgtype.UUID
+	NotifyRoles    []string
+	NotifyUserIds  []pgtype.UUID
 	NotifyResolved bool
 	Enabled        bool
 	CreatedAt      pgtype.Timestamptz
@@ -879,6 +1035,8 @@ func (q *Queries) OrgAlertRules(ctx context.Context, orgID pgtype.UUID) ([]OrgAl
 			&i.Threshold,
 			&i.ForMinutes,
 			&i.ChannelIds,
+			&i.NotifyRoles,
+			&i.NotifyUserIds,
 			&i.NotifyResolved,
 			&i.Enabled,
 			&i.CreatedAt,
@@ -910,12 +1068,38 @@ func (q *Queries) OrgChannelsExist(ctx context.Context, arg OrgChannelsExistPara
 	return count, err
 }
 
+const orgMembersExist = `-- name: OrgMembersExist :one
+SELECT count(*) FROM org_members WHERE org_id = $1 AND user_id = ANY ($2::uuid[])
+`
+
+type OrgMembersExistParams struct {
+	OrgID pgtype.UUID
+	Ids   []pgtype.UUID
+}
+
+// How many of these users are in the org.
+func (q *Queries) OrgMembersExist(ctx context.Context, arg OrgMembersExistParams) (int64, error) {
+	row := q.db.QueryRow(ctx, orgMembersExist, arg.OrgID, arg.Ids)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const pruneAlertDeliveries = `-- name: PruneAlertDeliveries :exec
 DELETE FROM alert_deliveries WHERE status <> 'pending' AND created_at < now() - interval '30 days'
 `
 
 func (q *Queries) PruneAlertDeliveries(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, pruneAlertDeliveries)
+	return err
+}
+
+const pruneAlertNotifications = `-- name: PruneAlertNotifications :exec
+DELETE FROM alert_notifications WHERE created_at < now() - interval '30 days'
+`
+
+func (q *Queries) PruneAlertNotifications(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pruneAlertNotifications)
 	return err
 }
 
@@ -940,6 +1124,15 @@ type RemoveChannelFromRulesParams struct {
 
 func (q *Queries) RemoveChannelFromRules(ctx context.Context, arg RemoveChannelFromRulesParams) error {
 	_, err := q.db.Exec(ctx, removeChannelFromRules, arg.OrgID, arg.ChannelID)
+	return err
+}
+
+const seeNotifications = `-- name: SeeNotifications :exec
+UPDATE alert_notifications SET seen_at = now() WHERE user_id = $1 AND seen_at IS NULL AND dismissed_at IS NULL
+`
+
+func (q *Queries) SeeNotifications(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, seeNotifications, userID)
 	return err
 }
 
@@ -974,25 +1167,26 @@ func (q *Queries) SetTelegramLinkChannel(ctx context.Context, arg SetTelegramLin
 
 const updateAlertChannel = `-- name: UpdateAlertChannel :one
 UPDATE alert_channels SET
-    name = $3,
-    config = coalesce($4, config),
-    secret = coalesce($5, secret),
-    hint = CASE WHEN $5::bytea IS NULL THEN hint ELSE $6::text END,
-    disabled_at = CASE WHEN $7::bool THEN NULL ELSE coalesce(disabled_at, now()) END,
-    failing_since = CASE WHEN $7::bool THEN NULL ELSE failing_since END,
-    last_error = CASE WHEN $7::bool AND disabled_at IS NOT NULL THEN '' ELSE last_error END
-WHERE id = $1 AND org_id = $2
+    name = $2,
+    config = coalesce($3, config),
+    secret = coalesce($4, secret),
+    hint = CASE WHEN $4::bytea IS NULL THEN hint ELSE $5::text END,
+    disabled_at = CASE WHEN $6::bool THEN NULL ELSE coalesce(disabled_at, now()) END,
+    failing_since = CASE WHEN $6::bool THEN NULL ELSE failing_since END,
+    last_error = CASE WHEN $6::bool AND disabled_at IS NOT NULL THEN '' ELSE last_error END
+WHERE id = $1 AND org_id IS NOT DISTINCT FROM $7::uuid AND user_id IS NOT DISTINCT FROM $8::uuid
 RETURNING id
 `
 
 type UpdateAlertChannelParams struct {
 	ID      pgtype.UUID
-	OrgID   pgtype.UUID
 	Name    string
 	Config  []byte
 	Secret  []byte
 	Hint    string
 	Enabled bool
+	OrgID   pgtype.UUID
+	UserID  pgtype.UUID
 }
 
 // Renames a channel, replaces its settings or secret (NULL keeps them), and
@@ -1000,12 +1194,13 @@ type UpdateAlertChannelParams struct {
 func (q *Queries) UpdateAlertChannel(ctx context.Context, arg UpdateAlertChannelParams) (pgtype.UUID, error) {
 	row := q.db.QueryRow(ctx, updateAlertChannel,
 		arg.ID,
-		arg.OrgID,
 		arg.Name,
 		arg.Config,
 		arg.Secret,
 		arg.Hint,
 		arg.Enabled,
+		arg.OrgID,
+		arg.UserID,
 	)
 	var id pgtype.UUID
 	err := row.Scan(&id)
@@ -1014,7 +1209,7 @@ func (q *Queries) UpdateAlertChannel(ctx context.Context, arg UpdateAlertChannel
 
 const updateAlertRule = `-- name: UpdateAlertRule :one
 UPDATE alert_rules SET name = $3, condition = $4, node_id = $5, server_id = $6, threshold = $7, for_minutes = $8,
-    channel_ids = $9, notify_resolved = $10, enabled = $11, updated_at = now()
+    channel_ids = $9, notify_roles = $10, notify_user_ids = $11, notify_resolved = $12, enabled = $13, updated_at = now()
 WHERE id = $1 AND org_id = $2
 RETURNING id
 `
@@ -1029,6 +1224,8 @@ type UpdateAlertRuleParams struct {
 	Threshold      float64
 	ForMinutes     int32
 	ChannelIds     []pgtype.UUID
+	NotifyRoles    []string
+	NotifyUserIds  []pgtype.UUID
 	NotifyResolved bool
 	Enabled        bool
 }
@@ -1044,6 +1241,8 @@ func (q *Queries) UpdateAlertRule(ctx context.Context, arg UpdateAlertRuleParams
 		arg.Threshold,
 		arg.ForMinutes,
 		arg.ChannelIds,
+		arg.NotifyRoles,
+		arg.NotifyUserIds,
 		arg.NotifyResolved,
 		arg.Enabled,
 	)
@@ -1071,6 +1270,67 @@ func (q *Queries) UseTelegramLink(ctx context.Context, tokenHash []byte) (UseTel
 	return i, err
 }
 
+const userAlertChannels = `-- name: UserAlertChannels :many
+SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at
+FROM alert_channels WHERE user_id = $1 ORDER BY created_at
+`
+
+type UserAlertChannelsRow struct {
+	ID           pgtype.UUID
+	Type         string
+	Name         string
+	Config       []byte
+	Hint         string
+	FailingSince pgtype.Timestamptz
+	LastError    string
+	LastSentAt   pgtype.Timestamptz
+	DisabledAt   pgtype.Timestamptz
+	CreatedAt    pgtype.Timestamptz
+}
+
+// A user's own channels, for them (row-level security).
+func (q *Queries) UserAlertChannels(ctx context.Context, userID pgtype.UUID) ([]UserAlertChannelsRow, error) {
+	rows, err := q.db.Query(ctx, userAlertChannels, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserAlertChannelsRow
+	for rows.Next() {
+		var i UserAlertChannelsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.Name,
+			&i.Config,
+			&i.Hint,
+			&i.FailingSince,
+			&i.LastError,
+			&i.LastSentAt,
+			&i.DisabledAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const userEmail = `-- name: UserEmail :one
+SELECT email FROM users WHERE id = $1
+`
+
+func (q *Queries) UserEmail(ctx context.Context, id pgtype.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, userEmail, id)
+	var email string
+	err := row.Scan(&email)
+	return email, err
+}
+
 const userNames = `-- name: UserNames :many
 SELECT id, coalesce(nullif(name, ''), email)::text AS name FROM users WHERE id = ANY ($1::uuid[])
 `
@@ -1091,6 +1351,56 @@ func (q *Queries) UserNames(ctx context.Context, ids []pgtype.UUID) ([]UserNames
 	for rows.Next() {
 		var i UserNamesRow
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const userNotifications = `-- name: UserNotifications :many
+SELECT n.id, n.org_id, o.name AS org_name, n.message, n.created_at, n.seen_at
+FROM alert_notifications n JOIN orgs o ON o.id = n.org_id
+WHERE n.user_id = $1 AND n.dismissed_at IS NULL
+ORDER BY n.created_at DESC LIMIT $2
+`
+
+type UserNotificationsParams struct {
+	UserID pgtype.UUID
+	Limit  int32
+}
+
+type UserNotificationsRow struct {
+	ID        pgtype.UUID
+	OrgID     pgtype.UUID
+	OrgName   string
+	Message   []byte
+	CreatedAt pgtype.Timestamptz
+	SeenAt    pgtype.Timestamptz
+}
+
+// A user's inbox, newest first (row-level security: their own, in orgs
+// they're still in).
+func (q *Queries) UserNotifications(ctx context.Context, arg UserNotificationsParams) ([]UserNotificationsRow, error) {
+	rows, err := q.db.Query(ctx, userNotifications, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserNotificationsRow
+	for rows.Next() {
+		var i UserNotificationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.OrgName,
+			&i.Message,
+			&i.CreatedAt,
+			&i.SeenAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

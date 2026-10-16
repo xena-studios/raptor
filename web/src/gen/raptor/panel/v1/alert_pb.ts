@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/alert.proto.
  */
 export const file_raptor_panel_v1_alert: GenFile = /*@__PURE__*/
-  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWxlcnQucHJvdG8SD3JhcHRvci5wYW5lbC52MSKNAgoMQWxlcnRDaGFubmVsEgoKAmlkGAEgASgJEgwKBHR5cGUYAiABKAkSDAoEbmFtZRgDIAEoCRIOCgZ0YXJnZXQYBCABKAkSDwoHZW5hYmxlZBgFIAEoCBIxCg1mYWlsaW5nX3NpbmNlGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgHIAEoCRIwCgxsYXN0X3NlbnRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmNyZWF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGVtYWlsX3RvGAogASgJIioKGExpc3RBbGVydENoYW5uZWxzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiagoZTGlzdEFsZXJ0Q2hhbm5lbHNSZXNwb25zZRIvCghjaGFubmVscxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BbGVydENoYW5uZWwSDQoFdHlwZXMYAiADKAkSDQoFbGltaXQYAyABKAUiswEKGUNyZWF0ZUFsZXJ0Q2hhbm5lbFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBHR5cGUYAiABKAkSDAoEbmFtZRgDIAEoCRILCgN1cmwYBCABKAkSDgoGc2VjcmV0GAUgASgJEhAKCGVtYWlsX3RvGAYgASgJEhMKC250Znlfc2VydmVyGAcgASgJEhIKCm50ZnlfdG9waWMYCCABKAkSEgoKbnRmeV90b2tlbhgJIAEoCSJMChpDcmVhdGVBbGVydENoYW5uZWxSZXNwb25zZRIuCgdjaGFubmVsGAEgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFsZXJ0Q2hhbm5lbCLCAQoZVXBkYXRlQWxlcnRDaGFubmVsUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCgoCaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIPCgdlbmFibGVkGAQgASgIEgsKA3VybBgFIAEoCRIOCgZzZWNyZXQYBiABKAkSEgoKbnRmeV90b3BpYxgHIAEoCRISCgpudGZ5X3Rva2VuGAggASgJEhMKC250Znlfc2VydmVyGAkgASgJEhAKCGVtYWlsX3RvGAogASgJIkwKGlVwZGF0ZUFsZXJ0Q2hhbm5lbFJlc3BvbnNlEi4KB2NoYW5uZWwYASABKAsyHS5yYXB0b3IucGFuZWwudjEuQWxlcnRDaGFubmVsIjcKGURlbGV0ZUFsZXJ0Q2hhbm5lbFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJIhwKGkRlbGV0ZUFsZXJ0Q2hhbm5lbFJlc3BvbnNlIjUKF1Rlc3RBbGVydENoYW5uZWxSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCSI1ChhUZXN0QWxlcnRDaGFubmVsUmVzcG9uc2USCgoCb2sYASABKAgSDQoFZXJyb3IYAiABKAkiKAoWQ29ubmVjdFRlbGVncmFtUmVxdWVzdBIOCgZvcmdfaWQYASABKAkibgoXQ29ubmVjdFRlbGVncmFtUmVzcG9uc2USEAoIY2hhdF91cmwYASABKAkSEQoJZ3JvdXBfdXJsGAIgASgJEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIm0KDkFsZXJ0Q29uZGl0aW9uEgoKAmlkGAEgASgJEg0KBWxhYmVsGAIgASgJEg0KBXNjb3BlGAMgASgJEhEKCXRocmVzaG9sZBgEIAEoCBIMCgR1bml0GAUgASgJEhAKCHJlc29sdmVzGAYgASgIIvMBCglBbGVydFJ1bGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIRCgljb25kaXRpb24YAyABKAkSDwoHbm9kZV9pZBgEIAEoCRIRCglzZXJ2ZXJfaWQYBSABKAkSEQoJdGhyZXNob2xkGAYgASgBEhMKC2Zvcl9taW51dGVzGAcgASgFEhMKC2NoYW5uZWxfaWRzGAggAygJEhcKD25vdGlmeV9yZXNvbHZlZBgJIAEoCBIPCgdlbmFibGVkGAogASgIEi4KCmNyZWF0ZWRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIicKFUxpc3RBbGVydFJ1bGVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkihwEKFkxpc3RBbGVydFJ1bGVzUmVzcG9uc2USKQoFcnVsZXMYASADKAsyGi5yYXB0b3IucGFuZWwudjEuQWxlcnRSdWxlEjMKCmNvbmRpdGlvbnMYAiADKAsyHy5yYXB0b3IucGFuZWwudjEuQWxlcnRDb25kaXRpb24SDQoFbGltaXQYAyABKAUiUAoUU2F2ZUFsZXJ0UnVsZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEigKBHJ1bGUYAiABKAsyGi5yYXB0b3IucGFuZWwudjEuQWxlcnRSdWxlIkEKFVNhdmVBbGVydFJ1bGVSZXNwb25zZRIoCgRydWxlGAEgASgLMhoucmFwdG9yLnBhbmVsLnYxLkFsZXJ0UnVsZSI0ChZEZWxldGVBbGVydFJ1bGVSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCSIZChdEZWxldGVBbGVydFJ1bGVSZXNwb25zZSLVAgoRQWxlcnRIaXN0b3J5RW50cnkSCgoCaWQYASABKAkSDwoHcnVsZV9pZBgCIAEoCRISCgpjaGFubmVsX2lkGAMgASgJEhEKCWNvbmRpdGlvbhgEIAEoCRINCgVsZXZlbBgFIAEoCRINCgV0aXRsZRgGIAEoCRIMCgR0ZXh0GAcgASgJEhAKCHJlc29sdmVkGAggASgIEg8KB25vZGVfaWQYCSABKAkSEQoJbm9kZV9uYW1lGAogASgJEhEKCXNlcnZlcl9pZBgLIAEoCRITCgtzZXJ2ZXJfbmFtZRgMIAEoCRIOCgZzdGF0dXMYDSABKAkSDQoFZXJyb3IYDiABKAkSJgoCYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEisKB3NlbnRfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjgKF0xpc3RBbGVydEhpc3RvcnlSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRINCgVsaW1pdBgCIAEoBSJPChhMaXN0QWxlcnRIaXN0b3J5UmVzcG9uc2USMwoHZW50cmllcxgBIAMoCzIiLnJhcHRvci5wYW5lbC52MS5BbGVydEhpc3RvcnlFbnRyeTLFCAoMQWxlcnRTZXJ2aWNlEm8KEUxpc3RBbGVydENoYW5uZWxzEikucmFwdG9yLnBhbmVsLnYxLkxpc3RBbGVydENoYW5uZWxzUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5MaXN0QWxlcnRDaGFubmVsc1Jlc3BvbnNlIgOQAgESbwoSQ3JlYXRlQWxlcnRDaGFubmVsEioucmFwdG9yLnBhbmVsLnYxLkNyZWF0ZUFsZXJ0Q2hhbm5lbFJlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuQ3JlYXRlQWxlcnRDaGFubmVsUmVzcG9uc2UiABJvChJVcGRhdGVBbGVydENoYW5uZWwSKi5yYXB0b3IucGFuZWwudjEuVXBkYXRlQWxlcnRDaGFubmVsUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5VcGRhdGVBbGVydENoYW5uZWxSZXNwb25zZSIAEm8KEkRlbGV0ZUFsZXJ0Q2hhbm5lbBIqLnJhcHRvci5wYW5lbC52MS5EZWxldGVBbGVydENoYW5uZWxSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZUFsZXJ0Q2hhbm5lbFJlc3BvbnNlIgASaQoQVGVzdEFsZXJ0Q2hhbm5lbBIoLnJhcHRvci5wYW5lbC52MS5UZXN0QWxlcnRDaGFubmVsUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5UZXN0QWxlcnRDaGFubmVsUmVzcG9uc2UiABJmCg9Db25uZWN0VGVsZWdyYW0SJy5yYXB0b3IucGFuZWwudjEuQ29ubmVjdFRlbGVncmFtUmVxdWVzdBooLnJhcHRvci5wYW5lbC52MS5Db25uZWN0VGVsZWdyYW1SZXNwb25zZSIAEmYKDkxpc3RBbGVydFJ1bGVzEiYucmFwdG9yLnBhbmVsLnYxLkxpc3RBbGVydFJ1bGVzUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5MaXN0QWxlcnRSdWxlc1Jlc3BvbnNlIgOQAgESYAoNU2F2ZUFsZXJ0UnVsZRIlLnJhcHRvci5wYW5lbC52MS5TYXZlQWxlcnRSdWxlUmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5TYXZlQWxlcnRSdWxlUmVzcG9uc2UiABJmCg9EZWxldGVBbGVydFJ1bGUSJy5yYXB0b3IucGFuZWwudjEuRGVsZXRlQWxlcnRSdWxlUmVxdWVzdBooLnJhcHRvci5wYW5lbC52MS5EZWxldGVBbGVydFJ1bGVSZXNwb25zZSIAEmwKEExpc3RBbGVydEhpc3RvcnkSKC5yYXB0b3IucGFuZWwudjEuTGlzdEFsZXJ0SGlzdG9yeVJlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuTGlzdEFsZXJ0SGlzdG9yeVJlc3BvbnNlIgOQAgFCygEKE2NvbS5yYXB0b3IucGFuZWwudjFCCkFsZXJ0UHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWxlcnQucHJvdG8SD3JhcHRvci5wYW5lbC52MSKLAgoMQWxlcnRDaGFubmVsEgoKAmlkGAEgASgJEgwKBHR5cGUYAiABKAkSDAoEbmFtZRgDIAEoCRIOCgZ0YXJnZXQYBCABKAkSDwoHZW5hYmxlZBgFIAEoCBIxCg1mYWlsaW5nX3NpbmNlGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgHIAEoCRIwCgxsYXN0X3NlbnRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmNyZWF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSgQIChALUghlbWFpbF90byIqChhMaXN0QWxlcnRDaGFubmVsc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJImoKGUxpc3RBbGVydENoYW5uZWxzUmVzcG9uc2USLwoIY2hhbm5lbHMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWxlcnRDaGFubmVsEg0KBXR5cGVzGAIgAygJEg0KBWxpbWl0GAMgASgFIrEBChlDcmVhdGVBbGVydENoYW5uZWxSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgR0eXBlGAIgASgJEgwKBG5hbWUYAyABKAkSCwoDdXJsGAQgASgJEg4KBnNlY3JldBgFIAEoCRITCgtudGZ5X3NlcnZlchgHIAEoCRISCgpudGZ5X3RvcGljGAggASgJEhIKCm50ZnlfdG9rZW4YCSABKAlKBAgGEAdSCGVtYWlsX3RvIkwKGkNyZWF0ZUFsZXJ0Q2hhbm5lbFJlc3BvbnNlEi4KB2NoYW5uZWwYASABKAsyHS5yYXB0b3IucGFuZWwudjEuQWxlcnRDaGFubmVsIsABChlVcGRhdGVBbGVydENoYW5uZWxSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCRIMCgRuYW1lGAMgASgJEg8KB2VuYWJsZWQYBCABKAgSCwoDdXJsGAUgASgJEg4KBnNlY3JldBgGIAEoCRISCgpudGZ5X3RvcGljGAcgASgJEhIKCm50ZnlfdG9rZW4YCCABKAkSEwoLbnRmeV9zZXJ2ZXIYCSABKAlKBAgKEAtSCGVtYWlsX3RvIkwKGlVwZGF0ZUFsZXJ0Q2hhbm5lbFJlc3BvbnNlEi4KB2NoYW5uZWwYASABKAsyHS5yYXB0b3IucGFuZWwudjEuQWxlcnRDaGFubmVsIjcKGURlbGV0ZUFsZXJ0Q2hhbm5lbFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJIhwKGkRlbGV0ZUFsZXJ0Q2hhbm5lbFJlc3BvbnNlIjUKF1Rlc3RBbGVydENoYW5uZWxSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIKCgJpZBgCIAEoCSI1ChhUZXN0QWxlcnRDaGFubmVsUmVzcG9uc2USCgoCb2sYASABKAgSDQoFZXJyb3IYAiABKAkiKAoWQ29ubmVjdFRlbGVncmFtUmVxdWVzdBIOCgZvcmdfaWQYASABKAkibgoXQ29ubmVjdFRlbGVncmFtUmVzcG9uc2USEAoIY2hhdF91cmwYASABKAkSEQoJZ3JvdXBfdXJsGAIgASgJEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIm0KDkFsZXJ0Q29uZGl0aW9uEgoKAmlkGAEgASgJEg0KBWxhYmVsGAIgASgJEg0KBXNjb3BlGAMgASgJEhEKCXRocmVzaG9sZBgEIAEoCBIMCgR1bml0GAUgASgJEhAKCHJlc29sdmVzGAYgASgIIqICCglBbGVydFJ1bGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIRCgljb25kaXRpb24YAyABKAkSDwoHbm9kZV9pZBgEIAEoCRIRCglzZXJ2ZXJfaWQYBSABKAkSEQoJdGhyZXNob2xkGAYgASgBEhMKC2Zvcl9taW51dGVzGAcgASgFEhMKC2NoYW5uZWxfaWRzGAggAygJEhcKD25vdGlmeV9yZXNvbHZlZBgJIAEoCBIPCgdlbmFibGVkGAogASgIEi4KCmNyZWF0ZWRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhQKDG5vdGlmeV9yb2xlcxgMIAMoCRIXCg9ub3RpZnlfdXNlcl9pZHMYDSADKAkiJwoVTGlzdEFsZXJ0UnVsZXNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSKHAQoWTGlzdEFsZXJ0UnVsZXNSZXNwb25zZRIpCgVydWxlcxgBIAMoCzIaLnJhcHRvci5wYW5lbC52MS5BbGVydFJ1bGUSMwoKY29uZGl0aW9ucxgCIAMoCzIfLnJhcHRvci5wYW5lbC52MS5BbGVydENvbmRpdGlvbhINCgVsaW1pdBgDIAEoBSJQChRTYXZlQWxlcnRSdWxlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSKAoEcnVsZRgCIAEoCzIaLnJhcHRvci5wYW5lbC52MS5BbGVydFJ1bGUiQQoVU2F2ZUFsZXJ0UnVsZVJlc3BvbnNlEigKBHJ1bGUYASABKAsyGi5yYXB0b3IucGFuZWwudjEuQWxlcnRSdWxlIjQKFkRlbGV0ZUFsZXJ0UnVsZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgoKAmlkGAIgASgJIhkKF0RlbGV0ZUFsZXJ0UnVsZVJlc3BvbnNlIuwCChFBbGVydEhpc3RvcnlFbnRyeRIKCgJpZBgBIAEoCRIPCgdydWxlX2lkGAIgASgJEhIKCmNoYW5uZWxfaWQYAyABKAkSEQoJY29uZGl0aW9uGAQgASgJEg0KBWxldmVsGAUgASgJEg0KBXRpdGxlGAYgASgJEgwKBHRleHQYByABKAkSEAoIcmVzb2x2ZWQYCCABKAgSDwoHbm9kZV9pZBgJIAEoCRIRCglub2RlX25hbWUYCiABKAkSEQoJc2VydmVyX2lkGAsgASgJEhMKC3NlcnZlcl9uYW1lGAwgASgJEg4KBnN0YXR1cxgNIAEoCRINCgVlcnJvchgOIAEoCRImCgJhdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKwoHc2VudF9hdBgQIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNY2hhbm5lbF9sYWJlbBgRIAEoCSI4ChdMaXN0QWxlcnRIaXN0b3J5UmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFbGltaXQYAiABKAUiTwoYTGlzdEFsZXJ0SGlzdG9yeVJlc3BvbnNlEjMKB2VudHJpZXMYASADKAsyIi5yYXB0b3IucGFuZWwudjEuQWxlcnRIaXN0b3J5RW50cnkijwIKDE5vdGlmaWNhdGlvbhIKCgJpZBgBIAEoCRIOCgZvcmdfaWQYAiABKAkSEAoIb3JnX25hbWUYAyABKAkSEQoJY29uZGl0aW9uGAQgASgJEg0KBWxldmVsGAUgASgJEg0KBXRpdGxlGAYgASgJEgwKBHRleHQYByABKAkSEAoIcmVzb2x2ZWQYCCABKAgSDwoHbm9kZV9pZBgJIAEoCRIRCglub2RlX25hbWUYCiABKAkSEQoJc2VydmVyX2lkGAsgASgJEhMKC3NlcnZlcl9uYW1lGAwgASgJEiYKAmF0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRzZWVuGA4gASgIIikKGExpc3ROb3RpZmljYXRpb25zUmVxdWVzdBINCgVsaW1pdBgBIAEoBSJhChlMaXN0Tm90aWZpY2F0aW9uc1Jlc3BvbnNlEjQKDW5vdGlmaWNhdGlvbnMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuTm90aWZpY2F0aW9uEg4KBnVuc2VlbhgCIAEoBSIZChdTZWVOb3RpZmljYXRpb25zUmVxdWVzdCIaChhTZWVOb3RpZmljYXRpb25zUmVzcG9uc2UiKgobRGlzbWlzc05vdGlmaWNhdGlvbnNSZXF1ZXN0EgsKA2lkcxgBIAMoCSIeChxEaXNtaXNzTm90aWZpY2F0aW9uc1Jlc3BvbnNlMpgLCgxBbGVydFNlcnZpY2USbwoRTGlzdEFsZXJ0Q2hhbm5lbHMSKS5yYXB0b3IucGFuZWwudjEuTGlzdEFsZXJ0Q2hhbm5lbHNSZXF1ZXN0GioucmFwdG9yLnBhbmVsLnYxLkxpc3RBbGVydENoYW5uZWxzUmVzcG9uc2UiA5ACARJvChJDcmVhdGVBbGVydENoYW5uZWwSKi5yYXB0b3IucGFuZWwudjEuQ3JlYXRlQWxlcnRDaGFubmVsUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5DcmVhdGVBbGVydENoYW5uZWxSZXNwb25zZSIAEm8KElVwZGF0ZUFsZXJ0Q2hhbm5lbBIqLnJhcHRvci5wYW5lbC52MS5VcGRhdGVBbGVydENoYW5uZWxSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLlVwZGF0ZUFsZXJ0Q2hhbm5lbFJlc3BvbnNlIgASbwoSRGVsZXRlQWxlcnRDaGFubmVsEioucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZUFsZXJ0Q2hhbm5lbFJlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuRGVsZXRlQWxlcnRDaGFubmVsUmVzcG9uc2UiABJpChBUZXN0QWxlcnRDaGFubmVsEigucmFwdG9yLnBhbmVsLnYxLlRlc3RBbGVydENoYW5uZWxSZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLlRlc3RBbGVydENoYW5uZWxSZXNwb25zZSIAEmYKD0Nvbm5lY3RUZWxlZ3JhbRInLnJhcHRvci5wYW5lbC52MS5Db25uZWN0VGVsZWdyYW1SZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkNvbm5lY3RUZWxlZ3JhbVJlc3BvbnNlIgASZgoOTGlzdEFsZXJ0UnVsZXMSJi5yYXB0b3IucGFuZWwudjEuTGlzdEFsZXJ0UnVsZXNSZXF1ZXN0GicucmFwdG9yLnBhbmVsLnYxLkxpc3RBbGVydFJ1bGVzUmVzcG9uc2UiA5ACARJgCg1TYXZlQWxlcnRSdWxlEiUucmFwdG9yLnBhbmVsLnYxLlNhdmVBbGVydFJ1bGVSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLlNhdmVBbGVydFJ1bGVSZXNwb25zZSIAEmYKD0RlbGV0ZUFsZXJ0UnVsZRInLnJhcHRvci5wYW5lbC52MS5EZWxldGVBbGVydFJ1bGVSZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZUFsZXJ0UnVsZVJlc3BvbnNlIgASbAoQTGlzdEFsZXJ0SGlzdG9yeRIoLnJhcHRvci5wYW5lbC52MS5MaXN0QWxlcnRIaXN0b3J5UmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5MaXN0QWxlcnRIaXN0b3J5UmVzcG9uc2UiA5ACARJvChFMaXN0Tm90aWZpY2F0aW9ucxIpLnJhcHRvci5wYW5lbC52MS5MaXN0Tm90aWZpY2F0aW9uc1JlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuTGlzdE5vdGlmaWNhdGlvbnNSZXNwb25zZSIDkAIBEmkKEFNlZU5vdGlmaWNhdGlvbnMSKC5yYXB0b3IucGFuZWwudjEuU2VlTm90aWZpY2F0aW9uc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuU2VlTm90aWZpY2F0aW9uc1Jlc3BvbnNlIgASdQoURGlzbWlzc05vdGlmaWNhdGlvbnMSLC5yYXB0b3IucGFuZWwudjEuRGlzbWlzc05vdGlmaWNhdGlvbnNSZXF1ZXN0Gi0ucmFwdG9yLnBhbmVsLnYxLkRpc21pc3NOb3RpZmljYXRpb25zUmVzcG9uc2UiAELKAQoTY29tLnJhcHRvci5wYW5lbC52MUIKQWxlcnRQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.AlertChannel
@@ -24,7 +24,7 @@ export type AlertChannel = Message<"raptor.panel.v1.AlertChannel"> & {
   id: string;
 
   /**
-   * email, discord, slack, telegram, ntfy, webhook.
+   * email (someone's own only), discord, slack, telegram, ntfy, webhook.
    *
    * @generated from field: string type = 2;
    */
@@ -70,13 +70,6 @@ export type AlertChannel = Message<"raptor.panel.v1.AlertChannel"> & {
    * @generated from field: google.protobuf.Timestamp created_at = 9;
    */
   createdAt?: Timestamp | undefined;
-
-  /**
-   * Email: "owners", "admins", or a member's user ID.
-   *
-   * @generated from field: string email_to = 10;
-   */
-  emailTo: string;
 };
 
 /**
@@ -91,6 +84,8 @@ export const AlertChannelSchema: GenMessage<AlertChannel> = /*@__PURE__*/
  */
 export type ListAlertChannelsRequest = Message<"raptor.panel.v1.ListAlertChannelsRequest"> & {
   /**
+   * Empty: the user's own channels.
+   *
    * @generated from field: string org_id = 1;
    */
   orgId: string;
@@ -121,7 +116,7 @@ export type ListAlertChannelsResponse = Message<"raptor.panel.v1.ListAlertChanne
   types: string[];
 
   /**
-   * How many an org may have.
+   * How many an org (or a person) may have.
    *
    * @generated from field: int32 limit = 3;
    */
@@ -140,6 +135,8 @@ export const ListAlertChannelsResponseSchema: GenMessage<ListAlertChannelsRespon
  */
 export type CreateAlertChannelRequest = Message<"raptor.panel.v1.CreateAlertChannelRequest"> & {
   /**
+   * Empty: a channel of the user's own.
+   *
    * @generated from field: string org_id = 1;
    */
   orgId: string;
@@ -167,13 +164,6 @@ export type CreateAlertChannelRequest = Message<"raptor.panel.v1.CreateAlertChan
    * @generated from field: string secret = 5;
    */
   secret: string;
-
-  /**
-   * Email: "owners", "admins", or a member's user ID.
-   *
-   * @generated from field: string email_to = 6;
-   */
-  emailTo: string;
 
   /**
    * ntfy: the server (empty: ntfy.sh), topic, and access token (optional).
@@ -222,6 +212,8 @@ export const CreateAlertChannelResponseSchema: GenMessage<CreateAlertChannelResp
  */
 export type UpdateAlertChannelRequest = Message<"raptor.panel.v1.UpdateAlertChannelRequest"> & {
   /**
+   * Empty: one of the user's own channels.
+   *
    * @generated from field: string org_id = 1;
    */
   orgId: string;
@@ -268,11 +260,6 @@ export type UpdateAlertChannelRequest = Message<"raptor.panel.v1.UpdateAlertChan
    * @generated from field: string ntfy_server = 9;
    */
   ntfyServer: string;
-
-  /**
-   * @generated from field: string email_to = 10;
-   */
-  emailTo: string;
 };
 
 /**
@@ -304,6 +291,8 @@ export const UpdateAlertChannelResponseSchema: GenMessage<UpdateAlertChannelResp
  */
 export type DeleteAlertChannelRequest = Message<"raptor.panel.v1.DeleteAlertChannelRequest"> & {
   /**
+   * Empty: one of the user's own channels.
+   *
    * @generated from field: string org_id = 1;
    */
   orgId: string;
@@ -339,6 +328,8 @@ export const DeleteAlertChannelResponseSchema: GenMessage<DeleteAlertChannelResp
  */
 export type TestAlertChannelRequest = Message<"raptor.panel.v1.TestAlertChannelRequest"> & {
   /**
+   * Empty: one of the user's own channels.
+   *
    * @generated from field: string org_id = 1;
    */
   orgId: string;
@@ -383,6 +374,8 @@ export const TestAlertChannelResponseSchema: GenMessage<TestAlertChannelResponse
  */
 export type ConnectTelegramRequest = Message<"raptor.panel.v1.ConnectTelegramRequest"> & {
   /**
+   * Empty: a chat for the user's own alerts.
+   *
    * @generated from field: string org_id = 1;
    */
   orgId: string;
@@ -523,6 +516,8 @@ export type AlertRule = Message<"raptor.panel.v1.AlertRule"> & {
   forMinutes: number;
 
   /**
+   * The org's team channels it posts to.
+   *
    * @generated from field: repeated string channel_ids = 8;
    */
   channelIds: string[];
@@ -541,6 +536,22 @@ export type AlertRule = Message<"raptor.panel.v1.AlertRule"> & {
    * @generated from field: google.protobuf.Timestamp created_at = 11;
    */
   createdAt?: Timestamp | undefined;
+
+  /**
+   * Who it tells: everyone in the org with one of these roles ("owner",
+   * "admin", "member"), and these members. Each is told in their inbox and
+   * on the channels of their own they've set up; members only about
+   * servers they have access to. A rule tells someone, or posts to a
+   * channel, or both.
+   *
+   * @generated from field: repeated string notify_roles = 12;
+   */
+  notifyRoles: string[];
+
+  /**
+   * @generated from field: repeated string notify_user_ids = 13;
+   */
+  notifyUserIds: string[];
 };
 
 /**
@@ -753,6 +764,14 @@ export type AlertHistoryEntry = Message<"raptor.panel.v1.AlertHistoryEntry"> & {
    * @generated from field: google.protobuf.Timestamp sent_at = 16;
    */
   sentAt?: Timestamp | undefined;
+
+  /**
+   * Set when it went to someone's own channel (channel_id isn't one of the
+   * org's): whose, and which, as "Alice: Email".
+   *
+   * @generated from field: string channel_label = 17;
+   */
+  channelLabel: string;
 };
 
 /**
@@ -804,16 +823,209 @@ export const ListAlertHistoryResponseSchema: GenMessage<ListAlertHistoryResponse
   messageDesc(file_raptor_panel_v1_alert, 23);
 
 /**
- * AlertService is an org's alerts (docs/PANEL.md#alerts): channels (where
- * alerts go: email, Discord, Slack, Telegram, ntfy, a webhook) and rules
- * (what's worth one, where). Admins and owners see and change them.
+ * Notification is an alert in someone's inbox.
+ *
+ * @generated from message raptor.panel.v1.Notification
+ */
+export type Notification = Message<"raptor.panel.v1.Notification"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string org_id = 2;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string org_name = 3;
+   */
+  orgName: string;
+
+  /**
+   * @generated from field: string condition = 4;
+   */
+  condition: string;
+
+  /**
+   * info, warning, critical.
+   *
+   * @generated from field: string level = 5;
+   */
+  level: string;
+
+  /**
+   * @generated from field: string title = 6;
+   */
+  title: string;
+
+  /**
+   * @generated from field: string text = 7;
+   */
+  text: string;
+
+  /**
+   * @generated from field: bool resolved = 8;
+   */
+  resolved: boolean;
+
+  /**
+   * @generated from field: string node_id = 9;
+   */
+  nodeId: string;
+
+  /**
+   * @generated from field: string node_name = 10;
+   */
+  nodeName: string;
+
+  /**
+   * @generated from field: string server_id = 11;
+   */
+  serverId: string;
+
+  /**
+   * @generated from field: string server_name = 12;
+   */
+  serverName: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp at = 13;
+   */
+  at?: Timestamp | undefined;
+
+  /**
+   * The inbox was opened since it came.
+   *
+   * @generated from field: bool seen = 14;
+   */
+  seen: boolean;
+};
+
+/**
+ * Describes the message raptor.panel.v1.Notification.
+ * Use `create(NotificationSchema)` to create a new message.
+ */
+export const NotificationSchema: GenMessage<Notification> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_alert, 24);
+
+/**
+ * @generated from message raptor.panel.v1.ListNotificationsRequest
+ */
+export type ListNotificationsRequest = Message<"raptor.panel.v1.ListNotificationsRequest"> & {
+  /**
+   * At most 100; 0 means 50.
+   *
+   * @generated from field: int32 limit = 1;
+   */
+  limit: number;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListNotificationsRequest.
+ * Use `create(ListNotificationsRequestSchema)` to create a new message.
+ */
+export const ListNotificationsRequestSchema: GenMessage<ListNotificationsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_alert, 25);
+
+/**
+ * @generated from message raptor.panel.v1.ListNotificationsResponse
+ */
+export type ListNotificationsResponse = Message<"raptor.panel.v1.ListNotificationsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.Notification notifications = 1;
+   */
+  notifications: Notification[];
+
+  /**
+   * How many came since the inbox was last opened.
+   *
+   * @generated from field: int32 unseen = 2;
+   */
+  unseen: number;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListNotificationsResponse.
+ * Use `create(ListNotificationsResponseSchema)` to create a new message.
+ */
+export const ListNotificationsResponseSchema: GenMessage<ListNotificationsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_alert, 26);
+
+/**
+ * @generated from message raptor.panel.v1.SeeNotificationsRequest
+ */
+export type SeeNotificationsRequest = Message<"raptor.panel.v1.SeeNotificationsRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.SeeNotificationsRequest.
+ * Use `create(SeeNotificationsRequestSchema)` to create a new message.
+ */
+export const SeeNotificationsRequestSchema: GenMessage<SeeNotificationsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_alert, 27);
+
+/**
+ * @generated from message raptor.panel.v1.SeeNotificationsResponse
+ */
+export type SeeNotificationsResponse = Message<"raptor.panel.v1.SeeNotificationsResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.SeeNotificationsResponse.
+ * Use `create(SeeNotificationsResponseSchema)` to create a new message.
+ */
+export const SeeNotificationsResponseSchema: GenMessage<SeeNotificationsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_alert, 28);
+
+/**
+ * @generated from message raptor.panel.v1.DismissNotificationsRequest
+ */
+export type DismissNotificationsRequest = Message<"raptor.panel.v1.DismissNotificationsRequest"> & {
+  /**
+   * Empty: all of them.
+   *
+   * @generated from field: repeated string ids = 1;
+   */
+  ids: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.DismissNotificationsRequest.
+ * Use `create(DismissNotificationsRequestSchema)` to create a new message.
+ */
+export const DismissNotificationsRequestSchema: GenMessage<DismissNotificationsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_alert, 29);
+
+/**
+ * @generated from message raptor.panel.v1.DismissNotificationsResponse
+ */
+export type DismissNotificationsResponse = Message<"raptor.panel.v1.DismissNotificationsResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.DismissNotificationsResponse.
+ * Use `create(DismissNotificationsResponseSchema)` to create a new message.
+ */
+export const DismissNotificationsResponseSchema: GenMessage<DismissNotificationsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_alert, 30);
+
+/**
+ * AlertService is alerts (docs/PANEL.md#alerts): an org's rules (what's
+ * worth one, and who hears about it) and team channels (Discord, Slack,
+ * Telegram, ntfy, a webhook), which admins and owners see and change; and
+ * each person's own channels (their email, Telegram, ntfy, …) and inbox.
+ *
+ * The channel calls work on the org's team channels, or, with no org_id,
+ * on the signed-in user's own.
  *
  * @generated from service raptor.panel.v1.AlertService
  */
 export const AlertService: GenService<{
   /**
-   * ListAlertChannels lists the org's channels, and the channel types this
-   * Panel offers.
+   * ListAlertChannels lists the org's channels (or the user's own), and the
+   * channel types this Panel offers for them.
    *
    * @generated from rpc raptor.panel.v1.AlertService.ListAlertChannels
    */
@@ -915,6 +1127,38 @@ export const AlertService: GenService<{
     methodKind: "unary";
     input: typeof ListAlertHistoryRequestSchema;
     output: typeof ListAlertHistoryResponseSchema;
+  },
+  /**
+   * ListNotifications is the signed-in user's inbox: the alerts sent to
+   * them, from every org they're in, newest first (kept 30 days).
+   *
+   * @generated from rpc raptor.panel.v1.AlertService.ListNotifications
+   */
+  listNotifications: {
+    methodKind: "unary";
+    input: typeof ListNotificationsRequestSchema;
+    output: typeof ListNotificationsResponseSchema;
+  },
+  /**
+   * SeeNotifications marks the inbox seen (it was opened).
+   *
+   * @generated from rpc raptor.panel.v1.AlertService.SeeNotifications
+   */
+  seeNotifications: {
+    methodKind: "unary";
+    input: typeof SeeNotificationsRequestSchema;
+    output: typeof SeeNotificationsResponseSchema;
+  },
+  /**
+   * DismissNotifications clears alerts from the inbox: the ones named, or
+   * all of them.
+   *
+   * @generated from rpc raptor.panel.v1.AlertService.DismissNotifications
+   */
+  dismissNotifications: {
+    methodKind: "unary";
+    input: typeof DismissNotificationsRequestSchema;
+    output: typeof DismissNotificationsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_alert, 0);
