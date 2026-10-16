@@ -20,12 +20,15 @@ export default function Console({
   serverId,
   canWrite,
   support,
+  fill,
 }: {
   nodeId: string;
   serverId: string;
   canWrite: boolean;
   // Raptor's staff, under this support request.
   support?: string;
+  // Fill the parent's height (a pop-out window) instead of a fixed one.
+  fill?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [problem, setProblem] = useState<{ text: string; retrying: boolean }>();
@@ -132,11 +135,20 @@ export default function Console({
   }
 
   return (
-    <div className={cn("flex flex-col gap-2", full && "fixed inset-0 z-50 bg-background p-4")}>
+    <div
+      className={cn(
+        "flex flex-col gap-2",
+        fill && "h-full min-h-0",
+        full && "fixed inset-0 z-50 bg-background p-4",
+      )}
+    >
       <div
-        className={cn("terminal relative overflow-hidden rounded-lg p-2", full && "min-h-0 flex-1")}
+        className={cn(
+          "terminal relative overflow-hidden rounded-lg p-2",
+          (full || fill) && "min-h-0 flex-1",
+        )}
       >
-        <div ref={box} className={full ? "h-full" : "h-[28rem]"} />
+        <div ref={box} className={full || fill ? "h-full" : "h-[28rem]"} />
         <Button
           size="icon-sm"
           variant="ghost"

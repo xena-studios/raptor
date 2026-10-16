@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as InviteRouteImport } from './routes/invite'
+import { Route as PopoutRouteImport } from './routes/popout'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as OrgsOrgIdRouteImport } from './routes/orgs.$orgId'
+import { Route as PopoutOrgIdRouteImport } from './routes/popout.$orgId'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as SettingsActivityRouteImport } from './routes/settings.activity'
 import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
@@ -52,6 +54,7 @@ import { Route as OrgsOrgIdSettingsAlertsRouteImport } from './routes/orgs.$orgI
 import { Route as OrgsOrgIdSettingsBackupsRouteImport } from './routes/orgs.$orgId.settings.backups'
 import { Route as OrgsOrgIdSettingsBillingRouteImport } from './routes/orgs.$orgId.settings.billing'
 import { Route as OrgsOrgIdSettingsMembersRouteImport } from './routes/orgs.$orgId.settings.members'
+import { Route as PopoutOrgIdNodesNodeIdRouteImport } from './routes/popout.$orgId.nodes.$nodeId'
 import { Route as OrgsOrgIdEggsEggIdIndexRouteImport } from './routes/orgs.$orgId.eggs.$eggId.index'
 import { Route as OrgsOrgIdEggsEggIdEditRouteImport } from './routes/orgs.$orgId.eggs.$eggId.edit'
 import { Route as OrgsOrgIdNodesNodeIdIndexRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.index'
@@ -61,6 +64,8 @@ import { Route as OrgsOrgIdNodesNodeIdHealthRouteImport } from './routes/orgs.$o
 import { Route as OrgsOrgIdNodesNodeIdSettingsRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.settings'
 import { Route as OrgsOrgIdNodesNodeIdSystemRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.system'
 import { Route as OrgsOrgIdServersNodeIdServerIdRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId'
+import { Route as PopoutOrgIdNodesNodeIdStatsRouteImport } from './routes/popout.$orgId.nodes.$nodeId.stats'
+import { Route as PopoutOrgIdServersNodeIdServerIdRouteImport } from './routes/popout.$orgId.servers.$nodeId.$serverId'
 import { Route as OrgsOrgIdServersNodeIdServerIdIndexRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.index'
 import { Route as OrgsOrgIdServersNodeIdServerIdAccessRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.access'
 import { Route as OrgsOrgIdServersNodeIdServerIdActivityRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.activity'
@@ -71,6 +76,9 @@ import { Route as OrgsOrgIdServersNodeIdServerIdSchedulesRouteImport } from './r
 import { Route as OrgsOrgIdServersNodeIdServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.settings'
 import { Route as OrgsOrgIdServersNodeIdServerIdStartupRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.startup'
 import { Route as OrgsOrgIdServersNodeIdServerIdWorkshopRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.workshop'
+import { Route as PopoutOrgIdServersNodeIdServerIdConsoleRouteImport } from './routes/popout.$orgId.servers.$nodeId.$serverId.console'
+import { Route as PopoutOrgIdServersNodeIdServerIdFilesRouteImport } from './routes/popout.$orgId.servers.$nodeId.$serverId.files'
+import { Route as PopoutOrgIdServersNodeIdServerIdStatsRouteImport } from './routes/popout.$orgId.servers.$nodeId.$serverId.stats'
 import { Route as OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.addons.$kind'
 
 const IndexRoute = IndexRouteImport.update({
@@ -86,6 +94,11 @@ const AdminRoute = AdminRouteImport.update({
 const InviteRoute = InviteRouteImport.update({
   id: '/invite',
   path: '/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PopoutRoute = PopoutRouteImport.update({
+  id: '/popout',
+  path: '/popout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -112,6 +125,11 @@ const OrgsOrgIdRoute = OrgsOrgIdRouteImport.update({
   id: '/orgs/$orgId',
   path: '/orgs/$orgId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PopoutOrgIdRoute = PopoutOrgIdRouteImport.update({
+  id: '/$orgId',
+  path: '/$orgId',
+  getParentRoute: () => PopoutRoute,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/',
@@ -293,6 +311,11 @@ const OrgsOrgIdSettingsMembersRoute =
     path: '/members',
     getParentRoute: () => OrgsOrgIdSettingsRoute,
   } as any)
+const PopoutOrgIdNodesNodeIdRoute = PopoutOrgIdNodesNodeIdRouteImport.update({
+  id: '/nodes/$nodeId',
+  path: '/nodes/$nodeId',
+  getParentRoute: () => PopoutOrgIdRoute,
+} as any)
 const OrgsOrgIdEggsEggIdIndexRoute = OrgsOrgIdEggsEggIdIndexRouteImport.update({
   id: '/eggs/$eggId/',
   path: '/eggs/$eggId/',
@@ -344,6 +367,18 @@ const OrgsOrgIdServersNodeIdServerIdRoute =
     id: '/servers/$nodeId/$serverId',
     path: '/servers/$nodeId/$serverId',
     getParentRoute: () => OrgsOrgIdRoute,
+  } as any)
+const PopoutOrgIdNodesNodeIdStatsRoute =
+  PopoutOrgIdNodesNodeIdStatsRouteImport.update({
+    id: '/stats',
+    path: '/stats',
+    getParentRoute: () => PopoutOrgIdNodesNodeIdRoute,
+  } as any)
+const PopoutOrgIdServersNodeIdServerIdRoute =
+  PopoutOrgIdServersNodeIdServerIdRouteImport.update({
+    id: '/servers/$nodeId/$serverId',
+    path: '/servers/$nodeId/$serverId',
+    getParentRoute: () => PopoutOrgIdRoute,
   } as any)
 const OrgsOrgIdServersNodeIdServerIdIndexRoute =
   OrgsOrgIdServersNodeIdServerIdIndexRouteImport.update({
@@ -405,6 +440,24 @@ const OrgsOrgIdServersNodeIdServerIdWorkshopRoute =
     path: '/workshop',
     getParentRoute: () => OrgsOrgIdServersNodeIdServerIdRoute,
   } as any)
+const PopoutOrgIdServersNodeIdServerIdConsoleRoute =
+  PopoutOrgIdServersNodeIdServerIdConsoleRouteImport.update({
+    id: '/console',
+    path: '/console',
+    getParentRoute: () => PopoutOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const PopoutOrgIdServersNodeIdServerIdFilesRoute =
+  PopoutOrgIdServersNodeIdServerIdFilesRouteImport.update({
+    id: '/files',
+    path: '/files',
+    getParentRoute: () => PopoutOrgIdServersNodeIdServerIdRoute,
+  } as any)
+const PopoutOrgIdServersNodeIdServerIdStatsRoute =
+  PopoutOrgIdServersNodeIdServerIdStatsRouteImport.update({
+    id: '/stats',
+    path: '/stats',
+    getParentRoute: () => PopoutOrgIdServersNodeIdServerIdRoute,
+  } as any)
 const OrgsOrgIdServersNodeIdServerIdAddonsKindRoute =
   OrgsOrgIdServersNodeIdServerIdAddonsKindRouteImport.update({
     id: '/addons/$kind',
@@ -416,10 +469,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/invite': typeof InviteRoute
+  '/popout': typeof PopoutRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
+  '/popout/$orgId': typeof PopoutOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
@@ -451,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/popout/$orgId/nodes/$nodeId': typeof PopoutOrgIdNodesNodeIdRouteWithChildren
   '/admin/eggs/$eggId/': typeof AdminEggsEggIdIndexRoute
   '/orgs/$orgId/eggs/': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
@@ -463,6 +519,8 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
+  '/popout/$orgId/servers/$nodeId/$serverId': typeof PopoutOrgIdServersNodeIdServerIdRouteWithChildren
   '/orgs/$orgId/eggs/$eggId/': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
@@ -474,14 +532,19 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/console': typeof PopoutOrgIdServersNodeIdServerIdConsoleRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/files': typeof PopoutOrgIdServersNodeIdServerIdFilesRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/stats': typeof PopoutOrgIdServersNodeIdServerIdStatsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/invite': typeof InviteRoute
+  '/popout': typeof PopoutRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/popout/$orgId': typeof PopoutOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
@@ -511,6 +574,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/popout/$orgId/nodes/$nodeId': typeof PopoutOrgIdNodesNodeIdRouteWithChildren
   '/admin/eggs/$eggId': typeof AdminEggsEggIdIndexRoute
   '/orgs/$orgId/eggs': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes': typeof OrgsOrgIdNodesIndexRoute
@@ -522,6 +586,8 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
+  '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
+  '/popout/$orgId/servers/$nodeId/$serverId': typeof PopoutOrgIdServersNodeIdServerIdRouteWithChildren
   '/orgs/$orgId/eggs/$eggId': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
@@ -533,6 +599,9 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/console': typeof PopoutOrgIdServersNodeIdServerIdConsoleRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/files': typeof PopoutOrgIdServersNodeIdServerIdFilesRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/stats': typeof PopoutOrgIdServersNodeIdServerIdStatsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
@@ -541,10 +610,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/invite': typeof InviteRoute
+  '/popout': typeof PopoutRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/orgs/$orgId': typeof OrgsOrgIdRouteWithChildren
+  '/popout/$orgId': typeof PopoutOrgIdRouteWithChildren
   '/settings/activity': typeof SettingsActivityRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/signin/link': typeof SigninLinkRoute
@@ -576,6 +647,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/settings/backups': typeof OrgsOrgIdSettingsBackupsRoute
   '/orgs/$orgId/settings/billing': typeof OrgsOrgIdSettingsBillingRoute
   '/orgs/$orgId/settings/members': typeof OrgsOrgIdSettingsMembersRoute
+  '/popout/$orgId/nodes/$nodeId': typeof PopoutOrgIdNodesNodeIdRouteWithChildren
   '/admin/eggs/$eggId/': typeof AdminEggsEggIdIndexRoute
   '/orgs/$orgId/eggs/': typeof OrgsOrgIdEggsIndexRoute
   '/orgs/$orgId/nodes/': typeof OrgsOrgIdNodesIndexRoute
@@ -588,6 +660,8 @@ export interface FileRoutesById {
   '/orgs/$orgId/nodes/$nodeId/settings': typeof OrgsOrgIdNodesNodeIdSettingsRoute
   '/orgs/$orgId/nodes/$nodeId/system': typeof OrgsOrgIdNodesNodeIdSystemRoute
   '/orgs/$orgId/servers/$nodeId/$serverId': typeof OrgsOrgIdServersNodeIdServerIdRouteWithChildren
+  '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
+  '/popout/$orgId/servers/$nodeId/$serverId': typeof PopoutOrgIdServersNodeIdServerIdRouteWithChildren
   '/orgs/$orgId/eggs/$eggId/': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/access': typeof OrgsOrgIdServersNodeIdServerIdAccessRoute
@@ -599,6 +673,9 @@ export interface FileRoutesById {
   '/orgs/$orgId/servers/$nodeId/$serverId/settings': typeof OrgsOrgIdServersNodeIdServerIdSettingsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/startup': typeof OrgsOrgIdServersNodeIdServerIdStartupRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/workshop': typeof OrgsOrgIdServersNodeIdServerIdWorkshopRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/console': typeof PopoutOrgIdServersNodeIdServerIdConsoleRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/files': typeof PopoutOrgIdServersNodeIdServerIdFilesRoute
+  '/popout/$orgId/servers/$nodeId/$serverId/stats': typeof PopoutOrgIdServersNodeIdServerIdStatsRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/': typeof OrgsOrgIdServersNodeIdServerIdIndexRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': typeof OrgsOrgIdServersNodeIdServerIdAddonsKindRoute
 }
@@ -608,10 +685,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/invite'
+    | '/popout'
     | '/settings'
     | '/admin/announcements'
     | '/admin/settings'
     | '/orgs/$orgId'
+    | '/popout/$orgId'
     | '/settings/activity'
     | '/settings/security'
     | '/signin/link'
@@ -643,6 +722,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
+    | '/popout/$orgId/nodes/$nodeId'
     | '/admin/eggs/$eggId/'
     | '/orgs/$orgId/eggs/'
     | '/orgs/$orgId/nodes/'
@@ -655,6 +735,8 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/popout/$orgId/nodes/$nodeId/stats'
+    | '/popout/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/eggs/$eggId/'
     | '/orgs/$orgId/nodes/$nodeId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
@@ -666,14 +748,19 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
+    | '/popout/$orgId/servers/$nodeId/$serverId/console'
+    | '/popout/$orgId/servers/$nodeId/$serverId/files'
+    | '/popout/$orgId/servers/$nodeId/$serverId/stats'
     | '/orgs/$orgId/servers/$nodeId/$serverId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/invite'
+    | '/popout'
     | '/admin/announcements'
     | '/admin/settings'
+    | '/popout/$orgId'
     | '/settings/activity'
     | '/settings/security'
     | '/signin/link'
@@ -703,6 +790,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
+    | '/popout/$orgId/nodes/$nodeId'
     | '/admin/eggs/$eggId'
     | '/orgs/$orgId/eggs'
     | '/orgs/$orgId/nodes'
@@ -714,6 +802,8 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
+    | '/popout/$orgId/nodes/$nodeId/stats'
+    | '/popout/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/eggs/$eggId'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
@@ -725,6 +815,9 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
+    | '/popout/$orgId/servers/$nodeId/$serverId/console'
+    | '/popout/$orgId/servers/$nodeId/$serverId/files'
+    | '/popout/$orgId/servers/$nodeId/$serverId/stats'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   id:
@@ -732,10 +825,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/invite'
+    | '/popout'
     | '/settings'
     | '/admin/announcements'
     | '/admin/settings'
     | '/orgs/$orgId'
+    | '/popout/$orgId'
     | '/settings/activity'
     | '/settings/security'
     | '/signin/link'
@@ -767,6 +862,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/settings/backups'
     | '/orgs/$orgId/settings/billing'
     | '/orgs/$orgId/settings/members'
+    | '/popout/$orgId/nodes/$nodeId'
     | '/admin/eggs/$eggId/'
     | '/orgs/$orgId/eggs/'
     | '/orgs/$orgId/nodes/'
@@ -779,6 +875,8 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/nodes/$nodeId/settings'
     | '/orgs/$orgId/nodes/$nodeId/system'
     | '/orgs/$orgId/servers/$nodeId/$serverId'
+    | '/popout/$orgId/nodes/$nodeId/stats'
+    | '/popout/$orgId/servers/$nodeId/$serverId'
     | '/orgs/$orgId/eggs/$eggId/'
     | '/orgs/$orgId/nodes/$nodeId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/access'
@@ -790,6 +888,9 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/settings'
     | '/orgs/$orgId/servers/$nodeId/$serverId/startup'
     | '/orgs/$orgId/servers/$nodeId/$serverId/workshop'
+    | '/popout/$orgId/servers/$nodeId/$serverId/console'
+    | '/popout/$orgId/servers/$nodeId/$serverId/files'
+    | '/popout/$orgId/servers/$nodeId/$serverId/stats'
     | '/orgs/$orgId/servers/$nodeId/$serverId/'
     | '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
   fileRoutesById: FileRoutesById
@@ -798,6 +899,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   InviteRoute: typeof InviteRoute
+  PopoutRoute: typeof PopoutRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
   OrgsOrgIdRoute: typeof OrgsOrgIdRouteWithChildren
   SigninLinkRoute: typeof SigninLinkRoute
@@ -826,6 +928,13 @@ declare module '@tanstack/react-router' {
       path: '/invite'
       fullPath: '/invite'
       preLoaderRoute: typeof InviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/popout': {
+      id: '/popout'
+      path: '/popout'
+      fullPath: '/popout'
+      preLoaderRoute: typeof PopoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -862,6 +971,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/orgs/$orgId'
       preLoaderRoute: typeof OrgsOrgIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/popout/$orgId': {
+      id: '/popout/$orgId'
+      path: '/$orgId'
+      fullPath: '/popout/$orgId'
+      preLoaderRoute: typeof PopoutOrgIdRouteImport
+      parentRoute: typeof PopoutRoute
     }
     '/settings/': {
       id: '/settings/'
@@ -1108,6 +1224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdSettingsMembersRouteImport
       parentRoute: typeof OrgsOrgIdSettingsRoute
     }
+    '/popout/$orgId/nodes/$nodeId': {
+      id: '/popout/$orgId/nodes/$nodeId'
+      path: '/nodes/$nodeId'
+      fullPath: '/popout/$orgId/nodes/$nodeId'
+      preLoaderRoute: typeof PopoutOrgIdNodesNodeIdRouteImport
+      parentRoute: typeof PopoutOrgIdRoute
+    }
     '/orgs/$orgId/eggs/$eggId/': {
       id: '/orgs/$orgId/eggs/$eggId/'
       path: '/eggs/$eggId'
@@ -1170,6 +1293,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/orgs/$orgId/servers/$nodeId/$serverId'
       preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdRouteImport
       parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/popout/$orgId/nodes/$nodeId/stats': {
+      id: '/popout/$orgId/nodes/$nodeId/stats'
+      path: '/stats'
+      fullPath: '/popout/$orgId/nodes/$nodeId/stats'
+      preLoaderRoute: typeof PopoutOrgIdNodesNodeIdStatsRouteImport
+      parentRoute: typeof PopoutOrgIdNodesNodeIdRoute
+    }
+    '/popout/$orgId/servers/$nodeId/$serverId': {
+      id: '/popout/$orgId/servers/$nodeId/$serverId'
+      path: '/servers/$nodeId/$serverId'
+      fullPath: '/popout/$orgId/servers/$nodeId/$serverId'
+      preLoaderRoute: typeof PopoutOrgIdServersNodeIdServerIdRouteImport
+      parentRoute: typeof PopoutOrgIdRoute
     }
     '/orgs/$orgId/servers/$nodeId/$serverId/': {
       id: '/orgs/$orgId/servers/$nodeId/$serverId/'
@@ -1241,6 +1378,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersNodeIdServerIdWorkshopRouteImport
       parentRoute: typeof OrgsOrgIdServersNodeIdServerIdRoute
     }
+    '/popout/$orgId/servers/$nodeId/$serverId/console': {
+      id: '/popout/$orgId/servers/$nodeId/$serverId/console'
+      path: '/console'
+      fullPath: '/popout/$orgId/servers/$nodeId/$serverId/console'
+      preLoaderRoute: typeof PopoutOrgIdServersNodeIdServerIdConsoleRouteImport
+      parentRoute: typeof PopoutOrgIdServersNodeIdServerIdRoute
+    }
+    '/popout/$orgId/servers/$nodeId/$serverId/files': {
+      id: '/popout/$orgId/servers/$nodeId/$serverId/files'
+      path: '/files'
+      fullPath: '/popout/$orgId/servers/$nodeId/$serverId/files'
+      preLoaderRoute: typeof PopoutOrgIdServersNodeIdServerIdFilesRouteImport
+      parentRoute: typeof PopoutOrgIdServersNodeIdServerIdRoute
+    }
+    '/popout/$orgId/servers/$nodeId/$serverId/stats': {
+      id: '/popout/$orgId/servers/$nodeId/$serverId/stats'
+      path: '/stats'
+      fullPath: '/popout/$orgId/servers/$nodeId/$serverId/stats'
+      preLoaderRoute: typeof PopoutOrgIdServersNodeIdServerIdStatsRouteImport
+      parentRoute: typeof PopoutOrgIdServersNodeIdServerIdRoute
+    }
     '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind': {
       id: '/orgs/$orgId/servers/$nodeId/$serverId/addons/$kind'
       path: '/addons/$kind'
@@ -1292,6 +1450,67 @@ const AdminRouteChildren: AdminRouteChildren = {
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface PopoutOrgIdNodesNodeIdRouteChildren {
+  PopoutOrgIdNodesNodeIdStatsRoute: typeof PopoutOrgIdNodesNodeIdStatsRoute
+}
+
+const PopoutOrgIdNodesNodeIdRouteChildren: PopoutOrgIdNodesNodeIdRouteChildren =
+  {
+    PopoutOrgIdNodesNodeIdStatsRoute: PopoutOrgIdNodesNodeIdStatsRoute,
+  }
+
+const PopoutOrgIdNodesNodeIdRouteWithChildren =
+  PopoutOrgIdNodesNodeIdRoute._addFileChildren(
+    PopoutOrgIdNodesNodeIdRouteChildren,
+  )
+
+interface PopoutOrgIdServersNodeIdServerIdRouteChildren {
+  PopoutOrgIdServersNodeIdServerIdConsoleRoute: typeof PopoutOrgIdServersNodeIdServerIdConsoleRoute
+  PopoutOrgIdServersNodeIdServerIdFilesRoute: typeof PopoutOrgIdServersNodeIdServerIdFilesRoute
+  PopoutOrgIdServersNodeIdServerIdStatsRoute: typeof PopoutOrgIdServersNodeIdServerIdStatsRoute
+}
+
+const PopoutOrgIdServersNodeIdServerIdRouteChildren: PopoutOrgIdServersNodeIdServerIdRouteChildren =
+  {
+    PopoutOrgIdServersNodeIdServerIdConsoleRoute:
+      PopoutOrgIdServersNodeIdServerIdConsoleRoute,
+    PopoutOrgIdServersNodeIdServerIdFilesRoute:
+      PopoutOrgIdServersNodeIdServerIdFilesRoute,
+    PopoutOrgIdServersNodeIdServerIdStatsRoute:
+      PopoutOrgIdServersNodeIdServerIdStatsRoute,
+  }
+
+const PopoutOrgIdServersNodeIdServerIdRouteWithChildren =
+  PopoutOrgIdServersNodeIdServerIdRoute._addFileChildren(
+    PopoutOrgIdServersNodeIdServerIdRouteChildren,
+  )
+
+interface PopoutOrgIdRouteChildren {
+  PopoutOrgIdNodesNodeIdRoute: typeof PopoutOrgIdNodesNodeIdRouteWithChildren
+  PopoutOrgIdServersNodeIdServerIdRoute: typeof PopoutOrgIdServersNodeIdServerIdRouteWithChildren
+}
+
+const PopoutOrgIdRouteChildren: PopoutOrgIdRouteChildren = {
+  PopoutOrgIdNodesNodeIdRoute: PopoutOrgIdNodesNodeIdRouteWithChildren,
+  PopoutOrgIdServersNodeIdServerIdRoute:
+    PopoutOrgIdServersNodeIdServerIdRouteWithChildren,
+}
+
+const PopoutOrgIdRouteWithChildren = PopoutOrgIdRoute._addFileChildren(
+  PopoutOrgIdRouteChildren,
+)
+
+interface PopoutRouteChildren {
+  PopoutOrgIdRoute: typeof PopoutOrgIdRouteWithChildren
+}
+
+const PopoutRouteChildren: PopoutRouteChildren = {
+  PopoutOrgIdRoute: PopoutOrgIdRouteWithChildren,
+}
+
+const PopoutRouteWithChildren =
+  PopoutRoute._addFileChildren(PopoutRouteChildren)
 
 interface SettingsRouteChildren {
   SettingsActivityRoute: typeof SettingsActivityRoute
@@ -1435,6 +1654,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   InviteRoute: InviteRoute,
+  PopoutRoute: PopoutRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,
   OrgsOrgIdRoute: OrgsOrgIdRouteWithChildren,
   SigninLinkRoute: SigninLinkRoute,

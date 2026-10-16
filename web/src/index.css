@@ -205,3 +205,20 @@
     opacity: 0.55;
   }
 }
+
+/* Monaco's own widgets (suggestions, hovers, find, the command palette)
+   take the app's corners and type; their colors come from its theme
+   (components/monaco.tsx). */
+.monaco-editor .suggest-widget,
+.monaco-editor .monaco-hover,
+.monaco-editor .find-widget,
+.monaco-editor .quick-input-widget,
+.monaco-editor .context-view .monaco-menu {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.monaco-editor .quick-input-widget,
+.monaco-editor .monaco-hover,
+.monaco-editor .context-view .monaco-menu {
+  font-family: var(--font-sans);
+}
