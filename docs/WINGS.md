@@ -231,7 +231,7 @@ How it works:
 
 ## Trash
 
-What the web file manager deletes goes to the server's trash (`files.delete`; the web app never sends `permanent: true`, which skips it, #284: what's deleted is purged from the trash). It stays there for 7 days, then Wings empties it in its regular prune.
+What the web file manager deletes always goes to the server's trash (`files.delete`; an older app's `permanent: true` is ignored, #287): only purging the trash deletes for good. SFTP is the exception: an SFTP client's delete is permanent, as in any SFTP server. It stays there for 7 days, then Wings empties it in its regular prune.
 - **Where:** `<disk>/.trash/<server id>/<entry id>/<name>` (`internal/wings/files/trash.go`), with a row in `trash` for its original path, size, who deleted it, and when.
   - The trash is outside the server's directory, so the game, SFTP, and backups never see it.
   - It's on the same filesystem, so moving there is instant, and the files keep their quota project: **the trash counts toward the server's disk limit** (checked on XFS).
