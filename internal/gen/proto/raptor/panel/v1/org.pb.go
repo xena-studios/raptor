@@ -409,6 +409,86 @@ func (*RenameOrgResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{6}
 }
 
+type DeleteOrgRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteOrgRequest) Reset() {
+	*x = DeleteOrgRequest{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteOrgRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteOrgRequest) ProtoMessage() {}
+
+func (x *DeleteOrgRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteOrgRequest.ProtoReflect.Descriptor instead.
+func (*DeleteOrgRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DeleteOrgRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+type DeleteOrgResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteOrgResponse) Reset() {
+	*x = DeleteOrgResponse{}
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteOrgResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteOrgResponse) ProtoMessage() {}
+
+func (x *DeleteOrgResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteOrgResponse.ProtoReflect.Descriptor instead.
+func (*DeleteOrgResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{8}
+}
+
 type Member struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -422,7 +502,7 @@ type Member struct {
 
 func (x *Member) Reset() {
 	*x = Member{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[7]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -434,7 +514,7 @@ func (x *Member) String() string {
 func (*Member) ProtoMessage() {}
 
 func (x *Member) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[7]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -447,7 +527,7 @@ func (x *Member) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Member.ProtoReflect.Descriptor instead.
 func (*Member) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{7}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Member) GetUserId() string {
@@ -494,7 +574,7 @@ type ListMembersRequest struct {
 
 func (x *ListMembersRequest) Reset() {
 	*x = ListMembersRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[8]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -506,7 +586,7 @@ func (x *ListMembersRequest) String() string {
 func (*ListMembersRequest) ProtoMessage() {}
 
 func (x *ListMembersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[8]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -519,7 +599,7 @@ func (x *ListMembersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMembersRequest.ProtoReflect.Descriptor instead.
 func (*ListMembersRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{8}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListMembersRequest) GetOrgId() string {
@@ -538,7 +618,7 @@ type ListMembersResponse struct {
 
 func (x *ListMembersResponse) Reset() {
 	*x = ListMembersResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[9]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -550,7 +630,7 @@ func (x *ListMembersResponse) String() string {
 func (*ListMembersResponse) ProtoMessage() {}
 
 func (x *ListMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[9]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -563,7 +643,7 @@ func (x *ListMembersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMembersResponse.ProtoReflect.Descriptor instead.
 func (*ListMembersResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{9}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListMembersResponse) GetMembers() []*Member {
@@ -584,7 +664,7 @@ type SetMemberRoleRequest struct {
 
 func (x *SetMemberRoleRequest) Reset() {
 	*x = SetMemberRoleRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[10]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -596,7 +676,7 @@ func (x *SetMemberRoleRequest) String() string {
 func (*SetMemberRoleRequest) ProtoMessage() {}
 
 func (x *SetMemberRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[10]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -609,7 +689,7 @@ func (x *SetMemberRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetMemberRoleRequest.ProtoReflect.Descriptor instead.
 func (*SetMemberRoleRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{10}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SetMemberRoleRequest) GetOrgId() string {
@@ -641,7 +721,7 @@ type SetMemberRoleResponse struct {
 
 func (x *SetMemberRoleResponse) Reset() {
 	*x = SetMemberRoleResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[11]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -653,7 +733,7 @@ func (x *SetMemberRoleResponse) String() string {
 func (*SetMemberRoleResponse) ProtoMessage() {}
 
 func (x *SetMemberRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[11]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -666,7 +746,7 @@ func (x *SetMemberRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetMemberRoleResponse.ProtoReflect.Descriptor instead.
 func (*SetMemberRoleResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{11}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{13}
 }
 
 type RemoveMemberRequest struct {
@@ -679,7 +759,7 @@ type RemoveMemberRequest struct {
 
 func (x *RemoveMemberRequest) Reset() {
 	*x = RemoveMemberRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[12]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -691,7 +771,7 @@ func (x *RemoveMemberRequest) String() string {
 func (*RemoveMemberRequest) ProtoMessage() {}
 
 func (x *RemoveMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[12]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -704,7 +784,7 @@ func (x *RemoveMemberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveMemberRequest.ProtoReflect.Descriptor instead.
 func (*RemoveMemberRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{12}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RemoveMemberRequest) GetOrgId() string {
@@ -729,7 +809,7 @@ type RemoveMemberResponse struct {
 
 func (x *RemoveMemberResponse) Reset() {
 	*x = RemoveMemberResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[13]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -741,7 +821,7 @@ func (x *RemoveMemberResponse) String() string {
 func (*RemoveMemberResponse) ProtoMessage() {}
 
 func (x *RemoveMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[13]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -754,7 +834,7 @@ func (x *RemoveMemberResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveMemberResponse.ProtoReflect.Descriptor instead.
 func (*RemoveMemberResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{13}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{15}
 }
 
 type Invitation struct {
@@ -770,7 +850,7 @@ type Invitation struct {
 
 func (x *Invitation) Reset() {
 	*x = Invitation{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[14]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +862,7 @@ func (x *Invitation) String() string {
 func (*Invitation) ProtoMessage() {}
 
 func (x *Invitation) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[14]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +875,7 @@ func (x *Invitation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Invitation.ProtoReflect.Descriptor instead.
 func (*Invitation) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{14}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Invitation) GetId() string {
@@ -844,7 +924,7 @@ type InviteMemberRequest struct {
 
 func (x *InviteMemberRequest) Reset() {
 	*x = InviteMemberRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[15]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -856,7 +936,7 @@ func (x *InviteMemberRequest) String() string {
 func (*InviteMemberRequest) ProtoMessage() {}
 
 func (x *InviteMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[15]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -869,7 +949,7 @@ func (x *InviteMemberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InviteMemberRequest.ProtoReflect.Descriptor instead.
 func (*InviteMemberRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{15}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *InviteMemberRequest) GetOrgId() string {
@@ -902,7 +982,7 @@ type InviteMemberResponse struct {
 
 func (x *InviteMemberResponse) Reset() {
 	*x = InviteMemberResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -914,7 +994,7 @@ func (x *InviteMemberResponse) String() string {
 func (*InviteMemberResponse) ProtoMessage() {}
 
 func (x *InviteMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -927,7 +1007,7 @@ func (x *InviteMemberResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InviteMemberResponse.ProtoReflect.Descriptor instead.
 func (*InviteMemberResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{16}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *InviteMemberResponse) GetInvitation() *Invitation {
@@ -946,7 +1026,7 @@ type ListInvitationsRequest struct {
 
 func (x *ListInvitationsRequest) Reset() {
 	*x = ListInvitationsRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -958,7 +1038,7 @@ func (x *ListInvitationsRequest) String() string {
 func (*ListInvitationsRequest) ProtoMessage() {}
 
 func (x *ListInvitationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -971,7 +1051,7 @@ func (x *ListInvitationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvitationsRequest.ProtoReflect.Descriptor instead.
 func (*ListInvitationsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{17}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListInvitationsRequest) GetOrgId() string {
@@ -990,7 +1070,7 @@ type ListInvitationsResponse struct {
 
 func (x *ListInvitationsResponse) Reset() {
 	*x = ListInvitationsResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1002,7 +1082,7 @@ func (x *ListInvitationsResponse) String() string {
 func (*ListInvitationsResponse) ProtoMessage() {}
 
 func (x *ListInvitationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1015,7 +1095,7 @@ func (x *ListInvitationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvitationsResponse.ProtoReflect.Descriptor instead.
 func (*ListInvitationsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{18}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListInvitationsResponse) GetInvitations() []*Invitation {
@@ -1035,7 +1115,7 @@ type RevokeInvitationRequest struct {
 
 func (x *RevokeInvitationRequest) Reset() {
 	*x = RevokeInvitationRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1047,7 +1127,7 @@ func (x *RevokeInvitationRequest) String() string {
 func (*RevokeInvitationRequest) ProtoMessage() {}
 
 func (x *RevokeInvitationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1060,7 +1140,7 @@ func (x *RevokeInvitationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeInvitationRequest.ProtoReflect.Descriptor instead.
 func (*RevokeInvitationRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{19}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RevokeInvitationRequest) GetOrgId() string {
@@ -1085,7 +1165,7 @@ type RevokeInvitationResponse struct {
 
 func (x *RevokeInvitationResponse) Reset() {
 	*x = RevokeInvitationResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1097,7 +1177,7 @@ func (x *RevokeInvitationResponse) String() string {
 func (*RevokeInvitationResponse) ProtoMessage() {}
 
 func (x *RevokeInvitationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1110,7 +1190,7 @@ func (x *RevokeInvitationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeInvitationResponse.ProtoReflect.Descriptor instead.
 func (*RevokeInvitationResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{20}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{22}
 }
 
 type AcceptInvitationRequest struct {
@@ -1123,7 +1203,7 @@ type AcceptInvitationRequest struct {
 
 func (x *AcceptInvitationRequest) Reset() {
 	*x = AcceptInvitationRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1135,7 +1215,7 @@ func (x *AcceptInvitationRequest) String() string {
 func (*AcceptInvitationRequest) ProtoMessage() {}
 
 func (x *AcceptInvitationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1148,7 +1228,7 @@ func (x *AcceptInvitationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptInvitationRequest.ProtoReflect.Descriptor instead.
 func (*AcceptInvitationRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{21}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *AcceptInvitationRequest) GetToken() string {
@@ -1167,7 +1247,7 @@ type AcceptInvitationResponse struct {
 
 func (x *AcceptInvitationResponse) Reset() {
 	*x = AcceptInvitationResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[22]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1179,7 +1259,7 @@ func (x *AcceptInvitationResponse) String() string {
 func (*AcceptInvitationResponse) ProtoMessage() {}
 
 func (x *AcceptInvitationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[22]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1192,7 +1272,7 @@ func (x *AcceptInvitationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptInvitationResponse.ProtoReflect.Descriptor instead.
 func (*AcceptInvitationResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{22}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *AcceptInvitationResponse) GetOrg() *Org {
@@ -1213,7 +1293,7 @@ type CreateJoinTokenRequest struct {
 
 func (x *CreateJoinTokenRequest) Reset() {
 	*x = CreateJoinTokenRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[23]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1225,7 +1305,7 @@ func (x *CreateJoinTokenRequest) String() string {
 func (*CreateJoinTokenRequest) ProtoMessage() {}
 
 func (x *CreateJoinTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[23]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1238,7 +1318,7 @@ func (x *CreateJoinTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateJoinTokenRequest.ProtoReflect.Descriptor instead.
 func (*CreateJoinTokenRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{23}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CreateJoinTokenRequest) GetOrgId() string {
@@ -1265,7 +1345,7 @@ type CreateJoinTokenResponse struct {
 
 func (x *CreateJoinTokenResponse) Reset() {
 	*x = CreateJoinTokenResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[24]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1277,7 +1357,7 @@ func (x *CreateJoinTokenResponse) String() string {
 func (*CreateJoinTokenResponse) ProtoMessage() {}
 
 func (x *CreateJoinTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[24]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1290,7 +1370,7 @@ func (x *CreateJoinTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateJoinTokenResponse.ProtoReflect.Descriptor instead.
 func (*CreateJoinTokenResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{24}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CreateJoinTokenResponse) GetToken() string {
@@ -1322,7 +1402,7 @@ type ListAuditLogRequest struct {
 
 func (x *ListAuditLogRequest) Reset() {
 	*x = ListAuditLogRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[25]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1334,7 +1414,7 @@ func (x *ListAuditLogRequest) String() string {
 func (*ListAuditLogRequest) ProtoMessage() {}
 
 func (x *ListAuditLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[25]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1347,7 +1427,7 @@ func (x *ListAuditLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuditLogRequest.ProtoReflect.Descriptor instead.
 func (*ListAuditLogRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{25}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListAuditLogRequest) GetOrgId() string {
@@ -1388,7 +1468,7 @@ type ListAuditLogResponse struct {
 
 func (x *ListAuditLogResponse) Reset() {
 	*x = ListAuditLogResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[26]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1400,7 +1480,7 @@ func (x *ListAuditLogResponse) String() string {
 func (*ListAuditLogResponse) ProtoMessage() {}
 
 func (x *ListAuditLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[26]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1413,7 +1493,7 @@ func (x *ListAuditLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuditLogResponse.ProtoReflect.Descriptor instead.
 func (*ListAuditLogResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{26}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListAuditLogResponse) GetEvents() []*AuditEvent {
@@ -1445,7 +1525,7 @@ type SetServerAccessRequest struct {
 
 func (x *SetServerAccessRequest) Reset() {
 	*x = SetServerAccessRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[27]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1457,7 +1537,7 @@ func (x *SetServerAccessRequest) String() string {
 func (*SetServerAccessRequest) ProtoMessage() {}
 
 func (x *SetServerAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[27]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1470,7 +1550,7 @@ func (x *SetServerAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetServerAccessRequest.ProtoReflect.Descriptor instead.
 func (*SetServerAccessRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{27}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SetServerAccessRequest) GetOrgId() string {
@@ -1516,7 +1596,7 @@ type SetServerAccessResponse struct {
 
 func (x *SetServerAccessResponse) Reset() {
 	*x = SetServerAccessResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[28]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1528,7 +1608,7 @@ func (x *SetServerAccessResponse) String() string {
 func (*SetServerAccessResponse) ProtoMessage() {}
 
 func (x *SetServerAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[28]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1541,7 +1621,7 @@ func (x *SetServerAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetServerAccessResponse.ProtoReflect.Descriptor instead.
 func (*SetServerAccessResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{28}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{30}
 }
 
 type ListServerAccessRequest struct {
@@ -1555,7 +1635,7 @@ type ListServerAccessRequest struct {
 
 func (x *ListServerAccessRequest) Reset() {
 	*x = ListServerAccessRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[29]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1567,7 +1647,7 @@ func (x *ListServerAccessRequest) String() string {
 func (*ListServerAccessRequest) ProtoMessage() {}
 
 func (x *ListServerAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[29]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1580,7 +1660,7 @@ func (x *ListServerAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServerAccessRequest.ProtoReflect.Descriptor instead.
 func (*ListServerAccessRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{29}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListServerAccessRequest) GetOrgId() string {
@@ -1615,7 +1695,7 @@ type ServerAccess struct {
 
 func (x *ServerAccess) Reset() {
 	*x = ServerAccess{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[30]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1627,7 +1707,7 @@ func (x *ServerAccess) String() string {
 func (*ServerAccess) ProtoMessage() {}
 
 func (x *ServerAccess) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[30]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1640,7 +1720,7 @@ func (x *ServerAccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerAccess.ProtoReflect.Descriptor instead.
 func (*ServerAccess) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{30}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ServerAccess) GetUserId() string {
@@ -1673,7 +1753,7 @@ type ListServerAccessResponse struct {
 
 func (x *ListServerAccessResponse) Reset() {
 	*x = ListServerAccessResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[31]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1685,7 +1765,7 @@ func (x *ListServerAccessResponse) String() string {
 func (*ListServerAccessResponse) ProtoMessage() {}
 
 func (x *ListServerAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[31]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1698,7 +1778,7 @@ func (x *ListServerAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServerAccessResponse.ProtoReflect.Descriptor instead.
 func (*ListServerAccessResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{31}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListServerAccessResponse) GetAccess() []*ServerAccess {
@@ -1717,7 +1797,7 @@ type ListNodesRequest struct {
 
 func (x *ListNodesRequest) Reset() {
 	*x = ListNodesRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[32]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1729,7 +1809,7 @@ func (x *ListNodesRequest) String() string {
 func (*ListNodesRequest) ProtoMessage() {}
 
 func (x *ListNodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[32]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1742,7 +1822,7 @@ func (x *ListNodesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodesRequest.ProtoReflect.Descriptor instead.
 func (*ListNodesRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{32}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ListNodesRequest) GetOrgId() string {
@@ -1797,7 +1877,7 @@ type Node struct {
 
 func (x *Node) Reset() {
 	*x = Node{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[33]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1809,7 +1889,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[33]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1822,7 +1902,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{33}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *Node) GetId() string {
@@ -1982,7 +2062,7 @@ type ListNodesResponse struct {
 
 func (x *ListNodesResponse) Reset() {
 	*x = ListNodesResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[34]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1994,7 +2074,7 @@ func (x *ListNodesResponse) String() string {
 func (*ListNodesResponse) ProtoMessage() {}
 
 func (x *ListNodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[34]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2007,7 +2087,7 @@ func (x *ListNodesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodesResponse.ProtoReflect.Descriptor instead.
 func (*ListNodesResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{34}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ListNodesResponse) GetNodes() []*Node {
@@ -2028,7 +2108,7 @@ type RenameNodeRequest struct {
 
 func (x *RenameNodeRequest) Reset() {
 	*x = RenameNodeRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2040,7 +2120,7 @@ func (x *RenameNodeRequest) String() string {
 func (*RenameNodeRequest) ProtoMessage() {}
 
 func (x *RenameNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2053,7 +2133,7 @@ func (x *RenameNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameNodeRequest.ProtoReflect.Descriptor instead.
 func (*RenameNodeRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{35}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *RenameNodeRequest) GetOrgId() string {
@@ -2085,7 +2165,7 @@ type RenameNodeResponse struct {
 
 func (x *RenameNodeResponse) Reset() {
 	*x = RenameNodeResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[36]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2097,7 +2177,7 @@ func (x *RenameNodeResponse) String() string {
 func (*RenameNodeResponse) ProtoMessage() {}
 
 func (x *RenameNodeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[36]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2110,7 +2190,7 @@ func (x *RenameNodeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameNodeResponse.ProtoReflect.Descriptor instead.
 func (*RenameNodeResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{36}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{38}
 }
 
 type SetNodeHostnameRequest struct {
@@ -2125,7 +2205,7 @@ type SetNodeHostnameRequest struct {
 
 func (x *SetNodeHostnameRequest) Reset() {
 	*x = SetNodeHostnameRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[37]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2137,7 +2217,7 @@ func (x *SetNodeHostnameRequest) String() string {
 func (*SetNodeHostnameRequest) ProtoMessage() {}
 
 func (x *SetNodeHostnameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[37]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2150,7 +2230,7 @@ func (x *SetNodeHostnameRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeHostnameRequest.ProtoReflect.Descriptor instead.
 func (*SetNodeHostnameRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{37}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *SetNodeHostnameRequest) GetOrgId() string {
@@ -2185,7 +2265,7 @@ type SetNodeHostnameResponse struct {
 
 func (x *SetNodeHostnameResponse) Reset() {
 	*x = SetNodeHostnameResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[38]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2197,7 +2277,7 @@ func (x *SetNodeHostnameResponse) String() string {
 func (*SetNodeHostnameResponse) ProtoMessage() {}
 
 func (x *SetNodeHostnameResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[38]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2210,7 +2290,7 @@ func (x *SetNodeHostnameResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeHostnameResponse.ProtoReflect.Descriptor instead.
 func (*SetNodeHostnameResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{38}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SetNodeHostnameResponse) GetNote() string {
@@ -2232,7 +2312,7 @@ type SetNodeDisplayAddressRequest struct {
 
 func (x *SetNodeDisplayAddressRequest) Reset() {
 	*x = SetNodeDisplayAddressRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[39]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2244,7 +2324,7 @@ func (x *SetNodeDisplayAddressRequest) String() string {
 func (*SetNodeDisplayAddressRequest) ProtoMessage() {}
 
 func (x *SetNodeDisplayAddressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[39]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2257,7 +2337,7 @@ func (x *SetNodeDisplayAddressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeDisplayAddressRequest.ProtoReflect.Descriptor instead.
 func (*SetNodeDisplayAddressRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{39}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *SetNodeDisplayAddressRequest) GetOrgId() string {
@@ -2289,7 +2369,7 @@ type SetNodeDisplayAddressResponse struct {
 
 func (x *SetNodeDisplayAddressResponse) Reset() {
 	*x = SetNodeDisplayAddressResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[40]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2301,7 +2381,7 @@ func (x *SetNodeDisplayAddressResponse) String() string {
 func (*SetNodeDisplayAddressResponse) ProtoMessage() {}
 
 func (x *SetNodeDisplayAddressResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[40]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2314,7 +2394,7 @@ func (x *SetNodeDisplayAddressResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeDisplayAddressResponse.ProtoReflect.Descriptor instead.
 func (*SetNodeDisplayAddressResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{40}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{42}
 }
 
 type SetServerDisplayAddressRequest struct {
@@ -2330,7 +2410,7 @@ type SetServerDisplayAddressRequest struct {
 
 func (x *SetServerDisplayAddressRequest) Reset() {
 	*x = SetServerDisplayAddressRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[41]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2342,7 +2422,7 @@ func (x *SetServerDisplayAddressRequest) String() string {
 func (*SetServerDisplayAddressRequest) ProtoMessage() {}
 
 func (x *SetServerDisplayAddressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[41]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2355,7 +2435,7 @@ func (x *SetServerDisplayAddressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetServerDisplayAddressRequest.ProtoReflect.Descriptor instead.
 func (*SetServerDisplayAddressRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{41}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *SetServerDisplayAddressRequest) GetOrgId() string {
@@ -2394,7 +2474,7 @@ type SetServerDisplayAddressResponse struct {
 
 func (x *SetServerDisplayAddressResponse) Reset() {
 	*x = SetServerDisplayAddressResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[42]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2406,7 +2486,7 @@ func (x *SetServerDisplayAddressResponse) String() string {
 func (*SetServerDisplayAddressResponse) ProtoMessage() {}
 
 func (x *SetServerDisplayAddressResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[42]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2419,7 +2499,7 @@ func (x *SetServerDisplayAddressResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetServerDisplayAddressResponse.ProtoReflect.Descriptor instead.
 func (*SetServerDisplayAddressResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{42}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{44}
 }
 
 type RemoveNodeRequest struct {
@@ -2432,7 +2512,7 @@ type RemoveNodeRequest struct {
 
 func (x *RemoveNodeRequest) Reset() {
 	*x = RemoveNodeRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[43]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2444,7 +2524,7 @@ func (x *RemoveNodeRequest) String() string {
 func (*RemoveNodeRequest) ProtoMessage() {}
 
 func (x *RemoveNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[43]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2457,7 +2537,7 @@ func (x *RemoveNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveNodeRequest.ProtoReflect.Descriptor instead.
 func (*RemoveNodeRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{43}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *RemoveNodeRequest) GetOrgId() string {
@@ -2482,7 +2562,7 @@ type RemoveNodeResponse struct {
 
 func (x *RemoveNodeResponse) Reset() {
 	*x = RemoveNodeResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[44]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2494,7 +2574,7 @@ func (x *RemoveNodeResponse) String() string {
 func (*RemoveNodeResponse) ProtoMessage() {}
 
 func (x *RemoveNodeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[44]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2507,7 +2587,7 @@ func (x *RemoveNodeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveNodeResponse.ProtoReflect.Descriptor instead.
 func (*RemoveNodeResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{44}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{46}
 }
 
 type ListServersRequest struct {
@@ -2520,7 +2600,7 @@ type ListServersRequest struct {
 
 func (x *ListServersRequest) Reset() {
 	*x = ListServersRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[45]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2532,7 +2612,7 @@ func (x *ListServersRequest) String() string {
 func (*ListServersRequest) ProtoMessage() {}
 
 func (x *ListServersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[45]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2545,7 +2625,7 @@ func (x *ListServersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServersRequest.ProtoReflect.Descriptor instead.
 func (*ListServersRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{45}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ListServersRequest) GetOrgId() string {
@@ -2586,7 +2666,7 @@ type Server struct {
 
 func (x *Server) Reset() {
 	*x = Server{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[46]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2598,7 +2678,7 @@ func (x *Server) String() string {
 func (*Server) ProtoMessage() {}
 
 func (x *Server) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[46]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2611,7 +2691,7 @@ func (x *Server) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Server.ProtoReflect.Descriptor instead.
 func (*Server) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{46}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *Server) GetId() string {
@@ -2686,7 +2766,7 @@ type ListServersResponse struct {
 
 func (x *ListServersResponse) Reset() {
 	*x = ListServersResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[47]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2698,7 +2778,7 @@ func (x *ListServersResponse) String() string {
 func (*ListServersResponse) ProtoMessage() {}
 
 func (x *ListServersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[47]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2711,7 +2791,7 @@ func (x *ListServersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServersResponse.ProtoReflect.Descriptor instead.
 func (*ListServersResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{47}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ListServersResponse) GetServers() []*Server {
@@ -2732,7 +2812,7 @@ type GetServerRequest struct {
 
 func (x *GetServerRequest) Reset() {
 	*x = GetServerRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[48]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2744,7 +2824,7 @@ func (x *GetServerRequest) String() string {
 func (*GetServerRequest) ProtoMessage() {}
 
 func (x *GetServerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[48]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2757,7 +2837,7 @@ func (x *GetServerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServerRequest.ProtoReflect.Descriptor instead.
 func (*GetServerRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{48}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GetServerRequest) GetOrgId() string {
@@ -2796,7 +2876,7 @@ type GetServerResponse struct {
 
 func (x *GetServerResponse) Reset() {
 	*x = GetServerResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[49]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2808,7 +2888,7 @@ func (x *GetServerResponse) String() string {
 func (*GetServerResponse) ProtoMessage() {}
 
 func (x *GetServerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[49]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2821,7 +2901,7 @@ func (x *GetServerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServerResponse.ProtoReflect.Descriptor instead.
 func (*GetServerResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{49}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *GetServerResponse) GetServer() *Server {
@@ -2851,7 +2931,7 @@ type PinJoinTokenRequest struct {
 
 func (x *PinJoinTokenRequest) Reset() {
 	*x = PinJoinTokenRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[50]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2863,7 +2943,7 @@ func (x *PinJoinTokenRequest) String() string {
 func (*PinJoinTokenRequest) ProtoMessage() {}
 
 func (x *PinJoinTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[50]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2876,7 +2956,7 @@ func (x *PinJoinTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PinJoinTokenRequest.ProtoReflect.Descriptor instead.
 func (*PinJoinTokenRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{50}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *PinJoinTokenRequest) GetOrgId() string {
@@ -2908,7 +2988,7 @@ type PinJoinTokenResponse struct {
 
 func (x *PinJoinTokenResponse) Reset() {
 	*x = PinJoinTokenResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[51]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2920,7 +3000,7 @@ func (x *PinJoinTokenResponse) String() string {
 func (*PinJoinTokenResponse) ProtoMessage() {}
 
 func (x *PinJoinTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[51]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2933,7 +3013,7 @@ func (x *PinJoinTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PinJoinTokenResponse.ProtoReflect.Descriptor instead.
 func (*PinJoinTokenResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{51}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{53}
 }
 
 type ListMemberPasskeysRequest struct {
@@ -2946,7 +3026,7 @@ type ListMemberPasskeysRequest struct {
 
 func (x *ListMemberPasskeysRequest) Reset() {
 	*x = ListMemberPasskeysRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[52]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2958,7 +3038,7 @@ func (x *ListMemberPasskeysRequest) String() string {
 func (*ListMemberPasskeysRequest) ProtoMessage() {}
 
 func (x *ListMemberPasskeysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[52]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2971,7 +3051,7 @@ func (x *ListMemberPasskeysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMemberPasskeysRequest.ProtoReflect.Descriptor instead.
 func (*ListMemberPasskeysRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{52}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ListMemberPasskeysRequest) GetOrgId() string {
@@ -2998,7 +3078,7 @@ type ListMemberPasskeysResponse struct {
 
 func (x *ListMemberPasskeysResponse) Reset() {
 	*x = ListMemberPasskeysResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[53]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3010,7 +3090,7 @@ func (x *ListMemberPasskeysResponse) String() string {
 func (*ListMemberPasskeysResponse) ProtoMessage() {}
 
 func (x *ListMemberPasskeysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[53]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3023,7 +3103,7 @@ func (x *ListMemberPasskeysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMemberPasskeysResponse.ProtoReflect.Descriptor instead.
 func (*ListMemberPasskeysResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{53}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ListMemberPasskeysResponse) GetPasskeys() []*Passkey {
@@ -3044,7 +3124,7 @@ type ListSchedulesRequest struct {
 
 func (x *ListSchedulesRequest) Reset() {
 	*x = ListSchedulesRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[54]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3056,7 +3136,7 @@ func (x *ListSchedulesRequest) String() string {
 func (*ListSchedulesRequest) ProtoMessage() {}
 
 func (x *ListSchedulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[54]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3069,7 +3149,7 @@ func (x *ListSchedulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSchedulesRequest.ProtoReflect.Descriptor instead.
 func (*ListSchedulesRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{54}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListSchedulesRequest) GetOrgId() string {
@@ -3102,7 +3182,7 @@ type ListSchedulesResponse struct {
 
 func (x *ListSchedulesResponse) Reset() {
 	*x = ListSchedulesResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[55]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3114,7 +3194,7 @@ func (x *ListSchedulesResponse) String() string {
 func (*ListSchedulesResponse) ProtoMessage() {}
 
 func (x *ListSchedulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[55]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3127,7 +3207,7 @@ func (x *ListSchedulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSchedulesResponse.ProtoReflect.Descriptor instead.
 func (*ListSchedulesResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{55}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ListSchedulesResponse) GetSchedules() []*Schedule {
@@ -3153,7 +3233,7 @@ type Schedule struct {
 
 func (x *Schedule) Reset() {
 	*x = Schedule{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[56]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3165,7 +3245,7 @@ func (x *Schedule) String() string {
 func (*Schedule) ProtoMessage() {}
 
 func (x *Schedule) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[56]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3178,7 +3258,7 @@ func (x *Schedule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Schedule.ProtoReflect.Descriptor instead.
 func (*Schedule) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{56}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *Schedule) GetId() string {
@@ -3237,7 +3317,7 @@ type ListScheduleRunsRequest struct {
 
 func (x *ListScheduleRunsRequest) Reset() {
 	*x = ListScheduleRunsRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[57]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3249,7 +3329,7 @@ func (x *ListScheduleRunsRequest) String() string {
 func (*ListScheduleRunsRequest) ProtoMessage() {}
 
 func (x *ListScheduleRunsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[57]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3262,7 +3342,7 @@ func (x *ListScheduleRunsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListScheduleRunsRequest.ProtoReflect.Descriptor instead.
 func (*ListScheduleRunsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{57}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ListScheduleRunsRequest) GetOrgId() string {
@@ -3311,7 +3391,7 @@ type ListScheduleRunsResponse struct {
 
 func (x *ListScheduleRunsResponse) Reset() {
 	*x = ListScheduleRunsResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[58]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3323,7 +3403,7 @@ func (x *ListScheduleRunsResponse) String() string {
 func (*ListScheduleRunsResponse) ProtoMessage() {}
 
 func (x *ListScheduleRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[58]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3336,7 +3416,7 @@ func (x *ListScheduleRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListScheduleRunsResponse.ProtoReflect.Descriptor instead.
 func (*ListScheduleRunsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{58}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *ListScheduleRunsResponse) GetRuns() []*ScheduleRun {
@@ -3374,7 +3454,7 @@ type ScheduleRun struct {
 
 func (x *ScheduleRun) Reset() {
 	*x = ScheduleRun{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[59]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3386,7 +3466,7 @@ func (x *ScheduleRun) String() string {
 func (*ScheduleRun) ProtoMessage() {}
 
 func (x *ScheduleRun) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[59]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3399,7 +3479,7 @@ func (x *ScheduleRun) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScheduleRun.ProtoReflect.Descriptor instead.
 func (*ScheduleRun) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{59}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *ScheduleRun) GetId() string {
@@ -3478,7 +3558,7 @@ type ScheduleRunStep struct {
 
 func (x *ScheduleRunStep) Reset() {
 	*x = ScheduleRunStep{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[60]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3490,7 +3570,7 @@ func (x *ScheduleRunStep) String() string {
 func (*ScheduleRunStep) ProtoMessage() {}
 
 func (x *ScheduleRunStep) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[60]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3503,7 +3583,7 @@ func (x *ScheduleRunStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScheduleRunStep.ProtoReflect.Descriptor instead.
 func (*ScheduleRunStep) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{60}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *ScheduleRunStep) GetType() string {
@@ -3538,7 +3618,7 @@ type ListBackupsRequest struct {
 
 func (x *ListBackupsRequest) Reset() {
 	*x = ListBackupsRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[61]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3550,7 +3630,7 @@ func (x *ListBackupsRequest) String() string {
 func (*ListBackupsRequest) ProtoMessage() {}
 
 func (x *ListBackupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[61]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3563,7 +3643,7 @@ func (x *ListBackupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBackupsRequest.ProtoReflect.Descriptor instead.
 func (*ListBackupsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{61}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ListBackupsRequest) GetOrgId() string {
@@ -3596,7 +3676,7 @@ type ListBackupsResponse struct {
 
 func (x *ListBackupsResponse) Reset() {
 	*x = ListBackupsResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[62]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3608,7 +3688,7 @@ func (x *ListBackupsResponse) String() string {
 func (*ListBackupsResponse) ProtoMessage() {}
 
 func (x *ListBackupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[62]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3621,7 +3701,7 @@ func (x *ListBackupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBackupsResponse.ProtoReflect.Descriptor instead.
 func (*ListBackupsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{62}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *ListBackupsResponse) GetBackups() []*Backup {
@@ -3656,7 +3736,7 @@ type Backup struct {
 
 func (x *Backup) Reset() {
 	*x = Backup{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[63]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3668,7 +3748,7 @@ func (x *Backup) String() string {
 func (*Backup) ProtoMessage() {}
 
 func (x *Backup) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[63]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3681,7 +3761,7 @@ func (x *Backup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Backup.ProtoReflect.Descriptor instead.
 func (*Backup) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{63}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *Backup) GetId() string {
@@ -3779,7 +3859,7 @@ type GetSFTPAccessRequest struct {
 
 func (x *GetSFTPAccessRequest) Reset() {
 	*x = GetSFTPAccessRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[64]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3791,7 +3871,7 @@ func (x *GetSFTPAccessRequest) String() string {
 func (*GetSFTPAccessRequest) ProtoMessage() {}
 
 func (x *GetSFTPAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[64]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3804,7 +3884,7 @@ func (x *GetSFTPAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSFTPAccessRequest.ProtoReflect.Descriptor instead.
 func (*GetSFTPAccessRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{64}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *GetSFTPAccessRequest) GetOrgId() string {
@@ -3838,7 +3918,7 @@ type GetSFTPAccessResponse struct {
 
 func (x *GetSFTPAccessResponse) Reset() {
 	*x = GetSFTPAccessResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[65]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3850,7 +3930,7 @@ func (x *GetSFTPAccessResponse) String() string {
 func (*GetSFTPAccessResponse) ProtoMessage() {}
 
 func (x *GetSFTPAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[65]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3863,7 +3943,7 @@ func (x *GetSFTPAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSFTPAccessResponse.ProtoReflect.Descriptor instead.
 func (*GetSFTPAccessResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{65}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *GetSFTPAccessResponse) GetAccess() *SFTPAccess {
@@ -3888,7 +3968,7 @@ type SFTPAccess struct {
 
 func (x *SFTPAccess) Reset() {
 	*x = SFTPAccess{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[66]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3900,7 +3980,7 @@ func (x *SFTPAccess) String() string {
 func (*SFTPAccess) ProtoMessage() {}
 
 func (x *SFTPAccess) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[66]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3913,7 +3993,7 @@ func (x *SFTPAccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SFTPAccess.ProtoReflect.Descriptor instead.
 func (*SFTPAccess) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{66}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *SFTPAccess) GetHost() string {
@@ -3964,7 +4044,7 @@ type CreateSFTPAccessRequest struct {
 
 func (x *CreateSFTPAccessRequest) Reset() {
 	*x = CreateSFTPAccessRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[67]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3976,7 +4056,7 @@ func (x *CreateSFTPAccessRequest) String() string {
 func (*CreateSFTPAccessRequest) ProtoMessage() {}
 
 func (x *CreateSFTPAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[67]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3989,7 +4069,7 @@ func (x *CreateSFTPAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSFTPAccessRequest.ProtoReflect.Descriptor instead.
 func (*CreateSFTPAccessRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{67}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *CreateSFTPAccessRequest) GetOrgId() string {
@@ -4030,7 +4110,7 @@ type CreateSFTPAccessResponse struct {
 
 func (x *CreateSFTPAccessResponse) Reset() {
 	*x = CreateSFTPAccessResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[68]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4042,7 +4122,7 @@ func (x *CreateSFTPAccessResponse) String() string {
 func (*CreateSFTPAccessResponse) ProtoMessage() {}
 
 func (x *CreateSFTPAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[68]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4055,7 +4135,7 @@ func (x *CreateSFTPAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSFTPAccessResponse.ProtoReflect.Descriptor instead.
 func (*CreateSFTPAccessResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{68}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *CreateSFTPAccessResponse) GetAccess() *SFTPAccess {
@@ -4083,7 +4163,7 @@ type RevokeSFTPAccessRequest struct {
 
 func (x *RevokeSFTPAccessRequest) Reset() {
 	*x = RevokeSFTPAccessRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[69]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4095,7 +4175,7 @@ func (x *RevokeSFTPAccessRequest) String() string {
 func (*RevokeSFTPAccessRequest) ProtoMessage() {}
 
 func (x *RevokeSFTPAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[69]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4108,7 +4188,7 @@ func (x *RevokeSFTPAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeSFTPAccessRequest.ProtoReflect.Descriptor instead.
 func (*RevokeSFTPAccessRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{69}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *RevokeSFTPAccessRequest) GetOrgId() string {
@@ -4142,7 +4222,7 @@ type RevokeSFTPAccessResponse struct {
 
 func (x *RevokeSFTPAccessResponse) Reset() {
 	*x = RevokeSFTPAccessResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[70]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4154,7 +4234,7 @@ func (x *RevokeSFTPAccessResponse) String() string {
 func (*RevokeSFTPAccessResponse) ProtoMessage() {}
 
 func (x *RevokeSFTPAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[70]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4167,7 +4247,7 @@ func (x *RevokeSFTPAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeSFTPAccessResponse.ProtoReflect.Descriptor instead.
 func (*RevokeSFTPAccessResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{70}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *RevokeSFTPAccessResponse) GetUsername() string {
@@ -4188,7 +4268,7 @@ type SetNodeSFTPRequest struct {
 
 func (x *SetNodeSFTPRequest) Reset() {
 	*x = SetNodeSFTPRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[71]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4200,7 +4280,7 @@ func (x *SetNodeSFTPRequest) String() string {
 func (*SetNodeSFTPRequest) ProtoMessage() {}
 
 func (x *SetNodeSFTPRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[71]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4213,7 +4293,7 @@ func (x *SetNodeSFTPRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeSFTPRequest.ProtoReflect.Descriptor instead.
 func (*SetNodeSFTPRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{71}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *SetNodeSFTPRequest) GetOrgId() string {
@@ -4245,7 +4325,7 @@ type SetNodeSFTPResponse struct {
 
 func (x *SetNodeSFTPResponse) Reset() {
 	*x = SetNodeSFTPResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[72]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4257,7 +4337,7 @@ func (x *SetNodeSFTPResponse) String() string {
 func (*SetNodeSFTPResponse) ProtoMessage() {}
 
 func (x *SetNodeSFTPResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[72]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4270,7 +4350,7 @@ func (x *SetNodeSFTPResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeSFTPResponse.ProtoReflect.Descriptor instead.
 func (*SetNodeSFTPResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{72}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{74}
 }
 
 type TestConnectionRequest struct {
@@ -4284,7 +4364,7 @@ type TestConnectionRequest struct {
 
 func (x *TestConnectionRequest) Reset() {
 	*x = TestConnectionRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[73]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4296,7 +4376,7 @@ func (x *TestConnectionRequest) String() string {
 func (*TestConnectionRequest) ProtoMessage() {}
 
 func (x *TestConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[73]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4309,7 +4389,7 @@ func (x *TestConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestConnectionRequest.ProtoReflect.Descriptor instead.
 func (*TestConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{73}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *TestConnectionRequest) GetOrgId() string {
@@ -4349,7 +4429,7 @@ type TestConnectionResponse struct {
 
 func (x *TestConnectionResponse) Reset() {
 	*x = TestConnectionResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[74]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4361,7 +4441,7 @@ func (x *TestConnectionResponse) String() string {
 func (*TestConnectionResponse) ProtoMessage() {}
 
 func (x *TestConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[74]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4374,7 +4454,7 @@ func (x *TestConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestConnectionResponse.ProtoReflect.Descriptor instead.
 func (*TestConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{74}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *TestConnectionResponse) GetAddress() string {
@@ -4426,7 +4506,7 @@ type PortProbe struct {
 
 func (x *PortProbe) Reset() {
 	*x = PortProbe{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[75]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4438,7 +4518,7 @@ func (x *PortProbe) String() string {
 func (*PortProbe) ProtoMessage() {}
 
 func (x *PortProbe) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[75]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4451,7 +4531,7 @@ func (x *PortProbe) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PortProbe.ProtoReflect.Descriptor instead.
 func (*PortProbe) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{75}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *PortProbe) GetPort() int32 {
@@ -4498,7 +4578,7 @@ type GetBackupStorageRequest struct {
 
 func (x *GetBackupStorageRequest) Reset() {
 	*x = GetBackupStorageRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[76]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4510,7 +4590,7 @@ func (x *GetBackupStorageRequest) String() string {
 func (*GetBackupStorageRequest) ProtoMessage() {}
 
 func (x *GetBackupStorageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[76]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4523,7 +4603,7 @@ func (x *GetBackupStorageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBackupStorageRequest.ProtoReflect.Descriptor instead.
 func (*GetBackupStorageRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{76}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *GetBackupStorageRequest) GetOrgId() string {
@@ -4555,7 +4635,7 @@ type GetBackupStorageResponse struct {
 
 func (x *GetBackupStorageResponse) Reset() {
 	*x = GetBackupStorageResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[77]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4567,7 +4647,7 @@ func (x *GetBackupStorageResponse) String() string {
 func (*GetBackupStorageResponse) ProtoMessage() {}
 
 func (x *GetBackupStorageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[77]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4580,7 +4660,7 @@ func (x *GetBackupStorageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBackupStorageResponse.ProtoReflect.Descriptor instead.
 func (*GetBackupStorageResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{77}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *GetBackupStorageResponse) GetAvailable() bool {
@@ -4649,7 +4729,7 @@ type EnableBackupStorageRequest struct {
 
 func (x *EnableBackupStorageRequest) Reset() {
 	*x = EnableBackupStorageRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[78]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4661,7 +4741,7 @@ func (x *EnableBackupStorageRequest) String() string {
 func (*EnableBackupStorageRequest) ProtoMessage() {}
 
 func (x *EnableBackupStorageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[78]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4674,7 +4754,7 @@ func (x *EnableBackupStorageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableBackupStorageRequest.ProtoReflect.Descriptor instead.
 func (*EnableBackupStorageRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{78}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *EnableBackupStorageRequest) GetOrgId() string {
@@ -4699,7 +4779,7 @@ type EnableBackupStorageResponse struct {
 
 func (x *EnableBackupStorageResponse) Reset() {
 	*x = EnableBackupStorageResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[79]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4711,7 +4791,7 @@ func (x *EnableBackupStorageResponse) String() string {
 func (*EnableBackupStorageResponse) ProtoMessage() {}
 
 func (x *EnableBackupStorageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[79]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4724,7 +4804,7 @@ func (x *EnableBackupStorageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableBackupStorageResponse.ProtoReflect.Descriptor instead.
 func (*EnableBackupStorageResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{79}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{81}
 }
 
 type DisableBackupStorageRequest struct {
@@ -4737,7 +4817,7 @@ type DisableBackupStorageRequest struct {
 
 func (x *DisableBackupStorageRequest) Reset() {
 	*x = DisableBackupStorageRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[80]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4749,7 +4829,7 @@ func (x *DisableBackupStorageRequest) String() string {
 func (*DisableBackupStorageRequest) ProtoMessage() {}
 
 func (x *DisableBackupStorageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[80]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4762,7 +4842,7 @@ func (x *DisableBackupStorageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableBackupStorageRequest.ProtoReflect.Descriptor instead.
 func (*DisableBackupStorageRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{80}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *DisableBackupStorageRequest) GetOrgId() string {
@@ -4787,7 +4867,7 @@ type DisableBackupStorageResponse struct {
 
 func (x *DisableBackupStorageResponse) Reset() {
 	*x = DisableBackupStorageResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[81]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4799,7 +4879,7 @@ func (x *DisableBackupStorageResponse) String() string {
 func (*DisableBackupStorageResponse) ProtoMessage() {}
 
 func (x *DisableBackupStorageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[81]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4812,7 +4892,7 @@ func (x *DisableBackupStorageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableBackupStorageResponse.ProtoReflect.Descriptor instead.
 func (*DisableBackupStorageResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{81}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{83}
 }
 
 type GetBackupKeyRequest struct {
@@ -4825,7 +4905,7 @@ type GetBackupKeyRequest struct {
 
 func (x *GetBackupKeyRequest) Reset() {
 	*x = GetBackupKeyRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[82]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4837,7 +4917,7 @@ func (x *GetBackupKeyRequest) String() string {
 func (*GetBackupKeyRequest) ProtoMessage() {}
 
 func (x *GetBackupKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[82]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4850,7 +4930,7 @@ func (x *GetBackupKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBackupKeyRequest.ProtoReflect.Descriptor instead.
 func (*GetBackupKeyRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{82}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *GetBackupKeyRequest) GetOrgId() string {
@@ -4881,7 +4961,7 @@ type GetBackupKeyResponse struct {
 
 func (x *GetBackupKeyResponse) Reset() {
 	*x = GetBackupKeyResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[83]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4893,7 +4973,7 @@ func (x *GetBackupKeyResponse) String() string {
 func (*GetBackupKeyResponse) ProtoMessage() {}
 
 func (x *GetBackupKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[83]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4906,7 +4986,7 @@ func (x *GetBackupKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBackupKeyResponse.ProtoReflect.Descriptor instead.
 func (*GetBackupKeyResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{83}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *GetBackupKeyResponse) GetAvailable() bool {
@@ -4947,7 +5027,7 @@ type SyncBackupKeyRequest struct {
 
 func (x *SyncBackupKeyRequest) Reset() {
 	*x = SyncBackupKeyRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[84]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4959,7 +5039,7 @@ func (x *SyncBackupKeyRequest) String() string {
 func (*SyncBackupKeyRequest) ProtoMessage() {}
 
 func (x *SyncBackupKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[84]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4972,7 +5052,7 @@ func (x *SyncBackupKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncBackupKeyRequest.ProtoReflect.Descriptor instead.
 func (*SyncBackupKeyRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{84}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *SyncBackupKeyRequest) GetOrgId() string {
@@ -4999,7 +5079,7 @@ type SyncBackupKeyResponse struct {
 
 func (x *SyncBackupKeyResponse) Reset() {
 	*x = SyncBackupKeyResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[85]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5011,7 +5091,7 @@ func (x *SyncBackupKeyResponse) String() string {
 func (*SyncBackupKeyResponse) ProtoMessage() {}
 
 func (x *SyncBackupKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[85]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5024,7 +5104,7 @@ func (x *SyncBackupKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncBackupKeyResponse.ProtoReflect.Descriptor instead.
 func (*SyncBackupKeyResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{85}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *SyncBackupKeyResponse) GetMode() string {
@@ -5043,7 +5123,7 @@ type ListRecoverySourcesRequest struct {
 
 func (x *ListRecoverySourcesRequest) Reset() {
 	*x = ListRecoverySourcesRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[86]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5055,7 +5135,7 @@ func (x *ListRecoverySourcesRequest) String() string {
 func (*ListRecoverySourcesRequest) ProtoMessage() {}
 
 func (x *ListRecoverySourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[86]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5068,7 +5148,7 @@ func (x *ListRecoverySourcesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecoverySourcesRequest.ProtoReflect.Descriptor instead.
 func (*ListRecoverySourcesRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{86}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *ListRecoverySourcesRequest) GetOrgId() string {
@@ -5093,7 +5173,7 @@ type RecoverySource struct {
 
 func (x *RecoverySource) Reset() {
 	*x = RecoverySource{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[87]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5105,7 +5185,7 @@ func (x *RecoverySource) String() string {
 func (*RecoverySource) ProtoMessage() {}
 
 func (x *RecoverySource) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[87]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5118,7 +5198,7 @@ func (x *RecoverySource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverySource.ProtoReflect.Descriptor instead.
 func (*RecoverySource) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{87}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *RecoverySource) GetNodeId() string {
@@ -5165,7 +5245,7 @@ type ListRecoverySourcesResponse struct {
 
 func (x *ListRecoverySourcesResponse) Reset() {
 	*x = ListRecoverySourcesResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[88]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5177,7 +5257,7 @@ func (x *ListRecoverySourcesResponse) String() string {
 func (*ListRecoverySourcesResponse) ProtoMessage() {}
 
 func (x *ListRecoverySourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[88]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5190,7 +5270,7 @@ func (x *ListRecoverySourcesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecoverySourcesResponse.ProtoReflect.Descriptor instead.
 func (*ListRecoverySourcesResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{88}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *ListRecoverySourcesResponse) GetSources() []*RecoverySource {
@@ -5212,7 +5292,7 @@ type PrepareRecoveryRequest struct {
 
 func (x *PrepareRecoveryRequest) Reset() {
 	*x = PrepareRecoveryRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[89]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5224,7 +5304,7 @@ func (x *PrepareRecoveryRequest) String() string {
 func (*PrepareRecoveryRequest) ProtoMessage() {}
 
 func (x *PrepareRecoveryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[89]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5237,7 +5317,7 @@ func (x *PrepareRecoveryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareRecoveryRequest.ProtoReflect.Descriptor instead.
 func (*PrepareRecoveryRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{89}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *PrepareRecoveryRequest) GetOrgId() string {
@@ -5273,7 +5353,7 @@ type PrepareRecoveryResponse struct {
 
 func (x *PrepareRecoveryResponse) Reset() {
 	*x = PrepareRecoveryResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[90]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5285,7 +5365,7 @@ func (x *PrepareRecoveryResponse) String() string {
 func (*PrepareRecoveryResponse) ProtoMessage() {}
 
 func (x *PrepareRecoveryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[90]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5298,7 +5378,7 @@ func (x *PrepareRecoveryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareRecoveryResponse.ProtoReflect.Descriptor instead.
 func (*PrepareRecoveryResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{90}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *PrepareRecoveryResponse) GetKey() string {
@@ -5325,7 +5405,7 @@ type ListNodeSupportRequestsRequest struct {
 
 func (x *ListNodeSupportRequestsRequest) Reset() {
 	*x = ListNodeSupportRequestsRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[91]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5337,7 +5417,7 @@ func (x *ListNodeSupportRequestsRequest) String() string {
 func (*ListNodeSupportRequestsRequest) ProtoMessage() {}
 
 func (x *ListNodeSupportRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[91]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5350,7 +5430,7 @@ func (x *ListNodeSupportRequestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeSupportRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListNodeSupportRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{91}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *ListNodeSupportRequestsRequest) GetOrgId() string {
@@ -5376,7 +5456,7 @@ type ListNodeSupportRequestsResponse struct {
 
 func (x *ListNodeSupportRequestsResponse) Reset() {
 	*x = ListNodeSupportRequestsResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[92]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5388,7 +5468,7 @@ func (x *ListNodeSupportRequestsResponse) String() string {
 func (*ListNodeSupportRequestsResponse) ProtoMessage() {}
 
 func (x *ListNodeSupportRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[92]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5401,7 +5481,7 @@ func (x *ListNodeSupportRequestsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeSupportRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListNodeSupportRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{92}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *ListNodeSupportRequestsResponse) GetRequests() []*SupportRequest {
@@ -5421,7 +5501,7 @@ type DenySupportRequestRequest struct {
 
 func (x *DenySupportRequestRequest) Reset() {
 	*x = DenySupportRequestRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[93]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5433,7 +5513,7 @@ func (x *DenySupportRequestRequest) String() string {
 func (*DenySupportRequestRequest) ProtoMessage() {}
 
 func (x *DenySupportRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[93]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5446,7 +5526,7 @@ func (x *DenySupportRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DenySupportRequestRequest.ProtoReflect.Descriptor instead.
 func (*DenySupportRequestRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{93}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *DenySupportRequestRequest) GetOrgId() string {
@@ -5471,7 +5551,7 @@ type DenySupportRequestResponse struct {
 
 func (x *DenySupportRequestResponse) Reset() {
 	*x = DenySupportRequestResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[94]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5483,7 +5563,7 @@ func (x *DenySupportRequestResponse) String() string {
 func (*DenySupportRequestResponse) ProtoMessage() {}
 
 func (x *DenySupportRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[94]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5496,7 +5576,7 @@ func (x *DenySupportRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DenySupportRequestResponse.ProtoReflect.Descriptor instead.
 func (*DenySupportRequestResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{94}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{96}
 }
 
 type GetJoinProgressRequest struct {
@@ -5509,7 +5589,7 @@ type GetJoinProgressRequest struct {
 
 func (x *GetJoinProgressRequest) Reset() {
 	*x = GetJoinProgressRequest{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[95]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5521,7 +5601,7 @@ func (x *GetJoinProgressRequest) String() string {
 func (*GetJoinProgressRequest) ProtoMessage() {}
 
 func (x *GetJoinProgressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[95]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5534,7 +5614,7 @@ func (x *GetJoinProgressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJoinProgressRequest.ProtoReflect.Descriptor instead.
 func (*GetJoinProgressRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{95}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *GetJoinProgressRequest) GetOrgId() string {
@@ -5564,7 +5644,7 @@ type JoinStep struct {
 
 func (x *JoinStep) Reset() {
 	*x = JoinStep{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[96]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5576,7 +5656,7 @@ func (x *JoinStep) String() string {
 func (*JoinStep) ProtoMessage() {}
 
 func (x *JoinStep) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[96]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5589,7 +5669,7 @@ func (x *JoinStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinStep.ProtoReflect.Descriptor instead.
 func (*JoinStep) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{96}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *JoinStep) GetName() string {
@@ -5631,7 +5711,7 @@ type GetJoinProgressResponse struct {
 
 func (x *GetJoinProgressResponse) Reset() {
 	*x = GetJoinProgressResponse{}
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[97]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5643,7 +5723,7 @@ func (x *GetJoinProgressResponse) String() string {
 func (*GetJoinProgressResponse) ProtoMessage() {}
 
 func (x *GetJoinProgressResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_org_proto_msgTypes[97]
+	mi := &file_raptor_panel_v1_org_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5656,7 +5736,7 @@ func (x *GetJoinProgressResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJoinProgressResponse.ProtoReflect.Descriptor instead.
 func (*GetJoinProgressResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{97}
+	return file_raptor_panel_v1_org_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *GetJoinProgressResponse) GetSteps() []*JoinStep {
@@ -5695,7 +5775,10 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x10RenameOrgRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"\x13\n" +
-	"\x11RenameOrgResponse\"\xaf\x01\n" +
+	"\x11RenameOrgResponse\")\n" +
+	"\x10DeleteOrgRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\x13\n" +
+	"\x11DeleteOrgResponse\"\xaf\x01\n" +
 	"\x06Member\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -6064,12 +6147,13 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\n" +
 	"ROLE_ADMIN\x10\x02\x12\x0e\n" +
 	"\n" +
-	"ROLE_OWNER\x10\x032\xf3!\n" +
+	"ROLE_OWNER\x10\x032\xc9\"\n" +
 	"\n" +
 	"OrgService\x12T\n" +
 	"\tCreateOrg\x12!.raptor.panel.v1.CreateOrgRequest\x1a\".raptor.panel.v1.CreateOrgResponse\"\x00\x12T\n" +
 	"\bListOrgs\x12 .raptor.panel.v1.ListOrgsRequest\x1a!.raptor.panel.v1.ListOrgsResponse\"\x03\x90\x02\x01\x12T\n" +
-	"\tRenameOrg\x12!.raptor.panel.v1.RenameOrgRequest\x1a\".raptor.panel.v1.RenameOrgResponse\"\x00\x12]\n" +
+	"\tRenameOrg\x12!.raptor.panel.v1.RenameOrgRequest\x1a\".raptor.panel.v1.RenameOrgResponse\"\x00\x12T\n" +
+	"\tDeleteOrg\x12!.raptor.panel.v1.DeleteOrgRequest\x1a\".raptor.panel.v1.DeleteOrgResponse\"\x00\x12]\n" +
 	"\vListMembers\x12#.raptor.panel.v1.ListMembersRequest\x1a$.raptor.panel.v1.ListMembersResponse\"\x03\x90\x02\x01\x12`\n" +
 	"\rSetMemberRole\x12%.raptor.panel.v1.SetMemberRoleRequest\x1a&.raptor.panel.v1.SetMemberRoleResponse\"\x00\x12]\n" +
 	"\fRemoveMember\x12$.raptor.panel.v1.RemoveMemberRequest\x1a%.raptor.panel.v1.RemoveMemberResponse\"\x00\x12]\n" +
@@ -6126,7 +6210,7 @@ func file_raptor_panel_v1_org_proto_rawDescGZIP() []byte {
 }
 
 var file_raptor_panel_v1_org_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_raptor_panel_v1_org_proto_msgTypes = make([]protoimpl.MessageInfo, 98)
+var file_raptor_panel_v1_org_proto_msgTypes = make([]protoimpl.MessageInfo, 100)
 var file_raptor_panel_v1_org_proto_goTypes = []any{
 	(Role)(0),                               // 0: raptor.panel.v1.Role
 	(*Org)(nil),                             // 1: raptor.panel.v1.Org
@@ -6136,235 +6220,239 @@ var file_raptor_panel_v1_org_proto_goTypes = []any{
 	(*ListOrgsResponse)(nil),                // 5: raptor.panel.v1.ListOrgsResponse
 	(*RenameOrgRequest)(nil),                // 6: raptor.panel.v1.RenameOrgRequest
 	(*RenameOrgResponse)(nil),               // 7: raptor.panel.v1.RenameOrgResponse
-	(*Member)(nil),                          // 8: raptor.panel.v1.Member
-	(*ListMembersRequest)(nil),              // 9: raptor.panel.v1.ListMembersRequest
-	(*ListMembersResponse)(nil),             // 10: raptor.panel.v1.ListMembersResponse
-	(*SetMemberRoleRequest)(nil),            // 11: raptor.panel.v1.SetMemberRoleRequest
-	(*SetMemberRoleResponse)(nil),           // 12: raptor.panel.v1.SetMemberRoleResponse
-	(*RemoveMemberRequest)(nil),             // 13: raptor.panel.v1.RemoveMemberRequest
-	(*RemoveMemberResponse)(nil),            // 14: raptor.panel.v1.RemoveMemberResponse
-	(*Invitation)(nil),                      // 15: raptor.panel.v1.Invitation
-	(*InviteMemberRequest)(nil),             // 16: raptor.panel.v1.InviteMemberRequest
-	(*InviteMemberResponse)(nil),            // 17: raptor.panel.v1.InviteMemberResponse
-	(*ListInvitationsRequest)(nil),          // 18: raptor.panel.v1.ListInvitationsRequest
-	(*ListInvitationsResponse)(nil),         // 19: raptor.panel.v1.ListInvitationsResponse
-	(*RevokeInvitationRequest)(nil),         // 20: raptor.panel.v1.RevokeInvitationRequest
-	(*RevokeInvitationResponse)(nil),        // 21: raptor.panel.v1.RevokeInvitationResponse
-	(*AcceptInvitationRequest)(nil),         // 22: raptor.panel.v1.AcceptInvitationRequest
-	(*AcceptInvitationResponse)(nil),        // 23: raptor.panel.v1.AcceptInvitationResponse
-	(*CreateJoinTokenRequest)(nil),          // 24: raptor.panel.v1.CreateJoinTokenRequest
-	(*CreateJoinTokenResponse)(nil),         // 25: raptor.panel.v1.CreateJoinTokenResponse
-	(*ListAuditLogRequest)(nil),             // 26: raptor.panel.v1.ListAuditLogRequest
-	(*ListAuditLogResponse)(nil),            // 27: raptor.panel.v1.ListAuditLogResponse
-	(*SetServerAccessRequest)(nil),          // 28: raptor.panel.v1.SetServerAccessRequest
-	(*SetServerAccessResponse)(nil),         // 29: raptor.panel.v1.SetServerAccessResponse
-	(*ListServerAccessRequest)(nil),         // 30: raptor.panel.v1.ListServerAccessRequest
-	(*ServerAccess)(nil),                    // 31: raptor.panel.v1.ServerAccess
-	(*ListServerAccessResponse)(nil),        // 32: raptor.panel.v1.ListServerAccessResponse
-	(*ListNodesRequest)(nil),                // 33: raptor.panel.v1.ListNodesRequest
-	(*Node)(nil),                            // 34: raptor.panel.v1.Node
-	(*ListNodesResponse)(nil),               // 35: raptor.panel.v1.ListNodesResponse
-	(*RenameNodeRequest)(nil),               // 36: raptor.panel.v1.RenameNodeRequest
-	(*RenameNodeResponse)(nil),              // 37: raptor.panel.v1.RenameNodeResponse
-	(*SetNodeHostnameRequest)(nil),          // 38: raptor.panel.v1.SetNodeHostnameRequest
-	(*SetNodeHostnameResponse)(nil),         // 39: raptor.panel.v1.SetNodeHostnameResponse
-	(*SetNodeDisplayAddressRequest)(nil),    // 40: raptor.panel.v1.SetNodeDisplayAddressRequest
-	(*SetNodeDisplayAddressResponse)(nil),   // 41: raptor.panel.v1.SetNodeDisplayAddressResponse
-	(*SetServerDisplayAddressRequest)(nil),  // 42: raptor.panel.v1.SetServerDisplayAddressRequest
-	(*SetServerDisplayAddressResponse)(nil), // 43: raptor.panel.v1.SetServerDisplayAddressResponse
-	(*RemoveNodeRequest)(nil),               // 44: raptor.panel.v1.RemoveNodeRequest
-	(*RemoveNodeResponse)(nil),              // 45: raptor.panel.v1.RemoveNodeResponse
-	(*ListServersRequest)(nil),              // 46: raptor.panel.v1.ListServersRequest
-	(*Server)(nil),                          // 47: raptor.panel.v1.Server
-	(*ListServersResponse)(nil),             // 48: raptor.panel.v1.ListServersResponse
-	(*GetServerRequest)(nil),                // 49: raptor.panel.v1.GetServerRequest
-	(*GetServerResponse)(nil),               // 50: raptor.panel.v1.GetServerResponse
-	(*PinJoinTokenRequest)(nil),             // 51: raptor.panel.v1.PinJoinTokenRequest
-	(*PinJoinTokenResponse)(nil),            // 52: raptor.panel.v1.PinJoinTokenResponse
-	(*ListMemberPasskeysRequest)(nil),       // 53: raptor.panel.v1.ListMemberPasskeysRequest
-	(*ListMemberPasskeysResponse)(nil),      // 54: raptor.panel.v1.ListMemberPasskeysResponse
-	(*ListSchedulesRequest)(nil),            // 55: raptor.panel.v1.ListSchedulesRequest
-	(*ListSchedulesResponse)(nil),           // 56: raptor.panel.v1.ListSchedulesResponse
-	(*Schedule)(nil),                        // 57: raptor.panel.v1.Schedule
-	(*ListScheduleRunsRequest)(nil),         // 58: raptor.panel.v1.ListScheduleRunsRequest
-	(*ListScheduleRunsResponse)(nil),        // 59: raptor.panel.v1.ListScheduleRunsResponse
-	(*ScheduleRun)(nil),                     // 60: raptor.panel.v1.ScheduleRun
-	(*ScheduleRunStep)(nil),                 // 61: raptor.panel.v1.ScheduleRunStep
-	(*ListBackupsRequest)(nil),              // 62: raptor.panel.v1.ListBackupsRequest
-	(*ListBackupsResponse)(nil),             // 63: raptor.panel.v1.ListBackupsResponse
-	(*Backup)(nil),                          // 64: raptor.panel.v1.Backup
-	(*GetSFTPAccessRequest)(nil),            // 65: raptor.panel.v1.GetSFTPAccessRequest
-	(*GetSFTPAccessResponse)(nil),           // 66: raptor.panel.v1.GetSFTPAccessResponse
-	(*SFTPAccess)(nil),                      // 67: raptor.panel.v1.SFTPAccess
-	(*CreateSFTPAccessRequest)(nil),         // 68: raptor.panel.v1.CreateSFTPAccessRequest
-	(*CreateSFTPAccessResponse)(nil),        // 69: raptor.panel.v1.CreateSFTPAccessResponse
-	(*RevokeSFTPAccessRequest)(nil),         // 70: raptor.panel.v1.RevokeSFTPAccessRequest
-	(*RevokeSFTPAccessResponse)(nil),        // 71: raptor.panel.v1.RevokeSFTPAccessResponse
-	(*SetNodeSFTPRequest)(nil),              // 72: raptor.panel.v1.SetNodeSFTPRequest
-	(*SetNodeSFTPResponse)(nil),             // 73: raptor.panel.v1.SetNodeSFTPResponse
-	(*TestConnectionRequest)(nil),           // 74: raptor.panel.v1.TestConnectionRequest
-	(*TestConnectionResponse)(nil),          // 75: raptor.panel.v1.TestConnectionResponse
-	(*PortProbe)(nil),                       // 76: raptor.panel.v1.PortProbe
-	(*GetBackupStorageRequest)(nil),         // 77: raptor.panel.v1.GetBackupStorageRequest
-	(*GetBackupStorageResponse)(nil),        // 78: raptor.panel.v1.GetBackupStorageResponse
-	(*EnableBackupStorageRequest)(nil),      // 79: raptor.panel.v1.EnableBackupStorageRequest
-	(*EnableBackupStorageResponse)(nil),     // 80: raptor.panel.v1.EnableBackupStorageResponse
-	(*DisableBackupStorageRequest)(nil),     // 81: raptor.panel.v1.DisableBackupStorageRequest
-	(*DisableBackupStorageResponse)(nil),    // 82: raptor.panel.v1.DisableBackupStorageResponse
-	(*GetBackupKeyRequest)(nil),             // 83: raptor.panel.v1.GetBackupKeyRequest
-	(*GetBackupKeyResponse)(nil),            // 84: raptor.panel.v1.GetBackupKeyResponse
-	(*SyncBackupKeyRequest)(nil),            // 85: raptor.panel.v1.SyncBackupKeyRequest
-	(*SyncBackupKeyResponse)(nil),           // 86: raptor.panel.v1.SyncBackupKeyResponse
-	(*ListRecoverySourcesRequest)(nil),      // 87: raptor.panel.v1.ListRecoverySourcesRequest
-	(*RecoverySource)(nil),                  // 88: raptor.panel.v1.RecoverySource
-	(*ListRecoverySourcesResponse)(nil),     // 89: raptor.panel.v1.ListRecoverySourcesResponse
-	(*PrepareRecoveryRequest)(nil),          // 90: raptor.panel.v1.PrepareRecoveryRequest
-	(*PrepareRecoveryResponse)(nil),         // 91: raptor.panel.v1.PrepareRecoveryResponse
-	(*ListNodeSupportRequestsRequest)(nil),  // 92: raptor.panel.v1.ListNodeSupportRequestsRequest
-	(*ListNodeSupportRequestsResponse)(nil), // 93: raptor.panel.v1.ListNodeSupportRequestsResponse
-	(*DenySupportRequestRequest)(nil),       // 94: raptor.panel.v1.DenySupportRequestRequest
-	(*DenySupportRequestResponse)(nil),      // 95: raptor.panel.v1.DenySupportRequestResponse
-	(*GetJoinProgressRequest)(nil),          // 96: raptor.panel.v1.GetJoinProgressRequest
-	(*JoinStep)(nil),                        // 97: raptor.panel.v1.JoinStep
-	(*GetJoinProgressResponse)(nil),         // 98: raptor.panel.v1.GetJoinProgressResponse
-	(*timestamppb.Timestamp)(nil),           // 99: google.protobuf.Timestamp
-	(*AuditEvent)(nil),                      // 100: raptor.panel.v1.AuditEvent
-	(*Passkey)(nil),                         // 101: raptor.panel.v1.Passkey
-	(*SupportRequest)(nil),                  // 102: raptor.panel.v1.SupportRequest
+	(*DeleteOrgRequest)(nil),                // 8: raptor.panel.v1.DeleteOrgRequest
+	(*DeleteOrgResponse)(nil),               // 9: raptor.panel.v1.DeleteOrgResponse
+	(*Member)(nil),                          // 10: raptor.panel.v1.Member
+	(*ListMembersRequest)(nil),              // 11: raptor.panel.v1.ListMembersRequest
+	(*ListMembersResponse)(nil),             // 12: raptor.panel.v1.ListMembersResponse
+	(*SetMemberRoleRequest)(nil),            // 13: raptor.panel.v1.SetMemberRoleRequest
+	(*SetMemberRoleResponse)(nil),           // 14: raptor.panel.v1.SetMemberRoleResponse
+	(*RemoveMemberRequest)(nil),             // 15: raptor.panel.v1.RemoveMemberRequest
+	(*RemoveMemberResponse)(nil),            // 16: raptor.panel.v1.RemoveMemberResponse
+	(*Invitation)(nil),                      // 17: raptor.panel.v1.Invitation
+	(*InviteMemberRequest)(nil),             // 18: raptor.panel.v1.InviteMemberRequest
+	(*InviteMemberResponse)(nil),            // 19: raptor.panel.v1.InviteMemberResponse
+	(*ListInvitationsRequest)(nil),          // 20: raptor.panel.v1.ListInvitationsRequest
+	(*ListInvitationsResponse)(nil),         // 21: raptor.panel.v1.ListInvitationsResponse
+	(*RevokeInvitationRequest)(nil),         // 22: raptor.panel.v1.RevokeInvitationRequest
+	(*RevokeInvitationResponse)(nil),        // 23: raptor.panel.v1.RevokeInvitationResponse
+	(*AcceptInvitationRequest)(nil),         // 24: raptor.panel.v1.AcceptInvitationRequest
+	(*AcceptInvitationResponse)(nil),        // 25: raptor.panel.v1.AcceptInvitationResponse
+	(*CreateJoinTokenRequest)(nil),          // 26: raptor.panel.v1.CreateJoinTokenRequest
+	(*CreateJoinTokenResponse)(nil),         // 27: raptor.panel.v1.CreateJoinTokenResponse
+	(*ListAuditLogRequest)(nil),             // 28: raptor.panel.v1.ListAuditLogRequest
+	(*ListAuditLogResponse)(nil),            // 29: raptor.panel.v1.ListAuditLogResponse
+	(*SetServerAccessRequest)(nil),          // 30: raptor.panel.v1.SetServerAccessRequest
+	(*SetServerAccessResponse)(nil),         // 31: raptor.panel.v1.SetServerAccessResponse
+	(*ListServerAccessRequest)(nil),         // 32: raptor.panel.v1.ListServerAccessRequest
+	(*ServerAccess)(nil),                    // 33: raptor.panel.v1.ServerAccess
+	(*ListServerAccessResponse)(nil),        // 34: raptor.panel.v1.ListServerAccessResponse
+	(*ListNodesRequest)(nil),                // 35: raptor.panel.v1.ListNodesRequest
+	(*Node)(nil),                            // 36: raptor.panel.v1.Node
+	(*ListNodesResponse)(nil),               // 37: raptor.panel.v1.ListNodesResponse
+	(*RenameNodeRequest)(nil),               // 38: raptor.panel.v1.RenameNodeRequest
+	(*RenameNodeResponse)(nil),              // 39: raptor.panel.v1.RenameNodeResponse
+	(*SetNodeHostnameRequest)(nil),          // 40: raptor.panel.v1.SetNodeHostnameRequest
+	(*SetNodeHostnameResponse)(nil),         // 41: raptor.panel.v1.SetNodeHostnameResponse
+	(*SetNodeDisplayAddressRequest)(nil),    // 42: raptor.panel.v1.SetNodeDisplayAddressRequest
+	(*SetNodeDisplayAddressResponse)(nil),   // 43: raptor.panel.v1.SetNodeDisplayAddressResponse
+	(*SetServerDisplayAddressRequest)(nil),  // 44: raptor.panel.v1.SetServerDisplayAddressRequest
+	(*SetServerDisplayAddressResponse)(nil), // 45: raptor.panel.v1.SetServerDisplayAddressResponse
+	(*RemoveNodeRequest)(nil),               // 46: raptor.panel.v1.RemoveNodeRequest
+	(*RemoveNodeResponse)(nil),              // 47: raptor.panel.v1.RemoveNodeResponse
+	(*ListServersRequest)(nil),              // 48: raptor.panel.v1.ListServersRequest
+	(*Server)(nil),                          // 49: raptor.panel.v1.Server
+	(*ListServersResponse)(nil),             // 50: raptor.panel.v1.ListServersResponse
+	(*GetServerRequest)(nil),                // 51: raptor.panel.v1.GetServerRequest
+	(*GetServerResponse)(nil),               // 52: raptor.panel.v1.GetServerResponse
+	(*PinJoinTokenRequest)(nil),             // 53: raptor.panel.v1.PinJoinTokenRequest
+	(*PinJoinTokenResponse)(nil),            // 54: raptor.panel.v1.PinJoinTokenResponse
+	(*ListMemberPasskeysRequest)(nil),       // 55: raptor.panel.v1.ListMemberPasskeysRequest
+	(*ListMemberPasskeysResponse)(nil),      // 56: raptor.panel.v1.ListMemberPasskeysResponse
+	(*ListSchedulesRequest)(nil),            // 57: raptor.panel.v1.ListSchedulesRequest
+	(*ListSchedulesResponse)(nil),           // 58: raptor.panel.v1.ListSchedulesResponse
+	(*Schedule)(nil),                        // 59: raptor.panel.v1.Schedule
+	(*ListScheduleRunsRequest)(nil),         // 60: raptor.panel.v1.ListScheduleRunsRequest
+	(*ListScheduleRunsResponse)(nil),        // 61: raptor.panel.v1.ListScheduleRunsResponse
+	(*ScheduleRun)(nil),                     // 62: raptor.panel.v1.ScheduleRun
+	(*ScheduleRunStep)(nil),                 // 63: raptor.panel.v1.ScheduleRunStep
+	(*ListBackupsRequest)(nil),              // 64: raptor.panel.v1.ListBackupsRequest
+	(*ListBackupsResponse)(nil),             // 65: raptor.panel.v1.ListBackupsResponse
+	(*Backup)(nil),                          // 66: raptor.panel.v1.Backup
+	(*GetSFTPAccessRequest)(nil),            // 67: raptor.panel.v1.GetSFTPAccessRequest
+	(*GetSFTPAccessResponse)(nil),           // 68: raptor.panel.v1.GetSFTPAccessResponse
+	(*SFTPAccess)(nil),                      // 69: raptor.panel.v1.SFTPAccess
+	(*CreateSFTPAccessRequest)(nil),         // 70: raptor.panel.v1.CreateSFTPAccessRequest
+	(*CreateSFTPAccessResponse)(nil),        // 71: raptor.panel.v1.CreateSFTPAccessResponse
+	(*RevokeSFTPAccessRequest)(nil),         // 72: raptor.panel.v1.RevokeSFTPAccessRequest
+	(*RevokeSFTPAccessResponse)(nil),        // 73: raptor.panel.v1.RevokeSFTPAccessResponse
+	(*SetNodeSFTPRequest)(nil),              // 74: raptor.panel.v1.SetNodeSFTPRequest
+	(*SetNodeSFTPResponse)(nil),             // 75: raptor.panel.v1.SetNodeSFTPResponse
+	(*TestConnectionRequest)(nil),           // 76: raptor.panel.v1.TestConnectionRequest
+	(*TestConnectionResponse)(nil),          // 77: raptor.panel.v1.TestConnectionResponse
+	(*PortProbe)(nil),                       // 78: raptor.panel.v1.PortProbe
+	(*GetBackupStorageRequest)(nil),         // 79: raptor.panel.v1.GetBackupStorageRequest
+	(*GetBackupStorageResponse)(nil),        // 80: raptor.panel.v1.GetBackupStorageResponse
+	(*EnableBackupStorageRequest)(nil),      // 81: raptor.panel.v1.EnableBackupStorageRequest
+	(*EnableBackupStorageResponse)(nil),     // 82: raptor.panel.v1.EnableBackupStorageResponse
+	(*DisableBackupStorageRequest)(nil),     // 83: raptor.panel.v1.DisableBackupStorageRequest
+	(*DisableBackupStorageResponse)(nil),    // 84: raptor.panel.v1.DisableBackupStorageResponse
+	(*GetBackupKeyRequest)(nil),             // 85: raptor.panel.v1.GetBackupKeyRequest
+	(*GetBackupKeyResponse)(nil),            // 86: raptor.panel.v1.GetBackupKeyResponse
+	(*SyncBackupKeyRequest)(nil),            // 87: raptor.panel.v1.SyncBackupKeyRequest
+	(*SyncBackupKeyResponse)(nil),           // 88: raptor.panel.v1.SyncBackupKeyResponse
+	(*ListRecoverySourcesRequest)(nil),      // 89: raptor.panel.v1.ListRecoverySourcesRequest
+	(*RecoverySource)(nil),                  // 90: raptor.panel.v1.RecoverySource
+	(*ListRecoverySourcesResponse)(nil),     // 91: raptor.panel.v1.ListRecoverySourcesResponse
+	(*PrepareRecoveryRequest)(nil),          // 92: raptor.panel.v1.PrepareRecoveryRequest
+	(*PrepareRecoveryResponse)(nil),         // 93: raptor.panel.v1.PrepareRecoveryResponse
+	(*ListNodeSupportRequestsRequest)(nil),  // 94: raptor.panel.v1.ListNodeSupportRequestsRequest
+	(*ListNodeSupportRequestsResponse)(nil), // 95: raptor.panel.v1.ListNodeSupportRequestsResponse
+	(*DenySupportRequestRequest)(nil),       // 96: raptor.panel.v1.DenySupportRequestRequest
+	(*DenySupportRequestResponse)(nil),      // 97: raptor.panel.v1.DenySupportRequestResponse
+	(*GetJoinProgressRequest)(nil),          // 98: raptor.panel.v1.GetJoinProgressRequest
+	(*JoinStep)(nil),                        // 99: raptor.panel.v1.JoinStep
+	(*GetJoinProgressResponse)(nil),         // 100: raptor.panel.v1.GetJoinProgressResponse
+	(*timestamppb.Timestamp)(nil),           // 101: google.protobuf.Timestamp
+	(*AuditEvent)(nil),                      // 102: raptor.panel.v1.AuditEvent
+	(*Passkey)(nil),                         // 103: raptor.panel.v1.Passkey
+	(*SupportRequest)(nil),                  // 104: raptor.panel.v1.SupportRequest
 }
 var file_raptor_panel_v1_org_proto_depIdxs = []int32{
-	99,  // 0: raptor.panel.v1.Org.created_at:type_name -> google.protobuf.Timestamp
+	101, // 0: raptor.panel.v1.Org.created_at:type_name -> google.protobuf.Timestamp
 	0,   // 1: raptor.panel.v1.Org.role:type_name -> raptor.panel.v1.Role
 	1,   // 2: raptor.panel.v1.CreateOrgResponse.org:type_name -> raptor.panel.v1.Org
 	1,   // 3: raptor.panel.v1.ListOrgsResponse.orgs:type_name -> raptor.panel.v1.Org
 	0,   // 4: raptor.panel.v1.Member.role:type_name -> raptor.panel.v1.Role
-	99,  // 5: raptor.panel.v1.Member.joined_at:type_name -> google.protobuf.Timestamp
-	8,   // 6: raptor.panel.v1.ListMembersResponse.members:type_name -> raptor.panel.v1.Member
+	101, // 5: raptor.panel.v1.Member.joined_at:type_name -> google.protobuf.Timestamp
+	10,  // 6: raptor.panel.v1.ListMembersResponse.members:type_name -> raptor.panel.v1.Member
 	0,   // 7: raptor.panel.v1.SetMemberRoleRequest.role:type_name -> raptor.panel.v1.Role
 	0,   // 8: raptor.panel.v1.Invitation.role:type_name -> raptor.panel.v1.Role
-	99,  // 9: raptor.panel.v1.Invitation.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 10: raptor.panel.v1.Invitation.expires_at:type_name -> google.protobuf.Timestamp
+	101, // 9: raptor.panel.v1.Invitation.created_at:type_name -> google.protobuf.Timestamp
+	101, // 10: raptor.panel.v1.Invitation.expires_at:type_name -> google.protobuf.Timestamp
 	0,   // 11: raptor.panel.v1.InviteMemberRequest.role:type_name -> raptor.panel.v1.Role
-	15,  // 12: raptor.panel.v1.InviteMemberResponse.invitation:type_name -> raptor.panel.v1.Invitation
-	15,  // 13: raptor.panel.v1.ListInvitationsResponse.invitations:type_name -> raptor.panel.v1.Invitation
+	17,  // 12: raptor.panel.v1.InviteMemberResponse.invitation:type_name -> raptor.panel.v1.Invitation
+	17,  // 13: raptor.panel.v1.ListInvitationsResponse.invitations:type_name -> raptor.panel.v1.Invitation
 	1,   // 14: raptor.panel.v1.AcceptInvitationResponse.org:type_name -> raptor.panel.v1.Org
-	99,  // 15: raptor.panel.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
-	100, // 16: raptor.panel.v1.ListAuditLogResponse.events:type_name -> raptor.panel.v1.AuditEvent
-	31,  // 17: raptor.panel.v1.ListServerAccessResponse.access:type_name -> raptor.panel.v1.ServerAccess
-	99,  // 18: raptor.panel.v1.Node.last_seen_at:type_name -> google.protobuf.Timestamp
-	99,  // 19: raptor.panel.v1.Node.created_at:type_name -> google.protobuf.Timestamp
-	34,  // 20: raptor.panel.v1.ListNodesResponse.nodes:type_name -> raptor.panel.v1.Node
-	47,  // 21: raptor.panel.v1.ListServersResponse.servers:type_name -> raptor.panel.v1.Server
-	47,  // 22: raptor.panel.v1.GetServerResponse.server:type_name -> raptor.panel.v1.Server
-	101, // 23: raptor.panel.v1.ListMemberPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
-	57,  // 24: raptor.panel.v1.ListSchedulesResponse.schedules:type_name -> raptor.panel.v1.Schedule
-	99,  // 25: raptor.panel.v1.Schedule.next_run:type_name -> google.protobuf.Timestamp
-	99,  // 26: raptor.panel.v1.Schedule.last_run:type_name -> google.protobuf.Timestamp
-	60,  // 27: raptor.panel.v1.ListScheduleRunsResponse.runs:type_name -> raptor.panel.v1.ScheduleRun
-	61,  // 28: raptor.panel.v1.ScheduleRun.steps:type_name -> raptor.panel.v1.ScheduleRunStep
-	99,  // 29: raptor.panel.v1.ScheduleRun.scheduled_for:type_name -> google.protobuf.Timestamp
-	99,  // 30: raptor.panel.v1.ScheduleRun.started_at:type_name -> google.protobuf.Timestamp
-	99,  // 31: raptor.panel.v1.ScheduleRun.finished_at:type_name -> google.protobuf.Timestamp
-	64,  // 32: raptor.panel.v1.ListBackupsResponse.backups:type_name -> raptor.panel.v1.Backup
-	99,  // 33: raptor.panel.v1.Backup.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 34: raptor.panel.v1.Backup.finished_at:type_name -> google.protobuf.Timestamp
-	99,  // 35: raptor.panel.v1.Backup.expires_at:type_name -> google.protobuf.Timestamp
-	67,  // 36: raptor.panel.v1.GetSFTPAccessResponse.access:type_name -> raptor.panel.v1.SFTPAccess
-	99,  // 37: raptor.panel.v1.SFTPAccess.expires_at:type_name -> google.protobuf.Timestamp
-	67,  // 38: raptor.panel.v1.CreateSFTPAccessResponse.access:type_name -> raptor.panel.v1.SFTPAccess
-	76,  // 39: raptor.panel.v1.TestConnectionResponse.ports:type_name -> raptor.panel.v1.PortProbe
-	99,  // 40: raptor.panel.v1.GetBackupStorageResponse.measured_at:type_name -> google.protobuf.Timestamp
-	99,  // 41: raptor.panel.v1.GetBackupKeyResponse.stored_at:type_name -> google.protobuf.Timestamp
-	88,  // 42: raptor.panel.v1.ListRecoverySourcesResponse.sources:type_name -> raptor.panel.v1.RecoverySource
-	102, // 43: raptor.panel.v1.ListNodeSupportRequestsResponse.requests:type_name -> raptor.panel.v1.SupportRequest
-	99,  // 44: raptor.panel.v1.JoinStep.at:type_name -> google.protobuf.Timestamp
-	97,  // 45: raptor.panel.v1.GetJoinProgressResponse.steps:type_name -> raptor.panel.v1.JoinStep
+	101, // 15: raptor.panel.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
+	102, // 16: raptor.panel.v1.ListAuditLogResponse.events:type_name -> raptor.panel.v1.AuditEvent
+	33,  // 17: raptor.panel.v1.ListServerAccessResponse.access:type_name -> raptor.panel.v1.ServerAccess
+	101, // 18: raptor.panel.v1.Node.last_seen_at:type_name -> google.protobuf.Timestamp
+	101, // 19: raptor.panel.v1.Node.created_at:type_name -> google.protobuf.Timestamp
+	36,  // 20: raptor.panel.v1.ListNodesResponse.nodes:type_name -> raptor.panel.v1.Node
+	49,  // 21: raptor.panel.v1.ListServersResponse.servers:type_name -> raptor.panel.v1.Server
+	49,  // 22: raptor.panel.v1.GetServerResponse.server:type_name -> raptor.panel.v1.Server
+	103, // 23: raptor.panel.v1.ListMemberPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
+	59,  // 24: raptor.panel.v1.ListSchedulesResponse.schedules:type_name -> raptor.panel.v1.Schedule
+	101, // 25: raptor.panel.v1.Schedule.next_run:type_name -> google.protobuf.Timestamp
+	101, // 26: raptor.panel.v1.Schedule.last_run:type_name -> google.protobuf.Timestamp
+	62,  // 27: raptor.panel.v1.ListScheduleRunsResponse.runs:type_name -> raptor.panel.v1.ScheduleRun
+	63,  // 28: raptor.panel.v1.ScheduleRun.steps:type_name -> raptor.panel.v1.ScheduleRunStep
+	101, // 29: raptor.panel.v1.ScheduleRun.scheduled_for:type_name -> google.protobuf.Timestamp
+	101, // 30: raptor.panel.v1.ScheduleRun.started_at:type_name -> google.protobuf.Timestamp
+	101, // 31: raptor.panel.v1.ScheduleRun.finished_at:type_name -> google.protobuf.Timestamp
+	66,  // 32: raptor.panel.v1.ListBackupsResponse.backups:type_name -> raptor.panel.v1.Backup
+	101, // 33: raptor.panel.v1.Backup.created_at:type_name -> google.protobuf.Timestamp
+	101, // 34: raptor.panel.v1.Backup.finished_at:type_name -> google.protobuf.Timestamp
+	101, // 35: raptor.panel.v1.Backup.expires_at:type_name -> google.protobuf.Timestamp
+	69,  // 36: raptor.panel.v1.GetSFTPAccessResponse.access:type_name -> raptor.panel.v1.SFTPAccess
+	101, // 37: raptor.panel.v1.SFTPAccess.expires_at:type_name -> google.protobuf.Timestamp
+	69,  // 38: raptor.panel.v1.CreateSFTPAccessResponse.access:type_name -> raptor.panel.v1.SFTPAccess
+	78,  // 39: raptor.panel.v1.TestConnectionResponse.ports:type_name -> raptor.panel.v1.PortProbe
+	101, // 40: raptor.panel.v1.GetBackupStorageResponse.measured_at:type_name -> google.protobuf.Timestamp
+	101, // 41: raptor.panel.v1.GetBackupKeyResponse.stored_at:type_name -> google.protobuf.Timestamp
+	90,  // 42: raptor.panel.v1.ListRecoverySourcesResponse.sources:type_name -> raptor.panel.v1.RecoverySource
+	104, // 43: raptor.panel.v1.ListNodeSupportRequestsResponse.requests:type_name -> raptor.panel.v1.SupportRequest
+	101, // 44: raptor.panel.v1.JoinStep.at:type_name -> google.protobuf.Timestamp
+	99,  // 45: raptor.panel.v1.GetJoinProgressResponse.steps:type_name -> raptor.panel.v1.JoinStep
 	2,   // 46: raptor.panel.v1.OrgService.CreateOrg:input_type -> raptor.panel.v1.CreateOrgRequest
 	4,   // 47: raptor.panel.v1.OrgService.ListOrgs:input_type -> raptor.panel.v1.ListOrgsRequest
 	6,   // 48: raptor.panel.v1.OrgService.RenameOrg:input_type -> raptor.panel.v1.RenameOrgRequest
-	9,   // 49: raptor.panel.v1.OrgService.ListMembers:input_type -> raptor.panel.v1.ListMembersRequest
-	11,  // 50: raptor.panel.v1.OrgService.SetMemberRole:input_type -> raptor.panel.v1.SetMemberRoleRequest
-	13,  // 51: raptor.panel.v1.OrgService.RemoveMember:input_type -> raptor.panel.v1.RemoveMemberRequest
-	16,  // 52: raptor.panel.v1.OrgService.InviteMember:input_type -> raptor.panel.v1.InviteMemberRequest
-	18,  // 53: raptor.panel.v1.OrgService.ListInvitations:input_type -> raptor.panel.v1.ListInvitationsRequest
-	20,  // 54: raptor.panel.v1.OrgService.RevokeInvitation:input_type -> raptor.panel.v1.RevokeInvitationRequest
-	22,  // 55: raptor.panel.v1.OrgService.AcceptInvitation:input_type -> raptor.panel.v1.AcceptInvitationRequest
-	24,  // 56: raptor.panel.v1.OrgService.CreateJoinToken:input_type -> raptor.panel.v1.CreateJoinTokenRequest
-	96,  // 57: raptor.panel.v1.OrgService.GetJoinProgress:input_type -> raptor.panel.v1.GetJoinProgressRequest
-	28,  // 58: raptor.panel.v1.OrgService.SetServerAccess:input_type -> raptor.panel.v1.SetServerAccessRequest
-	30,  // 59: raptor.panel.v1.OrgService.ListServerAccess:input_type -> raptor.panel.v1.ListServerAccessRequest
-	33,  // 60: raptor.panel.v1.OrgService.ListNodes:input_type -> raptor.panel.v1.ListNodesRequest
-	92,  // 61: raptor.panel.v1.OrgService.ListNodeSupportRequests:input_type -> raptor.panel.v1.ListNodeSupportRequestsRequest
-	94,  // 62: raptor.panel.v1.OrgService.DenySupportRequest:input_type -> raptor.panel.v1.DenySupportRequestRequest
-	36,  // 63: raptor.panel.v1.OrgService.RenameNode:input_type -> raptor.panel.v1.RenameNodeRequest
-	38,  // 64: raptor.panel.v1.OrgService.SetNodeHostname:input_type -> raptor.panel.v1.SetNodeHostnameRequest
-	40,  // 65: raptor.panel.v1.OrgService.SetNodeDisplayAddress:input_type -> raptor.panel.v1.SetNodeDisplayAddressRequest
-	42,  // 66: raptor.panel.v1.OrgService.SetServerDisplayAddress:input_type -> raptor.panel.v1.SetServerDisplayAddressRequest
-	44,  // 67: raptor.panel.v1.OrgService.RemoveNode:input_type -> raptor.panel.v1.RemoveNodeRequest
-	46,  // 68: raptor.panel.v1.OrgService.ListServers:input_type -> raptor.panel.v1.ListServersRequest
-	49,  // 69: raptor.panel.v1.OrgService.GetServer:input_type -> raptor.panel.v1.GetServerRequest
-	51,  // 70: raptor.panel.v1.OrgService.PinJoinToken:input_type -> raptor.panel.v1.PinJoinTokenRequest
-	53,  // 71: raptor.panel.v1.OrgService.ListMemberPasskeys:input_type -> raptor.panel.v1.ListMemberPasskeysRequest
-	26,  // 72: raptor.panel.v1.OrgService.ListAuditLog:input_type -> raptor.panel.v1.ListAuditLogRequest
-	55,  // 73: raptor.panel.v1.OrgService.ListSchedules:input_type -> raptor.panel.v1.ListSchedulesRequest
-	58,  // 74: raptor.panel.v1.OrgService.ListScheduleRuns:input_type -> raptor.panel.v1.ListScheduleRunsRequest
-	72,  // 75: raptor.panel.v1.OrgService.SetNodeSFTP:input_type -> raptor.panel.v1.SetNodeSFTPRequest
-	65,  // 76: raptor.panel.v1.OrgService.GetSFTPAccess:input_type -> raptor.panel.v1.GetSFTPAccessRequest
-	68,  // 77: raptor.panel.v1.OrgService.CreateSFTPAccess:input_type -> raptor.panel.v1.CreateSFTPAccessRequest
-	70,  // 78: raptor.panel.v1.OrgService.RevokeSFTPAccess:input_type -> raptor.panel.v1.RevokeSFTPAccessRequest
-	74,  // 79: raptor.panel.v1.OrgService.TestConnection:input_type -> raptor.panel.v1.TestConnectionRequest
-	77,  // 80: raptor.panel.v1.OrgService.GetBackupStorage:input_type -> raptor.panel.v1.GetBackupStorageRequest
-	79,  // 81: raptor.panel.v1.OrgService.EnableBackupStorage:input_type -> raptor.panel.v1.EnableBackupStorageRequest
-	81,  // 82: raptor.panel.v1.OrgService.DisableBackupStorage:input_type -> raptor.panel.v1.DisableBackupStorageRequest
-	83,  // 83: raptor.panel.v1.OrgService.GetBackupKey:input_type -> raptor.panel.v1.GetBackupKeyRequest
-	85,  // 84: raptor.panel.v1.OrgService.SyncBackupKey:input_type -> raptor.panel.v1.SyncBackupKeyRequest
-	87,  // 85: raptor.panel.v1.OrgService.ListRecoverySources:input_type -> raptor.panel.v1.ListRecoverySourcesRequest
-	90,  // 86: raptor.panel.v1.OrgService.PrepareRecovery:input_type -> raptor.panel.v1.PrepareRecoveryRequest
-	62,  // 87: raptor.panel.v1.OrgService.ListBackups:input_type -> raptor.panel.v1.ListBackupsRequest
-	3,   // 88: raptor.panel.v1.OrgService.CreateOrg:output_type -> raptor.panel.v1.CreateOrgResponse
-	5,   // 89: raptor.panel.v1.OrgService.ListOrgs:output_type -> raptor.panel.v1.ListOrgsResponse
-	7,   // 90: raptor.panel.v1.OrgService.RenameOrg:output_type -> raptor.panel.v1.RenameOrgResponse
-	10,  // 91: raptor.panel.v1.OrgService.ListMembers:output_type -> raptor.panel.v1.ListMembersResponse
-	12,  // 92: raptor.panel.v1.OrgService.SetMemberRole:output_type -> raptor.panel.v1.SetMemberRoleResponse
-	14,  // 93: raptor.panel.v1.OrgService.RemoveMember:output_type -> raptor.panel.v1.RemoveMemberResponse
-	17,  // 94: raptor.panel.v1.OrgService.InviteMember:output_type -> raptor.panel.v1.InviteMemberResponse
-	19,  // 95: raptor.panel.v1.OrgService.ListInvitations:output_type -> raptor.panel.v1.ListInvitationsResponse
-	21,  // 96: raptor.panel.v1.OrgService.RevokeInvitation:output_type -> raptor.panel.v1.RevokeInvitationResponse
-	23,  // 97: raptor.panel.v1.OrgService.AcceptInvitation:output_type -> raptor.panel.v1.AcceptInvitationResponse
-	25,  // 98: raptor.panel.v1.OrgService.CreateJoinToken:output_type -> raptor.panel.v1.CreateJoinTokenResponse
-	98,  // 99: raptor.panel.v1.OrgService.GetJoinProgress:output_type -> raptor.panel.v1.GetJoinProgressResponse
-	29,  // 100: raptor.panel.v1.OrgService.SetServerAccess:output_type -> raptor.panel.v1.SetServerAccessResponse
-	32,  // 101: raptor.panel.v1.OrgService.ListServerAccess:output_type -> raptor.panel.v1.ListServerAccessResponse
-	35,  // 102: raptor.panel.v1.OrgService.ListNodes:output_type -> raptor.panel.v1.ListNodesResponse
-	93,  // 103: raptor.panel.v1.OrgService.ListNodeSupportRequests:output_type -> raptor.panel.v1.ListNodeSupportRequestsResponse
-	95,  // 104: raptor.panel.v1.OrgService.DenySupportRequest:output_type -> raptor.panel.v1.DenySupportRequestResponse
-	37,  // 105: raptor.panel.v1.OrgService.RenameNode:output_type -> raptor.panel.v1.RenameNodeResponse
-	39,  // 106: raptor.panel.v1.OrgService.SetNodeHostname:output_type -> raptor.panel.v1.SetNodeHostnameResponse
-	41,  // 107: raptor.panel.v1.OrgService.SetNodeDisplayAddress:output_type -> raptor.panel.v1.SetNodeDisplayAddressResponse
-	43,  // 108: raptor.panel.v1.OrgService.SetServerDisplayAddress:output_type -> raptor.panel.v1.SetServerDisplayAddressResponse
-	45,  // 109: raptor.panel.v1.OrgService.RemoveNode:output_type -> raptor.panel.v1.RemoveNodeResponse
-	48,  // 110: raptor.panel.v1.OrgService.ListServers:output_type -> raptor.panel.v1.ListServersResponse
-	50,  // 111: raptor.panel.v1.OrgService.GetServer:output_type -> raptor.panel.v1.GetServerResponse
-	52,  // 112: raptor.panel.v1.OrgService.PinJoinToken:output_type -> raptor.panel.v1.PinJoinTokenResponse
-	54,  // 113: raptor.panel.v1.OrgService.ListMemberPasskeys:output_type -> raptor.panel.v1.ListMemberPasskeysResponse
-	27,  // 114: raptor.panel.v1.OrgService.ListAuditLog:output_type -> raptor.panel.v1.ListAuditLogResponse
-	56,  // 115: raptor.panel.v1.OrgService.ListSchedules:output_type -> raptor.panel.v1.ListSchedulesResponse
-	59,  // 116: raptor.panel.v1.OrgService.ListScheduleRuns:output_type -> raptor.panel.v1.ListScheduleRunsResponse
-	73,  // 117: raptor.panel.v1.OrgService.SetNodeSFTP:output_type -> raptor.panel.v1.SetNodeSFTPResponse
-	66,  // 118: raptor.panel.v1.OrgService.GetSFTPAccess:output_type -> raptor.panel.v1.GetSFTPAccessResponse
-	69,  // 119: raptor.panel.v1.OrgService.CreateSFTPAccess:output_type -> raptor.panel.v1.CreateSFTPAccessResponse
-	71,  // 120: raptor.panel.v1.OrgService.RevokeSFTPAccess:output_type -> raptor.panel.v1.RevokeSFTPAccessResponse
-	75,  // 121: raptor.panel.v1.OrgService.TestConnection:output_type -> raptor.panel.v1.TestConnectionResponse
-	78,  // 122: raptor.panel.v1.OrgService.GetBackupStorage:output_type -> raptor.panel.v1.GetBackupStorageResponse
-	80,  // 123: raptor.panel.v1.OrgService.EnableBackupStorage:output_type -> raptor.panel.v1.EnableBackupStorageResponse
-	82,  // 124: raptor.panel.v1.OrgService.DisableBackupStorage:output_type -> raptor.panel.v1.DisableBackupStorageResponse
-	84,  // 125: raptor.panel.v1.OrgService.GetBackupKey:output_type -> raptor.panel.v1.GetBackupKeyResponse
-	86,  // 126: raptor.panel.v1.OrgService.SyncBackupKey:output_type -> raptor.panel.v1.SyncBackupKeyResponse
-	89,  // 127: raptor.panel.v1.OrgService.ListRecoverySources:output_type -> raptor.panel.v1.ListRecoverySourcesResponse
-	91,  // 128: raptor.panel.v1.OrgService.PrepareRecovery:output_type -> raptor.panel.v1.PrepareRecoveryResponse
-	63,  // 129: raptor.panel.v1.OrgService.ListBackups:output_type -> raptor.panel.v1.ListBackupsResponse
-	88,  // [88:130] is the sub-list for method output_type
-	46,  // [46:88] is the sub-list for method input_type
+	8,   // 49: raptor.panel.v1.OrgService.DeleteOrg:input_type -> raptor.panel.v1.DeleteOrgRequest
+	11,  // 50: raptor.panel.v1.OrgService.ListMembers:input_type -> raptor.panel.v1.ListMembersRequest
+	13,  // 51: raptor.panel.v1.OrgService.SetMemberRole:input_type -> raptor.panel.v1.SetMemberRoleRequest
+	15,  // 52: raptor.panel.v1.OrgService.RemoveMember:input_type -> raptor.panel.v1.RemoveMemberRequest
+	18,  // 53: raptor.panel.v1.OrgService.InviteMember:input_type -> raptor.panel.v1.InviteMemberRequest
+	20,  // 54: raptor.panel.v1.OrgService.ListInvitations:input_type -> raptor.panel.v1.ListInvitationsRequest
+	22,  // 55: raptor.panel.v1.OrgService.RevokeInvitation:input_type -> raptor.panel.v1.RevokeInvitationRequest
+	24,  // 56: raptor.panel.v1.OrgService.AcceptInvitation:input_type -> raptor.panel.v1.AcceptInvitationRequest
+	26,  // 57: raptor.panel.v1.OrgService.CreateJoinToken:input_type -> raptor.panel.v1.CreateJoinTokenRequest
+	98,  // 58: raptor.panel.v1.OrgService.GetJoinProgress:input_type -> raptor.panel.v1.GetJoinProgressRequest
+	30,  // 59: raptor.panel.v1.OrgService.SetServerAccess:input_type -> raptor.panel.v1.SetServerAccessRequest
+	32,  // 60: raptor.panel.v1.OrgService.ListServerAccess:input_type -> raptor.panel.v1.ListServerAccessRequest
+	35,  // 61: raptor.panel.v1.OrgService.ListNodes:input_type -> raptor.panel.v1.ListNodesRequest
+	94,  // 62: raptor.panel.v1.OrgService.ListNodeSupportRequests:input_type -> raptor.panel.v1.ListNodeSupportRequestsRequest
+	96,  // 63: raptor.panel.v1.OrgService.DenySupportRequest:input_type -> raptor.panel.v1.DenySupportRequestRequest
+	38,  // 64: raptor.panel.v1.OrgService.RenameNode:input_type -> raptor.panel.v1.RenameNodeRequest
+	40,  // 65: raptor.panel.v1.OrgService.SetNodeHostname:input_type -> raptor.panel.v1.SetNodeHostnameRequest
+	42,  // 66: raptor.panel.v1.OrgService.SetNodeDisplayAddress:input_type -> raptor.panel.v1.SetNodeDisplayAddressRequest
+	44,  // 67: raptor.panel.v1.OrgService.SetServerDisplayAddress:input_type -> raptor.panel.v1.SetServerDisplayAddressRequest
+	46,  // 68: raptor.panel.v1.OrgService.RemoveNode:input_type -> raptor.panel.v1.RemoveNodeRequest
+	48,  // 69: raptor.panel.v1.OrgService.ListServers:input_type -> raptor.panel.v1.ListServersRequest
+	51,  // 70: raptor.panel.v1.OrgService.GetServer:input_type -> raptor.panel.v1.GetServerRequest
+	53,  // 71: raptor.panel.v1.OrgService.PinJoinToken:input_type -> raptor.panel.v1.PinJoinTokenRequest
+	55,  // 72: raptor.panel.v1.OrgService.ListMemberPasskeys:input_type -> raptor.panel.v1.ListMemberPasskeysRequest
+	28,  // 73: raptor.panel.v1.OrgService.ListAuditLog:input_type -> raptor.panel.v1.ListAuditLogRequest
+	57,  // 74: raptor.panel.v1.OrgService.ListSchedules:input_type -> raptor.panel.v1.ListSchedulesRequest
+	60,  // 75: raptor.panel.v1.OrgService.ListScheduleRuns:input_type -> raptor.panel.v1.ListScheduleRunsRequest
+	74,  // 76: raptor.panel.v1.OrgService.SetNodeSFTP:input_type -> raptor.panel.v1.SetNodeSFTPRequest
+	67,  // 77: raptor.panel.v1.OrgService.GetSFTPAccess:input_type -> raptor.panel.v1.GetSFTPAccessRequest
+	70,  // 78: raptor.panel.v1.OrgService.CreateSFTPAccess:input_type -> raptor.panel.v1.CreateSFTPAccessRequest
+	72,  // 79: raptor.panel.v1.OrgService.RevokeSFTPAccess:input_type -> raptor.panel.v1.RevokeSFTPAccessRequest
+	76,  // 80: raptor.panel.v1.OrgService.TestConnection:input_type -> raptor.panel.v1.TestConnectionRequest
+	79,  // 81: raptor.panel.v1.OrgService.GetBackupStorage:input_type -> raptor.panel.v1.GetBackupStorageRequest
+	81,  // 82: raptor.panel.v1.OrgService.EnableBackupStorage:input_type -> raptor.panel.v1.EnableBackupStorageRequest
+	83,  // 83: raptor.panel.v1.OrgService.DisableBackupStorage:input_type -> raptor.panel.v1.DisableBackupStorageRequest
+	85,  // 84: raptor.panel.v1.OrgService.GetBackupKey:input_type -> raptor.panel.v1.GetBackupKeyRequest
+	87,  // 85: raptor.panel.v1.OrgService.SyncBackupKey:input_type -> raptor.panel.v1.SyncBackupKeyRequest
+	89,  // 86: raptor.panel.v1.OrgService.ListRecoverySources:input_type -> raptor.panel.v1.ListRecoverySourcesRequest
+	92,  // 87: raptor.panel.v1.OrgService.PrepareRecovery:input_type -> raptor.panel.v1.PrepareRecoveryRequest
+	64,  // 88: raptor.panel.v1.OrgService.ListBackups:input_type -> raptor.panel.v1.ListBackupsRequest
+	3,   // 89: raptor.panel.v1.OrgService.CreateOrg:output_type -> raptor.panel.v1.CreateOrgResponse
+	5,   // 90: raptor.panel.v1.OrgService.ListOrgs:output_type -> raptor.panel.v1.ListOrgsResponse
+	7,   // 91: raptor.panel.v1.OrgService.RenameOrg:output_type -> raptor.panel.v1.RenameOrgResponse
+	9,   // 92: raptor.panel.v1.OrgService.DeleteOrg:output_type -> raptor.panel.v1.DeleteOrgResponse
+	12,  // 93: raptor.panel.v1.OrgService.ListMembers:output_type -> raptor.panel.v1.ListMembersResponse
+	14,  // 94: raptor.panel.v1.OrgService.SetMemberRole:output_type -> raptor.panel.v1.SetMemberRoleResponse
+	16,  // 95: raptor.panel.v1.OrgService.RemoveMember:output_type -> raptor.panel.v1.RemoveMemberResponse
+	19,  // 96: raptor.panel.v1.OrgService.InviteMember:output_type -> raptor.panel.v1.InviteMemberResponse
+	21,  // 97: raptor.panel.v1.OrgService.ListInvitations:output_type -> raptor.panel.v1.ListInvitationsResponse
+	23,  // 98: raptor.panel.v1.OrgService.RevokeInvitation:output_type -> raptor.panel.v1.RevokeInvitationResponse
+	25,  // 99: raptor.panel.v1.OrgService.AcceptInvitation:output_type -> raptor.panel.v1.AcceptInvitationResponse
+	27,  // 100: raptor.panel.v1.OrgService.CreateJoinToken:output_type -> raptor.panel.v1.CreateJoinTokenResponse
+	100, // 101: raptor.panel.v1.OrgService.GetJoinProgress:output_type -> raptor.panel.v1.GetJoinProgressResponse
+	31,  // 102: raptor.panel.v1.OrgService.SetServerAccess:output_type -> raptor.panel.v1.SetServerAccessResponse
+	34,  // 103: raptor.panel.v1.OrgService.ListServerAccess:output_type -> raptor.panel.v1.ListServerAccessResponse
+	37,  // 104: raptor.panel.v1.OrgService.ListNodes:output_type -> raptor.panel.v1.ListNodesResponse
+	95,  // 105: raptor.panel.v1.OrgService.ListNodeSupportRequests:output_type -> raptor.panel.v1.ListNodeSupportRequestsResponse
+	97,  // 106: raptor.panel.v1.OrgService.DenySupportRequest:output_type -> raptor.panel.v1.DenySupportRequestResponse
+	39,  // 107: raptor.panel.v1.OrgService.RenameNode:output_type -> raptor.panel.v1.RenameNodeResponse
+	41,  // 108: raptor.panel.v1.OrgService.SetNodeHostname:output_type -> raptor.panel.v1.SetNodeHostnameResponse
+	43,  // 109: raptor.panel.v1.OrgService.SetNodeDisplayAddress:output_type -> raptor.panel.v1.SetNodeDisplayAddressResponse
+	45,  // 110: raptor.panel.v1.OrgService.SetServerDisplayAddress:output_type -> raptor.panel.v1.SetServerDisplayAddressResponse
+	47,  // 111: raptor.panel.v1.OrgService.RemoveNode:output_type -> raptor.panel.v1.RemoveNodeResponse
+	50,  // 112: raptor.panel.v1.OrgService.ListServers:output_type -> raptor.panel.v1.ListServersResponse
+	52,  // 113: raptor.panel.v1.OrgService.GetServer:output_type -> raptor.panel.v1.GetServerResponse
+	54,  // 114: raptor.panel.v1.OrgService.PinJoinToken:output_type -> raptor.panel.v1.PinJoinTokenResponse
+	56,  // 115: raptor.panel.v1.OrgService.ListMemberPasskeys:output_type -> raptor.panel.v1.ListMemberPasskeysResponse
+	29,  // 116: raptor.panel.v1.OrgService.ListAuditLog:output_type -> raptor.panel.v1.ListAuditLogResponse
+	58,  // 117: raptor.panel.v1.OrgService.ListSchedules:output_type -> raptor.panel.v1.ListSchedulesResponse
+	61,  // 118: raptor.panel.v1.OrgService.ListScheduleRuns:output_type -> raptor.panel.v1.ListScheduleRunsResponse
+	75,  // 119: raptor.panel.v1.OrgService.SetNodeSFTP:output_type -> raptor.panel.v1.SetNodeSFTPResponse
+	68,  // 120: raptor.panel.v1.OrgService.GetSFTPAccess:output_type -> raptor.panel.v1.GetSFTPAccessResponse
+	71,  // 121: raptor.panel.v1.OrgService.CreateSFTPAccess:output_type -> raptor.panel.v1.CreateSFTPAccessResponse
+	73,  // 122: raptor.panel.v1.OrgService.RevokeSFTPAccess:output_type -> raptor.panel.v1.RevokeSFTPAccessResponse
+	77,  // 123: raptor.panel.v1.OrgService.TestConnection:output_type -> raptor.panel.v1.TestConnectionResponse
+	80,  // 124: raptor.panel.v1.OrgService.GetBackupStorage:output_type -> raptor.panel.v1.GetBackupStorageResponse
+	82,  // 125: raptor.panel.v1.OrgService.EnableBackupStorage:output_type -> raptor.panel.v1.EnableBackupStorageResponse
+	84,  // 126: raptor.panel.v1.OrgService.DisableBackupStorage:output_type -> raptor.panel.v1.DisableBackupStorageResponse
+	86,  // 127: raptor.panel.v1.OrgService.GetBackupKey:output_type -> raptor.panel.v1.GetBackupKeyResponse
+	88,  // 128: raptor.panel.v1.OrgService.SyncBackupKey:output_type -> raptor.panel.v1.SyncBackupKeyResponse
+	91,  // 129: raptor.panel.v1.OrgService.ListRecoverySources:output_type -> raptor.panel.v1.ListRecoverySourcesResponse
+	93,  // 130: raptor.panel.v1.OrgService.PrepareRecovery:output_type -> raptor.panel.v1.PrepareRecoveryResponse
+	65,  // 131: raptor.panel.v1.OrgService.ListBackups:output_type -> raptor.panel.v1.ListBackupsResponse
+	89,  // [89:132] is the sub-list for method output_type
+	46,  // [46:89] is the sub-list for method input_type
 	46,  // [46:46] is the sub-list for extension type_name
 	46,  // [46:46] is the sub-list for extension extendee
 	0,   // [0:46] is the sub-list for field type_name
@@ -6384,7 +6472,7 @@ func file_raptor_panel_v1_org_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_org_proto_rawDesc), len(file_raptor_panel_v1_org_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   98,
+			NumMessages:   100,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

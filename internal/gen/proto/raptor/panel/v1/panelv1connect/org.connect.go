@@ -39,6 +39,8 @@ const (
 	OrgServiceListOrgsProcedure = "/raptor.panel.v1.OrgService/ListOrgs"
 	// OrgServiceRenameOrgProcedure is the fully-qualified name of the OrgService's RenameOrg RPC.
 	OrgServiceRenameOrgProcedure = "/raptor.panel.v1.OrgService/RenameOrg"
+	// OrgServiceDeleteOrgProcedure is the fully-qualified name of the OrgService's DeleteOrg RPC.
+	OrgServiceDeleteOrgProcedure = "/raptor.panel.v1.OrgService/DeleteOrg"
 	// OrgServiceListMembersProcedure is the fully-qualified name of the OrgService's ListMembers RPC.
 	OrgServiceListMembersProcedure = "/raptor.panel.v1.OrgService/ListMembers"
 	// OrgServiceSetMemberRoleProcedure is the fully-qualified name of the OrgService's SetMemberRole
@@ -153,6 +155,10 @@ type OrgServiceClient interface {
 	ListOrgs(context.Context, *v1.ListOrgsRequest) (*v1.ListOrgsResponse, error)
 	// RenameOrg renames an org. Admins and owners.
 	RenameOrg(context.Context, *v1.RenameOrgRequest) (*v1.RenameOrgResponse, error)
+	// DeleteOrg deletes an org: everyone is taken out of it, and its
+	// invitations and join tokens stop working. Owners, after confirming it's
+	// them, once it has no nodes.
+	DeleteOrg(context.Context, *v1.DeleteOrgRequest) (*v1.DeleteOrgResponse, error)
 	// ListMembers lists an org's members. Any member.
 	ListMembers(context.Context, *v1.ListMembersRequest) (*v1.ListMembersResponse, error)
 	// SetMemberRole changes a member's role. Owners only; an org always keeps
@@ -325,6 +331,12 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+OrgServiceRenameOrgProcedure,
 			connect.WithSchema(orgServiceMethods.ByName("RenameOrg")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteOrg: connect.NewClient[v1.DeleteOrgRequest, v1.DeleteOrgResponse](
+			httpClient,
+			baseURL+OrgServiceDeleteOrgProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("DeleteOrg")),
 			connect.WithClientOptions(opts...),
 		),
 		listMembers: connect.NewClient[v1.ListMembersRequest, v1.ListMembersResponse](
@@ -586,6 +598,7 @@ type orgServiceClient struct {
 	createOrg               *connect.Client[v1.CreateOrgRequest, v1.CreateOrgResponse]
 	listOrgs                *connect.Client[v1.ListOrgsRequest, v1.ListOrgsResponse]
 	renameOrg               *connect.Client[v1.RenameOrgRequest, v1.RenameOrgResponse]
+	deleteOrg               *connect.Client[v1.DeleteOrgRequest, v1.DeleteOrgResponse]
 	listMembers             *connect.Client[v1.ListMembersRequest, v1.ListMembersResponse]
 	setMemberRole           *connect.Client[v1.SetMemberRoleRequest, v1.SetMemberRoleResponse]
 	removeMember            *connect.Client[v1.RemoveMemberRequest, v1.RemoveMemberResponse]
@@ -648,6 +661,15 @@ func (c *orgServiceClient) ListOrgs(ctx context.Context, req *v1.ListOrgsRequest
 // RenameOrg calls raptor.panel.v1.OrgService.RenameOrg.
 func (c *orgServiceClient) RenameOrg(ctx context.Context, req *v1.RenameOrgRequest) (*v1.RenameOrgResponse, error) {
 	response, err := c.renameOrg.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DeleteOrg calls raptor.panel.v1.OrgService.DeleteOrg.
+func (c *orgServiceClient) DeleteOrg(ctx context.Context, req *v1.DeleteOrgRequest) (*v1.DeleteOrgResponse, error) {
+	response, err := c.deleteOrg.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -1015,6 +1037,10 @@ type OrgServiceHandler interface {
 	ListOrgs(context.Context, *v1.ListOrgsRequest) (*v1.ListOrgsResponse, error)
 	// RenameOrg renames an org. Admins and owners.
 	RenameOrg(context.Context, *v1.RenameOrgRequest) (*v1.RenameOrgResponse, error)
+	// DeleteOrg deletes an org: everyone is taken out of it, and its
+	// invitations and join tokens stop working. Owners, after confirming it's
+	// them, once it has no nodes.
+	DeleteOrg(context.Context, *v1.DeleteOrgRequest) (*v1.DeleteOrgResponse, error)
 	// ListMembers lists an org's members. Any member.
 	ListMembers(context.Context, *v1.ListMembersRequest) (*v1.ListMembersResponse, error)
 	// SetMemberRole changes a member's role. Owners only; an org always keeps
@@ -1183,6 +1209,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		OrgServiceRenameOrgProcedure,
 		svc.RenameOrg,
 		connect.WithSchema(orgServiceMethods.ByName("RenameOrg")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceDeleteOrgHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceDeleteOrgProcedure,
+		svc.DeleteOrg,
+		connect.WithSchema(orgServiceMethods.ByName("DeleteOrg")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orgServiceListMembersHandler := connect.NewUnaryHandlerSimple(
@@ -1444,6 +1476,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListOrgsHandler.ServeHTTP(w, r)
 		case OrgServiceRenameOrgProcedure:
 			orgServiceRenameOrgHandler.ServeHTTP(w, r)
+		case OrgServiceDeleteOrgProcedure:
+			orgServiceDeleteOrgHandler.ServeHTTP(w, r)
 		case OrgServiceListMembersProcedure:
 			orgServiceListMembersHandler.ServeHTTP(w, r)
 		case OrgServiceSetMemberRoleProcedure:
@@ -1541,6 +1575,10 @@ func (UnimplementedOrgServiceHandler) ListOrgs(context.Context, *v1.ListOrgsRequ
 
 func (UnimplementedOrgServiceHandler) RenameOrg(context.Context, *v1.RenameOrgRequest) (*v1.RenameOrgResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.RenameOrg is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) DeleteOrg(context.Context, *v1.DeleteOrgRequest) (*v1.DeleteOrgResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.DeleteOrg is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) ListMembers(context.Context, *v1.ListMembersRequest) (*v1.ListMembersResponse, error) {

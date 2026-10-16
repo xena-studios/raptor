@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 
 import { DetailList } from "@/components/page";
+import { useReauth } from "@/components/reauth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -105,7 +106,8 @@ export function OrgDetails({ org }: { org: Org }) {
   );
 }
 
-// LeaveOrg takes the user out of the org. The last owner can't leave.
+// LeaveOrg takes a member who isn't an owner out of the org (owners get
+// DeleteOrg instead).
 export function LeaveOrg({ org, userId }: { org: Org; userId: string }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -136,8 +138,7 @@ export function LeaveOrg({ org, userId }: { org: Org; userId: string }) {
       <CardHeader>
         <CardTitle>Leave organization</CardTitle>
         <CardDescription>
-          You'll lose access to its nodes and servers until someone invites you back. If you're its
-          only owner, make someone else an owner first.
+          You'll lose access to its nodes and servers until someone invites you back.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -168,6 +169,94 @@ export function LeaveOrg({ org, userId }: { org: Org; userId: string }) {
               Leave
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+// DeleteOrg deletes the org (owners), after typing its name and "confirm
+// it's you". Its nodes have to be removed first: that's what lets go of
+// their hostnames, backup storage, and billing.
+export function DeleteOrg({ org }: { org: Org }) {
+  const client = useQueryClient();
+  const navigate = useNavigate();
+  const withReauth = useReauth();
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function remove(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await withReauth(() => orgClient.deleteOrg({ orgId: org.id }));
+      try {
+        localStorage.removeItem("raptor.org");
+      } catch {
+        // Nothing remembered.
+      }
+      await client.invalidateQueries();
+      await navigate({ to: "/" });
+    } catch (err) {
+      setError(message(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="border-destructive/40">
+      <CardHeader>
+        <CardTitle>Delete organization</CardTitle>
+        <CardDescription>
+          Takes everyone out of {org.name} and deletes it, with its invitations and join tokens.
+          Remove its nodes first (each node's Settings tab): their servers keep running on the
+          machines. This can't be undone.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="destructive" onClick={() => setOpen(true)}>
+          Delete organization
+        </Button>
+      </CardContent>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          setTyped("");
+          setError("");
+        }}
+      >
+        <DialogContent>
+          <form onSubmit={remove} className="flex flex-col gap-4">
+            <DialogHeader>
+              <DialogTitle>Delete {org.name}?</DialogTitle>
+              <DialogDescription>
+                Type its name, <span className="font-medium">{org.name}</span>, to confirm.
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              aria-label="The organization's name"
+              autoFocus
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+            />
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={busy || typed.trim() !== org.name}
+              >
+                Delete organization
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Card>

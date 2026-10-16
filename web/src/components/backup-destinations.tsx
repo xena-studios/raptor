@@ -253,27 +253,6 @@ export function NodeDestinations({
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {storage.data?.available &&
-          list.data &&
-          !list.data.destinations.some((d) => d.type === "raptor") && (
-            <HostedOffer
-              busy={busy === "hosted"}
-              included={Number(storage.data.includedBytes)}
-              onEnable={async () => {
-                setBusy("hosted");
-                setNotice(null);
-                try {
-                  await orgClient.enableBackupStorage({ orgId, nodeId });
-                  await client.invalidateQueries();
-                } catch (err) {
-                  setNotice({ id: "hosted", ok: false, text: message(err) });
-                } finally {
-                  setBusy("");
-                }
-              }}
-            />
-          )}
-        {notice?.id === "hosted" && <p className="text-sm text-destructive">{notice.text}</p>}
         {list.error && <p className="text-sm text-destructive">{message(list.error)}</p>}
         {list.isPending && <p className="text-sm text-muted-foreground">Asking the node…</p>}
         <ul className="divide-y rounded-lg border">
@@ -359,6 +338,14 @@ export function NodeDestinations({
           userId={userId}
           initial={editing === "new" ? undefined : editing}
           sshPublicKey={list.data?.ssh_public_key ?? ""}
+          hosted={
+            editing === "new" && storage.data?.available && !dests.some((d) => d.type === "raptor")
+              ? {
+                  included: Number(storage.data.includedBytes),
+                  enable: () => orgClient.enableBackupStorage({ orgId, nodeId }).then(() => {}),
+                }
+              : undefined
+          }
           onClose={() => setEditing(null)}
           onSaved={async () => {
             setEditing(null);
@@ -550,6 +537,7 @@ function DestinationDialog({
   initial,
   sshPublicKey,
   recover,
+  hosted,
   onClose,
   onSaved,
 }: {
@@ -557,6 +545,9 @@ function DestinationDialog({
   userId: string;
   initial?: Destination;
   sshPublicKey: string;
+  // Raptor Backup Storage, offered first when the org can have it and the
+  // node doesn't yet: picking it turns it on, with nothing to fill in.
+  hosted?: { included: number; enable: () => Promise<void> };
   // Recovering another node's backups from here: the key they were made
   // with ("" for the owner to paste), sent as backup.recover.
   recover?: { key: string; from: string };
@@ -571,7 +562,7 @@ function DestinationDialog({
     ...formFrom(initial),
     ...(recover ? { name: `${recover.from}'s backups` } : {}),
   }));
-  const [busy, setBusy] = useState<"" | "test" | "save" | "hostkey">("");
+  const [busy, setBusy] = useState<"" | "test" | "save" | "hostkey" | "hosted">("");
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [fetched, setFetched] = useState<{ key: string; fingerprint: string } | null>(null);
   const set = (change: Partial<Form>) => {
@@ -642,6 +633,19 @@ function DestinationDialog({
     }
   }
 
+  async function enableHosted() {
+    if (!hosted) return;
+    setBusy("hosted");
+    setResult(null);
+    try {
+      await hosted.enable();
+      await onSaved();
+    } catch (err) {
+      setResult({ ok: false, text: message(err) });
+      setBusy("");
+    }
+  }
+
   const preset = s3Presets.find((p) => p.id === f.preset) ?? s3Presets[0];
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -659,6 +663,33 @@ function DestinationDialog({
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-2">
+              {hosted && (
+                <button
+                  type="button"
+                  disabled={busy !== ""}
+                  onClick={enableHosted}
+                  className="flex items-start gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3 text-left transition-colors hover:bg-primary/10 disabled:opacity-60"
+                >
+                  {busy === "hosted" ? (
+                    <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+                  ) : (
+                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                  )}
+                  <span>
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      Raptor Backup Storage
+                      <Badge variant="outline">Recommended</Badge>
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      Offsite, with nothing to set up: encrypted on this node before it leaves, kept
+                      in a separate data center. {formatBytes(10 * 2 ** 30)} included with every
+                      node
+                      {hosted.included > 0 && ` (${formatBytes(hosted.included)} for your org)`},
+                      then $12 per TB a month.
+                    </span>
+                  </span>
+                </button>
+              )}
               {choosable.map((t) => {
                 const Icon = typeIcons[t];
                 return (
@@ -683,6 +714,7 @@ function DestinationDialog({
                 );
               })}
             </div>
+            {result && !result.ok && <p className="text-sm text-destructive">{result.text}</p>}
           </div>
         ) : (
           <form onSubmit={save} className="flex min-w-0 flex-col gap-4">
@@ -1249,36 +1281,6 @@ function CopyLine({ value }: { value: string }) {
         }}
       >
         {copied ? <Check /> : <Copy />}
-      </Button>
-    </div>
-  );
-}
-
-// HostedOffer is Raptor Backup Storage, offered first: offsite backups
-// without setting anything up.
-function HostedOffer({
-  busy,
-  included,
-  onEnable,
-}: {
-  busy: boolean;
-  included: number;
-  onEnable: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center">
-      <ShieldCheck className="size-8 shrink-0 text-primary" />
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="font-medium">Raptor Backup Storage</p>
-        <p className="text-sm text-muted-foreground">
-          Offsite backups with nothing to set up: encrypted on this node before they leave it, kept
-          in a separate data center. {formatBytes(10 * 2 ** 30)} included with every node
-          {included > 0 && ` (${formatBytes(included)} for your org)`}, then $12 per TB a month.
-        </p>
-      </div>
-      <Button onClick={onEnable} disabled={busy}>
-        {busy && <Loader2 className="animate-spin" />}
-        Turn on
       </Button>
     </div>
   );

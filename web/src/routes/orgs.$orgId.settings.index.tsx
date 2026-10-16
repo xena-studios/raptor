@@ -1,8 +1,8 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { LeaveOrg, OrgDetails, OrgSettings } from "@/components/org/org-settings";
-import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { DeleteOrg, LeaveOrg, OrgDetails, OrgSettings } from "@/components/org/org-settings";
+import { OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
 import { isAdmin } from "@/lib/format";
 import { useIds } from "@/lib/ids";
 
@@ -20,7 +20,7 @@ function General() {
     <div className="space-y-6">
       <OrgSettings key={org.name} org={org} editable={isAdmin(org.role)} />
       <OrgDetails org={org} />
-      <LeaveOrg org={org} userId={user.id} />
+      {org.role === Role.OWNER ? <DeleteOrg org={org} /> : <LeaveOrg org={org} userId={user.id} />}
     </div>
   );
 }

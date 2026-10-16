@@ -260,6 +260,7 @@ There is no separate prototype phase. The riskiest assumptions are checked by a 
 - [x] Performance: route code splitting, lazy xterm and editor (every route's page is its own chunk (the router plugin's `autoCodeSplitting`); xterm and the editor load only when shown, each in its own chunk; the first load is about 227 KB gzipped, mostly React, the router, and React Query, measured Oct 12, 2026)
 - [x] Short URLs: orgs, nodes, and servers by their short IDs (a UUID's last part), old full-ID links redirected, both IDs on the Settings tabs ([PANEL.md](PANEL.md#urls), #280)
 - [x] Pop-outs: a server's console, files, and stats, and a node's stats, each in a window of its own ([PANEL.md](PANEL.md#pop-outs), #282)
+- [x] Owners delete orgs (once their nodes are removed); Raptor Backup Storage is a choice in Add destination, not a banner; right-click menus in the file manager's list and tree (#283)
 
 **Exit criteria:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, **without help**, in under 15 minutes.
 
