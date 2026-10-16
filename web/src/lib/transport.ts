@@ -1,11 +1,11 @@
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
-
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { CommandService } from "@/gen/raptor/panel/v1/command_pb";
 import { EggService } from "@/gen/raptor/panel/v1/egg_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
+import { toastActions } from "@/lib/action-toasts";
 
 // The API: https://api.raptorpanel.net/api in production (VITE_API_URL, a
 // separate origin; docs/DECISIONS.md #81), /api through Vite's proxy in
@@ -18,6 +18,7 @@ export const apiURL: string = import.meta.env.VITE_API_URL ?? "/api";
 export const transport = createConnectTransport({
   baseUrl: apiURL,
   defaultTimeoutMs: 90_000,
+  interceptors: [toastActions],
   fetch: (input, init) => fetch(input, { ...init, credentials: "include" }),
 });
 
