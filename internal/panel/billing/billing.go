@@ -366,7 +366,7 @@ func (s *Service) Run(ctx context.Context, interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
-		if err := s.Sweep(ctx); err != nil && ctx.Err() == nil {
+		if err := s.sweepAll(ctx, false); err != nil && ctx.Err() == nil {
 			s.log().Warn("billing sweep failed", "err", err)
 		}
 		select {
@@ -377,8 +377,13 @@ func (s *Service) Run(ctx context.Context, interval time.Duration) {
 	}
 }
 
-// Sweep looks at every org with nodes or a subscription.
-func (s *Service) Sweep(ctx context.Context) error {
+// Sweep looks at every org with nodes or a subscription, once any sweep
+// running now has finished.
+func (s *Service) Sweep(ctx context.Context) error { return s.sweepAll(ctx, true) }
+
+// sweepAll sweeps every org. Without wait, it gives up when another sweep
+// holds the lock: Run's sweeps on every instance need only one to run.
+func (s *Service) sweepAll(ctx context.Context, wait bool) error {
 	if !s.Enabled() {
 		return nil
 	}
@@ -387,9 +392,15 @@ func (s *Service) Sweep(ctx context.Context) error {
 		return err
 	}
 	defer conn.Release()
-	var locked bool
-	if err := conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1)", int64(lockID)).Scan(&locked); err != nil || !locked {
-		return err
+	if wait {
+		if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", int64(lockID)); err != nil {
+			return err
+		}
+	} else {
+		var locked bool
+		if err := conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1)", int64(lockID)).Scan(&locked); err != nil || !locked {
+			return err
+		}
 	}
 	defer func() { _, _ = conn.Exec(context.WithoutCancel(ctx), "SELECT pg_advisory_unlock($1)", int64(lockID)) }()
 	rows, err := store.New(s.DB).BillingOrgs(ctx)
@@ -406,11 +417,24 @@ func (s *Service) Sweep(ctx context.Context) error {
 }
 
 // sweepOne sweeps one org now (after a webhook, or a node linked or
-// removed), unless a full sweep is running.
+// removed). It waits for a full sweep, or another org's, to finish first:
+// two sweeps of one org at once would both send its emails.
 func (s *Service) sweepOne(ctx context.Context, org uuid.UUID) {
 	if !s.Enabled() {
 		return
 	}
+	conn, err := s.DB.Acquire(ctx)
+	if err != nil {
+		return
+	}
+	defer conn.Release()
+	lctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	if _, err := conn.Exec(lctx, "SELECT pg_advisory_lock($1)", int64(lockID)); err != nil {
+		s.log().Warn("billing: waiting for a sweep failed; the next one gets this org", "org", org, "err", err)
+		return
+	}
+	defer func() { _, _ = conn.Exec(context.WithoutCancel(ctx), "SELECT pg_advisory_unlock($1)", int64(lockID)) }()
 	rows, err := store.New(s.DB).BillingOrgs(ctx)
 	if err != nil {
 		return
