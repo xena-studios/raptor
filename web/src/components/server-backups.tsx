@@ -6,29 +6,24 @@ import {
   ArchiveRestore,
   CheckCircle2,
   ChevronDown,
-  ChevronRight,
   Clock,
-  FileStack,
-  Folder,
   FolderOpen,
   Loader2,
   Lock,
   LockOpen,
   MoreHorizontal,
-  RotateCcw,
   Trash2,
   X,
   XCircle,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-import { EntryIcon } from "@/components/file-manager/icons";
+import { BackupFiles } from "@/components/backup-files";
 import { EmptyState } from "@/components/page";
 import { BackupPlan, useBackupPlan } from "@/components/server-backup-plan";
 import { StatusBadge } from "@/components/server-status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -54,8 +49,9 @@ import {
 } from "@/components/ui/table";
 import { type Backup, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
-import { crumbs, formatSize, join } from "@/lib/files";
+import { formatSize } from "@/lib/files";
 import { dateTime, isAdmin, when } from "@/lib/format";
+import { shortId } from "@/lib/short-id";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
@@ -86,15 +82,6 @@ type Activity = {
   finished_at?: number;
 };
 
-// And backup.browse.
-type BrowseEntry = {
-  name: string;
-  type: "file" | "dir" | "symlink";
-  size: number;
-  modified_at: number;
-  denied?: boolean;
-};
-
 const busy = (a: Activity) => a.status === "queued" || a.status === "running";
 
 function percent(a: Activity): number | undefined {
@@ -107,21 +94,27 @@ function backupDate(b: Backup | undefined): string {
   return b?.createdAt ? when(b.createdAt) : "a backup";
 }
 
-// ServerBackups lists a server's backups and takes, restores, locks, and
-// deletes them, with what's running shown as it goes. A restore is the
-// whole server (signed by the user's passkey: it replaces every file) or
-// some files picked from the backup, put in .restore without touching
-// anything else.
+// Which backup is open, and where in it: in the page's URL.
+export type BrowseAt = { backup: string; path?: string; file?: string };
+
+// ServerBackups lists a server's backups and takes, opens, locks, and
+// deletes them, with what's running shown as it goes. Opening one shows
+// its files like the file manager (BackupFiles), to restore some of them
+// into .restore or the whole server.
 export function ServerBackups({
   orgId,
   nodeId,
   serverId,
   userId,
+  browse,
+  onBrowse,
 }: {
   orgId: string;
   nodeId: string;
   serverId: string;
   userId: string;
+  browse?: BrowseAt;
+  onBrowse: (to: BrowseAt | undefined) => void;
 }) {
   const client = useQueryClient();
   const run = async <T,>(action: string, params: object): Promise<T> => {
@@ -168,7 +161,9 @@ export function ServerBackups({
     }
   }, [acts, client]);
 
-  const [restoring, setRestoring] = useState<Backup>();
+  const [deleting, setDeleting] = useState<Backup>();
+  // Restores to .restore started from an open backup, by job.
+  const [pulled, setPulled] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
 
@@ -198,6 +193,52 @@ export function ServerBackups({
       (a.finished_at ?? 0) > Date.now() - 10 * 60_000,
   );
 
+  if (browse) {
+    const open = backups.find((b) => b.id === browse.backup || shortId(b.id) === browse.backup);
+    if (!open) {
+      return list.isPending ? null : (
+        <EmptyState
+          icon={Archive}
+          title="That backup isn't here"
+          description="It may have been deleted, or it's still being taken."
+          action={<Button onClick={() => onBrowse(undefined)}>Back to the backups</Button>}
+        />
+      );
+    }
+    return (
+      <BackupFiles
+        orgId={orgId}
+        nodeId={nodeId}
+        serverId={serverId}
+        backup={open}
+        path={browse.path ?? ""}
+        file={browse.file}
+        pulls={acts.filter((a) => pulled.has(a.job_id))}
+        onNavigate={(to) => onBrowse({ backup: browse.backup, ...to })}
+        onClose={() => onBrowse(undefined)}
+        onPull={async (paths) => {
+          const r = await run<{ job_id: string }>("backup.extract", {
+            backup_id: open.id,
+            paths,
+          });
+          setPulled(new Set(pulled).add(r.job_id));
+          await activity.refetch();
+        }}
+        onRestoreAll={async () => {
+          await sendSigned({
+            userId,
+            nodeId,
+            serverId,
+            action: "backup.restore",
+            params: { backup_id: open.id },
+          });
+          await activity.refetch();
+          onBrowse(undefined);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -205,8 +246,8 @@ export function ServerBackups({
           <div className="space-y-1.5">
             <CardTitle>Backups</CardTitle>
             <CardDescription>
-              Copies of the server's files. Restore all of it, or pull out just the files you need.
-              Locked backups are kept until you unlock them.
+              Copies of the server's files. Open one to look through it, restore the files you need,
+              or restore all of it. Locked backups are kept until you unlock them.
             </CardDescription>
           </div>
           <div className="flex">
@@ -326,65 +367,58 @@ export function ServerBackups({
                         <BackupStatus backup={b} running={running} />
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={
-                              <Button
-                                size="icon-sm"
-                                variant="ghost"
-                                aria-label={`Actions for the backup from ${when(b.createdAt)}`}
-                                disabled={pending !== ""}
-                              />
-                            }
+                        <span className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={b.status !== "ok" || pending !== ""}
+                            onClick={() => onBrowse({ backup: shortId(b.id) })}
                           >
-                            <MoreHorizontal />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              disabled={b.status !== "ok"}
-                              onClick={() => setRestoring(b)}
-                            >
-                              <ArchiveRestore /> Restore…
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                act(b.id, () =>
-                                  b.locked
-                                    ? sendSigned({
-                                        userId,
-                                        nodeId,
-                                        serverId,
-                                        action: "backup.lock",
-                                        params: { backup_id: b.id, locked: false },
-                                      })
-                                    : run("backup.lock", { backup_id: b.id, locked: true }),
-                                )
+                            <ArchiveRestore /> Restore
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  size="icon-sm"
+                                  variant="ghost"
+                                  aria-label={`Actions for the backup from ${when(b.createdAt)}`}
+                                  disabled={pending !== ""}
+                                />
                               }
                             >
-                              {b.locked ? <LockOpen /> : <Lock />}
-                              {b.locked ? "Unlock" : "Lock"}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              variant="destructive"
-                              disabled={b.locked || b.kind === "recovered"}
-                              onClick={() => {
-                                if (window.confirm("Delete this backup? It can't be undone."))
-                                  void act(b.id, () =>
-                                    sendSigned({
-                                      userId,
-                                      nodeId,
-                                      serverId,
-                                      action: "backup.delete",
-                                      params: { backup_id: b.id },
-                                    }),
-                                  );
-                              }}
-                            >
-                              <Trash2 /> {b.locked ? "Unlock it to delete" : "Delete"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <MoreHorizontal />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  act(b.id, () =>
+                                    b.locked
+                                      ? sendSigned({
+                                          userId,
+                                          nodeId,
+                                          serverId,
+                                          action: "backup.lock",
+                                          params: { backup_id: b.id, locked: false },
+                                        })
+                                      : run("backup.lock", { backup_id: b.id, locked: true }),
+                                  )
+                                }
+                              >
+                                {b.locked ? <LockOpen /> : <Lock />}
+                                {b.locked ? "Unlock" : "Lock"}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                variant="destructive"
+                                disabled={b.locked || b.kind === "recovered"}
+                                onClick={() => setDeleting(b)}
+                              >
+                                <Trash2 /> {b.locked ? "Unlock it to delete" : "Delete"}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </span>
                       </TableCell>
                     </TableRow>
                   );
@@ -397,28 +431,41 @@ export function ServerBackups({
 
       <BackupPlan orgId={orgId} nodeId={nodeId} serverId={serverId} userId={userId} admin={admin} />
 
-      {restoring && (
-        <RestoreDialog
-          backup={restoring}
-          run={run}
-          onClose={() => setRestoring(undefined)}
-          onWhole={() =>
-            act(restoring.id, () =>
-              sendSigned({
-                userId,
-                nodeId,
-                serverId,
-                action: "backup.restore",
-                params: { backup_id: restoring.id },
-              }),
-            )
-          }
-          onPicked={async (paths) => {
-            await run("backup.extract", { backup_id: restoring.id, paths });
-            await activity.refetch();
-          }}
-        />
-      )}
+      <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(undefined)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete the backup from {backupDate(deleting)}?</DialogTitle>
+            <DialogDescription>
+              It's deleted for good, wherever it's stored; backups don't go to a trash. Your passkey
+              signs it.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleting(undefined)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                const b = deleting;
+                setDeleting(undefined);
+                if (b)
+                  void act(b.id, () =>
+                    sendSigned({
+                      userId,
+                      nodeId,
+                      serverId,
+                      action: "backup.delete",
+                      params: { backup_id: b.id },
+                    }),
+                  );
+              }}
+            >
+              <Trash2 /> Delete backup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -526,8 +573,8 @@ function Note({
               ? `Restored the backup from ${backupDate(backup)}.`
               : `Restoring the backup from ${backupDate(backup)} failed.`
             : ok
-              ? `Pulled ${items} from the backup from ${backupDate(backup)}.`
-              : `Pulling ${items} from the backup from ${backupDate(backup)} failed.`}
+              ? `Restored ${items} from the backup from ${backupDate(backup)}.`
+              : `Restoring ${items} from the backup from ${backupDate(backup)} failed.`}
         </p>
         {ok && a.kind === "extract" && a.folder && (
           <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -540,241 +587,5 @@ function Note({
         <X />
       </Button>
     </div>
-  );
-}
-
-// RestoreDialog restores the whole server, or picks files from the backup.
-function RestoreDialog({
-  backup,
-  run,
-  onClose,
-  onWhole,
-  onPicked,
-}: {
-  backup: Backup;
-  run: <T>(action: string, params: object) => Promise<T>;
-  onClose: () => void;
-  onWhole: () => Promise<void>;
-  onPicked: (paths: string[]) => Promise<void>;
-}) {
-  const [mode, setMode] = useState<"whole" | "pick">();
-  const [dir, setDir] = useState("");
-  const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [busyAct, setBusyAct] = useState(false);
-  const [error, setError] = useState("");
-  const listing = useQuery({
-    queryKey: ["backup-browse", backup.id, dir],
-    queryFn: () =>
-      run<{ entries: BrowseEntry[] }>("backup.browse", { backup_id: backup.id, path: dir }),
-    enabled: mode === "pick",
-    staleTime: Number.POSITIVE_INFINITY,
-  });
-  const entries = [...(listing.data?.entries ?? [])].sort(
-    (a, b) =>
-      (a.type === "dir" ? 0 : 1) - (b.type === "dir" ? 0 : 1) ||
-      a.name.localeCompare(b.name, undefined, { numeric: true }),
-  );
-  const inPicked = (p: string) => [...picked].some((x) => p === x || p.startsWith(`${x}/`));
-
-  function toggle(p: string) {
-    const next = new Set(picked);
-    if (next.has(p)) next.delete(p);
-    else {
-      // Picking a folder covers what's in it.
-      for (const x of next) if (x.startsWith(`${p}/`)) next.delete(x);
-      next.add(p);
-    }
-    setPicked(next);
-  }
-
-  async function go(fn: () => Promise<void>) {
-    setBusyAct(true);
-    setError("");
-    try {
-      await fn();
-      onClose();
-    } catch (err) {
-      if (!passkeyCancelled(err)) setError(message(err));
-      setBusyAct(false);
-    }
-  }
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className={cn(mode === "pick" && "sm:max-w-2xl")}>
-        <DialogHeader>
-          <DialogTitle>Restore the backup from {when(backup.createdAt)}</DialogTitle>
-          <DialogDescription>
-            {formatSize(Number(backup.size))} · {Number(backup.files).toLocaleString()} files
-          </DialogDescription>
-        </DialogHeader>
-
-        {!mode && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ModeChoice
-              icon={RotateCcw}
-              title="The whole server"
-              text="Replaces every file with the backup's. The server stops while it runs. A safety backup of the files now is taken first."
-              onClick={() => setMode("whole")}
-            />
-            <ModeChoice
-              icon={FileStack}
-              title="Pick files"
-              text="Choose files and folders. They're put in a .restore folder, and nothing on the server changes."
-              onClick={() => setMode("pick")}
-            />
-          </div>
-        )}
-
-        {mode === "whole" && (
-          <div className="space-y-2 text-sm">
-            <p>
-              Every file on the server is replaced with the backup's, and files made since are
-              deleted. A safety backup of what's there now is taken first, so this can be undone.
-            </p>
-            <p className="text-muted-foreground">Your passkey signs it.</p>
-          </div>
-        )}
-
-        {mode === "pick" && (
-          <div className="flex min-h-0 flex-col gap-2">
-            <nav
-              aria-label="Folder in the backup"
-              className="flex flex-wrap items-center gap-1 text-sm"
-            >
-              <button
-                type="button"
-                className="rounded px-1 font-medium hover:bg-muted"
-                onClick={() => setDir("")}
-              >
-                Backup
-              </button>
-              {crumbs(dir).map((c) => (
-                <span key={c.path} className="flex items-center gap-1">
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                  <button
-                    type="button"
-                    className="rounded px-1 font-medium hover:bg-muted"
-                    onClick={() => setDir(c.path)}
-                  >
-                    {c.name}
-                  </button>
-                </span>
-              ))}
-            </nav>
-            <div className="max-h-80 overflow-auto rounded-lg border">
-              {listing.isPending && (
-                <p className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" /> Opening the backup…
-                </p>
-              )}
-              {listing.error && (
-                <p className="p-3 text-sm text-destructive">{message(listing.error)}</p>
-              )}
-              {listing.data && entries.length === 0 && (
-                <p className="p-3 text-sm text-muted-foreground">This folder is empty.</p>
-              )}
-              <ul className="divide-y text-sm">
-                {entries.map((e) => {
-                  const p = join(dir, e.name);
-                  const covered = inPicked(p);
-                  return (
-                    <li
-                      key={e.name}
-                      className={cn("flex items-center gap-3 px-3 py-2", e.denied && "opacity-50")}
-                    >
-                      <Checkbox
-                        aria-label={`Restore ${e.name}`}
-                        disabled={e.denied || (covered && !picked.has(p))}
-                        checked={covered}
-                        onCheckedChange={() => toggle(p)}
-                      />
-                      {e.type === "dir" && !e.denied ? (
-                        <button
-                          type="button"
-                          className="flex min-w-0 flex-1 items-center gap-2 text-left hover:underline"
-                          onClick={() => setDir(p)}
-                        >
-                          <Folder className="size-4 shrink-0 text-chart-2" />
-                          <span className="truncate">{e.name}</span>
-                        </button>
-                      ) : (
-                        <span
-                          className="flex min-w-0 flex-1 items-center gap-2"
-                          title={
-                            e.denied ? "The game's egg doesn't allow restoring this" : undefined
-                          }
-                        >
-                          <EntryIcon e={{ ...e, mode: 0, type: e.type, denied: e.denied }} />
-                          <span className="truncate">{e.name}</span>
-                        </span>
-                      )}
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {formatSize(e.size)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {picked.size === 0
-                ? "Tick files and folders to restore; open a folder to pick inside it."
-                : `${picked.size} picked: ${[...picked].slice(0, 3).join(", ")}${picked.size > 3 ? ", …" : ""}`}
-            </p>
-          </div>
-        )}
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <DialogFooter>
-          {mode ? (
-            <Button variant="outline" onClick={() => setMode(undefined)}>
-              Back
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-          )}
-          {mode === "whole" && (
-            <Button variant="destructive" disabled={busyAct} onClick={() => go(onWhole)}>
-              Restore the whole server
-            </Button>
-          )}
-          {mode === "pick" && (
-            <Button
-              disabled={busyAct || picked.size === 0}
-              onClick={() => go(() => onPicked([...picked]))}
-            >
-              Restore {picked.size || ""} {picked.size === 1 ? "item" : "items"} to .restore
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ModeChoice({
-  icon: Icon,
-  title,
-  text,
-  onClick,
-}: {
-  icon: typeof RotateCcw;
-  title: string;
-  text: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors hover:border-primary hover:bg-muted/50"
-    >
-      <Icon className="size-5 text-muted-foreground" />
-      <span className="text-sm font-medium">{title}</span>
-      <span className="text-xs text-muted-foreground">{text}</span>
-    </button>
   );
 }

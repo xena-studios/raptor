@@ -25,6 +25,7 @@ function isFor(menuFor: MenuTarget | undefined, dir: string, name: string) {
 // opened. The folders on the way to the current one start open.
 export function Tree({
   api,
+  rootName = "Server root",
   current,
   openFile,
   onFolder,
@@ -33,6 +34,7 @@ export function Tree({
   onMenu,
 }: {
   api: Api;
+  rootName?: string;
   current: string;
   openFile?: string;
   onFolder: (path: string) => void;
@@ -42,7 +44,7 @@ export function Tree({
     <ul className="py-1 text-sm">
       <Node
         api={api}
-        name="Server root"
+        name={rootName}
         path=""
         depth={0}
         current={current}

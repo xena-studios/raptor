@@ -49,6 +49,7 @@ const (
 	BackupLock              = "backup.lock"
 	BackupBrowse            = "backup.browse"   // list a folder in a backup
 	BackupExtract           = "backup.extract"  // restore some files into .restore
+	BackupRead              = "backup.read"     // read a file in a backup
 	BackupActivity          = "backup.activity" // running and recent backups and restores
 	BackupPolicy            = "backup.policy.update"
 	BackupDestinationSave   = "backup.destination.save" // create or update
@@ -501,6 +502,19 @@ func RegisterBackups(x *command.Executor, b *backup.Manager) {
 			return nil, err
 		}
 		return map[string]any{"path": p.Path, "entries": entries}, nil
+	}})
+	x.Register(BackupRead, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p BrowseParams
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		if p.BackupID == "" || p.Path == "" {
+			return nil, errors.New("command needs a backup_id and a path")
+		}
+		return b.Read(ctx, e.ServerID, p.BackupID, p.Path)
 	}})
 	x.Register(BackupExtract, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p ExtractParams

@@ -32,9 +32,17 @@ export function sorted(entries: Entry[]): Entry[] {
   });
 }
 
+// FilesApi runs file actions, and names their queries.
+export type FilesApi = {
+  run: <T>(action: string, params: object) => Promise<T | undefined>;
+  listKey: (path: string) => readonly string[];
+  contentKey: (path: string) => readonly string[];
+  refresh: () => Promise<void>;
+};
+
 // useFilesApi runs file actions on one server and keeps its listings.
 // support: as Raptor's staff, under that support request.
-export function useFilesApi(nodeId: string, serverId: string, support?: string) {
+export function useFilesApi(nodeId: string, serverId: string, support?: string): FilesApi {
   const client = useQueryClient();
   async function run<T>(action: string, params: object): Promise<T | undefined> {
     const res = await commandClient.execute({
@@ -49,11 +57,38 @@ export function useFilesApi(nodeId: string, serverId: string, support?: string) 
   return {
     run,
     listKey: (path: string) => ["files", nodeId, serverId, path] as const,
+    contentKey: (path: string) => ["file", nodeId, serverId, path] as const,
     refresh: () => client.invalidateQueries({ queryKey: ["files", nodeId, serverId] }),
   };
 }
 
-export function useListing(api: ReturnType<typeof useFilesApi>, path: string, enabled = true) {
+// useBackupFilesApi is useFilesApi for a backup's files, read-only: listing
+// a folder is backup.browse, reading a file backup.read.
+export function useBackupFilesApi(nodeId: string, serverId: string, backupId: string): FilesApi {
+  const client = useQueryClient();
+  const actions: Record<string, string> = {
+    "files.list": "backup.browse",
+    "files.read": "backup.read",
+  };
+  async function run<T>(action: string, params: object): Promise<T | undefined> {
+    const res = await commandClient.execute({
+      nodeId,
+      action: actions[action] ?? action,
+      serverId,
+      paramsJson: JSON.stringify({ ...params, backup_id: backupId }),
+    });
+    return res.resultJson ? (JSON.parse(res.resultJson) as T) : undefined;
+  }
+  return {
+    run,
+    listKey: (path: string) => ["backup-files", nodeId, serverId, backupId, path] as const,
+    contentKey: (path: string) => ["backup-file", nodeId, serverId, backupId, path] as const,
+    refresh: () =>
+      client.invalidateQueries({ queryKey: ["backup-files", nodeId, serverId, backupId] }),
+  };
+}
+
+export function useListing(api: FilesApi, path: string, enabled = true) {
   return useQuery({
     queryKey: api.listKey(path),
     queryFn: () => api.run<Listing>("files.list", { path }),

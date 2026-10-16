@@ -76,6 +76,7 @@ var actions = map[string]string{
 	// Pulling files out of a backup writes them into the server's .restore
 	// folder, so it needs the backups permission like a restore.
 	"backup.browse":   Backups,
+	"backup.read":     Backups,
 	"backup.extract":  Backups,
 	"backup.activity": Backups,
 	"backup.policy":   Backups,
@@ -172,7 +173,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

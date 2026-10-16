@@ -44,6 +44,28 @@ func TestBrowseAndExtract(t *testing.T) {
 		}
 	}
 
+	// A file can be read back to look at; not a folder, a denied file, or
+	// one over the limit.
+	r, err := e.Read(ctx, ReadRequest{SnapshotID: res.SnapshotID, Path: "config/a.yml", Deny: deny})
+	if err != nil || string(r.Data) != "a: 1" || r.Name != "a.yml" || r.Size != 4 {
+		t.Errorf("read a.yml: %+v, %v", r, err)
+	}
+	for what, req := range map[string]ReadRequest{
+		"folder": {Path: "config"},
+		"root":   {Path: ""},
+		"denied": {Path: "world/server.jar", Deny: deny},
+		"escape": {Path: "../etc/passwd"},
+		"none":   {Path: "nope.txt"},
+	} {
+		req.SnapshotID = res.SnapshotID
+		if _, err := e.Read(ctx, req); !errors.Is(err, ErrBadPath) {
+			t.Errorf("read %s: %v", what, err)
+		}
+	}
+	if _, err := e.Read(ctx, ReadRequest{SnapshotID: res.SnapshotID, Path: "world/level.dat", Max: 4}); !errors.Is(err, ErrTooLarge) {
+		t.Errorf("read over the limit: %v", err)
+	}
+
 	// The server's files have moved on since; pull two things back out.
 	write(t, filepath.Join(src, "config/a.yml"), "a: changed", 0o644)
 	if _, err := e.Extract(ctx, ExtractRequest{
