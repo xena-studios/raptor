@@ -12,5 +12,5 @@ function System() {
   const { orgId, nodeId } = Route.useParams();
   const node = useOrgNodes(orgId).data?.nodes.find((n) => n.id === nodeId);
   if (!node) return null;
-  return <NodeSystem nodeId={nodeId} userId={session.user?.id ?? ""} connected={node.connected} />;
+  return <NodeSystem orgId={orgId} node={node} userId={session.user?.id ?? ""} />;
 }

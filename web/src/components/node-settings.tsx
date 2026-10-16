@@ -47,7 +47,8 @@ export function NodeName({
       <CardHeader>
         <CardTitle>Name</CardTitle>
         <CardDescription>
-          What the node is called in Raptor. The machine's own hostname is on the System tab.
+          What the node is called in Raptor. The machine's hostname follows it, unless you set one
+          of its own on the System tab.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

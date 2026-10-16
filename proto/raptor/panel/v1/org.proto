@@ -94,6 +94,11 @@ service OrgService {
   // RenameNode renames a node. Admins and owners.
   rpc RenameNode(RenameNodeRequest) returns (RenameNodeResponse) {}
 
+  // SetNodeHostname sets the machine's own hostname, or ('') has it follow
+  // the node's name, which is the default: renaming the node renames the
+  // machine. The node must be connected. Admins and owners.
+  rpc SetNodeHostname(SetNodeHostnameRequest) returns (SetNodeHostnameResponse) {}
+
   // SetNodeDisplayAddress is replaced by SetServerDisplayAddress: a shown
   // address is a server's. It fails with FailedPrecondition.
   rpc SetNodeDisplayAddress(SetNodeDisplayAddressRequest) returns (SetNodeDisplayAddressResponse) {
@@ -432,6 +437,14 @@ message Node {
   // Admins and owners only; the app shows them hidden until revealed.
   string public_ipv4 = 16;
   string public_ipv6 = 17;
+  // The machine's own hostname and time zone (IANA), as the Panel last read
+  // them; '' until it has. The hostname follows the node's name unless an
+  // admin set one (hostname_custom), and hostname_error is why the node
+  // refused the last one it was asked for.
+  string machine_hostname = 18;
+  string hostname_custom = 19;
+  string hostname_error = 20;
+  string timezone = 21;
 }
 
 message ListNodesResponse {
@@ -445,6 +458,19 @@ message RenameNodeRequest {
 }
 
 message RenameNodeResponse {}
+
+message SetNodeHostnameRequest {
+  string org_id = 1;
+  string node_id = 2;
+  // The machine's hostname; '' follows the node's name.
+  string hostname = 3;
+}
+
+message SetNodeHostnameResponse {
+  // A note for the admin, when the hostname changed but something beside
+  // it couldn't be (/etc/hosts).
+  string note = 1;
+}
 
 message SetNodeDisplayAddressRequest {
   string org_id = 1;

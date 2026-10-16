@@ -1,5 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, Plus, Power, ShieldAlert, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Loader2,
+  Plus,
+  Power,
+  ShieldAlert,
+  Trash2,
+} from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,11 +24,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Node } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { sendSigned } from "@/lib/signed";
-import { commandClient } from "@/lib/transport";
+import { commandClient, orgClient } from "@/lib/transport";
 import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
+import { timeZones } from "@/lib/zones";
 
 // The machine's own settings, from the node's System tab: its hostname,
 // time zone and clock, firewall, and rebooting it (Wings' node.* system
@@ -43,30 +53,35 @@ type SystemState = {
   open: { protocol: string; port: number; why: string }[] | null;
   ssh_ports: number[];
   ufw: boolean;
+  ruleset?: Listed[];
+  ruleset_truncated?: boolean;
+  ruleset_error?: string;
+};
+
+// Listed is one rule on the machine, whoever's (Wings' firewall.Listed).
+type Listed = {
+  table: string;
+  chain: string;
+  hook?: string;
+  rule: string;
+  policy?: boolean;
+  owner: "raptor" | "yours" | "docker" | "ufw" | "fail2ban" | "other";
+  needed: boolean;
+  why: string;
+  index?: number;
 };
 
 const select =
   "h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
-
-function timeZones(): string[] {
-  const intl = Intl as typeof Intl & { supportedValuesOf?: (k: string) => string[] };
-  return ["UTC", ...(intl.supportedValuesOf?.("timeZone") ?? []).filter((z) => z !== "UTC")];
-}
 
 async function run<T>(nodeId: string, action: string, params: unknown = {}): Promise<T> {
   const res = await commandClient.execute({ nodeId, action, paramsJson: JSON.stringify(params) });
   return (res.resultJson ? JSON.parse(res.resultJson) : null) as T;
 }
 
-export function NodeSystem({
-  nodeId,
-  userId,
-  connected,
-}: {
-  nodeId: string;
-  userId: string;
-  connected: boolean;
-}) {
+export function NodeSystem({ orgId, node, userId }: { orgId: string; node: Node; userId: string }) {
+  const nodeId = node.id;
+  const connected = node.connected;
   const state = useQuery({
     queryKey: ["node-system", nodeId],
     queryFn: () => run<SystemState>(nodeId, "node.system"),
@@ -86,16 +101,37 @@ export function NodeSystem({
   if (!s) return <p className="text-sm text-muted-foreground">Asking the node…</p>;
   return (
     <div className="flex flex-col gap-6">
-      <Machine key={`${s.hostname}/${s.timezone}`} nodeId={nodeId} s={s} />
+      <Machine
+        key={`${s.hostname}/${s.timezone}/${node.hostnameCustom}`}
+        orgId={orgId}
+        node={node}
+        s={s}
+      />
       <Firewall key={JSON.stringify(s.firewall)} nodeId={nodeId} userId={userId} s={s} />
+      <Ruleset s={s} />
       <Reboot nodeId={nodeId} userId={userId} />
     </div>
   );
 }
 
-function Machine({ nodeId, s }: { nodeId: string; s: SystemState }) {
+// hostnameFor is the hostname a node's name makes, as the Panel makes it
+// (machines.Want).
+function hostnameFor(node: Node): string {
+  const h = node.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 63)
+    .replace(/-+$/, "");
+  return h || `n-${node.shortId}`;
+}
+
+function Machine({ orgId, node, s }: { orgId: string; node: Node; s: SystemState }) {
+  const nodeId = node.id;
   const client = useQueryClient();
-  const [hostname, setHostname] = useState(s.hostname);
+  const follows = !node.hostnameCustom;
+  const [hostname, setHostname] = useState(follows ? s.hostname : node.hostnameCustom);
+  const [custom, setCustom] = useState(!follows);
   const [tz, setTz] = useState(s.timezone);
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<{ ok: boolean; text: string }>();
@@ -115,12 +151,16 @@ function Machine({ nodeId, s }: { nodeId: string; s: SystemState }) {
     }
   }
 
+  function setHostnameTo(value: string) {
+    change("hostname", async () => {
+      const r = await orgClient.setNodeHostname({ orgId, nodeId, hostname: value });
+      await client.invalidateQueries();
+      return r.note;
+    });
+  }
   function saveHostname(e: FormEvent) {
     e.preventDefault();
-    change("hostname", async () => {
-      const r = await run<{ note: string }>(nodeId, "node.hostname", { hostname });
-      return r?.note;
-    });
+    setHostnameTo(hostname);
   }
   function saveTz(e: FormEvent) {
     e.preventDefault();
@@ -140,25 +180,62 @@ function Machine({ nodeId, s }: { nodeId: string; s: SystemState }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        <form onSubmit={saveHostname} className="flex items-end gap-2">
-          <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="sys-hostname">Hostname</Label>
-            <Input
-              id="sys-hostname"
-              value={hostname}
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(e) => setHostname(e.target.value)}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <label htmlFor="sys-follow" className="block text-sm font-medium">
+                Hostname follows the node's name
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Renaming the node renames the machine: "{node.name}" is{" "}
+                <code>{hostnameFor(node)}</code>.
+              </p>
+            </div>
+            <Switch
+              id="sys-follow"
+              checked={!custom}
+              disabled={!!busy}
+              onCheckedChange={(on) => {
+                setCustom(!on);
+                if (on) {
+                  setHostname(hostnameFor(node));
+                  if (!follows) setHostnameTo("");
+                }
+              }}
             />
           </div>
-          <Button
-            type="submit"
-            variant="outline"
-            disabled={!!busy || !hostname.trim() || hostname === s.hostname}
-          >
-            {busy === "hostname" && <Loader2 className="animate-spin" />} Rename
-          </Button>
-        </form>
+          <form onSubmit={saveHostname} className="flex items-end gap-2">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="sys-hostname">Hostname</Label>
+              <Input
+                id="sys-hostname"
+                value={custom ? hostname : s.hostname}
+                readOnly={!custom}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(e) => setHostname(e.target.value)}
+              />
+            </div>
+            {custom && (
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={
+                  !!busy ||
+                  !hostname.trim() ||
+                  (hostname === node.hostnameCustom && hostname === s.hostname)
+                }
+              >
+                {busy === "hostname" && <Loader2 className="animate-spin" />} Rename
+              </Button>
+            )}
+          </form>
+          {node.hostnameError && (
+            <p className="text-xs text-destructive">
+              The node refused the last hostname it was sent: {node.hostnameError}
+            </p>
+          )}
+        </div>
         <form onSubmit={saveTz} className="flex flex-col gap-1.5">
           <Label htmlFor="sys-tz">Time zone</Label>
           <div className="flex items-end gap-2">
@@ -430,6 +507,128 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
           )}
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+const owners: { owner: Listed["owner"]; title: string; about: string }[] = [
+  {
+    owner: "raptor",
+    title: "Raptor's",
+    about:
+      "Keep install containers off your network and the cloud metadata service, and send connections through your rules. Raptor puts them back if they're removed.",
+  },
+  { owner: "yours", title: "Yours", about: "The rules above, as they're loaded." },
+  {
+    owner: "docker",
+    title: "Docker's",
+    about:
+      "Servers run in Docker containers: these send players to them and let them reach the internet. Docker keeps them up to date.",
+  },
+  { owner: "ufw", title: "ufw's", about: "ufw is on. Manage these with the ufw command." },
+  {
+    owner: "fail2ban",
+    title: "fail2ban's",
+    about: "Blocks for addresses that keep failing to log in.",
+  },
+  {
+    owner: "other",
+    title: "Something else's",
+    about:
+      "Not from Raptor or Docker: your provider's image, a script, or another program. Raptor doesn't change them.",
+  },
+];
+
+// Ruleset is every rule on the machine (nft list ruleset), grouped by whose
+// it is, with what each does and which ones Raptor needs.
+function Ruleset({ s }: { s: SystemState }) {
+  const [open, setOpen] = useState<string[]>(["other"]);
+  const list = s.ruleset ?? [];
+  if (!s.ruleset && !s.ruleset_error) return null; // an older Wings
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Every rule on the machine</CardTitle>
+        <CardDescription>
+          Everything in the machine's firewall (nftables), whoever put it there. Rules marked{" "}
+          <Badge variant="outline">Needed</Badge> keep servers working: leave them alone.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {s.ruleset_error && <p className="text-sm text-destructive">{s.ruleset_error}</p>}
+        {owners.map((g) => {
+          const rules = list.filter((l) => l.owner === g.owner);
+          if (rules.length === 0) return null;
+          const shown = open.includes(g.owner);
+          return (
+            <div key={g.owner} className="rounded-lg border">
+              <button
+                type="button"
+                className="flex w-full items-start gap-3 p-3 text-left"
+                aria-expanded={shown}
+                onClick={() =>
+                  setOpen(shown ? open.filter((o) => o !== g.owner) : [...open, g.owner])
+                }
+              >
+                <ChevronRight
+                  className={cn(
+                    "mt-0.5 size-4 shrink-0 transition-transform",
+                    shown && "rotate-90",
+                  )}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    {g.title}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {rules.length} {rules.length === 1 ? "rule" : "rules"}
+                    </span>
+                    {rules.some((r) => r.needed) && <Badge variant="outline">Needed</Badge>}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">{g.about}</span>
+                </span>
+              </button>
+              {shown && (
+                <ul className="divide-y border-t">
+                  {rules.map((r, i) => (
+                    <li
+                      // biome-ignore lint/suspicious/noArrayIndexKey: rules have no IDs; their order is the rule set's
+                      key={i}
+                      className="flex flex-col gap-1 px-3 py-2"
+                    >
+                      <code
+                        className={cn(
+                          "text-xs break-all",
+                          r.policy && "font-semibold text-destructive",
+                        )}
+                      >
+                        {r.rule}
+                      </code>
+                      <span className="text-xs text-muted-foreground">{r.why}</span>
+                      <span className="font-mono text-[11px] text-muted-foreground/70">
+                        {r.table} › {r.chain}
+                        {r.hook ? ` (${r.hook})` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+        {list.length === 0 && !s.ruleset_error && (
+          <p className="text-sm text-muted-foreground">The machine has no firewall rules.</p>
+        )}
+        {s.ruleset_truncated && (
+          <p className="text-xs text-muted-foreground">
+            Only the first {list.length} rules are shown. Run <code>sudo nft list ruleset</code> on
+            the machine for all of them.
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Rules loaded with the older iptables-legacy tools aren't shown: run{" "}
+          <code>sudo iptables-legacy -S</code> to see them.
+        </p>
       </CardContent>
     </Card>
   );

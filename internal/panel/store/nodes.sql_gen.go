@@ -65,7 +65,7 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 const createNode = `-- name: CreateNode :one
 INSERT INTO nodes (org_id, name, short_id, public_key, facts, wings_version)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at
 `
 
 type CreateNodeParams struct {
@@ -112,6 +112,12 @@ func (q *Queries) CreateNode(ctx context.Context, arg CreateNodeParams) (Node, e
 		&i.DisplayAddress,
 		&i.AlertsHash,
 		&i.AlertsError,
+		&i.Hostname,
+		&i.Timezone,
+		&i.HostnameCustom,
+		&i.HostnameTried,
+		&i.HostnameError,
+		&i.SystemReadAt,
 	)
 	return i, err
 }
@@ -234,7 +240,7 @@ func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (
 }
 
 const getNode = `-- name: GetNode :one
-SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error FROM nodes WHERE id = $1
+SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at FROM nodes WHERE id = $1
 `
 
 func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
@@ -265,12 +271,67 @@ func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
 		&i.DisplayAddress,
 		&i.AlertsHash,
 		&i.AlertsError,
+		&i.Hostname,
+		&i.Timezone,
+		&i.HostnameCustom,
+		&i.HostnameTried,
+		&i.HostnameError,
+		&i.SystemReadAt,
 	)
 	return i, err
 }
 
+const machinesToSync = `-- name: MachinesToSync :many
+SELECT n.id, n.name, n.short_id, n.hostname, n.hostname_custom, n.hostname_tried,
+       (n.system_read_at IS NOT NULL)::bool AS read
+FROM nodes n
+WHERE n.deleted_at IS NULL AND n.key_revoked_at IS NULL
+  AND EXISTS (SELECT 1 FROM node_connections c JOIN panel_instances i ON i.id = c.instance_id
+              WHERE c.node_id = n.id AND i.seen_at > now() - interval '20 seconds')
+`
+
+type MachinesToSyncRow struct {
+	ID             pgtype.UUID
+	Name           string
+	ShortID        string
+	Hostname       string
+	HostnameCustom string
+	HostnameTried  string
+	Read           bool
+}
+
+// Connected nodes whose settings haven't been read since they connected, or
+// whose hostname isn't what it should be.
+func (q *Queries) MachinesToSync(ctx context.Context) ([]MachinesToSyncRow, error) {
+	rows, err := q.db.Query(ctx, machinesToSync)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MachinesToSyncRow
+	for rows.Next() {
+		var i MachinesToSyncRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ShortID,
+			&i.Hostname,
+			&i.HostnameCustom,
+			&i.HostnameTried,
+			&i.Read,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const nodeConnected = `-- name: NodeConnected :exec
-UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3,
+UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3, system_read_at = NULL,
     last_acked_seq = CASE WHEN wings_version <> '' AND wings_version <> $2 THEN -1 ELSE last_acked_seq END
 WHERE id = $1
 `
@@ -326,7 +387,7 @@ const relinkNode = `-- name: RelinkNode :one
 UPDATE nodes
 SET public_key = $2, wings_version = $3, facts = $4, key_revoked_at = NULL, deleted_at = NULL
 WHERE id = $1
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at
 `
 
 type RelinkNodeParams struct {
@@ -369,6 +430,12 @@ func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, e
 		&i.DisplayAddress,
 		&i.AlertsHash,
 		&i.AlertsError,
+		&i.Hostname,
+		&i.Timezone,
+		&i.HostnameCustom,
+		&i.HostnameTried,
+		&i.HostnameError,
+		&i.SystemReadAt,
 	)
 	return i, err
 }
@@ -460,6 +527,49 @@ func (q *Queries) SetNodeDNS(ctx context.Context, arg SetNodeDNSParams) error {
 	return err
 }
 
+const setNodeHostnameCustom = `-- name: SetNodeHostnameCustom :one
+UPDATE nodes SET hostname_custom = $2, hostname_tried = '', hostname_error = ''
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING name, short_id
+`
+
+type SetNodeHostnameCustomParams struct {
+	ID             pgtype.UUID
+	HostnameCustom string
+}
+
+type SetNodeHostnameCustomRow struct {
+	Name    string
+	ShortID string
+}
+
+// ” follows the node's name again. Clearing tried has it applied now.
+func (q *Queries) SetNodeHostnameCustom(ctx context.Context, arg SetNodeHostnameCustomParams) (SetNodeHostnameCustomRow, error) {
+	row := q.db.QueryRow(ctx, setNodeHostnameCustom, arg.ID, arg.HostnameCustom)
+	var i SetNodeHostnameCustomRow
+	err := row.Scan(&i.Name, &i.ShortID)
+	return i, err
+}
+
+const setNodeHostnameTried = `-- name: SetNodeHostnameTried :exec
+UPDATE nodes SET hostname_tried = $2, hostname_error = $3,
+    hostname = CASE WHEN $3::text = '' THEN $2 ELSE hostname END
+WHERE id = $1
+`
+
+type SetNodeHostnameTriedParams struct {
+	ID    pgtype.UUID
+	Tried string
+	Error string
+}
+
+// The Panel asked the node for a hostname: what it is now if it took it,
+// or why not.
+func (q *Queries) SetNodeHostnameTried(ctx context.Context, arg SetNodeHostnameTriedParams) error {
+	_, err := q.db.Exec(ctx, setNodeHostnameTried, arg.ID, arg.Tried, arg.Error)
+	return err
+}
+
 const setNodeIPv4 = `-- name: SetNodeIPv4 :exec
 UPDATE nodes SET public_ipv4 = $2 WHERE id = $1
 `
@@ -506,6 +616,40 @@ func (q *Queries) SetNodeSFTP(ctx context.Context, arg SetNodeSFTPParams) error 
 		arg.SftpPort,
 		arg.SftpHostKey,
 	)
+	return err
+}
+
+const setNodeSystem = `-- name: SetNodeSystem :exec
+UPDATE nodes SET
+    hostname = $2, timezone = $3, system_read_at = now(),
+    hostname_tried = CASE WHEN hostname <> '' AND hostname <> $2 THEN '' ELSE hostname_tried END
+WHERE id = $1
+`
+
+type SetNodeSystemParams struct {
+	ID       pgtype.UUID
+	Hostname string
+	Timezone string
+}
+
+// What the machine reported. A hostname changed on the machine itself
+// (not by the Panel) is asked for again.
+func (q *Queries) SetNodeSystem(ctx context.Context, arg SetNodeSystemParams) error {
+	_, err := q.db.Exec(ctx, setNodeSystem, arg.ID, arg.Hostname, arg.Timezone)
+	return err
+}
+
+const setNodeTimezone = `-- name: SetNodeTimezone :exec
+UPDATE nodes SET timezone = $2 WHERE id = $1
+`
+
+type SetNodeTimezoneParams struct {
+	ID       pgtype.UUID
+	Timezone string
+}
+
+func (q *Queries) SetNodeTimezone(ctx context.Context, arg SetNodeTimezoneParams) error {
+	_, err := q.db.Exec(ctx, setNodeTimezone, arg.ID, arg.Timezone)
 	return err
 }
 

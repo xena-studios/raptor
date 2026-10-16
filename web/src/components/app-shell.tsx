@@ -27,6 +27,7 @@ import { Announcements } from "@/components/announcements";
 import { BillingBanner } from "@/components/billing-banner";
 import { NotFound } from "@/components/error-screen";
 import { Logo, RaptorMark, Wordmark } from "@/components/logo";
+import { NodeClock } from "@/components/node-clock";
 import { SourceLink } from "@/components/source-link";
 import {
   DropdownMenu,
@@ -174,6 +175,7 @@ export function AppShell({
               <span className="truncate text-sm text-muted-foreground">{title}</span>
             </>
           )}
+          {orgId && !admin && <NodeClock orgId={orgId} />}
         </header>
         <ConnectionBanner />
         <Announcements />

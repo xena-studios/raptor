@@ -90,6 +90,11 @@ type State struct {
 	// too (it filters before these rules can allow anything).
 	SSHPorts []int `json:"ssh_ports"`
 	UFW      bool  `json:"ufw"`
+	// Ruleset is every rule on the machine, whoever's (firewall.Parse);
+	// RulesetError why it couldn't be read.
+	Ruleset          []firewall.Listed `json:"ruleset"`
+	RulesetTruncated bool              `json:"ruleset_truncated,omitempty"`
+	RulesetError     string            `json:"ruleset_error,omitempty"`
 }
 
 // State reads the settings.
@@ -130,6 +135,13 @@ func (m *Manager) State(ctx context.Context) (State, error) {
 	}
 	st.SSHPorts = SSHPorts(m.SSHConfig)
 	st.UFW = ufwActive()
+	st.Ruleset = []firewall.Listed{}
+	if out, err := m.run(ctx, "nft", "list", "ruleset"); err == nil {
+		st.Ruleset, st.RulesetTruncated = firewall.Parse(string(out), h)
+	} else {
+		m.log().Warn("reading the machine's rule set failed", "err", err)
+		st.RulesetError = "the machine's rules couldn't be read (nft list ruleset failed)"
+	}
 	return st, nil
 }
 

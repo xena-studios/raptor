@@ -30,6 +30,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/dns"
+	"github.com/xena-studios/raptor/internal/panel/machines"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
@@ -199,6 +200,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		if route != "" && !nodelink.ValidRoute(route) {
 			return fmt.Errorf("PANEL_INSTANCE_ROUTE %q: want a path like /i/panel-a", route)
 		}
+		// Machines' hostnames and time zones are read when they connect.
+		machineSvc := &machines.Service{DB: pool, Nodes: router, PanelKey: reg.PanelKey, Log: log}
+		machineSvc.Init()
+		go machineSvc.Run(ctx, time.Minute)
 		// Set once the backup key keeper and alerts exist, below.
 		var keysConnected func(ctx context.Context, nodeID string)
 		var alertsConnected func()
@@ -215,6 +220,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 				if alertsConnected != nil {
 					alertsConnected()
 				}
+				machineSvc.Kick()
 			},
 			OnDisconnect: func(ctx context.Context, id string) {
 				router.Disconnected(ctx, id)
@@ -340,6 +346,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		alertsConnected = alertSvc.RulesChanged
 		mirror.Alerts = alertSvc.Ingest
 		cfg.Alerts = &orgs.Alerts{Orgs: cfg.Orgs, Alerts: alertSvc}
+		cfg.Orgs.Machines = machineSvc
 		cfg.Hub.EventsAvailable = func(_ context.Context, id string, last int64) { mirror.Available(id, last) }
 		if err := mirror.ObserveMetrics(); err != nil {
 			return err

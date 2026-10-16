@@ -218,42 +218,43 @@ func verdict(action string) string {
 }
 
 // renderHost writes the host rules' chains: host_in, jumped to from input,
-// and servers_in, from forward for traffic to the server network.
-func (r Rules) renderHost(w func(string, ...any)) {
+// and servers_in, from forward for traffic to the server network. The
+// owner's rules are commented with their number, never their note.
+func (r Rules) renderHost(w func(string, ...any), rule func(why, format string, a ...any)) {
 	h := r.Host
 	w("\tchain host_in {")
 	// Loopback and container networks aren't the outside world.
-	w("\t\tiifname { \"lo\", %q, %q } accept", r.ServerBridge, r.InstallBridge)
+	rule(whyLocal, "iifname { \"lo\", %q, %q } accept", r.ServerBridge, r.InstallBridge)
 	for _, pat := range []string{"docker*", "br-*", "veth*"} {
-		w("\t\tiifname %q accept", pat)
+		rule(whyContainers, "iifname %q accept", pat)
 	}
 	for _, action := range []string{Allow, Block} {
-		for _, rule := range h.Rules {
-			if rule.Action == action {
-				w("\t\t%s %s", rule.match("th dport"), verdict(action))
+		for i, hr := range h.Rules {
+			if hr.Action == action {
+				rule(yoursPrefix+strconv.Itoa(i+1), "%s %s", hr.match("th dport"), verdict(action))
 			}
 		}
 	}
 	if h.BlockIncoming {
-		w("\t\tct state established,related accept")
-		w("\t\tmeta l4proto { icmp, ipv6-icmp } accept")
-		w("\t\tudp sport { 67, 547 } udp dport { 68, 546 } accept") // DHCP answers
+		rule(whyEstablished, "ct state established,related accept")
+		rule(whyICMP, "meta l4proto { icmp, ipv6-icmp } accept")
+		rule(whyDHCP, "udp sport { 67, 547 } udp dport { 68, 546 } accept")
 		for _, p := range r.Open {
 			proto := "{ tcp, udp }"
 			if p.Protocol != Both {
 				proto = p.Protocol
 			}
-			w("\t\tmeta l4proto %s th dport %d accept", proto, p.Port)
+			rule(whyOpen+p.Why, "meta l4proto %s th dport %d accept", proto, p.Port)
 		}
-		w("\t\tdrop")
+		rule(whyDropRest, "drop")
 	}
 	w("\t}")
 	w("\tchain servers_in {")
-	w("\t\tiifname { %q, %q } accept", r.ServerBridge, r.InstallBridge)
+	rule(whyServerNets, "iifname { %q, %q } accept", r.ServerBridge, r.InstallBridge)
 	for _, action := range []string{Allow, Block} {
-		for _, rule := range h.Rules {
-			if rule.Action == action {
-				w("\t\t%s %s", rule.match("ct original proto-dst"), verdict(action))
+		for i, hr := range h.Rules {
+			if hr.Action == action {
+				rule(yoursPrefix+strconv.Itoa(i+1), "%s %s", hr.match("ct original proto-dst"), verdict(action))
 			}
 		}
 	}

@@ -253,6 +253,9 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	if res.GetError() == "" && support == "" {
 		s.afterSupport(ctx, sess, nodeID, env, granted)
 	}
+	if res.GetError() == "" {
+		s.afterMachine(ctx, nodeID, env, res.GetResult())
+	}
 	if res.GetError() != "" {
 		// It ran on the node and failed: the node's words, for the user.
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(res.GetError()))

@@ -27,6 +27,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/backupkeys"
 	"github.com/xena-studios/raptor/internal/panel/billing"
+	"github.com/xena-studios/raptor/internal/panel/machines"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
@@ -70,7 +71,9 @@ type Service struct {
 	Keys *backupkeys.Keeper
 	// Billing charges for nodes (nil, or without Polar: off).
 	Billing *billing.Service
-	Log     *slog.Logger
+	// Machines keeps nodes' hostnames following their names (nil: off).
+	Machines *machines.Service
+	Log      *slog.Logger
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)

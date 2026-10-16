@@ -31,7 +31,7 @@ func TestRenderHost(t *testing.T) {
 	}
 	for _, want := range []string{
 		`oifname "raptor0" jump servers_in`,
-		"\t\tjump host_in\n",
+		"\t\tjump host_in comment",
 		`iifname { "lo", "raptor0", "raptor-inst" } accept`,
 		`ip saddr 203.0.113.7/32 drop`,
 		`ip saddr 198.51.100.0/24 meta l4proto tcp th dport { 22 } accept`,
@@ -40,7 +40,8 @@ func TestRenderHost(t *testing.T) {
 		`ip6 saddr 2001:db8::/32 meta l4proto udp ct original proto-dst { 25565, 27015-27020 } drop`,
 		`meta l4proto tcp th dport 22 accept`,
 		`meta l4proto { tcp, udp } th dport 2022 accept`,
-		"\t\tdrop\n\t}",
+		"\t\tdrop comment \"Blocking incoming connections: anything not allowed above is dropped\"\n\t}",
+		`accept comment "yours 2"`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q:\n%s", want, got)
@@ -58,12 +59,25 @@ func TestRenderHost(t *testing.T) {
 
 	// Without blocking incoming, nothing is dropped by default.
 	r.Host.BlockIncoming = false
-	if got := r.Render(); strings.Contains(got, "\t\tdrop\n") || strings.Contains(got, "th dport 2022") {
+	if got := r.Render(); strings.Contains(got, "\t\tdrop comment") || strings.Contains(got, "th dport 2022") {
 		t.Errorf("default drop without blocking incoming:\n%s", got)
 	}
 	// No host rules: no host chains.
 	if got := (Rules{ServerBridge: "raptor0", InstallBridge: "raptor-inst"}).Render(); strings.Contains(got, "host_in") {
 		t.Error("host chains without host rules")
+	}
+}
+
+// An open port's reason names a server, whose name is anyone's: it can't
+// end the comment, or add rules.
+func TestRenderComment(t *testing.T) {
+	r := sampleHost()
+	r.Open = append(r.Open, OpenPort{Protocol: Both, Port: 25565, Why: `smp" accept; drop \ {` + strings.Repeat("x", 200)})
+	got := r.Render()
+	line := got[strings.Index(got, "th dport 25565 accept"):]
+	line = line[:strings.Index(line, "\n")]
+	if strings.Count(line, `"`) != 2 || strings.Contains(line, `\`) || len(line) > 200 {
+		t.Errorf("unsafe comment: %s", line)
 	}
 }
 
