@@ -1139,9 +1139,12 @@ func (*ReportHealthResponse) Descriptor() ([]byte, []int) {
 
 type SFTPLoginRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The part of the SFTP username before the last dot.
+	// The SFTP username: the login alone (t-…), or for usernames of the
+	// older form (t-….<server short ID>) the part before the last dot.
 	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	// The server's full ID (Wings resolved the short one).
+	// The server's full ID, when the username named one (Wings resolved the
+	// short one); empty for the login alone, and the Panel answers with the
+	// password's server.
 	ServerId string `protobuf:"bytes,2,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
 	// The temporary password the user turned on for this server.
 	Password      string `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
@@ -1206,7 +1209,9 @@ type SFTPLoginResponse struct {
 	// Of "sftp", "files.read", "files.write".
 	Permissions []string `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	// When the password stops working; the node ends its sessions then.
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// The server the password is for: its files are what the login sees.
+	ServerId      string `protobuf:"bytes,4,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1260,6 +1265,13 @@ func (x *SFTPLoginResponse) GetExpiresAt() *timestamppb.Timestamp {
 		return x.ExpiresAt
 	}
 	return nil
+}
+
+func (x *SFTPLoginResponse) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
 }
 
 type EventsAvailableRequest struct {
@@ -1960,12 +1972,13 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1b\n" +
 	"\tserver_id\x18\x02 \x01(\tR\bserverId\x12\x1a\n" +
 	"\bpassword\x18\x04 \x01(\tR\bpasswordJ\x04\b\x03\x10\x04R\n" +
-	"public_key\"\x89\x01\n" +
+	"public_key\"\xa6\x01\n" +
 	"\x11SFTPLoginResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
 	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x129\n" +
 	"\n" +
-	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"3\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x1b\n" +
+	"\tserver_id\x18\x04 \x01(\tR\bserverId\"3\n" +
 	"\x16EventsAvailableRequest\x12\x19\n" +
 	"\blast_seq\x18\x01 \x01(\x03R\alastSeq\"\x19\n" +
 	"\x17EventsAvailableResponse\"b\n" +

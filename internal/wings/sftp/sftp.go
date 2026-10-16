@@ -332,13 +332,18 @@ func (s *Server) session(ctx context.Context, sess *session, ch ssh.Channel, req
 func (s *Server) login(meta ssh.ConnMetadata) (Login, error) {
 	user, ref, ok := parseUsername(meta.User())
 	if !ok {
-		return Login{}, errors.New("username must be user.serverid")
+		return Login{}, errors.New("bad username")
+	}
+	l := Login{Username: user, Addr: remoteAddr(meta.RemoteAddr())}
+	if ref == "" {
+		return l, nil
 	}
 	id, err := s.o.Servers.Resolve(ref)
 	if err != nil {
 		return Login{}, fmt.Errorf("resolve %q: %w", ref, err)
 	}
-	return Login{Username: user, ServerID: id, Addr: remoteAddr(meta.RemoteAddr())}, nil
+	l.ServerID = id
+	return l, nil
 }
 
 func (s *Server) password(meta ssh.ConnMetadata, pw []byte) (*ssh.Permissions, error) {
@@ -351,6 +356,20 @@ func (s *Server) password(meta ssh.ConnMetadata, pw []byte) (*ssh.Permissions, e
 	g, err := s.o.Auth.Password(ctx, l, string(pw))
 	if err != nil {
 		return s.reject(meta, err)
+	}
+	// The login is for the server the Panel says, which must be the one
+	// the username named, if it named one, and be on this node.
+	switch {
+	case l.ServerID == "" && g.ServerID == "":
+		return s.reject(meta, errors.New("the Panel didn't say which server"))
+	case l.ServerID == "":
+		id, err := s.o.Servers.Resolve(g.ServerID)
+		if err != nil || id != g.ServerID {
+			return s.reject(meta, fmt.Errorf("server %q: %w", g.ServerID, err))
+		}
+		l.ServerID = id
+	case g.ServerID != "" && g.ServerID != l.ServerID:
+		return s.reject(meta, errors.New("the password is for another server"))
 	}
 	return s.accept(meta, &session{login: l, grant: g})
 }

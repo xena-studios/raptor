@@ -65,7 +65,7 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 const createNode = `-- name: CreateNode :one
 INSERT INTO nodes (org_id, name, short_id, public_key, facts, wings_version)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities
 `
 
 type CreateNodeParams struct {
@@ -118,6 +118,7 @@ func (q *Queries) CreateNode(ctx context.Context, arg CreateNodeParams) (Node, e
 		&i.HostnameTried,
 		&i.HostnameError,
 		&i.SystemReadAt,
+		&i.Capabilities,
 	)
 	return i, err
 }
@@ -240,7 +241,7 @@ func (q *Queries) GetJoinTokenForUpdate(ctx context.Context, tokenHash []byte) (
 }
 
 const getNode = `-- name: GetNode :one
-SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at FROM nodes WHERE id = $1
+SELECT id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities FROM nodes WHERE id = $1
 `
 
 func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
@@ -277,6 +278,7 @@ func (q *Queries) GetNode(ctx context.Context, id pgtype.UUID) (Node, error) {
 		&i.HostnameTried,
 		&i.HostnameError,
 		&i.SystemReadAt,
+		&i.Capabilities,
 	)
 	return i, err
 }
@@ -331,7 +333,7 @@ func (q *Queries) MachinesToSync(ctx context.Context) ([]MachinesToSyncRow, erro
 }
 
 const nodeConnected = `-- name: NodeConnected :exec
-UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3, system_read_at = NULL,
+UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3, system_read_at = NULL, capabilities = $4,
     last_acked_seq = CASE WHEN wings_version <> '' AND wings_version <> $2 THEN -1 ELSE last_acked_seq END
 WHERE id = $1
 `
@@ -340,12 +342,18 @@ type NodeConnectedParams struct {
 	ID              pgtype.UUID
 	WingsVersion    string
 	ProtocolVersion int32
+	Capabilities    []string
 }
 
 // A node on a new Wings version gets a fresh mirror snapshot (last_acked_seq
 // -1), so what a new version reports about servers shows up at once.
 func (q *Queries) NodeConnected(ctx context.Context, arg NodeConnectedParams) error {
-	_, err := q.db.Exec(ctx, nodeConnected, arg.ID, arg.WingsVersion, arg.ProtocolVersion)
+	_, err := q.db.Exec(ctx, nodeConnected,
+		arg.ID,
+		arg.WingsVersion,
+		arg.ProtocolVersion,
+		arg.Capabilities,
+	)
 	return err
 }
 
@@ -387,7 +395,7 @@ const relinkNode = `-- name: RelinkNode :one
 UPDATE nodes
 SET public_key = $2, wings_version = $3, facts = $4, key_revoked_at = NULL, deleted_at = NULL
 WHERE id = $1
-RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at
+RETURNING id, org_id, name, short_id, public_key, facts, wings_version, protocol_version, last_seen_at, last_acked_seq, key_revoked_at, deleted_at, created_at, public_ipv4, public_ipv6, dns_ipv4, dns_ipv6, sftp_enabled, sftp_port, sftp_host_key, sftp_allowed, display_address, alerts_hash, alerts_error, hostname, timezone, hostname_custom, hostname_tried, hostname_error, system_read_at, capabilities
 `
 
 type RelinkNodeParams struct {
@@ -436,6 +444,7 @@ func (q *Queries) RelinkNode(ctx context.Context, arg RelinkNodeParams) (Node, e
 		&i.HostnameTried,
 		&i.HostnameError,
 		&i.SystemReadAt,
+		&i.Capabilities,
 	)
 	return i, err
 }

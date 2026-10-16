@@ -34,7 +34,7 @@ func (a PanelAuth) ask(ctx context.Context, req *nodev1.SFTPLoginRequest) (Grant
 	defer cancel()
 	res, err := c.SFTPLogin(ctx, req)
 	if err == nil {
-		g := Grant{UserID: res.GetUserId(), Permissions: res.GetPermissions()}
+		g := Grant{UserID: res.GetUserId(), Permissions: res.GetPermissions(), ServerID: res.GetServerId()}
 		if res.GetExpiresAt() != nil {
 			g.ExpiresAt = res.GetExpiresAt().AsTime()
 		}

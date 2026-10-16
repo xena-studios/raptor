@@ -27,7 +27,11 @@ var (
 
 // Login is who asked to log in, and to which server.
 type Login struct {
-	Username string // the part before the dot
+	// Username is the login (t-…): the whole username, or the part before
+	// the dot for the older user.serverid form.
+	Username string
+	// ServerID is the server the username named; empty when it named
+	// none, until the Panel says which server the password is for.
 	ServerID string
 	Addr     netip.Addr
 }
@@ -36,6 +40,8 @@ type Login struct {
 type Grant struct {
 	UserID      string   `json:"user_id"`
 	Permissions []string `json:"permissions"`
+	// ServerID is the server the login is for.
+	ServerID string `json:"server_id"`
 	// ExpiresAt ends the session (a temporary password's expiry); zero for
 	// none.
 	ExpiresAt time.Time `json:"-"`
@@ -50,11 +56,19 @@ type Authenticator interface {
 	Password(ctx context.Context, l Login, password string) (Grant, error)
 }
 
-// parseUsername splits an SFTP username, "user.serverid", at its last dot:
-// Panel usernames may contain dots, server IDs never do.
+// parseUsername splits an SFTP username. The login alone ("t-…") names no
+// server: the Panel says which one its password is for. The older form,
+// "user.serverid", is split at its last dot: logins may contain dots,
+// server IDs never do.
 func parseUsername(s string) (user, server string, ok bool) {
+	if s == "" {
+		return "", "", false
+	}
 	i := strings.LastIndexByte(s, '.')
-	if i <= 0 || i == len(s)-1 {
+	if i < 0 {
+		return s, "", true
+	}
+	if i == 0 || i == len(s)-1 {
 		return "", "", false
 	}
 	return s[:i], s[i+1:], true

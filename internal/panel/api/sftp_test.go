@@ -75,6 +75,8 @@ func TestSFTPPasswords(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := res.GetAccess()
+	// Wings that doesn't list sftp-username gets the server's short ID in
+	// the username.
 	if a.GetHost() != "n-abcd1234.raptornodes.net" || a.GetPort() != 2022 || !strings.HasSuffix(a.GetUsername(), ".abcdef12") ||
 		len(res.GetPassword()) != 27 || a.GetHostKeyFingerprint() != "SHA256:host" {
 		t.Errorf("access: %v, password %q", a, res.GetPassword())
@@ -87,8 +89,21 @@ func TestSFTPPasswords(t *testing.T) {
 		t.Errorf("get: %v, %v", got, err)
 	}
 	r, err := login(a.GetUsername(), server, res.GetPassword())
-	if err != nil || strings.Join(r.GetPermissions(), ",") != "sftp,files.read,files.write" || r.GetExpiresAt() == nil {
+	if err != nil || strings.Join(r.GetPermissions(), ",") != "sftp,files.read,files.write" || r.GetExpiresAt() == nil || r.GetServerId() != server {
 		t.Fatalf("login: %v, %v", r, err)
+	}
+	// One that does gets the login alone, and the Panel says which server
+	// its password is for.
+	if _, err := db.Exec(ctx, `UPDATE nodes SET capabilities = '{sftp-username}' WHERE id = $1`, node); err != nil {
+		t.Fatal(err)
+	}
+	got, err = alice.orgs.GetSFTPAccess(ctx, &panelv1.GetSFTPAccessRequest{OrgId: org, NodeId: node, ServerId: server})
+	plain := got.GetAccess().GetUsername()
+	if err != nil || strings.Contains(plain, ".") || !strings.HasPrefix(a.GetUsername(), plain+".") {
+		t.Errorf("get with sftp-username: %q, %v", plain, err)
+	}
+	if r, err := login(plain, "", res.GetPassword()); err != nil || r.GetServerId() != server {
+		t.Errorf("login alone: %v, %v", r, err)
 	}
 	for what, c := range map[string][3]string{
 		"wrong password":  {a.GetUsername(), server, "nope"},
@@ -148,7 +163,7 @@ func TestSFTPPasswords(t *testing.T) {
 
 	// Revoked, or run out: no more logins.
 	rev, err := alice.orgs.RevokeSFTPAccess(ctx, &panelv1.RevokeSFTPAccessRequest{OrgId: org, NodeId: node, ServerId: server})
-	if err != nil || rev.GetUsername() == "" || !strings.HasPrefix(again.GetAccess().GetUsername(), rev.GetUsername()+".") {
+	if err != nil || rev.GetUsername() == "" || again.GetAccess().GetUsername() != rev.GetUsername() {
 		t.Errorf("revoke: %v, %v", rev, err)
 	}
 	if _, err := login(again.GetAccess().GetUsername(), server, again.GetPassword()); connect.CodeOf(err) != connect.CodePermissionDenied {

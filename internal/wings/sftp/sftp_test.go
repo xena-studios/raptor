@@ -28,13 +28,14 @@ const srvID = "0b6f7a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b"
 
 var allPerms = []string{PermSFTP, PermRead, PermWrite}
 
-// panel is a fake Authenticator: alice's password is "hunter2". down makes
-// it unreachable.
+// panel is a fake Authenticator: alice's password is "hunter2", for srvID
+// (or server). down makes it unreachable.
 type panel struct {
 	mu      sync.Mutex
 	down    bool
 	perms   []string
 	expires time.Time // the password's expiry
+	server  string
 }
 
 func (p *panel) Password(_ context.Context, l Login, pw string) (Grant, error) {
@@ -46,7 +47,11 @@ func (p *panel) Password(_ context.Context, l Login, pw string) (Grant, error) {
 	if l.Username != "alice" || pw != "hunter2" {
 		return Grant{}, ErrDenied
 	}
-	return Grant{UserID: "u1", Permissions: p.perms, ExpiresAt: p.expires}, nil
+	server := p.server
+	if server == "" {
+		server = srvID
+	}
+	return Grant{UserID: "u1", Permissions: p.perms, ExpiresAt: p.expires, ServerID: server}, nil
 }
 
 func (p *panel) set(fn func(p *panel)) {
@@ -503,15 +508,18 @@ func TestPermissions(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	e := newEnv(t)
-	for _, user := range []string{"alice." + srvID, "alice." + srvID[len(srvID)-8:]} {
+	// The login alone (the Panel says which server), and the older form
+	// with the server's ID or short ID after it.
+	for _, user := range []string{"alice", "alice." + srvID, "alice." + srvID[len(srvID)-8:]} {
 		if _, err := e.dial(user, ssh.Password("hunter2")); err != nil {
 			t.Errorf("%s: %v", user, err)
 		}
 	}
 	for user, pw := range map[string]string{
 		"alice." + srvID:       "wrong",
+		"alice":                "wrong",
 		"bob." + srvID:         "hunter2",
-		"alice":                "hunter2",
+		"bob":                  "hunter2",
 		"alice.":               "hunter2",
 		"alice.deadbeef":       "hunter2",
 		".0b6f7a3e":            "hunter2",
@@ -525,6 +533,15 @@ func TestLogin(t *testing.T) {
 	if u, s, ok := parseUsername("first.last." + srvID); !ok || u != "first.last" || s != srvID {
 		t.Errorf("parseUsername: %q %q %v", u, s, ok)
 	}
+	// A password for a server that isn't on this node, or isn't the one the
+	// username named, doesn't log in.
+	e.panel.set(func(p *panel) { p.server = "0b6f7a3e-1c2d-4e5f-8a9b-ffffffffffff" })
+	for _, user := range []string{"alice", "alice." + srvID} {
+		if _, err := e.dial(user, ssh.Password("hunter2")); err == nil {
+			t.Errorf("%s logged in to another server", user)
+		}
+	}
+	e.panel.set(func(p *panel) { p.server = "" })
 
 	// Logins are recorded for the Panel.
 	evs, err := events.New(e.db).Since(context.Background(), 0, 100)
@@ -537,8 +554,8 @@ func TestLogin(t *testing.T) {
 			n++
 		}
 	}
-	if n != 2 {
-		t.Errorf("recorded %d logins, want 2", n)
+	if n != 3 {
+		t.Errorf("recorded %d logins, want 3", n)
 	}
 }
 

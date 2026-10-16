@@ -148,13 +148,24 @@ var (
 	ErrClockSkew    = errors.New("clocks disagree")
 )
 
+// Capabilities a node's Hello can list: what this Wings understands that
+// older ones don't, so the Panel knows what it can rely on.
+const (
+	// CapSFTPUsername: SFTP usernames are the login alone (t-…), with no
+	// server ID; the Panel says which server a password is for.
+	CapSFTPUsername = "sftp-username"
+)
+
+// nodeCapabilities is what this build of Wings lists in its Hello.
+var nodeCapabilities = []string{CapSFTPUsername}
+
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {
 	n := make([]byte, nonceSize)
 	if _, err := rand.Read(n); err != nil {
 		return Hello{}, err
 	}
-	return Hello{NodeID: nodeID, Version: Version, Purpose: purpose, Nonce: n, Software: software}, nil
+	return Hello{NodeID: nodeID, Version: Version, Purpose: purpose, Nonce: n, Software: software, Capabilities: nodeCapabilities}, nil
 }
 
 // Validate checks a Hello's shape (the Panel's side).
@@ -166,6 +177,13 @@ func (h Hello) Validate() error {
 		return errors.New("bad nonce")
 	case h.Purpose != PurposeControl && !validTransfer(h.Purpose):
 		return fmt.Errorf("unknown purpose %q", h.Purpose)
+	case len(h.Capabilities) > 64:
+		return errors.New("too many capabilities")
+	}
+	for _, c := range h.Capabilities {
+		if c == "" || len(c) > 64 {
+			return errors.New("bad capability")
+		}
 	}
 	return nil
 }

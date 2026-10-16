@@ -276,6 +276,7 @@ func (r *Registry) Connected(ctx context.Context, h nodelink.Hello) error {
 	}
 	return r.q().NodeConnected(ctx, store.NodeConnectedParams{
 		ID: pgUUID(id), WingsVersion: truncate(h.Software, 64), ProtocolVersion: int32(min(h.Version, 1<<20)), //nolint:gosec // bounded
+		Capabilities: append([]string{}, h.Capabilities...),
 	})
 }
 

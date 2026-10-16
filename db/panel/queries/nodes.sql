@@ -23,7 +23,7 @@ SELECT * FROM nodes WHERE id = $1;
 -- name: NodeConnected :exec
 -- A node on a new Wings version gets a fresh mirror snapshot (last_acked_seq
 -- -1), so what a new version reports about servers shows up at once.
-UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3, system_read_at = NULL,
+UPDATE nodes SET last_seen_at = now(), wings_version = $2, protocol_version = $3, system_read_at = NULL, capabilities = $4,
     last_acked_seq = CASE WHEN wings_version <> '' AND wings_version <> $2 THEN -1 ELSE last_acked_seq END
 WHERE id = $1;
 
