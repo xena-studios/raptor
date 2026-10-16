@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "cn";
 import { type ComponentType, type ReactNode, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { message } from "@/lib/errors";
-import { cn } from "@/lib/utils";
 
 // The activity pages' timeline (account, org, server): events grouped by
 // day, newest first, each an icon, a sentence, and when and from where.

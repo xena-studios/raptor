@@ -137,17 +137,6 @@ func (q *Queries) CountOfficialEggs(ctx context.Context) (int64, error) {
 	return count, err
 }
 
-const countOpenEggReports = `-- name: CountOpenEggReports :one
-SELECT count(*)::int FROM egg_reports WHERE egg_id = $1 AND resolved_at IS NULL
-`
-
-func (q *Queries) CountOpenEggReports(ctx context.Context, eggID pgtype.UUID) (int32, error) {
-	row := q.db.QueryRow(ctx, countOpenEggReports, eggID)
-	var column_1 int32
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const countOrgEggs = `-- name: CountOrgEggs :one
 SELECT count(*) FROM eggs WHERE org_id = $1
 `

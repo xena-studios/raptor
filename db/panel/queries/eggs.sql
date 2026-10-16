@@ -115,9 +115,6 @@ FROM egg_reports r JOIN eggs e ON e.id = r.egg_id
 LEFT JOIN users u ON u.id = r.reporter_id LEFT JOIN orgs o ON o.id = e.org_id
 WHERE r.resolved_at IS NULL ORDER BY r.created_at LIMIT 200;
 
--- name: CountOpenEggReports :one
-SELECT count(*)::int FROM egg_reports WHERE egg_id = $1 AND resolved_at IS NULL;
-
 -- name: RemoveCommunityEgg :execrows
 UPDATE eggs SET removed_at = now(), removed_reason = @reason, removed_by = @removed_by
 WHERE id = @id AND shared_at IS NOT NULL AND removed_at IS NULL;

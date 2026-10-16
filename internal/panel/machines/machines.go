@@ -214,7 +214,7 @@ var notHost = regexp.MustCompile(`[^a-z0-9]+`)
 
 // Want is the hostname a node's machine should have: the admin's own, or
 // the node's name made into one ("Basement Box #2" is basement-box-2), or
-// n-<short id> for a name with nothing to keep.
+// its short ID (as in its DNS name) for a name with nothing to keep.
 func Want(name, shortID, custom string) string {
 	if custom != "" {
 		return custom
@@ -224,7 +224,7 @@ func Want(name, shortID, custom string) string {
 		h = strings.TrimRight(h[:63], "-")
 	}
 	if h == "" {
-		return "n-" + shortID
+		return shortID
 	}
 	return h
 }

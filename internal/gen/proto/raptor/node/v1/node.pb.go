@@ -1686,7 +1686,7 @@ func (x *NodeFacts) GetMemoryBytes() int64 {
 type EnrollResponse struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	NodeId string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	// The node's hostname is n-<short_id>.raptornodes.net.
+	// The node's hostname is <short_id>.raptornodes.net.
 	ShortId string `protobuf:"bytes,2,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
 	// The Panel's Ed25519 signing key, which the node pins.
 	PanelKey []byte `protobuf:"bytes,3,opt,name=panel_key,json=panelKey,proto3" json:"panel_key,omitempty"`
@@ -1694,7 +1694,7 @@ type EnrollResponse struct {
 	// (nodecmd.OwnerPin as JSON); empty if they didn't. The node checks it
 	// and pins the key (LocalService.PinOwnerKey).
 	OwnerPin []byte `protobuf:"bytes,4,opt,name=owner_pin,json=ownerPin,proto3" json:"owner_pin,omitempty"`
-	// The node's full hostname, n-<short_id>.<the Panel's node domain>,
+	// The node's full hostname, <short_id>.<the Panel's node domain>,
 	// which the node keeps for raptor doctor's hostname check.
 	Hostname      string `protobuf:"bytes,5,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	unknownFields protoimpl.UnknownFields

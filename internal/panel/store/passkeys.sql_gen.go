@@ -102,31 +102,6 @@ func (q *Queries) DeletePasskey(ctx context.Context, arg DeletePasskeyParams) (P
 	return i, err
 }
 
-const getUserByWebAuthnHandle = `-- name: GetUserByWebAuthnHandle :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style FROM users WHERE webauthn_handle = $1
-`
-
-func (q *Queries) GetUserByWebAuthnHandle(ctx context.Context, webauthnHandle []byte) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByWebAuthnHandle, webauthnHandle)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.EmailVerifiedAt,
-		&i.Name,
-		&i.CreatedAt,
-		&i.WebauthnHandle,
-		&i.TotpSecret,
-		&i.TotpEnabledAt,
-		&i.TotpLastStep,
-		&i.Theme,
-		&i.SuspendedAt,
-		&i.SuspendedReason,
-		&i.ThemeStyle,
-	)
-	return i, err
-}
-
 const listPasskeys = `-- name: ListPasskeys :many
 SELECT id, user_id, credential_id, credential, name, created_at, last_used_at FROM passkeys WHERE user_id = $1 ORDER BY created_at
 `

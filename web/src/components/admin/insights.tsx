@@ -1,6 +1,7 @@
+import { cn } from "cn";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CountBucket } from "@/gen/raptor/panel/v1/staff_pb";
-import { cn } from "@/lib/utils";
 
 // Pieces the admin overview's tabs share: a range picker in days, count
 // breakdowns as bars, and daily counts as chart points.

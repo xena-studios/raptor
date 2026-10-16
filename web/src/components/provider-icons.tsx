@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 // The sign-in providers' marks (Simple Icons, CC0), in the text's color.
 const paths: Record<string, string> = {

@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { Link, type LinkProps, useLocation, useNavigate } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   Building2,
   Check,
@@ -21,6 +22,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+
 import { AlertsBell } from "@/components/alerts-bell";
 import { Announcements } from "@/components/announcements";
 import { BillingBanner } from "@/components/billing-banner";
@@ -76,7 +78,6 @@ import {
   setTheme,
   setThemeStyle,
 } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 
 // The org the app shows when a page isn't about one (the last one opened).
 const lastOrgKey = "raptor.org";

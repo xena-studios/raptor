@@ -33,7 +33,7 @@ export function sorted(entries: Entry[]): Entry[] {
 }
 
 // FilesApi runs file actions, and names their queries.
-export type FilesApi = {
+type FilesApi = {
   run: <T>(action: string, params: object) => Promise<T | undefined>;
   listKey: (path: string) => readonly string[];
   contentKey: (path: string) => readonly string[];

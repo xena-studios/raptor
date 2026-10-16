@@ -1,6 +1,7 @@
 import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import { FolderOpen, Loader2, RefreshCw, SquareTerminal, X } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 
@@ -23,7 +24,6 @@ import { when } from "@/lib/format";
 import { formatBytes, formatPercent, formatUptime } from "@/lib/metrics";
 import { serverStatus } from "@/lib/servers";
 import { commandClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/support/$requestId")({
   component: SupportSession,

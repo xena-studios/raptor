@@ -1,6 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "cn";
 import { FileUp, Link2, ShieldAlert, TriangleAlert } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
+
 import { useReauth } from "@/components/reauth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +22,6 @@ import type { ReviewEggFileResponse } from "@/gen/raptor/panel/v1/egg_pb";
 import { categories, categoryName } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { eggClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 const maxFile = 1 << 20;
 

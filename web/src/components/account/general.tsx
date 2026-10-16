@@ -1,5 +1,6 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useRouter } from "@tanstack/react-router";
+import { cn } from "cn";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
@@ -36,7 +37,6 @@ import {
   useThemeStyle,
 } from "@/lib/theme";
 import { authClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 // Profile is the account's name and email.
 export function Profile({ user }: { user: User }) {

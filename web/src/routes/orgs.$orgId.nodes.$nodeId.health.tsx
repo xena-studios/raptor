@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -30,7 +31,6 @@ import { useIds } from "@/lib/ids";
 import { formatBytes, formatUptime } from "@/lib/metrics";
 import { useOrgNodes } from "@/lib/org-data";
 import { commandClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/orgs/$orgId/nodes/$nodeId/health")({
   component: Health,

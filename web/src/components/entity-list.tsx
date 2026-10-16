@@ -1,11 +1,11 @@
 import { Link, type LinkProps, useNavigate } from "@tanstack/react-router";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 
 import { StatusBadge } from "@/components/server-status";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TableRow } from "@/components/ui/table";
 import type { ServerStatus } from "@/lib/servers";
-import { cn } from "@/lib/utils";
 
 // The node and server lists share these: a card or a table row that opens
 // the item wherever it's clicked, with its status in the same place.

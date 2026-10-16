@@ -1,9 +1,9 @@
+import { cn } from "cn";
 import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { serverAddress } from "@/lib/addresses";
-import { cn } from "@/lib/utils";
 
 // Hidden is an address that points at the machine: dots until revealed, so
 // it isn't on screen in a stream or a screenshot. Copying works without

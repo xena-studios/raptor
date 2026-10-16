@@ -181,17 +181,6 @@ func (q *Queries) MarkJobRunning(ctx context.Context, arg MarkJobRunningParams) 
 	return result.RowsAffected()
 }
 
-const nextRunAfter = `-- name: NextRunAfter :one
-SELECT CAST(COALESCE(MIN(run_after), 0) AS INTEGER) FROM jobs WHERE status = 'queued'
-`
-
-func (q *Queries) NextRunAfter(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, nextRunAfter)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const pruneJobs = `-- name: PruneJobs :many
 DELETE FROM jobs WHERE status IN ('succeeded', 'failed', 'cancelled') AND finished_at < ? RETURNING id
 `

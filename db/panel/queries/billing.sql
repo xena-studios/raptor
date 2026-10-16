@@ -41,10 +41,6 @@ ON CONFLICT (org_id) DO UPDATE SET unpaid_since = EXCLUDED.unpaid_since,
 INSERT INTO billing_ledger (org_id, kind, quantity, amount_cents, currency, polar_ref, data)
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
--- name: OrgLedger :many
-SELECT kind, quantity, amount_cents, currency, polar_ref, at FROM billing_ledger
-WHERE org_id = $1 ORDER BY at DESC LIMIT 50;
-
 -- name: SeenWebhook :one
 -- Records a delivery; false if it was already handled.
 INSERT INTO billing_webhooks (id, type) VALUES ($1, $2)

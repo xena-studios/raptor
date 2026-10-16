@@ -54,7 +54,7 @@ export function filename(title: string, subject: string | undefined, at: Date): 
 }
 
 // rangeLabel says what the range is: "Oct 16, 13:05 – 14:05 (1 hour)".
-export function rangeLabel(from: number, to: number): string {
+function rangeLabel(from: number, to: number): string {
   const sameDay = new Date(from).toDateString() === new Date(to).toDateString();
   const date: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   const time: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
@@ -157,7 +157,7 @@ function logo(
 // Console): the logo, what the chart is, a readout of each line's numbers
 // between hairlines, the chart, and when and where it was saved. No boxes:
 // grouping comes from rules, data is mono, colour only marks the lines.
-export function render(c: ChartImage, at = new Date()): HTMLCanvasElement {
+function render(c: ChartImage, at = new Date()): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   const scale = 2;
   canvas.width = W * scale;

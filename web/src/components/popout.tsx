@@ -7,11 +7,11 @@ import { shortId } from "@/lib/ids";
 // Pop-outs (docs/PANEL.md#pop-outs): the console, files, and stats of a
 // server, and a node's stats, each on a page of its own without the app's
 // sidebar, opened in a window of its own.
-export type Popout =
+type Popout =
   | { kind: "console" | "files" | "stats"; orgId: string; nodeId: string; serverId: string }
   | { kind: "node-stats"; orgId: string; nodeId: string };
 
-export function popoutPath(p: Popout): string {
+function popoutPath(p: Popout): string {
   const org = shortId(p.orgId);
   if (p.kind === "node-stats") return `/popout/${org}/nodes/${shortId(p.nodeId)}/stats`;
   return `/popout/${org}/servers/${shortId(p.serverId)}/${p.kind}`;

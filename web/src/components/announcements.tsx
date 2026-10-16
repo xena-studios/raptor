@@ -1,10 +1,10 @@
 import { useQuery } from "@connectrpc/connect-query";
+import { cn } from "cn";
 import { ExternalLink, Info, TriangleAlert, Wrench, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { type Announcement, StaffService } from "@/gen/raptor/panel/v1/staff_pb";
-import { cn } from "@/lib/utils";
 
 // Raptor's announcements (docs/PANEL.md#announcements), as banners under
 // the header. Their text is plain text, never HTML. Dismissing one hides

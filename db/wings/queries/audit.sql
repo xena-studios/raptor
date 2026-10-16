@@ -20,6 +20,3 @@ SELECT * FROM audit_log WHERE id = ?;
 
 -- name: InterruptedAudit :execrows
 UPDATE audit_log SET outcome = 'failed', detail = 'interrupted: Wings stopped while running it' WHERE outcome = 'running';
-
--- name: ListAuditAfter :many
-SELECT * FROM audit_log WHERE id > ? ORDER BY id LIMIT ?;

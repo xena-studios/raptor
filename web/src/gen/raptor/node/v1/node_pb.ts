@@ -883,7 +883,7 @@ export type EnrollResponse = Message<"raptor.node.v1.EnrollResponse"> & {
   nodeId: string;
 
   /**
-   * The node's hostname is n-<short_id>.raptornodes.net.
+   * The node's hostname is <short_id>.raptornodes.net.
    *
    * @generated from field: string short_id = 2;
    */
@@ -906,7 +906,7 @@ export type EnrollResponse = Message<"raptor.node.v1.EnrollResponse"> & {
   ownerPin: Uint8Array;
 
   /**
-   * The node's full hostname, n-<short_id>.<the Panel's node domain>,
+   * The node's full hostname, <short_id>.<the Panel's node domain>,
    * which the node keeps for raptor doctor's hostname check.
    *
    * @generated from field: string hostname = 5;

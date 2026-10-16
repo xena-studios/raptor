@@ -82,7 +82,7 @@ func TestCloudflare(t *testing.T) {
 	defer srv.Close()
 	cf := &Cloudflare{Token: "tok", ZoneID: "zone1", API: srv.URL}
 	ctx := context.Background()
-	name := "n-abcd2345.raptornodes.net"
+	name := "1a2b3c4d5e6f.raptornodes.net"
 
 	if err := cf.Set(ctx, name, "A", netip.MustParseAddr("203.0.113.7")); err != nil {
 		t.Fatal(err)
@@ -132,7 +132,7 @@ func TestCloudflareRemove(t *testing.T) {
 	defer srv.Close()
 	cf := &Cloudflare{Token: "tok", ZoneID: "zone1", API: srv.URL}
 	ctx := context.Background()
-	name := "n-abcd2345.raptornodes.net"
+	name := "1a2b3c4d5e6f.raptornodes.net"
 	if err := cf.Set(ctx, name, "A", netip.MustParseAddr("203.0.113.7")); err != nil {
 		t.Fatal(err)
 	}

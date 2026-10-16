@@ -1,10 +1,10 @@
 import { Link, type LinkProps } from "@tanstack/react-router";
+import { cn } from "cn";
 import { ChevronLeft, LayoutGrid, List, type LucideIcon, Search } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 // The pieces every page is built from: a header, routed tabs, list
 // toolbars, empty states, and label/value lists.

@@ -325,12 +325,6 @@ func (s *Service) SetNodeHostname(ctx context.Context, req *panelv1.SetNodeHostn
 // machineHostname is RFC 1123, as Wings checks it.
 var machineHostname = regexp.MustCompile(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$`)
 
-// SetNodeDisplayAddress implements OrgService. Shown addresses are
-// servers' now.
-func (s *Service) SetNodeDisplayAddress(context.Context, *panelv1.SetNodeDisplayAddressRequest) (*panelv1.SetNodeDisplayAddressResponse, error) {
-	return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("a shown address is set for each server now, on its Network tab"))
-}
-
 // SetServerDisplayAddress implements OrgService.
 func (s *Service) SetServerDisplayAddress(ctx context.Context, req *panelv1.SetServerDisplayAddressRequest) (*panelv1.SetServerDisplayAddressResponse, error) {
 	addr, err := displayAddress(req.GetDisplayAddress())

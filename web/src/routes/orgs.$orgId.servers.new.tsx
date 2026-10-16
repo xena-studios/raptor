@@ -1,6 +1,7 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { cn } from "cn";
 import { BadgeCheck, Search } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 
@@ -36,7 +37,6 @@ import {
 } from "@/lib/servers";
 import { sendSigned } from "@/lib/signed";
 import { eggClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
 
 type NewServerSearch = { node?: string; egg?: string };

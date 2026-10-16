@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "cn";
 import { AlertTriangle, CheckCircle2, HardDrive, Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
@@ -38,7 +39,6 @@ import { message } from "@/lib/errors";
 import { formatBytes } from "@/lib/metrics";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 import { passkeyCancelled } from "@/lib/webauthn";
 
 // The node's Disks tab: where server data and backups go, which disk new

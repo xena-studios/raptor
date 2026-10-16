@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import {
   ChevronRight,
   Copy,
@@ -63,7 +64,6 @@ import {
   validName,
 } from "@/lib/files";
 import { downloadURL, uploadFile } from "@/lib/upload";
-import { cn } from "@/lib/utils";
 import { type Entry, kind, sorted, useFilesApi, useListing } from "./data";
 import { EditorPane } from "./editor-pane";
 import { EntryIcon } from "./icons";

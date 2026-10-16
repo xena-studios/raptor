@@ -11,26 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const activeBackupStorage = `-- name: ActiveBackupStorage :one
-SELECT id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at FROM backup_storage WHERE node_id = $1 AND disabled_at IS NULL
-`
-
-func (q *Queries) ActiveBackupStorage(ctx context.Context, nodeID pgtype.UUID) (BackupStorage, error) {
-	row := q.db.QueryRow(ctx, activeBackupStorage, nodeID)
-	var i BackupStorage
-	err := row.Scan(
-		&i.ID,
-		&i.OrgID,
-		&i.NodeID,
-		&i.KeyID,
-		&i.EnabledAt,
-		&i.EnabledBy,
-		&i.DisabledAt,
-		&i.PurgedAt,
-	)
-	return i, err
-}
-
 const backupStorageOrgsToMeasure = `-- name: BackupStorageOrgsToMeasure :many
 SELECT DISTINCT s.org_id FROM backup_storage s
 WHERE s.purged_at IS NULL

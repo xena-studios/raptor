@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { cn } from "cn";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,13 +10,13 @@ import {
   XCircle,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
+
 import { Hidden } from "@/components/address";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type Cause, diagnose, type Inside, type Verdict } from "@/lib/connection-test";
 import { message } from "@/lib/errors";
 import { commandClient, orgClient } from "@/lib/transport";
-import { cn } from "@/lib/utils";
 
 const select =
   "h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
