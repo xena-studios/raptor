@@ -19,4 +19,9 @@ test("old URLs get short IDs", () => {
     "/orgs/00000000beef/nodes/1cdd002cd9a3/system?x=1",
   );
   assert.equal(canonical("/orgs/00000000beef", { orgId: "00000000beef" }), undefined);
+  // Other IDs, an egg's, stay whole.
+  assert.equal(
+    canonical(`/orgs/${org}/eggs/${node}`, { orgId: org, eggId: node }),
+    `/orgs/00000000beef/eggs/${node}`,
+  );
 });
