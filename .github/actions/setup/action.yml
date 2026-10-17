@@ -1,5 +1,11 @@
 name: Setup
 description: Install Go, Node, pnpm, and Task, with caching
+inputs:
+  node-cache:
+    description: >-
+      "pnpm" to cache pnpm's store, or "" for jobs that never run pnpm
+      install: with nothing to save, a cache miss fails the post step.
+    default: pnpm
 runs:
   using: composite
   steps:
@@ -15,7 +21,7 @@ runs:
     - uses: actions/setup-node@v5
       with:
         node-version: 24
-        cache: pnpm
+        cache: ${{ inputs.node-cache }}
         cache-dependency-path: |
           web/pnpm-lock.yaml
           site/pnpm-lock.yaml
