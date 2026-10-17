@@ -50,10 +50,10 @@ It's served as static files **from separate static hosting, not the API servers*
 
 The API is deliberately **not** served under `/api` on the app's origin: whoever serves a response controls its headers, so a compromised API on that origin could serve a page that asks passkeys to sign, or a service worker that replaces the app (decision 81). In development the Vite dev server still proxies `/api` to the local API.
 
-### Landing page and help center
+### Landing page and docs
 The landing page (`raptorpanel.net`) is an **Astro** site in `site/`: one static page with no scripts, in the app's design system, deployed with each stable release and never sharing the app's origin or CSP. It has no waitlist (decision 261). Any analytics or marketing scripts would go there, never in the web app.
 
-Help for owners (guides, the support inbox, feedback, the changelog) is on **Featurebase**, at `help.raptorpanel.net`, not in this repository (decision 260). The web app links to it and loads none of its scripts: no chat widget or SDK on the origin passkeys sign from.
+The docs for owners (`docs.raptorpanel.net`) are an **Astro Starlight** site in `docs-site/`: install and provider guides, troubleshooting keyed to the app's and the installer's own error text, and where to get help. They're static, in the app's design system, with search that runs in the browser (Pagefind) and no third-party scripts, deployed with each stable release so they describe what's live (decision 292). Support, bug reports, and requests are on the **Discord server**, which the docs link to; the web app only links out to either. The design docs for contributors stay in `docs/`.
 
 ### Hostnames
 
@@ -62,7 +62,7 @@ Help for owners (guides, the support inbox, feedback, the changelog) is on **Fea
 | `raptorpanel.net` | Landing page (`www` redirects here) | Static (Cloudflare Worker) |
 | `app.raptorpanel.net` | Web app; passkey RP ID | Static, separate deploy credentials |
 | `api.raptorpanel.net` | `panel serve api`: Connect API, browser WebSockets, node connections | Panel servers, Cloudflare proxy |
-| `help.raptorpanel.net` | Help center, support inbox, feedback, changelog | Featurebase (custom domain) |
+| `docs.raptorpanel.net` | Docs for owners (`docs-site/`) | Static (Cloudflare Worker) |
 | `get.raptorpanel.net` | Install script | Static |
 | `verify.raptorpanel.net` | The Turnstile page the sign-in form embeds (`web/verify`), apart from the app's origin | Static |
 | `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |

@@ -1,0 +1,129 @@
+/* The Console in the dark and Daylight in the light (docs/DESIGN.md),
+   mapped onto Starlight's variables: ink neutrals at hue 25, one red,
+   Hanken Grotesk for words and JetBrains Mono for code and labels. The
+   values match site/src/styles/site.css. */
+@import "@fontsource-variable/hanken-grotesk";
+@import "@fontsource-variable/jetbrains-mono";
+
+:root {
+  --sl-font: "Hanken Grotesk Variable", system-ui, sans-serif;
+  --sl-font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  /* The Console */
+  --sl-color-white: oklch(0.96 0.005 25);
+  --sl-color-gray-1: oklch(0.9 0.007 25);
+  --sl-color-gray-2: oklch(0.8 0.009 25);
+  --sl-color-gray-3: oklch(0.72 0.011 25);
+  --sl-color-gray-4: oklch(0.45 0.012 25);
+  --sl-color-gray-5: oklch(0.3 0.012 25);
+  --sl-color-gray-6: oklch(0.185 0.013 25);
+  --sl-color-black: oklch(0.145 0.012 25);
+  --sl-color-bg-sidebar: oklch(0.125 0.01 25);
+  --sl-color-bg-nav: oklch(0.125 0.01 25);
+
+  --sl-color-accent-low: oklch(0.28 0.075 25);
+  --sl-color-accent: oklch(0.66 0.19 25);
+  --sl-color-accent-high: oklch(0.82 0.1 25);
+  --on-accent: oklch(0.17 0.03 25);
+
+  --sl-color-green: oklch(0.8 0.16 150);
+  --sl-color-orange: oklch(0.82 0.15 80);
+  --sl-color-red: oklch(0.72 0.17 10);
+}
+
+:root[data-theme="light"] {
+  /* Daylight */
+  --sl-color-white: oklch(0.18 0.018 25);
+  --sl-color-gray-1: oklch(0.25 0.017 25);
+  --sl-color-gray-2: oklch(0.34 0.015 25);
+  --sl-color-gray-3: oklch(0.44 0.013 25);
+  --sl-color-gray-4: oklch(0.62 0.011 25);
+  --sl-color-gray-5: oklch(0.88 0.01 25);
+  --sl-color-gray-6: oklch(0.955 0.006 25);
+  --sl-color-gray-7: oklch(0.965 0.005 25);
+  --sl-color-black: oklch(0.975 0.004 25);
+  --sl-color-bg-sidebar: oklch(0.955 0.006 25);
+  --sl-color-bg-nav: oklch(0.955 0.006 25);
+
+  --sl-color-accent-low: oklch(0.93 0.04 25);
+  --sl-color-accent: oklch(0.545 0.215 25);
+  --sl-color-accent-high: oklch(0.42 0.17 25);
+  --on-accent: oklch(0.99 0.01 25);
+
+  --sl-color-green: oklch(0.5 0.12 150);
+  --sl-color-orange: oklch(0.5 0.11 70);
+  --sl-color-red: oklch(0.53 0.2 10);
+}
+
+/* Flat: depth from tone and hairlines, no shadows. Links and the current
+   page in the one red. */
+:root,
+:root[data-theme="light"] {
+  --sl-shadow-sm: none;
+  --sl-shadow-md: none;
+  --sl-shadow-lg: none;
+  --sl-color-text-accent: var(--sl-color-accent);
+}
+
+:focus-visible {
+  outline-color: var(--sl-color-accent);
+}
+
+.site-title {
+  color: var(--sl-color-white);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* The app's sidebar labels: mono, small, after a `//`. */
+.sidebar-content .group-label .large {
+  font-family: var(--__sl-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+.sidebar-content .group-label .large::before {
+  content: "// ";
+  color: var(--sl-color-accent);
+}
+
+/* The current page gets the red wash, like the app's active sidebar item. */
+.sidebar-content a[aria-current="page"],
+.sidebar-content a[aria-current="page"]:hover,
+.sidebar-content a[aria-current="page"]:focus {
+  color: var(--sl-color-accent);
+  background-color: var(--sl-color-accent-low);
+  font-weight: 600;
+}
+
+/* Buttons as in the app: mono, uppercase, square-ish. */
+.sl-link-button {
+  font-family: var(--__sl-font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 4px;
+}
+.sl-link-button.primary {
+  background: var(--sl-color-accent);
+  border-color: var(--sl-color-accent);
+  color: var(--on-accent);
+}
+
+/* One accent for every card, not a rotating palette. */
+.card {
+  --sl-card-border: var(--sl-color-accent);
+  --sl-card-bg: var(--sl-color-accent-low);
+  border-radius: 6px;
+  background-color: var(--sl-color-gray-6);
+}
+
+.sl-markdown-content :is(h1, h2, h3) {
+  text-wrap: balance;
+}
+.sl-markdown-content p {
+  text-wrap: pretty;
+}

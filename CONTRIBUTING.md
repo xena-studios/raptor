@@ -115,9 +115,13 @@ The web app follows [docs/DESIGN.md](docs/DESIGN.md), with the brief behind it a
 
 `site/` is [raptorpanel.net](https://raptorpanel.net): one Astro page in the app's design system ([docs/DESIGN.md](docs/DESIGN.md)), with no scripts. `task site:dev` serves it; `task site:build` builds it and loads it under its CSP in both themes, as CI does. Everything it claims must be true of the released product, so check a new claim against the code and the docs, and change the page in the same pull request as anything that makes a claim untrue. The catalog's egg count is read from `eggs/` at build time.
 
+### The docs site
+
+`docs-site/` is [docs.raptorpanel.net](https://docs.raptorpanel.net), the guide for people running Raptor: Astro Starlight, themed with DESIGN.md's tokens. Pages are Markdown in `docs-site/src/content/docs/`; the sidebar follows its folders. `task docs:dev` serves it; `task docs:build` builds it (failing on any broken internal link) and loads every page under its CSP in both themes, with a search, as CI does. Write for owners, not contributors, in the product's words (server, node, egg; never container or bind mount), and quote the app's labels and errors exactly. When a change alters something a page describes (a label, a step, an error, a default), change the page in the same pull request. The docs deploy with each stable release, so they never describe what isn't live.
+
 ### Releases
 
-Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md). The same tag publishes the Panel's server images to GHCR (`raptor-panel`, `raptor-postgres`). A stable tag (`vX.Y.Z`) on `main` then deploys the Panel, the web app, and the landing page to production by itself ([DEPLOY.md](docs/DEPLOY.md#deploying)). Since every release goes live, Panel migrations must work with the version before them: add, backfill, and drop in a later release; never rename in one step.
+Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md). The same tag publishes the Panel's server images to GHCR (`raptor-panel`, `raptor-postgres`). A stable tag (`vX.Y.Z`) on `main` then deploys the Panel, the web app, the landing page, and the docs to production by itself ([DEPLOY.md](docs/DEPLOY.md#deploying)). Since every release goes live, Panel migrations must work with the version before them: add, backfill, and drop in a later release; never rename in one step.
 
 ### The Panel's servers
 

@@ -19,6 +19,7 @@ runs:
         cache-dependency-path: |
           web/pnpm-lock.yaml
           site/pnpm-lock.yaml
+          docs-site/pnpm-lock.yaml
     - uses: go-task/setup-task@v1
       with:
         version: 3.x

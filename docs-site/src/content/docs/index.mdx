@@ -1,0 +1,35 @@
+---
+title: Raptor Docs
+description: Run game servers on your own machines, and manage them all from one place.
+template: splash
+hero:
+  tagline: Run game servers on machines you own or rent, and manage them all from one place.
+  actions:
+    - text: Connect your first node
+      link: /install/first-node/
+      icon: right-arrow
+    - text: What you need
+      link: /start/requirements/
+      variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="Install" icon="rocket">
+    One command turns a fresh Linux machine into a node. Then [deploy a
+    server](/install/first-server/) from the app.
+  </Card>
+  <Card title="Players can't connect?" icon="warning">
+    The connection test says which side is wrong. [Fix it step by
+    step](/help/players-cant-connect/).
+  </Card>
+  <Card title="Get help" icon="discord">
+    Ask the community, report a bug, or reach the Raptor team. [Where to
+    go](/help/get-help/).
+  </Card>
+  <Card title="Source code" icon="github">
+    Raptor is open source. Read the code that runs on your machine at
+    [github.com/xena-studios/raptor](https://github.com/xena-studios/raptor).
+  </Card>
+</CardGrid>

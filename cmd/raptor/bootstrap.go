@@ -113,7 +113,7 @@ func (b *bootstrap) ask(question, def string) string {
 
 func (b *bootstrap) run(ctx context.Context) error {
 	if b.token == "" {
-		return errors.New("usage: raptor bootstrap -token rpt_join_… (the Panel shows the full command under Add Node)")
+		return errors.New("usage: raptor bootstrap -token rpt_join_… (the app shows the full command under Nodes → Connect node)")
 	}
 	if os.Geteuid() != 0 {
 		return errors.New("raptor bootstrap must run as root")

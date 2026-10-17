@@ -6,7 +6,7 @@ Raptor is a hosted game server management platform. You bring your own Linux mac
 
 Raptor is compatible with Pterodactyl and Pelican eggs.
 
-> **Status:** early development, not launched: there is no billing, support, or uptime promise yet. Wings (the daemon) is complete apart from its week-long soak test: servers from Pterodactyl and Pelican eggs with a full lifecycle, kernel-enforced disk limits, passkey-signed dangerous actions, schedules, encrypted incremental backups, SFTP, self-updates that roll back, and a local CLI and TUI. The Panel runs in production at [raptorpanel.net](https://raptorpanel.net) with the web app: sign-in with passkeys, orgs and members, linking nodes with one command, and creating and running servers with their console, files, backups, schedules, add-ons, and activity. What's left before launch (billing, the second Panel server, subdomains, the docs site) is in the [roadmap](docs/ROADMAP.md).
+> **Status:** early development, not launched: there is no uptime promise yet. Wings (the daemon) is complete apart from its week-long soak test: servers from Pterodactyl and Pelican eggs with a full lifecycle, kernel-enforced disk limits, passkey-signed dangerous actions, schedules, encrypted incremental backups, SFTP, self-updates that roll back, and a local CLI and TUI. The Panel runs in production at [raptorpanel.net](https://raptorpanel.net) with the web app: sign-in with passkeys, orgs and members, linking nodes with one command, and creating and running servers with their console, files, backups, schedules, add-ons, and activity. Billing is on, and a standby Panel server streams from the first. What's left before launch (the failover and billing drills, the soak test, and the rest of the docs) is in the [roadmap](docs/ROADMAP.md).
 
 ## Components
 
@@ -17,6 +17,8 @@ Raptor is compatible with Pterodactyl and Pelican eggs.
 | **`raptor` CLI** | Local tool for keeping servers up: status, power, console, logs, backups and restores, `doctor`. | The owner's Linux box |
 
 ## Documentation
+
+**Running Raptor?** The guides are at [docs.raptorpanel.net](https://docs.raptorpanel.net) (`docs-site/`), and help is on [Discord](https://discord.gg/HyUa3sRpeN). The documents below are for contributors: how Raptor is built, and why.
 
 - [Product outline](docs/PRODUCT.md): what Raptor is and who it's for
 - [Architecture](docs/ARCHITECTURE.md): how the pieces fit together
