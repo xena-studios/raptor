@@ -141,7 +141,7 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 
 | Domain | Use |
 |---|---|
-| `raptorpanel.net` | Landing page; web app (`app.`), API and node connections (`api.`), help center (`help.`, on Featurebase), installer (`get.`), status page (`status.`) |
+| `raptorpanel.net` | Landing page; web app (`app.`), API and node connections (`api.`), docs (`docs.`), installer (`get.`), status page (`status.`) |
 | `raptornodes.net` | Node hostnames (`1cdd002cd9a3.raptornodes.net`), nothing else |
 
 ## Register

@@ -74,7 +74,7 @@ func doLink(ctx context.Context, o linkOptions) error {
 	relink := o.relink
 	token, panelURL, cfgPath, noRestart, nodeID := &o.token, &o.panelURL, &o.cfgPath, &o.noRestart, &o.nodeID
 	if *token == "" {
-		return fmt.Errorf("usage: raptor %s -token rpt_join_… (make a token in the Panel: Add Node)", name)
+		return fmt.Errorf("usage: raptor %s -token rpt_join_… (make a token in the app: Nodes → Connect node)", name)
 	}
 	if os.Geteuid() != 0 {
 		return fmt.Errorf("raptor %s must run as root", name)

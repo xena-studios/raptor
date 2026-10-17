@@ -1,0 +1,16 @@
+// docs.raptorpanel.net: the docs site's build (dist/) as a Cloudflare
+// Worker with static assets only, no Worker code (docs/DEPLOY.md#static-sites).
+// Its headers, the CSP among them, are in public/_headers.
+{
+  "name": "raptor-docs",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  // Only the custom domain, attached once by hand: no workers.dev or
+  // preview addresses, and the deploy token never needs DNS access.
+  "workers_dev": false,
+  "preview_urls": false
+}
