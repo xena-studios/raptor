@@ -259,6 +259,10 @@ Flat. Depth comes from tone and 1px rules: the sidebar is darker than the page, 
 - **Style:** Terminal Ink, 4px corners, a cool 1px border, 12px padding, JetBrains Mono at 0.75rem (13px in the live console). Banners on it use its own colours, never the page's.
 - **Use:** the live console (xterm), Wings' log, install commands, egg install scripts.
 
+### Sign-in Pages
+- **Layout (`AuthLayout`):** on wide screens, a Sidebar Ink panel on the left with the raptor and wordmark, one plain sentence about Raptor, and three hairline-ruled facts it can stand behind; the form on the right in a 22rem column, headed by a sans title and a line of Ash. On phones, the mark, then the form near the top. No card around the form: the page is the surface.
+- **Order:** the passkey first in red (the one primary), then each provider as an outline button with its mark in the text's colour, then an `or by email` rule and the email form. Codes (email, authenticator) are one mono field, centred and tracked wide. Errors go above the buttons in the destructive alert.
+
 ### The Node Readout
 - `[ 1 ONLINE ] / 9 NODES` at the foot of the sidebar: the online count in OK when any node is up, breathing (opacity 1 to 0.55 over 1.4s); the only ambient motion in the app, off under reduced motion.
 
