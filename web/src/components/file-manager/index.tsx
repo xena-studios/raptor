@@ -67,6 +67,7 @@ import { downloadURL, uploadFile } from "@/lib/upload";
 import { type Entry, kind, sorted, useFilesApi, useListing } from "./data";
 import { EditorPane } from "./editor-pane";
 import { EntryIcon } from "./icons";
+import { PullDialog, PullRows, usePulls } from "./pull";
 import { SettingsMenu } from "./settings";
 import { ShortcutsDialog } from "./shortcuts";
 import { TrashView, useTrash } from "./trash";
@@ -102,6 +103,7 @@ export function Files({
   userId,
   support,
   fill,
+  canPull,
 }: {
   nodeId: string;
   serverId: string;
@@ -121,6 +123,8 @@ export function Files({
   support?: string;
   // Fill the parent's height (a pop-out window) instead of the page's.
   fill?: boolean;
+  // The node can download links into the server's files (files-pull).
+  canPull?: boolean;
 }) {
   const api = useFilesApi(nodeId, serverId, support);
   const transfers = !support;
@@ -134,6 +138,8 @@ export function Files({
   const [confirmDelete, setConfirmDelete] = useState<{ dir: string; names: string[] }>();
   const [busy, setBusy] = useState(false);
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
+  const pulls = usePulls(api);
+  const [pulling, setPulling] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [full, setFull] = useState(false);
   const [shortcuts, setShortcuts] = useState(false);
@@ -415,6 +421,11 @@ export function Files({
                   <Button size="sm" variant="outline" onClick={() => picker.current?.click()}>
                     <Upload /> Upload
                   </Button>
+                  {canPull && (
+                    <Button size="sm" variant="outline" onClick={() => setPulling(true)}>
+                      <Link2 /> From URL
+                    </Button>
+                  )}
                   <input
                     ref={picker}
                     type="file"
@@ -622,7 +633,7 @@ export function Files({
             />
           ) : (
             <>
-              {(error || uploads.length > 0 || selected.size > 0) && (
+              {(error || uploads.length > 0 || pulls.pulls.length > 0 || selected.size > 0) && (
                 <div className="flex shrink-0 flex-col gap-2 border-b px-4 py-2">
                   {error && <p className="text-sm text-destructive">{error}</p>}
                   {selected.size > 0 && canWrite && (
@@ -650,6 +661,7 @@ export function Files({
                       </Button>
                     </div>
                   )}
+                  <PullRows pulls={pulls.pulls} onHide={(p) => void pulls.cancel(p)} />
                   {uploads.length > 0 && (
                     <ul className="flex flex-col gap-1 text-sm">
                       {uploads.map((u) => (
@@ -834,6 +846,14 @@ export function Files({
       </div>
 
       <ShortcutsDialog open={shortcuts} onOpenChange={setShortcuts} />
+      {canPull && (
+        <PullDialog
+          open={pulling}
+          dir={path}
+          onOpenChange={setPulling}
+          onStart={(url, name) => pulls.start(url, path, name)}
+        />
+      )}
       {compressing && (
         <CompressDialog
           names={compressing.names}

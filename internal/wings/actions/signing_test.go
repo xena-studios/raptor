@@ -33,6 +33,7 @@ var signing = map[string]string{
 	"files.delete": "never", "files.download": "never", "files.list": "never", "files.mkdir": "never",
 	"files.read": "never", "files.rename": "never", "files.stat": "never", "files.trash": "never",
 	"files.trash.delete": "never", "files.trash.empty": "never", "files.trash.restore": "never",
+	"files.pull": "never", "files.pull.cancel": "never", "files.pull.status": "never",
 	"files.upload": "never", "files.upload.cancel": "never", "files.upload.status": "never", "files.write": "never",
 
 	"keys.add": "always", "keys.list": "never", "keys.pair": "never", "keys.remove": "always",

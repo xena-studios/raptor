@@ -102,6 +102,10 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`extracted an archive on ${server}`, Archive];
     case "files.upload":
       return [`uploaded a file to ${server}`, FileText];
+    case "files.pull":
+      return [`downloaded a file from a link onto ${server}`, FileText];
+    case "files.pull.cancel":
+      return [`cancelled a download onto ${server}`, FileText];
     case "files.upload.cancel":
       return [`cancelled an upload to ${server}`, FileText];
     case "backup.create":

@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -86,7 +87,8 @@ func (p *panel) resend(e command.Envelope) (command.Result, error) {
 
 func TestCommands(t *testing.T) {
 	ctx := context.Background()
-	m, db := newManager(t)
+	var eng *jobs.Engine
+	m, db := newManagerWith(t, func(_ *server.Manager, _ *store.DB, e *jobs.Engine) { eng = e })
 	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
 	x := &command.Executor{DB: db, NodeID: nodeID, RP: rp, PanelKey: pub}
 	Register(x, m, Defaults{})
@@ -145,6 +147,43 @@ func TestCommands(t *testing.T) {
 	}
 	if srv, _ := m.Get(ctx, id); srv.Startup != "sh" || srv.Name != "survival" {
 		t.Fatalf("server after updates: name %q, startup %q", srv.Name, srv.Startup)
+	}
+
+	// Changing what the server is: a new egg and a reinstall, in one signed
+	// command, refused while it runs without changing anything.
+	changed := ServerUpdateParams{ServerConfig: renamed, Reinstall: &ReinstallParams{}}
+	changed.Egg = []byte(strings.Replace(shellEgg, `"name": "Shell"`, `"name": "Shell 2"`, 1))
+	if _, err := p.send("alice", ServerUpdate, id, changed, nil); !errors.Is(err, command.ErrSignatureNeeded) {
+		t.Fatalf("unsigned egg change: %v", err)
+	}
+	if _, err := p.send("alice", ServerUpdate, id, changed, owner); !errors.Is(err, server.ErrRunning) {
+		t.Fatalf("egg change while running: %v", err)
+	}
+	if srv, _ := m.Get(ctx, id); srv.Egg().Name != "Shell" {
+		t.Fatalf("a refused egg change changed the egg to %q", srv.Egg().Name)
+	}
+	if _, err := p.send("alice", ServerStop, id, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	waitState(t, m, id, server.Offline)
+	res, err = p.send("alice", ServerUpdate, id, changed, owner)
+	if err != nil {
+		t.Fatalf("egg change: %v", err)
+	}
+	var job struct {
+		JobID string `json:"job_id"`
+	}
+	if _ = json.Unmarshal(res.Value, &job); job.JobID == "" {
+		t.Fatalf("egg change started no reinstall: %s", res.Value)
+	}
+	wctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+	j, err := eng.Wait(wctx, job.JobID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if srv, _ := m.Get(ctx, id); j.Status != jobs.Succeeded || srv.Egg().Name != "Shell 2" {
+		t.Fatalf("after the egg change: egg %q, job %s %q", srv.Egg().Name, j.Status, j.Error)
 	}
 
 	// Deleting needs the passkey; a replay returns the stored result.

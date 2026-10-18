@@ -83,6 +83,9 @@ const (
 	FilesCompress     = "files.compress"
 	FilesDecompress   = "files.decompress"
 	FilesUpload       = "files.upload" // start an upload; chunks go over a transfer connection
+	FilesPull         = "files.pull"   // download a URL into the server's files
+	FilesPullStatus   = "files.pull.status"
+	FilesPullCancel   = "files.pull.cancel"
 	FilesUploadStatus = "files.upload.status"
 	FilesUploadCancel = "files.upload.cancel"
 	FilesDownload     = "files.download" // start a download
@@ -112,6 +115,14 @@ func (c ServerConfig) toConfig() server.Config {
 		Variables: c.Variables, Limits: c.Limits, Settings: settings, HostNetwork: c.HostNetwork,
 		Allocations: c.Allocations,
 	}
+}
+
+// ServerUpdateParams are the params of server.update: the server's whole
+// configuration and, to change what it is (a new egg), a reinstall
+// straight after (wiping its files first, after a backup, if asked).
+type ServerUpdateParams struct {
+	ServerConfig
+	Reinstall *ReinstallParams `json:"reinstall,omitempty"`
 }
 
 // CreateParams are the params of server.create.
@@ -207,24 +218,45 @@ func Register(x *command.Executor, m *server.Manager, d Defaults) {
 		return map[string]string{"server_id": id}, nil
 	}})
 
-	// An update is signed when it changes the egg, image, or startup command.
+	// An update is signed when it changes the egg, image, or startup
+	// command, or wipes the server's files to reinstall it.
 	x.Register(ServerUpdate, command.Handler{
 		Signed: func(ctx context.Context, e command.Envelope) (bool, error) {
-			var p ServerConfig
+			var p ServerUpdateParams
 			if err := decode(e, &p); err != nil {
 				return false, err
 			}
 			if err := needServer(e); err != nil {
 				return false, err
 			}
+			if p.Reinstall != nil && p.Reinstall.Wipe {
+				return true, nil
+			}
 			return m.ChangesCode(ctx, e.ServerID, p.toConfig())
 		},
 		Run: func(ctx context.Context, e command.Envelope) (any, error) {
-			var p ServerConfig
+			var p ServerUpdateParams
 			if err := decode(e, &p); err != nil {
 				return nil, err
 			}
-			return nil, m.Update(ctx, e.ServerID, p.toConfig())
+			if p.Reinstall == nil {
+				return nil, m.Update(ctx, e.ServerID, p.toConfig())
+			}
+			// Changing what the server is (its egg) and installing it
+			// again: refused before anything changes if it can't be
+			// reinstalled now, so it's never left half done.
+			opts := server.InstallOptions{Wipe: p.Reinstall.Wipe}
+			if err := m.CanReinstall(ctx, e.ServerID, opts); err != nil {
+				return nil, err
+			}
+			if err := m.Update(ctx, e.ServerID, p.toConfig()); err != nil {
+				return nil, err
+			}
+			job, err := m.Reinstall(ctx, e.ServerID, opts)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]string{"job_id": job}, nil
 		},
 	})
 
@@ -809,7 +841,9 @@ type FilesParams struct {
 	Data     []byte        `json:"data,omitempty"`   // files.write (base64 in JSON)
 	Dest     string        `json:"dest,omitempty"`   // files.decompress
 	Format   string        `json:"format,omitempty"` // files.compress: tar.gz (default), zip, tar.zst, or tar
-	Name     string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension
+	Name     string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension; files.pull: the file's
+	URL      string        `json:"url,omitempty"`    // files.pull
+	JobID    string        `json:"job_id,omitempty"` // files.pull.status, files.pull.cancel
 	Size     int64         `json:"size,omitempty"`   // files.upload
 	UploadID string        `json:"upload_id,omitempty"`
 	// Permanent is what older web apps sent to files.delete to skip the
@@ -905,6 +939,15 @@ func RegisterFiles(x *command.Executor, s *files.Service) {
 	}))
 	x.Register(FilesDecompress, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return jobResult(s.Decompress(ctx, e.ServerID, e.UserID, p.Path, p.Dest))
+	}))
+	x.Register(FilesPull, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return jobResult(s.Pull(ctx, e.ServerID, e.UserID, p.URL, p.Dir, p.Name))
+	}))
+	x.Register(FilesPullStatus, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.PullStatus(ctx, e.ServerID, p.JobID)
+	}))
+	x.Register(FilesPullCancel, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.CancelPull(ctx, e.ServerID, p.JobID)
 	}))
 	x.Register(FilesUpload, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return s.StartUpload(ctx, e.ServerID, e.UserID, p.Path, p.Size)

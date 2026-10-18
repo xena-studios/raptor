@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"net/netip"
 	"path"
 	"slices"
 	"strings"
@@ -66,6 +67,9 @@ type Options struct {
 	Log      *slog.Logger
 	UID, GID int // the servers' user
 	Now      func() time.Time
+	// PullAllowed says which addresses downloads may connect to (Public
+	// if nil; tests allow the loopback).
+	PullAllowed func(netip.Addr) bool
 }
 
 // Service runs the web file manager's operations on servers' files.
@@ -74,6 +78,7 @@ type Service struct {
 
 	mu        sync.Mutex
 	downloads map[string]*Download
+	pulling   pulls
 }
 
 // NewService returns a Service and registers its jobs.
@@ -88,6 +93,9 @@ func NewService(o Options) *Service {
 	if o.Jobs != nil {
 		o.Jobs.Register(JobCompress, jobs.Handler{Class: "files", ServerLock: true, Resumable: true, MaxAttempts: 2, Run: s.compressJob})
 		o.Jobs.Register(JobDecompress, jobs.Handler{Class: "files", ServerLock: true, Resumable: true, MaxAttempts: 2, Run: s.decompressJob})
+		// A download starts again from the beginning after a Wings restart.
+		// It doesn't lock the server: it only adds one new file.
+		o.Jobs.Register(JobPull, jobs.Handler{Class: "pull", Resumable: true, MaxAttempts: 2, Run: s.pullJob})
 	}
 	return s
 }
