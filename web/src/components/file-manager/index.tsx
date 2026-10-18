@@ -97,6 +97,7 @@ export function Files({
   file,
   onNavigate,
   actions,
+  windowActions,
   orgId,
   userId,
   support,
@@ -110,6 +111,8 @@ export function Files({
   onNavigate: (to: { path: string; file?: string }) => void;
   // More toolbar buttons (the SFTP one).
   actions?: ReactNode;
+  // Buttons after full screen, about the window (the pop-out one).
+  windowActions?: ReactNode;
   // For the trash: who deleted what.
   orgId: string;
   userId: string;
@@ -442,6 +445,15 @@ export function Files({
             />
           </div>
           <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Refresh"
+            title="Refresh"
+            onClick={() => void api.refresh()}
+          >
+            <RefreshCw />
+          </Button>
+          <Button
             size="sm"
             variant="ghost"
             className="md:hidden"
@@ -473,6 +485,7 @@ export function Files({
           >
             {full ? <Minimize2 /> : <Maximize2 />}
           </Button>
+          {windowActions}
         </div>
       </div>
       <p className="shrink-0 border-b px-4 py-1.5 text-xs text-muted-foreground">
@@ -805,11 +818,6 @@ export function Files({
                       Only the first 10,000 entries are shown. Use SFTP for folders this large.
                     </p>
                   )}
-                  <div className="mt-2 flex justify-end">
-                    <Button size="xs" variant="ghost" onClick={() => void api.refresh()}>
-                      <RefreshCw /> Refresh
-                    </Button>
-                  </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent>
                   <ListMenu {...menuProps} />

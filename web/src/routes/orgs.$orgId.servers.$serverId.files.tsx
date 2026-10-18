@@ -34,12 +34,13 @@ function FilesTab() {
       file={file}
       onNavigate={(to) => navigate({ search: { path: to.path || undefined, file: to.file } })}
       actions={
-        <>
-          {node && can(server, "sftp") && (
-            <SFTPButton orgId={orgId} node={node} serverId={serverId} admin={can(server, "*")} />
-          )}
-          <PopoutButton to={{ kind: "files", orgId, nodeId, serverId }} label="the file manager" />
-        </>
+        node &&
+        can(server, "sftp") && (
+          <SFTPButton orgId={orgId} node={node} serverId={serverId} admin={can(server, "*")} />
+        )
+      }
+      windowActions={
+        <PopoutButton to={{ kind: "files", orgId, nodeId, serverId }} label="the file manager" />
       }
     />
   );
