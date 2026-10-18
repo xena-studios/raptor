@@ -117,6 +117,14 @@ func (c ServerConfig) toConfig() server.Config {
 	}
 }
 
+// ServerUpdateParams are the params of server.update: the server's whole
+// configuration and, to change what it is (a new egg), a reinstall
+// straight after (wiping its files first, after a backup, if asked).
+type ServerUpdateParams struct {
+	ServerConfig
+	Reinstall *ReinstallParams `json:"reinstall,omitempty"`
+}
+
 // CreateParams are the params of server.create.
 type CreateParams struct {
 	ServerConfig
@@ -210,24 +218,45 @@ func Register(x *command.Executor, m *server.Manager, d Defaults) {
 		return map[string]string{"server_id": id}, nil
 	}})
 
-	// An update is signed when it changes the egg, image, or startup command.
+	// An update is signed when it changes the egg, image, or startup
+	// command, or wipes the server's files to reinstall it.
 	x.Register(ServerUpdate, command.Handler{
 		Signed: func(ctx context.Context, e command.Envelope) (bool, error) {
-			var p ServerConfig
+			var p ServerUpdateParams
 			if err := decode(e, &p); err != nil {
 				return false, err
 			}
 			if err := needServer(e); err != nil {
 				return false, err
 			}
+			if p.Reinstall != nil && p.Reinstall.Wipe {
+				return true, nil
+			}
 			return m.ChangesCode(ctx, e.ServerID, p.toConfig())
 		},
 		Run: func(ctx context.Context, e command.Envelope) (any, error) {
-			var p ServerConfig
+			var p ServerUpdateParams
 			if err := decode(e, &p); err != nil {
 				return nil, err
 			}
-			return nil, m.Update(ctx, e.ServerID, p.toConfig())
+			if p.Reinstall == nil {
+				return nil, m.Update(ctx, e.ServerID, p.toConfig())
+			}
+			// Changing what the server is (its egg) and installing it
+			// again: refused before anything changes if it can't be
+			// reinstalled now, so it's never left half done.
+			opts := server.InstallOptions{Wipe: p.Reinstall.Wipe}
+			if err := m.CanReinstall(ctx, e.ServerID, opts); err != nil {
+				return nil, err
+			}
+			if err := m.Update(ctx, e.ServerID, p.toConfig()); err != nil {
+				return nil, err
+			}
+			job, err := m.Reinstall(ctx, e.ServerID, opts)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]string{"job_id": job}, nil
 		},
 	})
 

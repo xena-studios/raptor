@@ -156,10 +156,13 @@ const (
 	CapSFTPUsername = "sftp-username"
 	// CapFilesPull: files.pull downloads a URL into a server's files.
 	CapFilesPull = "files-pull"
+	// CapChangeEgg: server.update takes reinstall, to change a server's
+	// egg and install it again in one signed command.
+	CapChangeEgg = "change-egg"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {
