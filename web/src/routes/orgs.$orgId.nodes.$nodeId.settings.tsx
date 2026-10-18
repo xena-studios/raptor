@@ -1,7 +1,6 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { IdsCard } from "@/components/ids-card";
 import { NodeName, NodeRemove, NodeSFTP } from "@/components/node-settings";
 import { PairKey } from "@/components/pair-key";
 import { SupportSettings } from "@/components/support-access";
@@ -32,7 +31,6 @@ function Settings() {
         servers={servers.data?.servers ?? []}
       />
       <PairKey nodeId={nodeId} userId={userId} />
-      {node && <IdsCard id={nodeId} what="node" />}
       {node && <NodeRemove orgId={orgId} nodeId={nodeId} name={node.name} />}
     </div>
   );
