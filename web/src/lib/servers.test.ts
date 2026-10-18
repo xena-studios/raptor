@@ -5,6 +5,7 @@ import { test } from "node:test";
 import {
   base64,
   behaviorOf,
+  changeEggParams,
   changesCode,
   createParams,
   eggsFor,
@@ -254,4 +255,39 @@ test("workshopIds reads a variable's IDs once each", () => {
   assert.deepEqual(workshopIds("1,2, 3,,2"), ["1", "2", "3"]);
   assert.deepEqual(workshopIds(""), []);
   assert.deepEqual(workshopIds("abc,4"), ["4"]);
+});
+
+test("changeEggParams sends the new egg, keeps shared settings, and reinstalls", () => {
+  const cfg = {
+    image: "java:21",
+    startup: "java -jar paper.jar",
+    variables: { MINECRAFT_VERSION: "1.21.4", BUILD_NUMBER: "120" },
+    limits: { memory_mib: 4096, disk_mib: 0 },
+    settings: { crash_auto_restart: true },
+    host_network: false,
+    allocations: [{ ip: "0.0.0.0", port: 25565, primary: true }],
+    egg_hash: "old",
+    egg: { images: [], variables: [] },
+  };
+  const file = new TextEncoder().encode(
+    JSON.stringify({ name: "Purpur", variables: [{ env_variable: "MINECRAFT_VERSION" }] }),
+  );
+  const p = changeEggParams(cfg, "Survival", { id: "minecraft/purpur", file }, true);
+  assert.equal("egg_hash" in p, false);
+  assert.equal(p.egg_source, "minecraft/purpur");
+  assert.equal(atob(p.egg), new TextDecoder().decode(file));
+  assert.equal(p.image, "");
+  assert.equal(p.startup, "");
+  assert.deepEqual(p.variables, { MINECRAFT_VERSION: "1.21.4" });
+  assert.deepEqual(p.reinstall, { wipe: true });
+  assert.deepEqual(p.allocations, cfg.allocations);
+  assert.deepEqual(p.limits, cfg.limits);
+  const yaml = changeEggParams(
+    cfg,
+    "s",
+    { id: "x", file: new TextEncoder().encode("name: x") },
+    false,
+  );
+  assert.deepEqual(yaml.variables, {});
+  assert.deepEqual(yaml.reinstall, { wipe: false });
 });

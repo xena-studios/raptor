@@ -311,3 +311,40 @@ export function updateParams(cfg: ServerConfig, c: SettingsChange) {
 export function changesCode(cfg: ServerConfig, c: SettingsChange): boolean {
   return c.image !== cfg.image;
 }
+
+// changeEggParams is server.update's params to change what a server is:
+// the new egg, with its own runtime and startup command (Wings picks the
+// defaults), and a reinstall straight after, wiping the files first if
+// asked. Settings both eggs have (the same variable) keep their values;
+// the rest start at the new egg's defaults.
+export function changeEggParams(
+  cfg: ServerConfig,
+  name: string,
+  egg: { id: string; file: Uint8Array },
+  wipe: boolean,
+) {
+  const { egg: _egg, egg_hash: _hash, ...rest } = cfg;
+  let envs: string[] = [];
+  try {
+    const parsed = JSON.parse(new TextDecoder().decode(egg.file)) as {
+      variables?: { env_variable?: string }[];
+    };
+    envs = (parsed.variables ?? []).flatMap((v) => (v.env_variable ? [v.env_variable] : []));
+  } catch {
+    // A YAML egg: every setting starts at its default.
+  }
+  const variables: Record<string, string> = {};
+  for (const [k, v] of Object.entries(cfg.variables ?? {})) {
+    if (envs.includes(k)) variables[k] = v;
+  }
+  return {
+    ...rest,
+    name,
+    egg: base64(egg.file),
+    egg_source: egg.id,
+    image: "",
+    startup: "",
+    variables,
+    reinstall: { wipe },
+  };
+}

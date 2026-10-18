@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ChangeServerType } from "@/components/change-server-type";
 import { DeleteServer } from "@/components/delete-server";
 import { MoveServer } from "@/components/move-server";
 import { ServerSettings } from "@/components/server-settings";
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/settings")(
 function SettingsTab() {
   const session = Route.useRouteContext();
   const { orgId, nodeId, serverId } = useIds();
-  const { server } = useServer(orgId, nodeId, serverId);
+  const { node, server } = useServer(orgId, nodeId, serverId);
   if (!server) return null;
   const userId = session.user?.id ?? "";
   return (
@@ -38,6 +39,18 @@ function SettingsTab() {
         canReinstall={false}
         stopped={false}
       />
+      {can(server, "*") && node && (
+        <ChangeServerType
+          orgId={orgId}
+          nodeId={nodeId}
+          serverId={serverId}
+          userId={userId}
+          arch={node.arch}
+          current={server.eggName}
+          stopped={["offline", "crashed", "install_failed", ""].includes(server.state)}
+          supported={node.capabilities.includes("change-egg")}
+        />
+      )}
       {can(server, "*") && <MoveServer orgId={orgId} nodeId={nodeId} serverId={serverId} />}
       {can(server, "*") && (
         <DeleteServer

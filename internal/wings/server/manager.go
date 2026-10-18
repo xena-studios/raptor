@@ -580,23 +580,32 @@ func (m *Manager) Install(ctx context.Context, id string) (string, error) {
 // Reinstall queues an install over an existing server, optionally wiping
 // its files first (after a safety backup).
 func (m *Manager) Reinstall(ctx context.Context, id string, opts InstallOptions) (string, error) {
+	if err := m.CanReinstall(ctx, id, opts); err != nil {
+		return "", err
+	}
+	return m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobInstall, ServerID: id, Payload: installPayload{Wipe: opts.Wipe}})
+}
+
+// CanReinstall says why a server can't be reinstalled now, if it can't:
+// it's running, something else is being done to it, or the node can't.
+func (m *Manager) CanReinstall(ctx context.Context, id string, opts InstallOptions) error {
 	if opts.Wipe && m.o.JobBackup == nil {
-		return "", errors.New("backups aren't available on this node, so files can't be wiped")
+		return errors.New("backups aren't available on this node, so files can't be wiped")
 	}
 	if err := m.diskCheck(); err != nil {
-		return "", err
+		return err
 	}
 	i, err := m.instance(id)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if i.isUp() {
-		return "", ErrRunning
+		return ErrRunning
 	}
 	if active, err := m.o.Jobs.HasActive(ctx, id); err != nil || active {
-		return "", errors.Join(ErrInstalling, err)
+		return errors.Join(ErrInstalling, err)
 	}
-	return m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobInstall, ServerID: id, Payload: installPayload{Wipe: opts.Wipe}})
+	return nil
 }
 
 // installJob is the job handler for installs.
