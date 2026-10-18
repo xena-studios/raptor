@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -34,7 +35,33 @@ type Polar struct {
 // ErrPolar is Polar not answering as it should.
 var ErrPolar = errors.New("the payment provider isn't answering right now; try again in a minute")
 
+// APIError is Polar answering with an error.
+type APIError struct {
+	Status int
+	// Type is Polar's name for it, like PaymentMethodInUseByActiveSubscription.
+	Type string
+	msg  string
+}
+
+func (e *APIError) Error() string { return ErrPolar.Error() + " (" + e.msg + ")" }
+
+// Unwrap makes it an ErrPolar.
+func (e *APIError) Unwrap() error { return ErrPolar }
+
+// polarError is the Polar error a call returned, if it is one, of one of
+// these types.
+func polarError(err error, types ...string) bool {
+	var e *APIError
+	return errors.As(err, &e) && slices.Contains(types, e.Type)
+}
+
 func (p *Polar) do(ctx context.Context, method, path string, body, out any) error {
+	return p.call(ctx, p.Token, method, path, body, out)
+}
+
+// call is do with another token: a customer session's, for the customer
+// portal API.
+func (p *Polar) call(ctx context.Context, token, method, path string, body, out any) error {
 	api := p.API
 	if api == "" {
 		api = DefaultAPI
@@ -51,7 +78,7 @@ func (p *Polar) do(ctx context.Context, method, path string, body, out any) erro
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+p.Token)
+	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
@@ -70,7 +97,14 @@ func (p *Polar) do(ctx context.Context, method, path string, body, out any) erro
 		return fmt.Errorf("%w (%w)", ErrPolar, err)
 	}
 	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("%w (%s %s: %s: %.300s)", ErrPolar, method, path, resp.Status, data)
+		e := &APIError{Status: resp.StatusCode, msg: fmt.Sprintf("%s %s: %s: %.300s", method, path, resp.Status, data)}
+		var body struct {
+			Error string `json:"error"`
+		}
+		if json.Unmarshal(data, &body) == nil {
+			e.Type = body.Error
+		}
+		return e
 	}
 	if out == nil {
 		return nil
@@ -181,10 +215,144 @@ func (p *Polar) UpdateSubscription(ctx context.Context, id string, change map[st
 // PortalURL is a link to the customer portal for the org (cards, invoices,
 // cancelling), good for a short while.
 func (p *Polar) PortalURL(ctx context.Context, orgID, returnURL string) (string, error) {
-	var out struct {
-		URL string `json:"customer_portal_url"`
+	s, err := p.CustomerSession(ctx, orgID, returnURL)
+	if err != nil {
+		return "", err
 	}
-	if err := p.do(ctx, http.MethodPost, "/v1/customer-sessions/", map[string]any{"external_customer_id": orgID, "return_url": returnURL}, &out); err != nil {
+	return s.PortalURL, nil
+}
+
+// CustomerSession is a token for one customer's side of Polar: the
+// customer portal API, and the embedded form for adding a card.
+type CustomerSession struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	PortalURL string    `json:"customer_portal_url"`
+}
+
+// CustomerSession starts one for the org (an hour, as Polar makes them).
+func (p *Polar) CustomerSession(ctx context.Context, orgID, returnURL string) (*CustomerSession, error) {
+	body := map[string]any{"external_customer_id": orgID}
+	if returnURL != "" {
+		body["return_url"] = returnURL
+	}
+	var out CustomerSession
+	if err := p.do(ctx, http.MethodPost, "/v1/customer-sessions/", body, &out); err != nil {
+		return nil, err
+	}
+	if out.Token == "" {
+		return nil, ErrPolar
+	}
+	return &out, nil
+}
+
+// Origin is where Polar's own pages are, for embedding them: the sandbox
+// API's are on the sandbox.
+func (p *Polar) Origin() string {
+	if strings.Contains(p.API, "sandbox") {
+		return "https://sandbox.polar.sh"
+	}
+	return "https://polar.sh"
+}
+
+// PaymentMethod is a card (or another way to pay) the customer saved.
+type PaymentMethod struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Metadata struct {
+		Brand    string `json:"brand"`
+		Last4    string `json:"last4"`
+		ExpMonth int    `json:"exp_month"`
+		ExpYear  int    `json:"exp_year"`
+		Wallet   string `json:"wallet"`
+	} `json:"method_metadata"`
+}
+
+// Customer is what Raptor reads of the customer's own record.
+type Customer struct {
+	DefaultPaymentMethodID string `json:"default_payment_method_id"`
+}
+
+// Order is a charge: the first one, each renewal, and seat changes.
+type Order struct {
+	ID                 string    `json:"id"`
+	CreatedAt          time.Time `json:"created_at"`
+	Status             string    `json:"status"`
+	Paid               bool      `json:"paid"`
+	TotalAmount        int64     `json:"total_amount"`
+	RefundedAmount     int64     `json:"refunded_amount"`
+	Currency           string    `json:"currency"`
+	BillingReason      string    `json:"billing_reason"`
+	Description        string    `json:"description"`
+	InvoiceNumber      string    `json:"invoice_number"`
+	IsInvoiceGenerated bool      `json:"is_invoice_generated"`
+}
+
+type page[T any] struct {
+	Items []T `json:"items"`
+}
+
+// Customer fetches the session's customer.
+func (p *Polar) Customer(ctx context.Context, token string) (*Customer, error) {
+	var c Customer
+	if err := p.call(ctx, token, http.MethodGet, "/v1/customer-portal/customers/me", nil, &c); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// PaymentMethods lists the customer's saved ways to pay.
+func (p *Polar) PaymentMethods(ctx context.Context, token string) ([]PaymentMethod, error) {
+	var out page[PaymentMethod]
+	if err := p.call(ctx, token, http.MethodGet, "/v1/customer-portal/customers/me/payment-methods?limit=100", nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Items, nil
+}
+
+// SetDefaultPaymentMethod makes one the method the subscription is
+// charged to.
+func (p *Polar) SetDefaultPaymentMethod(ctx context.Context, token, id string) error {
+	return p.call(ctx, token, http.MethodPatch, "/v1/customer-portal/customers/me", map[string]any{"default_payment_method_id": id}, nil)
+}
+
+// DeletePaymentMethod removes one. Polar refuses the one a subscription
+// still needs.
+func (p *Polar) DeletePaymentMethod(ctx context.Context, token, id string) error {
+	return p.call(ctx, token, http.MethodDelete, "/v1/customer-portal/customers/me/payment-methods/"+url.PathEscape(id), nil, nil)
+}
+
+// Orders lists the customer's, newest first.
+func (p *Polar) Orders(ctx context.Context, token string, limit int) ([]Order, error) {
+	var out page[Order]
+	path := "/v1/customer-portal/orders/?sorting=-created_at&limit=" + strconv.Itoa(limit)
+	if err := p.call(ctx, token, http.MethodGet, path, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Items, nil
+}
+
+// Order fetches one of the customer's.
+func (p *Polar) Order(ctx context.Context, token, id string) (*Order, error) {
+	var o Order
+	if err := p.call(ctx, token, http.MethodGet, "/v1/customer-portal/orders/"+url.PathEscape(id), nil, &o); err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+// GenerateInvoice asks Polar to make an order's invoice; it's ready a few
+// seconds later.
+func (p *Polar) GenerateInvoice(ctx context.Context, token, id string) error {
+	return p.call(ctx, token, http.MethodPost, "/v1/customer-portal/orders/"+url.PathEscape(id)+"/invoice", nil, nil)
+}
+
+// InvoiceURL is a link to an order's invoice (a PDF), once generated.
+func (p *Polar) InvoiceURL(ctx context.Context, token, id string) (string, error) {
+	var out struct {
+		URL string `json:"url"`
+	}
+	if err := p.call(ctx, token, http.MethodGet, "/v1/customer-portal/orders/"+url.PathEscape(id)+"/invoice", nil, &out); err != nil {
 		return "", err
 	}
 	return out.URL, nil

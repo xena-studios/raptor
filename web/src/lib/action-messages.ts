@@ -42,8 +42,11 @@ const rpcs: Record<string, Describe> = {
   // Backups
   "OrgService.EnableBackupStorage": "Raptor Backup Storage turned on",
   "OrgService.DisableBackupStorage": "Raptor Backup Storage turned off",
-  // Billing
+  // Billing (a card Polar's form adds is confirmed by the page)
   "BillingService.EndTrial": "Free month ended; billing started",
+  "BillingService.SetDefaultCard": "Default card changed",
+  "BillingService.RemoveCard": "Card removed",
+  "BillingService.CancelPlan": (r) => (r.resume ? "The plan carries on" : "Plan cancelled"),
   // Alerts
   "AlertService.CreateAlertChannel": "Alert channel added",
   "AlertService.UpdateAlertChannel": "Alert channel saved",

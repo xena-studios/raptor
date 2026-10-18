@@ -1,11 +1,14 @@
 import { type Timestamp, timestampDate } from "@bufbuild/protobuf/wkt";
 import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CreditCard, ExternalLink, Loader2 } from "lucide-react";
 import { useState } from "react";
 
+import { CancelPlan, Cards, Charges } from "@/components/billing/billing-portal";
+import { PolarCheckout } from "@/components/billing/polar-embed";
 import { DetailList, EmptyState } from "@/components/page";
+import { useReauth } from "@/components/reauth";
 import { StatusBadge } from "@/components/server-status";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +19,7 @@ import { dateOnly } from "@/lib/format";
 import { useIds } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
 import type { ServerStatus } from "@/lib/servers";
+import { billingClient } from "@/lib/transport";
 
 // What a node costs a month (docs/DECISIONS.md #14).
 const nodePrice = 12;
@@ -89,6 +93,9 @@ function Billing() {
       ) : (
         <Start orgId={orgId} b={b} owner={owner} />
       )}
+      {owner && live && <Cards orgId={orgId} b={b} />}
+      {owner && b.status !== "" && <Charges orgId={orgId} />}
+      {owner && b.status !== "" && <PolarPortal orgId={orgId} />}
     </div>
   );
 }
@@ -107,7 +114,7 @@ function Unpaid({ b, owner }: { b: GetBillingResponse; owner: boolean }) {
           : "After that its nodes are read-only in Raptor until it's paid. Game servers keep running either way."}{" "}
         {owner
           ? b.status === "past_due"
-            ? "Update the card in the billing portal."
+            ? "Add a card below: it's charged right away."
             : "Start a plan below, or remove nodes you don't use."
           : "An owner of the org can fix it here."}
       </p>
@@ -117,6 +124,8 @@ function Unpaid({ b, owner }: { b: GetBillingResponse; owner: boolean }) {
 
 function Start({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner: boolean }) {
   const start = useMutation(BillingService.method.startCheckout);
+  const navigate = useNavigate();
+  const [checkout, setCheckout] = useState<{ url: string; origin: string } | null>(null);
   const [error, setError] = useState("");
   const price = dollars(b.nodePriceCents);
   return (
@@ -143,18 +152,18 @@ function Start({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owne
         {owner ? (
           <div>
             <Button
-              disabled={start.isPending}
+              disabled={start.isPending || checkout !== null}
               onClick={async () => {
                 setError("");
                 try {
                   const res = await start.mutateAsync({ orgId });
-                  window.location.assign(res.url);
+                  setCheckout({ url: res.url, origin: res.polarOrigin });
                 } catch (err) {
                   setError(message(err));
                 }
               }}
             >
-              {start.isPending ? <Loader2 className="animate-spin" /> : <CreditCard />}
+              {start.isPending || checkout ? <Loader2 className="animate-spin" /> : <CreditCard />}
               {b.trialAvailable ? "Start your free month" : "Start a plan"}
             </Button>
             <p className="mt-2 text-xs text-muted-foreground">
@@ -167,14 +176,29 @@ function Start({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owne
         )}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
+      {checkout && (
+        <PolarCheckout
+          url={checkout.url}
+          origin={checkout.origin}
+          onSuccess={() => {
+            setCheckout(null);
+            void navigate({ to: ".", search: { checkout: "done" }, replace: true });
+          }}
+          onClose={() => setCheckout(null)}
+          // It didn't load here: Polar's own page works anywhere.
+          onFallback={() => window.location.assign(checkout.url)}
+        />
+      )}
     </Card>
   );
 }
 
 function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner: boolean }) {
   const client = useQueryClient();
-  const portal = useMutation(BillingService.method.openBillingPortal);
+  const withReauth = useReauth();
   const endTrial = useMutation(BillingService.method.endTrial);
+  const [cancelling, setCancelling] = useState(false);
+  const [resuming, setResuming] = useState(false);
   const [error, setError] = useState("");
   const monthly = BigInt(b.seats) * b.nodePriceCents;
   const rows: [string, string][] = [
@@ -182,7 +206,10 @@ function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner
     ["Price per node", `${dollars(b.nodePriceCents)} / month`],
   ];
   if (b.status === "trialing") {
-    rows.push(["Free until", day(b.trialEnd)], ["Then", `${dollars(monthly)} / month`]);
+    rows.push(
+      [b.cancelAtPeriodEnd ? "Ends" : "Free until", day(b.trialEnd)],
+      ["Then", b.cancelAtPeriodEnd ? "Nothing" : `${dollars(monthly)} / month`],
+    );
   } else {
     rows.push(
       ["Monthly", `${dollars(monthly)}`],
@@ -195,10 +222,12 @@ function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner
         <div className="space-y-1.5">
           <CardTitle>Plan</CardTitle>
           <CardDescription>
-            {b.status === "trialing"
-              ? "Your first node is free this month. Linking a second ends the free month, and both are charged from then."
-              : b.cancelAtPeriodEnd
-                ? "This plan ends with the period. Nodes still linked then make the org unpaid."
+            {b.cancelAtPeriodEnd
+              ? b.nodes === 0
+                ? "This plan ends with the period, since the org has no nodes. Connect one and it carries on."
+                : "This plan ends with the period. Nodes still linked then make the org unpaid."
+              : b.status === "trialing"
+                ? "Your first node is free this month. Linking a second ends the free month, and both are charged from then."
                 : "Every linked node is charged, online or not. Adding or removing one changes the bill by the day."}
           </CardDescription>
         </div>
@@ -208,25 +237,9 @@ function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner
         <DetailList rows={rows} />
         {owner && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              disabled={portal.isPending}
-              onClick={async () => {
-                setError("");
-                try {
-                  const res = await portal.mutateAsync({ orgId });
-                  window.location.assign(res.url);
-                } catch (err) {
-                  setError(message(err));
-                }
-              }}
-            >
-              {portal.isPending ? <Loader2 className="animate-spin" /> : <ExternalLink />}
-              Card, invoices, and cancelling
-            </Button>
-            {b.status === "trialing" && (
+            {b.status === "trialing" && !b.cancelAtPeriodEnd && (
               <Button
-                variant="ghost"
+                variant="outline"
                 disabled={endTrial.isPending}
                 onClick={async () => {
                   setError("");
@@ -241,11 +254,71 @@ function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner
                 End the free month now
               </Button>
             )}
+            {b.cancelAtPeriodEnd
+              ? b.nodes > 0 && (
+                  <Button
+                    disabled={resuming}
+                    onClick={async () => {
+                      setResuming(true);
+                      setError("");
+                      try {
+                        await withReauth(() => billingClient.cancelPlan({ orgId, resume: true }));
+                        await client.invalidateQueries();
+                      } catch (err) {
+                        setError(message(err));
+                      } finally {
+                        setResuming(false);
+                      }
+                    }}
+                  >
+                    {resuming && <Loader2 className="animate-spin" />}
+                    Keep the plan
+                  </Button>
+                )
+              : b.status !== "past_due" && (
+                  <Button variant="ghost" onClick={() => setCancelling(true)}>
+                    Cancel plan
+                  </Button>
+                )}
           </div>
         )}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
+      <CancelPlan orgId={orgId} b={b} open={cancelling} onOpenChange={setCancelling} />
     </Card>
+  );
+}
+
+// PolarPortal links to Polar's own portal, for what the page doesn't do.
+function PolarPortal({ orgId }: { orgId: string }) {
+  const portal = useMutation(BillingService.method.openBillingPortal);
+  const [error, setError] = useState("");
+  return (
+    <p className="text-sm text-muted-foreground">
+      Billing address, tax ID, and the email receipts go to are in{" "}
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline disabled:opacity-50"
+        disabled={portal.isPending}
+        onClick={async () => {
+          setError("");
+          try {
+            const res = await portal.mutateAsync({ orgId });
+            window.location.assign(res.url);
+          } catch (err) {
+            setError(message(err));
+          }
+        }}
+      >
+        Polar's portal
+        {portal.isPending ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <ExternalLink className="size-3.5" />
+        )}
+      </button>
+      .{error && <span className="block text-destructive">{error}</span>}
+    </p>
   );
 }
 
