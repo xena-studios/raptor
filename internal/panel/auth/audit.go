@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/netip"
+	"regexp"
+	"strings"
+	"unicode/utf8"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -106,6 +109,78 @@ func PageToken(t string) (pgtype.UUID, error) {
 	return pgtype.UUID{Bytes: id, Valid: true}, nil
 }
 
+// Filter is an ActivityFilter as the audit queries take it: unset parts
+// are NULL or empty, so they don't narrow anything.
+type Filter struct {
+	From, To pgtype.Timestamptz
+	IP       pgtype.Text
+	Actor    pgtype.UUID
+	Actions  []string
+	Failed   bool
+	Query    pgtype.Text
+}
+
+// actionPattern is an action, or a prefix of one ending in % (LIKE's
+// wildcard, the only one allowed).
+var actionPattern = regexp.MustCompile(`^[a-z_]+(\.[a-z_]+)*\.?%?$`)
+
+// likeEscaper escapes LIKE's wildcards (and its escape character), so
+// what's searched for is matched as typed.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// ParseFilter checks an activity filter and makes it a Filter.
+func ParseFilter(f *panelv1.ActivityFilter) (Filter, error) {
+	// Never nil: a nil slice is NULL to Postgres, which matches nothing.
+	out := Filter{Actions: []string{}}
+	if f == nil {
+		return out, nil
+	}
+	if q := strings.TrimSpace(f.GetQuery()); q != "" {
+		if utf8.RuneCountInString(q) > 100 {
+			return out, errors.New("the search is too long: use up to 100 characters")
+		}
+		out.Query = pgtype.Text{String: "%" + likeEscaper.Replace(q) + "%", Valid: true}
+	}
+	if t := f.GetFrom(); t != nil {
+		out.From = pgtype.Timestamptz{Time: t.AsTime(), Valid: true}
+	}
+	if t := f.GetTo(); t != nil {
+		out.To = pgtype.Timestamptz{Time: t.AsTime(), Valid: true}
+	}
+	if out.From.Valid && out.To.Valid && !out.To.Time.After(out.From.Time) {
+		return out, errors.New("the end of the date range is before its start")
+	}
+	if ip := strings.TrimSpace(f.GetIp()); ip != "" {
+		p, err := netip.ParsePrefix(ip)
+		if err != nil {
+			a, aerr := netip.ParseAddr(ip)
+			if aerr != nil {
+				return out, errors.New("that isn't an IP address or range")
+			}
+			p = netip.PrefixFrom(a, a.BitLen())
+		}
+		out.IP = pgtype.Text{String: p.Masked().String(), Valid: true}
+	}
+	if id := f.GetActorId(); id != "" {
+		u, err := uuid.Parse(id)
+		if err != nil {
+			return out, errors.New("bad person to filter by")
+		}
+		out.Actor = pgtype.UUID{Bytes: u, Valid: true}
+	}
+	if len(f.GetActions()) > 30 {
+		return out, errors.New("too many kinds of event: pick up to 30")
+	}
+	for _, a := range f.GetActions() {
+		if !actionPattern.MatchString(a) {
+			return out, errors.New("bad kind of event to filter by")
+		}
+		out.Actions = append(out.Actions, a)
+	}
+	out.Failed = f.GetFailed()
+	return out, nil
+}
+
 // ListActivity implements AuthService.
 func (s *Service) ListActivity(ctx context.Context, req *panelv1.ListActivityRequest) (*panelv1.ListActivityResponse, error) {
 	sess, err := s.Current(ctx)
@@ -116,7 +191,14 @@ func (s *Service) ListActivity(ctx context.Context, req *panelv1.ListActivityReq
 	if err != nil {
 		return nil, invalid(err)
 	}
-	rows, err := s.q().UserActivity(ctx, store.UserActivityParams{UserID: sess.UserID, Before: before, Lim: PageSize})
+	f, err := ParseFilter(req.GetFilter())
+	if err != nil {
+		return nil, invalid(err)
+	}
+	rows, err := s.q().UserActivity(ctx, store.UserActivityParams{
+		UserID: sess.UserID, Before: before, FromAt: f.From, ToAt: f.To, Ip: f.IP,
+		Actions: f.Actions, Failed: f.Failed, Query: f.Query, Lim: PageSize,
+	})
 	if err != nil {
 		return nil, err
 	}

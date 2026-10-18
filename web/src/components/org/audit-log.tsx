@@ -29,7 +29,14 @@ import {
 
 import type { ReactNode } from "react";
 import { describeDevice } from "@/components/account/security";
-import { ActivityCard, type TimelineItem, type TimelinePage } from "@/components/activity-timeline";
+import {
+  ActivityCard,
+  type FilterOptions,
+  type Filters,
+  type TimelineItem,
+  type TimelinePage,
+  toFilter,
+} from "@/components/activity-timeline";
 import type { AuditEvent } from "@/gen/raptor/panel/v1/audit_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { useOrgNodes, useOrgServers } from "@/lib/org-data";
@@ -171,6 +178,55 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
   return [`made a change on ${server}`, Activity];
 }
 
+// The kinds of event the org's lists filter by: an org event's action, or a
+// command's (ActivityFilter.actions).
+const power = {
+  label: "Power",
+  actions: ["server.start", "server.stop", "server.restart", "server.kill"],
+};
+const consoleKind = { label: "Console", actions: ["server.command", "server.console"] };
+const files = { label: "Files and SFTP", actions: ["files.%", "sftp.%"] };
+const backups = { label: "Backups", actions: ["backup.%", "backup_storage.%"] };
+const schedules = { label: "Schedules", actions: ["schedule.%"] };
+const serverChanges = {
+  label: "Server changes",
+  actions: [
+    "server.create",
+    "server.delete",
+    "server.update",
+    "server.reinstall",
+    "server.move",
+    "server.display_address",
+    "addons.install",
+  ],
+};
+const access = { label: "Access", actions: ["access.%"] };
+const people = {
+  label: "Members and invitations",
+  actions: ["member.%", "invitation.%", "account.delete"],
+};
+const machine = { label: "Node and machine", actions: ["node.%", "join_token.%", "keys.%"] };
+const support = { label: "Raptor support", actions: ["support.%"] };
+const eggs = { label: "Eggs", actions: ["egg.%"] };
+const orgKind = { label: "The org", actions: ["org.%"] };
+
+const serverKinds = [power, consoleKind, files, backups, schedules, serverChanges, access];
+const nodeKinds = [machine, power, consoleKind, files, backups, schedules, serverChanges, support];
+const orgKinds = [
+  power,
+  consoleKind,
+  files,
+  backups,
+  schedules,
+  serverChanges,
+  access,
+  people,
+  machine,
+  support,
+  eggs,
+  orgKind,
+];
+
 // OrgActivity is the org's audit log or, given a server, the commands sent
 // to it, as sentences about who did what. Admins and owners.
 export function OrgActivity({
@@ -210,8 +266,51 @@ export function OrgActivity({
     return s ? s.name : "a server";
   };
 
-  const fetchPage = async (token: string): Promise<TimelinePage<AuditEvent>> => {
-    const res = await orgClient.listAuditLog({ orgId, nodeId, serverId, pageToken: token });
+  // What the list can be narrowed by: not the overview's few.
+  const filters: FilterOptions | undefined = limit
+    ? undefined
+    : {
+        kinds: serverId ? serverKinds : nodeId ? nodeKinds : orgKinds,
+        people: (members.data?.members ?? []).map((m) => ({
+          id: m.userId,
+          label: m.name || m.email,
+        })),
+        // The org's whole log can be narrowed to a node or a server.
+        places:
+          nodeId || serverId
+            ? undefined
+            : {
+                label: "Where",
+                options: [
+                  ...(nodes.data?.nodes ?? []).map((n) => ({
+                    value: `node:${n.id}`,
+                    label: `${n.name} (node)`,
+                  })),
+                  ...servers.map((x) => ({
+                    value: `server:${x.node.id}:${x.id}`,
+                    label: x.name,
+                  })),
+                ],
+              },
+        failures: true,
+      };
+
+  const fetchPage = async (token: string, f: Filters): Promise<TimelinePage<AuditEvent>> => {
+    // A place picked in the org's log narrows it the way a node's or a
+    // server's own tab does.
+    const [kind, a = "", b = ""] = f.place.split(":");
+    const scope =
+      kind === "node"
+        ? { nodeId: a, serverId: "" }
+        : kind === "server"
+          ? { nodeId: a, serverId: b }
+          : { nodeId, serverId };
+    const res = await orgClient.listAuditLog({
+      orgId,
+      ...scope,
+      pageToken: token,
+      filter: toFilter(f, filters),
+    });
     return { events: res.events, next: res.nextPageToken };
   };
 
@@ -371,11 +470,13 @@ export function OrgActivity({
       at: e.at ? timestampDate(e.at) : undefined,
       icon,
       actor: e.actorEmail ? person(e.actorEmail) : str(meta.email) || "Someone who left",
+      actorId: members.data?.members.find((m) => m.email === e.actorEmail)?.userId,
       text,
       failed,
       // A failure's reason is the node's words, not written for people, so
       // only the fact that it failed is shown.
-      details: [e.userAgent && describeDevice(e.userAgent), e.ip],
+      details: [e.userAgent && describeDevice(e.userAgent)],
+      ip: e.ip,
     };
   }
 
@@ -390,11 +491,14 @@ export function OrgActivity({
           ? "The latest in this org."
           : serverId
             ? "Everything done to this server: power, console commands, files, backups, and settings."
-            : "Everything done in this org: members, invitations, nodes, access, and servers."
+            : nodeId
+              ? "Everything done to this node and the servers on it, kept for a year."
+              : "Everything done in this org: members, invitations, nodes, access, and servers. Kept for a year."
       }
       queryKey={["org-activity", orgId, nodeId, serverId]}
       fetchPage={fetchPage}
       toItem={toItem}
+      filters={filters}
     />
   );
 }

@@ -17,7 +17,14 @@ import {
 } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { encode } from "uqr";
-import { ActivityCard, type TimelineItem, type TimelinePage } from "@/components/activity-timeline";
+import {
+  ActivityCard,
+  type FilterOptions,
+  type Filters,
+  type TimelineItem,
+  type TimelinePage,
+  toFilter,
+} from "@/components/activity-timeline";
 import { ProviderIcon } from "@/components/provider-icons";
 import { useReauth } from "@/components/reauth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -683,8 +690,22 @@ function describeEvent(action: string, meta: Meta): { text: string; icon: Lucide
   }
 }
 
-async function accountPage(token: string): Promise<TimelinePage<AuditEvent>> {
-  const res = await authClient.listActivity({ pageToken: token });
+const accountFilters: FilterOptions = {
+  kinds: [
+    { label: "Sign-ins and sign-outs", actions: ["signin%", "reauth%", "session.%"] },
+    { label: "Passkeys and two-factor", actions: ["passkey.%", "totp.%", "recovery_codes.%"] },
+    { label: "Connected accounts", actions: ["oauth.%"] },
+    { label: "SSH keys", actions: ["ssh_key.%"] },
+    { label: "Email address", actions: ["email.%"] },
+  ],
+  failures: true,
+};
+
+async function accountPage(token: string, f: Filters): Promise<TimelinePage<AuditEvent>> {
+  const res = await authClient.listActivity({
+    pageToken: token,
+    filter: toFilter(f, accountFilters),
+  });
   return { events: res.events, next: res.nextPageToken };
 }
 
@@ -702,7 +723,8 @@ function accountItem(e: AuditEvent): TimelineItem {
         New device
       </Badge>
     ),
-    details: [e.userAgent && describeDevice(e.userAgent), e.ip],
+    details: [e.userAgent && describeDevice(e.userAgent)],
+    ip: e.ip,
   };
 }
 
@@ -713,6 +735,7 @@ export function ActivityLog() {
       queryKey={["account-activity"]}
       fetchPage={accountPage}
       toItem={accountItem}
+      filters={accountFilters}
     />
   );
 }

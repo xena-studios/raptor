@@ -650,25 +650,30 @@ func (s *Service) ListAuditLog(ctx context.Context, req *panelv1.ListAuditLogReq
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	f, err := auth.ParseFilter(req.GetFilter())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	if req.GetServerId() != "" && req.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a server needs its node"))
+	}
 	out := &panelv1.ListAuditLogResponse{}
 	err = s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
 		org, _, err := member(ctx, q, sess, req.GetOrgId(), "admin")
 		if err != nil {
 			return err
 		}
-		var rows []store.OrgAuditLogRow
-		if req.GetNodeId() != "" || req.GetServerId() != "" {
-			// One server's commands.
-			var sr []store.ServerAuditLogRow
-			sr, err = q.ServerAuditLog(ctx, store.ServerAuditLogParams{
-				OrgID: org, ServerID: req.GetServerId(), NodeID: req.GetNodeId(), Before: before, Lim: auth.PageSize,
-			})
-			for _, r := range sr {
-				rows = append(rows, store.OrgAuditLogRow(r))
-			}
-		} else {
-			rows, err = q.OrgAuditLog(ctx, store.OrgAuditLogParams{OrgID: org, Before: before, Lim: auth.PageSize})
+		params := store.OrgAuditLogParams{
+			OrgID: org, Before: before, FromAt: f.From, ToAt: f.To, Ip: f.IP, Actions: f.Actions,
+			Failed: f.Failed, ActorID: f.Actor, Query: f.Query, Lim: auth.PageSize,
 		}
+		if req.GetServerId() != "" {
+			params.ServerID = pgtype.Text{String: req.GetServerId(), Valid: true}
+		}
+		if req.GetNodeId() != "" {
+			params.NodeID = pgtype.Text{String: req.GetNodeId(), Valid: true}
+		}
+		rows, err := q.OrgAuditLog(ctx, params)
 		for _, r := range rows {
 			out.Events = append(out.Events, auth.AuditProto(r.ID, r.At, r.Actor, r.ActorEmail.String, r.SubjectEmail.String, r.Action, r.Target, r.Ip, r.UserAgent, r.Metadata))
 		}
