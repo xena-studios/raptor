@@ -1,16 +1,18 @@
 import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { KeyRound, Mail } from "lucide-react";
+import { cn } from "cn";
+import { ArrowLeft, KeyRound, Loader2, Mail } from "lucide-react";
 import { type FormEvent, useCallback, useRef, useState } from "react";
 
-import { SourceLink } from "@/components/source-link";
+import { AuthLayout } from "@/components/auth-layout";
+import { ProviderIcon } from "@/components/provider-icons";
 import { Turnstile, type TurnstileHandle, turnstileOn } from "@/components/turnstile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { message } from "@/lib/errors";
 import { currentSession, safeNext } from "@/lib/session";
@@ -120,114 +122,163 @@ function SignIn() {
   }
 
   const m = methods.data;
+  const others = !!m && (m.passkeys || m.oauthProviders.length > 0);
+
+  if (sent) {
+    return (
+      <AuthLayout
+        title="Check your email"
+        description={
+          <>
+            We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>.
+            Type it here, or open the link in the email. Either works once, for 10 minutes.
+          </>
+        }
+      >
+        <form onSubmit={checkCode} className="flex flex-col gap-4">
+          {error && <SignInError text={error} />}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="code">Code</Label>
+            <Input
+              id="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9 ]*"
+              maxLength={7}
+              required
+              autoFocus
+              placeholder="000000"
+              className="h-11 text-center font-mono text-lg tracking-[0.4em] placeholder:tracking-[0.4em]"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+          </div>
+          <Button type="submit" size="lg" disabled={finish.isPending}>
+            {finish.isPending && <Loader2 className="animate-spin" />} Sign in
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setSent(false);
+              setCode("");
+              setError("");
+            }}
+          >
+            <ArrowLeft /> Use a different email
+          </Button>
+        </form>
+      </AuthLayout>
+    );
+  }
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Sign in to Raptor</CardTitle>
-          <CardDescription>
-            No password: a passkey, an emailed code, or an account you already have.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <AuthLayout
+      title="Sign in to Raptor"
+      description="No password to remember. New here? Signing in makes your account."
+    >
+      <div className="flex flex-col gap-4">
+        {error && <SignInError text={error} />}
 
-          {m?.passkeys && passkeysSupported() && (
-            <Button
-              size="lg"
-              onClick={withPasskey}
-              disabled={beginPasskey.isPending || finishPasskey.isPending}
-            >
-              <KeyRound /> Sign in with a passkey
-            </Button>
-          )}
+        {methods.isPending && (
+          <div
+            className="flex flex-col gap-2"
+            aria-busy="true"
+            role="status"
+            aria-label="Loading sign-in options"
+          >
+            <Skeleton className="h-9" />
+            <Skeleton className="h-9" />
+            <Skeleton className="mt-4 h-9" />
+          </div>
+        )}
 
-          {m && m.oauthProviders.length > 0 && (
-            <div className="flex flex-col gap-2">
-              {m.oauthProviders.map((p) => (
-                <Button
-                  key={p}
-                  variant="outline"
-                  onClick={() => withProvider(p)}
-                  disabled={beginOAuth.isPending}
-                >
-                  Continue with {providerNames[p] ?? p}
-                </Button>
-              ))}
-            </div>
-          )}
+        {m?.passkeys && passkeysSupported() && (
+          <Button
+            size="lg"
+            onClick={withPasskey}
+            disabled={beginPasskey.isPending || finishPasskey.isPending}
+          >
+            {beginPasskey.isPending || finishPasskey.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <KeyRound />
+            )}{" "}
+            Sign in with a passkey
+          </Button>
+        )}
 
-          {m?.email && (
-            <>
-              {(m.passkeys || m.oauthProviders.length > 0) && <Separator />}
-              {!sent ? (
-                <form onSubmit={sendCode} className="flex flex-col gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email webauthn"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <Turnstile ref={turnstile} onToken={onToken} />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    disabled={start.isPending || (turnstileOn && !turnstileToken)}
-                  >
-                    <Mail /> Email me a code
-                  </Button>
-                </form>
-              ) : (
-                <form onSubmit={checkCode} className="flex flex-col gap-2">
-                  <Label htmlFor="code">The 6-digit code we emailed to {email}</Label>
-                  <Input
-                    id="code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    pattern="[0-9 ]*"
-                    maxLength={7}
-                    required
-                    autoFocus
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Or open the link in the email. Either works once, for 10 minutes.
-                  </p>
-                  <Button type="submit" disabled={finish.isPending}>
-                    Sign in
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setSent(false);
-                      setCode("");
-                    }}
-                  >
-                    Use a different email
-                  </Button>
-                </form>
-              )}
-            </>
-          )}
+        {m && m.oauthProviders.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {m.oauthProviders.map((p) => (
+              <Button
+                key={p}
+                size="lg"
+                variant="outline"
+                onClick={() => withProvider(p)}
+                disabled={beginOAuth.isPending}
+              >
+                <ProviderIcon provider={p} /> Continue with {providerNames[p] ?? p}
+              </Button>
+            ))}
+          </div>
+        )}
 
-          {methods.error && <p className="text-sm text-destructive">{message(methods.error)}</p>}
-          {m && !m.email && !m.passkeys && m.oauthProviders.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Signing in isn't set up on this Panel yet.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-      <SourceLink className="mt-4 text-center" />
-    </main>
+        {m?.email && (
+          <>
+            {others && (
+              <div className="flex items-center gap-3 py-1" aria-hidden="true">
+                <Separator className="flex-1" />
+                <span className="font-mono text-[0.7rem] tracking-wide text-muted-foreground uppercase">
+                  or by email
+                </span>
+                <Separator className="flex-1" />
+              </div>
+            )}
+            <form onSubmit={sendCode} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="email" className={cn(others && "sr-only")}>
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email webauthn"
+                  placeholder="you@example.com"
+                  required
+                  className="h-9"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <Turnstile ref={turnstile} onToken={onToken} />
+              <Button
+                type="submit"
+                size="lg"
+                variant={others ? "secondary" : "default"}
+                disabled={start.isPending || (turnstileOn && !turnstileToken)}
+              >
+                {start.isPending ? <Loader2 className="animate-spin" /> : <Mail />} Email me a code
+              </Button>
+            </form>
+          </>
+        )}
+
+        {methods.error && <SignInError text={message(methods.error)} />}
+        {m && !m.email && !m.passkeys && m.oauthProviders.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Signing in isn't set up on this Panel yet.
+          </p>
+        )}
+      </div>
+    </AuthLayout>
+  );
+}
+
+function SignInError({ text }: { text: string }) {
+  return (
+    <Alert variant="destructive" role="alert">
+      <AlertDescription>{text}</AlertDescription>
+    </Alert>
   );
 }

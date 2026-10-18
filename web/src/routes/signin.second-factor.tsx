@@ -1,10 +1,13 @@
 import { useMutation } from "@connectrpc/connect-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { cn } from "cn";
+import { Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
+import { AuthLayout } from "@/components/auth-layout";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
@@ -47,72 +50,78 @@ function SecondFactor() {
     }
   }
 
+  if (left !== null) {
+    return (
+      <AuthLayout title="You're signed in">
+        <Alert>
+          <AlertDescription>
+            {left === 0
+              ? "That was your last recovery code"
+              : `You have ${left} recovery ${left === 1 ? "code" : "codes"} left`}
+            : make new ones in your account's security settings, and set your authenticator app up
+            again if you've lost it.
+          </AlertDescription>
+        </Alert>
+        <Button size="lg" onClick={() => navigate({ href: safeNext(next), replace: true })}>
+          Continue
+        </Button>
+      </AuthLayout>
+    );
+  }
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Two-factor authentication</CardTitle>
-          <CardDescription>
-            {recovery
-              ? "Enter one of your recovery codes. Each works once."
-              : "Enter the 6-digit code from your authenticator app."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {left !== null ? (
-            <div className="flex flex-col gap-3">
-              <Alert>
-                <AlertDescription>
-                  You're signed in.{" "}
-                  {left === 0
-                    ? "That was your last recovery code"
-                    : `You have ${left} recovery codes left`}
-                  : make new ones in your account's security settings, and set your authenticator
-                  app up again if you've lost it.
-                </AlertDescription>
-              </Alert>
-              <Button onClick={() => navigate({ href: safeNext(next), replace: true })}>
-                Continue
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={submit} className="flex flex-col gap-3">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <Label htmlFor="code">{recovery ? "Recovery code" : "Code"}</Label>
-              <Input
-                id="code"
-                autoFocus
-                required
-                autoComplete={recovery ? "off" : "one-time-code"}
-                inputMode={recovery ? "text" : "numeric"}
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-              <Button type="submit" disabled={finish.isPending}>
-                Continue
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setRecovery(!recovery);
-                  setCode("");
-                  setError("");
-                }}
-              >
-                {recovery ? "Use the authenticator app" : "Use a recovery code"}
-              </Button>
-              <Link to="/signin" className={buttonVariants({ variant: "link" })}>
-                Start over
-              </Link>
-            </form>
-          )}
-        </CardContent>
-      </Card>
-    </main>
+    <AuthLayout
+      title="Two-factor authentication"
+      description={
+        recovery
+          ? "Enter one of your recovery codes. Each works once."
+          : "Enter the 6-digit code from your authenticator app."
+      }
+    >
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        {error && (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="code">{recovery ? "Recovery code" : "Code"}</Label>
+          <Input
+            id="code"
+            autoFocus
+            required
+            autoComplete={recovery ? "off" : "one-time-code"}
+            inputMode={recovery ? "text" : "numeric"}
+            placeholder={recovery ? undefined : "000000"}
+            className={cn(
+              "h-11 font-mono",
+              !recovery && "text-center text-lg tracking-[0.4em] placeholder:tracking-[0.4em]",
+            )}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+        </div>
+        <Button type="submit" size="lg" disabled={finish.isPending}>
+          {finish.isPending && <Loader2 className="animate-spin" />} Continue
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            setRecovery(!recovery);
+            setCode("");
+            setError("");
+          }}
+        >
+          {recovery ? "Use the authenticator app" : "Use a recovery code"}
+        </Button>
+        <p className="text-center text-xs text-muted-foreground">
+          Not you?{" "}
+          <Link to="/signin" className="underline underline-offset-2 hover:text-foreground">
+            Start over
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }
