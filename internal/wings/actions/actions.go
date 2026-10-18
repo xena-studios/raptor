@@ -83,6 +83,9 @@ const (
 	FilesCompress     = "files.compress"
 	FilesDecompress   = "files.decompress"
 	FilesUpload       = "files.upload" // start an upload; chunks go over a transfer connection
+	FilesPull         = "files.pull"   // download a URL into the server's files
+	FilesPullStatus   = "files.pull.status"
+	FilesPullCancel   = "files.pull.cancel"
 	FilesUploadStatus = "files.upload.status"
 	FilesUploadCancel = "files.upload.cancel"
 	FilesDownload     = "files.download" // start a download
@@ -809,7 +812,9 @@ type FilesParams struct {
 	Data     []byte        `json:"data,omitempty"`   // files.write (base64 in JSON)
 	Dest     string        `json:"dest,omitempty"`   // files.decompress
 	Format   string        `json:"format,omitempty"` // files.compress: tar.gz (default), zip, tar.zst, or tar
-	Name     string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension
+	Name     string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension; files.pull: the file's
+	URL      string        `json:"url,omitempty"`    // files.pull
+	JobID    string        `json:"job_id,omitempty"` // files.pull.status, files.pull.cancel
 	Size     int64         `json:"size,omitempty"`   // files.upload
 	UploadID string        `json:"upload_id,omitempty"`
 	// Permanent is what older web apps sent to files.delete to skip the
@@ -905,6 +910,15 @@ func RegisterFiles(x *command.Executor, s *files.Service) {
 	}))
 	x.Register(FilesDecompress, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return jobResult(s.Decompress(ctx, e.ServerID, e.UserID, p.Path, p.Dest))
+	}))
+	x.Register(FilesPull, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return jobResult(s.Pull(ctx, e.ServerID, e.UserID, p.URL, p.Dir, p.Name))
+	}))
+	x.Register(FilesPullStatus, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.PullStatus(ctx, e.ServerID, p.JobID)
+	}))
+	x.Register(FilesPullCancel, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.CancelPull(ctx, e.ServerID, p.JobID)
 	}))
 	x.Register(FilesUpload, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return s.StartUpload(ctx, e.ServerID, e.UserID, p.Path, p.Size)

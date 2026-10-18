@@ -460,6 +460,9 @@ message Node {
   string hostname_custom = 19;
   string hostname_error = 20;
   string timezone = 21;
+  // What the node's Wings can do beyond its protocol version
+  // ("files-pull"), so the app offers only what it has.
+  repeated string capabilities = 22;
 }
 
 message ListNodesResponse {

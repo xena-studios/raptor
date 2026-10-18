@@ -425,7 +425,7 @@ SELECT n.id, n.name, n.short_id, n.wings_version, n.last_seen_at, n.created_at,
        coalesce((n.facts->>'cpus')::int, 0)::int AS cpus,
        coalesce((n.facts->>'memory_bytes')::bigint, 0)::bigint AS memory_bytes,
        n.sftp_enabled, n.sftp_port, n.sftp_host_key, n.sftp_allowed,
-       n.hostname, n.hostname_custom, n.hostname_error, n.timezone,
+       n.hostname, n.hostname_custom, n.hostname_error, n.timezone, n.capabilities,
        coalesce(host(n.public_ipv4), '')::text AS public_ipv4,
        coalesce(host(n.public_ipv6), '')::text AS public_ipv6
 FROM nodes n LEFT JOIN node_connections c ON c.node_id = n.id
@@ -452,6 +452,7 @@ type OrgNodesRow struct {
 	HostnameCustom string
 	HostnameError  string
 	Timezone       string
+	Capabilities   []string
 	PublicIpv4     string
 	PublicIpv6     string
 }
@@ -484,6 +485,7 @@ func (q *Queries) OrgNodes(ctx context.Context, orgID pgtype.UUID) ([]OrgNodesRo
 			&i.HostnameCustom,
 			&i.HostnameError,
 			&i.Timezone,
+			&i.Capabilities,
 			&i.PublicIpv4,
 			&i.PublicIpv6,
 		); err != nil {

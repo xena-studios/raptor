@@ -261,7 +261,7 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 		Log:    log,
 		// Schedule runs mostly wait, so many can run at once. Archive jobs
 		// use CPU and disk beside the game servers.
-		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32, "files": 2},
+		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32, "files": 2, "pull": 4},
 	})
 	r.commands = &command.Executor{DB: db, NodeID: cfg.NodeID, RP: rp, PanelKey: panelKey, Log: log, Pairing: &command.Pairing{}}
 	svc.SetCommands(r.commands)

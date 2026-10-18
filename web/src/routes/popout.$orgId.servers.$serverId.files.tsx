@@ -40,6 +40,7 @@ function FilesPopout() {
       file={file}
       fill
       onNavigate={(to) => navigate({ search: { path: to.path || undefined, file: to.file } })}
+      canPull={!!node?.capabilities.includes("files-pull")}
       actions={
         node &&
         can(server, "sftp") && (

@@ -1876,8 +1876,11 @@ type Node struct {
 	HostnameCustom  string `protobuf:"bytes,19,opt,name=hostname_custom,json=hostnameCustom,proto3" json:"hostname_custom,omitempty"`
 	HostnameError   string `protobuf:"bytes,20,opt,name=hostname_error,json=hostnameError,proto3" json:"hostname_error,omitempty"`
 	Timezone        string `protobuf:"bytes,21,opt,name=timezone,proto3" json:"timezone,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// What the node's Wings can do beyond its protocol version
+	// ("files-pull"), so the app offers only what it has.
+	Capabilities  []string `protobuf:"bytes,22,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Node) Reset() {
@@ -2048,6 +2051,13 @@ func (x *Node) GetTimezone() string {
 		return x.Timezone
 	}
 	return ""
+}
+
+func (x *Node) GetCapabilities() []string {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
 }
 
 type ListNodesResponse struct {
@@ -5867,7 +5877,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x18ListServerAccessResponse\x125\n" +
 	"\x06access\x18\x01 \x03(\v2\x1d.raptor.panel.v1.ServerAccessR\x06access\")\n" +
 	"\x10ListNodesRequest\x12\x15\n" +
-	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\xda\x05\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\xfe\x05\n" +
 	"\x04Node\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
@@ -5893,7 +5903,8 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x10machine_hostname\x18\x12 \x01(\tR\x0fmachineHostname\x12'\n" +
 	"\x0fhostname_custom\x18\x13 \x01(\tR\x0ehostnameCustom\x12%\n" +
 	"\x0ehostname_error\x18\x14 \x01(\tR\rhostnameError\x12\x1a\n" +
-	"\btimezone\x18\x15 \x01(\tR\btimezoneJ\x04\b\x0f\x10\x10R\x0fdisplay_address\"@\n" +
+	"\btimezone\x18\x15 \x01(\tR\btimezone\x12\"\n" +
+	"\fcapabilities\x18\x16 \x03(\tR\fcapabilitiesJ\x04\b\x0f\x10\x10R\x0fdisplay_address\"@\n" +
 	"\x11ListNodesResponse\x12+\n" +
 	"\x05nodes\x18\x01 \x03(\v2\x15.raptor.panel.v1.NodeR\x05nodes\"W\n" +
 	"\x11RenameNodeRequest\x12\x15\n" +

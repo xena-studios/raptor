@@ -68,6 +68,7 @@ func (s *Service) ListNodes(ctx context.Context, req *panelv1.ListNodesRequest) 
 				Arch: r.Arch, Cpus: r.Cpus, MemoryBytes: r.MemoryBytes,
 				SftpEnabled: r.SftpEnabled, SftpPort: r.SftpPort, SftpHostKeyFingerprint: r.SftpHostKey, SftpAllowed: r.SftpAllowed,
 				MachineHostname: r.Hostname, HostnameCustom: r.HostnameCustom, HostnameError: r.HostnameError, Timezone: r.Timezone,
+				Capabilities: r.Capabilities,
 			}
 			// The machine's own addresses are for those who run it.
 			if grants == nil {

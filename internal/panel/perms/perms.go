@@ -60,6 +60,9 @@ var actions = map[string]string{
 	"files.upload":        FilesWrite,
 	"files.upload.status": FilesWrite,
 	"files.upload.cancel": FilesWrite,
+	"files.pull":          FilesWrite, // a URL downloaded into the server's files
+	"files.pull.status":   FilesWrite,
+	"files.pull.cancel":   FilesWrite,
 	// Restoring and emptying the trash change files; seeing it lists names
 	// that were in the server.
 	"files.trash":         FilesRead,

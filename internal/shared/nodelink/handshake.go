@@ -154,10 +154,12 @@ const (
 	// CapSFTPUsername: SFTP usernames are the login alone (t-…), with no
 	// server ID; the Panel says which server a password is for.
 	CapSFTPUsername = "sftp-username"
+	// CapFilesPull: files.pull downloads a URL into a server's files.
+	CapFilesPull = "files-pull"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {
