@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
-import { changesCode, type ServerConfig, updateParams } from "@/lib/servers";
+import { behaviorOf, changesCode, type ServerConfig, seconds, updateParams } from "@/lib/servers";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
@@ -19,7 +20,7 @@ const select =
 // A server's settings, split across its tabs: startup (runtime and
 // variables), network (its port), and general (name and limits, and
 // reinstalling).
-type SettingsSection = "startup" | "network" | "general";
+type SettingsSection = "startup" | "network" | "general" | "behavior";
 
 const sectionText: Record<SettingsSection, { title: string; description: string }> = {
   startup: {
@@ -32,7 +33,11 @@ const sectionText: Record<SettingsSection, { title: string; description: string 
   },
   general: {
     title: "Name and limits",
-    description: "Memory applies the next time it starts; the disk limit at once.",
+    description: "Memory, swap, and CPU apply the next time it starts; the disk limit at once.",
+  },
+  behavior: {
+    title: "Crashes and stopping",
+    description: "What the node does when the server crashes or is stopped. Changes apply at once.",
   },
 };
 
@@ -132,6 +137,16 @@ function SettingsForm({
   const [diskGiB, setDiskGiB] = useState(
     cfg.limits.disk_mib ? String(cfg.limits.disk_mib / 1024) : "",
   );
+  const [swapGiB, setSwapGiB] = useState(
+    cfg.limits.swap_mib ? String(Number(cfg.limits.swap_mib) / 1024) : "",
+  );
+  const [cpuCores, setCpuCores] = useState(
+    cfg.limits.cpu_percent ? String(Number(cfg.limits.cpu_percent) / 100) : "",
+  );
+  const initial = behaviorOf(cfg);
+  const [autoRestart, setAutoRestart] = useState(initial.crash_auto_restart);
+  const [cleanExit, setCleanExit] = useState(initial.clean_exit_is_stop);
+  const [stopAfter, setStopAfter] = useState(seconds(initial.stop_timeout));
   const [port, setPort] = useState(primary?.port ?? 25565);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -144,6 +159,13 @@ function SettingsForm({
     memoryMiB: Math.round(memoryGiB * 1024),
     diskMiB: diskGiB ? Math.round(Number(diskGiB) * 1024) : 0,
     port,
+    swapMiB: swapGiB ? Math.round(Number(swapGiB) * 1024) : 0,
+    cpuPercent: cpuCores ? Math.round(Number(cpuCores) * 100) : 0,
+    behavior: {
+      crash_auto_restart: autoRestart,
+      clean_exit_is_stop: cleanExit,
+      stop_timeout: `${stopAfter}s`,
+    },
   };
   const signed = changesCode(cfg, change);
 
@@ -261,6 +283,84 @@ function SettingsForm({
                   value={diskGiB}
                   onChange={(e) => setDiskGiB(e.target.value)}
                 />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="s-swap">Swap (GB)</Label>
+                <Input
+                  id="s-swap"
+                  type="number"
+                  min={0}
+                  step="any"
+                  placeholder="None"
+                  value={swapGiB}
+                  onChange={(e) => setSwapGiB(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Disk it can use as extra memory, which is much slower. Most games run better
+                  without it.
+                </p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="s-cpu">CPU limit (cores)</Label>
+                <Input
+                  id="s-cpu"
+                  type="number"
+                  min={0.1}
+                  step="any"
+                  placeholder="No limit"
+                  value={cpuCores}
+                  onChange={(e) => setCpuCores(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  The most it can use, in whole or part cores. Without one it shares the machine's
+                  CPU fairly with the other servers.
+                </p>
+              </div>
+            </div>
+          )}
+          {section === "behavior" && (
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <label htmlFor="s-restart" className="block text-sm font-medium">
+                    Restart it when it crashes
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    The node starts it again, waiting longer after each crash in a row. Off, it
+                    stays crashed until someone starts it.
+                  </p>
+                </div>
+                <Switch id="s-restart" checked={autoRestart} onCheckedChange={setAutoRestart} />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <label htmlFor="s-clean" className="block text-sm font-medium">
+                    A clean exit means it stopped
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    When the game quits without an error, as after a /stop typed in its console,
+                    it's left stopped instead of counted as a crash and restarted.
+                  </p>
+                </div>
+                <Switch id="s-clean" checked={cleanExit} onCheckedChange={setCleanExit} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="s-stop">Force stop after (seconds)</Label>
+                <Input
+                  id="s-stop"
+                  type="number"
+                  required
+                  min={1}
+                  max={600}
+                  className="sm:max-w-48"
+                  value={stopAfter}
+                  onChange={(e) => setStopAfter(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  How long stopping waits for the game to save and shut down before the node kills
+                  it. Up to 10 minutes; big worlds may need longer than the 60 seconds it starts
+                  with.
+                </p>
               </div>
             </div>
           )}

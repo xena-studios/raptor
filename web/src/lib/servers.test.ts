@@ -4,11 +4,13 @@ import { test } from "node:test";
 
 import {
   base64,
+  behaviorOf,
   changesCode,
   createParams,
   eggsFor,
   gameVersion,
   missingRequired,
+  seconds,
   serverStatus,
   suggestMemoryMiB,
   suggestPort,
@@ -171,6 +173,53 @@ test("update params keep everything not edited, and no egg", () => {
   assert.equal(p.startup, "java -jar server.jar");
   assert.equal(changesCode(cfg, change), false);
   assert.equal(changesCode(cfg, { ...change, image: "java:25" }), true);
+});
+
+test("updateParams changes swap, the CPU limit, and behavior only when asked", () => {
+  const cfg = {
+    image: "java:21",
+    startup: "",
+    variables: null,
+    limits: { memory_mib: 2048, disk_mib: 0, swap_mib: 0 },
+    settings: { crash_auto_restart: true, stop_timeout: "1m0s", skip_install: true },
+    host_network: false,
+    allocations: [{ ip: "0.0.0.0", port: 25565, primary: true }],
+  };
+  const base = {
+    name: "s",
+    image: "java:21",
+    variables: {},
+    memoryMiB: 2048,
+    diskMiB: 0,
+    port: 25565,
+  };
+  assert.deepEqual(updateParams(cfg, base).limits, cfg.limits);
+  assert.deepEqual(updateParams(cfg, base).settings, cfg.settings);
+  const p = updateParams(cfg, {
+    ...base,
+    swapMiB: 1024,
+    cpuPercent: 200,
+    behavior: { crash_auto_restart: false, stop_timeout: "90s" },
+  });
+  assert.deepEqual(p.limits, { memory_mib: 2048, disk_mib: 0, swap_mib: 1024, cpu_percent: 200 });
+  assert.deepEqual(p.settings, {
+    crash_auto_restart: false,
+    stop_timeout: "90s",
+    skip_install: true,
+  });
+});
+
+test("behaviorOf fills in Wings' defaults, and seconds reads durations", () => {
+  const b = behaviorOf({ settings: {} } as unknown as Parameters<typeof behaviorOf>[0]);
+  assert.deepEqual(b, {
+    crash_auto_restart: true,
+    clean_exit_is_stop: false,
+    stop_timeout: "1m0s",
+  });
+  assert.equal(seconds("1m0s"), 60);
+  assert.equal(seconds("1m30s"), 90);
+  assert.equal(seconds("10m0s"), 600);
+  assert.equal(seconds("45s"), 45);
 });
 
 test("gameVersion is the server's version, or any when it isn't one", () => {

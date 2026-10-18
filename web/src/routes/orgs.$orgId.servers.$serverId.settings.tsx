@@ -28,6 +28,16 @@ function SettingsTab() {
         canReinstall={can(server, "reinstall")}
         stopped={["offline", "crashed", "install_failed", ""].includes(server.state)}
       />
+      <ServerSettings
+        section="behavior"
+        orgId={orgId}
+        nodeId={nodeId}
+        serverId={serverId}
+        userId={userId}
+        admin={can(server, "*")}
+        canReinstall={false}
+        stopped={false}
+      />
       {can(server, "*") && <MoveServer orgId={orgId} nodeId={nodeId} serverId={serverId} />}
       {can(server, "*") && (
         <DeleteServer
