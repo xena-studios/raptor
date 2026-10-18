@@ -154,6 +154,12 @@ function NodeOverview() {
                   ],
                   ["Last seen", node.connected ? "Now" : since(node.lastSeenAt)],
                   ["Linked", when(node.createdAt)],
+                  [
+                    "Node ID",
+                    <code key="id" className="break-all">
+                      {node.id}
+                    </code>,
+                  ],
                 ]}
               />
             )}

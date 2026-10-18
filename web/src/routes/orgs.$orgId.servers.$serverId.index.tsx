@@ -82,6 +82,12 @@ function Overview() {
                   ],
                   ["Game", server.eggName || "—"],
                   ["Node", node?.name ?? "—"],
+                  [
+                    "Server ID",
+                    <code key="id" className="break-all">
+                      {server.id}
+                    </code>,
+                  ],
                 ]}
               />
             </CardContent>
