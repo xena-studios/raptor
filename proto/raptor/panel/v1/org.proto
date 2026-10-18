@@ -379,9 +379,11 @@ message ListAuditLogRequest {
   // next_page_token from the previous page.
   string page_token = 2;
   // With both set, only what was done to that server: commands, access
-  // changes, and SFTP.
+  // changes, and SFTP. With only node_id, what was done to the node and
+  // its servers.
   string node_id = 3;
   string server_id = 4;
+  ActivityFilter filter = 5;
 }
 
 message ListAuditLogResponse {

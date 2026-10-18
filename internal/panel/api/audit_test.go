@@ -8,8 +8,11 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
@@ -199,6 +202,66 @@ func TestAuditLog(t *testing.T) {
 	if page2.GetEvents()[len(page2.GetEvents())-1].GetAction() != "org.create" {
 		t.Errorf("last page doesn't end at the start")
 	}
+
+	// Filters.
+	account := func(f *panelv1.ActivityFilter) string {
+		t.Helper()
+		act, err := laptop.auth.ListActivity(ctx, &panelv1.ListActivityRequest{Filter: f})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return actions(act.GetEvents())
+	}
+	inOrg := func(f *panelv1.ActivityFilter) string {
+		t.Helper()
+		log, err := laptop.orgs.ListAuditLog(ctx, &panelv1.ListAuditLogRequest{OrgId: org, Filter: f})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return actions(log.GetEvents())
+	}
+	future := timestamppb.New(time.Now().Add(time.Hour))
+	past := timestamppb.New(time.Now().Add(-time.Hour))
+	for _, c := range []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"failed", account(&panelv1.ActivityFilter{Failed: true}), "signin.failed"},
+		{"kind", account(&panelv1.ActivityFilter{Actions: []string{"session.%"}}), "session.signout"},
+		{"words", account(&panelv1.ActivityFilter{Query: "IPHONE"}), "session.signout signin"},
+		{"wildcards are literal", account(&panelv1.ActivityFilter{Query: "%"}), ""},
+		{"range", account(&panelv1.ActivityFilter{Ip: "127.0.0.0/8", Failed: true}), "signin.failed"},
+		{"another range", account(&panelv1.ActivityFilter{Ip: "203.0.113.0/24"}), ""},
+		{"from", account(&panelv1.ActivityFilter{From: future}), ""},
+		{"to", account(&panelv1.ActivityFilter{To: past}), ""},
+		{"from and to", account(&panelv1.ActivityFilter{From: past, To: future, Failed: true}), "signin.failed"},
+		{"org kind", inOrg(&panelv1.ActivityFilter{Actions: []string{"member.%", "org.create"}}), "member.leave member.role org.create"},
+		{"org person", inOrg(&panelv1.ActivityFilter{ActorId: bobID}), "member.leave invitation.accept"},
+		{"org words", inOrg(&panelv1.ActivityFilter{Query: "Acme z"}), "org.rename org.rename"},
+	} {
+		if c.got != c.want {
+			t.Errorf("%s: %q, want %q", c.name, c.got, c.want)
+		}
+	}
+	for _, f := range []*panelv1.ActivityFilter{
+		{Ip: "nope"},
+		{Actions: []string{"x'; drop"}},
+		{Query: strings.Repeat("a", 101)},
+		{From: future, To: past},
+	} {
+		if _, err := laptop.auth.ListActivity(ctx, &panelv1.ListActivityRequest{Filter: f}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+			t.Errorf("filter %v: %v", f, err)
+		}
+	}
+	// A node's: nothing here was done to a node.
+	if log, err := laptop.orgs.ListAuditLog(ctx, &panelv1.ListAuditLogRequest{OrgId: org, NodeId: uuid.NewString()}); err != nil || len(log.GetEvents()) != 0 {
+		t.Errorf("a node's activity: %v, %v", actions(log.GetEvents()), err)
+	}
+	if _, err := laptop.orgs.ListAuditLog(ctx, &panelv1.ListAuditLogRequest{OrgId: org, ServerId: bobID}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("a server without its node: %v", err)
+	}
+
 	if err := authSvc.Prune(ctx); err != nil {
 		t.Error(err)
 	}

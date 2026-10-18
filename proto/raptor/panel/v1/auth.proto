@@ -414,6 +414,7 @@ message UnlinkOAuthAccountResponse {}
 message ListActivityRequest {
   // next_page_token from the previous page.
   string page_token = 1;
+  ActivityFilter filter = 2;
 }
 
 message ListActivityResponse {

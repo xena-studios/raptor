@@ -2836,7 +2836,8 @@ func (*UnlinkOAuthAccountResponse) Descriptor() ([]byte, []int) {
 type ListActivityRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// next_page_token from the previous page.
-	PageToken     string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken     string          `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	Filter        *ActivityFilter `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2876,6 +2877,13 @@ func (x *ListActivityRequest) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListActivityRequest) GetFilter() *ActivityFilter {
+	if x != nil {
+		return x.Filter
+	}
+	return nil
 }
 
 type ListActivityResponse struct {
@@ -3444,10 +3452,11 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\baccounts\x18\x01 \x03(\v2\x1d.raptor.panel.v1.OAuthAccountR\baccounts\"+\n" +
 	"\x19UnlinkOAuthAccountRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1c\n" +
-	"\x1aUnlinkOAuthAccountResponse\"4\n" +
+	"\x1aUnlinkOAuthAccountResponse\"m\n" +
 	"\x13ListActivityRequest\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x01 \x01(\tR\tpageToken\"s\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x127\n" +
+	"\x06filter\x18\x02 \x01(\v2\x1f.raptor.panel.v1.ActivityFilterR\x06filter\"s\n" +
 	"\x14ListActivityResponse\x123\n" +
 	"\x06events\x18\x01 \x03(\v2\x1b.raptor.panel.v1.AuditEventR\x06events\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x93\x01\n" +
@@ -3585,7 +3594,8 @@ var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*DeleteAccountRequest)(nil),              // 63: raptor.panel.v1.DeleteAccountRequest
 	(*DeleteAccountResponse)(nil),             // 64: raptor.panel.v1.DeleteAccountResponse
 	(*timestamppb.Timestamp)(nil),             // 65: google.protobuf.Timestamp
-	(*AuditEvent)(nil),                        // 66: raptor.panel.v1.AuditEvent
+	(*ActivityFilter)(nil),                    // 66: raptor.panel.v1.ActivityFilter
+	(*AuditEvent)(nil),                        // 67: raptor.panel.v1.AuditEvent
 }
 var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: raptor.panel.v1.FinishEmailSignInRequest.code:type_name -> raptor.panel.v1.EmailCode
@@ -3613,72 +3623,73 @@ var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	65, // 22: raptor.panel.v1.OAuthAccount.created_at:type_name -> google.protobuf.Timestamp
 	65, // 23: raptor.panel.v1.OAuthAccount.last_used_at:type_name -> google.protobuf.Timestamp
 	50, // 24: raptor.panel.v1.ListOAuthAccountsResponse.accounts:type_name -> raptor.panel.v1.OAuthAccount
-	66, // 25: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
-	5,  // 26: raptor.panel.v1.UpdateProfileResponse.user:type_name -> raptor.panel.v1.User
-	5,  // 27: raptor.panel.v1.FinishEmailChangeResponse.user:type_name -> raptor.panel.v1.User
-	0,  // 28: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
-	2,  // 29: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
-	6,  // 30: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
-	9,  // 31: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
-	11, // 32: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
-	13, // 33: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
-	17, // 34: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
-	19, // 35: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
-	21, // 36: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
-	23, // 37: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
-	26, // 38: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
-	28, // 39: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
-	30, // 40: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
-	32, // 41: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
-	34, // 42: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
-	36, // 43: raptor.panel.v1.AuthService.FinishSecondFactor:input_type -> raptor.panel.v1.FinishSecondFactorRequest
-	38, // 44: raptor.panel.v1.AuthService.BeginTOTPSetup:input_type -> raptor.panel.v1.BeginTOTPSetupRequest
-	40, // 45: raptor.panel.v1.AuthService.FinishTOTPSetup:input_type -> raptor.panel.v1.FinishTOTPSetupRequest
-	42, // 46: raptor.panel.v1.AuthService.DisableTOTP:input_type -> raptor.panel.v1.DisableTOTPRequest
-	44, // 47: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:input_type -> raptor.panel.v1.RegenerateRecoveryCodesRequest
-	46, // 48: raptor.panel.v1.AuthService.GetSignInMethods:input_type -> raptor.panel.v1.GetSignInMethodsRequest
-	48, // 49: raptor.panel.v1.AuthService.BeginOAuth:input_type -> raptor.panel.v1.BeginOAuthRequest
-	51, // 50: raptor.panel.v1.AuthService.ListOAuthAccounts:input_type -> raptor.panel.v1.ListOAuthAccountsRequest
-	53, // 51: raptor.panel.v1.AuthService.UnlinkOAuthAccount:input_type -> raptor.panel.v1.UnlinkOAuthAccountRequest
-	55, // 52: raptor.panel.v1.AuthService.ListActivity:input_type -> raptor.panel.v1.ListActivityRequest
-	57, // 53: raptor.panel.v1.AuthService.UpdateProfile:input_type -> raptor.panel.v1.UpdateProfileRequest
-	59, // 54: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
-	61, // 55: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
-	63, // 56: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
-	1,  // 57: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
-	4,  // 58: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
-	7,  // 59: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
-	10, // 60: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
-	12, // 61: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
-	14, // 62: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
-	18, // 63: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
-	20, // 64: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
-	22, // 65: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
-	24, // 66: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
-	27, // 67: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
-	29, // 68: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
-	31, // 69: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
-	33, // 70: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
-	35, // 71: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
-	37, // 72: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
-	39, // 73: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
-	41, // 74: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
-	43, // 75: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
-	45, // 76: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
-	47, // 77: raptor.panel.v1.AuthService.GetSignInMethods:output_type -> raptor.panel.v1.GetSignInMethodsResponse
-	49, // 78: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
-	52, // 79: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
-	54, // 80: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
-	56, // 81: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
-	58, // 82: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
-	60, // 83: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
-	62, // 84: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
-	64, // 85: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
-	57, // [57:86] is the sub-list for method output_type
-	28, // [28:57] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	66, // 25: raptor.panel.v1.ListActivityRequest.filter:type_name -> raptor.panel.v1.ActivityFilter
+	67, // 26: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
+	5,  // 27: raptor.panel.v1.UpdateProfileResponse.user:type_name -> raptor.panel.v1.User
+	5,  // 28: raptor.panel.v1.FinishEmailChangeResponse.user:type_name -> raptor.panel.v1.User
+	0,  // 29: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
+	2,  // 30: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
+	6,  // 31: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
+	9,  // 32: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
+	11, // 33: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
+	13, // 34: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
+	17, // 35: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
+	19, // 36: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
+	21, // 37: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
+	23, // 38: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
+	26, // 39: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
+	28, // 40: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
+	30, // 41: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
+	32, // 42: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
+	34, // 43: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
+	36, // 44: raptor.panel.v1.AuthService.FinishSecondFactor:input_type -> raptor.panel.v1.FinishSecondFactorRequest
+	38, // 45: raptor.panel.v1.AuthService.BeginTOTPSetup:input_type -> raptor.panel.v1.BeginTOTPSetupRequest
+	40, // 46: raptor.panel.v1.AuthService.FinishTOTPSetup:input_type -> raptor.panel.v1.FinishTOTPSetupRequest
+	42, // 47: raptor.panel.v1.AuthService.DisableTOTP:input_type -> raptor.panel.v1.DisableTOTPRequest
+	44, // 48: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:input_type -> raptor.panel.v1.RegenerateRecoveryCodesRequest
+	46, // 49: raptor.panel.v1.AuthService.GetSignInMethods:input_type -> raptor.panel.v1.GetSignInMethodsRequest
+	48, // 50: raptor.panel.v1.AuthService.BeginOAuth:input_type -> raptor.panel.v1.BeginOAuthRequest
+	51, // 51: raptor.panel.v1.AuthService.ListOAuthAccounts:input_type -> raptor.panel.v1.ListOAuthAccountsRequest
+	53, // 52: raptor.panel.v1.AuthService.UnlinkOAuthAccount:input_type -> raptor.panel.v1.UnlinkOAuthAccountRequest
+	55, // 53: raptor.panel.v1.AuthService.ListActivity:input_type -> raptor.panel.v1.ListActivityRequest
+	57, // 54: raptor.panel.v1.AuthService.UpdateProfile:input_type -> raptor.panel.v1.UpdateProfileRequest
+	59, // 55: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
+	61, // 56: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
+	63, // 57: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
+	1,  // 58: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
+	4,  // 59: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
+	7,  // 60: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
+	10, // 61: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
+	12, // 62: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
+	14, // 63: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
+	18, // 64: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
+	20, // 65: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
+	22, // 66: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
+	24, // 67: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
+	27, // 68: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
+	29, // 69: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
+	31, // 70: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
+	33, // 71: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
+	35, // 72: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
+	37, // 73: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
+	39, // 74: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
+	41, // 75: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
+	43, // 76: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
+	45, // 77: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
+	47, // 78: raptor.panel.v1.AuthService.GetSignInMethods:output_type -> raptor.panel.v1.GetSignInMethodsResponse
+	49, // 79: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
+	52, // 80: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
+	54, // 81: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
+	56, // 82: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
+	58, // 83: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
+	60, // 84: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
+	62, // 85: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
+	64, // 86: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
+	58, // [58:87] is the sub-list for method output_type
+	29, // [29:58] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_auth_proto_init() }

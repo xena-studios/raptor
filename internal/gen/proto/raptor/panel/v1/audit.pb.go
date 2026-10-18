@@ -147,6 +147,108 @@ func (x *AuditEvent) GetSubjectEmail() string {
 	return ""
 }
 
+// ActivityFilter narrows an activity list (docs/PANEL.md#audit-log). Unset
+// fields don't narrow it.
+type ActivityFilter struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Words to look for in an event's details: email addresses, names, IP
+	// addresses, devices, its action. Up to 100 characters.
+	Query string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	// From this time (inclusive) to this one (exclusive).
+	From *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
+	To   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	// An IP address, or a range ("203.0.113.0/24").
+	Ip string `protobuf:"bytes,4,opt,name=ip,proto3" json:"ip,omitempty"`
+	// Who did it: a user's ID. Org logs only.
+	ActorId string `protobuf:"bytes,5,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	// Kinds of event: actions ("server.start") or prefixes ending in "%"
+	// ("files.%"). A command matches by its own action. Up to 30.
+	Actions []string `protobuf:"bytes,6,rep,name=actions,proto3" json:"actions,omitempty"`
+	// Only what failed: failed sign-ins and commands that failed.
+	Failed        bool `protobuf:"varint,7,opt,name=failed,proto3" json:"failed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ActivityFilter) Reset() {
+	*x = ActivityFilter{}
+	mi := &file_raptor_panel_v1_audit_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ActivityFilter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ActivityFilter) ProtoMessage() {}
+
+func (x *ActivityFilter) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_audit_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ActivityFilter.ProtoReflect.Descriptor instead.
+func (*ActivityFilter) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_audit_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ActivityFilter) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *ActivityFilter) GetFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *ActivityFilter) GetTo() *timestamppb.Timestamp {
+	if x != nil {
+		return x.To
+	}
+	return nil
+}
+
+func (x *ActivityFilter) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *ActivityFilter) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *ActivityFilter) GetActions() []string {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
+func (x *ActivityFilter) GetFailed() bool {
+	if x != nil {
+		return x.Failed
+	}
+	return false
+}
+
 var File_raptor_panel_v1_audit_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_audit_proto_rawDesc = "" +
@@ -166,7 +268,15 @@ const file_raptor_panel_v1_audit_proto_rawDesc = "" +
 	"user_agent\x18\b \x01(\tR\tuserAgent\x12#\n" +
 	"\rmetadata_json\x18\t \x01(\tR\fmetadataJson\x12#\n" +
 	"\rsubject_email\x18\n" +
-	" \x01(\tR\fsubjectEmailB\xca\x01\n" +
+	" \x01(\tR\fsubjectEmail\"\xdf\x01\n" +
+	"\x0eActivityFilter\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12.\n" +
+	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
+	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x0e\n" +
+	"\x02ip\x18\x04 \x01(\tR\x02ip\x12\x19\n" +
+	"\bactor_id\x18\x05 \x01(\tR\aactorId\x12\x18\n" +
+	"\aactions\x18\x06 \x03(\tR\aactions\x12\x16\n" +
+	"\x06failed\x18\a \x01(\bR\x06failedB\xca\x01\n" +
 	"\x13com.raptor.panel.v1B\n" +
 	"AuditProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
@@ -182,18 +292,21 @@ func file_raptor_panel_v1_audit_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_audit_proto_rawDescData
 }
 
-var file_raptor_panel_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_raptor_panel_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_raptor_panel_v1_audit_proto_goTypes = []any{
 	(*AuditEvent)(nil),            // 0: raptor.panel.v1.AuditEvent
-	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
+	(*ActivityFilter)(nil),        // 1: raptor.panel.v1.ActivityFilter
+	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_audit_proto_depIdxs = []int32{
-	1, // 0: raptor.panel.v1.AuditEvent.at:type_name -> google.protobuf.Timestamp
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: raptor.panel.v1.AuditEvent.at:type_name -> google.protobuf.Timestamp
+	2, // 1: raptor.panel.v1.ActivityFilter.from:type_name -> google.protobuf.Timestamp
+	2, // 2: raptor.panel.v1.ActivityFilter.to:type_name -> google.protobuf.Timestamp
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_audit_proto_init() }
@@ -207,7 +320,7 @@ func file_raptor_panel_v1_audit_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_audit_proto_rawDesc), len(file_raptor_panel_v1_audit_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

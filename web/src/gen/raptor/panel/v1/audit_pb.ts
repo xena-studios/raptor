@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/audit.proto.
  */
 export const file_raptor_panel_v1_audit: GenFile = /*@__PURE__*/
-  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYXVkaXQucHJvdG8SD3JhcHRvci5wYW5lbC52MSLSAQoKQXVkaXRFdmVudBIKCgJpZBgBIAEoCRImCgJhdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGYWN0aW9uGAMgASgJEg0KBWFjdG9yGAQgASgJEhMKC2FjdG9yX2VtYWlsGAUgASgJEg4KBnRhcmdldBgGIAEoCRIKCgJpcBgHIAEoCRISCgp1c2VyX2FnZW50GAggASgJEhUKDW1ldGFkYXRhX2pzb24YCSABKAkSFQoNc3ViamVjdF9lbWFpbBgKIAEoCULKAQoTY29tLnJhcHRvci5wYW5lbC52MUIKQXVkaXRQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYXVkaXQucHJvdG8SD3JhcHRvci5wYW5lbC52MSLSAQoKQXVkaXRFdmVudBIKCgJpZBgBIAEoCRImCgJhdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGYWN0aW9uGAMgASgJEg0KBWFjdG9yGAQgASgJEhMKC2FjdG9yX2VtYWlsGAUgASgJEg4KBnRhcmdldBgGIAEoCRIKCgJpcBgHIAEoCRISCgp1c2VyX2FnZW50GAggASgJEhUKDW1ldGFkYXRhX2pzb24YCSABKAkSFQoNc3ViamVjdF9lbWFpbBgKIAEoCSKwAQoOQWN0aXZpdHlGaWx0ZXISDQoFcXVlcnkYASABKAkSKAoEZnJvbRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJgoCdG8YAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAmlwGAQgASgJEhAKCGFjdG9yX2lkGAUgASgJEg8KB2FjdGlvbnMYBiADKAkSDgoGZmFpbGVkGAcgASgIQsoBChNjb20ucmFwdG9yLnBhbmVsLnYxQgpBdWRpdFByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * An entry in the audit log.
@@ -91,4 +91,68 @@ export type AuditEvent = Message<"raptor.panel.v1.AuditEvent"> & {
  */
 export const AuditEventSchema: GenMessage<AuditEvent> = /*@__PURE__*/
   messageDesc(file_raptor_panel_v1_audit, 0);
+
+/**
+ * ActivityFilter narrows an activity list (docs/PANEL.md#audit-log). Unset
+ * fields don't narrow it.
+ *
+ * @generated from message raptor.panel.v1.ActivityFilter
+ */
+export type ActivityFilter = Message<"raptor.panel.v1.ActivityFilter"> & {
+  /**
+   * Words to look for in an event's details: email addresses, names, IP
+   * addresses, devices, its action. Up to 100 characters.
+   *
+   * @generated from field: string query = 1;
+   */
+  query: string;
+
+  /**
+   * From this time (inclusive) to this one (exclusive).
+   *
+   * @generated from field: google.protobuf.Timestamp from = 2;
+   */
+  from?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp to = 3;
+   */
+  to?: Timestamp | undefined;
+
+  /**
+   * An IP address, or a range ("203.0.113.0/24").
+   *
+   * @generated from field: string ip = 4;
+   */
+  ip: string;
+
+  /**
+   * Who did it: a user's ID. Org logs only.
+   *
+   * @generated from field: string actor_id = 5;
+   */
+  actorId: string;
+
+  /**
+   * Kinds of event: actions ("server.start") or prefixes ending in "%"
+   * ("files.%"). A command matches by its own action. Up to 30.
+   *
+   * @generated from field: repeated string actions = 6;
+   */
+  actions: string[];
+
+  /**
+   * Only what failed: failed sign-ins and commands that failed.
+   *
+   * @generated from field: bool failed = 7;
+   */
+  failed: boolean;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ActivityFilter.
+ * Use `create(ActivityFilterSchema)` to create a new message.
+ */
+export const ActivityFilterSchema: GenMessage<ActivityFilter> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_audit, 1);
 

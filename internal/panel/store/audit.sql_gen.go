@@ -48,15 +48,38 @@ const orgAuditLog = `-- name: OrgAuditLog :many
 SELECT a.id, a.org_id, a.user_id, a.actor, a.actor_id, a.action, a.target, a.ip, a.user_agent, a.metadata, a.at, u.email AS actor_email, s.email AS subject_email FROM audit_log a
 LEFT JOIN users u ON u.id = a.actor_id
 LEFT JOIN users s ON s.id = a.user_id
-WHERE a.org_id = $1 AND ($2::uuid IS NULL OR a.id < $2::uuid)
+WHERE a.org_id = $1
+  AND ($2::text IS NULL
+       OR (a.target = $2::text AND a.metadata->>'node' = $3::text))
+  AND ($2::text IS NOT NULL OR $3::text IS NULL
+       OR a.target = $3::text OR a.metadata->>'node' = $3::text)
+  AND ($4::uuid IS NULL OR a.id < $4::uuid)
+  AND ($5::timestamptz IS NULL OR a.at >= $5::timestamptz)
+  AND ($6::timestamptz IS NULL OR a.at < $6::timestamptz)
+  AND ($7::text IS NULL OR a.ip <<= ($7::text)::inet)
+  AND (cardinality($8::text[]) = 0 OR a.action LIKE ANY ($8::text[])
+       OR a.metadata->>'action' LIKE ANY ($8::text[]))
+  AND (NOT $9::bool OR a.action LIKE '%.failed' OR a.metadata->>'error' IS NOT NULL)
+  AND ($10::uuid IS NULL OR a.actor_id = $10::uuid)
+  AND ($11::text IS NULL OR concat_ws(' ', a.action, a.target, host(a.ip),
+       a.user_agent, a.metadata::text, u.email, s.email) ILIKE $11::text)
 ORDER BY a.id DESC
-LIMIT $3
+LIMIT $12
 `
 
 type OrgAuditLogParams struct {
-	OrgID  pgtype.UUID
-	Before pgtype.UUID
-	Lim    int32
+	OrgID    pgtype.UUID
+	ServerID pgtype.Text
+	NodeID   pgtype.Text
+	Before   pgtype.UUID
+	FromAt   pgtype.Timestamptz
+	ToAt     pgtype.Timestamptz
+	Ip       pgtype.Text
+	Actions  []string
+	Failed   bool
+	ActorID  pgtype.UUID
+	Query    pgtype.Text
+	Lim      int32
 }
 
 type OrgAuditLogRow struct {
@@ -75,8 +98,24 @@ type OrgAuditLogRow struct {
 	SubjectEmail pgtype.Text
 }
 
+// An org's events, newest first, before a cursor, narrowed by the filter.
+// With server_id (and its node_id), only what was done to that server;
+// with node_id alone, what was done to the node and its servers.
 func (q *Queries) OrgAuditLog(ctx context.Context, arg OrgAuditLogParams) ([]OrgAuditLogRow, error) {
-	rows, err := q.db.Query(ctx, orgAuditLog, arg.OrgID, arg.Before, arg.Lim)
+	rows, err := q.db.Query(ctx, orgAuditLog,
+		arg.OrgID,
+		arg.ServerID,
+		arg.NodeID,
+		arg.Before,
+		arg.FromAt,
+		arg.ToAt,
+		arg.Ip,
+		arg.Actions,
+		arg.Failed,
+		arg.ActorID,
+		arg.Query,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -118,82 +157,6 @@ func (q *Queries) PruneAuditLog(ctx context.Context) error {
 	return err
 }
 
-const serverAuditLog = `-- name: ServerAuditLog :many
-SELECT a.id, a.org_id, a.user_id, a.actor, a.actor_id, a.action, a.target, a.ip, a.user_agent, a.metadata, a.at, u.email AS actor_email, s.email AS subject_email FROM audit_log a
-LEFT JOIN users u ON u.id = a.actor_id
-LEFT JOIN users s ON s.id = a.user_id
-WHERE a.org_id = $1 AND a.target = $2::text
-  AND a.metadata->>'node' = $3::text
-  AND ($4::uuid IS NULL OR a.id < $4::uuid)
-ORDER BY a.id DESC
-LIMIT $5
-`
-
-type ServerAuditLogParams struct {
-	OrgID    pgtype.UUID
-	ServerID string
-	NodeID   string
-	Before   pgtype.UUID
-	Lim      int32
-}
-
-type ServerAuditLogRow struct {
-	ID           pgtype.UUID
-	OrgID        pgtype.UUID
-	UserID       pgtype.UUID
-	Actor        string
-	ActorID      pgtype.UUID
-	Action       string
-	Target       string
-	Ip           *netip.Addr
-	UserAgent    string
-	Metadata     []byte
-	At           pgtype.Timestamptz
-	ActorEmail   pgtype.Text
-	SubjectEmail pgtype.Text
-}
-
-// What was done to one server (commands, access, SFTP), newest first.
-func (q *Queries) ServerAuditLog(ctx context.Context, arg ServerAuditLogParams) ([]ServerAuditLogRow, error) {
-	rows, err := q.db.Query(ctx, serverAuditLog,
-		arg.OrgID,
-		arg.ServerID,
-		arg.NodeID,
-		arg.Before,
-		arg.Lim,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ServerAuditLogRow
-	for rows.Next() {
-		var i ServerAuditLogRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.OrgID,
-			&i.UserID,
-			&i.Actor,
-			&i.ActorID,
-			&i.Action,
-			&i.Target,
-			&i.Ip,
-			&i.UserAgent,
-			&i.Metadata,
-			&i.At,
-			&i.ActorEmail,
-			&i.SubjectEmail,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const sessionsWithUserAgent = `-- name: SessionsWithUserAgent :one
 SELECT count(*) AS total, count(*) FILTER (WHERE user_agent = $1) AS same
 FROM sessions WHERE user_id = $2
@@ -219,21 +182,47 @@ func (q *Queries) SessionsWithUserAgent(ctx context.Context, arg SessionsWithUse
 }
 
 const userActivity = `-- name: UserActivity :many
-SELECT id, org_id, user_id, actor, actor_id, action, target, ip, user_agent, metadata, at FROM audit_log
-WHERE user_id = $1 AND org_id IS NULL AND ($2::uuid IS NULL OR id < $2::uuid)
-ORDER BY id DESC
-LIMIT $3
+SELECT a.id, a.org_id, a.user_id, a.actor, a.actor_id, a.action, a.target, a.ip, a.user_agent, a.metadata, a.at FROM audit_log a
+WHERE a.user_id = $1 AND a.org_id IS NULL
+  AND ($2::uuid IS NULL OR a.id < $2::uuid)
+  AND ($3::timestamptz IS NULL OR a.at >= $3::timestamptz)
+  AND ($4::timestamptz IS NULL OR a.at < $4::timestamptz)
+  AND ($5::text IS NULL OR a.ip <<= ($5::text)::inet)
+  AND (cardinality($6::text[]) = 0 OR a.action LIKE ANY ($6::text[])
+       OR a.metadata->>'action' LIKE ANY ($6::text[]))
+  AND (NOT $7::bool OR a.action LIKE '%.failed' OR a.metadata->>'error' IS NOT NULL)
+  AND ($8::text IS NULL OR concat_ws(' ', a.action, a.target, host(a.ip),
+       a.user_agent, a.metadata::text) ILIKE $8::text)
+ORDER BY a.id DESC
+LIMIT $9
 `
 
 type UserActivityParams struct {
-	UserID pgtype.UUID
-	Before pgtype.UUID
-	Lim    int32
+	UserID  pgtype.UUID
+	Before  pgtype.UUID
+	FromAt  pgtype.Timestamptz
+	ToAt    pgtype.Timestamptz
+	Ip      pgtype.Text
+	Actions []string
+	Failed  bool
+	Query   pgtype.Text
+	Lim     int32
 }
 
-// An account's own events, newest first, before a cursor (an event ID).
+// An account's own events, newest first, before a cursor (an event ID),
+// narrowed by the filter (auth.Filter; unset parts are NULL or empty).
 func (q *Queries) UserActivity(ctx context.Context, arg UserActivityParams) ([]AuditLog, error) {
-	rows, err := q.db.Query(ctx, userActivity, arg.UserID, arg.Before, arg.Lim)
+	rows, err := q.db.Query(ctx, userActivity,
+		arg.UserID,
+		arg.Before,
+		arg.FromAt,
+		arg.ToAt,
+		arg.Ip,
+		arg.Actions,
+		arg.Failed,
+		arg.Query,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
