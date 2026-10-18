@@ -22,6 +22,8 @@ tasks:
     deps: [web:install]
     cmds:
       - "{{.GOTOOL}} buf generate"
+      - rm -rf web/src/gen
+      - "{{.GOTOOL}} buf generate --template buf.gen.web.yaml --path proto/raptor/panel --path proto/raptor/meta"
       - "{{.GOTOOL}} sqlc generate"
       - pnpm --dir web exec tsr generate
 

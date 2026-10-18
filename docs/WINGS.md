@@ -114,7 +114,7 @@ log:
 - Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept) and one on every clean stop (`snapshots/shutdown-*.db`, last 3), plus the latest snapshot is included in offsite backups. A corrupt database is replaced by the newest good snapshot when Wings starts ([RELIABILITY.md](RELIABILITY.md#state-durability)).
 - **Private files:** SQLite creates database files as 0644 regardless of the umask, and gives its `-wal`/`-shm` files the same mode. Wings creates `state.db` as 0600 before SQLite opens it, so all three stay root-only.
 
-Tables: `servers` and `allocations` (Phase 1.4); `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys` (Phase 1.5); `schedules` (Phase 2, steps stored in it as JSON); `backups`, `backup_destinations`, and `backup_policies` (Phase 2); `kv` (node config, the backup repository password, and whether SFTP is on and its port). Still to come with their features: `grant_cache`, `metrics_rollup`.
+Tables: `servers` and `allocations`; `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys`; `schedules` (steps stored in it as JSON); `backups`, `backup_targets`, `backup_destinations`, and `backup_policies`; `metrics` and `host_metrics`; `file_uploads`, `trash`, `support_grants`, and `audit_log`; `kv` (node config, the backup repository password, and whether SFTP is on and its port).
 
 ## Container runtime
 
@@ -346,7 +346,7 @@ Every change on the node is appended to `events` with a **monotonic sequence num
   - `webdav`: Nextcloud, ownCloud, a NAS.
   - `raptor`: Raptor Backup Storage, made by the Panel (there's one, with that ID): Raptor's B2 bucket through its S3 API, with a key for this node's folder. Wings accepts it, unsigned, only for the bucket `raptor-backup-storage` (pinned in `internal/shared/hosted`), a `s3.<region>.backblazeb2.com` endpoint, and the folder `orgs/<org>/nodes/<this node>/`; it can't be edited, only replaced by the Panel or removed (signed).
   - Not built in: Kopia's experimental backends (rclone, Google Drive), and Google's own Cloud Storage API, whose SDK would add 18 MB to Wings (Cloud Storage's S3 API covers it). Every option is a stable, distinct way of reaching storage.
-- Each destination can cap its **upload speed** (`upload_limit`, bytes per second), so backups leave room for players. Credentials are stored in SQLite and never appear in events or listings (`********`; saving that back keeps the stored secret). A destination's type can't change. Deleting a destination forgets its backups; the data there is left alone. Raptor's hosted storage comes with the Panel (Phase 5).
+- Each destination can cap its **upload speed** (`upload_limit`, bytes per second), so backups leave room for players. Credentials are stored in SQLite and never appear in events or listings (`********`; saving that back keeps the stored secret). A destination's type can't change. Deleting a destination forgets its backups; the data there is left alone. Raptor's hosted storage is one of these destinations ([PANEL.md](PANEL.md#raptor-backup-storage)).
 - **Testing a destination** (`backup.destination.test`), before or after saving it: the worker writes a small file there, reads it back, and removes it. Errors from destinations are put into words (`backup.Explain`: refused credentials, a missing bucket, a name that doesn't resolve, a refused or unanswered connection, an untrusted certificate, a full or read-only destination, a changed host key); anything else says to check the node's log, which has the library's own error.
 - **Health:** each destination keeps when it last worked, its last error and when, and what it stores (added up by the hourly maintenance job at most once a day, since listing a bucket isn't free). A failure, and the first success after one, emit `backup.destination.status`, as does a new size. `backup.destinations` lists them all with their health and the node's SSH key (admins). `backup.policy` (a read, for anyone with the `backups` permission) is a server's settings and the node's destinations by name and type only, to choose from.
 - **Backup key** (`backup/key.go`): one random repository password per node, generated on first use and kept in SQLite; every destination's backups are encrypted with it. Who else keeps a copy is the owner's choice (`backup.key_mode` in kv):
@@ -454,8 +454,9 @@ The CLI keeps things running. **It never changes server configuration.** All set
 
 ```
 raptor status                         node health, Panel link, Docker, storage, server counts
-raptor doctor [--bundle] [--upload]   diagnose + fix suggestions; support bundle, uploaded for a support code
-raptor update [-check] [-version v]   update Wings (root; -check for anyone); Docker too, deliberately (planned)
+raptor doctor [-json] [-bundle] [-upload]   diagnose + fix suggestions; support bundle, uploaded for a support code
+raptor bootstrap -token …             set up this box as a node and link it (root)
+raptor update [-check] [-version v]   update Wings (root; -check for anyone)
 raptor link --token … | unlink | relink
 raptor ps [-json]                     servers: short ID, state, CPU, memory, disk, address, uptime
 raptor start|stop|restart|kill <server>   (root) stop waits for the egg's clean shutdown
@@ -464,17 +465,15 @@ raptor logs <server> [-n N] [-f] [-t] output from Docker's log store, further ba
 raptor backup list [<server>]         backups of a server, or all (with deleted servers' offsite ones)
 raptor backup create <server> [-lock]  (root) back up now; waits and prints size and new data
 raptor backup restore <server> <id>   (root) asks for the server's name first (or -yes); safety backup first
-raptor jobs [logs <id>]
 raptor storage status|setup|grow        volume state; create the image volume; grow it online
-raptor support status|revoke          see / end active support access
+raptor support status|revoke|off|on  see / end staff access, or turn it off
 raptor keys list|reset                trusted passkeys for signed actions; reset = re-pair from the box
 raptor audit                          signed dangerous actions, from the node's own records
 raptor import pterodactyl             migrate servers from Pterodactyl Wings
-raptor uninstall [--wipe-data]
 raptor tui                            servers, stats, history graphs, console; power, backup, and command keys (root)
 ```
 
-Implemented: `support` (Phase 4), `status`, `ps`, `start|stop|restart|kill`, `console`, `logs` (Phase 1.7), `storage` (Phase 1.6), `doctor` (Phase 2; `-upload` and the hostname check in Phase 3), `keys`, `audit`, `tui`, and `import pterodactyl` (Phase 2), `backup` and `update` (Phase 2; `update` for Wings only), `wings run|shutdown-servers` (used by the systemd units), and `wings backup-worker` (started by Wings for each backup operation).
+Plus `version`, and `wings run|shutdown-servers` (used by the systemd units) and `wings backup-worker` (started by Wings for each backup operation). Not built yet: `raptor uninstall` and a `jobs` command ([ROADMAP.md](ROADMAP.md#backlog)).
 
 - **`<server>`** is a server's full ID, its **short ID** (the ID's last part, 12 characters, shown by `ps` and in the Panel's URLs; the last 8 still work; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
@@ -486,7 +485,7 @@ Implemented: `support` (Phase 4), `status`, `ps`, `start|stop|restart|kill`, `co
 
 A **small dedicated service**, `raptor.wings.local.v1.LocalService` (in `proto/`), served on `/run/raptor/wings.sock` over Connect (HTTP/1.1 or unencrypted HTTP/2 on the Unix socket). It's not the Panel API, and it has no methods that change server configuration.
 
-Methods are added to the proto as the features behind them are built, so the API never exposes placeholders. Implemented so far: `GetStatus`, `ShutdownServers`, `ListServers`, `Power`, `StreamConsole`, `SendCommand`, `TailLogs`, `ListBackups`, `CreateBackup`, `RestoreBackup`, `Update`, `ListKeys`, `ListAudit`, the key reset (`StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset`), `GetMetrics`, and `ImportServer`. `doctor` runs in the CLI itself rather than through the API, so it works while Wings is down. The full planned set:
+Methods are added to the proto only with the features behind them, so the API never exposes placeholders. `doctor`, `storage`, and linking run in the CLI itself rather than through the API, so they work while Wings is down.
 
 | Method | Purpose |
 |---|---|
@@ -496,16 +495,16 @@ Methods are added to the proto as the features behind them are built, so the API
 | `Power` | Start, stop, restart, kill; returns when done (root only) |
 | `StreamConsole` (stream), `SendCommand` | Console history and live output; sending commands (root only) |
 | `TailLogs` (stream) | Server output from Docker's log store, optionally followed |
-| `ListBackups`, `CreateBackup`, `RestoreBackup` | Backups: listing for the `raptor` group; creating and restoring root only, optionally waiting for the job |
-| `ListJobs`, `TailJobLogs` (stream) | Jobs and their logs |
-| `RunDoctor`, `CreateBundle` | Diagnostics |
-| `GetSupportStatus`, `RevokeSupport` | Support access |
-| `Link`, `Unlink`, `Relink` | Panel linking |
+| `ListBackups`, `CreateBackup`, `RestoreBackup` | Backups: listing for the `raptor` group; creating and restoring root only |
+| `GetBackupKey` | The node's backup key and who keeps copies, for the owner to save it without the Panel (root only) |
 | `Update` | Self-update: check (anyone with socket access) or install (root); `GetStatus` reports the outcome |
 | `ListKeys`, `ListAudit` | Trusted passkeys and delegations; signed actions and key resets (for the `raptor` group) |
+| `StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset` | Re-pairing the owner's passkey from the box (root only) |
+| `PinOwnerKey` | The owner's passkey, signed at enrollment and handed over by `link` and `bootstrap` (root only, while no owner key is trusted) |
 | `GetMetrics` | A server's resource history and latest sample (for the `raptor` group) |
 | `ImportServer` | A server from another panel, its files copied in (root only) |
-| `StartKeyReset`, `GetKeyReset`, `ConfirmKeyReset`, `CancelKeyReset` | Re-pairing the owner's passkey from the box (root only) |
+| `ListSupport`, `RevokeSupport`, `SetSupportEnabled` | Raptor staff's support access: see it (the `raptor` group), end it, or turn it off (root) |
+| `TestNotifications` | Gone since alerts moved to the Panel (#269); answers `FAILED_PRECONDITION` for older CLIs |
 
 - **Access:** Unix socket permissions: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens. Members of the `raptor` group can **look** (status, `ps`, console output, logs); anything that changes a server (power actions, console commands, shutting servers down) needs **root**, checked by Wings from the caller's Unix user.
 - **Attribution:** Wings reads the caller's Unix user from the socket (`SO_PEERCRED`). Every mutating call is recorded as an event with actor `local:<username>` (power actions as `server.power`, commands as `server.console.command`), so it appears in the Panel's audit log. Power actions from the Panel are recorded the same way with the Panel user.

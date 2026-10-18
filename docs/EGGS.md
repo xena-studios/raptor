@@ -333,7 +333,7 @@ task e2e:conformance                         # fast tier in the VM
 task e2e:conformance TIER=slow RUN=steam/rust
 ```
 
-Still to come in Phase 1.8: a symlink and path-traversal suite.
+Hostile eggs (planted symlinks, FIFOs, and links to host files) are `TestPathSafety` in `task e2e:runtime` ([SECURITY-MODEL.md](SECURITY-MODEL.md#server-files)).
 
 ### Behavioral diff against Pterodactyl
 

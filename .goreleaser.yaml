@@ -44,6 +44,9 @@ release:
 
 changelog:
   use: github
+  # The title alone (it carries the PR number): no hashes in the notes, or
+  # in the Discord #releases post made from them.
+  format: "{{ .Message }}"
   groups:
     - title: Features
       regexp: '^.*?feat(\(.+\))??!?:.+$'

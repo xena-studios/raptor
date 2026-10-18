@@ -69,9 +69,10 @@ commands:
               files are copied, Pterodactyl's are left as they were
   tui         a terminal view of the servers: stats, console, power and
               backup keys (actions as root)
-  doctor [-json] [-bundle]
+  doctor [-json] [-bundle] [-upload]
               check the node and say how to fix what's wrong (as root);
-              -bundle writes a redacted diagnostics file for support
+              -bundle writes a redacted diagnostics file for support, and
+              -upload sends it to Raptor support for a support code
   wings run   run the Wings daemon
   wings shutdown-servers
               gracefully stop every server for a host shutdown (root; used

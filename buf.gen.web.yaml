@@ -1,0 +1,13 @@
+# The web app's code (task gen runs it for the Panel's and meta's
+# packages only: the app never speaks the node link or Wings' socket).
+version: v2
+# The same as buf.gen.yaml's, which the files' descriptors carry.
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/xena-studios/raptor/internal/gen/proto
+plugins:
+  - local: web/node_modules/.bin/protoc-gen-es
+    out: web/src/gen
+    opt: target=ts

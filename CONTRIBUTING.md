@@ -1,6 +1,6 @@
 # Contributing to Raptor
 
-Thanks for your interest in Raptor. The project is in the design phase, so the most useful contributions right now are feedback on the documents in [`docs/`](docs/).
+Thanks for your interest in Raptor. It's built and running in production ahead of launch, so the work now is bugs, small features, and releases: what's left is in [the roadmap](docs/ROADMAP.md). Bug reports and requests from people running Raptor come in on the [Discord server](https://discord.gg/HyUa3sRpeN); security issues go to [SECURITY.md](SECURITY.md)'s address, never there.
 
 ## Developer Certificate of Origin (DCO)
 
@@ -121,7 +121,15 @@ The web app follows [docs/DESIGN.md](docs/DESIGN.md), with the brief behind it a
 
 ### Releases
 
-Releases are built as drafts by CI when a `v*` tag is pushed, then signed with the offline minisign key and published by a maintainer. See [release/README.md](release/README.md). The same tag publishes the Panel's server images to GHCR (`raptor-panel`, `raptor-postgres`). A stable tag (`vX.Y.Z`) on `main` then deploys the Panel, the web app, the landing page, and the docs to production by itself ([DEPLOY.md](docs/DEPLOY.md#deploying)). Since every release goes live, Panel migrations must work with the version before them: add, backfill, and drop in a later release; never rename in one step.
+Versions are `vX.Y.Z`: a **patch** is fixes only, a **minor** is anything new or anything owners would notice changing. Until 1.0 there are no majors. A tag with a suffix (`v0.7.0-beta.1`) is a pre-release: it publishes Wings to nodes on the `beta` channel and deploys nothing.
+
+1. **Check `main`:** CI green, and nothing half-done merged. Look at [the roadmap](docs/ROADMAP.md#before-launch) for anything due "one release later" (a pending migration, a fallback for old Wings) and whether this is that release.
+2. **Tag it:** `git tag v0.7.0 && git push origin v0.7.0`. CI builds a draft release with the binaries, `checksums.txt`, and `web-bundle.sha256`, and pushes the Panel's images to GHCR (`raptor-panel`, `raptor-postgres`). A stable tag then deploys the Panel, the web app, the landing page, and the docs to production by itself ([DEPLOY.md](docs/DEPLOY.md#deploying)). Watch the deploy job, then the dashboard and `/healthz`.
+3. **Read the draft's notes:** they're the merged PRs' titles, grouped into features and fixes (`.goreleaser.yaml`), so a good PR title is a good release note. Edit the draft if one needs it.
+4. **Sign and publish:** `task release:sign TAG=v0.7.0`, with the offline minisign key ([release/README.md](release/README.md)). It writes `install.sh` and publishes the release, and GitHub posts it to Discord's #releases. New installs get it at once.
+5. **Update the nodes:** start the staged rollout on server #1 ([DEPLOY.md](docs/DEPLOY.md#updating-nodes)): 5% of nodes, then 25%, then everyone, halted if a tenth of a stage fails. Nothing updates existing nodes until this runs.
+
+Since every stable release goes live, Panel migrations must work with the version before them: add, backfill, and drop in a later release; never rename in one step. The same goes for anything Wings and the Panel say to each other: a node can be a release behind.
 
 ### The Panel's servers
 
@@ -129,7 +137,7 @@ Releases are built as drafts by CI when a `v*` tag is pushed, then signed with t
 
 ## Pull requests
 
-`main` is protected. Every change lands through a pull request, and all CI jobs (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, `pr`) must pass. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use conventional commit titles (`feat:`, `fix:`, `docs:`, …).
+`main` is protected. Every change lands through a pull request, and the CI jobs must pass (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, and `pr` are required; `site`, `docs`, and `deploy` run on every PR too). A bug fix comes with a test that fails without it. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use conventional commit titles (`feat:`, `fix:`, `docs:`, …).
 
 ## Ground rules
 
