@@ -83,3 +83,8 @@ SELECT to_char(date_trunc('month', at), 'YYYY-MM') AS month,
        coalesce(sum(amount_cents) FILTER (WHERE kind = 'order.refunded'), 0)::bigint AS refunded_cents
 FROM billing_ledger WHERE kind IN ('order.paid', 'order.refunded') AND at >= $1
 GROUP BY 1 ORDER BY 1;
+
+-- name: SetOwnerCanceled :exec
+-- An owner cancelled or resumed the plan: from now on it's theirs, and
+-- the sweep leaves it alone.
+UPDATE billing_accounts SET auto_canceled = false, updated_at = now() WHERE org_id = $1;

@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -68,6 +69,11 @@ type Service struct {
 	Mailer Mailer
 	Log    *slog.Logger
 	Now    func() time.Time
+
+	// sessions are the customer sessions the Panel holds for the portal
+	// API, per org, until shortly before they run out.
+	mu       sync.Mutex
+	sessions map[uuid.UUID]*CustomerSession
 }
 
 // Enabled reports whether billing is on.
@@ -208,6 +214,202 @@ func (s *Service) Portal(ctx context.Context, org uuid.UUID) (string, error) {
 		return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("billing isn't on"))
 	}
 	return s.Polar.PortalURL(ctx, org.String(), s.billingURL(org))
+}
+
+// customerToken is a customer session token for the org, for the portal
+// API: one the Panel holds, or a new one.
+func (s *Service) customerToken(ctx context.Context, org uuid.UUID) (string, error) {
+	s.mu.Lock()
+	cs := s.sessions[org]
+	s.mu.Unlock()
+	if cs != nil && s.now().Before(cs.ExpiresAt.Add(-5*time.Minute)) {
+		return cs.Token, nil
+	}
+	cs, err := s.Polar.CustomerSession(ctx, org.String(), "")
+	if err != nil {
+		return "", err
+	}
+	s.mu.Lock()
+	if s.sessions == nil {
+		s.sessions = map[uuid.UUID]*CustomerSession{}
+	}
+	s.sessions[org] = cs
+	s.mu.Unlock()
+	return cs.Token, nil
+}
+
+// Details are what the billing page shows owners beyond the plan.
+type Details struct {
+	Methods   []PaymentMethod
+	DefaultID string
+	Orders    []Order
+}
+
+// ordersShown is how many charges the page lists.
+const ordersShown = 24
+
+func (s *Service) needPlan(ctx context.Context, org uuid.UUID) (State, error) {
+	if !s.Enabled() {
+		return State{}, connect.NewError(connect.CodeFailedPrecondition, errors.New("billing isn't on"))
+	}
+	st, err := s.State(ctx, org)
+	if err != nil {
+		return st, err
+	}
+	if st.Account.SubscriptionID == "" {
+		return st, connect.NewError(connect.CodeFailedPrecondition, errors.New("this org has never had a plan"))
+	}
+	return st, nil
+}
+
+// Details reads the org's cards and charges from Polar.
+func (s *Service) Details(ctx context.Context, org uuid.UUID) (Details, error) {
+	var d Details
+	if _, err := s.needPlan(ctx, org); err != nil {
+		return d, err
+	}
+	tok, err := s.customerToken(ctx, org)
+	if err != nil {
+		return d, err
+	}
+	c, err := s.Polar.Customer(ctx, tok)
+	if err != nil {
+		return d, err
+	}
+	if d.Methods, err = s.Polar.PaymentMethods(ctx, tok); err != nil {
+		return d, err
+	}
+	if d.Orders, err = s.Polar.Orders(ctx, tok, ordersShown); err != nil {
+		return d, err
+	}
+	d.DefaultID = c.DefaultPaymentMethodID
+	return d, nil
+}
+
+// PaymentSession is a fresh customer session for the web app's embedded
+// form for adding a card, and the origin that form is on.
+func (s *Service) PaymentSession(ctx context.Context, org uuid.UUID) (token, origin string, err error) {
+	if _, err := s.needPlan(ctx, org); err != nil {
+		return "", "", err
+	}
+	cs, err := s.Polar.CustomerSession(ctx, org.String(), "")
+	if err != nil {
+		return "", "", err
+	}
+	return cs.Token, s.Polar.Origin(), nil
+}
+
+// SetDefaultPaymentMethod charges the plan to another saved card.
+func (s *Service) SetDefaultPaymentMethod(ctx context.Context, org uuid.UUID, id string) error {
+	if _, err := s.needPlan(ctx, org); err != nil {
+		return err
+	}
+	tok, err := s.customerToken(ctx, org)
+	if err != nil {
+		return err
+	}
+	return s.Polar.SetDefaultPaymentMethod(ctx, tok, id)
+}
+
+// RemovePaymentMethod deletes a saved card. The one the plan is charged
+// to stays until another is the default.
+func (s *Service) RemovePaymentMethod(ctx context.Context, org uuid.UUID, id string) error {
+	if _, err := s.needPlan(ctx, org); err != nil {
+		return err
+	}
+	tok, err := s.customerToken(ctx, org)
+	if err != nil {
+		return err
+	}
+	err = s.Polar.DeletePaymentMethod(ctx, tok, id)
+	if polarError(err, "PaymentMethodInUseByActiveSubscription") {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("the plan is charged to this card: add another and make it the default first"))
+	}
+	return err
+}
+
+// ErrInvoicePending is an invoice Polar is still making.
+var ErrInvoicePending = connect.NewError(connect.CodeUnavailable, errors.New("the invoice is being made: try again in a few seconds"))
+
+// Invoice is a link to a charge's invoice. The first time, Polar makes it
+// (invoices can't be changed after), which takes a few seconds:
+// ErrInvoicePending until then.
+func (s *Service) Invoice(ctx context.Context, org uuid.UUID, orderID string) (string, error) {
+	if _, err := s.needPlan(ctx, org); err != nil {
+		return "", err
+	}
+	tok, err := s.customerToken(ctx, org)
+	if err != nil {
+		return "", err
+	}
+	o, err := s.Polar.Order(ctx, tok, orderID)
+	if polarError(err, "ResourceNotFound") {
+		return "", connect.NewError(connect.CodeNotFound, errors.New("no such charge"))
+	} else if err != nil {
+		return "", err
+	}
+	if !o.IsInvoiceGenerated {
+		err := s.Polar.GenerateInvoice(ctx, tok, o.ID)
+		switch {
+		case polarError(err, "MissingInvoiceBillingDetails"):
+			return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("an invoice needs a billing name and address: add them in Polar's portal, under Billing details"))
+		case polarError(err, "OrderNotEligibleForInvoice"):
+			return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("this charge has no invoice"))
+		case err != nil:
+			return "", err
+		}
+		return "", ErrInvoicePending
+	}
+	return s.Polar.InvoiceURL(ctx, tok, o.ID)
+}
+
+// Cancellation reasons Polar records (and shows Raptor's staff).
+var CancelReasons = []string{"too_expensive", "missing_features", "switched_service", "unused", "customer_service", "low_quality", "too_complex", "other"}
+
+// Cancel ends the plan when its period does (or, with resume, takes that
+// back). It's the owner's own: the sweep never undoes it.
+func (s *Service) Cancel(ctx context.Context, org uuid.UUID, resume bool, reason, comment string) error {
+	st, err := s.needPlan(ctx, org)
+	if err != nil {
+		return err
+	}
+	a := st.Account
+	switch {
+	case !Live(a.Status):
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("the plan has already ended"))
+	case a.CancelAtPeriodEnd == !resume:
+		return nil
+	case resume && st.Nodes == 0:
+		// It would renew for seats nothing uses: linking a node keeps it.
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("this org has no nodes: connect one and the plan carries on"))
+	}
+	change := map[string]any{"cancel_at_period_end": !resume}
+	if !resume {
+		if reason != "" {
+			if !slices.Contains(CancelReasons, reason) {
+				return connect.NewError(connect.CodeInvalidArgument, errors.New("unknown reason"))
+			}
+			change["customer_cancellation_reason"] = reason
+		}
+		if comment = strings.TrimSpace(comment); comment != "" {
+			if len(comment) > 2000 {
+				return connect.NewError(connect.CodeInvalidArgument, errors.New("keep it under 2,000 characters"))
+			}
+			change["customer_cancellation_comment"] = comment
+		}
+	}
+	sub, err := s.Polar.UpdateSubscription(ctx, a.SubscriptionID, change)
+	if err != nil {
+		return err
+	}
+	if err := store.New(s.DB).SetOwnerCanceled(ctx, pgID(org)); err != nil {
+		return err
+	}
+	why := "plan.canceled"
+	if resume {
+		why = "plan.resumed"
+	}
+	return s.apply(ctx, sub, why)
 }
 
 // EndTrial ends the free month now, so the org can add nodes (they're
@@ -493,17 +695,19 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 	// again takes that back; an owner's own cancellation is left alone.
 	autoCanceled := r.AutoCanceled
 	if Live(status) {
-		change := map[string]any{}
+		// Polar takes one kind of change per update. Seats go first: if
+		// the cancelling after them fails, auto_canceled is still right.
+		var changes []map[string]any
+		if nodes > 0 && int(r.Seats) != nodes {
+			changes = append(changes, map[string]any{"seats": nodes, "proration_behavior": "prorate"})
+		}
 		switch {
 		case nodes == 0 && r.LastNodes > 0 && !r.CancelAtPeriodEnd:
-			change["cancel_at_period_end"], autoCanceled = true, true
+			changes, autoCanceled = append(changes, map[string]any{"cancel_at_period_end": true}), true
 		case nodes > 0 && r.CancelAtPeriodEnd && r.AutoCanceled:
-			change["cancel_at_period_end"], autoCanceled = false, false
+			changes, autoCanceled = append(changes, map[string]any{"cancel_at_period_end": false}), false
 		}
-		if nodes > 0 && int(r.Seats) != nodes {
-			change["seats"], change["proration_behavior"] = nodes, "prorate"
-		}
-		if len(change) > 0 {
+		for _, change := range changes {
 			sub, err := s.Polar.UpdateSubscription(ctx, r.SubscriptionID, change)
 			if err != nil {
 				return err

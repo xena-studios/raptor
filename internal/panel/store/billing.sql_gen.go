@@ -346,6 +346,17 @@ func (q *Queries) SeenWebhook(ctx context.Context, arg SeenWebhookParams) (bool,
 	return column_1, err
 }
 
+const setOwnerCanceled = `-- name: SetOwnerCanceled :exec
+UPDATE billing_accounts SET auto_canceled = false, updated_at = now() WHERE org_id = $1
+`
+
+// An owner cancelled or resumed the plan: from now on it's theirs, and
+// the sweep leaves it alone.
+func (q *Queries) SetOwnerCanceled(ctx context.Context, orgID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, setOwnerCanceled, orgID)
+	return err
+}
+
 const setSweptNodes = `-- name: SetSweptNodes :exec
 INSERT INTO billing_accounts (org_id, nodes, auto_canceled) VALUES ($1, $2, $3)
 ON CONFLICT (org_id) DO UPDATE SET nodes = EXCLUDED.nodes, auto_canceled = EXCLUDED.auto_canceled, updated_at = now()

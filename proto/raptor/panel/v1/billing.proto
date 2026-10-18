@@ -23,6 +23,32 @@ service BillingService {
 
   // EndTrial ends the free month now, so more nodes can be linked. Owners.
   rpc EndTrial(EndTrialRequest) returns (EndTrialResponse) {}
+
+  // GetBillingDetails lists the org's saved cards and its charges, from
+  // Polar. Owners.
+  rpc GetBillingDetails(GetBillingDetailsRequest) returns (GetBillingDetailsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // StartAddCard returns a customer session for Polar's embedded form for
+  // adding a card. Owners, with a recent re-authentication.
+  rpc StartAddCard(StartAddCardRequest) returns (StartAddCardResponse) {}
+
+  // SetDefaultCard charges the plan to another saved card. Owners, with a
+  // recent re-authentication.
+  rpc SetDefaultCard(SetDefaultCardRequest) returns (SetDefaultCardResponse) {}
+
+  // RemoveCard deletes a saved card that isn't the one the plan is charged
+  // to. Owners, with a recent re-authentication.
+  rpc RemoveCard(RemoveCardRequest) returns (RemoveCardResponse) {}
+
+  // GetInvoice returns a link to a charge's invoice. Polar makes it the
+  // first time, which takes a few seconds: UNAVAILABLE until then. Owners.
+  rpc GetInvoice(GetInvoiceRequest) returns (GetInvoiceResponse) {}
+
+  // CancelPlan ends the plan with its period, or with resume takes that
+  // back. Owners, with a recent re-authentication.
+  rpc CancelPlan(CancelPlanRequest) returns (CancelPlanResponse) {}
 }
 
 message GetBillingRequest {
@@ -53,6 +79,8 @@ message StartCheckoutRequest {
 
 message StartCheckoutResponse {
   string url = 1;
+  // Polar's origin, which the app opens the checkout from.
+  string polar_origin = 2;
 }
 
 message OpenBillingPortalRequest {
@@ -68,3 +96,88 @@ message EndTrialRequest {
 }
 
 message EndTrialResponse {}
+
+message GetBillingDetailsRequest {
+  string org_id = 1;
+}
+
+message Card {
+  string id = 1;
+  // card, or another way to pay Polar offers.
+  string type = 2;
+  string brand = 3;
+  string last4 = 4;
+  int32 exp_month = 5;
+  int32 exp_year = 6;
+  // apple_pay, google_pay, or empty.
+  string wallet = 7;
+  // The one the plan is charged to.
+  bool default = 8;
+}
+
+// Charge is a Polar order: the first payment, a renewal, or a seat change.
+message Charge {
+  string id = 1;
+  google.protobuf.Timestamp at = 2;
+  // paid, pending, refunded, partially_refunded, void, …
+  string status = 3;
+  int64 total_cents = 4;
+  int64 refunded_cents = 5;
+  string currency = 6;
+  // purchase, subscription_create, subscription_cycle, subscription_update
+  string reason = 7;
+  string description = 8;
+  string invoice_number = 9;
+}
+
+message GetBillingDetailsResponse {
+  repeated Card cards = 1;
+  // Newest first, the last 24.
+  repeated Charge charges = 2;
+}
+
+message StartAddCardRequest {
+  string org_id = 1;
+}
+
+message StartAddCardResponse {
+  // A customer session token: an hour, for this org's customer only.
+  string session_token = 1;
+  // Polar's origin, which serves the form.
+  string polar_origin = 2;
+}
+
+message SetDefaultCardRequest {
+  string org_id = 1;
+  string card_id = 2;
+}
+
+message SetDefaultCardResponse {}
+
+message RemoveCardRequest {
+  string org_id = 1;
+  string card_id = 2;
+}
+
+message RemoveCardResponse {}
+
+message GetInvoiceRequest {
+  string org_id = 1;
+  string charge_id = 2;
+}
+
+message GetInvoiceResponse {
+  string url = 1;
+}
+
+message CancelPlanRequest {
+  string org_id = 1;
+  // Take a cancellation back.
+  bool resume = 2;
+  // One of Polar's: too_expensive, missing_features, switched_service,
+  // unused, customer_service, low_quality, too_complex, other; or empty.
+  string reason = 3;
+  string comment = 4;
+}
+
+message CancelPlanResponse {}

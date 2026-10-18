@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,20 +39,97 @@ type fakePolar struct {
 	checkouts []map[string]any
 	patches   []map[string]any
 	portals   int
+	// The customer's side: saved cards, the default, and orders.
+	methods  []map[string]any
+	defaultM string
+	orders   []map[string]any
+	invoices map[string]bool
+}
+
+// patchKinds are Polar's subscription updates: one kind at a time.
+var patchKinds = [][]string{
+	{"metadata", "product_id", "proration_behavior", "discount_id", "trial_end"},
+	{"seats", "proration_behavior"},
+	{"cancel_at_period_end", "customer_cancellation_reason", "customer_cancellation_comment"},
+}
+
+func onePatchKind(body map[string]any) bool {
+	for _, kind := range patchKinds {
+		ok := true
+		for k := range body {
+			ok = ok && slices.Contains(kind, k)
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// portal is the customer portal API, with a customer session's token.
+func (f *fakePolar) portal(w http.ResponseWriter, r *http.Request, body map[string]any, reply func(any)) {
+	if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer polar_cst_") {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	const pm = "/v1/customer-portal/customers/me/payment-methods"
+	path := r.URL.Path
+	order := strings.TrimSuffix(strings.TrimPrefix(path, "/v1/customer-portal/orders/"), "/invoice")
+	switch {
+	case r.Method == http.MethodGet && path == "/v1/customer-portal/customers/me":
+		reply(map[string]any{"id": "cus1", "default_payment_method_id": f.defaultM})
+	case r.Method == http.MethodPatch && path == "/v1/customer-portal/customers/me":
+		f.defaultM, _ = body["default_payment_method_id"].(string)
+		reply(map[string]any{"id": "cus1", "default_payment_method_id": f.defaultM})
+	case r.Method == http.MethodGet && path == pm:
+		reply(map[string]any{"items": f.methods})
+	case r.Method == http.MethodDelete && strings.HasPrefix(path, pm+"/"):
+		id := strings.TrimPrefix(path, pm+"/")
+		if id == f.defaultM {
+			w.WriteHeader(http.StatusBadRequest)
+			reply(map[string]any{"error": "PaymentMethodInUseByActiveSubscription", "detail": "in use"})
+			return
+		}
+		f.methods = slices.DeleteFunc(f.methods, func(m map[string]any) bool { return m["id"] == id })
+		w.WriteHeader(http.StatusNoContent)
+	case r.Method == http.MethodGet && path == "/v1/customer-portal/orders/":
+		reply(map[string]any{"items": f.orders})
+	case strings.HasSuffix(path, "/invoice") && r.Method == http.MethodPost:
+		f.invoices[order] = true
+		w.WriteHeader(http.StatusAccepted)
+	case strings.HasSuffix(path, "/invoice") && f.invoices[order]:
+		reply(map[string]any{"url": "https://polar.test/invoice/" + order + ".pdf"})
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/v1/customer-portal/orders/"):
+		for _, o := range f.orders {
+			if o["id"] == order {
+				o["is_invoice_generated"] = f.invoices[order]
+				reply(o)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+		reply(map[string]any{"error": "ResourceNotFound"})
+	default:
+		http.NotFound(w, r)
+	}
 }
 
 func (f *fakePolar) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if r.Header.Get("Authorization") != "Bearer polar_oat_test" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
 	var body map[string]any
 	_ = json.NewDecoder(r.Body).Decode(&body)
 	reply := func(v any) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(v)
+	}
+	if strings.HasPrefix(r.URL.Path, "/v1/customer-portal/") {
+		f.portal(w, r, body, reply)
+		return
+	}
+	if r.Header.Get("Authorization") != "Bearer polar_oat_test" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/v1/subscriptions/")
 	switch {
@@ -60,10 +138,18 @@ func (f *fakePolar) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		reply(map[string]any{"id": "co1", "url": "https://polar.test/checkout/co1"})
 	case r.Method == http.MethodPost && r.URL.Path == "/v1/customer-sessions/":
 		f.portals++
-		reply(map[string]any{"customer_portal_url": "https://polar.test/portal"})
+		reply(map[string]any{
+			"token": fmt.Sprintf("polar_cst_%d", f.portals), "expires_at": time.Now().Add(time.Hour).UTC(),
+			"customer_portal_url": "https://polar.test/portal",
+		})
 	case r.Method == http.MethodGet && f.subs[id] != nil:
 		reply(f.subs[id])
 	case r.Method == http.MethodPatch && f.subs[id] != nil:
+		if !onePatchKind(body) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			reply(map[string]any{"error": "RequestValidationError", "detail": "matches no update"})
+			return
+		}
 		f.patches = append(f.patches, body)
 		s := f.subs[id]
 		if v, ok := body["seats"]; ok {
@@ -128,7 +214,7 @@ func TestBilling(t *testing.T) {
 	now := time.Now()
 	clock := func() time.Time { return now }
 	pub, key, _ := ed25519.GenerateKey(rand.Reader)
-	polar := &fakePolar{subs: map[string]map[string]any{}}
+	polar := &fakePolar{subs: map[string]map[string]any{}, invoices: map[string]bool{}}
 	polarSrv := httptest.NewServer(polar)
 	defer polarSrv.Close()
 	authSvc := &auth.Service{DB: db, Mailer: mail, AppURL: appOrigin}
@@ -308,6 +394,83 @@ func TestBilling(t *testing.T) {
 	}
 	if _, err := alice.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: n1, Action: "server.start", ServerId: "s1"}); err != nil {
 		t.Errorf("a change once paid: %v", err)
+	}
+
+	// The billing page's own portal: cards, charges, invoices.
+	polar.mu.Lock()
+	card := func(id, last4 string) map[string]any {
+		return map[string]any{"id": id, "type": "card", "method_metadata": map[string]any{"brand": "visa", "last4": last4, "exp_month": 4, "exp_year": 2030}}
+	}
+	pm1, pm2 := "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"
+	polar.methods, polar.defaultM = []map[string]any{card(pm1, "4242"), card(pm2, "1881")}, pm1
+	ord := "33333333-3333-4333-8333-333333333333"
+	polar.orders = []map[string]any{{
+		"id": ord, "created_at": now.UTC(), "status": "paid", "paid": true, "total_amount": 1200,
+		"currency": "usd", "billing_reason": "subscription_cycle", "invoice_number": "RAPTOR-0001",
+	}}
+	polar.mu.Unlock()
+	if _, err := bob.bill.GetBillingDetails(ctx, &panelv1.GetBillingDetailsRequest{OrgId: org}); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("a member reading cards: %v", err)
+	}
+	d, err := alice.bill.GetBillingDetails(ctx, &panelv1.GetBillingDetailsRequest{OrgId: org})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.GetCards()) != 2 || !d.GetCards()[0].GetDefault() || d.GetCards()[1].GetDefault() || d.GetCards()[0].GetLast4() != "4242" ||
+		len(d.GetCharges()) != 1 || d.GetCharges()[0].GetTotalCents() != 1200 || d.GetCharges()[0].GetInvoiceNumber() != "RAPTOR-0001" {
+		t.Errorf("details: %v", d)
+	}
+	if _, err := alice.bill.RemoveCard(ctx, &panelv1.RemoveCardRequest{OrgId: org, CardId: pm1}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Errorf("removing the card the plan uses: %v", err)
+	}
+	if _, err := alice.bill.RemoveCard(ctx, &panelv1.RemoveCardRequest{OrgId: org, CardId: "../orders"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("a card ID that's a path: %v", err)
+	}
+	if _, err := alice.bill.SetDefaultCard(ctx, &panelv1.SetDefaultCardRequest{OrgId: org, CardId: pm2}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := alice.bill.RemoveCard(ctx, &panelv1.RemoveCardRequest{OrgId: org, CardId: pm1}); err != nil {
+		t.Fatal(err)
+	}
+	if d, _ := alice.bill.GetBillingDetails(ctx, &panelv1.GetBillingDetailsRequest{OrgId: org}); len(d.GetCards()) != 1 || !d.GetCards()[0].GetDefault() {
+		t.Errorf("after switching cards: %v", d)
+	}
+	add, err := alice.bill.StartAddCard(ctx, &panelv1.StartAddCardRequest{OrgId: org})
+	if err != nil || !strings.HasPrefix(add.GetSessionToken(), "polar_cst_") || add.GetPolarOrigin() != "https://polar.sh" {
+		t.Errorf("adding a card: %v, %v", add, err)
+	}
+	// An invoice is made the first time it's asked for.
+	if _, err := alice.bill.GetInvoice(ctx, &panelv1.GetInvoiceRequest{OrgId: org, ChargeId: ord}); connect.CodeOf(err) != connect.CodeUnavailable {
+		t.Errorf("an invoice not made yet: %v", err)
+	}
+	if inv, err := alice.bill.GetInvoice(ctx, &panelv1.GetInvoiceRequest{OrgId: org, ChargeId: ord}); err != nil || !strings.HasSuffix(inv.GetUrl(), ord+".pdf") {
+		t.Errorf("the invoice: %v, %v", inv, err)
+	}
+	if _, err := alice.bill.GetInvoice(ctx, &panelv1.GetInvoiceRequest{OrgId: org, ChargeId: pm1}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("an invoice for no charge: %v", err)
+	}
+	// The owner cancels here and takes it back; the sweep leaves both alone.
+	if _, err := alice.bill.CancelPlan(ctx, &panelv1.CancelPlanRequest{OrgId: org, Reason: "bored"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("an unknown reason: %v", err)
+	}
+	if _, err := alice.bill.CancelPlan(ctx, &panelv1.CancelPlanRequest{OrgId: org, Reason: "too_expensive", Comment: "  pricey "}); err != nil {
+		t.Fatal(err)
+	}
+	polar.mu.Lock()
+	last := polar.patches[len(polar.patches)-1]
+	polar.mu.Unlock()
+	if last["cancel_at_period_end"] != true || last["customer_cancellation_reason"] != "too_expensive" || last["customer_cancellation_comment"] != "pricey" {
+		t.Errorf("the cancellation: %v", last)
+	}
+	sweep()
+	if b := get(); !b.GetCancelAtPeriodEnd() {
+		t.Errorf("the sweep undid the owner's cancellation: %v", b)
+	}
+	if _, err := alice.bill.CancelPlan(ctx, &panelv1.CancelPlanRequest{OrgId: org, Resume: true}); err != nil {
+		t.Fatal(err)
+	}
+	if b := get(); b.GetCancelAtPeriodEnd() {
+		t.Errorf("resumed: %v", b)
 	}
 
 	// Staff see it: recurring revenue from the seats on active plans, and
