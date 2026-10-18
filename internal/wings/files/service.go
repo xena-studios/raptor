@@ -79,6 +79,7 @@ type Service struct {
 	mu        sync.Mutex
 	downloads map[string]*Download
 	pulling   pulls
+	importing imports
 }
 
 // NewService returns a Service and registers its jobs.
@@ -96,6 +97,9 @@ func NewService(o Options) *Service {
 		// A download starts again from the beginning after a Wings restart.
 		// It doesn't lock the server: it only adds one new file.
 		o.Jobs.Register(JobPull, jobs.Handler{Class: "pull", Resumable: true, MaxAttempts: 2, Run: s.pullJob})
+		// An import isn't resumable: its password is only in memory. It
+		// locks the server, as extracting an archive does.
+		o.Jobs.Register(JobImport, jobs.Handler{Class: "files", ServerLock: true, Run: s.importJob})
 	}
 	return s
 }

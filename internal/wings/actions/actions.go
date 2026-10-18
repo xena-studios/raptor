@@ -86,6 +86,10 @@ const (
 	FilesPull         = "files.pull"   // download a URL into the server's files
 	FilesPullStatus   = "files.pull.status"
 	FilesPullCancel   = "files.pull.cancel"
+	FilesImport       = "files.import" // copy a server's files in from another host over SFTP
+	FilesImportKey    = "files.import.hostkey"
+	FilesImportStatus = "files.import.status"
+	FilesImportCancel = "files.import.cancel"
 	FilesUploadStatus = "files.upload.status"
 	FilesUploadCancel = "files.upload.cancel"
 	FilesDownload     = "files.download" // start a download
@@ -833,19 +837,23 @@ type SFTPDisconnectParams struct {
 // needs. Paths are from the server's directory; Dir is what Names, Moves,
 // and Changes are relative to.
 type FilesParams struct {
-	Path     string        `json:"path,omitempty"`
-	Dir      string        `json:"dir,omitempty"`
-	Names    []string      `json:"names,omitempty"`
-	Moves    []files.Move  `json:"moves,omitempty"`
-	Changes  []files.Chmod `json:"changes,omitempty"`
-	Data     []byte        `json:"data,omitempty"`   // files.write (base64 in JSON)
-	Dest     string        `json:"dest,omitempty"`   // files.decompress
-	Format   string        `json:"format,omitempty"` // files.compress: tar.gz (default), zip, tar.zst, or tar
-	Name     string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension; files.pull: the file's
-	URL      string        `json:"url,omitempty"`    // files.pull
-	JobID    string        `json:"job_id,omitempty"` // files.pull.status, files.pull.cancel
-	Size     int64         `json:"size,omitempty"`   // files.upload
-	UploadID string        `json:"upload_id,omitempty"`
+	Path    string        `json:"path,omitempty"`
+	Dir     string        `json:"dir,omitempty"`
+	Names   []string      `json:"names,omitempty"`
+	Moves   []files.Move  `json:"moves,omitempty"`
+	Changes []files.Chmod `json:"changes,omitempty"`
+	Data    []byte        `json:"data,omitempty"`   // files.write (base64 in JSON)
+	Dest    string        `json:"dest,omitempty"`   // files.decompress
+	Format  string        `json:"format,omitempty"` // files.compress: tar.gz (default), zip, tar.zst, or tar
+	Name    string        `json:"name,omitempty"`   // files.compress: the archive's name, without its extension; files.pull: the file's
+	URL     string        `json:"url,omitempty"`    // files.pull
+	JobID   string        `json:"job_id,omitempty"` // files.pull.status, files.pull.cancel, files.import.*
+	// Source is where files.import copies from (and files.import.hostkey
+	// reads the host key of). Command records don't keep params, so its
+	// password isn't stored.
+	Source   *files.ImportSource `json:"source,omitempty"`
+	Size     int64               `json:"size,omitempty"` // files.upload
+	UploadID string              `json:"upload_id,omitempty"`
 	// Permanent is what older web apps sent to files.delete to skip the
 	// trash. It's ignored: deleting always moves to the trash, and only
 	// purging the trash (files.trash.delete, files.trash.empty) deletes for
@@ -942,6 +950,24 @@ func RegisterFiles(x *command.Executor, s *files.Service) {
 	}))
 	x.Register(FilesPull, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return jobResult(s.Pull(ctx, e.ServerID, e.UserID, p.URL, p.Dir, p.Name))
+	}))
+	x.Register(FilesImportKey, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		if p.Source == nil {
+			return nil, errors.New("command needs a source")
+		}
+		return s.ImportHostKey(ctx, p.Source.Host, p.Source.Port)
+	}))
+	x.Register(FilesImport, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		if p.Source == nil {
+			return nil, errors.New("command needs a source")
+		}
+		return jobResult(s.Import(ctx, e.ServerID, e.UserID, *p.Source, p.Dir))
+	}))
+	x.Register(FilesImportStatus, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return s.ImportStatus(ctx, e.ServerID, p.JobID)
+	}))
+	x.Register(FilesImportCancel, handler(false, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
+		return nil, s.CancelImport(ctx, e.ServerID, p.JobID)
 	}))
 	x.Register(FilesPullStatus, handler(true, func(ctx context.Context, e command.Envelope, p FilesParams) (any, error) {
 		return s.PullStatus(ctx, e.ServerID, p.JobID)

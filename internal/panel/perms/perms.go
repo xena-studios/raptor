@@ -63,6 +63,11 @@ var actions = map[string]string{
 	"files.pull":          FilesWrite, // a URL downloaded into the server's files
 	"files.pull.status":   FilesWrite,
 	"files.pull.cancel":   FilesWrite,
+	// Importing adds files from another host and replaces none.
+	"files.import":         FilesWrite,
+	"files.import.hostkey": FilesWrite,
+	"files.import.status":  FilesWrite,
+	"files.import.cancel":  FilesWrite,
 	// Restoring and emptying the trash change files; seeing it lists names
 	// that were in the server.
 	"files.trash":         FilesRead,

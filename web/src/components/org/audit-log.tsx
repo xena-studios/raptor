@@ -104,6 +104,10 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`uploaded a file to ${server}`, FileText];
     case "files.pull":
       return [`downloaded a file from a link onto ${server}`, FileText];
+    case "files.import":
+      return [`imported files onto ${server} from another host`, FileText];
+    case "files.import.cancel":
+      return [`stopped an import onto ${server}`, FileText];
     case "files.pull.cancel":
       return [`cancelled a download onto ${server}`, FileText];
     case "files.upload.cancel":

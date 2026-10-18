@@ -203,8 +203,8 @@ export function PullDialog({
           <DialogHeader>
             <DialogTitle>Download from a link</DialogTitle>
             <DialogDescription>
-              The node downloads it straight into /{dir}, so it doesn't go through your computer.
-              Links to private networks aren't followed.
+              The node downloads it straight into {dir ? `/${dir}` : "the server's main folder"}, so
+              it doesn't go through your computer. Links to private networks aren't followed.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">

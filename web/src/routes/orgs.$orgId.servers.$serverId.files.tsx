@@ -34,6 +34,7 @@ function FilesTab() {
       file={file}
       onNavigate={(to) => navigate({ search: { path: to.path || undefined, file: to.file } })}
       canPull={!!node?.capabilities.includes("files-pull")}
+      canImport={!!node?.capabilities.includes("files-import")}
       actions={
         node &&
         can(server, "sftp") && (
