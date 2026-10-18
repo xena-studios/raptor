@@ -243,7 +243,42 @@ type SettingsChange = {
   memoryMiB: number;
   diskMiB: number;
   port: number;
+  // Left out, they stay as they are.
+  swapMiB?: number;
+  cpuPercent?: number;
+  behavior?: Partial<Behavior>;
 };
+
+// Behavior is what Wings does when a server crashes or is stopped (Wings'
+// server.Settings).
+export type Behavior = {
+  // Restart it after a crash, with a growing wait between tries.
+  crash_auto_restart: boolean;
+  // Exit code 0 means it stopped, not that it crashed.
+  clean_exit_is_stop: boolean;
+  // How long a stop waits before killing it ("60s"; 1s to 10m).
+  stop_timeout: string;
+};
+
+// behaviorOf is a server's behavior, with Wings' defaults for what isn't set.
+export function behaviorOf(cfg: ServerConfig): Behavior {
+  const s = cfg.settings ?? {};
+  return {
+    crash_auto_restart: s.crash_auto_restart !== false,
+    clean_exit_is_stop: s.clean_exit_is_stop === true,
+    stop_timeout: typeof s.stop_timeout === "string" ? s.stop_timeout : "1m0s",
+  };
+}
+
+// seconds is a Go duration ("1m30s", "45s") in whole seconds.
+export function seconds(d: string): number {
+  let total = 0;
+  for (const [, n, unit] of d.matchAll(/(\d+(?:\.\d+)?)(h|ms|m|s)/g)) {
+    const v = Number(n);
+    total += unit === "h" ? v * 3600 : unit === "m" ? v * 60 : unit === "s" ? v : v / 1000;
+  }
+  return Math.round(total);
+}
 
 // updateParams is server.update's params: the server's whole config with
 // the changes, and no egg, which tells Wings to keep the server's own (the
@@ -259,7 +294,14 @@ export function updateParams(cfg: ServerConfig, c: SettingsChange) {
     name: c.name.trim(),
     image: c.image,
     variables: { ...(cfg.variables ?? {}), ...c.variables },
-    limits: { ...cfg.limits, memory_mib: c.memoryMiB, disk_mib: c.diskMiB },
+    limits: {
+      ...cfg.limits,
+      memory_mib: c.memoryMiB,
+      disk_mib: c.diskMiB,
+      ...(c.swapMiB !== undefined && { swap_mib: c.swapMiB }),
+      ...(c.cpuPercent !== undefined && { cpu_percent: c.cpuPercent }),
+    },
+    settings: { ...cfg.settings, ...c.behavior },
     allocations,
   };
 }

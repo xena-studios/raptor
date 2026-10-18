@@ -20,7 +20,7 @@ Stored in Wings' SQLite (the source of truth) and mirrored to the Panel.
 | `allocations` | See [Allocations](#allocations) |
 | `network_mode` | `bridge` (default) or `host` |
 | `desired_state` | `running` or `stopped`: what the owner last asked for. Used after reboots and Wings restarts. |
-| `settings` | crash auto-restart (default on), treat clean exit as stop (default off), stop timeout, skip install script |
+| `settings` | crash auto-restart (default on), treat clean exit as stop (default off), stop timeout, skip install script. The first three are on the server's Settings tab ("Crashes and stopping"), and swap and a CPU limit beside memory; they're read when the server exits or stops, so they apply at once |
 | `version` | Monotonic config version, bumped on every change and sent with mirror events |
 | `install_state` | `pending`, `installing`, `installed`, or `failed` (with the error) |
 | `last_state` | The last runtime state Wings saw, so a server that was running is adopted as `running` after a Wings restart even if its "done" line has scrolled out of the console history |
