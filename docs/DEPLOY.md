@@ -450,6 +450,16 @@ git -C /opt/raptor fetch --tags && git -C /opt/raptor checkout --detach v0.x.y
 /opt/raptor/deploy/scripts/deploy.sh v0.x.y
 ```
 
+### Updating nodes
+
+Publishing a signed release (`task release:sign`) doesn't update anyone's node. A staged rollout does ([WINGS.md](WINGS.md#updates)): 5% of nodes for an hour, 25% for four hours, then everyone, halted once a tenth of a stage's updates fail. Nodes with automatic updates off, or pinned, are skipped. On server #1:
+
+```bash
+cd /opt/raptor/deploy/primary
+docker compose exec panel-a panel rollout start v0.x.y
+docker compose exec panel-a panel rollout status     # also: pause, resume, cancel
+```
+
 ### Staff
 
 Staff are made on server #1, once their account exists and has a passkey (docs/PANEL.md#staff):

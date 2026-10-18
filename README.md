@@ -6,7 +6,7 @@ Raptor is a hosted game server management platform. You bring your own Linux mac
 
 Raptor is compatible with Pterodactyl and Pelican eggs.
 
-> **Status:** early development, not launched: there is no uptime promise yet. Wings (the daemon) is complete apart from its week-long soak test: servers from Pterodactyl and Pelican eggs with a full lifecycle, kernel-enforced disk limits, passkey-signed dangerous actions, schedules, encrypted incremental backups, SFTP, self-updates that roll back, and a local CLI and TUI. The Panel runs in production at [raptorpanel.net](https://raptorpanel.net) with the web app: sign-in with passkeys, orgs and members, linking nodes with one command, and creating and running servers with their console, files, backups, schedules, add-ons, and activity. Billing is on, and a standby Panel server streams from the first. What's left before launch (the failover and billing drills, the soak test, and the rest of the docs) is in the [roadmap](docs/ROADMAP.md).
+> **Status:** built and running in production ahead of launch, with no uptime promise yet. Wings (the daemon) runs servers from Pterodactyl and Pelican eggs with a full lifecycle, kernel-enforced disk limits, passkey-signed dangerous actions, schedules, encrypted incremental backups, SFTP, self-updates that roll back, and a local CLI and TUI. The Panel runs at [raptorpanel.net](https://raptorpanel.net) with the web app, billing, and a standby server streaming from the first. What's left before launch (the failover and billing drills, the beta, the soak test) is in the [roadmap](docs/ROADMAP.md).
 
 ## Components
 

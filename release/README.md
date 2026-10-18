@@ -13,7 +13,9 @@ task release:sign TAG=v0.1.0                 # sign, verify, upload signature, p
 
 Pushing a stable tag (`vX.Y.Z`) also deploys the Panel and the web app to
 production right away ([DEPLOY.md](../docs/DEPLOY.md#deploying)); only the Wings
-binaries wait for the signature.
+binaries wait for the signature. Existing nodes update once a staged rollout is
+started ([DEPLOY.md](../docs/DEPLOY.md#updating-nodes)). The whole checklist is in
+[CONTRIBUTING.md](../CONTRIBUTING.md#releases).
 
 `task release:sign` also generates `install.sh` (the install script served at
 `get.raptorpanel.net`) from the verified `checksums.txt`, so the script carries

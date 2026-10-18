@@ -1,331 +1,100 @@
 # Roadmap
 
-Every phase ends with a milestone that has **exit criteria**. Don't start the next phase until they pass. Later phases build directly on earlier ones, so cutting corners early costs more later.
+Raptor is built. Wings, the Panel, and the web app are done and run in production; what's left is proving them before launch, then bugs, small features, and releases. This file is that list: [the launch gate](#launch-gate), [what's left before launch](#before-launch), [the backlog](#backlog) of small features and known gaps, and [bigger work after launch](#after-launch). How it was built, phase by phase, is [at the end](#how-it-was-built).
 
-```
-Phase 0   Foundations
-Phase 1   Wings core
-Phase 2   Wings complete
-Phase 3   Panel core
-Phase 4   Web app
-Phase 5   Beta + launch
-          Business/legal track (runs alongside all phases)
-```
+Releases are in [CONTRIBUTING.md](../CONTRIBUTING.md#releases). Bugs and requests from people running Raptor come in on the Discord server; one that's taken on goes here, or straight into a pull request.
 
-**Critical path:** egg runtime → Wings core → node connection + enrollment → web app → billing. The egg runtime is the biggest risk: if it takes longer, everything after it moves.
+## Where things stand
 
-There is no separate prototype phase. The riskiest assumptions are checked by a **validation gate** at the start of the phase that depends on them (1.0, 1.6, 3.0). If a gate fails, fix the design docs before continuing that phase.
+*As of Oct 18, 2026.* Production runs v0.6.0 on raptor-1, with raptor-2 as a streaming replica over WireGuard, backups to B2, monitoring that pages a phone, and automatic deploys of every stable tag. A real node is linked. Billing (Polar, with its checkout and card form in the app since #230), Raptor Backup Storage, and the docs at [docs.raptorpanel.net](https://docs.raptorpanel.net) are live. Redeploying the Panel without touching games is proven: v0.4.2 deployed while a player stayed connected to a server on the production node.
 
-## Next up
+## Launch gate
 
-*As of Oct 16, 2026.* Production runs v0.6.0 on raptor-1 (since Oct 16: short URLs, the trash, the backup browser, theme styles, and alerts to people with an inbox), with raptor-2 as a streaming replica over WireGuard, backups, monitoring, and automatic deploys; a real node is linked. Billing (Polar) and Raptor Backup Storage are on; player subdomains were removed (#279). Phases 0–1 are met. Phase 2 is missing only its week-long soak, which runs last, just before launch. Phase 3 is built and proven in production: v0.4.2 deployed on Oct 15 while a player stayed connected to a game server on the production node, which never noticed. Phase 4 is built; its open boxes wait on the exit test. What's left before launch is mostly proving things on the real servers, in this order:
+All four must pass before launch.
 
-1. **Finish v0.6.0:** the Panel and web app are live; the Wings binaries wait for the signature (`task release:sign TAG=v0.6.0`), and nodes update after that. Check an org's Alerts page: migration 00048 turned email channels into the people they reached. **One release later** (once every node runs v0.6.0 Wings): turn `db/panel/pending/drop_node_display_address.sql` into a migration, and remove the SFTP username fallback for old Wings (`nodelink.CapSFTPUsername` in the Panel, the `user.serverid` form in `internal/wings/sftp`).
-1. **Watch the API latency:** the uptime check's `/healthz` sometimes averages 3–4 s for 5 minutes from Oregon and Montreal (normally 100–200 ms). If it pages, match the time against the Panel and Postgres metrics. Monitoring itself is done: all 13 alert rules and the dashboard are imported, and paging reaches the phone (since Oct 15; IRM needed an escalation chain).
-2. **The launch gate's two drills:** a failover from raptor-1 to raptor-2 on the real servers ([DEPLOY.md](DEPLOY.md#failover)), and billing end to end on a throwaway org: the free month, a second node ending it, a failed payment, read-only mode, and paying again.
-3. **Alerts' Telegram bot:** create it with @BotFather and put its token and a webhook secret in 1Password ([DEPLOY.md](DEPLOY.md#secrets)); until then the app doesn't offer Telegram. The rest of alerts is live since v0.5.0; thresholds need nodes on v0.5.0 too.
-4. **Business track items that take weeks:** the Public Suffix List request for `raptornodes.net` (less pressing now it's only node hostnames, #279), the business entity (Polar payouts need it).
-5. **Phase 4's exit test in production:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on is the polish that's left.
-6. **Before launch:** the private beta, charging for Raptor Backup Storage, the load test, the help center (its install and provider guides first, since the exit test is "without help"), the status page off Cloudflare's DNS, and last, the week-long soak (`task soak:start`), so it runs against the code that launches.
+| | Status |
+|---|---|
+| Install success rate ≥ 95% on supported OSes during the beta | Waits on the beta. `task e2e:bootstrap` passes on Debian 12, Debian 13, and Ubuntu 24.04 (amd64 nightly in CI, arm64 locally). |
+| No known critical or high security issues | None known. An outside review of auth is still wanted. |
+| Postgres failover tested | Built and rehearsed (`task deploy:rehearse`); not yet drilled on the real servers. |
+| Billing tested end to end, failed payments and read-only mode included | Built and on; not yet run against real Polar. |
 
----
+## Before launch
 
-## Phase 0 · Foundations
+In order. Each is done when it's crossed off here.
 
-**Goal:** a repo where adding real code is fast and safe.
+1. **Finish v0.6.0 on the nodes:** v0.6.0 is signed and published, but nodes only update through a rollout: `panel rollout start v0.6.0` on server #1 ([DEPLOY.md](DEPLOY.md#updating-nodes)). Then check an org's Alerts page: migration 00048 turned email channels into the people they reached.
+2. **One release after every node runs v0.6.0 Wings:** turn `db/panel/pending/drop_node_display_address.sql` into a migration (#253), and remove the SFTP username fallback for old Wings (`nodelink.CapSFTPUsername` in the Panel, the `user.serverid` form in `internal/wings/sftp`). Check in Cloudflare that the old `n-…` and player subdomain records are gone (`dns_retired` empty); then the retiring code can go too.
+3. **Polar's settings for the embedded billing** ([DEPLOY.md](DEPLOY.md#billing)): the embedding host, customer portal seat and plan changes off, the branding. Then the **billing drill** in the sandbox and once in production on a throwaway org: the free month, a second node ending it, a card added and changed, an invoice, a failed payment, read-only mode, paying again, cancelling and keeping the plan.
+4. **The failover drill** from raptor-1 to raptor-2 at a quiet hour ([DEPLOY.md](DEPLOY.md#failover)), about 5 minutes of Panel downtime; afterwards `DEPLOY_HOST` points at the new primary. First, the `raptor-replica` alerts in Grafana.
+5. **Watch the API latency:** the uptime check's `/healthz` sometimes averaged 3–4 s for 5 minutes from Oregon and Montreal on Oct 14 (normally 100–200 ms). If it pages, match the time against the Panel and Postgres metrics.
+6. **Sign-in in production:** Google's and Discord's production OAuth apps (callbacks at `https://api.raptorpanel.net/oauth/<provider>/callback`; GitHub's is registered), then every sign-in method tried once. Hardware-key 2FA with no SMS recovery confirmed on Cloudflare, GitHub, 1Password, Grafana, B2, OVH, Resend, and Polar.
+7. **Alerts' Telegram bot:** create it with @BotFather and put its token and a webhook secret in 1Password ([DEPLOY.md](DEPLOY.md#secrets)); until then the app doesn't offer Telegram.
+8. **`raptor uninstall [-wipe-data]`:** documented from the start and never built. An owner leaving needs one command that unlinks, stops and removes Raptor's services, containers, networks, firewall table, and the data volume's mount, and keeps server files unless told otherwise; and a docs page.
+9. **Docs:** help links in the app (the user menu, Connect node, the connection test, failed installs); then the CLI reference and `raptor doctor`'s checks generated from the code, the TUI, updates and rollback, backups and their keys, orgs and members, passkeys and recovery, importing from Pterodactyl, writing eggs, and the security model in owners' terms.
+10. **Raptor Backup Storage, charged:** use over the included 10 GB per node billed through a metered price in Polar, and the reminder emails before a turned-off folder's data is deleted that [SERVERS.md](SERVERS.md) promises.
+11. **The exit test:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on goes first in the backlog.
+12. **The private beta:** 20–50 invited owners on real boxes (a mix of providers, amd64 and arm64), fixing every install failure and confusing screen as it comes, and watching [the metrics](#metrics).
+13. **The load test:** `cmd/fakewings` held 500 nodes against the dev Panel; left is thousands, through Cloudflare, against a staging Panel.
+14. **The status page** at `status.raptorpanel.net` off Cloudflare's DNS (a Better Stack page exists; its record is on Cloudflare).
+15. **Last, the week-long soak** (`task soak:start`, then `soak:report` after a week), so it runs against the code that launches: scheduled restarts and backups and random Wings restarts with no unexpected game downtime.
 
-### Repo and tooling
-- [x] Go module layout per [ARCHITECTURE.md](ARCHITECTURE.md#monorepo-layout)
-- [x] `proto/` with `buf`: lint, breaking-change check, Connect codegen for Go + TypeScript
-- [x] `sqlc` configured for Postgres (`db/panel`) and SQLite (`db/wings`)
-- [x] Migration tooling for both (goose, forward-only, embedded in the binaries)
-- [x] `web/`: Vite + React + TS + TanStack Router/Query + shadcn/ui + Tailwind, generated Connect client wired in
-- [x] `Taskfile` for common commands
-- [x] Dev environment: Docker Compose with Postgres (dev + test), plus a Lima Debian 12 VM for running Wings
-
-### CI (GitHub Actions)
-- [x] Go: build, `go vet`, `golangci-lint`, tests with race detector, static cross-compile
-- [x] Web: typecheck, lint (Biome), build. Web tests start in Phase 4, when there's UI to test.
-- [x] `buf lint` + `buf breaking` (on PRs)
-- [x] DCO check (on PRs)
-- [x] Generated code is up to date
-- [x] License check (`go-licenses` + `scripts/check-web-licenses.mjs`): fail on non-AGPL-compatible licenses
-- [x] `gitleaks`, `govulncheck`, `pnpm audit`
-
-### Releases
-- [x] Cross-compile `raptor` for linux/amd64 + linux/arm64 (static, no CGO) with GoReleaser
-- [x] Release workflow producing a draft release with binaries + `checksums.txt`
-- [x] minisign signing of `checksums.txt` with the offline key (`task release:sign`)
-- [x] Generate the release key and commit `release/minisign.pub` (maintainer, offline)
-- (The per-release install script with the embedded SHA-256 moves to Phase 3.3, alongside the install script itself.)
-
-### Repository
-- [x] Branch protection on `main`: PRs required, all CI jobs must pass, linear history, no force pushes or deletion
-
-**Exit criteria:** `git push` runs all checks green; a tagged release produces signed binaries for both architectures.
-
-✅ **Met.** CI is green on `main`; `v0.0.1-rc.1` was built by CI, signed offline, published, and verified from the public download URLs.
-
----
-
-## Phase 1 · Wings core
-
-**Goal:** a Wings daemon that runs egg-based servers reliably. No Panel yet; driven by a test harness and the CLI.
-
-### 1.0 Validation gate: egg runtime
-- [x] Read Pterodactyl Wings' source: environment building, container config, install process, stop handling, config parsers
-- [x] Write down the exact env var list, container UID/GID, mounts, and entrypoint behavior in [EGGS.md](EGGS.md#runtime-environment)
-- [x] Get **Paper**, **Rust**, and a **Node.js Discord bot** egg installing and running with unmodified yolks images
-- **Gate:** all three run. This becomes the first real code of the egg engine, not throwaway.
-
-✅ **Gate passed.** Paper (Pterodactyl and Pelican formats), Node.js (a stand-in app printing the egg's done string, since a real Discord bot needs a token), and Rust install, reach running, and stop cleanly on arm64 (dev VM) and x86_64 (GitHub runner). Rust is x86-only and was tested on x86_64 only.
-
-### 1.1 Daemon skeleton
-- [x] `raptor wings run`: config loading (strict `config.yml` per [WINGS.md](WINGS.md#config-file)), `slog` logging, graceful shutdown
-- [x] SQLite: WAL, single writer + readers, migrations, `VACUUM INTO` snapshots (hourly + pre-migration), private (0600) files
-- [x] Local socket API (`/run/raptor/wings.sock`, root + `raptor` group, `SO_PEERCRED` attribution) per [WINGS.md](WINGS.md#local-socket-api)
-- [x] systemd unit (`OOMScoreAdjust=-900`, sandboxing options, `UMask=0077`), verified in the dev VM
-
-### 1.2 Runtime ✅
-- [x] `Runtime` interface + Docker implementation
-- [x] `raptor_nw` network with collision-free subnet selection (plus `raptor_install`)
-- [x] Labels `raptor.wings.*`; every query filtered by `raptor.wings.managed=true`; unlabeled containers and networks are never touched
-- [x] Resource limits: memory + overhead, CPU weight (default) / hard limit / pinning, PID limit, `raptor.slice` with a memory ceiling
-- [x] Hardening: non-root, cap drop, `no-new-privileges`, seccomp, only the server dir mounted
-- [x] Port publishing for allocations; host-port-in-use check; optional host networking; `127.0.0.1` → gateway binding
-- [x] Firewall: own nftables table `inet raptor` instead of a `DOCKER-USER` jump ([decision 56](DECISIONS.md)); install network isolation, metadata endpoint block, self-healing
-- [x] `task e2e:runtime` + a CI job running it on every PR
-
-### 1.3 Egg engine ✅
-- [x] Parsers for `PTDL_v1`, `PTDL_v2`, `PLCN_v*`; reject unknown versions
-- [x] Variables: Laravel-style rule validation (every rule used by 606 surveyed community eggs), validated **before** substitution
-- [x] Install containers per [EGGS.md](EGGS.md#install): `/mnt/server` + read-only `/mnt/install`, hardening, limits, timeout, `raptor_install` network isolation, symlink-safe ownership fix, capped logs, failure behavior. "Wipe and reinstall" needed backups and came with them in Phase 2.
-- [x] Runtime environment matching Pterodactyl Wings exactly (from 1.0)
-- [x] Startup "done" detection, stop commands and signals, timeouts
-- [x] Config file parsers: properties, yaml, json, ini, xml, file, all through `os.Root`, editing in place
-- [x] Placeholders for both Pterodactyl and Pelican eggs
-- [x] `x-raptor` extension parsing and validation
-- [x] Arch check against image manifests
-- [x] Fuzz tests: egg parsing, rules, placeholders, config parsers, path handling
-
-### 1.4 Server lifecycle (per [SERVERS.md](SERVERS.md)) ✅
-- [x] Server model with egg snapshots, `desired_state`, and config versions
-- [x] State machine; idempotent power actions; create / install / reinstall / delete / start / stop / restart / kill with stop timeouts
-- [x] Allocations: primary + extras, port range rules, host-port-in-use check, applied on next start
-- [x] Console: always drained, 1,000-line ring buffer, output throttling, input limits, audit of commands
-- [x] **Reconcile on Wings start**: reattach running containers, start servers with `desired_state=running` (staggered), refill console from Docker logs; resume after Docker restarts
-- [x] `raptor-shutdown.service` for graceful stops on host shutdown, with container scopes ordered after it
-- [x] Crash policy: crash detection (incl. OOM and clean exit), backoff, crash-loop stop, crash events with last console lines
-- [x] Deletion: file cleanup and freed allocations. The final backup and orphaned offsite backups came with backups (Phase 2), quota cleanup with 1.6.
-- [x] `task e2e:host`: Wings restart, Docker restart, host shutdown, and reboot, against the real systemd units
-
-### 1.5 Job engine ✅
-- [x] Durable queue in SQLite, resume after a restart, per-server locks, global concurrency limits; installs run as resumable jobs
-- [x] Job logs
-- [x] Event outbox with monotonic `seq`, written in the same transaction as each change
-- [x] `executed_commands` table for idempotency, also used as replay protection for signed commands
-- [x] **Command envelope:** `command_id`, expiry, Panel grant, and optional passkey signature (`authenticatorData`, `clientDataJSON`, signature); RFC 8785 canonical form; which actions require a signature ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands))
-- [x] **Signed-command verification in Wings:** trusted keys and delegations in SQLite, the full WebAuthn assertion check, rejection and logging of anything unsigned or invalid; tested with a software authenticator and fuzzed
-- [x] Server actions (`server.create/update/delete/reinstall/start/stop/restart/kill/command`, `keys.add/remove`) wired to the manager and tested end to end on Docker
-
-### 1.6 Disk quotas ✅
-- [x] **Validation gate first:** on a fresh Debian 12 VM (ext4 root), loop image + systemd mount unit + project quotas set from Go. Fill past the limit, reboot, grow online, and benchmark against native disk. **Gate:** limits hold, survive reboot, grow online, within ~10% of native I/O. **Result:** limits hold (host, and root in containers), survive a real reboot, and grow online; I/O is at native speed except fsync'd writes, at about half ([WINGS.md](WINGS.md#disk-quotas)). The owner accepted that cost for hard limits by default (#92). The gate also found a quota escape from containers and a mount unit that systemd dropped at boot; both are fixed and tested (#93, #94).
-- [x] Quota volume tiers 1–3; `raptor storage status|setup|grow`
-- [x] Refuse to install or start servers if the volume isn't mounted with project quotas
-- [x] Instant usage reporting; limit changes apply to running servers
-- [x] `task e2e:quotas` (with a real reboot) and the same tests in CI, minus the reboot
-
-### 1.7 CLI (first cut) ✅
-- [x] `status`, `ps`, `start|stop|restart|kill`, `console`, `logs`, over the local socket API
-- [x] `raptor` group can look, root can act; local actions attributed to the Unix user
-- [x] Tested against the real daemon in `task e2e:host` (as root and as a `raptor` group member)
-
-### 1.8 Egg conformance suite ✅
-- [x] Harness: import → install → start → done → command → Wings restart → stop → reinstall ([EGGS.md](EGGS.md#conformance-test-suite))
-- [x] Built-in catalog of certified eggs (`eggs/`, unmodified upstream copies + `raptor.yaml`)
-- [x] Certified eggs in CI, in tiers: fast on amd64 + arm64, slow SteamCMD games weekly, CS2 by hand
-- [x] Top ~50 community eggs (46 that pass, chosen as in [EGGS.md](EGGS.md#community-eggs); 18 that don't work were left out and listed)
-- [x] Behavioral diff test against the real Pterodactyl Panel and Wings (every parser and placeholder form, and Paper); found and fixed a missing `/etc/machine-id` and the allocation limit's format
-- [x] Symlink and path-traversal suite ([SECURITY-MODEL.md](SECURITY-MODEL.md#server-files)), checked against deliberately broken builds
-
-**Exit criteria:**
-- Paper, Rust, and a Discord bot install and run from the harness (Hytale moved to community: its server needs a Hytale account, #100)
-- `systemctl restart raptor-wings` → **no game server restarts**, console history intact
-- `systemctl restart docker` → servers keep running (`live-restore`)
-- Conformance suite passes for all certified eggs (all automated tiers pass; CS2, the one manual egg, still needs its first run on an x86 box with a Steam login token)
-- A symlink/path-traversal test suite passes
-
----
-
-## Phase 2 · Wings complete
-
-**Goal:** every node-side feature exists, tested against a stub Panel.
-
-- [x] **Scheduler:** cron + timezone (with defined DST behavior), multi-step runs (`command`, `wait`, `power`, `backup`), `only_when_online`, jitter, missed-run policy, runs that resume after a Wings restart ([WINGS.md](WINGS.md#scheduler))
-- [x] **Backups (Kopia):** local + S3 destinations, egg pre/post hooks, retention + maintenance jobs, safety backup before restore, a low-priority worker process, on by default through a daily schedule ([WINGS.md](WINGS.md#backups)). `raptor backup list|create|restore`. Deleting a server can take a **final backup** first (the server is kept if it fails; a local one is kept 30 days), and restore it onto another server (owner only); signed **wipe and reinstall** takes a safety backup first.
-- [x] **SFTP:** off by default, enabled per node (`node.sftp`); `x/crypto/ssh` + `pkg/sftp`, `user.serverid` (full or short ID), `os.Root` chroot, host key generated on the node, auth callback interface (stubbed until the node connection), public key cache, per-address login limits ([WINGS.md](WINGS.md#files-and-sftp)). The egg's `file_denylist` applies to it as to the web file manager. Still to come: Panel auth (3.x), the `doctor` port check.
-- [x] **File operations for the web file manager:** list, stat, read and write (for the editor, up to 4 MiB), mkdir, rename, copy, delete, chmod, compress and decompress (zip, tar, .tar.gz, .tar.bz2, .tar.zst, .gz, as jobs), all through `os.Root` in a `files` package that SFTP now shares; the egg's `file_denylist` (`.gitignore` syntax, through symlinks, and for directories holding denied files) for both; chunked, resumable uploads (staged in the server's directory, resumed after a Wings restart) and downloads, in chunks of up to 64 MiB, 1 GB per file. Read-only commands aren't stored with executed commands. The hostile-egg suite goes after the planted links through all of it ([WINGS.md](WINGS.md#files-and-sftp)). No HTTP server on the node. Still to come: the UI (Phase 4). (The separate connection that carries transfer chunks came with the node connection in 3.0.)
-- [x] **Notifications:** Discord + generic webhooks (HMAC-signed) from Wings, including direct alerts for every signed dangerous action, run or rejected (configured in `config.yml` on the node, not through the Panel); crashes, failed backups and restores, low disk, failed installs, updates; cursors so restarts neither lose nor repeat them, retries, a per-target rate limit; `raptor notifications test` ([WINGS.md](WINGS.md#notifications)) (Replaced in v0.5.0 by alerts set and sent from the Panel, DECISIONS #269; Wings now raises the events, including `security.audit`, and evaluates threshold rules.)
-- [x] **`raptor keys list|reset`** (pairing code shown on the box, the new key's fingerprint confirmed on the box before it's pinned) and **`raptor audit`** (a year of signed actions, run or rejected, and key resets, in the node's own `audit_log`) ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands))
-- [x] **Local metrics:** every 10 s: CPU, memory, network, disk, and players (Minecraft status ping, Source A2S_INFO); minute rows for a day, 15-minute rows for a week, in SQLite; `GetMetrics` on the local API. Streaming to the Panel comes with the node connection ([WINGS.md](WINGS.md#local-metrics))
-- [x] **`doctor`:** all checks from [WINGS.md](WINGS.md#doctor), with fix messages (runs without Wings; `-json`); `-bundle` (redacted). `-upload`, the Panel reachability check, and the node hostname check need the Panel and move to 3.3.
-- [x] **TUI** (Bubble Tea): `raptor tui` with the server list (refreshed every 2 s), a server's stats, players, and an hour of CPU and memory history, its live console and a command line, and power and backup keys (root; the `raptor` group can look)
-- [x] **Self-update:** `raptor update [-check] [-version v]`: channels (`stable`, `beta`) and a pin from GitHub releases, minisign verification with the trusted comment bound to the tag, SHA-256 check, and a **trial**: the running version starts the new one as its child and only switches the `current` link once it's healthy; a crash, 5 minutes without becoming healthy, or 3 interrupted starts roll back. Outcomes are recorded as `node.update` events. `task e2e:update` and a CI job test it against the real systemd unit ([WINGS.md](WINGS.md#updates)). Updates are started by hand until the Panel drives staged rollouts (3.3); "can't reconnect" joins the health check with the node connection.
-- [x] **Pterodactyl coexistence** CI test + **`raptor import pterodactyl`**: servers listed through the Pterodactyl Panel's application API, eggs rebuilt as PTDL_v2, stopped through Pterodactyl's Wings, created installed in Raptor with their files copied (never moved or deleted), then suspended in Pterodactyl; `TestPterodactylImport` runs against the real Pterodactyl in CI ([WINGS.md](WINGS.md#pterodactyl-import))
-- [x] **Host disk protection:** below `limits.host_disk_min_free` on any path Wings or Docker keeps state on (Docker's data directory, `state.db`, logs, tmp, local backups), new servers, reinstalls, and pulls of images that aren't on the node are refused; servers whose image is here still start. `node.disk_low`/`node.disk_ok` events and `raptor status` show it ([RELIABILITY.md](RELIABILITY.md#state-durability))
-- [x] **Fault-injection suite** (`task e2e:faults`, in its own VM): Wings and Docker SIGKILLed mid-job, the host disk and a server's quota filled, the data volume unmounted, `state.db` corrupted (now restored from the newest good snapshot, with one taken on every clean stop); reboots are in `e2e:host`. Dropping the node connection comes with the connection (3.0). ([RELIABILITY.md](RELIABILITY.md#testing-for-reliability))
-
-**Exit criteria:** fault-injection suite passes; a node survives a week-long soak test (scheduled restarts + backups + random Wings restarts) with no unexpected game downtime.
-
-**Status:** every feature is built. The fault-injection suite passes (the node-connection fault comes with the connection in 3.0). The soak harness works (fast runs: no unexpected downtime through a dozen random Wings restarts), but the week-long run hasn't been done yet. It runs last, just before launch, so it covers the code that launches: `task soak:start`, then `soak:report` after a week.
-
----
-
-## Phase 3 · Panel core
-
-**Goal:** a real Panel that nodes connect to. Minimal UI.
-
-### 3.0 Validation gate: node connection through Cloudflare
-- [x] Wings dials `wss://` through the real Cloudflare proxy; yamux inside; RPCs in both directions; challenge signatures both ways
-- [x] Kill the connection mid-RPC → reconnect with jitter → retry with the same `command_id` → no duplicate execution
-- [x] Hold connections idle for hours (ping keeps them alive), survive Cloudflare dropping them, and measure console latency while a 1 GB upload runs on its separate transfer connection
-- **Gate:** RPCs work both ways through Cloudflare, retries are idempotent, idle connections stay up, console latency stays acceptable during a transfer. This becomes the real connection code.
-- **Status:** the connection code is built and tested locally: the handshake (`internal/shared/nodelink`), Wings' side with reconnects and pings (`internal/wings/link`, started by Wings on a linked node), and the Panel's (`internal/panel/nodes`, a hub with retries); commands and events in both directions; cutting the connection mid-command (the command runs once and the retry gets its result) and a connection that silently stops passing bytes (closed on both sides); the transfer connection (opened by Wings when the Panel asks, for one upload or download only).
-- **Through Cloudflare** (`task gate:link`, Oct 5, 2026: a quick tunnel, both sides on a home connection with 31 Mbps up): calls both ways at a 73 ms median round trip; the connection cut mid-command reconnected within a second, and the retry got the result of a command that ran once; a 1 GB upload on its transfer connection ran at 4.1 MB/s (the uplink), while calls on the main connection went from 123 ms to 145 ms at the 95th percentile (worst 770 ms). Held idle for 6 hours: calls every 15 minutes answered in 74–79 ms throughout; 4 drops (0.7 an hour), all while the quick tunnel itself was failing (Cloudflare answering 530, "tunnel not connected"), each reconnected by Wings on its own within seconds to a few minutes. A quick tunnel is Cloudflare's tunnel path, not the proxy in front of an origin that production uses; on Oct 14, 2026 a real node linked to production through `api.raptorpanel.net`, which closed the gate's first box.
-
-### 3.1 Infrastructure
-- [x] Server #1 (primary); Docker Compose; Caddy (live since Oct 8, 2026 on **raptor-1**, an OVH VPS-1 in Vint Hill running Debian 13, per [DEPLOY.md](DEPLOY.md); two Panels behind Caddy with per-hostname origin pulls, the firewall reapplied at boot; `task deploy:rehearse` still stands up both servers' stacks on one machine)
-- [x] Server #2 (Postgres replica) (live since Oct 14, 2026: **raptor-2**, an OVH VPS in Hillsboro, Oregon, streaming from raptor-1 over a WireGuard tunnel (#268), about 66 ms behind; it has the deploy user and both host keys, so a failover only changes `DEPLOY_HOST`. The failover drill on the real servers is a launch-prep item)
-- [x] pgBackRest WAL archive to object storage in another location; **restore test** (Backblaze B2, `us-east-005`; encrypted WAL archive and backups, daily and monthly timers, and a daily restore test that compares the restored copy with the primary at one exact WAL position, each pinging a dead man's switch; passing in production)
-- [x] DNS: hostnames from [ARCHITECTURE.md](ARCHITECTURE.md#hostnames); `api.raptorpanel.net` behind the Cloudflare proxy (origin locked to Cloudflare, WAF rule for node connections, no AAAA); `raptornodes.net` DNS-only, apex redirecting to `raptorpanel.net`; `app.` and `verify.` on Workers with strict CSP; `get.` redirecting to the latest `install.sh`
-- [ ] Domain account hardening: hardware-key 2FA on the registrar and Cloudflare (no SMS recovery), registrar lock, scoped API tokens (both zones are on Cloudflare Registrar with transfers locked; every token is scoped (deploy: Workers only, DNS: `raptornodes.net` only, filtered by address); left: confirm hardware-key 2FA with no SMS recovery on Cloudflare, GitHub, 1Password, Grafana, B2, OVH, and Resend)
-- [x] Move code to the split hostnames: API on `api.raptorpanel.net` with CORS for `https://app.raptorpanel.net` only, node connections at `wss://api.raptorpanel.net/nodes/connect`, WebAuthn origin and RP ID `app.raptorpanel.net` in the Panel (Wings' defaults already point at `api.` and `app.` since 1.5)
-- [x] Observability: OpenTelemetry → Grafana Cloud, alerts (stack `raptor` at `raptor.grafana.net`; the Panel sends metrics and sampled traces over OTLP with a write-only token: every RPC's latency and result, connected nodes and connects, commands by outcome, emails, mirror sync failures, and Postgres replication, archive, and WAL health; the dashboard and alert rules are in [`deploy/grafana/`](../deploy/grafana), checked in CI, and imported; a synthetic check on `/healthz` from three regions; alerts page a phone through Grafana IRM; the backup and restore-test scripts ping a dead man's switch. one alert sent end to end to the phone on Oct 15, after IRM got its escalation chain)
-- [x] Per-node event lag and Wings' own health metrics in the Panel's telemetry (event lag: how old events are when the mirror applies them, the worst node's backlog and how many are behind, nodes by Wings version, a dashboard row, and an alert; Wings' own health: it runs doctor hourly and reports the host disk and the checks that fail or warn over the node connection (`ReportHealth`), counted per check, with alerts when many nodes fail the same one (#262); none of it per node, so series don't grow with nodes, and nodes are logged by name)
-- [x] Deploy pipeline: zero-downtime deploys, with node connections drained and reconnected with jitter (a stable release tag deploys itself: the release workflow runs `deploy/scripts/deploy.sh <tag>` on server #1 through an SSH key that can do nothing else, then publishes the web app; migrations, then one Panel at a time; a Panel shutting down fails its health check before draining; the rehearsal probes the API every 100 ms through a deploy without a failure)
-
-### 3.2 Accounts
-- [ ] Passwordless auth in the Panel ([PANEL.md](PANEL.md#auth)): passkeys, OAuth (Google, Discord, GitHub), email codes + links, TOTP + recovery codes, safe OAuth account linking (done in code and tested, with sign-in screens in the web app; GitHub's production app is registered; left: Google's and Discord's production apps, with callbacks at `https://api.raptorpanel.net/oauth/<provider>/callback` (their 1Password items are optional until then), and trying every method once in production)
-- [x] Sessions: hashed tokens in a `__Host-` cookie on `api.`, device list, revocation, re-auth for dangerous actions; `Origin` checks against sibling subdomains; rate limits + Turnstile on email codes; security notification emails (done: passkeys, TOTP, or email codes re-authenticate, and changes to passkeys, TOTP, and recovery codes email the user; new-device emails done)
-- [x] Transactional email provider on its own sending subdomain (DNS: SPF, DKIM, DMARC): **Resend**, wired in (`PANEL_RESEND_API_KEY`, `PANEL_MAIL_FROM`); `mail.raptorpanel.net` is verified (DKIM, SPF through the `send.mail` return path, DMARC at quarantine), and sending works through the SDK with a development key; the production key (sending only) goes in 1Password with the servers ([DEPLOY.md](DEPLOY.md#secrets))
-- [x] Auth security review and fuzz tests (WebAuthn parsing, code verification, OAuth callbacks): fuzzers for passkey sign-in and registration, TOTP matching, email addresses, and recovery codes; the review added a per-address limit on wrong codes and ends a browser's old session when it signs in again. OAuth callbacks are covered by the fake-provider tests (login CSRF, replay, nonce, audience, PKCE) rather than fuzzing. An outside review is still wanted before launch.
-- [x] Orgs, members, roles, invitations (`OrgService`; join tokens from the API, with re-auth)
-- [x] Postgres RLS by `org_id` (requests for a user run as `raptor_app`; the Panel's own work as the owner)
-- [x] Audit log (account activity and org logs; new-device emails)
-
-### 3.3 Nodes
-- [x] Node keys: enrollment stores the node's public key; challenge signing; Panel signing key (separate storage) pinned by Wings; revocation (refused at connect; the Panel UI to revoke comes with Phase 4)
-- [x] Join tokens; **install script** at `get.raptorpanel.net` (generated per release with the binary's SHA-256 embedded); `raptor bootstrap` preflight + setup + enroll; storage setup explains the tier 2 fsync cost and offers a data disk (tier 1) or soft limits (tier 3) (join tokens and `raptor bootstrap` done: `task e2e:bootstrap` takes fresh Debian 12, Debian 13, and Ubuntu 24.04 VMs (arm64) to linked nodes with one command, reruns without changing anything, passes doctor, and reconnects after a reboot, and the same test runs in CI on amd64 VMs of all three (`bootstrap.yml`: nightly and on PRs that touch the install path); the install script is generated per release by `task release:sign` from the verified `checksums.txt` and uploaded as `install.sh`, and the end-to-end test installs through it; `get.raptorpanel.net` redirects to the latest release's, and a node linked through it to production on Oct 14, 2026)
-- [x] `raptor link` / `unlink` / `relink`
-- [x] Node connections in `serve api`: connection registry, version negotiation, pings, drain, forwarding between instances via `LISTEN/NOTIFY`
-- [x] Command routing to the instance holding the node, with `command_id`
-- [x] Event ingestion (batched) + mirror + snapshot rebuild (servers, schedules, backups, and jobs: synced on every announcement, rebuilt from a snapshot when dropped or out of step; every change to a server's job's status is an event, and a server's 50 most recent jobs come with it)
-- [x] Node DNS: `<short-id>.raptornodes.net` (`n-<short-id>` until #279) created at enrollment, updated from the IP Wings reports, names never reused (done against a fake Cloudflare API: the record follows the address a node connects from, public addresses only; working in production since the first real node linked on Oct 14, 2026; records are removed with the node)
-- [x] Signed short-lived grants attached to commands; Wings verification (Wings since 1.5; the Panel side: per-server grants for members, a permission for every Wings action, and `CommandService` sending users' commands with a grant for each)
-- [x] Passkey-signed dangerous commands end to end: owner key pinned at enrollment (with fingerprint comparison), signed key additions, owner-signed delegations for sub-users (the browser signs commands and pairs keys after `raptor keys reset`; deleting a server asks for a passkey; the owner's passkey is pinned when a node links; the node page lists its trusted keys (`keys.list`) and adds, delegates, and removes them, each signed by an owner key; `TestDelegationEndToEnd` runs the chain through the Panel's API to a real Wings executor: a member's passkey approves nothing until the owner delegates, then exactly the delegated action on the delegated server, until the owner removes it)
-- [x] `raptor doctor -upload` (bundles to object storage, with a support code), the Panel connection check through Cloudflare, and the node hostname check (`-upload` sends the bundle to the Panel, signed by the node key when linked, which stores it in a bucket its key can only write to and answers with a code like `RPT-7K2M-QX9D`; tested against MinIO and from the dev VM; the hostname check compares the node's DNS record with the address the Panel sees it connect from)
-- [x] SFTP auth over the node connection: `PanelService.SFTPLogin` (owners and admins everything; members need `sftp` on the server and carry their file permissions). First SSH keys; now temporary per-server passwords only (DECISIONS #222, #223), checked every login
-- [x] Automatic Wings updates: the Panel starts updates in stages (5% → 25% → 100%, halted if failures rise) through a `node.update` command; the health check requires the node connection to come back
-
-**Exit criteria:** on fresh Debian 12, Debian 13, and Ubuntu 24.04 VMs (amd64 + arm64), one command links the node and it shows Connected; dropping node connections and redeploying the Panel both work without game impact; the mirror rebuilds correctly after being dropped.
-
-**Status:** redeploying the Panel without game impact is proven in production: v0.4.2 deployed on Oct 15, 2026 (both Panel instances replaced one at a time) while a player stayed connected to a game server on the production node; the server kept running and the player wasn't disconnected.
-
----
-
-## Phase 4 · Web app
-
-**Goal:** the full user-facing product.
-
-- [x] App shell: auth flows, org switcher, navigation, live/stale/pending/failed states (the sidebar, top bar, and page layouts are in [DESIGN.md](DESIGN.md#5-components): a collapsible sidebar with the org switcher (and the admin panel for staff), each section's nodes and servers with their state, the online-node readout, and the user's menu; icons with tooltips when collapsed, a sheet on phones; the app opens the last org you were in. Sign-in: passkey, email code and link, OAuth, the second factor, Turnstile from a separate origin (#192), and a route guard. Account settings: General (name, email change confirmed by code, theme synced to the account, linked accounts, deleting the account), Security (passkeys, the authenticator app with a locally drawn QR code and recovery codes, SSH keys, devices), Activity, and a "confirm it's you" dialog that retries the change. Orgs: creation, members, roles, invitations, the log, and settings (General, Members, Billing as what the org would pay, Activity). A server's tabs, each shown to those who may use it: Overview, Files (with temporary SFTP logins, the node's port closed until needed), Schedules, Backups, Network, Startup, Settings, Activity, and Access. Server states: live, pending, failed with the reason, or stale when the node is offline (`web/src/lib/servers.ts`), as `[ STATE ]` chips on every page that shows a server, the admin pages included. Error pages: a 404 for anything missing or not yours, "Can't reach Raptor" retrying every 10 seconds, "Something went wrong", a banner when the API stops answering mid-session, and no developer text in errors)
-- [x] Design system: "The Console" and "Daylight" ([DESIGN.md](DESIGN.md)), adapted from the earlier panel: red-on-ink tokens with state colours (`ok`, `warn`) and washes, Hanken Grotesk and JetBrains Mono, mono buttons, labels, and table heads, `[ STATE ]` chips for servers and nodes, `// label` kickers, the sidebar's live node readout, terminal ink for the console, logs, and install commands, and no palette colours left in the app; the brief behind it is in [PRODUCT.md](PRODUCT.md#design-brief). A polish pass followed: one date format (no seconds) and relative "last seen" times everywhere, schedules said in words ("Every day at 4:00 AM") with the cron beside them, an activity log with no raw action names, IDs, or node errors, permissions named in plain words, state-aware power buttons, backup and egg states as chips, the app's own checkboxes everywhere, one settings column width, removing a node in its own card, and no tab for databases until they exist
-- [x] Signing prompts for dangerous actions (one signature per bulk action), trusted key and delegation management, fingerprint display at enrollment (every signed action prompts for the passkey; trusted keys and delegations, and fingerprints at enrollment and in Security; audited Oct 14, 2026 against [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands), with every Wings action pinned in a test as always, never, or depending on the command. The app has no bulk actions yet; when it does, they sign once over the list)
-- [x] Web app hosted separately from the API on `app.raptorpanel.net`, strict CSP (kept in the repo and tested in CI), no third-party scripts, reproducible build with published bundle hashes (live on `app.raptorpanel.net` as a Cloudflare Worker, deployed by each stable release; the CSP is in the repo, `web/public/_headers`, and was checked on the production build by hand; CI loads the built app's public pages in headless Chromium with those headers and fails on any violation (`pnpm test:csp`); Trusted Types required (`require-trusted-types-for 'script'`: the authenticator QR code is drawn as SVG from its matrix, Monaco's workers go through a policy that allows only the app's `/assets/`, and Monaco and xterm bring their own policies); the build is reproducible (CI builds it twice and compares), and each release carries `web-bundle.sha256`, every file's SHA-256, listed in the signed `checksums.txt`, with `web/scripts/verify-deployed.mjs` to check the live site against it)
-- [ ] **Nodes:** add node (command + live enrollment progress), node list, node health page (doctor warnings), settings, remove (health page done: a Health tab with the machine's CPU load, memory, server storage, and uptime, `raptor doctor`'s checks run by Wings on request (`node.health`, `node.doctor`), problems first with why and how to fix, then the system (OS, kernel, processor, uptime), load and memory in detail (cache, swap), each disk Raptor uses, and the network interfaces; overview done: for admins, the machine's CPU, memory, server storage, network, and players now with their trend, its history over 1 hour to 7 days (`node.metrics`, from Wings' local host metrics), and what each server uses now; System tab done: the hostname (following the node's name unless set there), time zone and clock sync, the node's firewall (allow and block rules for the machine and its servers, optionally blocking other incoming connections, signed, and every rule on the machine listed by whose it is, which ones Raptor needs, and what each does), and rebooting (signed); Disks tab done: the machine's disks and what each holds, setting up an empty one for server data or backups (signed by an owner), the default disk for new servers, and picking a disk in the create wizard (growing a data disk from the Panel, data disks in doctor's checks and the Health tab's disk list, the overview's storage total counting them, and moving a server to another disk from its Settings tab done); the node's time in the header of its pages and its servers', comparing it with other zones; charts saved or copied as pictures that say what they show; hidden addresses done: the hostname and IPs show as dots until revealed, and each server's shown address (a proxy's, or the owner's domain, set on its Network tab) replaces the hostname for players, while the node's pages show only its own hostname, hidden; the node and server lists share one card and row design, and open wherever they're clicked; rename and remove done: removing refuses the node's key, removes its `raptornodes.net` records, drops its mirror and members' grants, and closes its connection on whichever instance holds it, after "confirm it's you"; its servers keep running, and relinking brings it back. Live enrollment progress done: the installer reports each step, and the Add Node page shows them as they happen, with a failed step's error)
-- [ ] **Servers:** create wizard (egg picker filtered by arch, variables, EULA prompts, allocations), overview (status, stats graphs, players), settings, reinstall, delete (overview done: CPU, memory, disk, network, and players now, against the server's limits, and graphed over 1 hour to 7 days from Wings' local metrics (`server.metrics`, any access to the server), refreshed every 10 seconds; create done: `/orgs/<org>/servers/new`, from the node page's "New server": the node (with its architecture), a searchable catalog with certified games first, then the name, runtime image, required variables up front and the rest under "Game settings", a free port suggested from the node's servers, memory fitted to the node, an optional disk limit, and the EULA for eggs that need one; the user's passkey signs `server.create` with the catalog's egg in it, and the server installs and starts; the browser-built params are pinned by a vector shared with Wings' decoder. Delete was already there. Settings and reinstall done: the server page's Settings tab changes the name, runtime (signed by the passkey, as it changes what code runs), port, memory, disk limit, and the egg's variables (members see what the egg lets them), and reinstalls or wipes and reinstalls (signed) a stopped server. The overview: CPU, memory, disk, network, and players with their last half hour as sparklines, the console beside the address and a summary of the last hour (peaks, traffic, most players), then the graphs. The org's overview: servers running, players online, and CPU and memory across nodes with their trend (admins; from each node's `node.metrics`), every server with what it uses now, what needs attention (crashed servers, failed installs, offline nodes), the nodes with their CPU and memory, and the latest activity.)
-- [x] **Console:** xterm.js, one multiplexed WebSocket per tab (full screen done; the server page, `/orgs/<org>/nodes/<node>/servers/<server>`: power buttons, the live console with its history, and a command line with up-arrow history; xterm loads only on that page; watching needs the new `console.read` permission, which `console.write` includes; works across Panel instances through LISTEN/NOTIFY; checked in the dev app against the Wings VM: history, live lines through a restart, and a command's output)
-- [x] **Files:** browser, editor, chunked resumable uploads/downloads through the Panel (1 GB cap, "use SFTP" beyond it), archive/unarchive (trash done: deleting moves files to the server's trash for 7 days, to restore or delete for good, or empty; browser, editor, and archives done: the server page's Files tab is a file manager: a folder tree, breadcrumbs, search, the folder and open file in the URL, a table with checkbox, Ctrl and Shift-click selection, files on the egg's denylist shown locked, new files and folders, rename, delete, compress (choosing the name and the format: ZIP, TAR.GZ, TAR.ZST, or TAR), extract, drag-and-drop uploads, and full screen; text files up to 4 MB open in Monaco (#224) with a status bar, Ctrl/Cmd-S, drafts kept in the browser until saved, optional auto-save, and log files read-only; settings (single-click open, word wrap, sticky scroll, indent guides, autocomplete, auto-save), the editor in the panel's own colors (#281), and a keyboard shortcuts list; binary files are refused. Uploads and downloads done: uploads go in 16 MB chunks to `PUT /api/files/upload`, each at the offset the node has, so a dropped connection resumes; several files upload one after another with progress and cancel; downloads are a link to `GET /api/files/download`, streamed whole from the node. Both travel on a transfer connection to the instance the browser reached (#218), checked byte for byte through the dev app against the Wings VM with a 20 MB file. Left: the per-org transfer rate limit)
-- [x] **Schedules:** builder for multi-step tasks, timezone picker, run history (the Schedules tab: list, run now, on/off, delete, an editor for the cron, time zone (picked from the browser's list, with "use mine"), and steps, and every run: running, ran, failed at which step and why, or skipped and why, the last 100 of each schedule kept on the Panel)
-- [x] **Backups:** list, create, restore, destinations, retention, key mode (the Backups tab done: list, back up now (the new backup's row appears at once, queued then backing up with its progress; restores and pulls show theirs in their backup's row, and a note when a pull is done, with a link to its folder), restore the whole server (signed) or pick files and folders from a backup into `.restore/<date>`, lock, delete, the dangerous ones signed; destinations and retention done in Wings: a folder on the node, S3-compatible (B2, R2, Wasabi, … as presets), Azure, SFTP with a pinned host key and the node's own key, and WebDAV, up to 5 per server each with its own retention, testing, health, upload limits, signed changes (#231); in the app: a node's Backups tab to add, test, and change them, "Where backups go" on each server with retention presets, where each backup is, backing up to one place, a schedule step's destination, and org settings → Backups for every node's health; key mode done: the Panel keeps a sealed copy of each node's backup key by default, or only the owner does (download it, then switch), `raptor backup key` on the node; Raptor Backup Storage done (#138, #139); recovering a dead node's backups (from its Raptor Backup Storage or its own destinations, with Raptor's copy of its key or the owner's) and looking back in time on versioned storage done. Left: default destinations and retention for new servers (per node; turning on Raptor Backup Storage offers to add it to every server on the node), alerts when a destination starts or stops failing, adding a destination to several nodes at once, the reminder emails before Raptor Backup Storage data is deleted that [SERVERS.md](SERVERS.md) promises, and billing for storage once billing exists)
-- [x] **Users:** sub-users, per-server permissions (org members with roles, and per-server grants on a server's Access tab)
-- [x] **Egg catalog:** browse certified/community, import from URL with image + script review (the Eggs page lists the catalog and the org's imported eggs; admins import from a link or a file after a review of the images and their registries, the install container and script, the startup command, and warnings; imported eggs come first in the create-server wizard)
-- [x] **Egg library** ([PANEL.md](PANEL.md#eggs)): each egg's page (add-ons, runtimes, variables, startup, install script, config files, the file, versions); customize or duplicate any egg into a draft; an editor with tabs that writes into the egg file and keeps its format; draft, published, and archived; versions with notes; export; official eggs managed by staff on the admin panel
-- [x] **Community eggs** ([PANEL.md](PANEL.md#community-eggs)): orgs share published eggs with everyone; others add a reviewed copy; reports; staff take eggs out with a reason the org sees, and make official copies
-- [x] **Add-ons** ([EGGS.md](EGGS.md#add-ons)): an egg turns on a plugin installer or mod manager; servers get a Plugins or Mods page to search Modrinth, install a version, see what's installed, update, and remove; Wings fetches only from Modrinth's CDN and keeps a file only if its SHA-512 matches; the catalog's Minecraft eggs have them
-- [x] **Hangar** for the plugin installer (PaperMC's plugins that aren't on Modrinth), and more add-on kinds (datapacks, Steam Workshop) (Hangar: search, versions, installing from its CDN by SHA-256, and naming installed files and offering updates; datapacks: a third kind, `.zip` files from Modrinth into the world's datapacks folder, on every catalog Java egg; Steam Workshop: a Workshop tab that edits the variable the game reads item or collection IDs from, named from Steam, on Garry's Mod, ARK, and Squad ([EGGS.md](EGGS.md#steam-workshop)))
-- [x] **Connection test** with provider guides (on the Network tab: the Panel probes each port from outside while the node says what the game listens on inside, into one cause per port, with a guide for the provider guessed from reverse DNS; left for later: running it after a server's first start)
-- [x] ~~**Subdomains** on `raptornodes.net`~~: built and on from v0.4.1, then removed (#279): the zone is only for nodes.
-- [x] **Alerts** ([PANEL.md](PANEL.md#alerts)): the org's Settings, Alerts: channels (email to owners, admins, or a member; Discord; Slack; Telegram through Raptor's bot with a Connect link; ntfy; signed webhooks), rules (crashes, crash loops, installs, backups, restores, disk limits, nodes offline, low disk, Wings updates, signed actions, and CPU, memory, and disk thresholds that Wings evaluates), a test button, and history; new orgs start with their owners emailed about crash loops, offline nodes, and low disk. Telegram needs its bot created (below).
-- [x] **Audit log** view (the org's Settings, Activity)
-- [x] **Staff admin panel** (`/admin`) (overview with history, users and orgs, suspending, the staff log, announcements, support access to nodes (owner-signed grants checked by Wings, three levels, `raptor support` on the box), staff consoles under level 2 grants and files under level 3, and revenue: recurring revenue, plans, unpaid orgs, and payments by month from the billing ledger)
-- [x] Performance: route code splitting, lazy xterm and editor (every route's page is its own chunk (the router plugin's `autoCodeSplitting`); xterm and the editor load only when shown, each in its own chunk; the first load is about 227 KB gzipped, mostly React, the router, and React Query, measured Oct 12, 2026)
-- [x] Short URLs: orgs, nodes, and servers by their short IDs (a UUID's last part), old full-ID links redirected, both IDs on the Settings tabs ([PANEL.md](PANEL.md#urls), #280)
-- [x] Pop-outs: a server's console, files, and stats, and a node's stats, each in a window of its own ([PANEL.md](PANEL.md#pop-outs), #282)
-- [x] Owners delete orgs (once their nodes are removed); Raptor Backup Storage is a choice in Add destination, not a banner; right-click menus in the file manager's list and tree (#283)
-- [x] The trash lives in the file manager's sidebar and deleting always goes there (purged from the trash); New org opens a dialog from the org switcher (#284)
-
-**Exit criteria:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, **without help**, in under 15 minutes.
-
----
-
-## Phase 5 · Beta and launch
-
-### Private beta
-- [ ] 20–50 invited users on real boxes (mix of providers, amd64 + arm64)
-- [ ] Fix-everything loop on install failures and confusing UI
-- [ ] Watch: install success rate, time to first server, support tickets per user
-
-### Launch prep
-- [ ] **Server #2** and a failover drill on the real servers ([DEPLOY.md](DEPLOY.md#failover)) (server #2 is live and replicating; left: the `raptor-replica` alerts in Grafana, and the drill)
-- [ ] **Billing (Polar):** $12/node quantity subscription (every enrolled node, any status), daily proration, first-node 1-month trial (once per org, card required), webhooks, ledger, 7-day grace, read-only mode (built and on in production since v0.4.1: a seat-based subscription whose seats follow nodes, checkout with the free month once, webhooks that fetch the subscription, a sweep for seats and missed webhooks, the ledger, 7 days then read-only with emails, the Billing page with Polar's checkout and card form framed in it and Raptor's own cards, charges, invoices, and cancelling over the customer portal API, a banner while unpaid, and revenue in the admin panel ([PANEL.md](PANEL.md#billing-polar)); left: the end-to-end test on a throwaway org, a failed payment and read-only mode included, which the launch gate needs)
-- [ ] **Hosted backup storage** + metering (Raptor Backup Storage on B2: 10 GB included per paid node, then $0.012/GB-month) (built: a key per node for its folder, turned on from the node's Backups tab, measured daily, deleted 30 days after it's turned off, usage and an estimate in org settings; its bucket and key are in production since v0.4.1; left: charging for use over the included 10 GB, with a metered price in Polar)
-- [x] **Support access:** request/approve/revoke flow, banners, staff console, staff MFA (staff ask from the admin panel; owners approve by signing `support.grant` with a passkey; banners on the node's pages; "End now" and `raptor support revoke`; the support session page with health, logs, consoles, and files by level; staff need a passkey within 12 hours, and 5 minutes for changes ([PANEL.md](PANEL.md#support-access)))
-- [ ] **Load test** with fake-Wings simulator (thousands of nodes) (the simulator is built: `cmd/fakewings` enrolls, links, and drives nodes with fake servers and events, and reports handshake and event delivery times; 500 nodes held steady against the dev Panel; left: thousands through Cloudflare against staging)
-- [ ] Status page at `status.raptorpanel.net` (hosted with a different provider than the Panel, DNS not on Cloudflare; a Better Stack page exists, but its record is on Cloudflare)
-- [ ] **Docs** at `docs.raptorpanel.net` (`docs-site/`, Astro Starlight, [DECISIONS](DECISIONS.md) #292) and support on the Discord server (the docs site, its theme, CSP, and deploy with each release; what you need, connecting a node, deploying a server, players can't connect with every provider the connection test knows, install problems keyed to the installer's errors, and getting help; left: attaching the domain, links from the app (the user menu, Connect node, the connection test, failed installs), the CLI reference and `raptor doctor` checks generated from the code, the TUI, updates and rollback, backups and their keys, orgs and members, passkeys and recovery, importing from Pterodactyl, writing eggs, and the security model in owner terms)
-- [x] AGPL source link in the Panel footer (deployed commit): the sidebar and the sign-in page link to the commit the API reports (`MetaService.GetVersion`), or the repository for development builds
-
-**Exit criteria (launch gate):**
-- Install success rate ≥ 95% on supported OSes during beta
-- No known critical/high security issues
-- Postgres failover tested
-- Billing tested end to end, including failed payments and read-only mode
-
----
-
-## Business and legal track (parallel, ongoing)
+### Business and legal
 
 | When | Task |
 |---|---|
-| Now | Reserve GitHub org, social handles, Discord server |
-| Now | Landing page on `raptorpanel.net` (Astro, `site/`; live, no waitlist: DECISIONS #261) |
-| Now | Register `raptornodes.com` if available and redirect it (`raptorpanel.com` belongs to someone else) |
-| By launch | Apply to add `raptornodes.net` to the Public Suffix List (takes weeks; only node hostnames since #279) |
-| Now (overdue) | Business entity (Polar pays out to it) |
-| Done | `security@raptorpanel.net` mailbox (SECURITY.md points to it; Cloudflare Email Routing, Oct 15) |
-| Done | `abuse@raptorpanel.net` mailbox (the landing page links to it; Cloudflare Email Routing, Oct 15) |
-| By Phase 5 | Terms of Service, Privacy Policy, DPA (covering support access and player data) |
-| By launch | Polar account verified for payouts (the product and webhooks are set up and billing is on, since Oct 14) |
+| Now (overdue) | Business entity (Polar pays out to it), then the Polar account verified for payouts |
+| Now | Register `raptornodes.com` if it's available and redirect it (`raptorpanel.com` belongs to someone else) |
+| By launch | `raptornodes.net` on the Public Suffix List (takes weeks; less pressing since it only holds node hostnames, #279) |
+| By the beta | Terms of Service, Privacy Policy, and a DPA covering support access and player data |
 | Ongoing | Share progress publicly (devlogs, Discord) to build the beta list |
 
----
+## Backlog
 
-## After launch (unordered)
+Small features and known gaps, unordered. Bugs found in the beta go first.
+
+- **Nodes update when a release is published:** today an operator starts each rollout by hand ([DEPLOY.md](DEPLOY.md#updating-nodes)); the Panel could start one itself when a newer signed stable release appears.
+- **`raptor jobs [logs <id>]`:** the node's jobs and their logs from the box, as [WINGS.md](WINGS.md#cli-scope) once planned.
+- **Backups:** default destinations and retention for new servers (per node; turning on Raptor Backup Storage offers to add it to every server on the node); alerts when a destination starts or stops failing; adding a destination to several nodes at once.
+- **Files:** a per-org limit on transfer speed through the Panel.
+- **Connection test:** running it on its own after a server's first start.
+- **`doctor`:** offering `xfs_repair` with the servers stopped when the data volume needs it.
+- **Bulk actions** in the app (several servers at once), signed once over the whole list.
+- **`TestNotifications`** on Wings' local API answers older CLIs only; it can go once no node runs a version before v0.5.0.
+
+## After launch
+
+Bigger work, unordered.
 
 - Server transfers between nodes (direct node-to-node)
 - CurseForge for the mod manager (Modrinth, Hangar, datapacks, and Steam Workshop are built; CurseForge's terms and API key need a look first)
-- Connection relay for CGNAT users (paid add-on)
+- A connection relay for owners behind CGNAT (a paid add-on)
 - Queued config edits for offline nodes
-- Public API keys + webhooks
+- Public API keys and webhooks
 - More certified games and OS versions
-- End-to-end encryption of node traffic inside the WebSocket (so Cloudflare can't read it), if customers ask for it
+- End-to-end encryption of node traffic inside the WebSocket, so Cloudflare can't read it, if customers ask for it
 
-## Metrics to watch from beta onward
+## Metrics
+
+To watch from the beta on.
 
 | Metric | Why |
 |---|---|
-| Install success rate (by OS/provider) | Onboarding is the product's first impression |
-| Time from signup to first running server | Core UX promise |
-| Trial → paid conversion, **by box size** | Tests whether $12/node works for small VPS owners |
-| Support tickets per node | Where docs, `doctor`, or UX are failing |
-| Game downtime attributable to Raptor | Must stay at 0 |
+| Install success rate (by OS and provider) | Onboarding is the product's first impression |
+| Time from signup to first running server | The core promise |
+| Trial → paid conversion, **by box size** | Whether $12 a node works for small VPS owners |
+| Support requests per node | Where the docs, `doctor`, or the app are failing |
+| Game downtime caused by Raptor | Must stay at 0 |
+
+## How it was built
+
+Each phase ended with exit criteria, and the riskiest assumptions were checked by validation gates before the work that depended on them. The full checklists, with what each item became, are in this file's history (`git log -p -- docs/ROADMAP.md`, up to Oct 18, 2026); the decisions are in [DECISIONS.md](DECISIONS.md).
+
+| Phase | What it built | How it was proven |
+|---|---|---|
+| 0 · Foundations | The monorepo, codegen (buf, sqlc), CI with lint, tests, licenses, and secret scanning, and signed releases | `v0.0.1-rc.1` built by CI, signed offline, and verified from its public URLs |
+| 1 · Wings core | The egg runtime (Pterodactyl and Pelican eggs, unmodified images), the Docker runtime and firewall, the server lifecycle, the job engine and signed commands, disk quotas, the first CLI, and the egg conformance suite | Gates: Paper, Rust, and a Node.js egg running on arm64 and x86_64 (1.0); quotas that hold, survive reboots, and grow online (1.6) |
+| 2 · Wings complete | Schedules, Kopia backups, SFTP, file operations, local metrics, `doctor`, the TUI, self-updates that roll back, Pterodactyl import, host disk protection | The fault-injection suite passes; the week-long soak is the last item [before launch](#before-launch) |
+| 3 · Panel core | The production servers, accounts with passkeys, orgs and RLS, the node connection through Cloudflare, enrollment and `raptor bootstrap`, the mirror, node DNS, signed delegations, staged Wings updates | Gate: calls both ways through Cloudflare with idempotent retries (3.0); one command links fresh Debian 12, 13, and Ubuntu 24.04 VMs; a Panel redeploy in production that a connected player never noticed |
+| 4 · Web app | The app on `app.raptorpanel.net` under a strict CSP with a reproducible build: nodes, servers, console, files, schedules, backups, members, eggs and add-ons, the connection test, alerts, the audit log, the staff panel | The exit test is item 11 [before launch](#before-launch) |
+| 5 · Beta and launch | Billing, Raptor Backup Storage, support access, the docs and Discord | In progress: [before launch](#before-launch) |
