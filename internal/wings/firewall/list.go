@@ -41,6 +41,14 @@ type Listed struct {
 	Why    string `json:"why"`
 	// Index is one of the owner's rules' number (from 1).
 	Index int `json:"index,omitempty"`
+	// A rule that only allows or blocks by protocol, port, and source is
+	// also given as one, the way the System tab's rules are (summarize):
+	// Action is "allow" or "block", empty for any other rule; Protocol
+	// "tcp", "udp", or "both" ("" for any); Ports and Source "" for any.
+	Action   string `json:"action,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
+	Ports    string `json:"ports,omitempty"`
+	Source   string `json:"source,omitempty"`
 }
 
 var (
@@ -105,6 +113,7 @@ func Parse(out string, host *HostRules) (list []Listed, truncated bool) {
 			}
 			l := Listed{Table: table, Chain: chain, Hook: hook, Rule: whitespace.ReplaceAllString(strings.TrimSpace(rule), " ")}
 			explain(&l, why, host)
+			summarize(&l)
 			list = append(list, l)
 		}
 		depth += opens - strings.Count(bare, "}")
@@ -146,7 +155,7 @@ func explain(l *Listed, comment string, host *HostRules) {
 		}
 	case strings.HasPrefix(l.Chain, "ufw") || strings.HasPrefix(l.Chain, "ufw6"):
 		l.Owner = OwnerUFW
-		l.Why = "ufw's: it's on, and filters before Raptor's rules can allow anything. Change it with the ufw command."
+		l.Why = "ufw's: change it with the ufw command."
 	case strings.HasPrefix(l.Chain, "f2b-") || strings.Contains(rule, "f2b-") || strings.HasPrefix(l.Table, "inet f2b"):
 		l.Owner = OwnerFail2ban
 		l.Why = "fail2ban's: it blocks addresses that keep failing to log in."
@@ -188,4 +197,96 @@ func dockerWhy(chain, table, rule string) string {
 		return "Docker's: forwards traffic to and from containers."
 	}
 	return "Docker's: hands container traffic to its own chains."
+}
+
+// groups are nftables' anonymous sets ("{ 80, 443 }"), made one word.
+var groups = regexp.MustCompile(`\{\s*([^{}]*?)\s*\}`)
+
+// summarize fills in a rule's Action, Protocol, Ports, and Source if all
+// it does is allow or block by those, like `ufw status` lists them. Any
+// other match (an interface, a destination, connection state) or verdict
+// (a jump, a NAT) leaves it as nftables prints it.
+func summarize(l *Listed) {
+	if l.Policy {
+		return
+	}
+	rule := groups.ReplaceAllStringFunc(l.Rule, func(g string) string {
+		return strings.ReplaceAll(groups.FindStringSubmatch(g)[1], " ", "")
+	})
+	f := strings.Fields(rule)
+	var action, proto, ports, source string
+	setProto := func(p string) bool {
+		switch p {
+		case "tcp", "udp":
+		case "tcp,udp", "udp,tcp":
+			p = Both
+		default:
+			return false
+		}
+		if proto != "" && proto != p {
+			return false
+		}
+		proto = p
+		return true
+	}
+	for i := 0; i < len(f); i++ {
+		next := func() (string, bool) {
+			if i+1 >= len(f) {
+				return "", false
+			}
+			i++
+			return f[i], true
+		}
+		switch w := f[i]; {
+		case action != "":
+			// Only "reject with ..." may follow a verdict.
+			if action != "reject" || w != "with" {
+				return
+			}
+			i = len(f)
+		case w == "accept":
+			action = Allow
+		case w == "drop":
+			action = Block
+		case w == "reject":
+			action = "reject"
+		case (w == "ip" || w == "ip6") && i+1 < len(f) && f[i+1] == "saddr":
+			i++
+			v, ok := next()
+			if !ok || source != "" || strings.HasPrefix(v, "!=") {
+				return
+			}
+			source = v
+		case w == "meta" && i+1 < len(f) && f[i+1] == "l4proto",
+			w == "ip" && i+1 < len(f) && f[i+1] == "protocol",
+			w == "ip6" && i+1 < len(f) && f[i+1] == "nexthdr":
+			i++
+			v, ok := next()
+			if !ok || !setProto(v) {
+				return
+			}
+		case (w == "tcp" || w == "udp" || w == "th") && i+1 < len(f) && f[i+1] == "dport",
+			w == "ct" && i+2 < len(f) && f[i+1] == "original" && f[i+2] == "proto-dst":
+			if w == "ct" {
+				i++
+			} else if w != "th" && !setProto(w) {
+				return
+			}
+			i++
+			v, ok := next()
+			if !ok || ports != "" || strings.HasPrefix(v, "!=") || strings.HasPrefix(v, "@") {
+				return
+			}
+			ports = strings.ReplaceAll(v, ",", ", ")
+		default:
+			return
+		}
+	}
+	if action == "" {
+		return
+	}
+	if action == "reject" {
+		action = Block
+	}
+	l.Action, l.Protocol, l.Ports, l.Source = action, proto, ports, strings.ReplaceAll(source, ",", ", ")
 }
