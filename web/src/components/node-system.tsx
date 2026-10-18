@@ -69,6 +69,10 @@ type Listed = {
   needed: boolean;
   why: string;
   index?: number;
+  action?: "allow" | "block";
+  protocol?: "tcp" | "udp" | "both";
+  ports?: string;
+  source?: string;
 };
 
 const select =
@@ -108,7 +112,6 @@ export function NodeSystem({ orgId, node, userId }: { orgId: string; node: Node;
         s={s}
       />
       <Firewall key={JSON.stringify(s.firewall)} nodeId={nodeId} userId={userId} s={s} />
-      <Ruleset s={s} />
       <Reboot nodeId={nodeId} userId={userId} />
     </div>
   );
@@ -308,6 +311,16 @@ function Machine({ orgId, node, s }: { orgId: string; node: Node; s: SystemState
   );
 }
 
+function portsText(ports: string | undefined, protocol: string | undefined) {
+  if (!ports)
+    return protocol && protocol !== "both" ? `Every ${protocol.toUpperCase()} port` : "Every port";
+  return protocol && protocol !== "both" ? `${ports} ${protocol.toUpperCase()}` : ports;
+}
+
+function sourceText(source: string | undefined) {
+  return source?.replace(/\/(32|128)$/, "") || "Anywhere";
+}
+
 const emptyRule: Rule = { action: "allow", protocol: "tcp", ports: "", source: "", note: "" };
 
 function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: SystemState }) {
@@ -401,6 +414,7 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
               <TableHead>Rule</TableHead>
               <TableHead>Ports</TableHead>
               <TableHead>From</TableHead>
+              <TableHead className="hidden sm:table-cell">Set by</TableHead>
               <TableHead className="hidden md:table-cell">Note</TableHead>
               <TableHead className="w-10">
                 <span className="sr-only">Remove</span>
@@ -410,8 +424,8 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
           <TableBody>
             {rules.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground">
-                  No rules yet.
+                <TableCell colSpan={6} className="text-muted-foreground">
+                  No rules of yours yet.
                 </TableCell>
               </TableRow>
             )}
@@ -424,13 +438,10 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
                   </Badge>
                 </TableCell>
                 <TableCell className="font-mono text-xs">
-                  {r.ports
-                    ? `${r.ports}${r.protocol === "both" ? "" : ` ${r.protocol.toUpperCase()}`}`
-                    : "Every port"}
+                  {portsText(r.ports, r.protocol)}
                 </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {r.source.replace(/\/(32|128)$/, "") || "Anywhere"}
-                </TableCell>
+                <TableCell className="font-mono text-xs">{sourceText(r.source)}</TableCell>
+                <TableCell className="hidden sm:table-cell">You</TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
                   {r.note || "—"}
                 </TableCell>
@@ -446,6 +457,7 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
                 </TableCell>
               </TableRow>
             ))}
+            <MachineRules s={s} />
           </TableBody>
         </Table>
 
@@ -507,130 +519,133 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
           )}
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
+        <RulesetNotes s={s} />
       </CardContent>
     </Card>
   );
 }
 
-const owners: { owner: Listed["owner"]; title: string; about: string }[] = [
-  {
-    owner: "raptor",
-    title: "Raptor's",
-    about:
-      "Keep install containers off your network and the cloud metadata service, and send connections through your rules. Raptor puts them back if they're removed.",
-  },
-  { owner: "yours", title: "Yours", about: "The rules above, as they're loaded." },
-  {
-    owner: "docker",
-    title: "Docker's",
-    about:
-      "Servers run in Docker containers: these send players to them and let them reach the internet. Docker keeps them up to date.",
-  },
-  { owner: "ufw", title: "ufw's", about: "ufw is on. Manage these with the ufw command." },
-  {
-    owner: "fail2ban",
-    title: "fail2ban's",
-    about: "Blocks for addresses that keep failing to log in.",
-  },
-  {
-    owner: "other",
-    title: "Something else's",
+const owners: Record<Exclude<Listed["owner"], "yours">, { name: string; about: string }> = {
+  ufw: { name: "ufw", about: "ufw is on. Change its rules with the ufw command." },
+  fail2ban: { name: "fail2ban", about: "Blocks for addresses that keep failing to log in." },
+  other: {
+    name: "Something else",
     about:
       "Not from Raptor or Docker: your provider's image, a script, or another program. Raptor doesn't change them.",
   },
-];
+  raptor: {
+    name: "Raptor",
+    about:
+      "Keeps install containers off your network and the cloud metadata service, and sends connections through your rules. Raptor puts them back if they're removed.",
+  },
+  docker: {
+    name: "Docker",
+    about:
+      "Servers run in Docker containers: these send players to them and let them reach the internet. Docker keeps them up to date.",
+  },
+};
 
-// Ruleset is every rule on the machine (nft list ruleset), grouped by whose
-// it is, with what each does and which ones Raptor needs.
-function Ruleset({ s }: { s: SystemState }) {
-  const [open, setOpen] = useState<string[]>(["other"]);
-  const list = s.ruleset ?? [];
+// The order the machine's rules are listed in, after the owner's own.
+const ownerOrder = Object.keys(owners) as (keyof typeof owners)[];
+
+// MachineRules lists the rest of the machine's firewall (nft list ruleset,
+// docs/WINGS.md#firewall) under the owner's rules, the way `ufw status`
+// would: allow and block rules by their ports and source, anything else as
+// nftables prints it. The owner's own rules, as loaded, are the ones above,
+// so they aren't listed twice. Rules that only route traffic for Raptor,
+// Docker, ufw, or fail2ban are folded away; anything that drops traffic, or
+// is from something else, always shows.
+function MachineRules({ s }: { s: SystemState }) {
+  const [all, setAll] = useState(false);
+  const list = (s.ruleset ?? [])
+    .filter((l): l is Listed & { owner: keyof typeof owners } => l.owner !== "yours")
+    .map((l, i) => ({ ...l, i }))
+    .sort((a, b) => ownerOrder.indexOf(a.owner) - ownerOrder.indexOf(b.owner) || a.i - b.i);
+  if (list.length === 0) return null;
+  const plumbing = (l: Listed) => !l.action && !l.policy && l.owner !== "other";
+  const folded = list.filter(plumbing).length;
+  const shown = all ? list : list.filter((l) => !plumbing(l));
+  return (
+    <>
+      <TableRow className="hover:bg-transparent">
+        <TableCell colSpan={6} className="pt-5 text-xs whitespace-normal text-muted-foreground">
+          Already on the machine, from other programs. Raptor doesn't change them; those marked{" "}
+          <Badge variant="outline">Needed</Badge> keep servers working.
+        </TableCell>
+      </TableRow>
+      {shown.map((l) => (
+        <TableRow key={l.i} className="text-muted-foreground">
+          <TableCell>
+            {l.action ? (
+              <Badge variant={l.action === "block" ? "destructive" : "default"}>
+                {l.action === "block" ? "Block" : "Allow"}
+              </Badge>
+            ) : l.policy ? (
+              <Badge variant="destructive">Drop the rest</Badge>
+            ) : (
+              <Badge variant="secondary">Other</Badge>
+            )}
+          </TableCell>
+          {l.action ? (
+            <>
+              <TableCell className="font-mono text-xs">{portsText(l.ports, l.protocol)}</TableCell>
+              <TableCell className="font-mono text-xs">{sourceText(l.source)}</TableCell>
+            </>
+          ) : (
+            <TableCell
+              colSpan={2}
+              className="min-w-48 font-mono text-xs whitespace-normal break-all"
+            >
+              {l.policy ? `${l.chain} (${l.hook ?? "chain"})` : l.rule}
+            </TableCell>
+          )}
+          <TableCell className="hidden sm:table-cell" title={owners[l.owner].about}>
+            <span className="flex flex-wrap items-center gap-1.5">
+              {owners[l.owner].name}
+              {l.needed && <Badge variant="outline">Needed</Badge>}
+            </span>
+          </TableCell>
+          <TableCell className="hidden max-w-xs whitespace-normal md:table-cell">
+            <span className="block text-xs">{l.why}</span>
+            <span className="block font-mono text-[11px] text-muted-foreground/70">
+              {l.table} › {l.chain}
+            </span>
+          </TableCell>
+          <TableCell />
+        </TableRow>
+      ))}
+      {folded > 0 && (
+        <TableRow className="hover:bg-transparent">
+          <TableCell colSpan={6}>
+            <Button size="sm" variant="ghost" onClick={() => setAll(!all)}>
+              <ChevronRight className={cn("transition-transform", all && "rotate-90")} />
+              {all
+                ? "Hide the rules that only route traffic"
+                : `Show ${folded} more ${folded === 1 ? "rule" : "rules"} that only route traffic`}
+            </Button>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
+function RulesetNotes({ s }: { s: SystemState }) {
   if (!s.ruleset && !s.ruleset_error) return null; // an older Wings
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Every rule on the machine</CardTitle>
-        <CardDescription>
-          Everything in the machine's firewall (nftables), whoever put it there. Rules marked{" "}
-          <Badge variant="outline">Needed</Badge> keep servers working: leave them alone.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {s.ruleset_error && <p className="text-sm text-destructive">{s.ruleset_error}</p>}
-        {owners.map((g) => {
-          const rules = list.filter((l) => l.owner === g.owner);
-          if (rules.length === 0) return null;
-          const shown = open.includes(g.owner);
-          return (
-            <div key={g.owner} className="rounded-lg border">
-              <button
-                type="button"
-                className="flex w-full items-start gap-3 p-3 text-left"
-                aria-expanded={shown}
-                onClick={() =>
-                  setOpen(shown ? open.filter((o) => o !== g.owner) : [...open, g.owner])
-                }
-              >
-                <ChevronRight
-                  className={cn(
-                    "mt-0.5 size-4 shrink-0 transition-transform",
-                    shown && "rotate-90",
-                  )}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    {g.title}
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {rules.length} {rules.length === 1 ? "rule" : "rules"}
-                    </span>
-                    {rules.some((r) => r.needed) && <Badge variant="outline">Needed</Badge>}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">{g.about}</span>
-                </span>
-              </button>
-              {shown && (
-                <ul className="divide-y border-t">
-                  {rules.map((r, i) => (
-                    <li
-                      // biome-ignore lint/suspicious/noArrayIndexKey: rules have no IDs; their order is the rule set's
-                      key={i}
-                      className="flex flex-col gap-1 px-3 py-2"
-                    >
-                      <code
-                        className={cn(
-                          "text-xs break-all",
-                          r.policy && "font-semibold text-destructive",
-                        )}
-                      >
-                        {r.rule}
-                      </code>
-                      <span className="text-xs text-muted-foreground">{r.why}</span>
-                      <span className="font-mono text-[11px] text-muted-foreground/70">
-                        {r.table} › {r.chain}
-                        {r.hook ? ` (${r.hook})` : ""}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
-        {list.length === 0 && !s.ruleset_error && (
-          <p className="text-sm text-muted-foreground">The machine has no firewall rules.</p>
-        )}
-        {s.ruleset_truncated && (
-          <p className="text-xs text-muted-foreground">
-            Only the first {list.length} rules are shown. Run <code>sudo nft list ruleset</code> on
-            the machine for all of them.
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Rules loaded with the older iptables-legacy tools aren't shown: run{" "}
-          <code>sudo iptables-legacy -S</code> to see them.
+    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+      {s.ruleset_error && <p className="text-sm text-destructive">{s.ruleset_error}</p>}
+      {s.ruleset_truncated && (
+        <p>
+          Only the first {s.ruleset?.length} rules on the machine are listed. Run{" "}
+          <code>sudo nft list ruleset</code> on it for all of them.
         </p>
-      </CardContent>
-    </Card>
+      )}
+      <p>
+        Rules loaded with the older iptables-legacy tools aren't listed: run{" "}
+        <code>sudo iptables-legacy -S</code> to see them.
+      </p>
+    </div>
   );
 }
 

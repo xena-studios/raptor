@@ -32,6 +32,10 @@ table ip filter {
 	}
 	chain ufw-user-input {
 		tcp dport 80 accept
+		ip saddr 203.0.113.0/24 meta l4proto udp udp dport { 27015, 27020-27030 } counter packets 0 bytes 0 accept
+		ip6 saddr 2001:db8::/32 reject with icmpv6 port-unreachable
+		iifname "lo" accept
+		jump ufw-user-limit
 	}
 	chain f2b-sshd {
 		ip saddr 198.51.100.9 reject
@@ -73,6 +77,20 @@ table ip filter {
 	if l := find("tcp dport 80"); l.Owner != OwnerUFW {
 		t.Errorf("ufw: %+v", l)
 	}
+	sum := func(sub, action, proto, ports, source string) {
+		t.Helper()
+		if l := find(sub); l.Action != action || l.Protocol != proto || l.Ports != ports || l.Source != source {
+			t.Errorf("%s: summarized as %q %q %q %q", sub, l.Action, l.Protocol, l.Ports, l.Source)
+		}
+	}
+	sum("tcp dport 80 accept", Allow, "tcp", "80", "")
+	sum("udp dport", Allow, "udp", "27015, 27020-27030", "203.0.113.0/24")
+	sum("2001:db8::/32", Block, "", "", "2001:db8::/32")
+	sum("198.51.100.9 reject", Block, "", "", "198.51.100.9")
+	sum(`iifname "lo" accept`, "", "", "", "")
+	sum("jump ufw-user-limit", "", "", "", "")
+	sum("dnat to", "", "", "", "")
+	sum("policy drop", "", "", "", "")
 	if l := find("198.51.100.9 reject"); l.Owner != OwnerFail2ban {
 		t.Errorf("fail2ban: %+v", l)
 	}
