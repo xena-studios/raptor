@@ -5,6 +5,7 @@ import {
   Download,
   FileArchive,
   FilePlus,
+  FolderInput,
   FolderOpen,
   FolderPlus,
   Keyboard,
@@ -67,6 +68,7 @@ import { downloadURL, uploadFile } from "@/lib/upload";
 import { type Entry, kind, sorted, useFilesApi, useListing } from "./data";
 import { EditorPane } from "./editor-pane";
 import { EntryIcon } from "./icons";
+import { ImportDialog, ImportRows, useImports } from "./import";
 import { PullDialog, PullRows, usePulls } from "./pull";
 import { SettingsMenu } from "./settings";
 import { ShortcutsDialog } from "./shortcuts";
@@ -104,6 +106,7 @@ export function Files({
   support,
   fill,
   canPull,
+  canImport,
 }: {
   nodeId: string;
   serverId: string;
@@ -123,8 +126,10 @@ export function Files({
   support?: string;
   // Fill the parent's height (a pop-out window) instead of the page's.
   fill?: boolean;
-  // The node can download links into the server's files (files-pull).
+  // The node can download links into the server's files (files-pull),
+  // and import them from another host over SFTP (files-import).
   canPull?: boolean;
+  canImport?: boolean;
 }) {
   const api = useFilesApi(nodeId, serverId, support);
   const transfers = !support;
@@ -140,6 +145,8 @@ export function Files({
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
   const pulls = usePulls(api);
   const [pulling, setPulling] = useState(false);
+  const imports = useImports(api);
+  const [importing, setImporting] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [full, setFull] = useState(false);
   const [shortcuts, setShortcuts] = useState(false);
@@ -426,6 +433,11 @@ export function Files({
                       <Link2 /> From URL
                     </Button>
                   )}
+                  {canImport && (
+                    <Button size="sm" variant="outline" onClick={() => setImporting(true)}>
+                      <FolderInput /> Import
+                    </Button>
+                  )}
                   <input
                     ref={picker}
                     type="file"
@@ -633,7 +645,11 @@ export function Files({
             />
           ) : (
             <>
-              {(error || uploads.length > 0 || pulls.pulls.length > 0 || selected.size > 0) && (
+              {(error ||
+                uploads.length > 0 ||
+                pulls.pulls.length > 0 ||
+                imports.imports.length > 0 ||
+                selected.size > 0) && (
                 <div className="flex shrink-0 flex-col gap-2 border-b px-4 py-2">
                   {error && <p className="text-sm text-destructive">{error}</p>}
                   {selected.size > 0 && canWrite && (
@@ -662,6 +678,7 @@ export function Files({
                     </div>
                   )}
                   <PullRows pulls={pulls.pulls} onHide={(p) => void pulls.cancel(p)} />
+                  <ImportRows imports={imports.imports} onHide={(p) => void imports.cancel(p)} />
                   {uploads.length > 0 && (
                     <ul className="flex flex-col gap-1 text-sm">
                       {uploads.map((u) => (
@@ -846,6 +863,15 @@ export function Files({
       </div>
 
       <ShortcutsDialog open={shortcuts} onOpenChange={setShortcuts} />
+      {canImport && (
+        <ImportDialog
+          open={importing}
+          dir={path}
+          api={api}
+          onOpenChange={setImporting}
+          onStarted={imports.add}
+        />
+      )}
       {canPull && (
         <PullDialog
           open={pulling}

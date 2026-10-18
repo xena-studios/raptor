@@ -159,10 +159,12 @@ const (
 	// CapChangeEgg: server.update takes reinstall, to change a server's
 	// egg and install it again in one signed command.
 	CapChangeEgg = "change-egg"
+	// CapFilesImport: files.import copies a server's files in over SFTP.
+	CapFilesImport = "files-import"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {
