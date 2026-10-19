@@ -1,0 +1,47 @@
+---
+title: Server problems
+description: A server that won't start, keeps crashing, failed to install, or runs out of memory or disk.
+sidebar:
+  order: 4
+---
+
+The console says most of what's wrong: open the server's **Overview** and read its last lines. Lines starting `[raptor]` are from Raptor itself.
+
+## It crashed
+
+A server that stops on its own is restarted, and after three crashes in ten minutes it's left **crashed** ([why](/servers/overview/#crashes)). The crash alert has its last 50 console lines.
+
+- **"Out of memory"** (or `oom`): the game needed more than its memory limit. Raise **Memory** on [Settings](/servers/settings/#name-and-limits). Modded Minecraft often needs 6 GB or more.
+- **A Java error about the class file version:** the game needs a newer Java. Pick a newer **Runtime** on Startup.
+- **It stopped after someone typed `/stop`:** that counts as a crash by default. Turn on **A clean exit means it stopped** in Settings.
+- **It crashes right after a plugin or mod change:** remove the new one (it goes to the trash), and start it again.
+
+## It won't start
+
+- **"install failed":** see below.
+- **The port is in use:** another program on the machine has it. Pick another port on **Network**, or stop that program.
+- **"over its disk limit":** raise the limit, or free space, including the trash.
+- **The node is offline:** nothing can start until it's back. See the node's page.
+
+## The install failed
+
+The console shows the install script's output and where it stopped.
+
+- **A download failed:** the version in Startup might not exist (a typo, or too new). Check it, then **Reinstall** on Settings.
+- **A network error:** the machine couldn't reach the internet. Check with `sudo raptor doctor`.
+- **It ran out of disk:** raise the disk limit and reinstall.
+
+## It's slow, or lags
+
+- Check **CPU** and **Memory** on the Overview, and the charts below. A server at its CPU limit lags; raise or remove the limit.
+- **Swap** makes a server slow once it's in use: give it more memory instead.
+- Check the whole machine on the node's **Overview**: other servers may be using it.
+- Lots of servers backing up at once can slow a machine. Spread their schedules out, or limit a destination's upload speed.
+
+## Players can't join
+
+See [Players can't connect](/help/players-cant-connect/).
+
+## Still stuck
+
+Run `sudo raptor doctor` on the machine, then [ask for help](/help/get-help/) with what the console says.

@@ -25,12 +25,12 @@ If players can't join, see [Players can't connect](/help/players-cant-connect/).
 
 ## What's on a server's page
 
-- **Overview:** the console (the server's output, live, and a box to type commands), its address, and its power buttons and stats.
-- **Files:** a file manager in the browser, and temporary SFTP logins for big uploads.
-- **Schedules:** restarts, backups, and commands on a timer.
-- **Backups:** back up now, restore everything or just some files, and choose where backups go.
+- **Overview:** the console (the server's output, live, and a box to type commands), its address, and its power buttons and stats. [More](/servers/overview/)
+- **Files:** a file manager in the browser, and temporary SFTP logins for big uploads. [More](/servers/files/)
+- **Schedules:** restarts, backups, and commands on a timer. [More](/servers/schedules/)
+- **Backups:** back up now, restore everything or just some files, and choose where backups go. [More](/servers/backups/)
 - **Network:** the server's ports, and the connection test.
 - **Startup:** the command it starts with, and its game settings.
-- **Settings:** its name and limits, its port, reinstalling it, and deleting it.
-- **Activity:** who did what to it, and when.
-- **Access:** what each member of your org may do on this server.
+- **Settings:** its name and limits, what happens when it crashes or stops, changing its game, reinstalling it, and deleting it. [More](/servers/settings/)
+- **Activity:** who did what to it, and when. [More](/team/activity/)
+- **Access:** what each member of your org may do on this server. [More](/team/members/#what-members-can-do-on-a-server)

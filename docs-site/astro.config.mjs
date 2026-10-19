@@ -15,7 +15,9 @@ export default defineConfig({
     starlight({
       title: "Raptor Docs",
       description: "Run game servers on your own machines, managed from one place.",
-      logo: { src: "./src/assets/logo.svg" },
+      // The full logo (the raptor is never without the wordmark,
+      // docs/DESIGN.md#7-brand), with "Docs" after it from theme.css.
+      logo: { dark: "./src/assets/logo-dark.svg", light: "./src/assets/logo-light.svg", replacesTitle: true },
       favicon: "/favicon.svg",
       customCss: ["./src/styles/theme.css"],
       // One dark theme in both modes: commands look like the terminal
@@ -42,6 +44,12 @@ export default defineConfig({
       sidebar: [
         { label: "Start here", items: [{ autogenerate: { directory: "start" } }] },
         { label: "Install", items: [{ autogenerate: { directory: "install" } }] },
+        { label: "Servers", items: [{ autogenerate: { directory: "servers" } }] },
+        { label: "Nodes", items: [{ autogenerate: { directory: "nodes" } }] },
+        { label: "Team and account", items: [{ autogenerate: { directory: "team" } }] },
+        { label: "Eggs", items: [{ autogenerate: { directory: "eggs" } }] },
+        { label: "Command line", items: [{ autogenerate: { directory: "cli" } }] },
+        { label: "Security", items: [{ autogenerate: { directory: "security" } }] },
         { label: "Help", items: [{ autogenerate: { directory: "help" } }] },
       ],
     }),
