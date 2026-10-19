@@ -118,6 +118,10 @@ func (s *Service) SetExternal(ctx context.Context, in ExternalInput) (Instance, 
 		unlock()
 		return Instance{}, err
 	}
+	if !isSQL(cur.Engine) && in.Port != 0 {
+		unlock()
+		return Instance{}, invalid{fmt.Sprintf("external access isn't available for %s instances yet", engineName(cur.Engine))}
+	}
 	allow := "[]"
 	if in.Port != 0 {
 		list, err := parseAllow(in.Allow)
@@ -262,7 +266,7 @@ func accountHosts(on bool, nets []containers.Network) map[string]bool {
 // syncAccounts gives every user on a MariaDB or MySQL instance exactly
 // the accounts accountHosts says, with its password and rights.
 func (s *Service) syncAccounts(ctx context.Context, in Instance, root string, on bool, nets []containers.Network) error {
-	if in.Engine == Postgres {
+	if in.Engine != MariaDB && in.Engine != MySQL {
 		return nil
 	}
 	dbs, err := s.instanceDatabases(ctx, in.ID)
@@ -346,7 +350,7 @@ func userHosts(ctx context.Context, db *sql.DB, user string) ([]string, error) {
 // reconcile brings a MariaDB or MySQL instance's accounts in line after a
 // user was made, changed, or given a new password.
 func (s *Service) reconcile(ctx context.Context, in Instance, r store.DatabaseInstance, root string) error {
-	if in.Engine == Postgres {
+	if in.Engine != MariaDB && in.Engine != MySQL {
 		return nil
 	}
 	port, _ := external(r)

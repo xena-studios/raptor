@@ -32,6 +32,8 @@ import {
   type DBInstance,
   downloadCA,
   engineName,
+  hostVariable,
+  isSQL,
   labelPattern,
   serverDatabasesKey,
   useServerDatabases,
@@ -40,6 +42,10 @@ import { message } from "@/lib/errors";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
+
+// family is which variables a database's engine gives (Wings' envVars):
+// the first of each family also gets them without a prefix.
+const family = (e: Database["engine"]) => (e === "redis" || e === "mongodb" ? e : "sql");
 
 const select =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -112,7 +118,8 @@ export function ServerDatabases({
             Each database has its own user, which reaches it and nothing else. The server gets their
             details as variables at its next start: <code>DB_HOST</code>, <code>DB_PORT</code>,{" "}
             <code>DB_NAME</code>, <code>DB_USER</code>, <code>DB_PASSWORD</code>, and{" "}
-            <code>DATABASE_URL</code>.
+            <code>DATABASE_URL</code> (for Redis and MongoDB, <code>REDIS_URL</code> and{" "}
+            <code>MONGODB_URI</code> with the rest).
           </CardDescription>
           {canWrite && (
             <CardAction>
@@ -161,7 +168,7 @@ export function ServerDatabases({
                   serverId={serverId}
                   userId={userId}
                   db={db}
-                  first={i === 0}
+                  first={d.databases.findIndex((x) => family(x.engine) === family(db.engine)) === i}
                   many={d.databases.length > 1}
                   canWrite={canWrite}
                   instance={d.instances.find((x) => x.id === db.instance_id)}
@@ -303,7 +310,7 @@ function DatabaseRow({
           {instance && <span className="text-xs text-muted-foreground">on {instance.name}</span>}
         </div>
         <div className="-my-0.5 flex shrink-0 gap-1">
-          {browsable && (
+          {browsable && isSQL(db.engine) && (
             <Link
               to="/orgs/$orgId/servers/$serverId/databases/$databaseId"
               params={{ orgId, serverId, databaseId: db.id }}
@@ -356,7 +363,10 @@ function DatabaseRow({
       <DetailList
         rows={[
           ["Host", <Copyable key="h" value={`${db.host}:${db.port}`} />],
-          ["Database", <Copyable key="d" value={db.name} />],
+          // Redis' databases are numbered, and Raptor's is 0.
+          ...(db.engine === "redis"
+            ? []
+            : [["Database", <Copyable key="d" value={db.name} />] as [string, ReactNode]]),
           ["User", <Copyable key="u" value={db.user} />],
           ...(instance?.external
             ? [
@@ -391,7 +401,12 @@ function DatabaseRow({
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        As variables: <code>{prefix}DB_HOST</code> and the rest
+        As variables:{" "}
+        <code>
+          {prefix}
+          {hostVariable(db.engine)}
+        </code>{" "}
+        and the rest
         {many && first ? ", and without the prefix too, since it's the first" : ""}.
       </p>
       {transfers && (
@@ -444,7 +459,9 @@ function CreateDialog({
   onClose: () => void;
 }) {
   const client = useQueryClient();
-  const [instance, setInstance] = useState(instances[0]?.id ?? "");
+  // A Redis instance holds one server's data.
+  const taken = (i: DBInstance) => i.engine === "redis" && i.databases > 0;
+  const [instance, setInstance] = useState(instances.find((i) => !taken(i))?.id ?? "");
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -498,7 +515,7 @@ function CreateDialog({
               Lowercase letters, digits, and underscores, like what it's for.
             </p>
           </div>
-          {instances.length > 1 && (
+          {(instances.length > 1 || instances.some(taken)) && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="db-instance">Instance</Label>
               <select
@@ -508,8 +525,9 @@ function CreateDialog({
                 onChange={(e) => setInstance(e.target.value)}
               >
                 {instances.map((i) => (
-                  <option key={i.id} value={i.id}>
+                  <option key={i.id} value={i.id} disabled={taken(i)}>
                     {i.name} ({engineName(i.engine)} {i.version})
+                    {taken(i) ? ": holds a server's data already" : ""}
                   </option>
                 ))}
               </select>

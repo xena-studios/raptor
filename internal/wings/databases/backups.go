@@ -34,7 +34,8 @@ const JobRestore = "db.restore"
 type Backups interface {
 	// ExtractDatabase puts a backup's dump of one of the server's databases
 	// in a new folder inside dir and returns the dump's path.
-	ExtractDatabase(ctx context.Context, serverID, backupID, name, dir string, log io.Writer) (string, error)
+	// file is the dump's name in the backup's DumpsFolder.
+	ExtractDatabase(ctx context.Context, serverID, backupID, name, file, dir string, log io.Writer) (string, error)
 }
 
 // SetBackups gives the service the backups, once there are any (they're
@@ -68,7 +69,11 @@ func (s *Service) Dump(ctx context.Context, serverID string, log io.Writer) (str
 	var names, failed []string
 	for _, r := range rows {
 		_, _ = fmt.Fprintf(log, "dumping the database %s\n", r.Label)
-		if err := s.dumpFile(ctx, r, filepath.Join(dir, r.Label+".sql"), log); err != nil {
+		in, _, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
+		if err == nil {
+			err = s.dumpFile(ctx, r, filepath.Join(dir, r.Label+dumpExt(in.Engine)), log)
+		}
+		if err != nil {
 			_, _ = fmt.Fprintf(log, "  failed: %v\n", err)
 			failed = append(failed, fmt.Sprintf("%s (%v)", r.Label, err))
 			continue
@@ -138,7 +143,7 @@ func (s *Service) Restore(ctx context.Context, serverID, dir string, log io.Writ
 	var problems []string
 	kept := false
 	for _, e := range entries {
-		label, ok := strings.CutSuffix(e.Name(), ".sql")
+		label, ok := dumpLabel(e.Name())
 		if !ok || !e.Type().IsRegular() {
 			continue
 		}
@@ -195,6 +200,12 @@ func (s *Service) replace(ctx context.Context, r store.Database, src io.Reader, 
 		unlock()
 		return err
 	}
+	if in.Engine == Redis {
+		// Its data is the whole instance's: Redis loads a snapshot only
+		// when it starts.
+		defer unlock()
+		return s.restoreRedis(ctx, in, src, log)
+	}
 	err = s.recreate(ctx, in, r, root)
 	unlock()
 	if err != nil {
@@ -208,6 +219,10 @@ func (s *Service) replace(ctx context.Context, r store.Database, src io.Reader, 
 func (s *Service) recreate(ctx context.Context, in Instance, r store.Database, root string) error {
 	if err := checkNames(r.DbName); err != nil {
 		return err
+	}
+	if in.Engine == MongoDB {
+		// Its users are stored in it, and stay.
+		return mongoEmpty(ctx, s.dir(in.ID), root, r.DbName)
 	}
 	db, err := connect(in, s.dir(in.ID), root)
 	if err != nil {
@@ -302,7 +317,11 @@ func (s *Service) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 	}
 	defer func() { _ = os.RemoveAll(tmp) }()
 	_, _ = fmt.Fprintf(log, "taking the dump of %s out of backup %s\n", r.Label, p.BackupID)
-	path, err := bk.ExtractDatabase(ctx, j.ServerID, p.BackupID, r.Label, tmp, log)
+	in, _, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
+	if err != nil {
+		return nil, err
+	}
+	path, err := bk.ExtractDatabase(ctx, j.ServerID, p.BackupID, r.Label, r.Label+dumpExt(in.Engine), tmp, log)
 	if err != nil {
 		return nil, err
 	}
@@ -326,4 +345,89 @@ func (s *Service) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 	}
 	_, _ = fmt.Fprintln(log, "done")
 	return map[string]any{"backup_id": p.BackupID, "before": p.Before}, nil
+}
+
+// dumpExt is the extension of an engine's dumps in a backup: SQL, a
+// mongodump archive, or Redis' snapshot.
+func dumpExt(engine string) string {
+	switch engine {
+	case MongoDB:
+		return ".archive"
+	case Redis:
+		return ".rdb"
+	}
+	return ".sql"
+}
+
+// dumpLabel is the database a dump in a backup is of, by its file name.
+func dumpLabel(file string) (string, bool) {
+	for _, ext := range []string{".sql", ".archive", ".rdb"} {
+		if label, ok := strings.CutSuffix(file, ext); ok && label != "" {
+			return label, true
+		}
+	}
+	return "", false
+}
+
+// restoreRedis replaces a Redis instance's data with a snapshot: it's
+// stopped, the snapshot put in its data folder (its append-only log,
+// which would win over it, removed), and started again. Its users stay.
+func (s *Service) restoreRedis(ctx context.Context, in Instance, src io.Reader, log io.Writer) error {
+	dir := s.dir(in.ID)
+	_, _ = fmt.Fprintln(log, "stopping it to load the snapshot")
+	if err := s.o.Runtime.StopService(ctx, ContainerName(in.ID), 2*time.Minute); err != nil {
+		return err
+	}
+	tmp := filepath.Join(dataDir(dir), "dump.rdb.restore")
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // Wings' own folder
+	if err == nil {
+		_, err = io.Copy(f, src)
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+	}
+	if err == nil {
+		err = os.Chown(tmp, engineUID, engineUID)
+	}
+	// With its append-only log on, Redis loads only that (since 7.0,
+	// a manifest of a base file, which may be a snapshot, and increments
+	// after it): the snapshot becomes a new log's base.
+	aof := filepath.Join(dataDir(dir), "appendonlydir")
+	if err == nil {
+		err = os.RemoveAll(aof)
+	}
+	if err == nil {
+		err = os.Mkdir(aof, 0o700)
+	}
+	if err == nil {
+		err = os.Rename(tmp, filepath.Join(aof, "appendonly.aof.1.base.rdb"))
+	}
+	for _, f := range [][2]string{
+		{"appendonly.aof.1.incr.aof", ""},
+		{"appendonly.aof.manifest", "file appendonly.aof.1.base.rdb seq 1 type b\nfile appendonly.aof.1.incr.aof seq 1 type i\n"},
+	} {
+		if err == nil {
+			err = os.WriteFile(filepath.Join(aof, f[0]), []byte(f[1]), 0o600)
+		}
+	}
+	for _, p := range []string{aof, filepath.Join(aof, "appendonly.aof.1.base.rdb"), filepath.Join(aof, "appendonly.aof.1.incr.aof"), filepath.Join(aof, "appendonly.aof.manifest")} {
+		if err == nil {
+			if cerr := os.Lchown(p, engineUID, engineUID); cerr != nil && !errors.Is(cerr, fs.ErrPermission) {
+				err = cerr
+			}
+		}
+	}
+	if err == nil {
+		_ = os.Remove(filepath.Join(dataDir(dir), "dump.rdb"))
+	}
+	if err != nil {
+		_ = os.Remove(tmp)
+	}
+	// Started again either way.
+	if serr := s.ensureLocked(context.WithoutCancel(ctx), in.ID); serr != nil {
+		s.setStatus(in.ID, StateFailed, serr)
+		return errors.Join(err, serr)
+	}
+	s.setStatus(in.ID, StateRunning, nil)
+	return err
 }

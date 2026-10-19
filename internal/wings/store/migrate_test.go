@@ -112,3 +112,72 @@ func TestBackupTargetsMigration(t *testing.T) {
 		t.Fatalf("foreign keys off after the migration: %d backups", len(all))
 	}
 }
+
+// Migration 25 rebuilds database_instances, which databases and instance
+// addresses refer to with ON DELETE CASCADE: none may be lost.
+func TestDatabaseEnginesMigration(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "state.db")
+	raw, err := sql.Open("sqlite", dsn(path, false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw.SetMaxOpenConns(1)
+	p, err := goose.NewProvider(goose.DialectSQLite3, raw, migrations.FS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.UpTo(ctx, 24); err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		`INSERT INTO networks (id, name, subnet, created_at, updated_at) VALUES ('n1', 'A', '172.27.0.0/16', 1, 1)`,
+		`INSERT INTO database_instances (id, name, engine, version, image, root_password, networks, limits, settings, created_at, updated_at, external_port, prev_version)
+			VALUES ('i1', 'MariaDB', 'mariadb', '11.8', 'img', X'01', '["n1"]', '{}', '{}', 1, 1, 13306, '11.4')`,
+		`INSERT INTO instance_addresses (instance_id, network_id, ip) VALUES ('i1', 'n1', '172.27.128.2')`,
+		`INSERT INTO databases (id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password)
+			VALUES ('d1', 'i1', 's1', 'luckperms', 'ss1_luckperms', 'ss1_luckperms', X'02', 1, 'rs1_luckperms', X'03')`,
+	} {
+		if _, err := raw.ExecContext(ctx, q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	if _, err := raw.ExecContext(ctx, `INSERT INTO database_instances (id, name, engine, version, image, root_password, limits, settings, created_at, updated_at)
+		VALUES ('i2', 'Redis', 'redis', '8', 'img', X'01', '{}', '{}', 1, 1)`); err == nil {
+		t.Fatal("version 24 accepted a Redis instance")
+	}
+	_ = raw.Close()
+
+	db, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+	in, err := db.Read.GetInstance(ctx, "i1")
+	if err != nil || in.ExternalPort != 13306 || in.PrevVersion != "11.4" || in.Networks != `["n1"]` {
+		t.Fatalf("instance after migrating: %+v, %v", in, err)
+	}
+	d, err := db.Read.GetDatabase(ctx, "d1")
+	if err != nil || d.RoUsername != "rs1_luckperms" || string(d.RoPassword) != "\x03" {
+		t.Fatalf("database after migrating: %+v, %v", d, err)
+	}
+	if a, err := db.Read.ListInstanceAddresses(ctx); err != nil || len(a) != 1 {
+		t.Fatalf("addresses after migrating: %+v, %v", a, err)
+	}
+	if err := db.Write.InsertInstance(ctx, InsertInstanceParams{
+		ID: "i2", Name: "Redis", Engine: "redis", Version: "8", Image: "img",
+		RootPassword: []byte{1}, Networks: "[]", Limits: "{}", Settings: "{}", DesiredState: "running", CreatedAt: 1, UpdatedAt: 1,
+	}); err != nil {
+		t.Fatalf("a Redis instance: %v", err)
+	}
+	// The references still cascade.
+	if err := db.Write.DeleteInstance(ctx, "i1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Read.GetDatabase(ctx, "d1"); err == nil {
+		t.Error("deleting the instance left its database")
+	}
+	if a, _ := db.Read.ListInstanceAddresses(ctx); len(a) != 0 {
+		t.Error("deleting the instance left its address")
+	}
+}

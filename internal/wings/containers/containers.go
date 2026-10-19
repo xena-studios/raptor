@@ -97,7 +97,11 @@ type ServiceSpec struct {
 	Role  string // its role label ("database")
 	ID    string // what it is, for its labels (the instance's ID)
 	Image string
-	Env   []string
+	// User, if set, is who the container starts as ("999:999"), for
+	// images whose entrypoint can't drop root without capabilities the
+	// container doesn't get.
+	User string `json:",omitempty"`
+	Env  []string
 	// Cmd is the arguments to the image's entrypoint.
 	Cmd    []string
 	Mounts []Mount

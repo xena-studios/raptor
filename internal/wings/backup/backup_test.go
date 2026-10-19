@@ -743,14 +743,14 @@ func TestDatabasesInBackups(t *testing.T) {
 
 	// One database's dump, out of a backup.
 	tmp := t.TempDir()
-	p, err := v.m.ExtractDatabase(ctx, srvID, b.ID, "luckperms", tmp, io.Discard)
+	p, err := v.m.ExtractDatabase(ctx, srvID, b.ID, "luckperms", "luckperms.sql", tmp, io.Discard)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := os.ReadFile(p); string(got) != "INSERT INTO ranks VALUES (1);" {
 		t.Fatalf("extracted %q", got)
 	}
-	if _, err := v.m.ExtractDatabase(ctx, srvID, b.ID, "coreprotect", tmp, io.Discard); !errors.Is(err, ErrNotFound) {
+	if _, err := v.m.ExtractDatabase(ctx, srvID, b.ID, "coreprotect", "coreprotect.sql", tmp, io.Discard); !errors.Is(err, ErrNotFound) {
 		t.Errorf("a database the backup doesn't hold: %v", err)
 	}
 

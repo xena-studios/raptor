@@ -79,6 +79,12 @@ func grantReadOnly(ctx context.Context, in Instance, dir, root, database, owner,
 	if err := checkPassword(pass); err != nil {
 		return err
 	}
+	switch in.Engine {
+	case Redis:
+		return redisReadOnly(ctx, dir, root, user, pass)
+	case MongoDB:
+		return mongoUser(ctx, dir, root, database, user, pass, "read")
+	}
 	db, err := connect(in, dir, root)
 	if err != nil {
 		return err
@@ -177,6 +183,12 @@ func (s *Service) RemoveReadOnly(ctx context.Context, serverID, id string) error
 func dropReadOnly(ctx context.Context, in Instance, dir, root, database, user string) error {
 	if err := checkNames(database, user); err != nil {
 		return err
+	}
+	switch in.Engine {
+	case Redis:
+		return redisDropUser(ctx, dir, root, user)
+	case MongoDB:
+		return mongoDropUser(ctx, dir, root, database, user)
 	}
 	db, err := connect(in, dir, root)
 	if err != nil {

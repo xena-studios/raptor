@@ -109,6 +109,11 @@ func migrates(engine, from, to string) (bool, error) {
 		return false, invalid{fmt.Sprintf("%s %s can't read the data of %s, so an instance can't go down to it. Within %d days of a change, Go back puts the version and data from before it back",
 			engineName(engine), to, from, int(GoBackFor.Hours()/24))}
 	}
+	// MongoDB moves one major at a time, each finishing (its feature
+	// compatibility version raised) before the next.
+	if engine == MongoDB && parseVersion(to)[0]-parseVersion(from)[0] > 1 {
+		return false, invalid{fmt.Sprintf("MongoDB goes up one major version at a time: change to %d.0 first", parseVersion(from)[0]+1)}
+	}
 	return engine == Postgres && parseVersion(from)[0] != parseVersion(to)[0], nil
 }
 
@@ -370,6 +375,12 @@ func (s *Service) changeVersion(ctx context.Context, in Instance, r store.Databa
 	}
 	s.setStatus(in.ID, StateUpgrading, nil)
 	in.Version, in.Image = target.Version, target.Image
+	if in.Engine == MongoDB && !p.Patch {
+		s.step(in.ID, "Raising its feature compatibility version to "+target.Version, log)
+		if err := mongoFCV(ctx, dir, root, target.Version); err != nil {
+			return undo(err)
+		}
+	}
 	if in.Engine == MariaDB {
 		s.step(in.ID, "Upgrading its system tables", log)
 		if err := mariadbUpgrade(ctx, s.o.Runtime, in.ID, root, log); err != nil {
@@ -642,6 +653,16 @@ func mariadbUpgrade(ctx context.Context, rt Runtime, id, root string, log io.Wri
 // inventory counts every table's rows in an instance's databases, by
 // database and table.
 func inventory(ctx context.Context, in Instance, dir, root string, dbs []store.Database) (map[string]int64, error) {
+	switch in.Engine {
+	case Redis:
+		return redisKeys(ctx, dir, root)
+	case MongoDB:
+		names := make([]string, 0, len(dbs))
+		for _, d := range dbs {
+			names = append(names, d.DbName)
+		}
+		return mongoCounts(ctx, dir, root, names)
+	}
 	out := map[string]int64{}
 	for _, d := range dbs {
 		if err := checkNames(d.DbName); err != nil {

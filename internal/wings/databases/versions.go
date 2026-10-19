@@ -10,7 +10,13 @@ const (
 	MariaDB  = "mariadb"
 	MySQL    = "mysql"
 	Postgres = "postgres"
+	Redis    = "redis"
+	MongoDB  = "mongodb"
 )
+
+// isSQL reports whether an engine speaks SQL: the browser, imports, and
+// external access are theirs for now.
+func isSQL(engine string) bool { return engine == MariaDB || engine == MySQL || engine == Postgres }
 
 // Version is one version line of an engine, pinned to an image digest so a
 // version means the same bits on every node. Digests are updated with
@@ -36,6 +42,16 @@ var Versions = []Version{
 	{Postgres, "16", "postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d", false},
 	{Postgres, "17", "postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3", true},
 	{Postgres, "18", "postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336", false},
+	{Redis, "7.2", "redis:7.2@sha256:46f15cf64fdef63e483dcda99e74e3d51c017b1175547b6bb874152ee2391aad", false},
+	{Redis, "7.4", "redis:7.4@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85", false},
+	{Redis, "8.2", "redis:8.2@sha256:47670742d7924adbcdb404d1288b6327815b23141969c0939b8e5d61f78c2634", false},
+	{Redis, "8.10", "redis:8.10@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6", true},
+	// MongoDB's major releases only (its x.1–x.3 rapid releases aren't
+	// for production); 8.0 and up need a CPU from 2016 or later (ARMv8.2,
+	// or x86 with AVX).
+	{MongoDB, "7.0", "mongo:7.0@sha256:c53852c00c23ca9f23fc39690350ffa9a80e3642fe8f96879726d8da0abe80a7", false},
+	{MongoDB, "8.0", "mongo:8.0@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907", true},
+	{MongoDB, "9.0", "mongo:9.0@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8", false},
 }
 
 // lookup returns an engine's version; "" is its default.
@@ -57,14 +73,23 @@ func engineName(e string) string {
 		return "MySQL"
 	case Postgres:
 		return "PostgreSQL"
+	case Redis:
+		return "Redis"
+	case MongoDB:
+		return "MongoDB"
 	}
 	return e
 }
 
 // port is an engine's port on its networks.
 func port(engine string) int {
-	if engine == Postgres {
+	switch engine {
+	case Postgres:
 		return 5432
+	case Redis:
+		return 6379
+	case MongoDB:
+		return 27017
 	}
 	return 3306
 }

@@ -119,6 +119,9 @@ func (s *Service) open(ctx context.Context, serverID, id string, multi bool) (*s
 	if err != nil {
 		return nil, err
 	}
+	if !isSQL(in.Engine) {
+		return nil, invalid{fmt.Sprintf("%s databases have their own browser", engineName(in.Engine))}
+	}
 	if s.state(r.InstanceID) != StateRunning {
 		return nil, notReady{fmt.Sprintf("%s isn't running; start it first", in.Name)}
 	}
