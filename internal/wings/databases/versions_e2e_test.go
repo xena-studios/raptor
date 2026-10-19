@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -16,6 +17,13 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/networks"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
+
+// TestMain runs the tests with Wings' umask (UMask=0077 in its unit), so
+// anything the engines read that Wings writes is tested as it is on a node.
+func TestMain(m *testing.M) {
+	syscall.Umask(0o077)
+	os.Exit(m.Run())
+}
 
 // e2e is a service on real Docker with jobs, a network, and one server on
 // it.

@@ -802,6 +802,12 @@ func copyTree(src, dst string) error {
 		if err != nil {
 			return err
 		}
+		// The modes as they were, not as Wings' umask leaves them.
+		if !fi.IsDir() && fi.Mode()&fs.ModeSymlink == 0 || fi.IsDir() && rel != "." {
+			if err := to.Chmod(rel, fi.Mode().Perm()); err != nil {
+				return err
+			}
+		}
 		if st, ok := fi.Sys().(*syscall.Stat_t); ok {
 			if err := to.Lchown(rel, int(st.Uid), int(st.Gid)); err != nil && !errors.Is(err, fs.ErrPermission) {
 				return err

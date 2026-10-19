@@ -215,6 +215,9 @@ func TestCopyTree(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(src, "mysql"), 0o750); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(filepath.Join(src, "mysql"), 0o750); err != nil { // whatever the umask
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(src, "mysql", "user.ibd"), []byte("rows"), 0o640); err != nil {
 		t.Fatal(err)
 	}
