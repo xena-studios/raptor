@@ -147,6 +147,7 @@ Wings sets up its runtime when it starts, and retries every minute until it succ
 - An allocation on **`127.0.0.1` is bound to the `raptor0` gateway address** instead (Pterodactyl does the same with its bridge). Host loopback isn't reachable from containers, while the gateway is reachable from the host and other servers (e.g. a proxy) but not from the internet. `SERVER_IP` stays `127.0.0.1`.
 - Before creating a server's container, Wings checks every allocated port (TCP and UDP) is free on the host, so a port held by another program fails with a clear error.
 - **Host networking mode** is an optional per-server setting for games that need it. No ports are published; the game binds them directly.
+- **Networks managed from the app** (more than one per node, servers kept apart unless a rule allows it) are planned: [NETWORKS.md](NETWORKS.md). Until then every server is on `raptor_nw`.
 - Docker's iptables management stays on. Wings only ever publishes **allocated** ports. Preflight tells UFW users that game ports are managed by Raptor, not UFW.
 
 ### Firewall

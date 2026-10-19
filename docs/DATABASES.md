@@ -1,12 +1,12 @@
 # Databases
 
-Managed SQL databases on owners' own nodes, with a browser for them in the app: MariaDB, MySQL, and PostgreSQL first, then Redis and MongoDB. Included in the node's price, never hosted by Raptor (DECISIONS #296–#299). This is the plan; nothing here is built yet ([ROADMAP.md](ROADMAP.md#databases)).
+Managed SQL databases on owners' own nodes, with a browser for them in the app: MariaDB, MySQL, and PostgreSQL first, then Redis and MongoDB. Included in the node's price, never hosted by Raptor (DECISIONS #296–#299). They run on the node's [networks](NETWORKS.md), built first. This is the plan; nothing here is built yet ([ROADMAP.md](ROADMAP.md#networks-and-databases)).
 
 ## The model
 
 - **Instance:** one database server on a node, run by Wings as a container: an engine (`mariadb`, `mysql`, `postgres`), a version, a name ("Network A MariaDB"), its limits (memory, CPU, disk), its settings, and who may use it. A node can have **any number**, of any engines and versions side by side.
 - **Database:** one database on an instance, for one server, with its own user. A server can have several, on several instances.
-- **Allowed servers:** each instance lists which of the node's servers can have databases on it ("every server", or chosen ones). This is how two communities on one node are kept apart: each gets its own instance, allowed only for its servers.
+- **Networks:** an instance joins one or more of the node's [networks](NETWORKS.md), and only servers on those networks can have databases on it or reach it. This is how two communities on one node are kept apart: each gets its own network and its own instance on it.
 
 Instances aren't eggs or servers: they don't show in the server list, and their lifecycle (create, upgrade, delete) is Wings' own, with the same jobs, backups, and disk limits as servers.
 
@@ -15,16 +15,13 @@ Instances aren't eggs or servers: they don't show in the server list, and their 
 Three layers, so one failing still leaves the others:
 
 1. **Separate instances.** Data that must stay apart goes on separate instances. Nothing in Raptor puts two groups' databases on one instance unless an owner allows both groups' servers on it.
-2. **Separate networks.** Each instance has its own Docker network, `raptor-db-<id>`, created `internal` (no route out to the internet). A server's container joins an instance's network only while it has a database there, and leaves it when the last one is deleted. A server with no database on an instance has no route to it at all; the address doesn't exist from its side.
+2. **Separate networks.** An instance is reachable only on the [networks](NETWORKS.md) it's joined to, and networks don't reach each other unless an owner adds a rule. Inside a network, the instance's address answers only from servers with a database on it (Raptor's firewall drops the rest), so a server that shares a network but has no database there still can't connect.
 3. **Separate users.** Every database has its own user with rights to that database only:
    - MariaDB and MySQL: `GRANT ALL ON db.* TO 'u'@'%'`, nothing global, no `GRANT OPTION`, no `FILE` or `SUPER`; the root password stays on the node and is never given out.
    - PostgreSQL: the database is owned by its user; `REVOKE CONNECT ON DATABASE … FROM PUBLIC`; the `public` schema's create right revoked from `PUBLIC`; `pg_hba.conf` lets each user reach only its own database (`host db u … scram-sha-256`).
 
-Raptor's nftables table also drops traffic to an instance's address from anything but the containers on its network (`inet raptor`, beside the rules it has today), so a container that found its way onto the bridge some other way still can't connect.
 
-### Server groups (later)
-
-Game servers on a node share one bridge today and can reach each other's ports (RCON, query), which proxies like Velocity rely on. For owners running two separate communities on one machine, **server groups** would give each group its own bridge: servers reach the servers in their group and nothing else, and a group's instances are allowed for its servers by default. That's a change to how servers are networked, so it comes after databases, as its own phase.
+Separating game servers themselves (so one community's servers can't reach another's either) is the same networks: see [NETWORKS.md](NETWORKS.md).
 
 ## Engines and versions
 
@@ -62,7 +59,7 @@ Creating a database on a server's **Databases** tab gives it:
 
 - a name (`s<short id>_<name>`), a user, and a random password, made on the node;
 - connection details in the tab, and as **environment variables** for the server's next start: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `DATABASE_URL` (`mysql://…` or `postgres://…`); with more than one database, each also gets them with its name as a prefix (`LUCKPERMS_DB_HOST`…);
-- a host name that resolves inside the server's container, `<instance name>.db.raptor`, so configs don't hold an IP that could change.
+- a host name that resolves on the instance's networks, `<instance name>.db.raptor`, so configs don't hold an IP that could change.
 
 The password lives on the node (encrypted in `state.db`), never in the Panel. The tab shows it once when the database is made; after that, **Show password** fetches it from the node with a re-auth, and **Reset password** makes a new one.
 
@@ -101,10 +98,9 @@ Results travel through the Panel like the file manager's do (encrypted, not stor
 
 ## Phases
 
-1. **Instances and databases (MariaDB, MySQL, PostgreSQL):** creating instances with any version, limits and tuning; allowed servers; per-instance networks and the firewall rule; creating databases and users for servers; connection details, environment variables, and host names; passwords on the node; the Databases tab and the node's Databases page; capability `databases`.
+1. **Instances and databases (MariaDB, MySQL, PostgreSQL),** after [networks](NETWORKS.md#phases): creating instances with any version, limits and tuning, on chosen networks; the firewall rule for servers without a database; creating databases and users for servers; connection details, environment variables, and host names; passwords on the node; the Databases tab and the node's Databases page; capability `databases`.
 2. **The browser:** schema, rows with editing, the SQL editor, structure forms, processes.
 3. **Import, export, and users:** `.sql` imports as jobs, dumps and CSV exports, read-only users.
 4. **Versions and backups:** patch updates in the maintenance window, in-place and migration upgrades with rollback, databases in server backups, instance backups.
 5. **External access:** the port, the address allowlist, TLS.
 6. **Redis and MongoDB:** one instance per server for Redis (it has no real per-database isolation), shared instances with per-database users for MongoDB; a key browser and a document browser.
-7. **Server groups:** a bridge per group, so separate communities on one node can't reach each other's servers either.

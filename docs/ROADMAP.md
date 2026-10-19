@@ -62,17 +62,18 @@ Small features and known gaps, unordered. Bugs found in the beta go first.
 - **Bulk actions** in the app (several servers at once), signed once over the whole list.
 - **`TestNotifications`** on Wings' local API answers older CLIs only; it can go once no node runs a version before v0.5.0.
 
-## Databases
+## Networks and databases
 
-Managed MariaDB, MySQL, and PostgreSQL on owners' nodes, with a full browser in the app, then Redis and MongoDB, and server groups. The design is [DATABASES.md](DATABASES.md); in order:
+Docker networks managed from the app, so separate communities on one node can't reach each other ([NETWORKS.md](NETWORKS.md)); then managed MariaDB, MySQL, and PostgreSQL on them with a full browser, then Redis and MongoDB ([DATABASES.md](DATABASES.md)). In order:
 
-1. Instances and databases (any version, limits, allowed servers, a network per instance, per-database users, environment variables).
-2. The browser (schema, rows with editing, the SQL editor, structure, processes).
-3. Import, export, and read-only users.
-4. Versions and backups (patch updates, upgrades with rollback, databases in server backups).
-5. External access (a port, an address allowlist, TLS).
-6. Redis and MongoDB.
-7. Server groups, so separate communities on one node can't reach each other's servers.
+1. Networks: settings, isolation (and the `127.0.0.1` gateway rule), the Networks tab, servers' primary and extra networks, names on each network.
+2. Rules between networks.
+3. Database instances and databases on networks (any version, limits, per-database users, environment variables).
+4. The browser (schema, rows with editing, the SQL editor, structure, processes).
+5. Import, export, and read-only users.
+6. Versions and backups (patch updates, upgrades with rollback, databases in server backups).
+7. External access to instances (a port, an address allowlist, TLS).
+8. Redis and MongoDB.
 
 ## After launch
 
