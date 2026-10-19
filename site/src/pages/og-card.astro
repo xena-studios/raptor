@@ -1,0 +1,49 @@
+---
+// The social card (public/og.png) is a screenshot of this page at
+// 1200x630: scripts/og.mjs. It isn't linked from anywhere.
+import Logo from "../components/Logo.astro";
+import "../styles/site.css";
+---
+<html lang="en">
+  <head><meta charset="utf-8" /><meta name="robots" content="noindex" /></head>
+  <body class="og">
+    <div class="og-card">
+      <span class="brand"><Logo /></span>
+      <p class="og-title">Game servers on your own machines, <span class="accent">run from one place.</span></p>
+      <p class="og-sub">One command to set up · $12 a month per machine · open source</p>
+    </div>
+  </body>
+</html>
+<style>
+  .og { margin: 0; }
+  .og-card {
+    width: 1200px;
+    height: 630px;
+    padding: 72px 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: oklch(0.145 0.012 25);
+    color: oklch(0.96 0.005 25);
+    border-bottom: 10px solid oklch(0.66 0.19 25);
+  }
+  .og-card :global(.mark) { height: 52px; width: auto; }
+  .og-card :global(.word) { height: 26px; width: auto; }
+  .og-card .brand { display: inline-flex; align-items: center; gap: 22px; }
+  .og-title {
+    margin: 0;
+    max-width: 15ch;
+    font-size: 84px;
+    line-height: 1.02;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+  }
+  .og-title .accent { color: oklch(0.66 0.19 25); }
+  .og-sub {
+    margin: 0;
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 24px;
+    letter-spacing: 0.02em;
+    color: oklch(0.72 0.011 25);
+  }
+</style>

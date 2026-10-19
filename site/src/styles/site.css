@@ -130,6 +130,11 @@ code {
 .top nav a:not(.button):hover {
   color: var(--text);
 }
+@media (max-width: 40rem) {
+  .top nav .wide {
+    display: none;
+  }
+}
 
 /* Buttons, as in the app: mono, uppercase, 4px corners. */
 .button {
@@ -415,6 +420,261 @@ h2 {
   }
 }
 
+/* The app: what it does beside what it looks like. */
+.product {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4.5rem);
+}
+@media (min-width: 62rem) {
+  .product {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    align-items: center;
+  }
+  .product .features {
+    grid-column: 1 / -1;
+  }
+}
+.features {
+  display: grid;
+  gap: 2rem clamp(2rem, 4vw, 3.5rem);
+  margin: 0;
+}
+@media (min-width: 40rem) {
+  .features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 62rem) {
+  .features {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.features div {
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+.features dt {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.features dd {
+  margin: 0.375rem 0 0;
+  color: var(--muted);
+  font-size: 0.9688rem;
+  text-wrap: pretty;
+}
+
+/* A server's overview, drawn in the app's own system. */
+.window {
+  margin: 0;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+  overflow: hidden;
+}
+.window-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  padding: 0.875rem 1.125rem;
+  border-bottom: 1px solid var(--rule);
+}
+.window-title {
+  font-weight: 600;
+}
+.window-sub {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.window .state {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ok);
+}
+.window-body {
+  display: grid;
+  gap: 1.125rem;
+  padding: 1.125rem;
+}
+.label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.readouts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.readouts div {
+  padding: 0.75rem 0.875rem;
+}
+.readouts div + div {
+  border-left: 1px solid var(--rule);
+}
+.value {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--mono);
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 30rem) {
+  .readouts div {
+    padding: 0.625rem;
+  }
+  .value {
+    font-size: 1rem;
+  }
+}
+.value .of {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.chart svg {
+  display: block;
+  width: 100%;
+  height: 4.5rem;
+  margin-top: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.chart polyline {
+  stroke: var(--red);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.address code {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.console {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  border-radius: 4px;
+  background: var(--terminal);
+  color: var(--terminal-text);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.console .line {
+  display: block;
+}
+.console .dim {
+  color: var(--terminal-dim);
+}
+.console .prompt {
+  color: oklch(0.66 0.19 25);
+}
+
+/* Pricing: one number, and what comes with it. */
+.pricing {
+  display: grid;
+  gap: 2.5rem;
+}
+@media (min-width: 62rem) {
+  .pricing {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.price {
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+}
+.amount {
+  margin: 0;
+  color: var(--muted);
+}
+.amount .figure {
+  display: block;
+  font-size: clamp(3rem, 2rem + 4vw, 4.5rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.price ul {
+  margin: 1.5rem 0 1.75rem;
+  padding: 0;
+  list-style: none;
+}
+.price li {
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.9688rem;
+  text-wrap: pretty;
+}
+
+/* Questions: the question is the button. */
+.faq {
+  display: grid;
+  gap: 2.5rem;
+}
+@media (min-width: 62rem) {
+  .faq {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    align-items: start;
+  }
+}
+.answers details {
+  border-top: 1px solid var(--rule);
+}
+.answers details:last-of-type {
+  border-bottom: 1px solid var(--rule);
+}
+.answers summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  list-style: none;
+}
+.answers summary::-webkit-details-marker {
+  display: none;
+}
+.answers summary::after {
+  content: "+";
+  font-family: var(--mono);
+  font-weight: 400;
+  color: var(--muted);
+  transition: transform 200ms var(--ease);
+}
+.answers details[open] summary::after {
+  transform: rotate(45deg);
+}
+.answers details p {
+  max-width: var(--measure);
+  margin: -0.25rem 0 1.25rem;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.fine a {
+  color: var(--text);
+}
+
 /* Footer: the honest status, then the links. */
 .status {
   background: var(--raised);
@@ -462,7 +722,8 @@ footer a:hover {
   .terminal .line {
     animation: none;
   }
-  .button {
+  .button,
+  .answers summary::after {
     transition: none;
   }
 }

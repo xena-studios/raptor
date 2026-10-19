@@ -6,7 +6,7 @@
   "packageManager": "pnpm@12.6.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/headers.mjs",
+    "build": "astro build && node scripts/headers.mjs && rm -rf dist/og-card",
     "preview": "astro preview",
     "test:csp": "node scripts/csp-check.mjs"
   },
