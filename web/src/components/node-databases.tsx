@@ -646,12 +646,18 @@ function InstanceDialog({
                     onChange={(e) => setVersion(e.target.value)}
                   >
                     {engineVersions.map((v) => (
-                      <option key={v.version} value={v.version}>
+                      <option key={v.version} value={v.version} disabled={!!v.unavailable}>
                         {engineName(v.engine)} {v.version}
                         {v.default ? " (recommended)" : ""}
+                        {v.unavailable ? " (doesn't run on this node)" : ""}
                       </option>
                     ))}
                   </select>
+                  {engineVersions.find((v) => v.unavailable)?.unavailable && (
+                    <p className="text-xs text-muted-foreground">
+                      {engineVersions.find((v) => v.unavailable)?.unavailable}
+                    </p>
+                  )}
                 </div>
               )}
               <Field id="instance-maxconn" label="Max connections">
@@ -780,8 +786,12 @@ function VersionDialog({
     (v) =>
       v.engine === i.engine &&
       v.version !== i.version &&
+      !v.unavailable &&
       !["older", "skip"].includes(versionChange(i.engine, i.version, v.version)),
   );
+  const blocked = versions.find(
+    (v) => v.engine === i.engine && v.unavailable && v.version !== i.version,
+  )?.unavailable;
   const [to, setTo] = useState(newer[newer.length - 1]?.version ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -817,9 +827,12 @@ function VersionDialog({
               It's on {engine} {i.version}.
             </DialogDescription>
           </DialogHeader>
+          {blocked && <p className="text-sm text-muted-foreground">{blocked}</p>}
           {newer.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              It's on the newest version this node offers. Newer ones come with Wings updates.
+              {blocked
+                ? "There's no newer version this node can run."
+                : "It's on the newest version this node offers. Newer ones come with Wings updates."}
             </p>
           ) : (
             <>

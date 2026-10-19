@@ -181,6 +181,9 @@ type Options struct {
 	ServerNetwork containers.Network
 	ReservedPorts []int
 	CheckPort     func(port int) error
+	// Kernel is the host's kernel release (/proc/sys/kernel/osrelease),
+	// for versions that don't run on some; nil is one they all run on.
+	Kernel func() string
 	// FreeSpace returns the free bytes on the filesystem holding a path,
 	// checked before a version change copies an instance's data. nil = no
 	// check.
@@ -660,7 +663,7 @@ func (s *Service) create(ctx context.Context, in InstanceInput, count int, now i
 	if count >= MaxInstances {
 		return Instance{}, invalid{fmt.Sprintf("a node has at most %d database instances", MaxInstances)}
 	}
-	v, err := lookup(in.Engine, in.Version)
+	v, err := lookupOn(in.Engine, in.Version, s.kernel())
 	if err != nil {
 		return Instance{}, err
 	}
@@ -1338,3 +1341,14 @@ func (s *Service) lastLog(ctx context.Context, id string) string {
 	}
 	return "; its log ends: " + strings.Join(picked, " | ")
 }
+
+func (s *Service) kernel() string {
+	if s.o.Kernel == nil {
+		return ""
+	}
+	return s.o.Kernel()
+}
+
+// Versions are the versions offered, with what this node can't run
+// marked (Version.Unavailable).
+func (s *Service) Versions() []Version { return offered(s.kernel()) }

@@ -22,6 +22,7 @@ Its first start downloads the engine and sets it up, which takes a minute or two
 - **A Redis instance holds one server's data.** Redis can't keep two servers' data apart, so make one Redis instance per server that needs it; 256 MB is plenty for most. Its server's user can do everything apps do, but not change Redis' settings or load modules.
 - **MongoDB instances are shared** like MariaDB's: each server's database has its own user, which reaches that database and nothing else. MongoDB 8.0 and later need a processor from about 2016 or later; pick 7.0 on older machines.
 - MongoDB changes version one major release at a time (7.0 to 8.0, then 9.0).
+- On machines with Linux 6.19 or newer (Ubuntu 26.04, some cloud kernels), MongoDB 8.0 and 9.0 don't start, a problem MongoDB is fixing; Raptor offers 7.0 there and says why.
 - External access isn't available for Redis and MongoDB yet.
 
 ## Keep communities apart
