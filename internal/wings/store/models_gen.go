@@ -229,6 +229,12 @@ type Server struct {
 	Networks     string
 }
 
+type ServerAddress struct {
+	ServerID  string
+	NetworkID string
+	Ip        string
+}
+
 type SupportGrant struct {
 	ID         string
 	StaffID    string

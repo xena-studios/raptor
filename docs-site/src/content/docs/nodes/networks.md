@@ -25,6 +25,19 @@ Servers find each other on a network by name: "Survival SMP" is `survival-smp.ra
 
 A server can be on more than one network: its own, plus others under **Also on**. A Velocity or BungeeCord proxy on Community A's and Community B's networks reaches the backends on both, while the backends still can't reach each other.
 
+## Rules between networks
+
+Sometimes one thing should cross: Community A's servers joining a shared lobby, or one server reaching another community's database. **Rules between networks** on the Networks tab let exactly that through:
+
+1. Click **Add rule**.
+2. Pick where connections come **from**: a network, or one server on it.
+3. Pick where they go **to**: a network, or one server on it.
+4. Pick the protocol and ports, like TCP `25565`. Leave the ports empty to allow every port.
+
+A rule works one way: replies get back, but the other side can't start connections of its own. Removing a rule stops new connections; ones already open carry on until they close.
+
+Each server has a fixed address on each of its networks, shown next to its name on the Networks tab. A rule that names a server applies once that server has started on the network. Rules work over IPv4, between networks you made; to include servers on the default network, put them on a network of their own first.
+
 ## Advanced settings
 
 Open **Advanced** when making or editing a network:

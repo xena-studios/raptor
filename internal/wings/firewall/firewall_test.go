@@ -82,7 +82,8 @@ func TestRenderNetworks(t *testing.T) {
 		`iifname "raptor0" oifname { "rn1", "rn2" } jump between`,
 		`iifname "rn1" oifname { "raptor0", "rn2" } jump between`,
 		`iifname "rn2" oifname { "raptor0", "rn1" } jump between`,
-		"chain between {\n\t\tct status dnat return",
+		"chain between {\n\t\tct state established,related accept",
+		"ct status dnat return",
 		`type filter hook prerouting priority dstnat - 1; policy accept;`,
 		`ip daddr 172.29.0.1 iifname != { "lo", "raptor0" } drop`,
 		`ip daddr 172.30.0.1 iifname != { "lo", "rn1" } drop`,
@@ -102,5 +103,61 @@ func TestRenderNetworks(t *testing.T) {
 	// Networks are kept apart before the owner's rules see the traffic.
 	if strings.Index(got, "jump between") > strings.Index(got, "jump servers_in") {
 		t.Error("between comes after servers_in")
+	}
+}
+
+func TestRenderBetween(t *testing.T) {
+	r := Rules{
+		ServerBridge: "raptor0", InstallBridge: "raptor-inst",
+		Networks: []Network{{Bridge: "rn1"}, {Bridge: "rn2"}},
+		Between: []Between{
+			{FromBridge: "rn1", ToBridge: "rn2", To: netip.MustParseAddr("172.31.128.1"), Protocol: TCP, Ports: "25565"},
+			{FromBridge: "rn2", From: netip.MustParseAddr("172.30.128.5"), ToBridge: "rn1", Protocol: Both},
+			{FromBridge: "rn1", ToBridge: "rn2", Protocol: UDP},
+		},
+	}
+	got := r.Render()
+	for _, want := range []string{
+		"chain between {\n\t\tct state established,related accept",
+		`iifname "rn1" oifname "rn2" meta nfproto ipv4 ip daddr 172.31.128.1 meta l4proto tcp th dport { 25565 } accept`,
+		`iifname "rn2" oifname "rn1" meta nfproto ipv4 ip saddr 172.30.128.5 accept`,
+		`iifname "rn1" oifname "rn2" meta nfproto ipv4 meta l4proto udp accept`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("rules missing %q:\n%s", want, got)
+		}
+	}
+	if strings.Index(got, "172.31.128.1") > strings.Index(got, "\t\tdrop comment \"Servers on one") {
+		t.Error("a rule comes after the drop")
+	}
+}
+
+func TestCheckPorts(t *testing.T) {
+	if p, ports, err := CheckPorts("", "25565, 19132"); err != nil || p != Both || ports != "25565,19132" {
+		t.Errorf("got %q %q %v", p, ports, err)
+	}
+	for _, bad := range [][2]string{{"icmp", ""}, {"tcp", "0"}, {"tcp", "10-5"}} {
+		if _, _, err := CheckPorts(bad[0], bad[1]); err == nil {
+			t.Errorf("%v accepted", bad)
+		}
+	}
+}
+
+func TestIptablesScript(t *testing.T) {
+	got := iptablesScript([]Between{
+		{FromBridge: "rn1", FromSubnet: netip.MustParsePrefix("172.30.0.0/16"), ToBridge: "rn2", To: netip.MustParseAddr("172.31.128.1"), Protocol: TCP, Ports: "25565,27015-27020"},
+		{FromBridge: "rn2", From: netip.MustParseAddr("172.31.128.5"), ToBridge: "rn1", ToSubnet: netip.MustParsePrefix("172.30.0.0/16")},
+	})
+	want := "*raw\n:RAPTOR-BETWEEN - [0:0]\n-F RAPTOR-BETWEEN\n" +
+		"-A RAPTOR-BETWEEN -i rn1 -s 172.30.0.0/16 -d 172.31.128.1/32 -p tcp -m multiport --dports 25565,27015:27020 -j ACCEPT\n" +
+		"-A RAPTOR-BETWEEN -i rn2 -s 172.31.128.1/32 -d 172.30.0.0/16 -p tcp -m multiport --sports 25565,27015:27020 -j ACCEPT\n" +
+		"-A RAPTOR-BETWEEN -i rn2 -s 172.31.128.5/32 -d 172.30.0.0/16 -j ACCEPT\n" +
+		"-A RAPTOR-BETWEEN -i rn1 -s 172.30.0.0/16 -d 172.31.128.5/32 -j ACCEPT\n" +
+		"COMMIT\n*filter\n:RAPTOR-BETWEEN - [0:0]\n-F RAPTOR-BETWEEN\n" +
+		"-A RAPTOR-BETWEEN -i rn1 -o rn2 -s 172.30.0.0/16 -d 172.31.128.1/32 -p tcp -m multiport --dports 25565,27015:27020 -j ACCEPT\n" +
+		"-A RAPTOR-BETWEEN -i rn2 -o rn1 -s 172.31.128.5/32 -d 172.30.0.0/16 -j ACCEPT\n" +
+		"COMMIT\n"
+	if got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 }

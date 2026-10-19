@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
 	"slices"
 	"strings"
@@ -322,12 +323,16 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 	}
 
 	var nets []containers.Network
+	var addrs map[string]netip.Addr
 	gateway := m.o.DockerInterface
 	if len(srv.Networks) > 0 && !srv.HostNetwork {
 		if m.o.Networks == nil {
 			return fmt.Errorf("%w: this node has no networks", ErrNoNetwork)
 		}
 		if nets, err = m.o.Networks.Resolve(ctx, srv.Networks); err != nil {
+			return err
+		}
+		if addrs, err = m.o.Networks.Pin(ctx, i.id, srv.Networks); err != nil {
 			return err
 		}
 		gateway = nets[0].Gateway.String()
@@ -373,6 +378,7 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 		Ports:       ports,
 		Networks:    nets,
 		Aliases:     Aliases(i.id, srv.Name),
+		Addresses:   addrs,
 	})
 	if err != nil {
 		return err

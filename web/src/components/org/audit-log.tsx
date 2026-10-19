@@ -181,6 +181,8 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`saved a network on ${server}`, Network];
     case "node.network.delete":
       return [`deleted a network on ${server}`, Network];
+    case "node.network.rules":
+      return [`changed the rules between networks on ${server}`, Network];
     case "server.networks":
       return [`changed the networks ${server} is on`, Network];
     case "node.hostname":

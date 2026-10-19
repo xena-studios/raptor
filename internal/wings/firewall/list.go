@@ -153,6 +153,9 @@ func explain(l *Listed, comment string, host *HostRules) {
 		if l.Why == "" {
 			l.Why = "Raptor's: sends traffic to the chain that filters it"
 		}
+	case l.Chain == DockerUserChain || strings.Contains(l.Rule, "jump "+DockerUserChain):
+		l.Owner, l.Needed = OwnerRaptor, true
+		l.Why = "Raptor's: lets your rules between networks through Docker's own firewall"
 	case strings.HasPrefix(l.Chain, "ufw") || strings.HasPrefix(l.Chain, "ufw6"):
 		l.Owner = OwnerUFW
 		l.Why = "ufw's: change it with the ufw command."

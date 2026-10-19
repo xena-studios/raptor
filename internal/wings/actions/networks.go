@@ -15,6 +15,7 @@ const (
 	NodeNetworks      = "node.networks" // a read: the networks and Docker's others
 	NodeNetworkSave   = "node.network.save"
 	NodeNetworkDelete = "node.network.delete"
+	NodeNetworkRules  = "node.network.rules" // replace the rules between networks
 	// ServerNetworks puts a server on networks. Apart from server.update,
 	// so who may change a server's startup can't move it between them.
 	ServerNetworks = "server.networks"
@@ -23,6 +24,7 @@ const (
 // NetworksResult is node.networks' result.
 type NetworksResult struct {
 	Networks []networks.Network `json:"networks"`
+	Rules    []networks.Rule    `json:"rules"`
 	// Host is every network on the machine's Docker, Raptor's or not.
 	Host []containers.HostNetwork `json:"host"`
 }
@@ -44,6 +46,12 @@ type NetworkParams struct {
 	ID string `json:"id"`
 }
 
+// NetworkRulesParams are node.network.rules' params: every rule between
+// the networks, replacing the ones there were.
+type NetworkRulesParams struct {
+	Rules []networks.Rule `json:"rules"`
+}
+
 // ServerNetworksParams are server.networks' params: its networks, the
 // primary first; none puts it back on the server network.
 type ServerNetworksParams struct {
@@ -59,6 +67,10 @@ func RegisterNetworks(x *command.Executor, n *networks.Service, m *server.Manage
 		if err != nil {
 			return nil, err
 		}
+		rules, err := n.Rules(ctx)
+		if err != nil {
+			return nil, err
+		}
 		host, err := n.Host(ctx)
 		if err != nil {
 			return nil, err
@@ -66,7 +78,7 @@ func RegisterNetworks(x *command.Executor, n *networks.Service, m *server.Manage
 		if host == nil {
 			host = []containers.HostNetwork{}
 		}
-		return NetworksResult{Networks: list, Host: host}, nil
+		return NetworksResult{Networks: list, Rules: rules, Host: host}, nil
 	}})
 	x.Register(NodeNetworkSave, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p NetworkSaveParams
@@ -84,6 +96,13 @@ func RegisterNetworks(x *command.Executor, n *networks.Service, m *server.Manage
 			return nil, err
 		}
 		return nil, n.Delete(ctx, p.ID)
+	}})
+	x.Register(NodeNetworkRules, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p NetworkRulesParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, n.SetRules(ctx, p.Rules)
 	}})
 	x.Register(ServerNetworks, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		if e.ServerID == "" {

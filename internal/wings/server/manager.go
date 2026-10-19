@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -105,6 +106,9 @@ type Networks interface {
 	// Resolve returns the networks with these IDs, in order, creating any
 	// that are missing on Docker. An unknown ID is ErrNoNetwork.
 	Resolve(ctx context.Context, ids []string) ([]containers.Network, error)
+	// Pin returns a server's fixed address on each of these networks, by
+	// Docker network name, giving it one where it has none.
+	Pin(ctx context.Context, serverID string, ids []string) (map[string]netip.Addr, error)
 }
 
 // ErrNoNetwork is returned for a network that doesn't exist.

@@ -445,21 +445,34 @@ func (r *runtimeSetup) applyHostFirewall(ctx context.Context, h *firewall.HostRu
 	return nil
 }
 
-// applyNetworks loads the owner's networks into the rule set, after one
-// was made, changed, or deleted.
-func (r *runtimeSetup) applyNetworks(ctx context.Context, nets []firewall.Network) error {
+// applyNetworks loads the owner's networks and the rules between them into
+// the rule set, after either changed.
+func (r *runtimeSetup) applyNetworks(ctx context.Context, nets []firewall.Network, between []firewall.Between) error {
 	r.fwMu.Lock()
 	defer r.fwMu.Unlock()
 	if r.rules == nil {
 		return nil // setup loads them
 	}
 	next := *r.rules
-	next.Networks = nets
+	next.Networks, next.Between = nets, between
 	if err := firewall.Apply(ctx, next); err != nil {
 		return err
 	}
 	r.rules = &next
-	return nil
+	return r.applyDockerUser(ctx, between)
+}
+
+// applyDockerUser lets the rules between networks through Docker's own
+// iptables rules too (firewall.ApplyDockerUser).
+func (r *runtimeSetup) applyDockerUser(ctx context.Context, between []firewall.Between) error {
+	err := firewall.ApplyDockerUser(ctx, between)
+	if errors.Is(err, firewall.ErrNoDockerUser) {
+		if len(between) > 0 {
+			r.log.Warn("docker has no DOCKER-USER chain (its nftables firewall backend?); rules between networks can't let anything through")
+		}
+		return nil
+	}
+	return err
 }
 
 // openPorts is what stays open when the node's firewall blocks incoming
@@ -574,6 +587,13 @@ func (r *runtimeSetup) check(ctx context.Context) {
 			r.log.Error("firewall reapply failed", "err", err)
 		}
 	}
+	// Restarting Docker rebuilds its chains, which can drop the jumps.
+	if len(r.rules.Between) > 0 && !firewall.DockerUserPresent(ctx) {
+		r.log.Warn("the jumps to " + firewall.DockerUserChain + " were removed; reapplying")
+		if err := r.applyDockerUser(ctx, r.rules.Between); err != nil {
+			r.log.Error("reapplying the rules between networks in Docker's firewall failed", "err", err)
+		}
+	}
 }
 
 func (r *runtimeSetup) setup(ctx context.Context) error {
@@ -598,11 +618,13 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	if err := nsvc.Reconcile(ctx); err != nil {
 		return fmt.Errorf("networks: %w", err)
 	}
+	ownNets, between := nsvc.Firewall(ctx)
 	rules := firewall.Rules{
 		ServerBridge:  nets.Server.Bridge,
 		InstallBridge: nets.Install.Bridge,
 		ServerGateway: nets.Server.Gateway,
-		Networks:      nsvc.Firewall(ctx),
+		Networks:      ownNets,
+		Between:       between,
 		DNS:           firewall.HostResolvers(),
 		InstallAllow:  r.cfg.Docker.AllowedPrefixes(),
 	}
@@ -623,6 +645,9 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	}
 	if err := firewall.Apply(ctx, rules); err != nil {
 		return fmt.Errorf("firewall: %w", err)
+	}
+	if err := r.applyDockerUser(ctx, rules.Between); err != nil {
+		r.log.Error("letting rules between networks through Docker's firewall failed", "err", err)
 	}
 
 	u, err := user.Lookup(localapi.Group)

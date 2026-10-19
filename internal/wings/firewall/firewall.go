@@ -47,8 +47,10 @@ type Rules struct {
 	// allocations are bound. Only its own network reaches them.
 	ServerGateway netip.Addr
 	// Networks are the owner's own server networks (docs/NETWORKS.md),
-	// kept apart from each other and from the server network.
+	// kept apart from each other and from the server network, and
+	// Between the rules that let some traffic across.
 	Networks []Network
+	Between  []Between
 	// DNS are the host's upstream resolvers. Install containers may reach
 	// them on port 53 even when they're in a blocked range (a home router,
 	// a provider's private resolver), or name resolution would fail.
@@ -108,6 +110,8 @@ const (
 	whyHostMeta    = "Servers on the host's network can't reach the cloud metadata service either"
 	whyBetween     = "Servers on one network can't reach servers on another"
 	whyPublished   = "Except through ports published to the internet, which anyone can reach"
+	whyBetweenBack = "Replies to connections a rule between networks allowed get back"
+	whyAllowed     = "One of your rules between networks lets this through"
 	whyGateway     = "Ports on 127.0.0.1 are only reachable from their own network's servers"
 	whyNoHostBack  = "Replies to connections from the machine get back to servers that can't reach it"
 	whyNoHost      = "This network's servers can't connect to the machine itself"
@@ -149,10 +153,7 @@ func (r Rules) Render() string {
 	}
 	w("\t}")
 	if len(r.Networks) > 0 {
-		w("\tchain between {")
-		rule(whyPublished, "ct status dnat return")
-		rule(whyBetween, "drop")
-		w("\t}")
+		r.renderBetween(w, rule)
 	}
 
 	// Before Docker translates them (dstnat), connections to a network's

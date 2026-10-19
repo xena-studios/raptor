@@ -131,6 +131,7 @@ var actions = map[string]string{
 	"node.networks":       adminOnly,
 	"node.network.save":   adminOnly,
 	"node.network.delete": adminOnly,
+	"node.network.rules":  adminOnly,
 	"server.networks":     adminOnly,
 	"support.grant":       adminOnly,
 	"support.revoke":      adminOnly,

@@ -226,3 +226,80 @@ func portHosts(t *testing.T, dc *Client, id string) map[string]string {
 	}
 	return out
 }
+
+func TestRuntimeNetworkRules(t *testing.T) {
+	ctx := context.Background()
+	dc := newRuntime(t)
+	a := owned(t, dc, false)
+	b := owned(t, dc, false)
+
+	// The target, pinned to an address in the upper half of A's range.
+	addr := a.Subnet.Addr()
+	for range 1 << (32 - a.Subnet.Bits() - 1) {
+		addr = addr.Next()
+	}
+	allowed, other := freePort(t), freePort(t)
+	target := startServer(t, dc, containers.ServerSpec{
+		Networks:  []containers.Network{a},
+		Addresses: map[string]netip.Addr{a.Name: addr},
+	})
+	if got := endpointIP(t, dc, target.id, a.Name); got != addr.String() {
+		t.Fatalf("target is at %s, pinned to %s", got, addr)
+	}
+	for _, p := range []int{allowed, other} {
+		if _, err := target.console.Send(0, "httpd -f -p "+strconv.Itoa(p)+" -h /home/container &"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	waitHTTP(t, net.JoinHostPort(addr.String(), strconv.Itoa(allowed)))
+
+	// A rule from B to the target on one port only.
+	rules := firewall.Rules{
+		ServerBridge: dc.nets.Server.Bridge, InstallBridge: dc.nets.Install.Bridge,
+		ServerGateway: dc.nets.Server.Gateway, DNS: firewall.HostResolvers(),
+		Networks: []firewall.Network{
+			{Bridge: a.Bridge, Gateway: a.Gateway, HostAccess: true},
+			{Bridge: b.Bridge, Gateway: b.Gateway, HostAccess: true},
+		},
+		Between: []firewall.Between{{
+			FromBridge: b.Bridge, FromSubnet: b.Subnet, ToBridge: a.Bridge, ToSubnet: a.Subnet,
+			To: addr, Protocol: firewall.TCP, Ports: strconv.Itoa(allowed),
+		}},
+	}
+	if err := firewall.Apply(ctx, rules); err != nil {
+		t.Fatalf("firewall: %v", err)
+	}
+	if err := firewall.ApplyDockerUser(ctx, rules.Between); err != nil {
+		t.Fatalf("DOCKER-USER: %v", err)
+	}
+	t.Cleanup(func() { _ = firewall.ApplyDockerUser(context.Background(), nil) })
+	if !firewall.DockerUserPresent(ctx) {
+		t.Fatal("DOCKER-USER doesn't jump to RAPTOR-BETWEEN")
+	}
+
+	peer := startServer(t, dc, containers.ServerSpec{Networks: []containers.Network{b}})
+	peerIP := endpointIP(t, dc, peer.id, b.Name)
+	if _, err := peer.console.Send(0, "httpd -f -p "+strconv.Itoa(allowed)+" -h /home/container &"); err != nil {
+		t.Fatal(err)
+	}
+	urls := map[string]string{
+		"allowed": "http://" + addr.String() + ":" + strconv.Itoa(allowed) + "/",
+		"other":   "http://" + addr.String() + ":" + strconv.Itoa(other) + "/",
+	}
+	writeFile(t, filepath.Join(peer.dir, "check.sh"), probeScript(urls))
+	res, err := peer.console.Send(time.Minute, "sh /home/container/check.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect(t, "allowed port", res, map[string]string{"allowed": "reachable", "other": "blocked"})
+
+	// The rule is one way: the target can't connect back to B.
+	writeFile(t, filepath.Join(target.dir, "check.sh"), probeScript(map[string]string{
+		"back": "http://" + peerIP + ":" + strconv.Itoa(allowed) + "/",
+	}))
+	res, err = target.console.Send(time.Minute, "sh /home/container/check.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect(t, "reverse", res, map[string]string{"back": "blocked"})
+}
