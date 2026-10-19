@@ -778,6 +778,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterSchedules(r.commands, sched)
 	actions.RegisterNetworks(r.commands, nsvc, mgr)
 	actions.RegisterDatabases(r.commands, dbsvc)
+	actions.RegisterDatabaseBrowser(r.commands, dbsvc)
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)

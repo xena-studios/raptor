@@ -30,6 +30,8 @@ var signing = map[string]string{
 	"backup.recover":       "always", "backup.restore": "always",
 
 	"db.create": "never", "db.delete": "always", "db.list": "never", "db.password": "always", "db.password.reset": "never",
+	"db.process.kill": "never", "db.processes": "never", "db.query": "never", "db.query.read": "never",
+	"db.row.delete": "never", "db.row.insert": "never", "db.row.update": "never", "db.rows": "never", "db.schema": "never",
 
 	"files.chmod": "never", "files.compress": "never", "files.copy": "never", "files.decompress": "never",
 	"files.delete": "never", "files.download": "never", "files.list": "never", "files.mkdir": "never",
@@ -80,6 +82,7 @@ func TestSigningPolicy(t *testing.T) {
 	RegisterSystem(x, nil)
 	RegisterNetworks(x, nil, nil)
 	RegisterDatabases(x, nil)
+	RegisterDatabaseBrowser(x, nil)
 
 	same := func(a, b any) bool { return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer() }
 	handlers := x.Handlers()

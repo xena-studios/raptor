@@ -8,6 +8,7 @@ package databases
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/netip"
@@ -96,6 +97,8 @@ func TestEngines(t *testing.T) {
 			if _, _, err := svc.CreateDatabase(ctx, one, in.ID, "main"); err == nil {
 				t.Error("made a second database with the same name")
 			}
+
+			testBrowser(t, svc, one, d1, d2, engine)
 
 			// Each user reaches its own database over the network...
 			if err := query(engine, addr, d1.User, pw1, d1.Name, "CREATE TABLE t (id INT PRIMARY KEY)"); err != nil {
@@ -209,4 +212,120 @@ func query(engine, addr, user, pass, database, stmt string) error {
 		return fmt.Errorf("%s as %s on %q: %w", stmt, user, database, err)
 	}
 	return nil
+}
+
+// testBrowser checks the browser on a fresh database: SQL, the schema,
+// pages of rows, row edits, read-only queries that can't write, and the
+// time limit.
+func testBrowser(t *testing.T, svc *Service, server string, d, other Database, engine string) {
+	t.Helper()
+	ctx := context.Background()
+	ts := "TIMESTAMP NULL"
+	if engine == Postgres {
+		ts = "TIMESTAMP"
+	}
+	res, err := svc.Query(ctx, server, d.ID, QueryInput{SQL: "CREATE TABLE players (id INT PRIMARY KEY, name VARCHAR(40), joined " + ts + ");\n" +
+		"INSERT INTO players (id, name) VALUES (1, 'alex'), (2, 'sam'), (3, 'charlie')"}, false)
+	if err != nil {
+		t.Fatalf("multi-statement SQL: %v", err)
+	}
+	if res.Affected != 3 {
+		t.Errorf("the insert changed %d rows, want 3", res.Affected)
+	}
+
+	tables, err := svc.Schema(ctx, server, d.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tables) != 1 || tables[0].Name != "players" || len(tables[0].Columns) != 3 || strings.Join(tables[0].PrimaryKey, ",") != "id" {
+		t.Fatalf("schema %+v", tables)
+	}
+	schema := tables[0].Schema
+
+	page, err := svc.Rows(ctx, server, d.ID, RowsQuery{Schema: schema, Table: "players", Limit: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Rows) != 2 || !page.More || str(page.Rows[0][0]) != "1" || page.Rows[0][2] != nil {
+		t.Errorf("first page %+v", page)
+	}
+	v := "a"
+	page, err = svc.Rows(ctx, server, d.ID, RowsQuery{Schema: schema, Table: "players", Sort: "name", Desc: true, Filters: []Filter{{Column: "name", Op: "contains", Value: &v}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Rows) != 3 || str(page.Rows[0][1]) != "sam" {
+		t.Errorf("filtered and sorted %+v", page.Rows)
+	}
+	for _, bad := range []RowsQuery{
+		{Table: "players; DROP TABLE players"},
+		{Schema: schema, Table: "players", Sort: "name; DROP TABLE players"},
+		{Schema: schema, Table: "players", Filters: []Filter{{Column: "nope", Op: "="}}},
+		{Schema: schema, Table: "players", Filters: []Filter{{Column: "name", Op: "LIKE"}}},
+	} {
+		if _, err := svc.Rows(ctx, server, d.ID, bad); !errors.Is(err, ErrInvalid) {
+			t.Errorf("%+v: %v", bad, err)
+		}
+	}
+
+	id, name, newName := "4", "dana", "dana2"
+	if _, err := svc.EditRows(ctx, server, d.ID, "insert", RowEdit{Schema: schema, Table: "players", Values: map[string]*string{"id": &id, "name": &name}}); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	if n, err := svc.EditRows(ctx, server, d.ID, "update", RowEdit{Schema: schema, Table: "players", Key: map[string]*string{"id": &id}, Values: map[string]*string{"name": &newName, "joined": nil}}); err != nil || n != 1 {
+		t.Fatalf("update: %d %v", n, err)
+	}
+	if n, err := svc.EditRows(ctx, server, d.ID, "delete", RowEdit{Schema: schema, Table: "players", Keys: []map[string]*string{{"id": &id}}}); err != nil || n != 1 {
+		t.Fatalf("delete: %d %v", n, err)
+	}
+	if _, err := svc.EditRows(ctx, server, d.ID, "delete", RowEdit{Schema: schema, Table: "players", Keys: []map[string]*string{{"id": &id}}}); !errors.Is(err, ErrInvalid) {
+		t.Errorf("deleting a row that's gone: %v", err)
+	}
+	if _, err := svc.EditRows(ctx, server, d.ID, "update", RowEdit{Schema: schema, Table: "players", Key: map[string]*string{"id": &id}, Values: map[string]*string{"nope": &name}}); !errors.Is(err, ErrInvalid) {
+		t.Errorf("updating a column that isn't there: %v", err)
+	}
+
+	// Those who may only look can't change anything, however they try.
+	if res, err := svc.Query(ctx, server, d.ID, QueryInput{SQL: "SELECT COUNT(*) FROM players"}, true); err != nil || str(res.Rows[0][0]) != "3" {
+		t.Errorf("read-only select: %+v %v", res, err)
+	}
+	for _, sneaky := range []string{
+		"DELETE FROM players",
+		"DROP TABLE players",
+		"CREATE TABLE x (i INT)",
+		"UPDATE players SET name = 'x'",
+		"SELECT 1; DELETE FROM players",
+		"COMMIT; DELETE FROM players",
+	} {
+		if _, err := svc.Query(ctx, server, d.ID, QueryInput{SQL: sneaky}, true); err == nil {
+			t.Errorf("read-only query ran %q", sneaky)
+		}
+	}
+	if res, err := svc.Query(ctx, server, d.ID, QueryInput{SQL: "SELECT COUNT(*) FROM players"}, true); err != nil || str(res.Rows[0][0]) != "3" {
+		t.Errorf("after the read-only attempts: %+v %v", res, err)
+	}
+
+	// The other server's database is out of reach.
+	cross := "SELECT * FROM `" + other.Name + "`.players"
+	if engine == Postgres {
+		cross = "SELECT * FROM dblink('dbname=" + other.Name + "', 'SELECT 1') AS t(i int)"
+	}
+	if _, err := svc.Query(ctx, server, d.ID, QueryInput{SQL: cross}, false); err == nil {
+		t.Error("reached another server's database")
+	}
+
+	// A query past its time limit is stopped, and the next one runs.
+	sleep := "SELECT SLEEP(5)"
+	if engine == Postgres {
+		sleep = "SELECT pg_sleep(5)"
+	}
+	if _, err := svc.Query(ctx, server, d.ID, QueryInput{SQL: sleep, Timeout: 1}, false); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a query past its time limit: %v", err)
+	}
+	if _, err := svc.Processes(ctx, server, d.ID); err != nil {
+		t.Errorf("processes: %v", err)
+	}
+	if _, err := svc.Query(ctx, server, d.ID, QueryInput{SQL: "DROP TABLE players"}, false); err != nil {
+		t.Errorf("drop: %v", err)
+	}
 }
