@@ -51,6 +51,8 @@ type Rules struct {
 	// Between the rules that let some traffic across.
 	Networks []Network
 	Between  []Between
+	// Guards keep database instances on them to the servers that use them.
+	Guards []Guard
 	// DNS are the host's upstream resolvers. Install containers may reach
 	// them on port 53 even when they're in a blocked range (a home router,
 	// a provider's private resolver), or name resolution would fail.
@@ -142,6 +144,9 @@ func (r Rules) Render() string {
 	rule(whyMetadata, "iifname { %s, %q } ip daddr { %s } drop", quote(servers), r.InstallBridge, join(v4))
 	rule(whyMetadata, "iifname { %s, %q } ip6 daddr { %s } drop", quote(servers), r.InstallBridge, join(v6))
 	rule(whyInstallJump, "iifname %q jump install_out", r.InstallBridge)
+	// Before anything accepts traffic between networks, so a rule between
+	// them can't reach an instance either.
+	r.renderGuards(rule)
 	if len(r.Networks) > 0 {
 		for _, b := range servers {
 			others := slices.DeleteFunc(slices.Clone(servers), func(o string) bool { return o == b })

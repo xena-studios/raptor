@@ -49,7 +49,12 @@ UPDATE servers SET last_state = ? WHERE id = ?;
 
 -- name: NextQuotaProject :one
 -- Projects start at 1000; lower IDs are left for the owner's own use.
-SELECT CAST(COALESCE(MAX(quota_project), 999) + 1 AS INTEGER) FROM servers;
+-- Database instances take projects from the same sequence.
+SELECT CAST(COALESCE(MAX(p), 999) + 1 AS INTEGER) FROM (
+    SELECT quota_project AS p FROM servers
+    UNION ALL
+    SELECT quota_project FROM database_instances
+);
 
 -- name: SetQuotaProject :exec
 UPDATE servers SET quota_project = ? WHERE id = ?;

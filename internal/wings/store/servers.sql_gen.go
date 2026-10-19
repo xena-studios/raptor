@@ -273,10 +273,15 @@ func (q *Queries) ListServers(ctx context.Context) ([]Server, error) {
 }
 
 const nextQuotaProject = `-- name: NextQuotaProject :one
-SELECT CAST(COALESCE(MAX(quota_project), 999) + 1 AS INTEGER) FROM servers
+SELECT CAST(COALESCE(MAX(p), 999) + 1 AS INTEGER) FROM (
+    SELECT quota_project AS p FROM servers
+    UNION ALL
+    SELECT quota_project FROM database_instances
+)
 `
 
 // Projects start at 1000; lower IDs are left for the owner's own use.
+// Database instances take projects from the same sequence.
 func (q *Queries) NextQuotaProject(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, nextQuotaProject)
 	var column_1 int64

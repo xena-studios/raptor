@@ -29,6 +29,8 @@ var signing = map[string]string{
 	"backup.policy.update": "depends", // keeping fewer, or a new destination
 	"backup.recover":       "always", "backup.restore": "always",
 
+	"db.create": "never", "db.delete": "always", "db.list": "never", "db.password": "always", "db.password.reset": "never",
+
 	"files.chmod": "never", "files.compress": "never", "files.copy": "never", "files.decompress": "never",
 	"files.delete": "never", "files.download": "never", "files.list": "never", "files.mkdir": "never",
 	"files.read": "never", "files.rename": "never", "files.stat": "never", "files.trash": "never",
@@ -42,6 +44,7 @@ var signing = map[string]string{
 	"node.disk.default": "never", "node.disk.grow": "never", "node.disk.setup": "always", "node.disks": "never",
 	"node.doctor": "never", "node.firewall": "always", "node.health": "never", "node.hostname": "never",
 	"node.logs": "never", "node.metrics": "never", "node.reboot": "always", "node.sftp": "never",
+	"node.db.instance.delete": "always", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never",
 	"node.network.delete": "never", "node.network.rules": "never", "node.network.save": "never", "node.networks": "never",
 	"node.system": "never", "node.time": "never",
 	"node.update": "never", // the release is checked against Raptor's signing key instead
@@ -76,6 +79,7 @@ func TestSigningPolicy(t *testing.T) {
 	RegisterDisks(x, nil)
 	RegisterSystem(x, nil)
 	RegisterNetworks(x, nil, nil)
+	RegisterDatabases(x, nil)
 
 	same := func(a, b any) bool { return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer() }
 	handlers := x.Handlers()

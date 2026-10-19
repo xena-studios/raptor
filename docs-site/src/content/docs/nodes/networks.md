@@ -19,7 +19,7 @@ The node's **Networks** tab (admins and owners) lists its networks and the serve
 
 When you deploy a server on a node that has networks, you pick its network then.
 
-Servers find each other on a network by name: "Survival SMP" is `survival-smp.raptor`. Each server also gets a name from its ID, like `0199a3b2.raptor`, which stays the same if it's renamed. A server's Network tab shows both.
+Servers find each other on a network by name: "Survival SMP" is `survival-smp.raptor`. Each server also gets a name from its short ID, like `3e4f5a6b7c8d.raptor`, which stays the same if it's renamed. A server's Network tab shows both.
 
 ## A proxy for several networks
 

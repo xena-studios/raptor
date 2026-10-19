@@ -208,10 +208,17 @@ func Aliases(id, name string) []string {
 	if slug := Slug(name); slug != "" {
 		out = append(out, slug+".raptor")
 	}
-	if len(id) >= 8 {
-		out = append(out, id[:8]+".raptor")
+	if short := ShortID(id); short != "" {
+		out = append(out, short+".raptor")
 	}
 	return out
+}
+
+// ShortID is an ID's short form, as the app shows it: its last group, the
+// random end of a version 7 UUID (its start is a timestamp, the same for
+// everything made in the same minute).
+func ShortID(id string) string {
+	return id[strings.LastIndex(id, "-")+1:]
 }
 
 // Slug is a name as a DNS label: lowercase letters, digits, and hyphens,

@@ -68,6 +68,9 @@ type Options struct {
 	// Networks resolves the owner's networks servers are on
 	// (docs/NETWORKS.md). Without it, servers can't be put on any.
 	Networks Networks
+	// Env, if set, returns more environment variables for a server at
+	// each start: its databases' (DB_HOST and the rest).
+	Env func(ctx context.Context, serverID string) ([]string, error)
 	// ReservedPorts are Wings' own ports, never allocatable.
 	ReservedPorts []int
 	// Jobs runs installs (register before Jobs.Start). Its "install" class

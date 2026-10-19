@@ -303,3 +303,48 @@ func TestRuntimeNetworkRules(t *testing.T) {
 	}
 	expect(t, "reverse", res, map[string]string{"back": "blocked"})
 }
+
+func TestRuntimeDatabaseGuard(t *testing.T) {
+	ctx := context.Background()
+	dc := newRuntime(t)
+	a := owned(t, dc, false)
+	pin := func(n int) netip.Addr {
+		addr := a.Subnet.Addr()
+		for range 1<<(32-a.Subnet.Bits()-1) + n {
+			addr = addr.Next()
+		}
+		return addr
+	}
+	instAddr, userAddr, otherAddr := pin(0), pin(1), pin(2)
+	port := freePort(t)
+	inst := startServer(t, dc, containers.ServerSpec{Networks: []containers.Network{a}, Addresses: map[string]netip.Addr{a.Name: instAddr}})
+	if _, err := inst.console.Send(0, "httpd -f -p "+strconv.Itoa(port)+" -h /home/container &"); err != nil {
+		t.Fatal(err)
+	}
+	waitHTTP(t, net.JoinHostPort(instAddr.String(), strconv.Itoa(port)))
+
+	rules := firewall.Rules{
+		ServerBridge: dc.nets.Server.Bridge, InstallBridge: dc.nets.Install.Bridge,
+		ServerGateway: dc.nets.Server.Gateway, DNS: firewall.HostResolvers(),
+		Networks: []firewall.Network{{Bridge: a.Bridge, Gateway: a.Gateway, HostAccess: true}},
+		Guards:   []firewall.Guard{{Bridge: a.Bridge, Addr: instAddr, Allowed: []netip.Addr{userAddr}}},
+	}
+	if err := firewall.Apply(ctx, rules); err != nil {
+		t.Fatalf("firewall: %v", err)
+	}
+	url := map[string]string{"instance": "http://" + instAddr.String() + ":" + strconv.Itoa(port) + "/"}
+	for who, c := range map[string]struct {
+		addr netip.Addr
+		want string
+	}{"with a database": {userAddr, "reachable"}, "without one": {otherAddr, "blocked"}} {
+		peer := startServer(t, dc, containers.ServerSpec{Networks: []containers.Network{a}, Addresses: map[string]netip.Addr{a.Name: c.addr}})
+		writeFile(t, filepath.Join(peer.dir, "check.sh"), probeScript(url))
+		res, err := peer.console.Send(time.Minute, "sh /home/container/check.sh")
+		if err != nil {
+			t.Fatal(err)
+		}
+		expect(t, who, res, map[string]string{"instance": c.want})
+	}
+	// The machine itself (Wings) always reaches it.
+	waitHTTP(t, net.JoinHostPort(instAddr.String(), strconv.Itoa(port)))
+}

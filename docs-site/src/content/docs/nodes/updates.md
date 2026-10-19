@@ -2,7 +2,7 @@
 title: Updates
 description: How Wings updates itself, how a bad update rolls back, and how to pin a version.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 Raptor updates Wings on your nodes for you. **Game servers keep running through every update**: they belong to Docker, not to Wings.
