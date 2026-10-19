@@ -39,6 +39,7 @@ export type Database = {
   host: string;
   port: number;
   created_at: number;
+  readonly_user?: string; // its read-only user, if it has one
 };
 
 // What node.db.instance.save takes: no ID creates one.

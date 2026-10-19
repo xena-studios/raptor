@@ -74,6 +74,21 @@ type Runtime interface {
 	RemoveService(ctx context.Context, name string) error
 	// ServiceState reports one's state; ok is false if it doesn't exist.
 	ServiceState(ctx context.Context, name string) (st State, ok bool, err error)
+	// Exec runs a command in a running service (a database's own tools)
+	// and returns its exit code.
+	Exec(ctx context.Context, name string, s ExecSpec) (int, error)
+}
+
+// ExecSpec is a command run in a container, its input and output
+// streamed: nothing is written in the container.
+type ExecSpec struct {
+	Cmd  []string
+	Env  []string // passwords go here, never in Cmd
+	User string   // "" is the image's
+	// Stdin, if set, is sent to the command, then closed.
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // ServiceSpec describes a container Wings runs for itself beside servers.

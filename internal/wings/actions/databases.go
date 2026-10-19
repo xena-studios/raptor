@@ -52,6 +52,8 @@ type DBCreateParams struct {
 // DBParams are db.delete's, db.password's, and db.password.reset's params.
 type DBParams struct {
 	ID string `json:"id"`
+	// ReadOnly: db.password shows the read-only user's password.
+	ReadOnly bool `json:"readonly,omitempty"`
 }
 
 // DBPasswordResult is a database's password, with the database when it
@@ -148,7 +150,11 @@ func RegisterDatabases(x *command.Executor, d *databases.Service) {
 		if err := decode(e, &p); err != nil {
 			return nil, err
 		}
-		pass, err := d.Password(ctx, e.ServerID, p.ID)
+		get := d.Password
+		if p.ReadOnly {
+			get = d.ReadOnlyPassword
+		}
+		pass, err := get(ctx, e.ServerID, p.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -283,5 +289,102 @@ func RegisterDatabaseBrowser(x *command.Executor, d *databases.Service) {
 			return nil, err
 		}
 		return nil, d.KillQuery(ctx, e.ServerID, p.ID, p.Process)
+	})})
+}
+
+// Imports, exports, and read-only users (docs/DATABASES.md#the-browser).
+const (
+	DBImport         = "db.import"          // run a .sql file of the server's
+	DBExport         = "db.export"          // dump to the server's database-exports
+	DBTransferStatus = "db.transfer.status" // a read
+	DBTransferCancel = "db.transfer.cancel"
+	DBReadOnlySet    = "db.readonly.set" // make the read-only user, or give it a new password
+	DBReadOnlyRemove = "db.readonly.remove"
+)
+
+// DBImportParams are db.import's params.
+type DBImportParams struct {
+	ID   string `json:"id"`
+	Path string `json:"path"`
+}
+
+// DBExportParams are db.export's params.
+type DBExportParams struct {
+	ID     string `json:"id"`
+	Schema string `json:"schema,omitempty"`
+	Table  string `json:"table,omitempty"`
+	Format string `json:"format"` // sql or csv
+}
+
+// DBJobParams are db.transfer.status's and db.transfer.cancel's params.
+type DBJobParams struct {
+	JobID string `json:"job_id"`
+}
+
+// RegisterDatabaseTransfers adds imports, exports, and read-only users.
+// None is signed: an import changes data like any SQL does, and an export
+// writes a file the server could have made itself.
+func RegisterDatabaseTransfers(x *command.Executor, d *databases.Service) {
+	server := func(run func(ctx context.Context, e command.Envelope) (any, error)) func(ctx context.Context, e command.Envelope) (any, error) {
+		return func(ctx context.Context, e command.Envelope) (any, error) {
+			if e.ServerID == "" {
+				return nil, errors.New("command needs a server_id")
+			}
+			return run(ctx, e)
+		}
+	}
+	x.Register(DBImport, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBImportParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		id, err := d.Import(ctx, e.ServerID, p.ID, p.Path)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": id}, nil
+	})})
+	x.Register(DBExport, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBExportParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		id, path, err := d.Export(ctx, e.ServerID, p.ID, p.Schema, p.Table, p.Format)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": id, "path": path}, nil
+	})})
+	x.Register(DBTransferStatus, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBJobParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return d.TransferStatus(ctx, e.ServerID, p.JobID)
+	})})
+	x.Register(DBTransferCancel, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBJobParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, d.CancelTransfer(ctx, e.ServerID, p.JobID)
+	})})
+	x.Register(DBReadOnlySet, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		user, pass, err := d.SetReadOnly(ctx, e.ServerID, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"user": user, "password": pass}, nil
+	})})
+	x.Register(DBReadOnlyRemove, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, d.RemoveReadOnly(ctx, e.ServerID, p.ID)
 	})})
 }

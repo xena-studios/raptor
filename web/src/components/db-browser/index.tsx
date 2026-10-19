@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
-import { ArrowLeft, Eye, Plus, Search, Table2 } from "lucide-react";
+import { ArrowLeft, Download, Eye, Plus, Search, Table2, Upload } from "lucide-react";
 import { useState } from "react";
 
 import { ProcessesTab } from "@/components/db-browser/processes";
@@ -12,6 +12,7 @@ import {
   NewTableDialog,
   StructureTab,
 } from "@/components/db-browser/structure";
+import { TransferDialog } from "@/components/db-browser/transfer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,12 +31,15 @@ export function DatabaseBrowser({
   serverId,
   id,
   canWrite,
+  transfers,
 }: {
   orgId: string;
   nodeId: string;
   serverId: string;
   id: string;
   canWrite: boolean;
+  // The node's Wings can import and export.
+  transfers: boolean;
 }) {
   const list = useServerDatabases(nodeId, serverId);
   const db = list.data?.databases.find((d) => d.id === id);
@@ -46,6 +50,7 @@ export function DatabaseBrowser({
   const [change, setChange] = useState<Change>();
   const [creating, setCreating] = useState(false);
   const [sqlStart, setSqlStart] = useState("");
+  const [transfer, setTransfer] = useState<"import" | "export">();
 
   const tables = schema.data ?? [];
   const table = tables.find((t) => tableKey(t) === picked) ?? tables[0];
@@ -80,6 +85,16 @@ export function DatabaseBrowser({
           <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Eye className="size-3.5" /> Read-only for you
           </span>
+        )}
+        {canWrite && transfers && (
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setTransfer("import")}>
+              <Upload /> Import
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setTransfer("export")}>
+              <Download /> Export
+            </Button>
+          </div>
         )}
       </div>
 
@@ -224,6 +239,17 @@ export function DatabaseBrowser({
             setChange(c);
           }}
           onClose={() => setCreating(false)}
+        />
+      )}
+      {transfer && (
+        <TransferDialog
+          orgId={orgId}
+          nodeId={nodeId}
+          serverId={serverId}
+          id={id}
+          kind={transfer}
+          table={table}
+          onClose={() => setTransfer(undefined)}
         />
       )}
       {change && (

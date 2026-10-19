@@ -49,6 +49,20 @@ Someone with only **See databases** can look at everything and run queries that 
 
 Changes are in the server's activity, with how many rows they changed, never the SQL itself.
 
+## Import and export
+
+From an opened database (needs **Change databases**):
+
+- **Export** writes the whole database, or the table you're looking at, to the server's `database-exports` folder: as `.sql.gz`, or a table as `.csv`. **Open the folder** takes you there in the file manager to download it.
+- **Import** runs a `.sql` or `.sql.gz` file from the server's files against the database. Upload it in the file manager first, then give its path. It stops at the first error and says what it was; what ran before stays.
+- On the **SQL** tab, **CSV** saves the result on screen.
+
+A dump from another host may make or switch databases, set owners, or name a `DEFINER`; the database's user can't do those, so the import stops there. Remove those lines, or export without them (`--no-owner` for PostgreSQL).
+
+## A read-only user
+
+For a tool that should only look (a stats page, a web map, a backup script), give the database a **read-only user**: **Make one** under the database. It reads every table, including ones made later, and changes nothing. Its **Password** asks for your passkey; the key button gives it a new one; the bin removes it. It reaches the database from the node's servers on the same network, like the database's own user.
+
 ## Who can do what
 
 Two permissions on a server's [access](/team/members/) cover its databases: **See databases** shows the tab and the connection details, and **Change databases** lets someone make and delete databases and see and change their passwords. Deleting a database deletes everything in it, so it asks for a passkey.

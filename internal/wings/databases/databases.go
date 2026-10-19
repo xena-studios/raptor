@@ -24,6 +24,7 @@ import (
 
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
+	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/networks"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/storage"
@@ -91,6 +92,8 @@ type Database struct {
 	Host       string `json:"host"`
 	Port       int    `json:"port"`
 	CreatedAt  int64  `json:"created_at"`
+	// ReadOnlyUser is its read-only user, if it has one.
+	ReadOnlyUser string `json:"readonly_user,omitempty"`
 }
 
 // States.
@@ -124,6 +127,7 @@ type Runtime interface {
 	StopService(ctx context.Context, name string, timeout time.Duration) error
 	RemoveService(ctx context.Context, name string) error
 	ServiceState(ctx context.Context, name string) (containers.State, bool, error)
+	Exec(ctx context.Context, name string, s containers.ExecSpec) (int, error)
 }
 
 // Networks resolves the owner's networks.
@@ -145,6 +149,8 @@ type Options struct {
 	Networks Networks
 	// Timezone is the node's time zone, for instances that don't set one.
 	Timezone func() string
+	// Jobs runs imports and exports; without it there are none.
+	Jobs *jobs.Engine
 	// Changed, if set, is called when the firewall's guards changed.
 	Changed func(ctx context.Context, guards []firewall.Guard) error
 	// StartTimeout bounds how long an instance has to answer after it
@@ -161,6 +167,9 @@ type Service struct {
 	status map[string]status // by instance ID
 	ipv6   map[string]map[string]netip.Addr
 	locks  map[string]*sync.Mutex
+	files  Files
+
+	transfers transfers
 }
 
 type status struct{ state, err string }
@@ -180,10 +189,12 @@ func New(o Options) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("database key: %w", err)
 	}
-	return &Service{
+	svc := &Service{
 		o: o, sealer: s, status: map[string]status{}, ipv6: map[string]map[string]netip.Addr{},
 		locks: map[string]*sync.Mutex{},
-	}, nil
+	}
+	svc.registerJobs()
+	return svc, nil
 }
 
 // lock serializes changes to one instance.
@@ -307,7 +318,7 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 		return err
 	}
 	dir := s.dir(id)
-	if err := s.prepare(dir, uint32(r.QuotaProject.Int64), in.Limits.DiskMiB); err != nil { //nolint:gosec // allocated by Wings from 1000 up
+	if err := s.prepare(ctx, id, dir, uint32(r.QuotaProject.Int64), in.Limits.DiskMiB); err != nil { //nolint:gosec // allocated by Wings from 1000 up
 		return err
 	}
 	nets, err := s.o.Networks.Resolve(ctx, in.Networks)
@@ -361,7 +372,7 @@ func oom(killed bool) string {
 }
 
 // prepare makes an instance's folders, under its quota project.
-func (s *Service) prepare(dir string, project uint32, diskMiB int64) error {
+func (s *Service) prepare(ctx context.Context, id, dir string, project uint32, diskMiB int64) error {
 	if s.o.Volume != nil {
 		if err := s.o.Volume.Prepare(dir, project, diskMiB<<20, 0, 0); err != nil {
 			return err
@@ -383,7 +394,23 @@ func (s *Service) prepare(dir string, project uint32, diskMiB int64) error {
 	if err := os.MkdirAll(confDir(dir), 0o755); err != nil { //nolint:gosec // read by the engine's user
 		return err
 	}
-	return os.WriteFile(filepath.Join(confDir(dir), "pg_hba.conf"), []byte(pgHBA), 0o644) //nolint:gosec // the engine reads it
+	return s.writeHBA(ctx, id, dir)
+}
+
+// writeHBA writes PostgreSQL's pg_hba.conf for an instance: the fixed
+// lines and one per read-only user.
+func (s *Service) writeHBA(ctx context.Context, id, dir string) error {
+	dbs, err := s.o.Store.Read.ListDatabases(ctx)
+	if err != nil {
+		return err
+	}
+	var ro [][2]string
+	for _, d := range dbs {
+		if d.InstanceID == id && d.RoUsername != "" {
+			ro = append(ro, [2]string{d.DbName, d.RoUsername})
+		}
+	}
+	return os.WriteFile(filepath.Join(confDir(dir), "pg_hba.conf"), []byte(pgHBA(ro)), 0o644) //nolint:gosec // the engine reads it
 }
 
 // pin gives an instance a fixed address on each of the owner's networks
@@ -757,7 +784,7 @@ func (s *Service) ServerDatabases(ctx context.Context, serverID string) ([]Datab
 func toDatabase(r store.Database, insts []Instance) Database {
 	d := Database{
 		ID: r.ID, InstanceID: r.InstanceID, ServerID: r.ServerID, Label: r.Label, Name: r.DbName,
-		User: r.Username, CreatedAt: r.CreatedAt,
+		User: r.Username, CreatedAt: r.CreatedAt, ReadOnlyUser: r.RoUsername,
 	}
 	for _, in := range insts {
 		if in.ID == r.InstanceID {
@@ -836,7 +863,10 @@ func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, labe
 		ID: uid.String(), InstanceID: instanceID, ServerID: serverID, Label: label, DbName: name,
 		Username: name, Password: sealed, CreatedAt: time.Now().Unix(),
 	}
-	if err := s.o.Store.Write.InsertDatabase(ctx, store.InsertDatabaseParams(row)); err != nil {
+	if err := s.o.Store.Write.InsertDatabase(ctx, store.InsertDatabaseParams{
+		ID: row.ID, InstanceID: row.InstanceID, ServerID: row.ServerID, Label: row.Label, DbName: row.DbName,
+		Username: row.Username, Password: row.Password, CreatedAt: row.CreatedAt,
+	}); err != nil {
 		_ = dropDatabase(context.WithoutCancel(ctx), in, s.dir(instanceID), root, name, name)
 		return Database{}, "", err
 	}
@@ -886,10 +916,21 @@ func (s *Service) drop(ctx context.Context, r store.Database) error {
 	if err != nil {
 		return err
 	}
+	if r.RoUsername != "" {
+		if err := dropReadOnly(ctx, in, s.dir(r.InstanceID), root, r.DbName, r.RoUsername); err != nil {
+			return fmt.Errorf("dropping its read-only user on %s: %w", in.Name, err)
+		}
+	}
 	if err := dropDatabase(ctx, in, s.dir(r.InstanceID), root, r.DbName, r.Username); err != nil {
 		return fmt.Errorf("dropping it on %s: %w", in.Name, err)
 	}
-	return s.o.Store.Write.DeleteDatabase(ctx, r.ID)
+	if err := s.o.Store.Write.DeleteDatabase(ctx, r.ID); err != nil {
+		return err
+	}
+	if r.RoUsername != "" && in.Engine == Postgres {
+		return s.reloadHBA(ctx, in, s.dir(r.InstanceID), root)
+	}
+	return nil
 }
 
 // Password returns a database's password.

@@ -50,3 +50,6 @@ DELETE FROM databases WHERE id = ?;
 
 -- name: ListServerIDs :many
 SELECT id FROM servers;
+
+-- name: SetDatabaseReadOnly :exec
+UPDATE databases SET ro_username = ?, ro_password = ? WHERE id = ?;

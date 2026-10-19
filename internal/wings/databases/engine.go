@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -30,13 +31,23 @@ func runDir(dir string) string  { return filepath.Join(dir, "run") }
 func confDir(dir string) string { return filepath.Join(dir, "conf") }
 
 // pgHBA lets each user reach only the database named like it (sameuser),
-// over the network; the superuser only through the socket, which only
-// Wings reaches (docs/DATABASES.md#isolation).
-const pgHBA = `# Written by Raptor Wings; changes are overwritten.
+// over the network, and each read-only user only its own database; the
+// superuser only through the socket, which only Wings reaches
+// (docs/DATABASES.md#isolation). readOnly is database and user pairs.
+func pgHBA(readOnly [][2]string) string {
+	var b strings.Builder
+	b.WriteString(`# Written by Raptor Wings; changes are overwritten.
 local all all scram-sha-256
 host all postgres all reject
 host sameuser all all scram-sha-256
-`
+`)
+	for _, r := range readOnly {
+		if checkNames(r[0], r[1]) == nil {
+			b.WriteString("host " + r[0] + " " + r[1] + " all scram-sha-256\n")
+		}
+	}
+	return b.String()
+}
 
 // serviceSpec is an instance's container.
 func serviceSpec(in Instance, dir, rootPassword, timezone string) containers.ServiceSpec {

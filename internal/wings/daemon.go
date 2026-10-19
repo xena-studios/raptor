@@ -698,7 +698,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		Store: r.db, Runtime: r.rt, Log: r.log, Volume: vol,
 		Dir:      filepath.Join(r.cfg.Paths.Volumes, "databases"),
 		KeyPath:  filepath.Join(filepath.Dir(r.cfg.Paths.State), "databases.key"),
-		Networks: nsvc, Timezone: host.Timezone, Changed: r.applyGuards,
+		Networks: nsvc, Timezone: host.Timezone, Changed: r.applyGuards, Jobs: r.jobs,
 	})
 	if err != nil {
 		return err
@@ -779,9 +779,11 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterNetworks(r.commands, nsvc, mgr)
 	actions.RegisterDatabases(r.commands, dbsvc)
 	actions.RegisterDatabaseBrowser(r.commands, dbsvc)
+	actions.RegisterDatabaseTransfers(r.commands, dbsvc)
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)
+	dbsvc.SetFiles(fsvc)
 	actions.RegisterAddons(r.commands, &addons.Service{Files: fsvc, Servers: mgr, UserAgent: "raptor-wings/" + buildinfo.Version})
 	// Jobs start after reconcile, so interrupted installs resume against
 	// servers that are already loaded.

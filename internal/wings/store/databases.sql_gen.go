@@ -43,7 +43,7 @@ func (q *Queries) DeleteInstanceAddress(ctx context.Context, arg DeleteInstanceA
 }
 
 const getDatabase = `-- name: GetDatabase :one
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at FROM databases WHERE id = ?
+SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password FROM databases WHERE id = ?
 `
 
 func (q *Queries) GetDatabase(ctx context.Context, id string) (Database, error) {
@@ -58,6 +58,8 @@ func (q *Queries) GetDatabase(ctx context.Context, id string) (Database, error) 
 		&i.Username,
 		&i.Password,
 		&i.CreatedAt,
+		&i.RoUsername,
+		&i.RoPassword,
 	)
 	return i, err
 }
@@ -174,7 +176,7 @@ func (q *Queries) InsertInstanceAddress(ctx context.Context, arg InsertInstanceA
 }
 
 const listDatabases = `-- name: ListDatabases :many
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at FROM databases ORDER BY created_at, id
+SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password FROM databases ORDER BY created_at, id
 `
 
 func (q *Queries) ListDatabases(ctx context.Context) ([]Database, error) {
@@ -195,6 +197,8 @@ func (q *Queries) ListDatabases(ctx context.Context) ([]Database, error) {
 			&i.Username,
 			&i.Password,
 			&i.CreatedAt,
+			&i.RoUsername,
+			&i.RoPassword,
 		); err != nil {
 			return nil, err
 		}
@@ -278,7 +282,7 @@ func (q *Queries) ListInstances(ctx context.Context) ([]DatabaseInstance, error)
 }
 
 const listServerDatabases = `-- name: ListServerDatabases :many
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at FROM databases WHERE server_id = ? ORDER BY created_at, id
+SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password FROM databases WHERE server_id = ? ORDER BY created_at, id
 `
 
 func (q *Queries) ListServerDatabases(ctx context.Context, serverID string) ([]Database, error) {
@@ -299,6 +303,8 @@ func (q *Queries) ListServerDatabases(ctx context.Context, serverID string) ([]D
 			&i.Username,
 			&i.Password,
 			&i.CreatedAt,
+			&i.RoUsername,
+			&i.RoPassword,
 		); err != nil {
 			return nil, err
 		}
@@ -351,6 +357,21 @@ type SetDatabasePasswordParams struct {
 
 func (q *Queries) SetDatabasePassword(ctx context.Context, arg SetDatabasePasswordParams) error {
 	_, err := q.db.ExecContext(ctx, setDatabasePassword, arg.Password, arg.ID)
+	return err
+}
+
+const setDatabaseReadOnly = `-- name: SetDatabaseReadOnly :exec
+UPDATE databases SET ro_username = ?, ro_password = ? WHERE id = ?
+`
+
+type SetDatabaseReadOnlyParams struct {
+	RoUsername string
+	RoPassword []byte
+	ID         string
+}
+
+func (q *Queries) SetDatabaseReadOnly(ctx context.Context, arg SetDatabaseReadOnlyParams) error {
+	_, err := q.db.ExecContext(ctx, setDatabaseReadOnly, arg.RoUsername, arg.RoPassword, arg.ID)
 	return err
 }
 

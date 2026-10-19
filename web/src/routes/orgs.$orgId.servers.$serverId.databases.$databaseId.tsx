@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { DatabaseBrowser } from "@/components/db-browser";
+import { dbTransfersCapability } from "@/lib/db-browser";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/databases/$
 function Browser() {
   const { orgId, nodeId, serverId } = useIds();
   const { databaseId } = Route.useParams();
-  const { server } = useServer(orgId, nodeId, serverId);
+  const { node, server } = useServer(orgId, nodeId, serverId);
   if (!server) return null;
   return (
     <DatabaseBrowser
@@ -20,6 +21,7 @@ function Browser() {
       serverId={serverId}
       id={databaseId}
       canWrite={can(server, "databases.write")}
+      transfers={!!node?.capabilities.includes(dbTransfersCapability)}
     />
   );
 }
