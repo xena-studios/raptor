@@ -116,6 +116,8 @@ const commands: Record<string, string> = {
   "node.db.instance.save": "Database instance saved",
   "node.db.instance.power": "Done",
   "node.db.instance.delete": "Database instance deleted",
+  "node.db.instance.version": "Version change started",
+  "node.db.instance.goback": "Going back to the version before",
   "db.create": "Database created",
   "db.delete": "Database deleted",
   "db.password.reset": "New password made; the server gets it at its next start",

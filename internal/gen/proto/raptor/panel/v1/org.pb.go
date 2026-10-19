@@ -3639,7 +3639,9 @@ type Backup struct {
 	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	ExpiresAt  *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	// Where it is: a destination on its node ("local" for the node's disk).
-	DestinationId string `protobuf:"bytes,12,opt,name=destination_id,json=destinationId,proto3" json:"destination_id,omitempty"`
+	DestinationId string `protobuf:"bytes,12,opt,name=destination_id,json=destinationId,proto3" json:"destination_id,omitempty"` // The server's databases it holds a dump of, by their names on the
+	// server ("luckperms").
+	Databases     []string `protobuf:"bytes,13,rep,name=databases,proto3" json:"databases,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3756,6 +3758,13 @@ func (x *Backup) GetDestinationId() string {
 		return x.DestinationId
 	}
 	return ""
+}
+
+func (x *Backup) GetDatabases() []string {
+	if x != nil {
+		return x.Databases
+	}
+	return nil
 }
 
 type GetSFTPAccessRequest struct {
@@ -6008,7 +6017,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x1b\n" +
 	"\tserver_id\x18\x03 \x01(\tR\bserverId\"H\n" +
 	"\x13ListBackupsResponse\x121\n" +
-	"\abackups\x18\x01 \x03(\v2\x17.raptor.panel.v1.BackupR\abackups\"\x90\x03\n" +
+	"\abackups\x18\x01 \x03(\v2\x17.raptor.panel.v1.BackupR\abackups\"\xae\x03\n" +
 	"\x06Backup\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x16\n" +
@@ -6025,7 +6034,8 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"finishedAt\x129\n" +
 	"\n" +
 	"expires_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12%\n" +
-	"\x0edestination_id\x18\f \x01(\tR\rdestinationId\"c\n" +
+	"\x0edestination_id\x18\f \x01(\tR\rdestinationId\x12\x1c\n" +
+	"\tdatabases\x18\r \x03(\tR\tdatabases\"c\n" +
 	"\x14GetSFTPAccessRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x1b\n" +

@@ -113,6 +113,22 @@ type Servers interface {
 	Restore(ctx context.Context, id string, start bool, fn func(ctx context.Context, dir string) error) error
 }
 
+// Databases dumps a server's databases into its backups and restores them
+// (docs/DATABASES.md#backups).
+type Databases interface {
+	// Dump writes a dump of each of the server's databases into a new
+	// folder and returns it, with the databases' names; "" if it has none.
+	// One that can't be dumped is left out, with a warning.
+	Dump(ctx context.Context, serverID string, log io.Writer) (dir string, names []string, warning string, err error)
+	// Restore runs the dumps a restore put in the server's directory into
+	// its databases and removes them, with a warning for any it couldn't.
+	Restore(ctx context.Context, serverID, dir string, log io.Writer) (warning string, err error)
+}
+
+// DatabasesFolder is where a backup keeps the dumps of a server's
+// databases, at the top of its files.
+const DatabasesFolder = ".raptor-databases"
+
 // Options configure a Manager.
 type Options struct {
 	Store   *store.DB
@@ -145,7 +161,9 @@ type Options struct {
 	// HookTimeout is how long to wait for the egg's wait_for line (default
 	// 1 minute).
 	HookTimeout time.Duration
-	Now         func() time.Time
+	// Databases, if set, puts servers' databases in their backups.
+	Databases Databases
+	Now       func() time.Time
 }
 
 // Manager runs backups.
@@ -354,7 +372,10 @@ type Backup struct {
 	CreatedAt     time.Time `json:"created_at"`
 	FinishedAt    time.Time `json:"finished_at,omitzero"`
 	ExpiresAt     time.Time `json:"expires_at,omitzero"`
-	snapshotID    string
+	// Databases are the server's databases it holds a dump of, by their
+	// names on the server.
+	Databases  []string `json:"databases,omitempty"`
+	snapshotID string
 }
 
 func fromRow(r store.Backup) *Backup {
@@ -364,6 +385,7 @@ func fromRow(r store.Backup) *Backup {
 		Error: r.Error, JobID: r.JobID, CreatedBy: r.CreatedBy, CreatedAt: time.UnixMilli(r.CreatedAt),
 		snapshotID: r.SnapshotID,
 	}
+	_ = json.Unmarshal([]byte(r.Databases), &b.Databases)
 	if r.FinishedAt.Valid {
 		b.FinishedAt = time.UnixMilli(r.FinishedAt.Int64)
 	}
@@ -383,6 +405,9 @@ func (b *Backup) eventData() map[string]any {
 	}
 	if b.Warning != "" {
 		d["warning"] = b.Warning
+	}
+	if len(b.Databases) > 0 {
+		d["databases"] = b.Databases
 	}
 	if b.Error != "" {
 		d["error"] = b.Error

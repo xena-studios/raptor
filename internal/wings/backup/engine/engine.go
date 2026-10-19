@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	kfs "github.com/kopia/kopia/fs"
+	"github.com/kopia/kopia/fs/ignorefs"
 	"github.com/kopia/kopia/repo"
 	"github.com/kopia/kopia/repo/content"
 	"github.com/kopia/kopia/repo/maintenance"
@@ -58,6 +60,11 @@ type SnapshotRequest struct {
 	BackupID string   `json:"backup_id"`
 	Dir      string   `json:"dir"`
 	Ignore   []string `json:"ignore,omitempty"` // gitignore-style patterns
+	// Extra are folders from outside Dir added at the top of the snapshot,
+	// by name: the dumps of the server's databases (docs/DATABASES.md#backups).
+	// One shadows a folder of the server's with the same name, and the
+	// ignore patterns don't apply to them.
+	Extra map[string]string `json:"extra,omitempty"`
 }
 
 // SnapshotResult describes a finished snapshot.
@@ -88,7 +95,19 @@ func (e *Engine) Snapshot(ctx context.Context, req SnapshotRequest, progress fun
 	if err != nil {
 		return SnapshotResult{}, err
 	}
+	src := source(req.ServerID)
+	pol := snapshotPolicy(req.Ignore, src)
+	// The ignore rules are applied to the server's files before the extra
+	// folders join them, so no pattern of the server's leaves one out.
 	dir := newEntry(root, ".", fi)
+	if len(req.Extra) > 0 {
+		d, closeExtra, err := withExtra(ignorefs.New(dir.(kfs.Directory), pol), req.Extra)
+		if err != nil {
+			return SnapshotResult{}, err
+		}
+		defer closeExtra()
+		dir = d
+	}
 
 	rep, err := e.open(ctx)
 	if err != nil {
@@ -96,7 +115,6 @@ func (e *Engine) Snapshot(ctx context.Context, req SnapshotRequest, progress fun
 	}
 	defer func() { _ = rep.Close(ctx) }()
 
-	src := source(req.ServerID)
 	var res SnapshotResult
 	var uploaded atomic.Int64
 	opts := repo.WriteSessionOptions{Purpose: "backup", OnUpload: func(n int64) { uploaded.Add(n) }}
@@ -106,9 +124,10 @@ func (e *Engine) Snapshot(ctx context.Context, req SnapshotRequest, progress fun
 			return err
 		}
 		u := upload.NewUploader(w)
+		u.DisableIgnoreRules = len(req.Extra) > 0 // applied above
 		p := &uploadProgress{cb: progress}
 		u.Progress = p
-		man, err := u.Upload(ctx, dir, snapshotPolicy(req.Ignore, src), src, previous...)
+		man, err := u.Upload(ctx, dir, pol, src, previous...)
 		if err != nil {
 			return err
 		}

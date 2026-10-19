@@ -1,9 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Check, Copy, Eye, KeyRound, Loader2, Plus, Table2, Trash2 } from "lucide-react";
+import { Check, Copy, Eye, History, KeyRound, Loader2, Plus, Table2, Trash2 } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
+import { RestoreDatabaseDialog } from "@/components/db-restore";
 import { DetailList } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export function ServerDatabases({
   connected,
   browsable,
   transfers,
+  restorable,
 }: {
   orgId: string;
   nodeId: string;
@@ -69,10 +71,13 @@ export function ServerDatabases({
   browsable: boolean;
   // The node's Wings has read-only users (and imports and exports).
   transfers: boolean;
+  // The node's Wings puts databases in backups, and restores one alone.
+  restorable: boolean;
 }) {
   const list = useServerDatabases(nodeId, serverId, supported && connected);
   const [creating, setCreating] = useState(false);
   const [shown, setShown] = useState<{ db: Database; password: string; readonly?: boolean }>();
+  const [restoring, setRestoring] = useState<Database>();
 
   if (!supported) {
     return (
@@ -160,6 +165,7 @@ export function ServerDatabases({
                   canWrite={canWrite}
                   instance={d.instances.find((x) => x.id === db.instance_id)}
                   onShow={(password, readonly) => setShown({ db, password, readonly })}
+                  onRestore={restorable ? () => setRestoring(db) : undefined}
                 />
               ))}
         </CardContent>
@@ -177,6 +183,16 @@ export function ServerDatabases({
         />
       )}
       {shown && <PasswordDialog {...shown} onClose={() => setShown(undefined)} />}
+      {restoring && (
+        <RestoreDatabaseDialog
+          orgId={orgId}
+          nodeId={nodeId}
+          serverId={serverId}
+          userId={userId}
+          db={restoring}
+          onClose={() => setRestoring(undefined)}
+        />
+      )}
     </div>
   );
 }
@@ -194,6 +210,7 @@ function DatabaseRow({
   canWrite,
   instance,
   onShow,
+  onRestore,
 }: {
   orgId: string;
   browsable: boolean;
@@ -207,6 +224,7 @@ function DatabaseRow({
   canWrite: boolean;
   instance?: DBInstance;
   onShow: (password: string, readonly?: boolean) => void;
+  onRestore?: () => void;
 }) {
   const client = useQueryClient();
   const ask = useConfirm();
@@ -307,6 +325,18 @@ function DatabaseRow({
               onClick={reset}
             >
               {busy === "reset" ? <Loader2 className="animate-spin" /> : <KeyRound />}
+            </Button>
+          )}
+          {canWrite && onRestore && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={`Restore ${db.label} from a backup`}
+              title="Restore from a backup"
+              disabled={!!busy}
+              onClick={onRestore}
+            >
+              <History />
             </Button>
           )}
           {canWrite && (

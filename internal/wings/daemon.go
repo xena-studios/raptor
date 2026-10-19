@@ -265,7 +265,7 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 		Log:    log,
 		// Schedule runs mostly wait, so many can run at once. Archive jobs
 		// use CPU and disk beside the game servers.
-		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32, "files": 2, "pull": 4},
+		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32, "files": 2, "pull": 4, "database": 1},
 	})
 	r.commands = &command.Executor{DB: db, NodeID: cfg.NodeID, RP: rp, PanelKey: panelKey, Log: log, Pairing: &command.Pairing{}}
 	svc.SetCommands(r.commands)
@@ -699,6 +699,10 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		Dir:      filepath.Join(r.cfg.Paths.Volumes, "databases"),
 		KeyPath:  filepath.Join(filepath.Dir(r.cfg.Paths.State), "databases.key"),
 		Networks: nsvc, Timezone: host.Timezone, Changed: r.applyGuards, Jobs: r.jobs,
+		FreeSpace: func(path string) (int64, error) {
+			_, free, err := storage.Space(path)
+			return free, err
+		},
 	})
 	if err != nil {
 		return err
@@ -766,7 +770,9 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 			_, free, err := storage.Space(path)
 			return free, err
 		},
+		Databases: dbsvc,
 	})
+	dbsvc.SetBackups(bk)
 	sched := schedule.New(schedule.Options{Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Backups: bk, Log: r.log})
 	actions.Register(r.commands, mgr, actions.Defaults{
 		Disk: r.disks.ForServer,
@@ -780,6 +786,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterDatabases(r.commands, dbsvc)
 	actions.RegisterDatabaseBrowser(r.commands, dbsvc)
 	actions.RegisterDatabaseTransfers(r.commands, dbsvc)
+	actions.RegisterDatabaseVersions(r.commands, dbsvc)
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)

@@ -148,7 +148,7 @@ jobs:
       - name: Run runtime tests
         run: sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime'
       - name: Run database engine tests (MariaDB, MySQL, PostgreSQL)
-        run: sudo /tmp/databases-e2e -test.v -test.timeout 20m
+        run: sudo /tmp/databases-e2e -test.v -test.timeout 40m
       - name: Run server lifecycle tests
         run: sudo /tmp/server-e2e -test.v -test.timeout 20m
       - name: Run command path tests (grants, passkey signatures, schedules, backups)

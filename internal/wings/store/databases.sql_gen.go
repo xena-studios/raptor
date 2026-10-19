@@ -65,7 +65,7 @@ func (q *Queries) GetDatabase(ctx context.Context, id string) (Database, error) 
 }
 
 const getInstance = `-- name: GetInstance :one
-SELECT id, name, engine, version, image, root_password, networks, limits, settings, desired_state, quota_project, created_at, updated_at FROM database_instances WHERE id = ?
+SELECT id, name, engine, version, image, root_password, networks, limits, settings, desired_state, quota_project, created_at, updated_at, prev_version, prev_image, rollback_until, patch_tried FROM database_instances WHERE id = ?
 `
 
 func (q *Queries) GetInstance(ctx context.Context, id string) (DatabaseInstance, error) {
@@ -85,6 +85,10 @@ func (q *Queries) GetInstance(ctx context.Context, id string) (DatabaseInstance,
 		&i.QuotaProject,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PrevVersion,
+		&i.PrevImage,
+		&i.RollbackUntil,
+		&i.PatchTried,
 	)
 	return i, err
 }
@@ -241,7 +245,7 @@ func (q *Queries) ListInstanceAddresses(ctx context.Context) ([]InstanceAddress,
 }
 
 const listInstances = `-- name: ListInstances :many
-SELECT id, name, engine, version, image, root_password, networks, limits, settings, desired_state, quota_project, created_at, updated_at FROM database_instances ORDER BY created_at, id
+SELECT id, name, engine, version, image, root_password, networks, limits, settings, desired_state, quota_project, created_at, updated_at, prev_version, prev_image, rollback_until, patch_tried FROM database_instances ORDER BY created_at, id
 `
 
 func (q *Queries) ListInstances(ctx context.Context) ([]DatabaseInstance, error) {
@@ -267,6 +271,10 @@ func (q *Queries) ListInstances(ctx context.Context) ([]DatabaseInstance, error)
 			&i.QuotaProject,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PrevVersion,
+			&i.PrevImage,
+			&i.RollbackUntil,
+			&i.PatchTried,
 		); err != nil {
 			return nil, err
 		}
@@ -387,6 +395,49 @@ type SetInstanceDesiredParams struct {
 
 func (q *Queries) SetInstanceDesired(ctx context.Context, arg SetInstanceDesiredParams) error {
 	_, err := q.db.ExecContext(ctx, setInstanceDesired, arg.DesiredState, arg.UpdatedAt, arg.ID)
+	return err
+}
+
+const setInstancePatchTried = `-- name: SetInstancePatchTried :exec
+UPDATE database_instances SET patch_tried = ? WHERE id = ?
+`
+
+type SetInstancePatchTriedParams struct {
+	PatchTried string
+	ID         string
+}
+
+func (q *Queries) SetInstancePatchTried(ctx context.Context, arg SetInstancePatchTriedParams) error {
+	_, err := q.db.ExecContext(ctx, setInstancePatchTried, arg.PatchTried, arg.ID)
+	return err
+}
+
+const setInstanceVersion = `-- name: SetInstanceVersion :exec
+UPDATE database_instances
+SET version = ?, image = ?, prev_version = ?, prev_image = ?, rollback_until = ?, updated_at = ?
+WHERE id = ?
+`
+
+type SetInstanceVersionParams struct {
+	Version       string
+	Image         string
+	PrevVersion   string
+	PrevImage     string
+	RollbackUntil int64
+	UpdatedAt     int64
+	ID            string
+}
+
+func (q *Queries) SetInstanceVersion(ctx context.Context, arg SetInstanceVersionParams) error {
+	_, err := q.db.ExecContext(ctx, setInstanceVersion,
+		arg.Version,
+		arg.Image,
+		arg.PrevVersion,
+		arg.PrevImage,
+		arg.RollbackUntil,
+		arg.UpdatedAt,
+		arg.ID,
+	)
 	return err
 }
 

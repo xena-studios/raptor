@@ -63,6 +63,12 @@ A dump from another host may make or switch databases, set owners, or name a `DE
 
 For a tool that should only look (a stats page, a web map, a backup script), give the database a **read-only user**: **Make one** under the database. It reads every table, including ones made later, and changes nothing. Its **Password** asks for your passkey; the key button gives it a new one; the bin removes it. It reaches the database from the node's servers on the same network, like the database's own user.
 
+## Restore a database from a backup
+
+The server's [backups](/servers/backups/#databases-in-backups) hold its databases. To put one database back as it was, without touching the server's files, click the clock button next to it (**Restore from a backup**, needs **Change databases**) and pick a backup. It asks for your passkey.
+
+What the database has now is exported to the server's `database-exports` folder first, so you can import it again if you picked the wrong one. The database is then emptied and filled from the backup; its user, password, and read-only user stay the same.
+
 ## Who can do what
 
-Two permissions on a server's [access](/team/members/) cover its databases: **See databases** shows the tab and the connection details, and **Change databases** lets someone make and delete databases and see and change their passwords. Deleting a database deletes everything in it, so it asks for a passkey.
+Two permissions on a server's [access](/team/members/) cover its databases: **See databases** shows the tab and the connection details, and **Change databases** lets someone make and delete databases and see and change their passwords. Deleting a database deletes everything in it, and restoring one replaces everything in it, so both ask for a passkey.

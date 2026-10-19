@@ -6,7 +6,7 @@ Releases are in [CONTRIBUTING.md](../CONTRIBUTING.md#releases). Bugs and request
 
 ## Where things stand
 
-*As of Oct 18, 2026.* Production runs v0.6.0 on raptor-1, with raptor-2 as a streaming replica over WireGuard, backups to B2, monitoring that pages a phone, and automatic deploys of every stable tag. A real node is linked. Billing (Polar, with its checkout and card form in the app since #230), Raptor Backup Storage, and the docs at [docs.raptorpanel.net](https://docs.raptorpanel.net) are live. Redeploying the Panel without touching games is proven: v0.4.2 deployed while a player stayed connected to a server on the production node.
+*As of Oct 19, 2026.* Production runs v0.7.0 on raptor-1, with raptor-2 as a streaming replica over WireGuard, backups to B2, monitoring that pages a phone, and automatic deploys of every stable tag. A real node is linked. Billing (Polar, with its checkout and card form in the app since #230), Raptor Backup Storage, and the docs at [docs.raptorpanel.net](https://docs.raptorpanel.net) are live. Redeploying the Panel without touching games is proven: v0.4.2 deployed while a player stayed connected to a server on the production node.
 
 ## Launch gate
 
@@ -71,7 +71,7 @@ Docker networks managed from the app, so separate communities on one node can't 
 3. Database instances and databases on networks (any version, limits, per-database users, environment variables). Built.
 4. The browser (schema, rows with editing, the SQL editor, structure, processes). Built for servers' databases; longer queries and bigger pages wait for streamed results.
 5. Import, export, and read-only users. Built.
-6. Versions and backups (patch updates, upgrades with rollback, databases in server backups).
+6. Versions and backups (patch updates, upgrades with rollback, databases in server backups). Built; instances aren't backed up on their own (DECISIONS #314).
 7. External access to instances (a port, an address allowlist, TLS).
 8. Redis and MongoDB.
 

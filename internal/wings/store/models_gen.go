@@ -47,6 +47,7 @@ type Backup struct {
 	CreatedAt     int64
 	FinishedAt    sql.NullInt64
 	ExpiresAt     sql.NullInt64
+	Databases     string
 }
 
 type BackupDestination struct {
@@ -104,19 +105,23 @@ type Database struct {
 }
 
 type DatabaseInstance struct {
-	ID           string
-	Name         string
-	Engine       string
-	Version      string
-	Image        string
-	RootPassword []byte
-	Networks     string
-	Limits       string
-	Settings     string
-	DesiredState string
-	QuotaProject sql.NullInt64
-	CreatedAt    int64
-	UpdatedAt    int64
+	ID            string
+	Name          string
+	Engine        string
+	Version       string
+	Image         string
+	RootPassword  []byte
+	Networks      string
+	Limits        string
+	Settings      string
+	DesiredState  string
+	QuotaProject  sql.NullInt64
+	CreatedAt     int64
+	UpdatedAt     int64
+	PrevVersion   string
+	PrevImage     string
+	RollbackUntil int64
+	PatchTried    string
 }
 
 type Event struct {

@@ -98,3 +98,6 @@ WHERE locked = 0 AND ((expires_at IS NOT NULL AND expires_at <= sqlc.arg(now))
 -- The backup a job takes for itself (a safety or final backup), so a
 -- resumed job finds it again.
 SELECT * FROM backups WHERE job_id = ? AND kind = ? ORDER BY created_at DESC LIMIT 1;
+
+-- name: SetBackupDatabases :exec
+UPDATE backups SET databases = ? WHERE id = ?;

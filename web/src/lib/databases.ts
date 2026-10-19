@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { commandClient } from "@/lib/transport";
 
+export { versionChange } from "./db-versions";
+
 // What Wings' database commands return (internal/wings/databases,
 // docs/DATABASES.md): instances on a node, and servers' databases on them.
 
@@ -15,15 +17,30 @@ export type DBInstance = {
   image: string;
   networks: string[]; // the owner's networks; [] is the default network
   limits: { memory_mib: number; cpu_percent?: number; disk_mib?: number };
-  settings: { max_connections?: number; timezone?: string };
+  settings: { max_connections?: number; timezone?: string; maintenance?: string };
   desired_state: "running" | "stopped";
   created_at: number;
-  state: "starting" | "running" | "stopped" | "failed";
+  state: "starting" | "running" | "stopped" | "failed" | "upgrading";
   error?: string;
   host: string;
   port: number;
   databases: number;
   addresses: Record<string, string>;
+  update?: boolean; // a newer patch of its version is in this Wings
+  previous?: string; // the version it can go back to, until go_back_until
+  go_back_until?: number; // unix seconds
+  change?: DBChange;
+};
+
+// DBChange is an instance's version change, going on or the last one.
+export type DBChange = {
+  job_id: string;
+  kind: "version" | "patch" | "back";
+  from: string;
+  to: string;
+  step?: string;
+  done?: boolean;
+  error?: string; // it was put back as it was
 };
 
 export type DBVersion = { engine: Engine; version: string; image: string; default?: boolean };
@@ -54,6 +71,14 @@ export type InstanceInput = {
 };
 
 export const databasesCapability = "databases";
+// Version changes, going back, and patch updates in the maintenance window.
+export const dbVersionsCapability = "db-versions";
+// Servers' backups hold their databases, and one restores alone.
+export const dbBackupsCapability = "db-backups";
+
+// The maintenance window an instance gets unless it says (Wings'
+// DefaultMaintenance), in the node's time.
+export const defaultMaintenance = "04:00";
 
 export const instancesKey = (nodeId: string) => ["db-instances", nodeId];
 export const serverDatabasesKey = (nodeId: string, serverId: string) => [
@@ -78,7 +103,11 @@ export function useInstances(nodeId: string, enabled = true) {
     enabled,
     retry: false,
     refetchInterval: (q) =>
-      q.state.data?.instances.some((i) => i.state === "starting") ? 3_000 : 30_000,
+      q.state.data?.instances.some(
+        (i) => i.state === "starting" || i.state === "upgrading" || (i.change && !i.change.done),
+      )
+        ? 3_000
+        : 30_000,
   });
 }
 

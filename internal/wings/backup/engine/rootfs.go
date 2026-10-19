@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 	"syscall"
 
 	kfs "github.com/kopia/kopia/fs"
@@ -148,3 +149,94 @@ func (s *rootSymlink) Readlink(context.Context) (string, error) { return s.root.
 func (s *rootSymlink) Resolve(context.Context) (kfs.Entry, error) {
 	return nil, errors.New("symlinks aren't followed")
 }
+
+// withExtra adds folders from outside the server's directory at the top
+// of a snapshot (SnapshotRequest.Extra). The returned func closes them.
+func withExtra(dir kfs.Directory, extra map[string]string) (kfs.Entry, func(), error) {
+	top := &extraDir{Directory: dir, extra: map[string]kfs.Entry{}}
+	var roots []*os.Root
+	closeAll := func() {
+		for _, r := range roots {
+			_ = r.Close()
+		}
+	}
+	for name, p := range extra {
+		if name == "" || name == "." || name == ".." || strings.Contains(name, "/") {
+			closeAll()
+			return nil, nil, fmt.Errorf("bad extra folder name %q", name)
+		}
+		r, err := os.OpenRoot(p)
+		if err != nil {
+			closeAll()
+			return nil, nil, err
+		}
+		roots = append(roots, r)
+		fi, err := r.Stat(".")
+		if err != nil {
+			closeAll()
+			return nil, nil, err
+		}
+		top.extra[name] = &namedDir{rootDir: &rootDir{rootEntry{FileInfo: fi, root: r, rel: "."}}, name: name}
+	}
+	return top, closeAll, nil
+}
+
+// extraDir is the server's directory with the extra folders in it.
+type extraDir struct {
+	kfs.Directory
+	extra map[string]kfs.Entry
+}
+
+func (d *extraDir) Child(ctx context.Context, name string) (kfs.Entry, error) {
+	if e, ok := d.extra[name]; ok {
+		return e, nil
+	}
+	return d.Directory.Child(ctx, name)
+}
+
+func (d *extraDir) Iterate(ctx context.Context) (kfs.DirectoryIterator, error) {
+	it, err := d.Directory.Iterate(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer it.Close()
+	var all []kfs.Entry
+	for {
+		e, err := it.Next(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if e == nil {
+			break
+		}
+		if _, shadowed := d.extra[e.Name()]; !shadowed {
+			all = append(all, e)
+		}
+	}
+	for _, e := range d.extra {
+		all = append(all, e)
+	}
+	slices.SortFunc(all, func(a, b kfs.Entry) int { return strings.Compare(a.Name(), b.Name()) })
+	return &listIter{entries: all}, nil
+}
+
+// namedDir is an extra folder, under its name in the snapshot.
+type namedDir struct {
+	*rootDir
+	name string
+}
+
+func (d *namedDir) Name() string { return d.name }
+
+type listIter struct{ entries []kfs.Entry }
+
+func (it *listIter) Next(context.Context) (kfs.Entry, error) {
+	if len(it.entries) == 0 {
+		return nil, nil //nolint:nilnil // the end of the directory
+	}
+	e := it.entries[0]
+	it.entries = it.entries[1:]
+	return e, nil
+}
+
+func (it *listIter) Close() {}

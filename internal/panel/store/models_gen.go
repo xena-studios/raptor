@@ -268,6 +268,7 @@ type MBackup struct {
 	CreatedAt     pgtype.Timestamptz
 	FinishedAt    pgtype.Timestamptz
 	ExpiresAt     pgtype.Timestamptz
+	Databases     []string
 }
 
 type MJob struct {

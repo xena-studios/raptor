@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ServerDatabases } from "@/components/server-databases";
-import { databasesCapability } from "@/lib/databases";
+import { databasesCapability, dbBackupsCapability } from "@/lib/databases";
 import { dbBrowserCapability, dbTransfersCapability } from "@/lib/db-browser";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
@@ -27,6 +27,7 @@ function DatabasesTab() {
       connected={node.connected}
       browsable={node.capabilities.includes(dbBrowserCapability)}
       transfers={node.capabilities.includes(dbTransfersCapability)}
+      restorable={node.capabilities.includes(dbBackupsCapability)}
     />
   );
 }

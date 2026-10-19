@@ -47,13 +47,18 @@ The list is in the Wings binary (`internal/wings/databases/versions.go`), each v
 
 ### Changing an instance's version
 
-From the instance's page, pick another version. Wings decides how:
+From the instance's menu on the node's Databases page, **Change version** offers the newer versions of its engine. It has to be running: Wings counts every table's rows in every database first. Then:
 
-- **Within a version line, or a newer minor of the same major** (MariaDB 11.4 → 11.8, MySQL 8.0 → 8.4): in place. Wings takes a backup (a dump of every database), stops the instance, starts the new image on the same data, and runs the engine's upgrade step (`mariadb-upgrade`, MySQL's own on start). If it doesn't come up healthy, it's put back on the old image and the old data restored from the backup.
-- **A new PostgreSQL major** (16 → 17), whose data files don't carry over: a migration job. Wings dumps every database, starts the new version on a new data directory, restores the dump, checks every database is there with the same tables and row counts, then switches the instance's address to the new one. The old data directory is kept for 7 days, and switching back is one click until then.
-- **Going back** to an older version is only by restoring the pre-change backup onto it, since newer data files can't be read by older versions. The app says so before you change.
+- **In place** (a newer patch, a newer MariaDB, MySQL 8.0 → 8.4): Wings stops the instance, copies its data, starts the new image on the data, and upgrades MariaDB's system tables (`mariadb-upgrade`; MySQL upgrades itself on start).
+- **A new PostgreSQL major** (16 → 17), whose data files don't carry over: Wings dumps every database as the superuser, with owners and rights, stops the instance, puts its data aside, starts the new version on an empty data folder, makes each database, its user, and its read-only user again as they were, and restores each dump into its database in one transaction that stops at the first error (DECISIONS #313).
 
-Each change is a job with its progress shown in the app; servers using the instance lose their connection while it switches (usually under a minute for in-place changes), and the app says which servers that is.
+Either way the rows are counted again, and if the new version doesn't start, an upgrade step fails, or any table has different rows, the old data and version are put back by themselves and the app says why. A change Wings' own stop interrupts is put back at its next start.
+
+The data from before is kept for **7 days** in the instance's folder (so under its disk limit, if it has one; DECISIONS #312), and **Go back** (signed with a passkey) puts it and the old version back; what was written since is lost, and the app says so. After the 7 days, or after another change, there's no going down a version: older engines can't read newer data. The app doesn't offer older versions.
+
+Each change is a job (`db.instance.version`, `db.instance.goback`, one at a time per node), with its step shown on the instance ("Copying its data", "Checking every database"). Servers using the instance lose their connection while it switches, usually under a minute; nothing else can change the instance until it's done.
+
+**Patch updates:** each version line is pinned to an image digest in the Wings binary, so a Wings update can bring a newer patch. The instance then shows **Update available**, and is updated the same way at the start of its maintenance window (04:00 in the node's time unless set; or only by hand), once a day at most, and not while it can still go back (a patch would replace the data kept for that; DECISIONS #315). **Update to the newest patch** does it at once.
 
 ### Settings
 
@@ -102,6 +107,32 @@ The password lives on the node (encrypted in `state.db`), never in the Panel. Th
 - **Tested** (`TestTransfers`, real engines): a database exported and imported back, a table as CSV (quotes and commas), a broken file failing with the engine's reason, and a read-only user reading tables made before and after it, failing to insert or drop, gone once removed, and gone with its database.
 - **Imports from elsewhere:** a dump that makes or switches databases (`CREATE DATABASE`, `USE`), sets owners (`ALTER … OWNER TO`), or has `DEFINER` clauses needs rights the database's user doesn't have, and stops there. Export with `--no-owner` (PostgreSQL) or without those (MariaDB/MySQL).
 
+## Permissions
+
+- **See databases:** the Databases tab, connection details (without the password), the schema, rows, and read-only queries.
+- **Change databases:** everything in the browser: editing rows, any SQL, structure, imports, and showing or resetting the password.
+- Admins and owners: creating and deleting instances, changing their versions and settings, external access, and which servers may use them; creating databases for any server.
+- **Signed with a passkey:** deleting a database or an instance, restoring a database over itself, going back to an instance's version before a change, and turning on external access (it opens a port).
+
+## Backups
+
+- **A server's backups hold its databases** (DECISIONS #314): after the egg's pre-backup commands, Wings dumps each one as its own user (plain SQL, like an export: `--single-transaction` on MariaDB and MySQL, so it's consistent without locks) into a folder outside the server's files, which the snapshot adds at the top as `.raptor-databases/<name>.sql`. The dumps never use the server's disk or count against its limit, and the server's ignore rules don't apply to them. A database whose instance isn't running is left out with a warning on the backup; the files are backed up anyway. The backup list says which databases each backup holds.
+- **Restore everything** restores them too, before the server starts: each database is emptied (dropped and made again, with its user, password, and read-only user kept) and its dump run into it. A dump of a database the server doesn't have any more is left in `.raptor-databases` for importing by hand. The safety backup taken before a restore holds the databases as they were, so the restore can be undone. Backups from before this version of Wings hold no databases, and restoring one leaves the databases as they are.
+- **One database alone:** the database's **Restore from a backup** (signed) lists the backups that hold it. Wings exports what the database has now to `database-exports/<name>-before-restore-<time>.sql.gz`, takes the dump out of the backup, and restores it the same way, leaving the server's files alone (`db.restore`, followed with `db.transfer.status`).
+- Instances aren't backed up on their own: every database belongs to a server, whose backups cover it.
+- A version change keeps the data from before it (above).
+
+### How phase 4 is built
+
+- `internal/wings/databases/upgrade.go`: `ChangeVersion` and `GoBack` queue jobs in the `database` class (one at a time per node), each holding the instance's lock throughout; while one is queued or running, everything else that changes the instance answers that it's changing version. `migrates` decides in place or by migration from the version numbers, and refuses going down.
+- The change: `inventory` counts every table's rows as root through the socket; the data is copied into `previous/data` with `copyTree` (through `os.Root` on both sides, since the engine can write in the data folder; `copy_file_range` reflinks on XFS) or, for a PostgreSQL major, dumped to `previous/dumps` with `pg_dump` as `postgres` and renamed aside. A marker in `previous/` records the instance's row from before, and whether its data was switched yet, so `recover` at Wings' start puts an interrupted change back. Then `SetInstanceVersion`, `ensureLocked` on the new image, `mariadb-upgrade` for MariaDB, the restores for PostgreSQL (`provision` makes each database, user, and read-only user from `state.db`, then `psql --single-transaction --set=ON_ERROR_STOP=1`), and the count again; any error runs `putBack`.
+- State: `database_instances` gained `prev_version`, `prev_image`, `rollback_until`, and `patch_tried` (migration `00023`). The instance reports `update` (its image isn't this Wings' digest for its line), `previous` and `go_back_until`, and `change` (the job, its step, and how it ended, kept in memory).
+- `housekeeping` runs every minute: it removes kept data past `rollback_until`, and queues a patch for instances on an older digest at the hour of their maintenance window (`settings.maintenance`, `HH:00`, `off`, or 04:00 by default), in the node's time zone.
+- `internal/wings/databases/backups.go`: `Dump` and `Restore` implement the backup manager's `Databases`; `RestoreDatabase` is `db.restore`'s job. Restores open the folder through `os.Root` without following links, since it came from the server's files.
+- `internal/wings/backup`: `SnapshotRequest.Extra` adds folders from outside the server's directory at the top of a snapshot; the engine applies the server's ignore rules (and `.pteroignore`) to its own files with Kopia's `ignorefs` first, then joins the extra folders, with the uploader's own ignore pass off. Backups record their databases (`backups.databases`, mirrored to the Panel's `m_backups.databases`). `ExtractDatabase` takes one dump out for `db.restore`.
+- Commands: `node.db.instance.version` (admins), `node.db.instance.goback` (admins, signed), `db.restore` (Change databases, signed). Capabilities `db-versions` and `db-backups`.
+- **Tested** (`TestVersions`, `TestBackupDumps`, real engines): MariaDB 11.4 → 11.8 and MySQL 8.0 → 8.4 in place and PostgreSQL 16 → 17 by migration, each with its rows, its user and password, and its read-only user (still read-only) carried over, then going back to the data from before; a change to an image that can't start put back with its rows; a patch queued by the maintenance window and applied once; a server's databases dumped, restored over changes made since (a table made after is gone), and one restored alone with what it had exported first. `TestDatabasesInBackups` checks the backup manager records and restores them, takes them into the safety backup, and turns a database it couldn't dump into a warning; `TestExtraFolders` checks no ignore pattern can leave the dumps out.
+
 Each database opens in the server's Databases tab, and an instance's whole contents on its own page (admins). Everything goes through typed commands to Wings (`db.schema`, `db.rows`, `db.query`, `db.row.update`…), which connects to the instance locally as that database's user (an instance page uses the instance's admin user), so the browser can never reach further than the database's own rights.
 
 - **Schema:** tables, views, and their columns, types, keys, and indexes; each table's row count and size.
@@ -114,23 +145,10 @@ Each database opens in the server's Databases tab, and an instance's whole conte
 
 Results travel through the Panel like the file manager's do (encrypted, not stored). Queries that change something are recorded in the server's activity with who ran them and how many rows they changed, but not their text, which can hold data.
 
-## Permissions
-
-- **See databases:** the Databases tab, connection details (without the password), the schema, rows, and read-only queries.
-- **Change databases:** everything in the browser: editing rows, any SQL, structure, imports, and showing or resetting the password.
-- Admins and owners: creating and deleting instances, changing their versions and settings, external access, and which servers may use them; creating databases for any server.
-- **Signed with a passkey:** deleting a database or an instance, restoring a database over itself, and turning on external access (it opens a port).
-
-## Backups
-
-- A server's backups include its databases: before the files are snapshotted, Wings dumps each one (`mariadb-dump --single-transaction`, `mysqldump --single-transaction`, `pg_dump -Fc`) into the snapshot, so it's consistent and restorable with the server. **Restore everything** restores them too; restoring a single database from a backup is on the database's own menu.
-- An instance can also be backed up whole on its own schedule (every database on it), to any of the node's destinations.
-- Version changes always take a backup first (above).
-
 ## Health and alerts
 
 - Each instance's state (running, starting, stopped, upgrading, failed), uptime, connections, queries per second, and size, sampled with the node's metrics.
-- New alert conditions: an instance down or restarting, near its disk limit, near its connection limit, and a version change finished or failed.
+- New alert conditions: an instance down or restarting, near its disk limit, near its connection limit, and a version change finished or failed. Not built yet; a version change's outcome shows on the instance.
 - `raptor doctor` checks each instance is running and reachable on its network, and `raptor db ps` on the node lists them.
 
 ## Phases
@@ -138,6 +156,6 @@ Results travel through the Panel like the file manager's do (encrypted, not stor
 1. **Instances and databases (MariaDB, MySQL, PostgreSQL),** after [networks](NETWORKS.md#phases): creating instances with any version, limits and tuning, on chosen networks; the firewall rule for servers without a database; creating databases and users for servers; connection details, environment variables, and host names; passwords on the node; the Databases tab and the node's Databases page; capability `databases`.
 2. **The browser:** schema, rows with editing, the SQL editor, structure forms, processes.
 3. **Import, export, and users:** `.sql` imports as jobs, dumps and CSV exports, read-only users.
-4. **Versions and backups:** patch updates in the maintenance window, in-place and migration upgrades with rollback, databases in server backups, instance backups.
+4. **Versions and backups:** patch updates in the maintenance window, in-place and migration upgrades with rollback, databases in server backups. Built, without instance backups of their own (DECISIONS #314).
 5. **External access:** the port, the address allowlist, TLS.
 6. **Redis and MongoDB:** one instance per server for Redis (it has no real per-database isolation), shared instances with per-database users for MongoDB; a key browser and a document browser.

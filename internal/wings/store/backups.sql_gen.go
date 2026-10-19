@@ -105,7 +105,7 @@ func (q *Queries) DestinationWorked(ctx context.Context, arg DestinationWorkedPa
 }
 
 const expiredBackups = `-- name: ExpiredBackups :many
-SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at FROM backups
+SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at, databases FROM backups
 WHERE locked = 0 AND ((expires_at IS NOT NULL AND expires_at <= ?1)
     OR (status = 'failed' AND created_at <= ?2))
 `
@@ -143,6 +143,7 @@ func (q *Queries) ExpiredBackups(ctx context.Context, arg ExpiredBackupsParams) 
 			&i.CreatedAt,
 			&i.FinishedAt,
 			&i.ExpiresAt,
+			&i.Databases,
 		); err != nil {
 			return nil, err
 		}
@@ -202,7 +203,7 @@ func (q *Queries) FinishBackup(ctx context.Context, arg FinishBackupParams) erro
 }
 
 const getBackup = `-- name: GetBackup :one
-SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at FROM backups WHERE id = ?
+SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at, databases FROM backups WHERE id = ?
 `
 
 func (q *Queries) GetBackup(ctx context.Context, id string) (Backup, error) {
@@ -226,6 +227,7 @@ func (q *Queries) GetBackup(ctx context.Context, id string) (Backup, error) {
 		&i.CreatedAt,
 		&i.FinishedAt,
 		&i.ExpiresAt,
+		&i.Databases,
 	)
 	return i, err
 }
@@ -280,7 +282,7 @@ func (q *Queries) GetBackupPolicy(ctx context.Context, serverID string) (BackupP
 }
 
 const getJobBackup = `-- name: GetJobBackup :one
-SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at FROM backups WHERE job_id = ? AND kind = ? ORDER BY created_at DESC LIMIT 1
+SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at, databases FROM backups WHERE job_id = ? AND kind = ? ORDER BY created_at DESC LIMIT 1
 `
 
 type GetJobBackupParams struct {
@@ -311,6 +313,7 @@ func (q *Queries) GetJobBackup(ctx context.Context, arg GetJobBackupParams) (Bac
 		&i.CreatedAt,
 		&i.FinishedAt,
 		&i.ExpiresAt,
+		&i.Databases,
 	)
 	return i, err
 }
@@ -544,7 +547,7 @@ func (q *Queries) ListBackupTargets(ctx context.Context, serverID string) ([]Bac
 }
 
 const listBackups = `-- name: ListBackups :many
-SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at FROM backups WHERE (?1 = '' OR server_id = ?1)
+SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at, databases FROM backups WHERE (?1 = '' OR server_id = ?1)
 ORDER BY created_at DESC, id DESC
 `
 
@@ -575,6 +578,7 @@ func (q *Queries) ListBackups(ctx context.Context, serverID interface{}) ([]Back
 			&i.CreatedAt,
 			&i.FinishedAt,
 			&i.ExpiresAt,
+			&i.Databases,
 		); err != nil {
 			return nil, err
 		}
@@ -590,7 +594,7 @@ func (q *Queries) ListBackups(ctx context.Context, serverID interface{}) ([]Back
 }
 
 const listDestinationBackups = `-- name: ListDestinationBackups :many
-SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at FROM backups WHERE destination_id = ? AND server_id = ?
+SELECT id, server_id, destination_id, kind, status, locked, snapshot_id, size, files, uploaded, warning, error, job_id, created_by, created_at, finished_at, expires_at, databases FROM backups WHERE destination_id = ? AND server_id = ?
 `
 
 type ListDestinationBackupsParams struct {
@@ -625,6 +629,7 @@ func (q *Queries) ListDestinationBackups(ctx context.Context, arg ListDestinatio
 			&i.CreatedAt,
 			&i.FinishedAt,
 			&i.ExpiresAt,
+			&i.Databases,
 		); err != nil {
 			return nil, err
 		}
@@ -637,6 +642,20 @@ func (q *Queries) ListDestinationBackups(ctx context.Context, arg ListDestinatio
 		return nil, err
 	}
 	return items, nil
+}
+
+const setBackupDatabases = `-- name: SetBackupDatabases :exec
+UPDATE backups SET databases = ? WHERE id = ?
+`
+
+type SetBackupDatabasesParams struct {
+	Databases string
+	ID        string
+}
+
+func (q *Queries) SetBackupDatabases(ctx context.Context, arg SetBackupDatabasesParams) error {
+	_, err := q.db.ExecContext(ctx, setBackupDatabases, arg.Databases, arg.ID)
+	return err
 }
 
 const setBackupLocked = `-- name: SetBackupLocked :exec

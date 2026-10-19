@@ -356,7 +356,17 @@ export function ServerBackups({
                           {when(b.createdAt)}
                         </span>
                       </TableCell>
-                      <TableCell>{kindNames[b.kind] ?? b.kind}</TableCell>
+                      <TableCell>
+                        {kindNames[b.kind] ?? b.kind}
+                        {b.databases.length > 0 && (
+                          <span
+                            className="block max-w-40 truncate text-xs text-muted-foreground"
+                            title={`With the databases ${b.databases.join(", ")}`}
+                          >
+                            With {b.databases.join(", ")}
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell className="max-w-40 truncate">
                         {destName(b.destinationId || "local")}
                       </TableCell>

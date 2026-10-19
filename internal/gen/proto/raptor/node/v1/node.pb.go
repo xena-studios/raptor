@@ -507,9 +507,12 @@ type Backup struct {
 	Warning       string `protobuf:"bytes,9,opt,name=warning,proto3" json:"warning,omitempty"`
 	CreatedBy     string `protobuf:"bytes,10,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	// Unix milliseconds; 0 if not set.
-	CreatedAt     int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	FinishedAt    int64 `protobuf:"varint,12,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
-	ExpiresAt     int64 `protobuf:"varint,13,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	CreatedAt  int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	FinishedAt int64 `protobuf:"varint,12,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	ExpiresAt  int64 `protobuf:"varint,13,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// The server's databases it holds a dump of, by their names on the
+	// server ("luckperms").
+	Databases     []string `protobuf:"bytes,14,rep,name=databases,proto3" json:"databases,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -633,6 +636,13 @@ func (x *Backup) GetExpiresAt() int64 {
 		return x.ExpiresAt
 	}
 	return 0
+}
+
+func (x *Backup) GetDatabases() []string {
+	if x != nil {
+		return x.Databases
+	}
+	return nil
 }
 
 type OpenTransferRequest struct {
@@ -1917,7 +1927,7 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\blast_run\x18\x06 \x01(\x03R\alastRun\x12\x1e\n" +
 	"\n" +
 	"definition\x18\a \x01(\fR\n" +
-	"definition\"\xdb\x02\n" +
+	"definition\"\xf9\x02\n" +
 	"\x06Backup\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x16\n" +
@@ -1936,7 +1946,8 @@ const file_raptor_node_v1_node_proto_rawDesc = "" +
 	"\vfinished_at\x18\f \x01(\x03R\n" +
 	"finishedAt\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\r \x01(\x03R\texpiresAt\"L\n" +
+	"expires_at\x18\r \x01(\x03R\texpiresAt\x12\x1c\n" +
+	"\tdatabases\x18\x0e \x03(\tR\tdatabases\"L\n" +
 	"\x13OpenTransferRequest\x12\x1f\n" +
 	"\vtransfer_id\x18\x01 \x01(\tR\n" +
 	"transferId\x12\x14\n" +
