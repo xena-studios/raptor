@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -247,4 +248,18 @@ func (c *Client) Exec(ctx context.Context, name string, s containers.ExecSpec) (
 		return -1, err
 	}
 	return res.ExitCode, nil
+}
+
+// ServiceLogs returns the last lines of a service container's output.
+func (c *Client) ServiceLogs(ctx context.Context, name string, lines int) (string, error) {
+	rc, err := c.api.ContainerLogs(ctx, name, client.ContainerLogsOptions{ShowStdout: true, ShowStderr: true, Tail: strconv.Itoa(lines)})
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = rc.Close() }()
+	var out bytes.Buffer
+	if _, err := stdcopy.StdCopy(&out, &out, io.LimitReader(rc, 1<<20)); err != nil {
+		return out.String(), err
+	}
+	return out.String(), nil
 }

@@ -74,6 +74,8 @@ type Runtime interface {
 	RemoveService(ctx context.Context, name string) error
 	// ServiceState reports one's state; ok is false if it doesn't exist.
 	ServiceState(ctx context.Context, name string) (st State, ok bool, err error)
+	// ServiceLogs returns the last lines of a service container's output.
+	ServiceLogs(ctx context.Context, name string, lines int) (string, error)
 	// Exec runs a command in a running service (a database's own tools)
 	// and returns its exit code.
 	Exec(ctx context.Context, name string, s ExecSpec) (int, error)
