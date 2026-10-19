@@ -63,6 +63,49 @@ type Runtime interface {
 	RemoveNetwork(ctx context.Context, name string) error
 	// HostNetworks lists every network Docker has, Wings' or not.
 	HostNetworks(ctx context.Context) ([]HostNetwork, error)
+
+	// EnsureService makes a long-running container Wings runs for itself
+	// (a database instance) match its spec and run: created if missing,
+	// created again if its spec changed, started if stopped.
+	EnsureService(ctx context.Context, s ServiceSpec) error
+	// StopService stops one, giving it timeout to shut down cleanly.
+	StopService(ctx context.Context, name string, timeout time.Duration) error
+	// RemoveService removes one; a missing one is no error.
+	RemoveService(ctx context.Context, name string) error
+	// ServiceState reports one's state; ok is false if it doesn't exist.
+	ServiceState(ctx context.Context, name string) (st State, ok bool, err error)
+}
+
+// ServiceSpec describes a container Wings runs for itself beside servers.
+type ServiceSpec struct {
+	Name  string // the container's name
+	Role  string // its role label ("database")
+	ID    string // what it is, for its labels (the instance's ID)
+	Image string
+	Env   []string
+	// Cmd is the arguments to the image's entrypoint.
+	Cmd    []string
+	Mounts []Mount
+	// Tmpfs are paths in the container given a small in-memory folder.
+	Tmpfs []string
+	// Networks are its networks, the first with the default route; none
+	// is the server network. Addresses are its fixed addresses on them by
+	// network name, and Aliases its names there.
+	Networks  []Network
+	Addresses map[string]netip.Addr
+	Aliases   []string
+	MemoryMiB int64
+	// CPUPercent is a hard limit (100 = one core); 0 is none.
+	CPUPercent int64
+	PIDs       int64
+	// StopTimeout is how long Docker waits on a stop before killing it.
+	StopTimeout time.Duration
+}
+
+// Mount is a host folder in a container.
+type Mount struct {
+	Source, Target string
+	ReadOnly       bool
 }
 
 // Sender writes console commands to a container's stdin.
@@ -105,6 +148,9 @@ type State struct {
 	// Pid is the container's main process on the host (0 if it isn't
 	// running), for reading its network namespace.
 	Pid int
+	// IPv6 is its IPv6 address on each network that has one, by network
+	// name (ServiceState only).
+	IPv6 map[string]netip.Addr
 }
 
 // Stats is one sample of a container's resource usage.

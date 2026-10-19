@@ -31,8 +31,44 @@ func halves(p netip.Prefix) (dynamic, pinned netip.Prefix) {
 	return dynamic, netip.PrefixFrom(netip.AddrFrom4(b), bits)
 }
 
-// freeAddress is the first address in the pinned half not taken, short
-// of the range's broadcast address.
+// FreeAddress is the first address in the pinned half of a network's
+// range not taken, short of its broadcast address.
+func FreeAddress(subnet netip.Prefix, taken map[netip.Addr]bool) (netip.Addr, error) {
+	return freeAddress(subnet, taken)
+}
+
+// Taken is every fixed address on each network, by network ID: servers'
+// and database instances'. Call it inside the write transaction that pins
+// another, so two can't take the same one.
+func Taken(ctx context.Context, q *store.Queries) (map[string]map[netip.Addr]bool, error) {
+	out := map[string]map[netip.Addr]bool{}
+	add := func(network, ip string) {
+		a, err := netip.ParseAddr(ip)
+		if err != nil {
+			return
+		}
+		if out[network] == nil {
+			out[network] = map[netip.Addr]bool{}
+		}
+		out[network][a] = true
+	}
+	servers, err := q.ListServerAddresses(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range servers {
+		add(a.NetworkID, a.Ip)
+	}
+	instances, err := q.ListInstanceAddresses(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range instances {
+		add(a.NetworkID, a.Ip)
+	}
+	return out, nil
+}
+
 func freeAddress(subnet netip.Prefix, taken map[netip.Addr]bool) (netip.Addr, error) {
 	_, half := halves(subnet)
 	last := lastAddr(subnet)
@@ -64,18 +100,13 @@ func (s *Service) Pin(ctx context.Context, serverID string, ids []string) (map[s
 		if err != nil {
 			return err
 		}
+		taken, err := Taken(ctx, q)
+		if err != nil {
+			return err
+		}
 		mine := map[string]netip.Addr{}
-		taken := map[string]map[netip.Addr]bool{}
 		for _, a := range all {
-			ip, err := netip.ParseAddr(a.Ip)
-			if err != nil {
-				continue
-			}
-			if taken[a.NetworkID] == nil {
-				taken[a.NetworkID] = map[netip.Addr]bool{}
-			}
-			taken[a.NetworkID][ip] = true
-			if a.ServerID == serverID {
+			if ip, err := netip.ParseAddr(a.Ip); err == nil && a.ServerID == serverID {
 				mine[a.NetworkID] = ip
 			}
 		}

@@ -90,6 +90,33 @@ type BackupTarget struct {
 	KeepMonthly   int64
 }
 
+type Database struct {
+	ID         string
+	InstanceID string
+	ServerID   string
+	Label      string
+	DbName     string
+	Username   string
+	Password   []byte
+	CreatedAt  int64
+}
+
+type DatabaseInstance struct {
+	ID           string
+	Name         string
+	Engine       string
+	Version      string
+	Image        string
+	RootPassword []byte
+	Networks     string
+	Limits       string
+	Settings     string
+	DesiredState string
+	QuotaProject sql.NullInt64
+	CreatedAt    int64
+	UpdatedAt    int64
+}
+
 type Event struct {
 	Seq      int64
 	Type     string
@@ -134,6 +161,12 @@ type HostMetric struct {
 	TxBytes    int64
 	DiskBytes  int64
 	LoadAvg    float64
+}
+
+type InstanceAddress struct {
+	InstanceID string
+	NetworkID  string
+	Ip         string
 }
 
 type Job struct {

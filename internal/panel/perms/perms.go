@@ -19,10 +19,15 @@ const (
 	Startup      = "startup"
 	Reinstall    = "reinstall"
 	SFTP         = "sftp"
+	// DatabasesRead is seeing a server's databases and their connection
+	// details (not passwords); DatabasesWrite, everything else on them,
+	// includes it.
+	DatabasesRead  = "databases.read"
+	DatabasesWrite = "databases.write"
 )
 
 // All is every server permission (the database checks the same list).
-var All = []string{ConsoleRead, ConsoleWrite, Power, FilesRead, FilesWrite, Backups, Schedules, Startup, Reinstall, SFTP}
+var All = []string{ConsoleRead, ConsoleWrite, Power, FilesRead, FilesWrite, Backups, Schedules, Startup, Reinstall, SFTP, DatabasesRead, DatabasesWrite}
 
 // adminOnly marks actions only admins and owners may run.
 const adminOnly = ""
@@ -94,6 +99,14 @@ var actions = map[string]string{
 	"schedule.delete": Schedules,
 	"schedule.run":    Schedules,
 
+	// A server's databases (docs/DATABASES.md). Showing a password is
+	// passkey-signed; deleting a database too.
+	"db.list":           DatabasesRead,
+	"db.create":         DatabasesWrite,
+	"db.delete":         DatabasesWrite,
+	"db.password":       DatabasesWrite,
+	"db.password.reset": DatabasesWrite,
+
 	"server.update":    Startup,
 	"server.reinstall": Reinstall,
 
@@ -132,16 +145,21 @@ var actions = map[string]string{
 	"node.network.save":   adminOnly,
 	"node.network.delete": adminOnly,
 	"node.network.rules":  adminOnly,
-	"server.networks":     adminOnly,
-	"support.grant":       adminOnly,
-	"support.revoke":      adminOnly,
-	"support.list":        adminOnly,
-	"support.disable":     adminOnly,
-	"node.doctor":         adminOnly,
-	"keys.add":            adminOnly,
-	"keys.remove":         adminOnly,
-	"keys.pair":           adminOnly,
-	"keys.list":           adminOnly,
+	// Database instances on the node.
+	"node.db.instances":       adminOnly,
+	"node.db.instance.save":   adminOnly,
+	"node.db.instance.power":  adminOnly,
+	"node.db.instance.delete": adminOnly,
+	"server.networks":         adminOnly,
+	"support.grant":           adminOnly,
+	"support.revoke":          adminOnly,
+	"support.list":            adminOnly,
+	"support.disable":         adminOnly,
+	"node.doctor":             adminOnly,
+	"keys.add":                adminOnly,
+	"keys.remove":             adminOnly,
+	"keys.pair":               adminOnly,
+	"keys.list":               adminOnly,
 }
 
 // For returns what running action needs: a server permission, or
@@ -153,13 +171,14 @@ func For(action string) (perm string, ok bool) {
 }
 
 // Allows reports whether a member with these server permissions has perm.
-// console.write includes console.read: sending commands blind is useless.
+// console.write includes console.read: sending commands blind is useless;
+// databases.write includes databases.read.
 func Allows(granted []string, perm string) bool {
 	if perm == View {
 		return len(granted) > 0
 	}
 	for _, g := range granted {
-		if g == perm || (perm == ConsoleRead && g == ConsoleWrite) {
+		if g == perm || (perm == ConsoleRead && g == ConsoleWrite) || (perm == DatabasesRead && g == DatabasesWrite) {
 			return true
 		}
 	}
@@ -187,7 +206,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "db.list", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

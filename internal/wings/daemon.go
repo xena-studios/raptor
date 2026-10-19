@@ -34,6 +34,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/databases"
 	"github.com/xena-studios/raptor/internal/wings/docker"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/files"
@@ -234,6 +235,7 @@ type runtimeSetup struct {
 	commandsReady  atomic.Bool // every command is registered
 	link           *link.Link  // nil if the node isn't linked
 	transfers      atomic.Pointer[files.Service]
+	databases      atomic.Pointer[databases.Service]
 	serversReady   atomic.Pointer[server.Manager]
 	schedulesReady atomic.Pointer[schedule.Scheduler]
 	backupsReady   atomic.Pointer[backup.Manager]
@@ -455,11 +457,36 @@ func (r *runtimeSetup) applyNetworks(ctx context.Context, nets []firewall.Networ
 	}
 	next := *r.rules
 	next.Networks, next.Between = nets, between
+	// Servers' fixed addresses decide who reaches database instances.
+	if db := r.databases.Load(); db != nil {
+		next.Guards = db.Guards(ctx)
+	}
 	if err := firewall.Apply(ctx, next); err != nil {
 		return err
 	}
 	r.rules = &next
 	return r.applyDockerUser(ctx, between)
+}
+
+// applyGuards loads the database instances' guards into the rule set.
+func (r *runtimeSetup) applyGuards(ctx context.Context, guards []firewall.Guard) error {
+	r.fwMu.Lock()
+	defer r.fwMu.Unlock()
+	if r.rules == nil {
+		return nil // setup loads them
+	}
+	if len(guards) > 0 {
+		if err := firewall.EnsureBridgeFilter(ctx); err != nil {
+			r.log.Error("database instances can't be guarded on their networks: bridge filtering is off", "err", err)
+		}
+	}
+	next := *r.rules
+	next.Guards = guards
+	if err := firewall.Apply(ctx, next); err != nil {
+		return err
+	}
+	r.rules = &next
+	return nil
 }
 
 // applyDockerUser lets the rules between networks through Docker's own
@@ -667,6 +694,15 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		}
 		r.log.Info("server data volume ready", "path", vol.Path, "source", m.Source, "quotas", !vol.Soft)
 	}
+	dbsvc, err := databases.New(databases.Options{
+		Store: r.db, Runtime: r.rt, Log: r.log, Volume: vol,
+		Dir:      filepath.Join(r.cfg.Paths.Volumes, "databases"),
+		KeyPath:  filepath.Join(filepath.Dir(r.cfg.Paths.State), "databases.key"),
+		Networks: nsvc, Timezone: host.Timezone, Changed: r.applyGuards,
+	})
+	if err != nil {
+		return err
+	}
 	opts := server.Options{
 		Storage:         vol,
 		Runtime:         r.rt,
@@ -682,6 +718,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		Zone:            host.Timezone,
 		DockerInterface: nets.Server.Gateway.String(),
 		Networks:        nsvc,
+		Env:             dbsvc.Env,
 		ReservedPorts:   []int{r.cfg.Ports.SFTP},
 		Jobs:            r.jobs,
 		Events:          r.events,
@@ -691,7 +728,10 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		opts.OOMKills = func() (int64, error) { return host.OOMKills(nets.CgroupParent) }
 	}
 	var bk *backup.Manager
-	opts.Deleted = func(ctx context.Context, id string) { bk.ServerDeleted(ctx, id) }
+	opts.Deleted = func(ctx context.Context, id string) {
+		bk.ServerDeleted(ctx, id)
+		dbsvc.ServerDeleted(ctx, id)
+	}
 	opts.JobBackup = func(ctx context.Context, id, jobID, kind string, log io.Writer) (string, error) {
 		return bk.JobBackup(ctx, id, jobID, kind, log)
 	}
@@ -737,6 +777,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	})
 	actions.RegisterSchedules(r.commands, sched)
 	actions.RegisterNetworks(r.commands, nsvc, mgr)
+	actions.RegisterDatabases(r.commands, dbsvc)
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)
@@ -763,8 +804,17 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.svc.SetServers(mgr)
 	r.svc.SetBackups(bk, r.jobs)
 	r.fwMu.Lock()
+	rules.Guards = dbsvc.Guards(ctx)
+	if err := firewall.Apply(ctx, rules); err != nil {
+		r.log.Error("loading the database instances' firewall rules failed", "err", err)
+	}
 	r.rules = &rules
 	r.fwMu.Unlock()
+	r.databases.Store(dbsvc)
+	// Instances start after the guards are in place.
+	if err := dbsvc.Start(ctx); err != nil {
+		r.log.Error("starting database instances failed", "err", err)
+	}
 	r.transfers.Store(fsvc)
 	r.serversReady.Store(mgr)
 	r.schedulesReady.Store(sched)

@@ -167,10 +167,13 @@ const (
 	// CapNetworkRules: node.network.rules, rules between networks, and
 	// servers' fixed addresses on them.
 	CapNetworkRules = "network-rules"
+	// CapDatabases: database instances and servers' databases on them
+	// (node.db.*, db.*; docs/DATABASES.md).
+	CapDatabases = "databases"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {

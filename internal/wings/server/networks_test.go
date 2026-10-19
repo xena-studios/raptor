@@ -25,7 +25,7 @@ func TestSlug(t *testing.T) {
 
 func TestAliases(t *testing.T) {
 	got := Aliases("0199a3b2-7c4d-7e8f-9a0b-1c2d3e4f5a6b", "Survival")
-	if want := []string{"survival.raptor", "0199a3b2.raptor"}; !slices.Equal(got, want) {
+	if want := []string{"survival.raptor", "1c2d3e4f5a6b.raptor"}; !slices.Equal(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 }

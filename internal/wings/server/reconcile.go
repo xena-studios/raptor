@@ -35,6 +35,8 @@ func (m *Manager) Reconcile(ctx context.Context) error {
 	}
 	for _, c := range ctrs {
 		switch {
+		case c.Role == "database":
+			// Database instances are internal/wings/databases'.
 		case c.Role == "install":
 			m.log.Warn("removing leftover install container", "server", c.ServerID, "container", c.Name)
 			_ = m.o.Runtime.Remove(ctx, c.ID)

@@ -18,7 +18,7 @@ Every server on a node is on one bridge, `raptor_nw` (`raptor0`), and can reach 
 
 | Setting | What it does |
 |---|---|
-| **Name** | What it's called in the app (1 to 40 characters, unique on the node). Its servers find each other as `<server name>.raptor` ("Survival SMP" is `survival-smp.raptor`) and `<first 8 of the server's ID>.raptor`, which a rename doesn't change. |
+| **Name** | What it's called in the app (1 to 40 characters, unique on the node). Its servers find each other as `<server name>.raptor` ("Survival SMP" is `survival-smp.raptor`) and `<its short ID>.raptor` (the last part of its ID, as the app shows it), which a rename doesn't change. |
 | **Subnet** | Picked like `raptor_nw`'s (the first free `/16`), or set by the owner: a private range from `/16` to `/28`, refused if it overlaps an interface, a route, another Docker network, or Raptor's own. |
 | **Internet access** | On (the default) or off: off makes it an `internal` network with no route out, for backends that should only talk to their proxy. Their allocations still accept players, because published ports are forwarded in by the host. |
 | **IPv6** | Off by default; on gives the network a ULA `/64` too, the same every time (from its ID). |

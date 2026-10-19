@@ -340,6 +340,13 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 
 	env := m.runtimeEnv(srv)
 	envList := env.Environment()
+	if m.o.Env != nil {
+		extra, err := m.o.Env(ctx, i.id)
+		if err != nil {
+			return fmt.Errorf("its databases' settings: %w", err)
+		}
+		envList = append(envList, extra...)
+	}
 	if files := srv.Egg().Config.Files; len(files) > 0 {
 		vals := eggs.Values{
 			ServerID: i.id, IP: env.IP, Port: env.Port, MemoryMiB: srv.Limits.MemoryMiB, SwapMiB: srv.Limits.SwapMiB,

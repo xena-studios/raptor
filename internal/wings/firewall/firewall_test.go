@@ -161,3 +161,30 @@ func TestIptablesScript(t *testing.T) {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 }
+
+func TestRenderGuards(t *testing.T) {
+	r := Rules{
+		ServerBridge: "raptor0", InstallBridge: "raptor-inst",
+		Networks: []Network{{Bridge: "rn1"}},
+		Guards: []Guard{
+			{
+				Bridge: "rn1", Addr: netip.MustParseAddr("172.30.128.9"), IPv6: netip.MustParseAddr("fd00::9"),
+				Allowed: []netip.Addr{netip.MustParseAddr("172.30.128.1"), netip.MustParseAddr("172.30.128.2")},
+			},
+			{Bridge: "rn1", Addr: netip.MustParseAddr("172.30.128.10")},
+		},
+	}
+	got := r.Render()
+	for _, want := range []string{
+		`oifname "rn1" ip daddr 172.30.128.9 ip saddr != { 172.30.128.1, 172.30.128.2 } drop`,
+		`oifname "rn1" ip6 daddr fd00::9 reject with icmpx type admin-prohibited`,
+		`oifname "rn1" ip daddr 172.30.128.10 drop`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("rules missing %q:\n%s", want, got)
+		}
+	}
+	if strings.Index(got, "172.30.128.10 drop") > strings.Index(got, "jump between") {
+		t.Error("guards come after the jumps between networks")
+	}
+}
