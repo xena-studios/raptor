@@ -62,6 +62,18 @@ Small features and known gaps, unordered. Bugs found in the beta go first.
 - **Bulk actions** in the app (several servers at once), signed once over the whole list.
 - **`TestNotifications`** on Wings' local API answers older CLIs only; it can go once no node runs a version before v0.5.0.
 
+## Databases
+
+Managed MariaDB, MySQL, and PostgreSQL on owners' nodes, with a full browser in the app, then Redis and MongoDB, and server groups. The design is [DATABASES.md](DATABASES.md); in order:
+
+1. Instances and databases (any version, limits, allowed servers, a network per instance, per-database users, environment variables).
+2. The browser (schema, rows with editing, the SQL editor, structure, processes).
+3. Import, export, and read-only users.
+4. Versions and backups (patch updates, upgrades with rollback, databases in server backups).
+5. External access (a port, an address allowlist, TLS).
+6. Redis and MongoDB.
+7. Server groups, so separate communities on one node can't reach each other's servers.
+
 ## After launch
 
 Bigger work, unordered.
