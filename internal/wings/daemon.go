@@ -459,7 +459,7 @@ func (r *runtimeSetup) applyNetworks(ctx context.Context, nets []firewall.Networ
 	next.Networks, next.Between = nets, between
 	// Servers' fixed addresses decide who reaches database instances.
 	if db := r.databases.Load(); db != nil {
-		next.Guards = db.Guards(ctx)
+		next.Guards, next.External = db.Guards(ctx), db.Externals(ctx)
 	}
 	if err := firewall.Apply(ctx, next); err != nil {
 		return err
@@ -469,7 +469,7 @@ func (r *runtimeSetup) applyNetworks(ctx context.Context, nets []firewall.Networ
 }
 
 // applyGuards loads the database instances' guards into the rule set.
-func (r *runtimeSetup) applyGuards(ctx context.Context, guards []firewall.Guard) error {
+func (r *runtimeSetup) applyGuards(ctx context.Context, guards []firewall.Guard, external []firewall.External) error {
 	r.fwMu.Lock()
 	defer r.fwMu.Unlock()
 	if r.rules == nil {
@@ -481,7 +481,7 @@ func (r *runtimeSetup) applyGuards(ctx context.Context, guards []firewall.Guard)
 		}
 	}
 	next := *r.rules
-	next.Guards = guards
+	next.Guards, next.External = guards, external
 	if err := firewall.Apply(ctx, next); err != nil {
 		return err
 	}
@@ -699,6 +699,8 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		Dir:      filepath.Join(r.cfg.Paths.Volumes, "databases"),
 		KeyPath:  filepath.Join(filepath.Dir(r.cfg.Paths.State), "databases.key"),
 		Networks: nsvc, Timezone: host.Timezone, Changed: r.applyGuards, Jobs: r.jobs,
+		Hostname: r.cfg.Hostname, ServerNetwork: nets.Server, ReservedPorts: []int{r.cfg.Ports.SFTP},
+		CheckPort: func(port int) error { return containers.CheckPorts([]containers.Port{{Port: port}}) },
 		FreeSpace: func(path string) (int64, error) {
 			_, free, err := storage.Space(path)
 			return free, err
@@ -787,6 +789,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterDatabaseBrowser(r.commands, dbsvc)
 	actions.RegisterDatabaseTransfers(r.commands, dbsvc)
 	actions.RegisterDatabaseVersions(r.commands, dbsvc)
+	actions.RegisterDatabaseExternal(r.commands, dbsvc)
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)
@@ -814,7 +817,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.svc.SetServers(mgr)
 	r.svc.SetBackups(bk, r.jobs)
 	r.fwMu.Lock()
-	rules.Guards = dbsvc.Guards(ctx)
+	rules.Guards, rules.External = dbsvc.Guards(ctx), dbsvc.Externals(ctx)
 	if err := firewall.Apply(ctx, rules); err != nil {
 		r.log.Error("loading the database instances' firewall rules failed", "err", err)
 	}

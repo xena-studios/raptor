@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/netip"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -34,17 +35,45 @@ func confDir(dir string) string { return filepath.Join(dir, "conf") }
 // over the network, and each read-only user only its own database; the
 // superuser only through the socket, which only Wings reaches
 // (docs/DATABASES.md#isolation). readOnly is database and user pairs.
-func pgHBA(readOnly [][2]string) string {
+// With external access, connections need TLS from anywhere but the
+// instance's networks, and from their gateways (Docker's userland proxy
+// forwards outside connections from there).
+func pgHBA(readOnly [][2]string, external bool, internal []containers.Network) string {
 	var b strings.Builder
 	b.WriteString(`# Written by Raptor Wings; changes are overwritten.
 local all all scram-sha-256
 host all postgres all reject
-host sameuser all all scram-sha-256
 `)
+	var ro [][2]string
 	for _, r := range readOnly {
 		if checkNames(r[0], r[1]) == nil {
+			ro = append(ro, r)
+		}
+	}
+	if !external {
+		b.WriteString("host sameuser all all scram-sha-256\n")
+		for _, r := range ro {
 			b.WriteString("host " + r[0] + " " + r[1] + " all scram-sha-256\n")
 		}
+		return b.String()
+	}
+	for _, n := range internal {
+		if n.Gateway.IsValid() {
+			b.WriteString("hostnossl all all " + netip.PrefixFrom(n.Gateway, n.Gateway.BitLen()).String() + " reject\n")
+		}
+	}
+	for _, n := range internal {
+		if !n.Subnet.IsValid() {
+			continue
+		}
+		b.WriteString("host sameuser all " + n.Subnet.Masked().String() + " scram-sha-256\n")
+		for _, r := range ro {
+			b.WriteString("host " + r[0] + " " + r[1] + " " + n.Subnet.Masked().String() + " scram-sha-256\n")
+		}
+	}
+	b.WriteString("hostssl sameuser all all scram-sha-256\n")
+	for _, r := range ro {
+		b.WriteString("hostssl " + r[0] + " " + r[1] + " all scram-sha-256\n")
 	}
 	return b.String()
 }
@@ -256,7 +285,10 @@ func dropDatabase(ctx context.Context, in Instance, dir, rootPassword, name, use
 	defer func() { _ = db.Close() }()
 	switch in.Engine {
 	case MariaDB, MySQL:
-		return exec(ctx, db, "DROP DATABASE IF EXISTS `"+name+"`", "DROP USER IF EXISTS '"+user+"'@'%'")
+		if err := exec(ctx, db, "DROP DATABASE IF EXISTS `"+name+"`"); err != nil {
+			return err
+		}
+		return dropUser(ctx, db, user)
 	case Postgres:
 		return exec(ctx, db, `DROP DATABASE IF EXISTS "`+name+`" WITH (FORCE)`, `DROP ROLE IF EXISTS "`+user+`"`)
 	}
@@ -279,7 +311,31 @@ func setPassword(ctx context.Context, in Instance, dir, rootPassword, user, pass
 	if in.Engine == Postgres {
 		return exec(ctx, db, `ALTER ROLE "`+user+`" PASSWORD '`+pass+`'`)
 	}
-	return exec(ctx, db, "ALTER USER '"+user+"'@'%' IDENTIFIED BY '"+pass+"'")
+	// Every account the user has (external.go).
+	hosts, err := userHosts(ctx, db, user)
+	if err != nil {
+		return err
+	}
+	for _, h := range hosts {
+		if err := exec(ctx, db, "ALTER USER '"+user+"'@'"+h+"' IDENTIFIED BY '"+pass+"'"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// dropUser drops every account a MariaDB or MySQL user has.
+func dropUser(ctx context.Context, db *sql.DB, user string) error {
+	hosts, err := userHosts(ctx, db, user)
+	if err != nil {
+		return err
+	}
+	for _, h := range hosts {
+		if err := exec(ctx, db, "DROP USER IF EXISTS '"+user+"'@'"+h+"'"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ping checks an instance answers.

@@ -28,6 +28,10 @@ data:
 
 The host is a name, like `community-a-mariadb.db.raptor`, that works from the node's servers. It stays the same even if the instance moves to another address.
 
+## From outside
+
+If an admin gave the database's instance [external access](/nodes/databases/#reach-an-instance-from-outside), its row also shows its address **from outside**, and a link to its certificate. Only the addresses the admin listed can connect there, with TLS.
+
 ## Variables
 
 The server also gets its database's details as environment variables at its next start: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `DATABASE_URL` (like `mysql://user:password@host:3306/name`). With more than one database, each also gets them prefixed with its name (`LUCKPERMS_DB_HOST`), and the first one's are also the plain `DB_HOST` and the rest. Apps and bots that read their settings from the environment pick them up with nothing to edit.

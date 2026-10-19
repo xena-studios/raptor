@@ -51,8 +51,10 @@ type Rules struct {
 	// Between the rules that let some traffic across.
 	Networks []Network
 	Between  []Between
-	// Guards keep database instances on them to the servers that use them.
-	Guards []Guard
+	// Guards keep database instances on them to the servers that use them,
+	// and External are instances' ports on the node.
+	Guards   []Guard
+	External []External
 	// DNS are the host's upstream resolvers. Install containers may reach
 	// them on port 53 even when they're in a blocked range (a home router,
 	// a provider's private resolver), or name resolution would fail.
@@ -164,12 +166,13 @@ func (r Rules) Render() string {
 	// Before Docker translates them (dstnat), connections to a network's
 	// gateway from anywhere but that network: ports on 127.0.0.1 are bound
 	// there, and they're for its own servers and the machine.
-	if gws := r.gateways(); len(gws) > 0 {
+	if gws := r.gateways(); len(gws) > 0 || len(r.External) > 0 {
 		w("\tchain prerouting {")
 		w("\t\ttype filter hook prerouting priority dstnat - 1; policy accept;")
 		for _, g := range gws {
 			rule(whyGateway, "ip daddr %s iifname != { \"lo\", %q } drop", g.Gateway, g.Bridge)
 		}
+		r.renderExternal(rule)
 		w("\t}")
 	}
 

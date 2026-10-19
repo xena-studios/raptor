@@ -3,6 +3,7 @@ import { cn } from "cn";
 import {
   ArrowUpCircle,
   Database as DatabaseIcon,
+  Globe,
   History,
   Loader2,
   MoreHorizontal,
@@ -16,6 +17,7 @@ import {
 import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
+import { ExternalDialog } from "@/components/db-external";
 import { StatusBadge } from "@/components/server-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +79,7 @@ export function NodeDatabases({
   supported,
   networksSupported,
   versionsSupported,
+  externalSupported,
 }: {
   nodeId: string;
   userId: string;
@@ -85,11 +88,14 @@ export function NodeDatabases({
   networksSupported: boolean;
   // The node's Wings changes instances' versions.
   versionsSupported: boolean;
+  // The node's Wings gives instances external access.
+  externalSupported: boolean;
 }) {
   const insts = useInstances(nodeId, connected && supported);
   const nets = useNodeNetworks(nodeId, connected && networksSupported);
   const [editing, setEditing] = useState<DBInstance | "new">();
   const [changing, setChanging] = useState<DBInstance>();
+  const [opening, setOpening] = useState<DBInstance>();
 
   if (!supported) {
     return (
@@ -146,6 +152,7 @@ export function NodeDatabases({
                 versions={versionsSupported}
                 onEdit={() => setEditing(i)}
                 onChangeVersion={() => setChanging(i)}
+                onExternal={externalSupported ? () => setOpening(i) : undefined}
               />
             ))
           )}
@@ -158,6 +165,14 @@ export function NodeDatabases({
           versions={d.versions}
           networks={networks}
           onClose={() => setEditing(undefined)}
+        />
+      )}
+      {opening && (
+        <ExternalDialog
+          nodeId={nodeId}
+          userId={userId}
+          instance={opening}
+          onClose={() => setOpening(undefined)}
         />
       )}
       {changing && (
@@ -188,6 +203,7 @@ function InstanceRow({
   versions,
   onEdit,
   onChangeVersion,
+  onExternal,
 }: {
   nodeId: string;
   userId: string;
@@ -196,6 +212,7 @@ function InstanceRow({
   versions: boolean;
   onEdit: () => void;
   onChangeVersion: () => void;
+  onExternal?: () => void;
 }) {
   const client = useQueryClient();
   const ask = useConfirm();
@@ -329,6 +346,14 @@ function InstanceRow({
                   </DropdownMenuItem>
                 </>
               )}
+              {onExternal && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onExternal}>
+                    <Globe /> External access
+                  </DropdownMenuItem>
+                </>
+              )}
               {versions && (
                 <>
                   <DropdownMenuSeparator />
@@ -364,6 +389,19 @@ function InstanceRow({
       </p>
       {i.state === "failed" && i.error && (
         <p className="text-sm text-destructive">It didn't start: {i.error}</p>
+      )}
+      {i.external && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Globe className="size-3.5 shrink-0" />
+          <span>
+            Reachable from outside on port{" "}
+            <span className="font-mono text-foreground">{i.external.port}</span>, by{" "}
+            {i.external.allow.length === 1
+              ? i.external.allow[0]
+              : `${i.external.allow.length} addresses`}
+            , with TLS
+          </span>
+        </p>
       )}
       {i.change && <ChangeLine instance={i} />}
       {i.previous && i.go_back_until && !changing && (

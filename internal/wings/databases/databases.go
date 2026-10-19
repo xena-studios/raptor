@@ -89,6 +89,8 @@ type Instance struct {
 	Previous    string  `json:"previous,omitempty"`
 	GoBackUntil int64   `json:"go_back_until,omitempty"`
 	Change      *Change `json:"change,omitempty"`
+	// External is its port on the node, if it has external access.
+	External *External `json:"external,omitempty"`
 }
 
 // Database is one database on an instance, for one server.
@@ -164,11 +166,20 @@ type Options struct {
 	Timezone func() string
 	// Jobs runs imports and exports; without it there are none.
 	Jobs *jobs.Engine
-	// Changed, if set, is called when the firewall's guards changed.
-	Changed func(ctx context.Context, guards []firewall.Guard) error
+	// Changed, if set, is called when the firewall's guards or instances'
+	// external ports changed.
+	Changed func(ctx context.Context, guards []firewall.Guard, external []firewall.External) error
 	// StartTimeout bounds how long an instance has to answer after it
 	// starts (3 minutes by default; a first start initializes it).
 	StartTimeout time.Duration
+	// Hostname is the node's name in DNS, which instances' certificates
+	// name; ServerNetwork the server network, which instances on no
+	// network of the owner's are on; ReservedPorts Wings' own ports; and
+	// CheckPort, if set, fails if a port is already bound on the node.
+	Hostname      string
+	ServerNetwork containers.Network
+	ReservedPorts []int
+	CheckPort     func(port int) error
 	// FreeSpace returns the free bytes on the filesystem holding a path,
 	// checked before a version change copies an instance's data. nil = no
 	// check.
@@ -358,6 +369,13 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 	}
 	spec := serviceSpec(in, dir, root, s.o.Timezone())
 	spec.Networks, spec.Addresses, spec.Aliases = nets, addrs, aliases(in.ID, in.Name)
+	port, _ := external(r)
+	if port != 0 {
+		if _, err := ensureTLS(dir, in.Name, s.tlsNames(in)); err != nil {
+			return err
+		}
+		externalSpec(&spec, in, dir, port)
+	}
 	if err := s.o.Runtime.EnsureService(ctx, spec); err != nil {
 		return err
 	}
@@ -373,6 +391,15 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 		err := ping(pctx, in, dir, root)
 		cancel()
 		if err == nil {
+			// MariaDB and MySQL's accounts for external access, or its
+			// absence (external.go).
+			internal, err := s.internal(ctx, in)
+			if err != nil {
+				return err
+			}
+			if err := s.syncAccounts(ctx, in, root, port != 0, internal); err != nil {
+				return fmt.Errorf("setting up its users: %w", err)
+			}
 			return nil
 		}
 		st, ok, serr := s.o.Runtime.ServiceState(ctx, ContainerName(id))
@@ -430,8 +457,23 @@ func (s *Service) prepare(ctx context.Context, id, dir string, project uint32, d
 }
 
 // writeHBA writes PostgreSQL's pg_hba.conf for an instance: the fixed
-// lines and one per read-only user.
+// lines and one per read-only user, and with external access, TLS required
+// from anywhere but its networks.
 func (s *Service) writeHBA(ctx context.Context, id, dir string) error {
+	in, r, err := s.instance(ctx, s.o.Store.Read, id)
+	if err != nil {
+		return err
+	}
+	if in.Engine != Postgres {
+		return nil
+	}
+	port, _ := external(r)
+	var internal []containers.Network
+	if port != 0 {
+		if internal, err = s.internal(ctx, in); err != nil {
+			return err
+		}
+	}
 	dbs, err := s.o.Store.Read.ListDatabases(ctx)
 	if err != nil {
 		return err
@@ -443,7 +485,7 @@ func (s *Service) writeHBA(ctx context.Context, id, dir string) error {
 		}
 	}
 	p := filepath.Join(confDir(dir), "pg_hba.conf")
-	if err := os.WriteFile(p, []byte(pgHBA(ro)), 0o644); err != nil { //nolint:gosec // the engine reads it
+	if err := os.WriteFile(p, []byte(pgHBA(ro, port != 0, internal)), 0o644); err != nil { //nolint:gosec // the engine reads it
 		return err
 	}
 	return os.Chmod(p, 0o644) //nolint:gosec // the engine reads it, whatever Wings' umask
@@ -695,6 +737,7 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 				in.Databases++
 			}
 		}
+		s.reportExternal(&in, r)
 		in.Addresses = map[string]string{}
 		for _, a := range addrs {
 			if a.InstanceID == r.ID {
@@ -915,6 +958,12 @@ func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, labe
 	if err := createDatabase(ctx, in, s.dir(instanceID), root, name, name, pass); err != nil {
 		return Database{}, "", fmt.Errorf("creating it on %s: %w", in.Name, err)
 	}
+	defer func() {
+		// Its accounts for external access, once its row is in.
+		if err := s.reconcile(context.WithoutCancel(ctx), in, r, root); err != nil {
+			s.o.Log.Error("setting up a new database's users for external access failed", "instance", in.ID, "err", err)
+		}
+	}()
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return Database{}, "", err
@@ -1152,10 +1201,12 @@ func (s *Service) Guards(ctx context.Context) []firewall.Guard {
 		return nil
 	}
 	onNet := map[string][]string{} // instance ID -> its networks now
+	ext := map[string]bool{}       // instance ID -> it has external access
 	for _, r := range insts {
 		var ids []string
 		_ = json.Unmarshal([]byte(r.Networks), &ids)
 		onNet[r.ID] = ids
+		ext[r.ID] = r.ExternalPort != 0
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1168,7 +1219,10 @@ func (s *Service) Guards(ctx context.Context) []firewall.Guard {
 		if err != nil {
 			continue
 		}
-		g := firewall.Guard{Bridge: networks.Bridge(ia.NetworkID), Addr: addr, IPv6: s.ipv6[ia.InstanceID][networks.DockerName(ia.NetworkID)]}
+		g := firewall.Guard{
+			Bridge: networks.Bridge(ia.NetworkID), Addr: addr, IPv6: s.ipv6[ia.InstanceID][networks.DockerName(ia.NetworkID)],
+			External: ext[ia.InstanceID],
+		}
 		for _, d := range dbs {
 			if d.InstanceID != ia.InstanceID {
 				continue
@@ -1190,7 +1244,7 @@ func (s *Service) changed(ctx context.Context) {
 	if s.o.Changed == nil {
 		return
 	}
-	if err := s.o.Changed(ctx, s.Guards(ctx)); err != nil {
+	if err := s.o.Changed(ctx, s.Guards(ctx), s.Externals(ctx)); err != nil {
 		s.o.Log.Error("reloading the firewall after a database change failed", "err", err)
 	}
 }

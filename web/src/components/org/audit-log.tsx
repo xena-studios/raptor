@@ -194,6 +194,8 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`changed a database instance's version on ${server}`, Database];
     case "node.db.instance.goback":
       return [`put a database instance on ${server} back to its version before`, Database];
+    case "node.db.instance.external":
+      return [`changed a database instance's external access on ${server}`, Database];
     case "db.restore":
       return [`restored one of ${server}'s databases from a backup`, Database];
     case "db.create":

@@ -122,6 +122,8 @@ type DatabaseInstance struct {
 	PrevImage     string
 	RollbackUntil int64
 	PatchTried    string
+	ExternalPort  int64
+	ExternalAllow string
 }
 
 type Event struct {

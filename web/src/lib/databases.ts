@@ -30,6 +30,16 @@ export type DBInstance = {
   previous?: string; // the version it can go back to, until go_back_until
   go_back_until?: number; // unix seconds
   change?: DBChange;
+  external?: DBExternal; // its port on the node, if it has external access
+};
+
+// DBExternal is an instance's external access: a port on the node that
+// the addresses in allow reach, with TLS checked against ca.
+export type DBExternal = {
+  port: number;
+  allow: string[];
+  host?: string; // the node's name in DNS, which the certificate names
+  ca?: string; // PEM
 };
 
 // DBChange is an instance's version change, going on or the last one.
@@ -75,6 +85,10 @@ export const databasesCapability = "databases";
 export const dbVersionsCapability = "db-versions";
 // Servers' backups hold their databases, and one restores alone.
 export const dbBackupsCapability = "db-backups";
+
+// External access: an instance's port on the node, with an allowlist
+// and TLS.
+export const dbExternalCapability = "db-external";
 
 // The maintenance window an instance gets unless it says (Wings'
 // DefaultMaintenance), in the node's time.
@@ -152,3 +166,17 @@ export function connectionURL(d: Database, password = "…"): string {
 
 // The labels Wings takes: lowercase letters, digits, and underscores.
 export const labelPattern = /^[a-z][a-z0-9_]{0,17}$/;
+
+// downloadCA saves an instance's certificate authority, for clients that
+// check the instance's certificate.
+export function downloadCA(instance: DBInstance) {
+  if (!instance.external?.ca) return;
+  const url = URL.createObjectURL(
+    new Blob([instance.external.ca], { type: "application/x-pem-file" }),
+  );
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${instance.host.replace(/\.db\.raptor$/, "")}-ca.pem`;
+  a.click();
+  URL.revokeObjectURL(url);
+}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
+	"strconv"
 	"time"
 
 	cerrdefs "github.com/containerd/errdefs"
@@ -90,17 +91,30 @@ func (c *Client) EnsureService(ctx context.Context, s containers.ServiceSpec) er
 		stop = 60
 	}
 	mem := s.MemoryMiB * 1024 * 1024
+	exposed := network.PortSet{}
+	bindings := network.PortMap{}
+	for _, p := range s.Publish {
+		port, err := network.ParsePort(strconv.Itoa(p.Port) + "/tcp")
+		if err != nil {
+			return err
+		}
+		exposed[port] = struct{}{}
+		// No host address: every address the node has, IPv4 and IPv6.
+		bindings[port] = append(bindings[port], network.PortBinding{HostPort: strconv.Itoa(p.HostPort)})
+	}
 	created, err := c.api.ContainerCreate(ctx, client.ContainerCreateOptions{
 		Name: s.Name,
 		Config: &container.Config{
-			Image:       s.Image,
-			Env:         s.Env,
-			Cmd:         s.Cmd,
-			Labels:      labels,
-			StopTimeout: &stop,
+			Image:        s.Image,
+			Env:          s.Env,
+			Cmd:          s.Cmd,
+			Labels:       labels,
+			StopTimeout:  &stop,
+			ExposedPorts: exposed,
 		},
 		HostConfig: &container.HostConfig{
 			Mounts:         mounts,
+			PortBindings:   bindings,
 			Tmpfs:          tmpfs,
 			NetworkMode:    container.NetworkMode(nets[0].Name),
 			ReadonlyRootfs: true,

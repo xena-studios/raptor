@@ -72,7 +72,7 @@ Docker networks managed from the app, so separate communities on one node can't 
 4. The browser (schema, rows with editing, the SQL editor, structure, processes). Built for servers' databases; longer queries and bigger pages wait for streamed results.
 5. Import, export, and read-only users. Built.
 6. Versions and backups (patch updates, upgrades with rollback, databases in server backups). Built; instances aren't backed up on their own (DECISIONS #314).
-7. External access to instances (a port, an address allowlist, TLS).
+7. External access to instances (a port, an address allowlist, TLS). Built.
 8. Redis and MongoDB.
 
 ## After launch

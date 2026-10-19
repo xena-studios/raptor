@@ -59,6 +59,9 @@ func (s *Service) SetReadOnly(ctx context.Context, serverID, id string) (string,
 	if err := s.o.Store.Write.SetDatabaseReadOnly(ctx, store.SetDatabaseReadOnlyParams{RoUsername: user, RoPassword: sealed, ID: id}); err != nil {
 		return "", "", err
 	}
+	if err := s.reconcile(ctx, in, ir, root); err != nil {
+		return "", "", fmt.Errorf("setting up the read-only user for external access: %w", err)
+	}
 	if in.Engine == Postgres {
 		if err := s.reloadHBA(ctx, in, dir, root); err != nil {
 			return "", "", err
@@ -181,7 +184,7 @@ func dropReadOnly(ctx context.Context, in Instance, dir, root, database, user st
 	}
 	defer func() { _ = db.Close() }()
 	if in.Engine != Postgres {
-		return exec(ctx, db, "DROP USER IF EXISTS '"+user+"'@'%'")
+		return dropUser(ctx, db, user)
 	}
 	var exists bool
 	if err := db.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = '"+database+"')").Scan(&exists); err != nil {

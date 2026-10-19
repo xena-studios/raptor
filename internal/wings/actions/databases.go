@@ -449,3 +449,19 @@ func RegisterDatabaseVersions(x *command.Executor, d *databases.Service) {
 		return map[string]string{"job_id": id, "before": before}, nil
 	}})
 }
+
+// NodeDBInstanceExternal turns an instance's external access on, changes
+// it, or turns it off (docs/DATABASES.md#external-access).
+const NodeDBInstanceExternal = "node.db.instance.external"
+
+// RegisterDatabaseExternal adds external access. It's signed: it opens a
+// port on the node to the addresses listed.
+func RegisterDatabaseExternal(x *command.Executor, d *databases.Service) {
+	x.Register(NodeDBInstanceExternal, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p databases.ExternalInput
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return d.SetExternal(ctx, p)
+	}})
+}

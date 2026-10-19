@@ -48,7 +48,7 @@ var signing = map[string]string{
 	"node.disk.default": "never", "node.disk.grow": "never", "node.disk.setup": "always", "node.disks": "never",
 	"node.doctor": "never", "node.firewall": "always", "node.health": "never", "node.hostname": "never",
 	"node.logs": "never", "node.metrics": "never", "node.reboot": "always", "node.sftp": "never",
-	"node.db.instance.delete": "always", "node.db.instance.goback": "always", "node.db.instance.version": "never", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never",
+	"node.db.instance.delete": "always", "node.db.instance.external": "always", "node.db.instance.goback": "always", "node.db.instance.version": "never", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never",
 	"node.network.delete": "never", "node.network.rules": "never", "node.network.save": "never", "node.networks": "never",
 	"node.system": "never", "node.time": "never",
 	"node.update": "never", // the release is checked against Raptor's signing key instead
@@ -87,6 +87,7 @@ func TestSigningPolicy(t *testing.T) {
 	RegisterDatabaseBrowser(x, nil)
 	RegisterDatabaseTransfers(x, nil)
 	RegisterDatabaseVersions(x, nil)
+	RegisterDatabaseExternal(x, nil)
 
 	same := func(a, b any) bool { return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer() }
 	handlers := x.Handlers()
