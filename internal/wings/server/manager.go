@@ -61,8 +61,12 @@ type Options struct {
 	Timezone, Location string
 	Zone               func() string
 	// DockerInterface is the server network's gateway, for
-	// {{config.docker.interface}} in config files.
+	// {{config.docker.interface}} in config files. A server on one of the
+	// owner's networks gets its primary network's.
 	DockerInterface string
+	// Networks resolves the owner's networks servers are on
+	// (docs/NETWORKS.md). Without it, servers can't be put on any.
+	Networks Networks
 	// ReservedPorts are Wings' own ports, never allocatable.
 	ReservedPorts []int
 	// Jobs runs installs (register before Jobs.Start). Its "install" class
@@ -94,6 +98,69 @@ type Options struct {
 	// Crash policy overrides, for tests.
 	CrashWindow time.Duration
 	CrashDelays []time.Duration
+}
+
+// Networks are the owner's networks, for servers on them.
+type Networks interface {
+	// Resolve returns the networks with these IDs, in order, creating any
+	// that are missing on Docker. An unknown ID is ErrNoNetwork.
+	Resolve(ctx context.Context, ids []string) ([]containers.Network, error)
+}
+
+// ErrNoNetwork is returned for a network that doesn't exist.
+var ErrNoNetwork = errors.New("no such network")
+
+// checkNetworks checks that the networks exist.
+func (m *Manager) checkNetworks(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if m.o.Networks == nil {
+		return fmt.Errorf("%w: this node has no networks", ErrNoNetwork)
+	}
+	_, err := m.o.Networks.Resolve(ctx, ids)
+	return err
+}
+
+// SetNetworks puts a server on networks, its primary first; none is the
+// server network. It applies at the server's next start.
+func (m *Manager) SetNetworks(ctx context.Context, id string, ids []string) error {
+	i, err := m.instance(id)
+	if err != nil {
+		return err
+	}
+	if err := validateNetworks(ids); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalid, err)
+	}
+	if err := m.checkNetworks(ctx, ids); err != nil {
+		return err
+	}
+	i.power.Lock()
+	defer i.power.Unlock()
+	srv, err := m.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if srv.HostNetwork && len(ids) > 0 {
+		return fmt.Errorf("%w: a server on the host's network isn't on any other", ErrInvalid)
+	}
+	var updated Event
+	err = m.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if err := q.SetServerNetworks(ctx, store.SetServerNetworksParams{Networks: networksJSON(ids), ID: id}); err != nil {
+			return err
+		}
+		row, err := q.GetServer(ctx, id)
+		if err != nil {
+			return err
+		}
+		updated = newEvent(EventUpdated, id, row.Version, map[string]any{"restart_needed": i.isUp()})
+		return publishTx(ctx, q, updated)
+	})
+	if err != nil {
+		return err
+	}
+	m.emit(updated)
+	return nil
 }
 
 // Manager owns every server on the node.
@@ -352,6 +419,9 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 	if _, err := cfg.validate(m.o.ReservedPorts); err != nil {
 		return "", err
 	}
+	if err := m.checkNetworks(ctx, cfg.Networks); err != nil {
+		return "", err
+	}
 	if err := m.diskCheck(); err != nil {
 		return "", err
 	}
@@ -383,7 +453,7 @@ func (m *Manager) Create(ctx context.Context, cfg Config, opts CreateOptions) (s
 			Image: cfg.Image, Startup: cfg.Startup,
 			Variables: mustJSON(cfg.Variables), Limits: mustJSON(cfg.Limits), Settings: mustJSON(cfg.Settings),
 			HostNetwork: boolInt(cfg.HostNetwork), DesiredState: "stopped", InstallState: installPending,
-			DiskID: cfg.Disk,
+			DiskID: cfg.Disk, Networks: networksJSON(cfg.Networks),
 		}); err != nil {
 			return err
 		}
@@ -479,6 +549,9 @@ func (m *Manager) Update(ctx context.Context, id string, cfg Config) error {
 	old, err := m.Get(ctx, id)
 	if err != nil {
 		return err
+	}
+	if cfg.HostNetwork && len(old.Networks) > 0 {
+		return fmt.Errorf("%w: take the server off its networks before putting it on the host's", ErrInvalid)
 	}
 	// Ports the server doesn't hold yet must be free on the host.
 	var added []Allocation

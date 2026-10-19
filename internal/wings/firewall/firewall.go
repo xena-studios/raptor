@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -42,6 +43,12 @@ var (
 type Rules struct {
 	ServerBridge  string // interface of the server network
 	InstallBridge string // interface of the install network
+	// ServerGateway is the server network's gateway, where servers' 127.0.0.1
+	// allocations are bound. Only its own network reaches them.
+	ServerGateway netip.Addr
+	// Networks are the owner's own server networks (docs/NETWORKS.md),
+	// kept apart from each other and from the server network.
+	Networks []Network
 	// DNS are the host's upstream resolvers. Install containers may reach
 	// them on port 53 even when they're in a blocked range (a home router,
 	// a provider's private resolver), or name resolution would fail.
@@ -57,6 +64,23 @@ type Rules struct {
 	// Open what stays open when it blocks incoming connections.
 	Host *HostRules
 	Open []OpenPort
+}
+
+// Network is one of the owner's networks.
+type Network struct {
+	Bridge  string
+	Gateway netip.Addr
+	// HostAccess lets its servers connect to the machine itself.
+	HostAccess bool
+}
+
+// serverBridges are the interfaces of every server network.
+func (r Rules) serverBridges() []string {
+	out := []string{r.ServerBridge}
+	for _, n := range r.Networks {
+		out = append(out, n.Bridge)
+	}
+	return out
 }
 
 // Why each of Raptor's rules is there. Each rule carries its reason as an
@@ -82,6 +106,11 @@ const (
 	whyDropRest    = "Blocking incoming connections: anything not allowed above is dropped"
 	whyServerNets  = "Traffic from servers' own networks isn't filtered here"
 	whyHostMeta    = "Servers on the host's network can't reach the cloud metadata service either"
+	whyBetween     = "Servers on one network can't reach servers on another"
+	whyPublished   = "Except through ports published to the internet, which anyone can reach"
+	whyGateway     = "Ports on 127.0.0.1 are only reachable from their own network's servers"
+	whyNoHostBack  = "Replies to connections from the machine get back to servers that can't reach it"
+	whyNoHost      = "This network's servers can't connect to the machine itself"
 	// yoursPrefix marks one of the owner's rules ("yours 3" is the third),
 	// whose note is shown from the saved rules.
 	yoursPrefix = "yours "
@@ -99,19 +128,44 @@ func (r Rules) Render() string {
 	}
 
 	v4, v6 := split(metadata)
+	servers := r.serverBridges()
 	w("table inet %s", Table)
 	w("delete table inet %s", Table)
 	w("table inet %s {", Table)
 
 	w("\tchain forward {")
 	w("\t\ttype filter hook forward priority filter - 1; policy accept;")
-	rule(whyMetadata, "iifname { %q, %q } ip daddr { %s } drop", r.ServerBridge, r.InstallBridge, join(v4))
-	rule(whyMetadata, "iifname { %q, %q } ip6 daddr { %s } drop", r.ServerBridge, r.InstallBridge, join(v6))
+	rule(whyMetadata, "iifname { %s, %q } ip daddr { %s } drop", quote(servers), r.InstallBridge, join(v4))
+	rule(whyMetadata, "iifname { %s, %q } ip6 daddr { %s } drop", quote(servers), r.InstallBridge, join(v6))
 	rule(whyInstallJump, "iifname %q jump install_out", r.InstallBridge)
+	if len(r.Networks) > 0 {
+		for _, b := range servers {
+			others := slices.DeleteFunc(slices.Clone(servers), func(o string) bool { return o == b })
+			rule(whyBetween, "iifname %q oifname { %s } jump between", b, quote(others))
+		}
+	}
 	if r.Host != nil {
-		rule(whyServersJump, "oifname %q jump servers_in", r.ServerBridge)
+		rule(whyServersJump, "oifname { %s } jump servers_in", quote(servers))
 	}
 	w("\t}")
+	if len(r.Networks) > 0 {
+		w("\tchain between {")
+		rule(whyPublished, "ct status dnat return")
+		rule(whyBetween, "drop")
+		w("\t}")
+	}
+
+	// Before Docker translates them (dstnat), connections to a network's
+	// gateway from anywhere but that network: ports on 127.0.0.1 are bound
+	// there, and they're for its own servers and the machine.
+	if gws := r.gateways(); len(gws) > 0 {
+		w("\tchain prerouting {")
+		w("\t\ttype filter hook prerouting priority dstnat - 1; policy accept;")
+		for _, g := range gws {
+			rule(whyGateway, "ip daddr %s iifname != { \"lo\", %q } drop", g.Gateway, g.Bridge)
+		}
+		w("\t}")
+	}
 
 	w("\tchain install_out {")
 	dns4, dns6 := split(r.DNS)
@@ -139,6 +193,12 @@ func (r Rules) Render() string {
 	w("\t\ttype filter hook input priority filter - 1; policy accept;")
 	rule(whyInstallBack, "iifname %q ct state established,related accept", r.InstallBridge)
 	rule(whyInstallHost, "iifname %q drop", r.InstallBridge)
+	for _, n := range r.Networks {
+		if !n.HostAccess {
+			rule(whyNoHostBack, "iifname %q ct state established,related accept", n.Bridge)
+			rule(whyNoHost, "iifname %q drop", n.Bridge)
+		}
+	}
 	if r.Host != nil {
 		rule(whyHostJump, "jump host_in")
 	}
@@ -249,7 +309,30 @@ func splitPrefixes(ps []netip.Prefix) (v4, v6 []string) {
 	return v4, v6
 }
 
+// gateways are the server networks whose gateways are guarded.
+func (r Rules) gateways() []Network {
+	var out []Network
+	if r.ServerGateway.IsValid() {
+		out = append(out, Network{Bridge: r.ServerBridge, Gateway: r.ServerGateway})
+	}
+	for _, n := range r.Networks {
+		if n.Gateway.IsValid() {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
 func join(s []string) string { return strings.Join(s, ", ") }
+
+// quote is interface names as an nftables set's elements.
+func quote(names []string) string {
+	q := make([]string, len(names))
+	for i, n := range names {
+		q[i] = strconv.Quote(n)
+	}
+	return join(q)
+}
 
 // maxComment is nftables' limit on a comment, less room for multi-byte
 // characters it might count differently.

@@ -42,13 +42,14 @@ var signing = map[string]string{
 	"node.disk.default": "never", "node.disk.grow": "never", "node.disk.setup": "always", "node.disks": "never",
 	"node.doctor": "never", "node.firewall": "always", "node.health": "never", "node.hostname": "never",
 	"node.logs": "never", "node.metrics": "never", "node.reboot": "always", "node.sftp": "never",
+	"node.network.delete": "never", "node.network.save": "never", "node.networks": "never",
 	"node.system": "never", "node.time": "never",
 	"node.update": "never", // the release is checked against Raptor's signing key instead
 
 	"schedule.create": "never", "schedule.delete": "never", "schedule.run": "never", "schedule.update": "never",
 
 	"server.command": "never", "server.create": "always", "server.delete": "always", "server.kill": "never",
-	"server.metrics": "never", "server.move": "never", "server.ports": "never",
+	"server.metrics": "never", "server.move": "never", "server.networks": "never", "server.ports": "never",
 	"server.reinstall": "depends", // wiping
 	"server.restart":   "never", "server.start": "never", "server.stop": "never",
 	"server.update": "depends", // the egg, install script, startup command, or image
@@ -74,6 +75,7 @@ func TestSigningPolicy(t *testing.T) {
 	RegisterUpdates(x, nil, UpdatePolicy{})
 	RegisterDisks(x, nil)
 	RegisterSystem(x, nil)
+	RegisterNetworks(x, nil, nil)
 
 	same := func(a, b any) bool { return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer() }
 	handlers := x.Handlers()

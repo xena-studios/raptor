@@ -175,6 +175,18 @@ type Metric struct {
 	PlayersMax sql.NullInt64
 }
 
+type Network struct {
+	ID         string
+	Name       string
+	Subnet     string
+	Internal   int64
+	Ipv6       int64
+	Mtu        int64
+	HostAccess int64
+	CreatedAt  int64
+	UpdatedAt  int64
+}
+
 type Schedule struct {
 	ID             string
 	ServerID       string
@@ -214,6 +226,7 @@ type Server struct {
 	UpdatedAt    int64
 	QuotaProject sql.NullInt64
 	DiskID       string
+	Networks     string
 }
 
 type SupportGrant struct {

@@ -53,6 +53,16 @@ type Runtime interface {
 	// falls back to a local copy and otherwise lets the pull decide.
 	CheckArch(ctx context.Context, image string) error
 	Version(ctx context.Context) (string, error)
+
+	// EnsureNetwork creates one of the owner's networks (docs/NETWORKS.md),
+	// or returns it if it exists as specified. One that exists with other
+	// settings is created again, which fails with ErrNetworkInUse while a
+	// container is connected to it.
+	EnsureNetwork(ctx context.Context, s NetworkSpec) (Network, error)
+	// RemoveNetwork removes one of them; one that's missing is no error.
+	RemoveNetwork(ctx context.Context, name string) error
+	// HostNetworks lists every network Docker has, Wings' or not.
+	HostNetworks(ctx context.Context) ([]HostNetwork, error)
 }
 
 // Sender writes console commands to a container's stdin.
@@ -124,6 +134,36 @@ type Networks struct {
 	CgroupParent string
 }
 
+// NetworkSpec describes one of the owner's networks.
+type NetworkSpec struct {
+	Name   string
+	Bridge string // host interface name, at most 15 characters
+	// Subnet is its IPv4 range; zero picks a free one.
+	Subnet netip.Prefix
+	// Internal networks have no internet access.
+	Internal bool
+	// IPv6 adds an IPv6 range (IPv6Subnet).
+	IPv6       bool
+	IPv6Subnet netip.Prefix
+	MTU        int // 0 = Docker's default
+}
+
+// HostNetwork is a network on the machine's Docker, for the read-only view
+// of what else runs there.
+type HostNetwork struct {
+	Name       string
+	Driver     string
+	Subnets    []netip.Prefix
+	Internal   bool
+	Containers int
+	// Raptor is one of Wings' networks.
+	Raptor bool
+}
+
+// ErrNetworkInUse is returned when a network can't be removed or changed
+// because containers are connected to it.
+var ErrNetworkInUse = errors.New("network in use")
+
 // InstallSpec describes one egg install run.
 type InstallSpec struct {
 	ServerID  string
@@ -153,7 +193,13 @@ type ServerSpec struct {
 	// HostNetwork runs the server in the host's network namespace instead of
 	// the server network. Ports are then bound by the game directly.
 	HostNetwork bool
-	Ports       []Port
+	// Networks are the server's networks, its primary first; none is the
+	// server network. Its ports are published on the primary, and
+	// 127.0.0.1 ones on its gateway.
+	Networks []Network
+	// Aliases are names other containers on its networks reach it by.
+	Aliases []string
+	Ports   []Port
 	// MachineID is a file on the host mounted read-only at /etc/machine-id
 	// ("" = none). Some servers need one (Hytale encrypts its tokens with
 	// it); Pterodactyl mounts one too.

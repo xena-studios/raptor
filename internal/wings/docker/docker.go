@@ -327,17 +327,27 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 		return "", err
 	}
 
-	ports := c.hostPorts(s.Ports)
+	nets := s.Networks
+	if len(nets) == 0 {
+		nets = []containers.Network{c.nets.Server}
+	}
+	ports := hostPorts(s.Ports, nets[0].Gateway)
 	if err := containers.CheckPorts(ports); err != nil {
 		return "", err
 	}
 
-	netMode := container.NetworkMode(c.nets.Server.Name)
+	netMode := container.NetworkMode(nets[0].Name)
+	var endpoints *network.NetworkingConfig
 	exposed := network.PortSet{}
 	bindings := network.PortMap{}
 	if s.HostNetwork {
 		netMode = network.NetworkHost
 	} else {
+		// The primary network at creation, with the default route; the
+		// others are connected after (Docker before 25 takes only one).
+		endpoints = &network.NetworkingConfig{EndpointsConfig: map[string]*network.EndpointSettings{
+			nets[0].Name: {Aliases: s.Aliases, GwPriority: 1},
+		}}
 		for _, p := range ports {
 			ip, err := netip.ParseAddr(p.IP)
 			if err != nil {
@@ -415,26 +425,37 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 			},
 			LogConfig: container.LogConfig{Type: "local", Config: map[string]string{"max-size": "20m", "max-file": "3"}},
 		},
+		NetworkingConfig: endpoints,
 	})
 	if err != nil {
 		return "", fmt.Errorf("create server container: %w", err)
+	}
+	if !s.HostNetwork {
+		for _, n := range nets[1:] {
+			if _, err := c.api.NetworkConnect(ctx, n.Name, client.NetworkConnectOptions{
+				Container: created.ID, EndpointConfig: &network.EndpointSettings{Aliases: s.Aliases},
+			}); err != nil {
+				_ = c.Remove(context.WithoutCancel(ctx), created.ID)
+				return "", fmt.Errorf("connect to network %s: %w", n.Name, err)
+			}
+		}
 	}
 	return created.ID, nil
 }
 
 // hostPorts resolves the host address each port is bound to. Like Pterodactyl,
-// an allocation on 127.0.0.1 is bound to the server network's gateway
+// an allocation on 127.0.0.1 is bound to the server's network's gateway
 // instead: loopback on the host isn't reachable from a container, but the
 // gateway is reachable from the host and other servers (e.g. a proxy) while
 // still not being exposed to the internet.
-func (c *Client) hostPorts(ports []containers.Port) []containers.Port {
+func hostPorts(ports []containers.Port, gateway netip.Addr) []containers.Port {
 	out := make([]containers.Port, 0, len(ports))
 	for _, p := range ports {
 		switch p.IP {
 		case "":
 			p.IP = "0.0.0.0"
 		case loopbackBindIP:
-			p.IP = c.nets.Server.Gateway.String()
+			p.IP = gateway.String()
 		}
 		out = append(out, p)
 	}

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/netip"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/xena-studios/raptor/internal/eggs"
@@ -102,7 +103,14 @@ type Config struct {
 	// Disk is the data disk the server's files are on ("" is the main
 	// volume). It's chosen at creation; only a move (Move) changes it.
 	Disk string
+	// Networks are the owner's networks the server is on, its primary
+	// first (docs/NETWORKS.md); none is the server network. Set at
+	// creation and by SetNetworks, never by Update.
+	Networks []string
 }
+
+// MaxNetworks bounds the networks one server is on.
+const MaxNetworks = 8
 
 // Server is a server's stored configuration and state.
 type Server struct {
@@ -183,7 +191,61 @@ func (c *Config) validate(reserved []int) (*eggs.Egg, error) {
 	if err := validateAllocations(c.Allocations, reserved); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalid, err)
 	}
+	if err := validateNetworks(c.Networks); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInvalid, err)
+	}
+	if c.HostNetwork && len(c.Networks) > 0 {
+		return nil, bad("a server on the host's network isn't on any other")
+	}
 	return egg, nil
+}
+
+// Aliases are the names a server is found by on its networks:
+// <name>.raptor, from its name ("Survival SMP" is survival-smp.raptor),
+// and <short id>.raptor, which a rename doesn't change.
+func Aliases(id, name string) []string {
+	out := []string{}
+	if slug := Slug(name); slug != "" {
+		out = append(out, slug+".raptor")
+	}
+	if len(id) >= 8 {
+		out = append(out, id[:8]+".raptor")
+	}
+	return out
+}
+
+// Slug is a name as a DNS label: lowercase letters, digits, and hyphens,
+// at most 63 characters.
+func Slug(name string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(name) {
+		if b.Len() >= 63 {
+			break
+		}
+		if r < '0' || r > '9' && r < 'a' || r > 'z' {
+			dash = true
+			continue
+		}
+		if dash && b.Len() > 0 && b.Len() < 62 {
+			b.WriteByte('-')
+		}
+		dash = false
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+func validateNetworks(ids []string) error {
+	if len(ids) > MaxNetworks {
+		return fmt.Errorf("a server is on at most %d networks", MaxNetworks)
+	}
+	for i, id := range ids {
+		if id == "" || slices.Contains(ids[:i], id) {
+			return errors.New("each network is listed once, by its ID")
+		}
+	}
+	return nil
 }
 
 // validateAllocations checks one server's allocations on their own. Conflicts
@@ -255,6 +317,12 @@ func fromRow(r store.Server, allocs []store.Allocation) (*Server, error) {
 	if err := json.Unmarshal([]byte(r.Settings), &s.Settings); err != nil {
 		return nil, fmt.Errorf("server %s settings: %w", r.ID, err)
 	}
+	// Servers from before networks, and tests' rows, have none stored.
+	if r.Networks != "" {
+		if err := json.Unmarshal([]byte(r.Networks), &s.Networks); err != nil {
+			return nil, fmt.Errorf("server %s networks: %w", r.ID, err)
+		}
+	}
 	for _, a := range allocs {
 		s.Allocations = append(s.Allocations, Allocation{IP: a.Ip, Port: int(a.Port), Primary: a.IsPrimary == 1})
 	}
@@ -264,6 +332,14 @@ func fromRow(r store.Server, allocs []store.Allocation) (*Server, error) {
 	}
 	s.egg = egg
 	return s, nil
+}
+
+// networksJSON stores a server's networks, never as null.
+func networksJSON(ids []string) string {
+	if len(ids) == 0 {
+		return "[]"
+	}
+	return mustJSON(ids)
 }
 
 func mustJSON(v any) string {

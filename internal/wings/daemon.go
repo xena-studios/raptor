@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"maps"
+	"net/netip"
 	"os"
 	"os/exec"
 	"os/user"
@@ -42,6 +43,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/link"
 	"github.com/xena-studios/raptor/internal/wings/localapi"
 	"github.com/xena-studios/raptor/internal/wings/metrics"
+	"github.com/xena-studios/raptor/internal/wings/networks"
 	"github.com/xena-studios/raptor/internal/wings/schedule"
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/sftp"
@@ -443,6 +445,23 @@ func (r *runtimeSetup) applyHostFirewall(ctx context.Context, h *firewall.HostRu
 	return nil
 }
 
+// applyNetworks loads the owner's networks into the rule set, after one
+// was made, changed, or deleted.
+func (r *runtimeSetup) applyNetworks(ctx context.Context, nets []firewall.Network) error {
+	r.fwMu.Lock()
+	defer r.fwMu.Unlock()
+	if r.rules == nil {
+		return nil // setup loads them
+	}
+	next := *r.rules
+	next.Networks = nets
+	if err := firewall.Apply(ctx, next); err != nil {
+		return err
+	}
+	r.rules = &next
+	return nil
+}
+
 // openPorts is what stays open when the node's firewall blocks incoming
 // connections: SSH, Raptor's SFTP, and servers on the host's network
 // (Docker's published ports never reach the machine's input chain).
@@ -570,9 +589,20 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 			r.disk.Watch(root)
 		}
 	}
+	// The owner's networks exist before the firewall keeps them apart and
+	// servers start on them.
+	nsvc := networks.New(networks.Options{
+		Store: r.db, Runtime: r.rt, Log: r.log, Changed: r.applyNetworks,
+		Reserved: []netip.Prefix{nets.Server.Subnet, nets.Install.Subnet},
+	})
+	if err := nsvc.Reconcile(ctx); err != nil {
+		return fmt.Errorf("networks: %w", err)
+	}
 	rules := firewall.Rules{
 		ServerBridge:  nets.Server.Bridge,
 		InstallBridge: nets.Install.Bridge,
+		ServerGateway: nets.Server.Gateway,
+		Networks:      nsvc.Firewall(ctx),
 		DNS:           firewall.HostResolvers(),
 		InstallAllow:  r.cfg.Docker.AllowedPrefixes(),
 	}
@@ -626,6 +656,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		GID:             gid,
 		Zone:            host.Timezone,
 		DockerInterface: nets.Server.Gateway.String(),
+		Networks:        nsvc,
 		ReservedPorts:   []int{r.cfg.Ports.SFTP},
 		Jobs:            r.jobs,
 		Events:          r.events,
@@ -680,6 +711,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		},
 	})
 	actions.RegisterSchedules(r.commands, sched)
+	actions.RegisterNetworks(r.commands, nsvc, mgr)
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)

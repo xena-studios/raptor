@@ -161,10 +161,13 @@ const (
 	CapChangeEgg = "change-egg"
 	// CapFilesImport: files.import copies a server's files in over SFTP.
 	CapFilesImport = "files-import"
+	// CapNetworks: the owner's networks (node.networks and the rest, and
+	// server.create's networks; docs/NETWORKS.md).
+	CapNetworks = "networks"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {
