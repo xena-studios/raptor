@@ -3,7 +3,7 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@ta
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
+import { ConfirmProvider } from "@/components/confirm";
 import { NotFound, RouteError } from "@/components/error-screen";
 import { ReauthProvider } from "@/components/reauth";
 import { ToastProvider } from "@/components/ui/toast";
@@ -47,7 +47,9 @@ createRoot(root).render(
         <ReauthProvider>
           <TooltipProvider>
             <ToastProvider>
-              <RouterProvider router={router} />
+              <ConfirmProvider>
+                <RouterProvider router={router} />
+              </ConfirmProvider>
             </ToastProvider>
           </TooltipProvider>
         </ReauthProvider>

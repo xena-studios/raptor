@@ -25,6 +25,7 @@ import {
   type TimelinePage,
   toFilter,
 } from "@/components/activity-timeline";
+import { useConfirm } from "@/components/confirm";
 import { ProviderIcon } from "@/components/provider-icons";
 import { useReauth } from "@/components/reauth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -98,6 +99,7 @@ function useRefresh() {
 
 export function Passkeys() {
   const list = useQuery(AuthService.method.listPasskeys, {});
+  const ask = useConfirm();
   const withReauth = useReauth();
   const refresh = useRefresh();
   const [name, setName] = useState("");
@@ -136,8 +138,15 @@ export function Passkeys() {
   }
 
   async function rename(id: string, current: string) {
-    const next = window.prompt("Name this passkey", current);
-    if (next === null || next.trim() === current) return;
+    const next = await ask.prompt({
+      title: "Rename the passkey",
+      description: "A name that tells you which device it's on.",
+      label: "Name",
+      initial: current,
+      maxLength: 64,
+      confirm: "Rename",
+    });
+    if (next === null || next === current) return;
     try {
       await authClient.renamePasskey({ id, name: next });
       await refresh();

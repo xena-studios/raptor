@@ -2,6 +2,7 @@ import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useMemo, useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -410,15 +411,29 @@ function Reinstall({
   userId: string;
   name: string;
 }) {
+  const ask = useConfirm();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
 
   async function reinstall(wipe: boolean) {
-    const question = wipe
-      ? `Wipe "${name}" and reinstall it? Every file is deleted (a safety backup is taken first). Type its name to confirm.`
-      : `Reinstall "${name}"? The install script runs again over its files. Type its name to confirm.`;
-    if (window.prompt(question) !== name) return;
+    const ok = await ask.confirm(
+      wipe
+        ? {
+            title: `Wipe ${name} and reinstall it?`,
+            description: "Every file is deleted, after a safety backup, then it installs clean.",
+            typeToConfirm: name,
+            confirm: "Wipe with passkey",
+            destructive: true,
+          }
+        : {
+            title: `Reinstall ${name}?`,
+            description: "The install script runs again over its files.",
+            typeToConfirm: name,
+            confirm: "Reinstall",
+          },
+    );
+    if (!ok) return;
     setBusy(true);
     setError("");
     setDone("");

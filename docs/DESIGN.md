@@ -232,6 +232,10 @@ Flat. Depth comes from tone and 1px rules: the sidebar is darker than the page, 
 - **Style:** 2.4px corners, 20px tall, Label type. The default is a red wash; outline and secondary for quieter flags.
 - **Use:** flags and ownership (`OFFICIAL`, `SHARED`, `DEFAULT`, `THIS NODE'S DISK`), never state.
 
+### Confirmations
+- **Never the browser's own dialogs** (`confirm`, `prompt`, `alert`): Biome's `noAlert` fails the build. `useConfirm()` (`web/src/components/confirm.tsx`) opens the app's dialog: a title, what happens, Cancel and the action named on its button ("Delete with passkey", not "OK"). For what can't be undone, `typeToConfirm` keeps the button off until the name is typed exactly; `prompt` asks for a value (renaming a passkey). The button is red only for what deletes or replaces.
+- Confirm only what's destructive or irreversible; everything else acts inline.
+
 ### Cards / Containers
 - **Corner Style:** 5.6px.
 - **Background:** Raised Ink, framed by a 10% foreground ring.

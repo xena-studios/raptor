@@ -4,6 +4,7 @@ import { cn } from "cn";
 import { BadgeCheck, Loader2, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ export function ChangeServerType({
   supported: boolean;
 }) {
   const client = useQueryClient();
+  const ask = useConfirm();
   const server = useQuery(OrgService.method.getServer, { orgId, nodeId, serverId });
   const catalog = useQuery(EggService.method.listEggs, { orgId }, { enabled: supported });
   const [query, setQuery] = useState("");
@@ -68,10 +70,24 @@ export function ChangeServerType({
 
   async function change() {
     if (!picked || !server.data?.configJson) return;
-    const verb = wipe
-      ? `Delete every file of this server and install ${picked.name} fresh? A backup is taken first.`
-      : `Change this server to ${picked.name}? Its install runs over the files it has.`;
-    if (!window.confirm(verb)) return;
+    const ok = await ask.confirm(
+      wipe
+        ? {
+            title: `Start fresh as ${picked.name}?`,
+            description:
+              "Every file of this server is deleted, after a backup you can restore from, and the new type installs clean.",
+            typeToConfirm: server.data.server?.name || undefined,
+            confirm: "Change with passkey",
+            destructive: true,
+          }
+        : {
+            title: `Change this server to ${picked.name}?`,
+            description:
+              "The new type's install runs over the files it has, so worlds and configs stay.",
+            confirm: "Change with passkey",
+          },
+    );
+    if (!ok) return;
     setBusy(true);
     setError("");
     try {

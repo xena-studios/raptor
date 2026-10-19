@@ -17,6 +17,9 @@
   "linter": {
     "rules": {
       "preset": "recommended",
+      "suspicious": {
+        "noAlert": "error"
+      },
       "a11y": {
         "noLabelWithoutControl": {
           "level": "error",

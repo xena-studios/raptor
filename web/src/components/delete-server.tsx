@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { message } from "@/lib/errors";
@@ -27,10 +28,18 @@ export function DeleteServer({
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const ask = useConfirm();
 
   async function remove() {
-    if (window.prompt(`Delete "${name}" and all its files? Type its name to confirm.`) !== name)
-      return;
+    const ok = await ask.confirm({
+      title: `Delete ${name}?`,
+      description:
+        "Its files, local backups, schedules, and ports go with it. This can't be undone, except by restoring a backup onto a new server.",
+      typeToConfirm: name,
+      confirm: "Delete with passkey",
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setError("");
     try {

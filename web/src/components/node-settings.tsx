@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { type FormEvent, useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { useReauth } from "@/components/reauth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,14 +90,20 @@ export function NodeRemove({
   const client = useQueryClient();
   const navigate = useNavigate();
   const withReauth = useReauth();
+  const ask = useConfirm();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function remove() {
-    const typed = window.prompt(
-      `Remove "${name}" from this org? Its servers keep running on the machine, but you can't manage them here until it's linked again. Type its name to confirm.`,
-    );
-    if (typed !== name) return;
+    const ok = await ask.confirm({
+      title: `Remove ${name} from this org?`,
+      description:
+        "Its servers keep running on the machine, but you can't manage them here until it's linked again. It stops counting toward your plan.",
+      typeToConfirm: name,
+      confirm: "Remove node",
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setError("");
     try {
