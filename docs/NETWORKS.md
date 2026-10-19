@@ -1,6 +1,6 @@
 # Networks
 
-Docker networks for servers, managed from the app: separate communities on one node kept apart, proxies that reach only their own backends, and the network side of [databases](DATABASES.md). Wings' side of phase 1 is built (networks, isolation, servers on them); the app's Networks tab is next, then rules between networks ([ROADMAP.md](ROADMAP.md#networks-and-databases), DECISIONS #300–#302).
+Docker networks for servers, managed from the app: separate communities on one node kept apart, proxies that reach only their own backends, and the network side of [databases](DATABASES.md). Phase 1 is built: networks, isolation, servers on them, the node's Networks tab, the server's Networks card, and the network picker in Deploy server. Rules between networks are next ([ROADMAP.md](ROADMAP.md#networks-and-databases), DECISIONS #300–#302).
 
 ## Today
 
@@ -41,7 +41,7 @@ For what should cross, an owner adds an **allow rule**: from a network (or one s
 
 ## In the app
 
-The node's **Networks** tab (admins and owners):
+The node's **Networks** tab (admins and owners; `web/src/components/node-networks.tsx`). Making a network takes only a name. Internet access, Reach the machine, IPv6, the subnet, and the MTU wait under **Advanced**, which is open when editing a network that has any of them changed. The tab has:
 
 - every Raptor network, with its subnet, its servers and database instances, and its settings;
 - **New network**, and editing or deleting one (a network with servers on it can't be deleted; move them first);

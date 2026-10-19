@@ -4,10 +4,12 @@ import { ServerAddress } from "@/components/address";
 import { ConnectionTest } from "@/components/connection-test";
 import { DetailList } from "@/components/page";
 import { ShownAddress } from "@/components/server-address";
+import { ServerNetworks } from "@/components/server-networks";
 import { ServerSettings } from "@/components/server-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { nodeHostname } from "@/lib/addresses";
 import { useIds } from "@/lib/ids";
+import { networksCapability } from "@/lib/networks";
 import { can, useServer } from "@/lib/org-data";
 
 export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/network")({
@@ -54,6 +56,14 @@ function NetworkTab() {
             admin={can(server, "*")}
             canReinstall={false}
             stopped={false}
+          />
+        )}
+        {can(server, "*") && node?.connected && node.capabilities.includes(networksCapability) && (
+          <ServerNetworks
+            orgId={orgId}
+            nodeId={nodeId}
+            serverId={serverId}
+            running={!["offline", "crashed", "install_failed", ""].includes(server.state)}
           />
         )}
         {can(server, "*") && (

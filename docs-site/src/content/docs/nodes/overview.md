@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-A **node** is a machine you've linked to your org. Its page has tabs for its **Overview**, **Health**, **Backups**, **Disks**, **System**, **Activity**, and **Settings** (all but Overview for admins and owners).
+A **node** is a machine you've linked to your org. Its page has tabs for its **Overview**, **Health**, **Backups**, **Disks**, **Networks**, **System**, **Activity**, and **Settings** (all but Overview for admins and owners).
 
 ## Overview
 
