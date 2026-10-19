@@ -2,6 +2,7 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import Logo from "../components/Logo.astro";
+import Screen from "../components/Screen.astro";
 import "../styles/site.css";
 
 const app = "https://app.raptorpanel.net";
@@ -9,9 +10,9 @@ const start = `${app}/signin`;
 const docs = "https://docs.raptorpanel.net";
 const discord = "https://discord.gg/HyUa3sRpeN";
 const source = "https://github.com/xena-studios/raptor";
-const title = "Raptor: game servers on your own machines";
+const title = "Raptor: run game servers on your own machine. First month free.";
 const description =
-  "Turn a Linux box you own or rent into a game server host you run from your browser. One command to set up, $12 a month per machine, first month free. Open source.";
+  "Turn a Linux box you own or rent into your own game server host, with a console, files, backups, and schedules in your browser. As many servers as it can run, $12 a month per machine, and the first month free.";
 
 // What the installer prints, step by step (cmd/raptor/bootstrap.go).
 const install: [kind: string, text: string][] = [
@@ -21,98 +22,73 @@ const install: [kind: string, text: string][] = [
   ["note", "Debian GNU/Linux 12 (bookworm), amd64, systemd, cgroups v2"],
   ["step", "==> Installing packages"],
   ["step", "==> Docker"],
-  ["note", "merged live-restore, userland-proxy off, log rotation"],
-  ["step", "==> The raptor user"],
   ["step", "==> Server data volume"],
-  ["note", "image: an XFS image file on this disk, with hard limits"],
+  ["note", "an XFS volume with hard disk limits per server"],
   ["step", "==> Services"],
-  ["note", "raptor-wings and raptor-shutdown enabled and started"],
   ["step", "==> Linking to the Panel"],
   ["done", "Linked. Your node is online."],
 ];
 
+// The comparison: what owners weigh Raptor against.
+const compare: { row: string; host: string; ptero: string; raptor: string }[] = [
+  { row: "What you pay for", host: "Each server, by its memory", ptero: "Your machine", raptor: "Your machine, and $12 a month for it" },
+  { row: "How many servers", host: "As many as you pay for", ptero: "As many as it runs", raptor: "As many as it runs" },
+  { row: "A panel to install and update", host: "No", ptero: "Yes: web server, database, certificates", raptor: "No" },
+  { row: "Backups", host: "Often extra", ptero: "Set them up yourself", raptor: "On by default, encrypted" },
+  { row: "If the panel goes down", host: "Depends on the host", ptero: "You can't manage servers", raptor: "Servers, schedules, and backups carry on" },
+  { row: "Your data", host: "On their machines", ptero: "On yours", raptor: "On yours" },
+];
+
+// The tour: each part of the app, with its own screenshot.
+const tour = [
+  {
+    id: "console",
+    shot: "console",
+    title: "Know how every server is doing, at a glance.",
+    text: "Each server opens on its live console and what it's using: CPU, memory, disk, network, and players. Type commands, restart it, or pop the console out into its own window.",
+    points: ["Crash detection and restarts, on by default", "Resource history for the last hour, day, or week", "Alerts when a server goes down, to Discord, Slack, email, and more"],
+    alt: "A Minecraft server's page in Raptor: running, its CPU, memory, disk, and network, and its live console",
+  },
+  {
+    id: "files",
+    shot: "files",
+    title: "A real file manager, not an FTP client.",
+    text: "Browse, edit configs with syntax highlighting, and upload worlds and modpacks up to 1 GB each. Paste a link and the machine downloads it itself; bring a whole server over from another host.",
+    points: ["A trash, so nothing's gone by accident", "SFTP straight to your machine for anything bigger", "Archives made and extracted on the machine"],
+    alt: "Raptor's file manager showing a Minecraft server's folders and files, with a folder tree beside the list",
+  },
+  {
+    id: "backups",
+    shot: "backups",
+    title: "Backups that happen, and restores that work.",
+    text: "New servers back up every day without you setting anything up. Backups are incremental and encrypted on your machine, and you can open one and restore a single file or the whole server.",
+    points: ["Keep them on the machine, in your own S3, B2, or SFTP, or with us", "Schedules: warn players, wait, back up, restart", "A safety backup before a wipe or a full restore"],
+    alt: "A server's backups in Raptor: each backup with when it was taken, where it is, and its size",
+  },
+  {
+    id: "activity",
+    shot: "activity",
+    title: "Bring your team. See who did what.",
+    text: "Invite friends or staff as owners, admins, or members, and give each one exactly the permissions they need on each server. Everything anyone does is recorded and searchable.",
+    points: ["Per-server permissions: console, files, backups, power", "Search activity by person, date, IP, or kind", "Dangerous actions need the owner's passkey"],
+    alt: "A server's activity in Raptor: who did what and when, with filters to search it",
+  },
+];
+
 const claims: [string, string][] = [
-  [
-    "Dangerous actions need your passkey.",
-    "Deleting a server, restoring a backup, or changing what code runs is signed on your device and checked by your node. Not even Raptor can do them without you.",
-  ],
-  [
-    "Your servers don't need us to keep running.",
-    "The node runs your servers, schedules, backups, and crash restarts on its own. If Raptor goes offline, your games stay up.",
-  ],
-  [
-    "Your files stay on your machine.",
-    "Players connect straight to your node. Backups are encrypted with your node's own key and go where you choose: the node itself, S3-compatible storage, SFTP, and more.",
-  ],
-  [
-    "Disk limits the kernel enforces.",
-    "Each server gets a hard limit, so one that fills its disk can't take the others down with it.",
-  ],
-  [
-    "Open source, all of it.",
-    "Raptor is AGPL-3.0, and the app links to the exact commit it's running.",
-  ],
+  ["Your servers don't need us to keep running.", "Your machine runs your servers, schedules, backups, and crash restarts on its own. If Raptor goes offline, your games stay up."],
+  ["Dangerous actions need your passkey.", "Deleting a server, restoring a backup, or changing what code runs is signed on your device and checked by your machine. Not even Raptor can do it without you."],
+  ["Your files stay on your machine.", "Players connect straight to it, and backups are encrypted with its own key before they go anywhere."],
+  ["Open source, all of it.", "Raptor is AGPL-3.0: read every line that runs on your machine."],
 ];
 
 // The catalog's eggs (eggs/<category>/<egg>), counted at build time so the
-// number stays true.
-// The build runs in site/.
+// number stays true. The build runs in site/.
 const eggs = join(process.cwd(), "..", "eggs");
 const catalog = readdirSync(eggs, { withFileTypes: true })
   .filter((d) => d.isDirectory())
   .flatMap((d) => readdirSync(join(eggs, d.name), { withFileTypes: true }))
   .filter((d) => d.isDirectory()).length;
-
-// What's in the app, in the order an owner meets it.
-const features: [string, string][] = [
-  ["Console and stats", "A live console you can type into, players online, and CPU, memory, and disk over the last hour, day, or week."],
-  ["Files", "A file manager with a code editor, uploads up to 1 GB, links downloaded straight onto the machine, imports from another host, and SFTP for the rest."],
-  ["Backups", "On by default: incremental, deduplicated, and encrypted, kept on the machine, in your own S3, B2, or SFTP storage, or in ours."],
-  ["Schedules", "Warn the players, wait, back up, restart: steps in order, in your time zone."],
-  ["Alerts", "A server down or crashing, a machine offline, disk running low: to your inbox, email, Discord, Slack, ntfy, or a webhook."],
-  ["Teams", "Orgs with owners, admins, and members, permissions per server, and a searchable record of everything anyone did."],
-];
-
-// A server's console, as the app shows it.
-const console_: [kind: string, text: string][] = [
-  ["dim", "[12:04:31 INFO]: Done (6.412s)! For help, type \"help\""],
-  ["", "[12:06:02 INFO]: Steve joined the game"],
-  ["", "[12:06:40 INFO]: <Steve> anyone up for the nether?"],
-  ["", "[12:07:15 INFO]: Alex joined the game"],
-  ["dim", "[12:10:00 INFO]: [Raptor] Backing up in 5 minutes"],
-  ["prompt", "> say Back in a minute after the backup"],
-];
-
-// Resources over the last hour, for the sparkline: CPU %, every 5 minutes.
-const cpu = [22, 31, 28, 35, 41, 38, 52, 47, 44, 39, 36, 38];
-const spark = cpu.map((v, i) => `${(i / (cpu.length - 1)) * 100},${40 - (v / 60) * 36}`).join(" ");
-
-const faq: [string, string][] = [
-  [
-    "What do I need?",
-    "A Linux machine you can run commands on as root: a dedicated server, a VPS, or a box at home, with Debian 12 or 13 or Ubuntu 24.04, on x86 or ARM. Raptor installs Docker and everything else.",
-  ],
-  [
-    "Do I have to open ports?",
-    "Not for Raptor: the machine connects out to it. Players need the game's own port open, and the connection test tells you if they can't reach it, with steps for your provider's firewall.",
-  ],
-  [
-    "What happens if Raptor goes down?",
-    "Nothing your players notice. Servers keep running, schedules keep firing, and backups keep happening on the machine. You can still start, stop, and read logs from the machine itself with the raptor command.",
-  ],
-  [
-    "How is this different from Pterodactyl?",
-    "There's no panel to install, secure, or update, and no ports, certificates, or DNS to set up for it. Raptor reads Pterodactyl and Pelican eggs, and raptor import pterodactyl moves your servers over on the same machine.",
-  ],
-  [
-    "What if I stop paying?",
-    "The panel goes read-only for that machine. Raptor never stops your servers over billing, and the raptor command on the machine keeps working.",
-  ],
-  [
-    "Can Raptor touch my servers without me?",
-    "Not the parts that matter. Deleting servers, restoring backups, and changing what code runs have to be signed by your passkey, and your machine checks the signature itself.",
-  ],
-];
 
 const games: [string, string][] = [
   ["Minecraft", "Paper, Purpur, Fabric, Forge, NeoForge, Quilt, Vanilla, Bedrock"],
@@ -121,6 +97,15 @@ const games: [string, string][] = [
   ["Standalone", "Terraria, Factorio, Vintage Story, OpenTTD, and more"],
   ["Bots and apps", "Node.js, Python, Bun"],
   ["Voice", "TeamSpeak, Mumble"],
+];
+
+const faq: [string, string][] = [
+  ["Is the first month really free?", "Yes. Link your first machine and Raptor costs nothing for a month. A card is needed to start; you're charged $12 when the month is up, unless you cancel first, in the app's billing settings."],
+  ["What do I need?", "A Linux machine you can run commands on as root: a dedicated server, a VPS, or a box at home, with Debian 12 or 13 or Ubuntu 24.04, on x86 or ARM. Raptor installs Docker and everything else."],
+  ["Do I have to open ports?", "Not for Raptor: your machine connects out to it. Players need the game's own port open, and the connection test tells you if they can't reach it, with steps for your provider's firewall."],
+  ["What happens if Raptor goes down?", "Nothing your players notice. Servers keep running, schedules keep firing, and backups keep happening on the machine, and the raptor command there still starts, stops, and shows logs."],
+  ["I'm on Pterodactyl. Can I move?", "Raptor reads Pterodactyl and Pelican eggs, and raptor import pterodactyl moves your servers over on the same machine, files and all."],
+  ["What if I stop paying?", "The panel goes read-only for that machine. Raptor never stops your servers over billing, and the raptor command on the machine keeps working."],
 ];
 ---
 
@@ -142,7 +127,7 @@ const games: [string, string][] = [
     <meta property="og:image" content="https://raptorpanel.net/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Raptor: game servers on your own machines, run from one place." />
+    <meta property="og:image:alt" content="Raptor: your own game servers, on your own machine. First month free." />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
@@ -150,118 +135,128 @@ const games: [string, string][] = [
     <header class="wrap top">
       <a class="brand" href="/" aria-label="Raptor, home"><Logo /></a>
       <nav aria-label="Main">
+        <a class="wide" href="#tour">Tour</a>
         <a class="wide" href="#pricing">Pricing</a>
         <a href={docs}>Docs</a>
         <a class="wide" href={discord}>Discord</a>
-        <a class="wide" href={source}>GitHub</a>
-        <a class="button small" href={app}>Sign in</a>
+        <a class="link-signin" href={app}>Sign in</a>
+        <a class="button small primary" href={start}>Start free</a>
       </nav>
     </header>
 
     <main id="main">
-      <div class="wrap hero">
-        <div>
-          <p class="chip">[ Early access ]</p>
-          <h1>Game servers on your own machines, <span class="accent">run from one place.</span></h1>
+      <div class="hero">
+        <div class="wrap hero-copy">
+          <a class="offer" href="#pricing">
+            <span class="offer-tag">First month free</span>
+            <span>Then $12 a month per machine, every server included</span>
+          </a>
+          <h1>Your own game servers, <span class="accent">on your own machine.</span></h1>
           <p class="lead">
-            Bring a Linux box you own or rent. Paste one command on it, then create servers and
-            manage their consoles, files, backups, and schedules from your browser. There's no
-            panel to install and nothing to keep updated.
+            Raptor turns a Linux box you own or rent into a game server host, with a console, files,
+            backups, and schedules in your browser. No panel to install, no per-server bills: run as
+            many as your machine can handle.
           </p>
           <div class="actions">
-            <a class="button primary" href={start}>Get started</a>
-            <a class="button" href={`${docs}/install/first-node/`}>Read the guide</a>
+            <a class="button primary large" href={start}>Start your free month</a>
+            <a class="button large" href="#tour">Take the tour</a>
           </div>
-          <p class="fine">$12 a month per machine. The first month is free.</p>
+          <p class="fine">Free for 30 days, then $12 a month. Cancel anytime from the app.</p>
         </div>
-
-        <figure class="terminal" aria-label="Linking a node: the installer checks the machine, installs Docker and Raptor, and links it">
-          <div class="terminal-bar" aria-hidden="true">
-            <span>root@your-box</span>
-            <span class="live">[ Connected ]</span>
-          </div>
-          <pre aria-hidden="true">{
-            install.map(([kind, text], i) => (
-              <span class={`line ${kind}`} style={`--i: ${i}`}>{text}</span>
-            ))
-          }</pre>
-        </figure>
+        <div class="wrap hero-shot">
+          <Screen shot="server" alt="A Minecraft server running in Raptor: its live console, CPU, memory, disk, network, and players" eager />
+        </div>
       </div>
 
-      <section aria-labelledby="how">
+      <section aria-labelledby="why" class="why">
         <div class="wrap">
-          <h2 id="how">From a bare machine to a server your friends can join.</h2>
-          <ol class="steps">
-            <li>
-              <h3>Connect a node</h3>
-              <p>In the app, choose Connect node. You get one command, with a token that works once, for an hour.</p>
-            </li>
-            <li>
-              <h3>Paste it on your machine</h3>
-              <p>It installs Docker and Raptor, sets up disk limits, and links the machine. Debian 12 or 13, or Ubuntu 24.04, on x86 or ARM.</p>
-            </li>
-            <li>
-              <h3>Create a server</h3>
-              <p>Pick a game and name it. Raptor installs and starts it, and players connect straight to your machine.</p>
-            </li>
-          </ol>
+          <h2 id="why">Pay for the machine, not for every server on it.</h2>
+          <p class="intro">
+            A game host bills each server by its memory. Running Pterodactyl yourself means keeping a
+            panel alive. Raptor is one flat price for the machine, with the panel taken care of.
+          </p>
+          <div class="table-scroll">
+            <table class="compare">
+              <thead>
+                <tr>
+                  <th scope="col"><span class="sr-only">What</span></th>
+                  <th scope="col">A game host</th>
+                  <th scope="col">Pterodactyl on your machine</th>
+                  <th scope="col" class="us">Raptor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compare.map((c) => (
+                  <tr>
+                    <th scope="row">{c.row}</th>
+                    <td data-label="A game host">{c.host}</td>
+                    <td data-label="Pterodactyl">{c.ptero}</td>
+                    <td class="us" data-label="Raptor">{c.raptor}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      <section aria-labelledby="app">
-        <div class="wrap product">
-          <div>
-            <h2 id="app">Everything a server needs, in your browser.</h2>
-            <p class="intro">
-              One place for every server on every machine you link, from a phone or a laptop.
-            </p>
-          </div>
-
-          <figure class="window" aria-label="A server's overview in the app: it's running, two players are online, its CPU over the last hour, and its console">
-            <div class="window-bar" aria-hidden="true">
-              <span class="window-title">Survival</span>
-              <span class="window-sub">Paper 1.21.4 · home-box</span>
-              <span class="state">[ Running ]</span>
-            </div>
-            <div class="window-body" aria-hidden="true">
-              <div class="readouts">
-                <div><span class="label">Players</span><span class="value">2<span class="of"> / 20</span></span></div>
-                <div><span class="label">Memory</span><span class="value">3.1<span class="of"> / 6 GB</span></span></div>
-                <div><span class="label">Disk</span><span class="value">8.4<span class="of"> / 40 GB</span></span></div>
-              </div>
-              <div class="chart">
-                <span class="label">CPU, last hour</span>
-                <svg viewBox="0 0 100 40" preserveAspectRatio="none">
-                  <polyline points={spark} fill="none" vector-effect="non-scaling-stroke" />
-                </svg>
-              </div>
-              <div class="address">
-                <span class="label">Connect</span>
-                <code>1cdd002cd9a3.raptornodes.net:25565</code>
-              </div>
-              <pre class="console">{
-                console_.map(([kind, text]) => <span class={`line ${kind}`}>{text}</span>)
-              }</pre>
-            </div>
-          </figure>
-          <dl class="features">
-              {features.map(([term, detail]) => (
+      <section aria-labelledby="tour" class="tour">
+        <div class="wrap">
+          <h2 id="tour">Everything a server needs, in one place.</h2>
+          <p class="intro">Real screens from the app, running real servers.</p>
+          {tour.map((t, i) => (
+            <article class="feature" aria-labelledby={`f-${t.id}`}>
+              <div class="feature-copy">
+                <h3 id={`f-${t.id}`}><span class="feature-n">0{i + 1}</span>{t.title}</h3>
                 <div>
-                  <dt>{term}</dt>
-                  <dd>{detail}</dd>
+                  <p>{t.text}</p>
+                  <ul>
+                    {t.points.map((p) => <li>{p}</li>)}
+                  </ul>
                 </div>
-              ))}
-            </dl>
+              </div>
+              <Screen shot={t.shot} alt={t.alt} />
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="how" class="how">
+        <div class="wrap how-grid">
+          <div>
+            <h2 id="how">From a bare machine to a server your friends can join, in minutes.</h2>
+            <ol class="steps">
+              <li>
+                <h3>Connect a node</h3>
+                <p>Sign up, choose Connect node, and copy one command, with a token that works once.</p>
+              </li>
+              <li>
+                <h3>Paste it on your machine</h3>
+                <p>It installs Docker and Raptor, sets up disk limits, and links the machine. Debian 12 or 13, or Ubuntu 24.04, on x86 or ARM.</p>
+              </li>
+              <li>
+                <h3>Pick a game</h3>
+                <p>Raptor installs it and starts it. Players connect straight to your machine, at an address it comes with.</p>
+              </li>
+            </ol>
+          </div>
+          <figure class="terminal" aria-label="Linking a node: the installer checks the machine, installs Docker and Raptor, and links it">
+            <div class="terminal-bar" aria-hidden="true">
+              <span>root@your-box</span>
+              <span class="live">[ Connected ]</span>
+            </div>
+            <pre aria-hidden="true">{
+              install.map(([kind, text], i) => (
+                <span class={`line ${kind}`} style={`--i: ${i}`}>{text}</span>
+              ))
+            }</pre>
+          </figure>
         </div>
       </section>
 
       <section aria-labelledby="yours">
         <div class="wrap">
           <h2 id="yours">Your machine stays yours.</h2>
-          <p class="intro">
-            Raptor manages your servers without owning them. The parts that could hurt you are the
-            parts that need you.
-          </p>
           <dl class="claims">
             {claims.map(([term, reason]) => (
               <div>
@@ -278,9 +273,9 @@ const games: [string, string][] = [
           <div>
             <h2 id="games">Runs what Pterodactyl runs.</h2>
             <p class="intro">
-              Raptor reads Pterodactyl and Pelican eggs, so anything with one can run, and its
-              catalog has {catalog} ready to pick. Already on Pterodactyl? <code>raptor import pterodactyl</code>{" "}
-              moves your servers over on the same machine.
+              Raptor reads Pterodactyl and Pelican eggs, so anything with one can run, and {catalog}
+              are ready to pick. Already on Pterodactyl? <code>raptor import pterodactyl</code> moves
+              your servers over on the same machine.
             </p>
           </div>
           <ul class="certified" aria-label="Supported games and apps">
@@ -290,58 +285,62 @@ const games: [string, string][] = [
           </ul>
         </div>
       </section>
-      <section aria-labelledby="pricing">
+
+      <section aria-labelledby="pricing" class="pricing-section">
         <div class="wrap pricing">
           <div>
-            <h2 id="pricing">One price per machine. Everything included.</h2>
+            <h2 id="pricing">One price. Every feature. Your first month free.</h2>
             <p class="intro">
-              Unlimited servers, people, schedules, and backups on every machine. No limits on RAM,
-              CPU, or players: it's your hardware.
+              Unlimited servers, people, schedules, and backups on every machine, and no limits on RAM,
+              CPU, or players: it's your hardware. Ten servers on one machine is still $12.
             </p>
           </div>
           <div class="price">
-            <p class="amount"><span class="figure">$12</span> a month per machine</p>
+            <p class="price-first"><span class="figure">$0</span> for your first month</p>
+            <p class="price-then">then <strong>$12</strong> a month for each machine you link</p>
             <ul>
-              <li>The first machine is free for a month. A card is needed to start.</li>
-              <li>10 GB of Raptor Backup Storage with every machine, shared across the org; more is $12 per TB a month, billed by the GB.</li>
-              <li>If you stop paying, the panel goes read-only. Your servers keep running.</li>
-              <li>Taxes and VAT are handled by Polar, who bills for us.</li>
+              <li>Every feature, on every machine</li>
+              <li>10 GB of Raptor Backup Storage per machine, then $12 per TB a month</li>
+              <li>Read-only if you stop paying: your servers keep running</li>
+              <li>Cancel anytime from the app; taxes handled by Polar, who bills for us</li>
             </ul>
-            <a class="button primary" href={start}>Start the free month</a>
+            <a class="button primary large block" href={start}>Start your free month</a>
+            <p class="fine">A card is needed to start. Nothing is charged for 30 days.</p>
           </div>
         </div>
       </section>
 
       <section aria-labelledby="faq">
         <div class="wrap faq">
-          <h2 id="faq">Questions people ask first.</h2>
+          <div>
+            <h2 id="faq">Questions people ask first.</h2>
+            <p class="fine">
+              More in <a href={docs}>the docs</a>, or ask on <a href={discord}>Discord</a>.
+            </p>
+          </div>
           <div class="answers">
-            {faq.map(([q, a]) => (
-              <details>
+            {faq.map(([q, a], i) => (
+              <details open={i === 0}>
                 <summary>{q}</summary>
                 <p>{a}</p>
               </details>
             ))}
-            <p class="fine">
-              More in <a href={docs}>the docs</a>, or ask on <a href={discord}>Discord</a>.
-            </p>
           </div>
         </div>
       </section>
     </main>
 
-    <aside class="status" aria-labelledby="status">
+    <aside class="closing" aria-labelledby="closing">
       <div class="wrap">
-        <div>
-          <h2 id="status">Raptor is in early access.</h2>
-          <p class="intro">
-            It runs in production and billing is live, but it's young: expect rough edges, and tell
-            us about them. Bugs, requests, and help are on Discord; every line is on GitHub.
-          </p>
-        </div>
+        <p class="chip">[ Early access ]</p>
+        <h2 id="closing">Your first month is on us.</h2>
+        <p class="intro">
+          Link a machine, start a server, and see if it's for you. Raptor is young and getting better
+          every week; tell us what you need on Discord.
+        </p>
         <div class="actions">
-          <a class="button" href={discord}>Join the Discord</a>
-          <a class="button primary" href={start}>Get started</a>
+          <a class="button primary large" href={start}>Start your free month</a>
+          <a class="button large" href={discord}>Join the Discord</a>
         </div>
       </div>
     </aside>

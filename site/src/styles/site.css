@@ -168,41 +168,85 @@ code {
   min-height: 2rem;
   padding: 0 0.75rem;
 }
-
-/* Hero */
-.hero {
-  display: grid;
-  gap: clamp(2.5rem, 6vw, 4.5rem);
-  align-items: center;
-  padding-block: clamp(3rem, 9vw, 7rem) clamp(4rem, 10vw, 8rem);
+.button.large {
+  min-height: 3rem;
+  padding: 0 1.375rem;
+  font-size: 0.8125rem;
 }
-@media (min-width: 62rem) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+.button.block {
+  width: 100%;
+  justify-content: center;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 30rem) {
+  .top .link-signin {
+    display: none;
   }
 }
-.chip {
+
+/* Hero: the offer, the promise, and the app itself. */
+.hero {
+  position: relative;
+  isolation: isolate;
+  padding-top: clamp(3rem, 8vw, 6rem);
+}
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.offer {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+  padding: 0.375rem 0.875rem 0.375rem 0.375rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--muted);
+  text-decoration: none;
+  transition: border-color 160ms var(--ease);
+}
+.offer:hover {
+  border-color: var(--muted);
+}
+.offer-tag {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: var(--red);
+  color: var(--on-red);
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--warn);
 }
 h1 {
-  margin: 1.25rem 0 0;
-  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);
-  line-height: 1.02;
+  max-width: 16ch;
+  margin: 1.5rem 0 0;
+  font-size: clamp(2.625rem, 1.5rem + 4.6vw, 5.25rem);
+  line-height: 1;
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   text-wrap: balance;
 }
 h1 .accent {
   color: var(--red);
 }
 .lead {
-  max-width: 34rem;
+  max-width: 40rem;
   margin: 1.5rem 0 0;
-  font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.3125rem);
   color: var(--muted);
   text-wrap: pretty;
 }
@@ -212,10 +256,225 @@ h1 .accent {
   gap: 0.75rem;
   margin-top: 2rem;
 }
+.hero .actions {
+  justify-content: center;
+}
 .fine {
   margin: 1.25rem 0 0;
   font-size: 0.875rem;
   color: var(--muted);
+}
+/* The screenshot sits across the edge of the next band, so the page
+   steps from the promise into the product. */
+.hero-shot {
+  position: relative;
+  margin-top: clamp(3rem, 7vw, 5rem);
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: clamp(8rem, 22vw, 18rem);
+  background: var(--raised);
+  border-top: 1px solid var(--rule);
+  z-index: -1;
+}
+
+/* A screenshot of the app, framed like its window. */
+.screen {
+  margin: 0;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.screen-bar {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--raised);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.screen img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Why: the comparison, with Raptor's column picked out. */
+section.why {
+  background: var(--raised);
+  border-top: 0;
+}
+.table-scroll {
+  margin-top: clamp(2rem, 4vw, 3rem);
+  overflow-x: auto;
+}
+.compare {
+  width: 100%;
+  min-width: 44rem;
+  border-collapse: collapse;
+  font-size: 0.9688rem;
+}
+.compare th,
+.compare td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+}
+.compare thead th {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.compare tbody th {
+  width: 22%;
+  font-weight: 600;
+}
+.compare td {
+  color: var(--muted);
+}
+.compare .us {
+  background: color-mix(in oklch, var(--red) 9%, transparent);
+  color: var(--text);
+}
+.compare thead .us {
+  color: var(--red);
+}
+/* On a phone each row stands alone, Raptor's answer first. */
+@media (max-width: 44rem) {
+  .compare {
+    min-width: 0;
+  }
+  .compare thead {
+    display: none;
+  }
+  .compare tr {
+    display: flex;
+    flex-direction: column;
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .compare th,
+  .compare td {
+    padding: 0.375rem 0;
+    border: 0;
+  }
+  .compare tbody th {
+    width: auto;
+  }
+  .compare td::before {
+    content: attr(data-label) ": ";
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .compare td.us {
+    order: -1;
+    margin-top: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+  }
+  .compare td.us::before {
+    color: var(--red);
+  }
+  .compare tbody th {
+    order: -2;
+  }
+}
+
+/* The tour: each part's pitch, then the screen, full width so it reads. */
+.feature {
+  margin-top: clamp(4rem, 9vw, 7rem);
+}
+.feature-copy {
+  display: grid;
+  gap: 1rem clamp(2rem, 5vw, 4rem);
+  margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
+}
+@media (min-width: 62rem) {
+  .feature-copy {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: start;
+  }
+}
+.feature h3 {
+  margin: 0;
+  font-size: clamp(1.625rem, 1.25rem + 1.3vw, 2.25rem);
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+/* The tour is a sequence through the app, so its parts are numbered. */
+.feature-n {
+  display: block;
+  margin-bottom: 0.625rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--red);
+}
+.feature p {
+  margin: 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.feature ul {
+  display: grid;
+  gap: 0 1.5rem;
+}
+@media (min-width: 40rem) {
+  .feature ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .feature li {
+    font-size: 0.9063rem;
+  }
+}
+.feature ul,
+.price ul {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.feature li,
+.price li {
+  position: relative;
+  padding: 0.625rem 0 0.625rem 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9688rem;
+}
+.feature li::before,
+.price li::before {
+  content: "+";
+  position: absolute;
+  left: 0;
+  font-family: var(--mono);
+  color: var(--red);
+}
+
+/* How: the steps beside what the install prints. */
+.how-grid {
+  display: grid;
+  gap: clamp(2.5rem, 5vw, 4rem);
+  align-items: center;
+}
+@media (min-width: 62rem) {
+  .how-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 /* The terminal: what the install actually prints. */
@@ -317,11 +576,8 @@ h2 {
   list-style: none;
   counter-reset: step;
 }
-@media (min-width: 52rem) {
-  .steps {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(2rem, 4vw, 3.5rem);
-  }
+.steps {
+  gap: 1.75rem;
 }
 .steps li {
   counter-increment: step;
@@ -420,169 +676,10 @@ h2 {
   }
 }
 
-/* The app: what it does beside what it looks like. */
-.product {
-  display: grid;
-  gap: clamp(2.5rem, 6vw, 4.5rem);
-}
-@media (min-width: 62rem) {
-  .product {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-    align-items: center;
-  }
-  .product .features {
-    grid-column: 1 / -1;
-  }
-}
-.features {
-  display: grid;
-  gap: 2rem clamp(2rem, 4vw, 3.5rem);
-  margin: 0;
-}
-@media (min-width: 40rem) {
-  .features {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (min-width: 62rem) {
-  .features {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-.features div {
-  padding-top: 1rem;
-  border-top: 1px solid var(--rule);
-}
-.features dt {
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.features dd {
-  margin: 0.375rem 0 0;
-  color: var(--muted);
-  font-size: 0.9688rem;
-  text-wrap: pretty;
-}
-
-/* A server's overview, drawn in the app's own system. */
-.window {
-  margin: 0;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
+/* Pricing: the free month first, then the price. */
+section.pricing-section {
   background: var(--raised);
-  overflow: hidden;
 }
-.window-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 0.75rem;
-  padding: 0.875rem 1.125rem;
-  border-bottom: 1px solid var(--rule);
-}
-.window-title {
-  font-weight: 600;
-}
-.window-sub {
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-.window .state {
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--ok);
-}
-.window-body {
-  display: grid;
-  gap: 1.125rem;
-  padding: 1.125rem;
-}
-.label {
-  display: block;
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.readouts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-}
-.readouts div {
-  padding: 0.75rem 0.875rem;
-}
-.readouts div + div {
-  border-left: 1px solid var(--rule);
-}
-.value {
-  display: block;
-  margin-top: 0.25rem;
-  font-family: var(--mono);
-  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-@media (max-width: 30rem) {
-  .readouts div {
-    padding: 0.625rem;
-  }
-  .value {
-    font-size: 1rem;
-  }
-}
-.value .of {
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: var(--muted);
-}
-.chart svg {
-  display: block;
-  width: 100%;
-  height: 4.5rem;
-  margin-top: 0.5rem;
-  border-bottom: 1px solid var(--rule);
-}
-.chart polyline {
-  stroke: var(--red);
-  stroke-width: 1.5;
-  stroke-linejoin: round;
-}
-.address code {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.8125rem;
-  overflow-wrap: anywhere;
-}
-.console {
-  margin: 0;
-  padding: 0.875rem 1rem;
-  border-radius: 4px;
-  background: var(--terminal);
-  color: var(--terminal-text);
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.console .line {
-  display: block;
-}
-.console .dim {
-  color: var(--terminal-dim);
-}
-.console .prompt {
-  color: oklch(0.66 0.19 25);
-}
-
-/* Pricing: one number, and what comes with it. */
 .pricing {
   display: grid;
   gap: 2.5rem;
@@ -590,39 +687,41 @@ h2 {
 @media (min-width: 62rem) {
   .pricing {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
+    align-items: center;
   }
 }
 .price {
-  padding: clamp(1.5rem, 3vw, 2.25rem);
-  border: 1px solid var(--rule);
+  padding: clamp(1.75rem, 3vw, 2.5rem);
+  border: 1px solid var(--red);
   border-radius: 6px;
-  background: var(--raised);
+  background: var(--bg);
 }
-.amount {
+.price-first {
   margin: 0;
+  font-size: 1.125rem;
   color: var(--muted);
 }
-.amount .figure {
+.price-first .figure {
   display: block;
-  font-size: clamp(3rem, 2rem + 4vw, 4.5rem);
+  font-size: clamp(3.5rem, 2.5rem + 4vw, 5rem);
   line-height: 1;
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
-.price ul {
-  margin: 1.5rem 0 1.75rem;
-  padding: 0;
-  list-style: none;
-}
-.price li {
-  padding-block: 0.75rem;
-  border-top: 1px solid var(--rule);
+.price-then {
+  margin: 0.75rem 0 0;
   color: var(--muted);
-  font-size: 0.9688rem;
-  text-wrap: pretty;
+}
+.price-then strong {
+  color: var(--text);
+}
+.price ul {
+  margin-bottom: 1.75rem;
+}
+.price .fine {
+  text-align: center;
 }
 
 /* Questions: the question is the button. */
@@ -675,25 +774,38 @@ h2 {
   color: var(--text);
 }
 
-/* Footer: the honest status, then the links. */
-.status {
-  background: var(--raised);
+/* The closing offer. */
+.closing {
   border-top: 1px solid var(--rule);
+  text-align: center;
 }
-.status .wrap {
-  display: grid;
-  gap: 1.5rem;
-  padding-block: clamp(3rem, 7vw, 5rem);
+.closing .wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-block: clamp(4.5rem, 10vw, 8rem);
 }
-@media (min-width: 52rem) {
-  .status .wrap {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-  }
+.closing h2 {
+  max-width: none;
+  margin-top: 1rem;
+  font-size: clamp(2.25rem, 1.5rem + 3vw, 3.75rem);
+  letter-spacing: -0.04em;
 }
-.status h2 {
-  max-width: 26ch;
+.closing .intro {
+  max-width: 34rem;
 }
+.closing .actions {
+  justify-content: center;
+}
+.chip {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
 footer {
   border-top: 1px solid var(--rule);
 }

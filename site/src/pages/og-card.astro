@@ -9,8 +9,8 @@ import "../styles/site.css";
   <body class="og">
     <div class="og-card">
       <span class="brand"><Logo /></span>
-      <p class="og-title">Game servers on your own machines, <span class="accent">run from one place.</span></p>
-      <p class="og-sub">One command to set up · $12 a month per machine · open source</p>
+      <p class="og-title">Your own game servers, <span class="accent">on your own machine.</span></p>
+      <p class="og-sub"><span class="og-tag">First month free</span> then $12 a month per machine</p>
     </div>
   </body>
 </html>
@@ -39,7 +39,19 @@ import "../styles/site.css";
     letter-spacing: -0.035em;
   }
   .og-title .accent { color: oklch(0.66 0.19 25); }
+  .og-tag {
+    margin-right: 18px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: oklch(0.66 0.19 25);
+    color: oklch(0.17 0.03 25);
+    text-transform: uppercase;
+    font-size: 20px;
+    letter-spacing: 0.05em;
+  }
   .og-sub {
+    display: flex;
+    align-items: center;
     margin: 0;
     font-family: "JetBrains Mono Variable", monospace;
     font-size: 24px;
