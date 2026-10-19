@@ -106,3 +106,25 @@ table ip filter {
 		}
 	}
 }
+
+func TestParseRaptorBetween(t *testing.T) {
+	out := `table ip raw {
+	chain PREROUTING {
+		type filter hook prerouting priority raw; policy accept;
+		counter packets 1 bytes 2 jump RAPTOR-BETWEEN
+	}
+	chain RAPTOR-BETWEEN {
+		iifname "rn1" ip daddr 172.31.128.1 counter packets 0 bytes 0 accept
+	}
+}
+`
+	list, _ := Parse(out, nil)
+	if len(list) != 2 {
+		t.Fatalf("got %+v", list)
+	}
+	for _, l := range list {
+		if l.Owner != OwnerRaptor || !l.Needed {
+			t.Errorf("%+v isn't Raptor's", l)
+		}
+	}
+}

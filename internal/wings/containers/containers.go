@@ -140,6 +140,9 @@ type NetworkSpec struct {
 	Bridge string // host interface name, at most 15 characters
 	// Subnet is its IPv4 range; zero picks a free one.
 	Subnet netip.Prefix
+	// Pinned keeps the upper half of the range for addresses Wings pins:
+	// Docker hands out the lower half.
+	Pinned bool
 	// Internal networks have no internet access.
 	Internal bool
 	// IPv6 adds an IPv6 range (IPv6Subnet).
@@ -199,7 +202,10 @@ type ServerSpec struct {
 	Networks []Network
 	// Aliases are names other containers on its networks reach it by.
 	Aliases []string
-	Ports   []Port
+	// Addresses are its fixed addresses, by network name; on a network
+	// without one, Docker picks.
+	Addresses map[string]netip.Addr
+	Ports     []Port
 	// MachineID is a file on the host mounted read-only at /etc/machine-id
 	// ("" = none). Some servers need one (Hytale encrypts its tokens with
 	// it); Pterodactyl mounts one too.

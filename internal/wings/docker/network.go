@@ -235,6 +235,9 @@ func (c *Client) EnsureNetwork(ctx context.Context, s containers.NetworkSpec) (c
 	gw := subnet.Addr().Next()
 	ipv4 := true
 	ipam := []network.IPAMConfig{{Subnet: subnet, Gateway: gw}}
+	if s.Pinned {
+		ipam[0].IPRange = netip.PrefixFrom(subnet.Addr(), subnet.Bits()+1)
+	}
 	if s.IPv6 {
 		ipam = append(ipam, network.IPAMConfig{Subnet: s.IPv6Subnet})
 	}

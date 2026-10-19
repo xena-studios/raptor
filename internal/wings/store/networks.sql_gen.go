@@ -18,6 +18,29 @@ func (q *Queries) DeleteNetwork(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteNetworkAddresses = `-- name: DeleteNetworkAddresses :exec
+DELETE FROM server_addresses WHERE network_id = ?
+`
+
+func (q *Queries) DeleteNetworkAddresses(ctx context.Context, networkID string) error {
+	_, err := q.db.ExecContext(ctx, deleteNetworkAddresses, networkID)
+	return err
+}
+
+const deleteServerAddress = `-- name: DeleteServerAddress :exec
+DELETE FROM server_addresses WHERE server_id = ? AND network_id = ?
+`
+
+type DeleteServerAddressParams struct {
+	ServerID  string
+	NetworkID string
+}
+
+func (q *Queries) DeleteServerAddress(ctx context.Context, arg DeleteServerAddressParams) error {
+	_, err := q.db.ExecContext(ctx, deleteServerAddress, arg.ServerID, arg.NetworkID)
+	return err
+}
+
 const getNetwork = `-- name: GetNetwork :one
 SELECT id, name, subnet, internal, ipv6, mtu, host_access, created_at, updated_at FROM networks WHERE id = ?
 `
@@ -71,6 +94,21 @@ func (q *Queries) InsertNetwork(ctx context.Context, arg InsertNetworkParams) er
 	return err
 }
 
+const insertServerAddress = `-- name: InsertServerAddress :exec
+INSERT INTO server_addresses (server_id, network_id, ip) VALUES (?, ?, ?)
+`
+
+type InsertServerAddressParams struct {
+	ServerID  string
+	NetworkID string
+	Ip        string
+}
+
+func (q *Queries) InsertServerAddress(ctx context.Context, arg InsertServerAddressParams) error {
+	_, err := q.db.ExecContext(ctx, insertServerAddress, arg.ServerID, arg.NetworkID, arg.Ip)
+	return err
+}
+
 const listNetworks = `-- name: ListNetworks :many
 SELECT id, name, subnet, internal, ipv6, mtu, host_access, created_at, updated_at FROM networks ORDER BY created_at, id
 `
@@ -95,6 +133,33 @@ func (q *Queries) ListNetworks(ctx context.Context) ([]Network, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listServerAddresses = `-- name: ListServerAddresses :many
+SELECT server_id, network_id, ip FROM server_addresses ORDER BY network_id, ip
+`
+
+func (q *Queries) ListServerAddresses(ctx context.Context) ([]ServerAddress, error) {
+	rows, err := q.db.QueryContext(ctx, listServerAddresses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ServerAddress
+	for rows.Next() {
+		var i ServerAddress
+		if err := rows.Scan(&i.ServerID, &i.NetworkID, &i.Ip); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -21,3 +21,15 @@ UPDATE servers SET networks = ?, version = version + 1, updated_at = unixepoch()
 
 -- name: ListServerNetworks :many
 SELECT id, name, networks FROM servers ORDER BY name, id;
+
+-- name: ListServerAddresses :many
+SELECT * FROM server_addresses ORDER BY network_id, ip;
+
+-- name: InsertServerAddress :exec
+INSERT INTO server_addresses (server_id, network_id, ip) VALUES (?, ?, ?);
+
+-- name: DeleteServerAddress :exec
+DELETE FROM server_addresses WHERE server_id = ? AND network_id = ?;
+
+-- name: DeleteNetworkAddresses :exec
+DELETE FROM server_addresses WHERE network_id = ?;

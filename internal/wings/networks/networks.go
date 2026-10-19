@@ -50,7 +50,10 @@ type Network struct {
 	Gateway    string   `json:"gateway,omitempty"`
 	IPv6Subnet string   `json:"ipv6_subnet,omitempty"`
 	Servers    []string `json:"servers"`
-	CreatedAt  int64    `json:"created_at,omitempty"`
+	// Addresses are servers' fixed addresses on it, by server ID, once
+	// they've started there.
+	Addresses map[string]string `json:"addresses"`
+	CreatedAt int64             `json:"created_at,omitempty"`
 }
 
 // Errors, matched with errors.Is. Their messages are sentences for people.
@@ -83,9 +86,9 @@ type Options struct {
 	Store   *store.DB
 	Runtime Runtime
 	Log     *slog.Logger
-	// Changed, if set, is called after the networks changed, with the
-	// firewall's view of them, to reload it.
-	Changed func(ctx context.Context, nets []firewall.Network) error
+	// Changed, if set, is called after the networks or the rules between
+	// them changed, with the firewall's view of them, to reload it.
+	Changed func(ctx context.Context, nets []firewall.Network, between []firewall.Between) error
 	// Reserved are ranges a network can't use: the server and install
 	// networks'.
 	Reserved []netip.Prefix
@@ -137,7 +140,7 @@ func ipv6Subnet(id string) netip.Prefix {
 func (s *Service) spec(r store.Network) containers.NetworkSpec {
 	sp := containers.NetworkSpec{
 		Name: DockerName(r.ID), Bridge: Bridge(r.ID), Internal: r.Internal == 1,
-		IPv6: r.Ipv6 == 1, MTU: int(r.Mtu),
+		IPv6: r.Ipv6 == 1, MTU: int(r.Mtu), Pinned: true,
 	}
 	sp.Subnet, _ = netip.ParsePrefix(r.Subnet)
 	if sp.IPv6 {
@@ -194,11 +197,11 @@ func (s *Service) Resolve(ctx context.Context, ids []string) ([]containers.Netwo
 	return out, nil
 }
 
-// Firewall is the networks for the firewall's rules.
-func (s *Service) Firewall(ctx context.Context) []firewall.Network {
+// Firewall is the networks and the rules between them for the firewall.
+func (s *Service) Firewall(ctx context.Context) ([]firewall.Network, []firewall.Between) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.firewallLocked(ctx)
+	return s.firewallLocked(ctx), s.betweenLocked(ctx)
 }
 
 func (s *Service) firewallLocked(ctx context.Context) []firewall.Network {
@@ -227,11 +230,20 @@ func (s *Service) List(ctx context.Context) ([]Network, error) {
 	if err != nil {
 		return nil, err
 	}
+	addrs, err := s.addresses(ctx)
+	if err != nil {
+		return nil, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	out := make([]Network, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, s.report(r, on[r.ID]))
+		n := s.report(r, on[r.ID])
+		n.Addresses = addrs[r.ID]
+		if n.Addresses == nil {
+			n.Addresses = map[string]string{}
+		}
+		out = append(out, n)
 	}
 	return out, nil
 }
@@ -244,6 +256,7 @@ func (s *Service) report(r store.Network, servers []string) Network {
 	if n.Servers == nil {
 		n.Servers = []string{}
 	}
+	n.Addresses = map[string]string{}
 	if l, ok := s.live[r.ID]; ok {
 		n.Gateway = l.Gateway.String()
 	}
@@ -376,6 +389,13 @@ func (s *Service) Save(ctx context.Context, n Network) (Network, error) {
 		if cur == nil {
 			return q.InsertNetwork(ctx, store.InsertNetworkParams(row))
 		}
+		// Its servers' fixed addresses were in the old range: they get
+		// new ones at their next start.
+		if row.Subnet != cur.Subnet {
+			if err := q.DeleteNetworkAddresses(ctx, row.ID); err != nil {
+				return err
+			}
+		}
 		return q.UpdateNetwork(ctx, store.UpdateNetworkParams{
 			Name: row.Name, Subnet: row.Subnet, Internal: row.Internal, Ipv6: row.Ipv6,
 			Mtu: row.Mtu, HostAccess: row.HostAccess, UpdatedAt: row.UpdatedAt, ID: row.ID,
@@ -424,6 +444,9 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	if err := s.o.Store.Write.DeleteNetwork(ctx, id); err != nil {
 		return err
 	}
+	if err := s.dropRulesFor(ctx, id); err != nil {
+		s.o.Log.Error("removing the deleted network's rules failed", "network", r.Name, "err", err)
+	}
 	delete(s.live, id)
 	s.changed(ctx)
 	return nil
@@ -434,7 +457,7 @@ func (s *Service) changed(ctx context.Context) {
 	if s.o.Changed == nil {
 		return
 	}
-	if err := s.o.Changed(ctx, s.firewallLocked(ctx)); err != nil {
+	if err := s.o.Changed(ctx, s.firewallLocked(ctx), s.betweenLocked(ctx)); err != nil {
 		s.o.Log.Error("reloading the firewall after a network change failed", "err", err)
 	}
 }

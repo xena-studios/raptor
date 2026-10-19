@@ -58,6 +58,11 @@ func (f *fakeRuntime) HostNetworks(context.Context) ([]containers.HostNetwork, e
 }
 
 func setup(t *testing.T) (*Service, *fakeRuntime, *store.DB, *[][]firewall.Network) {
+	s, rt, db, reloads, _ := setupBetween(t)
+	return s, rt, db, reloads
+}
+
+func setupBetween(t *testing.T) (*Service, *fakeRuntime, *store.DB, *[][]firewall.Network, *[]firewall.Between) {
 	t.Helper()
 	ctx := context.Background()
 	db, err := store.Open(ctx, filepath.Join(t.TempDir(), "state.db"))
@@ -67,15 +72,17 @@ func setup(t *testing.T) (*Service, *fakeRuntime, *store.DB, *[][]firewall.Netwo
 	t.Cleanup(func() { _ = db.Close() })
 	rt := &fakeRuntime{nets: map[string]containers.NetworkSpec{}, inUse: map[string]bool{}}
 	var reloads [][]firewall.Network
+	var between []firewall.Between
 	s := New(Options{
 		Store: db, Runtime: rt,
 		Reserved: []netip.Prefix{netip.MustParsePrefix("172.29.0.0/16")},
-		Changed: func(_ context.Context, n []firewall.Network) error {
+		Changed: func(_ context.Context, n []firewall.Network, b []firewall.Between) error {
 			reloads = append(reloads, n)
+			between = b
 			return nil
 		},
 	})
-	return s, rt, db, &reloads
+	return s, rt, db, &reloads, &between
 }
 
 func TestSaveAndDelete(t *testing.T) {
@@ -206,7 +213,135 @@ func TestResolveAndReconcile(t *testing.T) {
 	if _, err := s2.Resolve(ctx, []string{"nope"}); !errors.Is(err, ErrNotFound) {
 		t.Errorf("unknown network: %v", err)
 	}
-	if fw := s2.Firewall(ctx); len(fw) != 1 || fw[0].Gateway.String() != a.Gateway {
+	if fw, _ := s2.Firewall(ctx); len(fw) != 1 || fw[0].Gateway.String() != a.Gateway {
 		t.Errorf("firewall %+v", fw)
+	}
+}
+
+func TestHalves(t *testing.T) {
+	for _, c := range [][3]string{
+		{"172.30.0.0/16", "172.30.0.0/17", "172.30.128.0/17"},
+		{"10.210.0.0/24", "10.210.0.0/25", "10.210.0.128/25"},
+		{"10.1.2.16/28", "10.1.2.16/29", "10.1.2.24/29"},
+	} {
+		d, p := halves(netip.MustParsePrefix(c[0]))
+		if d.String() != c[1] || p.String() != c[2] {
+			t.Errorf("%s: %s %s", c[0], d, p)
+		}
+	}
+	// A /28's pinned half is 7 addresses: the broadcast one is never used.
+	taken := map[netip.Addr]bool{}
+	sub := netip.MustParsePrefix("10.1.2.16/28")
+	for range 7 {
+		a, err := freeAddress(sub, taken)
+		if err != nil {
+			t.Fatal(err)
+		}
+		taken[a] = true
+	}
+	if taken[netip.MustParseAddr("10.1.2.31")] {
+		t.Error("handed out the broadcast address")
+	}
+	if _, err := freeAddress(sub, taken); !errors.Is(err, ErrInvalid) {
+		t.Errorf("full: %v", err)
+	}
+}
+
+func TestPinAndRules(t *testing.T) {
+	ctx := context.Background()
+	s, rt, db, _, between := setupBetween(t)
+	a, err := s.Save(ctx, Network{Name: "A", Internet: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := s.Save(ctx, Network{Name: "B", Internet: true, Subnet: "10.210.0.0/24"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rt.nets[DockerName(b.ID)].Pinned {
+		t.Error("Docker hands out the whole range")
+	}
+	for _, sv := range []struct{ id, nets string }{
+		{"proxy", `["` + a.ID + `","` + b.ID + `"]`}, {"lobby", `["` + b.ID + `"]`}, {"other", `["` + b.ID + `"]`},
+	} {
+		if err := db.Write.InsertServer(ctx, store.InsertServerParams{
+			ID: sv.id, Name: sv.id, Egg: []byte("{}"), EggHash: "x", Image: "x", Startup: "x", Variables: "{}",
+			Limits: "{}", Settings: "{}", DesiredState: "stopped", InstallState: "installed", Networks: sv.nets,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// A rule naming the lobby lets nothing through until it has an address.
+	rules := []Rule{
+		{From: a.ID, To: b.ID, ToServer: "lobby", Protocol: "tcp", Ports: "25565"},
+		{From: b.ID, FromServer: "other", To: a.ID},
+	}
+	if err := s.SetRules(ctx, rules); err != nil {
+		t.Fatal(err)
+	}
+	if len(*between) != 0 {
+		t.Fatalf("rules for servers with no address: %+v", *between)
+	}
+
+	got, err := s.Pin(ctx, "lobby", []string{b.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	lobby := got[DockerName(b.ID)]
+	if lobby.String() != "10.210.0.128" {
+		t.Errorf("lobby pinned to %s", lobby)
+	}
+	if again, _ := s.Pin(ctx, "lobby", []string{b.ID}); again[DockerName(b.ID)] != lobby {
+		t.Error("pinned again to another address")
+	}
+	if len(*between) != 1 || (*between)[0].To != lobby || (*between)[0].FromBridge != Bridge(a.ID) || (*between)[0].Ports != "25565" {
+		t.Errorf("between %+v", *between)
+	}
+	proxy, err := s.Pin(ctx, "proxy", []string{a.ID, b.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if proxy[DockerName(b.ID)].String() != "10.210.0.129" || proxy[DockerName(a.ID)].String() != "172.30.128.0" {
+		t.Errorf("proxy pinned to %v", proxy)
+	}
+	// Off a network, its address there is forgotten.
+	if _, err := s.Pin(ctx, "proxy", []string{a.ID}); err != nil {
+		t.Fatal(err)
+	}
+	list, err := s.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := list[1].Addresses; len(got) != 1 || got["lobby"] != "10.210.0.128" {
+		t.Errorf("B's addresses %v", got)
+	}
+
+	for _, bad := range [][]Rule{
+		{{From: a.ID, To: a.ID}},
+		{{From: a.ID, To: "nope"}},
+		{{From: a.ID, To: b.ID, ToServer: "proxy-not-on-b"}},
+		{{From: a.ID, To: b.ID, Ports: "99999"}},
+		{{From: a.ID, To: b.ID}, {From: a.ID, To: b.ID}},
+	} {
+		if err := s.SetRules(ctx, bad); !errors.Is(err, ErrInvalid) {
+			t.Errorf("%+v: %v", bad, err)
+		}
+	}
+
+	// Deleting a network takes its rules with it.
+	for _, id := range []string{"proxy"} {
+		if err := db.Write.SetServerNetworks(ctx, store.SetServerNetworksParams{Networks: "[]", ID: id}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.SetRules(ctx, []Rule{{From: a.ID, To: b.ID}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Delete(ctx, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if left, _ := s.Rules(ctx); len(left) != 0 {
+		t.Errorf("rules left %+v", left)
 	}
 }

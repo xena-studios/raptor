@@ -37,7 +37,11 @@ The driver is always `bridge`. `macvlan` and `ipvlan` (servers on the LAN with t
 
 ### Rules between networks
 
-For what should cross, an owner adds an **allow rule**: from a network (or one server on it) to a network (or one server), on a protocol and ports ("Network A may reach Lobby on TCP 25565"). Rules are in `inet raptor`, applied with the firewall's other rules, and listed on the Networks page with what they let through. There are no deny rules: everything not allowed is already blocked.
+For what should cross, an owner adds an **allow rule**: from a network (or one server on it) to a network (or one server), on a protocol and ports ("Network A may reach Lobby on TCP 25565"). A rule is one way; replies to the connections it allows get back, and nothing is allowed the other way. There are no deny rules: everything not allowed is already blocked. Rules are IPv4 only, and can't name the default network: put the servers on a network of their own first.
+
+- **Servers' fixed addresses:** a rule naming one server has to match its address, and Docker hands out a different one at each start. A network's range is split in half: Docker hands out the lower half (its `IPRange`), and each server is pinned to the first free address in the upper half the first time it starts there (`server_addresses`), so it keeps it from then on. The network's broadcast address is never used. A rule naming a server that hasn't started on the network yet lets nothing through until it has. Moving a server off a network forgets its address there at its next start; changing a network's subnet forgets them all. Networks made before rules have no `IPRange`; their Docker addresses start at the bottom, so they'd reach the upper half only past half the range, and Docker refuses a duplicate address rather than sharing it.
+- **Three layers, one decision:** the rule goes in `inet raptor`'s `between` chain, which tracks connections: replies get back, and a new connection either way that no rule allows is dropped. Docker also blocks traffic between its bridges in its own iptables rules, with a drop per container in `raw PREROUTING` and a drop into each bridge in the filter table, where Raptor's accept can't override it. So Wings mirrors each rule into a chain named `RAPTOR-BETWEEN` in both tables, jumped to first from `raw PREROUTING` and from `DOCKER-USER` (the chain Docker keeps for its users), with the reverse direction in `raw` for replies, since `raw` runs before connection tracking. Traffic crosses only where Raptor's table and Docker's chains both let it. The jumps are checked every minute and put back if Docker's restart removed them. On Docker's nftables firewall backend there's no `DOCKER-USER`; Wings logs that rules can't let anything through there.
+- Stored in `kv` (`networks.rules`), replaced as a whole by `node.network.rules`, and returned by `node.networks` with each network's servers' addresses. Deleting a network removes its rules.
 
 ## In the app
 
@@ -56,13 +60,13 @@ Changing networks and rules is for admins and owners, unsigned (it deletes nothi
 
 - `internal/wings/networks`: creates, updates (settings Docker can't change in place, like the subnet, mean recreating the network with its servers stopped, so it's refused while any run), and deletes networks (refused while a server is on one); reconciles them at start, before the firewall and servers; lists every Docker network for the read-only view. Stored in the `networks` table; a server's are the `networks` column, a JSON list of IDs.
 - Containers are created on the primary network (with the default route) and connected to the others before they start; the server's allocations, its `127.0.0.1` binding, and `{{config.docker.interface}}` follow the primary network.
-- Commands: `node.networks` (a read: the networks with their servers, and every Docker network), `node.network.save` (no ID creates; internet access and Reach the host default to on), `node.network.delete`, and `server.networks` (a server's list, primary first; empty is `raptor_nw`). `server.create` takes `networks` too. `server.update` never changes them, so a member who may change a server's startup can't move it between networks. All are admin-only in the Panel and unsigned. Capability `networks`; each server's reported config has `networks` and `aliases`.
-- Later: `node.network.rules` (phase 2), and `raptor doctor` checking each network exists with the settings Raptor expects.
+- Commands: `node.networks` (a read: the networks with their servers, and every Docker network), `node.network.save` (no ID creates; internet access and Reach the host default to on), `node.network.delete`, `node.network.rules`, and `server.networks` (a server's list, primary first; empty is `raptor_nw`). `server.create` takes `networks` too. `server.update` never changes them, so a member who may change a server's startup can't move it between networks. All are admin-only in the Panel and unsigned. Capability `networks`; each server's reported config has `networks` and `aliases`.
+- Later: `raptor doctor` checking each network exists with the settings Raptor expects, and that the `RAPTOR-BETWEEN` jumps are in place.
 
 ## Phases
 
 Networks come before databases, since instances attach to them:
 
 1. **Networks:** the model, settings, isolation and the gateway rule, the Networks tab, servers' primary and extra networks, names on each network.
-2. **Rules between networks.**
+2. **Rules between networks.** Built (Wings, then the app).
 3. **Databases** on networks ([DATABASES.md](DATABASES.md#phases)).

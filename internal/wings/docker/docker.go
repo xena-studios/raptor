@@ -346,7 +346,7 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 		// The primary network at creation, with the default route; the
 		// others are connected after (Docker before 25 takes only one).
 		endpoints = &network.NetworkingConfig{EndpointsConfig: map[string]*network.EndpointSettings{
-			nets[0].Name: {Aliases: s.Aliases, GwPriority: 1},
+			nets[0].Name: {Aliases: s.Aliases, GwPriority: 1, IPAMConfig: pinned(s.Addresses, nets[0].Name)},
 		}}
 		for _, p := range ports {
 			ip, err := netip.ParseAddr(p.IP)
@@ -433,7 +433,7 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 	if !s.HostNetwork {
 		for _, n := range nets[1:] {
 			if _, err := c.api.NetworkConnect(ctx, n.Name, client.NetworkConnectOptions{
-				Container: created.ID, EndpointConfig: &network.EndpointSettings{Aliases: s.Aliases},
+				Container: created.ID, EndpointConfig: &network.EndpointSettings{Aliases: s.Aliases, IPAMConfig: pinned(s.Addresses, n.Name)},
 			}); err != nil {
 				_ = c.Remove(context.WithoutCancel(ctx), created.ID)
 				return "", fmt.Errorf("connect to network %s: %w", n.Name, err)
@@ -441,6 +441,15 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 		}
 	}
 	return created.ID, nil
+}
+
+// pinned is a server's fixed address on a network, if it has one.
+func pinned(addrs map[string]netip.Addr, name string) *network.EndpointIPAMConfig {
+	a, ok := addrs[name]
+	if !ok || !a.IsValid() {
+		return nil
+	}
+	return &network.EndpointIPAMConfig{IPv4Address: a}
 }
 
 // hostPorts resolves the host address each port is bound to. Like Pterodactyl,
