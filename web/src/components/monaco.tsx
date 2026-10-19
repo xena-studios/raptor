@@ -186,6 +186,8 @@ export default function MonacoEditor({
   settings,
   onChange,
   onSave,
+  onRun,
+  completions,
 }: {
   value: string;
   language: string;
@@ -193,11 +195,18 @@ export default function MonacoEditor({
   settings: FileSettings;
   onChange: (text: string) => void;
   onSave: () => void;
+  // onRun, if set, is Ctrl/Cmd-Enter (the SQL editor runs its query).
+  onRun?: () => void;
+  // completions are words suggested as you type (a database's tables and
+  // columns), with what each is.
+  completions?: { label: string; detail: string }[];
 }) {
   const box = useRef<HTMLDivElement>(null);
   const editor = useRef<monaco.editor.IStandaloneCodeEditor>(null);
-  const handlers = useRef({ onChange, onSave });
-  handlers.current = { onChange, onSave };
+  const handlers = useRef({ onChange, onSave, onRun });
+  handlers.current = { onChange, onSave, onRun };
+  const words = useRef(completions);
+  words.current = completions;
   const settingsAtStart = useRef(settings);
   settingsAtStart.current = settings;
   useRaptorTheme();
@@ -223,9 +232,36 @@ export default function MonacoEditor({
     });
     editor.current = ed;
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => handlers.current.onSave());
+    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => handlers.current.onRun?.());
+    // Suggestions for this editor's model only.
+    const provider = monaco.languages.registerCompletionItemProvider(language, {
+      provideCompletionItems: (m, position) => {
+        if (m !== model || !words.current) return { suggestions: [] };
+        const word = m.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+        return {
+          suggestions: words.current.map((w) => ({
+            label: w.label,
+            detail: w.detail,
+            insertText: w.label,
+            kind:
+              w.detail === "table"
+                ? monaco.languages.CompletionItemKind.Struct
+                : monaco.languages.CompletionItemKind.Field,
+            range,
+          })),
+        };
+      },
+    });
     const sub = model.onDidChangeContent(() => handlers.current.onChange(model.getValue()));
     ed.focus();
     return () => {
+      provider.dispose();
       sub.dispose();
       ed.dispose();
       model.dispose();
