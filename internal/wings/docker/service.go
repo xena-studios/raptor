@@ -106,6 +106,7 @@ func (c *Client) EnsureService(ctx context.Context, s containers.ServiceSpec) er
 		Name: s.Name,
 		Config: &container.Config{
 			Image:        s.Image,
+			User:         s.User,
 			Env:          s.Env,
 			Cmd:          s.Cmd,
 			Labels:       labels,

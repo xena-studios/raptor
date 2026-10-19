@@ -274,12 +274,12 @@ func TestVersions(t *testing.T) {
 // fakeBackups hands out dumps from a folder, as a backup would.
 type fakeBackups struct{ dumps string }
 
-func (f fakeBackups) ExtractDatabase(_ context.Context, _, _, name, dir string, _ io.Writer) (string, error) {
-	b, err := os.ReadFile(filepath.Join(f.dumps, name+".sql"))
+func (f fakeBackups) ExtractDatabase(_ context.Context, _, _, _, file, dir string, _ io.Writer) (string, error) {
+	b, err := os.ReadFile(filepath.Join(f.dumps, file))
 	if err != nil {
 		return "", err
 	}
-	p := filepath.Join(dir, "dump", DumpsFolder, name+".sql")
+	p := filepath.Join(dir, "dump", DumpsFolder, file)
 	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 		return "", err
 	}

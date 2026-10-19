@@ -5,17 +5,24 @@ sidebar:
   order: 4
 ---
 
-A **database instance** is a database server Raptor runs on your node: MariaDB, MySQL, or PostgreSQL, in a container of its own. Servers on its network get their own database and user on it from their [Databases tab](/servers/databases/). Instances are included in the node's price, and your data stays on your machine.
+A **database instance** is a database server Raptor runs on your node: MariaDB, MySQL, PostgreSQL, Redis, or MongoDB, in a container of its own. Servers on its network get their own database and user on it from their [Databases tab](/servers/databases/). Instances are included in the node's price, and your data stays on your machine.
 
 ## Make an instance
 
 On the node's **Databases** tab (admins and owners), click **New instance**:
 
-1. Pick the **engine**. MariaDB is what most Minecraft plugins expect; pick MySQL or PostgreSQL if the software asks for it.
+1. Pick the **engine**. MariaDB is what most Minecraft plugins expect; pick MySQL or PostgreSQL if the software asks for it. Redis is for caches and plugins that sync servers through it, MongoDB for bots and apps that store documents.
 2. Give it a **name** and its **memory**: 1 GB is plenty for a few servers' plugins.
 3. If the node has [networks](/nodes/networks/), pick the **network** it's on. Only servers on that network can have databases on it, or reach it at all.
 
 Its first start downloads the engine and sets it up, which takes a minute or two.
+
+## Redis and MongoDB
+
+- **A Redis instance holds one server's data.** Redis can't keep two servers' data apart, so make one Redis instance per server that needs it; 256 MB is plenty for most. Its server's user can do everything apps do, but not change Redis' settings or load modules.
+- **MongoDB instances are shared** like MariaDB's: each server's database has its own user, which reaches that database and nothing else. MongoDB 8.0 and later need a processor from about 2016 or later; pick 7.0 on older machines.
+- MongoDB changes version one major release at a time (7.0 to 8.0, then 9.0).
+- External access isn't available for Redis and MongoDB yet.
 
 ## Keep communities apart
 

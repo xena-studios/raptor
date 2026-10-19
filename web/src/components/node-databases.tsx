@@ -55,6 +55,7 @@ import {
   engines,
   type InstanceInput,
   instancesKey,
+  isSQL,
   useInstances,
   versionChange,
 } from "@/lib/databases";
@@ -152,7 +153,7 @@ export function NodeDatabases({
                 versions={versionsSupported}
                 onEdit={() => setEditing(i)}
                 onChangeVersion={() => setChanging(i)}
-                onExternal={externalSupported ? () => setOpening(i) : undefined}
+                onExternal={externalSupported && isSQL(i.engine) ? () => setOpening(i) : undefined}
               />
             ))
           )}
@@ -557,28 +558,30 @@ function InstanceDialog({
                 Engine
               </legend>
               <div className="grid gap-2 sm:grid-cols-3">
-                {engines.map((x) => (
-                  <label
-                    key={x.id}
-                    className={cn(
-                      "flex cursor-pointer flex-col gap-1 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-focus-visible:ring-3 has-focus-visible:ring-ring/50",
-                      engine === x.id && "border-primary bg-brand-wash hover:bg-brand-wash",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="engine"
-                      className="sr-only"
-                      checked={engine === x.id}
-                      onChange={() => {
-                        setEngine(x.id);
-                        setVersion("");
-                      }}
-                    />
-                    <span className="text-sm font-medium">{x.name}</span>
-                    <span className="text-xs text-muted-foreground">{x.about}</span>
-                  </label>
-                ))}
+                {engines
+                  .filter((x) => versions.some((v) => v.engine === x.id))
+                  .map((x) => (
+                    <label
+                      key={x.id}
+                      className={cn(
+                        "flex cursor-pointer flex-col gap-1 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-focus-visible:ring-3 has-focus-visible:ring-ring/50",
+                        engine === x.id && "border-primary bg-brand-wash hover:bg-brand-wash",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="engine"
+                        className="sr-only"
+                        checked={engine === x.id}
+                        onChange={() => {
+                          setEngine(x.id);
+                          setVersion("");
+                        }}
+                      />
+                      <span className="text-sm font-medium">{x.name}</span>
+                      <span className="text-xs text-muted-foreground">{x.about}</span>
+                    </label>
+                  ))}
               </div>
             </fieldset>
           )}
@@ -777,7 +780,7 @@ function VersionDialog({
     (v) =>
       v.engine === i.engine &&
       v.version !== i.version &&
-      versionChange(i.engine, i.version, v.version) !== "older",
+      !["older", "skip"].includes(versionChange(i.engine, i.version, v.version)),
   );
   const [to, setTo] = useState(newer[newer.length - 1]?.version ?? "");
   const [busy, setBusy] = useState(false);

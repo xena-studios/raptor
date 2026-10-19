@@ -369,8 +369,13 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 	}
 	spec := serviceSpec(in, dir, root, s.o.Timezone())
 	spec.Networks, spec.Addresses, spec.Aliases = nets, addrs, aliases(in.ID, in.Name)
+	if in.Engine == Redis {
+		if err := writeACL(dir, root); err != nil {
+			return err
+		}
+	}
 	port, _ := external(r)
-	if port != 0 {
+	if port != 0 && isSQL(in.Engine) {
 		if _, err := ensureTLS(dir, in.Name, s.tlsNames(in)); err != nil {
 			return err
 		}
@@ -942,6 +947,11 @@ func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, labe
 	if s.state(instanceID) != StateRunning {
 		return Database{}, "", notReady{fmt.Sprintf("%s isn't running; start it first", in.Name)}
 	}
+	// A Redis instance holds one server's data: Redis can't keep two
+	// apart (redis.go).
+	if in.Engine == Redis && slices.ContainsFunc(must(s.o.Store.Read.ListDatabases(ctx)), func(d store.Database) bool { return d.InstanceID == instanceID }) {
+		return Database{}, "", invalid{fmt.Sprintf("%s already holds a server's data, and Redis can't keep two apart: make another Redis instance for this server", in.Name)}
+	}
 	root, err := s.sealer.open(r.RootPassword)
 	if err != nil {
 		return Database{}, "", err
@@ -1091,8 +1101,11 @@ func (s *Service) ResetPassword(ctx context.Context, serverID, id string) (strin
 }
 
 // Env is the environment variables a server gets for its databases
-// (docs/DATABASES.md#using-a-database-from-a-server): DB_HOST and the rest
-// for its first database, and the same prefixed with each one's name.
+// (docs/DATABASES.md#using-a-database-from-a-server): for its first SQL
+// database DB_HOST and the rest with DATABASE_URL, for its first Redis
+// one REDIS_HOST and the rest with REDIS_URL, for its first MongoDB one
+// MONGODB_HOST and the rest with MONGODB_URI; and with more than one
+// database, each one's again prefixed with its name.
 func (s *Service) Env(ctx context.Context, serverID string) ([]string, error) {
 	rows, err := s.o.Store.Read.ListServerDatabases(ctx, serverID)
 	if err != nil || len(rows) == 0 {
@@ -1103,35 +1116,62 @@ func (s *Service) Env(ctx context.Context, serverID string) ([]string, error) {
 		return nil, err
 	}
 	var out []string
-	for i, r := range rows {
+	first := map[string]bool{} // families given unprefixed variables
+	for _, r := range rows {
 		pass, err := s.sealer.open(r.Password)
 		if err != nil {
 			return nil, err
 		}
 		d := toDatabase(r, insts)
-		scheme := "mysql"
-		if d.Engine == Postgres {
-			scheme = "postgres"
-		}
-		vars := [][2]string{
-			{"DB_HOST", d.Host},
-			{"DB_PORT", fmt.Sprint(d.Port)},
-			{"DB_NAME", d.Name},
-			{"DB_USER", d.User},
-			{"DB_PASSWORD", pass},
-			{"DATABASE_URL", fmt.Sprintf("%s://%s:%s@%s:%d/%s", scheme, d.User, pass, d.Host, d.Port, d.Name)},
-		}
+		family, vars := envVars(d, pass)
 		prefix := strings.ToUpper(r.Label) + "_"
 		for _, v := range vars {
-			if i == 0 {
+			if !first[family] {
 				out = append(out, v[0]+"="+v[1])
 			}
 			if len(rows) > 1 {
 				out = append(out, prefix+v[0]+"="+v[1])
 			}
 		}
+		first[family] = true
 	}
 	return out, nil
+}
+
+// envVars are one database's variables, and the family they're for.
+func envVars(d Database, pass string) (string, [][2]string) {
+	port := fmt.Sprint(d.Port)
+	switch d.Engine {
+	case Redis:
+		return Redis, [][2]string{
+			{"REDIS_HOST", d.Host},
+			{"REDIS_PORT", port},
+			{"REDIS_USER", d.User},
+			{"REDIS_PASSWORD", pass},
+			{"REDIS_URL", fmt.Sprintf("redis://%s:%s@%s:%d/0", d.User, pass, d.Host, d.Port)},
+		}
+	case MongoDB:
+		return MongoDB, [][2]string{
+			{"MONGODB_HOST", d.Host},
+			{"MONGODB_PORT", port},
+			{"MONGODB_DATABASE", d.Name},
+			{"MONGODB_USER", d.User},
+			{"MONGODB_PASSWORD", pass},
+			{"MONGODB_URI", fmt.Sprintf("mongodb://%s:%s@%s:%d/%s?authSource=%s", d.User, pass, d.Host, d.Port, d.Name, d.Name)},
+		}
+	}
+	scheme := "mysql"
+	if d.Engine == Postgres {
+		scheme = "postgres"
+	}
+	return "sql", [][2]string{
+		{"DB_HOST", d.Host},
+		{"DB_PORT", port},
+		{"DB_NAME", d.Name},
+		{"DB_USER", d.User},
+		{"DB_PASSWORD", pass},
+		{"DATABASE_URL", fmt.Sprintf("%s://%s:%s@%s:%d/%s", scheme, d.User, pass, d.Host, d.Port, d.Name)},
+	}
 }
 
 // ServerDeleted drops a deleted server's databases.
@@ -1256,3 +1296,7 @@ func mustJSON(v any) string {
 	}
 	return string(b)
 }
+
+// must is a list, or none when it couldn't be read: for checks that the
+// next step repeats.
+func must[T any](list []T, _ error) []T { return list }

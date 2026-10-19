@@ -131,6 +131,10 @@ func serviceSpec(in Instance, dir, rootPassword, timezone string) containers.Ser
 		if in.Engine == MySQL {
 			s.Cmd = append(s.Cmd, "--secure-file-priv=NULL")
 		}
+	case Redis:
+		redisSpec(&s, in, dir, maxConn)
+	case MongoDB:
+		mongoSpec(&s, in, dir, rootPassword, maxConn)
 	case Postgres:
 		s.Env = append(s.Env, "POSTGRES_PASSWORD="+rootPassword, "PGDATA=/var/lib/postgresql/data")
 		s.Mounts = []containers.Mount{
@@ -226,6 +230,12 @@ func createDatabase(ctx context.Context, in Instance, dir, rootPassword, name, u
 	if err := checkPassword(pass); err != nil {
 		return err
 	}
+	switch in.Engine {
+	case Redis:
+		return redisCreate(ctx, dir, rootPassword, user, pass)
+	case MongoDB:
+		return mongoCreate(ctx, dir, rootPassword, name, user, pass)
+	}
 	db, err := connect(in, dir, rootPassword)
 	if err != nil {
 		return err
@@ -278,6 +288,12 @@ func dropDatabase(ctx context.Context, in Instance, dir, rootPassword, name, use
 	if err := checkNames(name, user); err != nil {
 		return err
 	}
+	switch in.Engine {
+	case Redis:
+		return redisDrop(ctx, dir, rootPassword, user)
+	case MongoDB:
+		return mongoDrop(ctx, dir, rootPassword, name)
+	}
 	db, err := connect(in, dir, rootPassword)
 	if err != nil {
 		return err
@@ -302,6 +318,13 @@ func setPassword(ctx context.Context, in Instance, dir, rootPassword, user, pass
 	}
 	if err := checkPassword(pass); err != nil {
 		return err
+	}
+	switch in.Engine {
+	case Redis:
+		return redisPassword(ctx, dir, rootPassword, user, pass)
+	case MongoDB:
+		// A database's user is named like it, and stored in it.
+		return mongoPassword(ctx, dir, rootPassword, user, user, pass)
 	}
 	db, err := connect(in, dir, rootPassword)
 	if err != nil {
@@ -340,6 +363,12 @@ func dropUser(ctx context.Context, db *sql.DB, user string) error {
 
 // ping checks an instance answers.
 func ping(ctx context.Context, in Instance, dir, rootPassword string) error {
+	switch in.Engine {
+	case Redis:
+		return redisPing(ctx, dir, rootPassword)
+	case MongoDB:
+		return mongoPing(ctx, dir, rootPassword)
+	}
 	db, err := connect(in, dir, rootPassword)
 	if err != nil {
 		return err

@@ -207,7 +207,15 @@ func (s *Service) Import(ctx context.Context, serverID, id, file string) (string
 		return "", err
 	}
 	_ = fh.Close()
-	if !strings.HasSuffix(file, ".sql") && !strings.HasSuffix(file, ".sql.gz") && !strings.HasSuffix(file, ".gz") {
+	engine := s.engineOf(ctx, serverID, id)
+	switch {
+	case engine == Redis:
+		return "", invalid{"Redis has no imports: restore its data from a backup instead"}
+	case engine == MongoDB:
+		if !strings.HasSuffix(file, ".archive") && !strings.HasSuffix(file, ".gz") {
+			return "", invalid{"pick a mongodump archive: a .archive or .archive.gz file"}
+		}
+	case !strings.HasSuffix(file, ".sql") && !strings.HasSuffix(file, ".sql.gz") && !strings.HasSuffix(file, ".gz"):
 		return "", invalid{"pick a .sql or .sql.gz file"}
 	}
 	return s.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobImport, ServerID: serverID, Payload: ImportJob{Database: id, Path: file}})
@@ -274,6 +282,18 @@ func (s *Service) importFrom(ctx context.Context, in Instance, r store.Database,
 	if err != nil {
 		return err
 	}
+	if in.Engine == MongoDB {
+		// Whatever database the archive is of goes into this one; the
+		// server-wide ones (admin, config, local) are left out.
+		return s.mongoTool(ctx, r.InstanceID, r.Username, pass, r.DbName, []string{
+			"mongorestore", "--archive", "--drop", "--stopOnError",
+			"--nsExclude=admin.*", "--nsExclude=config.*", "--nsExclude=local.*",
+			"--nsFrom=$db$.$coll$", "--nsTo=" + r.DbName + ".$coll$",
+		}, src, nil, log)
+	}
+	if in.Engine == Redis {
+		return invalid{"there's no importing into Redis: restore its data from a backup"}
+	}
 	client, _, conn, pwEnv := tools(in.Engine)
 	cmd := append([]string{client}, conn...)
 	if in.Engine == Postgres {
@@ -318,7 +338,12 @@ func (s *Service) Export(ctx context.Context, serverID, id, schema, table, forma
 	if s.o.Jobs == nil {
 		return "", "", errors.New("exports aren't available")
 	}
-	if format != "sql" && format != "csv" {
+	switch engine := s.engineOf(ctx, serverID, id); {
+	case engine == Redis:
+		return "", "", invalid{"Redis has no exports: its data is in the server's backups"}
+	case engine == MongoDB:
+		format, schema = "archive", ""
+	case format != "sql" && format != "csv":
 		return "", "", invalid{"export as sql or csv"}
 	}
 	if format == "csv" && table == "" {
@@ -328,7 +353,7 @@ func (s *Service) Export(ctx context.Context, serverID, id, schema, table, forma
 	if err != nil {
 		return "", "", err
 	}
-	if table != "" {
+	if table != "" && format != "archive" {
 		// Checked now, so a typo fails here rather than in the job.
 		se, err := s.open(ctx, serverID, id, false)
 		if err != nil {
@@ -345,9 +370,12 @@ func (s *Service) Export(ctx context.Context, serverID, id, schema, table, forma
 		name += "-" + safeFile(table)
 	}
 	name += "-" + time.Now().UTC().Format("20060102-150405")
-	if format == "csv" {
+	switch format {
+	case "csv":
 		name += ".csv"
-	} else {
+	case "archive":
+		name += ".archive.gz"
+	default:
 		name += ".sql.gz"
 	}
 	target := path.Join(ExportDir, name)
@@ -455,6 +483,24 @@ func (s *Service) dumpTo(ctx context.Context, r store.Database, schema, table st
 	pass, err := s.sealer.open(r.Password)
 	if err != nil {
 		return err
+	}
+	switch in.Engine {
+	case MongoDB:
+		args := []string{"mongodump", "--archive", "--db=" + r.DbName}
+		if table != "" {
+			args = append(args, "--collection="+table)
+		}
+		return s.mongoTool(ctx, r.InstanceID, r.Username, pass, r.DbName, args, nil, w, log)
+	case Redis:
+		_, ir, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
+		if err != nil {
+			return err
+		}
+		root, err := s.sealer.open(ir.RootPassword)
+		if err != nil {
+			return err
+		}
+		return redisDump(ctx, s.dir(r.InstanceID), root, w)
 	}
 	_, dump, conn, pwEnv := tools(in.Engine)
 	cmd := append([]string{dump}, conn...)
@@ -621,4 +667,18 @@ func (s *Service) CancelTransfer(ctx context.Context, serverID, jobID string) er
 		return err
 	}
 	return s.o.Jobs.Cancel(ctx, jobID)
+}
+
+// engineOf is the engine of one of a server's databases, "" if it can't
+// be read (the caller's own lookups say why).
+func (s *Service) engineOf(ctx context.Context, serverID, id string) string {
+	r, err := s.database(ctx, serverID, id)
+	if err != nil {
+		return ""
+	}
+	in, _, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
+	if err != nil {
+		return ""
+	}
+	return in.Engine
 }

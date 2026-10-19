@@ -32,9 +32,15 @@ The host is a name, like `community-a-mariadb.db.raptor`, that works from the no
 
 If an admin gave the database's instance [external access](/nodes/databases/#reach-an-instance-from-outside), its row also shows its address **from outside**, and a link to its certificate. Only the addresses the admin listed can connect there, with TLS.
 
+## Redis and MongoDB
+
+A database on a **Redis** instance has a user and a password, but no name: Redis' databases are numbered, and yours is 0. Each Redis instance is for one server, so pick one nothing else uses. A **MongoDB** database's user is stored in the database itself, so connect with `authSource` set to its name; the URL Raptor gives (`MONGODB_URI`) has it.
+
+Neither has the browser yet; it comes with importing and exporting MongoDB databases. Both are in the server's backups, and **Restore from a backup** puts one back.
+
 ## Variables
 
-The server also gets its database's details as environment variables at its next start: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `DATABASE_URL` (like `mysql://user:password@host:3306/name`). With more than one database, each also gets them prefixed with its name (`LUCKPERMS_DB_HOST`), and the first one's are also the plain `DB_HOST` and the rest. Apps and bots that read their settings from the environment pick them up with nothing to edit.
+The server also gets its database's details as environment variables at its next start: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `DATABASE_URL` (like `mysql://user:password@host:3306/name`). A Redis database gives `REDIS_HOST`, `REDIS_PORT`, `REDIS_USER`, `REDIS_PASSWORD`, and `REDIS_URL`; a MongoDB one `MONGODB_HOST`, `MONGODB_PORT`, `MONGODB_DATABASE`, `MONGODB_USER`, `MONGODB_PASSWORD`, and `MONGODB_URI`. With more than one database, each also gets them prefixed with its name (`LUCKPERMS_DB_HOST`), and the first one's are also the plain `DB_HOST` and the rest. Apps and bots that read their settings from the environment pick them up with nothing to edit.
 
 ## Passwords
 

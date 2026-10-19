@@ -42,6 +42,8 @@ Separating game servers themselves (so one community's servers can't reach anoth
 | MariaDB | 10.6, 10.11, 11.4, 11.8 (the LTS releases still supported) | `mariadb:<version>` |
 | MySQL | 8.0, 8.4 | `mysql:<version>` |
 | PostgreSQL | 14, 15, 16, 17, 18 | `postgres:<version>` |
+| Redis | 7.2, 7.4, 8.2, 8.10 | `redis:<version>` |
+| MongoDB | 7.0, 8.0, 9.0 (its majors; the x.1–x.3 rapid releases aren't for production) | `mongo:<version>` |
 
 The list is in the Wings binary (`internal/wings/databases/versions.go`), each version pinned to an image digest that's updated with Wings releases, so a version means the same bits on every node. An instance tracks a **version line** (11.4), not a patch: Wings moves it to the newest patch in its line when an update brings one, by restarting the container on the new image, at the time the owner picks for maintenance.
 
@@ -86,10 +88,25 @@ Turning it on, changing it, or turning it off restarts the instance. Each databa
 Creating a database on a server's **Databases** tab gives it:
 
 - a name (`s<short id>_<name>`, the server's short ID being the last part of its ID), a user with the same name, and a random password, made on the node;
-- connection details in the tab, and as **environment variables** for the server's next start: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `DATABASE_URL` (`mysql://…` or `postgres://…`); with more than one database, each also gets them with its name as a prefix (`LUCKPERMS_DB_HOST`…);
+- connection details in the tab, and as **environment variables** for the server's next start: for its first SQL database `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `DATABASE_URL` (`mysql://…` or `postgres://…`); for its first Redis one `REDIS_HOST`, `REDIS_PORT`, `REDIS_USER`, `REDIS_PASSWORD`, and `REDIS_URL`; for its first MongoDB one `MONGODB_HOST`, `MONGODB_PORT`, `MONGODB_DATABASE`, `MONGODB_USER`, `MONGODB_PASSWORD`, and `MONGODB_URI` (with `authSource`); with more than one database, each also gets its own with its name as a prefix (`LUCKPERMS_DB_HOST`, `CACHE_REDIS_URL`…);
 - a host name that resolves on the instance's networks, `<instance name>.db.raptor`, so configs don't hold an IP that could change.
 
 The password lives on the node (encrypted in `state.db`), never in the Panel. The tab shows it once when the database is made; after that, **Show password** fetches it from the node with a re-auth, and **Reset password** makes a new one.
+
+## Redis and MongoDB
+
+- **Redis** has no isolation between databases worth the name (its databases are numbers, and limiting a user to keys with a prefix only works if every plugin prefixes its keys), so **a Redis instance holds one server's data**: Wings refuses a second server's database on it. Make one per server; they're small (256 MB is plenty for a cache). The server's user is an ACL user that can run everything but administration (`CONFIG`, `MODULE`, `DEBUG`, `SHUTDOWN`, replication) and the dangerous commands other than the few apps use (`FLUSHDB`, `FLUSHALL`, `KEYS`, `INFO`, `SORT`); the read-only user reads. The `default` user is off. Data is kept with Redis' append-only log, and writes fail when the memory limit is reached rather than keys being dropped.
+- **MongoDB** instances are shared like the SQL engines': each database has its own user, stored in that database (its `authSource`) with `readWrite` on it alone, and its read-only user `read`. MongoDB 8.0 and later need a CPU from about 2016 on (ARMv8.2 or x86 with AVX); 7.0 runs on older ones.
+- Both get read-only users, backups (a Redis snapshot or a `mongodump` archive), restoring one database from a backup, and version changes in place; MongoDB also imports and exports `mongodump` archives (`.archive.gz`) through the server's files (in Wings; the app's buttons come with the document browser, which they live in). Redis has no imports or exports: its data is in the server's backups.
+- Not yet: the key and document browsers (next), and external access, which needs TLS for outside connections without breaking plugins on the inside (DECISIONS #321).
+
+### How phase 6 is built (instances and databases)
+
+- Migration `00025` rebuilds `database_instances` to allow `redis` and `mongodb` (SQLite can't change a CHECK constraint), with `databases` and `instance_addresses` rebuilt alongside so its cascades never fire; `TestDatabaseEnginesMigration` checks nothing is lost and the references still cascade.
+- `redis.go`: the container (as uid 999 from the start: Redis 8.4's entrypoint drops root with `setpriv`, which needs a capability database containers don't get; `ServiceSpec.User`, left out of the spec's hash when empty), its ACL file in the data folder (written once with Wings' user, then kept by Redis with `ACL SAVE`), users through `ACL SETUSER`/`DELUSER` over the socket. Backups are a `BGSAVE`'s snapshot read from the data folder; restoring one stops the instance and makes the snapshot the base of a new append-only log (with it on, Redis 7+ loads only the log), then starts it.
+- `mongo.go`: the container (the image's entrypoint makes Wings' root user), `createUser`/`updateUser`/`dropUser` over the socket, `mongodump` and `mongorestore` run in the container as the database's user with the password in a config file on its `/tmp` (a tmpfs), written through stdin and removed after. Restores map any source database onto the target (`--nsFrom=$db$.$coll$`) and leave out `admin`, `config`, and `local`. A version change raises the feature compatibility version (`setFeatureCompatibilityVersion`, with `confirm`) once the new version runs, and goes one major at a time.
+- The engines plug into the existing functions at the top (`createDatabase`, `dropDatabase`, `setPassword`, `grantReadOnly`, `dropReadOnly`, `ping`, `dumpTo`, `importFrom`, `inventory`); the SQL browser and external access refuse them.
+- **Tested** (`TestRedis`, `TestMongoDB`, real engines): Redis' user does what apps do and no administration, the `default` user is off, a second server's database is refused, the read-only user reads only, a new password replaces the old, a snapshot restores over later changes, 8.2 → 8.10 keeps the keys, and deleting the database drops its user and data. MongoDB's users reach their own database only, not another server's or `admin`'s users; the read-only user reads only; an export imports back; a backup's dump restores; 7.0 → 9.0 is refused and 7.0 → 8.0 keeps the data and raises the feature compatibility version; deleting the database drops it and its users. On the dev node, a server got its `REDIS_*` and `MONGODB_*` variables and reached both instances, and a container that wasn't a server with a database there couldn't.
 
 ## The browser
 
@@ -178,4 +195,4 @@ Results travel through the Panel like the file manager's do (encrypted, not stor
 3. **Import, export, and users:** `.sql` imports as jobs, dumps and CSV exports, read-only users.
 4. **Versions and backups:** patch updates in the maintenance window, in-place and migration upgrades with rollback, databases in server backups. Built, without instance backups of their own (DECISIONS #314).
 5. **External access:** the port, the address allowlist, TLS. Built.
-6. **Redis and MongoDB:** one instance per server for Redis (it has no real per-database isolation), shared instances with per-database users for MongoDB; a key browser and a document browser.
+6. **Redis and MongoDB:** one instance per server for Redis (it has no real per-database isolation), shared instances with per-database users for MongoDB; a key browser and a document browser. Instances and databases built; the browsers are next.

@@ -7,7 +7,11 @@ export { versionChange } from "./db-versions";
 // What Wings' database commands return (internal/wings/databases,
 // docs/DATABASES.md): instances on a node, and servers' databases on them.
 
-export type Engine = "mariadb" | "mysql" | "postgres";
+export type Engine = "mariadb" | "mysql" | "postgres" | "redis" | "mongodb";
+
+// isSQL: the engines with the SQL browser, imports of .sql files, and
+// external access.
+export const isSQL = (e: Engine) => e === "mariadb" || e === "mysql" || e === "postgres";
 
 export type DBInstance = {
   id: string;
@@ -152,6 +156,12 @@ export const engines: { id: Engine; name: string; about: string }[] = [
   },
   { id: "mysql", name: "MySQL", about: "For software that asks for MySQL itself." },
   { id: "postgres", name: "PostgreSQL", about: "For apps and bots built on Postgres." },
+  {
+    id: "redis",
+    name: "Redis",
+    about: "Fast storage for caches and plugins that sync servers. One server each.",
+  },
+  { id: "mongodb", name: "MongoDB", about: "For bots and apps that store documents." },
 ];
 
 export function engineName(e: Engine): string {
@@ -160,8 +170,24 @@ export function engineName(e: Engine): string {
 
 // connectionURL is a database's URL without its password, for showing.
 export function connectionURL(d: Database, password = "…"): string {
-  const scheme = d.engine === "postgres" ? "postgres" : "mysql";
-  return `${scheme}://${d.user}:${password}@${d.host}:${d.port}/${d.name}`;
+  switch (d.engine) {
+    case "redis":
+      return `redis://${d.user}:${password}@${d.host}:${d.port}/0`;
+    case "mongodb":
+      return `mongodb://${d.user}:${password}@${d.host}:${d.port}/${d.name}?authSource=${d.name}`;
+    case "postgres":
+      return `postgres://${d.user}:${password}@${d.host}:${d.port}/${d.name}`;
+  }
+  return `mysql://${d.user}:${password}@${d.host}:${d.port}/${d.name}`;
+}
+
+// hostVariable is the variable a server gets a database's host in, and
+// urlVariable its URL's (Wings' envVars).
+export function hostVariable(e: Engine): string {
+  return e === "redis" ? "REDIS_HOST" : e === "mongodb" ? "MONGODB_HOST" : "DB_HOST";
+}
+export function urlVariable(e: Engine): string {
+  return e === "redis" ? "REDIS_URL" : e === "mongodb" ? "MONGODB_URI" : "DATABASE_URL";
 }
 
 // The labels Wings takes: lowercase letters, digits, and underscores.
