@@ -32,7 +32,7 @@ Open **Advanced** when making or editing a network:
 | Setting | What it does |
 |---|---|
 | **Internet access** | Off keeps its servers from connecting out, for backends that should only talk to their proxy. Players still reach their ports. |
-| **Reach the machine** | Off keeps its servers from connecting to services on the node itself. |
+| **Reach the machine** | Off keeps its servers from connecting to services on the node itself. On some machines that includes other servers' ports through the node's address; a proxy should join its backends' network instead. |
 | **IPv6** | Gives the network an IPv6 range too. |
 | **Subnet** | Its address range. Raptor picks a free one unless you set a private range, like `10.210.0.0/24`. |
 | **MTU** | Lower it if the machine is behind a VPN or a provider that needs it. |
