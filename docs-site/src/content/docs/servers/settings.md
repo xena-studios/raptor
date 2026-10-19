@@ -47,6 +47,7 @@ On **Network**:
 
 - **Port:** the port players connect to, 1024–65535, not used by another server on the node. It changes at the next start.
 - **Shown address:** what players should connect to, if not the node's own address: a domain (`play.example.com`), a domain with an SRV record, or a proxy like TCPShield. It's shown exactly as you type it, so add the port if players need one.
+- **Networks** (admins and owners, on nodes with [networks](/nodes/networks/)): which network the server is on, and others it also joins, like a proxy. It changes at the next start.
 - **Connection test:** checks from outside whether players can reach the server, and says what to change if they can't. See [Players can't connect](/help/players-cant-connect/).
 
 ## Change the server's type

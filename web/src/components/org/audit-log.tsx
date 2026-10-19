@@ -14,6 +14,7 @@ import {
   LogOut,
   type LucideIcon,
   Mail,
+  Network,
   Power,
   Puzzle,
   RefreshCw,
@@ -176,6 +177,12 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`changed the default disk on ${server}`, HardDrive];
     case "node.firewall":
       return [`changed the firewall on ${server}`, Shield];
+    case "node.network.save":
+      return [`saved a network on ${server}`, Network];
+    case "node.network.delete":
+      return [`deleted a network on ${server}`, Network];
+    case "server.networks":
+      return [`changed the networks ${server} is on`, Network];
     case "node.hostname":
       return [`renamed the machine ${server} runs on`, Server];
     case "node.time":
@@ -204,6 +211,7 @@ const serverChanges = {
     "server.update",
     "server.reinstall",
     "server.move",
+    "server.networks",
     "server.display_address",
     "addons.install",
   ],

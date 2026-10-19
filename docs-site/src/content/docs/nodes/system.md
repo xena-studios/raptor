@@ -2,7 +2,7 @@
 title: System and firewall
 description: The machine's hostname, time zone and clock, its firewall, and rebooting it, from the node's System tab.
 sidebar:
-  order: 3
+  order: 4
 ---
 
 The node's **System** tab (admins and owners) sets the machine itself, so you don't have to SSH in for the everyday things.

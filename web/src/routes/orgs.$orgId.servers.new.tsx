@@ -28,6 +28,7 @@ import { categoryName } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
 import { useIds } from "@/lib/ids";
+import { defaultNetworkName, networksCapability, useNodeNetworks } from "@/lib/networks";
 import {
   createParams,
   eggsFor,
@@ -255,6 +256,13 @@ function Settings({
   const choices = serverDisks(disks.data);
   const [disk, setDisk] = useState("");
   const pickedDisk = disk || disks.data?.default || "";
+  // Nodes with networks ask which one; the default network otherwise.
+  const nets = useNodeNetworks(
+    node.id,
+    node.connected && node.capabilities.includes(networksCapability),
+  );
+  const networks = nets.data?.networks ?? [];
+  const [network, setNetwork] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const needsEula = egg.features.includes("eula");
@@ -287,6 +295,7 @@ function Settings({
             diskMiB: diskGiB ? Math.round(Number(diskGiB) * 1024) : 0,
             acceptEula: eula,
             disk: choices.length > 1 ? pickedDisk : undefined,
+            network: network || undefined,
           },
           defaults,
         ),
@@ -429,6 +438,27 @@ function Settings({
                     const d = choices.find((x) => x.id === pickedDisk);
                     return d ? `${diskSpace(d)}. Its files stay on this disk.` : "";
                   })()}
+                </p>
+              </div>
+            )}
+            {networks.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="network">Network</Label>
+                <select
+                  id="network"
+                  className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                  value={network}
+                  onChange={(e) => setNetwork(e.target.value)}
+                >
+                  <option value="">{defaultNetworkName}</option>
+                  {networks.map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  It reaches the servers on this network, and nothing on the others.
                 </p>
               </div>
             )}

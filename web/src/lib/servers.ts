@@ -83,6 +83,8 @@ type CreateForm = {
   // The disk its files go on; undefined is the node's default (and all
   // there is on nodes without data disks).
   disk?: string;
+  // The network it goes on; undefined is the default network.
+  network?: string;
 };
 
 // createParams is server.create's params (Wings' actions.CreateParams):
@@ -104,6 +106,7 @@ export function createParams(f: CreateForm, defaults: Record<string, string>) {
     start_after_install: true,
     accept_eula: f.acceptEula || undefined,
     disk: f.disk || undefined,
+    networks: f.network ? [f.network] : undefined,
   };
 }
 
@@ -170,6 +173,10 @@ export type ServerConfig = {
   allocations: { ip: string; port: number; primary?: boolean }[];
   egg_hash?: string;
   disk?: string; // a data disk's ID; absent for the main volume
+  // The node's networks it's on, its primary first (none is the default
+  // network), and the names it's found by there.
+  networks?: string[];
+  aliases?: string[];
   egg?: {
     images: { name: string; ref: string }[] | null;
     // As Wings reports them (snake_case JSON).
