@@ -138,20 +138,20 @@ Tables: `servers` and `allocations`; `jobs`, `events` (outbox, with `seq`), `exe
 
 ### Networking
 Wings sets up its runtime when it starts, and retries every minute until it succeeds (Docker may still be starting):
-1. **Networks.** `raptor_nw` (bridge `raptor0`, containers can talk to each other) for servers and `raptor_install` (bridge `raptor-inst`, inter-container traffic off) for installs. Both are IPv4 bridges labeled `raptor.wings.managed=true`. Existing networks are reused as they are.
+1. **Networks.** `raptor_nw` (bridge `raptor0`, containers can talk to each other) for servers and `raptor_install` (bridge `raptor-inst`, inter-container traffic off) for installs. Both are IPv4 bridges labeled `raptor.wings.managed=true`. Existing networks are reused as they are. Then the owner's own networks ([NETWORKS.md](NETWORKS.md)) are created if missing, or recreated if their settings differ.
 2. **Subnets** are picked when a network is created, unless the config sets one: the first `/16` from `172.29–31`, `172.24–28`, then `10.200–255` that doesn't overlap a host interface, a route in the kernel's routing table, or another Docker network. A configured subnet that overlaps one of those is an error, not a silent change.
 3. **`raptor.slice`** memory ceiling (see [Resource limits](#resource-limits-performance-critical)).
 4. **Firewall** table (see [Firewall](#firewall)).
 
 - Servers get their allocated ports published on the node's IP(s), TCP and UDP, with the same port inside and outside the container (as in Pterodactyl).
-- An allocation on **`127.0.0.1` is bound to the `raptor0` gateway address** instead (Pterodactyl does the same with its bridge). Host loopback isn't reachable from containers, while the gateway is reachable from the host and other servers (e.g. a proxy) but not from the internet. `SERVER_IP` stays `127.0.0.1`.
+- An allocation on **`127.0.0.1` is bound to the gateway address of the server's network** (`raptor0`'s, or its primary network's) instead (Pterodactyl does the same with its bridge). Host loopback isn't reachable from containers, while the gateway is reachable from the host and that network's other servers (e.g. a proxy) but not from the internet or other networks. `SERVER_IP` stays `127.0.0.1`.
 - Before creating a server's container, Wings checks every allocated port (TCP and UDP) is free on the host, so a port held by another program fails with a clear error.
 - **Host networking mode** is an optional per-server setting for games that need it. No ports are published; the game binds them directly.
-- **Networks managed from the app** (more than one per node, servers kept apart unless a rule allows it) are planned: [NETWORKS.md](NETWORKS.md). Until then every server is on `raptor_nw`.
+- **The owner's networks** (`internal/wings/networks`, [NETWORKS.md](NETWORKS.md)): more bridges beside `raptor_nw`, named `raptor_net_<id>` with bridge `rn<12 hex>`, each kept apart from the others. A server is on `raptor_nw` unless it's put on any; then its container is created on its primary network and connected to the others before it starts. On each network it's found as `<name>.raptor` and `<short id>.raptor`.
 - Docker's iptables management stays on. Wings only ever publishes **allocated** ports. Preflight tells UFW users that game ports are managed by Raptor, not UFW.
 
 ### Firewall
-Wings' rules live in their **own nftables table, `inet raptor`**, not in Docker's chains. Its base chains hook `forward`, `input`, and `output` at priority `filter - 1`, so they run before Docker's. nftables evaluates every table on a hook and a drop is final, so these rules can't be bypassed by Docker's accepts, and Docker rewriting its own rules never removes them. The table is replaced atomically (one `nft -f` transaction) and checked every minute: if something removed it (e.g. `nft flush ruleset`, which Debian's `nftables.service` runs on restart), Wings reapplies it and logs a warning.
+Wings' rules live in their **own nftables table, `inet raptor`**, not in Docker's chains. Its base chains hook `forward`, `input`, and `output` at priority `filter - 1`, and `prerouting` at `dstnat - 1`, so they run before Docker's. nftables evaluates every table on a hook and a drop is final, so these rules can't be bypassed by Docker's accepts, and Docker rewriting its own rules never removes them. The table is replaced atomically (one `nft -f` transaction) and checked every minute: if something removed it (e.g. `nft flush ruleset`, which Debian's `nftables.service` runs on restart), Wings reapplies it and logs a warning.
 
 | Rule | Applies to |
 |---|---|
@@ -160,9 +160,12 @@ Wings' rules live in their **own nftables table, `inet raptor`**, not in Docker'
 | Drop everything addressed to the host itself | Install containers |
 | Allow port 53 to the host's upstream DNS resolvers, even in private ranges | Install containers |
 | Allow `docker.install_allow` CIDRs | Install containers |
+| Drop traffic from one server network to another, except to ports published to the internet (`between`) | `raptor0` and the owner's networks |
+| Drop connections to a server network's gateway from anywhere but that network and the host, before Docker translates them (`prerouting`, `dstnat - 1`), so `127.0.0.1` allocations stay on their network | `raptor0` and the owner's networks |
+| Drop everything addressed to the host itself, except replies | Owner's networks with **Reach the host** off |
 
 - **DNS for installs:** Docker's embedded resolver forwards container queries to the host's resolvers from inside the container's network namespace, so those packets are filtered like any other. Home boxes usually resolve through the router (`192.168.x.1`), so without the DNS exception every install would fail. Wings reads the resolvers from `/etc/resolv.conf`, or from systemd-resolved's upstream list when it points at the local stub.
-- Game servers can still reach private ranges, the host, and each other, because proxies like Velocity talk to backend servers over them.
+- Game servers can still reach private ranges, the host, and each other on the same network, because proxies like Velocity talk to backend servers over them.
 - **The node's firewall** (`internal/wings/firewall/host.go`), set by the owner from the node's System tab (`node.firewall`, passkey-signed), goes in the same table and is reloaded with it. It's stored in `kv` (`host.firewall`) and loaded at every start.
   - Its rules allow or block TCP, UDP, or both, on ports and ranges, from an address or range, or from anywhere. Allow rules come first, so they make exceptions to block rules ("allow 22 from my address", then "block 22").
   - The rules apply to the machine (`host_in`, jumped to from `input`) and to game servers (`servers_in`, from `forward` to the server bridge). For servers, ports are matched on the connection's original destination (`ct original proto-dst`), since packets are already translated to the container's port.

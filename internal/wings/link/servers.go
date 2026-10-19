@@ -181,7 +181,15 @@ func serverProto(s *server.Server, state string) (*nodev1.Server, error) {
 		EggHash     string              `json:"egg_hash"`
 		Egg         *eggInfo            `json:"egg,omitempty"`
 		Disk        string              `json:"disk,omitempty"` // "" is the main volume
-	}{s.Image, s.Startup, s.Variables, s.Limits, s.Settings, s.HostNetwork, s.Allocations, s.EggHash, describeEgg(s), s.Disk})
+		// Networks are the owner's networks it's on, its primary first
+		// (none is the server network), and Aliases the names it's found
+		// by there.
+		Networks []string `json:"networks"`
+		Aliases  []string `json:"aliases"`
+	}{
+		s.Image, s.Startup, s.Variables, s.Limits, s.Settings, s.HostNetwork, s.Allocations, s.EggHash, describeEgg(s), s.Disk,
+		append([]string{}, s.Networks...), server.Aliases(s.ID, s.Name),
+	})
 	if err != nil {
 		return nil, err
 	}

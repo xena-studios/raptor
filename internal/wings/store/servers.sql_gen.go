@@ -61,7 +61,7 @@ func (q *Queries) DeleteServerAllocations(ctx context.Context, serverID string) 
 }
 
 const getServer = `-- name: GetServer :one
-SELECT id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings, host_network, desired_state, install_state, install_error, last_state, version, created_at, updated_at, quota_project, disk_id FROM servers WHERE id = ?
+SELECT id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings, host_network, desired_state, install_state, install_error, last_state, version, created_at, updated_at, quota_project, disk_id, networks FROM servers WHERE id = ?
 `
 
 func (q *Queries) GetServer(ctx context.Context, id string) (Server, error) {
@@ -88,6 +88,7 @@ func (q *Queries) GetServer(ctx context.Context, id string) (Server, error) {
 		&i.UpdatedAt,
 		&i.QuotaProject,
 		&i.DiskID,
+		&i.Networks,
 	)
 	return i, err
 }
@@ -115,8 +116,8 @@ func (q *Queries) InsertAllocation(ctx context.Context, arg InsertAllocationPara
 
 const insertServer = `-- name: InsertServer :exec
 INSERT INTO servers (id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings,
-                     host_network, desired_state, install_state, disk_id, version, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, unixepoch(), unixepoch())
+                     host_network, desired_state, install_state, disk_id, networks, version, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, unixepoch(), unixepoch())
 `
 
 type InsertServerParams struct {
@@ -134,6 +135,7 @@ type InsertServerParams struct {
 	DesiredState string
 	InstallState string
 	DiskID       string
+	Networks     string
 }
 
 func (q *Queries) InsertServer(ctx context.Context, arg InsertServerParams) error {
@@ -152,6 +154,7 @@ func (q *Queries) InsertServer(ctx context.Context, arg InsertServerParams) erro
 		arg.DesiredState,
 		arg.InstallState,
 		arg.DiskID,
+		arg.Networks,
 	)
 	return err
 }
@@ -221,7 +224,7 @@ func (q *Queries) ListServerAllocations(ctx context.Context, serverID string) ([
 }
 
 const listServers = `-- name: ListServers :many
-SELECT id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings, host_network, desired_state, install_state, install_error, last_state, version, created_at, updated_at, quota_project, disk_id FROM servers ORDER BY created_at, id
+SELECT id, name, egg, egg_source, egg_hash, image, startup, variables, limits, settings, host_network, desired_state, install_state, install_error, last_state, version, created_at, updated_at, quota_project, disk_id, networks FROM servers ORDER BY created_at, id
 `
 
 func (q *Queries) ListServers(ctx context.Context) ([]Server, error) {
@@ -254,6 +257,7 @@ func (q *Queries) ListServers(ctx context.Context) ([]Server, error) {
 			&i.UpdatedAt,
 			&i.QuotaProject,
 			&i.DiskID,
+			&i.Networks,
 		); err != nil {
 			return nil, err
 		}

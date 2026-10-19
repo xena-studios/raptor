@@ -30,7 +30,7 @@ func TestRenderHost(t *testing.T) {
 		_ = os.WriteFile(p, []byte(got), 0o600)
 	}
 	for _, want := range []string{
-		`oifname "raptor0" jump servers_in`,
+		`oifname { "raptor0" } jump servers_in`,
 		"\t\tjump host_in comment",
 		`iifname { "lo", "raptor0", "raptor-inst" } accept`,
 		`ip saddr 203.0.113.7/32 drop`,

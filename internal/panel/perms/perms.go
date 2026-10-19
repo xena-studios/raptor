@@ -127,15 +127,20 @@ var actions = map[string]string{
 	"node.disk.default":         adminOnly,
 	"node.disk.grow":            adminOnly,
 	"node.logs":                 adminOnly,
-	"support.grant":             adminOnly,
-	"support.revoke":            adminOnly,
-	"support.list":              adminOnly,
-	"support.disable":           adminOnly,
-	"node.doctor":               adminOnly,
-	"keys.add":                  adminOnly,
-	"keys.remove":               adminOnly,
-	"keys.pair":                 adminOnly,
-	"keys.list":                 adminOnly,
+	// Networks decide which servers can reach each other (docs/NETWORKS.md).
+	"node.networks":       adminOnly,
+	"node.network.save":   adminOnly,
+	"node.network.delete": adminOnly,
+	"server.networks":     adminOnly,
+	"support.grant":       adminOnly,
+	"support.revoke":      adminOnly,
+	"support.list":        adminOnly,
+	"support.disable":     adminOnly,
+	"node.doctor":         adminOnly,
+	"keys.add":            adminOnly,
+	"keys.remove":         adminOnly,
+	"keys.pair":           adminOnly,
+	"keys.list":           adminOnly,
 }
 
 // For returns what running action needs: a server permission, or
@@ -181,7 +186,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

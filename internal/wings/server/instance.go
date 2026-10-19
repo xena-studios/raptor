@@ -321,12 +321,24 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 		return err
 	}
 
+	var nets []containers.Network
+	gateway := m.o.DockerInterface
+	if len(srv.Networks) > 0 && !srv.HostNetwork {
+		if m.o.Networks == nil {
+			return fmt.Errorf("%w: this node has no networks", ErrNoNetwork)
+		}
+		if nets, err = m.o.Networks.Resolve(ctx, srv.Networks); err != nil {
+			return err
+		}
+		gateway = nets[0].Gateway.String()
+	}
+
 	env := m.runtimeEnv(srv)
 	envList := env.Environment()
 	if files := srv.Egg().Config.Files; len(files) > 0 {
 		vals := eggs.Values{
 			ServerID: i.id, IP: env.IP, Port: env.Port, MemoryMiB: srv.Limits.MemoryMiB, SwapMiB: srv.Limits.SwapMiB,
-			CPU: srv.Limits.CPUPercent, Env: envMap(envList), DockerInterface: m.o.DockerInterface,
+			CPU: srv.Limits.CPUPercent, Env: envMap(envList), DockerInterface: gateway,
 		}
 		if root, err := os.OpenRoot(dir); err == nil {
 			if err := configfile.Apply(root, files, vals, configfile.Owner{UID: m.o.UID, GID: m.o.GID}); err != nil {
@@ -359,6 +371,8 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 		Limits:      srv.Limits,
 		HostNetwork: srv.HostNetwork,
 		Ports:       ports,
+		Networks:    nets,
+		Aliases:     Aliases(i.id, srv.Name),
 	})
 	if err != nil {
 		return err

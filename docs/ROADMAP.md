@@ -66,7 +66,7 @@ Small features and known gaps, unordered. Bugs found in the beta go first.
 
 Docker networks managed from the app, so separate communities on one node can't reach each other ([NETWORKS.md](NETWORKS.md)); then managed MariaDB, MySQL, and PostgreSQL on them with a full browser, then Redis and MongoDB ([DATABASES.md](DATABASES.md)). In order:
 
-1. Networks: settings, isolation (and the `127.0.0.1` gateway rule), the Networks tab, servers' primary and extra networks, names on each network.
+1. Networks: settings, isolation (and the `127.0.0.1` gateway rule), the Networks tab, servers' primary and extra networks, names on each network. Wings' side is built; the app is next.
 2. Rules between networks.
 3. Database instances and databases on networks (any version, limits, per-database users, environment variables).
 4. The browser (schema, rows with editing, the SQL editor, structure, processes).

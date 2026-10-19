@@ -224,7 +224,7 @@ func (r Rules) renderHost(w func(string, ...any), rule func(why, format string, 
 	h := r.Host
 	w("\tchain host_in {")
 	// Loopback and container networks aren't the outside world.
-	rule(whyLocal, "iifname { \"lo\", %q, %q } accept", r.ServerBridge, r.InstallBridge)
+	rule(whyLocal, "iifname { \"lo\", %s, %q } accept", quote(r.serverBridges()), r.InstallBridge)
 	for _, pat := range []string{"docker*", "br-*", "veth*"} {
 		rule(whyContainers, "iifname %q accept", pat)
 	}
@@ -250,7 +250,7 @@ func (r Rules) renderHost(w func(string, ...any), rule func(why, format string, 
 	}
 	w("\t}")
 	w("\tchain servers_in {")
-	rule(whyServerNets, "iifname { %q, %q } accept", r.ServerBridge, r.InstallBridge)
+	rule(whyServerNets, "iifname { %s, %q } accept", quote(r.serverBridges()), r.InstallBridge)
 	for _, action := range []string{Allow, Block} {
 		for i, hr := range h.Rules {
 			if hr.Action == action {

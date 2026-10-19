@@ -142,6 +142,9 @@ type CreateParams struct {
 	// Disk is the disk its files go on: "main", a data disk's ID, or ""
 	// for the node's default.
 	Disk string `json:"disk,omitempty"`
+	// Networks are the owner's networks it's on, its primary first; none
+	// is the server network (docs/NETWORKS.md).
+	Networks []string `json:"networks,omitempty"`
 }
 
 // Defaults are what new servers get.
@@ -208,6 +211,7 @@ func Register(x *command.Executor, m *server.Manager, d Defaults) {
 			opts.InTx = d.BackupSchedule
 		}
 		cfg := p.toConfig()
+		cfg.Networks = p.Networks
 		if d.Disk != nil {
 			disk, err := d.Disk(ctx, p.Disk)
 			if err != nil {

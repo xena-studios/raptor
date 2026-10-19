@@ -66,3 +66,41 @@ func TestNameservers(t *testing.T) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 }
+
+func TestRenderNetworks(t *testing.T) {
+	r := Rules{
+		ServerBridge: "raptor0", InstallBridge: "raptor-inst", ServerGateway: netip.MustParseAddr("172.29.0.1"),
+		Networks: []Network{
+			{Bridge: "rn1", Gateway: netip.MustParseAddr("172.30.0.1"), HostAccess: true},
+			{Bridge: "rn2", Gateway: netip.MustParseAddr("172.31.0.1")},
+		},
+		Host: &HostRules{},
+	}
+	got := r.Render()
+	for _, want := range []string{
+		`iifname { "raptor0", "rn1", "rn2", "raptor-inst" } ip daddr { 169.254.169.254 } drop`,
+		`iifname "raptor0" oifname { "rn1", "rn2" } jump between`,
+		`iifname "rn1" oifname { "raptor0", "rn2" } jump between`,
+		`iifname "rn2" oifname { "raptor0", "rn1" } jump between`,
+		"chain between {\n\t\tct status dnat return",
+		`type filter hook prerouting priority dstnat - 1; policy accept;`,
+		`ip daddr 172.29.0.1 iifname != { "lo", "raptor0" } drop`,
+		`ip daddr 172.30.0.1 iifname != { "lo", "rn1" } drop`,
+		`ip daddr 172.31.0.1 iifname != { "lo", "rn2" } drop`,
+		`iifname "rn2" ct state established,related accept`,
+		`iifname "rn2" drop`,
+		`oifname { "raptor0", "rn1", "rn2" } jump servers_in`,
+		`iifname { "lo", "raptor0", "rn1", "rn2", "raptor-inst" } accept`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("rules missing %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, `iifname "rn1" drop`) {
+		t.Error("a network with host access is cut off from the machine")
+	}
+	// Networks are kept apart before the owner's rules see the traffic.
+	if strings.Index(got, "jump between") > strings.Index(got, "jump servers_in") {
+		t.Error("between comes after servers_in")
+	}
+}
