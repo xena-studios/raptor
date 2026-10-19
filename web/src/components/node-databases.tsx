@@ -1,7 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
 import {
+  ArrowUpCircle,
   Database as DatabaseIcon,
+  History,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -45,12 +47,14 @@ import { Label } from "@/components/ui/label";
 import {
   type DBInstance,
   type DBVersion,
+  defaultMaintenance,
   type Engine,
   engineName,
   engines,
   type InstanceInput,
   instancesKey,
   useInstances,
+  versionChange,
 } from "@/lib/databases";
 import { message } from "@/lib/errors";
 import { defaultNetworkName, type RaptorNetwork, useNodeNetworks } from "@/lib/networks";
@@ -72,16 +76,20 @@ export function NodeDatabases({
   connected,
   supported,
   networksSupported,
+  versionsSupported,
 }: {
   nodeId: string;
   userId: string;
   connected: boolean;
   supported: boolean;
   networksSupported: boolean;
+  // The node's Wings changes instances' versions.
+  versionsSupported: boolean;
 }) {
   const insts = useInstances(nodeId, connected && supported);
   const nets = useNodeNetworks(nodeId, connected && networksSupported);
   const [editing, setEditing] = useState<DBInstance | "new">();
+  const [changing, setChanging] = useState<DBInstance>();
 
   if (!supported) {
     return (
@@ -135,7 +143,9 @@ export function NodeDatabases({
                 userId={userId}
                 instance={i}
                 networks={networks}
+                versions={versionsSupported}
                 onEdit={() => setEditing(i)}
+                onChangeVersion={() => setChanging(i)}
               />
             ))
           )}
@@ -150,6 +160,14 @@ export function NodeDatabases({
           onClose={() => setEditing(undefined)}
         />
       )}
+      {changing && (
+        <VersionDialog
+          nodeId={nodeId}
+          instance={changing}
+          versions={d.versions}
+          onClose={() => setChanging(undefined)}
+        />
+      )}
     </div>
   );
 }
@@ -159,6 +177,7 @@ const states: Record<DBInstance["state"], ServerStatus> = {
   starting: { label: "Starting", tone: "pending" },
   stopped: { label: "Stopped", tone: "stopped" },
   failed: { label: "Failed", tone: "failed" },
+  upgrading: { label: "Changing version", tone: "pending" },
 };
 
 function InstanceRow({
@@ -166,13 +185,17 @@ function InstanceRow({
   userId,
   instance: i,
   networks,
+  versions,
   onEdit,
+  onChangeVersion,
 }: {
   nodeId: string;
   userId: string;
   instance: DBInstance;
   networks: RaptorNetwork[];
+  versions: boolean;
   onEdit: () => void;
+  onChangeVersion: () => void;
 }) {
   const client = useQueryClient();
   const ask = useConfirm();
@@ -204,6 +227,37 @@ function InstanceRow({
       }),
     );
 
+  const changing = i.change && !i.change.done;
+
+  async function update() {
+    const ok = await ask.confirm({
+      title: `Update ${i.name}?`,
+      description: `It restarts on the newest ${engineName(i.engine)} ${i.version} patch, so servers using it reconnect within a minute or so. If it doesn't come up as it was, it goes back by itself. Otherwise this happens in its maintenance window.`,
+      confirm: "Update now",
+    });
+    if (!ok) return;
+    await act(() =>
+      commandClient.execute({
+        nodeId,
+        action: "node.db.instance.version",
+        paramsJson: JSON.stringify({ id: i.id }),
+      }),
+    );
+  }
+
+  async function goBack() {
+    const ok = await ask.confirm({
+      title: `Go back to ${engineName(i.engine)} ${i.previous}?`,
+      description: `Its data goes back to how it was just before the change to ${i.version}: anything written to its databases since is lost. Servers using it reconnect once it's back.`,
+      confirm: "Go back with passkey",
+      destructive: true,
+    });
+    if (!ok) return;
+    await act(() =>
+      sendSigned({ userId, nodeId, action: "node.db.instance.goback", params: { id: i.id } }),
+    );
+  }
+
   async function remove() {
     const ok = await ask.confirm({
       title: `Delete ${i.name}?`,
@@ -231,9 +285,20 @@ function InstanceRow({
             {engineName(i.engine)} {i.version}
           </Badge>
           <StatusBadge status={states[i.state]} />
+          {versions && i.update && !changing && (
+            <Badge variant="outline" className="text-primary">
+              Update available
+            </Badge>
+          )}
         </div>
         <div className="-my-0.5 flex shrink-0 gap-1">
-          <Button size="icon-sm" variant="ghost" aria-label={`Edit ${i.name}`} onClick={onEdit}>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={`Edit ${i.name}`}
+            disabled={changing}
+            onClick={onEdit}
+          >
             <Pencil />
           </Button>
           <DropdownMenu>
@@ -243,13 +308,13 @@ function InstanceRow({
                   size="icon-sm"
                   variant="ghost"
                   aria-label={`Actions for ${i.name}`}
-                  disabled={busy}
+                  disabled={busy || changing}
                 />
               }
             >
               {busy ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent align="end" className="w-52">
               {i.desired_state === "stopped" ? (
                 <DropdownMenuItem onClick={() => power("start")}>
                   <Play /> Start
@@ -262,6 +327,24 @@ function InstanceRow({
                   <DropdownMenuItem onClick={() => power("stop")}>
                     <Square /> Stop
                   </DropdownMenuItem>
+                </>
+              )}
+              {versions && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onChangeVersion}>
+                    <ArrowUpCircle /> Change version
+                  </DropdownMenuItem>
+                  {i.update && (
+                    <DropdownMenuItem onClick={update}>
+                      <RotateCw /> Update to the newest patch
+                    </DropdownMenuItem>
+                  )}
+                  {i.previous && (
+                    <DropdownMenuItem onClick={goBack}>
+                      <History /> Go back to {i.previous}
+                    </DropdownMenuItem>
+                  )}
                 </>
               )}
               <DropdownMenuSeparator />
@@ -282,6 +365,17 @@ function InstanceRow({
       {i.state === "failed" && i.error && (
         <p className="text-sm text-destructive">It didn't start: {i.error}</p>
       )}
+      {i.change && <ChangeLine instance={i} />}
+      {i.previous && i.go_back_until && !changing && (
+        <p className="text-xs text-muted-foreground">
+          Changed from {engineName(i.engine)} {i.previous}. Until{" "}
+          {new Date(i.go_back_until * 1000).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          })}{" "}
+          it can go back to it, with its data from just before the change.
+        </p>
+      )}
       {i.state === "starting" && i.databases === 0 && (
         <p className="text-xs text-muted-foreground">
           The first start downloads the engine and sets it up, which takes a minute or two.
@@ -290,6 +384,38 @@ function InstanceRow({
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
+}
+
+// ChangeLine is how a version change is going, or how the last one went.
+function ChangeLine({ instance: i }: { instance: DBInstance }) {
+  const c = i.change;
+  if (!c) return null;
+  const to = `${engineName(i.engine)} ${c.to}`;
+  if (!c.done) {
+    const what =
+      c.kind === "back"
+        ? `Going back to ${to}`
+        : c.kind === "patch"
+          ? "Updating"
+          : `Changing to ${to}`;
+    return (
+      <p className="flex items-center gap-2 text-sm" role="status">
+        <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+        <span>
+          {what}
+          {c.step ? <span className="text-muted-foreground"> · {c.step}</span> : null}
+        </span>
+      </p>
+    );
+  }
+  if (c.error) {
+    return (
+      <p className="text-sm text-destructive">
+        {c.kind === "back" ? `Going back to ${to}` : `The change to ${to}`} didn't work: {c.error}
+      </p>
+    );
+  }
+  return null;
 }
 
 function formatMemory(mib: number): string {
@@ -328,6 +454,7 @@ function InstanceDialog({
     instance?.settings.max_connections ? String(instance.settings.max_connections) : "",
   );
   const [timezone, setTimezone] = useState(instance?.settings.timezone ?? "");
+  const [maintenance, setMaintenance] = useState(instance?.settings.maintenance ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -353,6 +480,7 @@ function InstanceDialog({
       settings: {
         max_connections: maxConn ? Number(maxConn) : undefined,
         timezone: timezone.trim() || undefined,
+        maintenance: maintenance || undefined,
       },
     };
     try {
@@ -526,6 +654,27 @@ function InstanceDialog({
                   onChange={(e) => setTimezone(e.target.value)}
                 />
               </Field>
+              <Field id="instance-maintenance" label="Patch updates">
+                <select
+                  id="instance-maintenance"
+                  className={select}
+                  value={maintenance}
+                  onChange={(e) => setMaintenance(e.target.value)}
+                >
+                  <option value="">At {defaultMaintenance} (the default)</option>
+                  {hours
+                    .filter((h) => h !== defaultMaintenance)
+                    .map((h) => (
+                      <option key={h} value={h}>
+                        At {h}
+                      </option>
+                    ))}
+                  <option value="off">Only when I say</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  When a newer patch restarts it, in the node's time.
+                </p>
+              </Field>
               {network && networks.length > 1 && (
                 <fieldset className="flex flex-col gap-2 sm:col-span-2">
                   <legend className="mb-1.5 font-mono text-xs leading-none tracking-wide uppercase">
@@ -562,6 +711,134 @@ function InstanceDialog({
               {busy && <Loader2 className="animate-spin" />}
               {instance ? "Save" : "Create instance"}
             </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const hours = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, "0")}:00`);
+
+// VersionDialog moves an instance to another version. Wings copies its
+// data first, checks every table after, and puts it back if anything's
+// off; older versions aren't offered, since they can't read newer data.
+function VersionDialog({
+  nodeId,
+  instance: i,
+  versions,
+  onClose,
+}: {
+  nodeId: string;
+  instance: DBInstance;
+  versions: DBVersion[];
+  onClose: () => void;
+}) {
+  const client = useQueryClient();
+  const newer = versions.filter(
+    (v) =>
+      v.engine === i.engine &&
+      v.version !== i.version &&
+      versionChange(i.engine, i.version, v.version) !== "older",
+  );
+  const [to, setTo] = useState(newer[newer.length - 1]?.version ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const how = to ? versionChange(i.engine, i.version, to) : undefined;
+  const engine = engineName(i.engine);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await commandClient.execute({
+        nodeId,
+        action: "node.db.instance.version",
+        paramsJson: JSON.stringify({ id: i.id, version: to }),
+      });
+      await client.invalidateQueries({ queryKey: instancesKey(nodeId) });
+      onClose();
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle>Change {i.name}'s version</DialogTitle>
+            <DialogDescription>
+              It's on {engine} {i.version}.
+            </DialogDescription>
+          </DialogHeader>
+          {newer.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              It's on the newest version this node offers. Newer ones come with Wings updates.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="version-to">New version</Label>
+                <select
+                  id="version-to"
+                  className={select}
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                >
+                  {newer.map((v) => (
+                    <option key={v.version} value={v.version}>
+                      {engine} {v.version}
+                      {v.default ? " (recommended)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-muted-foreground">
+                {how === "migrate" ? (
+                  <li>
+                    {engine} {to} can't use {i.version}'s data files, so Wings dumps every database,
+                    starts {to} on a new data folder, and restores them into it.
+                  </li>
+                ) : (
+                  <li>
+                    Wings copies its data, then starts {engine} {to} on it
+                    {i.engine === "mariadb" ? " and upgrades its system tables" : ""}.
+                  </li>
+                )}
+                <li>
+                  Every table's rows are counted before and after. If {to} doesn't start or anything
+                  differs, it's put back on {i.version} as it was, by itself.
+                </li>
+                <li>
+                  {i.databases > 0
+                    ? `Servers using its ${i.databases} ${i.databases === 1 ? "database" : "databases"} lose their connection while it switches: a minute or so, longer for big databases.`
+                    : "Nothing uses it yet, so nothing notices."}
+                </li>
+                <li>
+                  For 7 days you can go back to {i.version}, with the data from just before the
+                  change. After that there's no going down a version: older versions can't read
+                  newer data.
+                  {i.previous ? ` This replaces the chance to go back to ${i.previous}.` : ""}
+                </li>
+              </ul>
+            </>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            {newer.length > 0 && (
+              <Button type="submit" disabled={busy || !to}>
+                {busy && <Loader2 className="animate-spin" />}
+                Change to {to}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

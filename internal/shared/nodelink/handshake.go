@@ -175,10 +175,16 @@ const (
 	CapDatabaseBrowser = "db-browser"
 	// CapDatabaseTransfers: db.import, db.export, and read-only users.
 	CapDatabaseTransfers = "db-transfers"
+	// CapDatabaseVersions: node.db.instance.version and .goback, patch
+	// updates in the maintenance window.
+	CapDatabaseVersions = "db-versions"
+	// CapDatabaseBackups: servers' backups hold their databases, and
+	// db.restore restores one.
+	CapDatabaseBackups = "db-backups"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {

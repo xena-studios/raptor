@@ -658,7 +658,9 @@ message Backup {
   google.protobuf.Timestamp finished_at = 10;
   google.protobuf.Timestamp expires_at = 11;
   // Where it is: a destination on its node ("local" for the node's disk).
-  string destination_id = 12;
+  string destination_id = 12;  // The server's databases it holds a dump of, by their names on the
+  // server ("luckperms").
+  repeated string databases = 13;
 }
 
 message GetSFTPAccessRequest {

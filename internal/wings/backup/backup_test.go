@@ -671,3 +671,93 @@ func TestExtractAndActivity(t *testing.T) {
 		t.Error("an extraction of nothing")
 	}
 }
+
+// databases is a fake of the databases service: one database, whose dump
+// is content.
+type databases struct {
+	mu       sync.Mutex
+	content  string
+	warning  string
+	dirs     []string
+	restored []string // the dumps restores ran
+}
+
+func (f *databases) Dump(_ context.Context, _ string, _ io.Writer) (string, []string, string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	dir, err := os.MkdirTemp("", "dumps-")
+	if err != nil {
+		return "", nil, "", err
+	}
+	f.dirs = append(f.dirs, dir)
+	if err := os.WriteFile(filepath.Join(dir, "luckperms.sql"), []byte(f.content), 0o600); err != nil {
+		return "", nil, "", err
+	}
+	return dir, []string{"luckperms"}, f.warning, nil
+}
+
+func (f *databases) Restore(_ context.Context, _, dir string, _ io.Writer) (string, error) {
+	b, err := os.ReadFile(filepath.Join(dir, DatabasesFolder, "luckperms.sql"))
+	if err != nil {
+		return "", err
+	}
+	f.mu.Lock()
+	f.restored = append(f.restored, string(b))
+	f.mu.Unlock()
+	return "", os.RemoveAll(filepath.Join(dir, DatabasesFolder))
+}
+
+func TestDatabasesInBackups(t *testing.T) {
+	ctx := context.Background()
+	v := newEnv(t)
+	dbs := &databases{content: "INSERT INTO ranks VALUES (1);"}
+	v.m.o.Databases = dbs
+	v.write("world/level.dat", "day 1")
+	b := v.backup()
+	if !slices.Equal(b.Databases, []string{"luckperms"}) || b.Warning != "" {
+		t.Fatalf("backup = %+v", b)
+	}
+	if _, err := os.Stat(dbs.dirs[0]); !errors.Is(err, os.ErrNotExist) {
+		t.Error("the dumps were left after the backup")
+	}
+	if _, err := os.Stat(filepath.Join(v.servers.src.Dir, DatabasesFolder)); !errors.Is(err, os.ErrNotExist) {
+		t.Error("the dumps went into the server's files")
+	}
+
+	// Restoring runs the dump from the backup, not what's there now.
+	dbs.content = "INSERT INTO ranks VALUES (2);"
+	jobID, err := v.m.Restore(ctx, srvID, b.ID, "u1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j := v.wait(jobID); j.Status != jobs.Succeeded {
+		t.Fatalf("restore: %s %s", j.Status, j.Error)
+	}
+	if !slices.Equal(dbs.restored, []string{"INSERT INTO ranks VALUES (1);"}) {
+		t.Fatalf("restored %q", dbs.restored)
+	}
+	// The safety backup taken first holds the databases as they were.
+	if l := v.list(); l[0].Kind != KindSafety || !slices.Equal(l[0].Databases, []string{"luckperms"}) {
+		t.Fatalf("safety backup = %+v", l[0])
+	}
+
+	// One database's dump, out of a backup.
+	tmp := t.TempDir()
+	p, err := v.m.ExtractDatabase(ctx, srvID, b.ID, "luckperms", tmp, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(p); string(got) != "INSERT INTO ranks VALUES (1);" {
+		t.Fatalf("extracted %q", got)
+	}
+	if _, err := v.m.ExtractDatabase(ctx, srvID, b.ID, "coreprotect", tmp, io.Discard); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a database the backup doesn't hold: %v", err)
+	}
+
+	// A database that couldn't be dumped is a warning, not a failed backup.
+	dbs.warning = "these databases aren't in it: coreprotect (its instance isn't running)"
+	v.clock.add(time.Minute)
+	if b := v.backup(); !strings.Contains(b.Warning, "coreprotect") || b.Status != StatusOK {
+		t.Errorf("backup with a warning = %+v", b)
+	}
+}

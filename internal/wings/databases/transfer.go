@@ -20,6 +20,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/files"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
+	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
 // Imports and exports (docs/DATABASES.md#the-browser) go through the
@@ -80,7 +81,7 @@ type ExportJob struct {
 // Transfer is how an import or export is going.
 type Transfer struct {
 	JobID    string `json:"job_id"`
-	Kind     string `json:"kind"` // import or export
+	Kind     string `json:"kind"` // import, export, or restore (Path is the export of what it had)
 	Database string `json:"database"`
 	Path     string `json:"path"`
 	Status   string `json:"status"` // the job's: queued, running, succeeded, failed, cancelled
@@ -166,6 +167,9 @@ func (s *Service) registerJobs() {
 	}
 	s.o.Jobs.Register(JobImport, jobs.Handler{Class: "files", Run: s.importJob})
 	s.o.Jobs.Register(JobExport, jobs.Handler{Class: "files", Run: s.exportJob})
+	s.o.Jobs.Register(JobRestore, jobs.Handler{Class: "files", Run: s.restoreJob})
+	s.o.Jobs.Register(JobVersion, jobs.Handler{Class: "database", Run: s.versionJob})
+	s.o.Jobs.Register(JobGoBack, jobs.Handler{Class: "database", Run: s.goBackJob})
 }
 
 // tools are an engine's client, its dump, and how both reach the socket.
@@ -227,10 +231,6 @@ func (s *Service) importJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	if s.state(r.InstanceID) != StateRunning {
 		return nil, notReady{fmt.Sprintf("%s isn't running; start it first", in.Name)}
 	}
-	pass, err := s.sealer.open(r.Password)
-	if err != nil {
-		return nil, err
-	}
 	f, err := s.fileService()
 	if err != nil {
 		return nil, err
@@ -259,6 +259,21 @@ func (s *Service) importJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 		src = gz
 	}
 
+	_, _ = fmt.Fprintf(log, "importing /%s into %s\n", p.Path, r.DbName)
+	if err := s.importFrom(ctx, in, r, src, log); err != nil {
+		return nil, err
+	}
+	_, _ = fmt.Fprintf(log, "done: %d bytes read\n", pr.bytes.Load())
+	return map[string]any{"path": p.Path, "bytes": pr.bytes.Load()}, nil
+}
+
+// importFrom runs SQL into a database as its own user, stopping at the
+// first error.
+func (s *Service) importFrom(ctx context.Context, in Instance, r store.Database, src io.Reader, log io.Writer) error {
+	pass, err := s.sealer.open(r.Password)
+	if err != nil {
+		return err
+	}
 	client, _, conn, pwEnv := tools(in.Engine)
 	cmd := append([]string{client}, conn...)
 	if in.Engine == Postgres {
@@ -266,20 +281,18 @@ func (s *Service) importJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	} else {
 		cmd = append(cmd, "--user="+r.Username, "--database="+r.DbName, "--binary-mode")
 	}
-	_, _ = fmt.Fprintf(log, "importing /%s into %s\n", p.Path, r.DbName)
 	var stderr tailBuffer
 	code, err := s.o.Runtime.Exec(ctx, ContainerName(r.InstanceID), containers.ExecSpec{
 		Cmd: cmd, Env: []string{pwEnv + "=" + pass}, User: "999:999",
 		Stdin: src, Stdout: io.Discard, Stderr: io.MultiWriter(&stderr, log),
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if code != 0 {
-		return nil, fmt.Errorf("the import stopped at an error: %s", lastLine(stderr.String()))
+		return fmt.Errorf("the import stopped at an error: %s", lastLine(stderr.String()))
 	}
-	_, _ = fmt.Fprintf(log, "done: %d bytes read\n", pr.bytes.Load())
-	return map[string]any{"path": p.Path, "bytes": pr.bytes.Load()}, nil
+	return nil
 }
 
 // lastLine is a tool's error, from its output: the last line that names
@@ -361,22 +374,33 @@ func (s *Service) exportJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	}
 	pr := s.transfers.start(j.ID)
 	defer s.transfers.done(j.ID)
-	f, err := s.fileService()
-	if err != nil {
+	_, _ = fmt.Fprintf(log, "exporting to /%s\n", p.Path)
+	if err := s.exportTo(ctx, j.ServerID, p, &pr.bytes, log); err != nil {
 		return nil, err
 	}
-	fsys, err := f.Open(ctx, j.ServerID, true)
+	_, _ = fmt.Fprintf(log, "done: %d bytes\n", pr.bytes.Load())
+	return map[string]any{"path": p.Path, "bytes": pr.bytes.Load()}, nil
+}
+
+// exportTo writes an export into the server's files, through a .part file
+// renamed when it's done, counting the bytes written in n.
+func (s *Service) exportTo(ctx context.Context, serverID string, p ExportJob, n *atomic.Int64, log io.Writer) error {
+	f, err := s.fileService()
 	if err != nil {
-		return nil, err
+		return err
+	}
+	fsys, err := f.Open(ctx, serverID, true)
+	if err != nil {
+		return err
 	}
 	defer func() { _ = fsys.Close() }()
 	if err := fsys.MkdirAll(ExportDir); err != nil {
-		return nil, err
+		return err
 	}
 	partial := p.Path + ".part"
 	out, err := fsys.Open(partial, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	ok := false
 	defer func() {
@@ -385,13 +409,12 @@ func (s *Service) exportJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 			_ = fsys.Remove(partial)
 		}
 	}()
-	w := counter{w: out, n: &pr.bytes}
-	_, _ = fmt.Fprintf(log, "exporting to /%s\n", p.Path)
+	w := counter{w: out, n: n}
 	if p.Format == "csv" {
-		err = s.exportCSV(ctx, j.ServerID, p, w)
+		err = s.exportCSV(ctx, serverID, p, w)
 	} else {
 		gz := gzip.NewWriter(w)
-		err = s.dump(ctx, j.ServerID, p, gz, log)
+		err = s.dump(ctx, serverID, p, gz, log)
 		if cerr := gz.Close(); err == nil {
 			err = cerr
 		}
@@ -400,14 +423,13 @@ func (s *Service) exportJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 		err = out.Sync()
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if err := fsys.Rename(partial, p.Path, false); err != nil {
-		return nil, err
+		return err
 	}
 	ok = true
-	_, _ = fmt.Fprintf(log, "done: %d bytes\n", pr.bytes.Load())
-	return map[string]any{"path": p.Path, "bytes": pr.bytes.Load()}, nil
+	return nil
 }
 
 // dump writes the engine's dump of a database or a table.
@@ -416,12 +438,19 @@ func (s *Service) dump(ctx context.Context, serverID string, p ExportJob, w io.W
 	if err != nil {
 		return err
 	}
+	return s.dumpTo(ctx, r, p.Schema, p.Table, w, log)
+}
+
+// dumpTo writes a dump of a database, or one of its tables, as its own
+// user: plain SQL, without owners or privileges, so it can be run into any
+// database by its user.
+func (s *Service) dumpTo(ctx context.Context, r store.Database, schema, table string, w io.Writer, log io.Writer) error {
 	in, _, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
 	if err != nil {
 		return err
 	}
 	if s.state(r.InstanceID) != StateRunning {
-		return notReady{fmt.Sprintf("%s isn't running; start it first", in.Name)}
+		return notReady{fmt.Sprintf("%s isn't running", in.Name)}
 	}
 	pass, err := s.sealer.open(r.Password)
 	if err != nil {
@@ -432,12 +461,11 @@ func (s *Service) dump(ctx context.Context, serverID string, p ExportJob, w io.W
 	switch in.Engine {
 	case Postgres:
 		cmd = append(cmd, "--username="+r.Username, "--dbname="+r.DbName, "--no-owner", "--no-privileges")
-		if p.Table != "" {
-			schema := p.Schema
+		if table != "" {
 			if schema == "" {
 				schema = "public"
 			}
-			cmd = append(cmd, "--table="+quotePG(schema)+"."+quotePG(p.Table))
+			cmd = append(cmd, "--table="+quotePG(schema)+"."+quotePG(table))
 		}
 	default:
 		// A consistent snapshot without locking, and nothing that needs
@@ -447,8 +475,8 @@ func (s *Service) dump(ctx context.Context, serverID string, p ExportJob, w io.W
 			cmd = append(cmd, "--set-gtid-purged=OFF")
 		}
 		cmd = append(cmd, r.DbName)
-		if p.Table != "" {
-			cmd = append(cmd, p.Table)
+		if table != "" {
+			cmd = append(cmd, table)
 		}
 	}
 	var stderr tailBuffer
@@ -562,15 +590,20 @@ func (se *session) eachRow(ctx context.Context, query string, fn func([]*string)
 // TransferStatus says how an import or export is going.
 func (s *Service) TransferStatus(ctx context.Context, serverID, jobID string) (Transfer, error) {
 	j, err := s.o.Jobs.Get(ctx, jobID)
-	if err != nil || j.ServerID != serverID || (j.Type != JobImport && j.Type != JobExport) {
+	if err != nil || j.ServerID != serverID || (j.Type != JobImport && j.Type != JobExport && j.Type != JobRestore) {
 		return Transfer{}, fmt.Errorf("%w: job %s", ErrNotFound, jobID)
 	}
 	t := Transfer{JobID: j.ID, Status: j.Status, Error: j.Error}
-	if j.Type == JobImport {
+	switch j.Type {
+	case JobImport:
 		var p ImportJob
 		_ = j.Decode(&p)
 		t.Kind, t.Database, t.Path = "import", p.Database, p.Path
-	} else {
+	case JobRestore:
+		var p RestoreJob
+		_ = j.Decode(&p)
+		t.Kind, t.Database, t.Path = "restore", p.Database, p.Before
+	default:
 		var p ExportJob
 		_ = j.Decode(&p)
 		t.Kind, t.Database, t.Path = "export", p.Database, p.Path

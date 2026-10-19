@@ -24,6 +24,14 @@ Choose **Restore** on a backup to open it, read-only, like the file manager.
 - **Restore a few files:** pick files or folders and restore them. They're copied into a new `.restore/<when the backup was taken>` folder beside the server's files, so nothing is replaced, and the server can keep running. Move what you need into place from there.
 - **Restore everything:** puts the whole server back as it was: every file replaced, anything made since deleted. The server stops, a **safety backup** of what it has now is taken first (kept 7 days), and it starts again after. Signed with your passkey.
 
+## Databases in backups
+
+A backup also holds the server's [databases](/servers/databases/): just before it's taken, each one is dumped, and the list of backups says which databases each holds. The dumps don't use the server's disk, and the patterns for leaving files out don't apply to them.
+
+**Restore everything** puts the databases back too, before the server starts. To put back only a database, without touching the files, use **Restore from a backup** on the server's [Databases tab](/servers/databases/#restore-a-database-from-a-backup).
+
+A database whose instance is stopped can't be dumped: the backup is taken without it, with a warning saying so.
+
 ## Where backups go
 
 **Where backups go** on the Backups tab lists the destinations this server backs up to, each with how many backups it keeps. A server can back up to up to five destinations at once; each backup is taken to every one. Admins change them; sending backups somewhere new, or keeping fewer, is signed with a passkey.
@@ -59,7 +67,7 @@ Space from deleted backups is freed a day or two later, when the destination is 
 
 ## Leaving files out
 
-Add patterns (like a `.gitignore`) to leave files out of a server's backups: caches, logs, or a dynmap render. A `.pteroignore` file in the server works too.
+Add patterns (like a `.gitignore`) to leave files out of a server's backups: caches, logs, or a dynmap render. A `.pteroignore` file in the server works too. The server's databases are always included.
 
 ## Raptor Backup Storage
 

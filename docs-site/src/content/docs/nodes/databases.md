@@ -39,8 +39,25 @@ Open **Advanced** when making or editing an instance:
 | **Disk limit** | How much of the node's disk its data can use. |
 | **Time zone** | The node's unless set, like `Europe/Berlin`. |
 | **Also on** | More networks it joins, for servers on them. |
+| **Patch updates** | When it restarts for a newer patch of its version: 04:00 in the node's time unless set, or only when you say. |
 
 Changing an instance restarts it, which takes a few seconds; servers using it reconnect.
+
+## Change its version
+
+**Change version** in the **⋯** menu moves an instance to a newer version of its engine, like MariaDB 11.4 to 11.8 or PostgreSQL 16 to 17. It has to be running. Raptor then:
+
+1. counts the rows in every table of every database;
+2. keeps a copy of its data, stops it, and starts the new version (for a new PostgreSQL major, it moves every database over to the new version, users and all);
+3. counts the rows again.
+
+If the new version doesn't start, or anything differs, it's put back as it was by itself, and the instance says what went wrong. Servers using it lose their connection while it switches, usually for under a minute.
+
+For **7 days** after a change, **Go back** in the menu puts the old version and its data from just before the change back. Anything written to its databases since is lost, so it asks for your passkey. After that, an instance can't go down a version: older versions can't read a newer one's data. The copy kept for going back counts toward the instance's disk limit, if it has one.
+
+### Patch updates
+
+Wings updates can bring newer patches of a version (11.8.3 to 11.8.4). The instance then shows **Update available** and gets it at the start of its maintenance window (04:00 in the node's time, or the hour you set under **Advanced**), the same careful way. **Update to the newest patch** in the menu does it now. Patches wait while an instance can still go back from a version change.
 
 ## Start, stop, and delete
 

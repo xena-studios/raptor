@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -143,10 +144,13 @@ func (m *Manager) createOne(ctx context.Context, j jobs.Job, cp *createCheckpoin
 		m.checkpoint(ctx, j, cp)
 		warning = m.pre(ctx, b.ServerID, src, log)
 	}
+	extra, dbWarning, cleanup := m.dumpDatabases(ctx, b, log)
+	warning = joinWarning(warning, dbWarning)
 	_, _ = fmt.Fprintf(log, "backing up to %s\n", b.DestinationID)
 	out, err := m.run(ctx, b.DestinationID, request{Op: opSnapshot, Snapshot: &engine.SnapshotRequest{
-		ServerID: b.ServerID, BackupID: b.ID, Dir: src.Dir, Ignore: pol.Ignore,
+		ServerID: b.ServerID, BackupID: b.ID, Dir: src.Dir, Ignore: pol.Ignore, Extra: extra,
 	}}, m.track(a, log), log)
+	cleanup()
 	if pre {
 		m.post(b.ServerID, src, log)
 		cp.PreRan = false
@@ -262,7 +266,28 @@ func joinWarning(a, b string) string {
 	if a == "" {
 		return b
 	}
+	if b == "" {
+		return a
+	}
 	return a + "; " + b
+}
+
+// dumpDatabases dumps the server's databases for a backup, and records
+// which are in it on b. The func removes the dumps.
+func (m *Manager) dumpDatabases(ctx context.Context, b *Backup, log io.Writer) (map[string]string, string, func()) {
+	b.Databases = nil
+	if m.o.Databases == nil {
+		return nil, "", func() {}
+	}
+	dir, names, warning, err := m.o.Databases.Dump(ctx, b.ServerID, log)
+	if err != nil {
+		return nil, joinWarning(warning, "the databases aren't in it: "+err.Error()), func() {}
+	}
+	if dir == "" {
+		return nil, warning, func() {}
+	}
+	b.Databases = names
+	return map[string]string{DatabasesFolder: dir}, warning, func() { _ = os.RemoveAll(dir) }
 }
 
 func progressLog(log io.Writer) func(engine.Progress) {
@@ -284,6 +309,10 @@ func (m *Manager) finish(ctx context.Context, b *Backup, res engine.SnapshotResu
 			SnapshotID: res.SnapshotID, Size: res.Size, Files: res.Files, Uploaded: res.Uploaded, Warning: warning,
 			FinishedAt: sql.NullInt64{Int64: now.UnixMilli(), Valid: true}, ID: b.ID,
 		}); err != nil {
+			return err
+		}
+		dbs, _ := json.Marshal(append([]string{}, b.Databases...))
+		if err := q.SetBackupDatabases(ctx, store.SetBackupDatabasesParams{Databases: string(dbs), ID: b.ID}); err != nil {
 			return err
 		}
 		_, err := events.AppendTx(ctx, q, events.Event{Type: EventFinished, ServerID: b.ServerID, Data: b.eventData()})
@@ -452,6 +481,7 @@ func (m *Manager) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 		m.checkpoint(ctx, j, cp)
 	}
 	var res engine.RestoreResult
+	var restoreWarning string
 	a := m.begin(j.ServerID, Activity{JobID: j.ID, Kind: ActRestore, BackupID: b.ID})
 	err = m.o.Servers.Restore(ctx, j.ServerID, cp.Start, func(ctx context.Context, dir string) error {
 		if !cp.Safety {
@@ -469,7 +499,20 @@ func (m *Manager) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 		if err != nil {
 			return err
 		}
-		return json.Unmarshal(out, &res)
+		if err := json.Unmarshal(out, &res); err != nil {
+			return err
+		}
+		// Its databases, before the server starts again. Restoring onto
+		// another server leaves the dumps for importing by hand: they'd
+		// go into databases of the same names.
+		if m.o.Databases != nil && b.ServerID == j.ServerID {
+			w, err := m.o.Databases.Restore(ctx, j.ServerID, dir, log)
+			if err != nil {
+				w = joinWarning(w, "its databases weren't restored: "+err.Error())
+			}
+			restoreWarning = w
+		}
+		return nil
 	})
 	if errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
 		return nil, err // resumed on the next start
@@ -481,6 +524,10 @@ func (m *Manager) restoreJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 	}
 	if err != nil {
 		data["error"] = err.Error()
+	}
+	if restoreWarning != "" {
+		data["warning"] = restoreWarning
+		_, _ = fmt.Fprintln(log, "warning:", restoreWarning)
 	}
 	if _, aerr := m.o.Events.Append(context.WithoutCancel(ctx), events.Event{Type: EventRestored, ServerID: j.ServerID, Data: data}); aerr != nil {
 		m.log.Error("recording a restore failed", "job", j.ID, "err", aerr)
@@ -568,9 +615,11 @@ func (m *Manager) snapshotInto(ctx context.Context, b *Backup, dir string, ignor
 	if err := m.o.Store.Write.SetBackupRunning(ctx, b.ID); err != nil {
 		return err
 	}
+	extra, warning, cleanup := m.dumpDatabases(ctx, b, log)
 	out, err := m.run(ctx, b.DestinationID, request{Op: opSnapshot, Snapshot: &engine.SnapshotRequest{
-		ServerID: b.ServerID, BackupID: b.ID, Dir: dir, Ignore: ignore,
+		ServerID: b.ServerID, BackupID: b.ID, Dir: dir, Ignore: ignore, Extra: extra,
 	}}, progressLog(log), log)
+	cleanup()
 	if err != nil {
 		if !errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
 			m.fail(ctx, b, err)
@@ -581,7 +630,7 @@ func (m *Manager) snapshotInto(ctx context.Context, b *Backup, dir string, ignor
 	if err := json.Unmarshal(out, &res); err != nil {
 		return err
 	}
-	return m.finish(ctx, b, res, "")
+	return m.finish(ctx, b, res, warning)
 }
 
 // safetyBackup backs up the stopped server's current files before a

@@ -51,8 +51,8 @@ DELETE FROM m_backups WHERE node_id = $1 AND server_id = $2;
 
 -- name: InsertMirrorBackup :exec
 INSERT INTO m_backups (node_id, server_id, backup_id, kind, status, locked, size, files, destination_id,
-                       error, warning, created_by, created_at, finished_at, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);
+                       error, warning, created_by, created_at, finished_at, expires_at, databases)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16);
 
 -- name: ListMirrorBackups :many
 SELECT * FROM m_backups WHERE node_id = $1 AND server_id = $2 ORDER BY created_at DESC, backup_id;

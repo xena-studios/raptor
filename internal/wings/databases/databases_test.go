@@ -2,6 +2,8 @@ package databases
 
 import (
 	"errors"
+	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -69,6 +71,13 @@ func TestValidate(t *testing.T) {
 	if err := ok.validate(); err != nil {
 		t.Fatal(err)
 	}
+	for _, m := range []string{"", "off", "00:00", "23:00"} {
+		in := ok
+		in.Settings.Maintenance = m
+		if err := in.validate(); err != nil {
+			t.Errorf("maintenance %q: %v", m, err)
+		}
+	}
 	for _, bad := range []InstanceInput{
 		{Name: "", Limits: Limits{MemoryMiB: 512}},
 		{Name: "x", Limits: Limits{MemoryMiB: 128}},
@@ -76,6 +85,8 @@ func TestValidate(t *testing.T) {
 		{Name: "x", Limits: Limits{MemoryMiB: 512}, Settings: Settings{MaxConnections: 5}},
 		{Name: "x", Limits: Limits{MemoryMiB: 512}, Settings: Settings{Timezone: "Mars/Olympus"}},
 		{Name: "x", Limits: Limits{MemoryMiB: 512}, Networks: []string{"a", "a"}},
+		{Name: "x", Limits: Limits{MemoryMiB: 512}, Settings: Settings{Maintenance: "4:30"}},
+		{Name: "x", Limits: Limits{MemoryMiB: 512}, Settings: Settings{Maintenance: "24:00"}},
 	} {
 		if err := bad.validate(); !errors.Is(err, ErrInvalid) {
 			t.Errorf("%+v: %v", bad, err)
@@ -157,5 +168,73 @@ func TestLastLine(t *testing.T) {
 	}
 	if got := lastLine(""); got != "no reason given" {
 		t.Errorf("empty: %q", got)
+	}
+}
+
+func TestMigrates(t *testing.T) {
+	for _, c := range []struct {
+		engine, from, to string
+		migrate, bad     bool
+	}{
+		{MariaDB, "10.6", "11.8", false, false},
+		{MariaDB, "11.4", "11.4", false, false}, // a patch
+		{MariaDB, "11.8", "10.11", false, true},
+		{MySQL, "8.0", "8.4", false, false},
+		{MySQL, "8.4", "8.0", false, true},
+		{Postgres, "16", "17", true, false},
+		{Postgres, "14", "18", true, false},
+		{Postgres, "17", "17", false, false},
+		{Postgres, "17", "16", false, true},
+	} {
+		got, err := migrates(c.engine, c.from, c.to)
+		if c.bad != errors.Is(err, ErrInvalid) || (!c.bad && got != c.migrate) {
+			t.Errorf("%s %s -> %s: %v %v", c.engine, c.from, c.to, got, err)
+		}
+	}
+}
+
+func TestCompareInventory(t *testing.T) {
+	before := map[string]int64{"s1_a:": 2, "s1_a: public.users": 10, "s1_a: public.bans": 0}
+	if d := compareInventory(before, maps.Clone(before)); d != "" {
+		t.Errorf("same: %q", d)
+	}
+	after := map[string]int64{"s1_a:": 1, "s1_a: public.users": 9}
+	d := compareInventory(before, after)
+	for _, want := range []string{"s1_a: public.bans is missing", "s1_a: public.users has 9 rows, not 10", "s1_a has 1 tables, not 2"} {
+		if !strings.Contains(d, want) {
+			t.Errorf("missing %q in %q", want, d)
+		}
+	}
+	if d := compareInventory(map[string]int64{"s1_b:": 0}, map[string]int64{}); !strings.Contains(d, "s1_b is missing") {
+		t.Errorf("a database gone: %q", d)
+	}
+}
+
+func TestCopyTree(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "data")
+	if err := os.MkdirAll(filepath.Join(src, "mysql"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "mysql", "user.ibd"), []byte("rows"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("mysql/user.ibd", filepath.Join(src, "link")); err != nil {
+		t.Fatal(err)
+	}
+	dst := filepath.Join(t.TempDir(), "copy")
+	if err := copyTree(src, dst); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dst, "mysql", "user.ibd")); err != nil || string(b) != "rows" {
+		t.Errorf("file: %q %v", b, err)
+	}
+	if fi, err := os.Stat(filepath.Join(dst, "mysql")); err != nil || fi.Mode().Perm() != 0o750 {
+		t.Errorf("folder mode: %v %v", fi.Mode(), err)
+	}
+	if l, err := os.Readlink(filepath.Join(dst, "link")); err != nil || l != "mysql/user.ibd" {
+		t.Errorf("link: %q %v", l, err)
+	}
+	if n, err := dirSize(dst); err != nil || n != 4 {
+		t.Errorf("size %d %v", n, err)
 	}
 }

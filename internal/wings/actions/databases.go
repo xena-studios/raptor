@@ -388,3 +388,64 @@ func RegisterDatabaseTransfers(x *command.Executor, d *databases.Service) {
 		return nil, d.RemoveReadOnly(ctx, e.ServerID, p.ID)
 	})})
 }
+
+// Versions and backups (docs/DATABASES.md#changing-an-instances-version).
+const (
+	NodeDBInstanceVersion = "node.db.instance.version" // change its version, or update its patch
+	NodeDBInstanceGoBack  = "node.db.instance.goback"  // back to the version and data from before
+	DBRestore             = "db.restore"               // one database from one of the server's backups
+)
+
+// DBVersionParams are node.db.instance.version's params.
+type DBVersionParams struct {
+	ID      string `json:"id"`
+	Version string `json:"version,omitempty"` // "" is the newest patch of its own
+}
+
+// DBRestoreParams are db.restore's params.
+type DBRestoreParams struct {
+	ID       string `json:"id"`
+	BackupID string `json:"backup_id"`
+}
+
+// RegisterDatabaseVersions adds version changes and restoring a database
+// from a backup. Going back and restoring replace what a database has now,
+// so they're signed; a version change puts itself back if anything's off.
+func RegisterDatabaseVersions(x *command.Executor, d *databases.Service) {
+	x.Register(NodeDBInstanceVersion, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBVersionParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		id, err := d.ChangeVersion(ctx, p.ID, p.Version)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": id}, nil
+	}})
+	x.Register(NodeDBInstanceGoBack, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBInstanceParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		id, err := d.GoBack(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": id}, nil
+	}})
+	x.Register(DBRestore, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		var p DBRestoreParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		id, before, err := d.RestoreDatabase(ctx, e.ServerID, p.ID, p.BackupID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"job_id": id, "before": before}, nil
+	}})
+}

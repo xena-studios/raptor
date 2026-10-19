@@ -31,7 +31,7 @@ var signing = map[string]string{
 
 	"db.create": "never", "db.delete": "always", "db.list": "never", "db.password": "always", "db.password.reset": "never",
 	"db.process.kill": "never", "db.processes": "never", "db.query": "never", "db.query.read": "never",
-	"db.export": "never", "db.import": "never", "db.readonly.remove": "never", "db.readonly.set": "never",
+	"db.export": "never", "db.import": "never", "db.readonly.remove": "never", "db.readonly.set": "never", "db.restore": "always",
 	"db.transfer.cancel": "never", "db.transfer.status": "never",
 	"db.row.delete": "never", "db.row.insert": "never", "db.row.update": "never", "db.rows": "never", "db.schema": "never",
 
@@ -48,7 +48,7 @@ var signing = map[string]string{
 	"node.disk.default": "never", "node.disk.grow": "never", "node.disk.setup": "always", "node.disks": "never",
 	"node.doctor": "never", "node.firewall": "always", "node.health": "never", "node.hostname": "never",
 	"node.logs": "never", "node.metrics": "never", "node.reboot": "always", "node.sftp": "never",
-	"node.db.instance.delete": "always", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never",
+	"node.db.instance.delete": "always", "node.db.instance.goback": "always", "node.db.instance.version": "never", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never",
 	"node.network.delete": "never", "node.network.rules": "never", "node.network.save": "never", "node.networks": "never",
 	"node.system": "never", "node.time": "never",
 	"node.update": "never", // the release is checked against Raptor's signing key instead
@@ -86,6 +86,7 @@ func TestSigningPolicy(t *testing.T) {
 	RegisterDatabases(x, nil)
 	RegisterDatabaseBrowser(x, nil)
 	RegisterDatabaseTransfers(x, nil)
+	RegisterDatabaseVersions(x, nil)
 
 	same := func(a, b any) bool { return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer() }
 	handlers := x.Handlers()

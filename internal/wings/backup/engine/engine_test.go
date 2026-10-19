@@ -280,3 +280,38 @@ func TestRestoreDoesNotFollowPlantedSymlinks(t *testing.T) {
 		t.Fatalf("server.properties: %v, %v", fi, err)
 	}
 }
+
+func TestExtraFolders(t *testing.T) {
+	ctx := context.Background()
+	e := newEngine(t)
+	src := t.TempDir()
+	write(t, filepath.Join(src, "world/level.dat"), "a", 0o644)
+	write(t, filepath.Join(src, ".raptor-databases/stale.sql"), "old", 0o644) // shadowed
+	write(t, filepath.Join(src, ".pteroignore"), "*.sql\n", 0o644)
+	dumps := t.TempDir()
+	write(t, filepath.Join(dumps, "luckperms.sql"), "CREATE TABLE x (id int);", 0o644)
+	res, err := e.Snapshot(ctx, SnapshotRequest{
+		ServerID: "s1", BackupID: "b1", Dir: src, Ignore: []string{"*.sql", ".raptor-*"},
+		Extra: map[string]string{".raptor-databases": dumps},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dst := t.TempDir()
+	if _, err := e.Restore(ctx, RestoreRequest{SnapshotID: res.SnapshotID, Dir: dst, UID: -1, GID: -1}, nil); err != nil {
+		t.Fatal(err)
+	}
+	got := tree(t, dst)
+	if got[".raptor-databases/luckperms.sql"] != "-rw-r--r-- CREATE TABLE x (id int);" {
+		t.Errorf("the dump wasn't backed up despite the ignore patterns: %v", got)
+	}
+	if _, ok := got[".raptor-databases/stale.sql"]; ok {
+		t.Errorf("the server's own folder of that name wasn't shadowed: %v", got)
+	}
+	if _, ok := got["world/level.dat"]; !ok {
+		t.Errorf("the server's files are missing: %v", got)
+	}
+	if _, err := e.Snapshot(ctx, SnapshotRequest{ServerID: "s1", BackupID: "b2", Dir: src, Extra: map[string]string{"a/b": dumps}}, nil); err == nil {
+		t.Error("an extra folder name with a slash was taken")
+	}
+}

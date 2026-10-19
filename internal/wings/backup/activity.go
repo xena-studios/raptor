@@ -281,3 +281,26 @@ func (m *Manager) extractJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 	_, _ = fmt.Fprintf(log, "restored %d files, %d bytes\n", res.Files, res.Size)
 	return map[string]any{"backup_id": b.ID, "folder": p.Folder, "files": res.Files, "size": res.Size}, nil
 }
+
+// ExtractDatabase takes a backup's dump of one of the server's databases
+// out into a new folder inside dir, and returns the dump's path. It runs
+// inside the caller's job (docs/DATABASES.md#backups).
+func (m *Manager) ExtractDatabase(ctx context.Context, serverID, backupID, name, dir string, log io.Writer) (string, error) {
+	b, err := m.Get(ctx, serverID, backupID)
+	if err != nil {
+		return "", err
+	}
+	if b.Status != StatusOK {
+		return "", ErrNotReady
+	}
+	if !slices.Contains(b.Databases, name) {
+		return "", fmt.Errorf("%w: that backup doesn't hold the database %s", ErrNotFound, name)
+	}
+	p := path.Join(DatabasesFolder, name+".sql")
+	if _, err := m.run(ctx, b.DestinationID, request{Op: opExtract, Extract: &engine.ExtractRequest{
+		SnapshotID: b.snapshotID, Dir: dir, Into: "dump", Paths: []string{p}, UID: -1, GID: -1,
+	}}, progressLog(log), log); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "dump", filepath.FromSlash(p)), nil
+}

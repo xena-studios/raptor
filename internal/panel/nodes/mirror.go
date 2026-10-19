@@ -469,7 +469,7 @@ func applyChildren(ctx context.Context, q *store.Queries, node pgtype.UUID, s *n
 			NodeID: node, ServerID: sid, BackupID: b.GetId(), Kind: b.GetKind(), Status: b.GetStatus(), Locked: b.GetLocked(),
 			Size: b.GetSize(), Files: b.GetFiles(), DestinationID: b.GetDestinationId(), Error: b.GetError(),
 			Warning: b.GetWarning(), CreatedBy: b.GetCreatedBy(), CreatedAt: optMillis(b.GetCreatedAt()),
-			FinishedAt: optMillis(b.GetFinishedAt()), ExpiresAt: optMillis(b.GetExpiresAt()),
+			FinishedAt: optMillis(b.GetFinishedAt()), ExpiresAt: optMillis(b.GetExpiresAt()), Databases: nonNil(b.GetDatabases()),
 		}); err != nil {
 			return err
 		}
@@ -499,4 +499,12 @@ func optMillis(ms int64) pgtype.Timestamptz {
 		return pgtype.Timestamptz{}
 	}
 	return millis(ms)
+}
+
+// nonNil is a list for a NOT NULL array column.
+func nonNil(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }

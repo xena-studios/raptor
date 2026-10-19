@@ -54,6 +54,10 @@ type Limits struct {
 type Settings struct {
 	MaxConnections int    `json:"max_connections,omitempty"` // 0 = 100
 	Timezone       string `json:"timezone,omitempty"`        // "" = the node's
+	// Maintenance is when its maintenance window starts each day, in the
+	// node's time ("04:00"; "" is DefaultMaintenance), or "off" for no
+	// patch updates but by hand.
+	Maintenance string `json:"maintenance,omitempty"`
 }
 
 // Instance is a database instance.
@@ -78,6 +82,13 @@ type Instance struct {
 	Port      int               `json:"port"`
 	Databases int               `json:"databases"`
 	Addresses map[string]string `json:"addresses"` // its fixed address on each network, by network ID
+	// Update: this Wings has a newer patch of its version.
+	Update bool `json:"update,omitempty"`
+	// Previous is the version it can go back to, with the data from
+	// before its last version change, until GoBackUntil (unix seconds).
+	Previous    string  `json:"previous,omitempty"`
+	GoBackUntil int64   `json:"go_back_until,omitempty"`
+	Change      *Change `json:"change,omitempty"`
 }
 
 // Database is one database on an instance, for one server.
@@ -102,6 +113,8 @@ const (
 	StateRunning  = "running"
 	StateStopped  = "stopped"
 	StateFailed   = "failed"
+	// StateUpgrading: changing version; servers can't reach it for a while.
+	StateUpgrading = "upgrading"
 )
 
 // Errors, matched with errors.Is. Their messages are sentences for people.
@@ -156,6 +169,10 @@ type Options struct {
 	// StartTimeout bounds how long an instance has to answer after it
 	// starts (3 minutes by default; a first start initializes it).
 	StartTimeout time.Duration
+	// FreeSpace returns the free bytes on the filesystem holding a path,
+	// checked before a version change copies an instance's data. nil = no
+	// check.
+	FreeSpace func(path string) (int64, error)
 }
 
 // Service runs the instances and their databases.
@@ -163,11 +180,13 @@ type Service struct {
 	o      Options
 	sealer *sealer
 
-	mu     sync.Mutex
-	status map[string]status // by instance ID
-	ipv6   map[string]map[string]netip.Addr
-	locks  map[string]*sync.Mutex
-	files  Files
+	mu      sync.Mutex
+	status  map[string]status // by instance ID
+	ipv6    map[string]map[string]netip.Addr
+	locks   map[string]*sync.Mutex
+	files   Files
+	backups Backups
+	changes map[string]*Change // by instance ID
 
 	transfers transfers
 }
@@ -191,7 +210,7 @@ func New(o Options) (*Service, error) {
 	}
 	svc := &Service{
 		o: o, sealer: s, status: map[string]status{}, ipv6: map[string]map[string]netip.Addr{},
-		locks: map[string]*sync.Mutex{},
+		locks: map[string]*sync.Mutex{}, changes: map[string]*Change{},
 	}
 	svc.registerJobs()
 	return svc, nil
@@ -230,6 +249,7 @@ func (s *Service) Start(ctx context.Context) error {
 		return err
 	}
 	for _, r := range rows {
+		s.recover(ctx, r.ID)
 		if r.DesiredState == StateRunning {
 			s.setStatus(r.ID, StateStarting, nil)
 			go s.ensure(context.WithoutCancel(ctx), r.ID)
@@ -238,6 +258,7 @@ func (s *Service) Start(ctx context.Context) error {
 		}
 	}
 	go s.dropOrphans(context.WithoutCancel(ctx))
+	go s.loop(ctx)
 	return nil
 }
 
@@ -272,6 +293,12 @@ func fromRow(r store.DatabaseInstance) (Instance, error) {
 		in.Networks = []string{}
 	}
 	in.Host = hostName(in.ID, in.Name)
+	if l := latest(r.Engine, r.Version); l != "" && l != r.Image {
+		in.Update = true
+	}
+	if r.PrevVersion != "" && r.RollbackUntil > time.Now().Unix() {
+		in.Previous, in.GoBackUntil = r.PrevVersion, r.RollbackUntil
+	}
 	return in, nil
 }
 
@@ -497,6 +524,9 @@ func (in *InstanceInput) validate() error {
 			return invalid{fmt.Sprintf("%q isn't a time zone, like Europe/Berlin", tz)}
 		}
 	}
+	if m := in.Settings.Maintenance; m != "" && m != "off" && !maintenanceRe.MatchString(m) {
+		return invalid{"the maintenance window starts on the hour, like 04:00, or is off"}
+	}
 	if len(in.Networks) > 8 {
 		return invalid{"an instance is on at most 8 networks"}
 	}
@@ -534,6 +564,9 @@ func (s *Service) Save(ctx context.Context, in InstanceInput) (Instance, error) 
 		return s.create(ctx, in, len(rows), now)
 	}
 
+	if err := s.busy(in.ID); err != nil {
+		return Instance{}, err
+	}
 	defer s.lock(in.ID)()
 	cur, r, err := s.instance(ctx, s.o.Store.Read, in.ID)
 	if err != nil {
@@ -635,6 +668,10 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 		}
 		s.mu.Lock()
 		st := s.status[r.ID]
+		if c := s.changes[r.ID]; c != nil {
+			cp := *c
+			in.Change = &cp
+		}
 		s.mu.Unlock()
 		in.State, in.Error = st.state, st.err
 		if in.State == "" {
@@ -660,6 +697,9 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 func (s *Service) Power(ctx context.Context, id, action string) error {
 	if action != "start" && action != "stop" && action != "restart" {
 		return invalid{"start, stop, or restart"}
+	}
+	if err := s.busy(id); err != nil {
+		return err
 	}
 	unlock := s.lock(id)
 	if _, _, err := s.instance(ctx, s.o.Store.Read, id); err != nil {
@@ -691,6 +731,9 @@ func (s *Service) Power(ctx context.Context, id, action string) error {
 
 // Delete removes an instance with every database on it, and its files.
 func (s *Service) Delete(ctx context.Context, id string) error {
+	if err := s.busy(id); err != nil {
+		return err
+	}
 	defer s.lock(id)()
 	_, r, err := s.instance(ctx, s.o.Store.Read, id)
 	if err != nil {
@@ -711,6 +754,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	s.mu.Lock()
 	delete(s.status, id)
 	delete(s.ipv6, id)
+	delete(s.changes, id)
 	s.mu.Unlock()
 	s.changed(ctx)
 	return nil
@@ -814,6 +858,9 @@ func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, labe
 	if !labelRe.MatchString(label) {
 		return Database{}, "", invalid{"a database's name is up to 18 lowercase letters, digits, and underscores, starting with a letter"}
 	}
+	if err := s.busy(instanceID); err != nil {
+		return Database{}, "", err
+	}
 	defer s.lock(instanceID)()
 	in, r, err := s.instance(ctx, s.o.Store.Read, instanceID)
 	if err != nil {
@@ -904,6 +951,9 @@ func (s *Service) DeleteDatabase(ctx context.Context, serverID, id string) error
 }
 
 func (s *Service) drop(ctx context.Context, r store.Database) error {
+	if err := s.busy(r.InstanceID); err != nil {
+		return err
+	}
 	defer s.lock(r.InstanceID)()
 	in, ir, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
 	if err != nil {
@@ -947,6 +997,9 @@ func (s *Service) Password(ctx context.Context, serverID, id string) (string, er
 func (s *Service) ResetPassword(ctx context.Context, serverID, id string) (string, error) {
 	r, err := s.database(ctx, serverID, id)
 	if err != nil {
+		return "", err
+	}
+	if err := s.busy(r.InstanceID); err != nil {
 		return "", err
 	}
 	defer s.lock(r.InstanceID)()

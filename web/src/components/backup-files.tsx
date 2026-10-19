@@ -541,6 +541,13 @@ export function BackupFiles({
               stops while it runs. A safety backup of what's there now is taken first, so this can
               be undone.
             </p>
+            {backup.databases.length > 0 && (
+              <p>
+                Its {backup.databases.length === 1 ? "database" : "databases"} (
+                {backup.databases.join(", ")}) go back too: each is emptied and filled from the
+                backup.
+              </p>
+            )}
             <p className="text-muted-foreground">Your passkey signs it.</p>
           </div>
           <DialogFooter>

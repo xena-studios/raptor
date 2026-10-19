@@ -217,7 +217,7 @@ export function formatBytes(n: number): string {
 // Imports and exports run as jobs on the node, through the server's files.
 export type Transfer = {
   job_id: string;
-  kind: "import" | "export";
+  kind: "import" | "export" | "restore"; // a restore's path is the export of what it had
   database: string;
   path: string;
   status: "queued" | "running" | "succeeded" | "failed" | "cancelled";

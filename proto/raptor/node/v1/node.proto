@@ -134,6 +134,9 @@ message Backup {
   int64 created_at = 11;
   int64 finished_at = 12;
   int64 expires_at = 13;
+  // The server's databases it holds a dump of, by their names on the
+  // server ("luckperms").
+  repeated string databases = 14;
 }
 
 message OpenTransferRequest {

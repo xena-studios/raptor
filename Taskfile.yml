@@ -415,7 +415,7 @@ tasks:
         limactl copy bin/server-e2e-$ARCH {{.VM}}:/tmp/server-e2e
         limactl copy bin/actions-e2e-$ARCH {{.VM}}:/tmp/actions-e2e
         limactl shell {{.VM}} sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime.*{{.RUN}}'
-        limactl shell {{.VM}} sudo /tmp/databases-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
+        limactl shell {{.VM}} sudo /tmp/databases-e2e -test.v -test.timeout 40m -test.run '{{.RUN}}'
         limactl shell {{.VM}} sudo /tmp/server-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
         limactl shell {{.VM}} sudo /tmp/actions-e2e -test.v -test.timeout 20m -test.run '{{.RUN}}'
 

@@ -234,6 +234,7 @@ func (s *service) addSchedulesAndBackups(ctx context.Context, pb *nodev1.Server)
 					Id: b.ID, Kind: b.Kind, Status: b.Status, Locked: b.Locked, Size: b.Size, Files: b.Files,
 					DestinationId: b.DestinationID, Error: b.Error, Warning: b.Warning, CreatedBy: b.CreatedBy,
 					CreatedAt: unixMilli(b.CreatedAt), FinishedAt: unixMilli(b.FinishedAt), ExpiresAt: unixMilli(b.ExpiresAt),
+					Databases: b.Databases,
 				})
 			}
 		}
