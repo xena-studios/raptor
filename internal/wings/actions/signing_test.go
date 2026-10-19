@@ -31,7 +31,9 @@ var signing = map[string]string{
 
 	"db.create": "never", "db.delete": "always", "db.list": "never", "db.password": "always", "db.password.reset": "never",
 	"db.process.kill": "never", "db.processes": "never", "db.query": "never", "db.query.read": "never",
-	"db.export": "never", "db.import": "never", "db.readonly.remove": "never", "db.readonly.set": "never", "db.restore": "always",
+	"db.export": "never", "db.import": "never", "db.readonly.remove": "never", "db.keys": "never", "db.key": "never", "db.key.edit": "never",
+	"db.redis.command": "never", "db.redis.command.read": "never", "db.collections": "never", "db.documents": "never",
+	"db.document.edit": "never", "db.collection.edit": "never", "db.readonly.set": "never", "db.restore": "always",
 	"db.transfer.cancel": "never", "db.transfer.status": "never",
 	"db.row.delete": "never", "db.row.insert": "never", "db.row.update": "never", "db.rows": "never", "db.schema": "never",
 
@@ -88,6 +90,7 @@ func TestSigningPolicy(t *testing.T) {
 	RegisterDatabaseTransfers(x, nil)
 	RegisterDatabaseVersions(x, nil)
 	RegisterDatabaseExternal(x, nil)
+	RegisterDatabaseDocuments(x, nil)
 
 	same := func(a, b any) bool { return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer() }
 	handlers := x.Handlers()
