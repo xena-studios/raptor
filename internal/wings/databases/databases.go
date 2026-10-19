@@ -683,6 +683,10 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 		}
 		s.mu.Unlock()
 		in.State, in.Error = st.state, st.err
+		// Restarting on the new version is part of the change.
+		if in.Change != nil && !in.Change.Done && in.State == StateStarting {
+			in.State = StateUpgrading
+		}
 		if in.State == "" {
 			in.State = StateStopped
 		}
