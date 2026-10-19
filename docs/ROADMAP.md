@@ -64,16 +64,31 @@ Small features and known gaps, unordered. Bugs found in the beta go first.
 
 ## Networks and databases
 
-Docker networks managed from the app, so separate communities on one node can't reach each other ([NETWORKS.md](NETWORKS.md)); then managed MariaDB, MySQL, and PostgreSQL on them with a full browser, then Redis and MongoDB ([DATABASES.md](DATABASES.md)). In order:
+Docker networks managed from the app, so separate communities on one node can't reach each other ([NETWORKS.md](NETWORKS.md)); then managed MariaDB, MySQL, PostgreSQL, Redis, and MongoDB on them with browsers ([DATABASES.md](DATABASES.md)). All eight steps are built (#248–#258): networks, rules between them, instances and databases, the SQL browser, imports, exports, and read-only users, version changes and databases in backups, external access, and Redis and MongoDB with their key and document browsers.
 
-1. Networks: settings, isolation (and the `127.0.0.1` gateway rule), the Networks tab, servers' primary and extra networks, names on each network. Built.
-2. Rules between networks. Built.
-3. Database instances and databases on networks (any version, limits, per-database users, environment variables). Built.
-4. The browser (schema, rows with editing, the SQL editor, structure, processes). Built for servers' databases; longer queries and bigger pages wait for streamed results.
-5. Import, export, and read-only users. Built.
-6. Versions and backups (patch updates, upgrades with rollback, databases in server backups). Built; instances aren't backed up on their own (DECISIONS #314).
-7. External access to instances (a port, an address allowlist, TLS). Built.
-8. Redis and MongoDB. Built, with the key and document browsers; external access for them waits (DECISIONS #321).
+### Waiting on a decision
+
+Calls only the owner can make; each has a recommendation.
+
+| Decision | Options | Recommendation |
+|---|---|---|
+| External access for Redis and MongoDB (DECISIONS #321) | Redis: a second, TLS-only port is published, the plain one stays inside. MongoDB: require TLS for everyone (plugins must be set up for it), or keep it off | Build Redis' TLS port; keep MongoDB off until someone asks |
+| Redis and MongoDB admin accounts can log in over the network with their password (#320) | Accept (32 random characters, and the firewall keeps the owner's networks to servers with a database there), or run Wings' admin work through `docker exec` inside the container so the account can be kept to localhost | Accept for now; revisit if an instance on the default network worries anyone |
+| Instances aren't backed up on their own (#314) | As now (every database is in its server's backups), or a whole-instance backup on its own schedule | As now |
+| Which Redis to ship | Redis (7.4 and up are RSALv2/SSPL, 8 adds AGPLv3), or Valkey, the BSD fork, beside or instead | Add Valkey beside Redis; it's a drop-in for plugins |
+| MongoDB's default version | 8.0 (needs a CPU from about 2016 on: ARMv8.2 or AVX), or 7.0 (runs anywhere, supported until 2027) | 8.0, with the app saying 7.0 is for older machines (it does) |
+
+### Known gaps
+
+- **Not tried with a real passkey yet:** going back after a version change, restoring one database from a backup, and turning external access on, off, or changing it. Their signing is tested, and the work behind them is tested on real engines, but nobody has clicked them through in the app with a node-trusted passkey.
+- **Alerts:** an instance down or restarting, near its disk or connection limit, and a version change finished or failed aren't alert conditions yet; the outcome shows only on the instance.
+- **The instance page's own browser** (admins, as the instance's administrator, across its databases) isn't built; each server's databases have theirs.
+- **Long SQL queries:** results stop at 1,000 rows, 2 MB, and 50 seconds, with no cancel button, until results stream like file transfers (#310).
+- **Readers of a SQL database** use the database's own user inside a read-only transaction (#309); switching them to the read-only users would be stronger.
+- **Advanced engine settings:** the `name = value` lines checked against a safe list aren't built; only the common settings are fields.
+- **`raptor doctor`** doesn't check networks or instances yet, and there's no `raptor db ps`.
+- **MySQL 8 without TLS:** clients connecting in plain text must fetch the server's key (`allowPublicKeyRetrieval=true` for JDBC, `--get-server-public-key` for `mysql`); the docs should say so for plugin setups.
+- **Patch updates** wait while an instance can still go back from a version change (#315), up to 7 days.
 
 ## After launch
 
