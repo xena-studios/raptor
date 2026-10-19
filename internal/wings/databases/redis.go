@@ -176,33 +176,70 @@ func redisKeys(ctx context.Context, dir, root string) (map[string]int64, error) 
 }
 
 // redisDump writes a snapshot of the instance's data (an RDB file): Redis
-// saves it in the background, and it's read from the data folder.
+// saves it in the background, and it's read from the data folder. It waits
+// on Redis' count of snapshots made, not LASTSAVE (whole seconds: a save
+// in the same second as the one before looks like none), and gives up
+// after redisSaveTimeout.
 func redisDump(ctx context.Context, dir, root string, w io.Writer) error {
+	ctx, cancel := context.WithTimeout(ctx, redisSaveTimeout)
+	defer cancel()
 	c := redisClient(dir, root)
 	defer func() { _ = c.Close() }()
-	before, err := c.LastSave(ctx).Result()
+	persistence := func() (map[string]string, error) {
+		info, err := c.Info(ctx, "persistence").Result()
+		if err != nil {
+			return nil, err
+		}
+		out := map[string]string{}
+		for l := range strings.Lines(info) {
+			if k, v, ok := strings.Cut(strings.TrimRight(l, "\r\n"), ":"); ok {
+				out[k] = v
+			}
+		}
+		return out, nil
+	}
+	saves := func(p map[string]string) int64 {
+		n, _ := strconv.ParseInt(p["rdb_saves"], 10, 64)
+		return n
+	}
+	p, err := persistence()
 	if err != nil {
 		return err
 	}
-	if err := c.BgSave(ctx).Err(); err != nil {
-		return fmt.Errorf("BGSAVE: %w", err)
-	}
+	before := saves(p)
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(200 * time.Millisecond):
-		}
-		last, err := c.LastSave(ctx).Result()
-		if err != nil {
-			return err
-		}
-		if last != before {
+		err := c.BgSave(ctx).Err()
+		if err == nil {
 			break
 		}
+		// One already running (an append-only log rewrite, another backup):
+		// wait for it, then start ours.
+		if !strings.Contains(err.Error(), "in progress") {
+			return fmt.Errorf("BGSAVE: %w", err)
+		}
+		if err := sleepCtx(ctx, time.Second); err != nil {
+			return fmt.Errorf("waiting to save: %w", err)
+		}
+		if p, err = persistence(); err != nil {
+			return err
+		}
+		before = saves(p)
 	}
-	info, err := c.Info(ctx, "persistence").Result()
-	if err == nil && containsLine(info, "rdb_last_bgsave_status:err") {
+	for {
+		if err := sleepCtx(ctx, 200*time.Millisecond); err != nil {
+			return fmt.Errorf("waiting for the save: %w", err)
+		}
+		if p, err = persistence(); err != nil {
+			return err
+		}
+		if p["rdb_bgsave_in_progress"] == "0" && saves(p) > before {
+			break
+		}
+		if p["rdb_bgsave_in_progress"] == "0" && p["rdb_last_bgsave_status"] == "err" {
+			return errors.New("redis couldn't save its data")
+		}
+	}
+	if p["rdb_last_bgsave_status"] == "err" {
 		return errors.New("redis couldn't save its data")
 	}
 	f, err := os.Open(filepath.Join(dataDir(dir), "dump.rdb")) //nolint:gosec // Wings' own folder
@@ -214,11 +251,14 @@ func redisDump(ctx context.Context, dir, root string, w io.Writer) error {
 	return err
 }
 
-func containsLine(s, line string) bool {
-	for l := range strings.Lines(s) {
-		if strings.TrimRight(l, "\r\n") == line {
-			return true
-		}
+// redisSaveTimeout bounds a snapshot for a backup.
+const redisSaveTimeout = 15 * time.Minute
+
+func sleepCtx(ctx context.Context, d time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(d):
+		return nil
 	}
-	return false
 }
