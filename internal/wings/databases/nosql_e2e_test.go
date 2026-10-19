@@ -120,6 +120,15 @@ func TestRedis(t *testing.T) {
 		t.Fatalf("dump: %v %q %v", names, warning, err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	// Another at once, within the same second: LASTSAVE wouldn't change,
+	// and a wait on it never ended.
+	dctx, cancel := context.WithTimeout(ctx, time.Minute)
+	again, _, _, err := e.svc.Dump(dctx, e.server, io.Discard)
+	cancel()
+	if err != nil {
+		t.Fatalf("a second dump straight after: %v", err)
+	}
+	_ = os.RemoveAll(again)
 	if err := c2.Set(ctx, "player:alex", "0", 0).Err(); err != nil {
 		t.Fatal(err)
 	}
