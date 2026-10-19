@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -176,6 +177,7 @@ export function NodeDestinations({
   owner: boolean;
 }) {
   const client = useQueryClient();
+  const ask = useConfirm();
   const list = useDestinations(nodeId);
   const storage = useConnectQuery(OrgService.method.getBackupStorage, { orgId });
   const [editing, setEditing] = useState<Destination | "new" | null>(null);
@@ -203,14 +205,23 @@ export function NodeDestinations({
 
   async function remove(d: Destination) {
     const hosted = d.type === "raptor";
-    if (
-      !window.confirm(
-        hosted
-          ? "Turn off Raptor Backup Storage on this node? Raptor forgets the backups there, and deletes them in 30 days."
-          : `Remove "${d.name}"? Raptor forgets the backups there; the files themselves are left where they are.`,
-      )
-    )
-      return;
+    const ok = await ask.confirm(
+      hosted
+        ? {
+            title: "Turn off Raptor Backup Storage on this node?",
+            description: "Raptor forgets the backups there, and deletes them in 30 days.",
+            confirm: "Turn it off",
+            destructive: true,
+          }
+        : {
+            title: `Remove ${d.name}?`,
+            description:
+              "Raptor forgets the backups there; the files themselves are left where they are.",
+            confirm: "Remove",
+            destructive: true,
+          },
+    );
+    if (!ok) return;
     setBusy(`delete-${d.id}`);
     setNotice(null);
     try {
@@ -1685,6 +1696,7 @@ export function RecoveredBackups({
   userId: string;
 }) {
   const client = useQueryClient();
+  const ask = useConfirm();
   const orphans = useQuery({
     queryKey: ["backup-orphans", nodeId],
     queryFn: () => nodeCommand<{ backups: Orphan[] | null }>(nodeId, "backup.orphans"),
@@ -1702,12 +1714,13 @@ export function RecoveredBackups({
     const target = onto[b.id] ?? mine[0]?.id;
     const name = mine.find((x) => x.id === target)?.name ?? "the server";
     if (!target) return;
-    if (
-      !window.confirm(
-        `Replace ${name}'s files with this backup? A safety backup of its current files is taken first.`,
-      )
-    )
-      return;
+    const ok = await ask.confirm({
+      title: `Replace ${name}'s files with this backup?`,
+      description: "Every file is replaced. A safety backup of its current files is taken first.",
+      confirm: "Restore with passkey",
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(b.id);
     setResult(null);
     try {

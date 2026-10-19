@@ -3,8 +3,8 @@ import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { BellRing, Loader2, Pencil, Plus, Send, Trash2 } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
-
 import { select } from "@/components/backup-destinations";
+import { useConfirm } from "@/components/confirm";
 import { StatusBadge } from "@/components/server-status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,6 +161,7 @@ function ChannelRow({
   onEdit: () => void;
 }) {
   const refresh = useRefresh();
+  const ask = useConfirm();
   const test = useMutation(AlertService.method.testAlertChannel);
   const update = useMutation(AlertService.method.updateAlertChannel);
   const remove = useMutation(AlertService.method.deleteAlertChannel);
@@ -226,14 +227,15 @@ function ChannelRow({
           className="text-muted-foreground hover:text-destructive"
           disabled={remove.isPending}
           onClick={async () => {
-            if (
-              !window.confirm(
-                orgId
-                  ? `Remove ${c.name}? Rules stop posting to it.`
-                  : `Remove ${c.name}? You won't be told there any more.`,
-              )
-            )
-              return;
+            const ok = await ask.confirm({
+              title: `Remove ${c.name}?`,
+              description: orgId
+                ? "Rules stop posting to it."
+                : "You won't be told there any more.",
+              confirm: "Remove",
+              destructive: true,
+            });
+            if (!ok) return;
             try {
               await remove.mutateAsync({ orgId, id: c.id });
               await refresh();

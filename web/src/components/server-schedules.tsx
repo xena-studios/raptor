@@ -15,8 +15,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
-
 import { ActivityCard, type TimelineItem } from "@/components/activity-timeline";
+import { useConfirm } from "@/components/confirm";
 import { EmptyState } from "@/components/page";
 import { useBackupPlan } from "@/components/server-backup-plan";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +119,7 @@ export function ServerSchedules({
   serverId: string;
 }) {
   const client = useQueryClient();
+  const ask = useConfirm();
   const list = useQuery(
     OrgService.method.listSchedules,
     { orgId, nodeId, serverId },
@@ -282,9 +283,15 @@ export function ServerSchedules({
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 variant="destructive"
-                                onClick={() => {
-                                  if (window.confirm(`Delete the schedule "${s.name}"?`))
-                                    run(s.id, "schedule.delete", { schedule_id: s.id });
+                                onClick={async () => {
+                                  const ok = await ask.confirm({
+                                    title: `Delete the schedule ${s.name}?`,
+                                    description:
+                                      "It stops running, and a run in progress is cancelled. Its past runs go with it.",
+                                    confirm: "Delete",
+                                    destructive: true,
+                                  });
+                                  if (ok) run(s.id, "schedule.delete", { schedule_id: s.id });
                                 }}
                               >
                                 <Trash2 /> Delete

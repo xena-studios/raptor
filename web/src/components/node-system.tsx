@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -650,16 +651,19 @@ function RulesetNotes({ s }: { s: SystemState }) {
 }
 
 function Reboot({ nodeId, userId }: { nodeId: string; userId: string }) {
+  const ask = useConfirm();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string }>();
 
   async function reboot() {
-    if (
-      !window.confirm(
-        "Reboot the machine? Its servers stop properly first, and those that were running start again once it's back, usually within a few minutes.",
-      )
-    )
-      return;
+    const ok = await ask.confirm({
+      title: "Reboot the machine?",
+      description:
+        "Its servers stop properly first, and those that were running start again once it's back, usually within a few minutes.",
+      confirm: "Reboot with passkey",
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setNotice(undefined);
     try {

@@ -31,6 +31,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useConfirm } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
@@ -132,6 +133,7 @@ export function Files({
   canImport?: boolean;
 }) {
   const api = useFilesApi(nodeId, serverId, support);
+  const dialogs = useConfirm();
   const transfers = !support;
   const settings = useFileSettings();
   const listing = useListing(api, path);
@@ -169,12 +171,21 @@ export function Files({
   );
 
   function go(to: { path: string; file?: string }) {
-    if (
-      dirty.current &&
-      to.file !== file &&
-      !window.confirm("Leave without saving? Your changes stay in this browser as a draft.")
-    )
+    if (dirty.current && to.file !== file) {
+      void dialogs
+        .confirm({
+          title: "Leave without saving?",
+          description: "Your changes stay in this browser as a draft, for when you come back.",
+          confirm: "Leave",
+          cancel: "Keep editing",
+        })
+        .then((ok) => ok && leave(to));
       return;
+    }
+    leave(to);
+  }
+
+  function leave(to: { path: string; file?: string }) {
     setSelected(new Set());
     setQuery("");
     setError("");

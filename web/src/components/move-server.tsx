@@ -2,6 +2,7 @@ import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
@@ -29,6 +30,7 @@ export function MoveServer({
   const res = useQuery(OrgService.method.getServer, { orgId, nodeId, serverId });
   const disks = useNodeDisks(nodeId);
   const [to, setTo] = useState("");
+  const ask = useConfirm();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [queued, setQueued] = useState(false);
@@ -44,10 +46,13 @@ export function MoveServer({
   async function move() {
     if (!dest) return;
     const name = res.data?.server?.name ?? "this server";
-    if (
-      !window.confirm(`Move "${name}" to ${diskName(dest)}? It stops while its files are copied.`)
-    )
-      return;
+    const ok = await ask.confirm({
+      title: `Move ${name} to ${diskName(dest)}?`,
+      description:
+        "It stops while its files are copied, and starts again afterwards if it was running. The old copy is removed once the new one is in use.",
+      confirm: "Move",
+    });
+    if (!ok) return;
     setBusy(true);
     setError("");
     try {
