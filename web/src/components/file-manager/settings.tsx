@@ -1,4 +1,4 @@
-import { Settings } from "lucide-react";
+import { Keyboard, Settings } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -35,7 +35,7 @@ const toggles: { key: keyof FileSettings; title: string; description: string }[]
   },
 ];
 
-export function SettingsMenu() {
+export function SettingsMenu({ onShortcuts }: { onShortcuts: () => void }) {
   const s = useFileSettings();
   return (
     <Popover>
@@ -68,6 +68,11 @@ export function SettingsMenu() {
             </li>
           ))}
         </ul>
+        <div className="border-t p-1.5">
+          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={onShortcuts}>
+            <Keyboard /> Keyboard shortcuts
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import {
+  ChevronDown,
   ChevronRight,
   Copy,
   Download,
@@ -8,7 +9,6 @@ import {
   FolderInput,
   FolderOpen,
   FolderPlus,
-  Keyboard,
   Link2,
   Maximize2,
   Minimize2,
@@ -17,6 +17,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
+  Plus,
   RefreshCw,
   Search,
   Trash2,
@@ -398,7 +399,10 @@ export function Files({
     >
       {/* The toolbar: where you are, what you can make, and the settings. */}
       <div className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2">
-        <nav aria-label="Folder" className="flex min-w-0 flex-1 items-center gap-1 text-sm">
+        <nav
+          aria-label="Folder"
+          className="flex min-w-[min(100%,22rem)] flex-1 basis-80 items-center gap-1 overflow-hidden text-sm"
+        >
           <button
             type="button"
             className="rounded px-1 font-medium hover:bg-muted"
@@ -406,8 +410,16 @@ export function Files({
           >
             Root
           </button>
-          {crumbs(path).map((c) => (
-            <span key={c.path} className="flex min-w-0 items-center gap-1">
+          {crumbs(path).map((c, i, all) => (
+            // Where you are stays whole; the folders above it shrink first.
+            <span
+              key={c.path}
+              className={cn(
+                "flex items-center gap-1",
+                i === all.length - 1 && !file ? "max-w-64 shrink-0" : "min-w-6 shrink",
+              )}
+              title={c.name}
+            >
               <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
               <button
                 type="button"
@@ -419,7 +431,7 @@ export function Files({
             </span>
           ))}
           {file && (
-            <span className="flex min-w-0 items-center gap-1">
+            <span className="flex max-w-64 shrink-0 items-center gap-1" title={baseName(file)}>
               <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
               <span className="truncate px-1 font-medium">{baseName(file)}</span>
             </span>
@@ -427,44 +439,62 @@ export function Files({
         </nav>
         <div className="flex flex-wrap items-center gap-1.5">
           {canWrite && (
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button size="sm" variant="outline" disabled={busy} />}>
+                <Plus /> New <ChevronDown className="opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={() => newFile()}>
+                  <FilePlus /> File
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => newFolder()}>
+                  <FolderPlus /> Folder
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {canWrite && transfers && (
             <>
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => newFile()}>
-                <FilePlus /> New File
-              </Button>
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => newFolder()}>
-                <FolderPlus /> New Folder
-              </Button>
-              {transfers && (
-                <>
-                  <Button size="sm" variant="outline" onClick={() => picker.current?.click()}>
-                    <Upload /> Upload
-                  </Button>
-                  {canPull && (
-                    <Button size="sm" variant="outline" onClick={() => setPulling(true)}>
-                      <Link2 /> From URL
-                    </Button>
-                  )}
-                  {canImport && (
-                    <Button size="sm" variant="outline" onClick={() => setImporting(true)}>
-                      <FolderInput /> Import
-                    </Button>
-                  )}
-                  <input
-                    ref={picker}
-                    type="file"
-                    multiple
-                    hidden
-                    onChange={(e) => {
-                      startUploads(e.target.files);
-                      e.target.value = "";
-                    }}
-                  />
-                </>
+              {canPull || canImport ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger render={<Button size="sm" variant="outline" />}>
+                    <Upload /> Upload <ChevronDown className="opacity-60" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-60">
+                    <DropdownMenuItem onClick={() => picker.current?.click()}>
+                      <Upload /> From your computer
+                    </DropdownMenuItem>
+                    {canPull && (
+                      <DropdownMenuItem onClick={() => setPulling(true)}>
+                        <Link2 /> From a link
+                      </DropdownMenuItem>
+                    )}
+                    {canImport && (
+                      <DropdownMenuItem onClick={() => setImporting(true)}>
+                        <FolderInput /> From another host (SFTP)
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => picker.current?.click()}>
+                  <Upload /> Upload
+                </Button>
               )}
+              <input
+                ref={picker}
+                type="file"
+                multiple
+                hidden
+                onChange={(e) => {
+                  startUploads(e.target.files);
+                  e.target.value = "";
+                }}
+              />
             </>
           )}
           {actions}
-          <div className="relative w-44 lg:w-56">
+          <div className="relative w-40 lg:w-52">
             <Search className="pointer-events-none absolute top-2 left-2.5 size-4 text-muted-foreground" />
             <Input
               type="search"
@@ -500,16 +530,7 @@ export function Files({
               <span className="tabular-nums">{trash.data?.length}</span>
             )}
           </Button>
-          <SettingsMenu />
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            aria-label="Keyboard shortcuts"
-            title="Keyboard shortcuts"
-            onClick={() => setShortcuts(true)}
-          >
-            <Keyboard />
-          </Button>
+          <SettingsMenu onShortcuts={() => setShortcuts(true)} />
           <Button
             size="icon-sm"
             variant="ghost"
