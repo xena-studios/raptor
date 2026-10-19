@@ -65,7 +65,7 @@ func (q *Queries) GetDatabase(ctx context.Context, id string) (Database, error) 
 }
 
 const getInstance = `-- name: GetInstance :one
-SELECT id, name, engine, version, image, root_password, networks, limits, settings, desired_state, quota_project, created_at, updated_at, prev_version, prev_image, rollback_until, patch_tried FROM database_instances WHERE id = ?
+SELECT id, name, engine, version, image, root_password, networks, limits, settings, desired_state, quota_project, created_at, updated_at, prev_version, prev_image, rollback_until, patch_tried, external_port, external_allow FROM database_instances WHERE id = ?
 `
 
 func (q *Queries) GetInstance(ctx context.Context, id string) (DatabaseInstance, error) {
@@ -89,6 +89,8 @@ func (q *Queries) GetInstance(ctx context.Context, id string) (DatabaseInstance,
 		&i.PrevImage,
 		&i.RollbackUntil,
 		&i.PatchTried,
+		&i.ExternalPort,
+		&i.ExternalAllow,
 	)
 	return i, err
 }
@@ -244,8 +246,41 @@ func (q *Queries) ListInstanceAddresses(ctx context.Context) ([]InstanceAddress,
 	return items, nil
 }
 
+const listInstanceExternalPorts = `-- name: ListInstanceExternalPorts :many
+SELECT id, name, external_port FROM database_instances WHERE external_port > 0 ORDER BY external_port
+`
+
+type ListInstanceExternalPortsRow struct {
+	ID           string
+	Name         string
+	ExternalPort int64
+}
+
+func (q *Queries) ListInstanceExternalPorts(ctx context.Context) ([]ListInstanceExternalPortsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInstanceExternalPorts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInstanceExternalPortsRow
+	for rows.Next() {
+		var i ListInstanceExternalPortsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.ExternalPort); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listInstances = `-- name: ListInstances :many
-SELECT id, name, engine, version, image, root_password, networks, limits, settings, desired_state, quota_project, created_at, updated_at, prev_version, prev_image, rollback_until, patch_tried FROM database_instances ORDER BY created_at, id
+SELECT id, name, engine, version, image, root_password, networks, limits, settings, desired_state, quota_project, created_at, updated_at, prev_version, prev_image, rollback_until, patch_tried, external_port, external_allow FROM database_instances ORDER BY created_at, id
 `
 
 func (q *Queries) ListInstances(ctx context.Context) ([]DatabaseInstance, error) {
@@ -275,6 +310,8 @@ func (q *Queries) ListInstances(ctx context.Context) ([]DatabaseInstance, error)
 			&i.PrevImage,
 			&i.RollbackUntil,
 			&i.PatchTried,
+			&i.ExternalPort,
+			&i.ExternalAllow,
 		); err != nil {
 			return nil, err
 		}
@@ -395,6 +432,27 @@ type SetInstanceDesiredParams struct {
 
 func (q *Queries) SetInstanceDesired(ctx context.Context, arg SetInstanceDesiredParams) error {
 	_, err := q.db.ExecContext(ctx, setInstanceDesired, arg.DesiredState, arg.UpdatedAt, arg.ID)
+	return err
+}
+
+const setInstanceExternal = `-- name: SetInstanceExternal :exec
+UPDATE database_instances SET external_port = ?, external_allow = ?, updated_at = ? WHERE id = ?
+`
+
+type SetInstanceExternalParams struct {
+	ExternalPort  int64
+	ExternalAllow string
+	UpdatedAt     int64
+	ID            string
+}
+
+func (q *Queries) SetInstanceExternal(ctx context.Context, arg SetInstanceExternalParams) error {
+	_, err := q.db.ExecContext(ctx, setInstanceExternal,
+		arg.ExternalPort,
+		arg.ExternalAllow,
+		arg.UpdatedAt,
+		arg.ID,
+	)
 	return err
 }
 

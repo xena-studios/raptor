@@ -59,6 +59,20 @@ For **7 days** after a change, **Go back** in the menu puts the old version and 
 
 Wings updates can bring newer patches of a version (11.8.3 to 11.8.4). The instance then shows **Update available** and gets it at the start of its maintenance window (04:00 in the node's time, or the hour you set under **Advanced**), the same careful way. **Update to the newest patch** in the menu does it now. Patches wait while an instance can still go back from a version change.
 
+## Reach an instance from outside
+
+To connect a desktop tool like DBeaver, or an app running somewhere else, open **External access** in the instance's **⋯** menu:
+
+1. Pick a **port** for it on the node (13306 or 15432 is suggested).
+2. List **who may connect**: your home or office's public address, or your app's server. Ranges like `198.51.100.0/24` work too. Nothing else can reach the port, not even other things on the node.
+3. **Turn on with passkey.** The instance restarts, which takes a few seconds.
+
+Connect to the node's address on that port, as one of the server's databases' users (from its [Databases tab](/servers/databases/)). Connections from outside must use **TLS**: download the instance's **Certificate** from the same dialog and give it to your tool so it can check it's really your instance (in DBeaver, the SSL tab's CA certificate; for `psql`, `sslmode=verify-full sslrootcert=<file>`; for `mysql`, `--ssl-ca=<file> --ssl-mode=VERIFY_IDENTITY`).
+
+Servers on the instance's network keep connecting as before, without TLS, so plugins don't notice anything.
+
+**Turn off** in the same dialog closes the port again.
+
 ## Start, stop, and delete
 
 The **⋯** menu next to an instance starts, stops, or restarts it. An instance comes back with the node after a restart.

@@ -61,3 +61,9 @@ WHERE id = ?;
 
 -- name: SetInstancePatchTried :exec
 UPDATE database_instances SET patch_tried = ? WHERE id = ?;
+
+-- name: SetInstanceExternal :exec
+UPDATE database_instances SET external_port = ?, external_allow = ?, updated_at = ? WHERE id = ?;
+
+-- name: ListInstanceExternalPorts :many
+SELECT id, name, external_port FROM database_instances WHERE external_port > 0 ORDER BY external_port;

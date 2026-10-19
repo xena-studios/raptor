@@ -629,10 +629,21 @@ func checkConflicts(ctx context.Context, q *store.Queries, id string, allocs []A
 	if err != nil {
 		return err
 	}
+	// Database instances' external ports are on every address
+	// (docs/DATABASES.md#external-access).
+	instances, err := q.ListInstanceExternalPorts(ctx)
+	if err != nil {
+		return err
+	}
 	for _, a := range allocs {
 		for _, e := range existing {
 			if e.ServerID != id && conflicts(a, Allocation{IP: e.Ip, Port: int(e.Port)}) {
 				return fmt.Errorf("%w: %s:%d is allocated to another server", ErrInvalid, a.IP, a.Port)
+			}
+		}
+		for _, e := range instances {
+			if int(e.ExternalPort) == a.Port {
+				return fmt.Errorf("%w: port %d is the database instance %s's external port", ErrInvalid, a.Port, e.Name)
 			}
 		}
 	}

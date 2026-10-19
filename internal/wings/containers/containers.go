@@ -109,12 +109,20 @@ type ServiceSpec struct {
 	Networks  []Network
 	Addresses map[string]netip.Addr
 	Aliases   []string
+	// Publish are TCP ports on the node forwarded to the container's, on
+	// every address the node has.
+	Publish   []Published `json:",omitempty"` // omitted when none, so older specs hash the same
 	MemoryMiB int64
 	// CPUPercent is a hard limit (100 = one core); 0 is none.
 	CPUPercent int64
 	PIDs       int64
 	// StopTimeout is how long Docker waits on a stop before killing it.
 	StopTimeout time.Duration
+}
+
+// Published is a port on the node forwarded to one of a container's.
+type Published struct {
+	HostPort, Port int
 }
 
 // Mount is a host folder in a container.

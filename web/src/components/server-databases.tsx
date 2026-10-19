@@ -30,6 +30,7 @@ import {
   connectionURL,
   type Database,
   type DBInstance,
+  downloadCA,
   engineName,
   labelPattern,
   serverDatabasesKey,
@@ -357,8 +358,38 @@ function DatabaseRow({
           ["Host", <Copyable key="h" value={`${db.host}:${db.port}`} />],
           ["Database", <Copyable key="d" value={db.name} />],
           ["User", <Copyable key="u" value={db.user} />],
+          ...(instance?.external
+            ? [
+                instance.external.host
+                  ? ([
+                      "From outside",
+                      <Copyable
+                        key="x"
+                        value={`${instance.external.host}:${instance.external.port}`}
+                      />,
+                    ] as [string, ReactNode])
+                  : ([
+                      "Port from outside",
+                      <Copyable key="x" value={String(instance.external.port)} />,
+                    ] as [string, ReactNode]),
+              ]
+            : []),
         ]}
       />
+      {instance?.external && (
+        <p className="text-xs text-muted-foreground">
+          From outside, only the addresses the instance allows can connect, with TLS.{" "}
+          {instance.external.ca && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-foreground"
+              onClick={() => downloadCA(instance)}
+            >
+              Its certificate
+            </button>
+          )}
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">
         As variables: <code>{prefix}DB_HOST</code> and the rest
         {many && first ? ", and without the prefix too, since it's the first" : ""}.

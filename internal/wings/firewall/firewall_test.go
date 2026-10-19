@@ -188,3 +188,31 @@ func TestRenderGuards(t *testing.T) {
 		t.Error("guards come after the jumps between networks")
 	}
 }
+
+func TestRenderExternal(t *testing.T) {
+	r := Rules{
+		ServerBridge: "raptor0", InstallBridge: "raptor-inst",
+		Networks: []Network{{Bridge: "rn1"}},
+		Guards:   []Guard{{Bridge: "rn1", Addr: netip.MustParseAddr("172.30.128.9"), External: true}},
+		External: []External{
+			{Port: 33060, Allow: []netip.Prefix{netip.MustParsePrefix("203.0.113.7/32"), netip.MustParsePrefix("2001:db8::/48")}},
+			{Port: 54320, Allow: []netip.Prefix{netip.MustParsePrefix("198.51.100.0/24")}},
+		},
+	}
+	got := r.Render()
+	for _, want := range []string{
+		"type filter hook prerouting priority dstnat - 1",
+		`fib daddr type local tcp dport 33060 ip saddr != { 203.0.113.7/32 } drop`,
+		`fib daddr type local tcp dport 33060 ip6 saddr != { 2001:db8::/48 } drop`,
+		`fib daddr type local tcp dport 54320 ip saddr != { 198.51.100.0/24 } drop`,
+		`fib daddr type local tcp dport 54320 meta nfproto ipv6 drop`,
+		`oifname "rn1" ip daddr 172.30.128.9 ct status dnat accept`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("rules missing %q:\n%s", want, got)
+		}
+	}
+	if strings.Index(got, "ct status dnat accept") > strings.Index(got, `ip daddr 172.30.128.9 drop`) {
+		t.Error("the external port's connections are dropped by the guard first")
+	}
+}

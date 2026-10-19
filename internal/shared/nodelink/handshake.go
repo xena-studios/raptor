@@ -181,10 +181,13 @@ const (
 	// CapDatabaseBackups: servers' backups hold their databases, and
 	// db.restore restores one.
 	CapDatabaseBackups = "db-backups"
+	// CapDatabaseExternal: node.db.instance.external, instances' ports on
+	// the node with an allowlist and TLS.
+	CapDatabaseExternal = "db-external"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {

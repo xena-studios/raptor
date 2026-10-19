@@ -68,7 +68,18 @@ Each instance has:
 - **Tuning:** the settings owners change most, as fields: max connections, the buffer pool or shared buffers (sized from the memory limit unless set), slow-query logging, the character set and collation (MariaDB/MySQL), and time zone.
 - **Advanced:** any other engine setting as `name = value` lines, checked against a list of what's safe to set (no file paths, no plugins that load code, no turning off authentication), written to the instance's config file.
 - **Maintenance window:** when patch updates and planned restarts may happen.
-- **External access:** off by default. On, the instance gets a port on the node and a firewall rule allowing only the addresses or ranges listed, for connecting from a desktop tool or an outside app. TLS is on for external connections, with a certificate Wings makes for the instance.
+- **External access:** off by default; see [External access](#external-access).
+
+## External access
+
+From the instance's menu, **External access** (admins, signed with a passkey, since it opens a port) gives an instance a port on the node, for a desktop tool or an app somewhere else:
+
+- **A port** from 1024 to 65535 that isn't Wings' own, a server's allocation, another instance's, or bound on the machine (and servers can't be given it after). Docker publishes it on every address the node has, IPv4 and IPv6.
+- **An allowlist** of addresses and ranges, at least one (32 at most). The firewall drops connections to the port from anything else before Docker forwards them, the node's own containers included, so it can't become a way between networks (DECISIONS #316). `0.0.0.0/0` is accepted, with a warning in the app.
+- **TLS, required from outside.** Wings makes a certificate authority for the instance and a certificate naming the node's DNS name (`<short id>.raptornodes.net`) and the instance's host names; the app offers the authority's certificate, so tools can check it (`sslmode=verify-full` with `sslrootcert`, or `--ssl-ca` with `--ssl-mode=VERIFY_IDENTITY`). Servers on the instance's networks keep connecting without TLS, as many plugins can't do it (DECISIONS #317): PostgreSQL requires it in `pg_hba.conf` for every address but its networks'; MariaDB and MySQL give each user an account per network that requires nothing, beside the one for everywhere else that requires TLS. The networks' gateways count as outside: with Docker's userland proxy on, outside connections arrive from there.
+- **The same users:** each database's own user and its read-only user, which reach only their database. The instance's administrator never logs in over the network.
+
+Turning it on, changing it, or turning it off restarts the instance. Each database's row on the server's Databases tab shows the address from outside and the certificate.
 
 ## Using a database from a server
 
@@ -145,6 +156,15 @@ Each database opens in the server's Databases tab, and an instance's whole conte
 
 Results travel through the Panel like the file manager's do (encrypted, not stored). Queries that change something are recorded in the server's activity with who ran them and how many rows they changed, but not their text, which can hold data.
 
+### How phase 5 is built
+
+- `internal/wings/databases/external.go`: `SetExternal` (`node.db.instance.external`, signed, admins) checks the port (`checkPort`: Wings' ports, `allocations`, other instances, a test bind) and the allowlist (`parseAllow`: addresses become /32 or /128, ranges are masked, zones refused), stores them (`external_port`, `external_allow`, migration `00024`), and restarts the instance. The server manager's `checkConflicts` refuses allocations on an instance's port.
+- `tls.go`: the authority (P-256, 20 years) with its key at `<instance>/tls-ca.key`, root's alone and outside what the container sees; the server certificate (2 years) in `conf/tls`, its key owned by the engine's user. It's made again at a start when it's within 60 days of expiring or names something else.
+- The container: `ServiceSpec.Publish` (left out of the spec's JSON when empty, so instances without external access keep their hash and aren't restarted by the update), `conf` mounted at `/etc/raptor` for MariaDB and MySQL too, and the engine's TLS flags (`--ssl-cert`…, `ssl=on`).
+- Who needs TLS: `pgHBA` with the instance's networks (`hostnossl … <gateway>/32 reject`, `host sameuser all <subnet>`, then `hostssl sameuser all all`); `syncAccounts` after every start and every new user, password, or read-only user, which gives each MariaDB or MySQL user exactly `accountHosts`' accounts (`%` requiring SSL, `localhost` for the socket and each network's subnet as address/netmask requiring nothing, each gateway requiring SSL), with its password and rights. Dropping a user or changing its password covers all of its accounts.
+- The firewall (`firewall.External`): in `prerouting` at `dstnat - 1`, `fib daddr type local tcp dport <port>` from an address not allowed is dropped, per family; and an instance's network guard lets connections Docker translated through (`ct status dnat accept`) ahead of its drop. Capability `db-external`.
+- **Tested** (`TestExternal`, real engines, under Wings' umask): from the node's own address, a user and the read-only user connect with TLS checked against the instance's authority and the host name, and not without TLS; a server's plugin on the network (the engine's own client in a container) connects without TLS; another instance can't take the port; turning it off closes the port and leaves each MariaDB or MySQL user one account. Unit tests cover the allowlist, the accounts, `pg_hba.conf`, the certificates, and the rules; on the dev node, a container off the allowlist timed out on the port and connected once its range was added.
+
 ## Health and alerts
 
 - Each instance's state (running, starting, stopped, upgrading, failed), uptime, connections, queries per second, and size, sampled with the node's metrics.
@@ -157,5 +177,5 @@ Results travel through the Panel like the file manager's do (encrypted, not stor
 2. **The browser:** schema, rows with editing, the SQL editor, structure forms, processes.
 3. **Import, export, and users:** `.sql` imports as jobs, dumps and CSV exports, read-only users.
 4. **Versions and backups:** patch updates in the maintenance window, in-place and migration upgrades with rollback, databases in server backups. Built, without instance backups of their own (DECISIONS #314).
-5. **External access:** the port, the address allowlist, TLS.
+5. **External access:** the port, the address allowlist, TLS. Built.
 6. **Redis and MongoDB:** one instance per server for Redis (it has no real per-database isolation), shared instances with per-database users for MongoDB; a key browser and a document browser.
