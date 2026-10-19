@@ -19,6 +19,11 @@ const tabs = [
   { label: "Files", to: `${base}/files`, show: (s) => can(s, "files.read") },
   { label: "Schedules", to: `${base}/schedules`, show: (s) => can(s, "schedules") },
   { label: "Backups", to: `${base}/backups`, show: (s) => can(s, "backups") },
+  {
+    label: "Databases",
+    to: `${base}/databases`,
+    show: (s) => can(s, "databases.read") || can(s, "databases.write"),
+  },
   { label: "Network", to: `${base}/network`, show: () => true },
   { label: "Startup", to: `${base}/startup`, show: (s) => can(s, "startup") },
   {

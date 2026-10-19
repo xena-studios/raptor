@@ -20,6 +20,8 @@ const permissions: [string, string][] = [
   ["schedules", "Schedules"],
   ["startup", "Startup settings"],
   ["reinstall", "Reinstall"],
+  ["databases.read", "See databases"],
+  ["databases.write", "Change databases"],
 ];
 
 // Access: what each member may do on this server (admins and owners can

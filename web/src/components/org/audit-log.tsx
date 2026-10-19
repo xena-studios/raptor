@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarClock,
   Clock,
+  Database,
   Egg,
   FileText,
   FolderKey,
@@ -183,6 +184,20 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`deleted a network on ${server}`, Network];
     case "node.network.rules":
       return [`changed the rules between networks on ${server}`, Network];
+    case "node.db.instance.save":
+      return [`saved a database instance on ${server}`, Database];
+    case "node.db.instance.power":
+      return [`started or stopped a database instance on ${server}`, Database];
+    case "node.db.instance.delete":
+      return [`deleted a database instance on ${server}`, Database];
+    case "db.create":
+      return [`made a database for ${server}`, Database];
+    case "db.delete":
+      return [`deleted one of ${server}'s databases`, Database];
+    case "db.password":
+      return [`looked at a password of ${server}'s databases`, KeyRound];
+    case "db.password.reset":
+      return [`gave one of ${server}'s databases a new password`, KeyRound];
     case "server.networks":
       return [`changed the networks ${server} is on`, Network];
     case "node.hostname":
@@ -205,6 +220,7 @@ const consoleKind = { label: "Console", actions: ["server.command", "server.cons
 const files = { label: "Files and SFTP", actions: ["files.%", "sftp.%"] };
 const backups = { label: "Backups", actions: ["backup.%", "backup_storage.%"] };
 const schedules = { label: "Schedules", actions: ["schedule.%"] };
+const databases = { label: "Databases", actions: ["db.%", "node.db.%"] };
 const serverChanges = {
   label: "Server changes",
   actions: [
@@ -228,14 +244,34 @@ const support = { label: "Raptor support", actions: ["support.%"] };
 const eggs = { label: "Eggs", actions: ["egg.%"] };
 const orgKind = { label: "The org", actions: ["org.%"] };
 
-const serverKinds = [power, consoleKind, files, backups, schedules, serverChanges, access];
-const nodeKinds = [machine, power, consoleKind, files, backups, schedules, serverChanges, support];
+const serverKinds = [
+  power,
+  consoleKind,
+  files,
+  backups,
+  schedules,
+  databases,
+  serverChanges,
+  access,
+];
+const nodeKinds = [
+  machine,
+  power,
+  consoleKind,
+  files,
+  backups,
+  schedules,
+  databases,
+  serverChanges,
+  support,
+];
 const orgKinds = [
   power,
   consoleKind,
   files,
   backups,
   schedules,
+  databases,
   serverChanges,
   access,
   people,

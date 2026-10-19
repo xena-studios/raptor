@@ -1,6 +1,18 @@
 # Databases
 
-Managed SQL databases on owners' own nodes, with a browser for them in the app: MariaDB, MySQL, and PostgreSQL first, then Redis and MongoDB. Included in the node's price, never hosted by Raptor (DECISIONS #296–#299). They run on the node's [networks](NETWORKS.md), built first. This is the plan; nothing here is built yet ([ROADMAP.md](ROADMAP.md#networks-and-databases)).
+Managed SQL databases on owners' own nodes, with a browser for them in the app: MariaDB, MySQL, and PostgreSQL first, then Redis and MongoDB. Included in the node's price, never hosted by Raptor (DECISIONS #296–#299). They run on the node's [networks](NETWORKS.md), built first. Phase 1 (instances and databases) is built; the rest is the plan ([ROADMAP.md](ROADMAP.md#networks-and-databases), DECISIONS #305–#308).
+
+## How phase 1 is built
+
+- `internal/wings/databases`: instances in `database_instances` (engine, version line, image digest, sealed root password, networks, limits, settings), databases in `databases`, instances' fixed addresses in `instance_addresses`. A server's databases have no foreign key to `servers`: they're dropped on their instance first, when the server is deleted (`ServerDeleted`) or at the next start, then removed.
+- **Containers** are services (`EnsureService`): created from the spec, created again when its hash (label `raptor.wings.spec`) changes, restarted by Docker (`unless-stopped`), role `database`, a read-only root with `/tmp` in memory, Docker's default seccomp profile, and the memory and CPU limits. Files are in `<volumes>/databases/<id>/{data,run,conf}` on the server data volume, under their own quota project (from the servers' sequence).
+- **Wings reaches an instance only through its socket** in `run/`, never the network. MariaDB and MySQL's root is `localhost` only (`*_ROOT_HOST=localhost`); PostgreSQL's `pg_hba.conf` (Wings', in `conf/`, read-only to the engine) is `local all all scram-sha-256`, `host all postgres all reject`, `host sameuser all all scram-sha-256`: a database and its user share a name, so a user can only ever connect to its own database.
+- **Names:** a database and its user are `s<the server's short ID>_<name>`, where the short ID is the last 12 characters of its ID (as the app shows it) and the name is up to 18 characters, inside MySQL's 32-character user names. The instance is `<name>.db.raptor` and `<short id>.db.raptor` on its networks.
+- **Passwords** are 32 letters and digits, sealed with AES-256-GCM under the node's database key (`databases.key` beside `state.db`, root only).
+- **The guard** (`firewall.Guard`): on each of the owner's networks, the instance's fixed address drops connections from any address but the fixed addresses of servers with a database on it, and its IPv6 address (Docker's) refuses them all so clients fall back to IPv4 at once. It's in `forward` before the jumps between networks, so a rule between networks can't reach an instance either; it needs `br_netfilter` with `bridge-nf-call-iptables` on, which Docker sets and Wings makes sure of. On the default network there's no guard: every server there reaches the instance, and only users keep databases apart.
+- **Tuning:** the buffer pool or shared buffers from the memory limit (half for InnoDB, a quarter for PostgreSQL), `max_connections` (100), `utf8mb4` with `utf8mb4_unicode_ci`, the performance schema off under 1 GiB (it alone takes hundreds of MB on MySQL), `secure-file-priv=NULL` on MySQL, and the time zone (the node's by default). The free-form Advanced settings come later.
+- **Commands:** `node.db.instances` (a read, with the versions), `node.db.instance.save`, `node.db.instance.power`, `node.db.instance.delete` (signed), and for a server `db.list`, `db.create` (returns the password once), `db.delete` (signed), `db.password` (signed), `db.password.reset`. Permissions `databases.read` and `databases.write` (which includes it); the node's are admin-only. Capability `databases`.
+- **Tested** against the real engines (`internal/wings/databases`, e2e): each engine starts, a user reaches its own database over the network and not another server's, root can't log in over the network with its password, a new password replaces the old, a restart keeps the data, and a deleted database's user is gone. `TestRuntimeDatabaseGuard` checks the guard: a server with a database reaches its instance, another on the same network doesn't, and the machine always does.
 
 ## The model
 
@@ -57,7 +69,7 @@ Each instance has:
 
 Creating a database on a server's **Databases** tab gives it:
 
-- a name (`s<short id>_<name>`), a user, and a random password, made on the node;
+- a name (`s<short id>_<name>`, the server's short ID being the last part of its ID), a user with the same name, and a random password, made on the node;
 - connection details in the tab, and as **environment variables** for the server's next start: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `DATABASE_URL` (`mysql://…` or `postgres://…`); with more than one database, each also gets them with its name as a prefix (`LUCKPERMS_DB_HOST`…);
 - a host name that resolves on the instance's networks, `<instance name>.db.raptor`, so configs don't hold an IP that could change.
 

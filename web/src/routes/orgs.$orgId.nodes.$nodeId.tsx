@@ -101,6 +101,15 @@ function NodeLayout() {
           )}
           {admin && (
             <Link
+              to="/orgs/$orgId/nodes/$nodeId/databases"
+              params={{ orgId, nodeId }}
+              className={tabClass}
+            >
+              Databases
+            </Link>
+          )}
+          {admin && (
+            <Link
               to="/orgs/$orgId/nodes/$nodeId/networks"
               params={{ orgId, nodeId }}
               className={tabClass}
