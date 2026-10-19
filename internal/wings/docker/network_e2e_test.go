@@ -122,14 +122,14 @@ func TestRuntimeNetworks(t *testing.T) {
 
 	host := hostIP(t)
 	urls := map[string]string{
-		"internet":    "http://deb.debian.org/debian/",
-		"host":        "http://" + host + ":" + strconv.Itoa(hostLn.Addr().(*net.TCPAddr).Port) + "/",
-		"direct":      "http://" + targetIP + ":" + strconv.Itoa(public) + "/",
-		"alias":       "http://target.raptor:" + strconv.Itoa(public) + "/",
-		"published":   "http://" + host + ":" + strconv.Itoa(public) + "/",
-		"gateway":     "http://" + a.Gateway.String() + ":" + strconv.Itoa(private) + "/",
-		"default_gw":  "http://" + dc.nets.Server.Gateway.String() + ":" + strconv.Itoa(hostLn.Addr().(*net.TCPAddr).Port) + "/",
-		"metadata":    "http://169.254.169.254/",
+		"internet":   "http://deb.debian.org/debian/",
+		"host":       "http://" + host + ":" + strconv.Itoa(hostLn.Addr().(*net.TCPAddr).Port) + "/",
+		"direct":     "http://" + targetIP + ":" + strconv.Itoa(public) + "/",
+		"alias":      "http://target.raptor:" + strconv.Itoa(public) + "/",
+		"published":  "http://" + host + ":" + strconv.Itoa(public) + "/",
+		"gateway":    "http://" + a.Gateway.String() + ":" + strconv.Itoa(private) + "/",
+		"default_gw": "http://" + dc.nets.Server.Gateway.String() + ":" + strconv.Itoa(hostLn.Addr().(*net.TCPAddr).Port) + "/",
+		"metadata":   "http://169.254.169.254/",
 	}
 	script := probeScript(urls)
 	run := func(who string, spec containers.ServerSpec, want map[string]string) {
@@ -148,10 +148,13 @@ func TestRuntimeNetworks(t *testing.T) {
 		"internet": "reachable", "host": "reachable", "direct": "reachable", "alias": "reachable",
 		"published": "reachable", "gateway": "reachable", "metadata": "blocked",
 	})
-	// On B, which can't reach the machine: only what's published.
+	// On B, which can't reach the machine: none of A's servers. Whether
+	// it reaches A's published port through the machine's own address
+	// depends on Docker: its port translation lets it through, its proxy
+	// on the machine doesn't (NETWORKS.md), so that isn't checked here.
 	run("other network", containers.ServerSpec{Networks: []containers.Network{b}}, map[string]string{
 		"internet": "reachable", "host": "blocked", "direct": "blocked", "alias": "blocked",
-		"published": "reachable", "gateway": "blocked", "default_gw": "blocked",
+		"gateway": "blocked", "default_gw": "blocked",
 	})
 	// On the server network: the same.
 	run("server network", containers.ServerSpec{}, map[string]string{

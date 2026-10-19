@@ -23,7 +23,7 @@ Every server on a node is on one bridge, `raptor_nw` (`raptor0`), and can reach 
 | **Internet access** | On (the default) or off: off makes it an `internal` network with no route out, for backends that should only talk to their proxy. Their allocations still accept players, because published ports are forwarded in by the host. |
 | **IPv6** | Off by default; on gives the network a ULA `/64` too, the same every time (from its ID). |
 | **MTU** | Docker's default unless set (1280 to 9000); set lower under a VPN or a provider that needs it. |
-| **Reach the host** | On by default (servers can reach services on the node, as now); off drops their connections to the machine itself. Docker's DNS still works: it answers inside the container. |
+| **Reach the host** | On by default (servers can reach services on the node, as now); off drops their connections to the machine itself. Docker's DNS still works: it answers inside the container. So can other servers' published ports through the node's own address, on machines where Docker's proxy answers them on the host; a proxy that needs a backend should join its network instead. |
 
 Changing the subnet, internet access, IPv6, or MTU recreates the network on Docker, so it's refused while a server on it runs. The name and Reach the host change in place.
 
