@@ -65,6 +65,7 @@ export function ServerDatabases({
   browsable,
   transfers,
   restorable,
+  documents,
 }: {
   orgId: string;
   nodeId: string;
@@ -80,6 +81,8 @@ export function ServerDatabases({
   transfers: boolean;
   // The node's Wings puts databases in backups, and restores one alone.
   restorable: boolean;
+  // The node's Wings has the key and document browsers.
+  documents: boolean;
 }) {
   const list = useServerDatabases(nodeId, serverId, supported && connected);
   const [creating, setCreating] = useState(false);
@@ -163,6 +166,7 @@ export function ServerDatabases({
                   key={db.id}
                   orgId={orgId}
                   browsable={browsable}
+                  documents={documents}
                   transfers={transfers}
                   nodeId={nodeId}
                   serverId={serverId}
@@ -208,6 +212,7 @@ export function ServerDatabases({
 function DatabaseRow({
   orgId,
   browsable,
+  documents,
   transfers,
   nodeId,
   serverId,
@@ -222,6 +227,7 @@ function DatabaseRow({
 }: {
   orgId: string;
   browsable: boolean;
+  documents: boolean;
   transfers: boolean;
   nodeId: string;
   serverId: string;
@@ -310,7 +316,7 @@ function DatabaseRow({
           {instance && <span className="text-xs text-muted-foreground">on {instance.name}</span>}
         </div>
         <div className="-my-0.5 flex shrink-0 gap-1">
-          {browsable && isSQL(db.engine) && (
+          {browsable && (isSQL(db.engine) || documents) && (
             <Link
               to="/orgs/$orgId/servers/$serverId/databases/$databaseId"
               params={{ orgId, serverId, databaseId: db.id }}

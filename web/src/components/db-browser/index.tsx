@@ -13,6 +13,8 @@ import {
   StructureTab,
 } from "@/components/db-browser/structure";
 import { TransferDialog } from "@/components/db-browser/transfer";
+import { DocumentBrowser } from "@/components/db-docs/documents";
+import { KeyBrowser } from "@/components/db-docs/keys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +45,10 @@ export function DatabaseBrowser({
 }) {
   const list = useServerDatabases(nodeId, serverId);
   const db = list.data?.databases.find((d) => d.id === id);
-  const schema = useSchema(nodeId, serverId, id);
+  // Redis and MongoDB have browsers of their own (components/db-docs).
+  const nosql = db?.engine === "redis" || db?.engine === "mongodb";
+  const schema = useSchema(nodeId, serverId, id, !!db && !nosql);
+  const [collection, setCollection] = useState<string>();
   const [picked, setPicked] = useState<string>();
   const [tab, setTab] = useState<Tab>("rows");
   const [query, setQuery] = useState("");
@@ -86,7 +91,7 @@ export function DatabaseBrowser({
             <Eye className="size-3.5" /> Read-only for you
           </span>
         )}
-        {canWrite && transfers && (
+        {canWrite && transfers && db?.engine !== "redis" && (
           <div className="ml-auto flex gap-2">
             <Button size="sm" variant="outline" onClick={() => setTransfer("import")}>
               <Upload /> Import
@@ -98,138 +103,157 @@ export function DatabaseBrowser({
         )}
       </div>
 
+      {db?.engine === "redis" && (
+        <KeyBrowser nodeId={nodeId} serverId={serverId} id={id} canWrite={canWrite} />
+      )}
+      {db?.engine === "mongodb" && (
+        <DocumentBrowser
+          nodeId={nodeId}
+          serverId={serverId}
+          id={id}
+          canWrite={canWrite}
+          onCollection={setCollection}
+        />
+      )}
       {(list.error || schema.error) && (
         <p className="text-sm text-destructive">{message(list.error ?? schema.error)}</p>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
-        <aside className="flex min-w-0 flex-col gap-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-2 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              aria-label="Find a table"
-              placeholder="Tables"
-              className="pl-8"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          {schema.isPending && <p className="text-sm text-muted-foreground">Reading tables…</p>}
-          {schema.data && tables.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No tables yet. Plugins make theirs when they first connect.
-            </p>
-          )}
-          <nav aria-label="Tables" className="flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto">
-            {shown.map((t) => {
-              const k = tableKey(t);
-              const on = table && tableKey(table) === k;
-              return (
+      {db && !nosql && (
+        <div className="grid gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
+          <aside className="flex min-w-0 flex-col gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-2 left-2.5 size-4 text-muted-foreground" />
+              <Input
+                aria-label="Find a table"
+                placeholder="Tables"
+                className="pl-8"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            {schema.isPending && <p className="text-sm text-muted-foreground">Reading tables…</p>}
+            {schema.data && tables.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No tables yet. Plugins make theirs when they first connect.
+              </p>
+            )}
+            <nav aria-label="Tables" className="flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto">
+              {shown.map((t) => {
+                const k = tableKey(t);
+                const on = table && tableKey(table) === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-current={on ? "true" : undefined}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted",
+                      on && "bg-brand-wash hover:bg-brand-wash",
+                    )}
+                    onClick={() => {
+                      setPicked(k);
+                      if (tab === "processes" || tab === "sql") setTab("rows");
+                    }}
+                  >
+                    {t.kind === "view" ? (
+                      <Eye className="size-3.5 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <Table2 className="size-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate font-mono">{k}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {t.rows.toLocaleString()}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+            {canWrite && engine && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="self-start"
+                onClick={() => setCreating(true)}
+              >
+                <Plus /> New table
+              </Button>
+            )}
+          </aside>
+
+          <section className="flex min-w-0 flex-col gap-4">
+            <div
+              role="tablist"
+              aria-label="Database"
+              className="flex flex-wrap items-center gap-1 border-b"
+            >
+              {tabs.map((t) => (
                 <button
-                  key={k}
+                  key={t.id}
                   type="button"
-                  aria-current={on ? "true" : undefined}
+                  role="tab"
+                  aria-selected={tab === t.id}
                   className={cn(
-                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted",
-                    on && "bg-brand-wash hover:bg-brand-wash",
+                    "-mb-px border-b-2 px-3 py-2 font-mono text-xs tracking-wide uppercase transition-colors",
+                    tab === t.id
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                   onClick={() => {
-                    setPicked(k);
-                    if (tab === "processes" || tab === "sql") setTab("rows");
+                    if (t.id === "sql" && table && engine) {
+                      setSqlStart(`SELECT * FROM ${tableRef(engine, table)} LIMIT 100;`);
+                    }
+                    setTab(t.id);
                   }}
                 >
-                  {t.kind === "view" ? (
-                    <Eye className="size-3.5 shrink-0 text-muted-foreground" />
-                  ) : (
-                    <Table2 className="size-3.5 shrink-0 text-muted-foreground" />
-                  )}
-                  <span className="min-w-0 flex-1 truncate font-mono">{k}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {t.rows.toLocaleString()}
-                  </span>
+                  {t.label}
                 </button>
-              );
-            })}
-          </nav>
-          {canWrite && engine && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="self-start"
-              onClick={() => setCreating(true)}
-            >
-              <Plus /> New table
-            </Button>
-          )}
-        </aside>
+              ))}
+              {table && (tab === "rows" || tab === "structure") && (
+                <span className="ml-auto pb-1 text-xs text-muted-foreground">
+                  {tableKey(table)} · about {table.rows.toLocaleString()} rows ·{" "}
+                  {formatBytes(table.bytes)}
+                </span>
+              )}
+            </div>
 
-        <section className="flex min-w-0 flex-col gap-4">
-          <div
-            role="tablist"
-            aria-label="Database"
-            className="flex flex-wrap items-center gap-1 border-b"
-          >
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                className={cn(
-                  "-mb-px border-b-2 px-3 py-2 font-mono text-xs tracking-wide uppercase transition-colors",
-                  tab === t.id
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-                onClick={() => {
-                  if (t.id === "sql" && table && engine) {
-                    setSqlStart(`SELECT * FROM ${tableRef(engine, table)} LIMIT 100;`);
-                  }
-                  setTab(t.id);
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-            {table && (tab === "rows" || tab === "structure") && (
-              <span className="ml-auto pb-1 text-xs text-muted-foreground">
-                {tableKey(table)} · about {table.rows.toLocaleString()} rows ·{" "}
-                {formatBytes(table.bytes)}
-              </span>
+            {tab === "rows" &&
+              (table ? (
+                <RowsTab
+                  key={tableKey(table)}
+                  nodeId={nodeId}
+                  serverId={serverId}
+                  id={id}
+                  table={table}
+                  canWrite={canWrite}
+                />
+              ) : (
+                schema.data && <p className="text-sm text-muted-foreground">Pick a table.</p>
+              ))}
+            {tab === "structure" && table && engine && (
+              <StructureTab
+                engine={engine}
+                table={table}
+                canWrite={canWrite}
+                onChange={setChange}
+              />
             )}
-          </div>
-
-          {tab === "rows" &&
-            (table ? (
-              <RowsTab
-                key={tableKey(table)}
+            {tab === "sql" && (
+              <SQLTab
                 nodeId={nodeId}
                 serverId={serverId}
                 id={id}
-                table={table}
+                tables={tables}
                 canWrite={canWrite}
+                start={sqlStart}
               />
-            ) : (
-              schema.data && <p className="text-sm text-muted-foreground">Pick a table.</p>
-            ))}
-          {tab === "structure" && table && engine && (
-            <StructureTab engine={engine} table={table} canWrite={canWrite} onChange={setChange} />
-          )}
-          {tab === "sql" && (
-            <SQLTab
-              nodeId={nodeId}
-              serverId={serverId}
-              id={id}
-              tables={tables}
-              canWrite={canWrite}
-              start={sqlStart}
-            />
-          )}
-          {tab === "processes" && (
-            <ProcessesTab nodeId={nodeId} serverId={serverId} id={id} canWrite={canWrite} />
-          )}
-        </section>
-      </div>
+            )}
+            {tab === "processes" && (
+              <ProcessesTab nodeId={nodeId} serverId={serverId} id={id} canWrite={canWrite} />
+            )}
+          </section>
+        </div>
+      )}
 
       {creating && engine && (
         <NewTableDialog
@@ -249,6 +273,8 @@ export function DatabaseBrowser({
           id={id}
           kind={transfer}
           table={table}
+          mongo={db?.engine === "mongodb"}
+          collection={collection}
           onClose={() => setTransfer(undefined)}
         />
       )}

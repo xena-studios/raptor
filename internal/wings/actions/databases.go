@@ -465,3 +465,145 @@ func RegisterDatabaseExternal(x *command.Executor, d *databases.Service) {
 		return d.SetExternal(ctx, p)
 	}})
 }
+
+// The key and document browsers (docs/DATABASES.md#the-key-and-document-browsers),
+// on Redis and MongoDB databases, as their own users.
+const (
+	DBKeys             = "db.keys"               // a read: a page of a Redis database's keys
+	DBKey              = "db.key"                // a read: one key's value
+	DBKeyEdit          = "db.key.edit"           // change a key
+	DBRedisCommandRead = "db.redis.command.read" // a read: a command Redis flags read-only
+	DBRedisCommand     = "db.redis.command"      // any command the user may run
+	DBCollections      = "db.collections"        // a read: a MongoDB database's collections
+	DBDocuments        = "db.documents"          // a read: a page of a collection's documents
+	DBDocumentEdit     = "db.document.edit"      // insert, replace, or delete documents
+	DBCollectionEdit   = "db.collection.edit"    // create or drop a collection
+)
+
+// DBKeysParams are db.keys' params.
+type DBKeysParams struct {
+	ID string `json:"id"`
+	databases.KeysQuery
+}
+
+// DBKeyParams are db.key's params.
+type DBKeyParams struct {
+	ID string `json:"id"`
+	databases.KeyRef
+	Cursor string `json:"cursor,omitempty"`
+}
+
+// DBKeyEditParams are db.key.edit's params.
+type DBKeyEditParams struct {
+	ID string `json:"id"`
+	databases.KeyEdit
+}
+
+// DBRedisCommandParams are db.redis.command's and .read's params.
+type DBRedisCommandParams struct {
+	ID   string   `json:"id"`
+	Args []string `json:"args"`
+}
+
+// DBDocumentsParams are db.documents' params.
+type DBDocumentsParams struct {
+	ID string `json:"id"`
+	databases.DocumentsQuery
+}
+
+// DBDocumentEditParams are db.document.edit's params.
+type DBDocumentEditParams struct {
+	ID string `json:"id"`
+	databases.DocumentEdit
+}
+
+// DBCollectionEditParams are db.collection.edit's params.
+type DBCollectionEditParams struct {
+	ID         string `json:"id"`
+	Op         string `json:"op"` // create or drop
+	Collection string `json:"collection"`
+}
+
+// RegisterDatabaseDocuments adds the key and document browsers. None is
+// signed, like the SQL browser's: the database's own user can't reach
+// past its database, and changes are in the activity.
+func RegisterDatabaseDocuments(x *command.Executor, d *databases.Service) {
+	server := func(run func(ctx context.Context, e command.Envelope) (any, error)) func(ctx context.Context, e command.Envelope) (any, error) {
+		return func(ctx context.Context, e command.Envelope) (any, error) {
+			if e.ServerID == "" {
+				return nil, errors.New("command needs a server_id")
+			}
+			return run(ctx, e)
+		}
+	}
+	affected := func(n int64, err error) (any, error) {
+		if err != nil {
+			return nil, err
+		}
+		return map[string]int64{"affected": n}, nil
+	}
+	x.Register(DBKeys, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBKeysParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return d.Keys(ctx, e.ServerID, p.ID, p.KeysQuery)
+	})})
+	x.Register(DBKey, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBKeyParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return d.Key(ctx, e.ServerID, p.ID, p.KeyRef, p.Cursor)
+	})})
+	x.Register(DBKeyEdit, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBKeyEditParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return affected(d.EditKey(ctx, e.ServerID, p.ID, p.KeyEdit))
+	})})
+	runCommand := func(readOnly bool) func(ctx context.Context, e command.Envelope) (any, error) {
+		return server(func(ctx context.Context, e command.Envelope) (any, error) {
+			var p DBRedisCommandParams
+			if err := decode(e, &p); err != nil {
+				return nil, err
+			}
+			return d.RunCommand(ctx, e.ServerID, p.ID, p.Args, readOnly)
+		})
+	}
+	x.Register(DBRedisCommandRead, command.Handler{Signed: command.Never, ReadOnly: true, Run: runCommand(true)})
+	x.Register(DBRedisCommand, command.Handler{Signed: command.Never, Run: runCommand(false)})
+	x.Register(DBCollections, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		list, err := d.Collections(ctx, e.ServerID, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"collections": list}, nil
+	})})
+	x.Register(DBDocuments, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBDocumentsParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return d.Documents(ctx, e.ServerID, p.ID, p.DocumentsQuery)
+	})})
+	x.Register(DBDocumentEdit, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBDocumentEditParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return affected(d.EditDocuments(ctx, e.ServerID, p.ID, p.DocumentEdit))
+	})})
+	x.Register(DBCollectionEdit, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBCollectionEditParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, d.EditCollection(ctx, e.ServerID, p.ID, p.Op, p.Collection)
+	})})
+}

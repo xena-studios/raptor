@@ -184,10 +184,13 @@ const (
 	// CapDatabaseExternal: node.db.instance.external, instances' ports on
 	// the node with an allowlist and TLS.
 	CapDatabaseExternal = "db-external"
+	// CapDatabaseDocuments: Redis and MongoDB instances, and their key and
+	// document browsers.
+	CapDatabaseDocuments = "db-documents"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {

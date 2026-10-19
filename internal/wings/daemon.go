@@ -790,6 +790,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterDatabaseTransfers(r.commands, dbsvc)
 	actions.RegisterDatabaseVersions(r.commands, dbsvc)
 	actions.RegisterDatabaseExternal(r.commands, dbsvc)
+	actions.RegisterDatabaseDocuments(r.commands, dbsvc)
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)

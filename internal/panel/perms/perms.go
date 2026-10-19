@@ -125,6 +125,16 @@ var actions = map[string]string{
 	"db.readonly.set":    DatabasesWrite,
 	"db.readonly.remove": DatabasesWrite,
 	"db.restore":         DatabasesWrite,
+	// The key and document browsers.
+	"db.keys":               DatabasesRead,
+	"db.key":                DatabasesRead,
+	"db.redis.command.read": DatabasesRead,
+	"db.collections":        DatabasesRead,
+	"db.documents":          DatabasesRead,
+	"db.key.edit":           DatabasesWrite,
+	"db.redis.command":      DatabasesWrite,
+	"db.document.edit":      DatabasesWrite,
+	"db.collection.edit":    DatabasesWrite,
 
 	"server.update":    Startup,
 	"server.reinstall": Reinstall,
@@ -228,7 +238,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "db.list", "db.schema", "db.rows", "db.query.read", "db.processes", "db.transfer.status", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "db.list", "db.schema", "db.rows", "db.query.read", "db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

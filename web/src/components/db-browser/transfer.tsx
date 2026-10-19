@@ -35,6 +35,8 @@ export function TransferDialog({
   id,
   kind,
   table,
+  mongo,
+  collection,
   onClose,
 }: {
   orgId: string;
@@ -43,6 +45,9 @@ export function TransferDialog({
   id: string;
   kind: "import" | "export";
   table?: Table;
+  // A MongoDB database: mongodump archives, and a collection for a table.
+  mongo?: boolean;
+  collection?: string;
   onClose: () => void;
 }) {
   const client = useQueryClient();
@@ -78,9 +83,9 @@ export function TransferDialog({
             })
           : await dbCommand<{ job_id: string }>(nodeId, serverId, "db.export", {
               id,
-              schema: what === "database" ? undefined : table?.schema,
-              table: what === "database" ? undefined : table?.name,
-              format: what === "table-csv" ? "csv" : "sql",
+              schema: what === "database" || mongo ? undefined : table?.schema,
+              table: what === "database" ? undefined : mongo ? collection : table?.name,
+              format: mongo ? undefined : what === "table-csv" ? "csv" : "sql",
             });
       setJobID(res.job_id);
     } catch (err) {
@@ -111,11 +116,15 @@ export function TransferDialog({
       <DialogContent>
         <form onSubmit={start} className="flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>{kind === "import" ? "Import a .sql file" : "Export"}</DialogTitle>
+            <DialogTitle>
+              {kind === "import" ? (mongo ? "Import an archive" : "Import a .sql file") : "Export"}
+            </DialogTitle>
             <DialogDescription>
-              {kind === "import"
-                ? "Runs a .sql or .sql.gz file from the server's files against this database, as its own user. Upload the file in the file manager first."
-                : `Writes the dump to the server's ${exportDir} folder, to download from the file manager.`}
+              {kind === "import" && mongo
+                ? "Restores a mongodump archive (.archive or .archive.gz) from the server's files into this database, as its own user; collections in it replace those of the same name. Upload it in the file manager first."
+                : kind === "import"
+                  ? "Runs a .sql or .sql.gz file from the server's files against this database, as its own user. Upload the file in the file manager first."
+                  : `Writes the dump to the server's ${exportDir} folder, to download from the file manager.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -127,7 +136,7 @@ export function TransferDialog({
                   id="import-path"
                   autoFocus
                   className="font-mono"
-                  placeholder="backups/luckperms.sql.gz"
+                  placeholder={mongo ? "backups/stats.archive.gz" : "backups/luckperms.sql.gz"}
                   value={path}
                   onChange={(e) => setPath(e.target.value)}
                 />
@@ -139,19 +148,29 @@ export function TransferDialog({
             ) : (
               <fieldset className="flex flex-col gap-2">
                 <legend className="sr-only">What to export</legend>
-                {[
-                  { v: "database", label: "The whole database, as .sql.gz", show: true },
-                  {
-                    v: "table-sql",
-                    label: `Table ${table ? tableKey(table) : ""}, as .sql.gz`,
-                    show: !!table,
-                  },
-                  {
-                    v: "table-csv",
-                    label: `Table ${table ? tableKey(table) : ""}, as .csv`,
-                    show: !!table,
-                  },
-                ]
+                {(mongo
+                  ? [
+                      { v: "database", label: "The whole database, as .archive.gz", show: true },
+                      {
+                        v: "table-sql",
+                        label: `Collection ${collection ?? ""}, as .archive.gz`,
+                        show: !!collection,
+                      },
+                    ]
+                  : [
+                      { v: "database", label: "The whole database, as .sql.gz", show: true },
+                      {
+                        v: "table-sql",
+                        label: `Table ${table ? tableKey(table) : ""}, as .sql.gz`,
+                        show: !!table,
+                      },
+                      {
+                        v: "table-csv",
+                        label: `Table ${table ? tableKey(table) : ""}, as .csv`,
+                        show: !!table,
+                      },
+                    ]
+                )
                   .filter((o) => o.show)
                   .map((o) => (
                     <label key={o.v} className="flex items-center gap-2 text-sm">

@@ -71,12 +71,13 @@ export async function dbCommand<T>(
   return (res.resultJson ? JSON.parse(res.resultJson) : {}) as T;
 }
 
-export function useSchema(nodeId: string, serverId: string, id: string) {
+export function useSchema(nodeId: string, serverId: string, id: string, enabled = true) {
   return useQuery({
     queryKey: schemaKey(nodeId, serverId, id),
     queryFn: async () =>
       (await dbCommand<{ tables: Table[] }>(nodeId, serverId, "db.schema", { id })).tables,
     retry: false,
+    enabled,
   });
 }
 

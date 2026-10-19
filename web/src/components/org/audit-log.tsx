@@ -196,6 +196,12 @@ function describeCommand(action: string, server: string, meta: Meta): [string, L
       return [`put a database instance on ${server} back to its version before`, Database];
     case "node.db.instance.external":
       return [`changed a database instance's external access on ${server}`, Database];
+    case "db.key.edit":
+    case "db.redis.command":
+      return [`changed keys in one of ${server}'s Redis databases`, Database];
+    case "db.document.edit":
+    case "db.collection.edit":
+      return [`changed documents in one of ${server}'s MongoDB databases`, Database];
     case "db.restore":
       return [`restored one of ${server}'s databases from a backup`, Database];
     case "db.create":
