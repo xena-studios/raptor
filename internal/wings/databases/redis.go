@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -95,6 +96,7 @@ func sha(s string) string {
 func redisClient(dir, root string) *redis.Client {
 	return redis.NewClient(&redis.Options{
 		Network: "unix", Addr: redisSocket(dir), Username: adminUser, Password: root,
+		Dialer:      func(ctx context.Context, _, _ string) (net.Conn, error) { return dialUnix(ctx, redisSocket(dir)) },
 		DialTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, MaxRetries: -1,
 		// No CLIENT SETINFO: nothing about the client is worth sending.
 		DisableIdentity: true,

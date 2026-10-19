@@ -1,11 +1,15 @@
 package databases
 
 import (
+	"context"
 	"errors"
 	"maps"
+	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -240,4 +244,40 @@ func TestCopyTree(t *testing.T) {
 	if n, err := dirSize(dst); err != nil || n != 4 {
 		t.Errorf("size %d %v", n, err)
 	}
+}
+
+func TestDialUnixLongPath(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("/proc/self/fd is Linux's")
+	}
+	dir := filepath.Join(t.TempDir(), strings.Repeat("d", 60), strings.Repeat("e", 60))
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "mongodb-27017.sock")
+	if len(path) <= maxSocketPath {
+		t.Fatalf("path %d long", len(path))
+	}
+	// Listened on through the same short path.
+	short := "/proc/self/fd/"
+	f, err := os.Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = f.Close() }()
+	l, err := net.Listen("unix", short+strconv.Itoa(int(f.Fd()))+"/mongodb-27017.sock")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = l.Close() }()
+	go func() {
+		if c, err := l.Accept(); err == nil {
+			_ = c.Close()
+		}
+	}()
+	c, err := dialUnix(context.Background(), path)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	_ = c.Close()
 }

@@ -57,10 +57,14 @@ func mongoConnect(ctx context.Context, dir, root string) (*mongo.Client, error) 
 func mongoConnectAs(_ context.Context, dir, user, pass, authSource string) (*mongo.Client, error) {
 	o := options.Client().
 		ApplyURI("mongodb://" + url.PathEscape(mongoSocket(dir))).
+		SetDialer(unixDialer{mongoSocket(dir)}).
 		SetDirect(true).
 		SetAuth(options.Credential{Username: user, Password: pass, AuthSource: authSource}).
 		SetConnectTimeout(5 * time.Second).
-		SetServerSelectionTimeout(5 * time.Second)
+		SetServerSelectionTimeout(5 * time.Second).
+		// An operation's time, which the driver also sends the server
+		// (maxTimeMS) so it stops too; within a command's minute.
+		SetTimeout(45 * time.Second)
 	return mongo.Connect(o)
 }
 
@@ -164,7 +168,8 @@ func mongoCounts(ctx context.Context, dir, root string, databases []string) (map
 			if strings.HasPrefix(coll, "system.") {
 				continue
 			}
-			n, err := db.Collection(coll).CountDocuments(ctx, bson.D{})
+			// The count in its metadata: kept exact, and quick on any size.
+			n, err := db.Collection(coll).EstimatedDocumentCount(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("%s.%s: %w", name, coll, err)
 			}
