@@ -175,7 +175,7 @@ func (s *Service) ChangeVersion(ctx context.Context, id, version string) (string
 	if version == "" {
 		version = in.Version
 	}
-	target, err := lookup(in.Engine, version)
+	target, err := lookupOn(in.Engine, version, s.kernel())
 	if err != nil {
 		return "", err
 	}
@@ -888,6 +888,9 @@ func (s *Service) housekeeping(ctx context.Context, now time.Time) {
 		in, err := fromRow(r)
 		if err != nil || !in.Update || in.Previous != "" || r.DesiredState != StateRunning || s.state(r.ID) != StateRunning {
 			continue
+		}
+		if v, err := lookup(in.Engine, in.Version); err != nil || unavailable(v, s.kernel()) != "" {
+			continue // a patch it couldn't start on
 		}
 		window := in.Settings.Maintenance
 		if window == "" {

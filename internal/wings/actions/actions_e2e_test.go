@@ -296,11 +296,6 @@ func TestScheduleCommands(t *testing.T) {
 
 // --- environment ---
 
-func newManager(t *testing.T) (*server.Manager, *store.DB) {
-	t.Helper()
-	return newManagerWith(t, nil)
-}
-
 // newManagerWith calls before (to register more job handlers) before the
 // job engine starts; opts change the manager's options.
 func newManagerWith(t *testing.T, before func(*server.Manager, *store.DB, *jobs.Engine), opts ...func(*server.Options)) (*server.Manager, *store.DB) {

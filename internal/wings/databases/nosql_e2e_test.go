@@ -281,7 +281,24 @@ func TestMongoDB(t *testing.T) {
 	if _, err := e.svc.ChangeVersion(ctx, in.ID, "9.0"); !errors.Is(err, ErrInvalid) {
 		t.Errorf("skipping a major: %v", err)
 	}
+	_, r, _ := e.svc.instance(ctx, e.db.Read, in.ID)
+	root, _ := e.svc.sealer.open(r.RootPassword)
+	admin, err := mongoConnect(ctx, e.svc.dir(in.ID), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = admin.Disconnect(ctx) }()
 	jobID, err = e.svc.ChangeVersion(ctx, in.ID, "8.0")
+	if v8, _ := lookup(MongoDB, "8.0"); unavailable(v8, hostKernel()) != "" {
+		// This kernel can't run 8.0 (SERVER-121912): it's refused up
+		// front, with why.
+		if !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), "6.19") {
+			t.Errorf("8.0 on Linux %s: %v", hostKernel(), err)
+		}
+		t.Logf("Linux %s: MongoDB 8.0 refused as it should be; the version change isn't tried", hostKernel())
+		deleteMongo(ctx, t, e, d, pw, addr, admin)
+		return
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,13 +309,6 @@ func TestMongoDB(t *testing.T) {
 	if n, err := c2.Database(d.Name).Collection("players").CountDocuments(ctx, bson.D{}); err != nil || n != 2 {
 		t.Errorf("after the version change: %d %v", n, err)
 	}
-	_, r, _ := e.svc.instance(ctx, e.db.Read, in.ID)
-	root, _ := e.svc.sealer.open(r.RootPassword)
-	admin, err := mongoConnect(ctx, e.svc.dir(in.ID), root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = admin.Disconnect(ctx) }()
 	var fcv struct {
 		FCV struct {
 			Version string `bson:"version"`
@@ -308,6 +318,12 @@ func TestMongoDB(t *testing.T) {
 		t.Errorf("feature compatibility version %q %v", fcv.FCV.Version, err)
 	}
 
+	deleteMongo(ctx, t, e, d, pw, addr, admin)
+}
+
+// deleteMongo deletes a database and checks it and its users are gone.
+func deleteMongo(ctx context.Context, t *testing.T, e e2e, d Database, pw, addr string, admin *mongo.Client) {
+	t.Helper()
 	// Deleting the database drops it and its users.
 	if err := e.svc.DeleteDatabase(ctx, e.server, d.ID); err != nil {
 		t.Fatal(err)

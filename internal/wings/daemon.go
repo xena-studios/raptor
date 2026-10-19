@@ -700,6 +700,10 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		KeyPath:  filepath.Join(filepath.Dir(r.cfg.Paths.State), "databases.key"),
 		Networks: nsvc, Timezone: host.Timezone, Changed: r.applyGuards, Jobs: r.jobs,
 		Hostname: r.cfg.Hostname, ServerNetwork: nets.Server, ReservedPorts: []int{r.cfg.Ports.SFTP},
+		Kernel: func() string {
+			b, _ := os.ReadFile("/proc/sys/kernel/osrelease")
+			return strings.TrimSpace(string(b))
+		},
 		CheckPort: func(port int) error { return containers.CheckPorts([]containers.Port{{Port: port}}) },
 		FreeSpace: func(path string) (int64, error) {
 			_, free, err := storage.Space(path)

@@ -45,6 +45,8 @@ Separating game servers themselves (so one community's servers can't reach anoth
 | Redis | 7.2, 7.4, 8.2, 8.10 | `redis:<version>` |
 | MongoDB | 7.0, 8.0, 9.0 (its majors; the x.1–x.3 rapid releases aren't for production) | `mongo:<version>` |
 
+MongoDB 8.0 and later don't start on Linux 6.19 and newer (their memory allocator breaks the kernel's rseq rules, and they exit on purpose: MongoDB's SERVER-121912, unfixed as of October 2026). On such a node Wings marks them unavailable with the reason, MongoDB's default there is 7.0, and creating one or changing to one is refused (DECISIONS #323). The app says why.
+
 The list is in the Wings binary (`internal/wings/databases/versions.go`), each version pinned to an image digest that's updated with Wings releases, so a version means the same bits on every node. An instance tracks a **version line** (11.4), not a patch: Wings moves it to the newest patch in its line when an update brings one, by restarting the container on the new image, at the time the owner picks for maintenance.
 
 ### Changing an instance's version

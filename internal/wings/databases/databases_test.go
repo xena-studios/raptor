@@ -281,3 +281,35 @@ func TestDialUnixLongPath(t *testing.T) {
 	}
 	_ = c.Close()
 }
+
+func TestKernelVersions(t *testing.T) {
+	old := offered("6.12.48+deb13-amd64")
+	if v, err := lookupOn(MongoDB, "", "6.12.48+deb13-amd64"); err != nil || v.Version != "8.0" {
+		t.Errorf("default on 6.12: %+v %v", v, err)
+	}
+	for _, v := range old {
+		if v.Unavailable != "" {
+			t.Errorf("%s %s unavailable on 6.12: %s", v.Engine, v.Version, v.Unavailable)
+		}
+	}
+	for _, k := range []string{"6.19.8-azure", "7.0.1"} {
+		if v, err := lookupOn(MongoDB, "", k); err != nil || v.Version != "7.0" {
+			t.Errorf("default on %s: %+v %v", k, v, err)
+		}
+		if _, err := lookupOn(MongoDB, "9.0", k); !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), "6.19") {
+			t.Errorf("9.0 on %s: %v", k, err)
+		}
+		if v, err := lookupOn(MariaDB, "", k); err != nil || v.Version != "11.8" {
+			t.Errorf("MariaDB on %s: %+v %v", k, v, err)
+		}
+	}
+	defaults := 0
+	for _, v := range offered("6.19.0") {
+		if v.Engine == MongoDB && v.Default {
+			defaults++
+		}
+	}
+	if defaults != 1 {
+		t.Errorf("%d MongoDB defaults on 6.19", defaults)
+	}
+}

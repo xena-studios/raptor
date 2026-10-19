@@ -57,7 +57,13 @@ export type DBChange = {
   error?: string; // it was put back as it was
 };
 
-export type DBVersion = { engine: Engine; version: string; image: string; default?: boolean };
+export type DBVersion = {
+  engine: Engine;
+  version: string;
+  image: string;
+  default?: boolean;
+  unavailable?: string; // why this node can't run it
+};
 
 export type Database = {
   id: string;

@@ -78,7 +78,7 @@ func RegisterDatabases(x *command.Executor, d *databases.Service) {
 		if err != nil {
 			return nil, err
 		}
-		return DBInstancesResult{Instances: list, Versions: databases.Versions}, nil
+		return DBInstancesResult{Instances: list, Versions: d.Versions()}, nil
 	}})
 	x.Register(NodeDBInstanceSave, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p databases.InstanceInput

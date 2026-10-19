@@ -61,7 +61,7 @@ func newE2E(t *testing.T, name string) e2e {
 	t.Cleanup(func() { _ = dc.RemoveNetwork(context.Background(), networks.DockerName(net.ID)) })
 	svc, err := New(Options{
 		Store: db, Runtime: dc, Dir: filepath.Join(dir, "databases"), KeyPath: filepath.Join(dir, "databases.key"),
-		Networks: nsvc, Jobs: engine, StartTimeout: 5 * time.Minute,
+		Networks: nsvc, Jobs: engine, StartTimeout: 5 * time.Minute, Kernel: hostKernel,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -196,7 +196,7 @@ func TestVersions(t *testing.T) {
 	t.Run("failed change", func(t *testing.T) {
 		// A version whose image isn't MariaDB: it can't start, so the
 		// change is put back.
-		Versions = append(Versions, Version{MariaDB, "99.0", "busybox:1.37", false})
+		Versions = append(Versions, Version{MariaDB, "99.0", "busybox:1.37", false, ""})
 		t.Cleanup(func() { Versions = Versions[:len(Versions)-1] })
 		in, err := e.svc.Save(ctx, InstanceInput{Name: "E2E failed change", Engine: MariaDB, Version: "11.8", Networks: []string{e.net.ID}, Limits: Limits{MemoryMiB: 512}})
 		if err != nil {
@@ -383,4 +383,9 @@ func TestBackupDumps(t *testing.T) {
 			}
 		})
 	}
+}
+
+func hostKernel() string {
+	b, _ := os.ReadFile("/proc/sys/kernel/osrelease")
+	return strings.TrimSpace(string(b))
 }

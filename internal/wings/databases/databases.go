@@ -143,6 +143,7 @@ type Runtime interface {
 	RemoveService(ctx context.Context, name string) error
 	ServiceState(ctx context.Context, name string) (containers.State, bool, error)
 	Exec(ctx context.Context, name string, s containers.ExecSpec) (int, error)
+	ServiceLogs(ctx context.Context, name string, lines int) (string, error)
 }
 
 // Networks resolves the owner's networks.
@@ -180,6 +181,9 @@ type Options struct {
 	ServerNetwork containers.Network
 	ReservedPorts []int
 	CheckPort     func(port int) error
+	// Kernel is the host's kernel release (/proc/sys/kernel/osrelease),
+	// for versions that don't run on some; nil is one they all run on.
+	Kernel func() string
 	// FreeSpace returns the free bytes on the filesystem holding a path,
 	// checked before a version change copies an instance's data. nil = no
 	// check.
@@ -391,6 +395,10 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 	}
 	// A first start initializes the data folder, which takes a while.
 	deadline := time.Now().Add(s.o.StartTimeout)
+	restarts := -1
+	if st, ok, err := s.o.Runtime.ServiceState(ctx, ContainerName(id)); err == nil && ok {
+		restarts = st.Restarts
+	}
 	for {
 		pctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		err := ping(pctx, in, dir, root)
@@ -408,12 +416,16 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 			return nil
 		}
 		st, ok, serr := s.o.Runtime.ServiceState(ctx, ContainerName(id))
+		// Docker restarts one that exits, so one that keeps failing is
+		// seen by its restarts more than by its being stopped.
+		if serr == nil && ok && restarts >= 0 && st.Restarts > restarts+1 {
+			return fmt.Errorf("it keeps stopping (exit code %d)%s%s", st.ExitCode, oom(st.OOMKilled), s.lastLog(ctx, id))
+		}
 		if serr == nil && ok && !st.Running && !st.StartedAt.IsZero() && time.Since(st.StartedAt) > 5*time.Second {
-			return fmt.Errorf("it stopped (exit code %d)%s; its log on the node has why (docker logs %s)",
-				st.ExitCode, oom(st.OOMKilled), ContainerName(id))
+			return fmt.Errorf("it stopped (exit code %d)%s%s", st.ExitCode, oom(st.OOMKilled), s.lastLog(ctx, id))
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("it didn't answer within %s: %w", s.o.StartTimeout, err)
+			return fmt.Errorf("it didn't answer within %s: %w%s", s.o.StartTimeout, err, s.lastLog(ctx, id))
 		}
 		select {
 		case <-ctx.Done():
@@ -651,7 +663,7 @@ func (s *Service) create(ctx context.Context, in InstanceInput, count int, now i
 	if count >= MaxInstances {
 		return Instance{}, invalid{fmt.Sprintf("a node has at most %d database instances", MaxInstances)}
 	}
-	v, err := lookup(in.Engine, in.Version)
+	v, err := lookupOn(in.Engine, in.Version, s.kernel())
 	if err != nil {
 		return Instance{}, err
 	}
@@ -1300,3 +1312,43 @@ func mustJSON(v any) string {
 // must is a list, or none when it couldn't be read: for checks that the
 // next step repeats.
 func must[T any](list []T, _ error) []T { return list }
+
+// lastLog is the end of an instance's own log, for an error saying why it
+// didn't start: the lines that look like errors, or else the last ones.
+func (s *Service) lastLog(ctx context.Context, id string) string {
+	out, err := s.o.Runtime.ServiceLogs(context.WithoutCancel(ctx), ContainerName(id), 200)
+	if err != nil || strings.TrimSpace(out) == "" {
+		return fmt.Sprintf("; its log on the node has why (docker logs %s)", ContainerName(id))
+	}
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	var picked []string
+	for _, l := range lines {
+		ll := strings.ToLower(l)
+		if strings.Contains(ll, "error") || strings.Contains(ll, "fatal") || strings.Contains(ll, `"s":"e"`) || strings.Contains(ll, `"s":"f"`) {
+			picked = append(picked, l)
+		}
+	}
+	if len(picked) == 0 {
+		picked = lines
+	}
+	if len(picked) > 3 {
+		picked = picked[len(picked)-3:]
+	}
+	for i, l := range picked {
+		if len(l) > 300 {
+			picked[i] = l[:300] + "…"
+		}
+	}
+	return "; its log ends: " + strings.Join(picked, " | ")
+}
+
+func (s *Service) kernel() string {
+	if s.o.Kernel == nil {
+		return ""
+	}
+	return s.o.Kernel()
+}
+
+// Versions are the versions offered, with what this node can't run
+// marked (Version.Unavailable).
+func (s *Service) Versions() []Version { return offered(s.kernel()) }
