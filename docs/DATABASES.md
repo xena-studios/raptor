@@ -1,6 +1,6 @@
 # Databases
 
-Managed SQL databases on owners' own nodes, with a browser for them in the app: MariaDB, MySQL, and PostgreSQL first, then Redis and MongoDB. Included in the node's price, never hosted by Raptor (DECISIONS #296–#299). They run on the node's [networks](NETWORKS.md), built first. Phases 1 (instances and databases) and 2 (the browser) are built; the rest is the plan ([ROADMAP.md](ROADMAP.md#networks-and-databases), DECISIONS #305–#308).
+Managed SQL databases on owners' own nodes, with a browser for them in the app: MariaDB, MySQL, and PostgreSQL first, then Redis and MongoDB. Included in the node's price, never hosted by Raptor (DECISIONS #296–#299). They run on the node's [networks](NETWORKS.md), built first. Phases 1 (instances and databases), 2 (the browser), and 3 (import, export, and read-only users) are built; the rest is the plan ([ROADMAP.md](ROADMAP.md#networks-and-databases), DECISIONS #305–#308).
 
 ## How phase 1 is built
 
@@ -88,6 +88,19 @@ The password lives on the node (encrypted in `state.db`), never in the Panel. Th
 - **Activity:** `db.query`, the row edits, and stopping a query are recorded like any change, with `rows_changed` from their result and never their SQL (the Panel doesn't keep commands' params). Reads aren't recorded.
 - Commands: `db.schema`, `db.rows`, `db.query.read`, `db.processes` (See databases), `db.query`, `db.row.insert`, `db.row.update`, `db.row.delete`, `db.process.kill` (Change databases); none signed. Capability `db-browser`.
 - The instance page's own browser (admins, as the instance's administrator) isn't built; the server's databases are.
+
+### How phase 3 is built
+
+- **Through the server's files**, which already move big files both ways (DECISIONS #311): an import runs a `.sql` or `.sql.gz` file the server has (gzip known by its first bytes); an export writes `database-exports/<name>[-<table>]-<UTC time>.sql.gz` (or `.csv`) into the server's files, through a `.part` file renamed when it's done, for the file manager to download. Both are jobs (`db.import`, `db.export`, in the files class), followed with `db.transfer.status` (bytes so far, of how many for an import) and stopped with `db.transfer.cancel`.
+- **The engines' own tools**, run in the instance's container as uid 999 with Docker's exec (`Runtime.Exec`), their input and output streamed: nothing is written in the container, and the password goes in the environment (`MYSQL_PWD`, `PGPASSWORD`), never on a command line. As the database's own user, through the socket:
+  - MariaDB/MySQL: `mariadb`/`mysql --binary-mode` to import, stopping at the first error; `mariadb-dump`/`mysqldump --single-transaction --no-tablespaces --skip-lock-tables --triggers` (MySQL also `--set-gtid-purged=OFF`) to export, consistent without locks and needing no rights the user lacks.
+  - PostgreSQL: `psql --set=ON_ERROR_STOP=1` to import; `pg_dump --no-owner --no-privileges` (with `--table` for one) to export.
+  - A failure's error is the tool's line that names it (psql's, not the `^` under it).
+- **CSV** of a table is written by Wings itself, streamed row by row through the browser's connection; a query result's CSV is made in the app from the rows on screen.
+- **Read-only users:** `r<short id>_<name>` beside `s<short id>_<name>`, made on request (`db.readonly.set`, which gives an existing one a new password), with `SELECT` and `SHOW VIEW` on the database (MariaDB/MySQL), or on PostgreSQL `CONNECT`, `USAGE` and `SELECT` on every schema, its tables and sequences, and the database user's default privileges so tables made later are readable too. PostgreSQL's `pg_hba.conf` gets a line per read-only user for its own database, and is reloaded; removing one (`db.readonly.remove`) drops what it was granted (`DROP OWNED BY`) and the role. Deleting a database removes its read-only user. The password is shown with a passkey, like the database's (`db.password` with `readonly`).
+- Importing changes data and exporting gives it out, so both, and read-only users, need **Change databases**. Capability `db-transfers`.
+- **Tested** (`TestTransfers`, real engines): a database exported and imported back, a table as CSV (quotes and commas), a broken file failing with the engine's reason, and a read-only user reading tables made before and after it, failing to insert or drop, gone once removed, and gone with its database.
+- **Imports from elsewhere:** a dump that makes or switches databases (`CREATE DATABASE`, `USE`), sets owners (`ALTER … OWNER TO`), or has `DEFINER` clauses needs rights the database's user doesn't have, and stops there. Export with `--no-owner` (PostgreSQL) or without those (MariaDB/MySQL).
 
 Each database opens in the server's Databases tab, and an instance's whole contents on its own page (admins). Everything goes through typed commands to Wings (`db.schema`, `db.rows`, `db.query`, `db.row.update`…), which connects to the instance locally as that database's user (an instance page uses the instance's admin user), so the browser can never reach further than the database's own rights.
 

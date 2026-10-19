@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Check, Copy, Eye, KeyRound, Loader2, Plus, Table2, Trash2 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
 import { DetailList } from "@/components/page";
@@ -55,6 +55,7 @@ export function ServerDatabases({
   supported,
   connected,
   browsable,
+  transfers,
 }: {
   orgId: string;
   nodeId: string;
@@ -66,10 +67,12 @@ export function ServerDatabases({
   connected: boolean;
   // The node's Wings has the browser.
   browsable: boolean;
+  // The node's Wings has read-only users (and imports and exports).
+  transfers: boolean;
 }) {
   const list = useServerDatabases(nodeId, serverId, supported && connected);
   const [creating, setCreating] = useState(false);
-  const [shown, setShown] = useState<{ db: Database; password: string }>();
+  const [shown, setShown] = useState<{ db: Database; password: string; readonly?: boolean }>();
 
   if (!supported) {
     return (
@@ -147,6 +150,7 @@ export function ServerDatabases({
                   key={db.id}
                   orgId={orgId}
                   browsable={browsable}
+                  transfers={transfers}
                   nodeId={nodeId}
                   serverId={serverId}
                   userId={userId}
@@ -155,7 +159,7 @@ export function ServerDatabases({
                   many={d.databases.length > 1}
                   canWrite={canWrite}
                   instance={d.instances.find((x) => x.id === db.instance_id)}
-                  onShow={(password) => setShown({ db, password })}
+                  onShow={(password, readonly) => setShown({ db, password, readonly })}
                 />
               ))}
         </CardContent>
@@ -180,6 +184,7 @@ export function ServerDatabases({
 function DatabaseRow({
   orgId,
   browsable,
+  transfers,
   nodeId,
   serverId,
   userId,
@@ -192,6 +197,7 @@ function DatabaseRow({
 }: {
   orgId: string;
   browsable: boolean;
+  transfers: boolean;
   nodeId: string;
   serverId: string;
   userId: string;
@@ -200,7 +206,7 @@ function DatabaseRow({
   many: boolean;
   canWrite: boolean;
   instance?: DBInstance;
-  onShow: (password: string) => void;
+  onShow: (password: string, readonly?: boolean) => void;
 }) {
   const client = useQueryClient();
   const ask = useConfirm();
@@ -327,6 +333,16 @@ function DatabaseRow({
         As variables: <code>{prefix}DB_HOST</code> and the rest
         {many && first ? ", and without the prefix too, since it's the first" : ""}.
       </p>
+      {transfers && (
+        <ReadOnlyUser
+          nodeId={nodeId}
+          serverId={serverId}
+          userId={userId}
+          db={db}
+          canWrite={canWrite}
+          onShow={(password) => onShow(password, true)}
+        />
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
@@ -456,25 +472,35 @@ function CreateDialog({
 function PasswordDialog({
   db,
   password,
+  readonly,
   onClose,
 }: {
   db: Database;
   password: string;
+  readonly?: boolean;
   onClose: () => void;
 }) {
+  const user = readonly ? (db.readonly_user ?? "") : db.user;
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{db.label}'s password</DialogTitle>
+          <DialogTitle>
+            {readonly ? `${db.label}'s read-only user` : `${db.label}'s password`}
+          </DialogTitle>
           <DialogDescription>
-            The server gets it at its next start. Keep it out of screenshots and streams.
+            {readonly
+              ? "It reads every table, and changes nothing. Keep the password out of screenshots and streams."
+              : "The server gets it at its next start. Keep it out of screenshots and streams."}
           </DialogDescription>
         </DialogHeader>
         <DetailList
           rows={[
+            ...(readonly
+              ? [["User", <Copyable key="r" value={user} />] as [string, ReactNode]]
+              : []),
             ["Password", <Copyable key="p" value={password} />],
-            ["URL", <Copyable key="u" value={connectionURL(db, password)} />],
+            ["URL", <Copyable key="u" value={connectionURL({ ...db, user }, password)} />],
           ]}
         />
         <DialogFooter>
@@ -482,5 +508,130 @@ function PasswordDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ReadOnlyUser is a database's read-only user, for a tool that should only
+// look (a stats page, a map): made, given a new password, or removed.
+function ReadOnlyUser({
+  nodeId,
+  serverId,
+  userId,
+  db,
+  canWrite,
+  onShow,
+}: {
+  nodeId: string;
+  serverId: string;
+  userId: string;
+  db: Database;
+  canWrite: boolean;
+  onShow: (password: string) => void;
+}) {
+  const client = useQueryClient();
+  const ask = useConfirm();
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  async function act(what: string, fn: () => Promise<void>) {
+    setBusy(what);
+    setError("");
+    try {
+      await fn();
+      await client.invalidateQueries({ queryKey: serverDatabasesKey(nodeId, serverId) });
+    } catch (err) {
+      if (!passkeyCancelled(err)) setError(message(err));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  const set = () =>
+    act("set", async () => {
+      const res = await commandClient.execute({
+        nodeId,
+        serverId,
+        action: "db.readonly.set",
+        paramsJson: JSON.stringify({ id: db.id }),
+      });
+      onShow((JSON.parse(res.resultJson) as { password: string }).password);
+    });
+
+  const show = () =>
+    act("show", async () => {
+      const res = await sendSigned({
+        userId,
+        nodeId,
+        serverId,
+        action: "db.password",
+        params: { id: db.id, readonly: true },
+      });
+      onShow((JSON.parse(res.resultJson) as { password: string }).password);
+    });
+
+  async function remove() {
+    const ok = await ask.confirm({
+      title: "Remove the read-only user?",
+      description: "Anything using it can't connect any more. The database isn't touched.",
+      confirm: "Remove",
+      destructive: true,
+    });
+    if (!ok) return;
+    await act("remove", async () => {
+      await commandClient.execute({
+        nodeId,
+        serverId,
+        action: "db.readonly.remove",
+        paramsJson: JSON.stringify({ id: db.id }),
+      });
+    });
+  }
+
+  if (!db.readonly_user && !canWrite) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+      <p className="flex min-w-0 items-center gap-2 text-sm">
+        <span className="text-muted-foreground">Read-only user</span>
+        {db.readonly_user ? (
+          <code className="truncate font-mono text-sm">{db.readonly_user}</code>
+        ) : (
+          <span className="text-muted-foreground">none, for tools that should only look</span>
+        )}
+      </p>
+      {canWrite && (
+        <div className="flex gap-1">
+          {db.readonly_user ? (
+            <>
+              <Button size="sm" variant="outline" disabled={!!busy} onClick={show}>
+                {busy === "show" ? <Loader2 className="animate-spin" /> : <Eye />} Password
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                aria-label="New password for the read-only user"
+                disabled={!!busy}
+                onClick={set}
+              >
+                {busy === "set" ? <Loader2 className="animate-spin" /> : <KeyRound />}
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                aria-label="Remove the read-only user"
+                disabled={!!busy}
+                onClick={remove}
+              >
+                {busy === "remove" ? <Loader2 className="animate-spin" /> : <Trash2 />}
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" variant="outline" disabled={!!busy} onClick={set}>
+              {busy === "set" ? <Loader2 className="animate-spin" /> : <Plus />} Make one
+            </Button>
+          )}
+        </div>
+      )}
+      {error && <p className="basis-full text-sm text-destructive">{error}</p>}
+    </div>
   );
 }

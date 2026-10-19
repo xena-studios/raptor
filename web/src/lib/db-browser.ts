@@ -213,3 +213,20 @@ export function formatBytes(n: number): string {
   }
   return `${v < 10 ? v.toFixed(1) : Math.round(v)} ${units[i]}`;
 }
+
+// Imports and exports run as jobs on the node, through the server's files.
+export type Transfer = {
+  job_id: string;
+  kind: "import" | "export";
+  database: string;
+  path: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  bytes: number;
+  total?: number;
+  error?: string;
+};
+
+export const dbTransfersCapability = "db-transfers";
+
+// The folder exports go in, in the server's files.
+export const exportDir = "database-exports";

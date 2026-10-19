@@ -70,7 +70,7 @@ Docker networks managed from the app, so separate communities on one node can't 
 2. Rules between networks. Built.
 3. Database instances and databases on networks (any version, limits, per-database users, environment variables). Built.
 4. The browser (schema, rows with editing, the SQL editor, structure, processes). Built for servers' databases; longer queries and bigger pages wait for streamed results.
-5. Import, export, and read-only users.
+5. Import, export, and read-only users. Built.
 6. Versions and backups (patch updates, upgrades with rollback, databases in server backups).
 7. External access to instances (a port, an address allowlist, TLS).
 8. Redis and MongoDB.
