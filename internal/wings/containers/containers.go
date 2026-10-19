@@ -151,13 +151,13 @@ type NetworkSpec struct {
 // HostNetwork is a network on the machine's Docker, for the read-only view
 // of what else runs there.
 type HostNetwork struct {
-	Name       string
-	Driver     string
-	Subnets    []netip.Prefix
-	Internal   bool
-	Containers int
+	Name       string         `json:"name"`
+	Driver     string         `json:"driver"`
+	Subnets    []netip.Prefix `json:"subnets"`
+	Internal   bool           `json:"internal"`
+	Containers int            `json:"containers"`
 	// Raptor is one of Wings' networks.
-	Raptor bool
+	Raptor bool `json:"raptor"`
 }
 
 // ErrNetworkInUse is returned when a network can't be removed or changed
