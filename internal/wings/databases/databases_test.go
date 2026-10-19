@@ -146,3 +146,16 @@ func TestServiceSpec(t *testing.T) {
 		t.Error("pg_hba.conf's folder is writable by the engine")
 	}
 }
+
+func TestLastLine(t *testing.T) {
+	psql := "psql:<stdin>:1: ERROR:  relation \"nowhere\" does not exist\nLINE 1: INSERT INTO nowhere VALUES (1);\n                    ^"
+	if got := lastLine(psql); got != `psql:<stdin>:1: ERROR:  relation "nowhere" does not exist` {
+		t.Errorf("psql: %q", got)
+	}
+	if got := lastLine("ERROR 1146 (42S02) at line 1: Table 'x.nowhere' doesn't exist\n"); !strings.Contains(got, "nowhere") {
+		t.Errorf("mariadb: %q", got)
+	}
+	if got := lastLine(""); got != "no reason given" {
+		t.Errorf("empty: %q", got)
+	}
+}

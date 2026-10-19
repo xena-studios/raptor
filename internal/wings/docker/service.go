@@ -6,10 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/netip"
 	"time"
 
 	cerrdefs "github.com/containerd/errdefs"
+	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/api/types/network"
@@ -177,4 +179,57 @@ func (c *Client) ServiceState(ctx context.Context, name string) (containers.Stat
 		}
 	}
 	return st, true, nil
+}
+
+// Exec implements containers.Runtime.
+func (c *Client) Exec(ctx context.Context, name string, s containers.ExecSpec) (int, error) {
+	created, err := c.api.ExecCreate(ctx, name, client.ExecCreateOptions{
+		User: s.User, Env: s.Env, Cmd: s.Cmd,
+		AttachStdin: s.Stdin != nil, AttachStdout: true, AttachStderr: true,
+	})
+	if err != nil {
+		return -1, fmt.Errorf("exec in %s: %w", name, err)
+	}
+	att, err := c.api.ExecAttach(ctx, created.ID, client.ExecAttachOptions{})
+	if err != nil {
+		return -1, fmt.Errorf("exec in %s: %w", name, err)
+	}
+	defer att.Close()
+	// The context ends the command by closing its streams.
+	stop := context.AfterFunc(ctx, att.Close)
+	defer stop()
+
+	inErr := make(chan error, 1)
+	if s.Stdin != nil {
+		go func() {
+			_, err := io.Copy(att.Conn, s.Stdin)
+			if cerr := att.CloseWrite(); err == nil {
+				err = cerr
+			}
+			inErr <- err
+		}()
+	} else {
+		inErr <- nil
+	}
+	stdout, stderr := s.Stdout, s.Stderr
+	if stdout == nil {
+		stdout = io.Discard
+	}
+	if stderr == nil {
+		stderr = io.Discard
+	}
+	if _, err := stdcopy.StdCopy(stdout, stderr, att.Reader); err != nil {
+		if ctx.Err() != nil {
+			return -1, ctx.Err()
+		}
+		return -1, fmt.Errorf("exec in %s: %w", name, err)
+	}
+	if err := <-inErr; err != nil && ctx.Err() == nil {
+		return -1, fmt.Errorf("sending input: %w", err)
+	}
+	res, err := c.api.ExecInspect(ctx, created.ID, client.ExecInspectOptions{})
+	if err != nil {
+		return -1, err
+	}
+	return res.ExitCode, nil
 }

@@ -99,6 +99,8 @@ type Database struct {
 	Username   string
 	Password   []byte
 	CreatedAt  int64
+	RoUsername string
+	RoPassword []byte
 }
 
 type DatabaseInstance struct {
