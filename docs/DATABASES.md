@@ -1,6 +1,6 @@
 # Databases
 
-Managed SQL databases on owners' own nodes, with a browser for them in the app: MariaDB, MySQL, and PostgreSQL first, then Redis and MongoDB. Included in the node's price, never hosted by Raptor (DECISIONS #296–#299). They run on the node's [networks](NETWORKS.md), built first. Phase 1 (instances and databases) is built; the rest is the plan ([ROADMAP.md](ROADMAP.md#networks-and-databases), DECISIONS #305–#308).
+Managed SQL databases on owners' own nodes, with a browser for them in the app: MariaDB, MySQL, and PostgreSQL first, then Redis and MongoDB. Included in the node's price, never hosted by Raptor (DECISIONS #296–#299). They run on the node's [networks](NETWORKS.md), built first. Phases 1 (instances and databases) and 2 (the browser) are built; the rest is the plan ([ROADMAP.md](ROADMAP.md#networks-and-databases), DECISIONS #305–#308).
 
 ## How phase 1 is built
 
@@ -76,6 +76,18 @@ Creating a database on a server's **Databases** tab gives it:
 The password lives on the node (encrypted in `state.db`), never in the Panel. The tab shows it once when the database is made; after that, **Show password** fetches it from the node with a re-auth, and **Reset password** makes a new one.
 
 ## The browser
+
+### How phase 2 is built
+
+- `internal/wings/databases/browser.go`: every command opens a connection **as the database's own user**, through the instance's socket, with its sealed password, so nothing in the browser reaches further than that user can. Table and column names from the app are only used once found in the live schema, then quoted; values are always parameters (PostgreSQL's sent as literals the engine casts to the column's type, so a string can go into any column).
+- **Rows** are paged by `LIMIT`/`OFFSET` (one more than asked, to know there's more), ordered by the primary key unless sorted, with filters (`=`, `<>`, `<`, `<=`, `>`, `>=`, contains, NULL, not NULL); row counts are the engine's estimates. **Edits** go by the whole primary key in one transaction, and an update or delete that doesn't match exactly the rows asked for changes nothing; a table without a primary key is read-only in the grid. Values over 8 KB arrive cut and can't be edited in the grid.
+- **Queries:** those with **Change databases** run any SQL (`db.query`): on PostgreSQL every statement's result is read and the last shown, with its rows changed; on MariaDB and MySQL statements that return rows (by their first word) are read and the rest executed, the last one's count shown. Those with only **See databases** run `db.query.read`: **one statement** (MariaDB and MySQL's connection takes no more; PostgreSQL's extended protocol neither), in a **read-only transaction**, MariaDB and MySQL's session read-only too, rolled back after. The e2e test tries `DELETE`, `DROP`, `CREATE`, `UPDATE`, and a second statement after a `SELECT` or a `COMMIT` on every engine; all fail.
+- **Limits, for now:** a result is at most 1,000 rows and 2 MB, a value at most 8 KB shown; a query runs for 30 seconds by default and at most 50 (a command has a minute through the Panel), and one past its limit is killed on the server (MariaDB and MySQL's `KILL QUERY` as root, PostgreSQL's cancel and `statement_timeout`). Longer queries, a cancel button, and pages up to 10,000 rows need results streamed like file transfers; they're for later.
+- **Structure** forms (create table with an auto-numbered `id`, add and drop columns, add and drop indexes, rename and drop a table) write the SQL in the app, show it, and run it as `db.query`.
+- **Processes** are the connections the database's user can see (its own), with their running query, and stopping one (`KILL QUERY`, `pg_cancel_backend`).
+- **Activity:** `db.query`, the row edits, and stopping a query are recorded like any change, with `rows_changed` from their result and never their SQL (the Panel doesn't keep commands' params). Reads aren't recorded.
+- Commands: `db.schema`, `db.rows`, `db.query.read`, `db.processes` (See databases), `db.query`, `db.row.insert`, `db.row.update`, `db.row.delete`, `db.process.kill` (Change databases); none signed. Capability `db-browser`.
+- The instance page's own browser (admins, as the instance's administrator) isn't built; the server's databases are.
 
 Each database opens in the server's Databases tab, and an instance's whole contents on its own page (admins). Everything goes through typed commands to Wings (`db.schema`, `db.rows`, `db.query`, `db.row.update`…), which connects to the instance locally as that database's user (an instance page uses the instance's admin user), so the browser can never reach further than the database's own rights.
 

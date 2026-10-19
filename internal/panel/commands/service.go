@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"regexp"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -240,6 +241,15 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 			meta["error"] = err.Error()
 		case res.GetError() != "":
 			meta["error"] = res.GetError()
+		case strings.HasPrefix(env.Action, "db."):
+			// A database change is kept with how many rows it changed, never
+			// its SQL.
+			var r struct {
+				Affected *int64 `json:"affected"`
+			}
+			if json.Unmarshal(res.GetResult(), &r) == nil && r.Affected != nil && *r.Affected >= 0 {
+				meta["rows_changed"] = *r.Affected
+			}
 		}
 		if support != "" {
 			s.auditStaff(ctx, sess, org, support, env, meta)

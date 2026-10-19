@@ -1,12 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Check, Copy, Eye, KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
+import { Check, Copy, Eye, KeyRound, Loader2, Plus, Table2, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
 import { DetailList } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -54,6 +54,7 @@ export function ServerDatabases({
   admin,
   supported,
   connected,
+  browsable,
 }: {
   orgId: string;
   nodeId: string;
@@ -63,6 +64,8 @@ export function ServerDatabases({
   admin: boolean;
   supported: boolean;
   connected: boolean;
+  // The node's Wings has the browser.
+  browsable: boolean;
 }) {
   const list = useServerDatabases(nodeId, serverId, supported && connected);
   const [creating, setCreating] = useState(false);
@@ -142,6 +145,8 @@ export function ServerDatabases({
             : d.databases.map((db, i) => (
                 <DatabaseRow
                   key={db.id}
+                  orgId={orgId}
+                  browsable={browsable}
                   nodeId={nodeId}
                   serverId={serverId}
                   userId={userId}
@@ -173,6 +178,8 @@ export function ServerDatabases({
 }
 
 function DatabaseRow({
+  orgId,
+  browsable,
   nodeId,
   serverId,
   userId,
@@ -183,6 +190,8 @@ function DatabaseRow({
   instance,
   onShow,
 }: {
+  orgId: string;
+  browsable: boolean;
   nodeId: string;
   serverId: string;
   userId: string;
@@ -268,11 +277,22 @@ function DatabaseRow({
           </Badge>
           {instance && <span className="text-xs text-muted-foreground">on {instance.name}</span>}
         </div>
-        {canWrite && (
-          <div className="-my-0.5 flex shrink-0 gap-1">
+        <div className="-my-0.5 flex shrink-0 gap-1">
+          {browsable && (
+            <Link
+              to="/orgs/$orgId/servers/$serverId/databases/$databaseId"
+              params={{ orgId, serverId, databaseId: db.id }}
+              className={buttonVariants({ size: "sm", variant: "outline" })}
+            >
+              <Table2 /> Open
+            </Link>
+          )}
+          {canWrite && (
             <Button size="sm" variant="outline" disabled={!!busy} onClick={show}>
               {busy === "show" ? <Loader2 className="animate-spin" /> : <Eye />} Password
             </Button>
+          )}
+          {canWrite && (
             <Button
               size="icon-sm"
               variant="ghost"
@@ -282,6 +302,8 @@ function DatabaseRow({
             >
               {busy === "reset" ? <Loader2 className="animate-spin" /> : <KeyRound />}
             </Button>
+          )}
+          {canWrite && (
             <Button
               size="icon-sm"
               variant="ghost"
@@ -291,8 +313,8 @@ function DatabaseRow({
             >
               {busy === "delete" ? <Loader2 className="animate-spin" /> : <Trash2 />}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       <DetailList
         rows={[

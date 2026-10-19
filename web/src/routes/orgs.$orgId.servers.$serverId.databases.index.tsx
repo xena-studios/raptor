@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { ServerDatabases } from "@/components/server-databases";
 import { databasesCapability } from "@/lib/databases";
+import { dbBrowserCapability } from "@/lib/db-browser";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
-export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/databases")({
+export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/databases/")({
   component: DatabasesTab,
 });
 
@@ -24,6 +25,7 @@ function DatabasesTab() {
       admin={can(server, "*")}
       supported={node.capabilities.includes(databasesCapability)}
       connected={node.connected}
+      browsable={node.capabilities.includes(dbBrowserCapability)}
     />
   );
 }

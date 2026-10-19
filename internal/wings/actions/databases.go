@@ -169,3 +169,119 @@ func RegisterDatabases(x *command.Executor, d *databases.Service) {
 		return DBPasswordResult{Password: pass}, nil
 	}})
 }
+
+// The browser's actions (docs/DATABASES.md#the-browser): all on one of the
+// server's databases, as its own user.
+const (
+	DBSchema      = "db.schema"     // a read: tables, columns, indexes
+	DBRows        = "db.rows"       // a read: a page of a table's rows
+	DBQueryRead   = "db.query.read" // one statement in a read-only transaction
+	DBQuery       = "db.query"      // any SQL
+	DBRowInsert   = "db.row.insert"
+	DBRowUpdate   = "db.row.update"
+	DBRowDelete   = "db.row.delete"
+	DBProcesses   = "db.processes" // a read: connections to the database
+	DBProcessKill = "db.process.kill"
+)
+
+// DBQueryParams are db.query's and db.query.read's params.
+type DBQueryParams struct {
+	ID string `json:"id"`
+	databases.QueryInput
+}
+
+// DBRowsParams are db.rows' params.
+type DBRowsParams struct {
+	ID string `json:"id"`
+	databases.RowsQuery
+}
+
+// DBRowParams are db.row.insert's, db.row.update's, and db.row.delete's
+// params.
+type DBRowParams struct {
+	ID string `json:"id"`
+	databases.RowEdit
+}
+
+// DBKillParams are db.process.kill's params.
+type DBKillParams struct {
+	ID      string `json:"id"`
+	Process int64  `json:"process"`
+}
+
+// RegisterDatabaseBrowser adds the browser's actions. None is signed: the
+// database's own user can't reach past its database, and changes are in
+// the activity (without their SQL, which can hold data).
+func RegisterDatabaseBrowser(x *command.Executor, d *databases.Service) {
+	server := func(run func(ctx context.Context, e command.Envelope) (any, error)) func(ctx context.Context, e command.Envelope) (any, error) {
+		return func(ctx context.Context, e command.Envelope) (any, error) {
+			if e.ServerID == "" {
+				return nil, errors.New("command needs a server_id")
+			}
+			return run(ctx, e)
+		}
+	}
+	x.Register(DBSchema, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		tables, err := d.Schema(ctx, e.ServerID, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"tables": tables}, nil
+	})})
+	x.Register(DBRows, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBRowsParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return d.Rows(ctx, e.ServerID, p.ID, p.RowsQuery)
+	})})
+	query := func(readOnly bool) func(ctx context.Context, e command.Envelope) (any, error) {
+		return server(func(ctx context.Context, e command.Envelope) (any, error) {
+			var p DBQueryParams
+			if err := decode(e, &p); err != nil {
+				return nil, err
+			}
+			return d.Query(ctx, e.ServerID, p.ID, p.QueryInput, readOnly)
+		})
+	}
+	x.Register(DBQueryRead, command.Handler{Signed: command.Never, ReadOnly: true, Run: query(true)})
+	x.Register(DBQuery, command.Handler{Signed: command.Never, Run: query(false)})
+	edit := func(op string) command.Handler {
+		return command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+			var p DBRowParams
+			if err := decode(e, &p); err != nil {
+				return nil, err
+			}
+			n, err := d.EditRows(ctx, e.ServerID, p.ID, op, p.RowEdit)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]int64{"affected": n}, nil
+		})}
+	}
+	x.Register(DBRowInsert, edit("insert"))
+	x.Register(DBRowUpdate, edit("update"))
+	x.Register(DBRowDelete, edit("delete"))
+	x.Register(DBProcesses, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		list, err := d.Processes(ctx, e.ServerID, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"processes": list}, nil
+	})})
+	x.Register(DBProcessKill, command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBKillParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, d.KillQuery(ctx, e.ServerID, p.ID, p.Process)
+	})})
+}

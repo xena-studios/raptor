@@ -36,6 +36,19 @@ The server also gets its database's details as environment variables at its next
 
 **Password** shows a database's password; it asks for your passkey first. The key button gives the database a **new password**: the old one stops working at once, and the server gets the new one at its next start. Change it in any config files too.
 
+## Browse and change a database
+
+**Open** on a database shows its tables on the left, and:
+
+- **Rows:** a table's rows, a page at a time. Click a column's name to sort by it, and filter on any column ("contains", "is", "is NULL", and the rest). Click a row to see all of it; with **Change databases** you can edit it there, **Insert row**, or tick rows and delete them. A table without a primary key can only be changed with SQL, since there'd be no safe way to say which row.
+- **Structure:** its columns and indexes. Add or drop columns and indexes, rename or drop the table, or make a **New table**; each shows the SQL it runs first.
+- **SQL:** write any SQL and run it with **Run** or Ctrl/⌘ + Enter. Table and column names are suggested as you type. With several statements, the last one's result shows. A query stops after 30 seconds unless you set another limit (up to 50), and up to 1,000 rows are shown.
+- **Processes:** what's connected to the database right now, like the server's own plugins, and stopping a slow query.
+
+Someone with only **See databases** can look at everything and run queries that don't change anything: one statement at a time, read-only.
+
+Changes are in the server's activity, with how many rows they changed, never the SQL itself.
+
 ## Who can do what
 
 Two permissions on a server's [access](/team/members/) cover its databases: **See databases** shows the tab and the connection details, and **Change databases** lets someone make and delete databases and see and change their passwords. Deleting a database deletes everything in it, so it asks for a passkey.

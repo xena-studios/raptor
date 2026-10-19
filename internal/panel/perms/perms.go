@@ -106,6 +106,17 @@ var actions = map[string]string{
 	"db.delete":         DatabasesWrite,
 	"db.password":       DatabasesWrite,
 	"db.password.reset": DatabasesWrite,
+	// The browser: looking is read-only queries in a read-only transaction;
+	// changing is any SQL and editing rows.
+	"db.schema":       DatabasesRead,
+	"db.rows":         DatabasesRead,
+	"db.query.read":   DatabasesRead,
+	"db.processes":    DatabasesRead,
+	"db.query":        DatabasesWrite,
+	"db.row.insert":   DatabasesWrite,
+	"db.row.update":   DatabasesWrite,
+	"db.row.delete":   DatabasesWrite,
+	"db.process.kill": DatabasesWrite,
 
 	"server.update":    Startup,
 	"server.reinstall": Reinstall,
@@ -206,7 +217,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "db.list", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "db.list", "db.schema", "db.rows", "db.query.read", "db.processes", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}
