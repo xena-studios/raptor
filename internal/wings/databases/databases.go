@@ -392,6 +392,10 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 	}
 	// A first start initializes the data folder, which takes a while.
 	deadline := time.Now().Add(s.o.StartTimeout)
+	restarts := -1
+	if st, ok, err := s.o.Runtime.ServiceState(ctx, ContainerName(id)); err == nil && ok {
+		restarts = st.Restarts
+	}
 	for {
 		pctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		err := ping(pctx, in, dir, root)
@@ -409,6 +413,11 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 			return nil
 		}
 		st, ok, serr := s.o.Runtime.ServiceState(ctx, ContainerName(id))
+		// Docker restarts one that exits, so one that keeps failing is
+		// seen by its restarts more than by its being stopped.
+		if serr == nil && ok && restarts >= 0 && st.Restarts > restarts+1 {
+			return fmt.Errorf("it keeps stopping (exit code %d)%s%s", st.ExitCode, oom(st.OOMKilled), s.lastLog(ctx, id))
+		}
 		if serr == nil && ok && !st.Running && !st.StartedAt.IsZero() && time.Since(st.StartedAt) > 5*time.Second {
 			return fmt.Errorf("it stopped (exit code %d)%s%s", st.ExitCode, oom(st.OOMKilled), s.lastLog(ctx, id))
 		}

@@ -177,7 +177,7 @@ func (c *Client) ServiceState(ctx context.Context, name string) (containers.Stat
 	if err != nil {
 		return containers.State{}, false, err
 	}
-	st := containers.State{}
+	st := containers.State{Restarts: res.Container.RestartCount}
 	if s := res.Container.State; s != nil {
 		st.Running, st.ExitCode, st.OOMKilled, st.Pid = s.Running, int64(s.ExitCode), s.OOMKilled, s.Pid
 		if t, err := time.Parse(time.RFC3339Nano, s.StartedAt); err == nil {

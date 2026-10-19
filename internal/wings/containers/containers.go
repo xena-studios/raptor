@@ -174,6 +174,9 @@ type State struct {
 	ExitCode  int64
 	OOMKilled bool
 	StartedAt time.Time
+	// Restarts is how many times Docker restarted it on its own (its
+	// restart policy; ServiceState only).
+	Restarts int
 	// Pid is the container's main process on the host (0 if it isn't
 	// running), for reading its network namespace.
 	Pid int
