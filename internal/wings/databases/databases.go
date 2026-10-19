@@ -418,7 +418,12 @@ func (s *Service) prepare(ctx context.Context, id, dir string, project uint32, d
 			return err
 		}
 	}
+	// Explicit modes: Wings runs with umask 077 (UMask in its unit), and
+	// the engine's user reads this folder through a bind mount.
 	if err := os.MkdirAll(confDir(dir), 0o755); err != nil { //nolint:gosec // read by the engine's user
+		return err
+	}
+	if err := os.Chmod(confDir(dir), 0o755); err != nil { //nolint:gosec // read by the engine's user
 		return err
 	}
 	return s.writeHBA(ctx, id, dir)
@@ -437,7 +442,11 @@ func (s *Service) writeHBA(ctx context.Context, id, dir string) error {
 			ro = append(ro, [2]string{d.DbName, d.RoUsername})
 		}
 	}
-	return os.WriteFile(filepath.Join(confDir(dir), "pg_hba.conf"), []byte(pgHBA(ro)), 0o644) //nolint:gosec // the engine reads it
+	p := filepath.Join(confDir(dir), "pg_hba.conf")
+	if err := os.WriteFile(p, []byte(pgHBA(ro)), 0o644); err != nil { //nolint:gosec // the engine reads it
+		return err
+	}
+	return os.Chmod(p, 0o644) //nolint:gosec // the engine reads it, whatever Wings' umask
 }
 
 // pin gives an instance a fixed address on each of the owner's networks
@@ -674,6 +683,10 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 		}
 		s.mu.Unlock()
 		in.State, in.Error = st.state, st.err
+		// Restarting on the new version is part of the change.
+		if in.Change != nil && !in.Change.Done && in.State == StateStarting {
+			in.State = StateUpgrading
+		}
 		if in.State == "" {
 			in.State = StateStopped
 		}

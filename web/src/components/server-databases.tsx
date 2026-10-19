@@ -292,7 +292,7 @@ function DatabaseRow({
   const prefix = many ? `${db.label.toUpperCase()}_` : "";
   return (
     <div className="flex flex-col gap-3 rounded-lg border p-3">
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2 py-0.5">
           <span className="font-medium">{db.label}</span>
           <Badge variant="secondary">
