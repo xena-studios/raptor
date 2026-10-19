@@ -5,6 +5,7 @@ import { Loader2, Network, Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
+import { NetworkRules } from "@/components/network-rules";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,12 +57,14 @@ export function NodeNetworks({
   nodeId,
   connected,
   supported,
+  rulesSupported,
 }: {
   orgId: string;
   nodeId: string;
   connected: boolean;
-  // The node's Wings can have networks.
+  // The node's Wings can have networks, and rules between them.
   supported: boolean;
+  rulesSupported: boolean;
 }) {
   const nets = useNodeNetworks(nodeId, connected && supported);
   const servers = useQuery(OrgService.method.listServers, { orgId, nodeId });
@@ -129,6 +132,7 @@ export function NodeNetworks({
                 </span>
               }
               servers={n.servers.map((id) => byId.get(id)).filter((s): s is Server => !!s)}
+              addresses={n.addresses}
               actions={
                 <>
                   <Button
@@ -152,6 +156,10 @@ export function NodeNetworks({
           )}
         </CardContent>
       </Card>
+
+      {rulesSupported && (
+        <NetworkRules nodeId={nodeId} networks={d.networks} rules={d.rules ?? []} servers={byId} />
+      )}
 
       {others.length > 0 && (
         <Card>
@@ -211,6 +219,7 @@ function NetworkRow({
   traits = [],
   about,
   servers,
+  addresses,
   actions,
 }: {
   orgId: string;
@@ -218,6 +227,8 @@ function NetworkRow({
   traits?: string[];
   about: ReactNode;
   servers: Server[];
+  // Servers' fixed addresses on the network, by server ID.
+  addresses?: Record<string, string>;
   actions?: ReactNode;
 }) {
   return (
@@ -244,9 +255,12 @@ function NetworkRow({
               <Link
                 to="/orgs/$orgId/servers/$serverId/network"
                 params={{ orgId, serverId: shortId(s.id) }}
-                className="inline-flex rounded-md border px-2 py-0.5 text-sm transition-colors hover:bg-muted"
+                className="inline-flex items-baseline gap-1.5 rounded-md border px-2 py-0.5 text-sm transition-colors hover:bg-muted"
               >
                 {s.name}
+                {addresses?.[s.id] && (
+                  <span className="font-mono text-xs text-muted-foreground">{addresses[s.id]}</span>
+                )}
               </Link>
             </li>
           ))}

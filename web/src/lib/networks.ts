@@ -17,7 +17,22 @@ export type RaptorNetwork = {
   gateway?: string;
   ipv6_subnet?: string;
   servers: string[]; // IDs of the servers on it, primary or not
+  // Servers' fixed addresses on it, by server ID, once they've started
+  // there (nodes with network rules).
+  addresses?: Record<string, string>;
   created_at?: number;
+};
+
+// A rule letting connections from one network (or one server on it) to
+// another (or one server), on a protocol and ports.
+export type NetworkRule = {
+  from: string;
+  from_server?: string;
+  to: string;
+  to_server?: string;
+  protocol?: "tcp" | "udp" | "both";
+  ports?: string; // "" is every port
+  note?: string;
 };
 
 export type HostNetwork = {
@@ -29,7 +44,11 @@ export type HostNetwork = {
   raptor: boolean; // one of Raptor's
 };
 
-export type NodeNetworks = { networks: RaptorNetwork[]; host: HostNetwork[] };
+export type NodeNetworks = {
+  networks: RaptorNetwork[];
+  rules?: NetworkRule[]; // nodes with network rules
+  host: HostNetwork[];
+};
 
 // What node.network.save takes: no ID creates one.
 export type NetworkInput = {
@@ -44,6 +63,8 @@ export type NetworkInput = {
 
 // The capability nodes that can have networks report.
 export const networksCapability = "networks";
+// And the capability nodes that can have rules between them report.
+export const networkRulesCapability = "network-rules";
 
 export const networksKey = (nodeId: string) => ["node-networks", nodeId];
 

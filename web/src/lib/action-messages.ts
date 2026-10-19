@@ -112,6 +112,7 @@ const commands: Record<string, string> = {
   "node.firewall": "Firewall updated",
   "node.network.save": "Network saved",
   "node.network.delete": "Network deleted",
+  "node.network.rules": "Rules between networks saved",
   "server.networks": "Networks changed; they apply at its next start",
   "support.grant": "Support access granted",
   "support.revoke": "Support access ended",

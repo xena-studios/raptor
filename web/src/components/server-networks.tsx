@@ -144,6 +144,21 @@ export function ServerNetworks({
                 </div>
               </details>
             )}
+            {current.some((id) => list.find((n) => n.id === id)?.addresses?.[serverId]) && (
+              <p className="text-xs text-muted-foreground">
+                Its fixed addresses:{" "}
+                {current
+                  .map((id) => list.find((n) => n.id === id))
+                  .filter((n) => n?.addresses?.[serverId])
+                  .map((n, i) => (
+                    <span key={n?.id}>
+                      {i > 0 && ", "}
+                      <code className="font-mono">{n?.addresses?.[serverId]}</code> on {n?.name}
+                    </span>
+                  ))}
+                .
+              </p>
+            )}
             {aliases.length > 0 && current.length > 0 && (
               <p className="text-xs text-muted-foreground">
                 Other servers on its networks reach it at{" "}

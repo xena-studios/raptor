@@ -68,5 +68,5 @@ Changing networks and rules is for admins and owners, unsigned (it deletes nothi
 Networks come before databases, since instances attach to them:
 
 1. **Networks:** the model, settings, isolation and the gateway rule, the Networks tab, servers' primary and extra networks, names on each network.
-2. **Rules between networks.** Built (Wings, then the app).
+2. **Rules between networks.** Built: Wings, the Rules between networks card on the Networks tab, and servers' fixed addresses shown there and on their Network tab.
 3. **Databases** on networks ([DATABASES.md](DATABASES.md#phases)).
