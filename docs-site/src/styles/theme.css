@@ -70,9 +70,23 @@
 }
 
 .site-title {
-  color: var(--sl-color-white);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  gap: 0.75rem;
+}
+.site-title img {
+  height: 1.375rem;
+  width: auto;
+}
+/* The logo, then which site this is, as a mono label. */
+.site-title::after {
+  content: "Docs";
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--sl-color-gray-5);
+  font-family: var(--__sl-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
 }
 
 /* The app's sidebar labels: mono, small, after a `//`. */
@@ -126,4 +140,75 @@
 }
 .sl-markdown-content p {
   text-wrap: pretty;
+}
+
+/* Tables as the app's: mono headers, hairlines, the first column kept on
+   one line so a setting's name reads as one thing. */
+.sl-markdown-content table {
+  font-size: var(--sl-text-sm);
+}
+.sl-markdown-content thead th {
+  font-family: var(--__sl-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+.sl-markdown-content tbody td:first-child {
+  white-space: nowrap;
+}
+.sl-markdown-content :is(th, td) {
+  border-color: var(--sl-color-gray-5);
+}
+
+/* The home page's screenshot, framed like the app's window. */
+.hero-shot {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 6px;
+}
+.hero .tagline {
+  color: var(--sl-color-gray-3);
+}
+/* Starlight sizes hero images for logos; this one's a screen. */
+.hero > .hero-html {
+  width: 100%;
+}
+@media (min-width: 50rem) {
+  .hero {
+    grid-template-columns: 5fr 6fr;
+  }
+  .hero > .hero-html {
+    width: 100%;
+  }
+}
+
+/* Link cards: the app's hairline cards, the arrow in red on hover. */
+.sl-link-card {
+  border-color: var(--sl-color-gray-5);
+  border-radius: 6px;
+  background: var(--sl-color-gray-6);
+  box-shadow: none;
+}
+.sl-link-card:hover {
+  border-color: var(--sl-color-accent);
+  background: var(--sl-color-accent-low);
+}
+.sl-link-card:hover .icon {
+  color: var(--sl-color-accent);
+}
+
+/* Steps: the number in the app's mono, on the red. */
+.sl-steps > li::before {
+  font-family: var(--__sl-font-mono);
+}
+
+/* Asides: hairline borders in the state colours, no side stripe. */
+.starlight-aside {
+  border-inline-start-width: 1px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 6px;
 }

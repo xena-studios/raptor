@@ -2,7 +2,7 @@
 title: What you need
 description: The machine, the system, the network, and the account a Raptor node needs.
 sidebar:
-  order: 1
+  order: 2
 ---
 
 Raptor runs your game servers on machines you own or rent, called **nodes**. The app at [app.raptorpanel.net](https://app.raptorpanel.net) manages them. The servers themselves, their files, and their backups stay on your node.
