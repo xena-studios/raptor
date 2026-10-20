@@ -1,4 +1,4 @@
-# Raptor
+![Raptor by Xena Studios. The running raptor and the RAPTOR wordmark over a planet horizon, with the headline "Your own game servers, on your own machine."](.github/assets/banner.png)
 
 **Raptor turns any Linux box into a reliable game server host. Run one command, manage everything from the web.**
 
