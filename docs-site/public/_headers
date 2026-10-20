@@ -14,5 +14,5 @@
   Cross-Origin-Opener-Policy: same-origin
 
 # Hashed build files never change.
-/_astro/*
+/assets/*
   Cache-Control: public, max-age=31536000, immutable

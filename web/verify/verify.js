@@ -1,6 +1,12 @@
 // Renders Turnstile and passes its token to the web app that embeds this
 // page, and only to it.
 (() => {
+  // Opened on its own rather than inside the app's sign-in form: there's
+  // nothing here for a person, so go to the landing page instead.
+  if (window.parent === window) {
+    window.location.replace("https://raptorpanel.net/");
+    return;
+  }
   // The app's origins: production, and the dev server.
   const apps = ["https://app.raptorpanel.net", "http://localhost:5173"];
   const params = new URLSearchParams(window.location.search);
