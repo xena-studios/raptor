@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
@@ -22,6 +23,10 @@ const (
 	ticketButton = "raptor:ticket"
 	ticketForm   = "raptor:ticket-form"
 	closeButton  = "raptor:ticket-close"
+
+	// ticketsPerDay is how many tickets someone may open in a day, so open
+	// and close can't fill the channel with threads.
+	ticketsPerDay = 3
 
 	// threadPrivate is a private thread; it archives after a week quiet.
 	threadPrivate = 12
@@ -56,6 +61,28 @@ func (b *Bot) PostTicketMessage(ctx context.Context, channelID, messageID string
 	}, nil, "")
 }
 
+// cantOpen says why someone can't open a ticket now ("" if they can): one
+// is open already, or they've opened their day's worth.
+func (b *Bot) cantOpen(ctx context.Context, userID string) (string, error) {
+	open, err := b.openTicketOf(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	if open != "" {
+		return fmt.Sprintf("You've a ticket open already: <#%s>. Add to it there.", open), nil
+	}
+	n, err := store.New(b.DB).CountDiscordTickets(ctx, store.CountDiscordTicketsParams{
+		UserID: userID, OpenedAt: pgtype.Timestamptz{Time: b.now().Add(-24 * time.Hour), Valid: true},
+	})
+	if err != nil {
+		return "", err
+	}
+	if n >= ticketsPerDay {
+		return fmt.Sprintf("You've opened %d tickets in the last day, the most there can be. Open another tomorrow, or email support@raptorpanel.net.", n), nil
+	}
+	return "", nil
+}
+
 // openTicketOf is someone's open ticket, if its thread is still open: one
 // archived or deleted by hand is closed here too.
 func (b *Bot) openTicketOf(ctx context.Context, userID string) (string, error) {
@@ -87,13 +114,13 @@ func (b *Bot) openTicketOf(ctx context.Context, userID string) (string, error) {
 // they've a ticket open already.
 func (b *Bot) ticketForm(ctx context.Context, in *interaction) answer {
 	who, _ := in.from()
-	open, err := b.openTicketOf(ctx, who.ID)
+	why, err := b.cantOpen(ctx, who.ID)
 	if err != nil {
 		b.log().Error("discord: checking for an open ticket failed", "err", err)
 		return say("Something went wrong on Raptor's side. Try again in a minute.")
 	}
-	if open != "" {
-		return say(fmt.Sprintf("You've a ticket open already: <#%s>. Add to it there.", open))
+	if why != "" {
+		return say(why)
 	}
 	input := func(id, label, placeholder string, style, maxLen int, required bool) map[string]any {
 		return map[string]any{"type": 1, "components": []map[string]any{{
@@ -135,11 +162,11 @@ func (b *Bot) makeTicket(ctx context.Context, in *interaction) string {
 	topic := strings.TrimSpace(in.value("topic"))
 	details := strings.TrimSpace(in.value("details"))
 	code := strings.ToUpper(strings.TrimSpace(in.value("code")))
-	if open, err := b.openTicketOf(ctx, who.ID); err != nil {
+	if why, err := b.cantOpen(ctx, who.ID); err != nil {
 		b.log().Error("discord: checking for an open ticket failed", "err", err)
 		return failed
-	} else if open != "" {
-		return fmt.Sprintf("You've a ticket open already: <#%s>. Add to it there.", open)
+	} else if why != "" {
+		return why
 	}
 
 	var thread struct {
@@ -194,6 +221,7 @@ func (b *Bot) makeTicket(ctx context.Context, in *interaction) string {
 	}, nil, ""); err != nil {
 		b.log().Error("discord: posting a ticket's first message failed", "err", err)
 	}
+	b.staffLog(ctx, fmt.Sprintf("🎫 **Ticket opened** by <@%s>: %s → <#%s>", who.ID, clip(topic, 100), thread.ID))
 	return fmt.Sprintf("Your ticket is open: <#%s>.", thread.ID)
 }
 
@@ -208,6 +236,7 @@ func (b *Bot) closeTicket(ctx context.Context, in *interaction) answer {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 		defer cancel()
+		b.staffLog(ctx, fmt.Sprintf("**Ticket closed** by <@%s>: <#%s>", who.ID, in.ChannelID))
 		// After the answer is posted: an archived thread takes no messages.
 		time.Sleep(archiveDelay)
 		if err := b.call(ctx, http.MethodPatch, "/channels/"+in.ChannelID, map[string]any{"archived": true, "locked": true}, nil, "Ticket closed by "+who.Username); err != nil {

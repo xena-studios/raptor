@@ -32,7 +32,8 @@ type fakeDiscord struct {
 	mu      sync.Mutex
 	members []member
 	calls   []string
-	// bodies are what was sent with each call, by "METHOD path".
+	// bodies are what was sent with each call, by "METHOD path", all of
+	// them run together.
 	bodies map[string]string
 	// archived is whether ticket threads read as archived.
 	archived bool
@@ -75,7 +76,7 @@ func (f *fakeDiscord) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if f.bodies == nil {
 			f.bodies = map[string]string{}
 		}
-		f.bodies[call] = body.String()
+		f.bodies[call] += body.String()
 		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/threads") {
 			_, _ = w.Write([]byte(`{"id":"777"}`))
 			return
@@ -164,27 +165,63 @@ func TestSync(t *testing.T) {
 		{User: user{ID: "5", Bot: true}, Roles: []string{customer}}, // bots: left alone
 	}}
 	b, _ := newBot(t, fixture(t), f)
-	ran, err := b.Sync(context.Background())
-	if err != nil || !ran {
+	b.LogChannel = "60"
+	ctx := context.Background()
+	add := "PUT /guilds/" + guild + "/members/1/roles/" + customer
+	logged := "POST /channels/60/messages"
+
+	// Until removals are on, it only adds, and posts who it would take the
+	// role from, once.
+	if ran, err := b.Sync(ctx); err != nil || !ran {
 		t.Fatalf("Sync: %v, %v", ran, err)
 	}
+	if got := f.took(); !slices.Equal(got, []string{add, logged, logged}) {
+		t.Fatalf("calls = %v, want the add and two log posts", got)
+	}
+	for _, want := range []string{"2 members have it", `Customer role added:** \u003c@1\u003e`} {
+		if s := f.body(logged); !strings.Contains(s, want) {
+			t.Fatalf("log = %s, want %q in it", s, want)
+		}
+	}
+	f.members[0].Roles = []string{customer}
+	if _, err := b.Sync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.took(); len(got) != 0 {
+		t.Fatalf("a second pass with nothing new = %v, want nothing", got)
+	}
+	p, err := b.Preview(ctx)
+	if err != nil || len(p.Add) != 0 || len(p.Remove) != 2 || p.Remove[0].ID != "2" || p.Remove[1].ID != "3" {
+		t.Fatalf("Preview = %+v, %v", p, err)
+	}
+
+	// With removals on, they go.
+	if err := b.Enforce(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Sync(ctx); err != nil {
+		t.Fatal(err)
+	}
 	want := []string{
-		"PUT /guilds/" + guild + "/members/1/roles/" + customer,
 		"DELETE /guilds/" + guild + "/members/2/roles/" + customer,
 		"DELETE /guilds/" + guild + "/members/3/roles/" + customer,
+		logged,
 	}
 	if got := f.took(); !slices.Equal(got, want) {
-		t.Fatalf("calls = %v, want %v", got, want)
+		t.Fatalf("calls with removals on = %v, want %v", got, want)
+	}
+	if s := f.body(logged); !strings.Contains(s, "Customer role removed:") {
+		t.Fatalf("log = %s", s)
 	}
 
 	// Without billing, anyone running a node is a customer.
 	b.Billing = false
 	f.members = []member{{User: user{ID: "1"}}, {User: user{ID: "3"}}}
-	if _, err := b.Sync(context.Background()); err != nil {
+	if _, err := b.Sync(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := f.took(); !slices.Equal(got, want[:1]) {
-		t.Fatalf("calls without billing = %v, want %v", got, want[:1])
+	if got := f.took(); !slices.Equal(got, []string{add, logged}) {
+		t.Fatalf("calls without billing = %v", got)
 	}
 }
 
@@ -263,10 +300,18 @@ func TestLink(t *testing.T) {
 		t.Fatalf("customer /link calls = %v", got)
 	}
 
+	// Someone who shouldn't have it keeps it until removals are on.
 	_, out = signed(t, b, key, command("link", "2", []string{customer}), time.Now())
 	if s := content(out); !strings.Contains(s, "No **Customer** role") {
 		t.Fatalf("member /link = %s", s)
 	}
+	if got := f.took(); len(got) != 0 {
+		t.Fatalf("member /link calls with removals off = %v", got)
+	}
+	if err := b.Enforce(context.Background(), true); err != nil {
+		t.Fatal(err)
+	}
+	signed(t, b, key, command("link", "2", []string{customer}), time.Now())
 	if got := f.took(); !slices.Equal(got, []string{"DELETE /guilds/" + guild + "/members/2/roles/" + customer}) {
 		t.Fatalf("member /link calls = %v", got)
 	}
@@ -492,6 +537,7 @@ func TestTickets(t *testing.T) {
 	f := &fakeDiscord{}
 	b, key := newBot(t, fixture(t), f)
 	b.SupportRole = "300"
+	b.LogChannel = "60"
 	press := func(id, from, channel string) map[string]any {
 		_, out := signed(t, b, key, map[string]any{
 			"type": 3, "guild_id": guild, "channel_id": channel, "application_id": "1", "token": "tok",
@@ -564,6 +610,10 @@ func TestTickets(t *testing.T) {
 		t.Fatalf("after closing, the ticket button = %v, want the form", out)
 	}
 
+	if s := f.body("POST /channels/60/messages"); !strings.Contains(s, "Ticket closed") {
+		t.Fatalf("staff log = %s", s)
+	}
+
 	// A thread archived by hand doesn't count as open.
 	if _, err := b.DB.Exec(context.Background(), `INSERT INTO discord_tickets (thread_id, user_id, topic) VALUES ('777', '2', 'x')`); err == nil {
 		t.Fatal("thread IDs are unique")
@@ -574,5 +624,14 @@ func TestTickets(t *testing.T) {
 	f.archived = true
 	if out := press(ticketButton, "1", "50"); out["type"] != float64(answerModal) {
 		t.Fatalf("with the thread archived by hand, the ticket button = %v, want the form", out)
+	}
+
+	// Three tickets a day at most.
+	if _, err := b.DB.Exec(context.Background(), `UPDATE discord_tickets SET closed_at = now();
+		INSERT INTO discord_tickets (thread_id, user_id, topic, closed_at) VALUES ('778', '1', 'x', now()), ('779', '1', 'y', now())`); err != nil {
+		t.Fatal(err)
+	}
+	if s := content(press(ticketButton, "1", "50")); !strings.Contains(s, "opened 3 tickets in the last day") {
+		t.Fatalf("a fourth ticket in a day = %s", s)
 	}
 }

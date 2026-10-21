@@ -2,8 +2,10 @@ package discord
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/xena-studios/raptor/internal/panel/billing"
@@ -98,9 +100,56 @@ type member struct {
 	Roles []string `json:"roles"`
 }
 
-// Sync gives the Customer role to every member who should have it and
-// takes it from every member who shouldn't. It reports false, doing
-// nothing, if another instance is already doing it.
+// Plan is what a pass over the roles would change.
+type Plan struct {
+	Add, Remove []user
+}
+
+// plan compares the server's members with who should be a customer.
+func (b *Bot) plan(ctx context.Context) (Plan, error) {
+	var p Plan
+	want, err := b.customers(ctx)
+	if err != nil {
+		return p, err
+	}
+	for after := "0"; ; {
+		var page []member
+		if err := b.call(ctx, http.MethodGet, "/guilds/"+b.GuildID+"/members?limit=1000&after="+after, nil, &page, ""); err != nil {
+			return p, err
+		}
+		for _, m := range page {
+			if m.User.Bot {
+				continue
+			}
+			switch has := slices.Contains(m.Roles, b.CustomerRole); {
+			case want[m.User.ID] && !has:
+				p.Add = append(p.Add, m.User)
+			case !want[m.User.ID] && has:
+				p.Remove = append(p.Remove, m.User)
+			}
+		}
+		if len(page) < membersPage {
+			return p, nil
+		}
+		after = page[len(page)-1].User.ID
+	}
+}
+
+// Preview is what a pass would change now, removals included whether or
+// not they're on (panel discord roles preview).
+func (b *Bot) Preview(ctx context.Context) (Plan, error) { return b.plan(ctx) }
+
+// Enforce turns taking the Customer role away on or off (panel discord
+// roles enforce). Until it's on, the bot only adds it, and posts who it
+// would take it from to the staff log.
+func (b *Bot) Enforce(ctx context.Context, on bool) error {
+	return store.New(b.DB).SetDiscordRemoveRoles(ctx, on)
+}
+
+// Sync gives the Customer role to every member who should have it and,
+// once removals are on, takes it from every member who shouldn't; until
+// then it posts those to the staff log, once per change. It reports false,
+// doing nothing, if another instance is already doing it.
 func (b *Bot) Sync(ctx context.Context) (bool, error) {
 	conn, err := b.DB.Acquire(ctx)
 	if err != nil {
@@ -115,43 +164,53 @@ func (b *Bot) Sync(ctx context.Context) (bool, error) {
 		_, _ = conn.Exec(context.WithoutCancel(ctx), "SELECT pg_advisory_unlock($1)", int64(rolesLock))
 	}()
 
-	want, err := b.customers(ctx)
+	q := store.New(b.DB)
+	settings, err := q.DiscordSettings(ctx)
 	if err != nil {
 		return true, err
 	}
-	added, removed := 0, 0
-	for after := "0"; ; {
-		var page []member
-		if err := b.call(ctx, http.MethodGet, "/guilds/"+b.GuildID+"/members?limit=1000&after="+after, nil, &page, ""); err != nil {
-			return true, err
-		}
-		for _, m := range page {
-			if m.User.Bot {
+	p, err := b.plan(ctx)
+	if err != nil {
+		return true, err
+	}
+	apply := func(us []user, on bool) []user {
+		var done []user
+		for _, u := range us {
+			if err := b.setCustomer(ctx, u.ID, on); err != nil {
+				b.log().Warn("discord: changing the Customer role failed", "user", u.ID, "add", on, "err", err)
 				continue
 			}
-			has := slices.Contains(m.Roles, b.CustomerRole)
-			switch {
-			case want[m.User.ID] && !has:
-				if err := b.setCustomer(ctx, m.User.ID, true); err != nil {
-					b.log().Warn("discord: adding the Customer role failed", "user", m.User.ID, "err", err)
-					continue
-				}
-				added++
-			case !want[m.User.ID] && has:
-				if err := b.setCustomer(ctx, m.User.ID, false); err != nil {
-					b.log().Warn("discord: removing the Customer role failed", "user", m.User.ID, "err", err)
-					continue
-				}
-				removed++
-			}
+			done = append(done, u)
 		}
-		if len(page) < membersPage {
-			break
-		}
-		after = page[len(page)-1].User.ID
+		return done
 	}
-	if added+removed > 0 {
-		b.log().Info("discord: customer roles updated", "added", added, "removed", removed)
+	added := apply(p.Add, true)
+	var removed []user
+	if settings.RemoveRoles {
+		removed = apply(p.Remove, false)
+	} else {
+		// Said once per change, not every pass.
+		ids := make([]string, len(p.Remove))
+		for i, u := range p.Remove {
+			ids[i] = u.ID
+		}
+		if n, err := q.SetDiscordPreview(ctx, strings.Join(ids, ",")); err == nil && n > 0 && len(ids) > 0 {
+			b.staffLog(ctx, fmt.Sprintf("**Customer role:** %s %s it but %s linked owners or admins of an org with a plan: %s\n"+
+				"Raptor Bot leaves it until removals are on (`panel discord roles enforce on`).",
+				count(len(ids), "member"), map[bool]string{true: "has", false: "have"}[len(ids) == 1],
+				map[bool]string{true: "isn't one of the", false: "aren't"}[len(ids) == 1], mentionList(p.Remove)))
+		}
+	}
+	if len(added)+len(removed) > 0 {
+		b.log().Info("discord: customer roles updated", "added", len(added), "removed", len(removed))
+		var lines []string
+		if len(added) > 0 {
+			lines = append(lines, "**Customer role added:** "+mentionList(added))
+		}
+		if len(removed) > 0 {
+			lines = append(lines, "**Customer role removed:** "+mentionList(removed))
+		}
+		b.staffLog(ctx, strings.Join(lines, "\n"))
 	}
 	return true, nil
 }
@@ -170,15 +229,59 @@ func (b *Bot) setCustomer(ctx context.Context, userID string, on bool) error {
 }
 
 // checkMember gives or takes one member's Customer role now: when they join
-// the server, or ask with /link. It reports whether they're a customer.
+// the server, or ask with /link. It's only taken once removals are on. It
+// reports whether they're a customer.
 func (b *Bot) checkMember(ctx context.Context, userID string, roles []string) (bool, error) {
 	want, err := b.customers(ctx)
 	if err != nil {
 		return false, err
 	}
-	is := want[userID]
-	if has := slices.Contains(roles, b.CustomerRole); is != has {
-		return is, b.setCustomer(ctx, userID, is)
+	is, has := want[userID], slices.Contains(roles, b.CustomerRole)
+	if is == has {
+		return is, nil
 	}
+	if !is {
+		settings, err := store.New(b.DB).DiscordSettings(ctx)
+		if err != nil || !settings.RemoveRoles {
+			return is, err
+		}
+	}
+	if err := b.setCustomer(ctx, userID, is); err != nil {
+		return is, err
+	}
+	verb := "added"
+	if !is {
+		verb = "removed"
+	}
+	b.staffLog(ctx, fmt.Sprintf("**Customer role %s:** <@%s>", verb, userID))
 	return is, nil
+}
+
+// staffLog posts to the staff log channel, if there is one, pinging nobody.
+func (b *Bot) staffLog(ctx context.Context, text string) {
+	if b.LogChannel == "" {
+		return
+	}
+	if err := b.call(ctx, http.MethodPost, "/channels/"+b.LogChannel+"/messages", map[string]any{
+		"content": clip(text, 2000), "allowed_mentions": mentions{Parse: []string{}},
+	}, nil, ""); err != nil {
+		b.log().Warn("discord: posting to the staff log failed", "err", err)
+	}
+}
+
+// mentionList is members as mentions, up to 40, then how many more.
+func mentionList(us []user) string {
+	var parts []string
+	for i, u := range us {
+		if i == 40 {
+			parts = append(parts, fmt.Sprintf("and %d more", len(us)-40))
+			break
+		}
+		parts = append(parts, "<@"+u.ID+">")
+	}
+	return strings.Join(parts, ", ")
+}
+
+func count(n int, noun string) string {
+	return fmt.Sprintf("%d %s%s", n, noun, plural(n))
 }

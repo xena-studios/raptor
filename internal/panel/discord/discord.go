@@ -42,6 +42,9 @@ type Bot struct {
 	CustomerRole string
 	// SupportRole is pinged when a ticket opens ("": nobody is).
 	SupportRole string
+	// LogChannel is the staff channel the bot reports to: tickets opened
+	// and closed, and Customer roles changed ("": nowhere).
+	LogChannel string
 	// Billing is whether plans decide who's a customer; without billing,
 	// it's anyone running a node.
 	Billing bool

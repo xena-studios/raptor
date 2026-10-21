@@ -59,6 +59,8 @@ commands:
   rollout status|pause|resume|cancel
   staff add <email> admin|support   make an account Raptor staff (the only way)
   staff remove <email> | list
+  discord roles preview     who a pass would give the Customer role to, or take it from
+  discord roles enforce on|off  let the bot take Customer away (off: it only adds it)
   discord post link|tickets <channel-id> [message-id]
                             post the "Link your Raptor account" or "Open a ticket"
                             button to a channel on the Discord server (tickets:
@@ -97,6 +99,7 @@ environment:
   PANEL_DISCORD_GUILD_ID       the Discord server
   PANEL_DISCORD_CUSTOMER_ROLE  the role the bot gives customers (and takes back)
   PANEL_DISCORD_SUPPORT_ROLE   the role a new ticket pings (optional)
+  PANEL_DISCORD_LOG_CHANNEL    the staff channel for tickets and role changes (optional)
   PANEL_DOCS_URL               the docs, for /docs (default https://docs.raptorpanel.net)
   PANEL_POLAR_TOKEN            Polar organization access token; billing is off without it
   PANEL_POLAR_PRODUCT_ID       the seat-based product ($12 per node a month)
@@ -179,6 +182,8 @@ func run(args []string, log *slog.Logger) error {
 			return bot.PostTicketMessage(ctx, args[3], msg)
 		}
 		return errors.New("usage: panel discord post link|tickets <channel-id> [message-id]")
+	case len(args) >= 3 && args[0] == "discord" && args[1] == "roles":
+		return discordRoles(ctx, log, args[2:])
 	case (len(args) == 2 || len(args) == 3) && args[0] == "join-token":
 		return withRegistry(ctx, func(r *nodes.Registry) error {
 			name := ""
@@ -449,6 +454,46 @@ func alertService(ctx context.Context, pool *pgxpool.Pool, a *auth.Service, node
 	return s, nil
 }
 
+// discordRoles previews the Customer role's changes, or turns taking it
+// away on or off.
+func discordRoles(ctx context.Context, log *slog.Logger, args []string) error {
+	url := os.Getenv("PANEL_DATABASE_URL")
+	if url == "" {
+		return errors.New("PANEL_DATABASE_URL is not set")
+	}
+	pool, err := store.Open(ctx, url)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	bot, err := discordBot(pool, billingService(pool, log).Enabled(), log)
+	if err != nil {
+		return err
+	}
+	if bot == nil {
+		return errors.New("PANEL_DISCORD_BOT_TOKEN is not set")
+	}
+	switch {
+	case len(args) == 1 && args[0] == "preview":
+		p, err := bot.Preview(ctx)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("would add Customer to %d:\n", len(p.Add))
+		for _, u := range p.Add {
+			fmt.Printf("  %s  @%s\n", u.ID, u.Username)
+		}
+		fmt.Printf("would take Customer from %d:\n", len(p.Remove))
+		for _, u := range p.Remove {
+			fmt.Printf("  %s  @%s\n", u.ID, u.Username)
+		}
+		return nil
+	case len(args) == 2 && args[0] == "enforce" && (args[1] == "on" || args[1] == "off"):
+		return bot.Enforce(ctx, args[1] == "on")
+	}
+	return errors.New("usage: panel discord roles preview | enforce on|off")
+}
+
 // discordBot is Raptor Bot on the Discord server (docs/PANEL.md#discord),
 // off unless its token is set; then the rest must be too.
 func discordBot(pool *pgxpool.Pool, billingOn bool, log *slog.Logger) (*discord.Bot, error) {
@@ -464,8 +509,8 @@ func discordBot(pool *pgxpool.Pool, billingOn bool, log *slog.Logger) (*discord.
 	b := &discord.Bot{
 		Token: tok, AppID: os.Getenv("PANEL_DISCORD_CLIENT_ID"), PublicKey: key,
 		GuildID: os.Getenv("PANEL_DISCORD_GUILD_ID"), CustomerRole: os.Getenv("PANEL_DISCORD_CUSTOMER_ROLE"),
-		SupportRole: os.Getenv("PANEL_DISCORD_SUPPORT_ROLE"),
-		Billing:     billingOn, AppURL: envOr("PANEL_APP_URL", "https://app.raptorpanel.net"),
+		SupportRole: os.Getenv("PANEL_DISCORD_SUPPORT_ROLE"), LogChannel: os.Getenv("PANEL_DISCORD_LOG_CHANNEL"),
+		Billing: billingOn, AppURL: envOr("PANEL_APP_URL", "https://app.raptorpanel.net"),
 		DocsURL: os.Getenv("PANEL_DOCS_URL"), DB: pool, Log: log,
 	}
 	if b.GuildID == "" || b.CustomerRole == "" {

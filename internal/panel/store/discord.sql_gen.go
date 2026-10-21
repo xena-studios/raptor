@@ -44,6 +44,23 @@ func (q *Queries) CloseDiscordTicket(ctx context.Context, arg CloseDiscordTicket
 	return result.RowsAffected(), nil
 }
 
+const countDiscordTickets = `-- name: CountDiscordTickets :one
+SELECT count(*)::int FROM discord_tickets WHERE user_id = $1 AND opened_at > $2
+`
+
+type CountDiscordTicketsParams struct {
+	UserID   string
+	OpenedAt pgtype.Timestamptz
+}
+
+// How many tickets someone opened since a time.
+func (q *Queries) CountDiscordTickets(ctx context.Context, arg CountDiscordTicketsParams) (int32, error) {
+	row := q.db.QueryRow(ctx, countDiscordTickets, arg.UserID, arg.OpenedAt)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const discordCustomers = `-- name: DiscordCustomers :many
 
 SELECT DISTINCT a.subject FROM oauth_accounts a
@@ -84,6 +101,17 @@ func (q *Queries) DiscordCustomers(ctx context.Context, arg DiscordCustomersPara
 		return nil, err
 	}
 	return items, nil
+}
+
+const discordSettings = `-- name: DiscordSettings :one
+SELECT id, remove_roles, last_preview FROM discord_settings
+`
+
+func (q *Queries) DiscordSettings(ctx context.Context) (DiscordSetting, error) {
+	row := q.db.QueryRow(ctx, discordSettings)
+	var i DiscordSetting
+	err := row.Scan(&i.ID, &i.RemoveRoles, &i.LastPreview)
+	return i, err
 }
 
 const discordUser = `-- name: DiscordUser :one
@@ -186,4 +214,26 @@ func (q *Queries) OpenDiscordTicket(ctx context.Context, userID string) (Discord
 		&i.ClosedBy,
 	)
 	return i, err
+}
+
+const setDiscordPreview = `-- name: SetDiscordPreview :execrows
+UPDATE discord_settings SET last_preview = $1 WHERE last_preview <> $1
+`
+
+// Records the would-remove list; 0 rows if it's the one already posted.
+func (q *Queries) SetDiscordPreview(ctx context.Context, lastPreview string) (int64, error) {
+	result, err := q.db.Exec(ctx, setDiscordPreview, lastPreview)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const setDiscordRemoveRoles = `-- name: SetDiscordRemoveRoles :exec
+UPDATE discord_settings SET remove_roles = $1, last_preview = ''
+`
+
+func (q *Queries) SetDiscordRemoveRoles(ctx context.Context, removeRoles bool) error {
+	_, err := q.db.Exec(ctx, setDiscordRemoveRoles, removeRoles)
+	return err
 }

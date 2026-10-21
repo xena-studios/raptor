@@ -7,3 +7,4 @@ PANEL_DISCORD_PUBLIC_KEY={{ op://Raptor production/Raptor Bot/public_key }}
 PANEL_DISCORD_GUILD_ID={{ op://Raptor production/Raptor Bot/guild_id }}
 PANEL_DISCORD_CUSTOMER_ROLE={{ op://Raptor production/Raptor Bot/customer_role_id }}
 PANEL_DISCORD_SUPPORT_ROLE={{ op://Raptor production/Raptor Bot/support_role_id }}
+PANEL_DISCORD_LOG_CHANNEL={{ op://Raptor production/Raptor Bot/log_channel_id }}

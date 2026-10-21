@@ -175,6 +175,12 @@ type BillingWebhook struct {
 	ReceivedAt pgtype.Timestamptz
 }
 
+type DiscordSetting struct {
+	ID          bool
+	RemoveRoles bool
+	LastPreview string
+}
+
 type DiscordTicket struct {
 	ThreadID string
 	UserID   string

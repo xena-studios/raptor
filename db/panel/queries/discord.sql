@@ -44,3 +44,17 @@ INSERT INTO discord_tickets (thread_id, user_id, topic) VALUES ($1, $2, $3);
 -- name: CloseDiscordTicket :execrows
 UPDATE discord_tickets SET closed_at = now(), closed_by = $2
 WHERE thread_id = $1 AND closed_at IS NULL;
+
+-- name: CountDiscordTickets :one
+-- How many tickets someone opened since a time.
+SELECT count(*)::int FROM discord_tickets WHERE user_id = $1 AND opened_at > $2;
+
+-- name: DiscordSettings :one
+SELECT * FROM discord_settings;
+
+-- name: SetDiscordRemoveRoles :exec
+UPDATE discord_settings SET remove_roles = $1, last_preview = '';
+
+-- name: SetDiscordPreview :execrows
+-- Records the would-remove list; 0 rows if it's the one already posted.
+UPDATE discord_settings SET last_preview = $1 WHERE last_preview <> $1;

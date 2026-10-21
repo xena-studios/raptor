@@ -34,7 +34,7 @@ For anything about your account, your bill, a specific node, or moving from Pter
 2. Say what it's about and what's happening. If you have a [support code](#send-a-diagnostics-bundle), add it.
 3. Raptor Bot opens a private thread for you and the team. If your Raptor account is linked, the team sees your plan and nodes there, so you don't have to explain your setup.
 
-You can have one ticket open at a time. When it's sorted, press **Close ticket**; the thread stays, closed, and you can open another any time. Don't post join tokens, SFTP passwords, or your node's address in public channels.
+You can have one ticket open at a time, and open up to 3 a day. When it's sorted, press **Close ticket**; the thread stays, closed, and you can open another any time. Don't post join tokens, SFTP passwords, or your node's address in public channels.
 
 ### Send a diagnostics bundle
 
