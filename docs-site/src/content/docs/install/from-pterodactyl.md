@@ -68,6 +68,10 @@ Put it in `RAPTOR_PTERODACTYL_KEY` instead of `-key`. Raptor never stores it.
 - Remove the old copies from Pterodactyl's data directory (usually `/var/lib/pterodactyl/volumes`) once you're sure.
 - A `.pteroignore` file in a server keeps working: Raptor's backups leave out what it lists.
 
+## Stuck?
+
+Open a ticket on [Discord](/help/get-help/#reach-the-raptor-team) and the team will help you move: send them the support code from `sudo raptor doctor -upload`, and if they need to see the node, they'll ask for [support access](/help/get-help/#let-the-team-look-at-your-node), which you approve.
+
 ## Moving servers from another machine
 
 The importer works on the machine both run on. For a server on a different machine, or at a game host:

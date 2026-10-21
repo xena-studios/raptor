@@ -151,6 +151,7 @@ code {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   text-decoration: none;
+  white-space: nowrap;
   transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
 }
 .button:hover {
@@ -187,6 +188,12 @@ code {
 }
 @media (max-width: 30rem) {
   .top .link-signin {
+    display: none;
+  }
+}
+/* The smallest phones keep the logo and Start free; Docs is in the footer. */
+@media (max-width: 24rem) {
+  .top .link-docs {
     display: none;
   }
 }
@@ -242,6 +249,8 @@ h1 {
 }
 h1 .accent {
   color: var(--red);
+  /* The punchline stays on one line. */
+  white-space: nowrap;
 }
 .lead {
   max-width: 40rem;
@@ -316,7 +325,7 @@ section.why {
 }
 .compare {
   width: 100%;
-  min-width: 44rem;
+  min-width: 40rem;
   border-collapse: collapse;
   font-size: 0.9688rem;
 }
@@ -391,6 +400,345 @@ section.why {
   .compare tbody th {
     order: -2;
   }
+}
+
+/* Versus: what each side asks you to run, side by side. Pterodactyl's
+   list is long on purpose; Raptor's is one line. */
+.versus {
+  display: grid;
+  gap: 1rem;
+  margin-top: clamp(2rem, 4vw, 3rem);
+}
+@media (min-width: 62rem) {
+  .versus {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+  }
+}
+.side {
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--bg);
+}
+.side.us {
+  border-color: var(--red);
+}
+.side-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.side-count {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.side.us .side-count {
+  color: var(--red);
+}
+.chores {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: chore;
+}
+.chores li {
+  counter-increment: chore;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.125rem 0;
+  padding-block: 0.625rem;
+  border-top: 1px solid var(--rule);
+}
+.chores li::before {
+  content: counter(chore, decimal-leading-zero);
+  grid-row: span 2;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.9;
+  color: var(--muted);
+}
+.chores span:first-child {
+  font-weight: 600;
+}
+.chores span:last-child {
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+@media (min-width: 40rem) {
+  .chores li {
+    grid-template-columns: 2.25rem minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 1rem;
+  }
+  .chores li::before {
+    grid-row: auto;
+  }
+}
+.one-line {
+  margin: 0;
+  padding: 1rem 1.125rem;
+  border-radius: 4px;
+  background: var(--terminal);
+  color: var(--terminal-text);
+  outline: 1px solid var(--terminal-rule);
+  outline-offset: -1px;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.one-line code {
+  font-size: inherit;
+}
+.done-list {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.done-list li {
+  position: relative;
+  padding: 0.625rem 0 0.625rem 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9688rem;
+}
+.done-list li::before {
+  content: "+";
+  position: absolute;
+  left: 0;
+  font-family: var(--mono);
+  color: var(--red);
+}
+.versus + .table-scroll {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+}
+
+/* Cost: two receipts, the same year, read line by line. Figures are
+   mono with tabular digits so the columns add up by eye. */
+.receipts {
+  display: grid;
+  gap: 1rem;
+  margin-top: clamp(2rem, 4vw, 3rem);
+}
+@media (min-width: 62rem) {
+  .receipts {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.receipt {
+  margin: 0;
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+}
+.receipt.us {
+  border-color: var(--red);
+  background: var(--bg);
+}
+/* Raptor's receipt is short; it stays beside Pterodactyl's as that one
+   scrolls past. */
+@media (min-width: 62rem) {
+  .receipt.us {
+    position: sticky;
+    top: 2rem;
+  }
+}
+.receipt figcaption {
+  margin-bottom: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.receipt.us figcaption {
+  color: var(--red);
+}
+.receipt table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.receipt th,
+.receipt td {
+  padding-block: 0.5rem;
+  border-top: 1px dashed var(--rule);
+  vertical-align: baseline;
+}
+.receipt tbody th {
+  font-weight: 500;
+  text-align: left;
+}
+.receipt th span {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.receipt td {
+  padding-left: 1rem;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.receipt tr.group th {
+  padding-top: 1rem;
+  border-top: 0;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.receipt tbody tr.group:first-child th {
+  padding-top: 0;
+}
+.receipt tfoot th,
+.receipt tfoot td {
+  padding-top: 1rem;
+  border-top: 2px solid var(--text);
+  vertical-align: top;
+}
+.receipt tfoot th {
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-align: left;
+}
+.receipt tfoot td {
+  font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.receipt.us tfoot td {
+  color: var(--red);
+}
+/* Doing it yourself is the smaller total, above the one with help. */
+.receipt tfoot tr.subtotal th {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.receipt tfoot tr.subtotal td {
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.receipt tfoot tr.subtotal + tr th,
+.receipt tfoot tr.subtotal + tr td {
+  border-top: 1px dashed var(--rule);
+}
+.receipt .button {
+  margin-top: 1.5rem;
+}
+.footnote {
+  max-width: var(--measure);
+}
+
+/* Only in Raptor: four groups, each a ruled list, two by two. */
+section.only-section {
+  background: var(--raised);
+}
+.only {
+  display: grid;
+  gap: clamp(2rem, 4vw, 3rem) clamp(2rem, 5vw, 4rem);
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+@media (min-width: 52rem) {
+  .only {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.only h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.only ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.only li {
+  position: relative;
+  padding: 0.625rem 0 0.625rem 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9688rem;
+  text-wrap: pretty;
+}
+.only li::before {
+  content: "+";
+  position: absolute;
+  left: 0;
+  font-family: var(--mono);
+  color: var(--red);
+}
+
+/* Moving over: the steps, beside what the team does for you. */
+.move-grid {
+  display: grid;
+  gap: clamp(2.5rem, 5vw, 4rem);
+}
+@media (min-width: 62rem) {
+  .move-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.steps code {
+  font-size: 0.9em;
+}
+.helpdesk {
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+}
+.helpdesk h3 {
+  margin: 0;
+  font-size: clamp(1.375rem, 1.2rem + 0.6vw, 1.75rem);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.helpdesk p {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.helpdesk ul {
+  margin: 1.5rem 0 1.75rem;
+  padding: 0;
+  list-style: none;
+}
+.helpdesk li {
+  position: relative;
+  padding: 0.625rem 0 0.625rem 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9688rem;
+}
+.helpdesk li::before {
+  content: "+";
+  position: absolute;
+  left: 0;
+  font-family: var(--mono);
+  color: var(--red);
 }
 
 /* The tour: each part's pitch, then the screen, full width so it reads. */

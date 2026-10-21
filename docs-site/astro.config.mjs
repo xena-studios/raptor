@@ -15,7 +15,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Raptor Docs",
-      description: "Run game servers on your own machines, managed from one place.",
+      description: "Pterodactyl had a good run. Run game servers on your own machines, with no panel to host.",
       // The full logo (the raptor is never without the wordmark,
       // docs/DESIGN.md#7-brand), with "Docs" after it from theme.css.
       logo: { dark: "./src/assets/logo-dark.svg", light: "./src/assets/logo-light.svg", replacesTitle: true },
@@ -42,6 +42,8 @@ export default defineConfig({
       editLink: { baseUrl: "https://github.com/xena-studios/raptor/edit/main/docs-site/" },
       lastUpdated: true,
       plugins: [starlightLinksValidator()],
+      // Each page's social card (src/pages/og/).
+      routeMiddleware: "./src/routeData.ts",
       sidebar: [
         { label: "Start here", items: [{ autogenerate: { directory: "start" } }] },
         { label: "Install", items: [{ autogenerate: { directory: "install" } }] },
