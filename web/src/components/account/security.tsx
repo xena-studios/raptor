@@ -10,6 +10,7 @@ import {
   type LucideIcon,
   Mail,
   Monitor,
+  Plus,
   ShieldAlert,
   ShieldCheck,
   Smartphone,
@@ -28,7 +29,6 @@ import {
 import { useConfirm } from "@/components/confirm";
 import { ProviderIcon } from "@/components/provider-icons";
 import { useReauth } from "@/components/reauth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,13 +102,22 @@ export function Passkeys() {
   const ask = useConfirm();
   const withReauth = useReauth();
   const refresh = useRefresh();
+  const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [addError, setAddError] = useState("");
   const [busy, setBusy] = useState(false);
+  const passkeys = list.data?.passkeys ?? [];
+
+  function openAdd() {
+    setName("");
+    setAddError("");
+    setAdding(true);
+  }
 
   async function add(e: FormEvent) {
     e.preventDefault();
-    setError("");
+    setAddError("");
     setBusy(true);
     try {
       const begin = await withReauth(() => authClient.beginPasskeyRegistration({}));
@@ -118,16 +127,26 @@ export function Passkeys() {
         answer: { ceremonyId: begin.challenge.ceremonyId, credentialJson },
         name,
       });
-      setName("");
+      setAdding(false);
       await refresh();
     } catch (err) {
-      if (!passkeyCancelled(err)) setError(message(err));
+      if (!passkeyCancelled(err)) setAddError(message(err));
     } finally {
       setBusy(false);
     }
   }
 
-  async function remove(id: string) {
+  async function remove(id: string, label: string) {
+    const last = passkeys.length === 1;
+    const ok = await ask.confirm({
+      title: `Remove "${label}"?`,
+      description: last
+        ? "It's your only passkey. Until you add another, you can't confirm dangerous actions on your servers, like deleting one or restoring a backup. It stays on your device or in your password manager until you delete it there too."
+        : "You can't sign in or confirm dangerous actions with it anymore; your other passkeys keep working. It stays on your device or in your password manager until you delete it there too.",
+      confirm: "Remove passkey",
+      destructive: true,
+    });
+    if (!ok) return;
     setError("");
     try {
       await withReauth(() => authClient.deletePasskey({ id }));
@@ -161,10 +180,10 @@ export function Passkeys() {
       description="Sign in with your fingerprint, face, or device PIN, and confirm dangerous actions on your servers. A passkey is both factors at once."
     >
       <ErrorLine error={error} />
-      {list.data?.passkeys.length === 0 && (
+      {list.data && passkeys.length === 0 && (
         <p className="text-sm text-muted-foreground">No passkeys yet.</p>
       )}
-      {list.data?.passkeys.map((p) => (
+      {passkeys.map((p) => (
         <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
           <div className="flex items-center gap-3">
             <KeyRound className="size-4 text-muted-foreground" />
@@ -187,52 +206,91 @@ export function Passkeys() {
             variant="ghost"
             size="icon-sm"
             aria-label={`Remove ${p.name}`}
-            onClick={() => remove(p.id)}
+            onClick={() => remove(p.id, p.name)}
           >
             <Trash2 />
           </Button>
         </div>
       ))}
       {passkeysSupported() ? (
-        <form onSubmit={add} className="flex gap-2">
-          <Input
-            placeholder="Name (e.g. MacBook)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={64}
-          />
-          <Button type="submit" disabled={busy}>
-            Add a passkey
-          </Button>
-        </form>
+        <Button className="self-start" onClick={openAdd}>
+          <Plus /> Add a passkey
+        </Button>
       ) : (
         <p className="text-sm text-muted-foreground">This browser can't use passkeys.</p>
       )}
+      <Dialog open={adding} onOpenChange={(open) => !busy && setAdding(open)}>
+        <DialogContent>
+          <form onSubmit={add} className="flex flex-col gap-4">
+            <DialogHeader>
+              <DialogTitle>Add a passkey</DialogTitle>
+              <DialogDescription>
+                Your browser or password manager asks to make one, with your fingerprint, face, or
+                device PIN. Name it after the device it's on, so you can tell your passkeys apart.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="passkey-name">Name</Label>
+              <Input
+                id="passkey-name"
+                autoFocus
+                placeholder="MacBook, iPhone, 1Password"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={64}
+              />
+            </div>
+            <ErrorLine error={addError} />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setAdding(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={busy}>
+                {busy ? "Waiting for your passkey…" : "Add passkey"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Section>
   );
 }
 
 function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
   const text = `Raptor recovery codes. Each works once.\n\n${codes.join("\n")}\n`;
+  const [copied, setCopied] = useState(false);
   return (
-    <Alert>
-      <AlertDescription className="flex flex-col gap-3">
-        <p>
-          Save these recovery codes somewhere safe. Each signs you in once if you lose your phone.
-          They won't be shown again.
-        </p>
-        <pre className="grid grid-cols-2 gap-1 font-mono text-sm">
-          {codes.map((c) => (
-            <span key={c}>{c}</span>
-          ))}
-        </pre>
+    <>
+      <DialogHeader>
+        <DialogTitle>Save your recovery codes</DialogTitle>
+        <DialogDescription>
+          Each one signs you in once if you lose the phone with your authenticator app. Keep them
+          somewhere safe, like your password manager: they won't be shown again.
+        </DialogDescription>
+      </DialogHeader>
+      <pre className="grid grid-cols-2 gap-x-6 gap-y-1 rounded-lg border bg-muted/40 p-4 font-mono text-sm">
+        {codes.map((c) => (
+          <span key={c}>{c}</span>
+        ))}
+      </pre>
+      <DialogFooter className="sm:justify-between">
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(text)}>
-            Copy
+          <Button
+            variant="outline"
+            onClick={async () => {
+              await navigator.clipboard.writeText(text);
+              setCopied(true);
+            }}
+          >
+            {copied ? "Copied" : "Copy"}
           </Button>
           <Button
             variant="outline"
-            size="sm"
             onClick={() => {
               const a = document.createElement("a");
               a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
@@ -243,23 +301,24 @@ function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void 
           >
             Download
           </Button>
-          <Button size="sm" onClick={onDone}>
-            I've saved them
-          </Button>
         </div>
-      </AlertDescription>
-    </Alert>
+        <Button onClick={onDone}>I've saved them</Button>
+      </DialogFooter>
+    </>
   );
 }
 
 export function Authenticator() {
   const session = useQuery(AuthService.method.getSession, {});
+  const ask = useConfirm();
   const withReauth = useReauth();
   const refresh = useRefresh();
   const [setup, setSetup] = useState<{ secret: string; url: string } | null>(null);
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
   const [error, setError] = useState("");
+  const [setupError, setSetupError] = useState("");
+  const [busy, setBusy] = useState(false);
   const on = session.data?.user?.totpEnabled ?? false;
 
   async function act(fn: () => Promise<void>) {
@@ -271,94 +330,148 @@ export function Authenticator() {
     }
   }
 
+  function start() {
+    act(async () => {
+      const res = await withReauth(() => authClient.beginTOTPSetup({}));
+      setCode("");
+      setSetupError("");
+      setSetup({ secret: res.secret, url: res.url });
+    });
+  }
+
+  async function finish(e: FormEvent) {
+    e.preventDefault();
+    setSetupError("");
+    setBusy(true);
+    try {
+      const res = await withReauth(() => authClient.finishTOTPSetup({ code }));
+      setSetup(null);
+      setCodes(res.recoveryCodes);
+      await refresh();
+    } catch (err) {
+      setSetupError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function newCodes() {
+    const ok = await ask.confirm({
+      title: "Make new recovery codes?",
+      description: "Your current recovery codes stop working at once, used or not.",
+      confirm: "Make new codes",
+    });
+    if (!ok) return;
+    act(async () => {
+      const res = await withReauth(() => authClient.regenerateRecoveryCodes({}));
+      setCodes(res.recoveryCodes);
+      await refresh();
+    });
+  }
+
+  async function turnOff() {
+    const ok = await ask.confirm({
+      title: "Turn off the authenticator app?",
+      description:
+        "Signing in with an email code or with Google, GitHub, or Discord stops asking for a code from your app, and your recovery codes stop working. Your passkeys aren't affected.",
+      confirm: "Turn off",
+      destructive: true,
+    });
+    if (!ok) return;
+    act(async () => {
+      await withReauth(() => authClient.disableTOTP({}));
+      await refresh();
+    });
+  }
+
   return (
     <Section
       title="Authenticator app"
       description="After an email or Google/GitHub/Discord sign-in, also ask for a code from an app like 1Password, Google Authenticator, or Aegis."
     >
       <ErrorLine error={error} />
-      {codes && <RecoveryCodes codes={codes} onDone={() => setCodes(null)} />}
-      {on && !codes && (
+      {on ? (
         <>
           <p className="flex items-center gap-2 text-sm">
             <Smartphone className="size-4" /> On. {session.data?.recoveryCodesLeft} recovery codes
             left.
           </p>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() =>
-                act(async () => {
-                  const res = await withReauth(() => authClient.regenerateRecoveryCodes({}));
-                  setCodes(res.recoveryCodes);
-                  await refresh();
-                })
-              }
-            >
+            <Button variant="outline" onClick={newCodes}>
               New recovery codes
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() =>
-                act(async () => {
-                  await withReauth(() => authClient.disableTOTP({}));
-                  await refresh();
-                })
-              }
-            >
+            <Button variant="destructive" onClick={turnOff}>
               Turn off
             </Button>
           </div>
         </>
-      )}
-      {!on && !setup && (
-        <Button
-          className="self-start"
-          onClick={() =>
-            act(async () => {
-              const res = await withReauth(() => authClient.beginTOTPSetup({}));
-              setSetup({ secret: res.secret, url: res.url });
-            })
-          }
-        >
+      ) : (
+        <Button className="self-start" onClick={start}>
           Set up
         </Button>
       )}
-      {!on && setup && (
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            act(async () => {
-              const res = await withReauth(() => authClient.finishTOTPSetup({ code }));
-              setSetup(null);
-              setCode("");
-              setCodes(res.recoveryCodes);
-              await refresh();
-            });
-          }}
-        >
-          <p className="text-sm">Scan this with your authenticator app, or type the key in.</p>
-          {/* The QR code is made here: the secret never leaves the page. */}
-          <QRCode value={setup.url} className="w-44 rounded-lg bg-white p-2" />
-          <code className="break-all text-xs">{setup.secret}</code>
-          <Label htmlFor="totp-code">The 6-digit code it shows</Label>
-          <Input
-            id="totp-code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            required
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
-          <div className="flex gap-2">
-            <Button type="submit">Turn on</Button>
-            <Button type="button" variant="ghost" onClick={() => setSetup(null)}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      )}
+
+      {/* Setting up, then the recovery codes it makes, in one dialog. The
+          codes are shown once, so only "I've saved them" closes it then. */}
+      <Dialog
+        open={setup !== null || codes !== null}
+        onOpenChange={(open) => {
+          if (!open && !codes && !busy) setSetup(null);
+        }}
+      >
+        <DialogContent showCloseButton={!codes}>
+          {codes ? (
+            <RecoveryCodes codes={codes} onDone={() => setCodes(null)} />
+          ) : (
+            setup && (
+              <form onSubmit={finish} className="flex flex-col gap-4">
+                <DialogHeader>
+                  <DialogTitle>Set up your authenticator app</DialogTitle>
+                  <DialogDescription>
+                    Scan this with your authenticator app, or type the key into it. Then enter the
+                    6-digit code it shows.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-3">
+                  {/* The QR code is made here: the secret never leaves the page. */}
+                  <QRCode value={setup.url} className="w-48 rounded-lg bg-white p-2" />
+                  <code className="break-all text-center font-mono text-xs text-muted-foreground">
+                    {setup.secret}
+                  </code>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="totp-code">The 6-digit code it shows</Label>
+                  <Input
+                    id="totp-code"
+                    autoFocus
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    required
+                    maxLength={6}
+                    className="font-mono tracking-widest"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  />
+                </div>
+                <ErrorLine error={setupError} />
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => setSetup(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={busy || code.length !== 6}>
+                    Turn on
+                  </Button>
+                </DialogFooter>
+              </form>
+            )
+          )}
+        </DialogContent>
+      </Dialog>
     </Section>
   );
 }
@@ -366,6 +479,7 @@ export function Authenticator() {
 export function LinkedAccounts() {
   const methods = useQuery(AuthService.method.getSignInMethods, {});
   const list = useQuery(AuthService.method.listOAuthAccounts, {});
+  const ask = useConfirm();
   const withReauth = useReauth();
   const refresh = useRefresh();
   const [busy, setBusy] = useState("");
@@ -427,14 +541,21 @@ export function LinkedAccounts() {
                         size="sm"
                         variant="outline"
                         disabled={busy !== ""}
-                        onClick={() =>
+                        onClick={async () => {
+                          const ok = await ask.confirm({
+                            title: `Disconnect ${name}?`,
+                            description: `You can't sign in with ${name} anymore. Connect it again any time.`,
+                            confirm: "Disconnect",
+                            destructive: true,
+                          });
+                          if (!ok) return;
                           run(p, async () => {
                             await withReauth(() =>
                               authClient.unlinkOAuthAccount({ id: linked.id }),
                             );
                             await refresh();
-                          })
-                        }
+                          });
+                        }}
                       >
                         Disconnect
                       </Button>
@@ -503,18 +624,47 @@ function DeviceIcon({ ua }: { ua: string }) {
 
 export function Devices() {
   const list = useQuery(AuthService.method.listSessions, {});
+  const ask = useConfirm();
   const refresh = useRefresh();
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [includeThis, setIncludeThis] = useState(false);
   const [busy, setBusy] = useState(false);
   const sessions = list.data?.sessions ?? [];
+  // This device and the most recently active few; the rest on request.
+  const [all, setAll] = useState(false);
+  const shownMax = 6;
+  const shown = all ? sessions : sessions.slice(0, shownMax);
 
-  async function signOut(id: string) {
+  async function signOut(id: string, device: string) {
+    const ok = await ask.confirm({
+      title: `Sign out ${device}?`,
+      description:
+        "Its session ends at once, and it has to sign in again. If you don't recognise it, sign it out, then check your passkeys and connections.",
+      confirm: "Sign out",
+      destructive: true,
+    });
+    if (!ok) return;
     setError("");
     try {
       await authClient.revokeSession({ target: { case: "id", value: id } });
       await refresh();
+    } catch (err) {
+      setError(message(err));
+    }
+  }
+
+  async function signOutHere() {
+    const ok = await ask.confirm({
+      title: "Sign out of this device?",
+      description: "You'll go back to the sign-in page. Your other devices stay signed in.",
+      confirm: "Sign out",
+    });
+    if (!ok) return;
+    setError("");
+    try {
+      await authClient.signOut({});
+      window.location.assign("/signin");
     } catch (err) {
       setError(message(err));
     }
@@ -541,8 +691,8 @@ export function Devices() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="space-y-1.5">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-xs space-y-1.5">
           <CardTitle>Devices</CardTitle>
           <CardDescription>
             Where your account is signed in. Signing a device out ends its session at once.
@@ -562,7 +712,7 @@ export function Devices() {
       <CardContent className="flex flex-col gap-3">
         <ErrorLine error={error} />
         <div className="divide-y">
-          {sessions.map((s) => (
+          {shown.map((s) => (
             <div
               key={s.id}
               className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
@@ -583,14 +733,23 @@ export function Devices() {
                   </p>
                 </div>
               </div>
-              {!s.current && (
-                <Button size="sm" variant="ghost" onClick={() => signOut(s.id)}>
-                  Sign out
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  s.current ? signOutHere() : signOut(s.id, describeDevice(s.userAgent))
+                }
+              >
+                Sign out
+              </Button>
             </div>
           ))}
         </div>
+        {sessions.length > shownMax && (
+          <Button variant="ghost" size="sm" className="self-start" onClick={() => setAll(!all)}>
+            {all ? "Show fewer" : `Show all ${sessions.length} devices`}
+          </Button>
+        )}
       </CardContent>
       <Dialog open={confirming} onOpenChange={setConfirming}>
         <DialogContent>
