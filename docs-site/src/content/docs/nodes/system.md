@@ -17,11 +17,15 @@ The node's **System** tab (admins and owners) sets the machine itself, so you do
 
 Raptor manages a firewall for the machine itself, in its own nftables table, so Docker can't undo it.
 
-- **Block incoming connections:** new connections to the machine are dropped unless a rule allows them. SSH, Raptor's SFTP, and servers on the host's network stay open, listed as **Always open**, so you can't lock yourself out.
-- **Rules:** allow or block ports (TCP, UDP, or both) from anywhere or from an address or range, each with a note. Allow rules come first, so they can make exceptions to block rules.
-- Game servers' ports are opened by the servers themselves, and stay open unless a rule blocks them.
+It's listed like `ufw status`: each open port, what it's open to, from where, and why.
 
-The table also lists **every rule already on the machine**, from ufw, fail2ban, your provider's image, or anything else, in the same columns, so you can see what's really filtering traffic. Rules that only route traffic for Docker and Raptor are folded away. Raptor never changes rules it didn't make.
+- **Opened by Raptor:** SSH; Raptor's SFTP port, only while someone has an SFTP password for the node; each server's ports (TCP and UDP), for its players; and a database instance's port when it has [external access](/nodes/databases/#reach-an-instance-from-outside), from just the addresses it allows. These are locked here: change them where they come from (the server's Network tab, the node's Settings or Databases tab). SSH is never blocked, so you can't lock yourself out.
+- **Your rules:** allow or block ports (TCP, UDP, or both) from anywhere or from an address or range, each with a note. Allow rules come first, so they can make exceptions to block rules. Removing one asks first.
+- **Block everything not listed:** with it on, connections to the machine that nothing above allows are dropped. With it off, anything listening on the machine can be reached.
+
+Which servers can reach each other is set on the [Networks](/nodes/networks/) tab, not here.
+
+**Other rules on the machine**, under the list, shows every rule already there from ufw, fail2ban, Docker, your provider's image, or anything else, so you can see what's really filtering traffic. It opens by itself when one of them drops traffic. Rules that only route traffic are folded away. Raptor never changes rules it didn't make.
 
 Saving the firewall is signed with your passkey.
 

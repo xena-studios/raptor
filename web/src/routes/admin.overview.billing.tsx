@@ -214,7 +214,7 @@ function BillingInsights() {
       </div>
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1.5">
+          <div className="min-w-0 flex-1 basis-xs space-y-1.5">
             <CardTitle>Stored over time</CardTitle>
             <CardDescription>
               Measured once a day, current versions only (what's billed).

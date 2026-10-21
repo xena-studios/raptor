@@ -47,7 +47,7 @@ function NodeStatsPopout() {
       <NodeStats m={live.data} />
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1.5">
+          <div className="min-w-0 flex-1 basis-xs space-y-1.5">
             <CardTitle>Resources</CardTitle>
             <CardDescription>The whole machine: Raptor, its servers, and the rest.</CardDescription>
           </div>

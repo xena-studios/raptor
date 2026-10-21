@@ -1,5 +1,6 @@
 import { cn } from "cn";
 
+import { HelpLink } from "@/components/help-link";
 import type { ServerStatus } from "@/lib/servers";
 
 // toneText is the one place state gets colour; the label always spells it
@@ -30,8 +31,22 @@ export function StatusBadge({ status, className }: { status: ServerStatus; class
 
 // StatusDetail is the reason under a status, when there is one (an
 // install's error, an offline node).
+// What to do when a server failed: where the docs explain it.
+const failedHelp: Record<string, { path: string; text: string }> = {
+  "Install failed": {
+    path: "/help/server-problems/#the-install-failed",
+    text: "The console shows where it stopped. Fix the cause, then Reinstall on the Settings tab.",
+  },
+  Crashed: {
+    path: "/help/server-problems/#it-crashed",
+    text: "The console shows its last output.",
+  },
+};
+
 export function StatusDetail({ status }: { status: ServerStatus }) {
-  if (!status.detail) return null;
+  // By label, so it still shows on an offline node's last report.
+  const help = failedHelp[status.label];
+  if (!status.detail && !help) return null;
   return (
     <p
       className={
@@ -41,6 +56,12 @@ export function StatusDetail({ status }: { status: ServerStatus }) {
       }
     >
       {status.detail}
+      {help && (
+        <span className="text-muted-foreground">
+          {status.detail && (/[.!?]$/.test(status.detail) ? " " : ". ")}
+          {help.text} <HelpLink path={help.path}>What to check</HelpLink>
+        </span>
+      )}
     </p>
   );
 }

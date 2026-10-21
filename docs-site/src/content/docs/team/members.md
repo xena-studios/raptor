@@ -15,7 +15,7 @@ An **org** is your team: its members, its nodes, and their servers. You can be i
 | **Admin** | Everything on every node and server: create and delete servers, link nodes, invite people, set alerts. Not billing or roles. |
 | **Member** | Only what they've been given on each server (below). |
 
-Owners change roles on **Settings → Members**. Anyone can leave an org, except its last owner.
+Owners change roles on **Settings → Members**. Each change asks first and says what it means; giving up your own owner role is one you can't undo yourself, since another owner has to give it back. Anyone can leave an org, except its last owner.
 
 ## Inviting people
 

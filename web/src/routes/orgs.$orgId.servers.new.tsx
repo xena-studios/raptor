@@ -1,14 +1,14 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
-import { BadgeCheck, Search } from "lucide-react";
+import { BadgeCheck, Plus, Search, Server } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 
-import { PageHeader } from "@/components/page";
+import { EmptyState, PageHeader } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -75,9 +75,20 @@ function NewServerPage() {
           Only the org's admins and owners can create servers.
         </p>
       ) : nodes.data?.nodes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Add a node first: servers run on your own machines.
-        </p>
+        <EmptyState
+          icon={Server}
+          title="Connect a node first"
+          description="Servers run on your own machines. Link one with a single command, then come back to pick a game."
+          action={
+            <Link
+              to="/orgs/$orgId/nodes/new"
+              params={{ orgId }}
+              className={buttonVariants({ size: "sm" })}
+            >
+              <Plus /> Connect node
+            </Link>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-4">
           {(nodes.data?.nodes.length ?? 0) > 1 && (

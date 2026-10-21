@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useMemo, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
+import { DetailList } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,43 @@ const sectionText: Record<SettingsSection, { title: string; description: string 
 // ServerSettings changes one section of a server's settings (server.update;
 // a new runtime is signed by the user's passkey), and on the general one
 // reinstalls it.
+// ServerDetails are the server's facts: its ID, for support and the
+// raptor command on the machine, its node, and its game.
+export function ServerDetails({
+  id,
+  nodeName,
+  game,
+}: {
+  id: string;
+  nodeName: string;
+  game: string;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Details</CardTitle>
+        <CardDescription>
+          About this server, for support and the machine's own tools.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <DetailList
+          rows={[
+            [
+              "Server ID",
+              <code key="id" className="break-all">
+                {id}
+              </code>,
+            ],
+            ["Node", nodeName || "—"],
+            ["Game", game || "—"],
+          ]}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ServerSettings({
   section,
   orgId,

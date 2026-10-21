@@ -68,6 +68,10 @@ Settings both types share (a Minecraft version, say) keep their values; the rest
 
 The server must be stopped, and you type its name to confirm.
 
+## Details
+
+**Details** on **Settings** shows the server's ID, for support and the [raptor command](/cli/reference/), with its node and game.
+
 ## Move to another disk
 
 When the node has [more than one disk](/nodes/disks/) for servers, the **Disk** card on **Settings** (admins) moves the server's files to another. It stops the server, copies everything, switches over, and only then removes the old copy, so nothing is lost if it's interrupted. It starts again afterwards if it was running.

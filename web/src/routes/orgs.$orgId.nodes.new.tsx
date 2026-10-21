@@ -2,6 +2,7 @@ import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CreditCard } from "lucide-react";
 
+import { HelpLink } from "@/components/help-link";
 import { ConnectNode } from "@/components/org/connect-node";
 import { EmptyState, PageHeader } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
@@ -25,7 +26,13 @@ function NewNode() {
       <PageHeader
         back={{ label: "Nodes", to: "/orgs/$orgId/nodes", params: { orgId } }}
         title="Connect a node"
-        description="Install Raptor on a machine of yours and link it to this org."
+        description={
+          <>
+            Install Raptor on a machine of yours and link it to this org.{" "}
+            <HelpLink path="/start/requirements/">What the machine needs</HelpLink> ·{" "}
+            <HelpLink path="/help/install-problems/">Install problems</HelpLink>
+          </>
+        }
       />
       {!b ? null : needsPlan ? (
         <EmptyState

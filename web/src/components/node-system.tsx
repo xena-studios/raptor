@@ -1,15 +1,18 @@
+import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
 import {
   CheckCircle2,
   ChevronRight,
   Loader2,
+  Lock,
   Plus,
   Power,
   ShieldAlert,
   Trash2,
 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +29,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Node } from "@/gen/raptor/panel/v1/org_pb";
+import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { dbExternalCapability, useInstances } from "@/lib/databases";
 import { message } from "@/lib/errors";
+import { shortId } from "@/lib/ids";
 import { sendSigned } from "@/lib/signed";
 import { commandClient, orgClient } from "@/lib/transport";
 import { passkeyCancelled } from "@/lib/webauthn";
@@ -112,7 +117,7 @@ export function NodeSystem({ orgId, node, userId }: { orgId: string; node: Node;
         node={node}
         s={s}
       />
-      <Firewall key={JSON.stringify(s.firewall)} nodeId={nodeId} userId={userId} s={s} />
+      <Firewall key={JSON.stringify(s.firewall)} orgId={orgId} node={node} userId={userId} s={s} />
       <Reboot nodeId={nodeId} userId={userId} />
     </div>
   );
@@ -324,8 +329,112 @@ function sourceText(source: string | undefined) {
 
 const emptyRule: Rule = { action: "allow", protocol: "tcp", ports: "", source: "", note: "" };
 
-function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: SystemState }) {
+// Opened is a port Raptor keeps open on the machine, listed the way
+// `ufw status` lists a rule: what it opens, from where, and why. These
+// follow from the node's own state (SSH, SFTP, servers' allocations,
+// databases' external access), so they're changed where that state is,
+// never here.
+type Opened = { key: string; to: string; from: string; why: ReactNode };
+
+function useOpened(orgId: string, node: Node, s: SystemState): Opened[] {
+  const servers = useConnectQuery(OrgService.method.listServers, { orgId, nodeId: node.id });
+  const external = node.capabilities.includes(dbExternalCapability);
+  const instances = useInstances(node.id, external);
+  const link = "underline underline-offset-2 hover:text-foreground";
+  const out: Opened[] = [];
+  for (const port of s.ssh_ports ?? []) {
+    out.push({
+      key: `ssh-${port}`,
+      to: `${port}/tcp`,
+      from: "Anywhere",
+      why: "SSH, so you can always reach the machine. Raptor never blocks it, so a firewall change can't lock you out.",
+    });
+  }
+  if (node.sftpEnabled && node.sftpPort) {
+    out.push({
+      key: "sftp",
+      to: `${node.sftpPort}/tcp`,
+      from: "Anywhere",
+      why: (
+        <>
+          Raptor's SFTP. It's open only while someone has an SFTP password for this node, and closes
+          when the last one expires. Turn SFTP off on the{" "}
+          <Link
+            to="/orgs/$orgId/nodes/$nodeId/settings"
+            params={{ orgId, nodeId: node.id }}
+            className={link}
+          >
+            Settings tab
+          </Link>
+          .
+        </>
+      ),
+    });
+  }
+  for (const srv of servers.data?.servers ?? []) {
+    if (srv.ports.length === 0) continue;
+    out.push({
+      key: `server-${srv.id}`,
+      to: `${srv.ports.join(", ")}/tcp+udp`,
+      from: "Anywhere",
+      why: (
+        <>
+          Players connecting to{" "}
+          <Link
+            to="/orgs/$orgId/servers/$serverId/network"
+            params={{ orgId, serverId: shortId(srv.id) }}
+            className={link}
+          >
+            {srv.name}
+          </Link>
+          . Its ports open while it exists; change them on its Network tab.
+        </>
+      ),
+    });
+  }
+  for (const i of instances.data?.instances ?? []) {
+    if (!i.external) continue;
+    out.push({
+      key: `db-${i.id}`,
+      to: `${i.external.port}/tcp`,
+      from:
+        i.external.allow.length === 1
+          ? (i.external.allow[0] ?? "")
+          : `${i.external.allow.length} addresses`,
+      why: (
+        <>
+          External access to the database instance {i.name}, only from the addresses it allows.
+          Change it on the{" "}
+          <Link
+            to="/orgs/$orgId/nodes/$nodeId/databases"
+            params={{ orgId, nodeId: node.id }}
+            className={link}
+          >
+            Databases tab
+          </Link>
+          .
+        </>
+      ),
+    });
+  }
+  return out;
+}
+
+function Firewall({
+  orgId,
+  node,
+  userId,
+  s,
+}: {
+  orgId: string;
+  node: Node;
+  userId: string;
+  s: SystemState;
+}) {
+  const nodeId = node.id;
   const client = useQueryClient();
+  const ask = useConfirm();
+  const opened = useOpened(orgId, node, s);
   const [block, setBlock] = useState(s.firewall.block_incoming);
   const [rules, setRules] = useState<Rule[]>(s.firewall.rules.map((r) => ({ ...emptyRule, ...r })));
   const [draft, setDraft] = useState<Rule>(emptyRule);
@@ -345,6 +454,18 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
     setError("");
     setRules([...rules, { ...draft, ports: draft.ports.trim(), source: draft.source.trim() }]);
     setDraft(emptyRule);
+  }
+
+  async function remove(i: number) {
+    const r = rules[i];
+    if (!r) return;
+    const ok = await ask.confirm({
+      title: "Remove this rule?",
+      description: `${r.action === "block" ? "Block" : "Allow"} ${portsText(r.ports, r.protocol)} from ${sourceText(r.source)}${r.note ? ` (${r.note})` : ""}. It's gone from the node once you save.`,
+      confirm: "Remove rule",
+      destructive: true,
+    });
+    if (ok) setRules(rules.filter((_, j) => j !== i));
   }
 
   async function save() {
@@ -372,9 +493,17 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
       <CardHeader>
         <CardTitle>Firewall</CardTitle>
         <CardDescription>
-          Who can reach the machine and its servers. Allow rules come first, so they make exceptions
-          to block rules. Game servers' ports are opened by their allocations and stay open unless a
-          rule blocks them.
+          What can reach this machine from the internet, listed like <code>ufw status</code>. Raptor
+          opens what SSH, your servers, and SFTP need; add rules of your own to allow or block more.
+          Which servers can reach each other is set on the{" "}
+          <Link
+            to="/orgs/$orgId/nodes/$nodeId/networks"
+            params={{ orgId, nodeId }}
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            Networks tab
+          </Link>
+          .
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
@@ -385,65 +514,81 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
             ufw blocks stays blocked whatever is allowed here. Game servers aren't affected.
           </p>
         )}
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-0.5">
+
+        <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs tracking-wide uppercase">
+              <span className="text-muted-foreground">Incoming: </span>
+              <span className={block ? "text-ok" : "text-warn"}>{block ? "deny" : "allow"}</span>
+              <span className="text-muted-foreground"> (default)</span>
+            </p>
             <label htmlFor="fw-block" className="block text-sm font-medium">
-              Block incoming connections
+              Block everything not listed
             </label>
             <p className="text-xs text-muted-foreground">
-              New connections to the machine itself are dropped unless a rule allows them. SSH,
-              Raptor's SFTP, and servers on the host's network stay open.
+              {block
+                ? "Connections to the machine that nothing below allows are dropped."
+                : "The machine accepts connections on any port it listens on, not only those below. Turn this on unless something else on it needs to be reached."}
             </p>
           </div>
           <Switch id="fw-block" checked={block} onCheckedChange={setBlock} />
         </div>
-        {block && (s.open ?? []).length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            Always open:
-            {(s.open ?? []).map((p) => (
-              <Badge key={`${p.why}-${p.port}`} variant="outline">
-                {p.why} {p.port}
-                {p.protocol === "both" ? "" : `/${p.protocol}`}
-              </Badge>
-            ))}
-          </div>
-        )}
 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Rule</TableHead>
-              <TableHead>Ports</TableHead>
+              <TableHead>To</TableHead>
+              <TableHead>Action</TableHead>
               <TableHead>From</TableHead>
-              <TableHead className="hidden sm:table-cell">Set by</TableHead>
-              <TableHead className="hidden md:table-cell">Note</TableHead>
+              <TableHead className="hidden md:table-cell">Why</TableHead>
               <TableHead className="w-10">
                 <span className="sr-only">Remove</span>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
+            <GroupRow>Opened by Raptor</GroupRow>
+            {opened.map((o) => (
+              <TableRow key={o.key}>
+                <TableCell className="font-mono text-xs">{o.to}</TableCell>
+                <TableCell>
+                  <ActionBadge action="allow" />
+                </TableCell>
+                <TableCell className="font-mono text-xs">{o.from}</TableCell>
+                <TableCell className="hidden max-w-md text-xs whitespace-normal text-muted-foreground md:table-cell">
+                  {o.why}
+                </TableCell>
+                <TableCell>
+                  <span
+                    className="flex size-7 items-center justify-center text-muted-foreground"
+                    title="Raptor keeps this open: it's changed where it comes from, not here."
+                  >
+                    <Lock className="size-3.5" />
+                    <span className="sr-only">Kept open by Raptor</span>
+                  </span>
+                </TableCell>
+              </TableRow>
+            ))}
+
+            <GroupRow>Your rules</GroupRow>
             {rules.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground">
-                  No rules of yours yet.
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={5} className="text-xs text-muted-foreground">
+                  None yet. Add one below to open another port, or to block an address.
                 </TableCell>
               </TableRow>
             )}
             {rules.map((r, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: rules have no IDs; order is their identity
               <TableRow key={i}>
-                <TableCell>
-                  <Badge variant={r.action === "block" ? "destructive" : "default"}>
-                    {r.action === "block" ? "Block" : "Allow"}
-                  </Badge>
-                </TableCell>
                 <TableCell className="font-mono text-xs">
                   {portsText(r.ports, r.protocol)}
                 </TableCell>
+                <TableCell>
+                  <ActionBadge action={r.action} />
+                </TableCell>
                 <TableCell className="font-mono text-xs">{sourceText(r.source)}</TableCell>
-                <TableCell className="hidden sm:table-cell">You</TableCell>
-                <TableCell className="hidden text-muted-foreground md:table-cell">
+                <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
                   {r.note || "—"}
                 </TableCell>
                 <TableCell>
@@ -451,18 +596,17 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
                     size="icon-sm"
                     variant="ghost"
                     aria-label="Remove rule"
-                    onClick={() => setRules(rules.filter((_, j) => j !== i))}
+                    onClick={() => remove(i)}
                   >
                     <Trash2 />
                   </Button>
                 </TableCell>
               </TableRow>
             ))}
-            <MachineRules s={s} />
           </TableBody>
         </Table>
 
-        <form onSubmit={add} className="grid gap-2 sm:grid-cols-[auto_auto_1fr_1fr_1fr_auto]">
+        <form onSubmit={add} className="grid gap-2 sm:grid-cols-[auto_1fr_auto_1fr_1fr_auto]">
           <select
             aria-label="Allow or block"
             className={select}
@@ -472,6 +616,12 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
             <option value="allow">Allow</option>
             <option value="block">Block</option>
           </select>
+          <Input
+            aria-label="Ports"
+            placeholder="Ports: 8080, 8000-8100"
+            value={draft.ports}
+            onChange={(e) => setDraft({ ...draft, ports: e.target.value })}
+          />
           <select
             aria-label="Protocol"
             className={select}
@@ -483,14 +633,8 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
             <option value="both">TCP and UDP</option>
           </select>
           <Input
-            aria-label="Ports"
-            placeholder="Ports: 22, 8000-8100"
-            value={draft.ports}
-            onChange={(e) => setDraft({ ...draft, ports: e.target.value })}
-          />
-          <Input
             aria-label="From"
-            placeholder="From: an address or range"
+            placeholder="From: an address, or anywhere"
             value={draft.source}
             onChange={(e) => setDraft({ ...draft, source: e.target.value })}
           />
@@ -520,9 +664,32 @@ function Firewall({ nodeId, userId, s }: { nodeId: string; userId: string; s: Sy
           )}
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <RulesetNotes s={s} />
+        <MachineRules s={s} />
       </CardContent>
     </Card>
+  );
+}
+
+// ActionBadge is a rule's action: allow in the OK colour, block in danger,
+// as state colours (DESIGN.md: colour carries state).
+function ActionBadge({ action }: { action: "allow" | "block" }) {
+  return action === "block" ? (
+    <Badge variant="destructive">Block</Badge>
+  ) : (
+    <Badge className="bg-ok-wash text-ok">Allow</Badge>
+  );
+}
+
+function GroupRow({ children }: { children: ReactNode }) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell
+        colSpan={5}
+        className="pt-4 font-mono text-[11px] tracking-wide text-muted-foreground uppercase"
+      >
+        {children}
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -549,85 +716,109 @@ const owners: Record<Exclude<Listed["owner"], "yours">, { name: string; about: s
 // The order the machine's rules are listed in, after the owner's own.
 const ownerOrder = Object.keys(owners) as (keyof typeof owners)[];
 
-// MachineRules lists the rest of the machine's firewall (nft list ruleset,
-// docs/WINGS.md#firewall) under the owner's rules, the way `ufw status`
-// would: allow and block rules by their ports and source, anything else as
-// nftables prints it. The owner's own rules, as loaded, are the ones above,
-// so they aren't listed twice. Rules that only route traffic for Raptor,
-// Docker, ufw, or fail2ban are folded away; anything that drops traffic, or
-// is from something else, always shows.
+// MachineRules is the rest of the machine's firewall (nft list ruleset,
+// docs/WINGS.md#firewall): rules other programs put there, folded away
+// under the list above since Raptor doesn't change them. Allow and block
+// rules read by their ports and source, anything else as nftables prints
+// it. It opens by itself when something there drops traffic Raptor's
+// rules would let in, since that's what explains a port that won't open.
 function MachineRules({ s }: { s: SystemState }) {
-  const [all, setAll] = useState(false);
   const list = (s.ruleset ?? [])
     .filter((l): l is Listed & { owner: keyof typeof owners } => l.owner !== "yours")
     .map((l, i) => ({ ...l, i }))
     .sort((a, b) => ownerOrder.indexOf(a.owner) - ownerOrder.indexOf(b.owner) || a.i - b.i);
-  if (list.length === 0) return null;
+  const blocking = list.some(
+    (l) => l.owner !== "raptor" && l.owner !== "docker" && (l.policy || l.action === "block"),
+  );
+  const [open, setOpen] = useState(blocking);
+  const [all, setAll] = useState(false);
+  if (list.length === 0 && !s.ruleset_error) return null;
   const plumbing = (l: Listed) => !l.action && !l.policy && l.owner !== "other";
   const folded = list.filter(plumbing).length;
   const shown = all ? list : list.filter((l) => !plumbing(l));
   return (
-    <>
-      <TableRow className="hover:bg-transparent">
-        <TableCell colSpan={6} className="pt-5 text-xs whitespace-normal text-muted-foreground">
-          Already on the machine, from other programs. Raptor doesn't change them; those marked{" "}
-          <Badge variant="outline">Needed</Badge> keep servers working.
-        </TableCell>
-      </TableRow>
-      {shown.map((l) => (
-        <TableRow key={l.i} className="text-muted-foreground">
-          <TableCell>
-            {l.action ? (
-              <Badge variant={l.action === "block" ? "destructive" : "default"}>
-                {l.action === "block" ? "Block" : "Allow"}
-              </Badge>
-            ) : l.policy ? (
-              <Badge variant="destructive">Drop the rest</Badge>
-            ) : (
-              <Badge variant="secondary">Other</Badge>
-            )}
-          </TableCell>
-          {l.action ? (
-            <>
-              <TableCell className="font-mono text-xs">{portsText(l.ports, l.protocol)}</TableCell>
-              <TableCell className="font-mono text-xs">{sourceText(l.source)}</TableCell>
-            </>
-          ) : (
-            <TableCell
-              colSpan={2}
-              className="min-w-48 font-mono text-xs whitespace-normal break-all"
-            >
-              {l.policy ? `${l.chain} (${l.hook ?? "chain"})` : l.rule}
-            </TableCell>
-          )}
-          <TableCell className="hidden sm:table-cell" title={owners[l.owner].about}>
-            <span className="flex flex-wrap items-center gap-1.5">
-              {owners[l.owner].name}
-              {l.needed && <Badge variant="outline">Needed</Badge>}
-            </span>
-          </TableCell>
-          <TableCell className="hidden max-w-xs whitespace-normal md:table-cell">
-            <span className="block text-xs">{l.why}</span>
-            <span className="block font-mono text-[11px] text-muted-foreground/70">
-              {l.table} › {l.chain}
-            </span>
-          </TableCell>
-          <TableCell />
-        </TableRow>
-      ))}
-      {folded > 0 && (
-        <TableRow className="hover:bg-transparent">
-          <TableCell colSpan={6}>
-            <Button size="sm" variant="ghost" onClick={() => setAll(!all)}>
+    <div className="flex flex-col gap-3 border-t pt-4">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <ChevronRight className={cn("transition-transform", open && "rotate-90")} />
+        Other rules on the machine ({list.length})
+      </Button>
+      {open && (
+        <>
+          <p className="text-xs text-muted-foreground">
+            From Docker, ufw, fail2ban, and anything else on the machine. Raptor doesn't change
+            these; those marked <Badge variant="outline">Needed</Badge> keep servers working.
+          </p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rule</TableHead>
+                <TableHead>To</TableHead>
+                <TableHead>From</TableHead>
+                <TableHead className="hidden sm:table-cell">Set by</TableHead>
+                <TableHead className="hidden md:table-cell">Why</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {shown.map((l) => (
+                <TableRow key={l.i} className="text-muted-foreground">
+                  <TableCell>
+                    {l.action ? (
+                      <ActionBadge action={l.action} />
+                    ) : l.policy ? (
+                      <Badge variant="destructive">Drop the rest</Badge>
+                    ) : (
+                      <Badge variant="secondary">Other</Badge>
+                    )}
+                  </TableCell>
+                  {l.action ? (
+                    <>
+                      <TableCell className="font-mono text-xs">
+                        {portsText(l.ports, l.protocol)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{sourceText(l.source)}</TableCell>
+                    </>
+                  ) : (
+                    <TableCell
+                      colSpan={2}
+                      className="min-w-48 font-mono text-xs whitespace-normal break-all"
+                    >
+                      {l.policy ? `${l.chain} (${l.hook ?? "chain"})` : l.rule}
+                    </TableCell>
+                  )}
+                  <TableCell className="hidden sm:table-cell" title={owners[l.owner].about}>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {owners[l.owner].name}
+                      {l.needed && <Badge variant="outline">Needed</Badge>}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden max-w-xs whitespace-normal md:table-cell">
+                    <span className="block text-xs">{l.why}</span>
+                    <span className="block font-mono text-[11px] text-muted-foreground/70">
+                      {l.table} › {l.chain}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {folded > 0 && (
+            <Button size="sm" variant="ghost" className="self-start" onClick={() => setAll(!all)}>
               <ChevronRight className={cn("transition-transform", all && "rotate-90")} />
               {all
                 ? "Hide the rules that only route traffic"
                 : `Show ${folded} more ${folded === 1 ? "rule" : "rules"} that only route traffic`}
             </Button>
-          </TableCell>
-        </TableRow>
+          )}
+          <RulesetNotes s={s} />
+        </>
       )}
-    </>
+    </div>
   );
 }
 

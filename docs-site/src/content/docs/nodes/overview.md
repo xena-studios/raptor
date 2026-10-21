@@ -41,6 +41,10 @@ To bring it back, make a join token and run `sudo raptor relink -token rpt_join_
 
 Link as many machines as you like: each is $12 a month. In the app, choose **Connect node** again and run its command on the new machine. Servers are made on one node and stay there; to move one, back it up and restore it, or copy its files with [Import](/servers/files/#import-from-another-host).
 
+## Details
+
+The node's **Settings** tab has a **Details** card with its ID, for support, and when it was linked.
+
 ## Support access
 
 If you ask Raptor's support for help, they may request **access to a node**: diagnostics only, operating its servers, or managing their files too, for a set time, with a reason and a ticket. Owners and admins are emailed, and the node's pages show the request.

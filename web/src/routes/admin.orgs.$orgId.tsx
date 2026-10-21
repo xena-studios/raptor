@@ -60,7 +60,8 @@ function OrgPage() {
               {o.suspendedAt && <Badge variant="destructive">Suspended</Badge>}
             </CardTitle>
             <CardDescription>
-              {o.members} members · {o.nodes} nodes · {o.servers} servers
+              {plural(o.members, "member")} · {plural(o.nodes, "node")} ·{" "}
+              {plural(o.servers, "server")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -233,4 +234,8 @@ function OrgPage() {
       )}
     </div>
   );
+}
+
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
 }

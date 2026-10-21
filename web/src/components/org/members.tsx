@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ export function Members({
   const owner = myRole === Role.OWNER;
   const invitations = useQuery(OrgService.method.listInvitations, { orgId }, { enabled: admin });
   const client = useQueryClient();
+  const ask = useConfirm();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>(Role.MEMBER);
   const [error, setError] = useState("");
@@ -41,6 +43,62 @@ export function Members({
     } catch (err) {
       setError(message(err));
     }
+  }
+
+  const list = members.data?.members ?? [];
+  const owners = list.filter((m) => m.role === Role.OWNER).length;
+
+  // What changing someone's role means, asked before it's changed: most
+  // of all when owners give up their own.
+  async function changeRole(userId: string, who: string, from: Role, to: Role) {
+    if (to === from) return;
+    const self = userId === myId;
+    if (self && from === Role.OWNER && owners === 1) {
+      setError(
+        "You're the only owner. Make someone else an owner first, then change your own role.",
+      );
+      return;
+    }
+    const role = roleNames[to].toLowerCase();
+    const description = self
+      ? from === Role.OWNER
+        ? `You'll lose what only owners can do: billing, changing anyone's role, and deleting the org. You can't undo this yourself; another owner would have to make you an owner again.`
+        : `You'll ${to === Role.MEMBER ? "only have access to the servers you're given" : "lose what admins can do"}, and you can't undo this yourself.`
+      : to === Role.OWNER
+        ? `${who} gets everything you have: billing, changing anyone's role (yours too), and deleting the org.`
+        : `${from === Role.OWNER ? `${who} stops being an owner, so no more billing, roles, or deleting the org. ` : ""}${
+            to === Role.ADMIN
+              ? `As an admin they can manage every server and node and invite members.`
+              : `As a member they only get the servers they're given, on each server's Access tab.`
+          }`;
+    const ok = await ask.confirm({
+      title: self
+        ? `Make yourself ${article(role)} ${role}?`
+        : `Make ${who} ${article(role)} ${role}?`,
+      description,
+      confirm: `Make ${self ? "me" : "them"} ${article(role)} ${role}`,
+      destructive: self || to === Role.OWNER || from === Role.OWNER,
+    });
+    if (!ok) return;
+    await run(() => orgClient.setMemberRole({ orgId, userId, role: to }));
+  }
+
+  async function remove(userId: string, who: string) {
+    const self = userId === myId;
+    if (self && list.find((m) => m.userId === myId)?.role === Role.OWNER && owners === 1) {
+      setError("You're the only owner. Make someone else an owner before you leave.");
+      return;
+    }
+    const ok = await ask.confirm({
+      title: self ? "Leave the org?" : `Remove ${who}?`,
+      description: self
+        ? "You lose access to its servers and nodes at once. Someone in it would have to invite you back."
+        : `${who} loses access to the org's servers and nodes at once. You can invite them again later.`,
+      confirm: self ? "Leave" : "Remove",
+      destructive: true,
+    });
+    if (!ok) return;
+    await run(() => orgClient.removeMember({ orgId, userId }));
   }
 
   async function invite(e: FormEvent) {
@@ -76,15 +134,7 @@ export function Members({
                   <select
                     className="rounded-md border bg-background px-2 py-1 text-sm"
                     value={m.role}
-                    onChange={(e) =>
-                      run(() =>
-                        orgClient.setMemberRole({
-                          orgId,
-                          userId: m.userId,
-                          role: Number(e.target.value),
-                        }),
-                      )
-                    }
+                    onChange={(e) => changeRole(m.userId, m.email, m.role, Number(e.target.value))}
                   >
                     {roleOptions.map((r) => (
                       <option key={r} value={r}>
@@ -100,7 +150,7 @@ export function Members({
                     variant="ghost"
                     size="icon-sm"
                     aria-label={m.userId === myId ? "Leave the org" : `Remove ${m.email}`}
-                    onClick={() => run(() => orgClient.removeMember({ orgId, userId: m.userId }))}
+                    onClick={() => remove(m.userId, m.email)}
                   >
                     <Trash2 />
                   </Button>
@@ -168,4 +218,8 @@ export function Members({
       )}
     </div>
   );
+}
+
+function article(word: string): string {
+  return /^[aeiou]/.test(word) ? "an" : "a";
 }

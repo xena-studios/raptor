@@ -416,7 +416,8 @@ export function DeleteAccount({ email }: { email: string }) {
             <DialogHeader>
               <DialogTitle>Delete your account?</DialogTitle>
               <DialogDescription>
-                Type your email, <span className="font-medium">{email}</span>, to confirm.
+                Your passkeys and sign-ins go with it, and you leave every org. This can't be
+                undone. Type your email, <span className="font-medium">{email}</span>, to confirm.
               </DialogDescription>
             </DialogHeader>
             <Input

@@ -1,9 +1,11 @@
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { type FormEvent, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
+import { DetailList } from "@/components/page";
 import { useReauth } from "@/components/reauth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +14,35 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { Node } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
+import { dateOnly } from "@/lib/format";
 import { orgClient } from "@/lib/transport";
+
+// NodeDetails are the node's facts: its ID, for support and the machine's
+// own tools, and when it was linked. Its address stays on the Overview,
+// hidden until revealed.
+export function NodeDetails({ node }: { node: Node }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Details</CardTitle>
+        <CardDescription>About this node, for support and the machine's own tools.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <DetailList
+          rows={[
+            [
+              "Node ID",
+              <code key="id" className="break-all">
+                {node.id}
+              </code>,
+            ],
+            ["Linked", node.createdAt ? dateOnly(timestampDate(node.createdAt)) : "—"],
+          ]}
+        />
+      </CardContent>
+    </Card>
+  );
+}
 
 // NodeName renames a node (admins and owners).
 export function NodeName({
