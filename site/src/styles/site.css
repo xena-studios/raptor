@@ -1194,6 +1194,13 @@ footer .studio .xena {
   height: 0.75rem;
   width: auto;
 }
+/* The © line in xenastudios.co's label style. */
+footer .studio span {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .terminal .line {
