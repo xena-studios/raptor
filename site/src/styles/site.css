@@ -1177,6 +1177,30 @@ footer a {
 footer a:hover {
   color: var(--text);
 }
+/* The Xena Studios endorsement: its own row above the licence line and links. */
+footer .studio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  flex-basis: 100%;
+  margin: 0;
+}
+footer .studio a {
+  display: flex;
+  color: var(--text);
+}
+footer .studio .xena {
+  height: 0.75rem;
+  width: auto;
+}
+/* The © line in xenastudios.co's label style. */
+footer .studio span {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .terminal .line {
