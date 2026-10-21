@@ -189,7 +189,8 @@ export function NodeNetworks({
                         <span className="ml-2 text-xs text-muted-foreground">No internet</span>
                       )}
                     </TableCell>
-                    <TableCell>{h.driver}</TableCell>
+                    {/* Docker's "none" network reports its driver as "null". */}
+                    <TableCell>{h.driver === "null" ? "none" : h.driver}</TableCell>
                     <TableCell className="font-mono text-xs">
                       {h.subnets?.join(", ") || "—"}
                     </TableCell>

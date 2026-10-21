@@ -154,8 +154,11 @@ export function DetailList({ rows }: { rows: [string, ReactNode][] }) {
     <dl className="divide-y text-sm">
       {rows.map(([label, value]) => (
         <div key={label} className="flex items-baseline justify-between gap-4 py-2">
-          <dt className="text-muted-foreground">{label}</dt>
-          <dd className="min-w-0 truncate text-right">{value}</dd>
+          <dt className="shrink-0 text-muted-foreground">{label}</dt>
+          {/* IDs wrap rather than being cut off: they're there to be read. */}
+          <dd className="min-w-0 truncate text-right has-[code]:break-all has-[code]:whitespace-normal">
+            {value}
+          </dd>
         </div>
       ))}
     </dl>

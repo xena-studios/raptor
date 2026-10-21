@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@connectrpc/connect-query";
 import { Link, type LinkProps, useLocation, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import {
+  BookOpen,
   Building2,
   Check,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
   Gamepad2,
   Headset,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   type LucideIcon,
   Megaphone,
@@ -67,6 +69,7 @@ import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { useApiDown } from "@/lib/connection";
 import { roleNames } from "@/lib/format";
+import { discordUrl, docsUrl } from "@/lib/help";
 import { shortId } from "@/lib/ids";
 import { useOrgNodes, useOrgServers } from "@/lib/org-data";
 import { type ServerStatus, serverStatus } from "@/lib/servers";
@@ -666,6 +669,14 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
               <UserRound /> Account settings
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => window.open(docsUrl, "_blank", "noopener")}>
+              <BookOpen /> Docs
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.open(discordUrl, "_blank", "noopener")}>
+              <LifeBuoy /> Get help on Discord
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={async () => {
                 await signOut.mutateAsync({});

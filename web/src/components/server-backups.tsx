@@ -242,8 +242,8 @@ export function ServerBackups({
   return (
     <div className="flex flex-col gap-6">
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div className="space-y-1.5">
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-xs space-y-1.5">
             <CardTitle>Backups</CardTitle>
             <CardDescription>
               Copies of the server's files. Open one to look through it, restore the files you need,

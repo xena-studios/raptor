@@ -202,9 +202,9 @@ function Addons({
                 return (
                   <li key={f.name} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                     <Icon url={a?.project?.iconUrl} />
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 basis-40">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="truncate text-sm font-medium">
+                        <span className="min-w-0 truncate text-sm font-medium">
                           {a?.project?.title ?? f.name}
                         </span>
                         {a?.version && (
@@ -371,11 +371,14 @@ function Finder({
         {search.data && projects.length === 0 && (
           <p className="text-sm text-muted-foreground">Nothing matches.</p>
         )}
-        <ul className="grid gap-2 md:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {projects.map((p) => (
-            <li key={p.id} className="flex items-start gap-3 rounded-lg border p-3">
+            <li
+              key={p.id}
+              className="flex min-w-0 flex-wrap items-start gap-3 rounded-lg border p-3"
+            >
               <Icon url={p.iconUrl} />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-48">
                 <div className="flex items-center gap-1.5">
                   <a
                     href={p.url}

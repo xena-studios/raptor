@@ -73,7 +73,8 @@ function Overview() {
         title="Overview"
         description="Your nodes and servers at a glance."
         actions={
-          admin && (
+          admin &&
+          nodeList.length > 0 && (
             <Link
               to="/orgs/$orgId/servers/new"
               params={{ orgId }}
@@ -88,7 +89,7 @@ function Overview() {
         <EmptyState
           icon={SquareTerminal}
           title="No nodes yet"
-          description="Connect a machine to start running servers on it."
+          description="Run one command on a Linux machine you own or rent, and it's ready for servers in a few minutes. Your first node is free for its first month."
           action={
             admin && (
               <Link
@@ -248,7 +249,7 @@ function ServersCard({
   return (
     <Card className={className}>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1.5">
+        <div className="min-w-0 flex-1 basis-xs space-y-1.5">
           <CardTitle>Servers</CardTitle>
           <CardDescription>
             {live ? "What's running, and what each uses right now." : "What's running."}

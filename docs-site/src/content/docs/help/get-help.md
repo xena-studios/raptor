@@ -5,6 +5,8 @@ sidebar:
   order: 1
 ---
 
+In the app, your account menu (bottom left) links here and to Discord.
+
 ## Ask the community
 
 Raptor's [Discord server](https://discord.gg/HyUa3sRpeN) is where questions, bug reports, and requests go:

@@ -20,7 +20,7 @@ import {
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { isAdmin } from "@/lib/format";
 import { useIds } from "@/lib/ids";
-import { type OrgServer, useOrgServers } from "@/lib/org-data";
+import { type OrgServer, useOrgNodes, useOrgServers } from "@/lib/org-data";
 import { serverStatus } from "@/lib/servers";
 
 export const Route = createFileRoute("/orgs/$orgId/servers/")({
@@ -32,6 +32,9 @@ function Servers() {
   const orgs = useQuery(OrgService.method.listOrgs, {});
   const admin = isAdmin(orgs.data?.orgs.find((o) => o.id === orgId)?.role);
   const { servers, pending } = useOrgServers(orgId);
+  // Servers run on nodes: with none yet, connecting one comes first.
+  const nodes = useOrgNodes(orgId).data?.nodes;
+  const noNodes = nodes?.length === 0;
   const [query, setQuery] = useState("");
   const [view, setView] = useState<ListView>("grid");
   const q = query.trim().toLowerCase();
@@ -42,7 +45,7 @@ function Servers() {
       s.eggName.toLowerCase().includes(q) ||
       s.node.name.toLowerCase().includes(q),
   );
-  const deploy = admin && (
+  const deploy = admin && !noNodes && (
     <Link
       to="/orgs/$orgId/servers/new"
       params={{ orgId }}
@@ -61,12 +64,31 @@ function Servers() {
         actions={deploy}
       />
       {!pending && servers.length === 0 ? (
-        <EmptyState
-          icon={Server}
-          title="No servers yet"
-          description="Deploy one from the egg catalog onto one of your nodes."
-          action={deploy}
-        />
+        noNodes ? (
+          <EmptyState
+            icon={Server}
+            title="No servers yet"
+            description="Servers run on your own machines, so connect one first. Your first node is free for its first month."
+            action={
+              admin && (
+                <Link
+                  to="/orgs/$orgId/nodes/new"
+                  params={{ orgId }}
+                  className={buttonVariants({ size: "sm" })}
+                >
+                  <Plus /> Connect node
+                </Link>
+              )
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Server}
+            title="No servers yet"
+            description="Pick a game and Raptor installs it and starts it on one of your nodes."
+            action={deploy}
+          />
+        )
       ) : (
         <>
           <ListToolbar

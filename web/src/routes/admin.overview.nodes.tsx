@@ -66,7 +66,7 @@ function NodeInsights() {
       </div>
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1.5">
+          <div className="min-w-0 flex-1 basis-xs space-y-1.5">
             <CardTitle>Over time</CardTitle>
             <CardDescription>Counted every hour.</CardDescription>
           </div>

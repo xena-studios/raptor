@@ -128,7 +128,7 @@ function SupportSession() {
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1.5">
+            <div className="min-w-0 flex-1 basis-xs space-y-1.5">
               <CardTitle>Health</CardTitle>
               <CardDescription>
                 {h
@@ -286,7 +286,7 @@ function SupportSession() {
       {open && operate && (
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1.5">
+            <div className="min-w-0 flex-1 basis-xs space-y-1.5">
               <CardTitle>
                 {open.view === "console" ? "Console" : "Files"} ·{" "}
                 <span className="font-mono">{open.server.slice(-8)}</span>
@@ -339,7 +339,7 @@ function SupportSession() {
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1.5">
+          <div className="min-w-0 flex-1 basis-xs space-y-1.5">
             <CardTitle>Wings' log</CardTitle>
             <CardDescription>
               The last 300 lines of what Wings did, from the node's journal.

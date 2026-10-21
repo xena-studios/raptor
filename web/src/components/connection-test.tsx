@@ -12,6 +12,7 @@ import {
 import { type ReactNode, useState } from "react";
 
 import { Hidden } from "@/components/address";
+import { HelpLink } from "@/components/help-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type Cause, diagnose, type Inside, type Verdict } from "@/lib/connection-test";
@@ -78,10 +79,11 @@ export function ConnectionTest({
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1.5">
+        <div className="min-w-0 flex-1 basis-xs space-y-1.5">
           <CardTitle>Connection test</CardTitle>
           <CardDescription>
-            Checks from the internet whether players can reach this server, and if not, why.
+            Checks from the internet whether players can reach this server, and if not, why.{" "}
+            <HelpLink path="/help/players-cant-connect/">Players can't connect</HelpLink>
           </CardDescription>
         </div>
         <Button size="sm" disabled={test.isPending} onClick={() => test.mutate()}>
