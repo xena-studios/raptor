@@ -9,6 +9,8 @@ import type { APIRoute, GetStaticPaths } from "astro";
 import { getCollection, type CollectionEntry } from "astro:content";
 import satori from "satori";
 
+import { sections } from "../../sections";
+
 // DESIGN.md's colours as hex: resvg doesn't read oklch.
 const ink = "#0F0808";
 const bone = "#F5F0F0";
@@ -28,19 +30,6 @@ const logo = `data:image/svg+xml;base64,${Buffer.from(
     .replace("oklch(0.66 0.19 25)", red)
     .replace("oklch(0.96 0.005 25)", bone),
 ).toString("base64")}`;
-
-// The sidebar's group for each directory (astro.config.mjs).
-const sections: Record<string, string> = {
-  start: "Start here",
-  install: "Install",
-  servers: "Servers",
-  nodes: "Nodes",
-  team: "Team and account",
-  eggs: "Eggs",
-  cli: "Command line",
-  security: "Security",
-  help: "Help",
-};
 
 export const getStaticPaths = (async () => {
   const pages = await getCollection("docs");

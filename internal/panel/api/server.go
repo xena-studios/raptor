@@ -22,6 +22,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/commands"
+	"github.com/xena-studios/raptor/internal/panel/discord"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/live"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
@@ -80,6 +81,8 @@ type Config struct {
 	// ConsoleRecheck is how often live console streams check access again
 	// (default commands.ConsoleRecheck; shorter in tests).
 	ConsoleRecheck time.Duration
+	// Discord answers Raptor Bot's interactions (nil: the bot is off).
+	Discord http.Handler
 	// AppOrigin is the only origin browsers may call the API from
 	// (https://app.raptorpanel.net; http://localhost:5173 in development).
 	AppOrigin string
@@ -190,6 +193,10 @@ func Handler(cfg Config) http.Handler {
 	if cfg.Alerts != nil && cfg.Alerts.Alerts.Telegram != nil {
 		// The alerts bot's updates: from Telegram, with the webhook's secret.
 		mux.Handle("POST "+alerts.TelegramPath, http.MaxBytesHandler(cfg.Alerts.Alerts.Telegram, 1<<20))
+	}
+	if cfg.Discord != nil {
+		// Raptor Bot's slash commands and buttons: from Discord, signed.
+		mux.Handle("POST "+discord.InteractionsPath, cfg.Discord)
 	}
 	return mux
 }

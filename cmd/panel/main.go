@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -29,6 +30,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
+	"github.com/xena-studios/raptor/internal/panel/discord"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/machines"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
@@ -57,6 +59,10 @@ commands:
   rollout status|pause|resume|cancel
   staff add <email> admin|support   make an account Raptor staff (the only way)
   staff remove <email> | list
+  discord post link|tickets <channel-id> [message-id]
+                            post the "Link your Raptor account" or "Open a ticket"
+                            button to a channel on the Discord server (tickets:
+                            or add it to one of the bot's messages there)
   health                    exit 0 if this Panel answers /healthz (for Docker's health check)
   version                   print version
 
@@ -84,6 +90,14 @@ environment:
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
   PANEL_CLOUDFLARE_DNS_TOKEN   Cloudflare API token that can edit that zone's DNS
   PANEL_CLOUDFLARE_ZONE_ID     the zone's ID
+  PANEL_DISCORD_BOT_TOKEN      Raptor Bot's token; the bot is off without it. Its
+                               application should be PANEL_DISCORD_CLIENT_ID's
+  PANEL_DISCORD_PUBLIC_KEY     the application's public key (hex), which signs
+                               interactions (<PANEL_API_URL>/discord/interactions)
+  PANEL_DISCORD_GUILD_ID       the Discord server
+  PANEL_DISCORD_CUSTOMER_ROLE  the role the bot gives customers (and takes back)
+  PANEL_DISCORD_SUPPORT_ROLE   the role a new ticket pings (optional)
+  PANEL_DOCS_URL               the docs, for /docs (default https://docs.raptorpanel.net)
   PANEL_POLAR_TOKEN            Polar organization access token; billing is off without it
   PANEL_POLAR_PRODUCT_ID       the seat-based product ($12 per node a month)
   PANEL_POLAR_WEBHOOK_SECRET   the webhook endpoint's secret (whsec_…)
@@ -146,6 +160,25 @@ func run(args []string, log *slog.Logger) error {
 		}
 		defer pool.Close()
 		return staff.CLI(ctx, pool, os.Stdout, args[1:])
+	case (len(args) == 4 || len(args) == 5) && args[0] == "discord" && args[1] == "post":
+		bot, err := discordBot(nil, false, log)
+		if err != nil {
+			return err
+		}
+		if bot == nil {
+			return errors.New("PANEL_DISCORD_BOT_TOKEN is not set")
+		}
+		switch {
+		case args[2] == "link" && len(args) == 4:
+			return bot.PostLinkMessage(ctx, args[3])
+		case args[2] == "tickets":
+			msg := ""
+			if len(args) == 5 {
+				msg = args[4]
+			}
+			return bot.PostTicketMessage(ctx, args[3], msg)
+		}
+		return errors.New("usage: panel discord post link|tickets <channel-id> [message-id]")
 	case (len(args) == 2 || len(args) == 3) && args[0] == "join-token":
 		return withRegistry(ctx, func(r *nodes.Registry) error {
 			name := ""
@@ -277,6 +310,19 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		bill := billingService(pool, log)
 		cfg.Billing = bill
 		cfg.Orgs = &orgs.Service{DB: pool, Auth: cfg.Auth, Registry: reg, SFTPGate: gate, Storage: backupStorage, Keys: keys, Billing: bill, Log: log}
+		bot, err := discordBot(pool, bill.Enabled(), log)
+		if err != nil {
+			return err
+		}
+		if bot != nil {
+			// The Customer role follows links, members, and plans.
+			cfg.Discord = bot
+			cfg.Auth.LinksChanged = bot.Changed
+			cfg.Orgs.MembersChanged = bot.Changed
+			bill.PlanChanged = bot.Changed
+			go bot.Run(ctx, 15*time.Minute)
+			go bot.Online(ctx)
+		}
 		cfg.Commands = &commands.Service{Auth: cfg.Auth, Sender: router, Consoles: router, PanelKey: reg.PanelKey, Billing: bill}
 		cfg.Staff = &staff.Service{DB: pool, Auth: cfg.Auth, Log: log}
 		go cfg.Staff.RunStats(ctx)
@@ -401,6 +447,31 @@ func alertService(ctx context.Context, pool *pgxpool.Pool, a *auth.Service, node
 		}
 	}()
 	return s, nil
+}
+
+// discordBot is Raptor Bot on the Discord server (docs/PANEL.md#discord),
+// off unless its token is set; then the rest must be too.
+func discordBot(pool *pgxpool.Pool, billingOn bool, log *slog.Logger) (*discord.Bot, error) {
+	tok := os.Getenv("PANEL_DISCORD_BOT_TOKEN")
+	if tok == "" {
+		log.Warn("PANEL_DISCORD_BOT_TOKEN is not set: Raptor Bot is off")
+		return nil, nil
+	}
+	key, err := hex.DecodeString(os.Getenv("PANEL_DISCORD_PUBLIC_KEY"))
+	if err != nil || len(key) != ed25519.PublicKeySize {
+		return nil, errors.New("PANEL_DISCORD_PUBLIC_KEY must be the application's public key (64 hex characters) with PANEL_DISCORD_BOT_TOKEN")
+	}
+	b := &discord.Bot{
+		Token: tok, AppID: os.Getenv("PANEL_DISCORD_CLIENT_ID"), PublicKey: key,
+		GuildID: os.Getenv("PANEL_DISCORD_GUILD_ID"), CustomerRole: os.Getenv("PANEL_DISCORD_CUSTOMER_ROLE"),
+		SupportRole: os.Getenv("PANEL_DISCORD_SUPPORT_ROLE"),
+		Billing:     billingOn, AppURL: envOr("PANEL_APP_URL", "https://app.raptorpanel.net"),
+		DocsURL: os.Getenv("PANEL_DOCS_URL"), DB: pool, Log: log,
+	}
+	if b.GuildID == "" || b.CustomerRole == "" {
+		return nil, errors.New("PANEL_DISCORD_GUILD_ID and PANEL_DISCORD_CUSTOMER_ROLE must be set with PANEL_DISCORD_BOT_TOKEN")
+	}
+	return b, nil
 }
 
 // backupStorage is Raptor Backup Storage, offered when its B2 settings are

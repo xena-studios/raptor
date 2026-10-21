@@ -74,9 +74,10 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `Support bundles storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key` | [Below](#support-bundles). |
 | `Raptor Backup Storage` | `key_id`, `application_key`, `bucket_id`, `endpoint`, `region` | Optional: without it the Panel doesn't offer it. [Below](#raptor-backup-storage). |
 | `Grafana Cloud OTLP` | `endpoint`, `headers` | [Below](#monitoring). |
+| `Raptor Bot` | `token`, `public_key`, `guild_id`, `customer_role_id`, `support_role_id` | Optional: without it the bot is off. [Below](#discord). |
 | `Telegram alerts bot` | `token`, `webhook_secret` | Optional: without it the app doesn't offer Telegram alerts. In Telegram, message @BotFather: `/newbot`, a name (`Raptor Alerts`) and a username ending in `bot`; the token is what it answers. `webhook_secret`: `openssl rand -hex 32`. Then in @BotFather, `/setuserpic` with the logo and `/setdescription` ("Alerts from Raptor. Connect a chat from your org's settings, Alerts."). The Panel points the bot's webhook at itself when it starts. |
 
-The Google, Discord, `raptornodes.net` DNS, support bundle, Grafana, and Telegram items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
+The Google, Discord, Raptor Bot, `raptornodes.net` DNS, support bundle, Grafana, and Telegram items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
 
 Rotate anything that was ever pasted in a chat or a terminal history.
 
@@ -345,6 +346,22 @@ Billing is off until the Panel has Polar's token and product ([PANEL.md](PANEL.m
 Then check: an org's Billing page offers the free month; checkout lands back on it and the plan appears within seconds (the webhook) or 5 minutes (the sweep). The Panel logs `billing: subscription updated` when it changes seats.
 
 Orgs that already have nodes when billing turns on have 7 days to start a plan (they're emailed), then their nodes go read-only. Tell beta users before you turn it on.
+
+## Discord
+
+Raptor Bot on the Raptor Panel server ([PANEL.md](PANEL.md#discord)). It runs inside the Panel: nothing to host. Its application, **Raptor Bot** in the Discord Developer Portal, is also Discord sign-in's, so the `Discord OAuth` item is this application's ID and secret.
+
+1. **Developer Portal → Raptor Bot → General Information:** copy the **Public Key**. Set **Interactions Endpoint URL** to `https://api.raptorpanel.net/discord/interactions` *after* the Panel with the bot's settings is deployed: Discord checks it on save with a signed ping, and a bad one.
+2. **Bot:** **Server Members Intent** on (members joining); Message Content off. Reset the token if it was ever anywhere but 1Password.
+3. **OAuth2 → Redirects:** `https://api.raptorpanel.net/oauth/discord/callback` (sign-in, and linking). Copy the client secret.
+4. **On the server, the bot's role** ("Raptor Bot") without Administrator. It needs Manage Roles, View Channels, Send Messages, Send Messages in Threads, Create Private Threads, Manage Threads, Embed Links, and Read Message History, and must sit **above Customer** to give it. In Wick, whitelist the bot: a pass over the roles can change many at once.
+5. **The Customer role belongs to the bot from now on:** it takes Customer from anyone who isn't a linked owner or admin of an org with a plan, given by hand or not. Before the first deploy with the bot, check who has it.
+6. **The ticket channel** (`#🎫│open-a-ticket`): @everyone can View Channel, Read Message History, and Send Messages in Threads, but not Send Messages, Create Public Threads, or Create Private Threads. Support and Leadership get Manage Threads there (they see every ticket).
+7. 1Password item **Raptor Bot** in Raptor production: `token`, `public_key` (hex), `guild_id`, `customer_role_id`, and `support_role_id` (the role a new ticket pings). Item **Discord OAuth**: `client_id` (the application ID) and `client_secret`. The next deploy picks them up (`deploy/secrets/optional/discord-bot.env.tpl`, `discord-oauth.env.tpl`); then step 1's endpoint.
+8. **The buttons**, once, from server #1: `sudo docker compose -f /opt/raptor/deploy/primary/compose.yaml exec panel-a panel discord post tickets <channel-id> [message-id]` adds "Open a ticket" to the bot's message there (or posts one), and `… panel discord post link <channel-id>` posts "Link your Raptor account" (to #verify or #welcome). Copy IDs with Discord's Developer Mode on.
+9. Cloudflare: nothing to do. The "API: no challenges" WAF rule covers the whole API host, so Discord's requests aren't challenged, like Polar's; Discord gives up after 3 seconds.
+
+Then check: the bot shows online with "Type /docs to search the guide"; the logs say `discord: this instance holds the gateway` on one instance; `/docs backups` answers; `/link` on an unlinked account sends you to Settings; a test ticket opens a private thread and closes.
 
 ## Static sites
 

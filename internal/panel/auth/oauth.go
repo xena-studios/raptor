@@ -217,6 +217,9 @@ func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity)
 		_ = s.Audit(ctx, nil, Event{Action: "signin.failed", Meta: map[string]any{"method": provider, "reason": "unverified_email"}})
 	}
 	after()
+	if provider == "discord" {
+		s.linksChanged()
+	}
 	if linked != nil {
 		s.notify(ctx, *linked, providerNames[provider]+" sign-in was added to your Raptor account",
 			fmt.Sprintf("Someone signed in to your Raptor account with a %s account that has your verified email address, so it can now sign in to your account.\n\nIf this wasn't you, remove it from your account settings and sign out every device right away.\n", providerNames[provider]))
@@ -257,6 +260,7 @@ func (s *Service) oauthLink(ctx context.Context, provider string, session pgtype
 		return settings + "?error=oauth_failed"
 	}
 	_ = s.Audit(ctx, nil, Event{User: user.ID, Action: "oauth.link", Target: uuid.UUID(acct.ID.Bytes).String(), Meta: map[string]any{"provider": provider}})
+	s.linksChanged()
 	s.notify(ctx, user, providerNames[provider]+" sign-in was added to your Raptor account",
 		fmt.Sprintf("A %s account can now sign in to your Raptor account.\n\nIf this wasn't you, remove it from your account settings and sign out every device right away.\n", providerNames[provider]))
 	return settings + "?linked=" + url.QueryEscape(provider)
@@ -311,6 +315,7 @@ func (s *Service) UnlinkOAuthAccount(ctx context.Context, req *panelv1.UnlinkOAu
 		return nil, err
 	}
 	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "oauth.unlink", Target: req.GetId(), Meta: map[string]any{"provider": row.Provider}})
+	s.linksChanged()
 	s.notify(ctx, sess.User, providerNames[row.Provider]+" sign-in was removed from your Raptor account",
 		fmt.Sprintf("A %s account can no longer sign in to your Raptor account.\n\nIf this wasn't you, sign out every device from your account settings right away.\n", providerNames[row.Provider]))
 	return &panelv1.UnlinkOAuthAccountResponse{}, nil

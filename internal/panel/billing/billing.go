@@ -67,8 +67,11 @@ type Service struct {
 	// AppURL is the web app's origin, for the links back from Polar.
 	AppURL string
 	Mailer Mailer
-	Log    *slog.Logger
-	Now    func() time.Time
+	// PlanChanged is called after an org's subscription changes state: the
+	// Discord bot's Customer role follows plans (nil: nothing more).
+	PlanChanged func()
+	Log         *slog.Logger
+	Now         func() time.Time
 
 	// sessions are the customer sessions the Panel holds for the portal
 	// API, per org, until shortly before they run out.
@@ -467,6 +470,9 @@ func (s *Service) apply(ctx context.Context, sub *Subscription, why string) erro
 			kind = why
 		}
 		s.ledger(ctx, q, pgID(org), kind, seats, 0, "", sub.ID, map[string]any{"status": sub.Status})
+	}
+	if Live(cur.Status) != sub.Live() && s.PlanChanged != nil {
+		s.PlanChanged()
 	}
 	return nil
 }

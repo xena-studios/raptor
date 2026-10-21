@@ -147,10 +147,11 @@ func (s *Subscription) Org() string {
 // with a failed payment Polar is still retrying.
 func (s *Subscription) Live() bool { return Live(s.Status) }
 
+// LiveStatuses are the subscription statuses in force.
+var LiveStatuses = []string{"trialing", "active", "past_due"}
+
 // Live reports whether a subscription status is in force.
-func Live(status string) bool {
-	return status == "trialing" || status == "active" || status == "past_due"
-}
+func Live(status string) bool { return slices.Contains(LiveStatuses, status) }
 
 // Checkout starts a checkout for an org's subscription and returns its
 // URL.

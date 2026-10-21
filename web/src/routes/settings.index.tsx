@@ -4,20 +4,22 @@ import { Appearance, DeleteAccount, Details, Profile } from "@/components/accoun
 import { LinkedAccounts, linkErrors, providerNames } from "@/components/account/security";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-type Search = { linked?: string; error?: string };
+type Search = { linked?: string; error?: string; connect?: string };
 
 export const Route = createFileRoute("/settings/")({
   // Linking an account comes back here with how it went.
   validateSearch: (s: Record<string, unknown>): Search => ({
     linked: typeof s.linked === "string" ? s.linked : undefined,
     error: typeof s.error === "string" ? s.error : undefined,
+    // Raptor Bot's /link sends people here to connect Discord.
+    connect: typeof s.connect === "string" ? s.connect : undefined,
   }),
   component: General,
 });
 
 function General() {
   const { user } = Route.useRouteContext();
-  const { linked, error } = Route.useSearch();
+  const { linked, error, connect } = Route.useSearch();
   if (!user) return null;
   return (
     <div className="space-y-6">
@@ -25,6 +27,8 @@ function General() {
         <Alert>
           <AlertDescription>
             {providerNames[linked] ?? linked} can now sign in to your account.
+            {linked === "discord" &&
+              " On the Raptor Discord server, your roles follow your plan from now on: give it a minute."}
           </AlertDescription>
         </Alert>
       )}
@@ -35,7 +39,7 @@ function General() {
       )}
       <Profile key={`${user.name}/${user.email}`} user={user} />
       <Appearance />
-      <LinkedAccounts />
+      <LinkedAccounts highlight={linked ? undefined : connect} />
       <Details user={user} />
       <DeleteAccount email={user.email} />
     </div>

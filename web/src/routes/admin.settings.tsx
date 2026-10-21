@@ -92,6 +92,7 @@ const actionWords: Record<string, string> = {
   "staff.add": "made staff",
   "staff.remove": "removed from staff",
   "user.view": "opened the account",
+  "user.whois": "looked up the account on Discord (/whois)",
   "user.suspend": "suspended the account",
   "user.unsuspend": "lifted the account's suspension",
   "user.signout": "signed the account out everywhere",
