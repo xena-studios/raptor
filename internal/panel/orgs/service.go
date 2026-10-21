@@ -73,7 +73,17 @@ type Service struct {
 	Billing *billing.Service
 	// Machines keeps nodes' hostnames following their names (nil: off).
 	Machines *machines.Service
-	Log      *slog.Logger
+	// MembersChanged is called after someone joins or leaves an org, or
+	// their role changes, or an org is deleted: the Discord bot's Customer
+	// role follows owners and admins (nil: nothing more).
+	MembersChanged func()
+	Log            *slog.Logger
+}
+
+func (s *Service) membersChanged() {
+	if s.MembersChanged != nil {
+		s.MembersChanged()
+	}
 }
 
 var _ panelv1connect.OrgServiceHandler = (*Service)(nil)
@@ -316,6 +326,7 @@ func (s *Service) SetMemberRole(ctx context.Context, req *panelv1.SetMemberRoleR
 	if err != nil {
 		return nil, err
 	}
+	s.membersChanged()
 	return &panelv1.SetMemberRoleResponse{}, nil
 }
 
@@ -362,6 +373,7 @@ func (s *Service) RemoveMember(ctx context.Context, req *panelv1.RemoveMemberReq
 	if err != nil {
 		return nil, err
 	}
+	s.membersChanged()
 	return &panelv1.RemoveMemberResponse{}, nil
 }
 
@@ -413,6 +425,7 @@ func (s *Service) DeleteOrg(ctx context.Context, req *panelv1.DeleteOrgRequest) 
 	if err != nil {
 		return nil, err
 	}
+	s.membersChanged()
 	return &panelv1.DeleteOrgResponse{}, nil
 }
 
@@ -594,6 +607,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, req *panelv1.AcceptInvit
 	if err != nil {
 		return nil, err
 	}
+	s.membersChanged()
 	return &panelv1.AcceptInvitationResponse{Org: out}, nil
 }
 

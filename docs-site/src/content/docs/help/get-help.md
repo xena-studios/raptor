@@ -18,9 +18,23 @@ Raptor's [Discord server](https://discord.gg/HyUa3sRpeN) is where questions, bug
 - **📢 announcements** and **🚀 releases:** what's new, and when.
 - **🟢 status:** incidents and planned downtime for the app.
 
+Type `/docs` and what you're looking for in any channel, and Raptor Bot suggests pages from this guide as you type; pick one to post it.
+
+### Link your Raptor account
+
+Link the Discord account you use on the server to your Raptor account, and if you're an owner or admin of an org with a plan (the free month counts), you get the **Customer** role. Type `/link` on the server, or in the app open **Settings** and connect **Discord** under Connections. The role follows your plan from then on: it's added within a minute of a plan starting, and taken away when it ends or you unlink.
+
+A linked Discord account also signs you in to Raptor. To unlink it, disconnect Discord in **Settings**.
+
 ## Reach the Raptor team
 
-For anything about your account, your bill, or a specific node, use **🎫 open-a-ticket** on the Discord server: it's private between you and the team. Don't post join tokens, SFTP passwords, or your node's address in public channels.
+For anything about your account, your bill, a specific node, or moving from Pterodactyl, open a ticket on the Discord server:
+
+1. In **🎫 open-a-ticket**, press **Open a ticket**.
+2. Say what it's about and what's happening. If you have a [support code](#send-a-diagnostics-bundle), add it.
+3. Raptor Bot opens a private thread for you and the team. If your Raptor account is linked, the team sees your plan and nodes there, so you don't have to explain your setup.
+
+You can have one ticket open at a time, and open up to 3 a day. When it's sorted, press **Close ticket**; the thread stays, closed, and you can open another any time. Don't post join tokens, SFTP passwords, or your node's address in public channels.
 
 ### Send a diagnostics bundle
 

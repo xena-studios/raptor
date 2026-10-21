@@ -207,6 +207,7 @@ func (s *Service) DeleteAccount(ctx context.Context, _ *panelv1.DeleteAccountReq
 	if c, ok := callOf(ctx); ok {
 		setCookie(c.resp, "", 0)
 	}
+	s.linksChanged()
 	s.notify(ctx, sess.User, "Your Raptor account was deleted",
 		"Your Raptor account and everything that signed in to it were deleted. Signing in with this address again starts a new account.\n")
 	return &panelv1.DeleteAccountResponse{}, nil

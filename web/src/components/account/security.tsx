@@ -1,6 +1,7 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "cn";
 import {
   Activity,
   KeyRound,
@@ -476,7 +477,9 @@ export function Authenticator() {
   );
 }
 
-export function LinkedAccounts() {
+// highlight is a provider someone was sent here to connect (Raptor Bot's
+// /link sends people to connect Discord).
+export function LinkedAccounts({ highlight }: { highlight?: string }) {
   const methods = useQuery(AuthService.method.getSignInMethods, {});
   const list = useQuery(AuthService.method.listOAuthAccounts, {});
   const ask = useConfirm();
@@ -485,6 +488,13 @@ export function LinkedAccounts() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const accounts = list.data?.accounts ?? [];
+  const loaded = list.data !== undefined;
+  // Brought into view once, for whoever was sent here to connect it.
+  useEffect(() => {
+    if (highlight && loaded) {
+      document.getElementById(`connect-${highlight}`)?.scrollIntoView({ block: "center" });
+    }
+  }, [highlight, loaded]);
   // Every provider this Panel offers, and any linked one it no longer does.
   const providers = [
     ...new Set([...(methods.data?.oauthProviders ?? []), ...accounts.map((a) => a.provider)]),
@@ -514,10 +524,16 @@ export function LinkedAccounts() {
           {providers.map((p) => {
             const linked = accounts.find((a) => a.provider === p);
             const name = providerNames[p] ?? p;
+            const asked = highlight === p && !linked;
             return (
               <div
                 key={p}
-                className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                id={`connect-${p}`}
+                className={cn(
+                  "flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0",
+                  asked &&
+                    "-mx-3 rounded-md bg-primary/5 px-3 ring-1 ring-primary/40 first:pt-3 last:pb-3",
+                )}
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <ProviderIcon provider={p} className="size-5 shrink-0" />
@@ -526,6 +542,12 @@ export function LinkedAccounts() {
                     <p className="truncate text-xs text-muted-foreground">
                       {linked ? linked.email || "Connected" : "Not connected"}
                     </p>
+                    {asked && p === "discord" && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Connect the Discord account you use on the Raptor server. Owners and admins
+                        of an org with a plan get the Customer role there.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
@@ -563,7 +585,7 @@ export function LinkedAccounts() {
                   ) : (
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant={asked ? "default" : "outline"}
                       disabled={busy !== "" || !methods.data?.oauthProviders.includes(p)}
                       onClick={() =>
                         run(p, async () => {

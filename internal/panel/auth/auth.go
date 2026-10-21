@@ -51,8 +51,18 @@ type Service struct {
 	// OAuth are the providers people can sign in with, by name ("google",
 	// "github", "discord").
 	OAuth map[string]OAuthProvider
-	Log   *slog.Logger
-	Now   func() time.Time
+	// LinksChanged is called after a linked account is added or removed, or
+	// an account is deleted: the Discord bot's roles follow links (nil:
+	// nothing more).
+	LinksChanged func()
+	Log          *slog.Logger
+	Now          func() time.Time
+}
+
+func (s *Service) linksChanged() {
+	if s.LinksChanged != nil {
+		s.LinksChanged()
+	}
 }
 
 func (s *Service) q() *store.Queries { return store.New(s.DB) }

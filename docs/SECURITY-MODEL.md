@@ -161,6 +161,7 @@ Even if every one of these failed, each malicious action would still need a real
 - Postgres row-level security by `org_id`, in addition to application checks.
 - Rate limiting on auth, join-token creation, alert changes and tests, and bundle uploads.
 - **Alert channels can't reach the Panel's network:** webhook, ntfy, Discord, and Slack requests connect only to public addresses, checked per connection, with no redirects or proxy (DECISIONS #272). Their URLs and secrets are sealed with `PANEL_DATA_KEY`. Email alerts go only to members of the org. Telegram's webhook takes updates only with its secret token.
+- **Raptor Bot** (Discord) runs in the Panel, so the Panel holds its token: the bot's role on the server has only what it uses (roles, threads, messages), never Administrator, so a compromised Panel can't take over the Discord server. Its interactions are checked against the application's public key and refused if older than 5 minutes. `/whois` answers only Raptor staff, by their linked Raptor accounts, only to them, and goes in the staff log; ticket threads are private, and nothing the bot posts pings anyone but a ticket's opener and Support (docs/PANEL.md#discord).
 - Scoped API keys (later).
 - Full audit log for every mutating action.
 
