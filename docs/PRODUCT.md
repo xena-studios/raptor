@@ -121,8 +121,12 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 | Disk limits | Soft, scan-based | Kernel-enforced, instant |
 | Backups | Full copies | Incremental, deduplicated, encrypted |
 | "Players can't connect" | You figure it out | Built-in connection test with provider guides |
+| Plugins, mods, Workshop, egg changer, SFTP importer, database browser, alerts | Paid add-ons (about $75 for one panel, October 2026) | Built in |
+| Help | Community volunteers | The Raptor team: tickets, migration help, approved support access |
 | Eggs | ✓ | ✓ fully compatible |
 | License | MIT / AGPL | AGPL |
+
+**Positioning:** the landing page leads with Pterodactyl ("Pterodactyl had a good run."), because Pterodactyl owners are who Raptor is for. The comparison stays honest: real add-on prices with sources, the year-one cost, and, in the docs (`start/raptor-vs-pterodactyl`), the years after and the cases where Pterodactyl is the better pick. The page never calls Pterodactyl dead or bad; it shows what running it takes.
 
 ## Security principles
 

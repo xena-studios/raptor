@@ -15,7 +15,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Raptor Docs",
-      description: "Run game servers on your own machines, managed from one place.",
+      description: "Pterodactyl had a good run. Run game servers on your own machines, with no panel to host.",
       // The full logo (the raptor is never without the wordmark,
       // docs/DESIGN.md#7-brand), with "Docs" after it from theme.css.
       logo: { dark: "./src/assets/logo-dark.svg", light: "./src/assets/logo-light.svg", replacesTitle: true },
