@@ -234,7 +234,8 @@ export function DeleteOrg({ org }: { org: Org }) {
             <DialogHeader>
               <DialogTitle>Delete {org.name}?</DialogTitle>
               <DialogDescription>
-                Type its name, <span className="font-medium">{org.name}</span>, to confirm.
+                Everyone is taken out of it, with its invitations and join tokens. This can't be
+                undone. Type its name, <span className="font-medium">{org.name}</span>, to confirm.
               </DialogDescription>
             </DialogHeader>
             <Input

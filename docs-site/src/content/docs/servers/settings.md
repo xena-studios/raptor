@@ -70,7 +70,7 @@ The server must be stopped, and you type its name to confirm.
 
 ## Details
 
-**Details** on **Settings** shows the server's ID and its short ID (what `raptor ps` on the machine shows), for support and the [raptor command](/cli/reference/).
+**Details** on **Settings** shows the server's ID, for support and the [raptor command](/cli/reference/), with its node and game.
 
 ## Move to another disk
 

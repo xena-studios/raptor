@@ -127,7 +127,8 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
           <DialogHeader>
             <DialogTitle>Confirm it's you</DialogTitle>
             <DialogDescription>
-              This changes how your account is secured, so it needs a fresh confirmation.
+              This is a sensitive change, so it asks again if you haven't confirmed in the last few
+              minutes.
             </DialogDescription>
           </DialogHeader>
           {error && (

@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
-import { shortId } from "@/lib/ids";
 import { behaviorOf, changesCode, type ServerConfig, seconds, updateParams } from "@/lib/servers";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
@@ -47,8 +46,8 @@ const sectionText: Record<SettingsSection, { title: string; description: string 
 // ServerSettings changes one section of a server's settings (server.update;
 // a new runtime is signed by the user's passkey), and on the general one
 // reinstalls it.
-// ServerDetails are the server's facts: its IDs, as support and the
-// raptor command on the machine use them.
+// ServerDetails are the server's facts: its ID, for support and the
+// raptor command on the machine, its node, and its game.
 export function ServerDetails({
   id,
   nodeName,
@@ -63,8 +62,7 @@ export function ServerDetails({
       <CardHeader>
         <CardTitle>Details</CardTitle>
         <CardDescription>
-          About this server. The short ID is what <code>raptor ps</code> on the machine and the
-          app's links show.
+          About this server, for support and the machine's own tools.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -76,7 +74,6 @@ export function ServerDetails({
                 {id}
               </code>,
             ],
-            ["Short ID", <code key="short">{shortId(id)}</code>],
             ["Node", nodeName || "—"],
             ["Game", game || "—"],
           ]}
