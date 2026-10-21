@@ -76,7 +76,7 @@ function NodeOverview() {
         {showLive ? (
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-              <div className="space-y-1.5">
+              <div className="min-w-0 flex-1 basis-xs space-y-1.5">
                 <CardTitle>Resources</CardTitle>
                 <CardDescription>
                   The whole machine: Raptor, its servers, and the rest.
@@ -154,12 +154,6 @@ function NodeOverview() {
                   ],
                   ["Last seen", node.connected ? "Now" : since(node.lastSeenAt)],
                   ["Linked", when(node.createdAt)],
-                  [
-                    "Node ID",
-                    <code key="id" className="break-all">
-                      {node.id}
-                    </code>,
-                  ],
                 ]}
               />
             )}
