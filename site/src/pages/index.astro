@@ -3,6 +3,7 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import Logo from "../components/Logo.astro";
 import Screen from "../components/Screen.astro";
+import XenaLogo from "../components/XenaLogo.astro";
 import "../styles/site.css";
 
 const app = "https://app.raptorpanel.net";
@@ -618,6 +619,10 @@ const faq: [string, string][] = [
 
     <footer>
       <div class="wrap">
+        <p class="studio">
+          <a href="https://xenastudios.co" aria-label="Xena Studios"><XenaLogo /></a>
+          <span>© {new Date().getFullYear()} Xena Studios</span>
+        </p>
         <span>Raptor is open source under the AGPL-3.0. Pterodactyl is a trademark of its owners; Raptor isn't affiliated with it.</span>
         <nav aria-label="Footer">
           <a href={docs}>Docs</a>

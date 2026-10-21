@@ -1,0 +1,15 @@
+---
+// The XENA STUDIOS logo, copied from xena-studios/brand (logo/xena-studios.svg)
+// and inlined so it inherits currentColor. Cropped to its ink: the brand export
+// carries half a cap height of clear space. Ethnocentric is outlined in the
+// file; never set it as live text.
+import raw from "../assets/xena-studios.svg?raw";
+
+const [, w, h] = raw.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/)!;
+const pad = 50;
+const svg = raw
+  .replace(/ width="[^"]*" height="[^"]*"/, "")
+  .replace(/viewBox="[^"]*"/, `viewBox="${pad} ${pad} ${+w - pad * 2} ${+h - pad * 2}" class="xena" aria-hidden="true"`)
+  .replace(/fill="#[0-9A-Fa-f]{6}"/g, 'fill="currentColor"');
+---
+<Fragment set:html={svg} />
