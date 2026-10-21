@@ -42,6 +42,8 @@ export default defineConfig({
       editLink: { baseUrl: "https://github.com/xena-studios/raptor/edit/main/docs-site/" },
       lastUpdated: true,
       plugins: [starlightLinksValidator()],
+      // Each page's social card (src/pages/og/).
+      routeMiddleware: "./src/routeData.ts",
       sidebar: [
         { label: "Start here", items: [{ autogenerate: { directory: "start" } }] },
         { label: "Install", items: [{ autogenerate: { directory: "install" } }] },

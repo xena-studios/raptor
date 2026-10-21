@@ -37,7 +37,7 @@ export function AuthLayout({
         <Brand className="flex w-fit items-center gap-3" />
         <div className="flex max-w-md flex-col gap-8">
           <p className="font-heading text-2xl leading-snug font-semibold tracking-tight text-balance">
-            Game servers on your own machines, run from one place.
+            Pterodactyl had <span className="whitespace-nowrap text-primary">a good run.</span>
           </p>
           <ul className="flex flex-col border-t">
             {promises.map((p) => (
