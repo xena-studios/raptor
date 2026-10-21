@@ -1,6 +1,6 @@
 module github.com/xena-studios/raptor
 
-go 1.27.2
+go 1.27.3
 
 require (
 	aead.dev/minisign v0.3.0
