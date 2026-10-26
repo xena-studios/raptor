@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in the Panel, Wings, or the raptor command doesn't work as the docs say it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. For a security problem, don't use this form: see [SECURITY.md](https://github.com/xena-studios/raptor/blob/main/SECURITY.md). Anything about your account or billing goes in a ticket on [Discord](https://discord.gg/HyUa3sRpeN), since issues are public.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Where
+      options:
+        - The Panel (app.raptorpanel.net)
+        - Wings (on the node)
+        - The raptor command or the install script
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Raptor version on the node
+      description: From `raptor version`.
+      placeholder: "v0.10.0"
+  - type: input
+    id: os
+    attributes:
+      label: Node's OS and architecture
+      description: For Wings and install problems.
+      placeholder: "Debian 13, amd64"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest way to make it happen, if you know one.
+      placeholder: |
+        1. Open a server's Files tab
+        2. ...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Errors and logs
+      description: The error the app showed, the server's console, or `raptor doctor`'s output. Remove anything private, such as addresses and passwords.
+      render: text
