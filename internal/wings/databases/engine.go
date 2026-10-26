@@ -3,6 +3,7 @@ package databases
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/netip"
 	"path/filepath"
@@ -361,7 +362,16 @@ func dropUser(ctx context.Context, db *sql.DB, user string) error {
 	return nil
 }
 
-// ping checks an instance answers.
+// errInitializing is a SQL engine's first start still running its
+// temporary server.
+var errInitializing = errors.New("it's still setting up its data folder")
+
+// ping checks an instance answers. On a first start the images' entrypoints
+// run a temporary server on the same socket to set the root password, then
+// stop it and start the real one; it takes connections only on the socket
+// (MariaDB and MySQL with skip-networking, PostgreSQL with no
+// listen_addresses), so a server that isn't on the network yet isn't
+// counted, or the next connection could find no socket at all.
 func ping(ctx context.Context, in Instance, dir, rootPassword string) error {
 	switch in.Engine {
 	case Redis:
@@ -374,7 +384,28 @@ func ping(ctx context.Context, in Instance, dir, rootPassword string) error {
 		return err
 	}
 	defer func() { _ = db.Close() }()
-	return db.PingContext(ctx)
+	return checkNetworked(ctx, db, in.Engine)
+}
+
+func checkNetworked(ctx context.Context, db *sql.DB, engine string) error {
+	if engine == Postgres {
+		var listen string
+		if err := db.QueryRowContext(ctx, "SHOW listen_addresses").Scan(&listen); err != nil {
+			return err
+		}
+		if strings.TrimSpace(listen) == "" {
+			return errInitializing
+		}
+		return nil
+	}
+	var skip int
+	if err := db.QueryRowContext(ctx, "SELECT @@skip_networking").Scan(&skip); err != nil {
+		return err
+	}
+	if skip != 0 {
+		return errInitializing
+	}
+	return nil
 }
 
 func exec(ctx context.Context, db *sql.DB, stmts ...string) error {
