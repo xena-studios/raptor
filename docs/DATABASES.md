@@ -197,6 +197,7 @@ Results travel through the Panel like the file manager's do (encrypted, not stor
 ## Health and alerts
 
 - Each instance's state (running, starting, stopped, upgrading, failed), uptime, connections, queries per second, and size, sampled with the node's metrics.
+- An instance is **running** once it answers on its socket as the real server. On a first start the images' entrypoints run a temporary server on the same socket (MariaDB and MySQL with `skip-networking`, PostgreSQL with no `listen_addresses`) to set the root password; until that one is gone, the instance is still starting, so nothing connects in the gap before the real server opens its socket.
 - New alert conditions: an instance down or restarting, near its disk limit, near its connection limit, and a version change finished or failed. Not built yet; a version change's outcome shows on the instance.
 - `raptor doctor` checks each instance is running and reachable on its network, and `raptor db ps` on the node lists them.
 
