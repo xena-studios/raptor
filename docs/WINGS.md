@@ -41,6 +41,15 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 | Container labels | `raptor.wings.managed=true`, `raptor.wings.server=<id>`, `raptor.wings.node=<id>` (once linked), `raptor.wings.role=server\|install`. Networks carry `raptor.wings.managed=true`. |
 | Firewall | nftables table `inet raptor` (see [Firewall](#firewall)) |
 
+### Uninstall
+
+`raptor uninstall` (root) undoes the footprint above, in order: it stops every server gracefully (`systemctl stop raptor-shutdown`, which runs `raptor wings shutdown-servers` while Wings is still up), disables and removes both services and the scope drop-in, stops and removes every container and network labelled `raptor.wings.managed=true`, releases the hold on Docker's packages, deletes the `inet raptor` table and the `RAPTOR-BETWEEN` chains and their jumps, and unmounts the volume and data disks and removes their units (every mount unit Wings writes says `Written by Wings.`). Last, once everything else worked, it removes the command (`/usr/local/lib/raptor` and the link), the config and node keys (`/etc/raptor`), and `/run/raptor`.
+
+- **Kept:** `/var/lib/raptor` (state, the volume image with every server's files, local backups, database instances' data), `/var/log/raptor`, the `raptor` user, data disks' contents, Docker and `daemon.json`. Backup destinations' repository passwords are in `state.db`, so the backups stay restorable.
+- **`-wipe-data`** also deletes the state, volume, backup, temporary, and log directories, the volume image, and the `raptor` user and group. Anything still mounted inside them is skipped, so a disk that didn't unmount never loses its files. Data disks are unmounted, never wiped.
+- **Guards:** it asks first (`y`, or typing `delete` with `-wipe-data`; `-yes` skips that, and without a terminal it's required). It only deletes directories inside one named `raptor`, so a config pointing at `/srv` can't take the system with it. A failed step is reported and the rest carry on; while anything failed, the command and its config stay so it can be run again.
+- It doesn't tell the Panel: removing the node in the app is what stops billing, and the prompt says so while the node is linked.
+
 ### Coexistence with Pterodactyl's Wings
 - Different binary, service, paths, network, subnet, labels, and user. No shared resources.
 - Wings **only lists and manages containers labeled `raptor.wings.managed=true`**. It never prunes or touches others. If a container or network with one of Wings' names exists without the label, Wings refuses to touch it and reports an error instead.
@@ -465,6 +474,7 @@ raptor doctor [-json] [-bundle] [-upload]   diagnose + fix suggestions; support 
 raptor bootstrap -token …             set up this box as a node and link it (root)
 raptor update [-check] [-version v]   update Wings (root; -check for anyone)
 raptor link --token … | unlink | relink
+raptor uninstall [-wipe-data] [-yes]   take Raptor off the box (root); data stays unless -wipe-data
 raptor ps [-json]                     servers: short ID, state, CPU, memory, disk, address, uptime
 raptor start|stop|restart|kill <server>   (root) stop waits for the egg's clean shutdown
 raptor console <server>               live console; typed or piped lines are sent as commands (root)
@@ -480,7 +490,7 @@ raptor import pterodactyl             migrate servers from Pterodactyl Wings
 raptor tui                            servers, stats, history graphs, console; power, backup, and command keys (root)
 ```
 
-Plus `version`, and `wings run|shutdown-servers` (used by the systemd units) and `wings backup-worker` (started by Wings for each backup operation). Not built yet: `raptor uninstall` and a `jobs` command ([ROADMAP.md](ROADMAP.md#backlog)).
+Plus `version`, and `wings run|shutdown-servers` (used by the systemd units) and `wings backup-worker` (started by Wings for each backup operation). Not built yet: a `jobs` command ([ROADMAP.md](ROADMAP.md#backlog)).
 
 - **`<server>`** is a server's full ID, its **short ID** (the ID's last part, 12 characters, shown by `ps` and in the Panel's URLs; the last 8 still work; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).

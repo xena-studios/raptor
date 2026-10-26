@@ -75,6 +75,7 @@ Power actions and commands from here are recorded in the server's activity, as d
 | `sudo raptor link -token rpt_join_…` | Link an already set-up machine with a join token |
 | `sudo raptor relink -token rpt_join_…` | Link again as the same node, after it was removed or its key revoked |
 | `sudo raptor unlink` | Stop connecting to the Panel. Servers keep running |
+| `sudo raptor uninstall [-wipe-data]` | Take Raptor off the machine. Server files, backups, and databases stay unless `-wipe-data` ([Leaving Raptor](/help/faq/#how-do-i-leave-raptor)) |
 
 ## Support and moving in
 
