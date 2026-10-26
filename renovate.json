@@ -1,0 +1,14 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["local>xena-studios/.github:renovate-config"],
+  "description": "Every commit needs a DCO sign-off (scripts/check-dco.sh), Renovate's included.",
+  "commitBody": "Signed-off-by: {{{gitAuthor}}}",
+  "packageRules": [
+    {
+      "description": "Third-party actions run with the release jobs' token and deploy key, so they're pinned to a commit (a tag can be moved); Renovate keeps the pins current. GitHub's own actions stay on tags. DECISIONS #326.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["!actions/**", "!github/**"],
+      "pinDigests": true
+    }
+  ]
+}
