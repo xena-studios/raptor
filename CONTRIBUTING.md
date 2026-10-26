@@ -137,7 +137,7 @@ Since every stable release goes live, Panel migrations must work with the versio
 
 ## Pull requests
 
-`main` is protected. Every change lands through a pull request, and the CI jobs must pass (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, and `pr` are required; `site`, `docs`, and `deploy` run on every PR too). A bug fix comes with a test that fails without it. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use conventional commit titles (`feat:`, `fix:`, `docs:`, …).
+`main` is protected. Every change lands through a pull request, and the CI jobs must pass (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, and `pr` are required; `site`, `docs`, `deploy`, and CodeQL run on every PR too). Third-party actions are pinned to a commit, and Renovate keeps the pins current; GitHub's own actions stay on tags. A bug fix comes with a test that fails without it. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use conventional commit titles (`feat:`, `fix:`, `docs:`, …).
 
 ## Ground rules
 

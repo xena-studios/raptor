@@ -1,0 +1,57 @@
+name: CodeQL
+
+# Code scanning: Go (traced through a real build, for the most accurate
+# dataflow), the web app, landing page, and docs site's TypeScript, and the
+# workflows (the release jobs push images and deploy). Findings show on pull
+# requests and in the Security tab; it's not a required check. Dependencies are
+# Renovate's and the security job's (task check:vuln).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, for new queries against unchanged code.
+    - cron: "0 7 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    permissions:
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: go
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v5
+      - if: matrix.build-mode == 'manual'
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+      # Generated code is committed (task check:gen), so a plain build compiles
+      # every package CodeQL needs to see.
+      - if: matrix.build-mode == 'manual'
+        run: go build ./...
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
