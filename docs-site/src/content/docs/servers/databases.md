@@ -28,6 +28,19 @@ data:
 
 The host is a name, like `community-a-mariadb.db.raptor`, that works from the node's servers. It stays the same even if the instance moves to another address.
 
+### MySQL 8 and newer
+
+Plugins on the node connect without TLS, and MySQL 8 then makes the client fetch the server's key before it can sign in. Plugins that use MySQL's Java driver fail with **"Public Key Retrieval is not allowed"** unless you allow it. In LuckPerms, add it under `pool-settings` → `properties`:
+
+```yaml
+    properties:
+      useUnicode: true
+      characterEncoding: utf8
+      allowPublicKeyRetrieval: true
+```
+
+Other plugins take the same setting as `allowPublicKeyRetrieval=true` at the end of their JDBC URL. For the `mysql` client, add `--get-server-public-key`. MariaDB and PostgreSQL don't need this.
+
 ## From outside
 
 If an admin gave the database's instance [external access](/nodes/databases/#reach-an-instance-from-outside), its row also shows its address **from outside**, and a link to its certificate. Only the addresses the admin listed can connect there, with TLS.

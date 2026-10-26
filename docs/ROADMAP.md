@@ -88,7 +88,6 @@ Calls only the owner can make; each has a recommendation.
 - **Readers of a SQL database** use the database's own user inside a read-only transaction (#309); switching them to the read-only users would be stronger.
 - **Advanced engine settings:** the `name = value` lines checked against a safe list aren't built; only the common settings are fields.
 - **`raptor doctor`** doesn't check networks or instances yet, and there's no `raptor db ps`.
-- **MySQL 8 without TLS:** clients connecting in plain text must fetch the server's key (`allowPublicKeyRetrieval=true` for JDBC, `--get-server-public-key` for `mysql`); the docs should say so for plugin setups.
 - **Patch updates** wait while an instance can still go back from a version change (#315), up to 7 days.
 - **MongoDB 8.0+ on Linux 6.19+** is held back until MongoDB fixes SERVER-121912 (#323): watch for images that start, then drop the check in `versions.go` and bump the digests. Ubuntu 26.04 and newer cloud kernels are 6.19+.
 
