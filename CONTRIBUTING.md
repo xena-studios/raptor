@@ -51,6 +51,8 @@ To sign in to the dev Panel, open http://localhost:5173 and ask for a code, then
 
 Generated code is committed. After changing anything in `proto/`, `db/`, or `web/src/routes/`, run `task gen` and commit the result.
 
+The `raptor` command's usage is made from the list in `cmd/raptor/commands.go`. A new command goes there and on the docs site's [reference](docs-site/src/content/docs/cli/reference.md); tests fail if the list, the dispatcher in `main.go`, and that page disagree.
+
 ### Running Wings
 
 Wings only runs on Linux. For development it runs in a Debian 12 VM:

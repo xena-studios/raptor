@@ -483,6 +483,7 @@ raptor backup list [<server>]         backups of a server, or all (with deleted 
 raptor backup create <server> [-lock]  (root) back up now; waits and prints size and new data
 raptor backup restore <server> <id>   (root) asks for the server's name first (or -yes); safety backup first
 raptor storage status|setup|grow        volume state; create the image volume; grow it online
+raptor storage disks|add-disk|grow-disk  the machine's disks; add an empty one; grow one online
 raptor support status|revoke|off|on  see / end staff access, or turn it off
 raptor keys list|reset                trusted passkeys for signed actions; reset = re-pair from the box
 raptor audit                          signed dangerous actions, from the node's own records
@@ -490,7 +491,7 @@ raptor import pterodactyl             migrate servers from Pterodactyl Wings
 raptor tui                            servers, stats, history graphs, console; power, backup, and command keys (root)
 ```
 
-Plus `version`, and `wings run|shutdown-servers` (used by the systemd units) and `wings backup-worker` (started by Wings for each backup operation). Not built yet: a `jobs` command ([ROADMAP.md](ROADMAP.md#backlog)).
+The list that makes `raptor`'s usage is `cmd/raptor/commands.go`; tests check it against the dispatcher and the docs site's reference page. Plus `version`, and `wings run|shutdown-servers` (used by the systemd units) and `wings backup-worker` (started by Wings for each backup operation). Not built yet: a `jobs` command ([ROADMAP.md](ROADMAP.md#backlog)).
 
 - **`<server>`** is a server's full ID, its **short ID** (the ID's last part, 12 characters, shown by `ps` and in the Panel's URLs; the last 8 still work; UUIDv7 IDs start with a timestamp that servers created together share, so their ends are used), or its exact name. A name that matches several servers is refused with their IDs.
 - **`console`**: shows the history, then live output. On a terminal each line typed is sent as a command, and Ctrl-C or Ctrl-D detaches (the server keeps running). With piped input (`echo "say hi" | raptor console srv`) each line is sent, and it detaches 2 seconds after the last one, so the reply is shown. The same limits as the Panel apply (4 KiB, no line breaks, 10 commands per second per user).
