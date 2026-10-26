@@ -66,6 +66,9 @@ Power actions and commands from here are recorded in the server's activity, as d
 | `raptor storage status` | The server data volume: its kind, size, and how full it is |
 | `sudo raptor storage setup` | Create the data volume, if the installer didn't |
 | `sudo raptor storage grow -size 200GiB` | Grow an image volume, while servers run |
+| `raptor storage disks` | The machine's disks, and what each is used for |
+| `sudo raptor storage add-disk -device /dev/sdb` | Format an empty disk and use it for servers (or `-role backups`). The node's **Disks** tab does the same |
+| `sudo raptor storage grow-disk -id <id>` | Grow a data disk's filesystem after you made the disk bigger, while servers run |
 
 ## Linking
 
@@ -81,9 +84,9 @@ Power actions and commands from here are recorded in the server's activity, as d
 
 | Command | Does |
 |---|---|
-| `raptor support` | Whether Raptor's staff have access to this node, and until when |
+| `raptor support status` | Whether Raptor's staff have access to this node, and until when |
 | `sudo raptor support revoke <id>\|all` | End their access now |
-| `sudo raptor support off` / `on` | Refuse all support access, or allow requests again |
+| `sudo raptor support off` / `sudo raptor support on` | Refuse all support access, or allow requests again |
 | `sudo raptor import pterodactyl -key ptla_…` | Move servers from Pterodactyl on this machine. See [Move from Pterodactyl](/install/from-pterodactyl/) |
 
 Run `raptor <command> -h` for every flag a command takes.

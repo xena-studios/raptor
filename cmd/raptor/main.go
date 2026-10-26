@@ -24,71 +24,14 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/update"
 )
 
-const usage = `usage: raptor <command> [flags]
-
-commands:
-  status      show node status (talks to the running daemon)
-  bootstrap -token <rpt_join_…> [-storage image|disk|soft] [-size s] [-yes]
-              set up this box as a node and link it (root): Docker, the
-              raptor user, services, the server data volume, then link
-  link -token <rpt_join_…> [-panel url]
-              link this node to the Panel with a join token (root); Wings
-              restarts and connects, servers keep running
-  relink -token <rpt_join_…> [-node id]
-              link again as the same node, with a new key (its key was
-              revoked, or it was removed or unlinked) (root)
-  unlink [-yes]
-              stop connecting to the Panel; servers keep running (root)
-  uninstall [-wipe-data] [-yes]
-              take Raptor off this machine: stop the servers gracefully and
-              remove its services, containers, networks, firewall rules,
-              mounts, and this command (root); server files, backups, and
-              databases stay in /var/lib/raptor unless -wipe-data
-  ps          list servers with their state and resource usage
-  start|stop|restart|kill <server>
-              power actions (root); stop waits for a clean shutdown
-  console <server>
-              live console; type commands to send them (root)
-  logs <server> [-n lines] [-f] [-t]
-              server output, further back than the console history
-  backup list|create|restore
-              list backups, back up now, or restore one (root for create
-              and restore)
-  update [-check] [-version v]
-              install the newest Wings in the node's channel, or a given
-              version (root); servers keep running, and Wings rolls back
-              if the new version isn't healthy
-  storage status|setup|grow
-              show, create, or enlarge the server data volume (root for
-              setup and grow)
-  keys list | keys reset
-              passkeys trusted for signed actions; reset re-pairs the
-              owner's passkey from the box (root)
-  support [status] | support revoke <id>|all | support off|on
-              Raptor staff's access to this node: see it, end it, or turn
-              it off (root to change)
-  audit [-n N] [-since 72h]
-              signed actions and key resets, from the node's own records
-  import pterodactyl -key <ptla_…> [-server s] [-dry-run] [-start]
-              move servers from Pterodactyl on this box (root); their
-              files are copied, Pterodactyl's are left as they were
-  tui         a terminal view of the servers: stats, console, power and
-              backup keys (actions as root)
-  doctor [-json] [-bundle] [-upload]
-              check the node and say how to fix what's wrong (as root);
-              -bundle writes a redacted diagnostics file for support, and
-              -upload sends it to Raptor support for a support code
-  wings run   run the Wings daemon
-  wings shutdown-servers
-              gracefully stop every server for a host shutdown (root; used
-              by raptor-shutdown.service, servers start again at boot)
-  version     print version
-
-<server> is a server's ID, the short ID from ps, or its exact name.
-Run "raptor <command> -h" for a command's flags.`
+// errUsage is an unknown command; the usage has been printed.
+var errUsage = errors.New("unknown command")
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
+		if errors.Is(err, errUsage) {
+			os.Exit(2)
+		}
 		if !errors.Is(err, errDoctorFailed) {
 			fmt.Fprintln(os.Stderr, "raptor:", err)
 		}
@@ -152,8 +95,7 @@ func run(args []string) error {
 		return shutdownServers(ctx, args[2:])
 	default:
 		fmt.Fprintln(os.Stderr, usage)
-		os.Exit(2)
-		return nil
+		return errUsage
 	}
 }
 
