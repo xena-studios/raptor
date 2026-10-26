@@ -2,7 +2,8 @@
 # The install script and raptor bootstrap on a fresh VM (task e2e:bootstrap):
 # the script, piped to sudo bash as owners run it, takes a bare box to a
 # linked node, running it again changes nothing, doctor
-# passes, and after a reboot the volume is mounted and the node reconnects.
+# passes, after a reboot the volume is mounted and the node reconnects, and
+# raptor uninstall takes it all off again.
 # Needs the dev Panel on this machine (task dev, or panel serve api on :8080).
 #
 #   scripts/e2e-bootstrap.sh <vm name> <lima template: debian-12, debian-13, ubuntu-24.04>
@@ -80,4 +81,27 @@ limactl start "$VM" --tty=false --timeout=20m >/dev/null 2>&1
 wait_for 60 connected || fail "not connected after a reboot: $(status)"
 status | grep -q 'Storage  ✓' || fail "volume after a reboot: $(status)"
 pass "reboot: volume mounted, node reconnected"
+
+# Uninstall, keeping the data: Raptor's services, firewall, mounts, networks,
+# and command are gone; server data and Docker's other networks stay.
+vm() { limactl shell "$VM" sudo "$@"; }
+vm docker network create not-raptor >/dev/null || fail "creating a network that isn't Raptor's"
+vm cp /usr/local/lib/raptor/current /tmp/raptor # for the second uninstall
+vm raptor uninstall -yes >/tmp/e2e-uninstall.log 2>&1 || fail "uninstall: $(cat /tmp/e2e-uninstall.log)"
+vm test ! -e /etc/systemd/system/raptor-wings.service || fail "uninstall left raptor-wings.service"
+! vm systemctl is-active -q raptor-wings || fail "uninstall left Wings running"
+! vm nft list table inet raptor >/dev/null 2>&1 || fail "uninstall left the firewall table"
+! vm mountpoint -q /var/lib/raptor/volumes || fail "uninstall left the volume mounted"
+[ -z "$(vm docker network ls -q --filter label=raptor.wings.managed=true)" ] || fail "uninstall left Raptor's networks"
+vm docker network inspect not-raptor >/dev/null || fail "uninstall removed a network that isn't Raptor's"
+vm test ! -e /usr/local/bin/raptor -a ! -e /usr/local/lib/raptor -a ! -e /etc/raptor || fail "uninstall left the command or its config"
+vm test -s /var/lib/raptor/volumes.xfs -a -s /var/lib/raptor/state.db || fail "uninstall deleted the data"
+pass "uninstall: Raptor removed, data and others' networks kept"
+
+# Run again with -wipe-data, on what the first one left: the data goes too.
+vm /tmp/raptor uninstall -wipe-data -yes >/tmp/e2e-uninstall-wipe.log 2>&1 || fail "uninstall -wipe-data: $(cat /tmp/e2e-uninstall-wipe.log)"
+vm test ! -e /var/lib/raptor -a ! -e /var/log/raptor || fail "uninstall -wipe-data left data"
+! vm id raptor >/dev/null 2>&1 || fail "uninstall -wipe-data left the raptor user"
+vm docker network rm not-raptor >/dev/null
+pass "uninstall -wipe-data: data and the raptor user deleted"
 echo "ALL PASSED ($TEMPLATE). Delete the VM with: limactl delete -f $VM"

@@ -39,6 +39,11 @@ commands:
               revoked, or it was removed or unlinked) (root)
   unlink [-yes]
               stop connecting to the Panel; servers keep running (root)
+  uninstall [-wipe-data] [-yes]
+              take Raptor off this machine: stop the servers gracefully and
+              remove its services, containers, networks, firewall rules,
+              mounts, and this command (root); server files, backups, and
+              databases stay in /var/lib/raptor unless -wipe-data
   ps          list servers with their state and resource usage
   start|stop|restart|kill <server>
               power actions (root); stop waits for a clean shutdown
@@ -135,6 +140,8 @@ func run(args []string) error {
 		return linkCmd(ctx, args[1:], true)
 	case len(args) >= 1 && args[0] == "unlink":
 		return unlinkCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "uninstall":
+		return uninstallCmd(ctx, args[1:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "run":
 		return wingsRun(ctx, args[2:])
 	case len(args) >= 2 && args[0] == "wings" && args[1] == "backup-worker":

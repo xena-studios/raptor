@@ -3,7 +3,8 @@ name: Bootstrap (amd64)
 # The install script and raptor bootstrap on fresh amd64 VMs, against a
 # Panel started in the job (scripts/e2e-bootstrap.sh, as task e2e:bootstrap
 # runs it on arm64 locally): a tampered download refused, one command to a
-# linked node, a rerun that changes nothing, doctor, and a reboot. The VMs
+# linked node, a rerun that changes nothing, doctor, a reboot, and an
+# uninstall, keeping the data and then wiping it. The VMs
 # run under Lima with KVM, which GitHub's Linux runners have. Too slow for
 # every PR: it runs on PRs that touch the install path, nightly, and on
 # demand.
@@ -13,6 +14,7 @@ on:
       - install/**
       - cmd/raptor/bootstrap*.go
       - cmd/raptor/link.go
+      - cmd/raptor/uninstall*.go
       - internal/wings/storage/**
       - internal/wings/update/**
       - internal/panel/nodes/registry.go

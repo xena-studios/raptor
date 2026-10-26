@@ -47,7 +47,17 @@ On your machine. Backups go where you choose, encrypted on your machine first. S
 
 ## How do I leave Raptor?
 
-Remove the node on its **Settings** tab: it stops being billed, and its servers keep running on the machine. Then run `sudo raptor unlink` there so it stops trying to connect. Your servers' files stay in `/var/lib/raptor/volumes`. A `raptor uninstall` command to take Raptor off the machine entirely is coming; until then, ask on [Discord](https://discord.gg/HyUa3sRpeN) and we'll walk you through it.
+First remove the node on its **Settings** tab, so it stops being billed. Its servers keep running on the machine. Then, on the machine:
+
+```bash
+sudo raptor uninstall
+```
+
+It stops every server gracefully, then removes Raptor's services, containers, networks, firewall rules, and the `raptor` command. Docker stays installed. Your servers' files, the backups kept on the machine, and your databases stay in `/var/lib/raptor`: the command says how to get at the files, which are inside a disk image unless you gave Raptor a disk of its own. Raptor's firewall goes too, so if you used it to close ports, set up your own.
+
+To delete all of that as well, use `sudo raptor uninstall -wipe-data`. It asks you to type `delete` first. Backups stored elsewhere, like Raptor Backup Storage or your own S3, aren't touched by either.
+
+If a step fails, the command says why and keeps itself, so you can fix it and run it again.
 
 ## Is Raptor open source?
 
