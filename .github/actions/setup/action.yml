@@ -15,7 +15,7 @@ runs:
         cache-dependency-path: |
           go.sum
           tools/go.sum
-    - uses: pnpm/action-setup@v4
+    - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       with:
         package_json_file: web/package.json
     - uses: actions/setup-node@v5
@@ -26,6 +26,6 @@ runs:
           web/pnpm-lock.yaml
           site/pnpm-lock.yaml
           docs-site/pnpm-lock.yaml
-    - uses: go-task/setup-task@v1
+    - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
       with:
         version: 3.x
