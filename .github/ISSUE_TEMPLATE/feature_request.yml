@@ -1,0 +1,39 @@
+name: Feature request
+description: An idea for the Panel, Wings, or the raptor command.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are also welcome in 💡 feature-requests on [Discord](https://discord.gg/HyUa3sRpeN), where others can add to them. Games go in 🥚 egg-requests there.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Where
+      options:
+        - The Panel (app.raptorpanel.net)
+        - Wings (on the node)
+        - The raptor command
+        - A game or egg
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The problem, not the solution yet. Who runs into it, and how often?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like
+      description: How you'd like it to work.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What you do today
+      description: Another panel, a workaround, or nothing.

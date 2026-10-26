@@ -1,0 +1,6 @@
+Contact: mailto:security@raptorpanel.net
+Contact: https://github.com/xena-studios/raptor/security/advisories/new
+Expires: 2027-10-26T00:00:00Z
+Preferred-Languages: en
+Policy: https://github.com/xena-studios/raptor/blob/main/SECURITY.md
+Canonical: https://docs.raptorpanel.net/.well-known/security.txt

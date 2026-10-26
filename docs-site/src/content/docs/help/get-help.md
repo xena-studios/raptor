@@ -18,6 +18,8 @@ Raptor's [Discord server](https://discord.gg/HyUa3sRpeN) is where questions, bug
 - **📢 announcements** and **🚀 releases:** what's new, and when.
 - **🟢 status:** incidents and planned downtime for the app.
 
+On GitHub, you can also [open an issue](https://github.com/xena-studios/raptor/issues/new/choose) for a bug or an idea.
+
 Type `/docs` and what you're looking for in any channel, and Raptor Bot suggests pages from this guide as you type; pick one to post it.
 
 ### Link your Raptor account

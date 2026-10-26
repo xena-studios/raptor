@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/xena-studios/raptor/security/advisories/new
+    about: Privately, so it can be fixed before it's public. Or email security@raptorpanel.net.
+  - name: Read the docs
+    url: https://docs.raptorpanel.net/help/get-help/
+    about: Installing, servers, nodes, and what to do when something goes wrong.
+  - name: Ask on Discord
+    url: https://discord.gg/HyUa3sRpeN
+    about: Questions, help with your own node, and tickets for anything about your account or billing.

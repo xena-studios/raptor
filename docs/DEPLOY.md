@@ -390,6 +390,8 @@ Both carry their own headers (`web/public/_headers`, `web/verify/_headers`): a C
 
 **The docs** (`docs-site/public/_headers`) run only their own scripts: `script-src 'self'`, the hashes of Starlight's few inline scripts (theme and helpers, filled in by `docs-site/scripts/headers.mjs`), and `'wasm-unsafe-eval'` for search, which is Pagefind's WebAssembly reading an index on the same origin. Nothing loads from elsewhere and there are no forms. CI's `docs` job checks every internal link, then loads every page and the 404 under those headers in both themes, runs a search, and fails on any violation, page error, or failed request (`pnpm --dir docs-site test:csp`).
 
+**`security.txt`** ([RFC 9116](https://www.rfc-editor.org/rfc/rfc9116)) is served at `/.well-known/security.txt` on the landing page and the docs (`site/public/.well-known/`, `docs-site/public/.well-known/`), pointing to SECURITY.md's address and private vulnerability reporting. Its `Expires` is **Oct 26, 2027**: move it on by a year in both files before then.
+
 **Check by hand:** the browser's console on `app.raptorpanel.net` shows no CSP errors through sign-in, the Turnstile check, and the account pages.
 
 ### Published bundle hashes
