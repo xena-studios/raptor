@@ -22,6 +22,8 @@ The same checks run on the node's **Health** tab in the app, and Raptor runs the
 - **Storage:** the server data volume mounted with disk limits, each extra disk, and free space everywhere Raptor and Docker keep things.
 - **The clock** in sync. A clock minutes off breaks the node's connection, schedules, and backups to cloud storage.
 - **Raptor's firewall** in place.
+- **Networks:** each of your [networks](/nodes/networks/) on Docker, with the subnet Raptor gave it.
+- **Database instances:** each one that should run is running, answers on its socket, and is on each of its networks at its address. One you stopped passes.
 - **The Panel:** reachable, the node's key present, and connected. If it isn't, it says why and how to fix it (a removed node needs `raptor relink`).
 - **The node's address** resolving to the IP the Panel sees.
 - **SFTP** answering, when it's on.

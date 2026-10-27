@@ -51,6 +51,7 @@ func TestRedis(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = e.svc.Delete(context.Background(), in.ID) })
 	in = waitRunning(t, e.svc, in.ID)
+	testHealth(t, e.svc, e.ev, in.ID)
 	addr := in.Addresses[e.net.ID]
 	d, pw, err := e.svc.CreateDatabase(ctx, e.server, in.ID, "cache")
 	if err != nil {
@@ -193,6 +194,7 @@ func TestMongoDB(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = e.svc.Delete(context.Background(), in.ID) })
 	in = waitRunning(t, e.svc, in.ID)
+	testHealth(t, e.svc, e.ev, in.ID)
 	addr := in.Addresses[e.net.ID]
 	d, pw, err := e.svc.CreateDatabase(ctx, e.server, in.ID, "stats")
 	if err != nil {

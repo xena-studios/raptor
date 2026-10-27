@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/networks"
 	"github.com/xena-studios/raptor/internal/wings/store"
@@ -34,6 +35,7 @@ type e2e struct {
 	net    networks.Network
 	fdir   string // the servers' files
 	server string
+	ev     *events.Outbox
 }
 
 func newE2E(t *testing.T, name string) e2e {
@@ -59,9 +61,10 @@ func newE2E(t *testing.T, name string) e2e {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = dc.RemoveNetwork(context.Background(), networks.DockerName(net.ID)) })
+	ev := events.New(db)
 	svc, err := New(Options{
 		Store: db, Runtime: dc, Dir: filepath.Join(dir, "databases"), KeyPath: filepath.Join(dir, "databases.key"),
-		Networks: nsvc, Jobs: engine, StartTimeout: 5 * time.Minute, Kernel: hostKernel,
+		Networks: nsvc, Jobs: engine, StartTimeout: 5 * time.Minute, Kernel: hostKernel, Events: ev,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +82,7 @@ func newE2E(t *testing.T, name string) e2e {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	return e2e{svc: svc, db: db, jobs: engine, net: net, fdir: fdir, server: server}
+	return e2e{svc: svc, db: db, jobs: engine, net: net, fdir: fdir, server: server, ev: ev}
 }
 
 func (e e2e) wait(t *testing.T, jobID string) jobs.Job {

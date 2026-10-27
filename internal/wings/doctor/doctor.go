@@ -90,6 +90,10 @@ type Env struct {
 	LookupHost func(ctx context.Context, host string) ([]string, error)
 	// PublicAddr asks the Panel which address this node reaches it from.
 	PublicAddr func(ctx context.Context) (string, error)
+	// Networks and Instances ask Wings for the owner's networks and the
+	// database instances, checked now (nil: can't check).
+	Networks  func(ctx context.Context) (*localv1.ListNetworksResponse, error)
+	Instances func(ctx context.Context) (*localv1.ListDatabaseInstancesResponse, error)
 }
 
 // Check is one diagnosis. Run returns one or more results.

@@ -33,6 +33,7 @@ var cliCommands = []cliCommand{
 	{name: "backup create", args: "<server> [-lock] [-no-wait]", root: true, summary: "back up now, and wait for it"},
 	{name: "backup restore", args: "<server> <backup> [-yes] [-no-wait]", root: true, summary: "restore a backup, after a safety backup"},
 	{name: "backup key", root: true, summary: "the node's backup key, to keep somewhere safe away from this machine"},
+	{name: "db ps", args: "[-json]", summary: "database instances with their state, usage, databases, and networks"},
 	{name: "storage status", summary: "the server data volume: its kind, size, and how full it is"},
 	{name: "storage setup", args: "-size s", root: true, summary: "create the server data volume's image, if bootstrap didn't"},
 	{name: "storage grow", args: "-size s", root: true, summary: "grow the volume's image while servers run"},

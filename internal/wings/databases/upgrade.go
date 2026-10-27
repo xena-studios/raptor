@@ -244,22 +244,38 @@ func (s *Service) versionJob(ctx context.Context, j jobs.Job, log io.Writer) (an
 	}
 	s.setChange(in.ID, &Change{JobID: j.ID, Kind: kind, From: in.Version, To: p.Version})
 	err = s.changeVersion(ctx, in, r, p, log)
-	s.finishChange(in.ID, err)
+	s.finishChange(ctx, in, err)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]any{"version": p.Version}, nil
 }
 
-func (s *Service) finishChange(id string, err error) {
+// finishChange records a version change's end, and raises
+// db.instance.version for alerts.
+func (s *Service) finishChange(ctx context.Context, in Instance, err error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if c := s.changes[id]; c != nil {
+	c := s.changes[in.ID]
+	var done Change
+	if c != nil {
 		c.Step, c.Done = "", true
 		if err != nil {
 			c.Error = err.Error()
 		}
+		done = *c
 	}
+	s.mu.Unlock()
+	if c == nil {
+		return
+	}
+	if cur, _, err := s.instance(ctx, s.o.Store.Read, in.ID); err == nil {
+		in = cur // its version now
+	}
+	data := map[string]any{"kind": done.Kind, "from": done.From, "to": done.To, "ok": err == nil}
+	if err != nil {
+		data["error"] = err.Error()
+	}
+	s.event(ctx, EventVersion, in, data)
 }
 
 func (s *Service) changeVersion(ctx context.Context, in Instance, r store.DatabaseInstance, p VersionJob, log io.Writer) error {
@@ -476,7 +492,7 @@ func (s *Service) goBackJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	}
 	s.setChange(in.ID, &Change{JobID: j.ID, Kind: "back", From: in.Version, To: r.PrevVersion})
 	err = s.goBack(ctx, in, r, log)
-	s.finishChange(in.ID, err)
+	s.finishChange(ctx, in, err)
 	if err != nil {
 		return nil, err
 	}

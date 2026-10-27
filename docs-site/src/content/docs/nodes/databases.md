@@ -81,6 +81,14 @@ Servers on the instance's network keep connecting as before, without TLS, so plu
 
 **Turn off** in the same dialog closes the port again.
 
+## When something's wrong
+
+Raptor watches each instance. One that stops or keeps restarting is started again by itself; one that can't start says why in the list (often **out of memory**: give it more memory).
+
+To hear about it, add a rule on **Settings → Alerts** for an instance **down or restarting**, its **disk** or **connections** near their limits, or a **version change** finishing or failing ([Alerts](/team/alerts/)).
+
+On the node itself, `raptor db ps` lists the instances with their memory, disk, and connections, and `sudo raptor doctor` checks each one is running, answers, and is on its networks ([raptor doctor](/cli/doctor/)).
+
 ## Start, stop, and delete
 
 The **⋯** menu next to an instance starts, stops, or restarts it. An instance comes back with the node after a restart.

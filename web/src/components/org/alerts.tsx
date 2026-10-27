@@ -578,6 +578,23 @@ function memberName(m: Member): string {
   return m.name || m.email;
 }
 
+// thresholdHint says what a threshold is a percent of.
+function thresholdHint(condition: string): string {
+  switch (condition) {
+    case "cpu_high":
+      return "Of the server's CPU limit, or of the whole machine if it has none.";
+    case "memory_high":
+      return "Of the server's memory limit.";
+    case "disk_high":
+      return "Of the server's disk limit. Servers without one aren't checked.";
+    case "db_disk_high":
+      return "Of each instance's disk limit. Instances without one aren't checked. Only owners and admins are told.";
+    case "db_connections_high":
+      return "Of each instance's max connections. Only owners and admins are told.";
+  }
+  return "Of the whole machine.";
+}
+
 function conditionText(r: AlertRule, c?: AlertCondition): string {
   if (!c) return r.condition;
   if (c.threshold) return `${c.label} ${r.threshold}${c.unit} for ${r.forMinutes} min`;
@@ -799,6 +816,16 @@ function RuleDialog({
                     </option>
                   ))}
               </optgroup>
+              <optgroup label="Database instances">
+                {conditions
+                  .filter((x) => x.scope === "instance")
+                  .map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.label}
+                      {x.threshold ? "…" : ""}
+                    </option>
+                  ))}
+              </optgroup>
             </select>
           </Field>
           {timed && (
@@ -829,14 +856,14 @@ function RuleDialog({
           )}
           {c?.threshold && (
             <p className="-mt-2 text-xs text-muted-foreground">
-              {condition === "cpu_high"
-                ? "Of the server's CPU limit, or of the whole machine if it has none."
-                : condition === "memory_high"
-                  ? "Of the server's memory limit."
-                  : condition === "disk_high"
-                    ? "Of the server's disk limit. Servers without one aren't checked."
-                    : "Of the whole machine."}{" "}
-              Needs Wings v0.5.0 or later on the node.
+              {thresholdHint(condition)} Needs Wings {c.scope === "instance" ? "v0.11.0" : "v0.5.0"}{" "}
+              or later on the node.
+            </p>
+          )}
+          {c?.scope === "instance" && !c.threshold && (
+            <p className="-mt-2 text-xs text-muted-foreground">
+              Only owners and admins are told about database instances. Needs Wings v0.11.0 or later
+              on the node.
             </p>
           )}
           <Field id="rule-node" label="Node">

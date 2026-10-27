@@ -30,6 +30,11 @@ func TestFromEvent(t *testing.T) {
 		{"node.update", map[string]any{"result": "rolled_back", "from": "v1", "to": "v2"}, "wings_update", Warning, "Wings update to v2 rolled back", false},
 		{"security.audit", map[string]any{"action": "server.delete", "outcome": "rejected", "detail": "bad signature", "user": "Alice"}, "security", Critical, "Signed action rejected: server.delete", false},
 		{"security.audit", map[string]any{"action": "keys.reset", "outcome": "ok", "user_id": "root"}, "security", Critical, "Trusted passkeys reset on the node", false},
+		{"db.instance.down", map[string]any{"instance": "main", "engine": "postgres", "version": "17", "error": "it stopped (exit code 137)"}, "db_down", Critical, "Database instance down: main", false},
+		{"db.instance.up", map[string]any{"instance": "main", "down_seconds": 42.0}, "db_down", Info, "Database instance back up: main", true},
+		{"db.instance.version", map[string]any{"instance": "main", "kind": "version", "from": "16", "to": "17", "ok": true}, "db_version", Info, "Version change finished: main", false},
+		{"db.instance.version", map[string]any{"instance": "main", "kind": "patch", "from": "17", "to": "17", "ok": false, "error": "x"}, "db_version", Warning, "Patch update failed: main", false},
+		{"db.instance.version", map[string]any{"instance": "main", "kind": "back", "from": "17", "to": "16", "ok": true}, "db_version", Info, "Going back finished: main", false},
 	} {
 		m, rule, ok := FromEvent(Event{Type: c.typ, At: at, Data: c.data})
 		if !ok || rule != "" || m.Condition != c.condition || m.Level != c.level || m.Title != c.title || m.Resolved != c.resolved {
@@ -50,6 +55,36 @@ func TestFromEvent(t *testing.T) {
 	}
 	if _, _, ok := FromEvent(Event{Type: "alert.fired", Data: map[string]any{"condition": "nope"}}); ok {
 		t.Error("an unknown threshold condition alerted")
+	}
+	m, rule, ok = FromEvent(Event{Type: "alert.fired", Data: map[string]any{
+		"rule_id": "r2", "condition": "db_connections_high", "value": 95.0, "threshold": 90.0, "for_seconds": 300.0, "instance": "main",
+	}})
+	if !ok || rule != "r2" || m.Title != "Database instance connections above 90%: main" || !strings.HasPrefix(m.Text, "At 95% for 5m0s. Of its max connections") {
+		t.Errorf("instance fired: %+v %q", m, rule)
+	}
+	m, _, _ = FromEvent(Event{Type: "alert.resolved", Data: map[string]any{
+		"rule_id": "r3", "condition": "db_disk_high", "value": 70.0, "threshold": 90.0, "instance": "main",
+	}})
+	if !m.Resolved || m.Title != "Back under: database instance disk above 90%: main" {
+		t.Errorf("instance resolved: %+v", m)
+	}
+	m, _, _ = FromEvent(Event{Type: "db.instance.down", Data: map[string]any{"instance": "main", "engine": "postgres", "version": "17", "error": "it stopped (exit code 137)"}})
+	if !strings.HasPrefix(m.Text, "main (PostgreSQL 17): it stopped (exit code 137).") {
+		t.Errorf("down: %q", m.Text)
+	}
+}
+
+// Instance conditions are kept from nodes that don't know them.
+func TestInstanceConditions(t *testing.T) {
+	got := InstanceConditions()
+	if len(got) != 4 {
+		t.Errorf("%v", got)
+	}
+	for _, id := range got {
+		c, _ := ConditionByID(id)
+		if c.Scope != "instance" {
+			t.Errorf("%s: scope %q", id, c.Scope)
+		}
 	}
 }
 

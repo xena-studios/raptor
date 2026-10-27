@@ -137,6 +137,20 @@ service LocalService {
   // SetSupportEnabled turns support access off (ending every grant) or
   // back on. Root only.
   rpc SetSupportEnabled(SetSupportEnabledRequest) returns (SetSupportEnabledResponse) {}
+
+  // ListNetworks lists the owner's networks (docs/NETWORKS.md), as Wings
+  // keeps them, for raptor doctor to compare with Docker.
+  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ListDatabaseInstances lists the node's database instances with their
+  // state and latest usage (raptor db ps). With check, it also asks each
+  // running one to answer on its socket now and looks at its networks in
+  // Docker (raptor doctor); that changes nothing.
+  rpc ListDatabaseInstances(ListDatabaseInstancesRequest) returns (ListDatabaseInstancesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 // Servers are named in requests by full ID, the last 8 or more characters of
@@ -650,4 +664,77 @@ message NotificationResult {
   string target = 1;
   // Empty if it was delivered.
   string error = 2;
+}
+
+message ListNetworksRequest {}
+
+message ListNetworksResponse {
+  repeated NetworkInfo networks = 1;
+}
+
+// NetworkInfo is one of the owner's networks.
+message NetworkInfo {
+  string id = 1;
+  string name = 2;
+  // Its name on Docker (raptor_net_…).
+  string docker_name = 3;
+  string subnet = 4;
+  // Set if it has IPv6.
+  string ipv6_subnet = 5;
+  bool internet = 6;
+  int32 servers = 7;
+}
+
+message ListDatabaseInstancesRequest {
+  bool check = 1;
+}
+
+message ListDatabaseInstancesResponse {
+  repeated DatabaseInstanceInfo instances = 1;
+}
+
+// DatabaseInstanceInfo is one database instance.
+message DatabaseInstanceInfo {
+  string id = 1;
+  string name = 2;
+  // mariadb, mysql, postgres, redis, or mongodb.
+  string engine = 3;
+  string version = 4;
+  // starting, running, upgrading, stopped, or failed.
+  string state = 5;
+  // running or stopped: what it should be.
+  string desired_state = 6;
+  // Why it failed, if it did.
+  string error = 7;
+  // Its name on its networks (….db.raptor).
+  string host = 8;
+  int32 databases = 9;
+  repeated InstanceNetwork networks = 10;
+  // The latest sample while it runs (every 15 seconds); unset before one.
+  google.protobuf.Timestamp sampled_at = 11;
+  int64 memory_bytes = 12;
+  int64 memory_limit_bytes = 13;
+  int64 disk_bytes = 14;
+  // 0 = none.
+  int64 disk_limit_bytes = 15;
+  int32 connections = 16;
+  int32 max_connections = 17;
+  // With check, for a running instance: it answered on its socket, or why
+  // not.
+  bool checked = 18;
+  bool answering = 19;
+  string check_error = 20;
+}
+
+// InstanceNetwork is a database instance on one network.
+message InstanceNetwork {
+  // Empty for the server network.
+  string id = 1;
+  string name = 2;
+  string docker_name = 3;
+  // Its fixed address there, if it has one.
+  string address = 4;
+  // With check: Docker has it on the network, at this address.
+  bool attached = 5;
+  string actual_address = 6;
 }

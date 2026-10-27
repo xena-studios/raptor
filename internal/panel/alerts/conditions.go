@@ -20,7 +20,8 @@ type Condition struct {
 	ID    string
 	Label string
 	// Scope: "server" conditions can apply to one server, a node, or the
-	// org; "node" ones to a node or the org.
+	// org; "node" and "instance" (database instances) ones to a node or
+	// the org.
 	Scope string
 	// Threshold conditions are evaluated by Wings (it has the metrics) and
 	// take a threshold and a duration; Unit is the threshold's.
@@ -49,6 +50,22 @@ var Conditions = []Condition{
 	{ID: "node_disk_high", Label: "Node disk above", Scope: "node", Threshold: true, Unit: "%", Resolves: true},
 	{ID: "wings_update", Label: "Wings updated or rolled back", Scope: "node"},
 	{ID: "security", Label: "Signed actions and passkey changes", Scope: "node"},
+	{ID: "db_down", Label: "Database instance down or restarting", Scope: "instance", Resolves: true},
+	{ID: "db_disk_high", Label: "Database instance disk above", Scope: "instance", Threshold: true, Unit: "%", Resolves: true},
+	{ID: "db_connections_high", Label: "Database instance connections above", Scope: "instance", Threshold: true, Unit: "%", Resolves: true},
+	{ID: "db_version", Label: "Database version change finished or failed", Scope: "instance"},
+}
+
+// InstanceConditions are the conditions about database instances, which
+// only nodes with the db-alerts capability evaluate or raise.
+func InstanceConditions() []string {
+	var out []string
+	for _, c := range Conditions {
+		if c.Scope == "instance" {
+			out = append(out, c.ID)
+		}
+	}
+	return out
 }
 
 // ConditionByID finds a condition.
@@ -118,6 +135,24 @@ func num(d map[string]any, k string) float64 {
 		return float64(v)
 	}
 	return 0
+}
+
+// engines are the database engines' names, as the app shows them.
+var engines = map[string]string{
+	"mariadb": "MariaDB", "mysql": "MySQL", "postgres": "PostgreSQL", "redis": "Redis", "mongodb": "MongoDB",
+}
+
+// instanceName is an instance as an alert names it: "main (PostgreSQL 17)".
+func instanceName(d map[string]any) string {
+	name := str(d, "instance")
+	if name == "" {
+		name = "An instance"
+	}
+	e := engines[str(d, "engine")]
+	if e == "" {
+		return name
+	}
+	return strings.TrimSpace(fmt.Sprintf("%s (%s %s)", name, e, str(d, "version")))
 }
 
 // bytes formats a size the way Wings does.
@@ -200,6 +235,28 @@ func FromEvent(e Event) (m Message, ruleID string, ok bool) {
 	case "security.audit":
 		m.Condition = "security"
 		securityText(&m, d)
+	case "db.instance.down":
+		m.Condition, m.Level, m.Title = "db_down", Critical, "Database instance down: "+str(d, "instance")
+		m.Text = fmt.Sprintf("%s: %s. Servers can't reach their databases on it until it's back; Wings is starting it again.", instanceName(d), str(d, "error"))
+	case "db.instance.up":
+		m.Condition, m.Level, m.Resolved, m.Title = "db_down", Info, true, "Database instance back up: "+str(d, "instance")
+		m.Text = fmt.Sprintf("%s answers again, after %s.", instanceName(d), (time.Duration(num(d, "down_seconds")) * time.Second).Round(time.Second))
+	case "db.instance.version":
+		m.Condition = "db_version"
+		what := "Version change"
+		switch str(d, "kind") {
+		case "patch":
+			what = "Patch update"
+		case "back":
+			what = "Going back"
+		}
+		if ok, _ := d["ok"].(bool); ok {
+			m.Level, m.Title = Info, fmt.Sprintf("%s finished: %s", what, str(d, "instance"))
+			m.Text = fmt.Sprintf("%s, from %s to %s.", instanceName(d), str(d, "from"), str(d, "to"))
+		} else {
+			m.Title = fmt.Sprintf("%s failed: %s", what, str(d, "instance"))
+			m.Text = fmt.Sprintf("%s, from %s to %s: %s", instanceName(d), str(d, "from"), str(d, "to"), str(d, "error"))
+		}
 	case "alert.fired", "alert.resolved":
 		c, ok := ConditionByID(str(d, "condition"))
 		if !ok {
@@ -207,13 +264,24 @@ func FromEvent(e Event) (m Message, ruleID string, ok bool) {
 		}
 		m.Condition = c.ID
 		value, limit := num(d, "value"), num(d, "threshold")
+		// An instance's: which one, as a server's alert has its server.
+		who := ""
+		if c.Scope == "instance" {
+			who = ": " + str(d, "instance")
+		}
 		if e.Type == "alert.fired" {
-			m.Title = fmt.Sprintf("%s %.0f%s", c.Label, limit, c.Unit)
+			m.Title = fmt.Sprintf("%s %.0f%s%s", c.Label, limit, c.Unit, who)
 			m.Text = fmt.Sprintf("At %.0f%s for %s.", value, c.Unit, time.Duration(num(d, "for_seconds"))*time.Second)
 		} else {
 			m.Level, m.Resolved = Info, true
-			m.Title = fmt.Sprintf("Back under: %s %.0f%s", strings.ToLower(c.Label[:1])+c.Label[1:], limit, c.Unit)
+			m.Title = fmt.Sprintf("Back under: %s %.0f%s%s", strings.ToLower(c.Label[:1])+c.Label[1:], limit, c.Unit, who)
 			m.Text = fmt.Sprintf("Now at %.0f%s.", value, c.Unit)
+		}
+		switch c.ID {
+		case "db_disk_high":
+			m.Text += " Of its disk limit: once it's full, writes to it fail. Raise its disk limit on the node's Databases page (Edit), or free space in its databases."
+		case "db_connections_high":
+			m.Text += " Of its max connections: once they're all taken, servers can't connect. Raise its max connections on the node's Databases page (Edit), or look for a server holding connections open (Processes, in its database)."
 		}
 		return m, str(d, "rule_id"), true
 	default:

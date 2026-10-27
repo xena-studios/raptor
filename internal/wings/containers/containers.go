@@ -183,6 +183,9 @@ type State struct {
 	// IPv6 is its IPv6 address on each network that has one, by network
 	// name (ServiceState only).
 	IPv6 map[string]netip.Addr
+	// Networks are the networks it's on, by name, with its IPv4 address on
+	// each (ServiceState only).
+	Networks map[string]netip.Addr
 }
 
 // Stats is one sample of a container's resource usage.

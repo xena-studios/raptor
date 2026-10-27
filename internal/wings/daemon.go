@@ -356,6 +356,7 @@ func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
 			total, _, _ := storage.Space(volumes)
 			return thresholds.Host{CPUs: st.CPUs, MemoryBytes: st.MemoryTotal, DiskBytes: total}
 		},
+		Instances: r.instanceUsage,
 	}
 	if err := alerts.Load(context.Background()); err != nil {
 		r.log.Error("reading threshold alert rules failed", "err", err)
@@ -363,6 +364,30 @@ func (r *runtimeSetup) startMetrics(mgr *server.Manager) {
 	actions.RegisterAlerts(r.commands, alerts)
 	go alerts.Run(ctx)
 	go health.Watch(ctx, time.Hour)
+}
+
+// instanceUsage is the database instances' latest usage, for threshold
+// alerts.
+func (r *runtimeSetup) instanceUsage() []thresholds.Instance {
+	db := r.databases.Load()
+	if db == nil {
+		return nil
+	}
+	list, err := db.List(context.Background())
+	if err != nil {
+		return nil
+	}
+	usage := db.Usages()
+	out := make([]thresholds.Instance, 0, len(usage))
+	for _, in := range list {
+		if u, ok := usage[in.ID]; ok {
+			out = append(out, thresholds.Instance{
+				ID: in.ID, Name: in.Name, DiskBytes: u.DiskBytes, DiskLimitBytes: u.DiskLimitBytes,
+				Connections: u.Connections, MaxConnections: u.MaxConnections,
+			})
+		}
+	}
+	return out
 }
 
 func (r *runtimeSetup) close() {
@@ -709,6 +734,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 			_, free, err := storage.Space(path)
 			return free, err
 		},
+		Events: r.events,
 	})
 	if err != nil {
 		return err
@@ -829,6 +855,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	r.rules = &rules
 	r.fwMu.Unlock()
 	r.databases.Store(dbsvc)
+	r.svc.SetDatabases(nsvc, dbsvc)
 	// Instances start after the guards are in place.
 	if err := dbsvc.Start(ctx); err != nil {
 		r.log.Error("starting database instances failed", "err", err)

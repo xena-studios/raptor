@@ -499,7 +499,7 @@ func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRe
 	default:
 		threshold, forMinutes = 0, 0
 	}
-	if c.Scope == "node" && in.GetServerId() != "" {
+	if c.Scope != "server" && in.GetServerId() != "" {
 		return nil, invalidRule("that applies to nodes, not one server")
 	}
 	if in.GetServerId() != "" && in.GetNodeId() == "" {
