@@ -188,12 +188,29 @@ const (
 	DBRowDelete   = "db.row.delete"
 	DBProcesses   = "db.processes" // a read: connections to the database
 	DBProcessKill = "db.process.kill"
+	DBQueryCancel = "db.query.cancel" // stop a streamed query its user started
+)
+
+// An instance seen as a whole, by admins (docs/DATABASES.md#the-browser).
+const (
+	NodeDBDatabases   = "node.db.databases" // a read: an instance's databases, of every server
+	NodeDBUsers       = "node.db.users"     // a read: its users and what each can reach
+	NodeDBProcesses   = "node.db.processes" // a read: every connection to it
+	NodeDBProcessKill = "node.db.process.kill"
 )
 
 // DBQueryParams are db.query's and db.query.read's params.
 type DBQueryParams struct {
 	ID string `json:"id"`
 	databases.QueryInput
+	// Stream: answer the query's ID at once, and send its results over a
+	// transfer connection (databases.StreamQuery).
+	Stream bool `json:"stream,omitempty"`
+}
+
+// DBQueryCancelParams are db.query.cancel's params.
+type DBQueryCancelParams struct {
+	QueryID string `json:"query_id"`
 }
 
 // DBRowsParams are db.rows' params.
@@ -251,11 +268,65 @@ func RegisterDatabaseBrowser(x *command.Executor, d *databases.Service) {
 			if err := decode(e, &p); err != nil {
 				return nil, err
 			}
+			if p.Stream {
+				id, err := d.StartQuery(ctx, e.ServerID, p.ID, e.UserID, p.QueryInput, readOnly)
+				if err != nil {
+					return nil, err
+				}
+				return map[string]string{"query_id": id}, nil
+			}
 			return d.Query(ctx, e.ServerID, p.ID, p.QueryInput, readOnly)
 		})
 	}
 	x.Register(DBQueryRead, command.Handler{Signed: command.Never, ReadOnly: true, Run: query(true)})
 	x.Register(DBQuery, command.Handler{Signed: command.Never, Run: query(false)})
+	x.Register(DBQueryCancel, command.Handler{Signed: command.Never, ReadOnly: true, Run: server(func(_ context.Context, e command.Envelope) (any, error) {
+		var p DBQueryCancelParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, d.CancelQuery(e.ServerID, e.UserID, p.QueryID)
+	})})
+	x.Register(NodeDBDatabases, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBInstanceParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		list, err := d.InstanceDatabases(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"databases": list}, nil
+	}})
+	x.Register(NodeDBUsers, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBInstanceParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		list, err := d.InstanceUsers(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"users": list}, nil
+	}})
+	x.Register(NodeDBProcesses, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBInstanceParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		list, err := d.InstanceProcesses(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"processes": list}, nil
+	}})
+	x.Register(NodeDBProcessKill, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBKillParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, d.KillInstanceQuery(ctx, p.ID, p.Process)
+	}})
 	edit := func(op string) command.Handler {
 		return command.Handler{Signed: command.Never, Run: server(func(ctx context.Context, e command.Envelope) (any, error) {
 			var p DBRowParams
@@ -314,6 +385,8 @@ type DBExportParams struct {
 	Schema string `json:"schema,omitempty"`
 	Table  string `json:"table,omitempty"`
 	Format string `json:"format"` // sql or csv
+	// Query: a CSV of this SQL's whole result instead of a table.
+	Query string `json:"query,omitempty"`
 }
 
 // DBJobParams are db.transfer.status's and db.transfer.cancel's params.
@@ -349,7 +422,13 @@ func RegisterDatabaseTransfers(x *command.Executor, d *databases.Service) {
 		if err := decode(e, &p); err != nil {
 			return nil, err
 		}
-		id, path, err := d.Export(ctx, e.ServerID, p.ID, p.Schema, p.Table, p.Format)
+		export := func() (string, string, error) {
+			if p.Query != "" {
+				return d.ExportQuery(ctx, e.ServerID, p.ID, databases.QueryInput{SQL: p.Query})
+			}
+			return d.Export(ctx, e.ServerID, p.ID, p.Schema, p.Table, p.Format)
+		}
+		id, path, err := export()
 		if err != nil {
 			return nil, err
 		}

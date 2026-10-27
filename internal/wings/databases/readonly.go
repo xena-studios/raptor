@@ -73,6 +73,13 @@ func (s *Service) SetReadOnly(ctx context.Context, serverID, id string) (string,
 // grantReadOnly makes a read-only user, or gives it a new password, with
 // SELECT on everything in a database, now and later. It can run again.
 func grantReadOnly(ctx context.Context, in Instance, dir, root, database, owner, user, pass string) error {
+	return grantReader(ctx, in, dir, root, database, owner, user, pass, "%")
+}
+
+// grantReader is grantReadOnly with the host of a MariaDB or MySQL user's
+// account: "%", or "localhost" for one that only logs in through the
+// socket.
+func grantReader(ctx context.Context, in Instance, dir, root, database, owner, user, pass, host string) error {
 	if err := checkNames(database, owner, user); err != nil {
 		return err
 	}
@@ -92,10 +99,13 @@ func grantReadOnly(ctx context.Context, in Instance, dir, root, database, owner,
 	defer func() { _ = db.Close() }()
 	switch in.Engine {
 	case MariaDB, MySQL:
+		if host != "%" && host != "localhost" {
+			return fmt.Errorf("unsafe host %q", host)
+		}
 		err = exec(ctx, db,
-			"CREATE USER IF NOT EXISTS '"+user+"'@'%' IDENTIFIED BY '"+pass+"'",
-			"ALTER USER '"+user+"'@'%' IDENTIFIED BY '"+pass+"'",
-			"GRANT SELECT, SHOW VIEW ON `"+database+"`.* TO '"+user+"'@'%'",
+			"CREATE USER IF NOT EXISTS '"+user+"'@'"+host+"' IDENTIFIED BY '"+pass+"'",
+			"ALTER USER '"+user+"'@'"+host+"' IDENTIFIED BY '"+pass+"'",
+			"GRANT SELECT, SHOW VIEW ON `"+database+"`.* TO '"+user+"'@'"+host+"'",
 		)
 	case Postgres:
 		var exists bool

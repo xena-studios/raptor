@@ -117,6 +117,8 @@ var actions = map[string]string{
 	"db.row.update":   DatabasesWrite,
 	"db.row.delete":   DatabasesWrite,
 	"db.process.kill": DatabasesWrite,
+	// Stopping a streamed query: only its own user's (Wings checks).
+	"db.query.cancel": DatabasesRead,
 	// Imports change data; exports and read-only users give it out.
 	"db.import":          DatabasesWrite,
 	"db.export":          DatabasesWrite,
@@ -192,6 +194,12 @@ var actions = map[string]string{
 	"keys.remove":               adminOnly,
 	"keys.pair":                 adminOnly,
 	"keys.list":                 adminOnly,
+
+	// An instance's own page: its databases, users, and connections.
+	"node.db.databases":    adminOnly,
+	"node.db.users":        adminOnly,
+	"node.db.processes":    adminOnly,
+	"node.db.process.kill": adminOnly,
 }
 
 // For returns what running action needs: a server permission, or
@@ -238,7 +246,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "db.list", "db.schema", "db.rows", "db.query.read", "db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "db.list", "db.schema", "db.rows", "db.query.read", "db.query.cancel", "db.processes", "node.db.databases", "node.db.users", "node.db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

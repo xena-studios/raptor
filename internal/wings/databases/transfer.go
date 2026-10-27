@@ -74,8 +74,11 @@ type ExportJob struct {
 	Database string `json:"database"`
 	Schema   string `json:"schema,omitempty"`
 	Table    string `json:"table,omitempty"` // "" is the whole database
-	Format   string `json:"format"`          // sql or csv
-	Path     string `json:"path"`            // the file it makes
+	// Query: a CSV of this SQL's whole result instead, run like a reader's
+	// query (one statement, read-only, as the database's reader).
+	Query  string `json:"query,omitempty"`
+	Format string `json:"format"` // sql or csv
+	Path   string `json:"path"`   // the file it makes
 }
 
 // Transfer is how an import or export is going.
@@ -385,6 +388,84 @@ func (s *Service) Export(ctx context.Context, serverID, id, schema, table, forma
 	return jobID, target, err
 }
 
+// ExportQuery queues a CSV of a query's whole result into the server's
+// database-exports folder, and returns the job's ID and the file it
+// makes. The query runs as a reader's does: one statement, in a read-only
+// transaction, as the database's reader, so an export changes nothing.
+func (s *Service) ExportQuery(ctx context.Context, serverID, id string, in QueryInput) (string, string, error) {
+	if s.o.Jobs == nil {
+		return "", "", errors.New("exports aren't available")
+	}
+	text, _, err := in.check(MaxStreamTimeout)
+	if err != nil {
+		return "", "", err
+	}
+	r, _, _, err := s.browsable(ctx, serverID, id)
+	if err != nil {
+		return "", "", err
+	}
+	target := path.Join(ExportDir, r.Label+"-query-"+time.Now().UTC().Format("20060102-150405")+".csv")
+	jobID, err := s.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobExport, ServerID: serverID, Payload: ExportJob{
+		Database: id, Query: text, Format: "csv", Path: target,
+	}})
+	return jobID, target, err
+}
+
+// exportQueryCSV writes a query's whole result as CSV, with its column
+// names first.
+func (s *Service) exportQueryCSV(ctx context.Context, serverID string, p ExportJob, w io.Writer) error {
+	se, err := s.openViewer(ctx, serverID, p.Database)
+	if err != nil {
+		return err
+	}
+	defer se.Close()
+	c := &csvSink{w: csv.NewWriter(w)}
+	// The job has no time limit of its own; PostgreSQL's statement_timeout
+	// is off with 0.
+	if _, err := se.run(ctx, p.Query, true, 0, c); err != nil {
+		return err
+	}
+	if c.err != nil {
+		return c.err
+	}
+	c.w.Flush()
+	return c.w.Error()
+}
+
+// csvSink writes a query's result as CSV.
+type csvSink struct {
+	w   *csv.Writer
+	n   int
+	rec []string
+	err error
+}
+
+func (c *csvSink) columns(cols []ResultColumn) {
+	c.n = len(cols)
+	header := make([]string, len(cols))
+	for i, col := range cols {
+		header[i] = col.Name
+	}
+	if c.err == nil {
+		c.err = c.w.Write(header)
+	}
+	c.rec = make([]string, c.n)
+}
+
+func (c *csvSink) row(row []*string) error {
+	if c.err != nil {
+		return c.err
+	}
+	for i := range c.rec {
+		c.rec[i] = ""
+		if i < len(row) && row[i] != nil {
+			c.rec[i] = *row[i]
+		}
+	}
+	c.err = c.w.Write(c.rec)
+	return c.err
+}
+
 // safeFile is a table's name made safe as part of a file name.
 func safeFile(s string) string {
 	return strings.Map(func(r rune) rune {
@@ -438,9 +519,12 @@ func (s *Service) exportTo(ctx context.Context, serverID string, p ExportJob, n 
 		}
 	}()
 	w := counter{w: out, n: n}
-	if p.Format == "csv" {
+	switch {
+	case p.Query != "":
+		err = s.exportQueryCSV(ctx, serverID, p, w)
+	case p.Format == "csv":
 		err = s.exportCSV(ctx, serverID, p, w)
-	} else {
+	default:
 		gz := gzip.NewWriter(w)
 		err = s.dump(ctx, serverID, p, gz, log)
 		if cerr := gz.Close(); err == nil {

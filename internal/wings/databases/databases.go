@@ -213,6 +213,7 @@ type Service struct {
 
 	transfers transfers
 	health    health
+	runs      queryRuns // streamed queries (stream.go)
 }
 
 type status struct{ state, err string }
@@ -1080,6 +1081,11 @@ func (s *Service) drop(ctx context.Context, r store.Database) error {
 	if r.RoUsername != "" {
 		if err := dropReadOnly(ctx, in, s.dir(r.InstanceID), root, r.DbName, r.RoUsername); err != nil {
 			return fmt.Errorf("dropping its read-only user on %s: %w", in.Name, err)
+		}
+	}
+	if r.ViewerUsername != "" && isSQL(in.Engine) {
+		if err := dropReadOnly(ctx, in, s.dir(r.InstanceID), root, r.DbName, r.ViewerUsername); err != nil {
+			return fmt.Errorf("dropping its reader on %s: %w", in.Name, err)
 		}
 	}
 	if err := dropDatabase(ctx, in, s.dir(r.InstanceID), root, r.DbName, r.Username); err != nil {

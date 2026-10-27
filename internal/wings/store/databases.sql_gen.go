@@ -43,7 +43,7 @@ func (q *Queries) DeleteInstanceAddress(ctx context.Context, arg DeleteInstanceA
 }
 
 const getDatabase = `-- name: GetDatabase :one
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password FROM databases WHERE id = ?
+SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password, viewer_username, viewer_password FROM databases WHERE id = ?
 `
 
 func (q *Queries) GetDatabase(ctx context.Context, id string) (Database, error) {
@@ -60,6 +60,8 @@ func (q *Queries) GetDatabase(ctx context.Context, id string) (Database, error) 
 		&i.CreatedAt,
 		&i.RoUsername,
 		&i.RoPassword,
+		&i.ViewerUsername,
+		&i.ViewerPassword,
 	)
 	return i, err
 }
@@ -182,7 +184,7 @@ func (q *Queries) InsertInstanceAddress(ctx context.Context, arg InsertInstanceA
 }
 
 const listDatabases = `-- name: ListDatabases :many
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password FROM databases ORDER BY created_at, id
+SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password, viewer_username, viewer_password FROM databases ORDER BY created_at, id
 `
 
 func (q *Queries) ListDatabases(ctx context.Context) ([]Database, error) {
@@ -205,6 +207,8 @@ func (q *Queries) ListDatabases(ctx context.Context) ([]Database, error) {
 			&i.CreatedAt,
 			&i.RoUsername,
 			&i.RoPassword,
+			&i.ViewerUsername,
+			&i.ViewerPassword,
 		); err != nil {
 			return nil, err
 		}
@@ -327,7 +331,7 @@ func (q *Queries) ListInstances(ctx context.Context) ([]DatabaseInstance, error)
 }
 
 const listServerDatabases = `-- name: ListServerDatabases :many
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password FROM databases WHERE server_id = ? ORDER BY created_at, id
+SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password, viewer_username, viewer_password FROM databases WHERE server_id = ? ORDER BY created_at, id
 `
 
 func (q *Queries) ListServerDatabases(ctx context.Context, serverID string) ([]Database, error) {
@@ -350,6 +354,8 @@ func (q *Queries) ListServerDatabases(ctx context.Context, serverID string) ([]D
 			&i.CreatedAt,
 			&i.RoUsername,
 			&i.RoPassword,
+			&i.ViewerUsername,
+			&i.ViewerPassword,
 		); err != nil {
 			return nil, err
 		}
@@ -417,6 +423,21 @@ type SetDatabaseReadOnlyParams struct {
 
 func (q *Queries) SetDatabaseReadOnly(ctx context.Context, arg SetDatabaseReadOnlyParams) error {
 	_, err := q.db.ExecContext(ctx, setDatabaseReadOnly, arg.RoUsername, arg.RoPassword, arg.ID)
+	return err
+}
+
+const setDatabaseViewer = `-- name: SetDatabaseViewer :exec
+UPDATE databases SET viewer_username = ?, viewer_password = ? WHERE id = ?
+`
+
+type SetDatabaseViewerParams struct {
+	ViewerUsername string
+	ViewerPassword []byte
+	ID             string
+}
+
+func (q *Queries) SetDatabaseViewer(ctx context.Context, arg SetDatabaseViewerParams) error {
+	_, err := q.db.ExecContext(ctx, setDatabaseViewer, arg.ViewerUsername, arg.ViewerPassword, arg.ID)
 	return err
 }
 
