@@ -191,10 +191,13 @@ const (
 	// conditions (db_disk_high, db_connections_high), and instances going
 	// down and their version changes are events.
 	CapDatabaseAlerts = "db-alerts"
+	// CapDatabaseSettings: instances' advanced settings (settings.advanced,
+	// name = value lines checked against each engine's safe list).
+	CapDatabaseSettings = "db-settings"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts, CapDatabaseSettings}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {

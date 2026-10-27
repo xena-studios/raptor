@@ -59,6 +59,9 @@ type Settings struct {
 	// node's time ("04:00"; "" is DefaultMaintenance), or "off" for no
 	// patch updates but by hand.
 	Maintenance string `json:"maintenance,omitempty"`
+	// Advanced are any other settings on the engine's safe list, as
+	// name = value lines (settings.go).
+	Advanced string `json:"advanced,omitempty"`
 }
 
 // Instance is a database instance.
@@ -608,6 +611,7 @@ func (in *InstanceInput) validate() error {
 	if m := in.Settings.Maintenance; m != "" && m != "off" && !maintenanceRe.MatchString(m) {
 		return invalid{"the maintenance window starts on the hour, like 04:00, or is off"}
 	}
+	in.Settings.Advanced = strings.TrimSpace(strings.ReplaceAll(in.Settings.Advanced, "\r\n", "\n"))
 	if len(in.Networks) > 8 {
 		return invalid{"an instance is on at most 8 networks"}
 	}
@@ -653,6 +657,9 @@ func (s *Service) Save(ctx context.Context, in InstanceInput) (Instance, error) 
 	if err != nil {
 		return Instance{}, err
 	}
+	if _, err := parseAdvanced(cur.Engine, in.Settings.Advanced, in.Limits.MemoryMiB); err != nil {
+		return Instance{}, err
+	}
 	if err := s.o.Store.Write.UpdateInstance(ctx, store.UpdateInstanceParams{
 		Name: in.Name, Networks: mustJSON(in.Networks), Limits: mustJSON(in.Limits), Settings: mustJSON(in.Settings),
 		UpdatedAt: now, ID: in.ID,
@@ -678,6 +685,9 @@ func (s *Service) create(ctx context.Context, in InstanceInput, count int, now i
 	}
 	v, err := lookupOn(in.Engine, in.Version, s.kernel())
 	if err != nil {
+		return Instance{}, err
+	}
+	if _, err := parseAdvanced(v.Engine, in.Settings.Advanced, in.Limits.MemoryMiB); err != nil {
 		return Instance{}, err
 	}
 	uid, err := uuid.NewV7()

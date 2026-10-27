@@ -614,7 +614,7 @@ func (s *Service) superDump(ctx context.Context, in Instance, root, name, path s
 	var stderr tailBuffer
 	code, err := s.o.Runtime.Exec(ctx, ContainerName(in.ID), containers.ExecSpec{
 		Cmd: []string{"pg_dump", "--host=/var/run/postgresql", "--username=postgres", "--dbname=" + name},
-		Env: []string{"PGPASSWORD=" + root}, User: "999:999", Stdout: f, Stderr: io.MultiWriter(&stderr, log),
+		Env: []string{"PGPASSWORD=" + root, pgQuiet}, User: "999:999", Stdout: f, Stderr: io.MultiWriter(&stderr, log),
 	})
 	if err != nil {
 		return err
@@ -639,7 +639,7 @@ func (s *Service) superRestore(ctx context.Context, in Instance, root, name, pat
 			"psql", "--host=/var/run/postgresql", "--username=postgres", "--dbname=" + name,
 			"--no-psqlrc", "--quiet", "--set=ON_ERROR_STOP=1", "--single-transaction",
 		},
-		Env: []string{"PGPASSWORD=" + root}, User: "999:999", Stdin: f, Stdout: io.Discard, Stderr: io.MultiWriter(&stderr, log),
+		Env: []string{"PGPASSWORD=" + root, pgQuiet}, User: "999:999", Stdin: f, Stdout: io.Discard, Stderr: io.MultiWriter(&stderr, log),
 	})
 	if err != nil {
 		return err

@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { NodeDatabases } from "@/components/node-databases";
-import { databasesCapability, dbExternalCapability, dbVersionsCapability } from "@/lib/databases";
+import {
+  databasesCapability,
+  dbExternalCapability,
+  dbSettingsCapability,
+  dbVersionsCapability,
+} from "@/lib/databases";
 import { useIds } from "@/lib/ids";
 import { networksCapability } from "@/lib/networks";
 import { useOrgNodes } from "@/lib/org-data";
@@ -24,6 +29,7 @@ function Databases() {
       networksSupported={node.capabilities.includes(networksCapability)}
       versionsSupported={node.capabilities.includes(dbVersionsCapability)}
       externalSupported={node.capabilities.includes(dbExternalCapability)}
+      settingsSupported={node.capabilities.includes(dbSettingsCapability)}
     />
   );
 }

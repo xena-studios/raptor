@@ -18,6 +18,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
 import { ExternalDialog } from "@/components/db-external";
+import { HelpLink } from "@/components/help-link";
 import { StatusBadge } from "@/components/server-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ import {
   useInstances,
   versionChange,
 } from "@/lib/databases";
+import { checkAdvanced, hasAdvanced } from "@/lib/db-settings";
 import { message } from "@/lib/errors";
 import { defaultNetworkName, type RaptorNetwork, useNodeNetworks } from "@/lib/networks";
 import type { ServerStatus } from "@/lib/servers";
@@ -81,6 +83,7 @@ export function NodeDatabases({
   networksSupported,
   versionsSupported,
   externalSupported,
+  settingsSupported,
 }: {
   nodeId: string;
   userId: string;
@@ -91,6 +94,8 @@ export function NodeDatabases({
   versionsSupported: boolean;
   // The node's Wings gives instances external access.
   externalSupported: boolean;
+  // The node's Wings takes advanced engine settings.
+  settingsSupported: boolean;
 }) {
   const insts = useInstances(nodeId, connected && supported);
   const nets = useNodeNetworks(nodeId, connected && networksSupported);
@@ -165,6 +170,7 @@ export function NodeDatabases({
           instance={editing === "new" ? undefined : editing}
           versions={d.versions}
           networks={networks}
+          settingsSupported={settingsSupported}
           onClose={() => setEditing(undefined)}
         />
       )}
@@ -468,12 +474,14 @@ function InstanceDialog({
   instance,
   versions,
   networks,
+  settingsSupported,
   onClose,
 }: {
   nodeId: string;
   instance?: DBInstance;
   versions: DBVersion[];
   networks: RaptorNetwork[];
+  settingsSupported: boolean;
   onClose: () => void;
 }) {
   const client = useQueryClient();
@@ -494,12 +502,18 @@ function InstanceDialog({
   );
   const [timezone, setTimezone] = useState(instance?.settings.timezone ?? "");
   const [maintenance, setMaintenance] = useState(instance?.settings.maintenance ?? "");
+  const [advanced, setAdvanced] = useState(instance?.settings.advanced ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const engineVersions = versions.filter((v) => v.engine === engine);
   const shownVersion = version || engineVersions.find((v) => v.default)?.version || "";
   const placeholder = `${engineName(engine)}${network ? ` for ${networks.find((n) => n.id === network)?.name}` : ""}`;
+  const memoryMiB = Math.round(Number(memoryGiB) * 1024);
+  const showAdvanced = settingsSupported && hasAdvanced(engine);
+  const advancedProblem = showAdvanced
+    ? checkAdvanced(engine, advanced, memoryMiB).problem
+    : undefined;
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -512,7 +526,7 @@ function InstanceDialog({
       version: instance ? undefined : shownVersion,
       networks: network ? [network, ...extra.filter((x) => x !== network)] : [],
       limits: {
-        memory_mib: Math.round(Number(memoryGiB) * 1024),
+        memory_mib: memoryMiB,
         cpu_percent: cpu ? Number(cpu) : undefined,
         disk_mib: diskGiB ? Math.round(Number(diskGiB) * 1024) : undefined,
       },
@@ -520,6 +534,8 @@ function InstanceDialog({
         max_connections: maxConn ? Number(maxConn) : undefined,
         timezone: timezone.trim() || undefined,
         maintenance: maintenance || undefined,
+        // Kept as they were when this Wings doesn't take them yet.
+        advanced: (showAdvanced ? advanced.trim() : instance?.settings.advanced) || undefined,
       },
     };
     try {
@@ -746,6 +762,35 @@ function InstanceDialog({
                     ))}
                 </fieldset>
               )}
+              {showAdvanced && (
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <Label htmlFor="instance-advanced">Engine settings</Label>
+                  <textarea
+                    id="instance-advanced"
+                    rows={4}
+                    spellCheck={false}
+                    placeholder={advancedExample[engine]}
+                    aria-invalid={!!advancedProblem}
+                    aria-describedby="instance-advanced-help"
+                    className="min-h-20 rounded-lg border border-input bg-transparent px-2.5 py-1.5 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive dark:bg-input/30"
+                    value={advanced}
+                    onChange={(e) => setAdvanced(e.target.value)}
+                  />
+                  {advancedProblem ? (
+                    <p id="instance-advanced-help" className="text-xs text-destructive">
+                      {advancedProblem.line > 0 && `Line ${advancedProblem.line}: `}
+                      {advancedProblem.message}
+                    </p>
+                  ) : (
+                    <p id="instance-advanced-help" className="text-xs text-muted-foreground">
+                      Any other {engineName(engine)} setting, one <code>name = value</code> per
+                      line. Only settings that are safe to change are taken: none that name files,
+                      load plugins, or touch logins.{" "}
+                      <HelpLink path="/nodes/databases/#engine-settings">Which ones</HelpLink>
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </details>
 
@@ -754,7 +799,7 @@ function InstanceDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy || !!advancedProblem}>
               {busy && <Loader2 className="animate-spin" />}
               {instance ? "Save" : "Create instance"}
             </Button>
@@ -764,6 +809,14 @@ function InstanceDialog({
     </Dialog>
   );
 }
+
+// A few lines in each engine's way of writing them.
+const advancedExample: Partial<Record<Engine, string>> = {
+  mariadb: "max_allowed_packet = 64M\nslow_query_log = ON\nlong_query_time = 1",
+  mysql: "max_allowed_packet = 64M\nslow_query_log = ON\nlong_query_time = 1",
+  postgres: "work_mem = 16MB\nstatement_timeout = 30s\nlog_min_duration_statement = 1s",
+  redis: "maxmemory-policy = allkeys-lru\nnotify-keyspace-events = Ex",
+};
 
 const hours = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, "0")}:00`);
 

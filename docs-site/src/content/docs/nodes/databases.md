@@ -48,8 +48,28 @@ Open **Advanced** when making or editing an instance:
 | **Time zone** | The node's unless set, like `Europe/Berlin`. |
 | **Also on** | More networks it joins, for servers on them. |
 | **Patch updates** | When it restarts for a newer patch of its version: 04:00 in the node's time unless set, or only when you say. |
+| **Engine settings** | Any other setting of the engine's, one `name = value` per line. See [Engine settings](#engine-settings). |
 
 Changing an instance restarts it, which takes a few seconds; servers using it reconnect.
+
+### Engine settings
+
+For a setting that isn't a field, write it under **Engine settings**, one per line, the way the engine's own documentation names it:
+
+```
+max_allowed_packet = 64M
+slow_query_log = ON
+long_query_time = 1
+```
+
+Raptor takes only settings that are safe to change: none that name a file or folder, load plugins or modules, change how users log in, or change where the engine listens. Each is checked as you type, and again by the node when you save; a line that isn't right says why, with its line number.
+
+- **MariaDB and MySQL:** InnoDB's buffer pool and log settings, `max_allowed_packet`, timeouts, caches and buffers, the slow query log (`slow_query_log`, `long_query_time`), `sql_mode`, the character set and collation, transaction isolation, and the event scheduler. Sizes are like `64M` or `1G`.
+- **PostgreSQL:** `shared_buffers`, `work_mem`, `maintenance_work_mem`, `effective_cache_size`, the planner's costs, WAL and checkpoints, `synchronous_commit`, `statement_timeout` and the other timeouts, `log_min_duration_statement` for slow queries, autovacuum, parallel workers, and JIT. Sizes are like `64MB`, times like `30s`.
+- **Redis:** `maxmemory-policy` (to drop keys at the memory limit instead of refusing writes, like a cache), `notify-keyspace-events`, `timeout`, `hz`, the slow log, lazy freeing, `appendfsync`, and the small-encoding limits. Sizes are like `64mb`.
+- **MongoDB** has no engine settings.
+
+Memory settings like the buffer pool can't be more than the instance's memory. Max connections and the time zone have fields of their own above.
 
 ## Change its version
 
