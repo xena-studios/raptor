@@ -176,7 +176,9 @@ export function ServerDatabases({
                   many={d.databases.length > 1}
                   canWrite={canWrite}
                   instance={d.instances.find((x) => x.id === db.instance_id)}
-                  onShow={(password, readonly) => setShown({ db, password, readonly })}
+                  onShow={(password, readonly, user) =>
+                    setShown({ db: user ? { ...db, readonly_user: user } : db, password, readonly })
+                  }
                   onRestore={restorable ? () => setRestoring(db) : undefined}
                 />
               ))}
@@ -237,7 +239,7 @@ function DatabaseRow({
   many: boolean;
   canWrite: boolean;
   instance?: DBInstance;
-  onShow: (password: string, readonly?: boolean) => void;
+  onShow: (password: string, readonly?: boolean, user?: string) => void;
   onRestore?: () => void;
 }) {
   const client = useQueryClient();
@@ -422,7 +424,7 @@ function DatabaseRow({
           userId={userId}
           db={db}
           canWrite={canWrite}
-          onShow={(password) => onShow(password, true)}
+          onShow={(password, user) => onShow(password, true, user)}
         />
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -554,7 +556,7 @@ function CreateDialog({
   );
 }
 
-function PasswordDialog({
+export function PasswordDialog({
   db,
   password,
   readonly,
@@ -598,20 +600,23 @@ function PasswordDialog({
 
 // ReadOnlyUser is a database's read-only user, for a tool that should only
 // look (a stats page, a map): made, given a new password, or removed.
-function ReadOnlyUser({
+export function ReadOnlyUser({
   nodeId,
   serverId,
   userId,
   db,
   canWrite,
   onShow,
+  onChanged,
 }: {
   nodeId: string;
   serverId: string;
   userId: string;
   db: Database;
   canWrite: boolean;
-  onShow: (password: string) => void;
+  onShow: (password: string, user?: string) => void;
+  // Called after it changes (the instance page keeps its own list).
+  onChanged?: () => void;
 }) {
   const client = useQueryClient();
   const ask = useConfirm();
@@ -624,6 +629,7 @@ function ReadOnlyUser({
     try {
       await fn();
       await client.invalidateQueries({ queryKey: serverDatabasesKey(nodeId, serverId) });
+      onChanged?.();
     } catch (err) {
       if (!passkeyCancelled(err)) setError(message(err));
     } finally {
@@ -639,7 +645,8 @@ function ReadOnlyUser({
         action: "db.readonly.set",
         paramsJson: JSON.stringify({ id: db.id }),
       });
-      onShow((JSON.parse(res.resultJson) as { password: string }).password);
+      const made = JSON.parse(res.resultJson) as { user: string; password: string };
+      onShow(made.password, made.user);
     });
 
   const show = () =>

@@ -1,7 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
 import {
   ArrowUpCircle,
+  ChevronRight,
   Database as DatabaseIcon,
   Globe,
   History,
@@ -21,7 +23,7 @@ import { ExternalDialog } from "@/components/db-external";
 import { HelpLink } from "@/components/help-link";
 import { StatusBadge } from "@/components/server-status";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -76,6 +78,7 @@ const select =
 // A new instance takes an engine, a name, and its memory; the rest is
 // under Advanced.
 export function NodeDatabases({
+  orgId,
   nodeId,
   userId,
   connected,
@@ -84,9 +87,13 @@ export function NodeDatabases({
   versionsSupported,
   externalSupported,
   settingsSupported,
+  browserSupported,
 }: {
+  orgId: string;
   nodeId: string;
   userId: string;
+  // The node's Wings shows an instance's own page.
+  browserSupported: boolean;
   connected: boolean;
   supported: boolean;
   networksSupported: boolean;
@@ -159,6 +166,7 @@ export function NodeDatabases({
                 onEdit={() => setEditing(i)}
                 onChangeVersion={() => setChanging(i)}
                 onExternal={externalSupported && isSQL(i.engine) ? () => setOpening(i) : undefined}
+                orgId={browserSupported && isSQL(i.engine) ? orgId : undefined}
               />
             ))
           )}
@@ -211,6 +219,7 @@ function InstanceRow({
   onEdit,
   onChangeVersion,
   onExternal,
+  orgId,
 }: {
   nodeId: string;
   userId: string;
@@ -220,6 +229,8 @@ function InstanceRow({
   onEdit: () => void;
   onChangeVersion: () => void;
   onExternal?: () => void;
+  // Set when the instance has its own page to open.
+  orgId?: string;
 }) {
   const client = useQueryClient();
   const ask = useConfirm();
@@ -316,6 +327,15 @@ function InstanceRow({
           )}
         </div>
         <div className="-my-0.5 flex shrink-0 gap-1">
+          {orgId && i.state === "running" && (
+            <Link
+              to="/orgs/$orgId/nodes/$nodeId/databases/$instanceId"
+              params={{ orgId, nodeId, instanceId: i.id }}
+              className={buttonVariants({ size: "sm", variant: "outline" })}
+            >
+              Open <ChevronRight />
+            </Link>
+          )}
           <Button
             size="icon-sm"
             variant="ghost"

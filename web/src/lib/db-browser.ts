@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
 import type { Engine } from "@/lib/databases";
-import { commandClient } from "@/lib/transport";
+import { readLines } from "@/lib/ndjson";
+import { apiURL, commandClient } from "@/lib/transport";
 
 // The database browser's commands (internal/wings/databases/browser.go,
 // docs/DATABASES.md#the-browser), and the SQL its structure forms write.
@@ -43,9 +44,80 @@ export type Filter = {
   value?: string;
 };
 
-export type Process = { id: number; user: string; state: string; seconds: number; query: string };
+export type Process = {
+  id: number;
+  user: string;
+  database?: string; // an instance's: the database it's using
+  state: string;
+  seconds: number;
+  query: string;
+};
 
 export const dbBrowserCapability = "db-browser";
+// The SQL editor's results stream, with a cancel button, and a query's
+// whole result exports.
+export const dbQueryStreamCapability = "db-query-stream";
+// An instance's own page: its databases, users, and connections.
+export const dbInstanceBrowserCapability = "db-instance-browser";
+
+// Bounds on a streamed query (Wings' MaxStreamRows, MaxStreamTimeout).
+export const streamRows = 10_000;
+export const maxStreamTimeout = 600;
+
+// StreamDone is how a streamed query ended.
+export type StreamDone = {
+  statements: number;
+  affected: number; // -1 when it returned rows
+  rows: number; // the last result's rows, shown or not
+  shown: number;
+  more?: boolean;
+  cut?: boolean;
+  millis: number;
+};
+
+// StreamLine is one line of a streamed query (internal/wings/databases/stream.go).
+export type StreamLine =
+  | { query_id: string }
+  | { columns: { name: string; type?: string }[] }
+  | { rows: (string | null)[][] }
+  | { wait: true }
+  | { done: StreamDone }
+  | { error: string };
+
+// streamQuery runs SQL through the Panel (internal/panel/transfers'
+// QueryPath) and hands each line to onLine as it comes. Aborting signal
+// closes the stream, which stops the query on the engine.
+export async function streamQuery(opts: {
+  nodeId: string;
+  serverId: string;
+  action: "db.query" | "db.query.read";
+  params: Record<string, unknown>;
+  signal: AbortSignal;
+  onLine: (line: StreamLine) => void;
+}): Promise<void> {
+  const res = await fetch(`${apiURL}/databases/query`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      node: opts.nodeId,
+      server: opts.serverId,
+      action: opts.action,
+      params: opts.params,
+    }),
+    signal: opts.signal,
+  });
+  if (!res.ok || !res.body) {
+    let msg = "The query couldn't start. Try again in a moment.";
+    try {
+      msg = ((await res.json()) as { error?: string }).error || msg;
+    } catch {
+      // not JSON: keep the general message
+    }
+    throw new Error(msg);
+  }
+  await readLines(res.body, (v) => opts.onLine(v as StreamLine));
+}
 
 // The browser's queries are short: what's on screen, not a cache.
 export const schemaKey = (nodeId: string, serverId: string, id: string) => [

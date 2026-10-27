@@ -25,6 +25,16 @@ Its first start downloads the engine and sets it up, which takes a minute or two
 - On machines with Linux 6.19 or newer (Ubuntu 26.04, some cloud kernels), MongoDB 8.0 and 9.0 don't start, a problem MongoDB is fixing; Raptor offers 7.0 there and says why.
 - External access isn't available for Redis and MongoDB yet.
 
+## Look inside an instance
+
+**Open** next to a running MariaDB, MySQL, or PostgreSQL instance shows its own page (admins and owners):
+
+- **Databases:** every server's databases on it. Each opens in the same browser as the server's [Databases tab](/servers/databases/#browse-and-change-a-database), with its rows, structure, SQL, imports, and exports.
+- **Users:** everyone who can log in to the instance and the databases each can use: each database's own user, its read-only user if it has one, and the instance's administrator, which only Raptor uses. **Make one** gives any database a read-only user for a tool outside Raptor.
+- **Connections:** every connection to the instance, from every server, with what it's running, and stopping a slow query.
+
+A database opened here is changed as its own user, like from its server's tab, so nothing on this page reaches further than the server itself could.
+
 ## Keep communities apart
 
 Two communities on one node should each have their own [network](/nodes/networks/), with an instance on each. Three things then keep their data apart:
