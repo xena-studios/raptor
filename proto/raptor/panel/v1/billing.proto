@@ -71,6 +71,25 @@ message GetBillingResponse {
   google.protobuf.Timestamp read_only_at = 9;
   bool read_only = 10;
   bool trial_available = 11;
+  // A waiver from Raptor in force, if any (DECISIONS #334).
+  BillingWaiver waiver = 12;
+  // How many of the org's nodes are free under it now: they're not
+  // charged, and need no plan.
+  int32 free_nodes = 13;
+  // A node linked now would be free too, so Add Node needs no plan.
+  bool free_next_node = 14;
+}
+
+// BillingWaiver is nodes (and optionally Backup Storage) Raptor gives an
+// org free. The reason staff gave isn't shown.
+message BillingWaiver {
+  // Every node free, or free_nodes of them.
+  bool all_nodes = 1;
+  int32 free_nodes = 2;
+  // Raptor Backup Storage past the included amount is free too.
+  bool storage = 3;
+  // When it ends; unset: until Raptor ends it.
+  google.protobuf.Timestamp ends_at = 4;
 }
 
 message StartCheckoutRequest {

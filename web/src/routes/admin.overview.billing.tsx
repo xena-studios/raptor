@@ -71,7 +71,11 @@ function BillingInsights() {
               icon={CircleDollarSign}
               label="Recurring revenue"
               value={`${dollars(d.mrrCents)} / mo`}
-              sub={`${d.seatsBilled} nodes on paid plans`}
+              sub={
+                d.waivedOrgs > 0
+                  ? `${d.seatsBilled} nodes on paid plans; ${d.waivedNodes} free in ${d.waivedOrgs} ${d.waivedOrgs === 1 ? "org" : "orgs"}, not counted`
+                  : `${d.seatsBilled} nodes on paid plans`
+              }
             />
             <StatCard
               icon={CreditCard}

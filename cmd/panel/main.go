@@ -356,6 +356,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		// deleted in the background.
 		go addrs.Retire(ctx, time.Minute)
 		cfg.Staff.BillingLive = bill.Enabled
+		cfg.Staff.BillingChanged = bill.NodesChanged
 		cfg.Hub.ClientIPHeader = os.Getenv("PANEL_CLIENT_IP_HEADER")
 		cfg.Hub.OnAddress = addrs.Seen
 		cfg.Orgs.NodeRemoved = func(ctx context.Context, id string) {

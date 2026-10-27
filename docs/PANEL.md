@@ -348,7 +348,8 @@ Every chart in a titled graph (a node's and a server's resources, the staff over
   - **One kind of change per update:** Polar's subscription update takes seats, cancelling, or the trial, never two at once, so the sweep sends seats first and the cancellation after.
 - **Trial:** the first node is free for one month, **once per org**, and a **card is required at signup** (this cuts throwaway re-trial accounts). It's asked for at checkout only if the org hasn't had one and has at most one node. Linking a second node ends the free month (the sweep sets `trial_end` to now); Add Node says so first, and owners can end it early.
 - **Raptor Backup Storage:** 10 GB included per paid node (pooled across the org; a trial node counts), then $0.012 per GB-month ($12/TB), metered daily from object storage usage. Backed by Backblaze B2 (about $6.95/TB): roughly 30% left after B2, payment fees, and API calls. During beta, a soft cap of 500 GB per org, raised on request.
-- The Panel keeps its own **ledger** for reconciliation (`billing_ledger`): every subscription state it sees, orders paid and refunded with their amounts, the seat changes it made, and unpaid spells.
+- **Waivers** (`billing_waivers`, [#334](DECISIONS.md)): staff admins can make some of an org's nodes free, or all of them, and optionally its Backup Storage past what's included, with a reason and an optional end date ([Staff](#staff)). The sweep charges only the rest: seats are the nodes less the free ones, and the free month and unpaid spells count only charged nodes. An org whose nodes are all free needs no plan (no read-only, join tokens allowed, Add Node goes straight to the install command), and a plan it has is set to end with the period, as removing the last node does, and carries on if nodes are charged again; an owner's own cancellation is never undone. With some nodes free and no plan, the rest still need one. An end date ends it in the sweep, with an email to the owners 3 days before and when it ends; staff can end one at any time. Owners see on Settings → Billing what's free and until when ("2 nodes are free, courtesy of Raptor, until …"), never the reason.
+- The Panel keeps its own **ledger** for reconciliation (`billing_ledger`): every subscription state it sees, orders paid and refunded with their amounts, the seat changes it made, unpaid spells, and waivers given, changed, and ended.
 - Non-payment: 7-day grace → the Panel goes read-only for unpaid nodes → **servers keep running**. An org is unpaid when it has nodes and no plan that's trialing or active; a failed payment (`past_due`) counts from when it failed. Owners are emailed when it starts and when the nodes go read-only, and every page of the org says when. Read-only means `CommandService` refuses everything but reads (and ending support access), and no join tokens; the org can still remove nodes and pay. Hosted backup data is kept 30 days, then deleted after email reminders.
 - **Not yet:** charging for Raptor Backup Storage over the included 10 GB (it's measured, and shown as an estimate).
 
@@ -373,7 +374,7 @@ Raptor's own admin panel, at `/admin` in the app (`internal/panel/staff`, `Staff
   - nodes and servers over time;
   - operating systems, Wings versions, architectures, server states, and the most deployed games;
   - offline nodes and failing servers.
-- **Billing:** recurring revenue (seats on active and past-due plans at the node price), paying orgs, orgs on the free month, unpaid and read-only orgs, orgs by plan status, and orders paid less refunds by month from `billing_ledger`; then Raptor Backup Storage, which isn't charged yet: what it would bill a month, storage over time, and each org's storage. With billing off, it says so.
+- **Billing:** recurring revenue (seats on active and past-due plans at the node price; nodes free under a waiver aren't in it, and are counted beside it), paying orgs, orgs on the free month, unpaid and read-only orgs, orgs by plan status, and orders paid less refunds by month from `billing_ledger`; then Raptor Backup Storage, which isn't charged yet: what it would bill a month, storage over time, and each org's storage. With billing off, it says so.
 - **Infrastructure:**
   - the Panel's instances and the node connections each holds;
   - the database's size, connections, and largest tables;
@@ -390,10 +391,11 @@ The Summary:
 - **Suspend an account** (with a reason): it's signed out everywhere and can't sign in. Its orgs and servers keep running.
 - **Sign an account out everywhere.**
 - **Suspend an org** (with a reason): the Panel refuses to manage it (org pages, commands, the console, and SFTP logins), and its members see why. Its nodes and game servers keep running, so players aren't punished for the owner's account.
+- **Waive an org's billing** (`SetBillingWaiver`, `EndBillingWaiver`; the org's page → Waive billing): a number of free nodes or all of them, optionally its Backup Storage past what's included, a required reason, and an optional end date; change it or end it the same way ([Billing](#billing-polar)). The org's page shows its plan, seats, and the waiver with its reason and who gave it.
 
 Staff can't sign in as a user, and can't read or act on servers. Reaching a node needs support access, which its owner signs (below).
 
-**The staff log** (`staff_audit`) records every change and every account or org opened (once per 10 minutes per staff member), with who and from where. A trigger refuses updates, deletes, and truncation, so staff can't edit it. Suspensions also go in the affected account's or org's own log, as done by staff.
+**The staff log** (`staff_audit`) records every change and every account or org opened (once per 10 minutes per staff member), with who and from where. A trigger refuses updates, deletes, and truncation, so staff can't edit it. Suspensions and waivers also go in the affected account's or org's own log, as done by staff (a waiver's reason only in the staff log).
 
 ## Announcements
 

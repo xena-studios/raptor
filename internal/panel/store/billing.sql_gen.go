@@ -11,6 +11,32 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const activeWaiver = `-- name: ActiveWaiver :one
+
+SELECT id, org_id, all_nodes, free_nodes, storage, reason, ends_at, notified, created_by, created_at, updated_at, ended_at FROM billing_waivers WHERE org_id = $1 AND ended_at IS NULL
+`
+
+// Waivers (staff giving an org nodes or storage free; DECISIONS #334).
+func (q *Queries) ActiveWaiver(ctx context.Context, orgID pgtype.UUID) (BillingWaiver, error) {
+	row := q.db.QueryRow(ctx, activeWaiver, orgID)
+	var i BillingWaiver
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.AllNodes,
+		&i.FreeNodes,
+		&i.Storage,
+		&i.Reason,
+		&i.EndsAt,
+		&i.Notified,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EndedAt,
+	)
+	return i, err
+}
+
 const addLedger = `-- name: AddLedger :exec
 INSERT INTO billing_ledger (org_id, kind, quantity, amount_cents, currency, polar_ref, data)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -74,11 +100,16 @@ SELECT o.id AS org_id,
        coalesce(b.subscription_id, '') AS subscription_id, coalesce(b.status, '') AS status,
        coalesce(b.seats, 0) AS seats, coalesce(b.cancel_at_period_end, false) AS cancel_at_period_end,
        b.past_due_at, b.trial_end, b.unpaid_since, coalesce(b.unpaid_notified, '{}')::text[] AS unpaid_notified,
-       b.fetched_at, coalesce(b.nodes, 0) AS last_nodes, coalesce(b.auto_canceled, false) AS auto_canceled
+       b.fetched_at, coalesce(b.nodes, 0) AS last_nodes, coalesce(b.auto_canceled, false) AS auto_canceled,
+       w.id AS waiver_id, coalesce(w.all_nodes, false) AS waiver_all_nodes, coalesce(w.free_nodes, 0) AS waiver_free_nodes,
+       coalesce(w.storage, false) AS waiver_storage, w.ends_at AS waiver_ends_at,
+       coalesce(w.notified, '{}')::text[] AS waiver_notified
 FROM orgs o
 LEFT JOIN billing_accounts b ON b.org_id = o.id
+LEFT JOIN billing_waivers w ON w.org_id = o.id AND w.ended_at IS NULL
 WHERE EXISTS (SELECT 1 FROM nodes n WHERE n.org_id = o.id AND n.deleted_at IS NULL)
    OR coalesce(b.subscription_id, '') <> ''
+   OR w.id IS NOT NULL
 ORDER BY o.id
 `
 
@@ -96,6 +127,12 @@ type BillingOrgsRow struct {
 	FetchedAt         pgtype.Timestamptz
 	LastNodes         int32
 	AutoCanceled      bool
+	WaiverID          pgtype.UUID
+	WaiverAllNodes    bool
+	WaiverFreeNodes   int32
+	WaiverStorage     bool
+	WaiverEndsAt      pgtype.Timestamptz
+	WaiverNotified    []string
 }
 
 // Every org the sweep looks at: with nodes, or with a subscription.
@@ -122,6 +159,12 @@ func (q *Queries) BillingOrgs(ctx context.Context) ([]BillingOrgsRow, error) {
 			&i.FetchedAt,
 			&i.LastNodes,
 			&i.AutoCanceled,
+			&i.WaiverID,
+			&i.WaiverAllNodes,
+			&i.WaiverFreeNodes,
+			&i.WaiverStorage,
+			&i.WaiverEndsAt,
+			&i.WaiverNotified,
 		); err != nil {
 			return nil, err
 		}
@@ -135,8 +178,13 @@ func (q *Queries) BillingOrgs(ctx context.Context) ([]BillingOrgsRow, error) {
 
 const billingPlanCounts = `-- name: BillingPlanCounts :many
 
-SELECT status, count(*)::int AS orgs, coalesce(sum(seats), 0)::int AS seats
-FROM billing_accounts WHERE subscription_id <> '' GROUP BY status ORDER BY status
+SELECT b.status, count(*)::int AS orgs,
+       coalesce(sum(CASE WHEN w.id IS NOT NULL AND (w.all_nodes OR (w.free_nodes > 0 AND
+                (SELECT count(*) FROM nodes n WHERE n.org_id = b.org_id AND n.deleted_at IS NULL) <= w.free_nodes))
+            THEN 0 ELSE b.seats END), 0)::int AS seats
+FROM billing_accounts b
+LEFT JOIN billing_waivers w ON w.org_id = b.org_id AND w.ended_at IS NULL
+WHERE b.subscription_id <> '' GROUP BY b.status ORDER BY b.status
 `
 
 type BillingPlanCountsRow struct {
@@ -146,6 +194,8 @@ type BillingPlanCountsRow struct {
 }
 
 // Staff insights (the admin panel's Billing tab).
+// Seats on a plan whose nodes are all waived don't count: it ends with
+// its period (the seats can't go below one before then).
 func (q *Queries) BillingPlanCounts(ctx context.Context) ([]BillingPlanCountsRow, error) {
 	rows, err := q.db.Query(ctx, billingPlanCounts)
 	if err != nil {
@@ -184,6 +234,23 @@ func (q *Queries) BillingUnpaidCounts(ctx context.Context) (BillingUnpaidCountsR
 	return i, err
 }
 
+const endWaiver = `-- name: EndWaiver :execrows
+UPDATE billing_waivers SET ended_at = $1, updated_at = now() WHERE id = $2 AND ended_at IS NULL
+`
+
+type EndWaiverParams struct {
+	EndedAt pgtype.Timestamptz
+	ID      pgtype.UUID
+}
+
+func (q *Queries) EndWaiver(ctx context.Context, arg EndWaiverParams) (int64, error) {
+	result, err := q.db.Exec(ctx, endWaiver, arg.EndedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const forgetWebhook = `-- name: ForgetWebhook :exec
 DELETE FROM billing_webhooks WHERE id = $1
 `
@@ -192,6 +259,49 @@ DELETE FROM billing_webhooks WHERE id = $1
 func (q *Queries) ForgetWebhook(ctx context.Context, id string) error {
 	_, err := q.db.Exec(ctx, forgetWebhook, id)
 	return err
+}
+
+const insertWaiver = `-- name: InsertWaiver :one
+INSERT INTO billing_waivers (org_id, all_nodes, free_nodes, storage, reason, ends_at, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, org_id, all_nodes, free_nodes, storage, reason, ends_at, notified, created_by, created_at, updated_at, ended_at
+`
+
+type InsertWaiverParams struct {
+	OrgID     pgtype.UUID
+	AllNodes  bool
+	FreeNodes int32
+	Storage   bool
+	Reason    string
+	EndsAt    pgtype.Timestamptz
+	CreatedBy pgtype.UUID
+}
+
+func (q *Queries) InsertWaiver(ctx context.Context, arg InsertWaiverParams) (BillingWaiver, error) {
+	row := q.db.QueryRow(ctx, insertWaiver,
+		arg.OrgID,
+		arg.AllNodes,
+		arg.FreeNodes,
+		arg.Storage,
+		arg.Reason,
+		arg.EndsAt,
+		arg.CreatedBy,
+	)
+	var i BillingWaiver
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.AllNodes,
+		&i.FreeNodes,
+		&i.Storage,
+		&i.Reason,
+		&i.EndsAt,
+		&i.Notified,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EndedAt,
+	)
+	return i, err
 }
 
 const nodeOrgAny = `-- name: NodeOrgAny :one
@@ -388,4 +498,82 @@ type SetUnpaidParams struct {
 func (q *Queries) SetUnpaid(ctx context.Context, arg SetUnpaidParams) error {
 	_, err := q.db.Exec(ctx, setUnpaid, arg.OrgID, arg.UnpaidSince, arg.UnpaidNotified)
 	return err
+}
+
+const setWaiverNotified = `-- name: SetWaiverNotified :exec
+UPDATE billing_waivers SET notified = $2 WHERE id = $1
+`
+
+type SetWaiverNotifiedParams struct {
+	ID       pgtype.UUID
+	Notified []string
+}
+
+func (q *Queries) SetWaiverNotified(ctx context.Context, arg SetWaiverNotifiedParams) error {
+	_, err := q.db.Exec(ctx, setWaiverNotified, arg.ID, arg.Notified)
+	return err
+}
+
+const updateWaiver = `-- name: UpdateWaiver :one
+UPDATE billing_waivers SET all_nodes = $2, free_nodes = $3, storage = $4, reason = $5, ends_at = $6,
+    notified = CASE WHEN ends_at IS DISTINCT FROM $6 THEN '{}' ELSE notified END, updated_at = now()
+WHERE id = $1 AND ended_at IS NULL RETURNING id, org_id, all_nodes, free_nodes, storage, reason, ends_at, notified, created_by, created_at, updated_at, ended_at
+`
+
+type UpdateWaiverParams struct {
+	ID        pgtype.UUID
+	AllNodes  bool
+	FreeNodes int32
+	Storage   bool
+	Reason    string
+	EndsAt    pgtype.Timestamptz
+}
+
+// A changed end date is a new one to remind about.
+func (q *Queries) UpdateWaiver(ctx context.Context, arg UpdateWaiverParams) (BillingWaiver, error) {
+	row := q.db.QueryRow(ctx, updateWaiver,
+		arg.ID,
+		arg.AllNodes,
+		arg.FreeNodes,
+		arg.Storage,
+		arg.Reason,
+		arg.EndsAt,
+	)
+	var i BillingWaiver
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.AllNodes,
+		&i.FreeNodes,
+		&i.Storage,
+		&i.Reason,
+		&i.EndsAt,
+		&i.Notified,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EndedAt,
+	)
+	return i, err
+}
+
+const waiverCounts = `-- name: WaiverCounts :one
+SELECT count(*)::int AS orgs,
+       coalesce(sum(CASE WHEN w.all_nodes THEN x.nodes ELSE least(w.free_nodes, x.nodes) END), 0)::int AS nodes
+FROM billing_waivers w
+CROSS JOIN LATERAL (SELECT count(*)::int AS nodes FROM nodes n WHERE n.org_id = w.org_id AND n.deleted_at IS NULL) x
+WHERE w.ended_at IS NULL
+`
+
+type WaiverCountsRow struct {
+	Orgs  int32
+	Nodes int32
+}
+
+// Orgs with a waiver in force, and the nodes it covers.
+func (q *Queries) WaiverCounts(ctx context.Context) (WaiverCountsRow, error) {
+	row := q.db.QueryRow(ctx, waiverCounts)
+	var i WaiverCountsRow
+	err := row.Scan(&i.Orgs, &i.Nodes)
+	return i, err
 }

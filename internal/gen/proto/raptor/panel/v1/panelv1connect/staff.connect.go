@@ -74,6 +74,12 @@ const (
 	// StaffServiceUnsuspendOrgProcedure is the fully-qualified name of the StaffService's UnsuspendOrg
 	// RPC.
 	StaffServiceUnsuspendOrgProcedure = "/raptor.panel.v1.StaffService/UnsuspendOrg"
+	// StaffServiceSetBillingWaiverProcedure is the fully-qualified name of the StaffService's
+	// SetBillingWaiver RPC.
+	StaffServiceSetBillingWaiverProcedure = "/raptor.panel.v1.StaffService/SetBillingWaiver"
+	// StaffServiceEndBillingWaiverProcedure is the fully-qualified name of the StaffService's
+	// EndBillingWaiver RPC.
+	StaffServiceEndBillingWaiverProcedure = "/raptor.panel.v1.StaffService/EndBillingWaiver"
 	// StaffServiceListActiveAnnouncementsProcedure is the fully-qualified name of the StaffService's
 	// ListActiveAnnouncements RPC.
 	StaffServiceListActiveAnnouncementsProcedure = "/raptor.panel.v1.StaffService/ListActiveAnnouncements"
@@ -125,6 +131,13 @@ type StaffServiceClient interface {
 	// game servers keep running. Admins.
 	SuspendOrg(context.Context, *v1.SuspendOrgRequest) (*v1.SuspendOrgResponse, error)
 	UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error)
+	// SetBillingWaiver gives the org nodes free (some, or all of them), and
+	// optionally its Backup Storage past what's included, until an end date
+	// or until ended; or changes the one in force. A reason is required.
+	// Admins (DECISIONS #334).
+	SetBillingWaiver(context.Context, *v1.SetBillingWaiverRequest) (*v1.SetBillingWaiverResponse, error)
+	// EndBillingWaiver ends the org's waiver now. Admins.
+	EndBillingWaiver(context.Context, *v1.EndBillingWaiverRequest) (*v1.EndBillingWaiverResponse, error)
 	// ListActiveAnnouncements is what to show everyone right now. Anyone
 	// signed in may ask.
 	ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error)
@@ -258,6 +271,18 @@ func NewStaffServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(staffServiceMethods.ByName("UnsuspendOrg")),
 			connect.WithClientOptions(opts...),
 		),
+		setBillingWaiver: connect.NewClient[v1.SetBillingWaiverRequest, v1.SetBillingWaiverResponse](
+			httpClient,
+			baseURL+StaffServiceSetBillingWaiverProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("SetBillingWaiver")),
+			connect.WithClientOptions(opts...),
+		),
+		endBillingWaiver: connect.NewClient[v1.EndBillingWaiverRequest, v1.EndBillingWaiverResponse](
+			httpClient,
+			baseURL+StaffServiceEndBillingWaiverProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("EndBillingWaiver")),
+			connect.WithClientOptions(opts...),
+		),
 		listActiveAnnouncements: connect.NewClient[v1.ListActiveAnnouncementsRequest, v1.ListActiveAnnouncementsResponse](
 			httpClient,
 			baseURL+StaffServiceListActiveAnnouncementsProcedure,
@@ -331,6 +356,8 @@ type staffServiceClient struct {
 	getStaffOrg             *connect.Client[v1.GetStaffOrgRequest, v1.GetStaffOrgResponse]
 	suspendOrg              *connect.Client[v1.SuspendOrgRequest, v1.SuspendOrgResponse]
 	unsuspendOrg            *connect.Client[v1.UnsuspendOrgRequest, v1.UnsuspendOrgResponse]
+	setBillingWaiver        *connect.Client[v1.SetBillingWaiverRequest, v1.SetBillingWaiverResponse]
+	endBillingWaiver        *connect.Client[v1.EndBillingWaiverRequest, v1.EndBillingWaiverResponse]
 	listActiveAnnouncements *connect.Client[v1.ListActiveAnnouncementsRequest, v1.ListActiveAnnouncementsResponse]
 	listAnnouncements       *connect.Client[v1.ListAnnouncementsRequest, v1.ListAnnouncementsResponse]
 	saveAnnouncement        *connect.Client[v1.SaveAnnouncementRequest, v1.SaveAnnouncementResponse]
@@ -476,6 +503,24 @@ func (c *staffServiceClient) UnsuspendOrg(ctx context.Context, req *v1.Unsuspend
 	return nil, err
 }
 
+// SetBillingWaiver calls raptor.panel.v1.StaffService.SetBillingWaiver.
+func (c *staffServiceClient) SetBillingWaiver(ctx context.Context, req *v1.SetBillingWaiverRequest) (*v1.SetBillingWaiverResponse, error) {
+	response, err := c.setBillingWaiver.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// EndBillingWaiver calls raptor.panel.v1.StaffService.EndBillingWaiver.
+func (c *staffServiceClient) EndBillingWaiver(ctx context.Context, req *v1.EndBillingWaiverRequest) (*v1.EndBillingWaiverResponse, error) {
+	response, err := c.endBillingWaiver.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListActiveAnnouncements calls raptor.panel.v1.StaffService.ListActiveAnnouncements.
 func (c *staffServiceClient) ListActiveAnnouncements(ctx context.Context, req *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error) {
 	response, err := c.listActiveAnnouncements.CallUnary(ctx, connect.NewRequest(req))
@@ -574,6 +619,13 @@ type StaffServiceHandler interface {
 	// game servers keep running. Admins.
 	SuspendOrg(context.Context, *v1.SuspendOrgRequest) (*v1.SuspendOrgResponse, error)
 	UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error)
+	// SetBillingWaiver gives the org nodes free (some, or all of them), and
+	// optionally its Backup Storage past what's included, until an end date
+	// or until ended; or changes the one in force. A reason is required.
+	// Admins (DECISIONS #334).
+	SetBillingWaiver(context.Context, *v1.SetBillingWaiverRequest) (*v1.SetBillingWaiverResponse, error)
+	// EndBillingWaiver ends the org's waiver now. Admins.
+	EndBillingWaiver(context.Context, *v1.EndBillingWaiverRequest) (*v1.EndBillingWaiverResponse, error)
 	// ListActiveAnnouncements is what to show everyone right now. Anyone
 	// signed in may ask.
 	ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error)
@@ -703,6 +755,18 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(staffServiceMethods.ByName("UnsuspendOrg")),
 		connect.WithHandlerOptions(opts...),
 	)
+	staffServiceSetBillingWaiverHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceSetBillingWaiverProcedure,
+		svc.SetBillingWaiver,
+		connect.WithSchema(staffServiceMethods.ByName("SetBillingWaiver")),
+		connect.WithHandlerOptions(opts...),
+	)
+	staffServiceEndBillingWaiverHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceEndBillingWaiverProcedure,
+		svc.EndBillingWaiver,
+		connect.WithSchema(staffServiceMethods.ByName("EndBillingWaiver")),
+		connect.WithHandlerOptions(opts...),
+	)
 	staffServiceListActiveAnnouncementsHandler := connect.NewUnaryHandlerSimple(
 		StaffServiceListActiveAnnouncementsProcedure,
 		svc.ListActiveAnnouncements,
@@ -788,6 +852,10 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 			staffServiceSuspendOrgHandler.ServeHTTP(w, r)
 		case StaffServiceUnsuspendOrgProcedure:
 			staffServiceUnsuspendOrgHandler.ServeHTTP(w, r)
+		case StaffServiceSetBillingWaiverProcedure:
+			staffServiceSetBillingWaiverHandler.ServeHTTP(w, r)
+		case StaffServiceEndBillingWaiverProcedure:
+			staffServiceEndBillingWaiverHandler.ServeHTTP(w, r)
 		case StaffServiceListActiveAnnouncementsProcedure:
 			staffServiceListActiveAnnouncementsHandler.ServeHTTP(w, r)
 		case StaffServiceListAnnouncementsProcedure:
@@ -871,6 +939,14 @@ func (UnimplementedStaffServiceHandler) SuspendOrg(context.Context, *v1.SuspendO
 
 func (UnimplementedStaffServiceHandler) UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.UnsuspendOrg is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) SetBillingWaiver(context.Context, *v1.SetBillingWaiverRequest) (*v1.SetBillingWaiverResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.SetBillingWaiver is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) EndBillingWaiver(context.Context, *v1.EndBillingWaiverRequest) (*v1.EndBillingWaiverResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.EndBillingWaiver is not implemented"))
 }
 
 func (UnimplementedStaffServiceHandler) ListActiveAnnouncements(context.Context, *v1.ListActiveAnnouncementsRequest) (*v1.ListActiveAnnouncementsResponse, error) {

@@ -65,6 +65,13 @@ func (b *Billing) GetBilling(ctx context.Context, req *panelv1.GetBillingRequest
 		out.ReadOnlyAt = timestamppb.New(st.ReadOnlyAt)
 	}
 	out.ReadOnly, out.TrialAvailable = st.ReadOnly, st.TrialAvailable
+	if w := st.Waiver; w != nil {
+		out.Waiver = &panelv1.BillingWaiver{AllNodes: w.AllNodes, FreeNodes: int32(w.FreeNodes), Storage: w.Storage} //nolint:gosec // at most 10000
+		if !w.EndsAt.IsZero() {
+			out.Waiver.EndsAt = timestamppb.New(w.EndsAt)
+		}
+		out.FreeNodes, out.FreeNextNode = int32(st.Nodes-st.Billable), st.FreeNextNode() //nolint:gosec // node counts are small
+	}
 	return out, nil
 }
 

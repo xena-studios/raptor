@@ -169,6 +169,21 @@ type BillingLedger struct {
 	At          pgtype.Timestamptz
 }
 
+type BillingWaiver struct {
+	ID        pgtype.UUID
+	OrgID     pgtype.UUID
+	AllNodes  bool
+	FreeNodes int32
+	Storage   bool
+	Reason    string
+	EndsAt    pgtype.Timestamptz
+	Notified  []string
+	CreatedBy pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+	EndedAt   pgtype.Timestamptz
+}
+
 type BillingWebhook struct {
 	ID         string
 	Type       string

@@ -82,6 +82,7 @@ function Billing() {
   return (
     <div className="space-y-6">
       {b.readOnlyAt && <Unpaid b={b} owner={owner} />}
+      {b.waiver && <Courtesy b={b} />}
       {checkout === "done" && !live && (
         <p className="text-sm text-muted-foreground">
           <Loader2 className="mr-1.5 inline size-3.5 animate-spin" />
@@ -91,11 +92,42 @@ function Billing() {
       {live ? (
         <Plan orgId={orgId} b={b} owner={owner} />
       ) : (
-        <Start orgId={orgId} b={b} owner={owner} />
+        // Every node free, courtesy of Raptor: there's no plan to start.
+        !b.waiver?.allNodes && <Start orgId={orgId} b={b} owner={owner} />
       )}
       {owner && live && <Cards orgId={orgId} b={b} />}
       {owner && b.status !== "" && <Charges orgId={orgId} />}
       {owner && b.status !== "" && <PolarPortal orgId={orgId} />}
+    </div>
+  );
+}
+
+// Courtesy says what Raptor gives the org free, and until when.
+function Courtesy({ b }: { b: GetBillingResponse }) {
+  const w = b.waiver;
+  if (!w) return null;
+  const nodes = w.allNodes
+    ? "All your nodes are free"
+    : w.freeNodes > 0
+      ? `${w.freeNodes} ${w.freeNodes === 1 ? "node is" : "nodes are"} free`
+      : "";
+  const storage = "Raptor Backup Storage past what's included is free";
+  const what = nodes
+    ? `${nodes}${w.storage ? `, and ${storage.charAt(0).toLowerCase()}${storage.slice(1)}` : ""}`
+    : storage;
+  return (
+    <div className="rounded-lg border border-primary/30 bg-brand-wash p-4 text-sm">
+      <p className="font-medium">
+        {what}, courtesy of Raptor{w.endsAt ? `, until ${day(w.endsAt)}` : ""}.
+      </p>
+      <p className="mt-1 text-muted-foreground">
+        {w.allNodes
+          ? "Your org needs no plan for them."
+          : w.freeNodes > 0
+            ? "They're not charged; a plan covers any others."
+            : "Your nodes are charged as usual."}
+        {w.endsAt ? " After that it's charged like any org. Owners are emailed 3 days before." : ""}
+      </p>
     </div>
   );
 }
@@ -128,6 +160,7 @@ function Start({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owne
   const [checkout, setCheckout] = useState<{ url: string; origin: string } | null>(null);
   const [error, setError] = useState("");
   const price = dollars(b.nodePriceCents);
+  const charged = b.nodes - b.freeNodes;
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
@@ -138,6 +171,9 @@ function Start({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owne
             {b.trialAvailable
               ? " Your first node is free for its first month. A card is needed to start; nothing is charged until the free month ends."
               : ""}
+            {b.freeNodes > 0 && charged === 0
+              ? " Your free nodes need no plan: start one before linking more."
+              : ""}
           </CardDescription>
         </div>
         <StatusBadge status={planStatus(b)} />
@@ -146,7 +182,10 @@ function Start({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owne
         <DetailList
           rows={[
             ["Nodes", String(b.nodes)],
-            ["Would be", `${dollars(BigInt(Math.max(b.nodes, 1)) * b.nodePriceCents)} / month`],
+            ...(b.freeNodes > 0
+              ? ([["Free, courtesy of Raptor", String(b.freeNodes)]] as [string, string][])
+              : []),
+            ["Would be", `${dollars(BigInt(Math.max(charged, 1)) * b.nodePriceCents)} / month`],
           ]}
         />
         {owner ? (
@@ -201,10 +240,10 @@ function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner
   const [resuming, setResuming] = useState(false);
   const [error, setError] = useState("");
   const monthly = BigInt(b.seats) * b.nodePriceCents;
-  const rows: [string, string][] = [
-    ["Nodes", String(b.nodes)],
-    ["Price per node", `${dollars(b.nodePriceCents)} / month`],
-  ];
+  const charged = b.nodes - b.freeNodes;
+  const rows: [string, string][] = [["Nodes", String(b.nodes)]];
+  if (b.freeNodes > 0) rows.push(["Free, courtesy of Raptor", String(b.freeNodes)]);
+  rows.push(["Price per node", `${dollars(b.nodePriceCents)} / month`]);
   if (b.status === "trialing") {
     rows.push(
       [b.cancelAtPeriodEnd ? "Ends" : "Free until", day(b.trialEnd)],
@@ -225,7 +264,9 @@ function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner
             {b.cancelAtPeriodEnd
               ? b.nodes === 0
                 ? "This plan ends with the period, since the org has no nodes. Connect one and it carries on."
-                : "This plan ends with the period. Nodes still linked then make the org unpaid."
+                : charged === 0
+                  ? "This plan ends with the period, since Raptor makes all your nodes free. It carries on if any are charged again."
+                  : "This plan ends with the period. Nodes still linked then make the org unpaid."
               : b.status === "trialing"
                 ? "Your first node is free this month. Linking a second ends the free month, and both are charged from then."
                 : "Every linked node is charged, online or not. Adding or removing one changes the bill by the day."}
@@ -255,7 +296,7 @@ function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner
               </Button>
             )}
             {b.cancelAtPeriodEnd
-              ? b.nodes > 0 && (
+              ? charged > 0 && (
                   <Button
                     disabled={resuming}
                     onClick={async () => {
