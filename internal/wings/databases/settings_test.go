@@ -1,3 +1,7 @@
+//go:build !e2e
+
+// Not in the e2e build, which runs from elsewhere without testdata.
+
 package databases
 
 import (

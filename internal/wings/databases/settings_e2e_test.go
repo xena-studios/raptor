@@ -38,8 +38,8 @@ func TestAdvancedSettings(t *testing.T) {
 			engine: MySQL,
 			first:  "slow_query_log = on\nlong_query_time = 0.25\ninnodb_buffer_pool_size = 64M",
 			second: "slow_query_log = off",
-			read:   readMySQL("@@slow_query_log", "@@long_query_time", "@@innodb_buffer_pool_size"),
-			want1:  map[string]string{"@@slow_query_log": "1", "@@long_query_time": "0.25", "@@innodb_buffer_pool_size": "67108864"},
+			read:   readMySQL("@@slow_query_log", "@@GLOBAL.long_query_time", "@@innodb_buffer_pool_size"),
+			want1:  map[string]string{"@@slow_query_log": "1", "@@GLOBAL.long_query_time": "0.25", "@@innodb_buffer_pool_size": "67108864"},
 			want2:  map[string]string{"@@slow_query_log": "0", "@@innodb_buffer_pool_size": "268435456"},
 		},
 		{
