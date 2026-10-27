@@ -65,9 +65,38 @@ func (q *Queries) AddLedger(ctx context.Context, arg AddLedgerParams) error {
 	return err
 }
 
+const addStorageBilling = `-- name: AddStorageBilling :exec
+INSERT INTO backup_storage_billing (org_id, day, used_bytes, over_bytes, gb_months, skipped, sent_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (org_id, day) DO NOTHING
+`
+
+type AddStorageBillingParams struct {
+	OrgID     pgtype.UUID
+	Day       pgtype.Date
+	UsedBytes int64
+	OverBytes int64
+	GbMonths  float64
+	Skipped   string
+	SentAt    pgtype.Timestamptz
+}
+
+func (q *Queries) AddStorageBilling(ctx context.Context, arg AddStorageBillingParams) error {
+	_, err := q.db.Exec(ctx, addStorageBilling,
+		arg.OrgID,
+		arg.Day,
+		arg.UsedBytes,
+		arg.OverBytes,
+		arg.GbMonths,
+		arg.Skipped,
+		arg.SentAt,
+	)
+	return err
+}
+
 const billingAccount = `-- name: BillingAccount :one
 
-SELECT org_id, subscription_id, status, seats, current_period_end, trial_end, cancel_at_period_end, past_due_at, trial_used, unpaid_since, unpaid_notified, nodes, auto_canceled, fetched_at, updated_at FROM billing_accounts WHERE org_id = $1
+SELECT org_id, subscription_id, status, seats, current_period_end, trial_end, cancel_at_period_end, past_due_at, trial_used, unpaid_since, unpaid_notified, nodes, auto_canceled, fetched_at, updated_at, storage_priced, storage_cents FROM billing_accounts WHERE org_id = $1
 `
 
 // Billing (docs/PANEL.md#billing-polar).
@@ -90,6 +119,8 @@ func (q *Queries) BillingAccount(ctx context.Context, orgID pgtype.UUID) (Billin
 		&i.AutoCanceled,
 		&i.FetchedAt,
 		&i.UpdatedAt,
+		&i.StoragePriced,
+		&i.StorageCents,
 	)
 	return i, err
 }
@@ -399,13 +430,14 @@ func (q *Queries) RevenueByMonth(ctx context.Context, at pgtype.Timestamptz) ([]
 
 const saveSubscription = `-- name: SaveSubscription :exec
 INSERT INTO billing_accounts (org_id, subscription_id, status, seats, current_period_end, trial_end,
-    cancel_at_period_end, past_due_at, trial_used, fetched_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())
+    cancel_at_period_end, past_due_at, trial_used, storage_priced, storage_cents, fetched_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), now())
 ON CONFLICT (org_id) DO UPDATE SET
     subscription_id = EXCLUDED.subscription_id, status = EXCLUDED.status, seats = EXCLUDED.seats,
     current_period_end = EXCLUDED.current_period_end, trial_end = EXCLUDED.trial_end,
     cancel_at_period_end = EXCLUDED.cancel_at_period_end, past_due_at = EXCLUDED.past_due_at,
     trial_used = billing_accounts.trial_used OR EXCLUDED.trial_used,
+    storage_priced = EXCLUDED.storage_priced, storage_cents = EXCLUDED.storage_cents,
     fetched_at = now(), updated_at = now()
 `
 
@@ -419,6 +451,8 @@ type SaveSubscriptionParams struct {
 	CancelAtPeriodEnd bool
 	PastDueAt         pgtype.Timestamptz
 	TrialUsed         bool
+	StoragePriced     bool
+	StorageCents      int64
 }
 
 // What Polar says about the org's subscription.
@@ -433,6 +467,8 @@ func (q *Queries) SaveSubscription(ctx context.Context, arg SaveSubscriptionPara
 		arg.CancelAtPeriodEnd,
 		arg.PastDueAt,
 		arg.TrialUsed,
+		arg.StoragePriced,
+		arg.StorageCents,
 	)
 	return err
 }
@@ -512,6 +548,62 @@ type SetWaiverNotifiedParams struct {
 func (q *Queries) SetWaiverNotified(ctx context.Context, arg SetWaiverNotifiedParams) error {
 	_, err := q.db.Exec(ctx, setWaiverNotified, arg.ID, arg.Notified)
 	return err
+}
+
+const storageDaysToBill = `-- name: StorageDaysToBill :many
+
+SELECT u.org_id, u.day, u.bytes,
+       (SELECT count(*) FROM nodes n WHERE n.org_id = u.org_id AND n.deleted_at IS NULL)::int AS nodes,
+       coalesce(b.status, '') AS status, coalesce(b.storage_priced, false) AS storage_priced,
+       EXISTS (SELECT 1 FROM billing_waivers w WHERE w.org_id = u.org_id AND w.ended_at IS NULL AND w.storage
+               AND (w.ends_at IS NULL OR w.ends_at > now()))::bool AS waived
+FROM backup_storage_usage u
+LEFT JOIN billing_accounts b ON b.org_id = u.org_id
+WHERE u.day >= $1
+  AND NOT EXISTS (SELECT 1 FROM backup_storage_billing x WHERE x.org_id = u.org_id AND x.day = u.day)
+ORDER BY u.day, u.org_id
+`
+
+type StorageDaysToBillRow struct {
+	OrgID         pgtype.UUID
+	Day           pgtype.Date
+	Bytes         int64
+	Nodes         int32
+	Status        string
+	StoragePriced bool
+	Waived        bool
+}
+
+// Raptor Backup Storage, charged (DECISIONS #335).
+// Measured days since @since that haven't been billed or skipped, with
+// what decides it: the org's nodes (each includes 10 GB), its plan, and a
+// storage waiver.
+func (q *Queries) StorageDaysToBill(ctx context.Context, since pgtype.Date) ([]StorageDaysToBillRow, error) {
+	rows, err := q.db.Query(ctx, storageDaysToBill, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StorageDaysToBillRow
+	for rows.Next() {
+		var i StorageDaysToBillRow
+		if err := rows.Scan(
+			&i.OrgID,
+			&i.Day,
+			&i.Bytes,
+			&i.Nodes,
+			&i.Status,
+			&i.StoragePriced,
+			&i.Waived,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateWaiver = `-- name: UpdateWaiver :one

@@ -191,8 +191,8 @@ func (s *Service) GetNodeInsights(ctx context.Context, req *panelv1.GetNodeInsig
 	return out, nil
 }
 
-// GetBillingInsights implements StaffService. Billing doesn't exist yet,
-// so this is Raptor Backup Storage, and what it would bill.
+// GetBillingInsights implements StaffService: Raptor Backup Storage and
+// what it bills a month at today's use, then plans and payments.
 func (s *Service) GetBillingInsights(ctx context.Context, req *panelv1.GetBillingInsightsRequest) (*panelv1.GetBillingInsightsResponse, error) {
 	if _, err := s.staff(ctx, false); err != nil {
 		return nil, err
@@ -204,7 +204,7 @@ func (s *Service) GetBillingInsights(ctx context.Context, req *panelv1.GetBillin
 		return nil, err
 	}
 	for _, o := range orgs {
-		cents := storage.Estimate(o.Bytes, int(o.Nodes))
+		cents := storage.Estimate(o.Bytes, int(o.OrgNodes))
 		out.StorageOrgs = append(out.StorageOrgs, &panelv1.StorageOrg{Id: id(o.ID), Name: o.Name, Nodes: o.Nodes, Bytes: o.Bytes, CentsMonth: cents})
 		out.StorageCentsMonth += cents
 		out.StorageBytes += o.Bytes
@@ -220,7 +220,7 @@ func (s *Service) GetBillingInsights(ctx context.Context, req *panelv1.GetBillin
 
 	// Billing: plans, recurring revenue, who's unpaid, and a year of
 	// payments by month.
-	out.BillingLive = s.billingLive()
+	out.BillingLive, out.StorageBillingLive = s.billingLive(), s.storageBillingLive()
 	plans, err := q.BillingPlanCounts(ctx)
 	if err != nil {
 		return nil, err

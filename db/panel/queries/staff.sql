@@ -138,6 +138,7 @@ UPDATE orgs SET suspended_at = NULL, suspended_reason = '' WHERE id = $1;
 -- nodes have it on, for what a month would bill.
 SELECT b.org_id,
        count(*)::int AS nodes,
+       (SELECT count(*) FROM nodes n WHERE n.org_id = b.org_id AND n.deleted_at IS NULL)::int AS org_nodes,
        coalesce((SELECT u.bytes FROM backup_storage_usage u WHERE u.org_id = b.org_id ORDER BY u.day DESC LIMIT 1), 0)::bigint AS bytes
 FROM backup_storage b WHERE b.disabled_at IS NULL GROUP BY b.org_id;
 

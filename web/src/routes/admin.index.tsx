@@ -193,7 +193,9 @@ function Overview() {
                 </>
               )}
               <p className="text-xs text-muted-foreground">
-                Backup Storage isn't charged yet: it would bill{" "}
+                {d.revenue?.storageBillingLive
+                  ? "Backup Storage is charged by use: it bills about"
+                  : "Backup Storage isn't charged yet: it would bill"}{" "}
                 {dollars(d.revenue?.storageCentsMonth ?? 0n)} a month, from{" "}
                 {d.revenue?.storageOrgs ?? 0} orgs (10 GB a node included, then $12 a TB).
               </p>

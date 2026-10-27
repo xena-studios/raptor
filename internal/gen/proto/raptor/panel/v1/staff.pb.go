@@ -612,8 +612,9 @@ func (x *FailingServer) GetOrgName() string {
 
 type Revenue struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether this Panel charges (Polar is set up). Raptor Backup Storage
-	// isn't charged yet either way: storage_cents_month is what it would bill.
+	// Whether this Panel charges (Polar is set up). storage_cents_month is
+	// what Raptor Backup Storage would bill a month at today's use, charged
+	// only with storage_billing_live.
 	BillingLive       bool  `protobuf:"varint,1,opt,name=billing_live,json=billingLive,proto3" json:"billing_live,omitempty"`
 	StorageCentsMonth int64 `protobuf:"varint,2,opt,name=storage_cents_month,json=storageCentsMonth,proto3" json:"storage_cents_month,omitempty"`
 	StorageOrgs       int32 `protobuf:"varint,3,opt,name=storage_orgs,json=storageOrgs,proto3" json:"storage_orgs,omitempty"`
@@ -626,10 +627,13 @@ type Revenue struct {
 	RecentPaidCents int64 `protobuf:"varint,7,opt,name=recent_paid_cents,json=recentPaidCents,proto3" json:"recent_paid_cents,omitempty"`
 	// Orgs with a billing waiver in force, and the nodes it covers (not in
 	// mrr_cents).
-	WaivedOrgs    int32 `protobuf:"varint,8,opt,name=waived_orgs,json=waivedOrgs,proto3" json:"waived_orgs,omitempty"`
-	WaivedNodes   int32 `protobuf:"varint,9,opt,name=waived_nodes,json=waivedNodes,proto3" json:"waived_nodes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	WaivedOrgs  int32 `protobuf:"varint,8,opt,name=waived_orgs,json=waivedOrgs,proto3" json:"waived_orgs,omitempty"`
+	WaivedNodes int32 `protobuf:"varint,9,opt,name=waived_nodes,json=waivedNodes,proto3" json:"waived_nodes,omitempty"`
+	// Whether Raptor Backup Storage past what's included is charged, through
+	// Polar's meter; storage_cents_month is then an estimate of it.
+	StorageBillingLive bool `protobuf:"varint,10,opt,name=storage_billing_live,json=storageBillingLive,proto3" json:"storage_billing_live,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Revenue) Reset() {
@@ -723,6 +727,13 @@ func (x *Revenue) GetWaivedNodes() int32 {
 		return x.WaivedNodes
 	}
 	return 0
+}
+
+func (x *Revenue) GetStorageBillingLive() bool {
+	if x != nil {
+		return x.StorageBillingLive
+	}
+	return false
 }
 
 type GetOverviewResponse struct {
@@ -4312,7 +4323,7 @@ func (x *StorageOrg) GetCentsMonth() int64 {
 
 type GetBillingInsightsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether billing exists yet; until it does, nothing here is charged.
+	// Whether billing is on; until it is, nothing here is charged.
 	BillingLive       bool  `protobuf:"varint,1,opt,name=billing_live,json=billingLive,proto3" json:"billing_live,omitempty"`
 	StorageCentsMonth int64 `protobuf:"varint,2,opt,name=storage_cents_month,json=storageCentsMonth,proto3" json:"storage_cents_month,omitempty"`
 	StorageBytes      int64 `protobuf:"varint,3,opt,name=storage_bytes,json=storageBytes,proto3" json:"storage_bytes,omitempty"`
@@ -4333,10 +4344,12 @@ type GetBillingInsightsResponse struct {
 	RevenueByMonth []*RevenueMonth `protobuf:"bytes,14,rep,name=revenue_by_month,json=revenueByMonth,proto3" json:"revenue_by_month,omitempty"`
 	// Orgs with a billing waiver in force, and the nodes it covers (not in
 	// mrr_cents or seats_billed).
-	WaivedOrgs    int32 `protobuf:"varint,15,opt,name=waived_orgs,json=waivedOrgs,proto3" json:"waived_orgs,omitempty"`
-	WaivedNodes   int32 `protobuf:"varint,16,opt,name=waived_nodes,json=waivedNodes,proto3" json:"waived_nodes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	WaivedOrgs  int32 `protobuf:"varint,15,opt,name=waived_orgs,json=waivedOrgs,proto3" json:"waived_orgs,omitempty"`
+	WaivedNodes int32 `protobuf:"varint,16,opt,name=waived_nodes,json=waivedNodes,proto3" json:"waived_nodes,omitempty"`
+	// Whether Raptor Backup Storage past what's included is charged.
+	StorageBillingLive bool `protobuf:"varint,17,opt,name=storage_billing_live,json=storageBillingLive,proto3" json:"storage_billing_live,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetBillingInsightsResponse) Reset() {
@@ -4479,6 +4492,13 @@ func (x *GetBillingInsightsResponse) GetWaivedNodes() int32 {
 		return x.WaivedNodes
 	}
 	return 0
+}
+
+func (x *GetBillingInsightsResponse) GetStorageBillingLive() bool {
+	if x != nil {
+		return x.StorageBillingLive
+	}
+	return false
 }
 
 type PlanCount struct {
@@ -4981,7 +5001,7 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\rinstall_error\x18\x05 \x01(\tR\finstallError\x12\x19\n" +
 	"\begg_name\x18\x06 \x01(\tR\aeggName\x12\x15\n" +
 	"\x06org_id\x18\a \x01(\tR\x05orgId\x12\x19\n" +
-	"\borg_name\x18\b \x01(\tR\aorgName\"\xd2\x02\n" +
+	"\borg_name\x18\b \x01(\tR\aorgName\"\x84\x03\n" +
 	"\aRevenue\x12!\n" +
 	"\fbilling_live\x18\x01 \x01(\bR\vbillingLive\x12.\n" +
 	"\x13storage_cents_month\x18\x02 \x01(\x03R\x11storageCentsMonth\x12!\n" +
@@ -4993,7 +5013,9 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\x11recent_paid_cents\x18\a \x01(\x03R\x0frecentPaidCents\x12\x1f\n" +
 	"\vwaived_orgs\x18\b \x01(\x05R\n" +
 	"waivedOrgs\x12!\n" +
-	"\fwaived_nodes\x18\t \x01(\x05R\vwaivedNodes\"\xbe\x04\n" +
+	"\fwaived_nodes\x18\t \x01(\x05R\vwaivedNodes\x120\n" +
+	"\x14storage_billing_live\x18\n" +
+	" \x01(\bR\x12storageBillingLive\"\xbe\x04\n" +
 	"\x13GetOverviewResponse\x127\n" +
 	"\x06counts\x18\x01 \x01(\v2\x1f.raptor.panel.v1.PlatformCountsR\x06counts\x128\n" +
 	"\ahistory\x18\x02 \x03(\v2\x1e.raptor.panel.v1.PlatformPointR\ahistory\x12B\n" +
@@ -5270,7 +5292,7 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\x05nodes\x18\x03 \x01(\x05R\x05nodes\x12\x14\n" +
 	"\x05bytes\x18\x04 \x01(\x03R\x05bytes\x12\x1f\n" +
 	"\vcents_month\x18\x05 \x01(\x03R\n" +
-	"centsMonth\"\xcd\x05\n" +
+	"centsMonth\"\xff\x05\n" +
 	"\x1aGetBillingInsightsResponse\x12!\n" +
 	"\fbilling_live\x18\x01 \x01(\bR\vbillingLive\x12.\n" +
 	"\x13storage_cents_month\x18\x02 \x01(\x03R\x11storageCentsMonth\x12#\n" +
@@ -5291,7 +5313,8 @@ const file_raptor_panel_v1_staff_proto_rawDesc = "" +
 	"\x10revenue_by_month\x18\x0e \x03(\v2\x1d.raptor.panel.v1.RevenueMonthR\x0erevenueByMonth\x12\x1f\n" +
 	"\vwaived_orgs\x18\x0f \x01(\x05R\n" +
 	"waivedOrgs\x12!\n" +
-	"\fwaived_nodes\x18\x10 \x01(\x05R\vwaivedNodes\"M\n" +
+	"\fwaived_nodes\x18\x10 \x01(\x05R\vwaivedNodes\x120\n" +
+	"\x14storage_billing_live\x18\x11 \x01(\bR\x12storageBillingLive\"M\n" +
 	"\tPlanCount\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x12\n" +
 	"\x04orgs\x18\x02 \x01(\x05R\x04orgs\x12\x14\n" +

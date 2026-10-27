@@ -89,9 +89,20 @@ type GetBillingResponse struct {
 	// charged, and need no plan.
 	FreeNodes int32 `protobuf:"varint,13,opt,name=free_nodes,json=freeNodes,proto3" json:"free_nodes,omitempty"`
 	// A node linked now would be free too, so Add Node needs no plan.
-	FreeNextNode  bool `protobuf:"varint,14,opt,name=free_next_node,json=freeNextNode,proto3" json:"free_next_node,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	FreeNextNode bool `protobuf:"varint,14,opt,name=free_next_node,json=freeNextNode,proto3" json:"free_next_node,omitempty"`
+	// Raptor Backup Storage (DECISIONS #335): whether this Panel charges for
+	// use past what's included, the org's latest measured use, what's
+	// included (10 GB a node), and, from Polar, whether the plan has the
+	// storage price and what's due for it so far this period.
+	StorageBilling       bool                   `protobuf:"varint,15,opt,name=storage_billing,json=storageBilling,proto3" json:"storage_billing,omitempty"`
+	StorageUsedBytes     int64                  `protobuf:"varint,16,opt,name=storage_used_bytes,json=storageUsedBytes,proto3" json:"storage_used_bytes,omitempty"`
+	StorageIncludedBytes int64                  `protobuf:"varint,17,opt,name=storage_included_bytes,json=storageIncludedBytes,proto3" json:"storage_included_bytes,omitempty"`
+	StorageMeasuredAt    *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=storage_measured_at,json=storageMeasuredAt,proto3" json:"storage_measured_at,omitempty"`
+	StoragePriced        bool                   `protobuf:"varint,19,opt,name=storage_priced,json=storagePriced,proto3" json:"storage_priced,omitempty"`
+	StoragePeriodCents   int64                  `protobuf:"varint,20,opt,name=storage_period_cents,json=storagePeriodCents,proto3" json:"storage_period_cents,omitempty"`
+	StorageCentsPerTb    int64                  `protobuf:"varint,21,opt,name=storage_cents_per_tb,json=storageCentsPerTb,proto3" json:"storage_cents_per_tb,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GetBillingResponse) Reset() {
@@ -220,6 +231,55 @@ func (x *GetBillingResponse) GetFreeNextNode() bool {
 		return x.FreeNextNode
 	}
 	return false
+}
+
+func (x *GetBillingResponse) GetStorageBilling() bool {
+	if x != nil {
+		return x.StorageBilling
+	}
+	return false
+}
+
+func (x *GetBillingResponse) GetStorageUsedBytes() int64 {
+	if x != nil {
+		return x.StorageUsedBytes
+	}
+	return 0
+}
+
+func (x *GetBillingResponse) GetStorageIncludedBytes() int64 {
+	if x != nil {
+		return x.StorageIncludedBytes
+	}
+	return 0
+}
+
+func (x *GetBillingResponse) GetStorageMeasuredAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StorageMeasuredAt
+	}
+	return nil
+}
+
+func (x *GetBillingResponse) GetStoragePriced() bool {
+	if x != nil {
+		return x.StoragePriced
+	}
+	return false
+}
+
+func (x *GetBillingResponse) GetStoragePeriodCents() int64 {
+	if x != nil {
+		return x.StoragePeriodCents
+	}
+	return 0
+}
+
+func (x *GetBillingResponse) GetStorageCentsPerTb() int64 {
+	if x != nil {
+		return x.StorageCentsPerTb
+	}
+	return 0
 }
 
 // BillingWaiver is nodes (and optionally Backup Storage) Raptor gives an
@@ -1354,7 +1414,7 @@ const file_raptor_panel_v1_billing_proto_rawDesc = "" +
 	"\n" +
 	"\x1draptor/panel/v1/billing.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"*\n" +
 	"\x11GetBillingRequest\x12\x15\n" +
-	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\xd1\x04\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\xb4\a\n" +
 	"\x12GetBillingResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x14\n" +
@@ -1372,7 +1432,14 @@ const file_raptor_panel_v1_billing_proto_rawDesc = "" +
 	"\x06waiver\x18\f \x01(\v2\x1e.raptor.panel.v1.BillingWaiverR\x06waiver\x12\x1d\n" +
 	"\n" +
 	"free_nodes\x18\r \x01(\x05R\tfreeNodes\x12$\n" +
-	"\x0efree_next_node\x18\x0e \x01(\bR\ffreeNextNode\"\x9a\x01\n" +
+	"\x0efree_next_node\x18\x0e \x01(\bR\ffreeNextNode\x12'\n" +
+	"\x0fstorage_billing\x18\x0f \x01(\bR\x0estorageBilling\x12,\n" +
+	"\x12storage_used_bytes\x18\x10 \x01(\x03R\x10storageUsedBytes\x124\n" +
+	"\x16storage_included_bytes\x18\x11 \x01(\x03R\x14storageIncludedBytes\x12J\n" +
+	"\x13storage_measured_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\x11storageMeasuredAt\x12%\n" +
+	"\x0estorage_priced\x18\x13 \x01(\bR\rstoragePriced\x120\n" +
+	"\x14storage_period_cents\x18\x14 \x01(\x03R\x12storagePeriodCents\x12/\n" +
+	"\x14storage_cents_per_tb\x18\x15 \x01(\x03R\x11storageCentsPerTb\"\x9a\x01\n" +
 	"\rBillingWaiver\x12\x1b\n" +
 	"\tall_nodes\x18\x01 \x01(\bR\ballNodes\x12\x1d\n" +
 	"\n" +
@@ -1501,35 +1568,36 @@ var file_raptor_panel_v1_billing_proto_depIdxs = []int32{
 	23, // 1: raptor.panel.v1.GetBillingResponse.trial_end:type_name -> google.protobuf.Timestamp
 	23, // 2: raptor.panel.v1.GetBillingResponse.read_only_at:type_name -> google.protobuf.Timestamp
 	2,  // 3: raptor.panel.v1.GetBillingResponse.waiver:type_name -> raptor.panel.v1.BillingWaiver
-	23, // 4: raptor.panel.v1.BillingWaiver.ends_at:type_name -> google.protobuf.Timestamp
-	23, // 5: raptor.panel.v1.Charge.at:type_name -> google.protobuf.Timestamp
-	10, // 6: raptor.panel.v1.GetBillingDetailsResponse.cards:type_name -> raptor.panel.v1.Card
-	11, // 7: raptor.panel.v1.GetBillingDetailsResponse.charges:type_name -> raptor.panel.v1.Charge
-	0,  // 8: raptor.panel.v1.BillingService.GetBilling:input_type -> raptor.panel.v1.GetBillingRequest
-	3,  // 9: raptor.panel.v1.BillingService.StartCheckout:input_type -> raptor.panel.v1.StartCheckoutRequest
-	5,  // 10: raptor.panel.v1.BillingService.OpenBillingPortal:input_type -> raptor.panel.v1.OpenBillingPortalRequest
-	7,  // 11: raptor.panel.v1.BillingService.EndTrial:input_type -> raptor.panel.v1.EndTrialRequest
-	9,  // 12: raptor.panel.v1.BillingService.GetBillingDetails:input_type -> raptor.panel.v1.GetBillingDetailsRequest
-	13, // 13: raptor.panel.v1.BillingService.StartAddCard:input_type -> raptor.panel.v1.StartAddCardRequest
-	15, // 14: raptor.panel.v1.BillingService.SetDefaultCard:input_type -> raptor.panel.v1.SetDefaultCardRequest
-	17, // 15: raptor.panel.v1.BillingService.RemoveCard:input_type -> raptor.panel.v1.RemoveCardRequest
-	19, // 16: raptor.panel.v1.BillingService.GetInvoice:input_type -> raptor.panel.v1.GetInvoiceRequest
-	21, // 17: raptor.panel.v1.BillingService.CancelPlan:input_type -> raptor.panel.v1.CancelPlanRequest
-	1,  // 18: raptor.panel.v1.BillingService.GetBilling:output_type -> raptor.panel.v1.GetBillingResponse
-	4,  // 19: raptor.panel.v1.BillingService.StartCheckout:output_type -> raptor.panel.v1.StartCheckoutResponse
-	6,  // 20: raptor.panel.v1.BillingService.OpenBillingPortal:output_type -> raptor.panel.v1.OpenBillingPortalResponse
-	8,  // 21: raptor.panel.v1.BillingService.EndTrial:output_type -> raptor.panel.v1.EndTrialResponse
-	12, // 22: raptor.panel.v1.BillingService.GetBillingDetails:output_type -> raptor.panel.v1.GetBillingDetailsResponse
-	14, // 23: raptor.panel.v1.BillingService.StartAddCard:output_type -> raptor.panel.v1.StartAddCardResponse
-	16, // 24: raptor.panel.v1.BillingService.SetDefaultCard:output_type -> raptor.panel.v1.SetDefaultCardResponse
-	18, // 25: raptor.panel.v1.BillingService.RemoveCard:output_type -> raptor.panel.v1.RemoveCardResponse
-	20, // 26: raptor.panel.v1.BillingService.GetInvoice:output_type -> raptor.panel.v1.GetInvoiceResponse
-	22, // 27: raptor.panel.v1.BillingService.CancelPlan:output_type -> raptor.panel.v1.CancelPlanResponse
-	18, // [18:28] is the sub-list for method output_type
-	8,  // [8:18] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	23, // 4: raptor.panel.v1.GetBillingResponse.storage_measured_at:type_name -> google.protobuf.Timestamp
+	23, // 5: raptor.panel.v1.BillingWaiver.ends_at:type_name -> google.protobuf.Timestamp
+	23, // 6: raptor.panel.v1.Charge.at:type_name -> google.protobuf.Timestamp
+	10, // 7: raptor.panel.v1.GetBillingDetailsResponse.cards:type_name -> raptor.panel.v1.Card
+	11, // 8: raptor.panel.v1.GetBillingDetailsResponse.charges:type_name -> raptor.panel.v1.Charge
+	0,  // 9: raptor.panel.v1.BillingService.GetBilling:input_type -> raptor.panel.v1.GetBillingRequest
+	3,  // 10: raptor.panel.v1.BillingService.StartCheckout:input_type -> raptor.panel.v1.StartCheckoutRequest
+	5,  // 11: raptor.panel.v1.BillingService.OpenBillingPortal:input_type -> raptor.panel.v1.OpenBillingPortalRequest
+	7,  // 12: raptor.panel.v1.BillingService.EndTrial:input_type -> raptor.panel.v1.EndTrialRequest
+	9,  // 13: raptor.panel.v1.BillingService.GetBillingDetails:input_type -> raptor.panel.v1.GetBillingDetailsRequest
+	13, // 14: raptor.panel.v1.BillingService.StartAddCard:input_type -> raptor.panel.v1.StartAddCardRequest
+	15, // 15: raptor.panel.v1.BillingService.SetDefaultCard:input_type -> raptor.panel.v1.SetDefaultCardRequest
+	17, // 16: raptor.panel.v1.BillingService.RemoveCard:input_type -> raptor.panel.v1.RemoveCardRequest
+	19, // 17: raptor.panel.v1.BillingService.GetInvoice:input_type -> raptor.panel.v1.GetInvoiceRequest
+	21, // 18: raptor.panel.v1.BillingService.CancelPlan:input_type -> raptor.panel.v1.CancelPlanRequest
+	1,  // 19: raptor.panel.v1.BillingService.GetBilling:output_type -> raptor.panel.v1.GetBillingResponse
+	4,  // 20: raptor.panel.v1.BillingService.StartCheckout:output_type -> raptor.panel.v1.StartCheckoutResponse
+	6,  // 21: raptor.panel.v1.BillingService.OpenBillingPortal:output_type -> raptor.panel.v1.OpenBillingPortalResponse
+	8,  // 22: raptor.panel.v1.BillingService.EndTrial:output_type -> raptor.panel.v1.EndTrialResponse
+	12, // 23: raptor.panel.v1.BillingService.GetBillingDetails:output_type -> raptor.panel.v1.GetBillingDetailsResponse
+	14, // 24: raptor.panel.v1.BillingService.StartAddCard:output_type -> raptor.panel.v1.StartAddCardResponse
+	16, // 25: raptor.panel.v1.BillingService.SetDefaultCard:output_type -> raptor.panel.v1.SetDefaultCardResponse
+	18, // 26: raptor.panel.v1.BillingService.RemoveCard:output_type -> raptor.panel.v1.RemoveCardResponse
+	20, // 27: raptor.panel.v1.BillingService.GetInvoice:output_type -> raptor.panel.v1.GetInvoiceResponse
+	22, // 28: raptor.panel.v1.BillingService.CancelPlan:output_type -> raptor.panel.v1.CancelPlanResponse
+	19, // [19:29] is the sub-list for method output_type
+	9,  // [9:19] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_billing_proto_init() }

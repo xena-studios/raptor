@@ -17,6 +17,7 @@ import { OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
 import { useIds } from "@/lib/ids";
+import { formatBytes } from "@/lib/metrics";
 import { useOrgNodes } from "@/lib/org-data";
 import type { ServerStatus } from "@/lib/servers";
 import { billingClient } from "@/lib/transport";
@@ -95,6 +96,7 @@ function Billing() {
         // Every node free, courtesy of Raptor: there's no plan to start.
         !b.waiver?.allNodes && <Start orgId={orgId} b={b} owner={owner} />
       )}
+      {(b.storageBilling || b.storageUsedBytes > 0n) && <BackupStorage b={b} live={live} />}
       {owner && live && <Cards orgId={orgId} b={b} />}
       {owner && b.status !== "" && <Charges orgId={orgId} />}
       {owner && b.status !== "" && <PolarPortal orgId={orgId} />}
@@ -326,6 +328,47 @@ function Plan({ orgId, b, owner }: { orgId: string; b: GetBillingResponse; owner
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
       <CancelPlan orgId={orgId} b={b} open={cancelling} onOpenChange={setCancelling} />
+    </Card>
+  );
+}
+
+// BackupStorage is the org's Raptor Backup Storage: what it stores, what's
+// included, and what's charged for the rest this period (DECISIONS #335).
+function BackupStorage({ b, live }: { b: GetBillingResponse; live: boolean }) {
+  const used = Number(b.storageUsedBytes);
+  const included = Number(b.storageIncludedBytes);
+  const over = Math.max(used - included, 0);
+  const perGB = (Number(b.storageCentsPerTb) / 100_000).toFixed(3);
+  const free = b.waiver?.storage ?? false;
+  const rows: [string, string][] = [
+    ["Stored", used ? formatBytes(used) : "Nothing yet"],
+    ["Included", `${formatBytes(included)} (10 GB a node)`],
+    ["Over", over ? formatBytes(over) : "Nothing"],
+  ];
+  if (free) {
+    rows.push(["Charge", "Free, courtesy of Raptor"]);
+  } else if (b.storageBilling && live && b.storagePriced) {
+    rows.push(["This period so far", dollars(b.storagePeriodCents)]);
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Raptor Backup Storage</CardTitle>
+        <CardDescription>
+          {`10 GB is included for each linked node, shared across the org. Past that it's $${perGB} per GB a month`}
+          {b.storageBilling
+            ? b.storagePriced || !live
+              ? ", measured daily and charged with the plan at the end of each period."
+              : ". It isn't charged on your current plan."
+            : ". Raptor isn't charging for it yet."}
+          {b.storageMeasuredAt
+            ? ` Last measured ${dateOnly(timestampDate(b.storageMeasuredAt))}.`
+            : ""}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <DetailList rows={rows} />
+      </CardContent>
     </Card>
   );
 }

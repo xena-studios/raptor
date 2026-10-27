@@ -37,8 +37,9 @@ Changing cards and cancelling ask you to confirm it's you first. Members and adm
 
 Offsite backups with nothing to set up. See [Backups](/servers/backups/#raptor-backup-storage).
 
-- **10 GB included** for every node on a plan, shared across the org.
-- More is **$12 per TB a month**, billed by the GB ($0.012 per GB).
+- **10 GB included** for every linked node, shared across the org.
+- More is **$12 per TB a month**, billed by the GB ($0.012 per GB a month). It's measured once a day and charged with your plan at the end of each month.
+- **Settings → Billing** shows what you store, what's included, and what's been charged for the rest so far this month.
 
 ## If you stop paying
 
@@ -46,4 +47,4 @@ Offsite backups with nothing to set up. See [Backups](/servers/backups/#raptor-b
 - After that, the Panel goes **read-only** for your nodes: you can look, but not change anything, and you can't link new nodes.
 - **Your servers keep running.** Raptor never stops a game over billing, and the `raptor` command on each machine keeps working.
 - Paying again (a new card, or paying the invoice) brings everything back at once.
-- Backups in Raptor Backup Storage are kept 30 days after a plan ends, with reminder emails before they're deleted.
+- Backups in Raptor Backup Storage aren't touched. They're only deleted 30 days after you turn it off for a node or remove the node, and owners are emailed when that happens, 7 days before, and the day before.

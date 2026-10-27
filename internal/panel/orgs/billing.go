@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/shared/hosted"
 )
 
 // Billing implements BillingService (docs/PANEL.md#billing-polar).
@@ -71,6 +73,16 @@ func (b *Billing) GetBilling(ctx context.Context, req *panelv1.GetBillingRequest
 			out.Waiver.EndsAt = timestamppb.New(w.EndsAt)
 		}
 		out.FreeNodes, out.FreeNextNode = int32(st.Nodes-st.Billable), st.FreeNextNode() //nolint:gosec // node counts are small
+	}
+	// Raptor Backup Storage: what's used and included, and what Polar says
+	// is due for it this period. The storage tables are the Panel's own.
+	out.StorageBilling, out.StorageCentsPerTb = b.Orgs.Billing.StorageBilling(), hosted.CentsPerTB
+	out.StorageIncludedBytes = int64(st.Nodes) * hosted.IncludedBytesPerNode
+	out.StoragePriced, out.StoragePeriodCents = a.StoragePriced, a.StorageCents
+	if u, err := store.New(b.Orgs.DB).LatestBackupStorageUsage(ctx, pgtype.UUID{Bytes: org, Valid: true}); err == nil {
+		out.StorageUsedBytes, out.StorageMeasuredAt = u.Bytes, stamp(u.MeasuredAt)
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
 	}
 	return out, nil
 }

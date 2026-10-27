@@ -48,8 +48,8 @@ export const Route = createFileRoute("/admin/overview/billing")({
 });
 
 // Billing: plans, recurring revenue, who's unpaid, and payments by month
-// (docs/PANEL.md#billing-polar); then Raptor Backup Storage, which isn't
-// charged yet, and what it would bill.
+// (docs/PANEL.md#billing-polar); then Raptor Backup Storage, which is
+// charged once its meter is set up, and what it bills.
 function BillingInsights() {
   const [days, setDays] = useState(30);
   const q = useQuery(
@@ -190,7 +190,9 @@ function BillingInsights() {
       <Card size="sm">
         <CardContent className="flex items-start gap-2 text-sm text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0" />
-          Raptor Backup Storage isn't charged yet. Below is what it would bill a month at today's
+          {d.storageBillingLive
+            ? "Raptor Backup Storage past what's included is charged through Polar's meter, at the end of each plan's period. Below is what it bills a month at today's"
+            : "Raptor Backup Storage isn't charged yet. Below is what it would bill a month at today's"}{" "}
           usage ({formatBytes(Number(d.includedBytes))} included per node, then{" "}
           {dollars(d.centsPerTb)} a TB).
         </CardContent>
@@ -198,7 +200,7 @@ function BillingInsights() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatCard
           icon={CircleDollarSign}
-          label="Storage would bill"
+          label={d.storageBillingLive ? "Storage bills" : "Storage would bill"}
           value={dollars(d.storageCentsMonth)}
           sub="a month, Raptor Backup Storage"
         />

@@ -64,6 +64,9 @@ type Service struct {
 	// ProductID is the seat-based product ($12 a seat a month).
 	ProductID     string
 	WebhookSecret string
+	// StorageMeterID is Polar's meter for Raptor Backup Storage past
+	// what's included; empty: it isn't charged (storage.go).
+	StorageMeterID string
 	// AppURL is the web app's origin, for the links back from Polar.
 	AppURL string
 	Mailer Mailer
@@ -477,10 +480,12 @@ func (s *Service) apply(ctx context.Context, sub *Subscription, why string) erro
 	if sub.Seats != nil {
 		seats = *sub.Seats
 	}
+	priced, storageCents := sub.Metered(s.StorageMeterID)
 	err = q.SaveSubscription(ctx, store.SaveSubscriptionParams{
 		OrgID: pgID(org), SubscriptionID: sub.ID, Status: sub.Status, Seats: int32(seats), //nolint:gosec // seats are at most 10000
 		CurrentPeriodEnd: ts(sub.CurrentPeriodEnd), TrialEnd: ts(sub.TrialEnd),
 		CancelAtPeriodEnd: sub.CancelAtPeriodEnd, PastDueAt: ts(sub.PastDueAt), TrialUsed: sub.TrialStart != nil,
+		StoragePriced: priced, StorageCents: storageCents,
 	})
 	if err != nil {
 		return err
@@ -641,6 +646,9 @@ func (s *Service) sweepAll(ctx context.Context, wait bool) error {
 		if err := s.sweep(ctx, r); err != nil {
 			errs = append(errs, fmt.Errorf("org %s: %w", uuid.UUID(r.OrgID.Bytes), err))
 		}
+	}
+	if err := s.meterStorage(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("backup storage: %w", err))
 	}
 	return errors.Join(errs...)
 }

@@ -26,3 +26,19 @@ ON CONFLICT (org_id, day) DO UPDATE SET bytes = excluded.bytes, measured_at = no
 
 -- name: LatestBackupStorageUsage :one
 SELECT * FROM backup_storage_usage WHERE org_id = $1 ORDER BY day DESC LIMIT 1;
+
+-- name: CancelBackupStoragePurge :exec
+-- Turned on again: the folder is in use, so nothing turned off before is
+-- deleted (or reminded about).
+UPDATE backup_storage SET purged_at = now()
+WHERE node_id = $1 AND disabled_at IS NOT NULL AND purged_at IS NULL;
+
+-- name: BackupStorageToRemind :many
+-- Turned off, data not deleted yet: for the reminders before it is.
+SELECT s.id, s.org_id, s.node_id, s.disabled_at, s.notified,
+       coalesce(n.name, '')::text AS node_name, (n.deleted_at IS NOT NULL)::bool AS node_removed
+FROM backup_storage s LEFT JOIN nodes n ON n.id = s.node_id
+WHERE s.disabled_at IS NOT NULL AND s.purged_at IS NULL;
+
+-- name: SetBackupStorageNotified :exec
+UPDATE backup_storage SET notified = $2 WHERE id = $1;
