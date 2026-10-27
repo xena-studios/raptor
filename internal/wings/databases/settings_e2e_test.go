@@ -36,11 +36,11 @@ func TestAdvancedSettings(t *testing.T) {
 		},
 		{
 			engine: MySQL,
-			first:  "slow_query_log = on\nlong_query_time = 0.25\nperformance_schema = ON",
+			first:  "slow_query_log = on\nlong_query_time = 0.25\ninnodb_buffer_pool_size = 64M",
 			second: "slow_query_log = off",
-			read:   readMySQL("@@slow_query_log", "@@long_query_time", "@@performance_schema"),
-			want1:  map[string]string{"@@slow_query_log": "1", "@@long_query_time": "0.250000", "@@performance_schema": "1"},
-			want2:  map[string]string{"@@slow_query_log": "0", "@@performance_schema": "0"},
+			read:   readMySQL("@@slow_query_log", "@@long_query_time", "@@innodb_buffer_pool_size"),
+			want1:  map[string]string{"@@slow_query_log": "1", "@@long_query_time": "0.25", "@@innodb_buffer_pool_size": "67108864"},
+			want2:  map[string]string{"@@slow_query_log": "0", "@@innodb_buffer_pool_size": "268435456"},
 		},
 		{
 			engine: Postgres,
