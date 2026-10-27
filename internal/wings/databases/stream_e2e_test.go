@@ -251,10 +251,10 @@ func testStream(t *testing.T, svc *Service, server string, d Database, in Instan
 	}
 }
 
-// testInstance checks an instance's own page: its databases of every
+// testInstancePage checks an instance's own page: its databases of every
 // server, and its users with what each can reach, without the browser's
 // readers.
-func testInstance(t *testing.T, svc *Service, in Instance, d1, d2 Database) {
+func testInstancePage(t *testing.T, svc *Service, in Instance, d1, d2 Database) {
 	t.Helper()
 	ctx := context.Background()
 	dbs, err := svc.InstanceDatabases(ctx, in.ID)

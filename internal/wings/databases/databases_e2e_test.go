@@ -109,7 +109,7 @@ func TestEngines(t *testing.T) {
 			testBrowser(t, svc, one, d1, d2, engine)
 			testReader(t, svc, one, d1, in, addr, engine)
 			testStream(t, svc, one, d1, in, engine)
-			testInstance(t, svc, in, d1, d2)
+			testInstancePage(t, svc, in, d1, d2)
 
 			// Each user reaches its own database over the network...
 			if err := query(engine, addr, d1.User, pw1, d1.Name, "CREATE TABLE t (id INT PRIMARY KEY)"); err != nil {
