@@ -51,8 +51,12 @@ func redisSpec(s *containers.ServiceSpec, in Instance, dir string, maxConn int) 
 		{Source: dataDir(dir), Target: "/data"},
 		{Source: runDir(dir), Target: "/run/redis"},
 	}
+	server := "redis-server"
+	if in.Engine == Valkey {
+		server = "valkey-server"
+	}
 	s.Cmd = []string{
-		"redis-server",
+		server,
 		"--aclfile", "/data/users.acl",
 		"--unixsocket", "/run/redis/redis.sock", "--unixsocketperm", "700",
 		"--protected-mode", "no", // the default user is off; every user has a password

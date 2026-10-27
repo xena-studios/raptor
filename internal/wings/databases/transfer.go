@@ -212,8 +212,8 @@ func (s *Service) Import(ctx context.Context, serverID, id, file string) (string
 	_ = fh.Close()
 	engine := s.engineOf(ctx, serverID, id)
 	switch {
-	case engine == Redis:
-		return "", invalid{"Redis has no imports: restore its data from a backup instead"}
+	case isRedis(engine):
+		return "", invalid{engineName(engine) + " has no imports: restore its data from a backup instead"}
 	case engine == MongoDB:
 		if !strings.HasSuffix(file, ".archive") && !strings.HasSuffix(file, ".gz") {
 			return "", invalid{"pick a mongodump archive: a .archive or .archive.gz file"}
@@ -294,8 +294,8 @@ func (s *Service) importFrom(ctx context.Context, in Instance, r store.Database,
 			"--nsFrom=$db$.$coll$", "--nsTo=" + r.DbName + ".$coll$",
 		}, src, nil, log)
 	}
-	if in.Engine == Redis {
-		return invalid{"there's no importing into Redis: restore its data from a backup"}
+	if isRedis(in.Engine) {
+		return invalid{"there's no importing into " + engineName(in.Engine) + ": restore its data from a backup"}
 	}
 	client, _, conn, pwEnv := tools(in.Engine)
 	cmd := append([]string{client}, conn...)
@@ -342,8 +342,8 @@ func (s *Service) Export(ctx context.Context, serverID, id, schema, table, forma
 		return "", "", errors.New("exports aren't available")
 	}
 	switch engine := s.engineOf(ctx, serverID, id); {
-	case engine == Redis:
-		return "", "", invalid{"Redis has no exports: its data is in the server's backups"}
+	case isRedis(engine):
+		return "", "", invalid{engineName(engine) + " has no exports: its data is in the server's backups"}
 	case engine == MongoDB:
 		format, schema = "archive", ""
 	case format != "sql" && format != "csv":
@@ -575,7 +575,7 @@ func (s *Service) dumpTo(ctx context.Context, r store.Database, schema, table st
 			args = append(args, "--collection="+table)
 		}
 		return s.mongoTool(ctx, r.InstanceID, r.Username, pass, r.DbName, args, nil, w, log)
-	case Redis:
+	case Redis, Valkey:
 		_, ir, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
 		if err != nil {
 			return err

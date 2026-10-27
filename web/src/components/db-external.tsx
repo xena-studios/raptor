@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type DBInstance, downloadCA, engineName, instancesKey } from "@/lib/databases";
+import { type DBInstance, downloadCA, engineName, instancesKey, isRedis } from "@/lib/databases";
 import { message } from "@/lib/errors";
 import { sendSigned } from "@/lib/signed";
 import { passkeyCancelled } from "@/lib/webauthn";
@@ -78,7 +78,8 @@ export function ExternalDialog({
             <DialogDescription>
               For a desktop tool or an app somewhere else. The instance gets a port on this node
               that only the addresses you list can reach, and connections from outside must use TLS.
-              Servers on its network keep connecting as they do now.
+              Servers on its network keep connecting as they do now
+              {isRedis(i.engine) ? ", on its own port, without TLS." : "."}
             </DialogDescription>
           </DialogHeader>
 
@@ -93,7 +94,7 @@ export function ExternalDialog({
               <p className="text-xs text-muted-foreground">
                 As the database's own user, with TLS.{" "}
                 {i.external.host
-                  ? `To check you're talking to it, give your tool the certificate below (in ${i.engine === "postgres" ? "psql, sslmode=verify-full and sslrootcert" : "the mysql client, --ssl-ca and --ssl-mode=VERIFY_IDENTITY"}).`
+                  ? `To check you're talking to it, give your tool the certificate below (${caHint(i)}).`
                   : "Give your tool the certificate below to check you're talking to it."}
               </p>
               {i.external.ca && (
@@ -183,5 +184,13 @@ export function ExternalDialog({
 // suggestedPort is a port unlikely to be taken: the engine's own, moved
 // up out of the way of anything else on the machine using it.
 function suggestedPort(i: DBInstance): number {
+  if (isRedis(i.engine)) return 16379;
   return i.engine === "postgres" ? 15432 : 13306;
+}
+
+// caHint is where the engine's usual client takes the certificate.
+function caHint(i: DBInstance): string {
+  if (isRedis(i.engine)) return "in redis-cli, --tls and --cacert; in a URL, rediss://";
+  if (i.engine === "postgres") return "in psql, sslmode=verify-full and sslrootcert";
+  return "in the mysql client, --ssl-ca and --ssl-mode=VERIFY_IDENTITY";
 }

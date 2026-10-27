@@ -34,7 +34,7 @@ Pterodactyl is two programs: the **Panel**, a PHP web app, and **Wings**, on eac
 | Console, power, stats, file manager, SFTP, schedules | Built in | Built in |
 | Pterodactyl and Pelican eggs | Built in | Built in, and [your servers move over](/install/from-pterodactyl/) |
 | Sub-users with per-server permissions, activity log | Built in | Built in |
-| MySQL databases for servers | Built in (MySQL and MariaDB) | Built in: MariaDB, MySQL, PostgreSQL, Redis, and MongoDB. See [Databases](/nodes/databases/) |
+| MySQL databases for servers | Built in (MySQL and MariaDB) | Built in: MariaDB, MySQL, PostgreSQL, Redis, Valkey, and MongoDB. See [Databases](/nodes/databases/) |
 | Install plugins (Modrinth, Hangar) | Add-on | Built in. See [Plugins, mods, and the Workshop](/servers/addons/) |
 | Install mods | Add-on | Built in |
 | Steam Workshop items | None in general; add-ons for single games | Built in, for Garry's Mod, ARK, and Squad |

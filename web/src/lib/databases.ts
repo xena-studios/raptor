@@ -7,11 +7,15 @@ export { versionChange } from "./db-versions";
 // What Wings' database commands return (internal/wings/databases,
 // docs/DATABASES.md): instances on a node, and servers' databases on them.
 
-export type Engine = "mariadb" | "mysql" | "postgres" | "redis" | "mongodb";
+export type Engine = "mariadb" | "mysql" | "postgres" | "redis" | "valkey" | "mongodb";
 
 // isSQL: the engines with the SQL browser, imports of .sql files, and
 // external access.
 export const isSQL = (e: Engine) => e === "mariadb" || e === "mysql" || e === "postgres";
+
+// isRedis: Redis and Valkey, its fork, which work the same here (one
+// server each, the key browser, REDIS_* variables).
+export const isRedis = (e: Engine) => e === "redis" || e === "valkey";
 
 export type DBInstance = {
   id: string;
@@ -108,6 +112,9 @@ export const dbExternalCapability = "db-external";
 // Advanced engine settings: name = value lines on each engine's safe list.
 export const dbSettingsCapability = "db-settings";
 
+// External access for Redis and Valkey, on a TLS-only port.
+export const dbRedisExternalCapability = "db-redis-external";
+
 // The maintenance window an instance gets unless it says (Wings'
 // DefaultMaintenance), in the node's time.
 export const defaultMaintenance = "04:00";
@@ -175,6 +182,11 @@ export const engines: { id: Engine; name: string; about: string }[] = [
     name: "Redis",
     about: "Fast storage for caches and plugins that sync servers. One server each.",
   },
+  {
+    id: "valkey",
+    name: "Valkey",
+    about: "Redis' open-source fork, for the same plugins. One server each.",
+  },
   { id: "mongodb", name: "MongoDB", about: "For bots and apps that store documents." },
 ];
 
@@ -186,6 +198,7 @@ export function engineName(e: Engine): string {
 export function connectionURL(d: Database, password = "…"): string {
   switch (d.engine) {
     case "redis":
+    case "valkey":
       return `redis://${d.user}:${password}@${d.host}:${d.port}/0`;
     case "mongodb":
       return `mongodb://${d.user}:${password}@${d.host}:${d.port}/${d.name}?authSource=${d.name}`;
@@ -198,10 +211,10 @@ export function connectionURL(d: Database, password = "…"): string {
 // hostVariable is the variable a server gets a database's host in, and
 // urlVariable its URL's (Wings' envVars).
 export function hostVariable(e: Engine): string {
-  return e === "redis" ? "REDIS_HOST" : e === "mongodb" ? "MONGODB_HOST" : "DB_HOST";
+  return isRedis(e) ? "REDIS_HOST" : e === "mongodb" ? "MONGODB_HOST" : "DB_HOST";
 }
 export function urlVariable(e: Engine): string {
-  return e === "redis" ? "REDIS_URL" : e === "mongodb" ? "MONGODB_URI" : "DATABASE_URL";
+  return isRedis(e) ? "REDIS_URL" : e === "mongodb" ? "MONGODB_URI" : "DATABASE_URL";
 }
 
 // The labels Wings takes: lowercase letters, digits, and underscores.

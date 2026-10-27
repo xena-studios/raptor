@@ -57,7 +57,7 @@ func TestLookup(t *testing.T) {
 	if _, err := lookup(MySQL, "5.7"); !errors.Is(err, ErrInvalid) {
 		t.Errorf("mysql 5.7: %v", err)
 	}
-	for _, e := range []string{MariaDB, MySQL, Postgres} {
+	for _, e := range []string{MariaDB, MySQL, Postgres, Redis, MongoDB, Valkey} {
 		n := 0
 		for _, v := range Versions {
 			if v.Engine == e && v.Default {

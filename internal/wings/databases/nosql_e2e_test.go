@@ -41,11 +41,17 @@ func mongoAs(t *testing.T, addr, user, pass, db string) *mongo.Client {
 // TestRedis makes a Redis instance and a server's database on it: its
 // user does what apps do and no administration, the instance takes no
 // second server, the read-only user only reads, and a backup's snapshot
-// restores; then a version change keeps the keys.
+// restores; then a version change keeps the keys. Valkey, the same.
 func TestRedis(t *testing.T) {
+	for _, c := range []struct{ engine, from, to string }{{Redis, "8.2", "8.10"}, {Valkey, "8.1", "9.1"}} {
+		t.Run(c.engine, func(t *testing.T) { testRedis(t, c.engine, c.from, c.to) })
+	}
+}
+
+func testRedis(t *testing.T, engine, from, to string) {
 	ctx := context.Background()
-	e := newE2E(t, "E2E redis")
-	in, err := e.svc.Save(ctx, InstanceInput{Name: "E2E Redis", Engine: Redis, Version: "8.2", Networks: []string{e.net.ID}, Limits: Limits{MemoryMiB: 256}})
+	e := newE2E(t, "E2E "+engine)
+	in, err := e.svc.Save(ctx, InstanceInput{Name: "E2E " + engineName(engine), Engine: engine, Version: from, Networks: []string{e.net.ID}, Limits: Limits{MemoryMiB: 256}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +151,7 @@ func TestRedis(t *testing.T) {
 	}
 
 	// A version change keeps the keys and the users.
-	jobID, err := e.svc.ChangeVersion(ctx, in.ID, "8.10")
+	jobID, err := e.svc.ChangeVersion(ctx, in.ID, to)
 	if err != nil {
 		t.Fatal(err)
 	}

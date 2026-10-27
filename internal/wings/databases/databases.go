@@ -389,13 +389,13 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 	}
 	spec := serviceSpec(in, dir, root, s.o.Timezone())
 	spec.Networks, spec.Addresses, spec.Aliases = nets, addrs, aliases(in.ID, in.Name)
-	if in.Engine == Redis {
+	if isRedis(in.Engine) {
 		if err := writeACL(dir, root); err != nil {
 			return err
 		}
 	}
 	port, _ := external(r)
-	if port != 0 && isSQL(in.Engine) {
+	if port != 0 && hasExternal(in.Engine) {
 		if _, err := ensureTLS(dir, in.Name, s.tlsNames(in)); err != nil {
 			return err
 		}
@@ -989,8 +989,8 @@ func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, labe
 	}
 	// A Redis instance holds one server's data: Redis can't keep two
 	// apart (redis.go).
-	if in.Engine == Redis && slices.ContainsFunc(must(s.o.Store.Read.ListDatabases(ctx)), func(d store.Database) bool { return d.InstanceID == instanceID }) {
-		return Database{}, "", invalid{fmt.Sprintf("%s already holds a server's data, and Redis can't keep two apart: make another Redis instance for this server", in.Name)}
+	if isRedis(in.Engine) && slices.ContainsFunc(must(s.o.Store.Read.ListDatabases(ctx)), func(d store.Database) bool { return d.InstanceID == instanceID }) {
+		return Database{}, "", invalid{fmt.Sprintf("%s already holds a server's data, and %s can't keep two apart: make another %[2]s instance for this server", in.Name, engineName(in.Engine))}
 	}
 	root, err := s.sealer.open(r.RootPassword)
 	if err != nil {
@@ -1187,7 +1187,7 @@ func (s *Service) Env(ctx context.Context, serverID string) ([]string, error) {
 func envVars(d Database, pass string) (string, [][2]string) {
 	port := fmt.Sprint(d.Port)
 	switch d.Engine {
-	case Redis:
+	case Redis, Valkey:
 		return Redis, [][2]string{
 			{"REDIS_HOST", d.Host},
 			{"REDIS_PORT", port},

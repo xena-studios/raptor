@@ -83,19 +83,17 @@ Small features and known gaps, unordered. Bugs found in the beta go first.
 
 ## Networks and databases
 
-Docker networks managed from the app, so separate communities on one node can't reach each other ([NETWORKS.md](NETWORKS.md)); then managed MariaDB, MySQL, PostgreSQL, Redis, and MongoDB on them with browsers ([DATABASES.md](DATABASES.md)). All eight steps are built (#248–#258): networks, rules between them, instances and databases, the SQL browser, imports, exports, and read-only users, version changes and databases in backups, external access, and Redis and MongoDB with their key and document browsers.
+Docker networks managed from the app, so separate communities on one node can't reach each other ([NETWORKS.md](NETWORKS.md)); then managed MariaDB, MySQL, PostgreSQL, Redis, Valkey, and MongoDB on them with browsers ([DATABASES.md](DATABASES.md)). All eight steps are built (#248–#258): networks, rules between them, instances and databases, the SQL browser, imports, exports, and read-only users, version changes and databases in backups, external access, and Redis and MongoDB with their key and document browsers.
 
-### Waiting on a decision
+### Decided
 
-Calls only the owner can make; each has a recommendation.
+The owner took every recommendation (October 2026):
 
-| Decision | Options | Recommendation |
-|---|---|---|
-| External access for Redis and MongoDB (DECISIONS #321) | Redis: a second, TLS-only port is published, the plain one stays inside. MongoDB: require TLS for everyone (plugins must be set up for it), or keep it off | Build Redis' TLS port; keep MongoDB off until someone asks |
-| Redis and MongoDB admin accounts can log in over the network with their password (#320) | Accept (32 random characters, and the firewall keeps the owner's networks to servers with a database there), or run Wings' admin work through `docker exec` inside the container so the account can be kept to localhost | Accept for now; revisit if an instance on the default network worries anyone |
-| Instances aren't backed up on their own (#314) | As now (every database is in its server's backups), or a whole-instance backup on its own schedule | As now |
-| Which Redis to ship | Redis (7.4 and up are RSALv2/SSPL, 8 adds AGPLv3), or Valkey, the BSD fork, beside or instead | Add Valkey beside Redis; it's a drop-in for plugins |
-| MongoDB's default version | 8.0 (needs a CPU from about 2016 on: ARMv8.2 or AVX), or 7.0 (runs anywhere, supported until 2027) | 8.0, with the app saying 7.0 is for older machines (it does) |
+- **External access for Redis and MongoDB:** Redis and Valkey get a second, TLS-only port, published, while the plain one stays inside; MongoDB's stays off until someone asks (DECISIONS #331). Built.
+- **Redis and MongoDB admin accounts over the network:** accepted as they are (#320, #332).
+- **Instances backed up on their own:** no; every database is in its server's backups (#314, #332).
+- **Which Redis to ship:** Valkey, the BSD fork, beside Redis (#333). Built.
+- **MongoDB's default version:** 8.0, with 7.0 for older machines and kernels 6.19+ (#323, #332).
 
 ### Known gaps
 

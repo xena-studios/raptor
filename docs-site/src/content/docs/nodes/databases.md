@@ -1,29 +1,30 @@
 ---
 title: Database instances
-description: Run MariaDB, MySQL, or PostgreSQL on a node for its servers, kept apart between networks.
+description: Run MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB on a node for its servers, kept apart between networks.
 sidebar:
   order: 4
 ---
 
-A **database instance** is a database server Raptor runs on your node: MariaDB, MySQL, PostgreSQL, Redis, or MongoDB, in a container of its own. Servers on its network get their own database and user on it from their [Databases tab](/servers/databases/). Instances are included in the node's price, and your data stays on your machine.
+A **database instance** is a database server Raptor runs on your node: MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB, in a container of its own. Servers on its network get their own database and user on it from their [Databases tab](/servers/databases/). Instances are included in the node's price, and your data stays on your machine.
 
 ## Make an instance
 
 On the node's **Databases** tab (admins and owners), click **New instance**:
 
-1. Pick the **engine**. MariaDB is what most Minecraft plugins expect; pick MySQL or PostgreSQL if the software asks for it. Redis is for caches and plugins that sync servers through it, MongoDB for bots and apps that store documents.
+1. Pick the **engine**. MariaDB is what most Minecraft plugins expect; pick MySQL or PostgreSQL if the software asks for it. Redis is for caches and plugins that sync servers through it; Valkey is Redis' open-source fork, which the same plugins use unchanged. MongoDB is for bots and apps that store documents.
 2. Give it a **name** and its **memory**: 1 GB is plenty for a few servers' plugins.
 3. If the node has [networks](/nodes/networks/), pick the **network** it's on. Only servers on that network can have databases on it, or reach it at all.
 
 Its first start downloads the engine and sets it up, which takes a minute or two.
 
-## Redis and MongoDB
+## Redis, Valkey, and MongoDB
 
+- **Valkey works exactly like Redis** here: pick it if you'd rather run the open-source fork (or your plugin's docs suggest it). Everything below about Redis is true of Valkey too.
 - **A Redis instance holds one server's data.** Redis can't keep two servers' data apart, so make one Redis instance per server that needs it; 256 MB is plenty for most. Its server's user can do everything apps do, but not change Redis' settings or load modules.
 - **MongoDB instances are shared** like MariaDB's: each server's database has its own user, which reaches that database and nothing else. MongoDB 8.0 and later need a processor from about 2016 or later; pick 7.0 on older machines.
 - MongoDB changes version one major release at a time (7.0 to 8.0, then 9.0).
 - On machines with Linux 6.19 or newer (Ubuntu 26.04, some cloud kernels), MongoDB 8.0 and 9.0 don't start, a problem MongoDB is fixing; Raptor offers 7.0 there and says why.
-- External access isn't available for Redis and MongoDB yet.
+- Redis and Valkey can be [reached from outside](#reach-an-instance-from-outside), on a port that only takes TLS. MongoDB can't: it would need every plugin inside to use TLS too.
 
 ## Look inside an instance
 
@@ -76,7 +77,7 @@ Raptor takes only settings that are safe to change: none that name a file or fol
 
 - **MariaDB and MySQL:** InnoDB's buffer pool and log settings, `max_allowed_packet`, timeouts, caches and buffers, the slow query log (`slow_query_log`, `long_query_time`), `sql_mode`, the character set and collation, transaction isolation, and the event scheduler. Sizes are like `64M` or `1G`.
 - **PostgreSQL:** `shared_buffers`, `work_mem`, `maintenance_work_mem`, `effective_cache_size`, the planner's costs, WAL and checkpoints, `synchronous_commit`, `statement_timeout` and the other timeouts, `log_min_duration_statement` for slow queries, autovacuum, parallel workers, and JIT. Sizes are like `64MB`, times like `30s`.
-- **Redis:** `maxmemory-policy` (to drop keys at the memory limit instead of refusing writes, like a cache), `notify-keyspace-events`, `timeout`, `hz`, the slow log, lazy freeing, `appendfsync`, and the small-encoding limits. Sizes are like `64mb`.
+- **Redis and Valkey:** `maxmemory-policy` (to drop keys at the memory limit instead of refusing writes, like a cache), `notify-keyspace-events`, `timeout`, `hz`, the slow log, lazy freeing, `appendfsync`, and the small-encoding limits. Sizes are like `64mb`.
 - **MongoDB** has no engine settings.
 
 Memory settings like the buffer pool can't be more than the instance's memory. Max connections and the time zone have fields of their own above.
@@ -101,13 +102,13 @@ Wings updates can bring newer patches of a version (11.8.3 to 11.8.4). The insta
 
 To connect a desktop tool like DBeaver, or an app running somewhere else, open **External access** in the instance's **⋯** menu:
 
-1. Pick a **port** for it on the node (13306 or 15432 is suggested).
+1. Pick a **port** for it on the node (13306, 15432, or 16379 is suggested).
 2. List **who may connect**: your home or office's public address, or your app's server. Ranges like `198.51.100.0/24` work too. Nothing else can reach the port, not even other things on the node.
 3. **Turn on with passkey.** The instance restarts, which takes a few seconds.
 
-Connect to the node's address on that port, as one of the server's databases' users (from its [Databases tab](/servers/databases/)). Connections from outside must use **TLS**: download the instance's **Certificate** from the same dialog and give it to your tool so it can check it's really your instance (in DBeaver, the SSL tab's CA certificate; for `psql`, `sslmode=verify-full sslrootcert=<file>`; for `mysql`, `--ssl-ca=<file> --ssl-mode=VERIFY_IDENTITY`).
+Connect to the node's address on that port, as one of the server's databases' users (from its [Databases tab](/servers/databases/)). Connections from outside must use **TLS**: download the instance's **Certificate** from the same dialog and give it to your tool so it can check it's really your instance (in DBeaver, the SSL tab's CA certificate; for `psql`, `sslmode=verify-full sslrootcert=<file>`; for `mysql`, `--ssl-ca=<file> --ssl-mode=VERIFY_IDENTITY`; for `redis-cli`, `--tls --cacert <file>`, or a `rediss://` URL in apps).
 
-Servers on the instance's network keep connecting as before, without TLS, so plugins don't notice anything.
+Servers on the instance's network keep connecting as before, without TLS, so plugins don't notice anything. On Redis and Valkey, the port you pick only takes TLS, and the one servers use stays inside the network.
 
 **Turn off** in the same dialog closes the port again.
 

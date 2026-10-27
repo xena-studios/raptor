@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,6 +33,12 @@ import (
 //     off); with it on, clients arrive from the network's gateway, which is
 //     treated as outside.
 //   - The users are the databases' own, which reach only their database.
+//
+// Redis and Valkey (DECISIONS #331) get a second port that speaks only
+// TLS, and only it is published; their plain port stays on their networks,
+// where plugins keep using it. MongoDB has none, on purpose: its TLS is
+// all or nothing per port, so outside connections would need every
+// plugin inside to speak TLS too; until someone asks.
 
 // External is an instance's external access, as reported.
 type External struct {
@@ -118,9 +125,9 @@ func (s *Service) SetExternal(ctx context.Context, in ExternalInput) (Instance, 
 		unlock()
 		return Instance{}, err
 	}
-	if !isSQL(cur.Engine) && in.Port != 0 {
+	if !hasExternal(cur.Engine) && in.Port != 0 {
 		unlock()
-		return Instance{}, invalid{fmt.Sprintf("external access isn't available for %s instances yet", engineName(cur.Engine))}
+		return Instance{}, invalid{fmt.Sprintf("external access isn't offered for %s instances: it would need TLS from every server's plugins too", engineName(cur.Engine))}
 	}
 	allow := "[]"
 	if in.Port != 0 {
@@ -215,10 +222,29 @@ func (s *Service) tlsNames(in Instance) []string {
 	return out
 }
 
+// hasExternal reports whether an engine's instances can have external
+// access.
+func hasExternal(engine string) bool { return isSQL(engine) || isRedis(engine) }
+
+// redisTLSPort is Redis' and Valkey's TLS-only port in the container,
+// which external access publishes.
+const redisTLSPort = 6380
+
 // externalSpec adds external access to an instance's container: the
 // port, its certificate, and TLS turned on.
 func externalSpec(spec *containers.ServiceSpec, in Instance, dir string, port int) {
 	spec.Publish = []containers.Published{{HostPort: port, Port: in.Port}}
+	if isRedis(in.Engine) {
+		// A second port with TLS alone, published; the plain one isn't.
+		// Clients aren't asked for certificates: users log in as before.
+		spec.Publish = []containers.Published{{HostPort: port, Port: redisTLSPort}}
+		spec.Mounts = append(spec.Mounts, containers.Mount{Source: confDir(dir), Target: "/etc/raptor", ReadOnly: true})
+		spec.Cmd = append(spec.Cmd,
+			"--tls-port", strconv.Itoa(redisTLSPort),
+			"--tls-cert-file", tlsCert, "--tls-key-file", tlsKey, "--tls-ca-cert-file", tlsCA,
+			"--tls-auth-clients", "no")
+		return
+	}
 	if in.Engine == Postgres {
 		spec.Cmd = append(spec.Cmd, "-c", "ssl=on", "-c", "ssl_cert_file="+tlsCert, "-c", "ssl_key_file="+tlsKey)
 		return

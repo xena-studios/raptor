@@ -13,11 +13,18 @@ const (
 	Postgres = "postgres"
 	Redis    = "redis"
 	MongoDB  = "mongodb"
+	// Valkey is the BSD-licensed fork of Redis 7.2, beside it (DECISIONS
+	// #333): the same protocol, commands, and files, so everything Redis
+	// does here it does the same way.
+	Valkey = "valkey"
 )
 
 // isSQL reports whether an engine speaks SQL: the browser, imports, and
 // external access are theirs for now.
 func isSQL(engine string) bool { return engine == MariaDB || engine == MySQL || engine == Postgres }
+
+// isRedis reports whether an engine is Redis or Valkey.
+func isRedis(engine string) bool { return engine == Redis || engine == Valkey }
 
 // Version is one version line of an engine, pinned to an image digest so a
 // version means the same bits on every node. Digests are updated with
@@ -49,6 +56,10 @@ var Versions = []Version{
 	{Redis, "7.4", "redis:7.4@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85", false, ""},
 	{Redis, "8.2", "redis:8.2@sha256:47670742d7924adbcdb404d1288b6327815b23141969c0939b8e5d61f78c2634", false, ""},
 	{Redis, "8.10", "redis:8.10@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6", true, ""},
+	{Valkey, "8.0", "valkey/valkey:8.0@sha256:04b9002ae24bbe66687fb025052ed9bcebb54f8da3937338eb718d98d362887f", false, ""},
+	{Valkey, "8.1", "valkey/valkey:8.1@sha256:8f836008e0986c36adf50da714c7060cf689dbb335f61fe077939d90fa650809", false, ""},
+	{Valkey, "9.0", "valkey/valkey:9.0@sha256:7e1deda01b64ece3167d370ab5be3452d29734feec22cbcbc69b3a64f6859d6d", false, ""},
+	{Valkey, "9.1", "valkey/valkey:9.1@sha256:3add1a336a920ea54770a001ab6feb3da5fceea96a40373a3a2cd469b815f0b7", true, ""},
 	// MongoDB's major releases only (its x.1–x.3 rapid releases aren't
 	// for production); 8.0 and up need a CPU from 2016 or later (ARMv8.2,
 	// or x86 with AVX).
@@ -131,6 +142,8 @@ func engineName(e string) string {
 		return "PostgreSQL"
 	case Redis:
 		return "Redis"
+	case Valkey:
+		return "Valkey"
 	case MongoDB:
 		return "MongoDB"
 	}
@@ -142,7 +155,7 @@ func port(engine string) int {
 	switch engine {
 	case Postgres:
 		return 5432
-	case Redis:
+	case Redis, Valkey:
 		return 6379
 	case MongoDB:
 		return 27017

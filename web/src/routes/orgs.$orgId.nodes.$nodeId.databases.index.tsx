@@ -4,6 +4,7 @@ import { NodeDatabases } from "@/components/node-databases";
 import {
   databasesCapability,
   dbExternalCapability,
+  dbRedisExternalCapability,
   dbSettingsCapability,
   dbVersionsCapability,
 } from "@/lib/databases";
@@ -33,6 +34,7 @@ function Databases() {
       externalSupported={node.capabilities.includes(dbExternalCapability)}
       settingsSupported={node.capabilities.includes(dbSettingsCapability)}
       browserSupported={node.capabilities.includes(dbInstanceBrowserCapability)}
+      redisExternalSupported={node.capabilities.includes(dbRedisExternalCapability)}
     />
   );
 }

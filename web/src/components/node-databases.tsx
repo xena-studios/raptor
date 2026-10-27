@@ -58,6 +58,7 @@ import {
   engines,
   type InstanceInput,
   instancesKey,
+  isRedis,
   isSQL,
   useInstances,
   versionChange,
@@ -88,6 +89,7 @@ export function NodeDatabases({
   externalSupported,
   settingsSupported,
   browserSupported,
+  redisExternalSupported,
 }: {
   orgId: string;
   nodeId: string;
@@ -103,6 +105,8 @@ export function NodeDatabases({
   externalSupported: boolean;
   // The node's Wings takes advanced engine settings.
   settingsSupported: boolean;
+  // The node's Wings gives Redis and Valkey external access.
+  redisExternalSupported: boolean;
 }) {
   const insts = useInstances(nodeId, connected && supported);
   const nets = useNodeNetworks(nodeId, connected && networksSupported);
@@ -165,7 +169,13 @@ export function NodeDatabases({
                 versions={versionsSupported}
                 onEdit={() => setEditing(i)}
                 onChangeVersion={() => setChanging(i)}
-                onExternal={externalSupported && isSQL(i.engine) ? () => setOpening(i) : undefined}
+                onExternal={
+                  // MongoDB has none, on purpose (DECISIONS #331).
+                  externalSupported &&
+                  (isSQL(i.engine) || (redisExternalSupported && isRedis(i.engine)))
+                    ? () => setOpening(i)
+                    : undefined
+                }
                 orgId={browserSupported && isSQL(i.engine) ? orgId : undefined}
               />
             ))
@@ -836,6 +846,7 @@ const advancedExample: Partial<Record<Engine, string>> = {
   mysql: "max_allowed_packet = 64M\nslow_query_log = ON\nlong_query_time = 1",
   postgres: "work_mem = 16MB\nstatement_timeout = 30s\nlog_min_duration_statement = 1s",
   redis: "maxmemory-policy = allkeys-lru\nnotify-keyspace-events = Ex",
+  valkey: "maxmemory-policy = allkeys-lru\nnotify-keyspace-events = Ex",
 };
 
 const hours = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, "0")}:00`);

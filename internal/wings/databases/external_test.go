@@ -123,3 +123,31 @@ func TestServiceSpecHashUnchanged(t *testing.T) {
 		t.Errorf("tls: %v %v", s.Cmd, s.Mounts)
 	}
 }
+
+// Redis and Valkey publish a second port that speaks only TLS; their
+// plain one isn't published. MongoDB has no external access.
+func TestRedisExternalSpec(t *testing.T) {
+	for _, engine := range []string{Redis, Valkey} {
+		in := Instance{ID: "x", Engine: engine, Port: 6379, Limits: Limits{MemoryMiB: 256}}
+		s := serviceSpec(in, "/d", "pw", "")
+		if want := map[string]string{Redis: "redis-server", Valkey: "valkey-server"}[engine]; s.Cmd[0] != want {
+			t.Errorf("%s runs %s", engine, s.Cmd[0])
+		}
+		externalSpec(&s, in, "/d", 16379)
+		if len(s.Publish) != 1 || s.Publish[0] != (containers.Published{HostPort: 16379, Port: redisTLSPort}) {
+			t.Errorf("%s publishes %v", engine, s.Publish)
+		}
+		cmd := strings.Join(s.Cmd, " ")
+		for _, want := range []string{"--tls-port 6380", "--tls-cert-file " + tlsCert, "--tls-key-file " + tlsKey, "--tls-auth-clients no", "--unixsocket /run/redis/redis.sock"} {
+			if !strings.Contains(cmd, want) {
+				t.Errorf("%s: %q missing from %s", engine, want, cmd)
+			}
+		}
+		if strings.Contains(cmd, "--port ") || s.Mounts[len(s.Mounts)-1] != (containers.Mount{Source: "/d/conf", Target: "/etc/raptor", ReadOnly: true}) {
+			t.Errorf("%s: %s %v", engine, cmd, s.Mounts)
+		}
+	}
+	if hasExternal(MongoDB) || !hasExternal(Valkey) || !hasExternal(Postgres) {
+		t.Error("hasExternal")
+	}
+}
