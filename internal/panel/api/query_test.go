@@ -50,7 +50,7 @@ func (n *nodeQueries) StreamQuery(ctx context.Context, id string, w io.Writer, f
 	case "update":
 		line(`{"done":{"statements":1,"affected":3,"rows":0,"shown":0,"millis":1}}`)
 	case "sleep":
-		line(`{"wait":true}`)
+		// Nothing yet: a query that takes minutes to return its first row.
 		<-ctx.Done()
 		n.stopped <- id
 		return ctx.Err()
@@ -220,15 +220,34 @@ func TestQueryStream(t *testing.T) {
 		t.Errorf("an old node's result: %q", got)
 	}
 
-	// Closing the response stops the query on the node.
+	// A query that hasn't returned anything yet still answers at once
+	// (proxies drop a response with no first byte), and closing the
+	// response stops the query on the node.
 	qctx, qcancel := context.WithCancel(ctx)
-	resp := post(qctx, alice, "db.query", "sleep")
-	defer func() { _ = resp.Body.Close() }()
-	r := bufio.NewReader(resp.Body)
-	for range 2 { // the query's ID, then the node's first line
-		if _, err := r.ReadString('\n'); err != nil {
-			t.Fatal(err)
+	defer qcancel()
+	first := make(chan string, 1)
+	go func() {
+		body, _ := json.Marshal(map[string]any{"node": nodeID, "server": "s1", "action": "db.query", "params": map[string]any{"id": "d1", "sql": "sleep"}})
+		req, _ := http.NewRequestWithContext(qctx, http.MethodPost, srv.URL+"/api/databases/query", strings.NewReader(string(body)))
+		req.Header.Set("Origin", appOrigin)
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := alice.http.Do(req)
+		if err != nil {
+			first <- err.Error()
+			return
 		}
+		defer func() { _ = resp.Body.Close() }()
+		l, _ := bufio.NewReader(resp.Body).ReadString('\n')
+		first <- l
+		<-qctx.Done()
+	}()
+	select {
+	case l := <-first:
+		if l != "{\"query_id\":\"sleep\"}\n" {
+			t.Errorf("a slow query's first line: %q", l)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("a slow query's first line didn't come")
 	}
 	qcancel()
 	select {

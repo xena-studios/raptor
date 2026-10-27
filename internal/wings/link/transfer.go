@@ -103,6 +103,10 @@ func (l *Link) serveTransfer(s *nodelink.Session, t Transfers, q Queries, id str
 			rc := http.NewResponseController(w)
 			w.Header().Set("Content-Type", "application/x-ndjson")
 			w.WriteHeader(http.StatusOK)
+			// The answer starts now, not with the first line: a query can
+			// take minutes to return its first row, and the Panel sends the
+			// browser its first line (the query's ID) once this arrives.
+			_ = rc.Flush()
 			// Every line counts as use, so a long query isn't idle.
 			flush := func() {
 				last.Store(time.Now().UnixNano())
