@@ -83,8 +83,15 @@ type GetBillingResponse struct {
 	ReadOnlyAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=read_only_at,json=readOnlyAt,proto3" json:"read_only_at,omitempty"`
 	ReadOnly       bool                   `protobuf:"varint,10,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
 	TrialAvailable bool                   `protobuf:"varint,11,opt,name=trial_available,json=trialAvailable,proto3" json:"trial_available,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// A waiver from Raptor in force, if any (DECISIONS #334).
+	Waiver *BillingWaiver `protobuf:"bytes,12,opt,name=waiver,proto3" json:"waiver,omitempty"`
+	// How many of the org's nodes are free under it now: they're not
+	// charged, and need no plan.
+	FreeNodes int32 `protobuf:"varint,13,opt,name=free_nodes,json=freeNodes,proto3" json:"free_nodes,omitempty"`
+	// A node linked now would be free too, so Add Node needs no plan.
+	FreeNextNode  bool `protobuf:"varint,14,opt,name=free_next_node,json=freeNextNode,proto3" json:"free_next_node,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetBillingResponse) Reset() {
@@ -194,6 +201,100 @@ func (x *GetBillingResponse) GetTrialAvailable() bool {
 	return false
 }
 
+func (x *GetBillingResponse) GetWaiver() *BillingWaiver {
+	if x != nil {
+		return x.Waiver
+	}
+	return nil
+}
+
+func (x *GetBillingResponse) GetFreeNodes() int32 {
+	if x != nil {
+		return x.FreeNodes
+	}
+	return 0
+}
+
+func (x *GetBillingResponse) GetFreeNextNode() bool {
+	if x != nil {
+		return x.FreeNextNode
+	}
+	return false
+}
+
+// BillingWaiver is nodes (and optionally Backup Storage) Raptor gives an
+// org free. The reason staff gave isn't shown.
+type BillingWaiver struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Every node free, or free_nodes of them.
+	AllNodes  bool  `protobuf:"varint,1,opt,name=all_nodes,json=allNodes,proto3" json:"all_nodes,omitempty"`
+	FreeNodes int32 `protobuf:"varint,2,opt,name=free_nodes,json=freeNodes,proto3" json:"free_nodes,omitempty"`
+	// Raptor Backup Storage past the included amount is free too.
+	Storage bool `protobuf:"varint,3,opt,name=storage,proto3" json:"storage,omitempty"`
+	// When it ends; unset: until Raptor ends it.
+	EndsAt        *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=ends_at,json=endsAt,proto3" json:"ends_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BillingWaiver) Reset() {
+	*x = BillingWaiver{}
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BillingWaiver) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BillingWaiver) ProtoMessage() {}
+
+func (x *BillingWaiver) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BillingWaiver.ProtoReflect.Descriptor instead.
+func (*BillingWaiver) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BillingWaiver) GetAllNodes() bool {
+	if x != nil {
+		return x.AllNodes
+	}
+	return false
+}
+
+func (x *BillingWaiver) GetFreeNodes() int32 {
+	if x != nil {
+		return x.FreeNodes
+	}
+	return 0
+}
+
+func (x *BillingWaiver) GetStorage() bool {
+	if x != nil {
+		return x.Storage
+	}
+	return false
+}
+
+func (x *BillingWaiver) GetEndsAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndsAt
+	}
+	return nil
+}
+
 type StartCheckoutRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
@@ -203,7 +304,7 @@ type StartCheckoutRequest struct {
 
 func (x *StartCheckoutRequest) Reset() {
 	*x = StartCheckoutRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[2]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -215,7 +316,7 @@ func (x *StartCheckoutRequest) String() string {
 func (*StartCheckoutRequest) ProtoMessage() {}
 
 func (x *StartCheckoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[2]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -228,7 +329,7 @@ func (x *StartCheckoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartCheckoutRequest.ProtoReflect.Descriptor instead.
 func (*StartCheckoutRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{2}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StartCheckoutRequest) GetOrgId() string {
@@ -249,7 +350,7 @@ type StartCheckoutResponse struct {
 
 func (x *StartCheckoutResponse) Reset() {
 	*x = StartCheckoutResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[3]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -261,7 +362,7 @@ func (x *StartCheckoutResponse) String() string {
 func (*StartCheckoutResponse) ProtoMessage() {}
 
 func (x *StartCheckoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[3]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -274,7 +375,7 @@ func (x *StartCheckoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartCheckoutResponse.ProtoReflect.Descriptor instead.
 func (*StartCheckoutResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{3}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *StartCheckoutResponse) GetUrl() string {
@@ -300,7 +401,7 @@ type OpenBillingPortalRequest struct {
 
 func (x *OpenBillingPortalRequest) Reset() {
 	*x = OpenBillingPortalRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[4]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -312,7 +413,7 @@ func (x *OpenBillingPortalRequest) String() string {
 func (*OpenBillingPortalRequest) ProtoMessage() {}
 
 func (x *OpenBillingPortalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[4]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -325,7 +426,7 @@ func (x *OpenBillingPortalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenBillingPortalRequest.ProtoReflect.Descriptor instead.
 func (*OpenBillingPortalRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{4}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *OpenBillingPortalRequest) GetOrgId() string {
@@ -344,7 +445,7 @@ type OpenBillingPortalResponse struct {
 
 func (x *OpenBillingPortalResponse) Reset() {
 	*x = OpenBillingPortalResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[5]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -356,7 +457,7 @@ func (x *OpenBillingPortalResponse) String() string {
 func (*OpenBillingPortalResponse) ProtoMessage() {}
 
 func (x *OpenBillingPortalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[5]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -369,7 +470,7 @@ func (x *OpenBillingPortalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenBillingPortalResponse.ProtoReflect.Descriptor instead.
 func (*OpenBillingPortalResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{5}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *OpenBillingPortalResponse) GetUrl() string {
@@ -388,7 +489,7 @@ type EndTrialRequest struct {
 
 func (x *EndTrialRequest) Reset() {
 	*x = EndTrialRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[6]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -400,7 +501,7 @@ func (x *EndTrialRequest) String() string {
 func (*EndTrialRequest) ProtoMessage() {}
 
 func (x *EndTrialRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[6]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -413,7 +514,7 @@ func (x *EndTrialRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EndTrialRequest.ProtoReflect.Descriptor instead.
 func (*EndTrialRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{6}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EndTrialRequest) GetOrgId() string {
@@ -431,7 +532,7 @@ type EndTrialResponse struct {
 
 func (x *EndTrialResponse) Reset() {
 	*x = EndTrialResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[7]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -443,7 +544,7 @@ func (x *EndTrialResponse) String() string {
 func (*EndTrialResponse) ProtoMessage() {}
 
 func (x *EndTrialResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[7]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,7 +557,7 @@ func (x *EndTrialResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EndTrialResponse.ProtoReflect.Descriptor instead.
 func (*EndTrialResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{7}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{8}
 }
 
 type GetBillingDetailsRequest struct {
@@ -468,7 +569,7 @@ type GetBillingDetailsRequest struct {
 
 func (x *GetBillingDetailsRequest) Reset() {
 	*x = GetBillingDetailsRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[8]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -480,7 +581,7 @@ func (x *GetBillingDetailsRequest) String() string {
 func (*GetBillingDetailsRequest) ProtoMessage() {}
 
 func (x *GetBillingDetailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[8]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -493,7 +594,7 @@ func (x *GetBillingDetailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBillingDetailsRequest.ProtoReflect.Descriptor instead.
 func (*GetBillingDetailsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{8}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetBillingDetailsRequest) GetOrgId() string {
@@ -522,7 +623,7 @@ type Card struct {
 
 func (x *Card) Reset() {
 	*x = Card{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[9]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -534,7 +635,7 @@ func (x *Card) String() string {
 func (*Card) ProtoMessage() {}
 
 func (x *Card) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[9]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -547,7 +648,7 @@ func (x *Card) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Card.ProtoReflect.Descriptor instead.
 func (*Card) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{9}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Card) GetId() string {
@@ -626,7 +727,7 @@ type Charge struct {
 
 func (x *Charge) Reset() {
 	*x = Charge{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[10]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -638,7 +739,7 @@ func (x *Charge) String() string {
 func (*Charge) ProtoMessage() {}
 
 func (x *Charge) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[10]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -651,7 +752,7 @@ func (x *Charge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Charge.ProtoReflect.Descriptor instead.
 func (*Charge) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{10}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Charge) GetId() string {
@@ -728,7 +829,7 @@ type GetBillingDetailsResponse struct {
 
 func (x *GetBillingDetailsResponse) Reset() {
 	*x = GetBillingDetailsResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[11]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -740,7 +841,7 @@ func (x *GetBillingDetailsResponse) String() string {
 func (*GetBillingDetailsResponse) ProtoMessage() {}
 
 func (x *GetBillingDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[11]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -753,7 +854,7 @@ func (x *GetBillingDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBillingDetailsResponse.ProtoReflect.Descriptor instead.
 func (*GetBillingDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{11}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetBillingDetailsResponse) GetCards() []*Card {
@@ -779,7 +880,7 @@ type StartAddCardRequest struct {
 
 func (x *StartAddCardRequest) Reset() {
 	*x = StartAddCardRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[12]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -791,7 +892,7 @@ func (x *StartAddCardRequest) String() string {
 func (*StartAddCardRequest) ProtoMessage() {}
 
 func (x *StartAddCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[12]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -804,7 +905,7 @@ func (x *StartAddCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartAddCardRequest.ProtoReflect.Descriptor instead.
 func (*StartAddCardRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{12}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *StartAddCardRequest) GetOrgId() string {
@@ -826,7 +927,7 @@ type StartAddCardResponse struct {
 
 func (x *StartAddCardResponse) Reset() {
 	*x = StartAddCardResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[13]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -838,7 +939,7 @@ func (x *StartAddCardResponse) String() string {
 func (*StartAddCardResponse) ProtoMessage() {}
 
 func (x *StartAddCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[13]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -851,7 +952,7 @@ func (x *StartAddCardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartAddCardResponse.ProtoReflect.Descriptor instead.
 func (*StartAddCardResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{13}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StartAddCardResponse) GetSessionToken() string {
@@ -878,7 +979,7 @@ type SetDefaultCardRequest struct {
 
 func (x *SetDefaultCardRequest) Reset() {
 	*x = SetDefaultCardRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[14]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -890,7 +991,7 @@ func (x *SetDefaultCardRequest) String() string {
 func (*SetDefaultCardRequest) ProtoMessage() {}
 
 func (x *SetDefaultCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[14]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -903,7 +1004,7 @@ func (x *SetDefaultCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetDefaultCardRequest.ProtoReflect.Descriptor instead.
 func (*SetDefaultCardRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{14}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SetDefaultCardRequest) GetOrgId() string {
@@ -928,7 +1029,7 @@ type SetDefaultCardResponse struct {
 
 func (x *SetDefaultCardResponse) Reset() {
 	*x = SetDefaultCardResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[15]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -940,7 +1041,7 @@ func (x *SetDefaultCardResponse) String() string {
 func (*SetDefaultCardResponse) ProtoMessage() {}
 
 func (x *SetDefaultCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[15]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -953,7 +1054,7 @@ func (x *SetDefaultCardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetDefaultCardResponse.ProtoReflect.Descriptor instead.
 func (*SetDefaultCardResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{15}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{16}
 }
 
 type RemoveCardRequest struct {
@@ -966,7 +1067,7 @@ type RemoveCardRequest struct {
 
 func (x *RemoveCardRequest) Reset() {
 	*x = RemoveCardRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -978,7 +1079,7 @@ func (x *RemoveCardRequest) String() string {
 func (*RemoveCardRequest) ProtoMessage() {}
 
 func (x *RemoveCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -991,7 +1092,7 @@ func (x *RemoveCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveCardRequest.ProtoReflect.Descriptor instead.
 func (*RemoveCardRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{16}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RemoveCardRequest) GetOrgId() string {
@@ -1016,7 +1117,7 @@ type RemoveCardResponse struct {
 
 func (x *RemoveCardResponse) Reset() {
 	*x = RemoveCardResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1028,7 +1129,7 @@ func (x *RemoveCardResponse) String() string {
 func (*RemoveCardResponse) ProtoMessage() {}
 
 func (x *RemoveCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1041,7 +1142,7 @@ func (x *RemoveCardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveCardResponse.ProtoReflect.Descriptor instead.
 func (*RemoveCardResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{17}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{18}
 }
 
 type GetInvoiceRequest struct {
@@ -1054,7 +1155,7 @@ type GetInvoiceRequest struct {
 
 func (x *GetInvoiceRequest) Reset() {
 	*x = GetInvoiceRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1066,7 +1167,7 @@ func (x *GetInvoiceRequest) String() string {
 func (*GetInvoiceRequest) ProtoMessage() {}
 
 func (x *GetInvoiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1079,7 +1180,7 @@ func (x *GetInvoiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvoiceRequest.ProtoReflect.Descriptor instead.
 func (*GetInvoiceRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{18}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetInvoiceRequest) GetOrgId() string {
@@ -1105,7 +1206,7 @@ type GetInvoiceResponse struct {
 
 func (x *GetInvoiceResponse) Reset() {
 	*x = GetInvoiceResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1117,7 +1218,7 @@ func (x *GetInvoiceResponse) String() string {
 func (*GetInvoiceResponse) ProtoMessage() {}
 
 func (x *GetInvoiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1130,7 +1231,7 @@ func (x *GetInvoiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvoiceResponse.ProtoReflect.Descriptor instead.
 func (*GetInvoiceResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{19}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetInvoiceResponse) GetUrl() string {
@@ -1155,7 +1256,7 @@ type CancelPlanRequest struct {
 
 func (x *CancelPlanRequest) Reset() {
 	*x = CancelPlanRequest{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1167,7 +1268,7 @@ func (x *CancelPlanRequest) String() string {
 func (*CancelPlanRequest) ProtoMessage() {}
 
 func (x *CancelPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1180,7 +1281,7 @@ func (x *CancelPlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelPlanRequest.ProtoReflect.Descriptor instead.
 func (*CancelPlanRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{20}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CancelPlanRequest) GetOrgId() string {
@@ -1219,7 +1320,7 @@ type CancelPlanResponse struct {
 
 func (x *CancelPlanResponse) Reset() {
 	*x = CancelPlanResponse{}
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1231,7 +1332,7 @@ func (x *CancelPlanResponse) String() string {
 func (*CancelPlanResponse) ProtoMessage() {}
 
 func (x *CancelPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_billing_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_billing_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1244,7 +1345,7 @@ func (x *CancelPlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelPlanResponse.ProtoReflect.Descriptor instead.
 func (*CancelPlanResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{21}
+	return file_raptor_panel_v1_billing_proto_rawDescGZIP(), []int{22}
 }
 
 var File_raptor_panel_v1_billing_proto protoreflect.FileDescriptor
@@ -1253,7 +1354,7 @@ const file_raptor_panel_v1_billing_proto_rawDesc = "" +
 	"\n" +
 	"\x1draptor/panel/v1/billing.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"*\n" +
 	"\x11GetBillingRequest\x12\x15\n" +
-	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\xd4\x03\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\xd1\x04\n" +
 	"\x12GetBillingResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x14\n" +
@@ -1267,7 +1368,17 @@ const file_raptor_panel_v1_billing_proto_rawDesc = "" +
 	"readOnlyAt\x12\x1b\n" +
 	"\tread_only\x18\n" +
 	" \x01(\bR\breadOnly\x12'\n" +
-	"\x0ftrial_available\x18\v \x01(\bR\x0etrialAvailable\"-\n" +
+	"\x0ftrial_available\x18\v \x01(\bR\x0etrialAvailable\x126\n" +
+	"\x06waiver\x18\f \x01(\v2\x1e.raptor.panel.v1.BillingWaiverR\x06waiver\x12\x1d\n" +
+	"\n" +
+	"free_nodes\x18\r \x01(\x05R\tfreeNodes\x12$\n" +
+	"\x0efree_next_node\x18\x0e \x01(\bR\ffreeNextNode\"\x9a\x01\n" +
+	"\rBillingWaiver\x12\x1b\n" +
+	"\tall_nodes\x18\x01 \x01(\bR\ballNodes\x12\x1d\n" +
+	"\n" +
+	"free_nodes\x18\x02 \x01(\x05R\tfreeNodes\x12\x18\n" +
+	"\astorage\x18\x03 \x01(\bR\astorage\x123\n" +
+	"\aends_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x06endsAt\"-\n" +
 	"\x14StartCheckoutRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"L\n" +
 	"\x15StartCheckoutResponse\x12\x10\n" +
@@ -1358,64 +1469,67 @@ func file_raptor_panel_v1_billing_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_billing_proto_rawDescData
 }
 
-var file_raptor_panel_v1_billing_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_raptor_panel_v1_billing_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_raptor_panel_v1_billing_proto_goTypes = []any{
 	(*GetBillingRequest)(nil),         // 0: raptor.panel.v1.GetBillingRequest
 	(*GetBillingResponse)(nil),        // 1: raptor.panel.v1.GetBillingResponse
-	(*StartCheckoutRequest)(nil),      // 2: raptor.panel.v1.StartCheckoutRequest
-	(*StartCheckoutResponse)(nil),     // 3: raptor.panel.v1.StartCheckoutResponse
-	(*OpenBillingPortalRequest)(nil),  // 4: raptor.panel.v1.OpenBillingPortalRequest
-	(*OpenBillingPortalResponse)(nil), // 5: raptor.panel.v1.OpenBillingPortalResponse
-	(*EndTrialRequest)(nil),           // 6: raptor.panel.v1.EndTrialRequest
-	(*EndTrialResponse)(nil),          // 7: raptor.panel.v1.EndTrialResponse
-	(*GetBillingDetailsRequest)(nil),  // 8: raptor.panel.v1.GetBillingDetailsRequest
-	(*Card)(nil),                      // 9: raptor.panel.v1.Card
-	(*Charge)(nil),                    // 10: raptor.panel.v1.Charge
-	(*GetBillingDetailsResponse)(nil), // 11: raptor.panel.v1.GetBillingDetailsResponse
-	(*StartAddCardRequest)(nil),       // 12: raptor.panel.v1.StartAddCardRequest
-	(*StartAddCardResponse)(nil),      // 13: raptor.panel.v1.StartAddCardResponse
-	(*SetDefaultCardRequest)(nil),     // 14: raptor.panel.v1.SetDefaultCardRequest
-	(*SetDefaultCardResponse)(nil),    // 15: raptor.panel.v1.SetDefaultCardResponse
-	(*RemoveCardRequest)(nil),         // 16: raptor.panel.v1.RemoveCardRequest
-	(*RemoveCardResponse)(nil),        // 17: raptor.panel.v1.RemoveCardResponse
-	(*GetInvoiceRequest)(nil),         // 18: raptor.panel.v1.GetInvoiceRequest
-	(*GetInvoiceResponse)(nil),        // 19: raptor.panel.v1.GetInvoiceResponse
-	(*CancelPlanRequest)(nil),         // 20: raptor.panel.v1.CancelPlanRequest
-	(*CancelPlanResponse)(nil),        // 21: raptor.panel.v1.CancelPlanResponse
-	(*timestamppb.Timestamp)(nil),     // 22: google.protobuf.Timestamp
+	(*BillingWaiver)(nil),             // 2: raptor.panel.v1.BillingWaiver
+	(*StartCheckoutRequest)(nil),      // 3: raptor.panel.v1.StartCheckoutRequest
+	(*StartCheckoutResponse)(nil),     // 4: raptor.panel.v1.StartCheckoutResponse
+	(*OpenBillingPortalRequest)(nil),  // 5: raptor.panel.v1.OpenBillingPortalRequest
+	(*OpenBillingPortalResponse)(nil), // 6: raptor.panel.v1.OpenBillingPortalResponse
+	(*EndTrialRequest)(nil),           // 7: raptor.panel.v1.EndTrialRequest
+	(*EndTrialResponse)(nil),          // 8: raptor.panel.v1.EndTrialResponse
+	(*GetBillingDetailsRequest)(nil),  // 9: raptor.panel.v1.GetBillingDetailsRequest
+	(*Card)(nil),                      // 10: raptor.panel.v1.Card
+	(*Charge)(nil),                    // 11: raptor.panel.v1.Charge
+	(*GetBillingDetailsResponse)(nil), // 12: raptor.panel.v1.GetBillingDetailsResponse
+	(*StartAddCardRequest)(nil),       // 13: raptor.panel.v1.StartAddCardRequest
+	(*StartAddCardResponse)(nil),      // 14: raptor.panel.v1.StartAddCardResponse
+	(*SetDefaultCardRequest)(nil),     // 15: raptor.panel.v1.SetDefaultCardRequest
+	(*SetDefaultCardResponse)(nil),    // 16: raptor.panel.v1.SetDefaultCardResponse
+	(*RemoveCardRequest)(nil),         // 17: raptor.panel.v1.RemoveCardRequest
+	(*RemoveCardResponse)(nil),        // 18: raptor.panel.v1.RemoveCardResponse
+	(*GetInvoiceRequest)(nil),         // 19: raptor.panel.v1.GetInvoiceRequest
+	(*GetInvoiceResponse)(nil),        // 20: raptor.panel.v1.GetInvoiceResponse
+	(*CancelPlanRequest)(nil),         // 21: raptor.panel.v1.CancelPlanRequest
+	(*CancelPlanResponse)(nil),        // 22: raptor.panel.v1.CancelPlanResponse
+	(*timestamppb.Timestamp)(nil),     // 23: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_billing_proto_depIdxs = []int32{
-	22, // 0: raptor.panel.v1.GetBillingResponse.current_period_end:type_name -> google.protobuf.Timestamp
-	22, // 1: raptor.panel.v1.GetBillingResponse.trial_end:type_name -> google.protobuf.Timestamp
-	22, // 2: raptor.panel.v1.GetBillingResponse.read_only_at:type_name -> google.protobuf.Timestamp
-	22, // 3: raptor.panel.v1.Charge.at:type_name -> google.protobuf.Timestamp
-	9,  // 4: raptor.panel.v1.GetBillingDetailsResponse.cards:type_name -> raptor.panel.v1.Card
-	10, // 5: raptor.panel.v1.GetBillingDetailsResponse.charges:type_name -> raptor.panel.v1.Charge
-	0,  // 6: raptor.panel.v1.BillingService.GetBilling:input_type -> raptor.panel.v1.GetBillingRequest
-	2,  // 7: raptor.panel.v1.BillingService.StartCheckout:input_type -> raptor.panel.v1.StartCheckoutRequest
-	4,  // 8: raptor.panel.v1.BillingService.OpenBillingPortal:input_type -> raptor.panel.v1.OpenBillingPortalRequest
-	6,  // 9: raptor.panel.v1.BillingService.EndTrial:input_type -> raptor.panel.v1.EndTrialRequest
-	8,  // 10: raptor.panel.v1.BillingService.GetBillingDetails:input_type -> raptor.panel.v1.GetBillingDetailsRequest
-	12, // 11: raptor.panel.v1.BillingService.StartAddCard:input_type -> raptor.panel.v1.StartAddCardRequest
-	14, // 12: raptor.panel.v1.BillingService.SetDefaultCard:input_type -> raptor.panel.v1.SetDefaultCardRequest
-	16, // 13: raptor.panel.v1.BillingService.RemoveCard:input_type -> raptor.panel.v1.RemoveCardRequest
-	18, // 14: raptor.panel.v1.BillingService.GetInvoice:input_type -> raptor.panel.v1.GetInvoiceRequest
-	20, // 15: raptor.panel.v1.BillingService.CancelPlan:input_type -> raptor.panel.v1.CancelPlanRequest
-	1,  // 16: raptor.panel.v1.BillingService.GetBilling:output_type -> raptor.panel.v1.GetBillingResponse
-	3,  // 17: raptor.panel.v1.BillingService.StartCheckout:output_type -> raptor.panel.v1.StartCheckoutResponse
-	5,  // 18: raptor.panel.v1.BillingService.OpenBillingPortal:output_type -> raptor.panel.v1.OpenBillingPortalResponse
-	7,  // 19: raptor.panel.v1.BillingService.EndTrial:output_type -> raptor.panel.v1.EndTrialResponse
-	11, // 20: raptor.panel.v1.BillingService.GetBillingDetails:output_type -> raptor.panel.v1.GetBillingDetailsResponse
-	13, // 21: raptor.panel.v1.BillingService.StartAddCard:output_type -> raptor.panel.v1.StartAddCardResponse
-	15, // 22: raptor.panel.v1.BillingService.SetDefaultCard:output_type -> raptor.panel.v1.SetDefaultCardResponse
-	17, // 23: raptor.panel.v1.BillingService.RemoveCard:output_type -> raptor.panel.v1.RemoveCardResponse
-	19, // 24: raptor.panel.v1.BillingService.GetInvoice:output_type -> raptor.panel.v1.GetInvoiceResponse
-	21, // 25: raptor.panel.v1.BillingService.CancelPlan:output_type -> raptor.panel.v1.CancelPlanResponse
-	16, // [16:26] is the sub-list for method output_type
-	6,  // [6:16] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	23, // 0: raptor.panel.v1.GetBillingResponse.current_period_end:type_name -> google.protobuf.Timestamp
+	23, // 1: raptor.panel.v1.GetBillingResponse.trial_end:type_name -> google.protobuf.Timestamp
+	23, // 2: raptor.panel.v1.GetBillingResponse.read_only_at:type_name -> google.protobuf.Timestamp
+	2,  // 3: raptor.panel.v1.GetBillingResponse.waiver:type_name -> raptor.panel.v1.BillingWaiver
+	23, // 4: raptor.panel.v1.BillingWaiver.ends_at:type_name -> google.protobuf.Timestamp
+	23, // 5: raptor.panel.v1.Charge.at:type_name -> google.protobuf.Timestamp
+	10, // 6: raptor.panel.v1.GetBillingDetailsResponse.cards:type_name -> raptor.panel.v1.Card
+	11, // 7: raptor.panel.v1.GetBillingDetailsResponse.charges:type_name -> raptor.panel.v1.Charge
+	0,  // 8: raptor.panel.v1.BillingService.GetBilling:input_type -> raptor.panel.v1.GetBillingRequest
+	3,  // 9: raptor.panel.v1.BillingService.StartCheckout:input_type -> raptor.panel.v1.StartCheckoutRequest
+	5,  // 10: raptor.panel.v1.BillingService.OpenBillingPortal:input_type -> raptor.panel.v1.OpenBillingPortalRequest
+	7,  // 11: raptor.panel.v1.BillingService.EndTrial:input_type -> raptor.panel.v1.EndTrialRequest
+	9,  // 12: raptor.panel.v1.BillingService.GetBillingDetails:input_type -> raptor.panel.v1.GetBillingDetailsRequest
+	13, // 13: raptor.panel.v1.BillingService.StartAddCard:input_type -> raptor.panel.v1.StartAddCardRequest
+	15, // 14: raptor.panel.v1.BillingService.SetDefaultCard:input_type -> raptor.panel.v1.SetDefaultCardRequest
+	17, // 15: raptor.panel.v1.BillingService.RemoveCard:input_type -> raptor.panel.v1.RemoveCardRequest
+	19, // 16: raptor.panel.v1.BillingService.GetInvoice:input_type -> raptor.panel.v1.GetInvoiceRequest
+	21, // 17: raptor.panel.v1.BillingService.CancelPlan:input_type -> raptor.panel.v1.CancelPlanRequest
+	1,  // 18: raptor.panel.v1.BillingService.GetBilling:output_type -> raptor.panel.v1.GetBillingResponse
+	4,  // 19: raptor.panel.v1.BillingService.StartCheckout:output_type -> raptor.panel.v1.StartCheckoutResponse
+	6,  // 20: raptor.panel.v1.BillingService.OpenBillingPortal:output_type -> raptor.panel.v1.OpenBillingPortalResponse
+	8,  // 21: raptor.panel.v1.BillingService.EndTrial:output_type -> raptor.panel.v1.EndTrialResponse
+	12, // 22: raptor.panel.v1.BillingService.GetBillingDetails:output_type -> raptor.panel.v1.GetBillingDetailsResponse
+	14, // 23: raptor.panel.v1.BillingService.StartAddCard:output_type -> raptor.panel.v1.StartAddCardResponse
+	16, // 24: raptor.panel.v1.BillingService.SetDefaultCard:output_type -> raptor.panel.v1.SetDefaultCardResponse
+	18, // 25: raptor.panel.v1.BillingService.RemoveCard:output_type -> raptor.panel.v1.RemoveCardResponse
+	20, // 26: raptor.panel.v1.BillingService.GetInvoice:output_type -> raptor.panel.v1.GetInvoiceResponse
+	22, // 27: raptor.panel.v1.BillingService.CancelPlan:output_type -> raptor.panel.v1.CancelPlanResponse
+	18, // [18:28] is the sub-list for method output_type
+	8,  // [8:18] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_billing_proto_init() }
@@ -1429,7 +1543,7 @@ func file_raptor_panel_v1_billing_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_billing_proto_rawDesc), len(file_raptor_panel_v1_billing_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

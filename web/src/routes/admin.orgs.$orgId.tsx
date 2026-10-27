@@ -1,11 +1,14 @@
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldOff } from "lucide-react";
+import { BadgePercent, ShieldOff } from "lucide-react";
 import { useState } from "react";
 
 import { RequestSupport } from "@/components/admin/request-support";
 import { SuspendDialog } from "@/components/admin/suspend-dialog";
+import { WaiverDialog } from "@/components/admin/waiver-dialog";
+import { useConfirm } from "@/components/confirm";
 import { DetailList } from "@/components/page";
 import { useReauth } from "@/components/reauth";
 import { StatusBadge } from "@/components/server-status";
@@ -20,9 +23,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
+import { StaffService, type StaffWaiver } from "@/gen/raptor/panel/v1/staff_pb";
 import { message } from "@/lib/errors";
-import { since, when } from "@/lib/format";
+import { dateOnly, since, when } from "@/lib/format";
 import { formatBytes } from "@/lib/metrics";
 import { nodeStatus } from "@/lib/servers";
 import { staffClient } from "@/lib/transport";
@@ -38,7 +41,9 @@ function OrgPage() {
   const org = useQuery(StaffService.method.getStaffOrg, { orgId });
   const withReauth = useReauth();
   const client = useQueryClient();
+  const { confirm } = useConfirm();
   const [suspending, setSuspending] = useState(false);
+  const [waiving, setWaiving] = useState(false);
   const [asking, setAsking] = useState<{ id: string; name: string }>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -124,10 +129,59 @@ function OrgPage() {
                   <ShieldOff /> Suspend
                 </Button>
               ))}
+            {admin && (
+              <Button variant="outline" className="justify-start" onClick={() => setWaiving(true)}>
+                <BadgePercent /> {d.waiver ? "Change the waiver" : "Waive billing"}
+              </Button>
+            )}
+            {admin && d.waiver && (
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: `End ${o.name}'s waiver?`,
+                    description:
+                      "Its nodes are charged from now on, and it needs a plan for them within 7 days or they go read-only. Its owners aren't emailed.",
+                    confirm: "End the waiver",
+                    destructive: true,
+                  });
+                  if (!ok) return;
+                  setError("");
+                  try {
+                    await withReauth(() => staffClient.endBillingWaiver({ orgId }));
+                    await client.invalidateQueries();
+                  } catch (err) {
+                    setError(message(err));
+                  }
+                }}
+              >
+                <BadgePercent /> End the waiver
+              </Button>
+            )}
             {error && <p className="text-sm text-destructive">{error}</p>}
           </CardContent>
         </Card>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Billing</CardTitle>
+          <CardDescription>
+            {d.waiver
+              ? "Raptor waives part of this org's bill. Its owners see what's free and until when, not why."
+              : "What the org pays, as Polar last said."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DetailList
+            rows={[
+              ["Plan", planWords(d.planStatus)],
+              ["Seats", String(d.seats)],
+              ...(d.waiver ? waiverRows(d.waiver) : [["Waiver", "None"] as [string, string]]),
+            ]}
+          />
+        </CardContent>
+      </Card>
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -220,6 +274,19 @@ function OrgPage() {
           }
         />
       )}
+      {waiving && (
+        <WaiverDialog
+          org={o.name}
+          nodes={o.nodes}
+          current={d.waiver}
+          onSave={(w) =>
+            withReauth(() => staffClient.setBillingWaiver({ orgId, ...w })).then(() =>
+              client.invalidateQueries(),
+            )
+          }
+          onClose={() => setWaiving(false)}
+        />
+      )}
       {suspending && (
         <SuspendDialog
           what={o.name}
@@ -238,4 +305,29 @@ function OrgPage() {
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+function planWords(status: string): string {
+  switch (status) {
+    case "":
+      return "None";
+    case "trialing":
+      return "Free month";
+    case "active":
+      return "Active";
+    case "past_due":
+      return "Payment failed";
+    default:
+      return "Ended";
+  }
+}
+
+function waiverRows(w: StaffWaiver): [string, string][] {
+  return [
+    ["Free nodes", w.allNodes ? "All" : String(w.freeNodes)],
+    ["Backup Storage", w.storage ? "Free past what's included" : "Charged as usual"],
+    ["Until", w.endsAt ? dateOnly(timestampDate(w.endsAt)) : "Ended by staff"],
+    ["Why", w.reason],
+    ["Given by", `${w.createdBy || "—"}, ${when(w.createdAt)}`],
+  ];
 }

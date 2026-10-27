@@ -112,6 +112,10 @@ type State struct {
 	Enabled bool
 	Account store.BillingAccount // zero if it never had one
 	Nodes   int
+	// Waiver is Raptor's waiver in force (nil: none); Billable the nodes
+	// it doesn't cover, which the plan is charged for.
+	Waiver   *Waiver
+	Billable int
 	// ReadOnlyAt is when an unpaid org's nodes go (or went) read-only;
 	// zero if it's paid.
 	ReadOnlyAt     time.Time
@@ -143,12 +147,23 @@ func (s *Service) State(ctx context.Context, org uuid.UUID) (State, error) {
 		return st, err
 	}
 	st.Account, st.Nodes = a, int(n)
-	if a.UnpaidSince.Valid {
+	if st.Waiver, err = s.ActiveWaiver(ctx, org); err != nil {
+		return st, err
+	}
+	st.Billable = Billable(st.Nodes, st.Waiver)
+	// Nothing to pay for, nothing unpaid (the sweep clears it soon).
+	if a.UnpaidSince.Valid && st.Billable > 0 {
 		st.ReadOnlyAt = a.UnpaidSince.Time.Add(Grace)
 		st.ReadOnly = !s.now().Before(st.ReadOnlyAt)
 	}
-	st.TrialAvailable = !a.TrialUsed && st.Nodes <= 1
+	st.TrialAvailable = !a.TrialUsed && st.Billable <= 1
 	return st, nil
+}
+
+// FreeNextNode reports whether a node linked now would be free under the
+// org's waiver, so it needs no plan.
+func (st State) FreeNextNode() bool {
+	return st.Waiver != nil && st.Waiver.CoversNext(st.Nodes)
 }
 
 // CheckWrite refuses changes to an org's nodes while it's read-only.
@@ -167,8 +182,8 @@ func (s *Service) CheckWrite(ctx context.Context, org uuid.UUID) error {
 }
 
 // CheckAddNode says whether an org may link another node: it needs a plan
-// in force and not to be read-only. (A second node during the free month
-// ends it: the sweep does that.)
+// in force (unless a waiver makes that node free) and not to be read-only.
+// (A second node during the free month ends it: the sweep does that.)
 func (s *Service) CheckAddNode(ctx context.Context, org uuid.UUID) error {
 	if !s.Enabled() {
 		return nil
@@ -180,7 +195,7 @@ func (s *Service) CheckAddNode(ctx context.Context, org uuid.UUID) error {
 	switch {
 	case st.ReadOnly:
 		return ErrReadOnly
-	case !Live(st.Account.Status):
+	case !Live(st.Account.Status) && !st.FreeNextNode():
 		return ErrNoPlan
 	}
 	return nil
@@ -204,9 +219,12 @@ func (s *Service) Checkout(ctx context.Context, org uuid.UUID, email string) (st
 	if Live(st.Account.Status) {
 		return "", connect.NewError(connect.CodeAlreadyExists, errors.New("this org already has a plan: manage it from the billing portal"))
 	}
+	if st.Waiver != nil && st.Waiver.AllNodes {
+		return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("every node in this org is free, courtesy of Raptor, so it needs no plan"))
+	}
 	back := s.billingURL(org)
 	return s.Polar.CreateCheckout(ctx, Checkout{
-		ProductID: s.ProductID, OrgID: org.String(), Email: email, Seats: max(st.Nodes, 1),
+		ProductID: s.ProductID, OrgID: org.String(), Email: email, Seats: max(st.Billable, 1),
 		Trial: st.TrialAvailable, SuccessURL: back + "?checkout=done", ReturnURL: back,
 	})
 }
@@ -382,7 +400,10 @@ func (s *Service) Cancel(ctx context.Context, org uuid.UUID, resume bool, reason
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("the plan has already ended"))
 	case a.CancelAtPeriodEnd == !resume:
 		return nil
-	case resume && st.Nodes == 0:
+	case resume && st.Billable == 0 && st.Nodes > 0:
+		// Every node is free: nothing for it to charge.
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("every node in this org is free, courtesy of Raptor: the plan carries on by itself if any are charged again"))
+	case resume && st.Billable == 0:
 		// It would renew for seats nothing uses: linking a node keeps it.
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("this org has no nodes: connect one and the plan carries on"))
 	}
@@ -667,7 +688,14 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 	q := store.New(s.DB)
 	org := uuid.UUID(r.OrgID.Bytes)
 	now := s.now()
-	status, nodes := r.Status, int(r.Nodes)
+	status := r.Status
+	// Nodes a waiver makes free aren't charged: everything below works on
+	// the rest, so a waiver covering every node is like having none.
+	w, err := s.sweepWaiver(ctx, q, r, now)
+	if err != nil {
+		return err
+	}
+	nodes := Billable(int(r.Nodes), w)
 
 	// Fetch now and then, in case a webhook was lost.
 	if r.SubscriptionID != "" && (!r.FetchedAt.Valid || now.Sub(r.FetchedAt.Time) > refreshEvery) {
@@ -684,7 +712,7 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 		}
 	}
 
-	// The free month covers one node: a second ends it.
+	// The free month covers one (charged) node: a second ends it.
 	if status == "trialing" && nodes > 1 {
 		sub, err := s.Polar.UpdateSubscription(ctx, r.SubscriptionID, map[string]any{"trial_end": "now"})
 		if err != nil {
@@ -696,9 +724,10 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 		status = sub.Status
 	}
 
-	// Seats follow nodes. Removing the last one ends the plan at the
-	// period's end (a new plan has none yet: that's fine), and linking one
-	// again takes that back; an owner's own cancellation is left alone.
+	// Seats follow charged nodes. Removing the last one (or a waiver
+	// covering it) ends the plan at the period's end (a new plan has none
+	// yet: that's fine), and one charged again takes that back; an owner's
+	// own cancellation is left alone.
 	autoCanceled := r.AutoCanceled
 	if Live(status) {
 		// Polar takes one kind of change per update. Seats go first: if
@@ -731,7 +760,7 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 		}
 	}
 
-	// Unpaid: nodes and no plan in force (a failed payment counts from
+	// Unpaid: charged nodes and no plan in force (a failed payment counts from
 	// when it failed).
 	unpaid := nodes > 0 && status != "trialing" && status != "active"
 	since := r.UnpaidSince

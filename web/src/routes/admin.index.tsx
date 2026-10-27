@@ -187,6 +187,8 @@ function Overview() {
                   <p className="text-xs text-muted-foreground">
                     {d.revenue.payingOrgs} paying orgs, {d.revenue.trialingOrgs} on the free month;{" "}
                     {dollars(d.revenue.recentPaidCents)} paid in the last 30 days.
+                    {d.revenue.waivedOrgs > 0 &&
+                      ` ${d.revenue.waivedNodes} nodes free in ${d.revenue.waivedOrgs} ${d.revenue.waivedOrgs === 1 ? "org" : "orgs"}, not counted.`}
                   </p>
                 </>
               )}

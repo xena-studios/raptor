@@ -237,6 +237,11 @@ func (s *Service) GetBillingInsights(ctx context.Context, req *panelv1.GetBillin
 		return nil, err
 	}
 	out.UnpaidOrgs, out.ReadOnlyOrgs = unpaid.Unpaid, unpaid.ReadOnly
+	waived, err := q.WaiverCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out.WaivedOrgs, out.WaivedNodes = waived.Orgs, waived.Nodes
 	months, err := q.RevenueByMonth(ctx, pgtype.Timestamptz{Time: time.Now().AddDate(-1, 0, 0), Valid: true})
 	if err != nil {
 		return nil, err

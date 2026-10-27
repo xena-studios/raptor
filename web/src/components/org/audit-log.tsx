@@ -512,6 +512,15 @@ export function OrgActivity({
       case "org.unsuspend":
         [text, icon] = ["(Raptor staff) lifted the org's suspension", Building2];
         break;
+      case "billing.waiver.set":
+        [text, icon] = ["(Raptor staff) made nodes free for the org", Building2];
+        break;
+      case "billing.waiver.change":
+        [text, icon] = ["(Raptor staff) changed the org's free nodes", Building2];
+        break;
+      case "billing.waiver.end":
+        [text, icon] = ["(Raptor staff) ended the org's free nodes", Building2];
+        break;
       case "command": {
         const onNode = e.target === str(meta.node);
         // A server command aimed at the node is one whose server doesn't

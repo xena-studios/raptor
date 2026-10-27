@@ -52,6 +52,9 @@ type Service struct {
 	// BillingLive reports whether the Panel charges (billing.Service.Enabled;
 	// nil: it doesn't).
 	BillingLive func() bool
+	// BillingChanged is called after an org's waiver changes, so billing
+	// sweeps it now (billing.Service.NodesChanged; nil: the next sweep).
+	BillingChanged func(org uuid.UUID)
 }
 
 func (s *Service) billingLive() bool { return s.BillingLive != nil && s.BillingLive() }
@@ -290,6 +293,11 @@ func (s *Service) GetOverview(ctx context.Context, req *panelv1.GetOverviewReque
 			rev.TrialingOrgs += p.Orgs
 		}
 	}
+	waived, err := q.WaiverCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rev.WaivedOrgs, rev.WaivedNodes = waived.Orgs, waived.Nodes
 	months, err := q.RevenueByMonth(ctx, pgtype.Timestamptz{Time: time.Now().AddDate(0, 0, -30), Valid: true})
 	if err != nil {
 		return nil, err
@@ -518,6 +526,12 @@ func (s *Service) GetStaffOrg(ctx context.Context, req *panelv1.GetStaffOrgReque
 	}
 	if u, err := q.LatestBackupStorageUsage(ctx, oid); err == nil {
 		out.StorageBytes = u.Bytes
+	}
+	if out.Waiver, err = staffWaiver(ctx, q, oid); err != nil {
+		return nil, err
+	}
+	if a, err := q.BillingAccount(ctx, oid); err == nil {
+		out.PlanStatus, out.Seats = a.Status, a.Seats
 	}
 	s.viewed(ctx, c, "org.view", "org", id(oid))
 	return out, nil

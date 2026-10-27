@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/billing.proto.
  */
 export const file_raptor_panel_v1_billing: GenFile = /*@__PURE__*/
-  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvYmlsbGluZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIiMKEUdldEJpbGxpbmdSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSLQAgoSR2V0QmlsbGluZ1Jlc3BvbnNlEg8KB2VuYWJsZWQYASABKAgSDgoGc3RhdHVzGAIgASgJEg0KBXNlYXRzGAMgASgFEg0KBW5vZGVzGAQgASgFEhgKEG5vZGVfcHJpY2VfY2VudHMYBSABKAMSNgoSY3VycmVudF9wZXJpb2RfZW5kGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBItCgl0cmlhbF9lbmQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFGNhbmNlbF9hdF9wZXJpb2RfZW5kGAggASgIEjAKDHJlYWRfb25seV9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEQoJcmVhZF9vbmx5GAogASgIEhcKD3RyaWFsX2F2YWlsYWJsZRgLIAEoCCImChRTdGFydENoZWNrb3V0UmVxdWVzdBIOCgZvcmdfaWQYASABKAkiOgoVU3RhcnRDaGVja291dFJlc3BvbnNlEgsKA3VybBgBIAEoCRIUCgxwb2xhcl9vcmlnaW4YAiABKAkiKgoYT3BlbkJpbGxpbmdQb3J0YWxSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSIoChlPcGVuQmlsbGluZ1BvcnRhbFJlc3BvbnNlEgsKA3VybBgBIAEoCSIhCg9FbmRUcmlhbFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJIhIKEEVuZFRyaWFsUmVzcG9uc2UiKgoYR2V0QmlsbGluZ0RldGFpbHNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSKEAQoEQ2FyZBIKCgJpZBgBIAEoCRIMCgR0eXBlGAIgASgJEg0KBWJyYW5kGAMgASgJEg0KBWxhc3Q0GAQgASgJEhEKCWV4cF9tb250aBgFIAEoBRIQCghleHBfeWVhchgGIAEoBRIOCgZ3YWxsZXQYByABKAkSDwoHZGVmYXVsdBgIIAEoCCLIAQoGQ2hhcmdlEgoKAmlkGAEgASgJEiYKAmF0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIOCgZzdGF0dXMYAyABKAkSEwoLdG90YWxfY2VudHMYBCABKAMSFgoOcmVmdW5kZWRfY2VudHMYBSABKAMSEAoIY3VycmVuY3kYBiABKAkSDgoGcmVhc29uGAcgASgJEhMKC2Rlc2NyaXB0aW9uGAggASgJEhYKDmludm9pY2VfbnVtYmVyGAkgASgJImsKGUdldEJpbGxpbmdEZXRhaWxzUmVzcG9uc2USJAoFY2FyZHMYASADKAsyFS5yYXB0b3IucGFuZWwudjEuQ2FyZBIoCgdjaGFyZ2VzGAIgAygLMhcucmFwdG9yLnBhbmVsLnYxLkNoYXJnZSIlChNTdGFydEFkZENhcmRSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSJDChRTdGFydEFkZENhcmRSZXNwb25zZRIVCg1zZXNzaW9uX3Rva2VuGAEgASgJEhQKDHBvbGFyX29yaWdpbhgCIAEoCSI4ChVTZXREZWZhdWx0Q2FyZFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB2NhcmRfaWQYAiABKAkiGAoWU2V0RGVmYXVsdENhcmRSZXNwb25zZSI0ChFSZW1vdmVDYXJkUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHY2FyZF9pZBgCIAEoCSIUChJSZW1vdmVDYXJkUmVzcG9uc2UiNgoRR2V0SW52b2ljZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhEKCWNoYXJnZV9pZBgCIAEoCSIhChJHZXRJbnZvaWNlUmVzcG9uc2USCwoDdXJsGAEgASgJIlQKEUNhbmNlbFBsYW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIOCgZyZXN1bWUYAiABKAgSDgoGcmVhc29uGAMgASgJEg8KB2NvbW1lbnQYBCABKAkiFAoSQ2FuY2VsUGxhblJlc3BvbnNlMs8HCg5CaWxsaW5nU2VydmljZRJaCgpHZXRCaWxsaW5nEiIucmFwdG9yLnBhbmVsLnYxLkdldEJpbGxpbmdSZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkdldEJpbGxpbmdSZXNwb25zZSIDkAIBEmAKDVN0YXJ0Q2hlY2tvdXQSJS5yYXB0b3IucGFuZWwudjEuU3RhcnRDaGVja291dFJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuU3RhcnRDaGVja291dFJlc3BvbnNlIgASbAoRT3BlbkJpbGxpbmdQb3J0YWwSKS5yYXB0b3IucGFuZWwudjEuT3BlbkJpbGxpbmdQb3J0YWxSZXF1ZXN0GioucmFwdG9yLnBhbmVsLnYxLk9wZW5CaWxsaW5nUG9ydGFsUmVzcG9uc2UiABJRCghFbmRUcmlhbBIgLnJhcHRvci5wYW5lbC52MS5FbmRUcmlhbFJlcXVlc3QaIS5yYXB0b3IucGFuZWwudjEuRW5kVHJpYWxSZXNwb25zZSIAEm8KEUdldEJpbGxpbmdEZXRhaWxzEikucmFwdG9yLnBhbmVsLnYxLkdldEJpbGxpbmdEZXRhaWxzUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5HZXRCaWxsaW5nRGV0YWlsc1Jlc3BvbnNlIgOQAgESXQoMU3RhcnRBZGRDYXJkEiQucmFwdG9yLnBhbmVsLnYxLlN0YXJ0QWRkQ2FyZFJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU3RhcnRBZGRDYXJkUmVzcG9uc2UiABJjCg5TZXREZWZhdWx0Q2FyZBImLnJhcHRvci5wYW5lbC52MS5TZXREZWZhdWx0Q2FyZFJlcXVlc3QaJy5yYXB0b3IucGFuZWwudjEuU2V0RGVmYXVsdENhcmRSZXNwb25zZSIAElcKClJlbW92ZUNhcmQSIi5yYXB0b3IucGFuZWwudjEuUmVtb3ZlQ2FyZFJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuUmVtb3ZlQ2FyZFJlc3BvbnNlIgASVwoKR2V0SW52b2ljZRIiLnJhcHRvci5wYW5lbC52MS5HZXRJbnZvaWNlUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5HZXRJbnZvaWNlUmVzcG9uc2UiABJXCgpDYW5jZWxQbGFuEiIucmFwdG9yLnBhbmVsLnYxLkNhbmNlbFBsYW5SZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkNhbmNlbFBsYW5SZXNwb25zZSIAQswBChNjb20ucmFwdG9yLnBhbmVsLnYxQgxCaWxsaW5nUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvYmlsbGluZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIiMKEUdldEJpbGxpbmdSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSKsAwoSR2V0QmlsbGluZ1Jlc3BvbnNlEg8KB2VuYWJsZWQYASABKAgSDgoGc3RhdHVzGAIgASgJEg0KBXNlYXRzGAMgASgFEg0KBW5vZGVzGAQgASgFEhgKEG5vZGVfcHJpY2VfY2VudHMYBSABKAMSNgoSY3VycmVudF9wZXJpb2RfZW5kGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBItCgl0cmlhbF9lbmQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFGNhbmNlbF9hdF9wZXJpb2RfZW5kGAggASgIEjAKDHJlYWRfb25seV9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEQoJcmVhZF9vbmx5GAogASgIEhcKD3RyaWFsX2F2YWlsYWJsZRgLIAEoCBIuCgZ3YWl2ZXIYDCABKAsyHi5yYXB0b3IucGFuZWwudjEuQmlsbGluZ1dhaXZlchISCgpmcmVlX25vZGVzGA0gASgFEhYKDmZyZWVfbmV4dF9ub2RlGA4gASgIInQKDUJpbGxpbmdXYWl2ZXISEQoJYWxsX25vZGVzGAEgASgIEhIKCmZyZWVfbm9kZXMYAiABKAUSDwoHc3RvcmFnZRgDIAEoCBIrCgdlbmRzX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCImChRTdGFydENoZWNrb3V0UmVxdWVzdBIOCgZvcmdfaWQYASABKAkiOgoVU3RhcnRDaGVja291dFJlc3BvbnNlEgsKA3VybBgBIAEoCRIUCgxwb2xhcl9vcmlnaW4YAiABKAkiKgoYT3BlbkJpbGxpbmdQb3J0YWxSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSIoChlPcGVuQmlsbGluZ1BvcnRhbFJlc3BvbnNlEgsKA3VybBgBIAEoCSIhCg9FbmRUcmlhbFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJIhIKEEVuZFRyaWFsUmVzcG9uc2UiKgoYR2V0QmlsbGluZ0RldGFpbHNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSKEAQoEQ2FyZBIKCgJpZBgBIAEoCRIMCgR0eXBlGAIgASgJEg0KBWJyYW5kGAMgASgJEg0KBWxhc3Q0GAQgASgJEhEKCWV4cF9tb250aBgFIAEoBRIQCghleHBfeWVhchgGIAEoBRIOCgZ3YWxsZXQYByABKAkSDwoHZGVmYXVsdBgIIAEoCCLIAQoGQ2hhcmdlEgoKAmlkGAEgASgJEiYKAmF0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIOCgZzdGF0dXMYAyABKAkSEwoLdG90YWxfY2VudHMYBCABKAMSFgoOcmVmdW5kZWRfY2VudHMYBSABKAMSEAoIY3VycmVuY3kYBiABKAkSDgoGcmVhc29uGAcgASgJEhMKC2Rlc2NyaXB0aW9uGAggASgJEhYKDmludm9pY2VfbnVtYmVyGAkgASgJImsKGUdldEJpbGxpbmdEZXRhaWxzUmVzcG9uc2USJAoFY2FyZHMYASADKAsyFS5yYXB0b3IucGFuZWwudjEuQ2FyZBIoCgdjaGFyZ2VzGAIgAygLMhcucmFwdG9yLnBhbmVsLnYxLkNoYXJnZSIlChNTdGFydEFkZENhcmRSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSJDChRTdGFydEFkZENhcmRSZXNwb25zZRIVCg1zZXNzaW9uX3Rva2VuGAEgASgJEhQKDHBvbGFyX29yaWdpbhgCIAEoCSI4ChVTZXREZWZhdWx0Q2FyZFJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg8KB2NhcmRfaWQYAiABKAkiGAoWU2V0RGVmYXVsdENhcmRSZXNwb25zZSI0ChFSZW1vdmVDYXJkUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDwoHY2FyZF9pZBgCIAEoCSIUChJSZW1vdmVDYXJkUmVzcG9uc2UiNgoRR2V0SW52b2ljZVJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhEKCWNoYXJnZV9pZBgCIAEoCSIhChJHZXRJbnZvaWNlUmVzcG9uc2USCwoDdXJsGAEgASgJIlQKEUNhbmNlbFBsYW5SZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIOCgZyZXN1bWUYAiABKAgSDgoGcmVhc29uGAMgASgJEg8KB2NvbW1lbnQYBCABKAkiFAoSQ2FuY2VsUGxhblJlc3BvbnNlMs8HCg5CaWxsaW5nU2VydmljZRJaCgpHZXRCaWxsaW5nEiIucmFwdG9yLnBhbmVsLnYxLkdldEJpbGxpbmdSZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkdldEJpbGxpbmdSZXNwb25zZSIDkAIBEmAKDVN0YXJ0Q2hlY2tvdXQSJS5yYXB0b3IucGFuZWwudjEuU3RhcnRDaGVja291dFJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuU3RhcnRDaGVja291dFJlc3BvbnNlIgASbAoRT3BlbkJpbGxpbmdQb3J0YWwSKS5yYXB0b3IucGFuZWwudjEuT3BlbkJpbGxpbmdQb3J0YWxSZXF1ZXN0GioucmFwdG9yLnBhbmVsLnYxLk9wZW5CaWxsaW5nUG9ydGFsUmVzcG9uc2UiABJRCghFbmRUcmlhbBIgLnJhcHRvci5wYW5lbC52MS5FbmRUcmlhbFJlcXVlc3QaIS5yYXB0b3IucGFuZWwudjEuRW5kVHJpYWxSZXNwb25zZSIAEm8KEUdldEJpbGxpbmdEZXRhaWxzEikucmFwdG9yLnBhbmVsLnYxLkdldEJpbGxpbmdEZXRhaWxzUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5HZXRCaWxsaW5nRGV0YWlsc1Jlc3BvbnNlIgOQAgESXQoMU3RhcnRBZGRDYXJkEiQucmFwdG9yLnBhbmVsLnYxLlN0YXJ0QWRkQ2FyZFJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU3RhcnRBZGRDYXJkUmVzcG9uc2UiABJjCg5TZXREZWZhdWx0Q2FyZBImLnJhcHRvci5wYW5lbC52MS5TZXREZWZhdWx0Q2FyZFJlcXVlc3QaJy5yYXB0b3IucGFuZWwudjEuU2V0RGVmYXVsdENhcmRSZXNwb25zZSIAElcKClJlbW92ZUNhcmQSIi5yYXB0b3IucGFuZWwudjEuUmVtb3ZlQ2FyZFJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuUmVtb3ZlQ2FyZFJlc3BvbnNlIgASVwoKR2V0SW52b2ljZRIiLnJhcHRvci5wYW5lbC52MS5HZXRJbnZvaWNlUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5HZXRJbnZvaWNlUmVzcG9uc2UiABJXCgpDYW5jZWxQbGFuEiIucmFwdG9yLnBhbmVsLnYxLkNhbmNlbFBsYW5SZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkNhbmNlbFBsYW5SZXNwb25zZSIAQswBChNjb20ucmFwdG9yLnBhbmVsLnYxQgxCaWxsaW5nUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.GetBillingRequest
@@ -96,6 +96,28 @@ export type GetBillingResponse = Message<"raptor.panel.v1.GetBillingResponse"> &
    * @generated from field: bool trial_available = 11;
    */
   trialAvailable: boolean;
+
+  /**
+   * A waiver from Raptor in force, if any (DECISIONS #334).
+   *
+   * @generated from field: raptor.panel.v1.BillingWaiver waiver = 12;
+   */
+  waiver?: BillingWaiver | undefined;
+
+  /**
+   * How many of the org's nodes are free under it now: they're not
+   * charged, and need no plan.
+   *
+   * @generated from field: int32 free_nodes = 13;
+   */
+  freeNodes: number;
+
+  /**
+   * A node linked now would be free too, so Add Node needs no plan.
+   *
+   * @generated from field: bool free_next_node = 14;
+   */
+  freeNextNode: boolean;
 };
 
 /**
@@ -104,6 +126,47 @@ export type GetBillingResponse = Message<"raptor.panel.v1.GetBillingResponse"> &
  */
 export const GetBillingResponseSchema: GenMessage<GetBillingResponse> = /*@__PURE__*/
   messageDesc(file_raptor_panel_v1_billing, 1);
+
+/**
+ * BillingWaiver is nodes (and optionally Backup Storage) Raptor gives an
+ * org free. The reason staff gave isn't shown.
+ *
+ * @generated from message raptor.panel.v1.BillingWaiver
+ */
+export type BillingWaiver = Message<"raptor.panel.v1.BillingWaiver"> & {
+  /**
+   * Every node free, or free_nodes of them.
+   *
+   * @generated from field: bool all_nodes = 1;
+   */
+  allNodes: boolean;
+
+  /**
+   * @generated from field: int32 free_nodes = 2;
+   */
+  freeNodes: number;
+
+  /**
+   * Raptor Backup Storage past the included amount is free too.
+   *
+   * @generated from field: bool storage = 3;
+   */
+  storage: boolean;
+
+  /**
+   * When it ends; unset: until Raptor ends it.
+   *
+   * @generated from field: google.protobuf.Timestamp ends_at = 4;
+   */
+  endsAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.BillingWaiver.
+ * Use `create(BillingWaiverSchema)` to create a new message.
+ */
+export const BillingWaiverSchema: GenMessage<BillingWaiver> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_billing, 2);
 
 /**
  * @generated from message raptor.panel.v1.StartCheckoutRequest
@@ -120,7 +183,7 @@ export type StartCheckoutRequest = Message<"raptor.panel.v1.StartCheckoutRequest
  * Use `create(StartCheckoutRequestSchema)` to create a new message.
  */
 export const StartCheckoutRequestSchema: GenMessage<StartCheckoutRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 2);
+  messageDesc(file_raptor_panel_v1_billing, 3);
 
 /**
  * @generated from message raptor.panel.v1.StartCheckoutResponse
@@ -144,7 +207,7 @@ export type StartCheckoutResponse = Message<"raptor.panel.v1.StartCheckoutRespon
  * Use `create(StartCheckoutResponseSchema)` to create a new message.
  */
 export const StartCheckoutResponseSchema: GenMessage<StartCheckoutResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 3);
+  messageDesc(file_raptor_panel_v1_billing, 4);
 
 /**
  * @generated from message raptor.panel.v1.OpenBillingPortalRequest
@@ -161,7 +224,7 @@ export type OpenBillingPortalRequest = Message<"raptor.panel.v1.OpenBillingPorta
  * Use `create(OpenBillingPortalRequestSchema)` to create a new message.
  */
 export const OpenBillingPortalRequestSchema: GenMessage<OpenBillingPortalRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 4);
+  messageDesc(file_raptor_panel_v1_billing, 5);
 
 /**
  * @generated from message raptor.panel.v1.OpenBillingPortalResponse
@@ -178,7 +241,7 @@ export type OpenBillingPortalResponse = Message<"raptor.panel.v1.OpenBillingPort
  * Use `create(OpenBillingPortalResponseSchema)` to create a new message.
  */
 export const OpenBillingPortalResponseSchema: GenMessage<OpenBillingPortalResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 5);
+  messageDesc(file_raptor_panel_v1_billing, 6);
 
 /**
  * @generated from message raptor.panel.v1.EndTrialRequest
@@ -195,7 +258,7 @@ export type EndTrialRequest = Message<"raptor.panel.v1.EndTrialRequest"> & {
  * Use `create(EndTrialRequestSchema)` to create a new message.
  */
 export const EndTrialRequestSchema: GenMessage<EndTrialRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 6);
+  messageDesc(file_raptor_panel_v1_billing, 7);
 
 /**
  * @generated from message raptor.panel.v1.EndTrialResponse
@@ -208,7 +271,7 @@ export type EndTrialResponse = Message<"raptor.panel.v1.EndTrialResponse"> & {
  * Use `create(EndTrialResponseSchema)` to create a new message.
  */
 export const EndTrialResponseSchema: GenMessage<EndTrialResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 7);
+  messageDesc(file_raptor_panel_v1_billing, 8);
 
 /**
  * @generated from message raptor.panel.v1.GetBillingDetailsRequest
@@ -225,7 +288,7 @@ export type GetBillingDetailsRequest = Message<"raptor.panel.v1.GetBillingDetail
  * Use `create(GetBillingDetailsRequestSchema)` to create a new message.
  */
 export const GetBillingDetailsRequestSchema: GenMessage<GetBillingDetailsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 8);
+  messageDesc(file_raptor_panel_v1_billing, 9);
 
 /**
  * @generated from message raptor.panel.v1.Card
@@ -283,7 +346,7 @@ export type Card = Message<"raptor.panel.v1.Card"> & {
  * Use `create(CardSchema)` to create a new message.
  */
 export const CardSchema: GenMessage<Card> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 9);
+  messageDesc(file_raptor_panel_v1_billing, 10);
 
 /**
  * Charge is a Polar order: the first payment, a renewal, or a seat change.
@@ -346,7 +409,7 @@ export type Charge = Message<"raptor.panel.v1.Charge"> & {
  * Use `create(ChargeSchema)` to create a new message.
  */
 export const ChargeSchema: GenMessage<Charge> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 10);
+  messageDesc(file_raptor_panel_v1_billing, 11);
 
 /**
  * @generated from message raptor.panel.v1.GetBillingDetailsResponse
@@ -370,7 +433,7 @@ export type GetBillingDetailsResponse = Message<"raptor.panel.v1.GetBillingDetai
  * Use `create(GetBillingDetailsResponseSchema)` to create a new message.
  */
 export const GetBillingDetailsResponseSchema: GenMessage<GetBillingDetailsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 11);
+  messageDesc(file_raptor_panel_v1_billing, 12);
 
 /**
  * @generated from message raptor.panel.v1.StartAddCardRequest
@@ -387,7 +450,7 @@ export type StartAddCardRequest = Message<"raptor.panel.v1.StartAddCardRequest">
  * Use `create(StartAddCardRequestSchema)` to create a new message.
  */
 export const StartAddCardRequestSchema: GenMessage<StartAddCardRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 12);
+  messageDesc(file_raptor_panel_v1_billing, 13);
 
 /**
  * @generated from message raptor.panel.v1.StartAddCardResponse
@@ -413,7 +476,7 @@ export type StartAddCardResponse = Message<"raptor.panel.v1.StartAddCardResponse
  * Use `create(StartAddCardResponseSchema)` to create a new message.
  */
 export const StartAddCardResponseSchema: GenMessage<StartAddCardResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 13);
+  messageDesc(file_raptor_panel_v1_billing, 14);
 
 /**
  * @generated from message raptor.panel.v1.SetDefaultCardRequest
@@ -435,7 +498,7 @@ export type SetDefaultCardRequest = Message<"raptor.panel.v1.SetDefaultCardReque
  * Use `create(SetDefaultCardRequestSchema)` to create a new message.
  */
 export const SetDefaultCardRequestSchema: GenMessage<SetDefaultCardRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 14);
+  messageDesc(file_raptor_panel_v1_billing, 15);
 
 /**
  * @generated from message raptor.panel.v1.SetDefaultCardResponse
@@ -448,7 +511,7 @@ export type SetDefaultCardResponse = Message<"raptor.panel.v1.SetDefaultCardResp
  * Use `create(SetDefaultCardResponseSchema)` to create a new message.
  */
 export const SetDefaultCardResponseSchema: GenMessage<SetDefaultCardResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 15);
+  messageDesc(file_raptor_panel_v1_billing, 16);
 
 /**
  * @generated from message raptor.panel.v1.RemoveCardRequest
@@ -470,7 +533,7 @@ export type RemoveCardRequest = Message<"raptor.panel.v1.RemoveCardRequest"> & {
  * Use `create(RemoveCardRequestSchema)` to create a new message.
  */
 export const RemoveCardRequestSchema: GenMessage<RemoveCardRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 16);
+  messageDesc(file_raptor_panel_v1_billing, 17);
 
 /**
  * @generated from message raptor.panel.v1.RemoveCardResponse
@@ -483,7 +546,7 @@ export type RemoveCardResponse = Message<"raptor.panel.v1.RemoveCardResponse"> &
  * Use `create(RemoveCardResponseSchema)` to create a new message.
  */
 export const RemoveCardResponseSchema: GenMessage<RemoveCardResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 17);
+  messageDesc(file_raptor_panel_v1_billing, 18);
 
 /**
  * @generated from message raptor.panel.v1.GetInvoiceRequest
@@ -505,7 +568,7 @@ export type GetInvoiceRequest = Message<"raptor.panel.v1.GetInvoiceRequest"> & {
  * Use `create(GetInvoiceRequestSchema)` to create a new message.
  */
 export const GetInvoiceRequestSchema: GenMessage<GetInvoiceRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 18);
+  messageDesc(file_raptor_panel_v1_billing, 19);
 
 /**
  * @generated from message raptor.panel.v1.GetInvoiceResponse
@@ -522,7 +585,7 @@ export type GetInvoiceResponse = Message<"raptor.panel.v1.GetInvoiceResponse"> &
  * Use `create(GetInvoiceResponseSchema)` to create a new message.
  */
 export const GetInvoiceResponseSchema: GenMessage<GetInvoiceResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 19);
+  messageDesc(file_raptor_panel_v1_billing, 20);
 
 /**
  * @generated from message raptor.panel.v1.CancelPlanRequest
@@ -559,7 +622,7 @@ export type CancelPlanRequest = Message<"raptor.panel.v1.CancelPlanRequest"> & {
  * Use `create(CancelPlanRequestSchema)` to create a new message.
  */
 export const CancelPlanRequestSchema: GenMessage<CancelPlanRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 20);
+  messageDesc(file_raptor_panel_v1_billing, 21);
 
 /**
  * @generated from message raptor.panel.v1.CancelPlanResponse
@@ -572,7 +635,7 @@ export type CancelPlanResponse = Message<"raptor.panel.v1.CancelPlanResponse"> &
  * Use `create(CancelPlanResponseSchema)` to create a new message.
  */
 export const CancelPlanResponseSchema: GenMessage<CancelPlanResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_billing, 21);
+  messageDesc(file_raptor_panel_v1_billing, 22);
 
 /**
  * BillingService is an org's plan, through Polar (docs/PANEL.md#billing-polar):

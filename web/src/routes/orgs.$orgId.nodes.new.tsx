@@ -16,11 +16,13 @@ export const Route = createFileRoute("/orgs/$orgId/nodes/new")({
 function NewNode() {
   const session = Route.useRouteContext();
   const { orgId } = useIds();
-  // With billing on, a node needs a plan; a second ends the free month.
+  // With billing on, a node needs a plan (unless Raptor makes it free); a
+  // second charged node ends the free month.
   const billing = useQuery(BillingService.method.getBilling, { orgId });
   const b = billing.data;
   const needsPlan =
-    b?.enabled && (!["trialing", "active", "past_due"].includes(b.status) || b.readOnly);
+    b?.enabled &&
+    ((!["trialing", "active", "past_due"].includes(b.status) && !b.freeNextNode) || b.readOnly);
   return (
     <>
       <PageHeader
@@ -57,7 +59,7 @@ function NewNode() {
         />
       ) : (
         <>
-          {b.status === "trialing" && b.nodes >= 1 && (
+          {b.status === "trialing" && !b.freeNextNode && b.nodes - b.freeNodes >= 1 && (
             <p className="mb-4 rounded-lg border border-warn/40 bg-warn/5 p-3 text-sm">
               Your free month covers one node. Linking this one ends it, and both nodes are charged
               from then.
