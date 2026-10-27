@@ -40,6 +40,7 @@ import (
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
+	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
 // Limits and timing.
@@ -207,6 +208,11 @@ func (s *Service) Ingest(ctx context.Context, q *store.Queries, node pgtype.UUID
 			}
 		}
 		m.URL = s.link(n.OrgID, m.NodeID, m.ServerID)
+		c, _ := ConditionByID(m.Condition)
+		instance := c.Scope == "instance"
+		if instance && m.URL != "" {
+			m.URL += "/databases"
+		}
 		for _, r := range rules {
 			if r.Condition != m.Condition || (a.rule != "" && uuid.UUID(r.ID.Bytes).String() != a.rule) {
 				continue
@@ -226,7 +232,7 @@ func (s *Service) Ingest(ctx context.Context, q *store.Queries, node pgtype.UUID
 			}
 			mm := m
 			mm.Rule = r.Name
-			who := People{Roles: r.NotifyRoles, Users: r.NotifyUserIds, Node: node, Server: m.ServerID}
+			who := People{Roles: r.NotifyRoles, Users: r.NotifyUserIds, Node: node, Server: m.ServerID, AdminsOnly: instance}
 			if err := s.queue(ctx, q, n.OrgID, r.ID, chans, who, mm); err != nil {
 				return err
 			}
@@ -274,12 +280,14 @@ func (s *Service) link(org pgtype.UUID, node, server string) string {
 // People are who a rule tells about something on a node (and maybe one
 // of its servers): everyone in the org with one of the roles, and the
 // members named. Members who aren't admins or owners only hear about what
-// they have access to.
+// they have access to, and nothing about database instances (AdminsOnly),
+// which only admins manage.
 type People struct {
-	Roles  []string
-	Users  []pgtype.UUID
-	Node   pgtype.UUID
-	Server string
+	Roles      []string
+	Users      []pgtype.UUID
+	Node       pgtype.UUID
+	Server     string
+	AdminsOnly bool
 }
 
 // queue queues an alert to the rule's team channels and to its people: in
@@ -298,7 +306,7 @@ func (s *Service) queue(ctx context.Context, q *store.Queries, org, rule pgtype.
 		return nil
 	}
 	people, err := q.AlertPeople(ctx, store.AlertPeopleParams{
-		OrgID: org, Roles: who.Roles, Users: who.Users, NodeID: who.Node, ServerID: who.Server,
+		OrgID: org, Roles: who.Roles, Users: who.Users, NodeID: who.Node, ServerID: who.Server, AdminsOnly: who.AdminsOnly,
 	})
 	if err != nil || len(people) == 0 {
 		return err
@@ -894,7 +902,13 @@ func (s *Service) SyncThresholds(ctx context.Context) {
 }
 
 func (s *Service) syncNode(ctx context.Context, q *store.Queries, n store.ConnectedNodesForAlertsRow) error {
-	rows, err := q.NodeThresholdRules(ctx, store.NodeThresholdRulesParams{ID: n.ID, Conditions: ThresholdConditions()})
+	conditions := ThresholdConditions()
+	// An older Wings refuses every rule if one has a condition it doesn't
+	// know.
+	if !slices.Contains(n.Capabilities, nodelink.CapDatabaseAlerts) {
+		conditions = slices.DeleteFunc(conditions, func(c string) bool { return slices.Contains(InstanceConditions(), c) })
+	}
+	rows, err := q.NodeThresholdRules(ctx, store.NodeThresholdRulesParams{ID: n.ID, Conditions: conditions})
 	if err != nil {
 		return err
 	}

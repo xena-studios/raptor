@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
+
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/docker"
@@ -126,9 +128,26 @@ func healthy() (*Env, *fakeSystem, *fakeDocker) {
 		root: true,
 	}
 	dk := &fakeDocker{
-		info:     docker.Info{Version: "29.1.0", LiveRestore: true, CgroupDriver: "systemd", RootDir: "/var/lib/docker"},
-		networks: map[string][]netip.Prefix{"raptor_nw": {netip.MustParsePrefix("172.30.0.0/24")}, "raptor_install": {netip.MustParsePrefix("172.30.1.0/24")}},
+		info: docker.Info{Version: "29.1.0", LiveRestore: true, CgroupDriver: "systemd", RootDir: "/var/lib/docker"},
+		networks: map[string][]netip.Prefix{
+			"raptor_nw": {netip.MustParsePrefix("172.30.0.0/24")}, "raptor_install": {netip.MustParsePrefix("172.30.1.0/24")},
+			"raptor_net_00000000000a": {netip.MustParsePrefix("10.64.0.0/24")},
+		},
 	}
+	nets := &localv1.ListNetworksResponse{Networks: []*localv1.NetworkInfo{
+		{Id: "0199e2e0-0000-7000-8000-00000000000a", Name: "lan", DockerName: "raptor_net_00000000000a", Subnet: "10.64.0.0/24", Servers: 2},
+	}}
+	insts := &localv1.ListDatabaseInstancesResponse{Instances: []*localv1.DatabaseInstanceInfo{
+		{
+			Id: "0199e2e0-0000-7000-8000-0000000000d1", Name: "main", Engine: "postgres", Version: "17", State: "running",
+			DesiredState: "running", Host: "main.db.raptor", Checked: true, Answering: true,
+			Networks: []*localv1.InstanceNetwork{{
+				Id: "0199e2e0-0000-7000-8000-00000000000a", Name: "lan", DockerName: "raptor_net_00000000000a",
+				Address: "10.64.0.2", Attached: true, ActualAddress: "10.64.0.2",
+			}},
+		},
+		{Id: "0199e2e0-0000-7000-8000-0000000000d2", Name: "cache", Engine: "redis", Version: "8.2", State: "stopped", DesiredState: "stopped"},
+	}}
 	e := &Env{
 		Config: config.Default(), System: sys, Docker: dk,
 		Status: &localv1.GetStatusResponse{
@@ -140,8 +159,16 @@ func healthy() (*Env, *fakeSystem, *fakeDocker) {
 		DiskCheck:   func(string) error { return nil },
 		Firewall:    func(context.Context) bool { return true },
 		HTTPGet:     func(context.Context, string) error { return nil },
+		Networks:    func(context.Context) (*localv1.ListNetworksResponse, error) { return nets, nil },
+		Instances:   func(context.Context) (*localv1.ListDatabaseInstancesResponse, error) { return insts, nil },
 	}
 	return e, sys, dk
+}
+
+// mainInstance is healthy()'s running instance, to break.
+func mainInstance(e *Env) *localv1.DatabaseInstanceInfo {
+	res, _ := e.Instances(context.Background())
+	return res.GetInstances()[0]
 }
 
 // linked makes the node linked, with its hostname pointing at it.
@@ -197,6 +224,31 @@ func TestHealthyNode(t *testing.T) {
 	if got["Panel"].Status != Skip || got["Pterodactyl"].Status != Skip {
 		t.Errorf("panel %+v, pterodactyl %+v: should be skipped", got["Panel"], got["Pterodactyl"])
 	}
+	if r := got["Network lan"]; r.Status != Pass || r.ID != "network-00000000000a" || !strings.Contains(r.Detail, "10.64.0.0/24") {
+		t.Errorf("network: %+v", r)
+	}
+	if r := got["Database instance main"]; r.Status != Pass || r.ID != "db-0000000000d1" || r.Detail != "PostgreSQL 17, answering, on 1 network" {
+		t.Errorf("instance: %+v", r)
+	}
+	if r := got["Database instance cache"]; r.Status != Pass || r.Detail != "Redis 8.2, stopped" {
+		t.Errorf("stopped instance: %+v", r)
+	}
+}
+
+// Without networks or instances, or with a Wings too old to say, they're
+// skipped.
+func TestNoDatabases(t *testing.T) {
+	e, _, _ := healthy()
+	e.Networks = func(context.Context) (*localv1.ListNetworksResponse, error) {
+		return &localv1.ListNetworksResponse{}, nil
+	}
+	e.Instances = func(context.Context) (*localv1.ListDatabaseInstancesResponse, error) {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("no such method"))
+	}
+	got := byTitle(Run(context.Background(), e))
+	if got["Networks"].Status != Skip || got["Database instances"].Status != Skip || !strings.Contains(got["Database instances"].Detail, "older") {
+		t.Errorf("networks %+v, instances %+v", got["Networks"], got["Database instances"])
+	}
 }
 
 // Every problem is reported with why it matters and how to fix it.
@@ -244,6 +296,28 @@ func TestProblems(t *testing.T) {
 			s.cmds["timedatectl show -p NTPSynchronized --value"] = "no\n"
 		}},
 		{"Firewall rules", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) { e.Firewall = func(context.Context) bool { return false } }},
+		{"Network lan", Fail, func(_ *Env, _ *fakeSystem, d *fakeDocker) { delete(d.networks, "raptor_net_00000000000a") }},
+		{"Network lan", Fail, func(_ *Env, _ *fakeSystem, d *fakeDocker) {
+			d.networks["raptor_net_00000000000a"] = []netip.Prefix{netip.MustParsePrefix("10.99.0.0/24")}
+		}},
+		{"Database instance main", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
+			in := mainInstance(e)
+			in.State, in.Error, in.Checked, in.Answering = "failed", "it keeps stopping (exit code 1)", false, false
+		}},
+		{"Database instance main", Warn, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
+			in := mainInstance(e)
+			in.State, in.Checked, in.Answering = "starting", false, false
+		}},
+		{"Database instance main", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
+			in := mainInstance(e)
+			in.Answering, in.CheckError = false, "dial unix: connection refused"
+		}},
+		{"Database instance main", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
+			mainInstance(e).Networks[0].Attached = false
+		}},
+		{"Database instance main", Fail, func(e *Env, _ *fakeSystem, _ *fakeDocker) {
+			mainInstance(e).Networks[0].ActualAddress = "10.64.0.9"
+		}},
 		{"Panel", Fail, func(e *Env, s *fakeSystem, _ *fakeDocker) {
 			e.Config.NodeID = "node-1"
 			s.exists[e.Config.Identity.Key] = true

@@ -187,10 +187,14 @@ const (
 	// CapDatabaseDocuments: Redis and MongoDB instances, and their key and
 	// document browsers.
 	CapDatabaseDocuments = "db-documents"
+	// CapDatabaseAlerts: node.alerts takes the database instance
+	// conditions (db_disk_high, db_connections_high), and instances going
+	// down and their version changes are events.
+	CapDatabaseAlerts = "db-alerts"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments}
+var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {

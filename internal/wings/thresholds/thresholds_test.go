@@ -167,3 +167,62 @@ func TestThresholds(t *testing.T) {
 		t.Fatal("a removed rule still raised events")
 	}
 }
+
+// Database instances' disk (of their limit) and connections (of their
+// maximum), named in the event's data and not as a server.
+func TestInstanceThresholds(t *testing.T) {
+	ctx := context.Background()
+	db, err := store.Open(ctx, filepath.Join(t.TempDir(), "state.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+	out := events.New(db)
+	now := time.Unix(1_700_000_000, 0)
+	var mu sync.Mutex
+	instances := []Instance{
+		{ID: "i1", Name: "main", DiskBytes: 950 << 20, DiskLimitBytes: 1 << 30, Connections: 10, MaxConnections: 100},
+		{ID: "i2", Name: "cache", DiskBytes: 5 << 30, Connections: 95, MaxConnections: 100}, // no disk limit
+	}
+	e := &Evaluator{
+		DB: db, Outbox: out, Metrics: &fakeMetrics{}, Servers: fakeServers{}, Now: func() time.Time { return now },
+		Instances: func() []Instance {
+			mu.Lock()
+			defer mu.Unlock()
+			return append([]Instance(nil), instances...)
+		},
+	}
+	if err := e.Set(ctx, []Rule{{ID: "x", Condition: "db_disk_high", ServerID: "a", Threshold: 50}}); err == nil {
+		t.Error("an instance condition for a server was accepted")
+	}
+	if err := e.Set(ctx, []Rule{
+		{ID: "disk", Condition: "db_disk_high", Threshold: 90},
+		{ID: "conns", Condition: "db_connections_high", Threshold: 90, ForSeconds: 60},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	e.Check(ctx)
+	got, _ := out.Since(ctx, 0, 100)
+	if len(got) != 1 || got[0].Data["rule_id"] != "disk" || got[0].ServerID != "" ||
+		got[0].Data["instance_id"] != "i1" || got[0].Data["instance"] != "main" {
+		t.Fatalf("disk: %+v", got)
+	}
+	now = now.Add(time.Minute)
+	e.Check(ctx)
+	got, _ = out.Since(ctx, 0, 100)
+	if len(got) != 2 || got[1].Data["rule_id"] != "conns" || got[1].Data["instance_id"] != "i2" {
+		t.Fatalf("connections: %+v", got)
+	}
+	// Back under for a minute: resolved.
+	mu.Lock()
+	instances[1].Connections = 20
+	mu.Unlock()
+	now = now.Add(10 * time.Second)
+	e.Check(ctx)
+	now = now.Add(time.Minute)
+	e.Check(ctx)
+	got, _ = out.Since(ctx, 0, 100)
+	if len(got) != 3 || got[2].Type != "alert.resolved" || got[2].Data["instance_id"] != "i2" {
+		t.Fatalf("resolved: %+v", got)
+	}
+}

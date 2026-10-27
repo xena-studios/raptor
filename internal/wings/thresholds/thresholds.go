@@ -1,7 +1,7 @@
 // Package thresholds evaluates an org's threshold alert rules on the node,
 // which has the metrics the Panel doesn't (docs/WINGS.md#threshold-alerts):
 // CPU, memory, or disk above a percent for a while, for a server or the
-// machine. The Panel sends the rules (node.alerts); a rule that starts or
+// machine, and a database instance's disk or connections near its limit. The Panel sends the rules (node.alerts); a rule that starts or
 // stops holding raises alert.fired or alert.resolved, which reach the Panel
 // with the other events and are sent from there (docs/PANEL.md#alerts).
 package thresholds
@@ -34,10 +34,12 @@ type Rule struct {
 }
 
 // Conditions a node evaluates; server ones apply to each server (or the one
-// named), node ones to the machine.
+// named), node ones to the machine, and instance ones to each database
+// instance running.
 var (
-	serverConditions = []string{"cpu_high", "memory_high", "disk_high"}
-	nodeConditions   = []string{"node_cpu_high", "node_memory_high", "node_disk_high"}
+	serverConditions   = []string{"cpu_high", "memory_high", "disk_high"}
+	nodeConditions     = []string{"node_cpu_high", "node_memory_high", "node_disk_high"}
+	instanceConditions = []string{"db_disk_high", "db_connections_high"}
 )
 
 // Limits.
@@ -71,6 +73,14 @@ type Host struct {
 	DiskBytes int64
 }
 
+// Instance is a running database instance's latest usage
+// (databases.Service.Usages).
+type Instance struct {
+	ID, Name                    string
+	DiskBytes, DiskLimitBytes   int64 // DiskLimitBytes 0: none
+	Connections, MaxConnections int
+}
+
 // Evaluator checks the rules every sample.
 type Evaluator struct {
 	DB      *store.DB
@@ -78,8 +88,10 @@ type Evaluator struct {
 	Metrics Metrics
 	Servers Servers
 	Host    func() Host
-	Log     *slog.Logger
-	Now     func() time.Time
+	// Instances are the database instances running; nil is none.
+	Instances func() []Instance
+	Log       *slog.Logger
+	Now       func() time.Time
 
 	mu    sync.Mutex
 	rules []Rule
@@ -114,7 +126,7 @@ func Validate(rules []Rule) error {
 		if r.ID == "" {
 			return errors.New("a rule needs an id")
 		}
-		node := slices.Contains(nodeConditions, r.Condition)
+		node := slices.Contains(nodeConditions, r.Condition) || slices.Contains(instanceConditions, r.Condition)
 		if !node && !slices.Contains(serverConditions, r.Condition) {
 			return fmt.Errorf("rule %s: unknown condition %q", r.ID, r.Condition)
 		}
@@ -244,6 +256,8 @@ func (e *Evaluator) Run(ctx context.Context) {
 type reading struct {
 	target string // a server ID, or "" for the machine
 	value  float64
+	// instance is the database instance it's about (target is its ID).
+	instance *Instance
 }
 
 func percent(n, of float64) float64 {
@@ -258,11 +272,13 @@ func (e *Evaluator) readings(ctx context.Context, r Rule, h Host, limits map[str
 	hp := e.Metrics.HostLatest()
 	switch r.Condition {
 	case "node_cpu_high":
-		return []reading{{"", hp.CPUAvg}}
+		return []reading{{"", hp.CPUAvg, nil}}
 	case "node_memory_high":
-		return []reading{{"", percent(float64(hp.MemoryAvg), float64(h.MemoryBytes))}}
+		return []reading{{"", percent(float64(hp.MemoryAvg), float64(h.MemoryBytes)), nil}}
 	case "node_disk_high":
-		return []reading{{"", percent(float64(hp.DiskBytes), float64(h.DiskBytes))}}
+		return []reading{{"", percent(float64(hp.DiskBytes), float64(h.DiskBytes)), nil}}
+	case "db_disk_high", "db_connections_high":
+		return e.instanceReadings(r)
 	}
 	var ids []string
 	if r.ServerID != "" {
@@ -306,7 +322,36 @@ func (e *Evaluator) readings(ctx context.Context, r Rule, h Host, limits map[str
 			}
 			v = percent(float64(p.DiskBytes), float64(l.DiskMiB<<20))
 		}
-		out = append(out, reading{id, v})
+		out = append(out, reading{id, v, nil})
+	}
+	return out
+}
+
+// instanceReadings are a database instance rule's values: each running
+// instance's disk use of its limit (those without one aren't checked:
+// the node's disk rules cover them), or its connections of its maximum.
+func (e *Evaluator) instanceReadings(r Rule) []reading {
+	if e.Instances == nil {
+		return nil
+	}
+	list := e.Instances()
+	slices.SortFunc(list, func(a, b Instance) int { return compare(a.ID, b.ID) })
+	out := make([]reading, 0, len(list))
+	for _, in := range list {
+		var v float64
+		switch r.Condition {
+		case "db_disk_high":
+			if in.DiskLimitBytes <= 0 {
+				continue
+			}
+			v = percent(float64(in.DiskBytes), float64(in.DiskLimitBytes))
+		case "db_connections_high":
+			if in.MaxConnections <= 0 {
+				continue
+			}
+			v = percent(float64(in.Connections), float64(in.MaxConnections))
+		}
+		out = append(out, reading{in.ID, v, &in})
 	}
 	return out
 }
@@ -377,9 +422,15 @@ func (e *Evaluator) Check(ctx context.Context) {
 }
 
 func (e *Evaluator) raise(ctx context.Context, typ string, r Rule, rd reading) {
-	_, err := e.Outbox.Append(context.WithoutCancel(ctx), events.Event{Type: typ, ServerID: rd.target, Data: map[string]any{
+	ev := events.Event{Type: typ, ServerID: rd.target, Data: map[string]any{
 		"rule_id": r.ID, "condition": r.Condition, "value": rd.value, "threshold": r.Threshold, "for_seconds": r.ForSeconds,
-	}})
+	}}
+	// An instance isn't a server: the Panel's mirror would look it up.
+	if in := rd.instance; in != nil {
+		ev.ServerID = ""
+		ev.Data["instance_id"], ev.Data["instance"] = in.ID, in.Name
+	}
+	_, err := e.Outbox.Append(context.WithoutCancel(ctx), ev)
 	if err != nil {
 		e.Log.Error("recording a threshold alert failed", "rule", r.ID, "err", err)
 	}

@@ -240,19 +240,20 @@ SELECT m.user_id, coalesce(nullif(u.name, ''), u.email)::text AS name
 FROM org_members m JOIN users u ON u.id = m.user_id
 WHERE m.org_id = $1
   AND (m.role = ANY ($2::text[]) OR m.user_id = ANY ($3::uuid[]))
-  AND (m.role IN ('owner', 'admin') OR EXISTS (
+  AND (m.role IN ('owner', 'admin') OR NOT $4::bool AND EXISTS (
       SELECT 1 FROM server_grants g
-      WHERE g.org_id = m.org_id AND g.user_id = m.user_id AND g.node_id = $4::uuid
-        AND ($5::text = '' OR g.server_id = $5::text)))
+      WHERE g.org_id = m.org_id AND g.user_id = m.user_id AND g.node_id = $5::uuid
+        AND ($6::text = '' OR g.server_id = $6::text)))
 ORDER BY m.user_id
 `
 
 type AlertPeopleParams struct {
-	OrgID    pgtype.UUID
-	Roles    []string
-	Users    []pgtype.UUID
-	NodeID   pgtype.UUID
-	ServerID string
+	OrgID      pgtype.UUID
+	Roles      []string
+	Users      []pgtype.UUID
+	AdminsOnly bool
+	NodeID     pgtype.UUID
+	ServerID   string
 }
 
 type AlertPeopleRow struct {
@@ -262,12 +263,14 @@ type AlertPeopleRow struct {
 
 // Who a rule tells about something on a node (and maybe one of its
 // servers): the org's members with one of the roles, or named. Members
-// (not admins or owners) only hear about what they have access to.
+// (not admins or owners) only hear about what they have access to, and
+// nothing that's for admins only (database instances).
 func (q *Queries) AlertPeople(ctx context.Context, arg AlertPeopleParams) ([]AlertPeopleRow, error) {
 	rows, err := q.db.Query(ctx, alertPeople,
 		arg.OrgID,
 		arg.Roles,
 		arg.Users,
+		arg.AdminsOnly,
 		arg.NodeID,
 		arg.ServerID,
 	)
@@ -371,7 +374,7 @@ func (q *Queries) AlertServerNames(ctx context.Context, nodeID pgtype.UUID) ([]A
 }
 
 const connectedNodesForAlerts = `-- name: ConnectedNodesForAlerts :many
-SELECT n.id, n.wings_version, n.alerts_hash FROM nodes n
+SELECT n.id, n.wings_version, n.alerts_hash, n.capabilities FROM nodes n
 WHERE n.deleted_at IS NULL AND n.key_revoked_at IS NULL
   AND EXISTS (SELECT 1 FROM node_connections c JOIN panel_instances i ON i.id = c.instance_id
               WHERE c.node_id = n.id AND i.seen_at > now() - interval '20 seconds')
@@ -381,6 +384,7 @@ type ConnectedNodesForAlertsRow struct {
 	ID           pgtype.UUID
 	WingsVersion string
 	AlertsHash   string
+	Capabilities []string
 }
 
 // Connected nodes, with the rules they last accepted.
@@ -393,7 +397,12 @@ func (q *Queries) ConnectedNodesForAlerts(ctx context.Context) ([]ConnectedNodes
 	var items []ConnectedNodesForAlertsRow
 	for rows.Next() {
 		var i ConnectedNodesForAlertsRow
-		if err := rows.Scan(&i.ID, &i.WingsVersion, &i.AlertsHash); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.WingsVersion,
+			&i.AlertsHash,
+			&i.Capabilities,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

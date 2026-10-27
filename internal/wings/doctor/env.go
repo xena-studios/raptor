@@ -57,9 +57,16 @@ func LocalEnv(ctx context.Context, path string) (e *Env, closeEnv func()) {
 			e.Docker = dc
 		}
 	}
+	api := localapi.Dial(cfg.Paths.Socket)
 	sctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	e.Status, e.StatusErr = localapi.Dial(cfg.Paths.Socket).GetStatus(sctx, &localv1.GetStatusRequest{})
+	e.Status, e.StatusErr = api.GetStatus(sctx, &localv1.GetStatusRequest{})
 	cancel()
+	e.Networks = func(ctx context.Context) (*localv1.ListNetworksResponse, error) {
+		return api.ListNetworks(ctx, &localv1.ListNetworksRequest{})
+	}
+	e.Instances = func(ctx context.Context) (*localv1.ListDatabaseInstancesResponse, error) {
+		return api.ListDatabaseInstances(ctx, &localv1.ListDatabaseInstancesRequest{Check: true})
+	}
 	return e, closeEnv
 }
 

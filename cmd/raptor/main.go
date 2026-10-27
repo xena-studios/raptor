@@ -51,6 +51,8 @@ func run(args []string) error {
 		return status(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "ps":
 		return ps(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "db":
+		return dbCmd(ctx, args[1:])
 	case len(args) >= 1 && (args[0] == "start" || args[0] == "stop" || args[0] == "restart" || args[0] == "kill"):
 		return power(ctx, args[0], args[1:])
 	case len(args) >= 1 && args[0] == "console":

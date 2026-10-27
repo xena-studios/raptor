@@ -404,7 +404,7 @@ Exact rules (what counts as a crash, backoff, crash-loop thresholds) are in [SER
 
 ## Alerts
 
-Alerts are set in the Panel (the org's settings, Alerts; [PANEL.md](PANEL.md#alerts)) and sent from there, to people (their inbox in the app, and their email, Telegram, ntfy, …) and team channels. Wings' part is to raise the events they come from, which reach the Panel through the event outbox like every other event: crashes and crash loops, installs finished or failed, failed backups and restores, the host disk low or recovered, a server over its disk limit, Wings updates and rollbacks, and `security.audit` for every finished entry in the node's audit log (a signed action run, failed, or rejected; a pairing; a key reset), carrying the action, outcome, detail, user, and key. The audit log itself stays on the node (`raptor audit`).
+Alerts are set in the Panel (the org's settings, Alerts; [PANEL.md](PANEL.md#alerts)) and sent from there, to people (their inbox in the app, and their email, Telegram, ntfy, …) and team channels. Wings' part is to raise the events they come from, which reach the Panel through the event outbox like every other event: crashes and crash loops, installs finished or failed, failed backups and restores, the host disk low or recovered, a server over its disk limit, Wings updates and rollbacks, a database instance down and back up and its version changes ending ([DATABASES.md](DATABASES.md#health-and-alerts)), and `security.audit` for every finished entry in the node's audit log (a signed action run, failed, or rejected; a pairing; a key reset), carrying the action, outcome, detail, user, and key. The audit log itself stays on the node (`raptor audit`).
 
 Before v0.5.0, Wings sent Discord and webhook notifications itself, to targets in `config.yml`. That's gone (DECISIONS #269): a `notifications` section in an old `config.yml` still loads, is ignored, and `raptor doctor` warns about it.
 
@@ -412,7 +412,7 @@ Before v0.5.0, Wings sent Discord and webhook notifications itself, to targets i
 
 `internal/wings/thresholds`: the metrics are on the node, so threshold rules are evaluated there. The Panel sends the org's threshold rules that apply to the node with `node.alerts` (not signed: alerts are routine, and a Panel that wanted to hide something could simply not send them), whenever they change, the node connects, or its Wings version changes; each replaces the last, and they're kept in `state.db`.
 
-- **Conditions:** a server's CPU (of its CPU limit, or of the whole machine without one), memory (of its limit), or disk (of its limit; servers without one aren't checked) above a percent, for every server on the node or one; the machine's CPU, memory, or the servers' filesystem above a percent.
+- **Conditions:** a server's CPU (of its CPU limit, or of the whole machine without one), memory (of its limit), or disk (of its limit; servers without one aren't checked) above a percent, for every server on the node or one; the machine's CPU, memory, or the servers' filesystem above a percent; a database instance's disk (of its limit; instances without one aren't checked) or connections (of its max connections) above a percent, for every instance running, from the instances' own samples ([DATABASES.md](DATABASES.md#health-and-alerts)). Their events have no server: the instance is in their data. The Panel sends instance rules only to nodes that list `db-alerts`, since an older Wings refuses every rule if one has a condition it doesn't know.
 - **When:** checked every sample (10 seconds). A rule fires once it has held for its duration (`alert.fired`, with the rule, the value, and the threshold, and the server for server rules) and resolves once the value has been back under for a minute (`alert.resolved`), so a value hovering at the threshold doesn't flap.
 - **Restarts:** what's firing is kept in `state.db`, so a Wings restart neither repeats an alert nor misses its resolution. A rule that's removed or changed starts over without a resolved event; a server that's deleted takes its state with it.
 
@@ -476,6 +476,7 @@ raptor update [-check] [-version v]   update Wings (root; -check for anyone)
 raptor link --token … | unlink | relink
 raptor uninstall [-wipe-data] [-yes]   take Raptor off the box (root); data stays unless -wipe-data
 raptor ps [-json]                     servers: short ID, state, CPU, memory, disk, address, uptime
+raptor db ps [-json]                  database instances: short ID, engine, state, memory, disk, connections, databases, networks
 raptor start|stop|restart|kill <server>   (root) stop waits for the egg's clean shutdown
 raptor console <server>               live console; typed or piped lines are sent as commands (root)
 raptor logs <server> [-n N] [-f] [-t] output from Docker's log store, further back than the console
@@ -522,6 +523,8 @@ Methods are added to the proto only with the features behind them, so the API ne
 | `GetMetrics` | A server's resource history and latest sample (for the `raptor` group) |
 | `ImportServer` | A server from another panel, its files copied in (root only) |
 | `ListSupport`, `RevokeSupport`, `SetSupportEnabled` | Raptor staff's support access: see it (the `raptor` group), end it, or turn it off (root) |
+| `ListNetworks` | The owner's networks, with their Docker names and subnets, for `raptor doctor` (the `raptor` group) |
+| `ListDatabaseInstances` | Database instances, their state and latest usage (`raptor db ps`); with `check`, each running one asked to answer now and its networks looked at in Docker (`raptor doctor`) (the `raptor` group) |
 | `TestNotifications` | Gone since alerts moved to the Panel (#269); answers `FAILED_PRECONDITION` for older CLIs |
 
 - **Access:** Unix socket permissions: the socket is `0660 root:raptor` (root-only `0600` if the `raptor` group doesn't exist). No passwords or tokens. Members of the `raptor` group can **look** (status, `ps`, console output, logs); anything that changes a server (power actions, console commands, shutting servers down) needs **root**, checked by Wings from the caller's Unix user.
@@ -540,6 +543,8 @@ Methods are added to the proto only with the features behind them, so the API ne
 - Host disk free space everywhere Wings and Docker keep state, against `limits.host_disk_min_free` (fail below it, warn below twice it)
 - Clock synchronized (NTP). Clock drift breaks connection signatures, grants, and schedules.
 - Wings' nftables table in place
+- Each of the owner's networks on Docker (`ListNetworks`), with the subnet Wings gave it: missing or with another subnet is a failure (restart Wings, which creates or recreates them)
+- Each database instance (`ListDatabaseInstances` with `check`): one that should run is running (failed is a failure with its error; starting or upgrading a warning), answers on its socket now, and is on each of its networks at its fixed address, as Docker has it; a stopped one passes
 - Panel reachable, node key present, and the node connection up (skipped until the node is linked): connecting is a warning, disconnected a failure with Wings' last error and a fix for the usual causes (key revoked or node removed: `raptor relink`; clocks apart; something at the Panel's URL that can't prove it's the Panel)
 - The node's hostname (`<short id>.raptornodes.net`, saved in `config.yml` when the node links; an older `n-…` name there is read as the new one, #279) resolves, and to the address the Panel sees the node connect from (`GET /nodes/address` on the Panel); missing or pointing elsewhere is a warning (skipped on nodes linked by a version that didn't save the hostname)
 - SFTP answering as Raptor's SFTP on its port, when it's on

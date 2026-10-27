@@ -26,6 +26,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/xena-studios/raptor/internal/wings/docker"
+	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/files"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/networks"
@@ -54,9 +55,10 @@ func TestEngines(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = dc.RemoveNetwork(context.Background(), networks.DockerName(net.ID)) })
 	data := filepath.Join(dir, "databases")
+	ev := events.New(db)
 	svc, err := New(Options{
 		Store: db, Runtime: dc, Log: slog.Default(), Dir: data, KeyPath: filepath.Join(dir, "databases.key"),
-		Networks: nsvc, StartTimeout: 5 * time.Minute,
+		Networks: nsvc, StartTimeout: 5 * time.Minute, Events: ev,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -90,6 +92,7 @@ func TestEngines(t *testing.T) {
 			if a, err := netip.ParseAddr(addr); err != nil || !a.IsPrivate() {
 				t.Fatalf("instance address %q", addr)
 			}
+			testHealth(t, svc, ev, in.ID)
 
 			d1, pw1, err := svc.CreateDatabase(ctx, one, in.ID, "main")
 			if err != nil {

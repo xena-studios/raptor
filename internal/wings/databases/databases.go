@@ -23,6 +23,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/xena-studios/raptor/internal/wings/containers"
+	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/firewall"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
 	"github.com/xena-studios/raptor/internal/wings/networks"
@@ -144,6 +145,7 @@ type Runtime interface {
 	ServiceState(ctx context.Context, name string) (containers.State, bool, error)
 	Exec(ctx context.Context, name string, s containers.ExecSpec) (int, error)
 	ServiceLogs(ctx context.Context, name string, lines int) (string, error)
+	Stats(ctx context.Context, name string) (containers.Stats, error)
 }
 
 // Networks resolves the owner's networks.
@@ -188,6 +190,9 @@ type Options struct {
 	// checked before a version change copies an instance's data. nil = no
 	// check.
 	FreeSpace func(path string) (int64, error)
+	// Events records instances going down and coming back, and version
+	// changes ending (health.go); nil records none.
+	Events *events.Outbox
 }
 
 // Service runs the instances and their databases.
@@ -204,6 +209,7 @@ type Service struct {
 	changes map[string]*Change // by instance ID
 
 	transfers transfers
+	health    health
 }
 
 type status struct{ state, err string }
@@ -263,6 +269,7 @@ func (s *Service) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	s.loadDown(ctx)
 	for _, r := range rows {
 		s.recover(ctx, r.ID)
 		if r.DesiredState == StateRunning {
@@ -274,6 +281,7 @@ func (s *Service) Start(ctx context.Context) error {
 	}
 	go s.dropOrphans(context.WithoutCancel(ctx))
 	go s.loop(ctx)
+	go s.watch(ctx)
 	return nil
 }
 
@@ -340,8 +348,12 @@ func (s *Service) ensure(ctx context.Context, id string) {
 	if err := s.ensureLocked(ctx, id); err != nil {
 		s.o.Log.Error("database instance failed to start", "instance", id, "err", err)
 		s.setStatus(id, StateFailed, err)
+		if ctx.Err() == nil {
+			s.markDown(ctx, id, err.Error())
+		}
 		return
 	}
+	s.markUp(ctx, id)
 	s.setStatus(id, StateRunning, nil)
 	s.changed(ctx)
 }
@@ -413,6 +425,7 @@ func (s *Service) ensureLocked(ctx context.Context, id string) error {
 			if err := s.syncAccounts(ctx, in, root, port != 0, internal); err != nil {
 				return fmt.Errorf("setting up its users: %w", err)
 			}
+			s.started(ctx, id)
 			return nil
 		}
 		st, ok, serr := s.o.Runtime.ServiceState(ctx, ContainerName(id))
@@ -794,6 +807,9 @@ func (s *Service) Power(ctx context.Context, id, action string) error {
 		}
 		s.setStatus(id, StateStopped, nil)
 	}
+	if action == "stop" {
+		s.forget(ctx, id) // a restart that answers is "back up"
+	}
 	unlock()
 	if action != "stop" {
 		s.setStatus(id, StateStarting, nil)
@@ -829,6 +845,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	delete(s.ipv6, id)
 	delete(s.changes, id)
 	s.mu.Unlock()
+	s.forget(ctx, id)
 	s.changed(ctx)
 	return nil
 }

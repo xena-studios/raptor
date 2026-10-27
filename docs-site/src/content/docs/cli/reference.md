@@ -17,6 +17,7 @@ Commands that change something need `sudo`. Members of the `raptor` group can lo
 |---|---|
 | `raptor status` | The node's health, its link to the Panel, Docker, storage, and server counts |
 | `raptor ps` | Every server: short ID, state, CPU, memory, disk, address, uptime. `-json` for scripts |
+| `raptor db ps` | Every database instance: short ID, engine and version, state, memory, disk, connections, how many databases, and its networks. `-json` for scripts |
 | `raptor logs <server>` | A server's output, further back than the console. `-n 500` lines, `-f` to follow, `-t` with timestamps, `-n -1` for everything |
 | `raptor tui` | A full-screen view: servers, stats, history graphs, the console, and keys for power, backups, and commands |
 | `raptor audit` | Signed actions and key resets, from the node's own records. `-n 50`, `-since 72h` |

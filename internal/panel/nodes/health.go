@@ -19,7 +19,7 @@ import (
 // get their own series.
 var doctorChecks = []string{
 	"os", "cgroups", "systemd", "config", "wings", "docker", "storage", "data-disks", "host-disk",
-	"clock", "firewall", "panel", "hostname", "sftp", "pterodactyl", "ssh", "os-updates", "self-update",
+	"clock", "firewall", "networks", "databases", "panel", "hostname", "sftp", "pterodactyl", "ssh", "os-updates", "self-update",
 }
 
 func (p *panelService) ReportHealth(ctx context.Context, req *nodev1.ReportHealthRequest) (*nodev1.ReportHealthResponse, error) {

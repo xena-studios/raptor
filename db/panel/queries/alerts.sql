@@ -114,12 +114,13 @@ INSERT INTO alert_deliveries (org_id, rule_id, channel_id, message, label) VALUE
 -- name: AlertPeople :many
 -- Who a rule tells about something on a node (and maybe one of its
 -- servers): the org's members with one of the roles, or named. Members
--- (not admins or owners) only hear about what they have access to.
+-- (not admins or owners) only hear about what they have access to, and
+-- nothing that's for admins only (database instances).
 SELECT m.user_id, coalesce(nullif(u.name, ''), u.email)::text AS name
 FROM org_members m JOIN users u ON u.id = m.user_id
 WHERE m.org_id = $1
   AND (m.role = ANY (sqlc.arg(roles)::text[]) OR m.user_id = ANY (sqlc.arg(users)::uuid[]))
-  AND (m.role IN ('owner', 'admin') OR EXISTS (
+  AND (m.role IN ('owner', 'admin') OR NOT sqlc.arg(admins_only)::bool AND EXISTS (
       SELECT 1 FROM server_grants g
       WHERE g.org_id = m.org_id AND g.user_id = m.user_id AND g.node_id = sqlc.narg(node_id)::uuid
         AND (sqlc.arg(server_id)::text = '' OR g.server_id = sqlc.arg(server_id)::text)))
@@ -234,7 +235,7 @@ ORDER BY r.id;
 
 -- name: ConnectedNodesForAlerts :many
 -- Connected nodes, with the rules they last accepted.
-SELECT n.id, n.wings_version, n.alerts_hash FROM nodes n
+SELECT n.id, n.wings_version, n.alerts_hash, n.capabilities FROM nodes n
 WHERE n.deleted_at IS NULL AND n.key_revoked_at IS NULL
   AND EXISTS (SELECT 1 FROM node_connections c JOIN panel_instances i ON i.id = c.instance_id
               WHERE c.node_id = n.id AND i.seen_at > now() - interval '20 seconds');

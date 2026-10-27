@@ -100,12 +100,11 @@ Calls only the owner can make; each has a recommendation.
 ### Known gaps
 
 - **Not tried with a real passkey yet:** going back after a version change, restoring one database from a backup, and turning external access on, off, or changing it. Their signing is tested, and the work behind them is tested on real engines, but nobody has clicked them through in the app with a node-trusted passkey.
-- **Alerts:** an instance down or restarting, near its disk or connection limit, and a version change finished or failed aren't alert conditions yet; the outcome shows only on the instance.
 - **The instance page's own browser** (admins, as the instance's administrator, across its databases) isn't built; each server's databases have theirs.
 - **Long SQL queries:** results stop at 1,000 rows, 2 MB, and 50 seconds, with no cancel button, until results stream like file transfers (#310).
 - **Readers of a SQL database** use the database's own user inside a read-only transaction (#309); switching them to the read-only users would be stronger.
+- **Instance usage** (memory, disk, connections) is sampled on the node for alerts and `raptor db ps`, but the app doesn't show it yet, and there's no uptime or queries per second.
 - **Advanced engine settings:** the `name = value` lines checked against a safe list aren't built; only the common settings are fields.
-- **`raptor doctor`** doesn't check networks or instances yet, and there's no `raptor db ps`.
 - **Patch updates** wait while an instance can still go back from a version change (#315), up to 7 days.
 - **MongoDB 8.0+ on Linux 6.19+** is held back until MongoDB fixes SERVER-121912 (#323): watch for images that start, then drop the check in `versions.go` and bump the digests. Ubuntu 26.04 and newer cloud kernels are 6.19+.
 

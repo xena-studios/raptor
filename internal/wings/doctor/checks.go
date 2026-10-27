@@ -38,6 +38,8 @@ func Checks() []Check {
 		{ID: "host-disk", Title: "Host disk", Run: checkHostDisk},
 		{ID: "clock", Title: "Clock", Run: checkClock},
 		{ID: "firewall", Title: "Firewall rules", Run: checkFirewall},
+		{ID: "networks", Title: "Networks", Run: checkNetworks},
+		{ID: "databases", Title: "Database instances", Run: checkInstances},
 		{ID: "panel", Title: "Panel", Run: checkPanel},
 		{ID: "hostname", Title: "Node hostname", Run: checkHostname},
 		{ID: "sftp", Title: "SFTP", Run: checkSFTP},

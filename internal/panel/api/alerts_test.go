@@ -345,14 +345,54 @@ func TestAlerts(t *testing.T) {
 		t.Errorf("resolved: %+v", m)
 	}
 
-	// Threshold rules go to connected nodes, once.
+	// Database instances: on the node's Databases page, and for admins
+	// only, even when a rule names a member.
+	if _, err := alice.alerts.SaveAlertRule(ctx, &panelv1.SaveAlertRuleRequest{OrgId: acme, Rule: &panelv1.AlertRule{
+		Condition: "db_down", NodeId: nodeID, ServerId: "s1", ChannelIds: []string{whID},
+	}}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("an instance rule for a server: %v", err)
+	}
+	save(&panelv1.AlertRule{Condition: "db_down", ChannelIds: []string{whID}, NotifyRoles: []string{"owner", "member"}, NotifyUserIds: []string{bobID}, NotifyResolved: true})
+	dbConns := save(&panelv1.AlertRule{Condition: "db_connections_high", Threshold: 90, ForMinutes: 5, ChannelIds: []string{whID}})
+	ingest(&nodev1.Event{Type: "db.instance.down", At: at, Data: data(map[string]any{
+		"instance_id": "i1", "instance": "main", "engine": "postgres", "version": "17", "error": "it stopped (exit code 137)",
+	})})
+	if hook.count() != 5 {
+		t.Fatalf("webhook got %d after an instance down, want 5", hook.count())
+	}
+	m = alerts.Message{}
+	_ = json.Unmarshal(hook.bodies[4], &m)
+	if m.Condition != "db_down" || m.Title != "Database instance down: main" || m.Server != "" ||
+		m.URL != appOrigin+"/orgs/"+acme[strings.LastIndexByte(acme, '-')+1:]+"/nodes/"+nodeID[strings.LastIndexByte(nodeID, '-')+1:]+"/databases" {
+		t.Errorf("instance down: %+v", m)
+	}
+	if box, _ := bob.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); len(box.GetNotifications()) != 0 {
+		t.Errorf("a member was told about a database instance: %v", box)
+	}
+	if box, _ := alice.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); len(box.GetNotifications()) != 1 {
+		t.Errorf("the owner wasn't told about a database instance: %v", box)
+	}
+	if _, err := alice.alerts.DismissNotifications(ctx, &panelv1.DismissNotificationsRequest{}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Threshold rules go to connected nodes, once; instance ones only to
+	// nodes that know them.
 	exec("INSERT INTO panel_instances (id) VALUES ('test')")
 	exec("INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'test')", nodeID)
 	svc.SyncThresholds(ctx)
 	svc.SyncThresholds(ctx)
 	node.mu.Lock()
-	if len(node.got) != 1 || node.got[0].Action != "node.alerts" || !strings.Contains(string(node.got[0].Params), cpu) {
+	if len(node.got) != 1 || node.got[0].Action != "node.alerts" || !strings.Contains(string(node.got[0].Params), cpu) ||
+		strings.Contains(string(node.got[0].Params), dbConns) {
 		t.Errorf("node.alerts: %+v", node.got)
+	}
+	node.mu.Unlock()
+	exec("UPDATE nodes SET capabilities = '{db-alerts}' WHERE id = $1", nodeID)
+	svc.SyncThresholds(ctx)
+	node.mu.Lock()
+	if len(node.got) != 2 || !strings.Contains(string(node.got[1].Params), dbConns) {
+		t.Errorf("node.alerts with db-alerts: %+v", node.got)
 	}
 	node.mu.Unlock()
 

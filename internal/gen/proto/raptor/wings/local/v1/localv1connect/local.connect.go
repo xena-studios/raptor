@@ -101,6 +101,12 @@ const (
 	// LocalServiceSetSupportEnabledProcedure is the fully-qualified name of the LocalService's
 	// SetSupportEnabled RPC.
 	LocalServiceSetSupportEnabledProcedure = "/raptor.wings.local.v1.LocalService/SetSupportEnabled"
+	// LocalServiceListNetworksProcedure is the fully-qualified name of the LocalService's ListNetworks
+	// RPC.
+	LocalServiceListNetworksProcedure = "/raptor.wings.local.v1.LocalService/ListNetworks"
+	// LocalServiceListDatabaseInstancesProcedure is the fully-qualified name of the LocalService's
+	// ListDatabaseInstances RPC.
+	LocalServiceListDatabaseInstancesProcedure = "/raptor.wings.local.v1.LocalService/ListDatabaseInstances"
 )
 
 // LocalServiceClient is a client for the raptor.wings.local.v1.LocalService service.
@@ -189,6 +195,14 @@ type LocalServiceClient interface {
 	// SetSupportEnabled turns support access off (ending every grant) or
 	// back on. Root only.
 	SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error)
+	// ListNetworks lists the owner's networks (docs/NETWORKS.md), as Wings
+	// keeps them, for raptor doctor to compare with Docker.
+	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
+	// ListDatabaseInstances lists the node's database instances with their
+	// state and latest usage (raptor db ps). With check, it also asks each
+	// running one to answer on its socket now and looks at its networks in
+	// Docker (raptor doctor); that changes nothing.
+	ListDatabaseInstances(context.Context, *v1.ListDatabaseInstancesRequest) (*v1.ListDatabaseInstancesResponse, error)
 }
 
 // NewLocalServiceClient constructs a client for the raptor.wings.local.v1.LocalService service. By
@@ -363,36 +377,52 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("SetSupportEnabled")),
 			connect.WithClientOptions(opts...),
 		),
+		listNetworks: connect.NewClient[v1.ListNetworksRequest, v1.ListNetworksResponse](
+			httpClient,
+			baseURL+LocalServiceListNetworksProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ListNetworks")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		listDatabaseInstances: connect.NewClient[v1.ListDatabaseInstancesRequest, v1.ListDatabaseInstancesResponse](
+			httpClient,
+			baseURL+LocalServiceListDatabaseInstancesProcedure,
+			connect.WithSchema(localServiceMethods.ByName("ListDatabaseInstances")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // localServiceClient implements LocalServiceClient.
 type localServiceClient struct {
-	getStatus         *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	shutdownServers   *connect.Client[v1.ShutdownServersRequest, v1.ShutdownServersResponse]
-	listServers       *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
-	power             *connect.Client[v1.PowerRequest, v1.PowerResponse]
-	streamConsole     *connect.Client[v1.StreamConsoleRequest, v1.StreamConsoleResponse]
-	sendCommand       *connect.Client[v1.SendCommandRequest, v1.SendCommandResponse]
-	tailLogs          *connect.Client[v1.TailLogsRequest, v1.TailLogsResponse]
-	listBackups       *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
-	createBackup      *connect.Client[v1.CreateBackupRequest, v1.CreateBackupResponse]
-	getBackupKey      *connect.Client[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse]
-	restoreBackup     *connect.Client[v1.RestoreBackupRequest, v1.RestoreBackupResponse]
-	update            *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
-	listKeys          *connect.Client[v1.ListKeysRequest, v1.ListKeysResponse]
-	listAudit         *connect.Client[v1.ListAuditRequest, v1.ListAuditResponse]
-	startKeyReset     *connect.Client[v1.StartKeyResetRequest, v1.StartKeyResetResponse]
-	getKeyReset       *connect.Client[v1.GetKeyResetRequest, v1.GetKeyResetResponse]
-	confirmKeyReset   *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
-	cancelKeyReset    *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
-	pinOwnerKey       *connect.Client[v1.PinOwnerKeyRequest, v1.PinOwnerKeyResponse]
-	testNotifications *connect.Client[v1.TestNotificationsRequest, v1.TestNotificationsResponse]
-	importServer      *connect.Client[v1.ImportServerRequest, v1.ImportServerResponse]
-	getMetrics        *connect.Client[v1.GetMetricsRequest, v1.GetMetricsResponse]
-	listSupport       *connect.Client[v1.ListSupportRequest, v1.ListSupportResponse]
-	revokeSupport     *connect.Client[v1.RevokeSupportRequest, v1.RevokeSupportResponse]
-	setSupportEnabled *connect.Client[v1.SetSupportEnabledRequest, v1.SetSupportEnabledResponse]
+	getStatus             *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	shutdownServers       *connect.Client[v1.ShutdownServersRequest, v1.ShutdownServersResponse]
+	listServers           *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
+	power                 *connect.Client[v1.PowerRequest, v1.PowerResponse]
+	streamConsole         *connect.Client[v1.StreamConsoleRequest, v1.StreamConsoleResponse]
+	sendCommand           *connect.Client[v1.SendCommandRequest, v1.SendCommandResponse]
+	tailLogs              *connect.Client[v1.TailLogsRequest, v1.TailLogsResponse]
+	listBackups           *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
+	createBackup          *connect.Client[v1.CreateBackupRequest, v1.CreateBackupResponse]
+	getBackupKey          *connect.Client[v1.GetBackupKeyRequest, v1.GetBackupKeyResponse]
+	restoreBackup         *connect.Client[v1.RestoreBackupRequest, v1.RestoreBackupResponse]
+	update                *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
+	listKeys              *connect.Client[v1.ListKeysRequest, v1.ListKeysResponse]
+	listAudit             *connect.Client[v1.ListAuditRequest, v1.ListAuditResponse]
+	startKeyReset         *connect.Client[v1.StartKeyResetRequest, v1.StartKeyResetResponse]
+	getKeyReset           *connect.Client[v1.GetKeyResetRequest, v1.GetKeyResetResponse]
+	confirmKeyReset       *connect.Client[v1.ConfirmKeyResetRequest, v1.ConfirmKeyResetResponse]
+	cancelKeyReset        *connect.Client[v1.CancelKeyResetRequest, v1.CancelKeyResetResponse]
+	pinOwnerKey           *connect.Client[v1.PinOwnerKeyRequest, v1.PinOwnerKeyResponse]
+	testNotifications     *connect.Client[v1.TestNotificationsRequest, v1.TestNotificationsResponse]
+	importServer          *connect.Client[v1.ImportServerRequest, v1.ImportServerResponse]
+	getMetrics            *connect.Client[v1.GetMetricsRequest, v1.GetMetricsResponse]
+	listSupport           *connect.Client[v1.ListSupportRequest, v1.ListSupportResponse]
+	revokeSupport         *connect.Client[v1.RevokeSupportRequest, v1.RevokeSupportResponse]
+	setSupportEnabled     *connect.Client[v1.SetSupportEnabledRequest, v1.SetSupportEnabledResponse]
+	listNetworks          *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
+	listDatabaseInstances *connect.Client[v1.ListDatabaseInstancesRequest, v1.ListDatabaseInstancesResponse]
 }
 
 // GetStatus calls raptor.wings.local.v1.LocalService.GetStatus.
@@ -614,6 +644,24 @@ func (c *localServiceClient) SetSupportEnabled(ctx context.Context, req *v1.SetS
 	return nil, err
 }
 
+// ListNetworks calls raptor.wings.local.v1.LocalService.ListNetworks.
+func (c *localServiceClient) ListNetworks(ctx context.Context, req *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {
+	response, err := c.listNetworks.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListDatabaseInstances calls raptor.wings.local.v1.LocalService.ListDatabaseInstances.
+func (c *localServiceClient) ListDatabaseInstances(ctx context.Context, req *v1.ListDatabaseInstancesRequest) (*v1.ListDatabaseInstancesResponse, error) {
+	response, err := c.listDatabaseInstances.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // LocalServiceHandler is an implementation of the raptor.wings.local.v1.LocalService service.
 type LocalServiceHandler interface {
 	// GetStatus reports node health.
@@ -700,6 +748,14 @@ type LocalServiceHandler interface {
 	// SetSupportEnabled turns support access off (ending every grant) or
 	// back on. Root only.
 	SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error)
+	// ListNetworks lists the owner's networks (docs/NETWORKS.md), as Wings
+	// keeps them, for raptor doctor to compare with Docker.
+	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
+	// ListDatabaseInstances lists the node's database instances with their
+	// state and latest usage (raptor db ps). With check, it also asks each
+	// running one to answer on its socket now and looks at its networks in
+	// Docker (raptor doctor); that changes nothing.
+	ListDatabaseInstances(context.Context, *v1.ListDatabaseInstancesRequest) (*v1.ListDatabaseInstancesResponse, error)
 }
 
 // NewLocalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -870,6 +926,20 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("SetSupportEnabled")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceListNetworksHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceListNetworksProcedure,
+		svc.ListNetworks,
+		connect.WithSchema(localServiceMethods.ByName("ListNetworks")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceListDatabaseInstancesHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceListDatabaseInstancesProcedure,
+		svc.ListDatabaseInstances,
+		connect.WithSchema(localServiceMethods.ByName("ListDatabaseInstances")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.wings.local.v1.LocalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalServiceGetStatusProcedure:
@@ -922,6 +992,10 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceRevokeSupportHandler.ServeHTTP(w, r)
 		case LocalServiceSetSupportEnabledProcedure:
 			localServiceSetSupportEnabledHandler.ServeHTTP(w, r)
+		case LocalServiceListNetworksProcedure:
+			localServiceListNetworksHandler.ServeHTTP(w, r)
+		case LocalServiceListDatabaseInstancesProcedure:
+			localServiceListDatabaseInstancesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1029,4 +1103,12 @@ func (UnimplementedLocalServiceHandler) RevokeSupport(context.Context, *v1.Revok
 
 func (UnimplementedLocalServiceHandler) SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.SetSupportEnabled is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ListNetworks is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) ListDatabaseInstances(context.Context, *v1.ListDatabaseInstancesRequest) (*v1.ListDatabaseInstancesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.ListDatabaseInstances is not implemented"))
 }

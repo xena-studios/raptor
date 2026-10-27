@@ -29,7 +29,7 @@ On **Settings → Alerts** (admins and owners), each **rule** is:
 3. **who it tells**: people by role (owners, admins, members) or by name, and
 4. **team channels** it also posts to, if any.
 
-Members are only told about servers they have access to.
+Members are only told about servers they have access to, and never about database instances: those alerts go to owners and admins, whoever else a rule names.
 
 New orgs start with rules that tell their owners about crash loops, offline nodes, and low disk.
 
@@ -45,7 +45,16 @@ New orgs start with rules that tell their owners about crash loops, offline node
 | Over its disk limit | |
 | CPU, memory, or disk above a percent, for a while | |
 
-Conditions that end (a node back online, a disk with room again) say so too, unless the rule says not to.
+**Database instances** (on [the node's Databases tab](/nodes/databases/)):
+
+- Down or restarting: it stopped, or kept restarting. Raptor starts it again by itself, and tells you once it answers again.
+- Disk above a percent of its disk limit, for a while. Instances without a disk limit aren't checked.
+- Connections above a percent of its max connections, for a while.
+- A version change, patch update, or going back finished or failed.
+
+They need Wings v0.11.0 or later on the node.
+
+Conditions that end (a node back online, a disk with room again, an instance back up) say so too, unless the rule says not to.
 
 ## Team channels
 

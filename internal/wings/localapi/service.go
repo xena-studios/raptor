@@ -61,6 +61,9 @@ type Service struct {
 	servers  Servers
 	backups  Backups
 	jobs     Jobs
+	// networks and databases, once the runtime is ready (databases.go).
+	networks  Networks
+	databases Databases
 }
 
 // Link reports the node connection (*link.Link).

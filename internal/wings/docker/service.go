@@ -186,6 +186,12 @@ func (c *Client) ServiceState(ctx context.Context, name string) (containers.Stat
 	}
 	if ns := res.Container.NetworkSettings; ns != nil {
 		for name, ep := range ns.Networks {
+			if ep != nil {
+				if st.Networks == nil {
+					st.Networks = map[string]netip.Addr{}
+				}
+				st.Networks[name] = ep.IPAddress
+			}
 			if ep != nil && ep.GlobalIPv6Address.IsValid() {
 				if st.IPv6 == nil {
 					st.IPv6 = map[string]netip.Addr{}
