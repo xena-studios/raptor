@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"net/netip"
 	"path/filepath"
 	"regexp"
@@ -154,6 +155,7 @@ func serviceSpec(in Instance, dir, rootPassword, timezone string) containers.Ser
 			s.Cmd = append(s.Cmd, "-c", "timezone="+tz, "-c", "log_timezone="+tz)
 		}
 	}
+	s.Cmd = withAdvanced(in.Engine, s.Cmd, advancedSettings(in))
 	return s
 }
 
@@ -167,6 +169,7 @@ func connect(in Instance, dir, rootPassword string) (*sql.DB, error) {
 		cfg.User, cfg.Passwd = "root", rootPassword
 		cfg.Net, cfg.Addr = "unix", filepath.Join(runDir(dir), "mysqld.sock")
 		cfg.Timeout = 5 * time.Second
+		cfg.Params = maps.Clone(quietMySQL)
 		c, err := mysql.NewConnector(cfg)
 		if err != nil {
 			return nil, err
@@ -183,10 +186,22 @@ func connect(in Instance, dir, rootPassword string) (*sql.DB, error) {
 		// Utility statements (CREATE ROLE …) take no parameters, so they're
 		// sent as they are.
 		cfg.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+		maps.Copy(cfg.RuntimeParams, quietPostgres)
 		return stdlib.OpenDB(*cfg), nil
 	}
 	return nil, fmt.Errorf("unknown engine %q", in.Engine)
 }
+
+// Wings' own sessions stay out of the engines' statement logs, which
+// advanced settings can turn on (slow_query_log, log_min_duration_statement):
+// its statements carry users' passwords.
+var (
+	quietMySQL    = map[string]string{"long_query_time": "31536000"}
+	quietPostgres = map[string]string{"log_min_duration_statement": "-1", "log_statement": "none"}
+)
+
+// pgQuiet is the same for PostgreSQL's own tools run as its superuser.
+const pgQuiet = "PGOPTIONS=-c log_min_duration_statement=-1 -c log_statement=none"
 
 // connectTo opens an admin connection to one database on a PostgreSQL
 // instance.
@@ -196,6 +211,7 @@ func connectTo(dir, rootPassword, database string) *sql.DB {
 	cfg.User, cfg.Password, cfg.Database = "postgres", rootPassword, database
 	cfg.ConnectTimeout = 5 * time.Second
 	cfg.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	maps.Copy(cfg.RuntimeParams, quietPostgres)
 	return stdlib.OpenDB(*cfg)
 }
 

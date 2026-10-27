@@ -21,7 +21,12 @@ export type DBInstance = {
   image: string;
   networks: string[]; // the owner's networks; [] is the default network
   limits: { memory_mib: number; cpu_percent?: number; disk_mib?: number };
-  settings: { max_connections?: number; timezone?: string; maintenance?: string };
+  settings: {
+    max_connections?: number;
+    timezone?: string;
+    maintenance?: string;
+    advanced?: string; // name = value lines (db-settings.ts)
+  };
   desired_state: "running" | "stopped";
   created_at: number;
   state: "starting" | "running" | "stopped" | "failed" | "upgrading";
@@ -99,6 +104,9 @@ export const dbBackupsCapability = "db-backups";
 // External access: an instance's port on the node, with an allowlist
 // and TLS.
 export const dbExternalCapability = "db-external";
+
+// Advanced engine settings: name = value lines on each engine's safe list.
+export const dbSettingsCapability = "db-settings";
 
 // The maintenance window an instance gets unless it says (Wings'
 // DefaultMaintenance), in the node's time.

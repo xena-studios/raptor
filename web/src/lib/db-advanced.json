@@ -1,0 +1,994 @@
+{
+  "mariadb": {
+    "dialect": {
+      "separator": "_",
+      "true": "ON",
+      "false": "OFF",
+      "units": {
+        "G": 1073741824,
+        "K": 1024,
+        "M": 1048576
+      },
+      "bare": true
+    },
+    "rules": {
+      "aria_pagecache_buffer_size": {
+        "kind": "size",
+        "min": 131072,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "auto_increment_increment": {
+        "kind": "int",
+        "min": 1,
+        "max": 65535
+      },
+      "auto_increment_offset": {
+        "kind": "int",
+        "min": 1,
+        "max": 65535
+      },
+      "character_set_server": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["utf8mb4", "utf8mb3", "utf8", "latin1", "ascii", "binary"]
+      },
+      "collation_server": {
+        "kind": "pattern",
+        "min": 0,
+        "max": 0,
+        "chars": "abcdefghijklmnopqrstuvwxyz0123456789_"
+      },
+      "connect_timeout": {
+        "kind": "int",
+        "min": 2,
+        "max": 3600
+      },
+      "default_storage_engine": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["InnoDB", "MyISAM"]
+      },
+      "default_time_zone": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Time zone"
+      },
+      "event_scheduler": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["ON", "OFF", "DISABLED"]
+      },
+      "explicit_defaults_for_timestamp": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "ft_min_word_len": {
+        "kind": "int",
+        "min": 1,
+        "max": 84
+      },
+      "group_concat_max_len": {
+        "kind": "int",
+        "min": 4,
+        "max": 4294967295
+      },
+      "innodb_buffer_pool_size": {
+        "kind": "size",
+        "min": 5242880,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "innodb_flush_log_at_trx_commit": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["0", "1", "2"]
+      },
+      "innodb_ft_min_token_size": {
+        "kind": "int",
+        "min": 0,
+        "max": 16
+      },
+      "innodb_io_capacity": {
+        "kind": "int",
+        "min": 100,
+        "max": 100000
+      },
+      "innodb_io_capacity_max": {
+        "kind": "int",
+        "min": 100,
+        "max": 200000
+      },
+      "innodb_lock_wait_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 3600
+      },
+      "innodb_log_buffer_size": {
+        "kind": "size",
+        "min": 262144,
+        "max": 1073741824
+      },
+      "innodb_log_file_size": {
+        "kind": "size",
+        "min": 4194304,
+        "max": 17179869184
+      },
+      "innodb_print_all_deadlocks": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "interactive_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 31536000
+      },
+      "join_buffer_size": {
+        "kind": "size",
+        "min": 128,
+        "max": 1073741824
+      },
+      "log_queries_not_using_indexes": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "long_query_time": {
+        "kind": "real",
+        "min": 0,
+        "max": 3600
+      },
+      "max_allowed_packet": {
+        "kind": "size",
+        "min": 1024,
+        "max": 1073741824
+      },
+      "max_connect_errors": {
+        "kind": "int",
+        "min": 1,
+        "max": 4294967295
+      },
+      "max_connections": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Max connections"
+      },
+      "max_heap_table_size": {
+        "kind": "size",
+        "min": 16384,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "max_prepared_stmt_count": {
+        "kind": "int",
+        "min": 0,
+        "max": 1048576
+      },
+      "max_sp_recursion_depth": {
+        "kind": "int",
+        "min": 0,
+        "max": 255
+      },
+      "max_user_connections": {
+        "kind": "int",
+        "min": 0,
+        "max": 4294967295
+      },
+      "net_read_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 3600
+      },
+      "net_write_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 3600
+      },
+      "performance_schema": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "query_cache_size": {
+        "kind": "size",
+        "min": 0,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "query_cache_type": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["0", "1", "2", "OFF", "ON", "DEMAND"]
+      },
+      "read_buffer_size": {
+        "kind": "size",
+        "min": 8192,
+        "max": 1073741824
+      },
+      "read_rnd_buffer_size": {
+        "kind": "size",
+        "min": 1024,
+        "max": 1073741824
+      },
+      "slow_query_log": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "sort_buffer_size": {
+        "kind": "size",
+        "min": 32768,
+        "max": 1073741824
+      },
+      "sql_mode": {
+        "kind": "set",
+        "min": 0,
+        "max": 0,
+        "values": [
+          "ALLOW_INVALID_DATES",
+          "ANSI",
+          "ANSI_QUOTES",
+          "ERROR_FOR_DIVISION_BY_ZERO",
+          "HIGH_NOT_PRECEDENCE",
+          "IGNORE_SPACE",
+          "NO_AUTO_VALUE_ON_ZERO",
+          "NO_BACKSLASH_ESCAPES",
+          "NO_DIR_IN_CREATE",
+          "NO_ENGINE_SUBSTITUTION",
+          "NO_UNSIGNED_SUBTRACTION",
+          "NO_ZERO_DATE",
+          "NO_ZERO_IN_DATE",
+          "ONLY_FULL_GROUP_BY",
+          "PAD_CHAR_TO_FULL_LENGTH",
+          "PIPES_AS_CONCAT",
+          "REAL_AS_FLOAT",
+          "STRICT_ALL_TABLES",
+          "STRICT_TRANS_TABLES",
+          "TIME_TRUNCATE_FRACTIONAL",
+          "TRADITIONAL"
+        ]
+      },
+      "table_definition_cache": {
+        "kind": "int",
+        "min": 400,
+        "max": 524288
+      },
+      "table_open_cache": {
+        "kind": "int",
+        "min": 1,
+        "max": 524288
+      },
+      "thread_cache_size": {
+        "kind": "int",
+        "min": 0,
+        "max": 16384
+      },
+      "tmp_table_size": {
+        "kind": "size",
+        "min": 1024,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "transaction_isolation": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["READ-UNCOMMITTED", "READ-COMMITTED", "REPEATABLE-READ", "SERIALIZABLE"]
+      },
+      "wait_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 31536000
+      }
+    }
+  },
+  "mysql": {
+    "dialect": {
+      "separator": "_",
+      "true": "ON",
+      "false": "OFF",
+      "units": {
+        "G": 1073741824,
+        "K": 1024,
+        "M": 1048576
+      },
+      "bare": true
+    },
+    "rules": {
+      "auto_increment_increment": {
+        "kind": "int",
+        "min": 1,
+        "max": 65535
+      },
+      "auto_increment_offset": {
+        "kind": "int",
+        "min": 1,
+        "max": 65535
+      },
+      "binlog_expire_logs_seconds": {
+        "kind": "int",
+        "min": 0,
+        "max": 4294967295
+      },
+      "character_set_server": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["utf8mb4", "utf8mb3", "utf8", "latin1", "ascii", "binary"]
+      },
+      "collation_server": {
+        "kind": "pattern",
+        "min": 0,
+        "max": 0,
+        "chars": "abcdefghijklmnopqrstuvwxyz0123456789_"
+      },
+      "connect_timeout": {
+        "kind": "int",
+        "min": 2,
+        "max": 3600
+      },
+      "default_storage_engine": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["InnoDB", "MyISAM"]
+      },
+      "default_time_zone": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Time zone"
+      },
+      "event_scheduler": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["ON", "OFF", "DISABLED"]
+      },
+      "explicit_defaults_for_timestamp": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "ft_min_word_len": {
+        "kind": "int",
+        "min": 1,
+        "max": 84
+      },
+      "group_concat_max_len": {
+        "kind": "int",
+        "min": 4,
+        "max": 4294967295
+      },
+      "innodb_buffer_pool_size": {
+        "kind": "size",
+        "min": 5242880,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "innodb_flush_log_at_trx_commit": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["0", "1", "2"]
+      },
+      "innodb_ft_min_token_size": {
+        "kind": "int",
+        "min": 0,
+        "max": 16
+      },
+      "innodb_io_capacity": {
+        "kind": "int",
+        "min": 100,
+        "max": 100000
+      },
+      "innodb_io_capacity_max": {
+        "kind": "int",
+        "min": 100,
+        "max": 200000
+      },
+      "innodb_lock_wait_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 3600
+      },
+      "innodb_log_buffer_size": {
+        "kind": "size",
+        "min": 262144,
+        "max": 1073741824
+      },
+      "innodb_print_all_deadlocks": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "innodb_redo_log_capacity": {
+        "kind": "size",
+        "min": 8388608,
+        "max": 137438953472
+      },
+      "interactive_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 31536000
+      },
+      "join_buffer_size": {
+        "kind": "size",
+        "min": 128,
+        "max": 1073741824
+      },
+      "log_queries_not_using_indexes": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "long_query_time": {
+        "kind": "real",
+        "min": 0,
+        "max": 3600
+      },
+      "max_allowed_packet": {
+        "kind": "size",
+        "min": 1024,
+        "max": 1073741824
+      },
+      "max_connect_errors": {
+        "kind": "int",
+        "min": 1,
+        "max": 4294967295
+      },
+      "max_connections": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Max connections"
+      },
+      "max_heap_table_size": {
+        "kind": "size",
+        "min": 16384,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "max_prepared_stmt_count": {
+        "kind": "int",
+        "min": 0,
+        "max": 1048576
+      },
+      "max_sp_recursion_depth": {
+        "kind": "int",
+        "min": 0,
+        "max": 255
+      },
+      "max_user_connections": {
+        "kind": "int",
+        "min": 0,
+        "max": 4294967295
+      },
+      "net_read_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 3600
+      },
+      "net_write_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 3600
+      },
+      "performance_schema": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "read_buffer_size": {
+        "kind": "size",
+        "min": 8192,
+        "max": 1073741824
+      },
+      "read_rnd_buffer_size": {
+        "kind": "size",
+        "min": 1024,
+        "max": 1073741824
+      },
+      "slow_query_log": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "sort_buffer_size": {
+        "kind": "size",
+        "min": 32768,
+        "max": 1073741824
+      },
+      "sql_mode": {
+        "kind": "set",
+        "min": 0,
+        "max": 0,
+        "values": [
+          "ALLOW_INVALID_DATES",
+          "ANSI",
+          "ANSI_QUOTES",
+          "ERROR_FOR_DIVISION_BY_ZERO",
+          "HIGH_NOT_PRECEDENCE",
+          "IGNORE_SPACE",
+          "NO_AUTO_VALUE_ON_ZERO",
+          "NO_BACKSLASH_ESCAPES",
+          "NO_DIR_IN_CREATE",
+          "NO_ENGINE_SUBSTITUTION",
+          "NO_UNSIGNED_SUBTRACTION",
+          "NO_ZERO_DATE",
+          "NO_ZERO_IN_DATE",
+          "ONLY_FULL_GROUP_BY",
+          "PAD_CHAR_TO_FULL_LENGTH",
+          "PIPES_AS_CONCAT",
+          "REAL_AS_FLOAT",
+          "STRICT_ALL_TABLES",
+          "STRICT_TRANS_TABLES",
+          "TIME_TRUNCATE_FRACTIONAL",
+          "TRADITIONAL"
+        ]
+      },
+      "table_definition_cache": {
+        "kind": "int",
+        "min": 400,
+        "max": 524288
+      },
+      "table_open_cache": {
+        "kind": "int",
+        "min": 1,
+        "max": 524288
+      },
+      "thread_cache_size": {
+        "kind": "int",
+        "min": 0,
+        "max": 16384
+      },
+      "tmp_table_size": {
+        "kind": "size",
+        "min": 1024,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "transaction_isolation": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["READ-UNCOMMITTED", "READ-COMMITTED", "REPEATABLE-READ", "SERIALIZABLE"]
+      },
+      "wait_timeout": {
+        "kind": "int",
+        "min": 1,
+        "max": 31536000
+      }
+    }
+  },
+  "postgres": {
+    "dialect": {
+      "separator": "_",
+      "true": "on",
+      "false": "off",
+      "units": {
+        "B": 1,
+        "GB": 1073741824,
+        "MB": 1048576,
+        "TB": 1099511627776,
+        "kB": 1024
+      },
+      "bare": false,
+      "case_units": true
+    },
+    "rules": {
+      "autovacuum_analyze_scale_factor": {
+        "kind": "real",
+        "min": 0,
+        "max": 100
+      },
+      "autovacuum_max_workers": {
+        "kind": "int",
+        "min": 1,
+        "max": 64
+      },
+      "autovacuum_naptime": {
+        "kind": "duration",
+        "min": 1000,
+        "max": 86400000
+      },
+      "autovacuum_vacuum_cost_limit": {
+        "kind": "int",
+        "min": -1,
+        "max": 10000
+      },
+      "autovacuum_vacuum_scale_factor": {
+        "kind": "real",
+        "min": 0,
+        "max": 100
+      },
+      "checkpoint_completion_target": {
+        "kind": "real",
+        "min": 0,
+        "max": 1
+      },
+      "checkpoint_timeout": {
+        "kind": "duration",
+        "min": 30000,
+        "max": 86400000
+      },
+      "default_statistics_target": {
+        "kind": "int",
+        "min": 1,
+        "max": 10000
+      },
+      "effective_cache_size": {
+        "kind": "size",
+        "min": 8192,
+        "max": 70368744177664
+      },
+      "effective_io_concurrency": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000
+      },
+      "idle_in_transaction_session_timeout": {
+        "kind": "duration",
+        "min": 0,
+        "max": 2147483647
+      },
+      "idle_session_timeout": {
+        "kind": "duration",
+        "min": 0,
+        "max": 2147483647
+      },
+      "jit": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lock_timeout": {
+        "kind": "duration",
+        "min": 0,
+        "max": 2147483647
+      },
+      "log_autovacuum_min_duration": {
+        "kind": "duration",
+        "min": -1,
+        "max": 2147483647
+      },
+      "log_checkpoints": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "log_lock_waits": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "log_min_duration_statement": {
+        "kind": "duration",
+        "min": -1,
+        "max": 2147483647
+      },
+      "log_timezone": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Time zone"
+      },
+      "maintenance_work_mem": {
+        "kind": "size",
+        "min": 1048576,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "max_connections": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Max connections"
+      },
+      "max_locks_per_transaction": {
+        "kind": "int",
+        "min": 10,
+        "max": 10000
+      },
+      "max_parallel_workers": {
+        "kind": "int",
+        "min": 0,
+        "max": 64
+      },
+      "max_parallel_workers_per_gather": {
+        "kind": "int",
+        "min": 0,
+        "max": 64
+      },
+      "max_prepared_transactions": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000
+      },
+      "max_wal_size": {
+        "kind": "size",
+        "min": 2097152,
+        "max": 1099511627776
+      },
+      "max_worker_processes": {
+        "kind": "int",
+        "min": 0,
+        "max": 64
+      },
+      "min_wal_size": {
+        "kind": "size",
+        "min": 2097152,
+        "max": 1099511627776
+      },
+      "random_page_cost": {
+        "kind": "real",
+        "min": 0,
+        "max": 1000
+      },
+      "seq_page_cost": {
+        "kind": "real",
+        "min": 0,
+        "max": 1000
+      },
+      "shared_buffers": {
+        "kind": "size",
+        "min": 131072,
+        "max": 1099511627776,
+        "memory": true
+      },
+      "statement_timeout": {
+        "kind": "duration",
+        "min": 0,
+        "max": 2147483647
+      },
+      "synchronous_commit": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["on", "off", "local", "remote_write", "remote_apply"]
+      },
+      "temp_buffers": {
+        "kind": "size",
+        "min": 819200,
+        "max": 1073741824
+      },
+      "timezone": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Time zone"
+      },
+      "track_io_timing": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "wal_buffers": {
+        "kind": "size",
+        "min": 32768,
+        "max": 268435456
+      },
+      "work_mem": {
+        "kind": "size",
+        "min": 65536,
+        "max": 1099511627776,
+        "memory": true
+      }
+    }
+  },
+  "redis": {
+    "dialect": {
+      "separator": "-",
+      "true": "yes",
+      "false": "no",
+      "units": {
+        "g": 1000000000,
+        "gb": 1073741824,
+        "k": 1000,
+        "kb": 1024,
+        "m": 1000000,
+        "mb": 1048576
+      },
+      "bare": true
+    },
+    "rules": {
+      "activedefrag": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "appendfsync": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["always", "everysec", "no"]
+      },
+      "auto-aof-rewrite-min-size": {
+        "kind": "size",
+        "min": 0,
+        "max": 68719476736
+      },
+      "auto-aof-rewrite-percentage": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000
+      },
+      "busy-reply-threshold": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000000
+      },
+      "dynamic-hz": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "hash-max-listpack-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "hash-max-listpack-value": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "hz": {
+        "kind": "int",
+        "min": 1,
+        "max": 500
+      },
+      "io-threads": {
+        "kind": "int",
+        "min": 1,
+        "max": 16
+      },
+      "latency-monitor-threshold": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000000000
+      },
+      "lazyfree-lazy-eviction": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lazyfree-lazy-expire": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lazyfree-lazy-server-del": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lazyfree-lazy-user-del": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lazyfree-lazy-user-flush": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lfu-decay-time": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "lfu-log-factor": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "list-compress-depth": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "list-max-listpack-size": {
+        "kind": "int",
+        "min": -5,
+        "max": 1000000
+      },
+      "maxclients": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Max connections"
+      },
+      "maxmemory-policy": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": [
+          "noeviction",
+          "allkeys-lru",
+          "allkeys-lfu",
+          "allkeys-random",
+          "volatile-lru",
+          "volatile-lfu",
+          "volatile-random",
+          "volatile-ttl"
+        ]
+      },
+      "maxmemory-samples": {
+        "kind": "int",
+        "min": 1,
+        "max": 64
+      },
+      "notify-keyspace-events": {
+        "kind": "pattern",
+        "min": 0,
+        "max": 0,
+        "chars": "KEg$lshzxetmdnA"
+      },
+      "set-max-intset-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "set-max-listpack-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "set-max-listpack-value": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "slowlog-log-slower-than": {
+        "kind": "int",
+        "min": -1,
+        "max": 1000000000000
+      },
+      "slowlog-max-len": {
+        "kind": "int",
+        "min": 0,
+        "max": 100000
+      },
+      "stream-node-max-bytes": {
+        "kind": "size",
+        "min": 0,
+        "max": 1073741824
+      },
+      "stream-node-max-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000000
+      },
+      "tcp-keepalive": {
+        "kind": "int",
+        "min": 0,
+        "max": 31536000
+      },
+      "timeout": {
+        "kind": "int",
+        "min": 0,
+        "max": 31536000
+      },
+      "zset-max-listpack-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "zset-max-listpack-value": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      }
+    }
+  }
+}
