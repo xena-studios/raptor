@@ -318,7 +318,7 @@ func maxConnections(in Instance) int {
 // own connection asking included.
 func connections(ctx context.Context, in Instance, dir, root string) (int, error) {
 	switch in.Engine {
-	case Redis:
+	case Redis, Valkey:
 		c := redisClient(dir, root)
 		defer func() { _ = c.Close() }()
 		info, err := c.Info(ctx, "clients").Result()
