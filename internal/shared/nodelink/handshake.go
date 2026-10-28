@@ -45,9 +45,14 @@ func WithRoute(panelURL, route string) string {
 // since it breaks grants and schedules too.
 const MaxSkew = 5 * time.Minute
 
-// Purposes. A transfer connection carries one file transfer.
+// Purposes. A transfer connection carries one file transfer. An address
+// connection carries nothing: Wings opens one over IPv4 and one over IPv6
+// so the Panel sees the node's address in each family, whichever the
+// control connection uses (docs/ARCHITECTURE.md#node-dns), and the Panel
+// closes it after the handshake.
 const (
 	PurposeControl  = "control"
+	PurposeAddress  = "address"
 	purposeTransfer = "transfer:"
 )
 
@@ -234,7 +239,7 @@ func (h Hello) Validate() error {
 		return errors.New("bad node ID")
 	case len(h.Nonce) != nonceSize:
 		return errors.New("bad nonce")
-	case h.Purpose != PurposeControl && !validTransfer(h.Purpose):
+	case h.Purpose != PurposeControl && h.Purpose != PurposeAddress && !validTransfer(h.Purpose):
 		return fmt.Errorf("unknown purpose %q", h.Purpose)
 	case len(h.Capabilities) > 64:
 		return errors.New("too many capabilities")

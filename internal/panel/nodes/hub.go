@@ -109,6 +109,15 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if s.Hello.Purpose == nodelink.PurposeAddress {
+		// Only the address it came from, which the handshake proved is
+		// this node's (docs/ARCHITECTURE.md#node-dns).
+		_ = s.Close()
+		if h.OnAddress != nil {
+			h.OnAddress(context.WithoutCancel(r.Context()), s.Hello, ClientIP(r, h.ClientIPHeader))
+		}
+		return
+	}
 	defer func() { _ = s.Close() }()
 	c := &Conn{
 		NodeID: s.Hello.NodeID, Hello: s.Hello, Since: time.Now(), Session: s,

@@ -5,7 +5,9 @@ sidebar:
   order: 2
 ---
 
-Open the server's **Network** tab and choose **Test connection**. Raptor connects to each of the server's ports from the internet while the node checks what the game is listening on, so the result says which side is wrong. It takes a few seconds.
+Open the server's **Network** tab and choose **Test connection**. Raptor connects to each of the server's ports from the internet, at the node's public IPv4 address (the one its `raptornodes.net` address points at, which players use), while the node checks what the game is listening on, so the result says which side is wrong. It takes a few seconds.
+
+If the result says **This node has no public IPv4 address**, Raptor has only seen the node over IPv6. Servers take players over IPv4 only, so players can't reach them until the machine has a public IPv4 address: ask your provider for one.
 
 ## What the result means
 

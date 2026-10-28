@@ -4,8 +4,11 @@ import (
 	"context"
 	"crypto/ed25519"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
+	"strconv"
 	"testing"
 	"time"
 
@@ -97,5 +100,87 @@ func TestNodeAddress(t *testing.T) {
 		if string(b) != want {
 			t.Errorf("header %q: %q, want %q", header, b, want)
 		}
+	}
+}
+
+// A dual-stack node shows the Panel its address in both families, however
+// its control connection went: Wings opens an address connection over
+// IPv4 and one over IPv6, and the Panel records each where it came from
+// (docs/ARCHITECTURE.md#node-dns). The Panel listens on 127.0.0.1 and ::1,
+// at localhost.
+func TestNodeAddressesBothFamilies(t *testing.T) {
+	if ips, err := net.DefaultResolver.LookupIP(context.Background(), "ip6", "localhost"); err != nil || len(ips) == 0 {
+		t.Skip("localhost has no IPv6 address here")
+	}
+	l4, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := l4.Addr().(*net.TCPAddr).Port
+	l6, err := net.Listen("tcp6", net.JoinHostPort("::1", strconv.Itoa(port)))
+	if err != nil {
+		_ = l4.Close()
+		t.Skipf("no IPv6 loopback on port %d: %v", port, err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	pool := paneltest.NewDB(t)
+	_, panelKey, _ := ed25519.GenerateKey(nil)
+	reg := &nodes.Registry{DB: pool, PanelKey: panelKey}
+	addrs := &nodes.Addresses{Store: reg}
+	seen := make(chan string, 16)
+	hub := &nodes.Hub{
+		PanelKey: panelKey, NodeKey: reg.NodeKey,
+		OnAddress: func(ctx context.Context, h nodelink.Hello, a netip.Addr) {
+			addrs.Seen(ctx, h, a)
+			seen <- h.Purpose + " " + a.String()
+		},
+	}
+	defer hub.Close()
+	h := Handler(Config{Nodes: reg, Hub: hub})
+	for _, l := range []net.Listener{l4, l6} {
+		s := &http.Server{Handler: h, ReadHeaderTimeout: 10 * time.Second}
+		go func() { _ = s.Serve(l) }()
+		defer func() { _ = s.Close() }()
+	}
+	panelURL := "http://localhost:" + strconv.Itoa(port)
+
+	org, _ := reg.CreateOrg(ctx, "org")
+	token, _ := reg.CreateJoinToken(ctx, org, "")
+	_, nodeKey, _ := ed25519.GenerateKey(nil)
+	pub := nodeKey.Public().(ed25519.PublicKey)
+	payload, _ := nodelink.EnrollPayload(token, pub)
+	res, err := nodev1connect.NewEnrollmentServiceClient(http.DefaultClient, panelURL+"/api").Enroll(ctx, &nodev1.EnrollRequest{
+		Token: token, PublicKey: pub, Signature: ed25519.Sign(nodeKey, payload), Name: "box", WingsVersion: "9.9.9",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := link.New(link.Config{PanelURL: panelURL, NodeID: res.GetNodeId(), NodeKey: nodeKey, PanelKey: res.GetPanelKey(), Software: "9.9.9"})
+	go func() { _ = l.Run(ctx) }()
+
+	// The control connection, then an address connection in each family.
+	got := map[string]bool{}
+	timeout := time.After(10 * time.Second)
+	for !got["address 127.0.0.1"] || !got["address ::1"] {
+		select {
+		case p := <-seen:
+			got[p] = true
+		case <-timeout:
+			t.Fatalf("addresses seen: %v", got)
+		}
+	}
+	// The address connections never become the node's connection.
+	c, err := hub.Wait(ctx, res.GetNodeId())
+	if err != nil || c.Hello.Purpose != nodelink.PurposeControl {
+		t.Fatalf("node's connection: %+v, %v", c, err)
+	}
+	var v4, v6 string
+	if err := pool.QueryRow(ctx, "SELECT coalesce(host(public_ipv4), ''), coalesce(host(public_ipv6), '') FROM nodes WHERE id = $1", res.GetNodeId()).Scan(&v4, &v6); err != nil {
+		t.Fatal(err)
+	}
+	if v4 != "127.0.0.1" || v6 != "::1" {
+		t.Errorf("recorded IPv4 %q, IPv6 %q", v4, v6)
 	}
 }
