@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/xena-studios/raptor/internal/eggs"
 )
@@ -154,6 +155,66 @@ func TestWorkshop(t *testing.T) {
 			t.Errorf("%s: unexpected workshop %+v", e.ID, egg.Raptor.Workshop)
 		case ok && (egg.Raptor.Workshop == nil || *egg.Raptor.Workshop != w):
 			t.Errorf("%s: workshop %+v, want %+v", e.ID, egg.Raptor.Workshop, w)
+		}
+	}
+}
+
+// Every Minecraft Java server saves around backups (save-off, save-all
+// flush, then save-on), in the egg it's made from; proxies, Bedrock, and
+// other games don't.
+func TestBackupHooks(t *testing.T) {
+	all, err := All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	java := []string{
+		"minecraft/fabric", "minecraft/forge", "minecraft/modrinth", "minecraft/neoforge", "minecraft/paper",
+		"minecraft/purpur", "minecraft/purpur-geyser", "minecraft/quilt", "minecraft/spongevanilla", "minecraft/vanilla",
+	}
+	for _, e := range all {
+		file, err := e.ServerEgg()
+		if err != nil {
+			t.Fatal(err)
+		}
+		egg, err := eggs.Parse(file)
+		if err != nil {
+			t.Fatalf("%s: %v", e.ID, err)
+		}
+		got := egg.Raptor.Backup
+		if !slices.Contains(java, e.ID) {
+			if e.Backup != nil || len(got.Pre) > 0 {
+				t.Errorf("%s: unexpected backup hooks %+v", e.ID, got)
+			}
+			continue
+		}
+		want := eggs.JavaMinecraftBackup
+		if !slices.Equal(got.Pre, want.Pre) || !slices.Equal(got.Post, want.Post) || got.WaitFor != want.WaitFor || got.Timeout != want.Timeout {
+			t.Errorf("%s: backup hooks %+v, want %+v", e.ID, got, want)
+		}
+		// The hooks the egg carries are the ones its servers use.
+		if b := egg.Backup(); !slices.Equal(b.Pre, want.Pre) || b.WaitTimeout() != 5*time.Minute {
+			t.Errorf("%s: Backup() = %+v", e.ID, b)
+		}
+	}
+}
+
+func TestBackupValidate(t *testing.T) {
+	all, err := All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	good := all[0]
+	for name, b := range map[string]eggs.BackupHooks{
+		"pre alone":  {Pre: []string{"save-off"}, WaitFor: "x"},
+		"post alone": {Post: []string{"save-on"}},
+		"no wait":    {Pre: []string{"save-off"}, Post: []string{"save-on"}},
+		"bad regex":  {Pre: []string{"save-off"}, Post: []string{"save-on"}, WaitFor: "regex:("},
+		"bad time":   {Pre: []string{"save-off"}, Post: []string{"save-on"}, WaitFor: "x", Timeout: "later"},
+	} {
+		e := good
+		e.Backup = &b
+		if e.validate() == nil {
+			t.Errorf("%s: accepted", name)
 		}
 	}
 }

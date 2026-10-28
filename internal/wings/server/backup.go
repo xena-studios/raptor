@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // Restoring is the state of a server whose files are being replaced by a
@@ -20,10 +21,13 @@ type BackupSource struct {
 	// Pre before the backup (e.g. save-off, save-all), Post after (save-on).
 	Pre, Post []string
 	// WaitFor is console output that says the Pre commands are done ("" =
-	// don't wait).
-	WaitFor   string
-	DiskLimit int64 // bytes; 0 = none
-	UID, GID  int   // the owner of restored files
+	// don't wait): a substring, or a regular expression after "regex:".
+	WaitFor string
+	// WaitTimeout is how long to wait for it (0 = the backup manager's
+	// default).
+	WaitTimeout time.Duration
+	DiskLimit   int64 // bytes; 0 = none
+	UID, GID    int   // the owner of restored files
 	// DesiredRunning: the server is meant to be running.
 	DesiredRunning bool
 	// Denylist is the egg's file_denylist: what browsing and extracting a
@@ -44,9 +48,9 @@ func (m *Manager) BackupSource(ctx context.Context, id string) (BackupSource, er
 	if err != nil {
 		return BackupSource{}, err
 	}
-	h := srv.Egg().Raptor.Backup
+	h := srv.Egg().Backup()
 	return BackupSource{
-		Dir: dir, Pre: h.Pre, Post: h.Post, WaitFor: h.WaitFor,
+		Dir: dir, Pre: h.Pre, Post: h.Post, WaitFor: h.WaitFor, WaitTimeout: h.WaitTimeout(),
 		DiskLimit: srv.Limits.DiskMiB << 20, UID: m.o.UID, GID: m.o.GID,
 		DesiredRunning: srv.DesiredState == "running", Denylist: srv.Egg().FileDenylist,
 	}, nil

@@ -9,7 +9,7 @@ Every new server backs itself up once a day, with nothing to set up. Backups are
 
 ## Back up now
 
-**Back up now** on the server's **Backups** tab takes one at once (the **Backups** permission). Its progress shows in the list. For Minecraft and other games that support it, Raptor tells the game to save and pause writing first (`save-off`, `save-all`), then resumes it after, so the world is backed up whole.
+**Back up now** on the server's **Backups** tab takes one at once (the **Backups** permission). Its progress shows in the list. For Minecraft Java servers (vanilla, Paper, Purpur, Fabric, Forge, NeoForge, Quilt, Sponge, modpacks), Raptor tells the game to stop autosaving and write everything out first (`save-off`, `save-all flush`), waits for it to say `Saved the game`, and turns saving back on after (`save-on`), even if the backup fails, so the world is backed up whole. You'll see those commands in the console. Bedrock servers are backed up without pausing for now.
 
 Each backup in the list shows when it was taken, why (manual, scheduled, a safety backup), where it is, and its size. From its menu you can **lock** it (retention never deletes a locked backup) or delete it.
 

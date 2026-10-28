@@ -119,7 +119,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 
 **Auto-restart** (on by default):
 - Restart delays: immediately after the first crash, 10 s after the second.
-- **Crash loop:** the 3rd crash within 10 minutes → stop restarting, leave the server `crashed`, and notify (Discord/webhooks from Wings, the Panel, and the event log). An owner starting it again works as usual.
+- **Crash loop:** the 3rd crash within 10 minutes → stop restarting, leave the server `crashed`, and notify: a `server.crash_loop` event in the node's outbox, which the Panel turns into its alerts (email, Discord, Slack, Telegram, ntfy, webhooks) and the event log. Wings sends nothing itself; while the Panel is down the event waits on the node and the alert goes out when it reconnects. An owner starting it again works as usual.
 - The crash counter resets once the server has been `running` for 10 minutes.
 - Each crash event includes the exit code, reason (`exit`, `oom`, `killed`), and the last 50 console lines.
 

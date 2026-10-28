@@ -2,6 +2,7 @@ package backup
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/wings/backup/engine"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
@@ -50,10 +52,10 @@ func (f *servers) Status(id string) (server.Status, error) {
 func (f *servers) SendCommand(_, user, cmd string) error {
 	f.mu.Lock()
 	f.calls = append(f.calls, user+": "+cmd)
-	confirm := f.confirm && cmd == "save-all"
+	confirm := f.confirm && strings.HasPrefix(cmd, "save-all")
 	f.mu.Unlock()
 	if confirm {
-		f.console.Write("[Server thread/INFO]: Saved the game")
+		f.console.Write("\x1b[0m[Server thread/INFO]: Saved \x1b[1mthe game\x1b[0m")
 	}
 	return nil
 }
@@ -365,6 +367,86 @@ func TestHooks(t *testing.T) {
 	v.backup()
 	if n := len(v.servers.got()); n != 9 {
 		t.Fatalf("hooks ran for an offline server: %q", v.servers.got())
+	}
+}
+
+// The Minecraft defaults: a regular expression for the save line (matched
+// without the game's colors), and the egg's own timeout over the node's.
+func TestHooksJavaMinecraft(t *testing.T) {
+	v := newEnv(t)
+	v.write("f", "x")
+	v.servers.state = server.Running
+	h := eggs.JavaMinecraftBackup
+	v.servers.src.Pre, v.servers.src.Post, v.servers.src.WaitFor, v.servers.src.WaitTimeout = h.Pre, h.Post, h.WaitFor, h.WaitTimeout()
+	v.servers.confirm = true
+	if b := v.backup(); b.Warning != "" {
+		t.Fatalf("warning %q", b.Warning)
+	}
+	want := []string{"backup: save-off", "backup: save-all flush", "backup: save-on"}
+	if got := v.servers.got(); !slices.Equal(got, want) {
+		t.Fatalf("commands %q", got)
+	}
+	v.servers.confirm = false
+	v.servers.src.WaitTimeout = 50 * time.Millisecond
+	if b := v.backup(); !strings.Contains(b.Warning, "within 50ms") {
+		t.Fatalf("the egg's timeout wasn't used: %q", b.Warning)
+	}
+}
+
+// A backup cut off between its pre and post commands still sends the post
+// ones: on resume even with nothing left to back up, and when Wings gave
+// the job up after repeated crashes. A server left with saving off would
+// silently stop saving.
+func TestHooksAfterInterruption(t *testing.T) {
+	ctx := context.Background()
+	v := newEnv(t)
+	v.servers.state = server.Running
+	v.servers.src.Pre, v.servers.src.Post = []string{"save-off"}, []string{"save-on"}
+
+	// Resumed, and its backup is gone (or was finished) meanwhile.
+	_, err := v.m.createJob(ctx, jobs.Job{
+		ID: "resumed", ServerID: srvID, Type: JobCreate,
+		Payload: json.RawMessage(`{"backup_ids":["gone"]}`), Checkpoint: json.RawMessage(`{"pre_ran":true}`),
+	}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := v.servers.got(); !slices.Equal(got, []string{"backup: save-on"}) {
+		t.Fatalf("resumed: %q", got)
+	}
+
+	// Given up on: the job failed at Wings' start without running again.
+	now := time.Now().UnixMilli()
+	const jobID = "given-up"
+	if err := v.db.Write.InsertJob(ctx, store.InsertJobParams{
+		ID: jobID, ServerID: srvID, Type: JobCreate, Payload: `{}`, MaxAttempts: 3, RunAfter: now + time.Hour.Milliseconds(), CreatedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := v.db.Write.MarkJobRunning(ctx, store.MarkJobRunningParams{StartedAt: sql.NullInt64{Int64: now, Valid: true}, ID: jobID}); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.db.Write.SetJobCheckpoint(ctx, store.SetJobCheckpointParams{Checkpoint: `{"pre_ran":true}`, ID: jobID}); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.db.Write.FinishJob(ctx, store.FinishJobParams{Status: jobs.Failed, Error: "interrupted", FinishedAt: sql.NullInt64{Int64: now, Valid: true}, ID: jobID}); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"b1", "b2"} { // two destinations, one job
+		if err := v.db.Write.InsertBackup(ctx, store.InsertBackupParams{
+			ID: id, ServerID: srvID, DestinationID: LocalDestination, Kind: KindManual, JobID: jobID, CreatedBy: "u1", CreatedAt: now,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := v.m.cleanupInterrupted(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := v.servers.got(); !slices.Equal(got, []string{"backup: save-on", "backup: save-on"}) {
+		t.Fatalf("given up: %q", got)
+	}
+	if b, _ := v.m.Get(ctx, srvID, "b1"); b == nil || b.Status != StatusFailed {
+		t.Fatalf("given-up backup: %+v", b)
 	}
 }
 

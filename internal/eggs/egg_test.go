@@ -1,6 +1,7 @@
 package eggs
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"slices"
@@ -201,6 +202,58 @@ func TestParseXRaptor(t *testing.T) {
 	}
 	if _, err := Parse(fmt.Appendf(nil, base, `{"addons": {"datapacks": {"loaders": ["paper"]}}}`)); err == nil {
 		t.Error("a datapack loader that isn't one: expected an error")
+	}
+}
+
+// A Minecraft Java egg without x-raptor.backup (an imported one, or one a
+// server got before the catalog had hooks) still saves around backups; an
+// egg's own block, even an empty one, wins; other games get nothing.
+func TestBackupHooks(t *testing.T) {
+	paper := load(t, "paper.ptdl_v2.json")
+	if got := paper.Backup(); !slices.Equal(got.Pre, []string{"save-off", "save-all flush"}) || !slices.Equal(got.Post, []string{"save-on"}) ||
+		got.WaitTimeout() != 5*time.Minute {
+		t.Errorf("paper without a block: %+v", got)
+	}
+	m := NewMatcher(paper.Backup().WaitFor)
+	for line, want := range map[string]bool{
+		"[12:00:01 INFO]: Saved the game":        true,
+		"[Server thread/INFO]: Saved the world":  true,
+		"[12:00:00 INFO]: Saving the game (this": false,
+		"Automatic saving is now disabled":       false,
+	} {
+		if m.Match(line) != want {
+			t.Errorf("wait_for on %q: %v", line, !want)
+		}
+	}
+
+	egg := func(done, stop, ext string) []byte {
+		startup, _ := json.Marshal(map[string]string{"done": done})
+		cfg, _ := json.Marshal(map[string]string{"startup": string(startup), "stop": stop})
+		return fmt.Appendf(nil, `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x", "config": %s, "x-raptor": %s}`, cfg, ext)
+	}
+	for name, c := range map[string]struct {
+		done, stop, ext string
+		pre             []string
+	}{
+		"java, own hooks":   {")! For help, type ", "stop", `{"backup": {"pre": ["save-all"], "post": ["x"], "timeout": "2m"}}`, []string{"save-all"}},
+		"java, opted out":   {")! For help, type ", "stop", `{"backup": {}}`, nil},
+		"java, regex done":  {`regex:Done \(.*\)! For help, type`, "stop", `{}`, JavaMinecraftBackup.Pre},
+		"velocity":          {"Done (", "end", `{}`, nil},
+		"bedrock":           {"Server started", "stop", `{}`, nil},
+		"java, odd stopper": {")! For help, type ", "^C", `{}`, nil},
+	} {
+		e, err := Parse(egg(c.done, c.stop, c.ext))
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if got := e.Backup().Pre; !slices.Equal(got, c.pre) {
+			t.Errorf("%s: pre %q, want %q", name, got, c.pre)
+		}
+	}
+	for _, bad := range []string{`{"backup": {"timeout": "soon"}}`, `{"backup": {"timeout": "0s"}}`} {
+		if _, err := Parse(egg("x", "stop", bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
 	}
 }
 

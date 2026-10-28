@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
+	"sync"
 	"time"
 
+	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/wings/backup/engine"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/jobs"
@@ -90,6 +91,14 @@ func (m *Manager) createJob(ctx context.Context, j jobs.Job, log io.Writer) (any
 	if _, err := j.DecodeCheckpoint(&cp); err != nil {
 		return nil, err
 	}
+	// Wings stopped between the pre and post commands: saving goes back on
+	// first, whatever's left of the job (even nothing).
+	if cp.PreRan {
+		_, _ = fmt.Fprintln(log, "resuming after a Wings restart; sending the post-backup commands first")
+		m.recoverHooks(ctx, j.ServerID, log)
+		cp.PreRan = false
+		m.checkpoint(ctx, j, cp)
+	}
 	var results []map[string]any
 	var failed error
 	for _, id := range p.ids() {
@@ -122,12 +131,6 @@ func (m *Manager) createOne(ctx context.Context, j jobs.Job, cp *createCheckpoin
 		m.fail(ctx, b, err)
 		return nil, err
 	}
-	if cp.PreRan {
-		_, _ = fmt.Fprintln(log, "resuming after a Wings restart; sending the post-backup commands first")
-		m.post(b.ServerID, src, log)
-		cp.PreRan = false
-		m.checkpoint(ctx, j, cp)
-	}
 	pol, err := m.Policy(ctx, b.ServerID)
 	if err != nil {
 		return nil, err
@@ -138,10 +141,18 @@ func (m *Manager) createOne(ctx context.Context, j jobs.Job, cp *createCheckpoin
 	a := m.begin(b.ServerID, Activity{JobID: j.ID, Kind: ActBackup, BackupID: b.ID, BackupKind: b.Kind})
 
 	var warning string
-	pre := m.running(b.ServerID) && len(src.Pre) > 0
-	if pre {
+	after := func() {}
+	if m.running(b.ServerID) && len(src.Pre) > 0 {
 		cp.PreRan = true
 		m.checkpoint(ctx, j, cp)
+		// The post commands run whatever happens next, a panic included: a
+		// server left with saving off silently stops saving.
+		after = sync.OnceFunc(func() {
+			m.post(b.ServerID, src, log)
+			cp.PreRan = false
+			m.checkpoint(ctx, j, cp)
+		})
+		defer after()
 		warning = m.pre(ctx, b.ServerID, src, log)
 	}
 	extra, dbWarning, cleanup := m.dumpDatabases(ctx, b, log)
@@ -151,11 +162,7 @@ func (m *Manager) createOne(ctx context.Context, j jobs.Job, cp *createCheckpoin
 		ServerID: b.ServerID, BackupID: b.ID, Dir: src.Dir, Ignore: pol.Ignore, Extra: extra,
 	}}, m.track(a, log), log)
 	cleanup()
-	if pre {
-		m.post(b.ServerID, src, log)
-		cp.PreRan = false
-		m.checkpoint(ctx, j, cp)
-	}
+	after()
 	if err != nil {
 		if errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
 			return nil, err
@@ -230,7 +237,12 @@ func (m *Manager) pre(ctx context.Context, serverID string, src server.BackupSou
 	if lines == nil {
 		return ""
 	}
-	t := time.NewTimer(m.o.HookTimeout)
+	wait := src.WaitTimeout
+	if wait <= 0 {
+		wait = m.o.HookTimeout
+	}
+	done := eggs.NewMatcher(src.WaitFor)
+	t := time.NewTimer(wait)
 	defer t.Stop()
 	for {
 		select {
@@ -238,11 +250,11 @@ func (m *Manager) pre(ctx context.Context, serverID string, src server.BackupSou
 			if !ok {
 				return "the server stopped before confirming the save"
 			}
-			if strings.Contains(l, src.WaitFor) {
+			if done.Match(eggs.StripANSI(l)) {
 				return ""
 			}
 		case <-t.C:
-			return fmt.Sprintf("the server didn't confirm the save within %s (waited for %q)", m.o.HookTimeout, src.WaitFor)
+			return fmt.Sprintf("the server didn't confirm the save within %s (waited for %q)", wait, src.WaitFor)
 		case <-ctx.Done():
 			return ""
 		}
@@ -260,6 +272,18 @@ func (m *Manager) post(serverID string, src server.BackupSource, log io.Writer) 
 			_, _ = fmt.Fprintf(log, "  failed: %v\n", err)
 		}
 	}
+}
+
+// recoverHooks sends a server's post-backup commands for a backup job that
+// sent the pre ones and was cut off (Wings stopped or crashed) before it
+// could send them.
+func (m *Manager) recoverHooks(ctx context.Context, serverID string, log io.Writer) {
+	src, err := m.o.Servers.BackupSource(ctx, serverID)
+	if err != nil {
+		m.log.Warn("sending post-backup commands failed", "server", serverID, "err", err)
+		return
+	}
+	m.post(serverID, src, log)
 }
 
 func joinWarning(a, b string) string {

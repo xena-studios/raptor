@@ -214,7 +214,8 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
   "backup": {
     "pre":  ["save-off", "save-all flush"],
     "post": ["save-on"],
-    "wait_for": "Saved the game"
+    "wait_for": "regex:Saved the (game|world)",
+    "timeout": "5m"
   },
   "health": { "type": "port", "protocol": "tcp" },
   "install": { "timeout": "3h" },
@@ -224,6 +225,19 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
 ```
 
 `x-raptor` is validated when the egg is parsed: `install.timeout` must be a positive duration (`90m`, `3h`), `arch` entries must be `amd64` or `arm64` (`x86_64` and `aarch64` are accepted as aliases), and `players.query` must be `minecraft` (the Java edition's status ping) or `source` (Valve's A2S_INFO, which most Steam games answer). `players.port` says where the game answers queries when it isn't the primary port: an offset (`"+1"`) or a variable's name (`QUERY_PORT`). An invalid block rejects the egg rather than being half-applied.
+
+### Backup hooks
+
+`x-raptor.backup` is what a backup sends to a **running** server's console (as the user `backup`, so it shows in the console and the job's log):
+- `pre`, before the snapshot (and before its databases are dumped). For Minecraft, `save-off` (no autosave writes during the copy) and `save-all flush` (everything in memory written out now), so the backup never catches region files mid-write.
+- `wait_for`, the console line that says `pre` is done: a substring, or a regular expression after `regex:`, as done lines are, matched with the game's colors stripped. Wings waits up to `timeout` (a duration; the node's default is a minute). If the line doesn't come, the backup is taken anyway with a warning ("the server didn't confirm the save"): a possibly inconsistent backup beats none.
+- `post`, after the snapshot, **whatever happened to it**: a failed or cancelled snapshot, a stopping Wings, even a panic. A server left with saving off silently stops saving, which is worse than the bug the hooks fix. If Wings stops or crashes between the two, the job's checkpoint says so: the resumed job sends `post` before anything else, and a job given up on after repeated crashes gets it sent when Wings starts. A server that stopped meanwhile needs nothing (saving is on again after a start).
+
+Stopped servers get no hooks; their files aren't changing. Safety and final backups (taken by a reinstall or a delete, with the server stopped) don't send them.
+
+**Minecraft Java servers get the hooks without the block.** An egg with no `x-raptor.backup` that is stopped with `stop` and is started at the `)! For help, type` line (every Java server egg, Pterodactyl's and Pelican's included; not the proxies or Bedrock) gets `save-off`, `save-all flush`, waiting up to 5 minutes for `Saved the game` (`Saved the world` before 1.13), then `save-on` (`eggs.JavaMinecraftBackup`). So servers keep the egg they were made from ([DECISIONS.md](DECISIONS.md) #45) and still back up safely: imported ones, ones made before the catalog had hooks, and org eggs copied from them. An egg that sets the block, even to `{}`, gets exactly that.
+
+**Not covered: Bedrock.** Its commands are `save hold`, then `save query` until it answers that the files are ready (with each file's length to truncate the copy to), then `save resume`. That needs polling and truncation the hooks can't express, so Bedrock servers are backed up without them, as before ([ROADMAP.md](ROADMAP.md#backlog)).
 
 ## Egg sources
 
@@ -293,6 +307,11 @@ addons:             # optional: the plugin installer or mod manager (see Add-ons
     loaders: [paper, spigot, bukkit]
     dir: plugins
     version: MINECRAFT_VERSION
+backup:             # optional: the backup hooks (see Backup hooks), added the same way
+  pre: ["save-off", "save-all flush"]
+  post: ["save-on"]
+  wait_for: "regex:Saved the (game|world)"
+  timeout: 5m
 test:
   tier: fast                # fast | slow | manual (manual needs a reason)
   image: ""                 # the user's image choice, if not the egg's default
@@ -307,11 +326,11 @@ test:
   config: {}                # file → text the egg's config parsers must write ({{port}})
 ```
 
-A unit test loads every entry and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, and a chosen image is one the egg offers.
+A unit test loads every entry and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, and a chosen image is one the egg offers. `backup` needs both `pre` and `post` and a `wait_for`; every Java server egg (vanilla, Paper, Purpur, Purpur with Geyser, Fabric, Forge, NeoForge, Quilt, SpongeVanilla, Modrinth packs) has the Minecraft hooks, and nothing else does.
 
 ### In the official library
 
-The catalog lives in the Panel's database, as official eggs (`internal/panel/catalog`, run when the Panel starts, under an advisory lock so two Panels don't race). Each egg's file is upstream's with `raptor.yaml`'s `arch`, `players`, and `addons` added under `x-raptor`, in the same format and key order; it keeps the catalog's ID (`catalog_id`, e.g. `minecraft/paper`) and whether it's `certified`.
+The catalog lives in the Panel's database, as official eggs (`internal/panel/catalog`, run when the Panel starts, under an advisory lock so two Panels don't race). Each egg's file is upstream's with `raptor.yaml`'s `arch`, `players`, `addons`, `workshop`, and `backup` added under `x-raptor`, in the same format and key order; it keeps the catalog's ID (`catalog_id`, e.g. `minecraft/paper`) and whether it's `certified`.
 
 - An egg the library doesn't have is added, published.
 - When the catalog changes (a new release), an egg only the seed has changed gets the new file as a new version. Once staff edit an egg, it's theirs: the seed leaves it alone.
@@ -327,7 +346,9 @@ Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EU
 
 `internal/wings/conformance` runs catalog eggs through the full Wings lifecycle with the real server manager, Docker, and the eggs' unmodified images:
 
-**install → EULA and uploads → start → done string → console command → Wings restart → stop → reinstall → start → stop → delete**
+**install → EULA and uploads → start → done string → console command → backup hooks → Wings restart → stop → reinstall → start → stop → delete**
+
+- **Backup hooks:** for an egg with `backup` in `raptor.yaml`, the `pre` commands are sent and the real game must print the `wait_for` line within `timeout`; then `post`.
 
 - **Wings restart:** the manager is closed and a new one started on the same state, as a Wings restart does. The server must keep running (same container start time), its console history must be refilled, and commands must still work.
 - **Stop** must be the egg's own stop, not a kill: Wings reports a stop that hit its timeout (`[raptor] didn't stop within 1m0s; killed`), and the suite fails on it.

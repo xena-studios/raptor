@@ -163,8 +163,13 @@ func (v *backupEnv) job(t *testing.T, res command.Result) jobs.Job {
 // install.
 func (v *backupEnv) create(t *testing.T, name string) string {
 	t.Helper()
+	return v.createFrom(t, name, hookEgg)
+}
+
+func (v *backupEnv) createFrom(t *testing.T, name, egg string) string {
+	t.Helper()
 	res, err := v.p.send("alice", ServerCreate, "", CreateParams{ServerConfig: ServerConfig{
-		Name: name, Egg: []byte(hookEgg), Limits: containers.Limits{MemoryMiB: 128},
+		Name: name, Egg: []byte(egg), Limits: containers.Limits{MemoryMiB: 128},
 		Allocations: []server.Allocation{{IP: "0.0.0.0", Port: freePort(t), Primary: true}},
 	}}, v.owner)
 	if err != nil {
@@ -178,6 +183,69 @@ func (v *backupEnv) create(t *testing.T, name string) string {
 	t.Cleanup(func() { _ = v.m.Delete(context.Background(), id) })
 	waitState(t, v.m, id, server.Offline)
 	return id
+}
+
+// javaEgg looks like a Minecraft Java egg as Pterodactyl has it (no
+// x-raptor block): its done line and stop command.
+const javaEgg = `{
+	"meta": {"version": "PTDL_v2"}, "name": "Java-like",
+	"docker_images": {"BusyBox": "busybox:1"}, "startup": "sh",
+	"config": {"files": "{}", "startup": "{\"done\": \")! For help, type \"}", "stop": "stop"},
+	"scripts": {"installation": {"script": "echo installed", "container": "busybox:1", "entrypoint": "sh"}},
+	"variables": []
+}`
+
+// A Minecraft Java server whose egg has no backup hooks (imported, or made
+// before the catalog had them) gets save-off and save-all flush before a
+// backup and save-on after, through the real console.
+func TestBackupJavaDefaults(t *testing.T) {
+	ctx := context.Background()
+	v := newBackupEnv(t)
+	id := v.createFrom(t, "java", javaEgg)
+	if err := v.m.Start(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	waitState(t, v.m, id, server.Starting)
+	send := func(cmd string) {
+		t.Helper()
+		if err := v.m.SendCommand(id, "alice", cmd); err != nil {
+			t.Fatal(err)
+		}
+	}
+	send(`echo 'Done (1.0s)! For help, type "help"'`)
+	waitState(t, v.m, id, server.Running)
+	// The "game": the shell reads its console, answering a flush the way
+	// Minecraft does. (The tty echoes input, so the answer isn't spelled
+	// out in the command.)
+	send(`while read -r l; do echo "GOT $l"; case "$l" in "save-all flush") printf 'Saved%sthe game\n' ' ';; stop) exit;; esac; done`)
+	time.Sleep(300 * time.Millisecond)
+
+	res, err := v.p.send("alice", BackupCreate, id, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.waitJob(t, res)
+	var made struct {
+		BackupID string `json:"backup_id"`
+	}
+	_ = json.Unmarshal(res.Value, &made)
+	if b, err := v.bk.Get(ctx, id, made.BackupID); err != nil || b.Status != backup.StatusOK || b.Warning != "" {
+		t.Fatalf("backup: %+v, %v", b, err)
+	}
+	var hist string
+	for range 50 {
+		st, _ := v.m.Status(id)
+		hist = strings.Join(st.Console.History(), "\n")
+		if strings.Contains(hist, "\nGOT save-on") {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	off, flush := strings.Index(hist, "\nGOT save-off"), strings.Index(hist, "\nGOT save-all flush")
+	saved, on := strings.Index(hist, "\nSaved the game"), strings.Index(hist, "\nGOT save-on")
+	if off < 0 || flush < off || saved < flush || on < saved {
+		t.Fatalf("hooks didn't run in order:\n%s", hist)
+	}
 }
 
 func TestBackupCommands(t *testing.T) {

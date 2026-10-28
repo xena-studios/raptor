@@ -36,6 +36,9 @@ func (m Matcher) Match(line string) bool {
 
 func (m Matcher) String() string { return m.raw }
 
+// StripANSI removes terminal escape codes (colors) from a console line.
+func StripANSI(line string) string { return ansi.ReplaceAllString(line, "") }
+
 // IsDone reports whether a console line marks the server as started. Eggs
 // with no done strings are considered started as soon as they launch.
 func (c Config) IsDone(line string) bool {

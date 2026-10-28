@@ -75,6 +75,8 @@ Small features and known gaps, unordered. Bugs found in the beta go first.
 - **Nodes update when a release is published:** today an operator starts each rollout by hand ([DEPLOY.md](DEPLOY.md#updating-nodes)); the Panel could start one itself when a newer signed stable release appears.
 - **`raptor jobs [logs <id>]`:** the node's jobs and their logs from the box, as [WINGS.md](WINGS.md#cli-scope) once planned.
 - **Backups:** default destinations and retention for new servers (per node; turning on Raptor Backup Storage offers to add it to every server on the node); alerts when a destination starts or stops failing; adding a destination to several nodes at once.
+- **Bedrock backups pause writes:** `save hold`, polling `save query` until the files are ready, copying each file truncated to the length it lists, then `save resume` ([EGGS.md](EGGS.md#backup-hooks)). The console hooks can't express the polling or the truncation, so Bedrock worlds are backed up live, as before; Java servers save first (DECISIONS #337).
+- **Docker on nodes never updates:** bootstrap `apt-mark hold`s Docker so unattended upgrades can't restart it under running servers, and `raptor update` only replaces Raptor, so a node keeps the Docker it was installed with, security fixes included. Wants a deliberate upgrade path (servers stopped gracefully, `live-restore` kept, rolled back if Docker doesn't come up) or at least a `doctor` warning when the held version is behind ([WINGS.md](WINGS.md#docker-configuration-merged-by-installer)).
 - **Files:** a per-org limit on transfer speed through the Panel.
 - **Connection test:** running it on its own after a server's first start.
 - **`doctor`:** offering `xfs_repair` with the servers stopped when the data volume needs it.
