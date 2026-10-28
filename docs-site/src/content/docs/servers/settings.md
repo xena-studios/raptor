@@ -54,7 +54,7 @@ On **Network**:
 
 **Server type** on **Settings** (admins and owners) changes what the server runs: Paper to Purpur, Forge to NeoForge, or another game entirely. Pick the new type, then what happens to the files:
 
-- **Keep them and reinstall:** the new install runs over the files the server has, so worlds and configs stay. Best between versions of the same game.
+- **Keep them and reinstall:** after a backup you can restore from, the new install runs over the files the server has, so worlds and configs stay. Best between versions of the same game.
 - **Start fresh:** every file is deleted, after a backup you can restore from, and the new type installs clean.
 
 Settings both types share (a Minecraft version, say) keep their values; the rest start at the new type's defaults. The server must be stopped, and your passkey signs the change.
@@ -63,8 +63,10 @@ Settings both types share (a Minecraft version, say) keep their values; the rest
 
 **Reinstall** on **Settings** runs the install script again, for a broken install or to pick up a change to its game settings.
 
-- **Reinstall:** the install runs over what's there. Usually what you want.
-- **Wipe and reinstall:** a backup is taken, every file is deleted, then it installs clean. Signed with your passkey. If the backup fails, nothing is deleted.
+- **Reinstall:** a backup is taken, then the install runs over what's there. Usually what you want.
+- **Wipe and reinstall:** a backup is taken, every file is deleted, then it installs clean. Signed with your passkey.
+
+Either way, if the backup fails, nothing is changed and the console says why. A server with no files yet needs no backup. These backups are listed as safety backups on **Backups** and kept for 7 days.
 
 The server must be stopped, and you type its name to confirm.
 

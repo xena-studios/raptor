@@ -46,11 +46,21 @@ Install scripts are the least trusted code Raptor runs: they come from the egg, 
 | Mount | Access | Contents |
 |---|---|---|
 | `/mnt/server` | read-write | The server's directory (on the quota volume, so the disk limit applies during install) |
-| `/mnt/install` | **read-only** | `install.sh`: the egg's script, line endings normalized to LF (as Pterodactyl does), written to a per-job temp directory that is deleted afterwards |
+| `/mnt/install` | **read-only** | `install.sh`: the egg's script, line endings normalized to LF (as Pterodactyl does), written to a per-job temp directory that is deleted afterwards; `bin/curl`, Raptor's curl ([Downloads](#downloads)) |
+| `/mnt/install-report` | read-write | Where that curl records downloads that failed; a per-job temp directory, deleted afterwards |
 
 Nothing else from the host is mounted: no Docker socket, no host paths, no other servers.
 
-**Environment:** the egg variables (validated against their rules first) plus the same built-ins as the runtime (`SERVER_MEMORY`, `SERVER_IP`, `SERVER_PORT`, …).
+**Environment:** the egg variables (validated against their rules first) plus the same built-ins as the runtime (`SERVER_MEMORY`, `SERVER_IP`, `SERVER_PORT`, …). `PATH` is the image's own with `/mnt/install/bin` in front.
+
+#### Downloads
+
+DECISIONS #336. Most eggs download with a bare `curl` (no `--fail`, no retries, no `set -e`), so one reset connection used to leave a truncated jar behind an install that "succeeded". `/mnt/install/bin/curl` (`internal/wings/docker/installbin/curl`, POSIX sh) sits first on PATH and:
+- runs the image's own curl (the first `curl` on PATH after its own directory; none: `curl: not found`, exit 127, as without it), with `--retry 5 --retry-delay 2 --retry-max-time 300` before the script's own options (so the script's win), plus `--retry-all-errors` where the image's curl has it (7.71+; it also retries resets mid-transfer, like HTTP/2 stream errors). A curl that knows neither gets the arguments untouched. Output, `-w`, `-o` and exit codes are curl's own; curl writes `-w` once and empties an `-o` file before a retry. Two costs: output piped to another command can't be taken back, so a transfer that breaks off and is retried pipes the partial data and then all of it (without the retry, only the partial data); and `--retry-all-errors` also retries a `--fail` probe that gets a 404, so that probe takes about 10 seconds longer.
+- records a run that still fails **on the network**: exit 5, 6, 7, 16, 18, 28, 35, 52, 55, 56, 60, or 92 (couldn't resolve or connect, timeout, TLS, the transfer broke off), with its URLs. HTTP errors (`--fail`'s 22, which scripts use to probe for a version), a closed pipe (23), and bad options are the script's business and aren't recorded.
+- isn't used by `runuser -l`/`su -` (a login shell resets PATH), by `/usr/bin/curl` called by path, or by `wget` (GNU wget already retries 20 times; BusyBox's takes other options).
+
+`TestCurlWrapper` runs it under sh, dash, and bash against a stand-in curl (new, pre-7.71, and one with no `--retry`); the runtime e2e test runs it in BusyBox.
 
 **Hardening**
 - Root inside the container (required for egg compatibility), but **never `--privileged`**, `no-new-privileges`, Docker's default seccomp profile, and Docker's default capabilities minus `NET_RAW`, `MKNOD`, `AUDIT_WRITE`, and `SETFCAP`. The exact set is confirmed by the conformance suite.
@@ -73,9 +83,13 @@ Nothing else from the host is mounted: no Docker socket, no host paths, no other
 **Order of checks** (`internal/wings/install`): variables are validated, then the egg's and both images' architectures are checked, then the install container runs. Nothing is downloaded for an install that can't work.
 
 **Failure and reinstall**
-- **What counts as failed:** a Docker error (image pull, container create/start) or the timeout. Like Pterodactyl, the script's **exit code does not decide success**: many community scripts end with a harmless failing command. A non-zero exit code is recorded and shown as a warning with the install log.
+- **What counts as failed:** a Docker error (image pull, container create/start), the timeout, or, after the script ran:
+  - **a download that failed** on the network even after retries ([Downloads](#downloads)): "A download failed: <url> (curl exit N). Reinstall to try again."
+  - **a broken startup jar:** if the startup command runs `-jar <file>` (a literal name or `{{VARIABLE}}`s, without shell substitutions) and that file is there but is empty or isn't a valid zip: "server.jar isn't a valid jar file (it's corrupt or not a jar), so the server can't start. Reinstall to try again." A jar that isn't there is fine: some eggs fetch it when the server first starts. It's read through `os.Root`.
+
+  The reason ends the install log and is the server's install error. Like Pterodactyl, the script's **exit code does not decide success**: many community scripts end with a harmless failing command. A non-zero exit code is recorded and shown as a warning with the install log.
 - A failed install marks the server `install_failed`. Files are **kept** for debugging, and the server can't start until an install succeeds, unless the owner chooses **skip install script** (Pterodactyl has the same option).
-- **Reinstall** runs the script over the existing files by default (Pterodactyl behavior). The owner can instead choose **wipe and reinstall** (signed with their passkey), which takes a safety backup first (kept 7 days), then removes every file before the script runs. If the backup fails, nothing is removed.
+- **Reinstall** runs the script over the existing files by default (Pterodactyl behavior), after a **safety backup** of them (kept 7 days, never counted by retention; none for a server with no files). The owner can instead choose **wipe and reinstall** (signed with their passkey), which takes the same safety backup, then removes every file before the script runs. If the backup fails, nothing is changed and the reinstall doesn't run. Changing a server's type is a reinstall too, either way. A first install takes none.
 - File ownership is fixed after a failed install too, so the owner can inspect or repair the files over SFTP.
 
 ### Runtime environment

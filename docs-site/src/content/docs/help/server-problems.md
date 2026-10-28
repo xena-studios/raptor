@@ -25,9 +25,11 @@ A server that stops on its own is restarted, and after three crashes in ten minu
 
 ## The install failed
 
-The console shows the install script's output and where it stopped.
+The console shows the install script's output and where it stopped, and the server's status says why.
 
-- **A download failed:** the version in Startup might not exist (a typo, or too new). Check it, then **Reinstall** on Settings.
+- **"A download failed: … Reinstall to try again."** The install couldn't download something even after retrying, usually because the site was down or the connection broke off. **Reinstall** on Settings when it's back. If it keeps failing, check the machine can reach the internet with `sudo raptor doctor`.
+- **"server.jar isn't a valid jar file"** (or **"is empty"**): the download came back broken or as an error page. Reinstall to try again.
+- **The version doesn't exist:** the version in Startup might be a typo, or too new. Check it, then **Reinstall** on Settings.
 - **A network error:** the machine couldn't reach the internet. Check with `sudo raptor doctor`.
 - **It ran out of disk:** raise the disk limit and reinstall.
 

@@ -109,6 +109,25 @@ func (m *Manager) finalBackup(ctx context.Context, i *instance, jobID string, lo
 	return id, nil
 }
 
+// backupBeforeReinstall takes a safety backup (kind BackupSafety, as a
+// wipe's) before an install runs over the server's files, and returns its
+// ID. A server with no files yet needs none: "" and no error. A node with
+// no backups at all (only in tests) takes none.
+func (m *Manager) backupBeforeReinstall(ctx context.Context, i *instance, jobID string, log io.Writer) (string, error) {
+	if m.o.JobBackup == nil {
+		return "", nil
+	}
+	i.console.Notice("taking a safety backup before reinstalling")
+	id, err := m.o.JobBackup(ctx, i.id, jobID, BackupSafety, log)
+	if err != nil {
+		return "", fmt.Errorf("safety backup: %w; nothing was changed", err)
+	}
+	if id != "" {
+		_, _ = fmt.Fprintf(log, "safety backup %s taken\n", id)
+	}
+	return id, nil
+}
+
 // wipe takes a safety backup of the server's files and then removes them
 // all, for a reinstall from scratch. Nothing is removed unless the backup
 // succeeded (an empty directory needs none). Links are removed, never

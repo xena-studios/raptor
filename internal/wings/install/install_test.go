@@ -22,6 +22,8 @@ type fakeRuntime struct {
 	output   string
 	exit     int64
 	err      error
+	failed   []containers.FailedDownload
+	files    map[string]string // written to the server directory by the "script"
 }
 
 func (f *fakeRuntime) CheckArch(_ context.Context, image string) error {
@@ -34,7 +36,12 @@ func (f *fakeRuntime) CheckArch(_ context.Context, image string) error {
 func (f *fakeRuntime) Install(_ context.Context, s containers.InstallSpec) (containers.InstallResult, error) {
 	f.installs = append(f.installs, s)
 	_, _ = io.WriteString(s.Output, f.output)
-	return containers.InstallResult{ExitCode: f.exit}, f.err
+	for name, data := range f.files {
+		if err := os.WriteFile(filepath.Join(s.Dir, name), []byte(data), 0o600); err != nil {
+			return containers.InstallResult{}, err
+		}
+	}
+	return containers.InstallResult{ExitCode: f.exit, FailedDownloads: f.failed}, f.err
 }
 
 func testEgg() *eggs.Egg {
