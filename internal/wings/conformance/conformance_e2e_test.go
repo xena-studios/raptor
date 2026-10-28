@@ -174,6 +174,9 @@ func (r *run) lifecycle() {
 	if e.Test.Command != "" {
 		r.step("command", func() { r.command(e.Test.Command) })
 	}
+	if b := e.Backup; b != nil {
+		r.step("backup_hooks", func() { r.backupHooks(*b) })
+	}
 	r.step("wings_restart", func() { r.restartWings() })
 	r.step("stop", func() { r.stop() })
 
@@ -374,6 +377,42 @@ func (r *run) command(cmd string) {
 			}
 		case <-timeout:
 			r.fail("no reply to %q matching %q within %s", cmd, r.e.Test.Expect, replyTimeout)
+		}
+	}
+}
+
+// backupHooks sends the catalog's pre-backup commands, as a backup does,
+// and checks the game answers with the wait_for line in time; then the
+// post commands.
+func (r *run) backupHooks(h eggs.BackupHooks) {
+	r.t.Helper()
+	st, err := r.m.Status(r.id)
+	if err != nil {
+		r.fail("status: %v", err)
+	}
+	_, sub, unsubscribe := st.Console.Subscribe()
+	defer unsubscribe()
+	for _, c := range h.Pre {
+		if err := r.m.SendCommand(r.id, "conformance", c); err != nil {
+			r.fail("send %q: %v", c, err)
+		}
+	}
+	done := eggs.NewMatcher(h.WaitFor)
+	timeout := time.After(max(h.WaitTimeout(), replyTimeout))
+wait:
+	for {
+		select {
+		case l := <-sub.C:
+			if done.Match(stripANSI(l)) {
+				break wait
+			}
+		case <-timeout:
+			r.fail("no console line matching backup.wait_for %q after %q", h.WaitFor, h.Pre)
+		}
+	}
+	for _, c := range h.Post {
+		if err := r.m.SendCommand(r.id, "conformance", c); err != nil {
+			r.fail("send %q: %v", c, err)
 		}
 	}
 }

@@ -303,12 +303,15 @@ func (m *Manager) activeJobs(ctx context.Context, typ string) (map[string]bool, 
 }
 
 // cleanupInterrupted fails backups whose job is gone (cancelled when their
-// server was deleted, or given up on after repeated Wings crashes).
+// server was deleted, or given up on after repeated Wings crashes). A job
+// given up on between its pre and post commands won't run again, so the
+// post ones (save-on) are sent here.
 func (m *Manager) cleanupInterrupted(ctx context.Context) error {
 	list, err := m.o.Store.Read.ListBackups(ctx, "")
 	if err != nil {
 		return err
 	}
+	posted := map[string]bool{}
 	for _, b := range list {
 		if b.Status != StatusPending && b.Status != StatusRunning {
 			continue
@@ -316,6 +319,13 @@ func (m *Manager) cleanupInterrupted(ctx context.Context) error {
 		j, err := m.o.Jobs.Get(ctx, b.JobID)
 		if err == nil && (j.Status == jobs.Queued || j.Status == jobs.Running) {
 			continue
+		}
+		var cp createCheckpoint
+		if err == nil && j.Type == JobCreate && !posted[j.ID] {
+			if ok, _ := j.DecodeCheckpoint(&cp); ok && cp.PreRan {
+				posted[j.ID] = true
+				m.recoverHooks(ctx, b.ServerID, io.Discard)
+			}
 		}
 		m.fail(ctx, fromRow(b), errors.New("interrupted"))
 	}

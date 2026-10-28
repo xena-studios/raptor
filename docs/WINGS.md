@@ -143,7 +143,7 @@ Tables: `servers` and `allocations`; `jobs`, `events` (outbox, with `seq`), `exe
 - `shutdown-timeout`: backstop for host shutdown. Servers are normally stopped gracefully first by `raptor-shutdown.service` (see [SERVERS.md](SERVERS.md#host-shutdown)).
 - Containers use restart policy `no`; Wings starts servers itself after verifying the quota volume (see [SERVERS.md](SERVERS.md#after-a-reboot-or-wings-restart)).
 - `userland-proxy: false`: kernel forwarding for published ports (important for UDP game traffic). **Requires a Docker restart.** If other containers are running, the installer asks before restarting. `doctor` reminds until it's applied.
-- The Docker package is held (`apt-mark hold`) so unattended upgrades can't restart Docker at 3 AM. `raptor update` upgrades Docker deliberately.
+- The Docker package is held (`apt-mark hold`) so unattended upgrades can't restart Docker at 3 AM. Nothing upgrades it after that: `raptor update` replaces Raptor's own binary and never touches Docker, so a node keeps the Docker version it was installed with until someone runs `apt-mark unhold` and upgrades it by hand ([ROADMAP.md](ROADMAP.md#backlog)).
 
 ### Networking
 Wings sets up its runtime when it starts, and retries every minute until it succeeds (Docker may still be starting):

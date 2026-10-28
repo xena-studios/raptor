@@ -21,3 +21,10 @@ test:
   done_timeout: 5m
   command: "list"
   expect: "There are 0 of a max of \\d+ players"
+# save-off and everything written out before the snapshot, so it never
+# catches region files mid-write; save-on after, even if the backup fails.
+backup:
+  pre: ["save-off", "save-all flush"]
+  post: ["save-on"]
+  wait_for: "regex:Saved the (game|world)" # 1.13+ says game, older world
+  timeout: 5m

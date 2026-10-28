@@ -108,11 +108,9 @@ type Extension struct {
 	Install struct {
 		Timeout string `yaml:"timeout"`
 	} `yaml:"install"`
-	Backup struct {
-		Pre     []string `yaml:"pre"`
-		Post    []string `yaml:"post"`
-		WaitFor string   `yaml:"wait_for"`
-	} `yaml:"backup"`
+	// Backup is the egg's own hooks; use Egg.Backup, which falls back to
+	// the game's defaults.
+	Backup BackupHooks `yaml:"backup"`
 	Health struct {
 		Type     string `yaml:"type"`
 		Protocol string `yaml:"protocol"`
@@ -132,6 +130,69 @@ type Extension struct {
 	// Workshop turns on Steam Workshop items for games that download them
 	// themselves (docs/EGGS.md#steam-workshop); nil if the egg has none.
 	Workshop *Workshop `yaml:"workshop"`
+}
+
+// BackupHooks are console commands sent around a backup of a running
+// server (docs/EGGS.md#backup-hooks): Pre before the snapshot (save-off,
+// save-all flush), Post after it whatever happened (save-on).
+type BackupHooks struct {
+	Pre  []string `yaml:"pre"`
+	Post []string `yaml:"post"`
+	// WaitFor is the console line that says the Pre commands are done: a
+	// substring, or a regular expression after "regex:", as done lines are.
+	WaitFor string `yaml:"wait_for"`
+	// Timeout is how long to wait for it ("" = the node's default, a
+	// minute). The backup is taken anyway after it, with a warning.
+	Timeout string `yaml:"timeout"`
+	// set: the egg has an x-raptor.backup block, which is used as it is,
+	// even empty, instead of its game's defaults.
+	set bool
+}
+
+// WaitTimeout returns Timeout, or 0 if it's unset.
+func (h BackupHooks) WaitTimeout() time.Duration {
+	d, _ := time.ParseDuration(h.Timeout)
+	return max(d, 0)
+}
+
+// CheckBackup checks a backup block's timeout. (Nothing else: eggs stored
+// with servers must keep parsing.)
+func CheckBackup(h BackupHooks) error {
+	if h.Timeout != "" {
+		if d, err := time.ParseDuration(h.Timeout); err != nil || d <= 0 {
+			return fmt.Errorf("egg: x-raptor.backup.timeout %q: want a duration like 5m", h.Timeout)
+		}
+	}
+	return nil
+}
+
+// JavaMinecraftBackup is what a Minecraft Java server is sent around a
+// backup: saving off and everything written out first, so the snapshot
+// doesn't catch region files mid-write, and saving on again after. 1.13
+// and later answer "Saved the game", older versions "Saved the world".
+var JavaMinecraftBackup = BackupHooks{
+	Pre:     []string{"save-off", "save-all flush"},
+	Post:    []string{"save-on"},
+	WaitFor: "regex:Saved the (game|world)",
+	Timeout: "5m",
+}
+
+// Backup returns the hooks to run around a backup: the egg's own
+// x-raptor.backup if it has one, else JavaMinecraftBackup for a Minecraft
+// Java server (stopped with "stop", started at the "Done (…)! For help,
+// type" line, as every Java server egg is), so servers whose egg lacks the
+// block (imported ones, or made before the catalog had it) save safely too.
+// Proxies and Bedrock don't match.
+func (e *Egg) Backup() BackupHooks {
+	if e.Raptor.Backup.set {
+		return e.Raptor.Backup
+	}
+	if e.Config.Stop.Command == "stop" && slices.ContainsFunc(e.Config.Done, func(m Matcher) bool {
+		return strings.Contains(m.String(), "For help, type")
+	}) {
+		return JavaMinecraftBackup
+	}
+	return BackupHooks{}
 }
 
 // Workshop says where a game takes Steam Workshop items: the IDs go in a
@@ -361,6 +422,12 @@ func Parse(data []byte) (*Egg, error) {
 	if n := get(root, "x-raptor"); n != nil {
 		if err := n.Decode(&e.Raptor); err != nil {
 			return nil, fmt.Errorf("egg: x-raptor: %w", err)
+		}
+		if get(n, "backup") != nil {
+			e.Raptor.Backup.set = true
+			if err := CheckBackup(e.Raptor.Backup); err != nil {
+				return nil, err
+			}
 		}
 		if t := e.Raptor.Install.Timeout; t != "" {
 			if d, err := time.ParseDuration(t); err != nil || d <= 0 {

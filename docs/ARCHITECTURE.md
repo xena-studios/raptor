@@ -230,7 +230,7 @@ Every step is idempotent. Re-running the command after a failure resumes.
 
 | Failure | What happens |
 |---|---|
-| Panel API down | Servers, schedules, backups, crash restarts keep running. CLI works. SFTP with keys works. Web access unavailable. |
+| Panel API down | Servers, schedules, backups, crash restarts keep running. CLI works. New SFTP logins fail: Wings asks the Panel about every login ([Files and SFTP](#files-and-sftp)). Web access unavailable. |
 | Panel redeployed | Every node disconnects briefly and reconnects with jitter. Servers unaffected. |
 | Cloudflare outage | Same as Panel API down: nodes look offline, the web UI is unavailable, games keep running. |
 | Postgres down | Panel down (above). Nodes unaffected. |

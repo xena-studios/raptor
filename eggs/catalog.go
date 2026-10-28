@@ -62,7 +62,11 @@ type Meta struct {
 	// Workshop says where the game takes Steam Workshop items (the egg's
 	// x-raptor.workshop, docs/EGGS.md#steam-workshop), added like Players.
 	Workshop *eggs.Workshop `yaml:"workshop"`
-	Test     Test           `yaml:"test"`
+	// Backup is what's sent to the game's console around a backup (the
+	// egg's x-raptor.backup, docs/EGGS.md#backup-hooks), added like
+	// Players: save-off and save-all flush, then save-on, for Minecraft.
+	Backup *eggs.BackupHooks `yaml:"backup"`
+	Test   Test              `yaml:"test"`
 }
 
 // Tier says when the conformance suite runs an egg.
@@ -208,6 +212,24 @@ func (e *Entry) validate() error {
 	if err := eggs.CheckWorkshop(e.Workshop, egg.Variables); err != nil {
 		return err
 	}
+	if b := e.Backup; b != nil {
+		if err := eggs.CheckBackup(*b); err != nil {
+			return err
+		}
+		switch {
+		case len(b.Pre) == 0 || len(b.Post) == 0:
+			// Pre without post leaves the game not saving; post without
+			// pre undoes nothing.
+			return errors.New("backup needs both pre and post commands")
+		case b.WaitFor == "":
+			return errors.New("backup.wait_for is required: the line that says the save is done")
+		}
+		if p, ok := strings.CutPrefix(b.WaitFor, "regex:"); ok {
+			if _, err := regexp.Compile(p); err != nil {
+				return fmt.Errorf("backup.wait_for: %w", err)
+			}
+		}
+	}
 	t := e.Test
 	switch {
 	case !slices.Contains([]Tier{TierFast, TierSlow, TierManual}, t.Tier):
@@ -289,6 +311,24 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "apply", str(w.Apply))
 		}
 		set(ext, "workshop", n)
+	}
+	if b := e.Backup; b != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		for _, l := range []struct {
+			key  string
+			cmds []string
+		}{{"pre", b.Pre}, {"post", b.Post}} {
+			seq := &yaml.Node{Kind: yaml.SequenceNode}
+			for _, c := range l.cmds {
+				seq.Content = append(seq.Content, str(c))
+			}
+			set(n, l.key, seq)
+		}
+		set(n, "wait_for", str(b.WaitFor))
+		if b.Timeout != "" {
+			set(n, "timeout", str(b.Timeout))
+		}
+		set(ext, "backup", n)
 	}
 	if path.Ext(e.File) == ".json" {
 		return ordered.EncodeJSON(root, "    ")
