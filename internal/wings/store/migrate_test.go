@@ -204,8 +204,8 @@ func TestValkeyMigration(t *testing.T) {
 		`INSERT INTO database_instances (id, name, engine, version, image, root_password, networks, limits, settings, created_at, updated_at, external_port)
 			VALUES ('i1', 'Redis', 'redis', '8.10', 'img', X'01', '["n1"]', '{}', '{"advanced":"hz = 20"}', 1, 1, 16379)`,
 		`INSERT INTO instance_addresses (instance_id, network_id, ip) VALUES ('i1', 'n1', '172.27.128.2')`,
-		`INSERT INTO databases (id, instance_id, server_id, label, db_name, username, password, created_at)
-			VALUES ('d1', 'i1', 's1', 'cache', 'ss1_cache', 'ss1_cache', X'02', 1)`,
+		`INSERT INTO databases (id, instance_id, server_id, label, db_name, username, password, created_at, viewer_username, viewer_password)
+			VALUES ('d1', 'i1', 's1', 'cache', 'ss1_cache', 'ss1_cache', X'02', 1, 'vss1_cache', X'03')`,
 	} {
 		if _, err := raw.ExecContext(ctx, q); err != nil {
 			t.Fatalf("%s: %v", q, err)
@@ -226,8 +226,8 @@ func TestValkeyMigration(t *testing.T) {
 	if err != nil || in.ExternalPort != 16379 || in.Settings != `{"advanced":"hz = 20"}` {
 		t.Fatalf("instance after migrating: %+v, %v", in, err)
 	}
-	if _, err := db.Read.GetDatabase(ctx, "d1"); err != nil {
-		t.Fatalf("database after migrating: %v", err)
+	if d, err := db.Read.GetDatabase(ctx, "d1"); err != nil || d.ViewerUsername != "vss1_cache" || len(d.ViewerPassword) != 1 {
+		t.Fatalf("database after migrating: %+v, %v", d, err)
 	}
 	if err := db.Write.InsertInstance(ctx, InsertInstanceParams{
 		ID: "i2", Name: "Valkey", Engine: "valkey", Version: "9.1", Image: "img",

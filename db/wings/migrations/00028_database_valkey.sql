@@ -55,11 +55,15 @@ CREATE TABLE databases_new (
     created_at  INTEGER NOT NULL,
     ro_username TEXT NOT NULL DEFAULT '',
     ro_password BLOB,
+    viewer_username TEXT NOT NULL DEFAULT '',
+    viewer_password BLOB,
     UNIQUE (instance_id, db_name),
     UNIQUE (server_id, label)
 );
-INSERT INTO databases_new (id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password)
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password FROM databases;
+INSERT INTO databases_new (id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password,
+    viewer_username, viewer_password)
+SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password,
+    viewer_username, viewer_password FROM databases;
 
 DROP TABLE databases;
 DROP TABLE instance_addresses;
