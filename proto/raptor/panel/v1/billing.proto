@@ -78,6 +78,17 @@ message GetBillingResponse {
   int32 free_nodes = 13;
   // A node linked now would be free too, so Add Node needs no plan.
   bool free_next_node = 14;
+  // Raptor Backup Storage (DECISIONS #335): whether this Panel charges for
+  // use past what's included, the org's latest measured use, what's
+  // included (10 GB a node), and, from Polar, whether the plan has the
+  // storage price and what's due for it so far this period.
+  bool storage_billing = 15;
+  int64 storage_used_bytes = 16;
+  int64 storage_included_bytes = 17;
+  google.protobuf.Timestamp storage_measured_at = 18;
+  bool storage_priced = 19;
+  int64 storage_period_cents = 20;
+  int64 storage_cents_per_tb = 21;
 }
 
 // BillingWaiver is nodes (and optionally Backup Storage) Raptor gives an

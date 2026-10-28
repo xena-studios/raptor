@@ -52,12 +52,19 @@ type Service struct {
 	// BillingLive reports whether the Panel charges (billing.Service.Enabled;
 	// nil: it doesn't).
 	BillingLive func() bool
+	// StorageBillingLive reports whether Backup Storage past what's
+	// included is charged (billing.Service.StorageBilling; nil: it isn't).
+	StorageBillingLive func() bool
 	// BillingChanged is called after an org's waiver changes, so billing
 	// sweeps it now (billing.Service.NodesChanged; nil: the next sweep).
 	BillingChanged func(org uuid.UUID)
 }
 
 func (s *Service) billingLive() bool { return s.BillingLive != nil && s.BillingLive() }
+
+func (s *Service) storageBillingLive() bool {
+	return s.StorageBillingLive != nil && s.StorageBillingLive()
+}
 
 var _ panelv1connect.StaffServiceHandler = (*Service)(nil)
 
@@ -271,14 +278,14 @@ func (s *Service) GetOverview(ctx context.Context, req *panelv1.GetOverviewReque
 		})
 	}
 	// Billing's plans and payments, and what Raptor Backup Storage would
-	// bill a month (it isn't charged yet).
+	// bill a month at today's use (charged once its meter is set up).
 	storageOrgs, err := q.StorageByOrg(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rev := &panelv1.Revenue{StorageOrgs: int32(len(storageOrgs)), BillingLive: s.billingLive()} //nolint:gosec // a count of orgs
+	rev := &panelv1.Revenue{StorageOrgs: int32(len(storageOrgs)), BillingLive: s.billingLive(), StorageBillingLive: s.storageBillingLive()} //nolint:gosec // a count of orgs
 	for _, o := range storageOrgs {
-		rev.StorageCentsMonth += storage.Estimate(o.Bytes, int(o.Nodes))
+		rev.StorageCentsMonth += storage.Estimate(o.Bytes, int(o.OrgNodes))
 	}
 	plans, err := q.BillingPlanCounts(ctx)
 	if err != nil {

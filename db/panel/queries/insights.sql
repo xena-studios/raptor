@@ -64,6 +64,7 @@ SELECT day, sum(bytes)::bigint AS bytes FROM backup_storage_usage WHERE day >= $
 -- name: StorageOrgs :many
 SELECT o.id, o.name,
        (SELECT count(*) FROM backup_storage b WHERE b.org_id = o.id AND b.disabled_at IS NULL)::int AS nodes,
+       (SELECT count(*) FROM nodes n WHERE n.org_id = o.id AND n.deleted_at IS NULL)::int AS org_nodes,
        coalesce((SELECT u.bytes FROM backup_storage_usage u WHERE u.org_id = o.id ORDER BY u.day DESC LIMIT 1), 0)::bigint AS bytes
 FROM orgs o
 WHERE EXISTS (SELECT 1 FROM backup_storage b WHERE b.org_id = o.id AND (b.disabled_at IS NULL OR b.purged_at IS NULL))

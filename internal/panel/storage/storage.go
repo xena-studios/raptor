@@ -48,8 +48,18 @@ type Service struct {
 	Region   string
 	Sender   Sender
 	PanelKey ed25519.PrivateKey
-	Log      *slog.Logger
-	Now      func() time.Time
+	// Mailer sends the reminders before a turned-off folder's data is
+	// deleted (nil: none are sent); AppURL is the web app's origin, for
+	// their links.
+	Mailer Mailer
+	AppURL string
+	Log    *slog.Logger
+	Now    func() time.Time
+}
+
+// Mailer sends email (auth.Mailer).
+type Mailer interface {
+	Send(ctx context.Context, to, subject, text string) error
 }
 
 // Errors, worded for people.
@@ -114,6 +124,11 @@ func (s *Service) Enable(ctx context.Context, org, node uuid.UUID, by pgtype.UUI
 				return err
 			}
 		case !errors.Is(err, pgx.ErrNoRows):
+			return err
+		}
+		// Turned off before and on again within 30 days: the new key is
+		// for the same folder, so what was to be deleted stays.
+		if err := q.CancelBackupStoragePurge(ctx, pgID(node)); err != nil {
 			return err
 		}
 		_, err = q.InsertBackupStorage(ctx, store.InsertBackupStorageParams{OrgID: pgID(org), NodeID: pgID(node), KeyID: key.ID, EnabledBy: by})
@@ -218,6 +233,9 @@ func (s *Service) Tick(ctx context.Context) error {
 		if err := q.SetBackupStoragePurged(ctx, r.ID); err != nil {
 			return err
 		}
+	}
+	if err := s.remind(ctx, q, now); err != nil {
+		return err
 	}
 	day := pgtype.Date{Time: time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC), Valid: true}
 	orgs, err := q.BackupStorageOrgsToMeasure(ctx, day)

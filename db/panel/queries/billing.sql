@@ -9,13 +9,14 @@ SELECT count(*)::int FROM nodes WHERE org_id = $1 AND deleted_at IS NULL;
 -- name: SaveSubscription :exec
 -- What Polar says about the org's subscription.
 INSERT INTO billing_accounts (org_id, subscription_id, status, seats, current_period_end, trial_end,
-    cancel_at_period_end, past_due_at, trial_used, fetched_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())
+    cancel_at_period_end, past_due_at, trial_used, storage_priced, storage_cents, fetched_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), now())
 ON CONFLICT (org_id) DO UPDATE SET
     subscription_id = EXCLUDED.subscription_id, status = EXCLUDED.status, seats = EXCLUDED.seats,
     current_period_end = EXCLUDED.current_period_end, trial_end = EXCLUDED.trial_end,
     cancel_at_period_end = EXCLUDED.cancel_at_period_end, past_due_at = EXCLUDED.past_due_at,
     trial_used = billing_accounts.trial_used OR EXCLUDED.trial_used,
+    storage_priced = EXCLUDED.storage_priced, storage_cents = EXCLUDED.storage_cents,
     fetched_at = now(), updated_at = now();
 
 -- name: BillingOrgs :many
@@ -129,3 +130,25 @@ SELECT count(*)::int AS orgs,
 FROM billing_waivers w
 CROSS JOIN LATERAL (SELECT count(*)::int AS nodes FROM nodes n WHERE n.org_id = w.org_id AND n.deleted_at IS NULL) x
 WHERE w.ended_at IS NULL;
+
+-- Raptor Backup Storage, charged (DECISIONS #335).
+
+-- name: StorageDaysToBill :many
+-- Measured days since @since that haven't been billed or skipped, with
+-- what decides it: the org's nodes (each includes 10 GB), its plan, and a
+-- storage waiver.
+SELECT u.org_id, u.day, u.bytes,
+       (SELECT count(*) FROM nodes n WHERE n.org_id = u.org_id AND n.deleted_at IS NULL)::int AS nodes,
+       coalesce(b.status, '') AS status, coalesce(b.storage_priced, false) AS storage_priced,
+       EXISTS (SELECT 1 FROM billing_waivers w WHERE w.org_id = u.org_id AND w.ended_at IS NULL AND w.storage
+               AND (w.ends_at IS NULL OR w.ends_at > now()))::bool AS waived
+FROM backup_storage_usage u
+LEFT JOIN billing_accounts b ON b.org_id = u.org_id
+WHERE u.day >= @since
+  AND NOT EXISTS (SELECT 1 FROM backup_storage_billing x WHERE x.org_id = u.org_id AND x.day = u.day)
+ORDER BY u.day, u.org_id;
+
+-- name: AddStorageBilling :exec
+INSERT INTO backup_storage_billing (org_id, day, used_bytes, over_bytes, gb_months, skipped, sent_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (org_id, day) DO NOTHING;

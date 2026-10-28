@@ -24,7 +24,7 @@ const DefaultAPI = "https://api.polar.sh"
 
 // Polar calls Polar's API with an organization access token
 // (checkouts:write, subscriptions:read, subscriptions:write,
-// customer_sessions:write).
+// customer_sessions:write, and events:write for metered storage).
 type Polar struct {
 	Token string
 	// API is the base URL (empty: DefaultAPI).
@@ -129,6 +129,36 @@ type Subscription struct {
 		ExternalID string `json:"external_id"`
 	} `json:"customer"`
 	Metadata map[string]any `json:"metadata"`
+	// The subscription's prices, and what its meters have counted this
+	// period.
+	Prices []struct {
+		AmountType string `json:"amount_type"`
+		MeterID    string `json:"meter_id"`
+	} `json:"prices"`
+	Meters []struct {
+		MeterID       string  `json:"meter_id"`
+		ConsumedUnits float64 `json:"consumed_units"`
+		Amount        int64   `json:"amount"`
+	} `json:"meters"`
+}
+
+// Metered reports whether the subscription has a metered price on the
+// meter, and what's due for it so far this period, in cents.
+func (s *Subscription) Metered(meterID string) (priced bool, cents int64) {
+	if meterID == "" {
+		return false, 0
+	}
+	for _, p := range s.Prices {
+		if p.AmountType == "metered_unit" && p.MeterID == meterID {
+			priced = true
+		}
+	}
+	for _, m := range s.Meters {
+		if m.MeterID == meterID {
+			cents += m.Amount
+		}
+	}
+	return priced, cents
 }
 
 // Org is the org the subscription is for: the customer's external ID,
@@ -406,4 +436,28 @@ func VerifyWebhook(secret string, h http.Header, body []byte, now time.Time) err
 		}
 	}
 	return ErrSignature
+}
+
+// Event is a usage event for a meter, for a customer by their external
+// ID (the org's). ExternalID makes it once only: Polar skips an event
+// whose external ID it already has.
+type Event struct {
+	Name       string         `json:"name"`
+	Customer   string         `json:"external_customer_id"`
+	ExternalID string         `json:"external_id"`
+	Timestamp  time.Time      `json:"timestamp"`
+	Metadata   map[string]any `json:"metadata"`
+}
+
+// IngestEvents sends usage events, and says how many were new and how
+// many Polar already had.
+func (p *Polar) IngestEvents(ctx context.Context, events []Event) (inserted, duplicates int, err error) {
+	var out struct {
+		Inserted   int `json:"inserted"`
+		Duplicates int `json:"duplicates"`
+	}
+	if err := p.do(ctx, http.MethodPost, "/v1/events/ingest", map[string]any{"events": events}, &out); err != nil {
+		return 0, 0, err
+	}
+	return out.Inserted, out.Duplicates, nil
 }

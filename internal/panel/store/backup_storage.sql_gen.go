@@ -39,7 +39,7 @@ func (q *Queries) BackupStorageOrgsToMeasure(ctx context.Context, day pgtype.Dat
 }
 
 const backupStorageToPurge = `-- name: BackupStorageToPurge :many
-SELECT id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at FROM backup_storage WHERE purged_at IS NULL AND disabled_at < $1
+SELECT id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at, notified FROM backup_storage WHERE purged_at IS NULL AND disabled_at < $1
 `
 
 // Turned off over 30 days ago, data not deleted yet.
@@ -61,6 +61,7 @@ func (q *Queries) BackupStorageToPurge(ctx context.Context, before pgtype.Timest
 			&i.EnabledBy,
 			&i.DisabledAt,
 			&i.PurgedAt,
+			&i.Notified,
 		); err != nil {
 			return nil, err
 		}
@@ -72,8 +73,66 @@ func (q *Queries) BackupStorageToPurge(ctx context.Context, before pgtype.Timest
 	return items, nil
 }
 
+const backupStorageToRemind = `-- name: BackupStorageToRemind :many
+SELECT s.id, s.org_id, s.node_id, s.disabled_at, s.notified,
+       coalesce(n.name, '')::text AS node_name, (n.deleted_at IS NOT NULL)::bool AS node_removed
+FROM backup_storage s LEFT JOIN nodes n ON n.id = s.node_id
+WHERE s.disabled_at IS NOT NULL AND s.purged_at IS NULL
+`
+
+type BackupStorageToRemindRow struct {
+	ID          pgtype.UUID
+	OrgID       pgtype.UUID
+	NodeID      pgtype.UUID
+	DisabledAt  pgtype.Timestamptz
+	Notified    []string
+	NodeName    string
+	NodeRemoved bool
+}
+
+// Turned off, data not deleted yet: for the reminders before it is.
+func (q *Queries) BackupStorageToRemind(ctx context.Context) ([]BackupStorageToRemindRow, error) {
+	rows, err := q.db.Query(ctx, backupStorageToRemind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BackupStorageToRemindRow
+	for rows.Next() {
+		var i BackupStorageToRemindRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.NodeID,
+			&i.DisabledAt,
+			&i.Notified,
+			&i.NodeName,
+			&i.NodeRemoved,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const cancelBackupStoragePurge = `-- name: CancelBackupStoragePurge :exec
+UPDATE backup_storage SET purged_at = now()
+WHERE node_id = $1 AND disabled_at IS NOT NULL AND purged_at IS NULL
+`
+
+// Turned on again: the folder is in use, so nothing turned off before is
+// deleted (or reminded about).
+func (q *Queries) CancelBackupStoragePurge(ctx context.Context, nodeID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, cancelBackupStoragePurge, nodeID)
+	return err
+}
+
 const disableBackupStorage = `-- name: DisableBackupStorage :one
-UPDATE backup_storage SET disabled_at = $1 WHERE node_id = $2 AND disabled_at IS NULL RETURNING id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at
+UPDATE backup_storage SET disabled_at = $1 WHERE node_id = $2 AND disabled_at IS NULL RETURNING id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at, notified
 `
 
 type DisableBackupStorageParams struct {
@@ -93,12 +152,13 @@ func (q *Queries) DisableBackupStorage(ctx context.Context, arg DisableBackupSto
 		&i.EnabledBy,
 		&i.DisabledAt,
 		&i.PurgedAt,
+		&i.Notified,
 	)
 	return i, err
 }
 
 const insertBackupStorage = `-- name: InsertBackupStorage :one
-INSERT INTO backup_storage (org_id, node_id, key_id, enabled_by) VALUES ($1, $2, $3, $4) RETURNING id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at
+INSERT INTO backup_storage (org_id, node_id, key_id, enabled_by) VALUES ($1, $2, $3, $4) RETURNING id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at, notified
 `
 
 type InsertBackupStorageParams struct {
@@ -125,6 +185,7 @@ func (q *Queries) InsertBackupStorage(ctx context.Context, arg InsertBackupStora
 		&i.EnabledBy,
 		&i.DisabledAt,
 		&i.PurgedAt,
+		&i.Notified,
 	)
 	return i, err
 }
@@ -162,7 +223,7 @@ func (q *Queries) LatestBackupStorageUsage(ctx context.Context, orgID pgtype.UUI
 }
 
 const orgBackupStorage = `-- name: OrgBackupStorage :many
-SELECT id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at FROM backup_storage WHERE org_id = $1 AND disabled_at IS NULL
+SELECT id, org_id, node_id, key_id, enabled_at, enabled_by, disabled_at, purged_at, notified FROM backup_storage WHERE org_id = $1 AND disabled_at IS NULL
 `
 
 func (q *Queries) OrgBackupStorage(ctx context.Context, orgID pgtype.UUID) ([]BackupStorage, error) {
@@ -183,6 +244,7 @@ func (q *Queries) OrgBackupStorage(ctx context.Context, orgID pgtype.UUID) ([]Ba
 			&i.EnabledBy,
 			&i.DisabledAt,
 			&i.PurgedAt,
+			&i.Notified,
 		); err != nil {
 			return nil, err
 		}
@@ -192,6 +254,20 @@ func (q *Queries) OrgBackupStorage(ctx context.Context, orgID pgtype.UUID) ([]Ba
 		return nil, err
 	}
 	return items, nil
+}
+
+const setBackupStorageNotified = `-- name: SetBackupStorageNotified :exec
+UPDATE backup_storage SET notified = $2 WHERE id = $1
+`
+
+type SetBackupStorageNotifiedParams struct {
+	ID       pgtype.UUID
+	Notified []string
+}
+
+func (q *Queries) SetBackupStorageNotified(ctx context.Context, arg SetBackupStorageNotifiedParams) error {
+	_, err := q.db.Exec(ctx, setBackupStorageNotified, arg.ID, arg.Notified)
+	return err
 }
 
 const setBackupStoragePurged = `-- name: SetBackupStoragePurged :exec

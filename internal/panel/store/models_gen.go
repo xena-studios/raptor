@@ -130,6 +130,18 @@ type BackupStorage struct {
 	EnabledBy  pgtype.UUID
 	DisabledAt pgtype.Timestamptz
 	PurgedAt   pgtype.Timestamptz
+	Notified   []string
+}
+
+type BackupStorageBilling struct {
+	OrgID     pgtype.UUID
+	Day       pgtype.Date
+	UsedBytes int64
+	OverBytes int64
+	GbMonths  float64
+	Skipped   string
+	SentAt    pgtype.Timestamptz
+	At        pgtype.Timestamptz
 }
 
 type BackupStorageUsage struct {
@@ -155,6 +167,8 @@ type BillingAccount struct {
 	AutoCanceled      bool
 	FetchedAt         pgtype.Timestamptz
 	UpdatedAt         pgtype.Timestamptz
+	StoragePriced     bool
+	StorageCents      int64
 }
 
 type BillingLedger struct {

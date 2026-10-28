@@ -166,8 +166,9 @@ message FailingServer {
 }
 
 message Revenue {
-  // Whether this Panel charges (Polar is set up). Raptor Backup Storage
-  // isn't charged yet either way: storage_cents_month is what it would bill.
+  // Whether this Panel charges (Polar is set up). storage_cents_month is
+  // what Raptor Backup Storage would bill a month at today's use, charged
+  // only with storage_billing_live.
   bool billing_live = 1;
   int64 storage_cents_month = 2;
   int32 storage_orgs = 3;
@@ -182,6 +183,9 @@ message Revenue {
   // mrr_cents).
   int32 waived_orgs = 8;
   int32 waived_nodes = 9;
+  // Whether Raptor Backup Storage past what's included is charged, through
+  // Polar's meter; storage_cents_month is then an estimate of it.
+  bool storage_billing_live = 10;
 }
 
 message GetOverviewResponse {
@@ -562,7 +566,7 @@ message StorageOrg {
 }
 
 message GetBillingInsightsResponse {
-  // Whether billing exists yet; until it does, nothing here is charged.
+  // Whether billing is on; until it is, nothing here is charged.
   bool billing_live = 1;
   int64 storage_cents_month = 2;
   int64 storage_bytes = 3;
@@ -585,6 +589,8 @@ message GetBillingInsightsResponse {
   // mrr_cents or seats_billed).
   int32 waived_orgs = 15;
   int32 waived_nodes = 16;
+  // Whether Raptor Backup Storage past what's included is charged.
+  bool storage_billing_live = 17;
 }
 
 message PlanCount {

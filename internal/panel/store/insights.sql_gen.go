@@ -344,6 +344,7 @@ func (q *Queries) SigninMethods(ctx context.Context) ([]SigninMethodsRow, error)
 const storageOrgs = `-- name: StorageOrgs :many
 SELECT o.id, o.name,
        (SELECT count(*) FROM backup_storage b WHERE b.org_id = o.id AND b.disabled_at IS NULL)::int AS nodes,
+       (SELECT count(*) FROM nodes n WHERE n.org_id = o.id AND n.deleted_at IS NULL)::int AS org_nodes,
        coalesce((SELECT u.bytes FROM backup_storage_usage u WHERE u.org_id = o.id ORDER BY u.day DESC LIMIT 1), 0)::bigint AS bytes
 FROM orgs o
 WHERE EXISTS (SELECT 1 FROM backup_storage b WHERE b.org_id = o.id AND (b.disabled_at IS NULL OR b.purged_at IS NULL))
@@ -351,10 +352,11 @@ ORDER BY bytes DESC LIMIT 50
 `
 
 type StorageOrgsRow struct {
-	ID    pgtype.UUID
-	Name  string
-	Nodes int32
-	Bytes int64
+	ID       pgtype.UUID
+	Name     string
+	Nodes    int32
+	OrgNodes int32
+	Bytes    int64
 }
 
 func (q *Queries) StorageOrgs(ctx context.Context) ([]StorageOrgsRow, error) {
@@ -370,6 +372,7 @@ func (q *Queries) StorageOrgs(ctx context.Context) ([]StorageOrgsRow, error) {
 			&i.ID,
 			&i.Name,
 			&i.Nodes,
+			&i.OrgNodes,
 			&i.Bytes,
 		); err != nil {
 			return nil, err

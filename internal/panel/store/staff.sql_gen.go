@@ -821,14 +821,16 @@ func (q *Queries) StaffRole(ctx context.Context, userID pgtype.UUID) (string, er
 const storageByOrg = `-- name: StorageByOrg :many
 SELECT b.org_id,
        count(*)::int AS nodes,
+       (SELECT count(*) FROM nodes n WHERE n.org_id = b.org_id AND n.deleted_at IS NULL)::int AS org_nodes,
        coalesce((SELECT u.bytes FROM backup_storage_usage u WHERE u.org_id = b.org_id ORDER BY u.day DESC LIMIT 1), 0)::bigint AS bytes
 FROM backup_storage b WHERE b.disabled_at IS NULL GROUP BY b.org_id
 `
 
 type StorageByOrgRow struct {
-	OrgID pgtype.UUID
-	Nodes int32
-	Bytes int64
+	OrgID    pgtype.UUID
+	Nodes    int32
+	OrgNodes int32
+	Bytes    int64
 }
 
 // Each org's latest measured Raptor Backup Storage use and how many of its
@@ -842,7 +844,12 @@ func (q *Queries) StorageByOrg(ctx context.Context) ([]StorageByOrgRow, error) {
 	var items []StorageByOrgRow
 	for rows.Next() {
 		var i StorageByOrgRow
-		if err := rows.Scan(&i.OrgID, &i.Nodes, &i.Bytes); err != nil {
+		if err := rows.Scan(
+			&i.OrgID,
+			&i.Nodes,
+			&i.OrgNodes,
+			&i.Bytes,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

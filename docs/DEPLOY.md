@@ -336,7 +336,7 @@ Billing is off until the Panel has Polar's token and product ([PANEL.md](PANEL.m
 
 1. **Polar → Settings → General → Features:** turn on seat-based pricing (in beta at the time of writing).
 2. **Products → New:** "Raptor node", a monthly subscription, pricing **seat-based**, fixed $12 per seat. No trial on the product: the Panel asks for the free month at checkout, only for an org that hasn't had one. Note its ID.
-3. **Settings → Developers → New token** (an organization access token) with the scopes `checkouts:write`, `subscriptions:read`, `subscriptions:write`, and `customer_sessions:write`, and no others. No expiry, like the deploy token; rotate it by hand if it leaks.
+3. **Settings → Developers → New token** (an organization access token) with the scopes `checkouts:write`, `subscriptions:read`, `subscriptions:write`, `customer_sessions:write`, and `events:write` (for [Backup Storage](#charging-for-raptor-backup-storage)), and no others. No expiry, like the deploy token; rotate it by hand if it leaks.
 4. **Settings → Webhooks → Add endpoint:** `https://api.raptorpanel.net/billing/polar/webhook`, format **Raw**, events `subscription.*` (all of them) and `order.paid`, `order.refunded`. Copy its secret (`whsec_…`). The "API: no challenges" WAF rule already lets Polar's servers through; Polar doesn't follow redirects and gives up after 10 seconds.
 5. **Settings → Customer portal:** turn **off** subscription seat management and plan changes: seats follow nodes, set by the Panel (the sweep would put them back, but an owner shouldn't see the choice). Owners do cards, invoices, and cancelling on Raptor's own Billing page, through the customer portal API; Polar's portal is only linked for the billing address, tax ID, and receipt email, and Polar's failed-payment emails link to it.
 6. **Settings → Preferences → Embedding:** add `app.raptorpanel.net` (and `localhost:5173` in the sandbox). Polar refuses to be framed anywhere else, so without it the checkout falls back to Polar's own page after 20 seconds and the card form stays blank. Apple Pay and Google Pay don't work in embedded forms until Polar validates the domain (email support@polar.sh with the org's slug and the domain), and the app's `Permissions-Policy` also has to allow `payment` for `https://polar.sh` then; cards work without either.
@@ -346,6 +346,18 @@ Billing is off until the Panel has Polar's token and product ([PANEL.md](PANEL.m
 Then check: an org's Billing page offers the free month; checkout lands back on it and the plan appears within seconds (the webhook) or 5 minutes (the sweep). The Panel logs `billing: subscription updated` when it changes seats.
 
 Orgs that already have nodes when billing turns on have 7 days to start a plan (they're emailed), then their nodes go read-only. Tell beta users before you turn it on.
+
+### Charging for Raptor Backup Storage
+
+Storage past the included 10 GB a node is charged through a meter in Polar ([PANEL.md](PANEL.md#billing-polar), DECISIONS #335). It's off until the Panel has the meter's ID, so deploying changes nothing until then. Set it up **before** billing goes live if you can: Polar keeps a subscription on the prices it started with, so plans started before the metered price exists aren't charged for storage (their Billing page says so). Do it in the sandbox first.
+
+1. **Products → Meters → Create meter:** name "Backup Storage over the included", filter **Name equals `backup_storage`**, aggregation **Sum** of the property **`gb_months`**, unit Custom ("GB-month"). The filter and aggregation can't be changed once it has events. Note the meter's ID.
+2. **Products → "Raptor node" → Edit → add a price:** **Metered**, the meter from step 1, pricing **per unit**, **$0.012** a unit (1.2 cents; Polar's API takes `unit_amount` in cents), no cap. Keep the seat price as it is. Save: new checkouts get both prices.
+3. **The token:** add the **`events:write`** scope to the organization access token in the **Polar** item (Settings → Developers), or make a new one with the old scopes plus `events:write` and replace `token`. Without it the sweep logs `backup storage: … 403` and sends nothing.
+4. **Plans started before this** (if any): they keep only the seat price. To charge them for storage, move each subscription onto the product's current prices in Polar's dashboard, if it offers that for the subscription (try it in the sandbox first), or leave them uncharged and tell their owners.
+5. 1Password item **Polar storage meter** in Raptor production, field `meter_id` (the ID from step 1). It's a separate item so the **Polar** item's template keeps working without it; the next deploy sets `PANEL_POLAR_STORAGE_METER_ID` (`deploy/secrets/optional/polar-storage.env.tpl`).
+
+Then check, on a test org with a plan and more than 10 GB a node in Backup Storage: after the next day's measurement the Panel logs `billing: backup storage sent to Polar`, the customer's page in Polar shows a `backup_storage` event with `gb_months`, the subscription's meter counts it, and the org's Billing page shows "This period so far". `backup_storage_billing` says what was sent or skipped for each org and day, and why. The staff Overview stops saying it isn't charged.
 
 ## Discord
 

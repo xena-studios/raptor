@@ -308,7 +308,6 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		gate := &sftpgate.Gate{DB: pool, Sender: router, PanelKey: reg.PanelKey, Log: log}
 		go gate.Run(ctx, time.Minute)
 		backupStorage := backupStorage(pool, router, reg.PanelKey, log)
-		go backupStorage.Run(ctx, time.Hour)
 		keys := &backupkeys.Keeper{DB: pool, Sender: router, PanelKey: reg.PanelKey, DataKey: cfg.Auth.DataKey, Log: log}
 		go keys.Run(ctx, 15*time.Minute)
 		keysConnected = keys.Connected
@@ -341,6 +340,11 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			return err
 		}
 		cfg.Auth.Mailer = countEmails(mailer)
+		// Started once it can email the reminders before a turned-off
+		// folder's data is deleted.
+		backupStorage.Mailer = cfg.Auth.Mailer
+		backupStorage.AppURL = envOr("PANEL_APP_URL", "https://app.raptorpanel.net")
+		go backupStorage.Run(ctx, time.Hour)
 		if bill.Enabled() {
 			bill.Mailer = cfg.Auth.Mailer
 			go bill.Run(ctx, 5*time.Minute)
@@ -357,6 +361,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		go addrs.Retire(ctx, time.Minute)
 		cfg.Staff.BillingLive = bill.Enabled
 		cfg.Staff.BillingChanged = bill.NodesChanged
+		cfg.Staff.StorageBillingLive = bill.StorageBilling
 		cfg.Hub.ClientIPHeader = os.Getenv("PANEL_CLIENT_IP_HEADER")
 		cfg.Hub.OnAddress = addrs.Seen
 		cfg.Orgs.NodeRemoved = func(ctx context.Context, id string) {
@@ -520,15 +525,14 @@ func discordBot(pool *pgxpool.Pool, billingOn bool, log *slog.Logger) (*discord.
 	return b, nil
 }
 
-// backupStorage is Raptor Backup Storage, offered when its B2 settings are
-// set (docs/DEPLOY.md#secrets): a key that can make keys and list and
-// delete files, the bucket's ID, and its S3 endpoint.
 // billingService is billing through Polar, off unless its token and
-// product are set (docs/DEPLOY.md#billing).
+// product are set (docs/DEPLOY.md#billing). Raptor Backup Storage past
+// what's included is charged once its meter is set too.
 func billingService(pool *pgxpool.Pool, log *slog.Logger) *billing.Service {
 	s := &billing.Service{
 		DB: pool, ProductID: os.Getenv("PANEL_POLAR_PRODUCT_ID"), WebhookSecret: os.Getenv("PANEL_POLAR_WEBHOOK_SECRET"),
-		AppURL: envOr("PANEL_APP_URL", "https://app.raptorpanel.net"), Log: log,
+		StorageMeterID: os.Getenv("PANEL_POLAR_STORAGE_METER_ID"),
+		AppURL:         envOr("PANEL_APP_URL", "https://app.raptorpanel.net"), Log: log,
 	}
 	if tok := os.Getenv("PANEL_POLAR_TOKEN"); tok != "" {
 		s.Polar = &billing.Polar{Token: tok, API: os.Getenv("PANEL_POLAR_API")}
@@ -539,9 +543,15 @@ func billingService(pool *pgxpool.Pool, log *slog.Logger) *billing.Service {
 	case s.WebhookSecret == "":
 		log.Warn("PANEL_POLAR_WEBHOOK_SECRET is not set: Polar's webhooks are refused, and plans only update hourly")
 	}
+	if s.Enabled() && !s.StorageBilling() {
+		log.Warn("PANEL_POLAR_STORAGE_METER_ID is not set: Raptor Backup Storage past what's included isn't charged")
+	}
 	return s
 }
 
+// backupStorage is Raptor Backup Storage, offered when its B2 settings are
+// set (docs/DEPLOY.md#secrets): a key that can make keys and list and
+// delete files, the bucket's ID, and its S3 endpoint.
 func backupStorage(pool *pgxpool.Pool, router storage.Sender, key ed25519.PrivateKey, log *slog.Logger) *storage.Service {
 	s := &storage.Service{
 		DB: pool, Sender: router, PanelKey: key, Log: log,

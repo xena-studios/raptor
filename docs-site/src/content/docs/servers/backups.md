@@ -73,10 +73,10 @@ Add patterns (like a `.gitignore`) to leave files out of a server's backups: cac
 
 Offsite backups in Raptor's storage, with no account or keys to set up. Turn it on for a node on its **Backups** tab → **Add destination**, then add it to servers.
 
-- **10 GB included** per node on a plan, shared across the org; more is $12 per TB a month. See [Pricing](/start/pricing/).
+- **10 GB included** per linked node, shared across the org; more is $12 per TB a month. See [Pricing](/start/pricing/).
 - **Encrypted on your node** before it leaves. Raptor stores data it can't read without your node's backup key ([below](#the-backup-key)).
 - **A hacked node can't destroy them:** its key can't delete for good. Anything deleted is kept, hidden, for 30 days, and can be brought back.
-- Turn it off and the files are kept 30 days, then deleted.
+- Turn it off (or remove the node) and the files are kept 30 days, then deleted. Owners are emailed when it's turned off, 7 days before, and the day before. Turning it back on in time keeps them.
 
 ## The backup key
 

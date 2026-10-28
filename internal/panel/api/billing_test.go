@@ -44,6 +44,10 @@ type fakePolar struct {
 	defaultM string
 	orders   []map[string]any
 	invoices map[string]bool
+	// Usage events ingested (each external ID once), and whether ingesting
+	// fails.
+	events     []map[string]any
+	ingestDown bool
 }
 
 // patchKinds are Polar's subscription updates: one kind at a time.
@@ -142,6 +146,23 @@ func (f *fakePolar) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"token": fmt.Sprintf("polar_cst_%d", f.portals), "expires_at": time.Now().Add(time.Hour).UTC(),
 			"customer_portal_url": "https://polar.test/portal",
 		})
+	case r.Method == http.MethodPost && r.URL.Path == "/v1/events/ingest":
+		if f.ingestDown {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		in, dups := 0, 0
+		evs, _ := body["events"].([]any)
+		for _, e := range evs {
+			ev, _ := e.(map[string]any)
+			if slices.ContainsFunc(f.events, func(x map[string]any) bool { return x["external_id"] == ev["external_id"] }) {
+				dups++
+				continue
+			}
+			f.events = append(f.events, ev)
+			in++
+		}
+		reply(map[string]any{"inserted": in, "duplicates": dups})
 	case r.Method == http.MethodGet && f.subs[id] != nil:
 		reply(f.subs[id])
 	case r.Method == http.MethodPatch && f.subs[id] != nil:
