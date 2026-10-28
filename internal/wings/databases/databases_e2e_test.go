@@ -107,6 +107,9 @@ func TestEngines(t *testing.T) {
 			}
 
 			testBrowser(t, svc, one, d1, d2, engine)
+			testReader(t, svc, one, d1, in, addr, engine)
+			testStream(t, svc, one, d1, in, engine)
+			testInstancePage(t, svc, in, d1, d2)
 
 			// Each user reaches its own database over the network...
 			if err := query(engine, addr, d1.User, pw1, d1.Name, "CREATE TABLE t (id INT PRIMARY KEY)"); err != nil {
@@ -461,6 +464,29 @@ func TestTransfers(t *testing.T) {
 			}
 			if _, _, err := svc.Export(ctx, server, d.ID, "", "nope", "csv"); !errors.Is(err, ErrInvalid) {
 				t.Errorf("exporting a table that isn't there: %v", err)
+			}
+
+			// A query's whole result as CSV, run as the database's reader:
+			// one that would change something fails, and changes nothing.
+			jobID, qPath, err := svc.ExportQuery(ctx, server, d.ID, QueryInput{SQL: "SELECT name FROM players ORDER BY id"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if st := wait(t, jobID); st.Status != "succeeded" {
+				t.Fatalf("query export: %+v", st)
+			}
+			qText, _ := os.ReadFile(filepath.Join(fdir, server, qPath))
+			if want := "name\nalex\n\"sam, \"\"the\"\" builder\"\n"; string(qText) != want {
+				t.Errorf("query csv %q, want %q", qText, want)
+			}
+			if jobID, _, err = svc.ExportQuery(ctx, server, d.ID, QueryInput{SQL: "DELETE FROM players"}); err != nil {
+				t.Fatal(err)
+			}
+			if st := wait(t, jobID); st.Status != "failed" {
+				t.Errorf("an export of a DELETE: %+v", st)
+			}
+			if res, err := svc.Query(ctx, server, d.ID, QueryInput{SQL: "SELECT COUNT(*) FROM players"}, true); err != nil || str(res.Rows[0][0]) != "2" {
+				t.Errorf("after exporting a DELETE: %+v %v", res, err)
 			}
 
 			// The dump imports back.

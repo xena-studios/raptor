@@ -10,6 +10,7 @@ import (
 	"crypto/ed25519"
 	"encoding/json"
 	"errors"
+	"maps"
 	"regexp"
 	"strings"
 	"time"
@@ -127,9 +128,33 @@ func (s *Service) authorize(ctx context.Context, q *store.Queries, sess *auth.Se
 
 // Execute implements CommandService.
 func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*panelv1.ExecuteResponse, error) {
+	res, record, err := s.execute(ctx, req)
+	if record != nil {
+		record(nil)
+	}
+	return res, err
+}
+
+// ExecuteThenRecord runs a command like Execute, but leaves its entry in
+// the activity to the caller: record writes it, with more about how it
+// went (a streamed query's rows_changed, once it's done). It's nil when
+// there's nothing to record (a read, or the command failed and was
+// recorded already).
+func (s *Service) ExecuteThenRecord(ctx context.Context, req *panelv1.ExecuteRequest) (*panelv1.ExecuteResponse, func(extra map[string]any), error) {
+	res, record, err := s.execute(ctx, req)
+	if err != nil && record != nil {
+		record(nil)
+		record = nil
+	}
+	return res, record, err
+}
+
+// execute runs a command, returning the function that records it in the
+// activity (nil when it isn't recorded).
+func (s *Service) execute(ctx context.Context, req *panelv1.ExecuteRequest) (*panelv1.ExecuteResponse, func(extra map[string]any), error) {
 	node, err := uuid.Parse(req.GetNodeId())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("bad node ID"))
+		return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("bad node ID"))
 	}
 	env := nodecmd.Envelope{NodeID: node.String(), Action: req.GetAction(), ServerID: req.GetServerId()}
 	if p := req.GetParamsJson(); p != "" {
@@ -138,7 +163,7 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 			limit = maxWriteJSONLen
 		}
 		if len(p) > limit || !json.Valid([]byte(p)) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("params must be a JSON object"))
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("params must be a JSON object"))
 		}
 		env.Params = json.RawMessage(p)
 	}
@@ -147,19 +172,19 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	switch {
 	case req.GetCommandId() != "":
 		if !uuidV7.MatchString(req.GetCommandId()) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("command_id must be a lowercase UUIDv7"))
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("command_id must be a lowercase UUIDv7"))
 		}
 		exp := time.Unix(req.GetExpiresAt(), 0)
 		if !exp.After(now) || exp.After(now.Add(nodecmd.MaxLifetime)) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("expires_at must be within the next 10 minutes"))
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("expires_at must be within the next 10 minutes"))
 		}
 		env.CommandID, env.ExpiresAt = req.GetCommandId(), req.GetExpiresAt()
 	case req.GetSignature() != nil:
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a signed command needs the command_id and expires_at that were signed"))
+		return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a signed command needs the command_id and expires_at that were signed"))
 	default:
 		id, err := uuid.NewV7()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		env.CommandID, env.ExpiresAt = id.String(), now.Add(DefaultLifetime).Unix()
 	}
@@ -186,31 +211,31 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 		})
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// An unpaid org's nodes are read-only; taking support access away still
 	// works. Staff helping under support access aren't stopped.
 	if support == "" && !perms.Read(env.Action) && env.Action != "support.revoke" && env.Action != "support.disable" {
 		if err := s.Billing.CheckWrite(ctx, uuid.UUID(org.Bytes)); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	var granted grantParams
 	if env.Action == "support.grant" && support == "" {
 		if granted, err = s.checkSupportGrant(ctx, nodeID, env); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	if err := s.Auth.RateLimit(ctx, "cmd:user:"+uuid.UUID(sess.UserID.Bytes).String(), commandsPerMin, time.Minute); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	env.UserID = uuid.UUID(sess.UserID.Bytes).String()
 	if err := nodecmd.SignGrant(s.PanelKey, &env); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	raw, err := json.Marshal(env)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cctx, cancel := context.WithTimeout(ctx, executeTimeout)
 	defer cancel()
@@ -224,6 +249,7 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	}
 	executed.Add(ctx, 1, metric.WithAttributes(attribute.String("action", env.Action), attribute.String("outcome", outcome)))
 
+	var record func(extra map[string]any)
 	if !perms.Read(env.Action) || support != "" { // staff are logged even when they only look
 		meta := map[string]any{"action": env.Action, "node": env.NodeID, "command_id": env.CommandID, "signed": env.Signature != nil}
 		// Params aren't kept (they can hold file contents); whether a delete
@@ -251,14 +277,18 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 				meta["rows_changed"] = *r.Affected
 			}
 		}
-		if support != "" {
-			s.auditStaff(ctx, sess, org, support, env, meta)
-		} else {
-			_ = s.Auth.Audit(ctx, nil, auth.Event{Org: org, Actor: sess.UserID, Action: "command", Target: auditTarget(env), Meta: meta})
+		record = func(extra map[string]any) {
+			maps.Copy(meta, extra)
+			actx := context.WithoutCancel(ctx)
+			if support != "" {
+				s.auditStaff(actx, sess, org, support, env, meta)
+			} else {
+				_ = s.Auth.Audit(actx, nil, auth.Event{Org: org, Actor: sess.UserID, Action: "command", Target: auditTarget(env), Meta: meta})
+			}
 		}
 	}
 	if err != nil {
-		return nil, err
+		return nil, record, err
 	}
 	if res.GetError() == "" && support == "" {
 		s.afterSupport(ctx, sess, nodeID, env, granted)
@@ -268,9 +298,9 @@ func (s *Service) Execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	}
 	if res.GetError() != "" {
 		// It ran on the node and failed: the node's words, for the user.
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(res.GetError()))
+		return nil, record, connect.NewError(connect.CodeFailedPrecondition, errors.New(res.GetError()))
 	}
-	return &panelv1.ExecuteResponse{CommandId: env.CommandID, ResultJson: string(res.GetResult()), Duplicate: res.GetDuplicate()}, nil
+	return &panelv1.ExecuteResponse{CommandId: env.CommandID, ResultJson: string(res.GetResult()), Duplicate: res.GetDuplicate()}, record, nil
 }
 
 func mustJSON(v any) []byte {

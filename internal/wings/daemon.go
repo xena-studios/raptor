@@ -926,6 +926,12 @@ func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
 			}
 			return nil
 		},
+		Queries: func() link.Queries {
+			if d := rt.databases.Load(); d != nil {
+				return d
+			}
+			return nil
+		},
 	})
 }
 

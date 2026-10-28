@@ -92,16 +92,18 @@ type BackupTarget struct {
 }
 
 type Database struct {
-	ID         string
-	InstanceID string
-	ServerID   string
-	Label      string
-	DbName     string
-	Username   string
-	Password   []byte
-	CreatedAt  int64
-	RoUsername string
-	RoPassword []byte
+	ID             string
+	InstanceID     string
+	ServerID       string
+	Label          string
+	DbName         string
+	Username       string
+	Password       []byte
+	CreatedAt      int64
+	RoUsername     string
+	RoPassword     []byte
+	ViewerUsername string
+	ViewerPassword []byte
 }
 
 type DatabaseInstance struct {

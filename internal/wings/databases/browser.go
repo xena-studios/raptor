@@ -17,6 +17,8 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
 // The browser (docs/DATABASES.md#the-browser): a server's database seen
@@ -111,34 +113,49 @@ func (se *session) Close() {
 
 // open connects to one of a server's databases as its user.
 func (s *Service) open(ctx context.Context, serverID, id string, multi bool) (*session, error) {
-	r, err := s.database(ctx, serverID, id)
+	r, in, root, err := s.browsable(ctx, serverID, id)
 	if err != nil {
 		return nil, err
-	}
-	in, ir, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
-	if err != nil {
-		return nil, err
-	}
-	if !isSQL(in.Engine) {
-		return nil, invalid{fmt.Sprintf("%s databases have their own browser", engineName(in.Engine))}
-	}
-	if s.state(r.InstanceID) != StateRunning {
-		return nil, notReady{fmt.Sprintf("%s isn't running; start it first", in.Name)}
 	}
 	pass, err := s.sealer.open(r.Password)
 	if err != nil {
 		return nil, err
 	}
+	return connectAs(ctx, in, s.dir(r.InstanceID), root, r.Username, pass, r.DbName, multi)
+}
+
+// browsable reads one of a server's SQL databases for the browser, with
+// its instance (which must be running) and root password.
+func (s *Service) browsable(ctx context.Context, serverID, id string) (store.Database, Instance, string, error) {
+	r, err := s.database(ctx, serverID, id)
+	if err != nil {
+		return r, Instance{}, "", err
+	}
+	in, ir, err := s.instance(ctx, s.o.Store.Read, r.InstanceID)
+	if err != nil {
+		return r, in, "", err
+	}
+	if !isSQL(in.Engine) {
+		return r, in, "", invalid{fmt.Sprintf("%s databases have their own browser", engineName(in.Engine))}
+	}
+	if s.state(r.InstanceID) != StateRunning {
+		return r, in, "", notReady{fmt.Sprintf("%s isn't running; start it first", in.Name)}
+	}
 	root, err := s.sealer.open(ir.RootPassword)
 	if err != nil {
-		return nil, err
+		return r, in, "", err
 	}
-	dir := s.dir(r.InstanceID)
-	se := &session{engine: in.Engine, in: in, dir: dir, root: root, name: r.DbName}
+	return r, in, root, nil
+}
+
+// connectAs opens a session to a database as a user, through the
+// instance's socket, and checks it logs in.
+func connectAs(ctx context.Context, in Instance, dir, root, user, pass, database string, multi bool) (*session, error) {
+	se := &session{engine: in.Engine, in: in, dir: dir, root: root, name: database}
 	switch in.Engine {
 	case MariaDB, MySQL:
 		cfg := mysql.NewConfig()
-		cfg.User, cfg.Passwd, cfg.DBName = r.Username, pass, r.DbName
+		cfg.User, cfg.Passwd, cfg.DBName = user, pass, database
 		cfg.Net, cfg.Addr = "unix", filepath.Join(runDir(dir), "mysqld.sock")
 		cfg.Timeout = 5 * time.Second
 		cfg.MultiStatements = multi
@@ -148,13 +165,17 @@ func (s *Service) open(ctx context.Context, serverID, id string, multi bool) (*s
 		}
 		se.my = sql.OpenDB(c)
 		se.my.SetMaxOpenConns(1)
+		if err := se.my.PingContext(ctx); err != nil {
+			_ = se.my.Close()
+			return nil, fmt.Errorf("connecting to the database: %w", err)
+		}
 	case Postgres:
 		cfg, err := pgx.ParseConfig("")
 		if err != nil {
 			return nil, err
 		}
 		cfg.Host, cfg.Port = runDir(dir), 5432
-		cfg.User, cfg.Password, cfg.Database = r.Username, pass, r.DbName
+		cfg.User, cfg.Password, cfg.Database = user, pass, database
 		cfg.ConnectTimeout = 5 * time.Second
 		// Values are sent as literals the engine casts to the column's
 		// type, so a string can go into any column.
@@ -162,6 +183,8 @@ func (s *Service) open(ctx context.Context, serverID, id string, multi bool) (*s
 		if se.pg, err = pgx.ConnectConfig(ctx, cfg); err != nil {
 			return nil, fmt.Errorf("connecting to the database: %w", err)
 		}
+	default:
+		return nil, fmt.Errorf("unknown engine %q", in.Engine)
 	}
 	return se, nil
 }
@@ -508,6 +531,29 @@ func (s *Service) Rows(ctx context.Context, serverID, id string, q RowsQuery) (R
 	return res, nil
 }
 
+// clean makes a row's values safe to show: binary ones as 0x and hex,
+// long ones cut to maxCell. It returns the bytes kept and whether any
+// value was cut.
+func clean(row []*string) (int, bool) {
+	size, cut := 0, false
+	for j, v := range row {
+		if v == nil {
+			continue
+		}
+		s := *v
+		if !utf8.ValidString(s) {
+			s = "0x" + hex.EncodeToString([]byte(s))
+		}
+		if len(s) > maxCell {
+			s = strings.ToValidUTF8(s[:maxCell], "")
+			cut = true
+		}
+		size += len(s)
+		row[j] = &s
+	}
+	return size, cut
+}
+
 // add takes rows into a result, up to its bounds.
 func (r *Result) add(rows [][]*string, limit int) {
 	size := 0
@@ -517,21 +563,9 @@ func (r *Result) add(rows [][]*string, limit int) {
 			r.More = true
 			break
 		}
-		for j, v := range row {
-			if v == nil {
-				continue
-			}
-			s := *v
-			if !utf8.ValidString(s) {
-				s = "0x" + hex.EncodeToString([]byte(s))
-			}
-			if len(s) > maxCell {
-				s = strings.ToValidUTF8(s[:maxCell], "")
-				r.Cut = true
-			}
-			size += len(s)
-			row[j] = &s
-		}
+		n, cut := clean(row)
+		size += n
+		r.Cut = r.Cut || cut
 		r.Rows = append(r.Rows, row)
 	}
 }
@@ -542,25 +576,72 @@ type QueryInput struct {
 	Timeout int    `json:"timeout,omitempty"` // seconds; DefaultTimeout if 0
 }
 
-// Query runs SQL on one of a server's databases. readOnly runs one
-// statement in a read-only transaction, for those who may only look;
-// otherwise any statements run, and the last one's result is returned.
-func (s *Service) Query(ctx context.Context, serverID, id string, in QueryInput, readOnly bool) (Result, error) {
+// check returns the SQL to run and its time limit, at most max seconds.
+func (in QueryInput) check(maxSecs int) (string, int, error) {
 	text := strings.TrimSpace(in.SQL)
 	if text == "" {
-		return Result{}, invalid{"there's no SQL to run"}
+		return "", 0, invalid{"there's no SQL to run"}
 	}
 	if len(text) > maxSQL {
-		return Result{}, invalid{"the SQL is over 1 MB"}
+		return "", 0, invalid{"the SQL is over 1 MB"}
 	}
 	timeout := in.Timeout
 	if timeout <= 0 {
 		timeout = DefaultTimeout
 	}
-	if timeout > MaxTimeout {
-		return Result{}, invalid{fmt.Sprintf("a query runs for at most %d seconds", MaxTimeout)}
+	if timeout > maxSecs {
+		return "", 0, invalid{fmt.Sprintf("a query runs for at most %d seconds", maxSecs)}
 	}
-	se, err := s.open(ctx, serverID, id, !readOnly)
+	return text, timeout, nil
+}
+
+// sink takes a query's results as they're read: each result with rows
+// starts with its columns, then its rows, raw.
+type sink interface {
+	columns(cols []ResultColumn)
+	row(row []*string) error
+}
+
+// ran is what a run of SQL did: how many statements ran, and how many
+// rows the last changed (-1 when it returned rows).
+type ran struct {
+	Statements int
+	Affected   int64
+}
+
+// errCancelled is a query someone stopped (db.query.cancel).
+var errCancelled = errors.New("cancelled")
+
+// stopped turns a query's error into what to tell the user when it was
+// stopped: by its time limit (or PostgreSQL's statement_timeout, 57014),
+// or by someone.
+func stopped(ctx context.Context, err error, timeout int) error {
+	if errors.Is(context.Cause(ctx), errCancelled) {
+		return invalid{"the query was cancelled"}
+	}
+	var pgErr *pgconn.PgError
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) || (errors.As(err, &pgErr) && pgErr.Code == "57014") {
+		return invalid{fmt.Sprintf("it ran for over %d seconds and was stopped", timeout)}
+	}
+	return err
+}
+
+// Query runs SQL on one of a server's databases and returns its result,
+// up to MaxRows rows. readOnly runs one statement in a read-only
+// transaction as the database's reader, for those who may only look;
+// otherwise any statements run as its own user, and the last one's result
+// is returned. Results with more rows stream (StartQuery).
+func (s *Service) Query(ctx context.Context, serverID, id string, in QueryInput, readOnly bool) (Result, error) {
+	text, timeout, err := in.check(MaxTimeout)
+	if err != nil {
+		return Result{}, err
+	}
+	var se *session
+	if readOnly {
+		se, err = s.openViewer(ctx, serverID, id)
+	} else {
+		se, err = s.open(ctx, serverID, id, true)
+	}
 	if err != nil {
 		return Result{}, err
 	}
@@ -568,95 +649,152 @@ func (s *Service) Query(ctx context.Context, serverID, id string, in QueryInput,
 	qctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 	start := time.Now()
-	var res Result
-	if se.engine == Postgres {
-		res, err = se.queryPG(qctx, text, readOnly, timeout)
-	} else {
-		res, err = se.queryMy(qctx, text, readOnly)
-	}
-	// PostgreSQL's own statement_timeout may stop it first (57014).
-	var pgErr *pgconn.PgError
-	if errors.Is(qctx.Err(), context.DeadlineExceeded) || (errors.As(err, &pgErr) && pgErr.Code == "57014") {
-		return Result{}, invalid{fmt.Sprintf("it ran for over %d seconds and was stopped", timeout)}
+	c := &collector{}
+	done, err := se.run(qctx, text, readOnly, timeout, c)
+	if err == nil && qctx.Err() != nil {
+		err = context.Cause(qctx) // stopped, though the engine said nothing
 	}
 	if err != nil {
-		return Result{}, err
+		return Result{}, stopped(qctx, err, timeout)
+	}
+	res := c.res
+	res.Statements, res.Affected = done.Statements, done.Affected
+	if done.Affected >= 0 {
+		res.Columns, res.Rows, res.More, res.Cut = nil, [][]*string{}, false, false
+	}
+	if res.Rows == nil {
+		res.Rows = [][]*string{}
 	}
 	res.Millis = time.Since(start).Milliseconds()
 	return res, nil
 }
 
-func (se *session) queryPG(ctx context.Context, text string, readOnly bool, timeout int) (Result, error) {
-	if _, err := se.pg.Exec(ctx, fmt.Sprintf("SET statement_timeout = %d", timeout*1000)); err != nil {
-		return Result{}, err
+// collector keeps the last result with rows, up to MaxRows rows and
+// maxResultBytes, and reads past them without keeping them.
+type collector struct {
+	res  Result
+	size int
+}
+
+func (c *collector) columns(cols []ResultColumn) {
+	c.res = Result{Columns: cols, Rows: [][]*string{}}
+	c.size = 0
+}
+
+func (c *collector) row(row []*string) error {
+	if len(c.res.Rows) >= MaxRows || c.size > maxResultBytes {
+		c.res.More = true
+		return nil
 	}
+	n, cut := clean(row)
+	c.size += n
+	c.res.Cut = c.res.Cut || cut
+	c.res.Rows = append(c.res.Rows, row)
+	return nil
+}
+
+// asText is raw values as text; nil is NULL.
+func asText(raw [][]byte) []*string {
+	row := make([]*string, len(raw))
+	for i, v := range raw {
+		if v != nil {
+			s := string(v)
+			row[i] = &s
+		}
+	}
+	return row
+}
+
+// run runs SQL, giving out its results as they're read. A query whose
+// context ends is stopped on the server too: closing the connection alone
+// leaves it running.
+func (se *session) run(ctx context.Context, sql string, readOnly bool, timeout int, out sink) (ran, error) {
+	if se.engine == Postgres {
+		return se.runPG(ctx, sql, readOnly, timeout, out)
+	}
+	return se.runMy(ctx, sql, readOnly, out)
+}
+
+// watch stops the query on connection id once ctx ends, until stop is
+// called.
+func (se *session) watch(ctx context.Context, id int64) (stop func()) {
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			se.kill(id)
+		case <-done:
+		}
+	}()
+	return func() { close(done) }
+}
+
+func (se *session) runPG(ctx context.Context, text string, readOnly bool, timeout int, out sink) (ran, error) {
+	if _, err := se.pg.Exec(ctx, fmt.Sprintf("SET statement_timeout = %d", timeout*1000)); err != nil {
+		return ran{}, err
+	}
+	defer se.watch(ctx, int64(se.pg.PgConn().PID()))()
 	if readOnly {
 		if _, err := se.pg.Exec(ctx, "BEGIN READ ONLY"); err != nil {
-			return Result{}, err
+			return ran{}, err
 		}
 		defer func() { _, _ = se.pg.Exec(context.WithoutCancel(ctx), "ROLLBACK") }()
 		// One statement only: the extended protocol takes no more, so
 		// nothing can end the read-only transaction and go on.
 		rows, err := se.pg.Query(ctx, text, pgx.QueryExecModeDescribeExec, pgx.QueryResultFormats{pgx.TextFormatCode})
 		if err != nil {
-			return Result{}, err
+			return ran{}, err
 		}
 		defer rows.Close()
-		res := Result{Affected: -1, Statements: 1}
+		cols := []ResultColumn{}
 		for _, f := range rows.FieldDescriptions() {
-			res.Columns = append(res.Columns, ResultColumn{Name: f.Name})
+			cols = append(cols, ResultColumn{Name: f.Name})
 		}
-		var out [][]*string
-		for rows.Next() && len(out) <= MaxRows {
-			raw := rows.RawValues()
-			row := make([]*string, len(raw))
-			for i, v := range raw {
-				if v != nil {
-					s := string(v)
-					row[i] = &s
-				}
+		out.columns(cols)
+		for rows.Next() {
+			if err := out.row(asText(rows.RawValues())); err != nil {
+				return ran{}, err
 			}
-			out = append(out, row)
 		}
 		if err := rows.Err(); err != nil {
-			return Result{}, err
+			return ran{}, err
 		}
-		res.add(out, MaxRows)
-		return res, nil
+		return ran{Statements: 1, Affected: -1}, nil
 	}
-	results, err := se.pg.PgConn().Exec(ctx, text).ReadAll()
-	if err != nil {
-		return Result{}, err
-	}
-	res := Result{Affected: -1, Statements: len(results), Rows: [][]*string{}}
-	if len(results) == 0 {
-		return res, nil
-	}
-	last := results[len(results)-1]
-	if len(last.FieldDescriptions) == 0 {
-		res.Affected = last.CommandTag.RowsAffected()
-		return res, nil
-	}
-	for _, f := range last.FieldDescriptions {
-		res.Columns = append(res.Columns, ResultColumn{Name: f.Name})
-	}
-	res.add(pgRows(last), MaxRows)
-	return res, nil
-}
-
-func pgRows(r *pgconn.Result) [][]*string {
-	out := make([][]*string, 0, len(r.Rows))
-	for _, raw := range r.Rows {
-		row := make([]*string, len(raw))
-		for i, v := range raw {
-			if v != nil {
-				s := string(v)
-				row[i] = &s
+	mrr := se.pg.PgConn().Exec(ctx, text)
+	res := ran{Affected: -1}
+	for mrr.NextResult() {
+		rr := mrr.ResultReader()
+		fds := rr.FieldDescriptions()
+		if len(fds) > 0 {
+			cols := make([]ResultColumn, len(fds))
+			for i, f := range fds {
+				cols[i] = ResultColumn{Name: f.Name}
+			}
+			out.columns(cols)
+		}
+		for rr.NextRow() {
+			if err := out.row(asText(rr.Values())); err != nil {
+				_, _ = rr.Close()
+				_ = mrr.Close()
+				return ran{}, err
 			}
 		}
-		out = append(out, row)
+		tag, err := rr.Close()
+		if err != nil {
+			_ = mrr.Close()
+			return ran{}, err
+		}
+		res.Statements++
+		res.Affected = -1
+		if len(fds) == 0 {
+			res.Affected = tag.RowsAffected()
+		}
 	}
-	return out
+	if err := mrr.Close(); err != nil {
+		return ran{}, err
+	}
+	return res, nil
 }
 
 // returnsRows guesses whether MariaDB or MySQL SQL returns rows, by its
@@ -670,35 +808,23 @@ func returnsRows(text string) bool {
 	return false
 }
 
-func (se *session) queryMy(ctx context.Context, text string, readOnly bool) (Result, error) {
+func (se *session) runMy(ctx context.Context, text string, readOnly bool, out sink) (ran, error) {
 	conn, err := se.my.Conn(ctx)
 	if err != nil {
-		return Result{}, fmt.Errorf("connecting to the database: %w", err)
+		return ran{}, fmt.Errorf("connecting to the database: %w", err)
 	}
 	defer func() { _ = conn.Close() }()
 	var connID int64
 	if err := conn.QueryRowContext(ctx, "SELECT CONNECTION_ID()").Scan(&connID); err != nil {
-		return Result{}, err
+		return ran{}, err
 	}
-	// A query that runs out of time is killed on the server too; closing
-	// the connection alone leaves it running.
-	done := make(chan struct{})
-	defer close(done)
-	go func() {
-		select {
-		case <-ctx.Done():
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				se.kill(connID)
-			}
-		case <-done:
-		}
-	}()
+	defer se.watch(ctx, connID)()
 	if readOnly {
 		// The session and the transaction are both read-only, and the
 		// connection takes one statement at a time.
 		for _, stmt := range []string{"SET SESSION TRANSACTION READ ONLY", "START TRANSACTION READ ONLY"} {
 			if _, err := conn.ExecContext(ctx, stmt); err != nil {
-				return Result{}, err
+				return ran{}, err
 			}
 		}
 		defer func() { _, _ = conn.ExecContext(context.WithoutCancel(ctx), "ROLLBACK") }()
@@ -706,52 +832,63 @@ func (se *session) queryMy(ctx context.Context, text string, readOnly bool) (Res
 	if !returnsRows(text) {
 		r, err := conn.ExecContext(ctx, text)
 		if err != nil {
-			return Result{}, err
+			return ran{}, err
 		}
 		n, _ := r.RowsAffected()
-		return Result{Affected: n, Rows: [][]*string{}}, nil
+		return ran{Statements: 1, Affected: n}, nil
 	}
 	rows, err := conn.QueryContext(ctx, text)
 	if err != nil {
-		return Result{}, err
+		return ran{}, err
 	}
 	defer func() { _ = rows.Close() }()
-	res := Result{Affected: -1}
-	cols, err := rows.ColumnTypes()
-	if err != nil {
-		return Result{}, err
-	}
-	for _, c := range cols {
-		res.Columns = append(res.Columns, ResultColumn{Name: c.Name(), Type: strings.ToLower(c.DatabaseTypeName())})
-	}
-	var out [][]*string
-	for rows.Next() && len(out) <= MaxRows {
+	res := ran{Affected: -1}
+	for {
+		cols, err := rows.ColumnTypes()
+		if err != nil {
+			return ran{}, err
+		}
+		rc := make([]ResultColumn, len(cols))
+		for i, c := range cols {
+			rc[i] = ResultColumn{Name: c.Name(), Type: strings.ToLower(c.DatabaseTypeName())}
+		}
+		out.columns(rc)
 		raw := make([]sql.RawBytes, len(cols))
 		ptrs := make([]any, len(cols))
 		for i := range raw {
 			ptrs[i] = &raw[i]
 		}
-		if err := rows.Scan(ptrs...); err != nil {
-			return Result{}, err
-		}
-		row := make([]*string, len(cols))
-		for i, v := range raw {
-			if v != nil {
-				s := string(v)
-				row[i] = &s
+		for rows.Next() {
+			if err := rows.Scan(ptrs...); err != nil {
+				return ran{}, err
+			}
+			row := make([][]byte, len(raw))
+			for i, v := range raw {
+				if v != nil {
+					row[i] = v
+				}
+			}
+			if err := out.row(asText(row)); err != nil {
+				return ran{}, err
 			}
 		}
-		out = append(out, row)
+		if err := rows.Err(); err != nil {
+			return ran{}, err
+		}
+		res.Statements++
+		if !rows.NextResultSet() {
+			break
+		}
 	}
 	if err := rows.Err(); err != nil {
-		return Result{}, err
+		return ran{}, err
 	}
-	res.add(out, MaxRows)
 	return res, nil
 }
 
-// kill stops a running MariaDB or MySQL query, as root.
-func (se *session) kill(connID int64) {
+// kill stops a running query on a connection, as root: MariaDB and MySQL's
+// KILL QUERY, PostgreSQL's pg_cancel_backend.
+func (se *session) kill(id int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	db, err := connect(se.in, se.dir, se.root)
@@ -759,7 +896,11 @@ func (se *session) kill(connID int64) {
 		return
 	}
 	defer func() { _ = db.Close() }()
-	_, _ = db.ExecContext(ctx, "KILL QUERY "+strconv.FormatInt(connID, 10))
+	if se.engine == Postgres {
+		_, _ = db.ExecContext(ctx, "SELECT pg_cancel_backend($1)", id)
+		return
+	}
+	_, _ = db.ExecContext(ctx, "KILL QUERY "+strconv.FormatInt(id, 10))
 }
 
 // RowEdit changes rows: inserts one (Values), updates one (Key and
@@ -945,11 +1086,12 @@ func (s *Service) EditRows(ctx context.Context, serverID, id, op string, e RowEd
 
 // Process is a connection to the database.
 type Process struct {
-	ID      int64  `json:"id"`
-	User    string `json:"user"`
-	State   string `json:"state"`
-	Seconds int64  `json:"seconds"`
-	Query   string `json:"query"`
+	ID       int64  `json:"id"`
+	User     string `json:"user"`
+	Database string `json:"database,omitempty"` // an instance's: which database it's using
+	State    string `json:"state"`
+	Seconds  int64  `json:"seconds"`
+	Query    string `json:"query"`
 }
 
 // Processes lists the connections to a database its user can see: its own.

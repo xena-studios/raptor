@@ -49,6 +49,9 @@ type Config struct {
 	OnConnected func()
 	// Transfers returns the file service once it's ready (nil before).
 	Transfers func() Transfers
+	// Queries returns the database service once it's ready (nil before),
+	// for the database browser's streamed queries.
+	Queries func() Queries
 	// Servers, Schedules, and Backups return the services once they're
 	// ready (nil before).
 	Servers   func() Servers

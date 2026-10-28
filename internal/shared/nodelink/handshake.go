@@ -194,10 +194,22 @@ const (
 	// CapDatabaseSettings: instances' advanced settings (settings.advanced,
 	// name = value lines checked against each engine's safe list).
 	CapDatabaseSettings = "db-settings"
+	// CapDatabaseQueryStream: db.query and db.query.read take stream, and
+	// send their results over a transfer connection; db.query.cancel stops
+	// one; db.export takes a query. Readers' SQL runs as the database's
+	// reader.
+	CapDatabaseQueryStream = "db-query-stream"
+	// CapDatabaseInstanceBrowser: node.db.databases, node.db.users,
+	// node.db.processes, and node.db.process.kill, an instance's own page.
+	CapDatabaseInstanceBrowser = "db-instance-browser"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
-var nodeCapabilities = []string{CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser, CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts, CapDatabaseSettings}
+var nodeCapabilities = []string{
+	CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser,
+	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
+	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser,
+}
 
 // NewHello starts a handshake for a node.
 func NewHello(nodeID, purpose, software string) (Hello, error) {

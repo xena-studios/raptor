@@ -34,6 +34,8 @@ export function DatabaseBrowser({
   id,
   canWrite,
   transfers,
+  stream,
+  embedded,
 }: {
   orgId: string;
   nodeId: string;
@@ -42,6 +44,10 @@ export function DatabaseBrowser({
   canWrite: boolean;
   // The node's Wings can import and export.
   transfers: boolean;
+  // The node's Wings streams query results (dbQueryStreamCapability).
+  stream: boolean;
+  // Shown inside an instance's page, which has its own way back.
+  embedded?: boolean;
 }) {
   const list = useServerDatabases(nodeId, serverId);
   const db = list.data?.databases.find((d) => d.id === id);
@@ -56,6 +62,7 @@ export function DatabaseBrowser({
   const [creating, setCreating] = useState(false);
   const [sqlStart, setSqlStart] = useState("");
   const [transfer, setTransfer] = useState<"import" | "export">();
+  const [exportQuery, setExportQuery] = useState<string>();
 
   const tables = schema.data ?? [];
   const table = tables.find((t) => tableKey(t) === picked) ?? tables[0];
@@ -72,13 +79,15 @@ export function DatabaseBrowser({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Link
-          to="/orgs/$orgId/servers/$serverId/databases"
-          params={{ orgId, serverId }}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" /> Databases
-        </Link>
+        {!embedded && (
+          <Link
+            to="/orgs/$orgId/servers/$serverId/databases"
+            params={{ orgId, serverId }}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" /> Databases
+          </Link>
+        )}
         {db && (
           <>
             <h2 className="font-mono text-base">{db.label}</h2>
@@ -246,6 +255,8 @@ export function DatabaseBrowser({
                 tables={tables}
                 canWrite={canWrite}
                 start={sqlStart}
+                stream={stream}
+                onExport={canWrite && transfers && stream ? setExportQuery : undefined}
               />
             )}
             {tab === "processes" && (
@@ -276,6 +287,17 @@ export function DatabaseBrowser({
           mongo={db?.engine === "mongodb"}
           collection={collection}
           onClose={() => setTransfer(undefined)}
+        />
+      )}
+      {exportQuery !== undefined && (
+        <TransferDialog
+          orgId={orgId}
+          nodeId={nodeId}
+          serverId={serverId}
+          id={id}
+          kind="export"
+          query={exportQuery}
+          onClose={() => setExportQuery(undefined)}
         />
       )}
       {change && (

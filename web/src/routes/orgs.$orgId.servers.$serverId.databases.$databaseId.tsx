@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { DatabaseBrowser } from "@/components/db-browser";
-import { dbTransfersCapability } from "@/lib/db-browser";
+import { dbQueryStreamCapability, dbTransfersCapability } from "@/lib/db-browser";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
@@ -22,6 +22,7 @@ function Browser() {
       id={databaseId}
       canWrite={can(server, "databases.write")}
       transfers={!!node?.capabilities.includes(dbTransfersCapability)}
+      stream={!!node?.capabilities.includes(dbQueryStreamCapability)}
     />
   );
 }

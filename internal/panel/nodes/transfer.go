@@ -42,6 +42,7 @@ type UploadState struct {
 const (
 	uploadPath   = "/upload"
 	downloadPath = "/download"
+	queryPath    = "/query"
 )
 
 // ErrTransfer is a chunk Wings refused or couldn't complete.
@@ -160,6 +161,26 @@ func (t *Transfer) Download(ctx context.Context, offset, n int64, size int64, w 
 		err = fmt.Errorf("%w: got %d of %d bytes", ErrTransfer, got, want)
 	}
 	return got, err
+}
+
+// Query runs the database query the transfer is for, and returns its
+// results as Wings sends them: lines of JSON (databases.StreamQuery).
+// Cancelling ctx stops the query on the engine.
+func (t *Transfer) Query(ctx context.Context) (io.ReadCloser, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodelink.BaseURL+queryPath, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := t.Session.Client().Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		_ = resp.Body.Close()
+		return nil, fmt.Errorf("%w: %s", ErrTransfer, strings.TrimSpace(string(b)))
+	}
+	return resp.Body, nil
 }
 
 // Close ends the transfer connection.

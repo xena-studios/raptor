@@ -30,7 +30,7 @@ var signing = map[string]string{
 	"backup.recover":       "always", "backup.restore": "always",
 
 	"db.create": "never", "db.delete": "always", "db.list": "never", "db.password": "always", "db.password.reset": "never",
-	"db.process.kill": "never", "db.processes": "never", "db.query": "never", "db.query.read": "never",
+	"db.process.kill": "never", "db.processes": "never", "db.query": "never", "db.query.read": "never", "db.query.cancel": "never",
 	"db.export": "never", "db.import": "never", "db.readonly.remove": "never", "db.keys": "never", "db.key": "never", "db.key.edit": "never",
 	"db.redis.command": "never", "db.redis.command.read": "never", "db.collections": "never", "db.documents": "never",
 	"db.document.edit": "never", "db.collection.edit": "never", "db.readonly.set": "never", "db.restore": "always",
@@ -51,6 +51,7 @@ var signing = map[string]string{
 	"node.doctor": "never", "node.firewall": "always", "node.health": "never", "node.hostname": "never",
 	"node.logs": "never", "node.metrics": "never", "node.reboot": "always", "node.sftp": "never",
 	"node.db.instance.delete": "always", "node.db.instance.external": "always", "node.db.instance.goback": "always", "node.db.instance.version": "never", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never",
+	"node.db.databases": "never", "node.db.users": "never", "node.db.processes": "never", "node.db.process.kill": "never",
 	"node.network.delete": "never", "node.network.rules": "never", "node.network.save": "never", "node.networks": "never",
 	"node.system": "never", "node.time": "never",
 	"node.update": "never", // the release is checked against Raptor's signing key instead

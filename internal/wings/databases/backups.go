@@ -251,6 +251,9 @@ func (s *Service) provision(ctx context.Context, in Instance, r store.Database, 
 	if err := createDatabase(ctx, in, dir, root, r.DbName, r.Username, pass); err != nil {
 		return err
 	}
+	if err := s.regrantViewer(ctx, in, r, root); err != nil {
+		return err
+	}
 	if r.RoUsername == "" || r.RoPassword == nil {
 		return nil
 	}

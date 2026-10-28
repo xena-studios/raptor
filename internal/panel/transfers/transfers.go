@@ -64,6 +64,7 @@ const idleClose = time.Minute
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("PUT "+UploadPath, h.upload)
 	mux.HandleFunc("GET "+DownloadPath, h.download)
+	mux.HandleFunc("POST "+QueryPath, h.query)
 }
 
 // run sends a command as the signed-in user (their access is checked, and

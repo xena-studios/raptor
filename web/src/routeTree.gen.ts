@@ -62,7 +62,6 @@ import { Route as OrgsOrgIdEggsEggIdEditRouteImport } from './routes/orgs.$orgId
 import { Route as OrgsOrgIdNodesNodeIdIndexRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.index'
 import { Route as OrgsOrgIdNodesNodeIdActivityRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.activity'
 import { Route as OrgsOrgIdNodesNodeIdBackupsRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.backups'
-import { Route as OrgsOrgIdNodesNodeIdDatabasesRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.databases'
 import { Route as OrgsOrgIdNodesNodeIdDisksRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.disks'
 import { Route as OrgsOrgIdNodesNodeIdHealthRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.health'
 import { Route as OrgsOrgIdNodesNodeIdNetworksRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.networks'
@@ -83,6 +82,8 @@ import { Route as PopoutOrgIdNodesNodeIdStatsRouteImport } from './routes/popout
 import { Route as PopoutOrgIdServersServerIdConsoleRouteImport } from './routes/popout.$orgId.servers.$serverId.console'
 import { Route as PopoutOrgIdServersServerIdFilesRouteImport } from './routes/popout.$orgId.servers.$serverId.files'
 import { Route as PopoutOrgIdServersServerIdStatsRouteImport } from './routes/popout.$orgId.servers.$serverId.stats'
+import { Route as OrgsOrgIdNodesNodeIdDatabasesIndexRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.databases.index'
+import { Route as OrgsOrgIdNodesNodeIdDatabasesInstanceIdRouteImport } from './routes/orgs.$orgId.nodes.$nodeId.databases.$instanceId'
 import { Route as OrgsOrgIdServersNodeIdServerIdSplatRouteImport } from './routes/orgs.$orgId.servers.$nodeId.$serverId.$'
 import { Route as OrgsOrgIdServersServerIdAddonsKindRouteImport } from './routes/orgs.$orgId.servers.$serverId.addons.$kind'
 import { Route as OrgsOrgIdServersServerIdDatabasesIndexRouteImport } from './routes/orgs.$orgId.servers.$serverId.databases.index'
@@ -363,12 +364,6 @@ const OrgsOrgIdNodesNodeIdBackupsRoute =
     path: '/backups',
     getParentRoute: () => OrgsOrgIdNodesNodeIdRoute,
   } as any)
-const OrgsOrgIdNodesNodeIdDatabasesRoute =
-  OrgsOrgIdNodesNodeIdDatabasesRouteImport.update({
-    id: '/databases',
-    path: '/databases',
-    getParentRoute: () => OrgsOrgIdNodesNodeIdRoute,
-  } as any)
 const OrgsOrgIdNodesNodeIdDisksRoute =
   OrgsOrgIdNodesNodeIdDisksRouteImport.update({
     id: '/disks',
@@ -489,6 +484,18 @@ const PopoutOrgIdServersServerIdStatsRoute =
     path: '/stats',
     getParentRoute: () => PopoutOrgIdServersServerIdRoute,
   } as any)
+const OrgsOrgIdNodesNodeIdDatabasesIndexRoute =
+  OrgsOrgIdNodesNodeIdDatabasesIndexRouteImport.update({
+    id: '/databases/',
+    path: '/databases/',
+    getParentRoute: () => OrgsOrgIdNodesNodeIdRoute,
+  } as any)
+const OrgsOrgIdNodesNodeIdDatabasesInstanceIdRoute =
+  OrgsOrgIdNodesNodeIdDatabasesInstanceIdRouteImport.update({
+    id: '/databases/$instanceId',
+    path: '/databases/$instanceId',
+    getParentRoute: () => OrgsOrgIdNodesNodeIdRoute,
+  } as any)
 const OrgsOrgIdServersNodeIdServerIdSplatRoute =
   OrgsOrgIdServersNodeIdServerIdSplatRouteImport.update({
     id: '/$',
@@ -566,7 +573,6 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/eggs/$eggId/edit': typeof OrgsOrgIdEggsEggIdEditRoute
   '/orgs/$orgId/nodes/$nodeId/activity': typeof OrgsOrgIdNodesNodeIdActivityRoute
   '/orgs/$orgId/nodes/$nodeId/backups': typeof OrgsOrgIdNodesNodeIdBackupsRoute
-  '/orgs/$orgId/nodes/$nodeId/databases': typeof OrgsOrgIdNodesNodeIdDatabasesRoute
   '/orgs/$orgId/nodes/$nodeId/disks': typeof OrgsOrgIdNodesNodeIdDisksRoute
   '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/networks': typeof OrgsOrgIdNodesNodeIdNetworksRoute
@@ -589,9 +595,11 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/eggs/$eggId/': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$serverId/': typeof OrgsOrgIdServersServerIdIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/databases/$instanceId': typeof OrgsOrgIdNodesNodeIdDatabasesInstanceIdRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
   '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
   '/orgs/$orgId/servers/$serverId/databases/$databaseId': typeof OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute
+  '/orgs/$orgId/nodes/$nodeId/databases/': typeof OrgsOrgIdNodesNodeIdDatabasesIndexRoute
   '/orgs/$orgId/servers/$serverId/databases/': typeof OrgsOrgIdServersServerIdDatabasesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -640,7 +648,6 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/eggs/$eggId/edit': typeof OrgsOrgIdEggsEggIdEditRoute
   '/orgs/$orgId/nodes/$nodeId/activity': typeof OrgsOrgIdNodesNodeIdActivityRoute
   '/orgs/$orgId/nodes/$nodeId/backups': typeof OrgsOrgIdNodesNodeIdBackupsRoute
-  '/orgs/$orgId/nodes/$nodeId/databases': typeof OrgsOrgIdNodesNodeIdDatabasesRoute
   '/orgs/$orgId/nodes/$nodeId/disks': typeof OrgsOrgIdNodesNodeIdDisksRoute
   '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/networks': typeof OrgsOrgIdNodesNodeIdNetworksRoute
@@ -663,9 +670,11 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/eggs/$eggId': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$serverId': typeof OrgsOrgIdServersServerIdIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/databases/$instanceId': typeof OrgsOrgIdNodesNodeIdDatabasesInstanceIdRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
   '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
   '/orgs/$orgId/servers/$serverId/databases/$databaseId': typeof OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute
+  '/orgs/$orgId/nodes/$nodeId/databases': typeof OrgsOrgIdNodesNodeIdDatabasesIndexRoute
   '/orgs/$orgId/servers/$serverId/databases': typeof OrgsOrgIdServersServerIdDatabasesIndexRoute
 }
 export interface FileRoutesById {
@@ -721,7 +730,6 @@ export interface FileRoutesById {
   '/orgs/$orgId/eggs/$eggId/edit': typeof OrgsOrgIdEggsEggIdEditRoute
   '/orgs/$orgId/nodes/$nodeId/activity': typeof OrgsOrgIdNodesNodeIdActivityRoute
   '/orgs/$orgId/nodes/$nodeId/backups': typeof OrgsOrgIdNodesNodeIdBackupsRoute
-  '/orgs/$orgId/nodes/$nodeId/databases': typeof OrgsOrgIdNodesNodeIdDatabasesRoute
   '/orgs/$orgId/nodes/$nodeId/disks': typeof OrgsOrgIdNodesNodeIdDisksRoute
   '/orgs/$orgId/nodes/$nodeId/health': typeof OrgsOrgIdNodesNodeIdHealthRoute
   '/orgs/$orgId/nodes/$nodeId/networks': typeof OrgsOrgIdNodesNodeIdNetworksRoute
@@ -744,9 +752,11 @@ export interface FileRoutesById {
   '/orgs/$orgId/eggs/$eggId/': typeof OrgsOrgIdEggsEggIdIndexRoute
   '/orgs/$orgId/nodes/$nodeId/': typeof OrgsOrgIdNodesNodeIdIndexRoute
   '/orgs/$orgId/servers/$serverId/': typeof OrgsOrgIdServersServerIdIndexRoute
+  '/orgs/$orgId/nodes/$nodeId/databases/$instanceId': typeof OrgsOrgIdNodesNodeIdDatabasesInstanceIdRoute
   '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
   '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
   '/orgs/$orgId/servers/$serverId/databases/$databaseId': typeof OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute
+  '/orgs/$orgId/nodes/$nodeId/databases/': typeof OrgsOrgIdNodesNodeIdDatabasesIndexRoute
   '/orgs/$orgId/servers/$serverId/databases/': typeof OrgsOrgIdServersServerIdDatabasesIndexRoute
 }
 export interface FileRouteTypes {
@@ -803,7 +813,6 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/eggs/$eggId/edit'
     | '/orgs/$orgId/nodes/$nodeId/activity'
     | '/orgs/$orgId/nodes/$nodeId/backups'
-    | '/orgs/$orgId/nodes/$nodeId/databases'
     | '/orgs/$orgId/nodes/$nodeId/disks'
     | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/networks'
@@ -826,9 +835,11 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/eggs/$eggId/'
     | '/orgs/$orgId/nodes/$nodeId/'
     | '/orgs/$orgId/servers/$serverId/'
+    | '/orgs/$orgId/nodes/$nodeId/databases/$instanceId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/$'
     | '/orgs/$orgId/servers/$serverId/addons/$kind'
     | '/orgs/$orgId/servers/$serverId/databases/$databaseId'
+    | '/orgs/$orgId/nodes/$nodeId/databases/'
     | '/orgs/$orgId/servers/$serverId/databases/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -877,7 +888,6 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/eggs/$eggId/edit'
     | '/orgs/$orgId/nodes/$nodeId/activity'
     | '/orgs/$orgId/nodes/$nodeId/backups'
-    | '/orgs/$orgId/nodes/$nodeId/databases'
     | '/orgs/$orgId/nodes/$nodeId/disks'
     | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/networks'
@@ -900,9 +910,11 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/eggs/$eggId'
     | '/orgs/$orgId/nodes/$nodeId'
     | '/orgs/$orgId/servers/$serverId'
+    | '/orgs/$orgId/nodes/$nodeId/databases/$instanceId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/$'
     | '/orgs/$orgId/servers/$serverId/addons/$kind'
     | '/orgs/$orgId/servers/$serverId/databases/$databaseId'
+    | '/orgs/$orgId/nodes/$nodeId/databases'
     | '/orgs/$orgId/servers/$serverId/databases'
   id:
     | '__root__'
@@ -957,7 +969,6 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/eggs/$eggId/edit'
     | '/orgs/$orgId/nodes/$nodeId/activity'
     | '/orgs/$orgId/nodes/$nodeId/backups'
-    | '/orgs/$orgId/nodes/$nodeId/databases'
     | '/orgs/$orgId/nodes/$nodeId/disks'
     | '/orgs/$orgId/nodes/$nodeId/health'
     | '/orgs/$orgId/nodes/$nodeId/networks'
@@ -980,9 +991,11 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/eggs/$eggId/'
     | '/orgs/$orgId/nodes/$nodeId/'
     | '/orgs/$orgId/servers/$serverId/'
+    | '/orgs/$orgId/nodes/$nodeId/databases/$instanceId'
     | '/orgs/$orgId/servers/$nodeId/$serverId/$'
     | '/orgs/$orgId/servers/$serverId/addons/$kind'
     | '/orgs/$orgId/servers/$serverId/databases/$databaseId'
+    | '/orgs/$orgId/nodes/$nodeId/databases/'
     | '/orgs/$orgId/servers/$serverId/databases/'
   fileRoutesById: FileRoutesById
 }
@@ -1371,13 +1384,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdNodesNodeIdBackupsRouteImport
       parentRoute: typeof OrgsOrgIdNodesNodeIdRoute
     }
-    '/orgs/$orgId/nodes/$nodeId/databases': {
-      id: '/orgs/$orgId/nodes/$nodeId/databases'
-      path: '/databases'
-      fullPath: '/orgs/$orgId/nodes/$nodeId/databases'
-      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdDatabasesRouteImport
-      parentRoute: typeof OrgsOrgIdNodesNodeIdRoute
-    }
     '/orgs/$orgId/nodes/$nodeId/disks': {
       id: '/orgs/$orgId/nodes/$nodeId/disks'
       path: '/disks'
@@ -1517,6 +1523,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/popout/$orgId/servers/$serverId/stats'
       preLoaderRoute: typeof PopoutOrgIdServersServerIdStatsRouteImport
       parentRoute: typeof PopoutOrgIdServersServerIdRoute
+    }
+    '/orgs/$orgId/nodes/$nodeId/databases/': {
+      id: '/orgs/$orgId/nodes/$nodeId/databases/'
+      path: '/databases'
+      fullPath: '/orgs/$orgId/nodes/$nodeId/databases/'
+      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdDatabasesIndexRouteImport
+      parentRoute: typeof OrgsOrgIdNodesNodeIdRoute
+    }
+    '/orgs/$orgId/nodes/$nodeId/databases/$instanceId': {
+      id: '/orgs/$orgId/nodes/$nodeId/databases/$instanceId'
+      path: '/databases/$instanceId'
+      fullPath: '/orgs/$orgId/nodes/$nodeId/databases/$instanceId'
+      preLoaderRoute: typeof OrgsOrgIdNodesNodeIdDatabasesInstanceIdRouteImport
+      parentRoute: typeof OrgsOrgIdNodesNodeIdRoute
     }
     '/orgs/$orgId/servers/$nodeId/$serverId/$': {
       id: '/orgs/$orgId/servers/$nodeId/$serverId/$'
@@ -1689,25 +1709,29 @@ const OrgsOrgIdSettingsRouteWithChildren =
 interface OrgsOrgIdNodesNodeIdRouteChildren {
   OrgsOrgIdNodesNodeIdActivityRoute: typeof OrgsOrgIdNodesNodeIdActivityRoute
   OrgsOrgIdNodesNodeIdBackupsRoute: typeof OrgsOrgIdNodesNodeIdBackupsRoute
-  OrgsOrgIdNodesNodeIdDatabasesRoute: typeof OrgsOrgIdNodesNodeIdDatabasesRoute
   OrgsOrgIdNodesNodeIdDisksRoute: typeof OrgsOrgIdNodesNodeIdDisksRoute
   OrgsOrgIdNodesNodeIdHealthRoute: typeof OrgsOrgIdNodesNodeIdHealthRoute
   OrgsOrgIdNodesNodeIdNetworksRoute: typeof OrgsOrgIdNodesNodeIdNetworksRoute
   OrgsOrgIdNodesNodeIdSettingsRoute: typeof OrgsOrgIdNodesNodeIdSettingsRoute
   OrgsOrgIdNodesNodeIdSystemRoute: typeof OrgsOrgIdNodesNodeIdSystemRoute
   OrgsOrgIdNodesNodeIdIndexRoute: typeof OrgsOrgIdNodesNodeIdIndexRoute
+  OrgsOrgIdNodesNodeIdDatabasesInstanceIdRoute: typeof OrgsOrgIdNodesNodeIdDatabasesInstanceIdRoute
+  OrgsOrgIdNodesNodeIdDatabasesIndexRoute: typeof OrgsOrgIdNodesNodeIdDatabasesIndexRoute
 }
 
 const OrgsOrgIdNodesNodeIdRouteChildren: OrgsOrgIdNodesNodeIdRouteChildren = {
   OrgsOrgIdNodesNodeIdActivityRoute: OrgsOrgIdNodesNodeIdActivityRoute,
   OrgsOrgIdNodesNodeIdBackupsRoute: OrgsOrgIdNodesNodeIdBackupsRoute,
-  OrgsOrgIdNodesNodeIdDatabasesRoute: OrgsOrgIdNodesNodeIdDatabasesRoute,
   OrgsOrgIdNodesNodeIdDisksRoute: OrgsOrgIdNodesNodeIdDisksRoute,
   OrgsOrgIdNodesNodeIdHealthRoute: OrgsOrgIdNodesNodeIdHealthRoute,
   OrgsOrgIdNodesNodeIdNetworksRoute: OrgsOrgIdNodesNodeIdNetworksRoute,
   OrgsOrgIdNodesNodeIdSettingsRoute: OrgsOrgIdNodesNodeIdSettingsRoute,
   OrgsOrgIdNodesNodeIdSystemRoute: OrgsOrgIdNodesNodeIdSystemRoute,
   OrgsOrgIdNodesNodeIdIndexRoute: OrgsOrgIdNodesNodeIdIndexRoute,
+  OrgsOrgIdNodesNodeIdDatabasesInstanceIdRoute:
+    OrgsOrgIdNodesNodeIdDatabasesInstanceIdRoute,
+  OrgsOrgIdNodesNodeIdDatabasesIndexRoute:
+    OrgsOrgIdNodesNodeIdDatabasesIndexRoute,
 }
 
 const OrgsOrgIdNodesNodeIdRouteWithChildren =

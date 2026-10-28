@@ -54,6 +54,9 @@ SELECT id FROM servers;
 -- name: SetDatabaseReadOnly :exec
 UPDATE databases SET ro_username = ?, ro_password = ? WHERE id = ?;
 
+-- name: SetDatabaseViewer :exec
+UPDATE databases SET viewer_username = ?, viewer_password = ? WHERE id = ?;
+
 -- name: SetInstanceVersion :exec
 UPDATE database_instances
 SET version = ?, image = ?, prev_version = ?, prev_image = ?, rollback_until = ?, updated_at = ?

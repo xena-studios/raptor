@@ -37,6 +37,7 @@ export function TransferDialog({
   table,
   mongo,
   collection,
+  query,
   onClose,
 }: {
   orgId: string;
@@ -48,6 +49,8 @@ export function TransferDialog({
   // A MongoDB database: mongodump archives, and a collection for a table.
   mongo?: boolean;
   collection?: string;
+  // Export this SQL's whole result as CSV instead (it runs read-only).
+  query?: string;
   onClose: () => void;
 }) {
   const client = useQueryClient();
@@ -81,12 +84,18 @@ export function TransferDialog({
               id,
               path: path.trim().replace(/^\/+/, ""),
             })
-          : await dbCommand<{ job_id: string }>(nodeId, serverId, "db.export", {
-              id,
-              schema: what === "database" || mongo ? undefined : table?.schema,
-              table: what === "database" ? undefined : mongo ? collection : table?.name,
-              format: mongo ? undefined : what === "table-csv" ? "csv" : "sql",
-            });
+          : query
+            ? await dbCommand<{ job_id: string }>(nodeId, serverId, "db.export", {
+                id,
+                query,
+                format: "csv",
+              })
+            : await dbCommand<{ job_id: string }>(nodeId, serverId, "db.export", {
+                id,
+                schema: what === "database" || mongo ? undefined : table?.schema,
+                table: what === "database" ? undefined : mongo ? collection : table?.name,
+                format: mongo ? undefined : what === "table-csv" ? "csv" : "sql",
+              });
       setJobID(res.job_id);
     } catch (err) {
       setError(message(err));
@@ -117,18 +126,32 @@ export function TransferDialog({
         <form onSubmit={start} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
-              {kind === "import" ? (mongo ? "Import an archive" : "Import a .sql file") : "Export"}
+              {kind === "import"
+                ? mongo
+                  ? "Import an archive"
+                  : "Import a .sql file"
+                : query
+                  ? "Export the whole result"
+                  : "Export"}
             </DialogTitle>
             <DialogDescription>
               {kind === "import" && mongo
                 ? "Restores a mongodump archive (.archive or .archive.gz) from the server's files into this database, as its own user; collections in it replace those of the same name. Upload it in the file manager first."
                 : kind === "import"
                   ? "Runs a .sql or .sql.gz file from the server's files against this database, as its own user. Upload the file in the file manager first."
-                  : `Writes the dump to the server's ${exportDir} folder, to download from the file manager.`}
+                  : query
+                    ? `Runs the query again, read-only, and writes every row of its result as CSV to the server's ${exportDir} folder, to download from the file manager.`
+                    : `Writes the dump to the server's ${exportDir} folder, to download from the file manager.`}
             </DialogDescription>
           </DialogHeader>
 
+          {!jobID && query && (
+            <pre className="max-h-32 overflow-auto rounded-md bg-muted p-2 font-mono text-xs whitespace-pre-wrap">
+              {query}
+            </pre>
+          )}
           {!jobID &&
+            !query &&
             (kind === "import" ? (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="import-path">File</Label>

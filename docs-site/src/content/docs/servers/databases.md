@@ -65,10 +65,10 @@ The server also gets its database's details as environment variables at its next
 
 - **Rows:** a table's rows, a page at a time. Click a column's name to sort by it, and filter on any column ("contains", "is", "is NULL", and the rest). Click a row to see all of it; with **Change databases** you can edit it there, **Insert row**, or tick rows and delete them. A table without a primary key can only be changed with SQL, since there'd be no safe way to say which row.
 - **Structure:** its columns and indexes. Add or drop columns and indexes, rename or drop the table, or make a **New table**; each shows the SQL it runs first.
-- **SQL:** write any SQL and run it with **Run** or Ctrl/⌘ + Enter. Table and column names are suggested as you type. With several statements, the last one's result shows. A query stops after 30 seconds unless you set another limit (up to 50), and up to 1,000 rows are shown.
+- **SQL:** write any SQL and run it with **Run** or Ctrl/⌘ + Enter. Table and column names are suggested as you type. With several statements, the last one's result shows. Rows show as they arrive, 200 to a page, and **Cancel** stops the query on the database itself. A query stops after 30 seconds unless you set another limit (up to 600, ten minutes). A result shows its first 10,000 rows and says how many it had; **Export the whole result** writes every row to a file (below).
 - **Processes:** what's connected to the database right now, like the server's own plugins, and stopping a slow query.
 
-Someone with only **See databases** can look at everything and run queries that don't change anything: one statement at a time, read-only.
+Someone with only **See databases** can look at everything and run queries that don't change anything: one statement at a time, as a user that can only read.
 
 Changes are in the server's activity, with how many rows they changed, never the SQL itself.
 
@@ -78,7 +78,7 @@ From an opened database (needs **Change databases**):
 
 - **Export** writes the whole database, or the table you're looking at, to the server's `database-exports` folder: as `.sql.gz`, or a table as `.csv`. **Open the folder** takes you there in the file manager to download it.
 - **Import** runs a `.sql` or `.sql.gz` file from the server's files against the database. Upload it in the file manager first, then give its path. It stops at the first error and says what it was; what ran before stays.
-- On the **SQL** tab, **CSV** saves the result on screen.
+- On the **SQL** tab, **CSV** saves the rows on screen. When a result has more than fit on screen, **Export the whole result** runs the query again, read-only, and writes every row to `database-exports` as `.csv`.
 
 A dump from another host may make or switch databases, set owners, or name a `DEFINER`; the database's user can't do those, so the import stops there. Remove those lines, or export without them (`--no-owner` for PostgreSQL).
 
