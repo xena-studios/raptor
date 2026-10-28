@@ -12,6 +12,7 @@ import (
 // (docs/DATABASES.md).
 const (
 	NodeDBInstances      = "node.db.instances" // a read: the instances, and the versions offered
+	NodeDBUsage          = "node.db.usage"     // a read: the running instances' usage, and its last 10 minutes
 	NodeDBInstanceSave   = "node.db.instance.save"
 	NodeDBInstancePower  = "node.db.instance.power"
 	NodeDBInstanceDelete = "node.db.instance.delete"
@@ -27,6 +28,18 @@ const (
 type DBInstancesResult struct {
 	Instances []databases.Instance `json:"instances"`
 	Versions  []databases.Version  `json:"versions"`
+}
+
+// DBUsageResult is node.db.usage's result: each running instance's latest
+// sample and its recent ones, by ID.
+type DBUsageResult struct {
+	Instances map[string]DBInstanceUsage `json:"instances"`
+}
+
+// DBInstanceUsage is one instance's usage.
+type DBInstanceUsage struct {
+	databases.Usage
+	Recent []databases.UsagePoint `json:"recent"`
 }
 
 // DBInstanceParams are node.db.instance.delete's params, and with Action
@@ -79,6 +92,13 @@ func RegisterDatabases(x *command.Executor, d *databases.Service) {
 			return nil, err
 		}
 		return DBInstancesResult{Instances: list, Versions: d.Versions()}, nil
+	}})
+	x.Register(NodeDBUsage, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(context.Context, command.Envelope) (any, error) {
+		out := DBUsageResult{Instances: map[string]DBInstanceUsage{}}
+		for id, u := range d.Usages() {
+			out.Instances[id] = DBInstanceUsage{Usage: u, Recent: d.Recent(id)}
+		}
+		return out, nil
 	}})
 	x.Register(NodeDBInstanceSave, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		var p databases.InstanceInput

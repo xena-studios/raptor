@@ -25,9 +25,9 @@ import (
 // instance that should be running is looked at. One Docker restarted, or
 // that stopped, is down until it answers again: that's an event
 // (db.instance.down, then db.instance.up), once however often it restarts,
-// so the Panel can alert on it. Its usage (memory, disk, connections) is
-// sampled too, for raptor db ps and the threshold alerts on its disk and
-// connections.
+// so the Panel can alert on it. Its usage (memory, disk, connections,
+// uptime, and queries a second) is sampled too, for the app (node.db.usage),
+// raptor db ps, and the threshold alerts on its disk and connections.
 
 // Events about instances. They have no server; their data names the
 // instance (instance_id, instance, engine, version).
@@ -45,6 +45,9 @@ const (
 	// downKey keeps which instances are down across Wings restarts, so a
 	// restart neither repeats an alert nor misses the instance coming back.
 	downKey = "databases.down"
+	// usageHistory is how many samples each instance keeps for its trend:
+	// 10 minutes of them.
+	usageHistory = 40
 )
 
 // Usage is an instance's latest sample.
@@ -56,16 +59,34 @@ type Usage struct {
 	DiskLimitBytes   int64     `json:"disk_limit_bytes"` // 0 = none
 	Connections      int       `json:"connections"`
 	MaxConnections   int       `json:"max_connections"`
+	// UptimeSeconds is how long the engine has been up, by its own count.
+	UptimeSeconds int64 `json:"uptime_seconds,omitempty"`
+	// QueriesPerSecond is the engine's rate since the sample before:
+	// statements (MySQL, MariaDB), transactions (PostgreSQL), commands
+	// (Redis, Valkey), or operations (MongoDB), less Wings' own sampling.
+	// nil until two samples of the same run.
+	QueriesPerSecond *float64 `json:"queries_per_second,omitempty"`
 
 	diskAt time.Time
+	ops    int64     // the engine's counter behind QueriesPerSecond
+	opsAt  time.Time // when it was read
+}
+
+// UsagePoint is one of an instance's recent samples, for its trend.
+type UsagePoint struct {
+	At               time.Time `json:"at"`
+	MemoryBytes      int64     `json:"memory_bytes"`
+	Connections      int       `json:"connections"`
+	QueriesPerSecond *float64  `json:"queries_per_second,omitempty"`
 }
 
 // health is what the watch keeps.
 type health struct {
 	once     sync.Once
 	usage    map[string]Usage
-	restarts map[string]int   // Docker's restart count when it last started, by instance
-	down     map[string]int64 // since (unix seconds), by instance
+	recent   map[string][]UsagePoint // the last usageHistory samples, oldest first
+	restarts map[string]int          // Docker's restart count when it last started, by instance
+	down     map[string]int64        // since (unix seconds), by instance
 	// restart starts an instance found down again (ensure; tests replace
 	// it).
 	restart func(ctx context.Context, id string)
@@ -76,6 +97,7 @@ func (s *Service) initHealth() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.health.usage = map[string]Usage{}
+		s.health.recent = map[string][]UsagePoint{}
 		s.health.restarts = map[string]int{}
 		s.health.down = map[string]int64{}
 		if s.health.restart == nil {
@@ -165,6 +187,7 @@ func (s *Service) forget(ctx context.Context, id string) {
 	_, was := s.health.down[id]
 	delete(s.health.down, id)
 	delete(s.health.usage, id)
+	delete(s.health.recent, id)
 	delete(s.health.restarts, id)
 	s.mu.Unlock()
 	if was {
@@ -280,6 +303,7 @@ func (s *Service) sample(ctx context.Context, in Instance, r store.DatabaseInsta
 	u := Usage{
 		At: now, MemoryLimitBytes: in.Limits.MemoryMiB << 20, DiskLimitBytes: in.Limits.DiskMiB << 20,
 		MaxConnections: maxConnections(in), DiskBytes: prev.DiskBytes, diskAt: prev.diskAt, Connections: prev.Connections,
+		UptimeSeconds: prev.UptimeSeconds, ops: prev.ops, opsAt: prev.opsAt,
 	}
 	if st, err := s.o.Runtime.Stats(ctx, ContainerName(in.ID)); err == nil {
 		u.MemoryBytes = st.MemoryBytes
@@ -297,13 +321,19 @@ func (s *Service) sample(ctx context.Context, in Instance, r store.DatabaseInsta
 	}
 	if root, err := s.sealer.open(r.RootPassword); err == nil {
 		cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		if n, err := connections(cctx, in, dir, root); err == nil {
-			u.Connections = n
+		if st, err := readStatus(cctx, in, dir, root); err == nil {
+			u.Connections, u.UptimeSeconds = st.connections, st.uptime
+			u.QueriesPerSecond = queryRate(prev, st, now, ownOps[in.Engine])
+			u.ops, u.opsAt = st.ops, now
 		}
 		cancel()
 	}
 	s.mu.Lock()
 	s.health.usage[in.ID] = u
+	recent := append(s.health.recent[in.ID], UsagePoint{
+		At: now, MemoryBytes: u.MemoryBytes, Connections: u.Connections, QueriesPerSecond: u.QueriesPerSecond,
+	})
+	s.health.recent[in.ID] = recent[max(len(recent)-usageHistory, 0):]
 	s.mu.Unlock()
 }
 
@@ -314,51 +344,119 @@ func maxConnections(in Instance) int {
 	return defaultMaxConnections
 }
 
-// connections counts the clients connected to an instance now, Wings'
-// own connection asking included.
-func connections(ctx context.Context, in Instance, dir, root string) (int, error) {
+// engineStatus is what an engine says about itself now.
+type engineStatus struct {
+	connections int   // clients connected, Wings' own asking included
+	uptime      int64 // seconds since it started
+	ops         int64 // its counter of what clients asked since it started
+}
+
+// ownOps is how much each sample adds to an engine's counter itself (its
+// connection's setup, the asking, and closing it), measured against real
+// engines (TestEngines), so an idle instance reads 0 queries a second.
+var ownOps = map[string]int64{MariaDB: 3, MySQL: 3, Postgres: 2, Redis: 2, Valkey: 2, MongoDB: 7}
+
+// queryRate is an engine's rate between two reads of its counter, less
+// what sampling it added; nil without an earlier read from the same run
+// (it restarted, or its counters were reset).
+func queryRate(prev Usage, st engineStatus, at time.Time, own int64) *float64 {
+	secs := at.Sub(prev.opsAt).Seconds()
+	if prev.opsAt.IsZero() || secs <= 0 || st.ops < prev.ops || st.uptime < prev.UptimeSeconds {
+		return nil
+	}
+	q := float64(max(st.ops-prev.ops-own, 0)) / secs
+	return &q
+}
+
+// readStatus asks an instance for its connections, uptime, and counter,
+// in one statement or command on one connection, so what sampling adds to
+// the counter stays the same (ownOps).
+func readStatus(ctx context.Context, in Instance, dir, root string) (engineStatus, error) {
 	switch in.Engine {
 	case Redis, Valkey:
 		c := redisClient(dir, root)
 		defer func() { _ = c.Close() }()
-		info, err := c.Info(ctx, "clients").Result()
+		info, err := c.Info(ctx).Result()
 		if err != nil {
-			return 0, err
+			return engineStatus{}, err
 		}
-		return infoField(info, "connected_clients")
+		n, err1 := infoField(info, "connected_clients")
+		up, err2 := infoField(info, "uptime_in_seconds")
+		ops, err3 := infoField(info, "total_commands_processed")
+		return engineStatus{connections: n, uptime: int64(up), ops: int64(ops)}, errors.Join(err1, err2, err3)
 	case MongoDB:
 		c, err := mongoConnect(ctx, dir, root)
 		if err != nil {
-			return 0, err
+			return engineStatus{}, err
 		}
 		defer func() { _ = c.Disconnect(context.WithoutCancel(ctx)) }()
 		var res struct {
+			Uptime      float64 `bson:"uptime"`
 			Connections struct {
 				Current int `bson:"current"`
 			} `bson:"connections"`
+			Ops struct {
+				Insert  int64 `bson:"insert"`
+				Query   int64 `bson:"query"`
+				Update  int64 `bson:"update"`
+				Delete  int64 `bson:"delete"`
+				Getmore int64 `bson:"getmore"`
+				Command int64 `bson:"command"`
+			} `bson:"opcounters"`
 		}
 		cmd := bson.D{{Key: "serverStatus", Value: 1}, {Key: "repl", Value: 0}, {Key: "metrics", Value: 0}, {Key: "locks", Value: 0}}
 		if err := c.Database("admin").RunCommand(ctx, cmd).Decode(&res); err != nil {
-			return 0, err
+			return engineStatus{}, err
 		}
-		return res.Connections.Current, nil
+		o := res.Ops
+		ops := o.Insert + o.Query + o.Update + o.Delete + o.Getmore + o.Command
+		return engineStatus{connections: res.Connections.Current, uptime: int64(res.Uptime), ops: ops}, nil
 	}
 	db, err := connect(in, dir, root)
 	if err != nil {
-		return 0, err
+		return engineStatus{}, err
 	}
 	defer func() { _ = db.Close() }()
-	var n int
+	var st engineStatus
 	if in.Engine == Postgres {
-		err = db.QueryRowContext(ctx, "SELECT count(*) FROM pg_stat_activity WHERE backend_type = 'client backend'").Scan(&n)
-	} else {
+		err = db.QueryRowContext(ctx, `SELECT
+			(SELECT count(*) FROM pg_stat_activity WHERE backend_type = 'client backend'),
+			extract(epoch FROM now() - pg_postmaster_start_time())::bigint,
+			(SELECT coalesce(sum(xact_commit + xact_rollback), 0) FROM pg_stat_database)::bigint`).Scan(&st.connections, &st.uptime, &st.ops)
+		if errors.Is(err, sql.ErrNoRows) {
+			return engineStatus{}, errors.New("no status")
+		}
+		return st, err
+	}
+	rows, err := db.QueryContext(ctx, "SHOW GLOBAL STATUS WHERE Variable_name IN ('Threads_connected', 'Uptime', 'Questions')")
+	if err != nil {
+		return engineStatus{}, err
+	}
+	defer func() { _ = rows.Close() }()
+	seen := 0
+	for rows.Next() {
 		var name string
-		err = db.QueryRowContext(ctx, "SHOW GLOBAL STATUS LIKE 'Threads_connected'").Scan(&name, &n)
+		var n int64
+		if err := rows.Scan(&name, &n); err != nil {
+			return engineStatus{}, err
+		}
+		switch strings.ToLower(name) {
+		case "threads_connected":
+			st.connections = int(n)
+		case "uptime":
+			st.uptime = n
+		case "questions":
+			st.ops = n
+		}
+		seen++
 	}
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, errors.New("no connection count")
+	if err := rows.Err(); err != nil {
+		return engineStatus{}, err
 	}
-	return n, err
+	if seen != 3 {
+		return engineStatus{}, errors.New("no status")
+	}
+	return st, nil
 }
 
 // infoField reads a number from Redis' INFO.
@@ -379,6 +477,14 @@ func (s *Service) Usage(id string) (Usage, bool) {
 	defer s.mu.Unlock()
 	u, ok := s.health.usage[id]
 	return u, ok
+}
+
+// Recent is an instance's last samples, oldest first.
+func (s *Service) Recent(id string) []UsagePoint {
+	s.initHealth()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Clone(s.health.recent[id])
 }
 
 // Usages are the latest samples of the instances running now, by ID.

@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { commandClient } from "@/lib/transport";
 
+import type { DBUsage } from "./db-usage";
+
 export { versionChange } from "./db-versions";
 
 // What Wings' database commands return (internal/wings/databases,
@@ -147,6 +149,30 @@ export function useInstances(nodeId: string, enabled = true) {
       )
         ? 3_000
         : 30_000,
+  });
+}
+
+// Instances' usage: memory, disk, connections, uptime, and queries a
+// second (node.db.usage).
+export const dbUsageCapability = "db-usage";
+
+// useInstanceUsage is the running instances' usage by ID, refreshed as
+// often as Wings samples it.
+export function useInstanceUsage(nodeId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["db-usage", nodeId],
+    queryFn: async () => {
+      const res = await commandClient.execute({
+        nodeId,
+        action: "node.db.usage",
+        paramsJson: "{}",
+      });
+      return (JSON.parse(res.resultJson) as { instances: Record<string, DBUsage> }).instances;
+    },
+    enabled,
+    retry: false,
+    refetchInterval: 15_000,
+    placeholderData: (prev) => prev,
   });
 }
 

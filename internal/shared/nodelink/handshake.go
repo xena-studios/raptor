@@ -205,6 +205,9 @@ const (
 	// CapDatabaseRedisExternal: node.db.instance.external takes Redis and
 	// Valkey instances, on a TLS-only port.
 	CapDatabaseRedisExternal = "db-redis-external"
+	// CapDatabaseUsage: node.db.usage, instances' memory, disk,
+	// connections, uptime, and queries a second.
+	CapDatabaseUsage = "db-usage"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -212,6 +215,7 @@ var nodeCapabilities = []string{
 	CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser,
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
+	CapDatabaseUsage,
 }
 
 // NewHello starts a handshake for a node.

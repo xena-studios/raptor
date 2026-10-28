@@ -50,7 +50,7 @@ var signing = map[string]string{
 	"node.disk.default": "never", "node.disk.grow": "never", "node.disk.setup": "always", "node.disks": "never",
 	"node.doctor": "never", "node.firewall": "always", "node.health": "never", "node.hostname": "never",
 	"node.logs": "never", "node.metrics": "never", "node.reboot": "always", "node.sftp": "never",
-	"node.db.instance.delete": "always", "node.db.instance.external": "always", "node.db.instance.goback": "always", "node.db.instance.version": "never", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never",
+	"node.db.instance.delete": "always", "node.db.instance.external": "always", "node.db.instance.goback": "always", "node.db.instance.version": "never", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never", "node.db.usage": "never",
 	"node.db.databases": "never", "node.db.users": "never", "node.db.processes": "never", "node.db.process.kill": "never",
 	"node.network.delete": "never", "node.network.rules": "never", "node.network.save": "never", "node.networks": "never",
 	"node.system": "never", "node.time": "never",
