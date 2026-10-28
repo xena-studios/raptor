@@ -21,6 +21,8 @@ The **Health** tab is the machine up close: load, memory and swap, every disk Ra
 
 Every node gets an address like `1cdd002cd9a3.raptornodes.net` that follows its IP, even on a home connection whose IP changes. Players can connect to it with the server's port, and SFTP uses it.
 
+The address points at the machine's public IPv4 address, since servers take players over IPv4. A machine with IPv6 too gets its IPv4 address here as well: Raptor checks both each time the node connects. If the node has no public IPv4 address at all, the address points at its IPv6 one, and the node's page says "The Panel has only seen this node over IPv6": players can't reach its servers until it has a public IPv4 address.
+
 Since it leads to your machine's IP, the app hides it (and the IPs) until you reveal it, so it isn't on screen while you stream; you can copy it without revealing it. Members never see the node's IPs. For players, you can give a server its own **shown address** (a domain, or a proxy) on its Network tab.
 
 ## Renaming

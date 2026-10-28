@@ -99,9 +99,38 @@ func (a *Addresses) syncWithRetry(ctx context.Context, nodeID string) {
 	}
 }
 
-// Sync writes the node's records if DNS doesn't have its current addresses
-// (public ones only; a node connecting from a private address keeps its old
-// records until it connects from a public one again).
+// Records is what a node's A and AAAA records should hold (nil: none),
+// from the addresses the Panel last saw it connect from and what its
+// records hold now (docs/ARCHITECTURE.md#node-dns):
+//   - A: its IPv4 address, once that's public; a node seen from a private
+//     or CGNAT address keeps its last public record.
+//   - AAAA: none while there's an A record, since game ports are published
+//     on IPv4 only and a player's client preferring IPv6 would be sent
+//     where no game listens. A node with no public IPv4 (IPv6-only) gets
+//     its IPv6 address, so the name resolves at all.
+func Records(seen4, seen6, dns4, dns6 *netip.Addr) (a, aaaa *netip.Addr) {
+	a = dns4
+	if seen4 != nil && public(*seen4) {
+		a = seen4
+	}
+	if a != nil {
+		return a, nil
+	}
+	aaaa = dns6
+	if seen6 != nil && public(*seen6) {
+		aaaa = seen6
+	}
+	return nil, aaaa
+}
+
+func sameAddr(x, y *netip.Addr) bool {
+	if x == nil || y == nil {
+		return x == y
+	}
+	return *x == *y
+}
+
+// Sync makes the node's records hold what Records says, if they don't.
 func (a *Addresses) Sync(ctx context.Context, nodeID string) error {
 	if a.DNS == nil || a.Domain == "" {
 		return nil
@@ -110,12 +139,33 @@ func (a *Addresses) Sync(ctx context.Context, nodeID string) error {
 	if err != nil {
 		return err
 	}
-	q := a.Store.q()
+	// One sync of a node at a time, on any instance: a node's connections
+	// (its control connection and an address connection in each family)
+	// each start one, and two reading the records before either wrote
+	// could leave an AAAA record beside the A.
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	conn, err := a.Store.DB.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock(hashtextextended('node-dns:' || $1::text, 0))", nodeID); err != nil {
+		return err
+	}
+	defer func() {
+		uctx := context.WithoutCancel(ctx)
+		if _, err := conn.Exec(uctx, "SELECT pg_advisory_unlock(hashtextextended('node-dns:' || $1::text, 0))", nodeID); err != nil {
+			_ = conn.Conn().Close(uctx) // a lock never released would block the node's syncs for good
+		}
+	}()
+	q := store.New(conn)
 	n, err := q.NodeDNS(ctx, pgUUID(id))
 	if err != nil {
 		return err
 	}
 	name := Hostname(n.ShortID, a.Domain)
+	want4, want6 := Records(n.PublicIpv4, n.PublicIpv6, n.DnsIpv4, n.DnsIpv6)
 	v4, v6 := n.DnsIpv4, n.DnsIpv6
 	changed := false
 	for _, r := range []struct {
@@ -123,13 +173,17 @@ func (a *Addresses) Sync(ctx context.Context, nodeID string) error {
 		want *netip.Addr
 		have **netip.Addr
 	}{
-		{"A", n.PublicIpv4, &v4},
-		{"AAAA", n.PublicIpv6, &v6},
+		{"A", want4, &v4},
+		{"AAAA", want6, &v6},
 	} {
-		if r.want == nil || !public(*r.want) || (*r.have != nil && **r.have == *r.want) {
+		if sameAddr(r.want, *r.have) {
 			continue
 		}
-		if err := a.DNS.Set(ctx, name, r.typ, *r.want); err != nil {
+		var to netip.Addr // invalid: removes the record
+		if r.want != nil {
+			to = *r.want
+		}
+		if err := a.DNS.Set(ctx, name, r.typ, to); err != nil {
 			return err
 		}
 		*r.have = r.want

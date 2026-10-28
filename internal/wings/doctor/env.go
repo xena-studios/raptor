@@ -85,13 +85,23 @@ func HTTPReachable(ctx context.Context, url string) error {
 	return res.Body.Close()
 }
 
-// PanelSeesMe asks the Panel which address this node reaches it from.
+// PanelSeesMe asks the Panel which address this node reaches it from: its
+// IPv4 one if it has one, since that's what the hostname points at
+// (docs/ARCHITECTURE.md#node-dns), else whichever it connects over.
 func PanelSeesMe(ctx context.Context, panelURL string) (string, error) {
+	c := &http.Client{Timeout: 10 * time.Second}
+	if a, err := panelSeesMe(ctx, nodelink.FamilyClient(c, "tcp4"), panelURL); err == nil {
+		return a, nil
+	}
+	return panelSeesMe(ctx, c, panelURL)
+}
+
+func panelSeesMe(ctx context.Context, c *http.Client, panelURL string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSuffix(panelURL, "/")+nodelink.AddressPath, nil)
 	if err != nil {
 		return "", err
 	}
-	res, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
+	res, err := c.Do(req)
 	if err != nil {
 		return "", err
 	}

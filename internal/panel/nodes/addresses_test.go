@@ -65,21 +65,28 @@ func TestAddresses(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	seen("203.0.113.7")
-	seen("203.0.113.7") // unchanged: nothing written
-	seen("2001:db8:1::5")
-	seen("192.168.1.20") // private: the public record stays
-	seen("100.70.0.1")   // CGNAT: same
-	seen("203.0.113.9")
-	want := []string{name + " A 203.0.113.7", name + " AAAA 2001:db8:1::5", name + " A 203.0.113.9"}
-	if len(f.sets) != len(want) {
-		t.Fatalf("writes: %v", f.sets)
-	}
-	for i := range want {
-		if f.sets[i] != want[i] {
-			t.Fatalf("writes: %v, want %v", f.sets, want)
+	check := func(want ...string) {
+		t.Helper()
+		if got, w := strings.Join(f.sets, ", "), strings.Join(want, ", "); got != w {
+			t.Fatalf("writes: %s, want %s", got, w)
 		}
+		f.sets = nil
 	}
+	// Seen over IPv6 only (as a dual-stack node's control connection was,
+	// before address connections): AAAA, so the name resolves at all.
+	seen("2001:db8:1::5")
+	seen("2001:db8:1::5") // unchanged: nothing written
+	check(name + " AAAA 2001:db8:1::5")
+	// Its IPv4 address: the A record, then the AAAA goes, since game
+	// ports listen on IPv4 only.
+	seen("203.0.113.7")
+	check(name+" A 203.0.113.7", name+" AAAA invalid IP")
+	seen("2001:db8:1::6") // a new IPv6 address: still no AAAA
+	seen("192.168.1.20")  // private: the public record stays
+	seen("100.70.0.1")    // CGNAT: same
+	check()
+	seen("203.0.113.9")
+	check(name + " A 203.0.113.9")
 
 	// A removed node's records go (an invalid address removes them).
 	f.sets = nil
@@ -88,6 +95,44 @@ func TestAddresses(t *testing.T) {
 	}
 	if got := strings.Join(f.sets, ", "); got != name+" A invalid IP, "+name+" AAAA invalid IP" {
 		t.Errorf("forgetting: %s", got)
+	}
+}
+
+func TestRecords(t *testing.T) {
+	addr := func(s string) *netip.Addr {
+		if s == "" {
+			return nil
+		}
+		a := netip.MustParseAddr(s)
+		return &a
+	}
+	str := func(a *netip.Addr) string {
+		if a == nil {
+			return ""
+		}
+		return a.String()
+	}
+	for _, c := range []struct {
+		name                     string
+		seen4, seen6, dns4, dns6 string
+		wantA, wantAAAA          string
+	}{
+		{"nothing seen", "", "", "", "", "", ""},
+		{"IPv4 only", "203.0.113.7", "", "", "", "203.0.113.7", ""},
+		{"dual stack: A only", "203.0.113.7", "2001:db8::5", "", "", "203.0.113.7", ""},
+		{"dual stack drops an old AAAA", "203.0.113.7", "2001:db8::5", "", "2001:db8::5", "203.0.113.7", ""},
+		{"IPv4 moved", "203.0.113.9", "", "203.0.113.7", "", "203.0.113.9", ""},
+		{"IPv6 only: AAAA", "", "2001:db8::5", "", "", "", "2001:db8::5"},
+		{"IPv6 moved", "", "2001:db8::6", "", "2001:db8::5", "", "2001:db8::6"},
+		{"CGNAT IPv4 with IPv6: AAAA", "100.70.0.1", "2001:db8::5", "", "", "", "2001:db8::5"},
+		{"private IPv4 keeps the old A", "192.168.1.20", "2001:db8::5", "203.0.113.7", "", "203.0.113.7", ""},
+		{"private IPv6 keeps the old AAAA", "", "fd00::1", "", "2001:db8::5", "", "2001:db8::5"},
+		{"link-local IPv6 isn't published", "", "fe80::1", "", "", "", ""},
+	} {
+		a, aaaa := Records(addr(c.seen4), addr(c.seen6), addr(c.dns4), addr(c.dns6))
+		if str(a) != c.wantA || str(aaaa) != c.wantAAAA {
+			t.Errorf("%s: A %q, AAAA %q; want %q, %q", c.name, str(a), str(aaaa), c.wantA, c.wantAAAA)
+		}
 	}
 }
 

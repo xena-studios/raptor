@@ -1,7 +1,8 @@
 // Package dns keeps node hostnames pointing at their nodes
 // (docs/ARCHITECTURE.md#node-dns): <short-id>.<node domain> (raptornodes.net)
-// has an A record for the node's IPv4 address and an AAAA record for its
-// IPv6 one, DNS-only, with a short TTL. The zone is only for nodes.
+// has an A record for the node's IPv4 address, or an AAAA record for its
+// IPv6 one if it has no IPv4 (nodes.Records), DNS-only, with a short TTL.
+// The zone is only for nodes.
 package dns
 
 import (

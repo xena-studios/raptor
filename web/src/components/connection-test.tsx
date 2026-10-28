@@ -106,6 +106,14 @@ export function ConnectionTest({
             text="It's learned when the node connects. Try again in a minute."
           />
         )}
+        {r?.address.includes(":") && (
+          <Row
+            icon={AlertTriangle}
+            tone="warn"
+            title="This node has no public IPv4 address"
+            text="The Panel has only seen it over IPv6, but servers take players over IPv4 only, so players can't reach them at this address. Give the node a public IPv4 address."
+          />
+        )}
         {r?.address && r.verdicts.length === 0 && (
           <Row icon={Info} tone="muted" title="This server has no ports" text="Nothing to test." />
         )}

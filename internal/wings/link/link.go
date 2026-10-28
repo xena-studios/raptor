@@ -229,11 +229,33 @@ func (l *Link) connect(ctx context.Context) error {
 	if l.cfg.Health != nil {
 		go l.reportHealth(sctx, s, nodev1connect.NewPanelServiceClient(s.Client(), nodelink.BaseURL))
 	}
+	go l.showAddresses(sctx)
 	select {
 	case <-s.Done():
 	case <-ctx.Done():
 	}
 	return nil
+}
+
+// showAddresses lets the Panel see the node's address in each family: it
+// connects once over IPv4 and once over IPv6, and the Panel records where
+// each came from and closes it (docs/ARCHITECTURE.md#node-dns). The
+// control connection shows only one, usually IPv6 on a dual-stack box,
+// while game ports are published on IPv4. A family the box can't reach
+// the Panel over just fails. A Panel older than this refuses the purpose.
+func (l *Link) showAddresses(ctx context.Context) {
+	for _, network := range []string{"tcp4", "tcp6"} {
+		s, err := nodelink.Dial(ctx, nodelink.DialConfig{
+			URL: l.cfg.PanelURL, NodeID: l.cfg.NodeID, NodeKey: l.cfg.NodeKey, PanelKey: l.cfg.PanelKey,
+			Purpose: nodelink.PurposeAddress, Software: l.cfg.Software,
+			HTTPClient: nodelink.FamilyClient(l.cfg.HTTPClient, network),
+		})
+		if err != nil {
+			l.log.Debug("showing the Panel this node's address", "network", network, "err", err)
+			continue
+		}
+		_ = s.Close()
+	}
 }
 
 // Panel returns a client for calling the Panel over the current connection,

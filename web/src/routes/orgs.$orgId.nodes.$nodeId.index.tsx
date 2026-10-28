@@ -157,6 +157,12 @@ function NodeOverview() {
                 ]}
               />
             )}
+            {node?.publicIpv6 && !node.publicIpv4 && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                The Panel has only seen this node over IPv6, so its hostname points at its IPv6
+                address. Servers take players over IPv4 only: give the node a public IPv4 address.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
