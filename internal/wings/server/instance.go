@@ -180,13 +180,33 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, jobID string, p i
 			return err
 		}
 	}
+	// A reinstall over the files backs them up first; if it can't, nothing
+	// is changed.
+	var backupID string
+	if p.Backup {
+		if backupID, err = m.backupBeforeReinstall(ctx, i, jobID, out); err != nil {
+			if !errors.Is(context.Cause(ctx), jobs.ErrShutdown) {
+				if srv.InstallState == installFailed {
+					i.setState(InstallFailed)
+				} else {
+					i.setState(Offline)
+				}
+				i.console.Notice("reinstall refused: %v", err)
+			}
+			return err
+		}
+	}
 	if err := m.o.Store.Write.SetInstallState(ctx, store.SetInstallStateParams{InstallState: installInstalling, ID: i.id}); err != nil {
 		return err
 	}
 	if err := m.prepareStorage(ctx, srv); err != nil {
 		return m.finishInstall(i, srv, install.Result{}, err)
 	}
-	m.publish(EventInstallStarted, i.id, srv.Version, nil)
+	var started map[string]any
+	if backupID != "" {
+		started = map[string]any{"safety_backup_id": backupID}
+	}
+	m.publish(EventInstallStarted, i.id, srv.Version, started)
 	i.console.Notice("installing (%s)", srv.Egg().Name)
 	res, err := install.Run(ctx, m.o.Runtime, install.Params{
 		Egg:       srv.Egg(),

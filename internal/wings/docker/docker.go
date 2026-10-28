@@ -204,7 +204,8 @@ func (c *Client) EnsureImage(ctx context.Context, ref string, progress io.Writer
 
 // Install runs the egg's install script in a separate, short-lived container.
 // Like Pterodactyl, a non-zero exit code is reported but is not treated as a
-// failure; only Docker errors and timeouts are.
+// failure; only Docker errors and timeouts are. Downloads the script's curl
+// gave up on are reported (InstallResult.FailedDownloads) for Wings to judge.
 func (c *Client) Install(ctx context.Context, s containers.InstallSpec) (containers.InstallResult, error) {
 	if c.nets.Install.Name == "" {
 		return containers.InstallResult{}, errors.New("runtime not set up")
@@ -222,9 +223,26 @@ func (c *Client) Install(ctx context.Context, s containers.InstallSpec) (contain
 	if err := os.Chmod(scriptDir, 0o755); err != nil { //nolint:gosec // mounted read-only into the install container
 		return containers.InstallResult{}, err
 	}
+	if err := writeInstallBin(scriptDir); err != nil {
+		return containers.InstallResult{}, err
+	}
+	// The wrapper records failed downloads here. Writable by any user, for
+	// install images that don't run as root.
+	reportDir, err := os.MkdirTemp(s.TmpDir, "install-report-"+s.ServerID+"-")
+	if err != nil {
+		return containers.InstallResult{}, err
+	}
+	defer func() { _ = os.RemoveAll(reportDir) }()
+	if err := os.Chmod(reportDir, 0o777); err != nil { //nolint:gosec // see above; only this install's container writes to it
+		return containers.InstallResult{}, err
+	}
 
 	if err := c.EnsureImage(ctx, s.Install.Container, nil); err != nil {
 		return containers.InstallResult{}, err
+	}
+	var imageEnv []string
+	if img, err := c.api.ImageInspect(ctx, s.Install.Container); err == nil && img.Config != nil {
+		imageEnv = img.Config.Env
 	}
 
 	name := "raptor-" + s.ServerID + "-install"
@@ -240,7 +258,7 @@ func (c *Client) Install(ctx context.Context, s containers.InstallSpec) (contain
 			Hostname:     "installer",
 			Image:        s.Install.Container,
 			Cmd:          []string{s.Install.Entrypoint, "/mnt/install/install.sh"},
-			Env:          s.Env,
+			Env:          installEnv(s.Env, imageEnv),
 			Tty:          true,
 			AttachStdout: true,
 			AttachStderr: true,
@@ -250,6 +268,7 @@ func (c *Client) Install(ctx context.Context, s containers.InstallSpec) (contain
 			Mounts: []mount.Mount{
 				{Type: mount.TypeBind, Source: s.Dir, Target: "/mnt/server"},
 				{Type: mount.TypeBind, Source: scriptDir, Target: "/mnt/install", ReadOnly: true},
+				{Type: mount.TypeBind, Source: reportDir, Target: installReport},
 			},
 			Tmpfs:       map[string]string{"/tmp": "rw,exec,nosuid,size=" + strconv.Itoa(tmpfsSizeMiB) + "M"},
 			NetworkMode: container.NetworkMode(c.nets.Install.Name),
@@ -303,7 +322,7 @@ func (c *Client) Install(ctx context.Context, s containers.InstallSpec) (contain
 	select {
 	case res := <-wait.Result:
 		drain()
-		return containers.InstallResult{ExitCode: res.StatusCode}, nil
+		return containers.InstallResult{ExitCode: res.StatusCode, FailedDownloads: readFailedDownloads(reportDir)}, nil
 	case err := <-wait.Error:
 		if errors.Is(runCtx.Err(), context.DeadlineExceeded) {
 			_, _ = c.api.ContainerKill(context.WithoutCancel(ctx), created.ID, client.ContainerKillOptions{Signal: "SIGKILL"})

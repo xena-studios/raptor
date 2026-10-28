@@ -83,7 +83,7 @@ export function ChangeServerType({
         : {
             title: `Change this server to ${picked.name}?`,
             description:
-              "The new type's install runs over the files it has, so worlds and configs stay.",
+              "A backup of its files is taken, then the new type's install runs over them, so worlds and configs stay.",
             confirm: "Change with passkey",
           },
     );
@@ -191,7 +191,7 @@ export function ChangeServerType({
                     value: false,
                     title: "Keep them and reinstall",
                     about:
-                      "The new install runs over the files the server has, so worlds and configs stay. Best between versions of the same game.",
+                      "After a backup you can restore from, the new install runs over the files the server has, so worlds and configs stay. Best between versions of the same game.",
                   },
                   {
                     value: true,

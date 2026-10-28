@@ -428,7 +428,8 @@ func TestWipeAndFinalBackup(t *testing.T) {
 	}
 	plant(src.Dir)
 
-	// A plain reinstall is unsigned and keeps the files; a wipe is signed.
+	// A plain reinstall is unsigned and keeps the files, after a safety
+	// backup of them; a wipe is signed.
 	res, err := v.p.send("alice", ServerReinstall, id, nil, nil)
 	if err != nil {
 		t.Fatalf("plain reinstall: %v", err)
@@ -437,6 +438,11 @@ func TestWipeAndFinalBackup(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(src.Dir, "world/level.dat")); err != nil {
 		t.Fatalf("a plain reinstall removed files: %v", err)
 	}
+	list, _ := v.bk.List(ctx, id)
+	if len(list) != 1 || list[0].Kind != backup.KindSafety || list[0].Status != backup.StatusOK || list[0].ExpiresAt.IsZero() {
+		t.Fatalf("safety backup before a reinstall: %+v", list)
+	}
+	reinstallBackup := list[0].ID
 	if _, err := v.p.send("alice", ServerReinstall, id, ReinstallParams{Wipe: true}, nil); !errors.Is(err, command.ErrSignatureNeeded) {
 		t.Fatalf("unsigned wipe: %v", err)
 	}
@@ -460,6 +466,17 @@ func TestWipeAndFinalBackup(t *testing.T) {
 		}
 	}
 	setDest(down.DestinationID)
+	// Nor does a reinstall run when its safety backup fails.
+	res, err = v.p.send("alice", ServerReinstall, id, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j := v.job(t, res); j.Status != jobs.Failed || !strings.Contains(j.Error, "nothing was changed") {
+		t.Fatalf("reinstall with a failing backup: %s %s", j.Status, j.Error)
+	}
+	if st, err := v.m.Status(id); err != nil || st.State != server.Offline {
+		t.Fatalf("server after the refused reinstall: %+v, %v", st, err)
+	}
 	res, err = v.p.send("alice", ServerReinstall, id, ReinstallParams{Wipe: true}, v.owner)
 	if err != nil {
 		t.Fatal(err)
@@ -490,8 +507,8 @@ func TestWipeAndFinalBackup(t *testing.T) {
 	if _, err := os.Stat("/etc/hostname"); err != nil {
 		t.Fatalf("the wipe followed a link out: %v", err)
 	}
-	list, _ := v.bk.List(ctx, id)
-	list = slices.DeleteFunc(list, func(b *backup.Backup) bool { return b.Status == backup.StatusFailed })
+	list, _ = v.bk.List(ctx, id)
+	list = slices.DeleteFunc(list, func(b *backup.Backup) bool { return b.Status == backup.StatusFailed || b.ID == reinstallBackup })
 	if len(list) != 1 || list[0].Kind != backup.KindSafety || list[0].Files < 2 {
 		t.Fatalf("safety backup: %+v", list)
 	}

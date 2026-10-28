@@ -1,0 +1,67 @@
+#!/bin/sh
+# Raptor's curl for egg install scripts (docs/EGGS.md#downloads). Wings puts
+# it first on the install container's PATH. It runs the image's own curl with
+# retries for transient network failures and, if a download still fails on
+# the network, records it so Wings fails the install instead of reporting
+# success. Anything else (HTTP errors, a closed pipe, bad options) is passed
+# through untouched: the exit code and output are curl's own.
+#
+# POSIX sh only: install images range from BusyBox to Debian.
+
+report=${RAPTOR_INSTALL_REPORT:-/mnt/install-report/downloads}
+case $0 in
+*/*) self=${0%/*} ;;
+*) self=/mnt/install/bin ;;
+esac
+
+# The real curl: the first one on PATH that isn't this one.
+real=
+set -f
+oldifs=$IFS
+IFS=:
+for d in $PATH; do
+	case $d in
+	'' | "$self" | "$self/" | /mnt/install/bin | /mnt/install/bin/) continue ;;
+	esac
+	if [ -f "$d/curl" ] && [ -x "$d/curl" ]; then
+		real=$d/curl
+		break
+	fi
+done
+IFS=$oldifs
+set +f
+
+if [ -z "$real" ] || [ -n "$RAPTOR_CURL_WRAPPED" ]; then
+	echo "curl: not found" >&2
+	exit 127
+fi
+RAPTOR_CURL_WRAPPED=1
+export RAPTOR_CURL_WRAPPED
+
+# Retry what the image's curl can: --retry-all-errors (curl 7.71+) also
+# covers resets mid-transfer (HTTP/2 stream errors, connection resets),
+# which plain --retry doesn't. The script's own options come after ours, so
+# they win.
+if "$real" --retry-all-errors --version >/dev/null 2>&1; then
+	"$real" --retry 5 --retry-delay 2 --retry-max-time 300 --retry-all-errors "$@"
+elif "$real" --retry 1 --version >/dev/null 2>&1; then
+	"$real" --retry 5 --retry-delay 2 --retry-max-time 300 "$@"
+else
+	"$real" "$@"
+fi
+rc=$?
+
+# Network failures only: couldn't resolve or connect, timed out, TLS
+# failed, the transfer broke off.
+case $rc in
+5 | 6 | 7 | 16 | 18 | 28 | 35 | 52 | 55 | 56 | 60 | 92)
+	urls=
+	for a in "$@"; do
+		case $a in
+		*://*) urls="$urls $a" ;;
+		esac
+	done
+	{ printf "%s%s\n" "$rc" "$urls" >>"$report"; } 2>/dev/null
+	;;
+esac
+exit $rc

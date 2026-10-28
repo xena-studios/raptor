@@ -466,7 +466,8 @@ function Reinstall({
           }
         : {
             title: `Reinstall ${name}?`,
-            description: "The install script runs again over its files.",
+            description:
+              "A backup of its files is taken, then the install script runs again over them.",
             typeToConfirm: name,
             confirm: "Reinstall",
           },

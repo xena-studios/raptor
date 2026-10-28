@@ -108,6 +108,15 @@ func Run(ctx context.Context, rt containers.Runtime, p Params) (Result, error) {
 	})
 	res.Duration = time.Since(start)
 	res.ExitCode = out.ExitCode
+
+	// The script ran, but a download it needed failed, or the server's jar
+	// is broken: the server couldn't start, so the install failed.
+	if runErr == nil {
+		if f := check(out, p, vars); f != nil {
+			_, _ = fmt.Fprintf(output, "\n%s\n", f.Reason)
+			runErr = f
+		}
+	}
 	res.Log, res.Truncated = log.bytes()
 
 	// Hand the files to the server's user even after a failure, so the owner
@@ -116,6 +125,40 @@ func Run(ctx context.Context, rt containers.Runtime, p Params) (Result, error) {
 		return res, errors.Join(runErr, fmt.Errorf("fix ownership: %w", err))
 	}
 	return res, runErr
+}
+
+// Failure is an install whose script ran but didn't leave a server that can
+// start. Reason is written for the owner (it's the server's install error).
+type Failure struct{ Reason string }
+
+func (f *Failure) Error() string { return f.Reason }
+
+// check judges a finished script (docs/EGGS.md#install): a download that
+// failed on the network even after retries fails the install, and so does
+// a startup jar that's there but isn't a valid jar.
+func check(out containers.InstallResult, p Params, vars map[string]string) *Failure {
+	if n := len(out.FailedDownloads); n > 0 {
+		d := out.FailedDownloads[0]
+		what := "A download failed"
+		if d.URL != "" {
+			what += ": " + d.URL
+		}
+		more := ""
+		if n > 1 {
+			more = fmt.Sprintf("; %d more failed too", n-1)
+		}
+		return &Failure{Reason: fmt.Sprintf("%s (curl exit %d%s). Reinstall to try again.", what, d.Code, more)}
+	}
+	startup := p.Env.Startup
+	if startup == "" {
+		startup = p.Egg.DefaultStartup()
+	}
+	if jar := startupJar(startup, vars); jar != "" {
+		if err := checkJar(p.Dir, jar); err != nil {
+			return &Failure{Reason: fmt.Sprintf("%s %v, so the server can't start. Reinstall to try again.", jar, err)}
+		}
+	}
+	return nil
 }
 
 // FixOwnership hands every file in dir to uid:gid after an install. It uses

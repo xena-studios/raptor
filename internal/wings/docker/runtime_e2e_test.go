@@ -390,6 +390,23 @@ func TestRuntimeInstallFlow(t *testing.T) {
 		t.Fatalf("failing script: err=%v exit=%d log=%q", err, res.ExitCode, res.Log)
 	}
 
+	// A download that fails on the network fails the install, whatever the
+	// script does after it. BusyBox has no curl, so the "image's curl" is a
+	// stand-in that can't connect; Raptor's wrapper is found first on PATH
+	// and runs it with retries.
+	fakeCurl := `mkdir -p /tmp/real && printf '#!/bin/sh\ncase "$*" in *--version*) exit 0;; esac\necho "real curl: $*"\nexit 7\n' >/tmp/real/curl && chmod +x /tmp/real/curl && PATH="$PATH:/tmp/real"; `
+	res, err = run(egg(fakeCurl+`curl -sSL -o server.jar https://downloads.example.com/server.jar; echo "carried on"`, ""), nil)
+	var f *install.Failure
+	if !errors.As(err, &f) || f.Reason != "A download failed: https://downloads.example.com/server.jar (curl exit 7). Reinstall to try again." ||
+		!strings.Contains(string(res.Log), "real curl: --retry 5 ") || !strings.Contains(string(res.Log), "carried on") {
+		t.Fatalf("failed download: err=%v log=%q", err, res.Log)
+	}
+	// A download that works, and an HTTP error the script checks for, don't.
+	okCurl := strings.ReplaceAll(fakeCurl, `exit 7\n`, `case "$*" in *missing*) exit 22;; esac\nexit 0\n`)
+	if res, err = run(egg(okCurl+`curl -sSL -o a https://example.com/a; curl -fsI https://example.com/missing || echo "no such version"`, ""), nil); err != nil || !strings.Contains(string(res.Log), "no such version") {
+		t.Fatalf("working download: err=%v log=%q", err, res.Log)
+	}
+
 	start := time.Now()
 	_, err = run(egg("sleep 120", "3s"), nil)
 	if err == nil || !strings.Contains(err.Error(), "timed out") || time.Since(start) > time.Minute {

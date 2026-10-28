@@ -264,6 +264,16 @@ type InstallSpec struct {
 type InstallResult struct {
 	ExitCode int64
 	TimedOut bool
+	// FailedDownloads are the script's curl runs that failed on the network
+	// even after retries (docs/EGGS.md#downloads).
+	FailedDownloads []FailedDownload
+}
+
+// FailedDownload is a curl run in an install script that failed on the
+// network: it couldn't resolve or connect, or the transfer broke off.
+type FailedDownload struct {
+	URL  string // the first URL it was given, without credentials; may be empty
+	Code int    // curl's exit code
 }
 
 // ServerSpec describes a server container.

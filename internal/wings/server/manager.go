@@ -258,6 +258,9 @@ type installPayload struct {
 	// Wipe: take a safety backup and remove every file before the script
 	// runs ("wipe and reinstall").
 	Wipe bool `json:"wipe,omitempty"`
+	// Backup: take a safety backup before the script runs over the files
+	// (any reinstall; a wipe takes its own).
+	Backup bool `json:"backup,omitempty"`
 }
 
 // InstallOptions change a reinstall.
@@ -668,13 +671,13 @@ func (m *Manager) Install(ctx context.Context, id string) (string, error) {
 	return m.Reinstall(ctx, id, InstallOptions{})
 }
 
-// Reinstall queues an install over an existing server, optionally wiping
-// its files first (after a safety backup).
+// Reinstall queues an install over an existing server, after a safety
+// backup of its files, optionally wiping them first.
 func (m *Manager) Reinstall(ctx context.Context, id string, opts InstallOptions) (string, error) {
 	if err := m.CanReinstall(ctx, id, opts); err != nil {
 		return "", err
 	}
-	return m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobInstall, ServerID: id, Payload: installPayload{Wipe: opts.Wipe}})
+	return m.o.Jobs.Enqueue(ctx, jobs.Spec{Type: JobInstall, ServerID: id, Payload: installPayload{Wipe: opts.Wipe, Backup: !opts.Wipe}})
 }
 
 // CanReinstall says why a server can't be reinstalled now, if it can't:
