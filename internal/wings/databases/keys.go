@@ -117,8 +117,8 @@ func (s *Service) redisAs(ctx context.Context, serverID, id string) (*redis.Clie
 	if err != nil {
 		return nil, err
 	}
-	if in.Engine != Redis {
-		return nil, invalid{"that isn't a Redis database"}
+	if !isRedis(in.Engine) {
+		return nil, invalid{"that isn't a Redis or Valkey database"}
 	}
 	if s.state(r.InstanceID) != StateRunning {
 		return nil, notReady{fmt.Sprintf("%s isn't running; start it first", in.Name)}

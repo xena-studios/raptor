@@ -670,7 +670,7 @@ func mariadbUpgrade(ctx context.Context, rt Runtime, id, root string, log io.Wri
 // database and table.
 func inventory(ctx context.Context, in Instance, dir, root string, dbs []store.Database) (map[string]int64, error) {
 	switch in.Engine {
-	case Redis:
+	case Redis, Valkey:
 		return redisKeys(ctx, dir, root)
 	case MongoDB:
 		names := make([]string, 0, len(dbs))

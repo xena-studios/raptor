@@ -133,7 +133,7 @@ func serviceSpec(in Instance, dir, rootPassword, timezone string) containers.Ser
 		if in.Engine == MySQL {
 			s.Cmd = append(s.Cmd, "--secure-file-priv=NULL")
 		}
-	case Redis:
+	case Redis, Valkey:
 		redisSpec(&s, in, dir, maxConn)
 	case MongoDB:
 		mongoSpec(&s, in, dir, rootPassword, maxConn)
@@ -248,7 +248,7 @@ func createDatabase(ctx context.Context, in Instance, dir, rootPassword, name, u
 		return err
 	}
 	switch in.Engine {
-	case Redis:
+	case Redis, Valkey:
 		return redisCreate(ctx, dir, rootPassword, user, pass)
 	case MongoDB:
 		return mongoCreate(ctx, dir, rootPassword, name, user, pass)
@@ -306,7 +306,7 @@ func dropDatabase(ctx context.Context, in Instance, dir, rootPassword, name, use
 		return err
 	}
 	switch in.Engine {
-	case Redis:
+	case Redis, Valkey:
 		return redisDrop(ctx, dir, rootPassword, user)
 	case MongoDB:
 		return mongoDrop(ctx, dir, rootPassword, name)
@@ -337,7 +337,7 @@ func setPassword(ctx context.Context, in Instance, dir, rootPassword, user, pass
 		return err
 	}
 	switch in.Engine {
-	case Redis:
+	case Redis, Valkey:
 		return redisPassword(ctx, dir, rootPassword, user, pass)
 	case MongoDB:
 		// A database's user is named like it, and stored in it.
@@ -390,7 +390,7 @@ var errInitializing = errors.New("it's still setting up its data folder")
 // counted, or the next connection could find no socket at all.
 func ping(ctx context.Context, in Instance, dir, rootPassword string) error {
 	switch in.Engine {
-	case Redis:
+	case Redis, Valkey:
 		return redisPing(ctx, dir, rootPassword)
 	case MongoDB:
 		return mongoPing(ctx, dir, rootPassword)

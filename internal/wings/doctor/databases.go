@@ -85,7 +85,7 @@ func checkNetwork(ctx context.Context, e *Env, n *localv1.NetworkInfo) []Result 
 
 // engineNames are the engines as people know them.
 var engineNames = map[string]string{
-	"mariadb": "MariaDB", "mysql": "MySQL", "postgres": "PostgreSQL", "redis": "Redis", "mongodb": "MongoDB",
+	"mariadb": "MariaDB", "mysql": "MySQL", "postgres": "PostgreSQL", "redis": "Redis", "valkey": "Valkey", "mongodb": "MongoDB",
 }
 
 // checkInstances checks each database instance that should be running is

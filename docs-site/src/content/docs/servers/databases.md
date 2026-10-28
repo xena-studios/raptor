@@ -47,9 +47,9 @@ If an admin gave the database's instance [external access](/nodes/databases/#rea
 
 ## Redis and MongoDB
 
-A database on a **Redis** instance has a user and a password, but no name: Redis' databases are numbered, and yours is 0. Each Redis instance is for one server, so pick one nothing else uses. A **MongoDB** database's user is stored in the database itself, so connect with `authSource` set to its name; the URL Raptor gives (`MONGODB_URI`) has it.
+A database on a **Redis** or **Valkey** instance has a user and a password, but no name: Redis' databases are numbered, and yours is 0. Each Redis or Valkey instance is for one server, so pick one nothing else uses. Valkey takes everything Redis does, with the same `REDIS_*` variables. A **MongoDB** database's user is stored in the database itself, so connect with `authSource` set to its name; the URL Raptor gives (`MONGODB_URI`) has it.
 
-**Open** on a Redis database shows its keys: search them with a pattern like `player:*`, see each one's value and when it expires, and with **Change databases** edit them, add new ones, or run Redis commands from the **Command** tab. On a MongoDB database it shows its collections and their documents: find documents with a filter like `{"name": "alex"}`, sort them, and edit, insert, or delete them as JSON. MongoDB databases can be exported and imported as `mongodump` archives; a Redis database's data is in the server's backups, and **Restore from a backup** puts it back.
+**Open** on a Redis or Valkey database shows its keys: search them with a pattern like `player:*`, see each one's value and when it expires, and with **Change databases** edit them, add new ones, or run Redis commands from the **Command** tab. On a MongoDB database it shows its collections and their documents: find documents with a filter like `{"name": "alex"}`, sort them, and edit, insert, or delete them as JSON. MongoDB databases can be exported and imported as `mongodump` archives; a Redis database's data is in the server's backups, and **Restore from a backup** puts it back.
 
 ## Variables
 

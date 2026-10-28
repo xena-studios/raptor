@@ -53,7 +53,7 @@ func dbPs(ctx context.Context, args []string) error {
 }
 
 var engineNames = map[string]string{
-	"mariadb": "MariaDB", "mysql": "MySQL", "postgres": "PostgreSQL", "redis": "Redis", "mongodb": "MongoDB",
+	"mariadb": "MariaDB", "mysql": "MySQL", "postgres": "PostgreSQL", "redis": "Redis", "valkey": "Valkey", "mongodb": "MongoDB",
 }
 
 func printInstances(out io.Writer, list []*localv1.DatabaseInstanceInfo) error {

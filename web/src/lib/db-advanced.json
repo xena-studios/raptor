@@ -990,5 +990,211 @@
         "max": 1000000
       }
     }
+  },
+  "valkey": {
+    "dialect": {
+      "separator": "-",
+      "true": "yes",
+      "false": "no",
+      "units": {
+        "g": 1000000000,
+        "gb": 1073741824,
+        "k": 1000,
+        "kb": 1024,
+        "m": 1000000,
+        "mb": 1048576
+      },
+      "bare": true
+    },
+    "rules": {
+      "activedefrag": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "appendfsync": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": ["always", "everysec", "no"]
+      },
+      "auto-aof-rewrite-min-size": {
+        "kind": "size",
+        "min": 0,
+        "max": 68719476736
+      },
+      "auto-aof-rewrite-percentage": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000
+      },
+      "busy-reply-threshold": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000000
+      },
+      "dynamic-hz": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "hash-max-listpack-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "hash-max-listpack-value": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "hz": {
+        "kind": "int",
+        "min": 1,
+        "max": 500
+      },
+      "io-threads": {
+        "kind": "int",
+        "min": 1,
+        "max": 16
+      },
+      "latency-monitor-threshold": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000000000
+      },
+      "lazyfree-lazy-eviction": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lazyfree-lazy-expire": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lazyfree-lazy-server-del": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lazyfree-lazy-user-del": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lazyfree-lazy-user-flush": {
+        "kind": "bool",
+        "min": 0,
+        "max": 0
+      },
+      "lfu-decay-time": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "lfu-log-factor": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "list-compress-depth": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "list-max-listpack-size": {
+        "kind": "int",
+        "min": -5,
+        "max": 1000000
+      },
+      "maxclients": {
+        "kind": "",
+        "min": 0,
+        "max": 0,
+        "field": "Max connections"
+      },
+      "maxmemory-policy": {
+        "kind": "enum",
+        "min": 0,
+        "max": 0,
+        "values": [
+          "noeviction",
+          "allkeys-lru",
+          "allkeys-lfu",
+          "allkeys-random",
+          "volatile-lru",
+          "volatile-lfu",
+          "volatile-random",
+          "volatile-ttl"
+        ]
+      },
+      "maxmemory-samples": {
+        "kind": "int",
+        "min": 1,
+        "max": 64
+      },
+      "notify-keyspace-events": {
+        "kind": "pattern",
+        "min": 0,
+        "max": 0,
+        "chars": "KEg$lshzxetmdnA"
+      },
+      "set-max-intset-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "set-max-listpack-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "set-max-listpack-value": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "slowlog-log-slower-than": {
+        "kind": "int",
+        "min": -1,
+        "max": 1000000000000
+      },
+      "slowlog-max-len": {
+        "kind": "int",
+        "min": 0,
+        "max": 100000
+      },
+      "stream-node-max-bytes": {
+        "kind": "size",
+        "min": 0,
+        "max": 1073741824
+      },
+      "stream-node-max-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000000
+      },
+      "tcp-keepalive": {
+        "kind": "int",
+        "min": 0,
+        "max": 31536000
+      },
+      "timeout": {
+        "kind": "int",
+        "min": 0,
+        "max": 31536000
+      },
+      "zset-max-listpack-entries": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      },
+      "zset-max-listpack-value": {
+        "kind": "int",
+        "min": 0,
+        "max": 1000000
+      }
+    }
   }
 }

@@ -33,6 +33,7 @@ import {
   downloadCA,
   engineName,
   hostVariable,
+  isRedis,
   isSQL,
   labelPattern,
   serverDatabasesKey,
@@ -45,7 +46,8 @@ import { passkeyCancelled } from "@/lib/webauthn";
 
 // family is which variables a database's engine gives (Wings' envVars):
 // the first of each family also gets them without a prefix.
-const family = (e: Database["engine"]) => (e === "redis" || e === "mongodb" ? e : "sql");
+const family = (e: Database["engine"]) =>
+  isRedis(e) ? "redis" : e === "mongodb" ? "mongodb" : "sql";
 
 const select =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -372,7 +374,7 @@ function DatabaseRow({
         rows={[
           ["Host", <Copyable key="h" value={`${db.host}:${db.port}`} />],
           // Redis' databases are numbered, and Raptor's is 0.
-          ...(db.engine === "redis"
+          ...(isRedis(db.engine)
             ? []
             : [["Database", <Copyable key="d" value={db.name} />] as [string, ReactNode]]),
           ["User", <Copyable key="u" value={db.user} />],
@@ -467,8 +469,8 @@ function CreateDialog({
   onClose: () => void;
 }) {
   const client = useQueryClient();
-  // A Redis instance holds one server's data.
-  const taken = (i: DBInstance) => i.engine === "redis" && i.databases > 0;
+  // A Redis or Valkey instance holds one server's data.
+  const taken = (i: DBInstance) => isRedis(i.engine) && i.databases > 0;
   const [instance, setInstance] = useState(instances.find((i) => !taken(i))?.id ?? "");
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);

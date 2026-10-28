@@ -275,6 +275,7 @@ func AdvancedRules() map[string]AdvancedEngine {
 		MySQL:    {mysqlDialect, mysqlRules(MySQL)},
 		Postgres: {postgresDialect, postgresRules},
 		Redis:    {redisDialect, redisRules},
+		Valkey:   {redisDialect, redisRules},
 	}
 }
 
@@ -592,7 +593,7 @@ func withAdvanced(engine string, cmd []string, set []Setting) []string {
 				i++
 				continue
 			}
-		case engine == Redis && strings.HasPrefix(a, "--") && i+1 < len(cmd):
+		case isRedis(engine) && strings.HasPrefix(a, "--") && i+1 < len(cmd):
 			if ours(a[2:]) {
 				i++
 				continue
@@ -608,7 +609,7 @@ func withAdvanced(engine string, cmd []string, set []Setting) []string {
 		switch engine {
 		case Postgres:
 			out = append(out, "-c", s.Name+"="+s.Value)
-		case Redis:
+		case Redis, Valkey:
 			out = append(out, "--"+s.Name, s.Value)
 		default:
 			out = append(out, "--"+s.Name+"="+s.Value)

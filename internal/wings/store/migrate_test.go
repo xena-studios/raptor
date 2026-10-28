@@ -181,3 +181,67 @@ func TestDatabaseEnginesMigration(t *testing.T) {
 		t.Error("deleting the instance left its address")
 	}
 }
+
+// Migration 28 rebuilds database_instances again, for Valkey: nothing may
+// be lost, and the references still cascade.
+func TestValkeyMigration(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "state.db")
+	raw, err := sql.Open("sqlite", dsn(path, false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw.SetMaxOpenConns(1)
+	p, err := goose.NewProvider(goose.DialectSQLite3, raw, migrations.FS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.UpTo(ctx, 27); err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		`INSERT INTO networks (id, name, subnet, created_at, updated_at) VALUES ('n1', 'A', '172.27.0.0/16', 1, 1)`,
+		`INSERT INTO database_instances (id, name, engine, version, image, root_password, networks, limits, settings, created_at, updated_at, external_port)
+			VALUES ('i1', 'Redis', 'redis', '8.10', 'img', X'01', '["n1"]', '{}', '{"advanced":"hz = 20"}', 1, 1, 16379)`,
+		`INSERT INTO instance_addresses (instance_id, network_id, ip) VALUES ('i1', 'n1', '172.27.128.2')`,
+		`INSERT INTO databases (id, instance_id, server_id, label, db_name, username, password, created_at, viewer_username, viewer_password)
+			VALUES ('d1', 'i1', 's1', 'cache', 'ss1_cache', 'ss1_cache', X'02', 1, 'vss1_cache', X'03')`,
+	} {
+		if _, err := raw.ExecContext(ctx, q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	if _, err := raw.ExecContext(ctx, `INSERT INTO database_instances (id, name, engine, version, image, root_password, limits, settings, created_at, updated_at)
+		VALUES ('i2', 'Valkey', 'valkey', '9.1', 'img', X'01', '{}', '{}', 1, 1)`); err == nil {
+		t.Fatal("version 27 accepted a Valkey instance")
+	}
+	_ = raw.Close()
+
+	db, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+	in, err := db.Read.GetInstance(ctx, "i1")
+	if err != nil || in.ExternalPort != 16379 || in.Settings != `{"advanced":"hz = 20"}` {
+		t.Fatalf("instance after migrating: %+v, %v", in, err)
+	}
+	if d, err := db.Read.GetDatabase(ctx, "d1"); err != nil || d.ViewerUsername != "vss1_cache" || len(d.ViewerPassword) != 1 {
+		t.Fatalf("database after migrating: %+v, %v", d, err)
+	}
+	if err := db.Write.InsertInstance(ctx, InsertInstanceParams{
+		ID: "i2", Name: "Valkey", Engine: "valkey", Version: "9.1", Image: "img",
+		RootPassword: []byte{1}, Networks: "[]", Limits: "{}", Settings: "{}", DesiredState: "running", CreatedAt: 1, UpdatedAt: 1,
+	}); err != nil {
+		t.Fatalf("a Valkey instance: %v", err)
+	}
+	if err := db.Write.DeleteInstance(ctx, "i1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Read.GetDatabase(ctx, "d1"); err == nil {
+		t.Error("deleting the instance left its database")
+	}
+	if a, _ := db.Read.ListInstanceAddresses(ctx); len(a) != 0 {
+		t.Error("deleting the instance left its address")
+	}
+}

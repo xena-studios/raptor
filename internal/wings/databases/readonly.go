@@ -87,7 +87,7 @@ func grantReader(ctx context.Context, in Instance, dir, root, database, owner, u
 		return err
 	}
 	switch in.Engine {
-	case Redis:
+	case Redis, Valkey:
 		return redisReadOnly(ctx, dir, root, user, pass)
 	case MongoDB:
 		return mongoUser(ctx, dir, root, database, user, pass, "read")
@@ -195,7 +195,7 @@ func dropReadOnly(ctx context.Context, in Instance, dir, root, database, user st
 		return err
 	}
 	switch in.Engine {
-	case Redis:
+	case Redis, Valkey:
 		return redisDropUser(ctx, dir, root, user)
 	case MongoDB:
 		return mongoDropUser(ctx, dir, root, database, user)

@@ -4,7 +4,7 @@
 // internal/wings/databases decides: in place, by dump and restore (a new
 // PostgreSQL major), or not at all (older versions can't read newer data).
 export function versionChange(
-  engine: "mariadb" | "mysql" | "postgres" | "redis" | "mongodb",
+  engine: "mariadb" | "mysql" | "postgres" | "redis" | "valkey" | "mongodb",
   from: string,
   to: string,
 ) {

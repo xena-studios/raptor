@@ -18,7 +18,7 @@ import { KeyBrowser } from "@/components/db-docs/keys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { engineName, useServerDatabases } from "@/lib/databases";
+import { engineName, isRedis, useServerDatabases } from "@/lib/databases";
 import { formatBytes, tableKey, tableRef, useSchema } from "@/lib/db-browser";
 import { message } from "@/lib/errors";
 
@@ -52,7 +52,7 @@ export function DatabaseBrowser({
   const list = useServerDatabases(nodeId, serverId);
   const db = list.data?.databases.find((d) => d.id === id);
   // Redis and MongoDB have browsers of their own (components/db-docs).
-  const nosql = db?.engine === "redis" || db?.engine === "mongodb";
+  const nosql = (db && isRedis(db.engine)) || db?.engine === "mongodb";
   const schema = useSchema(nodeId, serverId, id, !!db && !nosql);
   const [collection, setCollection] = useState<string>();
   const [picked, setPicked] = useState<string>();
@@ -100,7 +100,7 @@ export function DatabaseBrowser({
             <Eye className="size-3.5" /> Read-only for you
           </span>
         )}
-        {canWrite && transfers && db?.engine !== "redis" && (
+        {canWrite && transfers && db && !isRedis(db.engine) && (
           <div className="ml-auto flex gap-2">
             <Button size="sm" variant="outline" onClick={() => setTransfer("import")}>
               <Upload /> Import
@@ -112,7 +112,7 @@ export function DatabaseBrowser({
         )}
       </div>
 
-      {db?.engine === "redis" && (
+      {db && isRedis(db.engine) && (
         <KeyBrowser nodeId={nodeId} serverId={serverId} id={id} canWrite={canWrite} />
       )}
       {db?.engine === "mongodb" && (

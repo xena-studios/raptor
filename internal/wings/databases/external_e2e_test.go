@@ -19,6 +19,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/xena-studios/raptor/internal/wings/networks"
 )
@@ -191,5 +192,106 @@ func TestExternal(t *testing.T) {
 				t.Errorf("from the network after: %v", err)
 			}
 		})
+	}
+}
+
+// TestRedisExternal gives Redis and Valkey external access: a second port
+// that speaks only TLS (DECISIONS #331), with the instance's certificate,
+// while servers on its network keep the plain port.
+func TestRedisExternal(t *testing.T) {
+	ctx := context.Background()
+	e := newE2E(t, "E2E redis external")
+	ip := hostIP(t)
+	for i, eng := range []string{Redis, Valkey} {
+		t.Run(eng, func(t *testing.T) {
+			in, err := e.svc.Save(ctx, InstanceInput{Name: "E2E external " + eng, Engine: eng, Networks: []string{e.net.ID}, Limits: Limits{MemoryMiB: 256}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = e.svc.Delete(context.Background(), in.ID) })
+			in = waitRunning(t, e.svc, in.ID)
+			d, pw, err := e.svc.CreateDatabase(ctx, e.server, in.ID, "cache")
+			if err != nil {
+				t.Fatal(err)
+			}
+			port := 39110 + i
+			if _, err := e.svc.SetExternal(ctx, ExternalInput{ID: in.ID, Port: port, Allow: []string{"0.0.0.0/0"}}); err != nil {
+				t.Fatal(err)
+			}
+			in = waitRunning(t, e.svc, in.ID)
+			if in.External == nil || in.External.Port != port || in.External.CA == "" {
+				t.Fatalf("external: %+v", in.External)
+			}
+			ro, rpw, err := e.svc.SetReadOnly(ctx, e.server, d.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			pool := x509.NewCertPool()
+			if !pool.AppendCertsFromPEM([]byte(in.External.CA)) {
+				t.Fatal("the CA isn't PEM")
+			}
+			tc := &tls.Config{RootCAs: pool, ServerName: in.Host, MinVersion: tls.VersionTLS12}
+			outside := func(user, pass string, tc *tls.Config) *redis.Client {
+				c := redis.NewClient(&redis.Options{
+					Addr: net.JoinHostPort(ip, strconv.Itoa(port)), Username: user, Password: pass, TLSConfig: tc,
+					DialTimeout: 5 * time.Second, ReadTimeout: 5 * time.Second, MaxRetries: -1, DisableIdentity: true,
+				})
+				t.Cleanup(func() { _ = c.Close() })
+				return c
+			}
+
+			// From outside: TLS, checked against the instance's authority.
+			if err := outside(d.User, pw, tc).Set(ctx, "player:alex", "42", 0).Err(); err != nil {
+				t.Errorf("from outside with TLS: %v", err)
+			}
+			if v, err := outside(ro, rpw, tc).Get(ctx, "player:alex").Result(); err != nil || v != "42" {
+				t.Errorf("the read-only user from outside with TLS: %q %v", v, err)
+			}
+			if err := outside(d.User, pw, nil).Ping(ctx).Err(); err == nil {
+				t.Error("connected from outside without TLS")
+			}
+			if err := outside(d.User, "wrong", tc).Ping(ctx).Err(); err == nil {
+				t.Error("a wrong password logged in over TLS")
+			}
+			// The plain port isn't published.
+			if c, err := net.DialTimeout("tcp", net.JoinHostPort(ip, "6379"), 2*time.Second); err == nil {
+				_ = c.Close()
+				t.Error("the plain port answers on the node")
+			}
+			// From its network: the plain port, as before.
+			addr := in.Addresses[e.net.ID]
+			inside := redisAs(addr, d.User, pw)
+			defer func() { _ = inside.Close() }()
+			if v, err := inside.Get(ctx, "player:alex").Result(); err != nil || v != "42" {
+				t.Errorf("from the network without TLS: %q %v", v, err)
+			}
+
+			// Off: no port, and the network as before.
+			if _, err := e.svc.SetExternal(ctx, ExternalInput{ID: in.ID}); err != nil {
+				t.Fatal(err)
+			}
+			in = waitRunning(t, e.svc, in.ID)
+			if in.External != nil {
+				t.Errorf("still external: %+v", in.External)
+			}
+			if err := outside(d.User, pw, tc).Ping(ctx).Err(); err == nil {
+				t.Error("the port still answers")
+			}
+			after := redisAs(addr, d.User, pw)
+			defer func() { _ = after.Close() }()
+			if err := after.Ping(ctx).Err(); err != nil {
+				t.Errorf("from the network after: %v", err)
+			}
+		})
+	}
+
+	// MongoDB has none, on purpose.
+	mg, err := e.svc.Save(ctx, InstanceInput{Name: "E2E external mongodb", Engine: MongoDB, Version: "7.0", Networks: []string{e.net.ID}, Limits: Limits{MemoryMiB: 512}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = e.svc.Delete(context.Background(), mg.ID) })
+	if _, err := e.svc.SetExternal(ctx, ExternalInput{ID: mg.ID, Port: 39120, Allow: []string{"0.0.0.0/0"}}); !errors.Is(err, ErrInvalid) {
+		t.Errorf("external access for MongoDB: %v", err)
 	}
 }

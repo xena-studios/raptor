@@ -200,7 +200,7 @@ func (s *Service) replace(ctx context.Context, r store.Database, src io.Reader, 
 		unlock()
 		return err
 	}
-	if in.Engine == Redis {
+	if isRedis(in.Engine) {
 		// Its data is the whole instance's: Redis loads a snapshot only
 		// when it starts.
 		defer unlock()
@@ -356,7 +356,7 @@ func dumpExt(engine string) string {
 	switch engine {
 	case MongoDB:
 		return ".archive"
-	case Redis:
+	case Redis, Valkey:
 		return ".rdb"
 	}
 	return ".sql"
