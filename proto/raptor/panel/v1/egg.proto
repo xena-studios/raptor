@@ -170,6 +170,9 @@ message EggVersion {
 message GetEggDetailsRequest {
   string org_id = 1;
   string id = 2;
+  // 0: the current version; otherwise that version's file and spec (to
+  // show a server what updating its egg changes).
+  int32 version = 3;
 }
 
 message GetEggDetailsResponse {

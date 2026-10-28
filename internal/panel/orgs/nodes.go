@@ -116,7 +116,7 @@ func (s *Service) ListServers(ctx context.Context, req *panelv1.ListServersReque
 				}
 			}
 			out.Servers = append(out.Servers, &panelv1.Server{
-				Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, Permissions: perms,
+				Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, EggSource: r.EggSource, Permissions: perms,
 				Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
 				DisplayAddress: r.DisplayAddress,
 			})
@@ -172,7 +172,7 @@ func (s *Service) GetServer(ctx context.Context, req *panelv1.GetServerRequest) 
 			return err
 		}
 		out.Server = &panelv1.Server{
-			Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, Permissions: perms,
+			Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, EggSource: r.EggSource, Permissions: perms,
 			Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
 			DisplayAddress: r.DisplayAddress,
 		}

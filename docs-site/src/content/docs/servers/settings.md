@@ -59,6 +59,17 @@ On **Network**:
 
 Settings both types share (a Minecraft version, say) keep their values; the rest start at the new type's defaults. The server must be stopped, and your passkey signs the change.
 
+## Update the egg
+
+A server keeps its own copy of the [egg](/eggs/library/) it was made with, so editing the egg in your library never changes a server by itself. When the library has a newer version, **Settings** shows **Egg update** (admins and owners). **Review the update** lists what changes: runtimes added or removed, a new startup command, new or removed settings, and whether the install script changed. Your passkey signs it.
+
+- The server's runtime stays, unless the new version dropped it.
+- A startup command you changed stays; one you didn't becomes the new version's.
+- Settings keep their values. A new required setting with no default asks for one.
+- **Reinstall now** is off by default: most changes apply the next time the server starts. Turn it on (with the server stopped) when the install script changed and you want it run again. It runs over the files, after a backup you can restore from.
+
+Updating the egg doesn't update the game. For a newer Minecraft version, say, change the version setting and reinstall.
+
 ## Reinstall
 
 **Reinstall** on **Settings** runs the install script again, for a broken install or to pick up a change to its game settings.

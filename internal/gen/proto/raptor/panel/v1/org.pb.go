@@ -2570,8 +2570,11 @@ type Server struct {
 	// What players connect to instead of the node's hostname ("host" or
 	// "host:port"), if the owner set one; '' shows the hostname.
 	DisplayAddress string `protobuf:"bytes,9,opt,name=display_address,json=displayAddress,proto3" json:"display_address,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The library egg it was made from (its ID, or a catalog ID like
+	// "minecraft/paper"); empty when it doesn't say (made outside the app).
+	EggSource     string `protobuf:"bytes,10,opt,name=egg_source,json=eggSource,proto3" json:"egg_source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Server) Reset() {
@@ -2663,6 +2666,13 @@ func (x *Server) GetInstallError() string {
 func (x *Server) GetDisplayAddress() string {
 	if x != nil {
 		return x.DisplayAddress
+	}
+	return ""
+}
+
+func (x *Server) GetEggSource() string {
+	if x != nil {
+		return x.EggSource
 	}
 	return ""
 }
@@ -5939,7 +5949,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x12RemoveNodeResponse\"D\n" +
 	"\x12ListServersRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
-	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\x88\x02\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\xa7\x02\n" +
 	"\x06Server\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -5949,7 +5959,10 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x05ports\x18\x06 \x03(\x05R\x05ports\x12#\n" +
 	"\rinstall_state\x18\a \x01(\tR\finstallState\x12#\n" +
 	"\rinstall_error\x18\b \x01(\tR\finstallError\x12'\n" +
-	"\x0fdisplay_address\x18\t \x01(\tR\x0edisplayAddress\"H\n" +
+	"\x0fdisplay_address\x18\t \x01(\tR\x0edisplayAddress\x12\x1d\n" +
+	"\n" +
+	"egg_source\x18\n" +
+	" \x01(\tR\teggSource\"H\n" +
 	"\x13ListServersResponse\x121\n" +
 	"\aservers\x18\x01 \x03(\v2\x17.raptor.panel.v1.ServerR\aservers\"_\n" +
 	"\x10GetServerRequest\x12\x15\n" +

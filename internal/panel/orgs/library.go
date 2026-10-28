@@ -368,6 +368,16 @@ func (s *Eggs) GetEggDetails(ctx context.Context, req *panelv1.GetEggDetailsRequ
 			return connect.NewError(connect.CodeFailedPrecondition, errors.New("this egg no longer reads as an egg; its file has to be fixed"))
 		}
 		out.File = row.Egg
+		if v := req.GetVersion(); v > 0 && v != row.Version {
+			old, err := l.q.GetEggVersion(ctx, store.GetEggVersionParams{EggID: row.ID, Version: v})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return connect.NewError(connect.CodeNotFound, fmt.Errorf("this egg has no version %d", v))
+			}
+			if err != nil {
+				return err
+			}
+			out.File = old.Egg
+		}
 		out.CanEdit = l.owns(*row) && s.canChange(ctx, l)
 		if pub, err := store.New(s.Orgs.DB).EggPublisher(ctx, row.ID); err == nil {
 			out.Egg.Copies = pub.Copies

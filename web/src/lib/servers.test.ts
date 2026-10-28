@@ -8,13 +8,17 @@ import {
   changeEggParams,
   changesCode,
   createParams,
+  type EggShape,
   eggsFor,
+  eggUpdate,
   gameVersion,
   missingRequired,
   seconds,
   serverStatus,
+  sha256Hex,
   suggestMemoryMiB,
   suggestPort,
+  updateEggParams,
   updateParams,
   workshopIds,
   workshopRef,
@@ -290,4 +294,120 @@ test("changeEggParams sends the new egg, keeps shared settings, and reinstalls",
   );
   assert.deepEqual(yaml.variables, {});
   assert.deepEqual(yaml.reinstall, { wipe: false });
+});
+
+test("eggUpdate keeps the runtime, a changed startup, and shared settings", () => {
+  const v = (env: string, more: Partial<EggShape["variables"][number]> = {}) => ({
+    env,
+    name: env,
+    default: "x",
+    rules: [] as string[],
+    userEditable: true,
+    ...more,
+  });
+  const old: EggShape = {
+    images: [
+      { name: "Java 21", ref: "java:21" },
+      { name: "Java 17", ref: "java:17" },
+    ],
+    startup: [{ command: "java -jar server.jar" }],
+    variables: [v("MINECRAFT_VERSION"), v("BUILD_NUMBER")],
+    installScript: "old",
+    installContainer: "c",
+  };
+  const next: EggShape = {
+    images: [
+      { name: "Java 25", ref: "java:25" },
+      { name: "Java 21", ref: "java:21" },
+    ],
+    startup: [{ command: "java -Xms128M -jar server.jar" }],
+    variables: [v("MINECRAFT_VERSION"), v("TOKEN", { default: "", rules: ["required"] })],
+    installScript: "new",
+    installContainer: "c",
+  };
+  const cfg = {
+    image: "java:21",
+    startup: "java -jar server.jar",
+    variables: { MINECRAFT_VERSION: "1.21.4", BUILD_NUMBER: "120" },
+    limits: { memory_mib: 4096, disk_mib: 0 },
+    settings: {},
+    host_network: false,
+    allocations: [{ ip: "0.0.0.0", port: 25565, primary: true }],
+    egg_hash: "old",
+    egg: { images: [], variables: [] },
+  };
+  const u = eggUpdate(cfg, old, next);
+  assert.equal(u.image, "java:21");
+  // The old default startup: the new default replaces it.
+  assert.equal(u.startup, "");
+  assert.equal(u.changes.startup, "java -Xms128M -jar server.jar");
+  assert.deepEqual(u.variables, { MINECRAFT_VERSION: "1.21.4" });
+  assert.deepEqual(
+    u.changes.imagesAdded.map((i) => i.ref),
+    ["java:25"],
+  );
+  assert.deepEqual(
+    u.changes.imagesRemoved.map((i) => i.ref),
+    ["java:17"],
+  );
+  assert.equal(u.changes.image, undefined);
+  assert.deepEqual(
+    u.changes.variablesAdded.map((x) => x.env),
+    ["TOKEN"],
+  );
+  assert.deepEqual(u.changes.variablesRemoved, ["BUILD_NUMBER"]);
+  assert.equal(u.changes.install, true);
+  assert.deepEqual(
+    u.needed.map((x) => x.env),
+    ["TOKEN"],
+  );
+
+  // A startup the owner changed stays; a runtime the egg dropped goes to
+  // the new default.
+  const custom = eggUpdate(
+    { ...cfg, image: "java:17", startup: "java -Xmx3G -jar s.jar" },
+    old,
+    next,
+  );
+  assert.equal(custom.startup, "java -Xmx3G -jar s.jar");
+  assert.equal(custom.changes.startup, undefined);
+  assert.equal(custom.image, "");
+  assert.equal(custom.changes.image?.ref, "java:25");
+
+  // The old version isn't known: what the server reports stands in, and
+  // its startup isn't kept unless the new egg has it.
+  const unknown = eggUpdate(cfg, undefined, next);
+  assert.equal(unknown.startup, "");
+  assert.equal(unknown.changes.install, undefined);
+  assert.deepEqual(unknown.changes.variablesRemoved, []);
+
+  const p = updateEggParams(
+    cfg,
+    "Survival",
+    { source: "minecraft/paper", file: new TextEncoder().encode("{}") },
+    u,
+    { TOKEN: "t" },
+    false,
+  );
+  assert.equal("egg_hash" in p, false);
+  assert.equal("reinstall" in p, false);
+  assert.equal(p.egg_source, "minecraft/paper");
+  assert.equal(p.image, "java:21");
+  assert.deepEqual(p.variables, { MINECRAFT_VERSION: "1.21.4", TOKEN: "t" });
+  const again = updateEggParams(
+    cfg,
+    "Survival",
+    { source: "s", file: new Uint8Array() },
+    u,
+    {},
+    true,
+  );
+  assert.deepEqual(again.reinstall, { wipe: false });
+});
+
+test("sha256Hex", async () => {
+  assert.equal(
+    await sha256Hex(new TextEncoder().encode("abc")),
+    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  );
 });

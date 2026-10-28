@@ -390,6 +390,26 @@ func TestUpdateKeepsEgg(t *testing.T) {
 	if code, err := m.ChangesCode(ctx, id, cfg); err != nil || !code {
 		t.Errorf("a new image didn't count as changing code: %v, %v", code, err)
 	}
+
+	// Updating the egg (a newer file of it) replaces it without a
+	// reinstall: it changes code, and an empty image and startup are the
+	// new egg's defaults.
+	cfg.Image, cfg.Startup = "", ""
+	cfg.Egg, cfg.EggSource = shellEgg("echo v2 > /mnt/server/installed.txt"), "test/egg"
+	if code, err := m.ChangesCode(ctx, id, cfg); err != nil || !code {
+		t.Errorf("a new egg didn't count as changing code: %v, %v", code, err)
+	}
+	if err := m.Update(ctx, id, cfg); err != nil {
+		t.Fatal(err)
+	}
+	after, _ = m.Get(ctx, id)
+	if after.EggHash == srv.EggHash || after.EggSource != "test/egg" || after.Image != srv.Image || after.Startup != srv.Startup {
+		t.Errorf("after updating the egg: hash kept %v, source %q, image %q, startup %q",
+			after.EggHash == srv.EggHash, after.EggSource, after.Image, after.Startup)
+	}
+	if b, _ := os.ReadFile(filepath.Join(e.opts.VolumesDir, id, "installed.txt")); string(b) != "installed\n" {
+		t.Errorf("updating the egg reinstalled the server: installed.txt = %q", b)
+	}
 }
 
 func TestCrashPolicy(t *testing.T) {

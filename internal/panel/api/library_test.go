@@ -129,6 +129,14 @@ func TestEggLibrary(t *testing.T) {
 	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_Spec{Spec: helloSpec("Hello")}, BaseVersion: 1}); connect.CodeOf(err) != connect.CodeAborted {
 		t.Errorf("a stale edit: %v", err)
 	}
+	// An old version's details: its file and spec, for updating a server's egg.
+	v1, err := bob.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: id, Version: 1})
+	if err != nil || len(v1.GetSpec().GetDone()) == 0 || v1.GetSpec().GetDone()[0] == edit.GetDone()[0] || len(v1.GetVersions()) != 2 {
+		t.Errorf("version 1's details: %v, %v", v1.GetSpec().GetDone(), err)
+	}
+	if _, err := bob.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: id, Version: 9}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("a version that isn't there: %v", err)
+	}
 	same, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_Spec{Spec: edit}, Summary: "Says hi", Category: "generic", BaseVersion: 2})
 	if err != nil || same.GetVersion() != 2 {
 		t.Errorf("saving nothing new: %v, %v", same, err)
@@ -162,12 +170,12 @@ func TestEggLibrary(t *testing.T) {
 	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_Spec{Spec: armed}, BaseVersion: 2}); err != nil {
 		t.Fatal(err)
 	}
-	v1, err := bob.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: org, Id: id, Version: 1})
+	first, err := bob.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: org, Id: id, Version: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
 	re, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{
-		OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_File{File: v1.GetEgg()}, KeepRaptor: true,
+		OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_File{File: first.GetEgg()}, KeepRaptor: true,
 		SourceUrl: "https://github.com/example/eggs/blob/main/hello.json", Note: "Re-imported", BaseVersion: 3,
 	})
 	if err != nil || re.GetVersion() != 4 {
@@ -178,7 +186,7 @@ func TestEggLibrary(t *testing.T) {
 		d.GetEgg().GetSourceUrl() != "https://github.com/example/eggs/blob/main/hello.json" {
 		t.Errorf("re-imported: %v, %v", d, err)
 	}
-	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_File{File: v1.GetEgg()}, SourceUrl: "ftp://example.com/x"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_File{File: first.GetEgg()}, SourceUrl: "ftp://example.com/x"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Errorf("a bad source: %v", err)
 	}
 
