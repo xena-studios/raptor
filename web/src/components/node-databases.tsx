@@ -20,6 +20,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
 import { ExternalDialog } from "@/components/db-external";
+import { InstanceUsageStrip } from "@/components/db-usage";
 import { HelpLink } from "@/components/help-link";
 import { StatusBadge } from "@/components/server-status";
 import { Badge } from "@/components/ui/badge";
@@ -61,9 +62,11 @@ import {
   isRedis,
   isSQL,
   useInstances,
+  useInstanceUsage,
   versionChange,
 } from "@/lib/databases";
 import { checkAdvanced, hasAdvanced } from "@/lib/db-settings";
+import type { DBUsage } from "@/lib/db-usage";
 import { message } from "@/lib/errors";
 import { defaultNetworkName, type RaptorNetwork, useNodeNetworks } from "@/lib/networks";
 import type { ServerStatus } from "@/lib/servers";
@@ -90,6 +93,7 @@ export function NodeDatabases({
   settingsSupported,
   browserSupported,
   redisExternalSupported,
+  usageSupported,
 }: {
   orgId: string;
   nodeId: string;
@@ -107,8 +111,11 @@ export function NodeDatabases({
   settingsSupported: boolean;
   // The node's Wings gives Redis and Valkey external access.
   redisExternalSupported: boolean;
+  // The node's Wings shows instances' usage.
+  usageSupported: boolean;
 }) {
   const insts = useInstances(nodeId, connected && supported);
+  const usage = useInstanceUsage(nodeId, connected && supported && usageSupported);
   const nets = useNodeNetworks(nodeId, connected && networksSupported);
   const [editing, setEditing] = useState<DBInstance | "new">();
   const [changing, setChanging] = useState<DBInstance>();
@@ -165,6 +172,7 @@ export function NodeDatabases({
                 nodeId={nodeId}
                 userId={userId}
                 instance={i}
+                usage={usage.data?.[i.id]}
                 networks={networks}
                 versions={versionsSupported}
                 onEdit={() => setEditing(i)}
@@ -224,6 +232,7 @@ function InstanceRow({
   nodeId,
   userId,
   instance: i,
+  usage,
   networks,
   versions,
   onEdit,
@@ -234,6 +243,8 @@ function InstanceRow({
   nodeId: string;
   userId: string;
   instance: DBInstance;
+  // Its latest sample, while it runs on a node that has them.
+  usage?: DBUsage;
   networks: RaptorNetwork[];
   versions: boolean;
   onEdit: () => void;
@@ -424,6 +435,7 @@ function InstanceRow({
         · on {onNames.join(", ")} · {formatMemory(i.limits.memory_mib)} memory · {i.databases}{" "}
         {i.databases === 1 ? "database" : "databases"}
       </p>
+      {i.state === "running" && usage && <InstanceUsageStrip instance={i} usage={usage} />}
       {i.state === "failed" && i.error && (
         <p className="text-sm text-destructive">It didn't start: {i.error}</p>
       )}

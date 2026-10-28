@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { DatabaseBrowser } from "@/components/db-browser";
 import { ProcessesTab } from "@/components/db-browser/processes";
+import { InstanceUsageCards } from "@/components/db-usage";
 import { PasswordDialog, ReadOnlyUser } from "@/components/server-databases";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type Database, engineName, isSQL, useInstances } from "@/lib/databases";
+import { type Database, engineName, isSQL, useInstances, useInstanceUsage } from "@/lib/databases";
 import { dbCommand } from "@/lib/db-browser";
 import { message } from "@/lib/errors";
 import { useOrgServers } from "@/lib/org-data";
@@ -49,6 +50,7 @@ export function InstanceBrowser({
   userId,
   transfers,
   stream,
+  usage: usageSupported,
 }: {
   orgId: string;
   nodeId: string;
@@ -58,9 +60,12 @@ export function InstanceBrowser({
   transfers: boolean;
   // The node's Wings streams query results.
   stream: boolean;
+  // The node's Wings shows instances' usage.
+  usage: boolean;
 }) {
   const insts = useInstances(nodeId);
   const inst = insts.data?.instances.find((i) => i.id === instanceId);
+  const usage = useInstanceUsage(nodeId, usageSupported && inst?.state === "running");
   const servers = useOrgServers(orgId, 30_000).servers;
   const serverName = (id?: string) => servers.find((s) => s.id === id)?.name ?? "a server";
   const running = inst?.state === "running";
@@ -109,6 +114,10 @@ export function InstanceBrowser({
           </>
         )}
       </div>
+
+      {inst && running && usageSupported && (
+        <InstanceUsageCards instance={inst} usage={usage.data?.[inst.id]} />
+      )}
 
       {insts.error && <p className="text-sm text-destructive">{message(insts.error)}</p>}
       {insts.data && !inst && (

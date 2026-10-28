@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { InstanceBrowser } from "@/components/db-instance";
+import { dbUsageCapability } from "@/lib/databases";
 import { dbQueryStreamCapability, dbTransfersCapability } from "@/lib/db-browser";
 import { useIds } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
@@ -30,6 +31,7 @@ function Instance() {
       userId={session.user?.id ?? ""}
       transfers={node.capabilities.includes(dbTransfersCapability)}
       stream={node.capabilities.includes(dbQueryStreamCapability)}
+      usage={node.capabilities.includes(dbUsageCapability)}
     />
   );
 }

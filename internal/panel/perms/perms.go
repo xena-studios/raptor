@@ -178,6 +178,7 @@ var actions = map[string]string{
 	"node.network.rules":  adminOnly,
 	// Database instances on the node.
 	"node.db.instances":         adminOnly,
+	"node.db.usage":             adminOnly,
 	"node.db.instance.save":     adminOnly,
 	"node.db.instance.power":    adminOnly,
 	"node.db.instance.delete":   adminOnly,
@@ -246,7 +247,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "db.list", "db.schema", "db.rows", "db.query.read", "db.query.cancel", "db.processes", "node.db.databases", "node.db.users", "node.db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "node.db.usage", "db.list", "db.schema", "db.rows", "db.query.read", "db.query.cancel", "db.processes", "node.db.databases", "node.db.users", "node.db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

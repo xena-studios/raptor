@@ -26,6 +26,14 @@ Its first start downloads the engine and sets it up, which takes a minute or two
 - On machines with Linux 6.19 or newer (Ubuntu 26.04, some cloud kernels), MongoDB 8.0 and 9.0 don't start, a problem MongoDB is fixing; Raptor offers 7.0 there and says why.
 - Redis and Valkey can be [reached from outside](#reach-an-instance-from-outside), on a port that only takes TLS. MongoDB can't: it would need every plugin inside to use TLS too.
 
+## See what an instance uses
+
+Under each running instance, the Databases page shows what it uses now: its **memory** and **disk**, each of its limit, its **connections** of its max connections, **queries** a second, and how long it's been up (its **uptime**). They're measured every 15 seconds. A bar turns amber past 75% and red past 90%.
+
+What counts as a query depends on the engine: statements for MariaDB and MySQL, transactions for PostgreSQL, commands for Redis and Valkey, and operations for MongoDB. Raptor's own checks aren't counted, so an instance nothing uses reads 0. Queries a second shows once two measurements are in, so give a just-started instance 15 seconds.
+
+An instance's own page (**Open**) shows the same at the top, with the last 10 minutes of its connections and queries. Nodes need an up-to-date Wings for these.
+
 ## Look inside an instance
 
 **Open** next to a running MariaDB, MySQL, or PostgreSQL instance shows its own page (admins and owners):
@@ -117,6 +125,8 @@ Servers on the instance's network keep connecting as before, without TLS, so plu
 Raptor watches each instance. One that stops or keeps restarting is started again by itself; one that can't start says why in the list (often **out of memory**: give it more memory).
 
 To hear about it, add a rule on **Settings → Alerts** for an instance **down or restarting**, its **disk** or **connections** near their limits, or a **version change** finishing or failing ([Alerts](/team/alerts/)).
+
+An instance whose connections sit near its max connections turns plugins away when it fills; raise **Max connections** under **Advanced**, or look at which server holds them on its own page's **Connections**.
 
 On the node itself, `raptor db ps` lists the instances with their memory, disk, and connections, and `sudo raptor doctor` checks each one is running, answers, and is on its networks ([raptor doctor](/cli/doctor/)).
 

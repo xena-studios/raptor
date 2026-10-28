@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -124,6 +125,13 @@ func TestWatch(t *testing.T) {
 	if _, ok := h.svc.Usages()[testInstance]; !ok {
 		t.Error("a running instance's usage isn't in Usages")
 	}
+	// Its trend keeps the last usageHistory samples, oldest first.
+	for range usageHistory + 5 {
+		h.svc.checkAll(ctx)
+	}
+	if r := h.svc.Recent(testInstance); len(r) != usageHistory || r[0].MemoryBytes != 300<<20 || !r[0].At.Before(r[len(r)-1].At) {
+		t.Errorf("recent: %d points", len(r))
+	}
 
 	// Docker restarted it: down once, and started again.
 	h.rt.set(containers.State{Running: true, Restarts: 1}, true)
@@ -168,6 +176,9 @@ func TestWatch(t *testing.T) {
 		t.Fatalf("gone: %+v", evs)
 	}
 	h.svc.forget(ctx, testInstance)
+	if len(h.svc.Recent(testInstance)) != 0 {
+		t.Error("a forgotten instance kept its trend")
+	}
 	h.svc.markUp(ctx, testInstance)
 	if evs := h.events(t); len(evs) != 0 {
 		t.Fatalf("after it was stopped: %+v", evs)
@@ -209,5 +220,37 @@ func TestInfoField(t *testing.T) {
 	}
 	if _, err := infoField(info, "nope"); err == nil {
 		t.Error("a missing field read")
+	}
+}
+
+func TestQueryRate(t *testing.T) {
+	t0 := time.Unix(1_800_000_000, 0)
+	prev := Usage{UptimeSeconds: 100, ops: 1000, opsAt: t0}
+	at := t0.Add(10 * time.Second)
+	rate := func(prev Usage, st engineStatus, own int64) string {
+		q := queryRate(prev, st, at, own)
+		if q == nil {
+			return "none"
+		}
+		return strconv.FormatFloat(*q, 'f', 1, 64)
+	}
+	for _, c := range []struct {
+		name string
+		prev Usage
+		st   engineStatus
+		own  int64
+		want string
+	}{
+		{"first sample", Usage{}, engineStatus{uptime: 5, ops: 50}, 2, "none"},
+		{"busy", prev, engineStatus{uptime: 110, ops: 1502}, 2, "50.0"},
+		{"idle: only Wings' own asking", prev, engineStatus{uptime: 110, ops: 1002}, 2, "0.0"},
+		{"never below zero", prev, engineStatus{uptime: 110, ops: 1001}, 2, "0.0"},
+		{"restarted", prev, engineStatus{uptime: 8, ops: 1400}, 2, "none"},
+		{"counters reset", prev, engineStatus{uptime: 110, ops: 10}, 2, "none"},
+		{"no time between", Usage{UptimeSeconds: 100, ops: 1000, opsAt: at}, engineStatus{uptime: 100, ops: 1000}, 0, "none"},
+	} {
+		if got := rate(c.prev, c.st, c.own); got != c.want {
+			t.Errorf("%s: %s, want %s", c.name, got, c.want)
+		}
 	}
 }
