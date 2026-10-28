@@ -1,6 +1,7 @@
 package spec_test
 
 import (
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -163,5 +164,42 @@ func diff(t *testing.T, a, b eggs.Egg) {
 		if !reflect.DeepEqual(va.Field(i).Interface(), vb.Field(i).Interface()) {
 			t.Errorf("%s changed:\n%#v\n%#v", va.Type().Field(i).Name, va.Field(i).Interface(), vb.Field(i).Interface())
 		}
+	}
+}
+
+// A re-imported upstream file keeps the Raptor settings of the egg it
+// replaces; a file with its own, or replacing one without any, is kept as
+// it is.
+func TestKeepRaptor(t *testing.T) {
+	upstream, err := os.ReadFile("../testdata/paper.ptdl_v2.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := spec.Read(upstream)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Arch = []string{"arm64"}
+	s.PlayersQuery = "minecraft"
+	prev, err := spec.Write(upstream, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := spec.KeepRaptor(upstream, prev)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := eggs.Parse(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(e.Raptor.Arch, []string{"arm64"}) || e.Raptor.Players.Query != "minecraft" {
+		t.Errorf("kept: %+v", e.Raptor)
+	}
+	if same, err := spec.KeepRaptor(prev, upstream); err != nil || string(same) != string(prev) {
+		t.Errorf("a file with its own settings changed: %v", err)
+	}
+	if same, err := spec.KeepRaptor(upstream, upstream); err != nil || string(same) != string(upstream) {
+		t.Errorf("nothing to keep changed the file: %v", err)
 	}
 }

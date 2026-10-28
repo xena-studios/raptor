@@ -22,9 +22,11 @@ The org's **Eggs** page lists two kinds:
 
 An imported egg is never marked certified, whatever it says. [Community eggs](https://github.com/pelican-eggs) are a good place to find more.
 
+**Import new version** on one of your eggs replaces its file with a new one, from a link (its own source link is filled in) or an upload: an update upstream, or a change you made elsewhere. You review it the same way, and it's saved as a new version. Files from Pterodactyl and Pelican don't have Raptor's settings (CPUs, players, add-ons), so the egg keeps its own unless you untick that.
+
 ## Customizing
 
-**Customize** makes a copy of any egg to edit, as a draft. The editor has tabs for its overview, runtimes, variables, startup, install script, config files, and add-ons, plus the raw file. Saving writes a new **version**, so you can see who changed what. An edited egg is still a valid Pterodactyl egg: **Export** it to use anywhere.
+**Customize** makes a copy of any egg to edit, as a draft. The editor has tabs for its overview (name, category, and which CPUs it runs on), runtimes, variables, startup, install script, config files, and add-ons, plus the raw file. Saving writes a new **version**, so you can see who changed what. An edited egg is still a valid Pterodactyl egg: **Export** it to use anywhere.
 
 - A **draft** can't be deployed; publish it when it's ready. An **archived** egg is hidden and can't be deployed.
 - **Servers keep the egg they were made from.** Editing, archiving, or deleting an egg never changes a running server; [change a server's type](/servers/settings/#change-the-servers-type) to move it to another egg.

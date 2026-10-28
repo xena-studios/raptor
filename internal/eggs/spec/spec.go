@@ -481,6 +481,41 @@ func Write(base []byte, s *Spec) ([]byte, error) {
 	return out, nil
 }
 
+// KeepRaptor gives a re-imported file the x-raptor block of the egg it
+// replaces, when it has none of its own: upstream's file doesn't have
+// Raptor's settings (CPUs, players, add-ons, Workshop, backup hooks). A file
+// with its own block, or a previous egg without one, is returned as it is.
+func KeepRaptor(file, prev []byte) ([]byte, error) {
+	root, err := ordered.Decode(file)
+	if err != nil {
+		return nil, err
+	}
+	if root.Kind != yaml.MappingNode {
+		return nil, errors.New("egg isn't an object")
+	}
+	if get(root, "x-raptor") != nil {
+		return file, nil
+	}
+	old, err := ordered.Decode(prev)
+	if err != nil {
+		return nil, err
+	}
+	ext := get(old, "x-raptor")
+	if ext == nil {
+		return file, nil
+	}
+	set(root, "x-raptor", clone(ext))
+	out, err := ordered.EncodeJSON(root, "    ")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := eggs.Parse(out); err != nil {
+		return nil, bad("the new file doesn't fit the egg's Raptor settings (%s): import it without them and set them again in the editor",
+			strings.TrimPrefix(err.Error(), "egg: "))
+	}
+	return out, nil
+}
+
 // embeddedNode reads config.files or config.startup: a JSON string in
 // Pterodactyl eggs, an object in Pelican's. It returns the object, and
 // whether the egg keeps it as a string.

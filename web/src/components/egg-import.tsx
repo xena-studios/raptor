@@ -25,26 +25,41 @@ import { eggClient } from "@/lib/transport";
 
 const maxFile = 1 << 20;
 
+// The egg a re-import replaces: its file becomes a new version.
+export type ReplacedEgg = {
+  id: string;
+  name: string;
+  version: number;
+  summary: string;
+  category: string;
+  sourceUrl: string;
+  sha256: string;
+};
+
 // EggImport imports an egg from a link or a file (docs/PANEL.md#imported-eggs):
 // first what it would run, then, once the admin says they trust it, the
 // import. An egg's install script runs as root in a container on the node,
-// so the review isn't skippable. orgId empty imports an official egg.
+// so the review isn't skippable. orgId empty imports an official egg. With
+// replace, the file is a new version of that egg instead (a re-import).
 export function EggImport({
   orgId,
   open,
   onOpenChange,
   onImported,
+  replace,
 }: {
   orgId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImported?: (id: string) => void;
+  replace?: ReplacedEgg;
 }) {
   const client = useQueryClient();
   const withReauth = useReauth();
   const [category, setCategory] = useState("other");
   const [from, setFrom] = useState<"url" | "file">("url");
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(replace?.sourceUrl ?? "");
+  const [keepRaptor, setKeepRaptor] = useState(true);
   const [file, setFile] = useState<File>();
   const [preview, setPreview] = useState<ReviewEggFileResponse>();
   const [trusted, setTrusted] = useState(false);
@@ -91,19 +106,39 @@ export function EggImport({
     setError("");
     setBusy(true);
     try {
-      const res = await withReauth(() =>
-        eggClient.importEggFile({
-          orgId,
-          egg: preview.egg,
-          sourceUrl: preview.sourceUrl,
-          category,
-        }),
-      );
+      let id: string;
+      if (replace) {
+        await withReauth(() =>
+          eggClient.updateEgg({
+            orgId,
+            id: replace.id,
+            change: { case: "file", value: preview.egg },
+            summary: replace.summary,
+            category: replace.category,
+            note: "Re-imported",
+            baseVersion: replace.version,
+            keepRaptor,
+            sourceUrl: preview.sourceUrl,
+          }),
+        );
+        id = replace.id;
+      } else {
+        id = (
+          await withReauth(() =>
+            eggClient.importEggFile({
+              orgId,
+              egg: preview.egg,
+              sourceUrl: preview.sourceUrl,
+              category,
+            }),
+          )
+        ).id;
+      }
       await client.invalidateQueries();
-      onImported?.(res.id);
+      onImported?.(id);
       onOpenChange(false);
       reset();
-      setUrl("");
+      setUrl(replace?.sourceUrl ?? "");
       setFile(undefined);
     } catch (err) {
       setError(message(err));
@@ -113,6 +148,9 @@ export function EggImport({
   }
 
   const r = preview?.review;
+  // A re-import may match another egg in the library; only the egg's own
+  // file is nothing new.
+  const same = replace ? preview?.sha256 === replace.sha256 : !!r?.duplicate;
   return (
     <Dialog
       open={open}
@@ -125,10 +163,14 @@ export function EggImport({
         {!r ? (
           <form onSubmit={review} className="flex min-w-0 flex-col gap-4">
             <DialogHeader>
-              <DialogTitle>Import an egg</DialogTitle>
+              <DialogTitle>
+                {replace ? `Import a new version of ${replace.name}` : "Import an egg"}
+              </DialogTitle>
               <DialogDescription>
-                A Pterodactyl or Pelican egg, as JSON or YAML. You'll see what it runs before
-                anything is saved.
+                {replace
+                  ? "Its file is replaced with this one, as a new version. Servers keep the version they run until you update them. "
+                  : "A Pterodactyl or Pelican egg, as JSON or YAML. "}
+                You'll see what it runs before anything is saved.
               </DialogDescription>
             </DialogHeader>
             <fieldset className="flex self-start rounded-lg border p-0.5">
@@ -285,7 +327,22 @@ export function EggImport({
                 <code>{preview.sha256.slice(0, 12)}</code>
               </p>
             </div>
-            {!r.duplicate && (
+            {!same && replace && (
+              <Label className="flex items-start gap-2 text-sm font-normal">
+                <Checkbox
+                  checked={keepRaptor}
+                  onCheckedChange={(c) => setKeepRaptor(c === true)}
+                  className="mt-0.5"
+                />
+                <span>
+                  Keep the egg's Raptor settings (CPUs, players, add-ons) if this file has none
+                  <span className="block text-xs text-muted-foreground">
+                    Files from Pterodactyl and Pelican don't have them.
+                  </span>
+                </span>
+              </Label>
+            )}
+            {!same && !replace && (
               <div className="grid gap-1.5">
                 <Label htmlFor="egg-category">Category</Label>
                 <select
@@ -302,8 +359,12 @@ export function EggImport({
                 </select>
               </div>
             )}
-            {r.duplicate ? (
-              <p className="text-sm text-muted-foreground">This egg is already in the library.</p>
+            {same ? (
+              <p className="text-sm text-muted-foreground">
+                {replace
+                  ? "This is the file the egg has now."
+                  : "This egg is already in the library."}
+              </p>
             ) : (
               <Label className="flex items-start gap-2 text-sm font-normal">
                 <Checkbox
@@ -321,8 +382,8 @@ export function EggImport({
               <Button type="button" variant="outline" onClick={reset}>
                 Back
               </Button>
-              <Button onClick={importIt} disabled={busy || !trusted || r.duplicate}>
-                {busy ? "Importing…" : "Import"}
+              <Button onClick={importIt} disabled={busy || !trusted || same}>
+                {busy ? "Importing…" : replace ? "Save as a new version" : "Import"}
               </Button>
             </DialogFooter>
           </div>

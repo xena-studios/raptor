@@ -1044,7 +1044,14 @@ type UpdateEggRequest struct {
 	Note string `protobuf:"bytes,7,opt,name=note,proto3" json:"note,omitempty"`
 	// The version the edit was made on: saving fails if someone saved a
 	// newer one since.
-	BaseVersion   int32 `protobuf:"varint,8,opt,name=base_version,json=baseVersion,proto3" json:"base_version,omitempty"`
+	BaseVersion int32 `protobuf:"varint,8,opt,name=base_version,json=baseVersion,proto3" json:"base_version,omitempty"`
+	// A re-import (with file): when the new file has no x-raptor block,
+	// the current one's is kept, so upstream's file doesn't drop Raptor's
+	// settings.
+	KeepRaptor bool `protobuf:"varint,9,opt,name=keep_raptor,json=keepRaptor,proto3" json:"keep_raptor,omitempty"`
+	// A re-import from a link (from ReviewEggFile): the egg's source
+	// becomes it. Empty leaves the source as it is.
+	SourceUrl     string `protobuf:"bytes,10,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1144,6 +1151,20 @@ func (x *UpdateEggRequest) GetBaseVersion() int32 {
 		return x.BaseVersion
 	}
 	return 0
+}
+
+func (x *UpdateEggRequest) GetKeepRaptor() bool {
+	if x != nil {
+		return x.KeepRaptor
+	}
+	return false
+}
+
+func (x *UpdateEggRequest) GetSourceUrl() string {
+	if x != nil {
+		return x.SourceUrl
+	}
+	return ""
 }
 
 type isUpdateEggRequest_Change interface {
@@ -2695,7 +2716,7 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\asummary\x18\x03 \x01(\tR\asummary\x12\x1a\n" +
 	"\bcategory\x18\x04 \x01(\tR\bcategory\"#\n" +
 	"\x11CreateEggResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xf6\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xb6\x02\n" +
 	"\x10UpdateEggRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12.\n" +
@@ -2704,7 +2725,12 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\asummary\x18\x05 \x01(\tR\asummary\x12\x1a\n" +
 	"\bcategory\x18\x06 \x01(\tR\bcategory\x12\x12\n" +
 	"\x04note\x18\a \x01(\tR\x04note\x12!\n" +
-	"\fbase_version\x18\b \x01(\x05R\vbaseVersionB\b\n" +
+	"\fbase_version\x18\b \x01(\x05R\vbaseVersion\x12\x1f\n" +
+	"\vkeep_raptor\x18\t \x01(\bR\n" +
+	"keepRaptor\x12\x1d\n" +
+	"\n" +
+	"source_url\x18\n" +
+	" \x01(\tR\tsourceUrlB\b\n" +
 	"\x06change\"-\n" +
 	"\x11UpdateEggResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x05R\aversion\"Q\n" +
