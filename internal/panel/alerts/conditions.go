@@ -54,6 +54,7 @@ var Conditions = []Condition{
 	{ID: "db_disk_high", Label: "Database instance disk above", Scope: "instance", Threshold: true, Unit: "%", Resolves: true},
 	{ID: "db_connections_high", Label: "Database instance connections above", Scope: "instance", Threshold: true, Unit: "%", Resolves: true},
 	{ID: "db_version", Label: "Database version change finished or failed", Scope: "instance"},
+	{ID: "db_backup_failed", Label: "Database instance backup failed", Scope: "instance"},
 }
 
 // InstanceConditions are the conditions about database instances, which
@@ -241,6 +242,15 @@ func FromEvent(e Event) (m Message, ruleID string, ok bool) {
 	case "db.instance.up":
 		m.Condition, m.Level, m.Resolved, m.Title = "db_down", Info, true, "Database instance back up: "+str(d, "instance")
 		m.Text = fmt.Sprintf("%s answers again, after %s.", instanceName(d), (time.Duration(num(d, "down_seconds")) * time.Second).Round(time.Second))
+	case "db.backup.finished":
+		if str(d, "status") != "failed" {
+			return m, "", false
+		}
+		m.Condition, m.Title = "db_backup_failed", "Database backup failed: "+str(d, "instance")
+		m.Text = fmt.Sprintf("%s: %s", instanceName(d), str(d, "error"))
+	case "db.instance.delete.failed":
+		m.Condition, m.Title = "db_backup_failed", "Database instance not deleted: "+str(d, "instance")
+		m.Text = fmt.Sprintf("%s: %s", instanceName(d), str(d, "error"))
 	case "db.instance.version":
 		m.Condition = "db_version"
 		what := "Version change"

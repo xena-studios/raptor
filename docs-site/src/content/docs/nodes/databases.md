@@ -142,8 +142,18 @@ An instance whose connections sit near its max connections turns plugins away wh
 
 On the node itself, `raptor db ps` lists the instances with their memory, disk, and connections, and `sudo raptor doctor` checks each one is running, answers, and is on its networks ([raptor doctor](/cli/doctor/)).
 
+## Back up an instance
+
+Each instance is backed up on its own, every database on it, so a database no server uses still has backups. Servers' backups keep holding their databases too.
+
+The **Backups** card on the instance's page lists them. By default there's one a day at 04:00 (the node's time), keeping the last 7, on the node's first backup destination off the machine if it has one, or its own disk. **Settings** changes the time, turns the daily backup off, sets how many to keep (1 to 100), and picks where they go; keeping fewer, or sending them somewhere new off the node, asks for your passkey. **Back up now** takes one at once.
+
+**Restore** puts one database back as it was in that backup. A safety backup of the whole instance is taken first, so you can undo it by restoring from that. It asks for your passkey.
+
+A backup fails, rather than leaving databases out, if the instance isn't running; the **Database instance backup failed** alert says so.
+
 ## Start, stop, and delete
 
 The **⋯** menu next to an instance starts, stops, or restarts it. An instance comes back with the node after a restart.
 
-**Delete** removes the instance and every database on it, with everything in them, whichever servers are linked. It asks for the instance's name and a passkey.
+**Delete** removes the instance and every database on it, with everything in them, whichever servers are linked. It asks for the instance's name and a passkey. An instance with databases gets a final backup first, and is deleted once that's done; if the backup fails, the instance stays. A final backup on the node's own disk is kept for 30 days, one off the machine until you delete it.

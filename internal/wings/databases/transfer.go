@@ -173,6 +173,8 @@ func (s *Service) registerJobs() {
 	s.o.Jobs.Register(JobRestore, jobs.Handler{Class: "files", Run: s.restoreJob})
 	s.o.Jobs.Register(JobVersion, jobs.Handler{Class: "database", Run: s.versionJob})
 	s.o.Jobs.Register(JobGoBack, jobs.Handler{Class: "database", Run: s.goBackJob})
+	s.o.Jobs.Register(JobInstanceRestore, jobs.Handler{Class: "database", Run: s.instanceRestoreJob})
+	s.o.Jobs.Register(JobInstanceDelete, jobs.Handler{Class: "database", Run: s.instanceDeleteJob})
 }
 
 // tools are an engine's client, its dump, and how both reach the socket.

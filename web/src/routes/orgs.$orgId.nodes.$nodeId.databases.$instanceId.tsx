@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { InstanceBrowser } from "@/components/db-instance";
 import { dbUsageCapability } from "@/lib/databases";
 import { dbQueryStreamCapability, dbTransfersCapability } from "@/lib/db-browser";
+import { dbInstanceBackupsCapability } from "@/lib/db-instance-backups";
 import { useIds } from "@/lib/ids";
 import { useOrgNodes } from "@/lib/org-data";
 
@@ -32,6 +33,7 @@ function Instance() {
       transfers={node.capabilities.includes(dbTransfersCapability)}
       stream={node.capabilities.includes(dbQueryStreamCapability)}
       usage={node.capabilities.includes(dbUsageCapability)}
+      backups={node.capabilities.includes(dbInstanceBackupsCapability)}
     />
   );
 }

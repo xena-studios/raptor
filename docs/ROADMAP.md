@@ -103,7 +103,7 @@ The owner took every recommendation (October 2026):
 
 - **External access for Redis and MongoDB:** Redis and Valkey get a second, TLS-only port, published, while the plain one stays inside; MongoDB's stays off until someone asks (DECISIONS #331). Built.
 - **Redis and MongoDB admin accounts over the network:** accepted as they are (#320, #332).
-- **Instances backed up on their own:** no; every database is in its server's backups (#314, #332).
+- **Instances backed up on their own:** yes, once databases could outlive their servers (#342): daily to the node's first offsite destination, keeping 7, beside the dumps in servers' backups (#343). Built.
 - **Which Redis to ship:** Valkey, the BSD fork, beside Redis (#333). Built.
 - **MongoDB's default version:** 8.0, with 7.0 for older machines and kernels 6.19+ (#323, #332).
 

@@ -50,6 +50,15 @@ func source(serverID string) snapshot.SourceInfo {
 	return snapshot.SourceInfo{Host: sourceHost, UserName: sourceUser, Path: "/servers/" + serverID}
 }
 
+// sourceFor is a snapshot's source: a server's, or a database instance's
+// (its dumps), which a recovery's listing of servers' backups leaves out.
+func sourceFor(req SnapshotRequest) snapshot.SourceInfo {
+	if req.Instance {
+		return snapshot.SourceInfo{Host: sourceHost, UserName: sourceUser, Path: "/instances/" + req.ServerID}
+	}
+	return source(req.ServerID)
+}
+
 // ErrTooLarge is returned by Restore when the backup is bigger than the
 // allowed size.
 var ErrTooLarge = errors.New("the backup is larger than the server's disk limit")
@@ -65,6 +74,8 @@ type SnapshotRequest struct {
 	// One shadows a folder of the server's with the same name, and the
 	// ignore patterns don't apply to them.
 	Extra map[string]string `json:"extra,omitempty"`
+	// Instance: ServerID is a database instance's, and Dir its dumps.
+	Instance bool `json:"instance,omitempty"`
 }
 
 // SnapshotResult describes a finished snapshot.
@@ -95,7 +106,7 @@ func (e *Engine) Snapshot(ctx context.Context, req SnapshotRequest, progress fun
 	if err != nil {
 		return SnapshotResult{}, err
 	}
-	src := source(req.ServerID)
+	src := sourceFor(req)
 	pol := snapshotPolicy(req.Ignore, src)
 	// The ignore rules are applied to the server's files before the extra
 	// folders join them, so no pattern of the server's leaves one out.

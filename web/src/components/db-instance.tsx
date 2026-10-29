@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { DatabaseBrowser } from "@/components/db-browser";
 import { ProcessesTab } from "@/components/db-browser/processes";
+import { InstanceBackups } from "@/components/db-instance-backups";
 import { InstanceUsageCards } from "@/components/db-usage";
 import { PasswordDialog, ReadOnlyUser } from "@/components/server-databases";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,7 @@ export function InstanceBrowser({
   transfers,
   stream,
   usage: usageSupported,
+  backups = false,
 }: {
   orgId: string;
   nodeId: string;
@@ -63,6 +65,8 @@ export function InstanceBrowser({
   stream: boolean;
   // The node's Wings shows instances' usage.
   usage: boolean;
+  // The node's Wings backs instances up on their own.
+  backups?: boolean;
 }) {
   const insts = useInstances(nodeId);
   const inst = insts.data?.instances.find((i) => i.id === instanceId);
@@ -242,6 +246,8 @@ export function InstanceBrowser({
           )}
         </>
       )}
+
+      {inst && backups && <InstanceBackups nodeId={nodeId} userId={userId} instance={inst} />}
     </div>
   );
 }

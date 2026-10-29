@@ -72,12 +72,20 @@ func TestFromEvent(t *testing.T) {
 	if !strings.HasPrefix(m.Text, "main (PostgreSQL 17): it stopped (exit code 137).") {
 		t.Errorf("down: %q", m.Text)
 	}
+	// An instance's own backup: only a failed one alerts.
+	if _, _, ok := FromEvent(Event{Type: "db.backup.finished", Data: map[string]any{"instance": "main", "status": "ok"}}); ok {
+		t.Error("a finished instance backup alerted")
+	}
+	m, _, ok = FromEvent(Event{Type: "db.backup.finished", Data: map[string]any{"instance": "main", "engine": "postgres", "status": "failed", "error": "dumping app: the instance isn't running"}})
+	if !ok || m.Condition != "db_backup_failed" || m.Title != "Database backup failed: main" || !strings.Contains(m.Text, "isn't running") {
+		t.Errorf("failed instance backup: %+v", m)
+	}
 }
 
 // Instance conditions are kept from nodes that don't know them.
 func TestInstanceConditions(t *testing.T) {
 	got := InstanceConditions()
-	if len(got) != 4 {
+	if len(got) != 5 {
 		t.Errorf("%v", got)
 	}
 	for _, id := range got {

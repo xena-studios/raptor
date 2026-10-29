@@ -209,6 +209,13 @@ var actions = map[string]string{
 	"node.db.database.unlink":         adminOnly,
 	"node.db.database.password":       adminOnly,
 	"node.db.database.password.reset": adminOnly,
+
+	// Instances' own backups.
+	"node.db.backups":         adminOnly,
+	"node.db.backup.create":   adminOnly,
+	"node.db.backup.delete":   adminOnly,
+	"node.db.backup.restore":  adminOnly,
+	"node.db.backup.settings": adminOnly,
 }
 
 // For returns what running action needs: a server permission, or

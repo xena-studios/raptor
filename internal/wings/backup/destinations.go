@@ -525,7 +525,11 @@ func (m *Manager) DeleteDestination(ctx context.Context, id string) error {
 		if err != nil {
 			return err
 		}
-		if n > 0 {
+		ni, err := q.CountDestinationInstancePolicies(ctx, id)
+		if err != nil {
+			return err
+		}
+		if n+ni > 0 {
 			return ErrInUse
 		}
 		if err := q.DeleteBackupDestination(ctx, id); err != nil {

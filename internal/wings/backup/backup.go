@@ -99,7 +99,7 @@ var (
 	ErrNotFound    = errors.New("backup not found")
 	ErrInvalid     = errors.New("invalid backup settings")
 	ErrNotReady    = errors.New("the backup isn't finished")
-	ErrInUse       = errors.New("destination is used by servers' backup settings")
+	ErrInUse       = errors.New("destination is used by servers' or database instances' backup settings")
 	ErrLowDisk     = errors.New("not enough free disk space for backups")
 	ErrDestination = errors.New("destination not found")
 	ErrReadOnly    = errors.New("recovered backups aren't deleted by Raptor; remove the recovered destination to forget them")
@@ -163,6 +163,9 @@ type Options struct {
 	HookTimeout time.Duration
 	// Databases, if set, puts servers' databases in their backups.
 	Databases Databases
+	// Instances, if set, backs up database instances on their own
+	// (instances.go).
+	Instances Instances
 	Now       func() time.Time
 }
 
@@ -212,6 +215,9 @@ func New(o Options) *Manager {
 	// An extraction isn't resumed: its folder would already exist. It holds
 	// the server's lock so a restore can't clear the directory under it.
 	o.Jobs.Register(JobExtract, jobs.Handler{Class: "backup", ServerLock: true, MaxAttempts: 1, Run: m.extractJob})
+	// An instance's backup resumes like a server's; it holds no server's
+	// lock.
+	o.Jobs.Register(JobInstance, jobs.Handler{Class: "backup", Resumable: true, MaxAttempts: 3, Run: m.instanceJob})
 	return m
 }
 
@@ -221,6 +227,9 @@ func (m *Manager) Start(ctx context.Context) error {
 		return err
 	}
 	m.wg.Go(m.loop)
+	if m.o.Instances != nil {
+		m.wg.Go(m.instanceLoop)
+	}
 	return nil
 }
 
@@ -307,7 +316,7 @@ func (m *Manager) activeJobs(ctx context.Context, typ string) (map[string]bool, 
 // given up on between its pre and post commands won't run again, so the
 // post ones (save-on) are sent here.
 func (m *Manager) cleanupInterrupted(ctx context.Context) error {
-	list, err := m.o.Store.Read.ListBackups(ctx, "")
+	list, err := m.o.Store.Read.ListAllBackups(ctx)
 	if err != nil {
 		return err
 	}
@@ -321,7 +330,7 @@ func (m *Manager) cleanupInterrupted(ctx context.Context) error {
 			continue
 		}
 		var cp createCheckpoint
-		if err == nil && j.Type == JobCreate && !posted[j.ID] {
+		if err == nil && j.Type == JobCreate && b.Subject != SubjectInstance && !posted[j.ID] {
 			if ok, _ := j.DecodeCheckpoint(&cp); ok && cp.PreRan {
 				posted[j.ID] = true
 				m.recoverHooks(ctx, b.ServerID, io.Discard)
@@ -383,17 +392,30 @@ type Backup struct {
 	FinishedAt    time.Time `json:"finished_at,omitzero"`
 	ExpiresAt     time.Time `json:"expires_at,omitzero"`
 	// Databases are the server's databases it holds a dump of, by their
-	// names on the server.
-	Databases  []string `json:"databases,omitempty"`
+	// names on the server; for an instance's backup, by their names on the
+	// instance (db_name).
+	Databases []string `json:"databases,omitempty"`
+	// Subject is SubjectServer, or SubjectInstance for a database
+	// instance's own backup (ServerID is then the instance's ID).
+	Subject    string `json:"subject,omitempty"`
 	snapshotID string
+	// instance is an instance backup's instance's name and engine, for its
+	// events (alerts name it).
+	instance, engine string
 }
+
+// Backup subjects: what a backup is of.
+const (
+	SubjectServer   = "server"
+	SubjectInstance = "instance"
+)
 
 func fromRow(r store.Backup) *Backup {
 	b := &Backup{
 		ID: r.ID, ServerID: r.ServerID, DestinationID: r.DestinationID, Kind: r.Kind, Status: r.Status,
 		Locked: r.Locked == 1, Size: r.Size, Files: r.Files, Uploaded: r.Uploaded, Warning: r.Warning,
 		Error: r.Error, JobID: r.JobID, CreatedBy: r.CreatedBy, CreatedAt: time.UnixMilli(r.CreatedAt),
-		snapshotID: r.SnapshotID,
+		Subject: r.Subject, snapshotID: r.SnapshotID,
 	}
 	_ = json.Unmarshal([]byte(r.Databases), &b.Databases)
 	if r.FinishedAt.Valid {
@@ -431,6 +453,24 @@ func (b *Backup) eventData() map[string]any {
 	return d
 }
 
+// event is an event about b: an instance's backups' events are the
+// database ones (db.backup.*), with the instance in their data instead of
+// a server, so nothing takes them for a server's.
+func (b *Backup) event(typ string, data map[string]any) events.Event {
+	if b.Subject != SubjectInstance {
+		return events.Event{Type: typ, ServerID: b.ServerID, Data: data}
+	}
+	d := make(map[string]any, len(data)+1)
+	for k, v := range data {
+		d[k] = v
+	}
+	d["instance_id"] = b.ServerID
+	if b.instance != "" {
+		d["instance"], d["engine"] = b.instance, b.engine
+	}
+	return events.Event{Type: "db." + typ, Data: d}
+}
+
 // Restorable returns a backup that may be restored onto a server: one of
 // its own, or one of a server that no longer exists on this node (a final
 // backup, or an offsite backup kept after the deletion). Another existing
@@ -439,7 +479,7 @@ func (b *Backup) eventData() map[string]any {
 // after a deletion; only owners may do it (docs/SECURITY-MODEL.md).
 func (m *Manager) Restorable(ctx context.Context, serverID, id string) (*Backup, error) {
 	r, err := m.o.Store.Read.GetBackup(ctx, id)
-	if err != nil {
+	if err != nil || r.Subject == SubjectInstance {
 		return nil, ErrNotFound
 	}
 	if r.ServerID != serverID {
@@ -463,7 +503,7 @@ func (m *Manager) FromDeletedServer(ctx context.Context, serverID, id string) (b
 // Get returns a server's backup.
 func (m *Manager) Get(ctx context.Context, serverID, id string) (*Backup, error) {
 	r, err := m.o.Store.Read.GetBackup(ctx, id)
-	if err != nil || r.ServerID != serverID {
+	if err != nil || r.ServerID != serverID || r.Subject == SubjectInstance {
 		return nil, ErrNotFound
 	}
 	return fromRow(r), nil
@@ -568,13 +608,22 @@ func (m *Manager) insert(ctx context.Context, q *store.Queries, b *Backup) error
 	if !b.ExpiresAt.IsZero() {
 		expires = sql.NullInt64{Int64: b.ExpiresAt.UnixMilli(), Valid: true}
 	}
-	if err := q.InsertBackup(ctx, store.InsertBackupParams{
-		ID: b.ID, ServerID: b.ServerID, DestinationID: b.DestinationID, Kind: b.Kind, Locked: boolInt(b.Locked),
-		JobID: b.JobID, CreatedBy: b.CreatedBy, CreatedAt: b.CreatedAt.UnixMilli(), ExpiresAt: expires,
-	}); err != nil {
+	var err error
+	if b.Subject == SubjectInstance {
+		err = q.InsertInstanceBackup(ctx, store.InsertInstanceBackupParams{
+			ID: b.ID, ServerID: b.ServerID, DestinationID: b.DestinationID, Kind: b.Kind,
+			JobID: b.JobID, CreatedBy: b.CreatedBy, CreatedAt: b.CreatedAt.UnixMilli(), ExpiresAt: expires,
+		})
+	} else {
+		err = q.InsertBackup(ctx, store.InsertBackupParams{
+			ID: b.ID, ServerID: b.ServerID, DestinationID: b.DestinationID, Kind: b.Kind, Locked: boolInt(b.Locked),
+			JobID: b.JobID, CreatedBy: b.CreatedBy, CreatedAt: b.CreatedAt.UnixMilli(), ExpiresAt: expires,
+		})
+	}
+	if err != nil {
 		return err
 	}
-	_, err := events.AppendTx(ctx, q, events.Event{Type: EventQueued, ServerID: b.ServerID, Data: b.eventData()})
+	_, err = events.AppendTx(ctx, q, b.event(EventQueued, b.eventData()))
 	return err
 }
 

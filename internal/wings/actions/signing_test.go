@@ -54,7 +54,9 @@ var signing = map[string]string{
 	"node.db.databases": "never", "node.db.users": "never", "node.db.processes": "never", "node.db.process.kill": "never",
 	"node.db.database.create": "never", "node.db.database.delete": "always", "node.db.database.link": "never", "node.db.database.unlink": "never",
 	"node.db.database.password": "always", "node.db.database.password.reset": "never",
-	"node.network.delete": "never", "node.network.rules": "never", "node.network.save": "never", "node.networks": "never",
+	"node.db.backups": "never", "node.db.backup.create": "never", "node.db.backup.delete": "always", "node.db.backup.restore": "always",
+	"node.db.backup.settings": "depends", // keeping fewer, or a new destination
+	"node.network.delete":     "never", "node.network.rules": "never", "node.network.save": "never", "node.networks": "never",
 	"node.system": "never", "node.time": "never",
 	"node.update": "never", // the release is checked against Raptor's signing key instead
 
@@ -95,6 +97,7 @@ func TestSigningPolicy(t *testing.T) {
 	RegisterDatabaseVersions(x, nil)
 	RegisterDatabaseExternal(x, nil)
 	RegisterDatabaseDocuments(x, nil)
+	RegisterDatabaseBackups(x, nil, nil)
 
 	same := func(a, b any) bool { return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer() }
 	handlers := x.Handlers()
