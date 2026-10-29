@@ -460,7 +460,7 @@ func (b *Backup) event(typ string, data map[string]any) events.Event {
 	if b.Subject != SubjectInstance {
 		return events.Event{Type: typ, ServerID: b.ServerID, Data: data}
 	}
-	d := make(map[string]any, len(data)+1)
+	d := map[string]any{}
 	for k, v := range data {
 		d[k] = v
 	}
