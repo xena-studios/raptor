@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -14,8 +13,13 @@ import (
 // r<the server's short ID>_<name>, beside the database's own s…, and can
 // read every table, including ones made later, and change nothing.
 
-func roName(serverID, label string) string {
-	return "r" + server.ShortID(serverID) + "_" + label
+// roName is a database's read-only user: r<the server's short ID>_<label>
+// for one made for a server, <its name>_ro for an instance's own.
+func roName(r store.Database) string {
+	if forServer(r) {
+		return "r" + r.DbName[1:]
+	}
+	return r.DbName + "_ro"
 }
 
 // SetReadOnly makes a database's read-only user, or gives it a new
@@ -40,7 +44,7 @@ func (s *Service) SetReadOnly(ctx context.Context, serverID, id string) (string,
 	if err != nil {
 		return "", "", err
 	}
-	user := roName(serverID, r.Label)
+	user := roName(r)
 	if err := checkNames(user, r.DbName, r.Username); err != nil {
 		return "", "", err
 	}

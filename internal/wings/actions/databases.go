@@ -196,6 +196,108 @@ func RegisterDatabases(x *command.Executor, d *databases.Service) {
 	}})
 }
 
+// A node's databases on their own (docs/DATABASES.md#the-model, DECISIONS
+// #342): a database belongs to its instance, and servers use it through
+// links. Admins only.
+const (
+	NodeDBDatabaseCreate        = "node.db.database.create"
+	NodeDBDatabaseDelete        = "node.db.database.delete" // signed: it drops the data
+	NodeDBDatabaseLink          = "node.db.database.link"
+	NodeDBDatabaseUnlink        = "node.db.database.unlink"
+	NodeDBDatabasePassword      = "node.db.database.password"       //nolint:gosec // an action name; signed: shows the password
+	NodeDBDatabasePasswordReset = "node.db.database.password.reset" //nolint:gosec // an action name
+)
+
+// DBDatabasesParams are node.db.databases' params: one instance's, or with
+// neither, every database on the node. ID is the older name.
+type DBDatabasesParams struct {
+	InstanceID string `json:"instance_id,omitempty"`
+	ID         string `json:"id,omitempty"`
+}
+
+// DBDatabaseCreateParams are node.db.database.create's params.
+type DBDatabaseCreateParams struct {
+	InstanceID string `json:"instance_id"`
+	Label      string `json:"label"`
+}
+
+// DBDatabaseCreateResult is node.db.database.create's result; the password
+// is only ever in it and in node.db.database.password's.
+type DBDatabaseCreateResult struct {
+	ID       string `json:"id"`
+	DBName   string `json:"db_name"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// DBLinkParams are node.db.database.link's and .unlink's params.
+type DBLinkParams struct {
+	ID       string `json:"id"`
+	ServerID string `json:"server_id"`
+}
+
+// RegisterNodeDatabases adds the node's database actions.
+func RegisterNodeDatabases(x *command.Executor, d *databases.Service) {
+	x.Register(NodeDBDatabaseCreate, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBDatabaseCreateParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		db, pass, err := d.CreateInstanceDatabase(ctx, p.InstanceID, p.Label)
+		if err != nil {
+			return nil, err
+		}
+		return DBDatabaseCreateResult{ID: db.ID, DBName: db.Name, Username: db.User, Password: pass}, nil
+	}})
+	x.Register(NodeDBDatabaseDelete, command.Handler{Signed: command.Always, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		return nil, d.DeleteByID(ctx, p.ID)
+	}})
+	link := func(unlink bool) func(ctx context.Context, e command.Envelope) (any, error) {
+		return func(ctx context.Context, e command.Envelope) (any, error) {
+			var p DBLinkParams
+			if err := decode(e, &p); err != nil {
+				return nil, err
+			}
+			if p.ID == "" || p.ServerID == "" {
+				return nil, errors.New("command needs a database id and a server_id")
+			}
+			if unlink {
+				return nil, d.Unlink(ctx, p.ID, p.ServerID)
+			}
+			return nil, d.Link(ctx, p.ID, p.ServerID)
+		}
+	}
+	x.Register(NodeDBDatabaseLink, command.Handler{Signed: command.Never, Run: link(false)})
+	x.Register(NodeDBDatabaseUnlink, command.Handler{Signed: command.Never, Run: link(true)})
+	// Showing a password is signed, as db.password is.
+	x.Register(NodeDBDatabasePassword, command.Handler{Signed: command.Always, ReadOnly: true, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		pass, err := d.PasswordByID(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return DBPasswordResult{Password: pass}, nil
+	}})
+	x.Register(NodeDBDatabasePasswordReset, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		var p DBParams
+		if err := decode(e, &p); err != nil {
+			return nil, err
+		}
+		pass, err := d.ResetPasswordByID(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		return DBPasswordResult{Password: pass}, nil
+	}})
+}
+
 // The browser's actions (docs/DATABASES.md#the-browser): all on one of the
 // server's databases, as its own user.
 const (
@@ -308,11 +410,15 @@ func RegisterDatabaseBrowser(x *command.Executor, d *databases.Service) {
 		return nil, d.CancelQuery(e.ServerID, e.UserID, p.QueryID)
 	})})
 	x.Register(NodeDBDatabases, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, e command.Envelope) (any, error) {
-		var p DBInstanceParams
+		var p DBDatabasesParams
 		if err := decode(e, &p); err != nil {
 			return nil, err
 		}
-		list, err := d.InstanceDatabases(ctx, p.ID)
+		instance := p.InstanceID
+		if instance == "" {
+			instance = p.ID
+		}
+		list, err := d.Databases(ctx, instance)
 		if err != nil {
 			return nil, err
 		}

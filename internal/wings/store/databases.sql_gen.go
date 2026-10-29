@@ -10,6 +10,22 @@ import (
 	"database/sql"
 )
 
+const databaseLinked = `-- name: DatabaseLinked :one
+SELECT COUNT(*) FROM database_links WHERE database_id = ? AND server_id = ?
+`
+
+type DatabaseLinkedParams struct {
+	DatabaseID string
+	ServerID   string
+}
+
+func (q *Queries) DatabaseLinked(ctx context.Context, arg DatabaseLinkedParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, databaseLinked, arg.DatabaseID, arg.ServerID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteDatabase = `-- name: DeleteDatabase :exec
 DELETE FROM databases WHERE id = ?
 `
@@ -17,6 +33,23 @@ DELETE FROM databases WHERE id = ?
 func (q *Queries) DeleteDatabase(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, deleteDatabase, id)
 	return err
+}
+
+const deleteDatabaseLink = `-- name: DeleteDatabaseLink :execrows
+DELETE FROM database_links WHERE database_id = ? AND server_id = ?
+`
+
+type DeleteDatabaseLinkParams struct {
+	DatabaseID string
+	ServerID   string
+}
+
+func (q *Queries) DeleteDatabaseLink(ctx context.Context, arg DeleteDatabaseLinkParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteDatabaseLink, arg.DatabaseID, arg.ServerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteInstance = `-- name: DeleteInstance :exec
@@ -42,8 +75,17 @@ func (q *Queries) DeleteInstanceAddress(ctx context.Context, arg DeleteInstanceA
 	return err
 }
 
+const deleteServerLinks = `-- name: DeleteServerLinks :exec
+DELETE FROM database_links WHERE server_id = ?
+`
+
+func (q *Queries) DeleteServerLinks(ctx context.Context, serverID string) error {
+	_, err := q.db.ExecContext(ctx, deleteServerLinks, serverID)
+	return err
+}
+
 const getDatabase = `-- name: GetDatabase :one
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password, viewer_username, viewer_password FROM databases WHERE id = ?
+SELECT id, instance_id, label, db_name, username, password, created_at, ro_username, ro_password, viewer_username, viewer_password FROM databases WHERE id = ?
 `
 
 func (q *Queries) GetDatabase(ctx context.Context, id string) (Database, error) {
@@ -52,7 +94,6 @@ func (q *Queries) GetDatabase(ctx context.Context, id string) (Database, error) 
 	err := row.Scan(
 		&i.ID,
 		&i.InstanceID,
-		&i.ServerID,
 		&i.Label,
 		&i.DbName,
 		&i.Username,
@@ -98,14 +139,13 @@ func (q *Queries) GetInstance(ctx context.Context, id string) (DatabaseInstance,
 }
 
 const insertDatabase = `-- name: InsertDatabase :exec
-INSERT INTO databases (id, instance_id, server_id, label, db_name, username, password, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO databases (id, instance_id, label, db_name, username, password, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertDatabaseParams struct {
 	ID         string
 	InstanceID string
-	ServerID   string
 	Label      string
 	DbName     string
 	Username   string
@@ -117,13 +157,27 @@ func (q *Queries) InsertDatabase(ctx context.Context, arg InsertDatabaseParams) 
 	_, err := q.db.ExecContext(ctx, insertDatabase,
 		arg.ID,
 		arg.InstanceID,
-		arg.ServerID,
 		arg.Label,
 		arg.DbName,
 		arg.Username,
 		arg.Password,
 		arg.CreatedAt,
 	)
+	return err
+}
+
+const insertDatabaseLink = `-- name: InsertDatabaseLink :exec
+INSERT INTO database_links (database_id, server_id, created_at) VALUES (?, ?, ?)
+`
+
+type InsertDatabaseLinkParams struct {
+	DatabaseID string
+	ServerID   string
+	CreatedAt  int64
+}
+
+func (q *Queries) InsertDatabaseLink(ctx context.Context, arg InsertDatabaseLinkParams) error {
+	_, err := q.db.ExecContext(ctx, insertDatabaseLink, arg.DatabaseID, arg.ServerID, arg.CreatedAt)
 	return err
 }
 
@@ -183,8 +237,35 @@ func (q *Queries) InsertInstanceAddress(ctx context.Context, arg InsertInstanceA
 	return err
 }
 
+const listDatabaseLinks = `-- name: ListDatabaseLinks :many
+SELECT database_id, server_id, created_at FROM database_links ORDER BY created_at, database_id, server_id
+`
+
+func (q *Queries) ListDatabaseLinks(ctx context.Context) ([]DatabaseLink, error) {
+	rows, err := q.db.QueryContext(ctx, listDatabaseLinks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DatabaseLink
+	for rows.Next() {
+		var i DatabaseLink
+		if err := rows.Scan(&i.DatabaseID, &i.ServerID, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listDatabases = `-- name: ListDatabases :many
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password, viewer_username, viewer_password FROM databases ORDER BY created_at, id
+SELECT id, instance_id, label, db_name, username, password, created_at, ro_username, ro_password, viewer_username, viewer_password FROM databases ORDER BY created_at, id
 `
 
 func (q *Queries) ListDatabases(ctx context.Context) ([]Database, error) {
@@ -199,7 +280,6 @@ func (q *Queries) ListDatabases(ctx context.Context) ([]Database, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.InstanceID,
-			&i.ServerID,
 			&i.Label,
 			&i.DbName,
 			&i.Username,
@@ -331,9 +411,11 @@ func (q *Queries) ListInstances(ctx context.Context) ([]DatabaseInstance, error)
 }
 
 const listServerDatabases = `-- name: ListServerDatabases :many
-SELECT id, instance_id, server_id, label, db_name, username, password, created_at, ro_username, ro_password, viewer_username, viewer_password FROM databases WHERE server_id = ? ORDER BY created_at, id
+SELECT d.id, d.instance_id, d.label, d.db_name, d.username, d.password, d.created_at, d.ro_username, d.ro_password, d.viewer_username, d.viewer_password FROM databases d JOIN database_links l ON l.database_id = d.id
+WHERE l.server_id = ? ORDER BY l.created_at, d.id
 `
 
+// A server's linked databases, in the order they were linked.
 func (q *Queries) ListServerDatabases(ctx context.Context, serverID string) ([]Database, error) {
 	rows, err := q.db.QueryContext(ctx, listServerDatabases, serverID)
 	if err != nil {
@@ -346,7 +428,6 @@ func (q *Queries) ListServerDatabases(ctx context.Context, serverID string) ([]D
 		if err := rows.Scan(
 			&i.ID,
 			&i.InstanceID,
-			&i.ServerID,
 			&i.Label,
 			&i.DbName,
 			&i.Username,

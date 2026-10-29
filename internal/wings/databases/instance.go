@@ -18,25 +18,13 @@ import (
 // runs SQL as the administrator: that would let an unsigned command make
 // users or, on PostgreSQL, run programs in the instance's container.
 
-// InstanceDatabases returns the databases on an instance, of every
-// server.
+// InstanceDatabases returns the databases on an instance, with the
+// servers using each.
 func (s *Service) InstanceDatabases(ctx context.Context, id string) ([]Database, error) {
-	if _, _, err := s.instance(ctx, s.o.Store.Read, id); err != nil {
-		return nil, err
+	if id == "" {
+		return nil, fmt.Errorf("%w: no instance given", ErrNotFound)
 	}
-	rows, err := s.instanceDatabases(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	insts, err := s.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]Database, 0, len(rows))
-	for _, r := range rows {
-		out = append(out, toDatabase(r, insts))
-	}
-	return out, nil
+	return s.Databases(ctx, id)
 }
 
 // adminDB opens an admin connection to a running SQL instance.
@@ -84,12 +72,21 @@ func (s *Service) InstanceUsers(ctx context.Context, id string) ([]InstanceUser,
 	if err != nil {
 		return nil, err
 	}
+	links, err := s.links(ctx)
+	if err != nil {
+		return nil, err
+	}
 	known := map[string]InstanceUser{}
 	hidden := map[string]bool{}
 	for _, d := range dbs {
-		known[d.Username] = InstanceUser{Kind: "database", ServerID: d.ServerID, DatabaseID: d.ID}
+		// The server is the first one using it, if any.
+		var server string
+		if l := links[d.ID]; len(l) > 0 {
+			server = l[0].ServerID
+		}
+		known[d.Username] = InstanceUser{Kind: "database", ServerID: server, DatabaseID: d.ID}
 		if d.RoUsername != "" {
-			known[d.RoUsername] = InstanceUser{Kind: "readonly", ServerID: d.ServerID, DatabaseID: d.ID}
+			known[d.RoUsername] = InstanceUser{Kind: "readonly", ServerID: server, DatabaseID: d.ID}
 		}
 		if d.ViewerUsername != "" {
 			hidden[d.ViewerUsername] = true

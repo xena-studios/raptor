@@ -201,6 +201,14 @@ var actions = map[string]string{
 	"node.db.users":        adminOnly,
 	"node.db.processes":    adminOnly,
 	"node.db.process.kill": adminOnly,
+
+	// A node's databases on their own, and which servers use each.
+	"node.db.database.create":         adminOnly,
+	"node.db.database.delete":         adminOnly,
+	"node.db.database.link":           adminOnly,
+	"node.db.database.unlink":         adminOnly,
+	"node.db.database.password":       adminOnly,
+	"node.db.database.password.reset": adminOnly,
 }
 
 // For returns what running action needs: a server permission, or

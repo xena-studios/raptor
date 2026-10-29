@@ -52,6 +52,8 @@ var signing = map[string]string{
 	"node.logs": "never", "node.metrics": "never", "node.reboot": "always", "node.sftp": "never",
 	"node.db.instance.delete": "always", "node.db.instance.external": "always", "node.db.instance.goback": "always", "node.db.instance.version": "never", "node.db.instance.power": "never", "node.db.instance.save": "never", "node.db.instances": "never", "node.db.usage": "never",
 	"node.db.databases": "never", "node.db.users": "never", "node.db.processes": "never", "node.db.process.kill": "never",
+	"node.db.database.create": "never", "node.db.database.delete": "always", "node.db.database.link": "never", "node.db.database.unlink": "never",
+	"node.db.database.password": "always", "node.db.database.password.reset": "never",
 	"node.network.delete": "never", "node.network.rules": "never", "node.network.save": "never", "node.networks": "never",
 	"node.system": "never", "node.time": "never",
 	"node.update": "never", // the release is checked against Raptor's signing key instead
@@ -88,6 +90,7 @@ func TestSigningPolicy(t *testing.T) {
 	RegisterNetworks(x, nil, nil)
 	RegisterDatabases(x, nil)
 	RegisterDatabaseBrowser(x, nil)
+	RegisterNodeDatabases(x, nil)
 	RegisterDatabaseTransfers(x, nil)
 	RegisterDatabaseVersions(x, nil)
 	RegisterDatabaseExternal(x, nil)
