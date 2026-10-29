@@ -844,6 +844,20 @@ func (q *Queries) SetEggShared(ctx context.Context, arg SetEggSharedParams) (int
 	return result.RowsAffected(), nil
 }
 
+const setEggSource = `-- name: SetEggSource :exec
+UPDATE eggs SET source_url = $1 WHERE id = $2
+`
+
+type SetEggSourceParams struct {
+	SourceUrl string
+	ID        pgtype.UUID
+}
+
+func (q *Queries) SetEggSource(ctx context.Context, arg SetEggSourceParams) error {
+	_, err := q.db.Exec(ctx, setEggSource, arg.SourceUrl, arg.ID)
+	return err
+}
+
 const setEggStatus = `-- name: SetEggStatus :execrows
 UPDATE eggs SET status = $1, updated_at = now(),
     shared_at = CASE WHEN $1::text = 'published' THEN shared_at END

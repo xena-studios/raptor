@@ -265,6 +265,8 @@ An egg comes in from a link or an upload: Pterodactyl or Pelican, JSON or YAML.
 
 An imported egg is never certified, whatever it says.
 
+**Re-importing** (Import new version, on an egg the library can edit) reviews a link or upload the same way, then saves it with `UpdateEgg`'s `file` as a new version (`base_version` guards it like any edit). The link is filled in from the egg's `source_url`, and a reviewed link becomes it (`source_url`, checked like an import's). With `keep_raptor` (on in the app), a file without an `x-raptor` block gets the current version's (`spec.KeepRaptor`), since Pterodactyl's and Pelican's files never have one; if the kept settings don't fit the new file (a variable they name is gone), the save is refused with why. Only the egg's own current file counts as nothing new: the same file elsewhere in the library is fine.
+
 ## Schedule runs
 
 The node fires schedules (see [WINGS.md](WINGS.md#scheduler)); the Panel keeps their history in `schedule_runs`, because Wings drops its events after a week. The mirror records a run from the node's events as it syncs: `schedule.run.queued` starts a run (keyed by its job ID), `schedule.run.finished` ends it with each step's result (or records it whole, if its start was never seen), and `schedule.run.skipped` is a run that didn't happen, with why (`missed`, `offline`, `still_running`). Each schedule keeps its last 100 runs; deleting a schedule or a server deletes its runs. A snapshot doesn't bring back runs from a gap in the events, so a run can be missing, never wrong.

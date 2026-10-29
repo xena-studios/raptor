@@ -42,6 +42,9 @@ UPDATE eggs SET name = @name, summary = @summary, category = @category, egg = @e
     version = @version, updated_at = now()
 WHERE id = @id;
 
+-- name: SetEggSource :exec
+UPDATE eggs SET source_url = @source_url WHERE id = @id;
+
 -- name: SetEggStatus :execrows
 -- Only published eggs are shared: unpublishing takes one out of the
 -- community too.

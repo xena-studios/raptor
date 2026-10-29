@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EggService } from "@/gen/raptor/panel/v1/egg_pb";
+import { EggService, type GetEggDetailsResponse } from "@/gen/raptor/panel/v1/egg_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { blankState, categoryName, download, originNames } from "@/lib/eggs";
@@ -154,6 +154,7 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
             <Button variant="outline" onClick={() => download(egg.name, d.data.file)}>
               <Download /> Export
             </Button>
+            {mine && <ReimportButton lib={lib} d={d.data} />}
             {mine && (
               <Link {...lib.edit(egg.id)} className={buttonVariants({ variant: "outline" })}>
                 <Pencil /> Edit
@@ -189,6 +190,35 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
       />
       {community && !lib.orgId && <ModerationCard d={d.data} />}
       <EggDetails d={d.data} />
+    </>
+  );
+}
+
+// ReimportButton replaces an egg's file with a new one, from its source
+// link or another file: upstream's update, or an edit made elsewhere.
+function ReimportButton({ lib, d }: { lib: Library; d: GetEggDetailsResponse }) {
+  const [open, setOpen] = useState(false);
+  const egg = d.egg;
+  if (!egg) return null;
+  return (
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)}>
+        <FileUp /> Import new version
+      </Button>
+      <EggImport
+        orgId={lib.orgId}
+        open={open}
+        onOpenChange={setOpen}
+        replace={{
+          id: egg.id,
+          name: egg.name,
+          version: egg.version,
+          summary: egg.summary,
+          category: egg.category,
+          sourceUrl: egg.sourceUrl,
+          sha256: d.versions.find((v) => v.version === egg.version)?.sha256 ?? "",
+        }}
+      />
     </>
   );
 }

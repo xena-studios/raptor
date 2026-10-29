@@ -599,6 +599,17 @@ func (s *Eggs) UpdateEgg(ctx context.Context, req *panelv1.UpdateEggRequest) (*p
 			}
 		case *panelv1.UpdateEggRequest_File:
 			file = c.File
+			if req.GetKeepRaptor() {
+				if file, err = spec.KeepRaptor(c.File, row.Egg); err != nil {
+					return specError(err)
+				}
+			}
+		}
+		source := req.GetSourceUrl()
+		if source != "" {
+			if _, err := eggimport.ParseURL(source); err != nil {
+				return invalid(err)
+			}
 		}
 		name, err := checkFile(file)
 		if err != nil {
@@ -616,9 +627,14 @@ func (s *Eggs) UpdateEgg(ctx context.Context, req *panelv1.UpdateEggRequest) (*p
 			}); err != nil {
 				return err
 			}
-		} else if summary == row.Summary && category == row.Category {
+		} else if summary == row.Summary && category == row.Category && (source == "" || source == row.SourceUrl) {
 			out.Version = version
 			return nil
+		}
+		if source != "" && source != row.SourceUrl {
+			if err := l.q.SetEggSource(ctx, store.SetEggSourceParams{SourceUrl: source, ID: row.ID}); err != nil {
+				return err
+			}
 		}
 		// An edited catalog egg is no longer the file the conformance
 		// suite tests.
@@ -633,7 +649,7 @@ func (s *Eggs) UpdateEgg(ctx context.Context, req *panelv1.UpdateEggRequest) (*p
 			return err
 		}
 		out.Version = version
-		return s.audit(ctx, l, "egg.update", idString(row.ID), map[string]any{"name": name, "version": version})
+		return s.audit(ctx, l, "egg.update", idString(row.ID), map[string]any{"name": name, "version": version, "source_url": source})
 	})
 	if err != nil {
 		return nil, err

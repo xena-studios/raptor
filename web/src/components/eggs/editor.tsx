@@ -6,7 +6,6 @@ import {
   Boxes,
   Circle,
   CircleCheck,
-  Cpu,
   FileCheck,
   Loader2,
   Map as MapIcon,
@@ -309,6 +308,29 @@ function OverviewTab({
           onChange={(e) => setState({ ...state, summary: e.target.value })}
         />
       </Field>
+      <fieldset className="grid gap-1.5">
+        <legend className="mb-1.5 text-sm font-medium">CPUs</legend>
+        <div className="flex gap-4">
+          {[
+            ["amd64", "x86 (Intel, AMD)"],
+            ["arm64", "ARM"],
+          ].map(([a, label]) => (
+            <Label key={a} className="flex items-center gap-2 text-sm font-normal">
+              <Checkbox
+                checked={spec.arch.includes(a ?? "")}
+                onCheckedChange={(on) =>
+                  set({ arch: on ? [...spec.arch, a ?? ""] : spec.arch.filter((x) => x !== a) })
+                }
+              />
+              {label}
+            </Label>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Which machines it runs on; nodes with other CPUs don't offer it. Neither checked: not
+          stated, and every node offers it.
+        </p>
+      </fieldset>
       <Field id="egg-description" label="Description">
         <textarea
           id="egg-description"
@@ -986,32 +1008,6 @@ function AddonsTab({ spec, patch }: { spec: EggSpec; patch: Patch }) {
             </AddonCard>
           );
         })}
-        <AddonCard
-          icon={Cpu}
-          title="CPUs"
-          description="Which machines it runs on; nodes with other CPUs don't offer it."
-          on={spec.arch.length > 0}
-          onToggle={() => patch({ arch: spec.arch.length ? [] : ["amd64", "arm64"] })}
-        >
-          <div className="flex gap-4">
-            {[
-              ["amd64", "x86 (Intel, AMD)"],
-              ["arm64", "ARM"],
-            ].map(([a, label]) => (
-              <Label key={a} className="flex items-center gap-2 text-sm font-normal">
-                <Checkbox
-                  checked={spec.arch.includes(a ?? "")}
-                  onCheckedChange={(on) =>
-                    patch({
-                      arch: on ? [...spec.arch, a ?? ""] : spec.arch.filter((x) => x !== a),
-                    })
-                  }
-                />
-                {label}
-              </Label>
-            ))}
-          </div>
-        </AddonCard>
       </div>
       {other.length > 0 && (
         <div className="flex flex-col gap-2">

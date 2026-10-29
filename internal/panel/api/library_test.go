@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"log/slog"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -154,6 +155,33 @@ func TestEggLibrary(t *testing.T) {
 		t.Errorf("version 1: %v", err)
 	}
 
+	// Re-importing upstream's file (version 1, without x-raptor) keeps the
+	// egg's Raptor settings, and a link becomes its source.
+	armed := helloSpec("Hello")
+	armed.Done, armed.Arch = edit.Done, []string{"arm64"}
+	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_Spec{Spec: armed}, BaseVersion: 2}); err != nil {
+		t.Fatal(err)
+	}
+	v1, err := bob.lib.GetEggFile(ctx, &panelv1.GetEggFileRequest{OrgId: org, Id: id, Version: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	re, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{
+		OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_File{File: v1.GetEgg()}, KeepRaptor: true,
+		SourceUrl: "https://github.com/example/eggs/blob/main/hello.json", Note: "Re-imported", BaseVersion: 3,
+	})
+	if err != nil || re.GetVersion() != 4 {
+		t.Fatalf("re-import: %v, %v", re, err)
+	}
+	if d, err := bob.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: id}); err != nil ||
+		!slices.Equal(d.GetSpec().GetArch(), []string{"arm64"}) || d.GetSpec().GetDone()[0] != "ready" ||
+		d.GetEgg().GetSourceUrl() != "https://github.com/example/eggs/blob/main/hello.json" {
+		t.Errorf("re-imported: %v, %v", d, err)
+	}
+	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_File{File: v1.GetEgg()}, SourceUrl: "ftp://example.com/x"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("a bad source: %v", err)
+	}
+
 	// Raptor's catalog, seeded into the official library: listed, deployable,
 	// changed only by staff, customizable, and found by its catalog ID too.
 	if _, _, err := catalog.Seed(ctx, db, slog.New(slog.DiscardHandler)); err != nil {
@@ -217,7 +245,7 @@ func TestEggLibrary(t *testing.T) {
 	for _, e := range log.GetEvents() {
 		actions = append(actions, e.GetAction())
 	}
-	if got := strings.Join(actions, " "); !strings.HasPrefix(got, "egg.delete egg.archive egg.customize egg.publish egg.update egg.create") {
+	if got := strings.Join(actions, " "); !strings.HasPrefix(got, "egg.delete egg.archive egg.customize egg.update egg.update egg.publish egg.update egg.create") {
 		t.Errorf("audit: %s", got)
 	}
 

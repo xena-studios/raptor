@@ -228,6 +228,13 @@ message UpdateEggRequest {
   // The version the edit was made on: saving fails if someone saved a
   // newer one since.
   int32 base_version = 8;
+  // A re-import (with file): when the new file has no x-raptor block,
+  // the current one's is kept, so upstream's file doesn't drop Raptor's
+  // settings.
+  bool keep_raptor = 9;
+  // A re-import from a link (from ReviewEggFile): the egg's source
+  // becomes it. Empty leaves the source as it is.
+  string source_url = 10;
 }
 
 message UpdateEggResponse {
