@@ -215,9 +215,10 @@ func TestBackupJavaDefaults(t *testing.T) {
 	send(`echo 'Done (1.0s)! For help, type "help"'`)
 	waitState(t, v.m, id, server.Running)
 	// The "game": the shell reads its console, answering a flush the way
-	// Minecraft does. (The tty echoes input, so the answer isn't spelled
-	// out in the command.)
-	send(`while read -r l; do echo "GOT $l"; case "$l" in "save-all flush") printf 'Saved%sthe game\n' ' ';; stop) exit;; esac; done`)
+	// Minecraft does. The tty's echo is turned off, since the echo of a
+	// command can land in the middle of the shell's last line; the answer
+	// isn't spelled out in the command anyway, in case stty is missing.
+	send(`stty -echo 2>/dev/null; while read -r l; do echo "GOT $l"; case "$l" in "save-all flush") printf 'Saved%sthe game\n' ' ';; stop) exit;; esac; done`)
 	time.Sleep(300 * time.Millisecond)
 
 	res, err := v.p.send("alice", BackupCreate, id, nil, nil)
@@ -236,13 +237,13 @@ func TestBackupJavaDefaults(t *testing.T) {
 	for range 50 {
 		st, _ := v.m.Status(id)
 		hist = strings.Join(st.Console.History(), "\n")
-		if strings.Contains(hist, "\nGOT save-on") {
+		if strings.Contains(hist, "GOT save-on") {
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	off, flush := strings.Index(hist, "\nGOT save-off"), strings.Index(hist, "\nGOT save-all flush")
-	saved, on := strings.Index(hist, "\nSaved the game"), strings.Index(hist, "\nGOT save-on")
+	off, flush := strings.Index(hist, "GOT save-off"), strings.Index(hist, "GOT save-all flush")
+	saved, on := strings.Index(hist, "Saved the game"), strings.Index(hist, "GOT save-on")
 	if off < 0 || flush < off || saved < flush || on < saved {
 		t.Fatalf("hooks didn't run in order:\n%s", hist)
 	}
