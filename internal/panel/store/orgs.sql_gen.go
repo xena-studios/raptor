@@ -265,7 +265,7 @@ func (q *Queries) MirrorServerExists(ctx context.Context, arg MirrorServerExists
 }
 
 const nodeServer = `-- name: NodeServer :one
-SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
+SELECT s.server_id, s.name, s.state, s.egg_name, s.egg_source, s.install_state, s.install_error,
        coalesce(s.config->'allocations', '[]')::jsonb AS allocations, s.config,
        coalesce(a.display_address, '')::text AS display_address
 FROM m_servers s
@@ -283,6 +283,7 @@ type NodeServerRow struct {
 	Name           string
 	State          string
 	EggName        string
+	EggSource      string
 	InstallState   string
 	InstallError   string
 	Allocations    []byte
@@ -298,6 +299,7 @@ func (q *Queries) NodeServer(ctx context.Context, arg NodeServerParams) (NodeSer
 		&i.Name,
 		&i.State,
 		&i.EggName,
+		&i.EggSource,
 		&i.InstallState,
 		&i.InstallError,
 		&i.Allocations,
@@ -308,7 +310,7 @@ func (q *Queries) NodeServer(ctx context.Context, arg NodeServerParams) (NodeSer
 }
 
 const nodeServers = `-- name: NodeServers :many
-SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
+SELECT s.server_id, s.name, s.state, s.egg_name, s.egg_source, s.install_state, s.install_error,
        coalesce(s.config->'allocations', '[]')::jsonb AS allocations,
        coalesce(a.display_address, '')::text AS display_address
 FROM m_servers s
@@ -321,6 +323,7 @@ type NodeServersRow struct {
 	Name           string
 	State          string
 	EggName        string
+	EggSource      string
 	InstallState   string
 	InstallError   string
 	Allocations    []byte
@@ -341,6 +344,7 @@ func (q *Queries) NodeServers(ctx context.Context, nodeID pgtype.UUID) ([]NodeSe
 			&i.Name,
 			&i.State,
 			&i.EggName,
+			&i.EggSource,
 			&i.InstallState,
 			&i.InstallError,
 			&i.Allocations,

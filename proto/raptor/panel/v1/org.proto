@@ -529,6 +529,9 @@ message Server {
   // What players connect to instead of the node's hostname ("host" or
   // "host:port"), if the owner set one; '' shows the hostname.
   string display_address = 9;
+  // The library egg it was made from (its ID, or a catalog ID like
+  // "minecraft/paper"); empty when it doesn't say (made outside the app).
+  string egg_source = 10;
 }
 
 message ListServersResponse {

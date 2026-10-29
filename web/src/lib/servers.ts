@@ -355,3 +355,101 @@ export function changeEggParams(
     reinstall: { wipe },
   };
 }
+
+// EggShape is what updating a server's egg looks at in an egg (the
+// library's EggSpec has it).
+export type EggShape = {
+  images: { name: string; ref: string }[];
+  startup: { command: string }[];
+  variables: {
+    env: string;
+    name: string;
+    description?: string;
+    default: string;
+    rules: string[];
+    userEditable: boolean;
+  }[];
+  installScript: string;
+  installContainer: string;
+};
+
+// eggUpdate is what updating a server to a newer file of its egg does to
+// it, given the version it has (undefined when the library doesn't have
+// that file any more): its runtime stays if the new egg still offers it, a
+// startup command the owner changed stays, and so do the settings the new
+// egg still has. The rest take the new egg's defaults.
+export function eggUpdate(cfg: ServerConfig, old: EggShape | undefined, next: EggShape) {
+  const oldImages = old?.images ?? cfg.egg?.images ?? [];
+  const oldEnvs = (old?.variables ?? cfg.egg?.variables ?? []).map((v) => v.env);
+  const envs = next.variables.map((v) => v.env);
+  const image = next.images.some((i) => i.ref === cfg.image) ? cfg.image : "";
+  // Unknown old version: the startup command is kept only if the new egg
+  // has it, since it can't be told apart from an old default.
+  const custom = old ? cfg.startup !== (old.startup[0]?.command ?? "") : false;
+  const keepStartup = custom || next.startup.some((s) => s.command === cfg.startup);
+  const startup =
+    keepStartup && cfg.startup !== (next.startup[0]?.command ?? "") ? cfg.startup : "";
+  const variables: Record<string, string> = {};
+  for (const [k, v] of Object.entries(cfg.variables ?? {})) {
+    if (envs.includes(k)) variables[k] = v;
+  }
+  return {
+    image,
+    startup,
+    variables,
+    changes: {
+      imagesAdded: next.images.filter((i) => !oldImages.some((o) => o.ref === i.ref)),
+      imagesRemoved: oldImages.filter((o) => !next.images.some((i) => i.ref === o.ref)),
+      // The runtime it moves to when its own is gone.
+      image: image ? undefined : next.images[0],
+      startup:
+        (startup || next.startup[0]?.command || "") === cfg.startup
+          ? undefined
+          : (next.startup[0]?.command ?? ""),
+      variablesAdded: next.variables.filter((v) => !oldEnvs.includes(v.env)),
+      variablesRemoved: oldEnvs.filter((e) => !envs.includes(e)),
+      // undefined: not known (the old version isn't in the library).
+      install: old
+        ? old.installScript !== next.installScript || old.installContainer !== next.installContainer
+        : undefined,
+    },
+    // New settings the owner has to fill in: required, with no default.
+    needed: next.variables.filter(
+      (v) =>
+        v.userEditable &&
+        v.rules.includes("required") &&
+        !v.default.trim() &&
+        !(variables[v.env] ?? "").trim(),
+    ),
+  };
+}
+
+// updateEggParams is server.update's params to update a server to a newer
+// file of its egg (eggUpdate's choices, and values for settings it needs),
+// installing it again over its files only if asked.
+export function updateEggParams(
+  cfg: ServerConfig,
+  name: string,
+  egg: { source: string; file: Uint8Array },
+  u: Pick<ReturnType<typeof eggUpdate>, "image" | "startup" | "variables">,
+  values: Record<string, string>,
+  reinstall: boolean,
+) {
+  const { egg: _egg, egg_hash: _hash, ...rest } = cfg;
+  return {
+    ...rest,
+    name,
+    egg: base64(egg.file),
+    egg_source: egg.source,
+    image: u.image,
+    startup: u.startup,
+    variables: { ...u.variables, ...values },
+    ...(reinstall && { reinstall: { wipe: false } }),
+  };
+}
+
+// sha256Hex is a file's SHA-256 in hex, as Wings names a server's egg.
+export async function sha256Hex(data: Uint8Array): Promise<string> {
+  const sum = new Uint8Array(await crypto.subtle.digest("SHA-256", new Uint8Array(data)));
+  return Array.from(sum, (b) => b.toString(16).padStart(2, "0")).join("");
+}

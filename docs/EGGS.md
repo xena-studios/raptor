@@ -339,6 +339,8 @@ The catalog lives in the Panel's database, as official eggs (`internal/panel/cat
 
 Servers get the file in the passkey-signed `server.create` as it is (`EggService.GetEggFile`), so what the user approved is what the node runs.
 
+A server keeps that file. When its egg gets a new version, the server's Settings page offers it: the web app hashes the library's file and compares it with the server's `egg_hash`, finds the version the server has by its SHA-256 in the egg's versions, and shows what changes from that version's spec (`GetEggDetails` with `version`). Updating is a signed `server.update` with the new file, reinstalling only if asked ([SERVERS.md](SERVERS.md), DECISIONS #339).
+
 ### Accepting a EULA
 Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EULA. The web app asks when creating the server and sends `accept_eula: true` in `server.create`, inside what the passkey signs. Wings writes `eula.txt` (`eula=true`, owned by the server's user) once the install succeeds and before the first start. For eggs without the feature the flag does nothing.
 

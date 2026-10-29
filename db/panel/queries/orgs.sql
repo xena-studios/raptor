@@ -76,7 +76,7 @@ WHERE n.org_id = $1 AND n.deleted_at IS NULL
 ORDER BY n.created_at;
 
 -- name: NodeServers :many
-SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
+SELECT s.server_id, s.name, s.state, s.egg_name, s.egg_source, s.install_state, s.install_error,
        coalesce(s.config->'allocations', '[]')::jsonb AS allocations,
        coalesce(a.display_address, '')::text AS display_address
 FROM m_servers s
@@ -84,7 +84,7 @@ LEFT JOIN server_addresses a ON a.node_id = s.node_id AND a.server_id = s.server
 WHERE s.node_id = $1 ORDER BY s.name, s.server_id;
 
 -- name: NodeServer :one
-SELECT s.server_id, s.name, s.state, s.egg_name, s.install_state, s.install_error,
+SELECT s.server_id, s.name, s.state, s.egg_name, s.egg_source, s.install_state, s.install_error,
        coalesce(s.config->'allocations', '[]')::jsonb AS allocations, s.config,
        coalesce(a.display_address, '')::text AS display_address
 FROM m_servers s

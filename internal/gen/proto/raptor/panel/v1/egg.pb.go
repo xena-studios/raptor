@@ -639,9 +639,12 @@ func (x *EggVersion) GetCreatedAt() *timestamppb.Timestamp {
 }
 
 type GetEggDetailsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Id    string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	// 0: the current version; otherwise that version's file and spec (to
+	// show a server what updating its egg changes).
+	Version       int32 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -688,6 +691,13 @@ func (x *GetEggDetailsRequest) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *GetEggDetailsRequest) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
 }
 
 type GetEggDetailsResponse struct {
@@ -2687,10 +2697,11 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\n" +
 	"created_by\x18\x04 \x01(\tR\tcreatedBy\x129\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"=\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"W\n" +
 	"\x14GetEggDetailsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\tR\x02id\"\xe1\x02\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x05R\aversion\"\xe1\x02\n" +
 	"\x15GetEggDetailsResponse\x12-\n" +
 	"\x03egg\x18\x01 \x01(\v2\x1b.raptor.panel.v1.CatalogEggR\x03egg\x12,\n" +
 	"\x04spec\x18\x02 \x01(\v2\x18.raptor.panel.v1.EggSpecR\x04spec\x12\x12\n" +
