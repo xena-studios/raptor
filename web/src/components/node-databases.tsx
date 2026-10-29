@@ -22,6 +22,7 @@ import { useConfirm } from "@/components/confirm";
 import { ExternalDialog } from "@/components/db-external";
 import { InstanceUsageStrip } from "@/components/db-usage";
 import { HelpLink } from "@/components/help-link";
+import { InstanceDatabases } from "@/components/instance-databases";
 import { StatusBadge } from "@/components/server-status";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -63,12 +64,14 @@ import {
   isSQL,
   useInstances,
   useInstanceUsage,
+  useNodeDatabases,
   versionChange,
 } from "@/lib/databases";
 import { checkAdvanced, hasAdvanced } from "@/lib/db-settings";
 import type { DBUsage } from "@/lib/db-usage";
 import { message } from "@/lib/errors";
 import { defaultNetworkName, type RaptorNetwork, useNodeNetworks } from "@/lib/networks";
+import { useOrgServers } from "@/lib/org-data";
 import type { ServerStatus } from "@/lib/servers";
 import { sendSigned } from "@/lib/signed";
 import { commandClient } from "@/lib/transport";
@@ -94,10 +97,16 @@ export function NodeDatabases({
   browserSupported,
   redisExternalSupported,
   usageSupported,
+  sharedSupported,
+  nodeName,
 }: {
   orgId: string;
   nodeId: string;
   userId: string;
+  // The node's Wings has databases of their own, linked to servers.
+  sharedSupported: boolean;
+  // Set on the org's Databases page, which lists every node's.
+  nodeName?: string;
   // The node's Wings shows an instance's own page.
   browserSupported: boolean;
   connected: boolean;
@@ -117,13 +126,22 @@ export function NodeDatabases({
   const insts = useInstances(nodeId, connected && supported);
   const usage = useInstanceUsage(nodeId, connected && supported && usageSupported);
   const nets = useNodeNetworks(nodeId, connected && networksSupported);
+  const dbs = useNodeDatabases(nodeId, connected && supported && sharedSupported);
+  const { servers } = useOrgServers(orgId, 30_000);
+  const nodeServers = servers.filter((s) => s.node.id === nodeId);
   const [editing, setEditing] = useState<DBInstance | "new">();
   const [changing, setChanging] = useState<DBInstance>();
   const [opening, setOpening] = useState<DBInstance>();
 
+  const title = nodeName ?? "Database instances";
   if (!supported) {
     return (
       <Card>
+        {nodeName && (
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+          </CardHeader>
+        )}
         <CardContent className="text-sm text-muted-foreground">
           Update Wings on this node to run databases on it.
         </CardContent>
@@ -133,6 +151,11 @@ export function NodeDatabases({
   if (!connected) {
     return (
       <Card>
+        {nodeName && (
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+          </CardHeader>
+        )}
         <CardContent className="text-sm text-muted-foreground">
           The node is offline, so its databases can't be read until it's back.
         </CardContent>
@@ -148,10 +171,12 @@ export function NodeDatabases({
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Database instances</CardTitle>
+          <CardTitle>{title}</CardTitle>
           <CardDescription>
-            Database servers on this machine. Servers on the same network get their own database and
-            user on one from their Databases tab. Included in the node's price.
+            {sharedSupported
+              ? "Database servers on this machine. Every server on an instance's network can reach it, and each database has its own user; linked servers get a database's details as variables. Databases stay when servers are deleted."
+              : "Database servers on this machine. Servers on the same network get their own database and user on one from their Databases tab. Update this node to share databases."}{" "}
+            Included in the node's price.
           </CardDescription>
           <CardAction>
             <Button size="sm" onClick={() => setEditing("new")}>
@@ -185,7 +210,23 @@ export function NodeDatabases({
                     : undefined
                 }
                 orgId={browserSupported && isSQL(i.engine) ? orgId : undefined}
-              />
+              >
+                {sharedSupported &&
+                  (dbs.error ? (
+                    <p className="border-t pt-2 text-sm text-destructive">{message(dbs.error)}</p>
+                  ) : (
+                    dbs.data && (
+                      <InstanceDatabases
+                        orgId={orgId}
+                        nodeId={nodeId}
+                        userId={userId}
+                        instance={i}
+                        databases={dbs.data.filter((x) => x.instance_id === i.id)}
+                        servers={nodeServers}
+                      />
+                    )
+                  ))}
+              </InstanceRow>
             ))
           )}
         </CardContent>
@@ -239,10 +280,13 @@ function InstanceRow({
   onChangeVersion,
   onExternal,
   orgId,
+  children,
 }: {
   nodeId: string;
   userId: string;
   instance: DBInstance;
+  // The instance's databases, on nodes that list them here.
+  children?: ReactNode;
   // Its latest sample, while it runs on a node that has them.
   usage?: DBUsage;
   networks: RaptorNetwork[];
@@ -469,6 +513,7 @@ function InstanceRow({
         </p>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {children}
     </div>
   );
 }

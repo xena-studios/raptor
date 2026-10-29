@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { type Database, engineName, isSQL, useInstances, useInstanceUsage } from "@/lib/databases";
 import { dbCommand } from "@/lib/db-browser";
+import { throughServer } from "@/lib/db-shared";
 import { message } from "@/lib/errors";
 import { useOrgServers } from "@/lib/org-data";
 
@@ -67,17 +68,20 @@ export function InstanceBrowser({
   const inst = insts.data?.instances.find((i) => i.id === instanceId);
   const usage = useInstanceUsage(nodeId, usageSupported && inst?.state === "running");
   const servers = useOrgServers(orgId, 30_000).servers;
-  const serverName = (id?: string) => servers.find((s) => s.id === id)?.name ?? "a server";
+  const serverName = (id?: string) =>
+    id ? (servers.find((s) => s.id === id)?.name ?? "a server") : "no server";
   const running = inst?.state === "running";
   const sql = !!inst && isSQL(inst.engine);
   const dbs = useQuery({
     queryKey: instanceDatabasesKey(nodeId, instanceId),
+    // id for nodes from before databases were shared, instance_id after.
     queryFn: async () =>
-      (
-        await dbCommand<{ databases: Database[] }>(nodeId, "", "node.db.databases", {
+      throughServer<Database>(
+        await dbCommand<unknown>(nodeId, "", "node.db.databases", {
           id: instanceId,
-        })
-      ).databases,
+          instance_id: instanceId,
+        }),
+      ),
     enabled: sql,
     retry: false,
   });
@@ -164,7 +168,8 @@ export function InstanceBrowser({
                 {dbs.isPending && <p className="text-sm text-muted-foreground">Asking the node…</p>}
                 {dbs.data && list.length === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    No databases yet. Servers get one from their Databases tab.
+                    No databases yet. Make one on the Databases page, or from a server's Databases
+                    tab.
                   </p>
                 )}
                 {list.map((d) => {
@@ -192,7 +197,20 @@ export function InstanceBrowser({
                 })}
               </nav>
               <section className="min-w-0">
-                {db && (
+                {db && !db.server_id && (
+                  <p className="text-sm text-muted-foreground">
+                    It's opened through a server linked to it. Link one on the{" "}
+                    <Link
+                      to="/orgs/$orgId/databases"
+                      params={{ orgId }}
+                      className="underline underline-offset-2"
+                    >
+                      Databases page
+                    </Link>{" "}
+                    to browse it here.
+                  </p>
+                )}
+                {db?.server_id && (
                   <DatabaseBrowser
                     key={db.id}
                     orgId={orgId}
@@ -337,25 +355,27 @@ function UsersView({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {databases.map((d) => (
-              <div key={d.id} className="flex flex-col gap-1">
-                <p className="text-sm">
-                  <span className="font-mono">{d.label}</span>{" "}
-                  <span className="text-muted-foreground">on {serverName(d.server_id)}</span>
-                </p>
-                <ReadOnlyUser
-                  nodeId={nodeId}
-                  serverId={d.server_id}
-                  userId={userId}
-                  db={d}
-                  canWrite
-                  onShow={(password, user) =>
-                    setShown({ db: user ? { ...d, readonly_user: user } : d, password })
-                  }
-                  onChanged={changed}
-                />
-              </div>
-            ))}
+            {databases
+              .filter((d) => d.server_id)
+              .map((d) => (
+                <div key={d.id} className="flex flex-col gap-1">
+                  <p className="text-sm">
+                    <span className="font-mono">{d.label}</span>{" "}
+                    <span className="text-muted-foreground">on {serverName(d.server_id)}</span>
+                  </p>
+                  <ReadOnlyUser
+                    nodeId={nodeId}
+                    serverId={d.server_id}
+                    userId={userId}
+                    db={d}
+                    canWrite
+                    onShow={(password, user) =>
+                      setShown({ db: user ? { ...d, readonly_user: user } : d, password })
+                    }
+                    onChanged={changed}
+                  />
+                </div>
+              ))}
           </CardContent>
         </Card>
       )}

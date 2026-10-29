@@ -38,6 +38,7 @@ import { Route as AdminSupportRequestIdRouteImport } from './routes/admin.suppor
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin.users.$userId'
 import { Route as OrgsOrgIdIndexRouteImport } from './routes/orgs.$orgId.index'
+import { Route as OrgsOrgIdDatabasesRouteImport } from './routes/orgs.$orgId.databases'
 import { Route as OrgsOrgIdSettingsRouteImport } from './routes/orgs.$orgId.settings'
 import { Route as AdminEggsEggIdIndexRouteImport } from './routes/admin.eggs.$eggId.index'
 import { Route as AdminEggsEggIdEditRouteImport } from './routes/admin.eggs.$eggId.edit'
@@ -233,6 +234,11 @@ const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
 const OrgsOrgIdIndexRoute = OrgsOrgIdIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => OrgsOrgIdRoute,
+} as any)
+const OrgsOrgIdDatabasesRoute = OrgsOrgIdDatabasesRouteImport.update({
+  id: '/databases',
+  path: '/databases',
   getParentRoute: () => OrgsOrgIdRoute,
 } as any)
 const OrgsOrgIdSettingsRoute = OrgsOrgIdSettingsRouteImport.update({
@@ -546,6 +552,7 @@ export interface FileRoutesByFullPath {
   '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
+  '/orgs/$orgId/databases': typeof OrgsOrgIdDatabasesRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
   '/admin/eggs/': typeof AdminEggsIndexRoute
   '/admin/orgs/': typeof AdminOrgsIndexRoute
@@ -624,6 +631,7 @@ export interface FileRoutesByTo {
   '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
+  '/orgs/$orgId/databases': typeof OrgsOrgIdDatabasesRoute
   '/admin/eggs': typeof AdminEggsIndexRoute
   '/admin/orgs': typeof AdminOrgsIndexRoute
   '/admin/support': typeof AdminSupportIndexRoute
@@ -703,6 +711,7 @@ export interface FileRoutesById {
   '/admin/overview/users': typeof AdminOverviewUsersRoute
   '/admin/support/$requestId': typeof AdminSupportRequestIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
+  '/orgs/$orgId/databases': typeof OrgsOrgIdDatabasesRoute
   '/orgs/$orgId/settings': typeof OrgsOrgIdSettingsRouteWithChildren
   '/admin/eggs/': typeof AdminEggsIndexRoute
   '/admin/orgs/': typeof AdminOrgsIndexRoute
@@ -786,6 +795,7 @@ export interface FileRouteTypes {
     | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
+    | '/orgs/$orgId/databases'
     | '/orgs/$orgId/settings'
     | '/admin/eggs/'
     | '/admin/orgs/'
@@ -864,6 +874,7 @@ export interface FileRouteTypes {
     | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
+    | '/orgs/$orgId/databases'
     | '/admin/eggs'
     | '/admin/orgs'
     | '/admin/support'
@@ -942,6 +953,7 @@ export interface FileRouteTypes {
     | '/admin/overview/users'
     | '/admin/support/$requestId'
     | '/admin/users/$userId'
+    | '/orgs/$orgId/databases'
     | '/orgs/$orgId/settings'
     | '/admin/eggs/'
     | '/admin/orgs/'
@@ -1214,6 +1226,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/orgs/$orgId/'
       preLoaderRoute: typeof OrgsOrgIdIndexRouteImport
+      parentRoute: typeof OrgsOrgIdRoute
+    }
+    '/orgs/$orgId/databases': {
+      id: '/orgs/$orgId/databases'
+      path: '/databases'
+      fullPath: '/orgs/$orgId/databases'
+      preLoaderRoute: typeof OrgsOrgIdDatabasesRouteImport
       parentRoute: typeof OrgsOrgIdRoute
     }
     '/orgs/$orgId/settings': {
@@ -1798,6 +1817,7 @@ const OrgsOrgIdServersNodeIdServerIdRouteWithChildren =
   )
 
 interface OrgsOrgIdRouteChildren {
+  OrgsOrgIdDatabasesRoute: typeof OrgsOrgIdDatabasesRoute
   OrgsOrgIdSettingsRoute: typeof OrgsOrgIdSettingsRouteWithChildren
   OrgsOrgIdIndexRoute: typeof OrgsOrgIdIndexRoute
   OrgsOrgIdEggsNewRoute: typeof OrgsOrgIdEggsNewRoute
@@ -1814,6 +1834,7 @@ interface OrgsOrgIdRouteChildren {
 }
 
 const OrgsOrgIdRouteChildren: OrgsOrgIdRouteChildren = {
+  OrgsOrgIdDatabasesRoute: OrgsOrgIdDatabasesRoute,
   OrgsOrgIdSettingsRoute: OrgsOrgIdSettingsRouteWithChildren,
   OrgsOrgIdIndexRoute: OrgsOrgIdIndexRoute,
   OrgsOrgIdEggsNewRoute: OrgsOrgIdEggsNewRoute,

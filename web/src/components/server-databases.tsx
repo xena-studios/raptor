@@ -1,6 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Check, Copy, Eye, History, KeyRound, Loader2, Plus, Table2, Trash2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Eye,
+  History,
+  KeyRound,
+  Link2,
+  Loader2,
+  Plus,
+  Table2,
+  Trash2,
+  Unlink,
+} from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
@@ -36,7 +48,9 @@ import {
   isRedis,
   isSQL,
   labelPattern,
+  nodeDatabasesKey,
   serverDatabasesKey,
+  useNodeDatabases,
   useServerDatabases,
 } from "@/lib/databases";
 import { message } from "@/lib/errors";
@@ -68,6 +82,7 @@ export function ServerDatabases({
   transfers,
   restorable,
   documents,
+  shared,
 }: {
   orgId: string;
   nodeId: string;
@@ -75,6 +90,8 @@ export function ServerDatabases({
   userId: string;
   canWrite: boolean;
   admin: boolean;
+  // The node's Wings has databases of their own, linked to servers.
+  shared: boolean;
   supported: boolean;
   connected: boolean;
   // The node's Wings has the browser.
@@ -90,6 +107,7 @@ export function ServerDatabases({
   const [creating, setCreating] = useState(false);
   const [shown, setShown] = useState<{ db: Database; password: string; readonly?: boolean }>();
   const [restoring, setRestoring] = useState<Database>();
+  const [linking, setLinking] = useState(false);
 
   if (!supported) {
     return (
@@ -127,7 +145,17 @@ export function ServerDatabases({
             <code>MONGODB_URI</code> with the rest).
           </CardDescription>
           {canWrite && (
-            <CardAction>
+            <CardAction className="flex gap-2">
+              {admin && shared && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={d.instances.length === 0}
+                  onClick={() => setLinking(true)}
+                >
+                  <Link2 /> Link existing
+                </Button>
+              )}
               <Button size="sm" disabled={running.length === 0} onClick={() => setCreating(true)}>
                 <Plus /> New database
               </Button>
@@ -142,11 +170,11 @@ export function ServerDatabases({
                 <>
                   Make one on the{" "}
                   <Link
-                    to="/orgs/$orgId/nodes/$nodeId/databases"
-                    params={{ orgId, nodeId }}
+                    to="/orgs/$orgId/databases"
+                    params={{ orgId }}
                     className="underline underline-offset-2"
                   >
-                    node's Databases tab
+                    Databases page
                   </Link>
                   .
                 </>
@@ -178,6 +206,7 @@ export function ServerDatabases({
                   many={d.databases.length > 1}
                   canWrite={canWrite}
                   instance={d.instances.find((x) => x.id === db.instance_id)}
+                  unlinkable={admin && shared}
                   onShow={(password, readonly, user) =>
                     setShown({ db: user ? { ...db, readonly_user: user } : db, password, readonly })
                   }
@@ -199,6 +228,15 @@ export function ServerDatabases({
         />
       )}
       {shown && <PasswordDialog {...shown} onClose={() => setShown(undefined)} />}
+      {linking && (
+        <LinkExistingDialog
+          nodeId={nodeId}
+          serverId={serverId}
+          instances={d.instances}
+          linked={d.databases.map((x) => x.id)}
+          onClose={() => setLinking(false)}
+        />
+      )}
       {restoring && (
         <RestoreDatabaseDialog
           orgId={orgId}
@@ -226,6 +264,7 @@ function DatabaseRow({
   many,
   canWrite,
   instance,
+  unlinkable,
   onShow,
   onRestore,
 }: {
@@ -241,6 +280,8 @@ function DatabaseRow({
   many: boolean;
   canWrite: boolean;
   instance?: DBInstance;
+  // An admin on a node where databases are shared: it can be unlinked.
+  unlinkable: boolean;
   onShow: (password: string, readonly?: boolean, user?: string) => void;
   onRestore?: () => void;
 }) {
@@ -307,6 +348,25 @@ function DatabaseRow({
     });
   }
 
+  async function unlink() {
+    const ok = await ask.confirm({
+      title: `Unlink ${db.label}?`,
+      description:
+        "The server stops getting its details at its next start. The database and its data stay on its instance, on the Databases page.",
+      confirm: "Unlink",
+    });
+    if (!ok) return;
+    await act("unlink", async () => {
+      await commandClient.execute({
+        nodeId,
+        action: "node.db.database.unlink",
+        paramsJson: JSON.stringify({ id: db.id, server_id: serverId }),
+      });
+      await client.invalidateQueries({ queryKey: serverDatabasesKey(nodeId, serverId) });
+      await client.invalidateQueries({ queryKey: nodeDatabasesKey(nodeId) });
+    });
+  }
+
   const prefix = many ? `${db.label.toUpperCase()}_` : "";
   return (
     <div className="flex flex-col gap-3 rounded-lg border p-3">
@@ -355,6 +415,18 @@ function DatabaseRow({
               onClick={onRestore}
             >
               <History />
+            </Button>
+          )}
+          {unlinkable && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={`Unlink ${db.label}`}
+              title="Unlink from this server"
+              disabled={!!busy}
+              onClick={unlink}
+            >
+              {busy === "unlink" ? <Loader2 className="animate-spin" /> : <Unlink />}
             </Button>
           )}
           {canWrite && (
@@ -429,7 +501,23 @@ function DatabaseRow({
           onShow={(password, user) => onShow(password, true, user)}
         />
       )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="text-sm text-destructive">
+          {error}
+          {unlinkable && /other servers/i.test(error) && (
+            <>
+              {" "}
+              <Link
+                to="/orgs/$orgId/databases"
+                params={{ orgId }}
+                className="underline underline-offset-2"
+              >
+                Open the Databases page
+              </Link>
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
 }
@@ -469,7 +557,7 @@ function CreateDialog({
   onClose: () => void;
 }) {
   const client = useQueryClient();
-  // A Redis or Valkey instance holds one server's data.
+  // A Redis or Valkey instance holds one database.
   const taken = (i: DBInstance) => isRedis(i.engine) && i.databases > 0;
   const [instance, setInstance] = useState(instances.find((i) => !taken(i))?.id ?? "");
   const [label, setLabel] = useState("");
@@ -537,7 +625,7 @@ function CreateDialog({
                 {instances.map((i) => (
                   <option key={i.id} value={i.id} disabled={taken(i)}>
                     {i.name} ({engineName(i.engine)} {i.version})
-                    {taken(i) ? ": holds a server's data already" : ""}
+                    {taken(i) ? ": holds a database already" : ""}
                   </option>
                 ))}
               </select>
@@ -550,6 +638,106 @@ function CreateDialog({
             </Button>
             <Button type="submit" disabled={busy || !valid || !instance}>
               {busy && <Loader2 className="animate-spin" />} Create database
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// LinkExistingDialog links the server to a database already on one of
+// the instances it can use (docs/DATABASES.md#the-model).
+function LinkExistingDialog({
+  nodeId,
+  serverId,
+  instances,
+  linked,
+  onClose,
+}: {
+  nodeId: string;
+  serverId: string;
+  instances: DBInstance[];
+  linked: string[];
+  onClose: () => void;
+}) {
+  const client = useQueryClient();
+  const all = useNodeDatabases(nodeId, true);
+  const options = (all.data ?? []).filter(
+    (d) => !linked.includes(d.id) && instances.some((i) => i.id === d.instance_id),
+  );
+  const [picked, setPicked] = useState("");
+  const id = picked || options[0]?.id || "";
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function link(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await commandClient.execute({
+        nodeId,
+        action: "node.db.database.link",
+        paramsJson: JSON.stringify({ id, server_id: serverId }),
+      });
+      await client.invalidateQueries({ queryKey: serverDatabasesKey(nodeId, serverId) });
+      await client.invalidateQueries({ queryKey: nodeDatabasesKey(nodeId) });
+      onClose();
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <form onSubmit={link} className="flex flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle>Link an existing database</DialogTitle>
+            <DialogDescription>
+              The server gets its details as variables at its next start, beside any servers already
+              linked to it.
+            </DialogDescription>
+          </DialogHeader>
+          {all.error ? (
+            <p className="text-sm text-destructive">{message(all.error)}</p>
+          ) : !all.data ? (
+            <p className="text-sm text-muted-foreground">Asking the node…</p>
+          ) : options.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              There are no other databases on the instances this server can use.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="db-link">Database</Label>
+              <select
+                id="db-link"
+                className={select}
+                value={id}
+                onChange={(e) => setPicked(e.target.value)}
+              >
+                {options.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.label} on{" "}
+                    {instances.find((i) => i.id === d.instance_id)?.name ?? "an instance"}
+                    {d.links.length > 0
+                      ? ` (${d.links.length} ${d.links.length === 1 ? "server" : "servers"})`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={busy || !id}>
+              {busy && <Loader2 className="animate-spin" />} Link database
             </Button>
           </DialogFooter>
         </form>
