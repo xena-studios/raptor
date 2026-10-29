@@ -59,9 +59,11 @@ On **Network**:
 
 Settings both types share (a Minecraft version, say) keep their values; the rest start at the new type's defaults. The server must be stopped, and your passkey signs the change.
 
-## Update the egg
+## Egg version
 
-A server keeps its own copy of the [egg](/eggs/library/) it was made with, so editing the egg in your library never changes a server by itself. When the library has a newer version, **Settings** shows **Egg update** (admins and owners). **Review the update** lists what changes: runtimes added or removed, a new startup command, new or removed settings, and whether the install script changed. Your passkey signs it.
+A server keeps its own copy of the [egg](/eggs/library/) it was made with, so editing the egg in your library never changes a server by itself. **Settings** shows **Egg version** (admins and owners): which version of the egg the server runs, and whether it's the newest (**Update available** when it isn't). A copy that isn't one of the library's versions, because it was edited or made before the library kept versions, says so.
+
+Pick a version, newer or older, and **Update to version N** (or **Go back to version N**). It lists what changes: runtimes added or removed, a new startup command, new or removed settings, and whether the install script changed. Your passkey signs it.
 
 - The server's runtime stays, unless the new version dropped it.
 - A startup command you changed stays; one you didn't becomes the new version's.
@@ -80,6 +82,8 @@ Updating the egg doesn't update the game. For a newer Minecraft version, say, ch
 Either way, if the backup fails, nothing is changed and the console says why. A server with no files yet needs no backup. These backups are listed as safety backups on **Backups** and kept for 7 days.
 
 The server must be stopped, and you type its name to confirm.
+
+When its egg has a newer version, **Update the egg to version N too** does both at once: you see what changes, as for [Egg version](#egg-version), and it installs with the new version. It's off unless you tick it.
 
 ## Details
 

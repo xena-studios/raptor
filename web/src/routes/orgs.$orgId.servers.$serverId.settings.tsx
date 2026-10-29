@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ChangeServerType } from "@/components/change-server-type";
 import { DeleteServer } from "@/components/delete-server";
 import { MoveServer } from "@/components/move-server";
-import { ServerEggUpdate } from "@/components/server-egg-update";
+import { ServerEggVersion } from "@/components/server-egg-update";
 import { ServerDetails, ServerSettings } from "@/components/server-settings";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
@@ -29,6 +29,11 @@ function SettingsTab() {
         admin={can(server, "*")}
         canReinstall={can(server, "reinstall")}
         stopped={["offline", "crashed", "install_failed", ""].includes(server.state)}
+        eggSource={
+          can(server, "*") && node?.capabilities.includes("change-egg")
+            ? server.eggSource
+            : undefined
+        }
       />
       <ServerSettings
         section="behavior"
@@ -42,7 +47,7 @@ function SettingsTab() {
       />
       <ServerDetails id={server.id} nodeName={node?.name ?? ""} game={server.eggName} />
       {can(server, "*") && node?.capabilities.includes("change-egg") && (
-        <ServerEggUpdate
+        <ServerEggVersion
           orgId={orgId}
           nodeId={nodeId}
           serverId={serverId}

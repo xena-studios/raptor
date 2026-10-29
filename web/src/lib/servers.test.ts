@@ -11,11 +11,11 @@ import {
   type EggShape,
   eggsFor,
   eggUpdate,
+  eggVersionInfo,
   gameVersion,
   missingRequired,
   seconds,
   serverStatus,
-  sha256Hex,
   suggestMemoryMiB,
   suggestPort,
   updateEggParams,
@@ -387,7 +387,6 @@ test("eggUpdate keeps the runtime, a changed startup, and shared settings", () =
     { source: "minecraft/paper", file: new TextEncoder().encode("{}") },
     u,
     { TOKEN: "t" },
-    false,
   );
   assert.equal("egg_hash" in p, false);
   assert.equal("reinstall" in p, false);
@@ -400,14 +399,22 @@ test("eggUpdate keeps the runtime, a changed startup, and shared settings", () =
     { source: "s", file: new Uint8Array() },
     u,
     {},
-    true,
+    { wipe: true },
   );
-  assert.deepEqual(again.reinstall, { wipe: false });
+  assert.deepEqual(again.reinstall, { wipe: true });
 });
 
-test("sha256Hex", async () => {
-  assert.equal(
-    await sha256Hex(new TextEncoder().encode("abc")),
-    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-  );
+test("eggVersionInfo finds the server's version by its file's hash", () => {
+  const versions = [
+    { version: 3, sha256: "c" },
+    { version: 2, sha256: "b" },
+    { version: 1, sha256: "a" },
+  ];
+  assert.deepEqual(eggVersionInfo("b", 3, versions), { current: 2, latest: 3, outdated: true });
+  assert.deepEqual(eggVersionInfo("c", 3, versions), { current: 3, latest: 3, outdated: false });
+  assert.deepEqual(eggVersionInfo("x", 3, versions), {
+    current: undefined,
+    latest: 3,
+    outdated: true,
+  });
 });
