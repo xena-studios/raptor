@@ -4,8 +4,10 @@ import { type FormEvent, useMemo, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
 import { DetailList } from "@/components/page";
+import { EggVersionDialog, useEggVersions } from "@/components/server-egg-update";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -92,6 +94,7 @@ export function ServerSettings({
   admin,
   canReinstall,
   stopped,
+  eggSource,
 }: {
   section: SettingsSection;
   orgId: string;
@@ -101,6 +104,9 @@ export function ServerSettings({
   admin: boolean;
   canReinstall: boolean;
   stopped: boolean;
+  // Set when the user may move the server to another version of its egg,
+  // so a reinstall can update it too.
+  eggSource?: string;
 }) {
   const res = useQuery(OrgService.method.getServer, { orgId, nodeId, serverId });
   const cfg = useMemo(
@@ -130,6 +136,9 @@ export function ServerSettings({
       {section === "general" && canReinstall && (
         <Reinstall
           stopped={stopped}
+          orgId={orgId}
+          cfg={cfg}
+          eggSource={eggSource}
           nodeId={nodeId}
           serverId={serverId}
           userId={userId}
@@ -438,12 +447,18 @@ function SettingsForm({
 
 function Reinstall({
   stopped,
+  orgId,
+  cfg,
+  eggSource,
   nodeId,
   serverId,
   userId,
   name,
 }: {
   stopped: boolean;
+  orgId: string;
+  cfg: ServerConfig | undefined;
+  eggSource: string | undefined;
   nodeId: string;
   serverId: string;
   userId: string;
@@ -453,6 +468,11 @@ function Reinstall({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+  const versions = useEggVersions(orgId, eggSource ?? "", eggSource ? cfg : undefined);
+  const newer = versions?.outdated ? versions : undefined;
+  const [update, setUpdate] = useState(false);
+  // A reinstall that updates the egg too: one signed server.update.
+  const [updating, setUpdating] = useState<{ wipe: boolean }>();
 
   async function reinstall(wipe: boolean) {
     const ok = await ask.confirm(
@@ -473,6 +493,11 @@ function Reinstall({
           },
     );
     if (!ok) return;
+    if (newer && update) {
+      setDone("");
+      setUpdating({ wipe });
+      return;
+    }
     setBusy(true);
     setError("");
     setDone("");
@@ -515,9 +540,43 @@ function Reinstall({
             Wipe and reinstall
           </Button>
         </div>
+        {newer && (
+          <Label className="flex items-start gap-2 text-sm font-normal">
+            <Checkbox
+              checked={update}
+              onCheckedChange={(on) => setUpdate(on === true)}
+              className="mt-0.5"
+            />
+            <span>
+              Update the egg to version {newer.latest} too
+              <span className="block text-xs text-muted-foreground">
+                It has version {newer.current ?? "an edited copy"} of {newer.egg.name}. You'll see
+                what changes first.
+              </span>
+            </span>
+          </Label>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
         {done && <p className="text-sm text-muted-foreground">{done}</p>}
       </CardContent>
+      {updating && newer && cfg && eggSource && (
+        <EggVersionDialog
+          orgId={orgId}
+          nodeId={nodeId}
+          serverId={serverId}
+          userId={userId}
+          eggSource={eggSource}
+          name={name}
+          cfg={cfg}
+          current={newer.current}
+          target={newer.latest}
+          eggName={newer.egg.name}
+          stopped={stopped}
+          reinstall={updating}
+          onClose={() => setUpdating(undefined)}
+          onDone={() => setDone("The reinstall started. The console shows its progress.")}
+        />
+      )}
     </Card>
   );
 }

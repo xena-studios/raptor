@@ -424,16 +424,17 @@ export function eggUpdate(cfg: ServerConfig, old: EggShape | undefined, next: Eg
   };
 }
 
-// updateEggParams is server.update's params to update a server to a newer
-// file of its egg (eggUpdate's choices, and values for settings it needs),
-// installing it again over its files only if asked.
+// updateEggParams is server.update's params to move a server to another
+// version of its egg (eggUpdate's choices, and values for settings it
+// needs), installing it again only if asked: over its files, or after
+// wiping them.
 export function updateEggParams(
   cfg: ServerConfig,
   name: string,
   egg: { source: string; file: Uint8Array },
   u: Pick<ReturnType<typeof eggUpdate>, "image" | "startup" | "variables">,
   values: Record<string, string>,
-  reinstall: boolean,
+  reinstall?: { wipe: boolean },
 ) {
   const { egg: _egg, egg_hash: _hash, ...rest } = cfg;
   return {
@@ -444,12 +445,19 @@ export function updateEggParams(
     image: u.image,
     startup: u.startup,
     variables: { ...u.variables, ...values },
-    ...(reinstall && { reinstall: { wipe: false } }),
+    ...(reinstall && { reinstall }),
   };
 }
 
-// sha256Hex is a file's SHA-256 in hex, as Wings names a server's egg.
-export async function sha256Hex(data: Uint8Array): Promise<string> {
-  const sum = new Uint8Array(await crypto.subtle.digest("SHA-256", new Uint8Array(data)));
-  return Array.from(sum, (b) => b.toString(16).padStart(2, "0")).join("");
+// EggVersionInfo is which library version of its egg a server runs, by the
+// file's SHA-256 (Wings' egg_hash): undefined when its file isn't one of
+// them (edited by hand, or from before the library kept versions).
+export function eggVersionInfo(
+  hash: string,
+  latest: number,
+  versions: { version: number; sha256: string }[],
+) {
+  const current = versions.find((v) => v.sha256 === hash)?.version;
+  const newest = versions.find((v) => v.version === latest);
+  return { current, latest, outdated: !!newest && newest.sha256 !== hash };
 }
