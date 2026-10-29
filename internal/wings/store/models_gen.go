@@ -94,7 +94,6 @@ type BackupTarget struct {
 type Database struct {
 	ID             string
 	InstanceID     string
-	ServerID       string
 	Label          string
 	DbName         string
 	Username       string
@@ -126,6 +125,12 @@ type DatabaseInstance struct {
 	PatchTried    string
 	ExternalPort  int64
 	ExternalAllow string
+}
+
+type DatabaseLink struct {
+	DatabaseID string
+	ServerID   string
+	CreatedAt  int64
 }
 
 type Event struct {

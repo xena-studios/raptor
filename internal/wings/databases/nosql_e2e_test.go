@@ -88,7 +88,17 @@ func testRedis(t *testing.T, engine, from, to string) {
 		t.Fatal(err)
 	}
 	if _, _, err := e.svc.CreateDatabase(ctx, other, in.ID, "cache"); !errors.Is(err, ErrInvalid) {
-		t.Errorf("a second server's database on a Redis instance: %v", err)
+		t.Errorf("a second database on a Redis instance: %v", err)
+	}
+	// ...which another server can share.
+	if err := e.svc.Link(ctx, d.ID, other); err != nil {
+		t.Errorf("linking a second server to the Redis database: %v", err)
+	}
+	if env, _ := e.svc.Env(ctx, other); !slices.ContainsFunc(env, func(v string) bool { return strings.HasPrefix(v, "REDIS_URL=redis://"+d.User+":") }) {
+		t.Errorf("the linked server's env %v", env)
+	}
+	if err := e.svc.Unlink(ctx, d.ID, other); err != nil {
+		t.Error(err)
 	}
 	env, _ := e.svc.Env(ctx, e.server)
 	if !slices.ContainsFunc(env, func(v string) bool { return strings.HasPrefix(v, "REDIS_URL=redis://"+d.User+":") }) ||

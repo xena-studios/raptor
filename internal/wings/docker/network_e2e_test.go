@@ -332,11 +332,13 @@ func TestRuntimeDatabaseGuard(t *testing.T) {
 	if err := firewall.Apply(ctx, rules); err != nil {
 		t.Fatalf("firewall: %v", err)
 	}
+	// Allowed holds the network's servers (databases.Guards); anything else
+	// on it, like another instance, is dropped.
 	url := map[string]string{"instance": "http://" + instAddr.String() + ":" + strconv.Itoa(port) + "/"}
 	for who, c := range map[string]struct {
 		addr netip.Addr
 		want string
-	}{"with a database": {userAddr, "reachable"}, "without one": {otherAddr, "blocked"}} {
+	}{"allowed": {userAddr, "reachable"}, "not allowed": {otherAddr, "blocked"}} {
 		peer := startServer(t, dc, containers.ServerSpec{Networks: []containers.Network{a}, Addresses: map[string]netip.Addr{a.Name: c.addr}})
 		writeFile(t, filepath.Join(peer.dir, "check.sh"), probeScript(url))
 		res, err := peer.console.Send(time.Minute, "sh /home/container/check.sh")

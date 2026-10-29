@@ -33,14 +33,31 @@ DELETE FROM instance_addresses WHERE instance_id = ? AND network_id = ?;
 SELECT * FROM databases ORDER BY created_at, id;
 
 -- name: ListServerDatabases :many
-SELECT * FROM databases WHERE server_id = ? ORDER BY created_at, id;
+-- A server's linked databases, in the order they were linked.
+SELECT d.* FROM databases d JOIN database_links l ON l.database_id = d.id
+WHERE l.server_id = ? ORDER BY l.created_at, d.id;
 
 -- name: GetDatabase :one
 SELECT * FROM databases WHERE id = ?;
 
 -- name: InsertDatabase :exec
-INSERT INTO databases (id, instance_id, server_id, label, db_name, username, password, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO databases (id, instance_id, label, db_name, username, password, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- name: DatabaseLinked :one
+SELECT COUNT(*) FROM database_links WHERE database_id = ? AND server_id = ?;
+
+-- name: ListDatabaseLinks :many
+SELECT * FROM database_links ORDER BY created_at, database_id, server_id;
+
+-- name: InsertDatabaseLink :exec
+INSERT INTO database_links (database_id, server_id, created_at) VALUES (?, ?, ?);
+
+-- name: DeleteDatabaseLink :execrows
+DELETE FROM database_links WHERE database_id = ? AND server_id = ?;
+
+-- name: DeleteServerLinks :exec
+DELETE FROM database_links WHERE server_id = ?;
 
 -- name: SetDatabasePassword :exec
 UPDATE databases SET password = ? WHERE id = ?;

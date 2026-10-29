@@ -8,7 +8,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -22,8 +21,13 @@ import (
 // PostgreSQL's pg_hba.conf lets it in over the network nowhere (its name
 // isn't its database's). Owners never see it or its password.
 
-func viewerName(serverID, label string) string {
-	return "v" + server.ShortID(serverID) + "_" + label
+// viewerName is a database's reader: v<the server's short ID>_<label> for
+// one made for a server, <its name>_vw for an instance's own.
+func viewerName(r store.Database) string {
+	if forServer(r) {
+		return "v" + r.DbName[1:]
+	}
+	return r.DbName + "_vw"
 }
 
 // openViewer connects to one of a server's databases as its reader.
@@ -62,7 +66,7 @@ func (s *Service) viewer(ctx context.Context, r store.Database, in Instance, roo
 		pass, err := s.sealer.open(cur.ViewerPassword)
 		return cur.ViewerUsername, pass, err
 	}
-	user := viewerName(r.ServerID, r.Label)
+	user := viewerName(r)
 	pass, err := password()
 	if err != nil {
 		return "", "", err

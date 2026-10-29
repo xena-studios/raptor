@@ -817,6 +817,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterNetworks(r.commands, nsvc, mgr)
 	actions.RegisterDatabases(r.commands, dbsvc)
 	actions.RegisterDatabaseBrowser(r.commands, dbsvc)
+	actions.RegisterNodeDatabases(r.commands, dbsvc)
 	actions.RegisterDatabaseTransfers(r.commands, dbsvc)
 	actions.RegisterDatabaseVersions(r.commands, dbsvc)
 	actions.RegisterDatabaseExternal(r.commands, dbsvc)

@@ -97,20 +97,37 @@ type Instance struct {
 	External *External `json:"external,omitempty"`
 }
 
-// Database is one database on an instance, for one server.
+// Database is one database on an instance. It belongs to the instance;
+// servers use it through links (DECISIONS #342).
 type Database struct {
 	ID         string `json:"id"`
 	InstanceID string `json:"instance_id"`
-	ServerID   string `json:"server_id"`
-	Label      string `json:"label"`
-	Name       string `json:"name"` // on the instance
-	User       string `json:"user"`
-	Engine     string `json:"engine"`
-	Host       string `json:"host"`
-	Port       int    `json:"port"`
-	CreatedAt  int64  `json:"created_at"`
+	// ServerID is the server it's seen from (a server's db.* commands), or
+	// else the first server linked to it; empty with none.
+	ServerID string `json:"server_id,omitempty"`
+	Label    string `json:"label"`
+	Name     string `json:"name"` // on the instance
+	User     string `json:"user"`
+	// DBName and Username are Name and User again, under node.db.databases'
+	// names.
+	DBName    string `json:"db_name"`
+	Username  string `json:"username"`
+	Engine    string `json:"engine"`
+	Host      string `json:"host"`
+	Port      int    `json:"port"`
+	CreatedAt int64  `json:"created_at"`
 	// ReadOnlyUser is its read-only user, if it has one.
 	ReadOnlyUser string `json:"readonly_user,omitempty"`
+	// Links are the servers using it, in the order they were linked.
+	Links []Link `json:"links"`
+}
+
+// Link is a server using a database: it gets the database's connection
+// details as environment variables, its backups hold it, and its db.*
+// commands reach it.
+type Link struct {
+	ServerID  string `json:"server_id"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 // States.
@@ -283,7 +300,7 @@ func (s *Service) Start(ctx context.Context) error {
 			s.setStatus(r.ID, StateStopped, nil)
 		}
 	}
-	go s.dropOrphans(context.WithoutCancel(ctx))
+	go s.pruneLinks(context.WithoutCancel(ctx))
 	go s.loop(ctx)
 	go s.watch(ctx)
 	return nil
@@ -909,7 +926,7 @@ func (s *Service) Usable(ctx context.Context, serverID string) ([]Instance, erro
 	return out, nil
 }
 
-// ServerDatabases returns a server's databases.
+// ServerDatabases returns the databases linked to a server.
 func (s *Service) ServerDatabases(ctx context.Context, serverID string) ([]Database, error) {
 	rows, err := s.o.Store.Read.ListServerDatabases(ctx, serverID)
 	if err != nil {
@@ -919,17 +936,69 @@ func (s *Service) ServerDatabases(ctx context.Context, serverID string) ([]Datab
 	if err != nil {
 		return nil, err
 	}
+	links, err := s.links(ctx)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]Database, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, toDatabase(r, insts))
+		d := toDatabase(r, insts, links)
+		d.ServerID = serverID
+		out = append(out, d)
 	}
 	return out, nil
 }
 
-func toDatabase(r store.Database, insts []Instance) Database {
+// Databases returns every database on the node, or on one instance, with
+// the servers linked to each.
+func (s *Service) Databases(ctx context.Context, instanceID string) ([]Database, error) {
+	if instanceID != "" {
+		if _, _, err := s.instance(ctx, s.o.Store.Read, instanceID); err != nil {
+			return nil, err
+		}
+	}
+	rows, err := s.o.Store.Read.ListDatabases(ctx)
+	if err != nil {
+		return nil, err
+	}
+	insts, err := s.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	links, err := s.links(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := []Database{}
+	for _, r := range rows {
+		if instanceID == "" || r.InstanceID == instanceID {
+			out = append(out, toDatabase(r, insts, links))
+		}
+	}
+	return out, nil
+}
+
+// links are every database's links, by database ID, oldest first.
+func (s *Service) links(ctx context.Context) (map[string][]Link, error) {
+	rows, err := s.o.Store.Read.ListDatabaseLinks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string][]Link{}
+	for _, l := range rows {
+		out[l.DatabaseID] = append(out[l.DatabaseID], Link{ServerID: l.ServerID, CreatedAt: l.CreatedAt})
+	}
+	return out, nil
+}
+
+func toDatabase(r store.Database, insts []Instance, links map[string][]Link) Database {
 	d := Database{
-		ID: r.ID, InstanceID: r.InstanceID, ServerID: r.ServerID, Label: r.Label, Name: r.DbName,
-		User: r.Username, CreatedAt: r.CreatedAt, ReadOnlyUser: r.RoUsername,
+		ID: r.ID, InstanceID: r.InstanceID, Label: r.Label, Name: r.DbName, User: r.Username,
+		DBName: r.DbName, Username: r.Username, CreatedAt: r.CreatedAt, ReadOnlyUser: r.RoUsername,
+		Links: append([]Link{}, links[r.ID]...),
+	}
+	if len(d.Links) > 0 {
+		d.ServerID = d.Links[0].ServerID
 	}
 	for _, in := range insts {
 		if in.ID == r.InstanceID {
@@ -939,26 +1008,110 @@ func toDatabase(r store.Database, insts []Instance) Database {
 	return d
 }
 
-// MaxDatabases bounds one server's databases.
+// MaxDatabases bounds the databases linked to one server.
 const MaxDatabases = 10
 
 // Labels are up to 18 characters, so a database's name and user fit in
 // MySQL's 32-character user names.
 var labelRe = regexp.MustCompile(`^[a-z][a-z0-9_]{0,17}$`)
 
-// dbName is a database's name and user on its instance:
-// s<the server's short ID>_<label>.
+// serverStyle matches the names of databases made for a server,
+// s<its short ID>_<label>, and their read-only users and readers (r…,
+// v…): an instance's own databases can't take one.
+var serverStyle = regexp.MustCompile(`^[srv][0-9a-z]{4,}_`)
+
+const badLabel = "a database's name is up to 18 lowercase letters, digits, and underscores, starting with a letter"
+
+// dbName is the name and user of a database made for a server on its
+// instance: s<the server's short ID>_<label>. One made for the instance
+// itself is named its label.
 func dbName(serverID, label string) string {
 	return "s" + server.ShortID(serverID) + "_" + label
 }
 
-// CreateDatabase makes a database for a server on an instance on one of
-// its networks, and returns it with its password.
+// forServer reports whether a database was named for the server it was
+// made for (dbName), rather than for its instance.
+func forServer(r store.Database) bool {
+	return r.DbName != r.Label && strings.HasPrefix(r.DbName, "s") && strings.HasSuffix(r.DbName, "_"+r.Label)
+}
+
+// CreateDatabase makes a database on an instance on one of a server's
+// networks, linked to that server, and returns it with its password.
 func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, label string) (Database, string, error) {
 	label = strings.ToLower(strings.TrimSpace(label))
 	if !labelRe.MatchString(label) {
-		return Database{}, "", invalid{"a database's name is up to 18 lowercase letters, digits, and underscores, starting with a letter"}
+		return Database{}, "", invalid{badLabel}
 	}
+	nets, err := s.serverNetworks(ctx, serverID)
+	if err != nil {
+		return Database{}, "", err
+	}
+	if err := s.canLink(ctx, serverID, nets, instanceID, label); err != nil {
+		return Database{}, "", err
+	}
+	d, pass, err := s.makeDatabase(ctx, instanceID, label, dbName(serverID, label), serverID)
+	if err != nil {
+		return Database{}, "", err
+	}
+	d.ServerID = serverID
+	return d, pass, nil
+}
+
+// CreateInstanceDatabase makes a database on an instance, used by no
+// server yet and named its label, and returns it with its password.
+func (s *Service) CreateInstanceDatabase(ctx context.Context, instanceID, label string) (Database, string, error) {
+	label = strings.ToLower(strings.TrimSpace(label))
+	if !labelRe.MatchString(label) {
+		return Database{}, "", invalid{badLabel}
+	}
+	if serverStyle.MatchString(label) || strings.HasSuffix(label, "_ro") || strings.HasSuffix(label, "_vw") {
+		return Database{}, "", invalid{fmt.Sprintf("%s is a name Raptor keeps for its own users; pick another", label)}
+	}
+	dbs, err := s.instanceDatabases(ctx, instanceID)
+	if err != nil {
+		return Database{}, "", err
+	}
+	for _, d := range dbs {
+		if d.Label == label {
+			return Database{}, "", invalid{fmt.Sprintf("the instance already has a database called %s", label)}
+		}
+		if slices.Contains([]string{d.DbName, d.Username, d.RoUsername, d.ViewerUsername, roName(d), viewerName(d)}, label) {
+			return Database{}, "", invalid{fmt.Sprintf("%s is taken on the instance; pick another name", label)}
+		}
+	}
+	return s.makeDatabase(ctx, instanceID, label, label, "")
+}
+
+// canLink checks that a server can use a database called label on an
+// instance: they share a network, the server has room for another, and
+// none of its databases has that name (their variables would clash).
+func (s *Service) canLink(ctx context.Context, serverID string, nets []string, instanceID, label string) error {
+	in, _, err := s.instance(ctx, s.o.Store.Read, instanceID)
+	if err != nil {
+		return err
+	}
+	if !shares(nets, in.Networks) {
+		if len(in.Networks) == 0 {
+			return invalid{fmt.Sprintf("%s is on the default network and the server isn't: link it to a database on one of the server's networks", in.Name)}
+		}
+		return invalid{fmt.Sprintf("the server isn't on any network %s is on: add it to one of them first", in.Name)}
+	}
+	existing, err := s.o.Store.Read.ListServerDatabases(ctx, serverID)
+	if err != nil {
+		return err
+	}
+	if len(existing) >= MaxDatabases {
+		return invalid{fmt.Sprintf("a server uses at most %d databases", MaxDatabases)}
+	}
+	if slices.ContainsFunc(existing, func(d store.Database) bool { return d.Label == label }) {
+		return invalid{fmt.Sprintf("the server already uses a database called %s", label)}
+	}
+	return nil
+}
+
+// makeDatabase makes a database called name on an instance, linked to a server
+// unless link is empty.
+func (s *Service) makeDatabase(ctx context.Context, instanceID, label, name, link string) (Database, string, error) {
 	if err := s.busy(instanceID); err != nil {
 		return Database{}, "", err
 	}
@@ -967,30 +1120,13 @@ func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, labe
 	if err != nil {
 		return Database{}, "", err
 	}
-	nets, err := s.serverNetworks(ctx, serverID)
-	if err != nil {
-		return Database{}, "", err
-	}
-	if !shares(nets, in.Networks) {
-		return Database{}, "", invalid{fmt.Sprintf("the server isn't on any network %s is on", in.Name)}
-	}
-	existing, err := s.o.Store.Read.ListServerDatabases(ctx, serverID)
-	if err != nil {
-		return Database{}, "", err
-	}
-	if len(existing) >= MaxDatabases {
-		return Database{}, "", invalid{fmt.Sprintf("a server has at most %d databases", MaxDatabases)}
-	}
-	if slices.ContainsFunc(existing, func(d store.Database) bool { return d.Label == label }) {
-		return Database{}, "", invalid{fmt.Sprintf("the server already has a database called %s", label)}
-	}
 	if s.state(instanceID) != StateRunning {
 		return Database{}, "", notReady{fmt.Sprintf("%s isn't running; start it first", in.Name)}
 	}
-	// A Redis instance holds one server's data: Redis can't keep two
-	// apart (redis.go).
+	// A Redis instance holds one database: Redis can't keep two apart
+	// (redis.go). Several servers can share that one.
 	if isRedis(in.Engine) && slices.ContainsFunc(must(s.o.Store.Read.ListDatabases(ctx)), func(d store.Database) bool { return d.InstanceID == instanceID }) {
-		return Database{}, "", invalid{fmt.Sprintf("%s already holds a server's data, and %s can't keep two apart: make another %[2]s instance for this server", in.Name, engineName(in.Engine))}
+		return Database{}, "", invalid{fmt.Sprintf("%s already holds a database, and %s can't keep two apart: link the server to that one, or make another %[2]s instance", in.Name, engineName(in.Engine))}
 	}
 	root, err := s.sealer.open(r.RootPassword)
 	if err != nil {
@@ -1004,7 +1140,6 @@ func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, labe
 	if err != nil {
 		return Database{}, "", err
 	}
-	name := dbName(serverID, label)
 	if err := createDatabase(ctx, in, s.dir(instanceID), root, name, name, pass); err != nil {
 		return Database{}, "", fmt.Errorf("creating it on %s: %w", in.Name, err)
 	}
@@ -1019,19 +1154,76 @@ func (s *Service) CreateDatabase(ctx context.Context, serverID, instanceID, labe
 		return Database{}, "", err
 	}
 	row := store.Database{
-		ID: uid.String(), InstanceID: instanceID, ServerID: serverID, Label: label, DbName: name,
+		ID: uid.String(), InstanceID: instanceID, Label: label, DbName: name,
 		Username: name, Password: sealed, CreatedAt: time.Now().Unix(),
 	}
-	if err := s.o.Store.Write.InsertDatabase(ctx, store.InsertDatabaseParams{
-		ID: row.ID, InstanceID: row.InstanceID, ServerID: row.ServerID, Label: row.Label, DbName: row.DbName,
-		Username: row.Username, Password: row.Password, CreatedAt: row.CreatedAt,
-	}); err != nil {
+	err = s.o.Store.WriteTx(ctx, func(q *store.Queries) error {
+		if err := q.InsertDatabase(ctx, store.InsertDatabaseParams{
+			ID: row.ID, InstanceID: row.InstanceID, Label: row.Label, DbName: row.DbName,
+			Username: row.Username, Password: row.Password, CreatedAt: row.CreatedAt,
+		}); err != nil {
+			return err
+		}
+		if link == "" {
+			return nil
+		}
+		return q.InsertDatabaseLink(ctx, store.InsertDatabaseLinkParams{DatabaseID: row.ID, ServerID: link, CreatedAt: row.CreatedAt})
+	})
+	if err != nil {
 		_ = dropDatabase(context.WithoutCancel(ctx), in, s.dir(instanceID), root, name, name)
 		return Database{}, "", err
 	}
 	s.changed(ctx)
 	insts, _ := s.List(ctx)
-	return toDatabase(row, insts), pass, nil
+	links, _ := s.links(ctx)
+	return toDatabase(row, insts, links), pass, nil
+}
+
+// Link lets a server use a database: it must share a network with the
+// database's instance. The server gets its variables at its next start.
+func (s *Service) Link(ctx context.Context, id, serverID string) error {
+	r, err := s.byID(ctx, id)
+	if err != nil {
+		return err
+	}
+	n, err := s.o.Store.Read.DatabaseLinked(ctx, store.DatabaseLinkedParams{DatabaseID: id, ServerID: serverID})
+	if err != nil || n > 0 {
+		return err // linked already: nothing to do
+	}
+	nets, err := s.serverNetworks(ctx, serverID)
+	if err != nil {
+		return err
+	}
+	if err := s.canLink(ctx, serverID, nets, r.InstanceID, r.Label); err != nil {
+		return err
+	}
+	if err := s.o.Store.Write.InsertDatabaseLink(ctx, store.InsertDatabaseLinkParams{DatabaseID: id, ServerID: serverID, CreatedAt: time.Now().Unix()}); err != nil {
+		return err
+	}
+	s.changed(ctx)
+	return nil
+}
+
+// Unlink stops a server using a database. The database stays.
+func (s *Service) Unlink(ctx context.Context, id, serverID string) error {
+	n, err := s.o.Store.Write.DeleteDatabaseLink(ctx, store.DeleteDatabaseLinkParams{DatabaseID: id, ServerID: serverID})
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("%w: the server doesn't use that database", ErrNotFound)
+	}
+	s.changed(ctx)
+	return nil
+}
+
+// byID reads any database, for admins.
+func (s *Service) byID(ctx context.Context, id string) (store.Database, error) {
+	r, err := s.o.Store.Read.GetDatabase(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return r, fmt.Errorf("%w: %s", ErrNotFound, id)
+	}
+	return r, err
 }
 
 func (s *Service) state(id string) string {
@@ -1040,18 +1232,44 @@ func (s *Service) state(id string) string {
 	return s.status[id].state
 }
 
-// database reads one of a server's databases.
+// database reads one of the databases linked to a server.
 func (s *Service) database(ctx context.Context, serverID, id string) (store.Database, error) {
 	r, err := s.o.Store.Read.GetDatabase(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) || (err == nil && r.ServerID != serverID) {
+	if err == nil {
+		var n int64
+		if n, err = s.o.Store.Read.DatabaseLinked(ctx, store.DatabaseLinkedParams{DatabaseID: id, ServerID: serverID}); err == nil && n == 0 {
+			err = sql.ErrNoRows
+		}
+	}
+	if errors.Is(err, sql.ErrNoRows) {
 		return r, fmt.Errorf("%w: %s", ErrNotFound, id)
 	}
 	return r, err
 }
 
-// DeleteDatabase drops one of a server's databases and its user.
+// ErrShared: a server can't delete a database other servers use.
+var ErrShared = errors.New("other servers use this database; unlink it from the Databases page instead")
+
+// DeleteDatabase drops one of a server's databases and its users, if no
+// other server uses it.
 func (s *Service) DeleteDatabase(ctx context.Context, serverID, id string) error {
-	r, err := s.database(ctx, serverID, id)
+	if _, err := s.database(ctx, serverID, id); err != nil {
+		return err
+	}
+	links, err := s.links(ctx)
+	if err != nil {
+		return err
+	}
+	if len(links[id]) > 1 {
+		return ErrShared
+	}
+	return s.DeleteByID(ctx, id)
+}
+
+// DeleteByID drops a database and its users, whichever servers use it
+// (their links go with it).
+func (s *Service) DeleteByID(ctx context.Context, id string) error {
+	r, err := s.byID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -1109,13 +1327,35 @@ func (s *Service) Password(ctx context.Context, serverID, id string) (string, er
 	return s.sealer.open(r.Password)
 }
 
+// PasswordByID returns any database's password, for admins.
+func (s *Service) PasswordByID(ctx context.Context, id string) (string, error) {
+	r, err := s.byID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	return s.sealer.open(r.Password)
+}
+
 // ResetPassword gives a database's user a new password and returns it.
-// The server gets it at its next start.
+// The servers using it get it at their next start.
 func (s *Service) ResetPassword(ctx context.Context, serverID, id string) (string, error) {
 	r, err := s.database(ctx, serverID, id)
 	if err != nil {
 		return "", err
 	}
+	return s.resetPassword(ctx, r)
+}
+
+// ResetPasswordByID is ResetPassword for any database, for admins.
+func (s *Service) ResetPasswordByID(ctx context.Context, id string) (string, error) {
+	r, err := s.byID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	return s.resetPassword(ctx, r)
+}
+
+func (s *Service) resetPassword(ctx context.Context, r store.Database) (string, error) {
 	if err := s.busy(r.InstanceID); err != nil {
 		return "", err
 	}
@@ -1142,7 +1382,7 @@ func (s *Service) ResetPassword(ctx context.Context, serverID, id string) (strin
 	if err := setPassword(ctx, in, s.dir(r.InstanceID), root, r.Username, pass); err != nil {
 		return "", err
 	}
-	return pass, s.o.Store.Write.SetDatabasePassword(ctx, store.SetDatabasePasswordParams{Password: sealed, ID: id})
+	return pass, s.o.Store.Write.SetDatabasePassword(ctx, store.SetDatabasePasswordParams{Password: sealed, ID: r.ID})
 }
 
 // Env is the environment variables a server gets for its databases
@@ -1167,7 +1407,7 @@ func (s *Service) Env(ctx context.Context, serverID string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		d := toDatabase(r, insts)
+		d := toDatabase(r, insts, nil)
 		family, vars := envVars(d, pass)
 		prefix := strings.ToUpper(r.Label) + "_"
 		for _, v := range vars {
@@ -1219,53 +1459,40 @@ func envVars(d Database, pass string) (string, [][2]string) {
 	}
 }
 
-// ServerDeleted drops a deleted server's databases.
+// ServerDeleted removes a deleted server's links. Its databases stay on
+// their instances, for the servers still using them or to link again
+// (DECISIONS #342).
 func (s *Service) ServerDeleted(ctx context.Context, serverID string) {
-	rows, err := s.o.Store.Read.ListServerDatabases(ctx, serverID)
-	if err != nil {
-		s.o.Log.Error("listing a deleted server's databases failed", "server", serverID, "err", err)
-		return
-	}
-	for _, r := range rows {
-		if err := s.drop(ctx, r); err != nil {
-			s.o.Log.Warn("dropping a deleted server's database failed; it's tried again at the next start", "server", serverID, "database", r.DbName, "err", err)
-		}
+	if err := s.o.Store.Write.DeleteServerLinks(ctx, serverID); err != nil {
+		s.o.Log.Error("removing a deleted server's database links failed; they go at the next start", "server", serverID, "err", err)
 	}
 	s.changed(ctx)
 }
 
-// dropOrphans drops the databases of servers that are gone, once their
-// instance is running.
-func (s *Service) dropOrphans(ctx context.Context) {
+// pruneLinks removes the links of servers that are gone (one deleted
+// while its links couldn't be removed).
+func (s *Service) pruneLinks(ctx context.Context) {
 	ids, err := s.o.Store.Read.ListServerIDs(ctx)
 	if err != nil {
 		return
 	}
-	rows, err := s.o.Store.Read.ListDatabases(ctx)
+	links, err := s.o.Store.Read.ListDatabaseLinks(ctx)
 	if err != nil {
 		return
 	}
-	var orphans []store.Database
-	for _, r := range rows {
-		if !slices.Contains(ids, r.ServerID) {
-			orphans = append(orphans, r)
+	for _, l := range links {
+		if slices.Contains(ids, l.ServerID) {
+			continue
 		}
-	}
-	for _, r := range orphans {
-		for range 90 { // up to 3 minutes for its instance to start
-			if s.state(r.InstanceID) != StateStarting {
-				break
-			}
-			time.Sleep(2 * time.Second)
-		}
-		if err := s.drop(ctx, r); err != nil {
-			s.o.Log.Warn("dropping a deleted server's database failed", "database", r.DbName, "err", err)
+		if _, err := s.o.Store.Write.DeleteDatabaseLink(ctx, store.DeleteDatabaseLinkParams{DatabaseID: l.DatabaseID, ServerID: l.ServerID}); err != nil {
+			s.o.Log.Warn("removing a deleted server's database link failed", "server", l.ServerID, "err", err)
 		}
 	}
 }
 
 // Guards are the firewall's rules keeping instances on the owner's
-// networks to the servers with a database on them.
+// networks to the servers on those networks (DECISIONS #342): any of them
+// reaches the instance, and each database's own user keeps them apart.
 func (s *Service) Guards(ctx context.Context) []firewall.Guard {
 	q := s.o.Store.Read
 	iaddrs, err := q.ListInstanceAddresses(ctx)
@@ -1274,10 +1501,6 @@ func (s *Service) Guards(ctx context.Context) []firewall.Guard {
 		return nil
 	}
 	saddrs, err := q.ListServerAddresses(ctx)
-	if err != nil {
-		return nil
-	}
-	dbs, err := q.ListDatabases(ctx)
 	if err != nil {
 		return nil
 	}
@@ -1308,15 +1531,10 @@ func (s *Service) Guards(ctx context.Context) []firewall.Guard {
 			Bridge: networks.Bridge(ia.NetworkID), Addr: addr, IPv6: s.ipv6[ia.InstanceID][networks.DockerName(ia.NetworkID)],
 			External: ext[ia.InstanceID],
 		}
-		for _, d := range dbs {
-			if d.InstanceID != ia.InstanceID {
-				continue
-			}
-			for _, sa := range saddrs {
-				if sa.ServerID == d.ServerID && sa.NetworkID == ia.NetworkID {
-					if a, err := netip.ParseAddr(sa.Ip); err == nil && !slices.Contains(g.Allowed, a) {
-						g.Allowed = append(g.Allowed, a)
-					}
+		for _, sa := range saddrs {
+			if sa.NetworkID == ia.NetworkID {
+				if a, err := netip.ParseAddr(sa.Ip); err == nil && !slices.Contains(g.Allowed, a) {
+					g.Allowed = append(g.Allowed, a)
 				}
 			}
 		}

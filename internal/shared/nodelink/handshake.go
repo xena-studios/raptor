@@ -213,6 +213,10 @@ const (
 	// CapDatabaseUsage: node.db.usage, instances' memory, disk,
 	// connections, uptime, and queries a second.
 	CapDatabaseUsage = "db-usage"
+	// CapDatabaseShared: databases belong to their instance and servers use
+	// them through links (node.db.database.*), and every server on an
+	// instance's networks reaches it.
+	CapDatabaseShared = "db-shared"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -220,7 +224,7 @@ var nodeCapabilities = []string{
 	CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser,
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
-	CapDatabaseUsage,
+	CapDatabaseUsage, CapDatabaseShared,
 }
 
 // NewHello starts a handshake for a node.
