@@ -65,8 +65,40 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 SELECT * FROM backups WHERE id = ?;
 
 -- name: ListBackups :many
-SELECT * FROM backups WHERE (sqlc.arg(server_id) = '' OR server_id = sqlc.arg(server_id))
+-- Servers' backups: one server's, or with '' every server's (instances'
+-- aren't in either).
+SELECT * FROM backups WHERE subject = 'server' AND (sqlc.arg(server_id) = '' OR server_id = sqlc.arg(server_id))
 ORDER BY created_at DESC, id DESC;
+
+-- name: ListAllBackups :many
+-- Every backup, servers' and instances'.
+SELECT * FROM backups ORDER BY created_at DESC, id DESC;
+
+-- name: ListInstanceBackups :many
+SELECT * FROM backups WHERE subject = 'instance' AND server_id = ? ORDER BY created_at DESC, id DESC;
+
+-- name: InsertInstanceBackup :exec
+INSERT INTO backups (id, server_id, subject, destination_id, kind, locked, job_id, created_by, created_at, expires_at)
+VALUES (?, ?, 'instance', ?, ?, 0, ?, ?, ?, ?);
+
+-- name: SetBackupJob :exec
+UPDATE backups SET job_id = ? WHERE id = ?;
+
+-- name: GetInstanceBackupPolicy :one
+SELECT * FROM instance_backup_policies WHERE instance_id = ?;
+
+-- name: UpsertInstanceBackupPolicy :exec
+INSERT INTO instance_backup_policies (instance_id, enabled, at, keep_last, destination_id, last_run_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (instance_id) DO UPDATE
+SET enabled = excluded.enabled, at = excluded.at, keep_last = excluded.keep_last,
+    destination_id = excluded.destination_id, updated_at = excluded.updated_at;
+
+-- name: SetInstanceBackupRun :exec
+UPDATE instance_backup_policies SET last_run_at = ? WHERE instance_id = ?;
+
+-- name: CountDestinationInstancePolicies :one
+SELECT COUNT(*) FROM instance_backup_policies WHERE destination_id = ?;
 
 -- name: ListDestinationBackups :many
 SELECT * FROM backups WHERE destination_id = ? AND server_id = ?;

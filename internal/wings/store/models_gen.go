@@ -48,6 +48,7 @@ type Backup struct {
 	FinishedAt    sql.NullInt64
 	ExpiresAt     sql.NullInt64
 	Databases     string
+	Subject       string
 }
 
 type BackupDestination struct {
@@ -183,6 +184,16 @@ type InstanceAddress struct {
 	InstanceID string
 	NetworkID  string
 	Ip         string
+}
+
+type InstanceBackupPolicy struct {
+	InstanceID    string
+	Enabled       int64
+	At            string
+	KeepLast      int64
+	DestinationID string
+	LastRunAt     int64
+	UpdatedAt     int64
 }
 
 type Job struct {

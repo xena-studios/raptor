@@ -217,6 +217,10 @@ const (
 	// them through links (node.db.database.*), and every server on an
 	// instance's networks reaches it.
 	CapDatabaseShared = "db-shared"
+	// CapDatabaseInstanceBackups: instances are backed up on their own
+	// (node.db.backups, node.db.backup.*), and node.db.instance.delete
+	// takes a final backup first.
+	CapDatabaseInstanceBackups = "db-instance-backups"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -224,7 +228,7 @@ var nodeCapabilities = []string{
 	CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser,
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
-	CapDatabaseUsage, CapDatabaseShared,
+	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups,
 }
 
 // NewHello starts a handshake for a node.

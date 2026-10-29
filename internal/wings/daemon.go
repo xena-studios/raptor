@@ -803,6 +803,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 			return free, err
 		},
 		Databases: dbsvc,
+		Instances: dbsvc,
 	})
 	dbsvc.SetBackups(bk)
 	sched := schedule.New(schedule.Options{Store: r.db, Jobs: r.jobs, Events: r.events, Servers: mgr, Backups: bk, Log: r.log})
@@ -822,6 +823,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterDatabaseVersions(r.commands, dbsvc)
 	actions.RegisterDatabaseExternal(r.commands, dbsvc)
 	actions.RegisterDatabaseDocuments(r.commands, dbsvc)
+	actions.RegisterDatabaseBackups(r.commands, dbsvc, bk)
 	actions.RegisterBackups(r.commands, bk)
 	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
 	actions.RegisterFiles(r.commands, fsvc)

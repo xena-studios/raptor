@@ -47,6 +47,8 @@ type DBInstanceUsage struct {
 type DBInstanceParams struct {
 	ID     string `json:"id"`
 	Action string `json:"action,omitempty"` // start, stop, or restart
+	// SkipBackup deletes an instance without its final backup.
+	SkipBackup bool `json:"skip_backup,omitempty"`
 }
 
 // DBListResult is db.list's result.
@@ -119,7 +121,12 @@ func RegisterDatabases(x *command.Executor, d *databases.Service) {
 		if err := decode(e, &p); err != nil {
 			return nil, err
 		}
-		return nil, d.Delete(ctx, p.ID)
+		// With databases, a job: the final backup, then the deletion.
+		jobID, err := d.DeleteInstance(ctx, p.ID, p.SkipBackup)
+		if err != nil || jobID == "" {
+			return nil, err
+		}
+		return map[string]any{"job_id": jobID}, nil
 	}})
 
 	x.Register(DBList, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, e command.Envelope) (any, error) {

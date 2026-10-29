@@ -339,7 +339,7 @@ func (m *Manager) finish(ctx context.Context, b *Backup, res engine.SnapshotResu
 		if err := q.SetBackupDatabases(ctx, store.SetBackupDatabasesParams{Databases: string(dbs), ID: b.ID}); err != nil {
 			return err
 		}
-		_, err := events.AppendTx(ctx, q, events.Event{Type: EventFinished, ServerID: b.ServerID, Data: b.eventData()})
+		_, err := events.AppendTx(ctx, q, b.event(EventFinished, b.eventData()))
 		return err
 	})
 	if err == nil {
@@ -356,7 +356,7 @@ func (m *Manager) fail(ctx context.Context, b *Backup, cause error) {
 		if err := q.FailBackup(ctx, store.FailBackupParams{Error: b.Error, FinishedAt: sql.NullInt64{Int64: now.UnixMilli(), Valid: true}, ID: b.ID}); err != nil {
 			return err
 		}
-		_, err := events.AppendTx(ctx, q, events.Event{Type: EventFinished, ServerID: b.ServerID, Data: b.eventData()})
+		_, err := events.AppendTx(ctx, q, b.event(EventFinished, b.eventData()))
 		return err
 	})
 	if err != nil {
@@ -413,9 +413,9 @@ func (m *Manager) deleteBackups(ctx context.Context, destID string, ids []string
 			if err := q.DeleteBackupRow(ctx, b.ID); err != nil {
 				return err
 			}
-			if _, err := events.AppendTx(ctx, q, events.Event{Type: EventDeleted, ServerID: b.ServerID, Data: map[string]any{
+			if _, err := events.AppendTx(ctx, q, b.event(EventDeleted, map[string]any{
 				"backup_id": b.ID, "reason": reason,
-			}}); err != nil {
+			})); err != nil {
 				return err
 			}
 		}

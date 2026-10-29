@@ -301,6 +301,7 @@ function InstanceRow({
   const ask = useConfirm();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
   const onNames = i.networks.length
     ? i.networks.map((id) => networks.find((n) => n.id === id)?.name ?? "a deleted network")
     : [defaultNetworkName];
@@ -370,9 +371,21 @@ function InstanceRow({
       destructive: true,
     });
     if (!ok) return;
-    await act(() =>
-      sendSigned({ userId, nodeId, action: "node.db.instance.delete", params: { id: i.id } }),
-    );
+    await act(async () => {
+      const res = await sendSigned({
+        userId,
+        nodeId,
+        action: "node.db.instance.delete",
+        params: { id: i.id },
+      });
+      // A node that backs instances up deletes one with databases after
+      // a final backup of them (docs/DATABASES.md#backups).
+      if (res.resultJson && (JSON.parse(res.resultJson) as { job_id?: string }).job_id) {
+        setNote(
+          "A final backup of its databases is being taken; the instance is deleted once it's done.",
+        );
+      }
+    });
   }
 
   return (
@@ -513,6 +526,7 @@ function InstanceRow({
         </p>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {note && <p className="text-sm text-muted-foreground">{note}</p>}
       {children}
     </div>
   );
