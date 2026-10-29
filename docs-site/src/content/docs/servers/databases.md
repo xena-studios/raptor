@@ -9,9 +9,19 @@ Plugins like LuckPerms and CoreProtect, and most bots and web apps, want a datab
 
 ## Make a database
 
-1. An admin makes a **database instance** on the node first (see [Database instances](/nodes/databases/)). One instance serves every server on its network.
-2. On the server's **Databases** tab, click **New database** and give it a name, like `luckperms`.
+1. An admin makes a **database instance** on the node first, on the **Databases** page (see [Database instances](/nodes/databases/)). One instance serves every server on its network.
+2. On the server's **Databases** tab, click **New database** and give it a name, like `luckperms`. It's made on the instance and linked to this server.
 3. Copy the password from the dialog that opens. You can show it again later with **Password**, which asks for your passkey.
+
+The database belongs to its instance, not the server: deleting the server keeps it, on the [Databases page](/nodes/databases/#databases-and-linked-servers).
+
+## Share a database between servers
+
+Admins can give servers one database between them, like a network's LuckPerms:
+
+- **Link existing** on a server's Databases tab links it to a database already on an instance it can use. It gets the details at its next start.
+- **Unlink** takes it off the server; the database stays.
+- **Delete** on a server's tab works only while no other server is linked to the database. Otherwise, unlink it, or delete it from the Databases page.
 
 ## Connect a plugin
 
@@ -94,4 +104,4 @@ What the database has now is exported to the server's `database-exports` folder 
 
 ## Who can do what
 
-Two permissions on a server's [access](/team/members/) cover its databases: **See databases** shows the tab and the connection details, and **Change databases** lets someone make and delete databases and see and change their passwords. Deleting a database deletes everything in it, and restoring one replaces everything in it, so both ask for a passkey.
+Two permissions on a server's [access](/team/members/) cover the databases linked to it: **See databases** shows the tab and the connection details, and **Change databases** lets someone make and delete databases and see and change their passwords. Deleting a database deletes everything in it, and restoring one replaces everything in it, so both ask for a passkey. Linking and unlinking, and the Databases page, are for the org's admins and owners.

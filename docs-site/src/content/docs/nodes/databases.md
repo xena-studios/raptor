@@ -5,23 +5,35 @@ sidebar:
   order: 4
 ---
 
-A **database instance** is a database server Raptor runs on your node: MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB, in a container of its own. Servers on its network get their own database and user on it from their [Databases tab](/servers/databases/). Instances are included in the node's price, and your data stays on your machine.
+A **database instance** is a database server Raptor runs on your node: MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB, in a container of its own. Its **databases** belong to it, each with its own user, and the servers you link to one get its details. Instances are included in the node's price, and your data stays on your machine.
+
+**Databases** in the sidebar (admins and owners) lists every instance on every node, with its databases and the servers linked to each. A node's own **Databases** tab shows the same for that node.
 
 ## Make an instance
 
-On the node's **Databases** tab (admins and owners), click **New instance**:
+On the **Databases** page, click **New instance** on the node it should run on:
 
 1. Pick the **engine**. MariaDB is what most Minecraft plugins expect; pick MySQL or PostgreSQL if the software asks for it. Redis is for caches and plugins that sync servers through it; Valkey is Redis' open-source fork, which the same plugins use unchanged. MongoDB is for bots and apps that store documents.
 2. Give it a **name** and its **memory**: 1 GB is plenty for a few servers' plugins.
-3. If the node has [networks](/nodes/networks/), pick the **network** it's on. Only servers on that network can have databases on it, or reach it at all.
+3. If the node has [networks](/nodes/networks/), pick the **network** it's on. Every server on that network can reach it; servers on other networks can't.
 
 Its first start downloads the engine and sets it up, which takes a minute or two.
+
+## Databases and linked servers
+
+- **New database** under an instance makes a database and its own user, with a random password, shown once. **Password** shows it again (with your passkey), and the key button gives it a new one.
+- **Link server** gives a server the database's details as variables at its next start (`DB_HOST`, `DB_PASSWORD`, `DATABASE_URL`, and the rest: see [the server's Databases tab](/servers/databases/)). Link as many servers as share it, like a network of Minecraft servers sharing LuckPerms. A server has to be on the instance's network.
+- **Unlink** (the × beside a server) stops the server getting the details. The database and its data stay.
+- **Deleting a server never deletes a database:** its links go, and the database stays here.
+- **Delete** removes the database and everything in it, with its users, even if servers are linked. It asks for its name and a passkey.
+
+A database made from a server's own Databases tab is linked to that server, and shows here too.
 
 ## Redis, Valkey, and MongoDB
 
 - **Valkey works exactly like Redis** here: pick it if you'd rather run the open-source fork (or your plugin's docs suggest it). Everything below about Redis is true of Valkey too.
-- **A Redis instance holds one server's data.** Redis can't keep two servers' data apart, so make one Redis instance per server that needs it; 256 MB is plenty for most. Its server's user can do everything apps do, but not change Redis' settings or load modules.
-- **MongoDB instances are shared** like MariaDB's: each server's database has its own user, which reaches that database and nothing else. MongoDB 8.0 and later need a processor from about 2016 or later; pick 7.0 on older machines.
+- **A Redis instance holds one database.** Redis can't keep two databases apart, so make one Redis instance for each thing that needs it; 256 MB is plenty for most. Several servers can be linked to that one database, like servers syncing through it. Its user can do everything apps do, but not change Redis' settings or load modules.
+- **MongoDB instances hold many databases** like MariaDB's: each database has its own user, which reaches that database and nothing else. MongoDB 8.0 and later need a processor from about 2016 or later; pick 7.0 on older machines.
 - MongoDB changes version one major release at a time (7.0 to 8.0, then 9.0).
 - On machines with Linux 6.19 or newer (Ubuntu 26.04, some cloud kernels), MongoDB 8.0 and 9.0 don't start, a problem MongoDB is fixing; Raptor offers 7.0 there and says why.
 - Redis and Valkey can be [reached from outside](#reach-an-instance-from-outside), on a port that only takes TLS. MongoDB can't: it would need every plugin inside to use TLS too.
@@ -38,7 +50,7 @@ An instance's own page (**Open**) shows the same at the top, with the last 10 mi
 
 **Open** next to a running MariaDB, MySQL, or PostgreSQL instance shows its own page (admins and owners):
 
-- **Databases:** every server's databases on it. Each opens in the same browser as the server's [Databases tab](/servers/databases/#browse-and-change-a-database), with its rows, structure, SQL, imports, and exports.
+- **Databases:** every database on it. Each opens in the same browser as the server's [Databases tab](/servers/databases/#browse-and-change-a-database), with its rows, structure, SQL, imports, and exports, through a server linked to it; link one to browse a database that has none.
 - **Users:** everyone who can log in to the instance and the databases each can use: each database's own user, its read-only user if it has one, and the instance's administrator, which only Raptor uses. **Make one** gives any database a read-only user for a tool outside Raptor.
 - **Connections:** every connection to the instance, from every server, with what it's running, and stopping a slow query.
 
@@ -49,10 +61,10 @@ A database opened here is changed as its own user, like from its server's tab, s
 Two communities on one node should each have their own [network](/nodes/networks/), with an instance on each. Three things then keep their data apart:
 
 - **Separate instances:** each community's databases are on its own instance.
-- **Separate networks:** an instance is reachable only from its network. On a network you made, it also answers only the servers that have a database on it, so a server that shares the network without having a database there can't reach it either.
-- **Separate users:** every database has its own user, which can reach that database and nothing else. The instance's administrator account can only be used from the node itself.
+- **Separate networks:** an instance is reachable only from its network. Every server on that network can connect to it, and no server on another network can.
+- **Separate users:** every database has its own user, which can reach that database and nothing else. A server can connect to the instance, but only gets into a database with its user and password, which only linked servers are given. The instance's administrator account can only be used from the node itself.
 
-On the default network every server can reach the instance, but each still has only its own user.
+On the default network every server can reach the instance, but each still needs a database's own user.
 
 ## Advanced settings
 
@@ -134,4 +146,4 @@ On the node itself, `raptor db ps` lists the instances with their memory, disk, 
 
 The **⋯** menu next to an instance starts, stops, or restarts it. An instance comes back with the node after a restart.
 
-**Delete** removes the instance and every database on it, with everything in them. It asks for the instance's name and a passkey.
+**Delete** removes the instance and every database on it, with everything in them, whichever servers are linked. It asks for the instance's name and a passkey.

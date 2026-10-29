@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import { commandClient } from "@/lib/transport";
 
+import { sharedDatabases } from "./db-shared";
 import type { DBUsage } from "./db-usage";
 
+export { type SharedDatabase, sharedDatabases } from "./db-shared";
 export { versionChange } from "./db-versions";
 
 // What Wings' database commands return (internal/wings/databases,
@@ -116,6 +118,30 @@ export const dbSettingsCapability = "db-settings";
 
 // External access for Redis and Valkey, on a TLS-only port.
 export const dbRedisExternalCapability = "db-redis-external";
+
+// Databases belong to their instance, and servers are linked to them
+// (node.db.databases and node.db.database.*).
+export const dbSharedCapability = "db-shared";
+
+export const nodeDatabasesKey = (nodeId: string) => ["node-databases", nodeId];
+
+// useNodeDatabases is every database on a node's instances, with the
+// servers linked to each.
+export function useNodeDatabases(nodeId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: nodeDatabasesKey(nodeId),
+    queryFn: async () => {
+      const res = await commandClient.execute({
+        nodeId,
+        action: "node.db.databases",
+        paramsJson: "{}",
+      });
+      return sharedDatabases(JSON.parse(res.resultJson));
+    },
+    enabled,
+    retry: false,
+  });
+}
 
 // The maintenance window an instance gets unless it says (Wings'
 // DefaultMaintenance), in the node's time.

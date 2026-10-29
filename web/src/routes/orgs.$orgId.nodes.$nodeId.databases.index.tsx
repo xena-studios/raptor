@@ -6,6 +6,7 @@ import {
   dbExternalCapability,
   dbRedisExternalCapability,
   dbSettingsCapability,
+  dbSharedCapability,
   dbUsageCapability,
   dbVersionsCapability,
 } from "@/lib/databases";
@@ -37,6 +38,7 @@ function Databases() {
       browserSupported={node.capabilities.includes(dbInstanceBrowserCapability)}
       redisExternalSupported={node.capabilities.includes(dbRedisExternalCapability)}
       usageSupported={node.capabilities.includes(dbUsageCapability)}
+      sharedSupported={node.capabilities.includes(dbSharedCapability)}
     />
   );
 }

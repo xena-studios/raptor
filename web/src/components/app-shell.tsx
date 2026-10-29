@@ -7,6 +7,7 @@ import {
   Check,
   ChevronRight,
   ChevronsUpDown,
+  Database,
   Egg,
   Gamepad2,
   Headset,
@@ -68,7 +69,7 @@ import { AuthService, type GetSessionResponse } from "@/gen/raptor/panel/v1/auth
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { useApiDown } from "@/lib/connection";
-import { roleNames } from "@/lib/format";
+import { isAdmin, roleNames } from "@/lib/format";
 import { discordUrl, docsUrl } from "@/lib/help";
 import { shortId } from "@/lib/ids";
 import { useOrgNodes, useOrgServers } from "@/lib/org-data";
@@ -524,6 +525,8 @@ function OrgNav({ orgId }: { orgId: string }) {
   const path = useLocation({ select: (l) => l.pathname });
   const nodes = useOrgNodes(orgId);
   const { servers } = useOrgServers(orgId, 15_000);
+  const orgs = useQuery(OrgService.method.listOrgs, {});
+  const admin = isAdmin(orgs.data?.orgs.find((o) => o.id === orgId)?.role);
   const base = `/orgs/${shortId(orgId)}`;
   const active = (p: string) =>
     p === base ? path === base || path === `${base}/` : path.startsWith(p);
@@ -590,6 +593,14 @@ function OrgNav({ orgId }: { orgId: string }) {
           items={serverItems}
           noun="server"
         />
+        {admin && (
+          <NavLink
+            link={{ to: "/orgs/$orgId/databases", params }}
+            label="Databases"
+            icon={Database}
+            active={active(`${base}/databases`)}
+          />
+        )}
         <NavLink
           link={{ to: "/orgs/$orgId/eggs", params }}
           label="Eggs"
