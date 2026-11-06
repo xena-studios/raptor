@@ -1,4 +1,4 @@
-# Postgres with pgBackRest, for the primary and the replica (docs/DEPLOY.md).
+# Postgres with pgBackRest, for the Panel's database (docs/DEPLOY.md).
 # Same major version as development (compose.yaml).
 FROM postgres:18-bookworm
 RUN apt-get update \

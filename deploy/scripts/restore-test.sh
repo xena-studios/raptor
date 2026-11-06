@@ -1,13 +1,11 @@
 #!/bin/bash
 # Restores the latest backup and archived WAL into a throwaway Postgres and
-# checks it against the primary (docs/DEPLOY.md#backups). Run monthly
+# checks it against the live database (docs/DEPLOY.md#backups). Run monthly
 # (raptor-restore-test.timer) and before trusting a new backup setup: a
 # backup that's never been restored isn't a backup.
 set -euo pipefail
-# The stack holding the primary: server #2's after a failover (ROLE=replica
-# in /etc/raptor/stack.env). The config files are always primary/'s.
-cd "$(dirname "$0")/../${ROLE:-primary}"
-CONF=$(cd ../primary && pwd)
+cd "$(dirname "$0")/../panel"
+CONF=$(pwd)
 image=$(docker compose config --images | grep -m1 postgres)
 name=raptor-restore-test-$$
 vol=$name-data

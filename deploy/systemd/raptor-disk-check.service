@@ -1,0 +1,8 @@
+[Unit]
+Description=Raptor disk space check
+After=raptor-stack.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/raptor/stack.env
+ExecStart=/opt/raptor/deploy/scripts/disk-check.sh
