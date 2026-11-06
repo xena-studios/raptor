@@ -1013,126 +1013,6 @@
     },
     {
       "type": "stat",
-      "title": "Replicas",
-      "description": "Streaming replicas connected. 0 is expected while there's only server #1.",
-      "id": 19,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 39
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "max(raptor_postgres_replicas{job=\"raptor-panel\",instance=~\"$instance\"})",
-          "legendFormat": "",
-          "range": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "textMode": "auto"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Replica lag",
-      "description": "How much a failover would lose. Over 60 s for 10 minutes alerts.",
-      "id": 20,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 4,
-        "y": 39
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "max(raptor_postgres_replica_lag_seconds{job=\"raptor-panel\",instance=~\"$instance\"})",
-          "legendFormat": "",
-          "range": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "textMode": "auto"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 60
-              }
-            ]
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "stat",
       "title": "Archive failures",
       "description": "WAL segments that failed to reach the backup bucket in the time range. Any is a hole in point-in-time recovery until it's fixed.",
       "id": 21,
@@ -1254,7 +1134,7 @@
     {
       "type": "stat",
       "title": "WAL on disk",
-      "description": "Grows when the archive or a replica falls behind; over 10 GB alerts. The disk fills next.",
+      "description": "Grows when the archive falls behind; over 10 GB alerts. The disk fills next.",
       "id": 23,
       "datasource": {
         "type": "prometheus",
@@ -1358,63 +1238,6 @@
       "fieldConfig": {
         "defaults": {
           "unit": "bytes",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 1,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "min": 0
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Replica lag",
-      "description": "",
-      "id": 25,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 43
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "max(raptor_postgres_replica_lag_seconds{job=\"raptor-panel\",instance=~\"$instance\"})",
-          "legendFormat": "lag",
-          "range": true
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 1,
