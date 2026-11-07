@@ -112,7 +112,7 @@ Memory settings like the buffer pool can't be more than the instance's memory. M
 
 If the new version doesn't start, or anything differs, it's put back as it was by itself, and the instance says what went wrong. Servers using it lose their connection while it switches, usually for under a minute.
 
-For **7 days** after a change, **Go back** in the menu puts the old version and its data from just before the change back. Anything written to its databases since is lost, so it asks for your passkey. After that, an instance can't go down a version: older versions can't read a newer one's data. The copy kept for going back counts toward the instance's disk limit, if it has one.
+For **7 days** after a change, **Go back** in the menu puts the old version and its data from just before the change back. Anything written to its databases since is lost, so it asks for your passkey. After that, an instance can't go down a version: older versions can't read a newer one's data. The copy kept for going back counts towards the instance's disk limit, if it has one.
 
 ### Patch updates
 

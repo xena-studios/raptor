@@ -1,6 +1,6 @@
 ---
 title: Databases
-description: Give a server its own MariaDB, MySQL, or PostgreSQL database, and connect plugins to it.
+description: Give a server its own MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB database, and connect plugins to it.
 sidebar:
   order: 7
 ---
