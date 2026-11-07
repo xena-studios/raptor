@@ -15,7 +15,7 @@ import (
 // the WAL archive (failures, and how long since a segment made it), and how
 // much WAL is on disk.
 // The replica and archive views need the pg_monitor role
-// (deploy/primary/initdb).
+// (deploy/panel/initdb).
 func Postgres(pool *pgxpool.Pool) error {
 	m := otel.GetMeterProvider().Meter(scope) // the provider in place now
 	conns, err := m.Int64ObservableGauge("raptor.postgres.pool.connections", metric.WithDescription("The Panel's database connections, by state"))

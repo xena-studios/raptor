@@ -1,0 +1,11 @@
+# Hourly (deploy/scripts/disk-check.sh).
+[Unit]
+Description=Hourly Raptor disk space check
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

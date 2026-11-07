@@ -12,8 +12,7 @@ import (
 )
 
 // errPrivate is a channel URL that reaches somewhere other than the public
-// internet: the Panel's own network, the WireGuard link to the other
-// server, a cloud metadata address. Alerts must never be a way to make the
+// internet: the Panel's own network, Postgres, a cloud metadata address. Alerts must never be a way to make the
 // Panel send requests there.
 var errPrivate = errors.New("that address isn't on the public internet")
 

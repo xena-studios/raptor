@@ -3,19 +3,22 @@
 # same compose files, images, and scripts as the servers, with local stand-ins
 # for what isn't here: MinIO for object storage, a local CA for Cloudflare's
 # origin certificates, plain files for 1Password, and a Docker network for
-# the private one between the servers. It checks, and fails loudly:
+# MinIO's network. It checks, and fails loudly:
 #   1. the Panel answers through Caddy only with Cloudflare's client cert;
-#   2. the replica on "server #2" streams from the primary;
-#   3. pgBackRest archives WAL and backs up to object storage;
-#   4. a restore of that backup matches the primary (restore-test.sh);
-#   5. a rolling deploy (deploy.sh) never stops answering.
+#   2. pgBackRest archives WAL and backs up to object storage;
+#   3. a restore of that backup matches the live database (restore-test.sh);
+#   4. a rolling deploy (deploy.sh) never stops answering;
+#   5. with the server gone, volumes and all, restore.sh rebuilds it from
+#      the archive with nothing lost, and it backs up again.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(cd .. && pwd)
 W=$(mktemp -d /tmp/raptor-rehearsal.XXXXXX)
 NET=raptor-rehearsal
-P="docker compose -p raptor-rehearsal-primary -f primary/compose.yaml -f rehearsal/primary.yaml"
-R="env STACK_SUBNET=172.30.1.0/24 docker compose -p raptor-rehearsal-replica -f replica/compose.yaml -f rehearsal/replica.yaml"
+P="docker compose -p raptor-rehearsal -f panel/compose.yaml -f rehearsal/panel.yaml"
+# What the scripts on the server see, pointed at the rehearsal's stack.
+export COMPOSE_PROJECT_NAME=raptor-rehearsal COMPOSE_FILE=compose.yaml:../rehearsal/panel.yaml
+export ENV_FILE="$W/run/postgres.env" NETWORK=raptor-rehearsal SKIP_PULL=1 SKIP_SECRETS=1 SKIP_UNITS=1
 export RAPTOR_RUN=$W/run RAPTOR_TLS=$W/tls HTTPS_PORT=${HTTPS_PORT:-18443} API_HOST=api.localhost
 export PANEL_IMAGE=raptor-panel:rehearsal POSTGRES_IMAGE=raptor-postgres:rehearsal
 export PANEL_APP_URL=https://app.example.test PANEL_API_URL=https://api.localhost
@@ -24,12 +27,11 @@ fail() { echo "REHEARSAL FAILED: $*" >&2; exit 1; }
 
 cleanup() {
   if [ "${KEEP:-}" = 1 ]; then echo "kept: $W (KEEP=1)"; return; fi
-  PG_PORT=15433 PRIMARY_PRIVATE_IP=primary-db $R --profile failover down -v >/dev/null 2>&1 || true
-  PG_PORT=15432 $P down -v >/dev/null 2>&1 || true
+  $P down -v >/dev/null 2>&1 || true
   docker rm -f raptor-rehearsal-minio >/dev/null 2>&1 || true
   docker network rm "$NET" >/dev/null 2>&1 || true
   rm -rf "$W"
-  rm -f primary/.env
+  rm -f panel/.env
 }
 trap cleanup EXIT
 
@@ -89,8 +91,7 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 
-step "server #1: Postgres primary"
-export PG_PORT=15432
+step "Postgres"
 $P up -d --wait postgres
 pglog=$($P logs postgres 2>&1)
 grep -q "backup repository ready" <<<"$pglog" || fail "the first start didn't make the backup repository"
@@ -101,7 +102,7 @@ echo "ok: first start made the backup repository, without waiting or failed logi
 $P exec -T -u postgres postgres pgbackrest --stanza=raptor stanza-create
 $P exec -T -u postgres postgres pgbackrest --stanza=raptor check
 
-step "server #1: migrations, then two Panels behind Caddy"
+step "migrations, then two Panels behind Caddy"
 $P run --rm --no-deps panel-a migrate
 $P up -d --wait panel-a panel-b caddy
 curl_cf() { curl -sS --max-time 5 --resolve "$API_HOST:$HTTPS_PORT:127.0.0.1" --cacert "$RAPTOR_TLS/origin.pem" \
@@ -121,33 +122,20 @@ if curl -sS --max-time 5 --resolve "$API_HOST:$HTTPS_PORT:127.0.0.1" --cacert "$
 fi
 echo "ok: only Cloudflare (its client certificate) gets in"
 
-step "server #2: the replica copies the primary and follows it"
-PG_PORT=15433 PRIMARY_PRIVATE_IP=primary-db $R up -d --wait postgres
 pq() { $P exec -T -u postgres postgres psql -qAt -d raptor -c "$1"; }
-rq() { PG_PORT=15433 PRIMARY_PRIVATE_IP=primary-db $R exec -T -u postgres postgres psql -qAt -d raptor -c "$1"; }
 pq "INSERT INTO orgs (name) VALUES ('rehearsal')" >/dev/null
-for _ in $(seq 1 30); do
-  [ "$(rq "SELECT count(*) FROM orgs WHERE name = 'rehearsal'" 2>/dev/null)" = 1 ] && break
-  sleep 1
-done
-[ "$(rq "SELECT count(*) FROM orgs WHERE name = 'rehearsal'")" = 1 ] || fail "the replica didn't get the new row"
-echo "replication: $(pq "SELECT application_name || ' ' || state || ' ' || sync_state FROM pg_stat_replication")"
-[ "$(rq "SELECT pg_is_in_recovery()")" = t ] || fail "the replica isn't a standby"
-# The Panel reports replication and archive health (pg_monitor).
-[ "$(pq "SET ROLE panel; SELECT state FROM pg_stat_replication")" = streaming ] || fail "the Panel's role can't see replication"
+# The Panel reports the archive's health (pg_monitor).
 pq "SET ROLE panel; SELECT sum(size) FROM pg_ls_waldir()" >/dev/null || fail "the Panel's role can't see the WAL"
 
 step "backups: a full backup to object storage, then a restore test"
-COMPOSE_PROJECT_NAME=raptor-rehearsal-primary COMPOSE_FILE=compose.yaml:../rehearsal/primary.yaml scripts/backup.sh full | tail -n 12
-COMPOSE_PROJECT_NAME=raptor-rehearsal-primary COMPOSE_FILE=compose.yaml:../rehearsal/primary.yaml \
-  ENV_FILE="$RAPTOR_RUN/postgres.env" NETWORK="$NET" scripts/restore-test.sh
+scripts/backup.sh full | tail -n 12
+scripts/restore-test.sh
 
 step "a rolling deploy, while something asks the Panel every 100 ms"
 probe=$W/probe.log
 ( while :; do curl_cf -o /dev/null -w '%{http_code}\n' "https://$API_HOST:$HTTPS_PORT/healthz" 2>/dev/null || echo fail; sleep 0.1; done ) >"$probe" &
 prober=$!
-COMPOSE_PROJECT_NAME=raptor-rehearsal-primary COMPOSE_FILE=compose.yaml:../rehearsal/primary.yaml \
-  PANEL_REPO=raptor-panel SKIP_PULL=1 SKIP_SECRETS=1 scripts/deploy.sh rehearsal
+PANEL_REPO=raptor-panel scripts/deploy.sh rehearsal
 sleep 1
 kill "$prober"
 total=$(wc -l <"$probe" | tr -d ' ')
@@ -156,24 +144,30 @@ echo "probe: $total requests during the deploy, $bad not answered"
 [ "$total" -gt 50 ] || fail "the probe barely ran"
 [ "$bad" = 0 ] || fail "the Panel stopped answering during the deploy"
 
-step "failover: server #1 is gone; promote the replica and run the Panels on server #2"
-$P stop >/dev/null 2>&1
-rq "SELECT pg_promote()" >/dev/null
-for _ in $(seq 1 30); do [ "$(rq "SELECT pg_is_in_recovery()")" = f ] && break; sleep 1; done
-[ "$(rq "SELECT pg_is_in_recovery()")" = f ] || fail "the replica didn't promote"
-# Until a checkpoint, pg_control still names the old timeline and
-# pgBackRest refuses to back up (docs/DEPLOY.md#failover).
-rq "CHECKPOINT" >/dev/null
-HTTPS_PORT=18444 PG_PORT=15433 PRIMARY_PRIVATE_IP=primary-db $R --profile failover up -d --wait
-curl_cf2() { curl -sS --max-time 5 --resolve "$API_HOST:18444:127.0.0.1" --cacert "$RAPTOR_TLS/origin.pem" \
-  --cert "$RAPTOR_TLS/cf.pem" --key "$RAPTOR_TLS/cf-key.pem" "$@"; }
-methods=$(curl_cf2 -H "Origin: $PANEL_APP_URL" -H 'Content-Type: application/json' -d '{}' \
-  "https://$API_HOST:18444/api/raptor.panel.v1.AuthService/GetSignInMethods")
-echo "$methods" | grep -q '"email":true' || fail "the Panels on server #2 didn't answer"
-rq "INSERT INTO orgs (name) VALUES ('after failover')" >/dev/null || fail "the promoted database doesn't take writes"
-echo "ok: server #2 serves the API and takes writes ($(rq "SELECT count(*) FROM orgs") orgs, the replicated one included)"
-ROLE=replica PG_PORT=15433 PRIMARY_PRIVATE_IP=primary-db COMPOSE_PROJECT_NAME=raptor-rehearsal-replica \
-  COMPOSE_FILE=compose.yaml:../rehearsal/replica.yaml scripts/backup.sh diff | tail -n 4
-echo "ok: server #2 backs up to the same archive"
+step "the server is gone: rebuild it from the backups"
+# A write after the last backup, archived (at most a minute later in
+# production, archive_timeout): the rebuild must bring it back too.
+pq "INSERT INTO orgs (name) VALUES ('after the backup')" >/dev/null
+seg=$(pq "SELECT pg_walfile_name(pg_switch_wal())")
+for _ in $(seq 1 60); do
+  [ "$(pq "SELECT coalesce(last_archived_wal >= '$seg', false) FROM pg_stat_archiver")" = t ] && break
+  sleep 1
+done
+before=$(pq "SELECT count(*) FROM orgs")
+$P down -v >/dev/null 2>&1
+rm -f panel/.env
+scripts/restore.sh
+PANEL_REPO=raptor-panel scripts/deploy.sh rehearsal
+$P up -d --wait caddy
+methods=$(curl_cf -H "Origin: $PANEL_APP_URL" -H 'Content-Type: application/json' -d '{}' \
+  "https://$API_HOST:$HTTPS_PORT/api/raptor.panel.v1.AuthService/GetSignInMethods")
+echo "$methods" | grep -q '"email":true' || fail "the rebuilt server's Panels didn't answer"
+after=$(pq "SELECT count(*) FROM orgs")
+[ "$after" = "$before" ] || fail "the rebuilt database has $after orgs, the old one had $before"
+[ "$(pq "SELECT count(*) FROM orgs WHERE name = 'after the backup'")" = 1 ] || fail "the write after the last backup was lost"
+pq "INSERT INTO orgs (name) VALUES ('after the rebuild')" >/dev/null || fail "the rebuilt database doesn't take writes"
+echo "ok: rebuilt with all $before orgs, the one written after the backup included, and it takes writes"
+scripts/backup.sh diff | tail -n 4
+echo "ok: the rebuilt server backs up to the same archive"
 
-printf '\nREHEARSAL OK: Caddy with client certs, two Panels, streaming replica, WAL archive and backup, restore test, zero-downtime deploy, failover, backups after it\n'
+printf '\nREHEARSAL OK: Caddy with client certs, two Panels, WAL archive and backup, restore test, zero-downtime deploy, rebuild from the backups with nothing lost, backups after it\n'
