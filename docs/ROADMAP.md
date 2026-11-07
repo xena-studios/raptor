@@ -6,7 +6,7 @@ Numbers like #270 are pull requests; DECISIONS #n points into [DECISIONS.md](DEC
 
 ## Where things stand
 
-*As of Oct 28, 2026.* Production runs the Panel and web app on raptor-1, with raptor-2 as a streaming replica over WireGuard, backups to B2, monitoring that pages a phone, and automatic deploys of every stable tag. v0.10.0 is the latest signed release (Oct 27); v0.11.0 to v0.13.0 were tagged on Oct 28: a stable tag deploys the Panel by itself, but nodes only get a release once it's signed. A real node is linked. Billing (Polar, with its checkout and card form in the app since #230), Raptor Backup Storage, and the docs at [docs.raptorpanel.net](https://docs.raptorpanel.net) are live. Networks and managed databases (#248–#258) and Raptor Bot (#268, off until it's set up) shipped since Oct 19. Redeploying the Panel without touching games is proven: v0.4.2 deployed while a player stayed connected to a server on the production node.
+*As of Oct 28, 2026.* Production runs the Panel and web app on raptor-1, with raptor-2 as a streaming replica over WireGuard, backups to B2, monitoring that pages a phone, and automatic deploys of every stable tag. v0.13.0 (Oct 29) is the latest signed release, so new nodes install it. A real node is linked. Billing (Polar, with its checkout and card form in the app since #230), Raptor Backup Storage, and the docs at [docs.raptorpanel.net](https://docs.raptorpanel.net) are live. Networks and managed databases (#248–#258) and Raptor Bot (#268, off until it's set up) shipped since Oct 19. Redeploying the Panel without touching games is proven: v0.4.2 deployed while a player stayed connected to a server on the production node.
 
 None of the four launch gates has passed yet. What's left is mostly drills, operations, and the business, not code.
 
@@ -30,7 +30,7 @@ In order, in three stages. Each item is done when it's crossed off here.
 The owner moves their own game servers onto Raptor, on a new node, and lives on it for two weeks before the launch work below. What they trip on goes first.
 
 1. ~~**Fixes from the Oct 28 audit,**~~ before the first real server: a failed download fails the install, with downloads retried (#294); a reinstall over files takes a safety backup first (#294); Minecraft backups save the world first (#293); a node gets its IPv4 record when it reaches the Panel over IPv6 (#292).
-2. **v0.13.0 signed** (tagged Oct 28, after v0.11.0 and v0.12.0), with the database work, billing waivers, and the fixes above, so new nodes install it.
+2. ~~**v0.13.0 signed**~~ (published Oct 29, after v0.11.0 and v0.12.0), with the database work, billing waivers, and the fixes above, so new nodes install it.
 3. **The owner's node:** a new VPS (Debian 13), the org's billing waived (staff → the org → Waive billing), `raptor doctor` green, `dig A <shortid>.raptornodes.net` answering its IPv4.
 4. **Their servers moved,** an offsite backup destination added and one backup restored, crash and offline alerts on, and a friend joining by the node's hostname.
 5. **Two weeks on it,** fixing in small releases. Known now: Java's memory headroom is thin for big modded packs (5–15% over the heap, no swap); Docker on nodes never updates; SFTP deletes skip the trash; the connection test can't check UDP; every crash of a crash-looping server sends its own alert.
