@@ -1,10 +1,10 @@
 # Contributing to Raptor
 
-Thanks for your interest in Raptor. It's built and running in production ahead of launch, so the work now is bugs, small features, and releases: what's left is in [the roadmap](docs/ROADMAP.md). Bug reports and requests from people running Raptor come in on the [Discord server](https://discord.gg/HyUa3sRpeN); security issues go to [SECURITY.md](SECURITY.md)'s address, never there.
+Thanks for your interest in Raptor. It's built and running in production ahead of launch, so the work now is bugs, small features, and releases: what's left is in [the roadmap](docs/ROADMAP.md). Bug reports and requests from people running Raptor come in on the [Discord server](https://discord.gg/HyUa3sRpeN); security problems go to the [security policy](SECURITY.md), never there.
 
 ## Developer Certificate of Origin (DCO)
 
-Raptor uses the [Developer Certificate of Origin 1.1](https://developercertificate.org/) instead of a CLA. You keep the copyright to your contributions, and they are licensed under the project license (AGPL-3.0).
+Raptor uses the [Developer Certificate of Origin 1.1](https://developercertificate.org/) instead of a CLA. You keep the copyright to your contributions, and they are licensed under the project's licence (AGPL-3.0).
 
 Every commit must be signed off:
 
@@ -18,7 +18,7 @@ This adds a line to the commit message:
 Signed-off-by: Your Name <you@example.com>
 ```
 
-By adding it, you certify that you wrote the change (or otherwise have the right to submit it) and that you're contributing it under the project's license, as described in the DCO. The name and email must be real and must match the commit author. A CI check blocks PRs that contain unsigned commits.
+By adding it, you certify that you wrote the change (or otherwise have the right to submit it) and that you're contributing it under the project's licence, as described in the DCO. The name and email must be real and must match the commit author. A CI check blocks PRs that contain unsigned commits.
 
 Forgot to sign off? Fix the last commit with `git commit --amend -s`, or a whole branch with `git rebase --signoff main`.
 
@@ -42,12 +42,17 @@ task test      # all tests, including Postgres- and MinIO-backed ones
 task gen       # regenerate protobuf, sqlc, and route tree code
 task lint      # golangci-lint, buf lint, Biome
 task fmt       # format Go and web code
-task check     # everything CI runs: lint, generated code, tests, licenses, vulns, secrets
+task check     # everything CI runs: lint, generated code, tests, licences, vulns, secrets
 task build     # binaries into bin/, web app into web/dist
 task --list    # everything else
 ```
 
-To sign in to the dev Panel, open http://localhost:5173 and ask for a code, then read it with `task dev:mail` in another terminal: in development, emails (codes, links, invitations) aren't sent but written to `.dev/mail.txt` and the API's log. To send real email through Resend instead, put a development key (sending access, the `mail.raptorpanel.net` domain only) in `.dev/resend.env` as `PANEL_RESEND_API_KEY=…`, `PANEL_MAIL_FROM="Raptor <account@mail.raptorpanel.net>"`, and `PANEL_MAIL_REPLY_TO=…`, and run `RESEND=1 task dev`; for Google, GitHub, or Discord sign-in, register a separate development OAuth app with the redirect URI `http://localhost:8080/oauth/<provider>/callback` and put its `PANEL_<PROVIDER>_CLIENT_ID` and `_CLIENT_SECRET` in `.dev/oauth.env`; sign in with real addresses only, since bounces from made-up ones hurt the domain's reputation. Passkeys work there too (the RP ID is `localhost`), in browsers that allow them on `http://localhost`. The dev Panel's signing key, data key (for TOTP), and org live in `.dev/` (ignored by git). After `task dev:link`, `raptor status` in the VM shows the connection, and `raptor doctor -upload` there files its bundle in `.dev/bundles`; `task wings:vm:install` puts the dev config back, which unlinks the VM.
+To sign in to the dev Panel, open http://localhost:5173 and ask for a code, then read it with `task dev:mail` in another terminal. In development, emails (codes, links, invitations) aren't sent: they're written to `.dev/mail.txt` and the API's log. The dev Panel's signing key, data key (for TOTP), and org live in `.dev/` (ignored by git).
+
+- **Real email:** put a development Resend key (sending access, the `mail.raptorpanel.net` domain only) in `.dev/resend.env` as `PANEL_RESEND_API_KEY=…`, `PANEL_MAIL_FROM="Raptor <account@mail.raptorpanel.net>"`, and `PANEL_MAIL_REPLY_TO=…`, then run `RESEND=1 task dev`. Sign in with real addresses only, since bounces from made-up ones hurt the domain's reputation.
+- **Google, GitHub, or Discord sign-in:** register a separate development OAuth app with the redirect URI `http://localhost:8080/oauth/<provider>/callback`, and put its `PANEL_<PROVIDER>_CLIENT_ID` and `_CLIENT_SECRET` in `.dev/oauth.env`.
+- **Passkeys** work too (the RP ID is `localhost`), in browsers that allow them on `http://localhost`.
+- **Wings:** after `task dev:link`, `raptor status` in the VM shows the connection, and `raptor doctor -upload` there files its bundle in `.dev/bundles`. `task wings:vm:install` puts the dev config back, which unlinks the VM.
 
 Generated code is committed. After changing anything in `proto/`, `db/`, or `web/src/routes/`, run `task gen` and commit the result.
 
@@ -91,7 +96,7 @@ When the fuzzer finds a failing input, it saves it under `testdata/fuzz/`. Fix t
 
 ### Runtime end-to-end tests
 
-The container runtime (networks, firewall isolation, resource limits, hardening, port checks), the server lifecycle (install, power actions, console, crashes, reconcile, resumed installs, events), the command path (Panel grants, passkey-signed commands), schedules (a scheduled console command and restart), and backups (the egg's hooks, a signed restore, the worker's systemd scope, and an S3 destination on MinIO, pulled from `cgr.dev/chainguard/minio`) are tested against a real Docker:
+The container runtime (networks, firewall isolation, resource limits, hardening, port checks), the server lifecycle (install, power actions, console, crashes, reconcile, resumed installs, events), the command path (Panel grants, passkey-signed commands), schedules (a scheduled console command and restart), the database engines (MariaDB, MySQL, PostgreSQL), and backups (the egg's hooks, a signed restore, the worker's systemd scope, and an S3 destination on MinIO, pulled from `cgr.dev/chainguard/minio`) are tested against a real Docker:
 
 ```bash
 task e2e:runtime                          # all runtime and lifecycle tests in the VM
@@ -101,13 +106,23 @@ task e2e:quotas                           # disk quotas on a real XFS loop volum
 task e2e:update                           # self-update: an update, two rollbacks, a restart mid-trial (needs minisign)
 ```
 
-`e2e:runtime` includes `TestPathSafety`, a hostile egg that plants symlinks, FIFOs, and links to host files (and then goes after them over SFTP, the web file manager's operations, and archives too) (see [SECURITY-MODEL.md](docs/SECURITY-MODEL.md#server-files)); if you change how Wings touches server files, break the protection on purpose once and check that it fails. Do that in a throwaway VM (`VM=<name>`), never the shared one: a broken build really does write through the planted links, and has emptied `/etc/passwd` (breaking `sudo`) and chowned `/etc` and `/usr` in the VM. The suite also checks the owners of the directories the links point at. `e2e:host` installs Wings with its systemd units and a quota volume in the VM, seeds a running server, runs the CLI against it (as root and as a `raptor` group member, including a backup and restore through the daemon's real worker), and reboots the VM, so it takes a few minutes. `e2e:quotas` creates a loop volume under `/var/lib/raptor-gate` with Wings' own code, checks limits on the host and in containers (including the seccomp escape check) and in the server manager, reboots, and grows the volume online. `e2e:update` builds signed test releases with a throwaway key (`scripts/e2e-update-build.sh`; the `e2eupdate` build tag lets those binaries take the key, a local release server, and shorter trial timings from the environment, and build versions that crash or hang on purpose), then updates Wings through the real systemd unit with a server running. It takes about 3 minutes and leaves the VM on the dev build. `e2e:faults` creates its own VM (`raptor-faults`, or `FAULTS_VM`) and injects faults: it SIGKILLs Wings mid-backup and Docker, fills the host disk and a server's quota, unmounts the data volume, and corrupts `state.db`, checking after each that Wings did what [RELIABILITY.md](docs/RELIABILITY.md) promises. It's destructive by design: never point it at the shared VM. Delete its VM afterwards with `task VM=raptor-faults wings:vm:delete`. `soak:start` sets up the soak test in its own VM (`raptor-soak`, or `SOAK_VM`) and leaves it running: check it with `soak:report`, end it with `soak:stop`. For a quick check of the harness itself, make everything fast: `task SOAK_RESTART='*/4 * * * *' SOAK_BACKUP='*/3 * * * *' SOAK_CHAOS_MIN=60 SOAK_CHAOS_MAX=150 soak:start`. Pass `VM=<name>` to any VM task to use a separate VM.
+`e2e:runtime` needs root: it creates Wings' networks, loads its nftables table, and sets up `raptor.slice`, exactly as the daemon does. CI runs it on every PR (the `e2e-runtime` job).
 
-`task e2e:bootstrap` (with `task dev` running) creates a fresh VM from Lima's own template (`DISTRO=debian-12`, `debian-13`, or `ubuntu-24.04`; `BOOT_VM` names it), builds a test release with its install script, serves it from your machine, and pipes the script to `sudo bash` in the VM as an owner would, against the dev Panel: a tampered binary must be refused, then one command to a linked node, a rerun that must change nothing (Wings isn't even restarted), `raptor doctor`, and a reboot after which the volume must be mounted and the node connected. Delete the VM afterwards (`limactl delete -f raptor-boot`). CI runs the same script on amd64 VMs of all three distros (the `Bootstrap (amd64)` workflow, with Lima and KVM on GitHub's runners): nightly, on demand, and on PRs that touch the install path.
+`e2e:runtime` includes `TestPathSafety`, a hostile egg that plants symlinks, FIFOs, and links to host files, then goes after them over SFTP, the web file manager's operations, and archives ([SECURITY-MODEL.md](docs/SECURITY-MODEL.md#server-files)). The suite also checks the owners of the directories the links point at. If you change how Wings touches server files, break the protection on purpose once and check that it fails. Do that in a throwaway VM (`VM=<name>`), never the shared one: a broken build really does write through the planted links, and has emptied `/etc/passwd` (breaking `sudo`) and chowned `/etc` and `/usr` in the VM.
 
-`task gate:link` runs the node connection through Cloudflare (`dev/linkgate`): the real Panel and Wings connection code on your machine, with a Cloudflare quick tunnel between them (`brew install cloudflared`; no account needed). It checks calls both ways, a connection cut mid-command (the command must run once), and console latency on the main connection while a 1 GB upload runs on its transfer connection; `ARGS='-idle 4h'` then holds the connection idle and logs every drop. The upload goes up your uplink and back down, so its speed is your upload speed. `-public-url` uses a URL you've already routed to `-listen` instead of a quick tunnel.
+The other suites, all run in the VM:
 
-They need root: they create Wings' networks, load its nftables table, and set up `raptor.slice`, exactly as the daemon does. CI runs them on every PR (the `e2e-runtime` job).
+- **`e2e:host`** installs Wings with its systemd units and a quota volume, seeds a running server, runs the CLI against it (as root and as a `raptor` group member, including a backup and restore through the daemon's real worker), and reboots the VM. It takes a few minutes.
+- **`e2e:quotas`** creates a loop volume under `/var/lib/raptor-gate` with Wings' own code, checks limits on the host, in containers (including the seccomp escape check) and in the server manager, reboots, and grows the volume online.
+- **`e2e:update`** builds signed test releases with a throwaway key (`scripts/e2e-update-build.sh`), then updates Wings through the real systemd unit with a server running. The `e2eupdate` build tag lets those binaries take the key, a local release server, and shorter trial timings from the environment, and build versions that crash or hang on purpose. It takes about 3 minutes and leaves the VM on the dev build.
+- **`e2e:faults`** creates its own VM (`raptor-faults`, or `FAULTS_VM`) and injects faults: it SIGKILLs Wings mid-backup and Docker, fills the host disk and a server's quota, unmounts the data volume, and corrupts `state.db`, checking after each that Wings did what [RELIABILITY.md](docs/RELIABILITY.md) promises. It's destructive by design: never point it at the shared VM. Delete its VM afterwards with `task VM=raptor-faults wings:vm:delete`.
+- **`soak:start`** sets up the soak test in its own VM (`raptor-soak`, or `SOAK_VM`) and leaves it running: check it with `soak:report`, end it with `soak:stop`. To check the harness itself quickly, make everything fast: `task SOAK_RESTART='*/4 * * * *' SOAK_BACKUP='*/3 * * * *' SOAK_CHAOS_MIN=60 SOAK_CHAOS_MAX=150 soak:start`.
+
+Pass `VM=<name>` to any VM task to use a separate VM.
+
+`task e2e:bootstrap` (with `task dev` running) tests the install script the way an owner runs it. It creates a fresh VM from Lima's own template (`DISTRO=debian-12`, `debian-13`, or `ubuntu-24.04`; `BOOT_VM` names it), builds a test release with its install script, serves it from your machine, and pipes the script to `sudo bash` in the VM against the dev Panel. A tampered binary must be refused; then one command must give a linked node, a rerun must change nothing (Wings isn't even restarted), `raptor doctor` must pass, and after a reboot the volume must be mounted and the node connected. Delete the VM afterwards (`limactl delete -f raptor-boot`). CI runs the same script on amd64 VMs of all three distros (the `Bootstrap (amd64)` workflow, with Lima and KVM on GitHub's runners): nightly, on demand, and on PRs that touch the install path.
+
+`task gate:link` runs the node connection through Cloudflare (`dev/linkgate`): the real Panel and Wings connection code on your machine, with a Cloudflare quick tunnel between them (`brew install cloudflared`; no account needed). It checks calls both ways, a connection cut mid-command (the command must run once), and console latency on the main connection while a 1 GB upload runs on its transfer connection. `ARGS='-idle 4h'` then holds the connection idle and logs every drop. The upload goes up your uplink and back down, so its speed is your upload speed. `-public-url` uses a URL you've already routed to `-listen` instead of a quick tunnel.
 
 ### Design work
 
@@ -139,11 +154,11 @@ Since every stable release goes live, Panel migrations must work with the versio
 
 ## Pull requests
 
-`main` is protected. Every change lands through a pull request, and the CI jobs must pass (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, and `pr` are required; `site`, `docs`, `deploy`, and CodeQL run on every PR too). Third-party actions are pinned to a commit, and Renovate keeps the pins current; GitHub's own actions stay on tags. A bug fix comes with a test that fails without it. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use conventional commit titles (`feat:`, `fix:`, `docs:`, …).
+`main` is protected. Every change lands through a pull request, and the CI jobs must pass (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, and `pr` are required; `site`, `docs`, `deploy`, and CodeQL run on every PR too). Third-party actions are pinned to a commit, and Renovate keeps the pins current; GitHub's own actions stay on tags. A bug fix comes with a test that fails without it. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use [Conventional Commits](https://www.conventionalcommits.org) titles (`feat:`, `fix:`, `docs:`, …).
 
 ## Ground rules
 
 - **Security issues:** don't open a public issue. See [SECURITY.md](SECURITY.md).
-- **Dependencies** must be AGPL-3.0-compatible (MIT, BSD, ISC, Apache-2.0, MPL-2.0, CC0, LGPL, GPL/AGPL). No SSPL, BSL, "Commons Clause", or proprietary licenses. CI enforces this.
+- **Dependencies** must be AGPL-3.0-compatible (MIT, BSD, ISC, Apache-2.0, MPL-2.0, CC0, LGPL, GPL/AGPL). No SSPL, BSL, "Commons Clause", or proprietary licences. CI enforces this.
 - **No secrets in the repo.** CI runs secret scanning.
 - Large changes should start as an issue or discussion so the design can be agreed before code is written.
