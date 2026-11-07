@@ -9,7 +9,7 @@ Wings is the daemon that runs on the owner's box. It is the **source of truth** 
 3. **Typed commands only.** Wings exposes specific operations. It never executes arbitrary shell commands from the Panel, the CLI, or support.
 4. **The host boundary is sacred.** Anything inside a container is contained. Anything Wings does on the host with server-controlled data (paths, symlinks, config files) is treated as hostile input.
 5. **Neutral naming.** Wings never hardcodes the Panel's name or domain. The Panel URL, update channel, and CA come from config written by the installer.
-6. **Good neighbor.** Wings coexists with Pterodactyl's Wings and anything else on the box. It only touches resources it created.
+6. **Good neighbour.** Wings coexists with Pterodactyl's Wings and anything else on the box. It only touches resources it created.
 
 ## Binary and processes
 
@@ -52,7 +52,7 @@ One static Go binary, `/usr/local/bin/raptor` (no CGO; SQLite via `modernc.org/s
 
 ### Coexistence with Pterodactyl's Wings
 - Different binary, service, paths, network, subnet, labels, and user. No shared resources.
-- Wings **only lists and manages containers labeled `raptor.wings.managed=true`**. It never prunes or touches others. If a container or network with one of Wings' names exists without the label, Wings refuses to touch it and reports an error instead.
+- Wings **only lists and manages containers labelled `raptor.wings.managed=true`**. It never prunes or touches others. If a container or network with one of Wings' names exists without the label, Wings refuses to touch it and reports an error instead.
 - Before accepting a port allocation, Wings checks that the host port is free. The Panel rejects allocations Wings reports as taken.
 - SFTP (only when enabled) uses 2022 unless it's taken (Pterodactyl's default), then the first free port in 2022–2099. The Panel always shows the real port. Wings runs no HTTP server.
 - The installer **merges** into `/etc/docker/daemon.json`, never overwrites it.
@@ -123,7 +123,7 @@ log:
 - Hourly `VACUUM INTO` snapshot (`snapshots/hourly-*.db`, last 24 kept) and one on every clean stop (`snapshots/shutdown-*.db`, last 3), plus the latest snapshot is included in offsite backups. A corrupt database is replaced by the newest good snapshot when Wings starts ([RELIABILITY.md](RELIABILITY.md#state-durability)).
 - **Private files:** SQLite creates database files as 0644 regardless of the umask, and gives its `-wal`/`-shm` files the same mode. Wings creates `state.db` as 0600 before SQLite opens it, so all three stay root-only.
 
-Tables: `servers` and `allocations`; `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys`; `schedules` (steps stored in it as JSON); `backups`, `backup_targets`, `backup_destinations`, and `backup_policies`; `metrics` and `host_metrics`; `file_uploads`, `trash`, `support_grants`, and `audit_log`; `kv` (node config, the backup repository password, and whether SFTP is on and its port).
+Tables: `servers` and `allocations`; `jobs`, `events` (outbox, with `seq`), `executed_commands`, and `trusted_keys`; `schedules` (steps stored in it as JSON); `backups`, `backup_targets`, `backup_destinations`, and `backup_policies`; `metrics` and `host_metrics`; `file_uploads`, `trash`, `support_grants`, and `audit_log`; `networks` and `server_addresses` ([NETWORKS.md](NETWORKS.md)); `database_instances`, `databases`, `database_links`, `instance_addresses`, and `instance_backup_policies` ([DATABASES.md](DATABASES.md)); `kv` (node config, the backup repository password, and whether SFTP is on and its port).
 
 ## Container runtime
 
@@ -147,7 +147,7 @@ Tables: `servers` and `allocations`; `jobs`, `events` (outbox, with `seq`), `exe
 
 ### Networking
 Wings sets up its runtime when it starts, and retries every minute until it succeeds (Docker may still be starting):
-1. **Networks.** `raptor_nw` (bridge `raptor0`, containers can talk to each other) for servers and `raptor_install` (bridge `raptor-inst`, inter-container traffic off) for installs. Both are IPv4 bridges labeled `raptor.wings.managed=true`. Existing networks are reused as they are. Then the owner's own networks ([NETWORKS.md](NETWORKS.md)) are created if missing, or recreated if their settings differ.
+1. **Networks.** `raptor_nw` (bridge `raptor0`, containers can talk to each other) for servers and `raptor_install` (bridge `raptor-inst`, inter-container traffic off) for installs. Both are IPv4 bridges labelled `raptor.wings.managed=true`. Existing networks are reused as they are. Then the owner's own networks ([NETWORKS.md](NETWORKS.md)) are created if missing, or recreated if their settings differ.
 2. **Subnets** are picked when a network is created, unless the config sets one: the first `/16` from `172.29–31`, `172.24–28`, then `10.200–255` that doesn't overlap a host interface, a route in the kernel's routing table, or another Docker network. A configured subnet that overlaps one of those is an error, not a silent change.
 3. **`raptor.slice`** memory ceiling (see [Resource limits](#resource-limits-performance-critical)).
 4. **Firewall** table (see [Firewall](#firewall)).
@@ -171,7 +171,7 @@ Wings' rules live in their **own nftables table, `inet raptor`**, not in Docker'
 | Allow `docker.install_allow` CIDRs | Install containers |
 | Drop traffic from one server network to another, except to ports published to the internet (`between`) | `raptor0` and the owner's networks |
 | Drop connections to a server network's gateway from anywhere but that network and the host, before Docker translates them (`prerouting`, `dstnat - 1`), so `127.0.0.1` allocations stay on their network | `raptor0` and the owner's networks |
-| Drop everything addressed to the host itself, except replies | Owner's networks with **Reach the host** off |
+| Drop everything addressed to the host itself, except replies | Owner's networks with **Reach the machine** off |
 | Accept what the owner's rules between networks allow, and replies to it (`between`; mirrored into `RAPTOR-BETWEEN` in iptables' `raw` and filter tables, jumped to from `raw PREROUTING` and `DOCKER-USER`, so Docker's own drops let it through) | The owner's networks |
 
 - **DNS for installs:** Docker's embedded resolver forwards container queries to the host's resolvers from inside the container's network namespace, so those packets are filtered like any other. Home boxes usually resolve through the router (`192.168.x.1`), so without the DNS exception every install would fail. Wings reads the resolvers from `/etc/resolv.conf`, or from systemd-resolved's upstream list when it points at the local stub.
@@ -236,7 +236,7 @@ How it works:
 
 ## Support access
 
-`internal/wings/support` (docs/PANEL.md#support-access) keeps the support access owners grant Raptor's staff.
+`internal/wings/support` ([PANEL.md](PANEL.md#support-access)) keeps the support access owners grant Raptor's staff.
 - **`support.grant`** is signed by an owner's passkey (never a delegation). Its params are the grant ID (the Panel's request), the staff member, a level (1 to 3), the reason, the ticket, and the end time (at most 7 days). Grants go in `support_grants`.
 - **Checking:** a command whose Panel grant names a support grant (`Grant.Support`, covered by the Panel's signature) is checked against it. The grant must exist, be unexpired and unrevoked, and belong to the command's user, and its level must cover the action (`nodecmd.SupportLevel`). Passkey-signed actions are refused outright. Refusals are permission errors, and accepted staff commands are logged ("support command").
 - **Ending it:** `support.revoke` ends one or all grants; `support.disable` turns support access off (ending every grant) or on. Neither is signed, since both only take access away.
@@ -278,7 +278,7 @@ Boxes with more than one disk can use them from the node's **Disks** tab, or `ra
   - The manager resolves every server path and quota through the server's disk, so files, SFTP, backups, installs, and deletes follow it.
   - A server whose disk isn't mounted won't install or start, exactly like the main volume. The Disks tab shows the disk as not mounted.
 - **Growing one** (`node.disk.grow`, admins, unsigned since it erases and moves nothing): after the disk is made bigger at the host, the Disks tab offers "Grow by …" for any data disk whose device is more than 256 MiB and 1% bigger than its filesystem (XFS keeps some for its log: 64 MiB on small disks, up to 2 GiB on huge ones). Wings runs `raptor storage grow-disk -id <id>` through `systemd-run`, which runs `xfs_growfs` on the mounted disk; servers keep running. A data disk on a partition needs the partition grown first (`growpart`), so the button doesn't show for one until it is. The main volume is grown on the box (`raptor storage grow -size`, an image) or with its own disk.
-- **Health and doctor:** mounted data disks are in the Health tab's disk list, labeled with their ID and role, and `raptor doctor` checks each one ([doctor](#doctor)). The overview's server storage is the main volume plus every mounted data disk for servers. The machine's disks are listed at most every 30 seconds for these, since the overview asks often.
+- **Health and doctor:** mounted data disks are in the Health tab's disk list, labelled with their ID and role, and `raptor doctor` checks each one ([doctor](#doctor)). The overview's server storage is the main volume plus every mounted data disk for servers. The machine's disks are listed at most every 30 seconds for these, since the overview asks often.
 - Wings finds data disks by where they're mounted, so one set up by hand with `raptor storage add-disk` is the same as one set up from the Panel.
 - **Moving a server** (`server.move` with `disk`: `main` or a data disk's ID; admins, unsigned since nothing is erased until the new copy is in use) is a `server.move` job, from the server's Settings tab when its node has another disk for servers.
   - Wings refuses a disk that isn't mounted, the disk the server is on, a server that's installing, restoring, deleting, or has a job waiting, and a disk with less free space than the server uses plus 10%.
@@ -289,7 +289,7 @@ Boxes with more than one disk can use them from the node's **Disks** tab, or `ra
 
 ## Job engine
 
-A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a job. Implemented: `server.install` (installs and reinstalls), `server.delete`, `schedule.run`, `backup.create`, `backup.restore`, `backup.delete`, `backup.maintain`, `files.compress`, `files.decompress`, `files.pull`, `files.import`, and `server.move`. Coming with their features: `transfer.send`, `transfer.receive`.
+A durable queue in SQLite (`internal/wings/jobs`). Everything long-running is a job. Implemented: `server.install` (installs and reinstalls), `server.delete`, `server.move`, `schedule.run`, `backup.create`, `backup.restore`, `backup.delete`, `backup.maintain`, `backup.extract`, `backup.scan`, `backup.instance`, `files.compress`, `files.decompress`, `files.pull`, `files.import`, and the database jobs ([DATABASES.md](DATABASES.md)). Coming with their features: `transfer.send`, `transfer.receive`.
 
 - **Survives Wings restarts and reboots.** A job that was running when Wings stopped is **resumed** if its handler says re-running it is safe (installs are: the script runs over the existing files again), and otherwise marked failed with "interrupted". Interruptions count as attempts, so a job that crashes Wings can't loop forever.
 - **Checkpoints:** a job can save its progress while it runs; a resumed job gets it back and continues from there instead of starting over (schedule runs continue after their last finished step; a resumed backup sends the egg's post-backup commands first; a resumed restore doesn't take a second safety backup).
@@ -374,7 +374,7 @@ Every change on the node is appended to `events` with a **monotonic sequence num
   - **Another node's:** any destination type with that node's backup key (`repo_password`; from the Panel's copy or one the owner saved). Another node's Raptor Backup Storage comes as an S3 destination with a read-only key the Panel makes.
   - **This node's as they were** (`from_destination_id` and `point_in_time`): an S3 or Raptor Backup Storage destination read at that time from the storage's old versions (Kopia's point-in-time view). Backups deleted since, by retention or by someone on a hacked node, come back; Raptor Backup Storage keeps those versions 30 days.
   - A `backup.scan` job lists the server backups there (`engine.List`) as backups of kind `recovered`; scanning again adds only new ones. A wrong key or a folder with no repository fails it, explained.
-  - **Read-only:** a recovered destination is never initialized, written, cleaned up, measured, or chosen as a target; its backups aren't deleted by retention or by hand (removing the destination forgets them); it can't be edited, and a destination can't be saved read-only directly.
+  - **Read-only:** a recovered destination is never initialised, written, cleaned up, measured, or chosen as a target; its backups aren't deleted by retention or by hand (removing the destination forgets them); it can't be edited, and a destination can't be saved read-only directly.
   - **Restoring:** a recovered backup of a server on this node restores like its own; one of a server that isn't here (`backup.orphans` lists them) restores onto any server with an owner's passkey, as a deleted server's always did. The safety backup goes to the target server's primary destination, never the read-only one.
   - Tested by `TestRecoverAnotherNodesBackups` (a node backing up to a folder, another recovering with its key, a wrong key and an empty folder refused, read-only enforced, the restore) and `TestPointInTimeRecovery` (`-tags e2e`, CI's e2e-runtime: a backup deleted and cleaned up on versioned MinIO, found again as of before, and restored).
 - **Retention** runs after every backup of the server. Each rule keeps the newest backup in each of its last N periods that have a backup (days, ISO weeks, and months in the node's time zone), so a server that was offline for a month doesn't lose its backups to the calendar. Anything a rule keeps is kept. **Locked** backups are never deleted by retention; at least one keep value must be above zero.
@@ -452,7 +452,7 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
   - Like SFTP, nothing is touched while the server installs or restores; with soft disk limits, what adds data is refused while the server is over its limit.
 - **Protected files:** the egg's `file_denylist` is enforced by Wings, for the web file manager and SFTP alike, whatever the Panel sends. Patterns use `.gitignore` syntax, as in Pterodactyl (`*.jar`, `/server.jar`, `config/`, `logs/**`, `!keep.yml`); everything in a denied directory is denied. Denied files are listed (marked as such) but can't be read, written, created, moved, copied, chmodded, deleted, downloaded, or uploaded over, by their own name or through a link that reaches them. Unlike Pterodactyl, a directory can't be moved or deleted while it holds a denied file, nor moved so its files land on denied names, which would otherwise be a way around the list.
 - **SFTP** (off by default; the Panel turns it on with `node.sftp` only while someone has a temporary password on the node, and off again after, DECISIONS #225): built-in server (`golang.org/x/crypto/ssh`, with `pkg/sftp` for the protocol), reachable at `<short-id>.raptornodes.net`. For files over the web cap and bulk transfers. Only the `sftp` subsystem: no shell, commands, or forwarding.
-  - **Username:** the temporary login alone (`t-…`, DECISIONS #278). It names no server: the Panel's answer to `SFTPLogin` says which server the password is for, and the login gets that server's files (refused if it isn't on this node). Wings lists `sftp-username` in its Hello so the Panel knows; nodes on older Wings are given the older form, `user.serverid`, which still works: the server's full ID or its short ID (the last 8 characters, as `raptor ps` shows; Pterodactyl uses the first 8, but Raptor's UUIDv7 IDs start with a timestamp that servers created within about a minute of each other share), split at the last dot, and it must be the password's server.
+  - **Username:** the temporary login alone (`t-…`, DECISIONS #278). It names no server: the Panel's answer to `SFTPLogin` says which server the password is for, and the login gets that server's files (refused if it isn't on this node). Wings lists `sftp-username` in its Hello so the Panel knows; nodes on older Wings are given the older form, `user.serverid`, which still works: the server's full ID or its short ID (the last 12 characters, as `raptor ps` shows, or the last 8; Pterodactyl uses the first 8, but Raptor's UUIDv7 IDs start with a timestamp that servers created within about a minute of each other share), split at the last dot, and it must be the password's server.
   - **Port:** the one used last, else `ports.sftp` (2022), else the first free port in 2022–2099, never one allocated to a server. Whether SFTP is on and its port are stored in SQLite, so it comes back after restarts. Every change (and every start) records a `node.sftp` event with the port and host key fingerprint.
   - **Auth via the Panel** (`sftp.PanelAuth`, over the node connection with `PanelService.SFTPLogin`). Only temporary passwords the user turned on for that server (checked by the Panel every time, never cached, so logins fail while it's unreachable; the session ends when the password runs out, and `sftp.disconnect` ends a revoked one's sessions; DECISIONS #222, #223). Public keys are refused. Logging in needs the `sftp` permission; reading needs `files.read`, and anything that changes files `files.write`. Every login is recorded as a `server.sftp.login` event.
   - **Limits:** 30 failed logins per address in 5 minutes, then that address is refused until the window ends; 32 connections per address, 512 in total, 8 sessions per connection; 30 s to finish the handshake.
@@ -463,7 +463,7 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
 
 ## Add-ons
 
-`internal/wings/addons` (docs/EGGS.md#add-ons): `addons.list` lists a server's `.jar` files in its egg's add-on folder with their SHA-512s (kept per file while its size and time stay the same), and `addons.install` downloads one from Modrinth's CDN into a hidden `.part` file, checks its SHA-512, renames it into place, and moves the version it replaces to the server's trash. Neither is signed: they need the Panel's grant for the server, like file writes, and Wings decides where files come from and which file is kept.
+`internal/wings/addons` ([EGGS.md](EGGS.md#add-ons)): `addons.list` lists a server's `.jar` files in its egg's add-on folder with their SHA-512s (kept per file while its size and time stay the same), and `addons.install` downloads one from Modrinth's CDN into a hidden `.part` file, checks its SHA-512, renames it into place, and moves the version it replaces to the server's trash. Neither is signed: they need the Panel's grant for the server, like file writes, and Wings decides where files come from and which file is kept.
 
 ## CLI scope
 
@@ -474,7 +474,8 @@ raptor status                         node health, Panel link, Docker, storage, 
 raptor doctor [-json] [-bundle] [-upload]   diagnose + fix suggestions; support bundle, uploaded for a support code
 raptor bootstrap -token …             set up this box as a node and link it (root)
 raptor update [-check] [-version v]   update Wings (root; -check for anyone)
-raptor link --token … | unlink | relink
+raptor link|relink -token …            link to the Panel, or link again as the same node (root)
+raptor unlink                         stop connecting to the Panel (root)
 raptor uninstall [-wipe-data] [-yes]   take Raptor off the box (root); data stays unless -wipe-data
 raptor ps [-json]                     servers: short ID, state, CPU, memory, disk, address, uptime
 raptor db ps [-json]                  database instances: short ID, engine, state, memory, disk, connections, databases, networks
@@ -484,6 +485,7 @@ raptor logs <server> [-n N] [-f] [-t] output from Docker's log store, further ba
 raptor backup list [<server>]         backups of a server, or all (with deleted servers' offsite ones)
 raptor backup create <server> [-lock]  (root) back up now; waits and prints size and new data
 raptor backup restore <server> <id>   (root) asks for the server's name first (or -yes); safety backup first
+raptor backup key                     (root) the node's backup key, to keep somewhere safe
 raptor storage status|setup|grow        volume state; create the image volume; grow it online
 raptor storage disks|add-disk|grow-disk  the machine's disks; add an empty one; grow one online
 raptor support status|revoke|off|on  see / end staff access, or turn it off
@@ -542,7 +544,7 @@ Methods are added to the proto only with the features behind them, so the API ne
 - The server data volume mounted with quotas (or soft limits), and its free space
 - Each data disk set up on the box, found by its mount point (servers' under `/var/lib/raptor/disks/`, backups' at `/srv/raptor-backups-<id>`): mounted with project quotas (fail: its servers don't start, or backups to it fail), and its free space (warn under 10%)
 - Host disk free space everywhere Wings and Docker keep state, against `limits.host_disk_min_free` (fail below it, warn below twice it)
-- Clock synchronized (NTP). Clock drift breaks connection signatures, grants, and schedules.
+- Clock synchronised (NTP). Clock drift breaks connection signatures, grants, and schedules.
 - Wings' nftables table in place
 - Each of the owner's networks on Docker (`ListNetworks`), with the subnet Wings gave it: missing or with another subnet is a failure (restart Wings, which creates or recreates them)
 - Each database instance (`ListDatabaseInstances` with `check`): one that should run is running (failed is a failure with its error; starting or upgrading a warning), answers on its socket now, and is on each of its networks at its fixed address, as Docker has it; a stopped one passes

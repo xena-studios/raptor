@@ -38,7 +38,7 @@ You need:
 
 | What | Notes |
 |---|---|
-| Two Linux servers | Same provider, **different datacenters** (raptor-1 is OVH Vint Hill, raptor-2 OVH Hillsboro), joined by a WireGuard tunnel ([the private link](#the-private-link)), so they don't need the provider's private networking. Debian 13 (or 12, or Ubuntu 24.04), x86-64 or arm64. 4 vCPU, 8 GB RAM, 80 GB NVMe each is plenty at launch; the Panel itself is small, Postgres gets the rest. |
+| Two Linux servers | Same provider, **different data centres** (raptor-1 is OVH Vint Hill, raptor-2 OVH Hillsboro), joined by a WireGuard tunnel ([the private link](#the-private-link)), so they don't need the provider's private networking. Debian 13 (or 12, or Ubuntu 24.04), x86-64 or arm64. 4 vCPU, 8 GB RAM, 80 GB NVMe each is plenty at launch; the Panel itself is small, Postgres gets the rest. |
 | Object storage | S3-compatible, at a **different provider** from the servers (a provider outage or account problem mustn't take the database and its backups together). Backblaze B2 or Wasabi are fine. One bucket, private, versioning off (pgBackRest manages its own retention), and an access key that can only use that bucket. |
 | Cloudflare | `raptorpanel.net` and `raptornodes.net` as zones. The free plan works for both to start; `raptornodes.net` needs a plan with enough DNS records once you pass the free plan's limit (one record per node). |
 | 1Password | A vault called **Raptor production**, and a service account that can read it (and nothing else). |
@@ -74,10 +74,12 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `Support bundles storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key` | [Below](#support-bundles). |
 | `Raptor Backup Storage` | `key_id`, `application_key`, `bucket_id`, `endpoint`, `region` | Optional: without it the Panel doesn't offer it. [Below](#raptor-backup-storage). |
 | `Grafana Cloud OTLP` | `endpoint`, `headers` | [Below](#monitoring). |
-| `Raptor Bot` | `token`, `public_key`, `guild_id`, `customer_role_id`, `support_role_id` | Optional: without it the bot is off. [Below](#discord). |
+| `Raptor Bot` | `token`, `public_key`, `guild_id`, `customer_role_id`, `support_role_id`, `log_channel_id` | Optional: without it the bot is off. [Below](#discord). |
+| `Polar` | `token`, `product_id`, `webhook_secret` | Optional: without it billing is off. [Below](#billing). |
+| `Polar storage meter` | `meter_id` | Optional: without it Backup Storage isn't charged. [Below](#charging-for-raptor-backup-storage). |
 | `Telegram alerts bot` | `token`, `webhook_secret` | Optional: without it the app doesn't offer Telegram alerts. In Telegram, message @BotFather: `/newbot`, a name (`Raptor Alerts`) and a username ending in `bot`; the token is what it answers. `webhook_secret`: `openssl rand -hex 32`. Then in @BotFather, `/setuserpic` with the logo and `/setdescription` ("Alerts from Raptor. Connect a chat from your org's settings, Alerts."). The Panel points the bot's webhook at itself when it starts. |
 
-The Google, Discord, Raptor Bot, `raptornodes.net` DNS, support bundle, Grafana, and Telegram items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
+The Google, Discord, Raptor Bot, `raptornodes.net` DNS, support bundle, Raptor Backup Storage, Polar, Grafana, and Telegram items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
 
 Rotate anything that was ever pasted in a chat or a terminal history.
 
@@ -129,7 +131,7 @@ Then the service account: 1Password → Developer → Service accounts → new, 
    `origin-pull-ca.pem` goes on the servers; put the CA key and client key in the vault (item `Origin pull CA`) and delete `/tmp/aop`. The certificates last 10 years; set a reminder for year 9.
 5. **Security:**
    - **Bot Fight Mode off.** Wings is a bot, and on the free plan Bot Fight Mode can't be skipped for a path: it would challenge node connections, which can't solve challenges.
-   - WAF → Custom rules → "API: no challenges": when `http.host eq "api.raptorpanel.net"`, **Skip** the remaining custom rules, rate limiting rules, Super Bot Fight Mode (if your plan lists it), and, under More components to skip, Browser Integrity Check and Security Level. Keep it first in the list. The Panel has its own rate limits and Turnstile; a Cloudflare challenge page in the middle of an API call or a node's WebSocket only breaks it, and Security Level challenges addresses with a poor reputation, which is what data center addresses, where nodes run, often have.
+   - WAF → Custom rules → "API: no challenges": when `http.host eq "api.raptorpanel.net"`, **Skip** the remaining custom rules, rate limiting rules, Super Bot Fight Mode (if your plan lists it), and, under More components to skip, Browser Integrity Check and Security Level. Keep it first in the list. The Panel has its own rate limits and Turnstile; a Cloudflare challenge page in the middle of an API call or a node's WebSocket only breaks it, and Security Level challenges addresses with a poor reputation, which is what data centre addresses, where nodes run, often have.
    - Security level: medium or lower. Under-attack mode breaks the API and nodes: don't turn it on for `api`.
 6. **Network:** WebSockets on (the default). **Caching → Cache Rules:** a rule bypassing the cache for `api.raptorpanel.net`.
 7. **Rules → Redirect Rules:** `get.raptorpanel.net` → `https://github.com/xena-studios/raptor/releases/latest/download/install.sh`, status 302. The script checks the binary against the SHA-256 it was generated with (`task release:sign`), so where it's served from isn't a trust boundary; GitHub's "latest" skips pre-releases.
@@ -320,7 +322,6 @@ One row, `streaming`. The slot means server #1 keeps WAL the replica hasn't rece
 
 The Panel caps uploads at 32 MB, 10 a day per linked node, 3 a day per address for unlinked ones, and 1,000 a day overall.
 
-
 ## Raptor Backup Storage
 
 Customers' offsite backups ([PANEL.md](PANEL.md#raptor-backup-storage)), in one Backblaze B2 bucket. Use a B2 account of its own, not the one the Panel's own backups are in, so a mistake with one can't touch the other.
@@ -340,7 +341,7 @@ Billing is off until the Panel has Polar's token and product ([PANEL.md](PANEL.m
 4. **Settings → Webhooks → Add endpoint:** `https://api.raptorpanel.net/billing/polar/webhook`, format **Raw**, events `subscription.*` (all of them) and `order.paid`, `order.refunded`. Copy its secret (`whsec_…`). The "API: no challenges" WAF rule already lets Polar's servers through; Polar doesn't follow redirects and gives up after 10 seconds.
 5. **Settings → Customer portal:** turn **off** subscription seat management and plan changes: seats follow nodes, set by the Panel (the sweep would put them back, but an owner shouldn't see the choice). Owners do cards, invoices, and cancelling on Raptor's own Billing page, through the customer portal API; Polar's portal is only linked for the billing address, tax ID, and receipt email, and Polar's failed-payment emails link to it.
 6. **Settings → Preferences → Embedding:** add `app.raptorpanel.net` (and `localhost:5173` in the sandbox). Polar refuses to be framed anywhere else, so without it the checkout falls back to Polar's own page after 20 seconds and the card form stays blank. Apple Pay and Google Pay don't work in embedded forms until Polar validates the domain (email support@polar.sh with the org's slug and the domain), and the app's `Permissions-Policy` also has to allow `payment` for `https://polar.sh` then; cards work without either.
-7. **Settings → General, the branding Polar has:** name **Raptor**, the logo (the running raptor mark, square, on its dark background), website `https://raptorpanel.net`, support email, and the Discord invite under socials. They show on the checkout, receipts, invoices, and Polar's emails. That's all of it: Polar has no colors or fonts to set, and its checkout comes only in light and dark, which the app picks to match the user's theme.
+7. **Settings → General, the branding Polar has:** name **Raptor**, the logo (the running raptor mark, square, on its dark background), website `https://raptorpanel.net`, support email, and the Discord invite under socials. They show on the checkout, receipts, invoices, and Polar's emails. That's all of it: Polar has no colours or fonts to set, and its checkout comes only in light and dark, which the app picks to match the user's theme.
 8. 1Password item **Polar** in Raptor production: `token`, `product_id`, `webhook_secret`. The next deploy picks it up (`deploy/secrets/optional/polar.env.tpl`).
 
 Then check: an org's Billing page offers the free month; checkout lands back on it and the plan appears within seconds (the webhook) or 5 minutes (the sweep). The Panel logs `billing: subscription updated` when it changes seats.
@@ -363,7 +364,7 @@ Then check, on a test org with a plan and more than 10 GB a node in Backup Stora
 
 Raptor Bot on the Raptor Panel server ([PANEL.md](PANEL.md#discord)). It runs inside the Panel: nothing to host. Its application, **Raptor Bot** in the Discord Developer Portal, is also Discord sign-in's, so the `Discord OAuth` item is this application's ID and secret.
 
-1. **Developer Portal → Raptor Bot → General Information:** copy the **Public Key**. Set **Interactions Endpoint URL** to `https://api.raptorpanel.net/discord/interactions` *after* the Panel with the bot's settings is deployed: Discord checks it on save with a signed ping, and a bad one.
+1. **Developer Portal → Raptor Bot → General Information:** copy the **Public Key**. Set **Interactions Endpoint URL** to `https://api.raptorpanel.net/discord/interactions` *after* the Panel with the bot's settings is deployed: Discord checks it on save with a signed ping, and with a badly signed one, which the Panel must refuse.
 2. **Bot:** **Server Members Intent** on (members joining); Message Content off. Reset the token if it was ever anywhere but 1Password.
 3. **OAuth2 → Redirects:** `https://api.raptorpanel.net/oauth/discord/callback` (sign-in, and linking). Copy the client secret.
 4. **On the server, the bot's role** ("Raptor Bot") without Administrator. It needs Manage Roles, View Channels, Send Messages, Send Messages in Threads, Create Private Threads, Manage Threads, Embed Links, and Read Message History, and must sit **above Customer** to give it. In Wick, whitelist the bot: a pass over the roles can change many at once.
@@ -392,9 +393,9 @@ cd ../site && pnpm install --frozen-lockfile && pnpm build && pnpm dlx wrangler@
 cd ../docs-site && pnpm install --frozen-lockfile && pnpm build && pnpm dlx wrangler@4 deploy
 ```
 
-Then attach the domains, once, in the dashboard: Workers & Pages → `raptor-app` → Settings → Domains & Routes → Add → **Custom domain** → `app.raptorpanel.net`, and the same for `raptor-verify` with `verify.raptorpanel.net` `raptor-site` with `raptorpanel.net`, and `raptor-docs` with `docs.raptorpanel.net`. Cloudflare creates the DNS records and certificates. The domains stay out of the config on purpose: deploying a custom domain from wrangler needs DNS edit permission (and, outside a terminal, wrangler overwrites conflicting DNS records), which the deploy token shouldn't have. Deploys leave domains they don't mention alone. No Worker has a `workers.dev` or preview address, so the custom domains are the only way in.
+Then attach the domains, once, in the dashboard: Workers & Pages → `raptor-app` → Settings → Domains & Routes → Add → **Custom domain** → `app.raptorpanel.net`, and the same for `raptor-verify` with `verify.raptorpanel.net`, `raptor-site` with `raptorpanel.net`, and `raptor-docs` with `docs.raptorpanel.net`. Cloudflare creates the DNS records and certificates. The domains stay out of the config on purpose: deploying a custom domain from wrangler needs DNS edit permission (and, outside a terminal, wrangler overwrites conflicting DNS records), which the deploy token shouldn't have. Deploys leave domains they don't mention alone. No Worker has a `workers.dev` or preview address, so the custom domains are the only way in.
 
-Both carry their own headers (`web/public/_headers`, `web/verify/_headers`): a Content-Security-Policy that lets the app run only its own scripts, call only the API, frame only the verify page, and never be framed; the verify page may only load Turnstile and only be framed by the app. The app also requires **Trusted Types** (`require-trusted-types-for 'script'`), so no plain string reaches a sink that runs code or markup. The app's code inserts no markup; the editor's workers go through the `raptor-workers` policy (`web/src/lib/trusted-types.ts`: same origin, `/assets/` only); Monaco and xterm use their own policies. Policy names aren't restricted (no `trusted-types` directive), since Monaco creates some lazily in features a test wouldn't reach.
+The app and the verify page carry their own headers (`web/public/_headers`, `web/verify/_headers`): a Content-Security-Policy that lets the app run only its own scripts, call only the API, frame only the verify page, and never be framed; the verify page may only load Turnstile and only be framed by the app. The app also requires **Trusted Types** (`require-trusted-types-for 'script'`), so no plain string reaches a sink that runs code or markup. The app's code inserts no markup; the editor's workers go through the `raptor-workers` policy (`web/src/lib/trusted-types.ts`: same origin, `/assets/` only); Monaco and xterm use their own policies. Policy names aren't restricted (no `trusted-types` directive), since Monaco creates some lazily in features a test wouldn't reach.
 
 **Checked in CI:** `pnpm --dir web test:csp` (after a build) serves `dist/` with `_headers`' `/*` headers, the way the Worker does, and loads the pages that work without a session in headless Chromium. Any CSP violation or page error fails the build job. Pages behind sign-in aren't covered there, since there's no API.
 
@@ -493,7 +494,7 @@ docker compose exec panel-a panel rollout status     # also: pause, resume, canc
 
 ### Staff
 
-Staff are made on server #1, once their account exists and has a passkey (docs/PANEL.md#staff):
+Staff are made on server #1, once their account exists and has a passkey ([PANEL.md](PANEL.md#staff)):
 
 ```bash
 cd /opt/raptor/deploy/primary
@@ -538,7 +539,7 @@ docker compose --profile failover up -d --wait
 echo COMPOSE_PROFILES=failover >> /etc/raptor/stack.env    # it already says ROLE=replica
 ```
 
-4. In Cloudflare, point `api` (A and AAAA) at server #2's public address. Proxied records change within seconds, and nodes and browsers reconnect by themselves. In GitHub, set the `production` environment's `DEPLOY_HOST` to server #2's public address, so releases deploy here (its deploy user and host key are already set up: [Automatic deploys](#automatic-deploys)).
+4. In Cloudflare, point `api`'s A record at server #2's public IPv4. Proxied records change within seconds, and nodes and browsers reconnect by themselves. In GitHub, set the `production` environment's `DEPLOY_HOST` to server #2's public address, so releases deploy here (its deploy user and host key are already set up: [Automatic deploys](#automatic-deploys)).
 5. Backups now run here: the timers read `ROLE` from `/etc/raptor/stack.env`. `systemctl enable --now raptor-backup.timer raptor-restore-test.timer`, and run `../scripts/backup.sh full` once.
 6. Update the firewall's Postgres rule if server #1 comes back at a new address.
 
@@ -568,7 +569,7 @@ The Panel sends metrics and a sample of traces (10% of requests) over OpenTeleme
 3. **The dashboard:** Dashboards → New → Import → upload [`deploy/grafana/raptor-panel.json`](../deploy/grafana/raptor-panel.json), and pick the stack's Prometheus data source (`grafanacloud-<stack>-prom`). It shows the API (requests, server errors, latency by method), nodes (connected, reconnects, commands by outcome, their own health: host disks low and doctor's checks failing or warning), email, the mirror, and Postgres (replica, WAL archive, WAL on disk, connections). Counters that haven't counted anything yet, such as commands before the first node links, show "No data" until they do.
 4. **Synthetic Monitoring** (in the same stack, free): an HTTP check on `https://api.raptorpanel.net/healthz` every minute from three locations, alerting when 2 of 3 fail. This is the "API is down" alarm, and it works when the Panel can't report anything. Its built-in latency alert (*HTTPRequestDurationTooHighAvg [5m]*) fires on any probe's 5-minute average over its threshold, with no waiting period, so with the default it pages a few times a day for nothing: Synthetic Monitoring → Alerts → set it to 2000 ms.
 5. **healthchecks.io** (free): two checks, *Raptor backup* (daily, 2 h grace) and *Raptor restore test* (monthly, 1 day grace). Put their ping URLs in `/etc/raptor/stack.env` on whichever server runs the backups, as `BACKUP_PING_URL=…` and `RESTORE_TEST_PING_URL=…`. The scripts ping only when they succeed, so a failed run and a timer that never fired both alert.
-6. **Alerts:** first a contact point that reaches your phone (Alerting → Contact points: the Grafana mobile app, or email, Discord, or a pager), set as the default notification policy's contact point. With **Grafana IRM** (the contact point type `oncall`, as in production: contact point *Raptor Phone* → IRM integration *Raptor Alerts*), the integration's default route needs an **escalation chain**, or IRM takes every alert and notifies nobody: IRM → Escalation chains → *Raptor*, one step "Notify users: you" marked **Important** (it uses the app's critical alerts, which get through silent mode), set on Integrations → *Raptor Alerts* → default route. Then send a test (the integration's "Send demo alert") and check the phone rings and the alert group's log says "sent mobile push important message". Until Oct 15, 2026 production's route had no chain, and four real alerts paged no one. Then the rules, which are in [`deploy/grafana/alerts.yaml`](../deploy/grafana/alerts.yaml) in Prometheus's rule format: Alerting → Alert rules → import them as Grafana-managed rules from that file (Grafana 12 and later), into a folder named `Raptor`. If your Grafana doesn't offer the import, make each rule by hand: its `expr` is the query, its `for` the pending period. Leave out the `raptor-replica` group until server #2 exists.
+6. **Alerts:** first a contact point that reaches your phone (Alerting → Contact points: the Grafana mobile app, or email, Discord, or a pager), set as the default notification policy's contact point. With **Grafana IRM** (the contact point type `oncall`, as in production: contact point *Raptor Phone* → IRM integration *Raptor Alerts*), the integration's default route needs an **escalation chain**, or IRM takes every alert and notifies nobody: IRM → Escalation chains → *Raptor*, one step "Notify users: you" marked **Important** (it uses the app's critical alerts, which get through silent mode), set on Integrations → *Raptor Alerts* → default route. Then send a test (the integration's "Send demo alert") and check the phone rings and the alert group's log says "sent mobile push important message". Then the rules, which are in [`deploy/grafana/alerts.yaml`](../deploy/grafana/alerts.yaml) in Prometheus's rule format: Alerting → Alert rules → import them as Grafana-managed rules from that file (Grafana 12 and later), into a folder named `Raptor`. If your Grafana doesn't offer the import, make each rule by hand: its `expr` is the query, its `for` the pending period. Leave out the `raptor-replica` group until server #2 exists.
 
    | Alert | Fires when | Why it matters |
    |---|---|---|
@@ -581,6 +582,7 @@ The Panel sends metrics and a sample of traces (10% of requests) over OpenTeleme
    | WAL piling up | over 10 GB of WAL for 10 min | The disk fills next; usually the archive or a dead replica's slot |
    | Email failing | 3 or more emails failed in 15 min | Sign-in codes aren't arriving |
    | Mirror failing | mirror syncs failing for 30 min | Pages show stale servers |
+   | Mirror behind | a node's events wait over 5 min to reach the Panel, for 10 min | Its pages are that far behind; the Panels' logs name it |
    | Nodes failing a check | one of doctor's checks fails on 3 or more nodes and over a tenth of those reporting, for 2 h | Many at once points at Raptor (often a Wings release), not their owners; the Panels' logs name them ("node unhealthy") |
    | Nodes' disks low | 3 or more nodes and over a tenth of those reporting have a host disk below its minimum, for 2 h | They refuse installs and image pulls; many at once suggests Raptor is filling them |
    | Replica gone (server #2) | no streaming replica for 5 min | No failover target, and WAL piles up for the replica's slot |
