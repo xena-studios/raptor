@@ -19,7 +19,7 @@ require (
 	github.com/gowebpki/jcs v1.0.2
 	github.com/hashicorp/yamux v0.1.2
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/klauspost/compress v1.19.2
+	github.com/klauspost/compress v1.20.2
 	github.com/kopia/kopia v0.23.1
 	github.com/minio/minio-go/v7 v7.2.0
 	github.com/moby/moby/api v1.56.0
