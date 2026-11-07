@@ -14,7 +14,7 @@ The strongest of them: **destructive and code-changing actions must be signed by
 4. User accounts and sessions
 5. The Wings release signing key
 6. The Panel's signing key (proves the Panel to nodes and signs per-user command grants), and its data key (encrypts TOTP secrets)
-7. The trusted passkey keys pinned on each node (they authorize destructive and code-changing actions)
+7. The trusted passkey keys pinned on each node (they authorise destructive and code-changing actions)
 8. The web app bundle (it's what asks users' passkeys to sign)
 
 ## Trust boundaries
@@ -70,7 +70,7 @@ A server's directory is written by code Raptor doesn't trust: the egg's install 
 - **The Panel proves itself** with its signing key, which Wings pins at enrollment, by signing the node's nonce the same way. Wings checks it before signing anything, so an impostor never gets a node signature. TLS terminates at Cloudflare, so the TLS certificate alone doesn't prove the Panel's identity to Wings. Each signature names its signer, so one side's can't pass as the other's, and handshake signatures can't pass as command grants (different fields).
 - Node removal revokes the node's key and drops its connection immediately.
 - SFTP host keys are generated on the node; the fingerprint is reported to the Panel over the authenticated connection and shown to users.
-- **SFTP** is off by default. When on, it serves only the `sftp` subsystem (no shell, commands, or forwarding), refuses FIFOs and device nodes, never sets setuid bits or ownership, limits failed logins per address, and ends sessions when an install or a backup restore starts. Cached keys stop working once the Panel rejects them or hasn't confirmed them in 30 days. Temporary passwords (per user and server, random, 24 characters, stored hashed, from 1 hour to 30 days) are checked by the Panel on every login and never cached; sessions end when they run out or are revoked. See [WINGS.md](WINGS.md#files-and-sftp).
+- **SFTP** is off by default. When on, it serves only the `sftp` subsystem (no shell, commands, or forwarding), refuses FIFOs and device nodes, never sets setuid bits or ownership, limits failed logins per address, and ends sessions when an install or a backup restore starts. Temporary passwords (per user and server, random, 24 characters, stored hashed, from 1 hour to 30 days) are checked by the Panel on every login and never cached; sessions end when they run out or are revoked. See [WINGS.md](WINGS.md#files-and-sftp).
 - **The Panel's signing key** is kept separate from the Panel's application secrets, ideally in an HSM or KMS later, at minimum a separate encrypted secret with restricted access.
 - **The Panel's data key** (`PANEL_DATA_KEY`) is a separate file from the signing key, so either can be rotated without the other. A database leak without it doesn't reveal TOTP secrets. Losing it turns off every account's authenticator app (recovery codes and passkeys still work, and decrypting fails closed), so it's backed up with the same care as the signing key.
 - The Panel origin only accepts connections from Cloudflare, and trusts `CF-Connecting-IP` only on those.
@@ -78,7 +78,7 @@ A server's directory is written by code Raptor doesn't trust: the egg's install 
 
 ### Passkey-signed commands
 
-A WebAuthn passkey signs whatever challenge a site gives it. For dangerous actions the challenge is **the hash of the exact command**, so the signature authorizes that command and nothing else, and Wings verifies it without trusting the Panel.
+A WebAuthn passkey signs whatever challenge a site gives it. For dangerous actions the challenge is **the hash of the exact command**, so the signature authorises that command and nothing else, and Wings verifies it without trusting the Panel.
 
 **Flow**
 1. The user clicks e.g. "Delete server *smp*". The web app builds the command: node, server, action, parameters, `command_id` (UUIDv7), and an expiry 5 minutes out.
@@ -111,7 +111,7 @@ Verification takes about 0.1 ms on the node. The user's cost is one fingerprint 
 - Delegating signed actions to members
 - Changing the node's trusted keys
 
-Every action Wings answers is in one table, `signing` in `internal/wings/actions/signing_test.go`: always signed, never, or depending on the command. A new action fails the test until it's added, so whether it's signed is decided rather than defaulted. **Removing a node isn't signed** (#263): it happens in the Panel (the node's key is refused, its records and grants go) after "confirm it's you", and deletes nothing on the node, whose servers keep running and which relinks with `raptor relink`. A compromised Panel could refuse a node's connection anyway, so a signature would protect nothing.
+Every action Wings answers is in one table, `signing` in `internal/wings/actions/signing_test.go`: always signed, never, or depending on the command. A new action fails the test until it's added, so whether it's signed is decided rather than defaulted. **Removing a node isn't signed** (DECISIONS #263): it happens in the Panel (the node's key is refused, its records and grants go) after "confirm it's you", and deletes nothing on the node, whose servers keep running and which relinks with `raptor relink`. A compromised Panel could refuse a node's connection anyway, so a signature would protect nothing.
 
 **Not signed** (to keep everyday use fast): start/stop/restart/kill, console commands, a plain reinstall (it re-runs the egg the owner already approved), file browsing and editing, variables, schedules, and settings that don't change code or access. These still need the Panel's per-user grant. A compromised Panel could read files and the console and disrupt servers, but not wipe them beyond recovery, backdoor them through eggs or images, or quietly add access. It could still change or delete files through the unsigned file manager, including adding a plugin that runs code in the game: signing every edit would make the file manager unusable. What it can't do is make that stick: deleting, unlocking, or thinning out backups is signed, so the files can be restored from backups (on by default), and a node's own record of commands shows what it did.
 
@@ -125,7 +125,7 @@ If the Panel simply told Wings which keys to trust, a compromised Panel would se
 - `raptor keys list` shows the trusted keys and delegations on the node, with fingerprints (the first 80 bits of the SHA-256 of the COSE public key, in base32 groups).
 - **The audit log:** every command that needed a signature is recorded on the node, whether it ran or was rejected (with why), with the user, the signing key's name and fingerprint, and the SHA-256 of what was signed; so are pairings and key resets. It's kept a year, apart from the week-long record of executed commands, and `raptor audit` lists it.
 
-**The web app is part of the trust boundary.** Browsers don't show *what* a passkey is signing, so an attacker who controls the JavaScript could display "Restart" while asking for a signature on "Delete". Defenses:
+**The web app is part of the trust boundary.** Browsers don't show *what* a passkey is signing, so an attacker who controls the JavaScript could display "Restart" while asking for a signature on "Delete". Defences:
 - The web app is **served from separate static hosting, not the API servers**, on its own origin (`app.raptorpanel.net`). Compromising the API or the database can't change the code users run. Deploying the web app requires separate credentials.
 - **The API has a different origin** (`api.raptorpanel.net`). On the app's origin, a compromised API could serve a page that asks passkeys to sign, or register a service worker that replaces the app; on its own origin it can do neither, and it can't use the app's RP ID.
 - **The RP ID is `app.raptorpanel.net`**, so the landing page, docs, and status page can't ask users' passkeys for signatures even if they're compromised.
@@ -148,25 +148,25 @@ Even if every one of these failed, each malicious action would still need a real
 ### Releases and supply chain
 - Wings releases are **signed** with minisign (Ed25519): the signature covers `checksums.txt`, which covers every binary. CI only builds **draft** releases; the maintainer signs and publishes locally. The private key is kept **offline** and never stored in the repository or CI.
 - The install script is generated per release with the binary's SHA-256 embedded, and verifies it before running anything. The binary verifies every later update's minisign signature with an embedded public key, and the signed trusted comment must name the release being installed, so a validly signed older release can't be replayed as a newer one. A channel never moves a node to an older version; only the owner can, explicitly.
-- Dependencies pinned. CI runs `govulncheck`, `npm audit`, license checks, and secret scanning (gitleaks).
+- Dependencies pinned. CI runs `govulncheck`, `pnpm audit`, licence checks, and secret scanning (gitleaks).
 - Egg imports show the image registry and install script before import, with warnings for images from publishers the community eggs don't use and for install scripts that run a downloaded script; the admin has to say they trust the egg. The Panel fetches the link itself, https only on port 443, and refuses private, loopback, link-local (cloud metadata), CGNAT, and NAT64/6to4 addresses where it dials, after DNS, so a link can't reach the Panel's own network ([PANEL.md](PANEL.md#importing)).
 
 ### Panel
 - **Passwordless auth built into the Panel** (passkeys, OAuth, email codes; TOTP 2FA). No passwords exist to leak. Passkeys are phishing-resistant and preferred. Details in [PANEL.md](PANEL.md#auth).
 - OAuth logins only link to existing accounts when the provider verified the email (prevents account takeover through unverified emails).
-- **Tenant isolation in the database:** user requests run under row-level security as `raptor_app`, so a handler that forgets to check org membership still can't read or change another org's rows (docs/PANEL.md#permissions).
+- **Tenant isolation in the database:** user requests run under row-level security as `raptor_app`, so a handler that forgets to check org membership still can't read or change another org's rows ([PANEL.md](PANEL.md#permissions)).
 - The Panel issues its own sessions (hashed tokens in a host-only `__Host-` cookie on `api.raptorpanel.net`: `HttpOnly`, `Secure`, `SameSite=Strict`). Other `raptorpanel.net` subdomains are treated as untrusted: the API only accepts browser requests with `Origin: https://app.raptorpanel.net`, and the `__Host-` prefix stops them from setting the session cookie. **Sensitive account changes require re-authenticating within 5 minutes** with a passkey or TOTP (an email code only on accounts with neither), and signing in by email doesn't count on accounts that have one, so access to someone's inbox isn't enough to remove their passkeys.
 - Email codes: 10-minute expiry, single use, limited attempts, stored hashed. Rate limits and Cloudflare Turnstile protect the send endpoint; Turnstile runs on its own origin (`verify.raptorpanel.net`), so even Cloudflare's script can't reach the app's passkeys.
 - **XSS:** console output, file contents, and egg metadata are untrusted and always escaped. xterm.js renders console output, never `innerHTML`.
 - Postgres row-level security by `org_id`, in addition to application checks.
 - Rate limiting on auth, join-token creation, alert changes and tests, and bundle uploads.
 - **Alert channels can't reach the Panel's network:** webhook, ntfy, Discord, and Slack requests connect only to public addresses, checked per connection, with no redirects or proxy (DECISIONS #272). Their URLs and secrets are sealed with `PANEL_DATA_KEY`. Email alerts go only to members of the org. Telegram's webhook takes updates only with its secret token.
-- **Raptor Bot** (Discord) runs in the Panel, so the Panel holds its token: the bot's role on the server has only what it uses (roles, threads, messages), never Administrator, so a compromised Panel can't take over the Discord server. Its interactions are checked against the application's public key and refused if older than 5 minutes. `/whois` answers only Raptor staff, by their linked Raptor accounts, only to them, and goes in the staff log; ticket threads are private, and nothing the bot posts pings anyone but a ticket's opener and Support (docs/PANEL.md#discord).
+- **Raptor Bot** (Discord) runs in the Panel, so the Panel holds its token: the bot's role on the server has only what it uses (roles, threads, messages), never Administrator, so a compromised Panel can't take over the Discord server. Its interactions are checked against the application's public key and refused if older than 5 minutes. `/whois` answers only Raptor staff, by their linked Raptor accounts, only to them, and goes in the staff log; ticket threads are private, and nothing the bot posts pings anyone but a ticket's opener and Support ([PANEL.md](PANEL.md#discord)).
 - Scoped API keys (later).
 - Full audit log for every mutating action.
 
 ### Staff and support
-- Staff are made only on the Panel's server (`panel staff add`), never from the web. The admin panel needs a passkey confirmed in the last 12 hours, and every change one in the last 5 minutes; emailed codes and authenticator apps don't count (docs/PANEL.md#staff).
+- Staff are made only on the Panel's server (`panel staff add`), never from the web. The admin panel needs a passkey confirmed in the last 12 hours, and every change one in the last 5 minutes; emailed codes and authenticator apps don't count ([PANEL.md](PANEL.md#staff)).
 - Staff can suspend accounts and orgs (signing them out and stopping the Panel managing them, while servers keep running), and see platform counts. They can't sign in as a user, read files or consoles, or send commands to nodes.
 - Support access requires **owner approval signed with the owner's passkey** and verified by Wings (so a compromised Panel or staff account can't grant itself access), is scoped (level 1/2/3), time-limited (7 days at most), revocable from the Panel or the box, visible on the node's pages, and audited per staff member, reads included. Each staff command names its grant inside the Panel's signed grant, and Wings checks it. Staff can never send passkey-signed actions. Nodes can turn it off entirely (`raptor support off`). A fully compromised Panel can still send the unsigned commands an owner could, as before; support access doesn't widen that.
 - **No shell access for staff.**
@@ -176,7 +176,7 @@ Even if every one of these failed, each malicious action would still need a real
 - Encrypted on the node before upload (Kopia).
 - Key: one random repository password per node, generated on the box and kept in its SQLite. By default a copy is stored **encrypted** in the Panel (once the node is linked), so backups survive a dead box. Raptor's object storage alone can't read them.
 - S3 credentials stay on the node; events and listings never include the secret key.
-- Kopia runs in a separate worker process with a memory cap, so a huge backup can't push the kernel into killing game servers or Wings (docs/WINGS.md#backups).
+- Kopia runs in a separate worker process with a memory cap, so a huge backup can't push the kernel into killing game servers or Wings ([WINGS.md](WINGS.md#backups)).
 - Optional owner-held key mode.
 
 ### Public repository
