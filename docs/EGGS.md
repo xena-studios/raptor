@@ -4,7 +4,7 @@ Raptor runs **Pterodactyl and Pelican eggs natively**. Eggs are Raptor's templat
 
 ## The compatibility target
 
-**Compatibility means behaving like Pterodactyl's Wings at runtime, not just parsing egg JSON.** Egg Docker images (the "yolks") and install scripts expect a specific environment. Where docs and Pterodactyl's Wings disagree, **Pterodactyl Wings' actual behavior is the spec.**
+**Compatibility means behaving like Pterodactyl's Wings at runtime, not just parsing egg JSON.** Egg Docker images (the "yolks") and install scripts expect a specific environment. Where docs and Pterodactyl's Wings disagree, **Pterodactyl Wings' actual behaviour is the spec.**
 
 ## Formats
 
@@ -16,7 +16,7 @@ Raptor runs **Pterodactyl and Pelican eggs natively**. Eggs are Raptor's templat
 
 Unknown versions are rejected with a clear error rather than half-supported.
 
-Format differences the parser normalizes (implemented in `internal/eggs`):
+Format differences the parser normalises (implemented in `internal/eggs`):
 - **Encoding:** Pterodactyl eggs are JSON; Pelican exports YAML. Both are parsed into one model with key order preserved (the first image and first startup command are the defaults). JSON is decoded with a real JSON decoder, because some valid JSON (the `\/` escape) isn't valid YAML.
 - **Images:** `PTDL_v1` has an `images` list or a single `image` (Pterodactyl's own source-engine eggs use the list); later formats have an ordered `docker_images` map (some exports use a plain list, which is accepted too).
 - **Startup:** Pterodactyl has one `startup` string; Pelican has an ordered `startup_commands` map.
@@ -46,7 +46,7 @@ Install scripts are the least trusted code Raptor runs: they come from the egg, 
 | Mount | Access | Contents |
 |---|---|---|
 | `/mnt/server` | read-write | The server's directory (on the quota volume, so the disk limit applies during install) |
-| `/mnt/install` | **read-only** | `install.sh`: the egg's script, line endings normalized to LF (as Pterodactyl does), written to a per-job temp directory that is deleted afterwards; `bin/curl`, Raptor's curl ([Downloads](#downloads)) |
+| `/mnt/install` | **read-only** | `install.sh`: the egg's script, line endings normalised to LF (as Pterodactyl does), written to a per-job temp directory that is deleted afterwards; `bin/curl`, Raptor's curl ([Downloads](#downloads)) |
 | `/mnt/install-report` | read-write | Where that curl records downloads that failed; a per-job temp directory, deleted afterwards |
 
 Nothing else from the host is mounted: no Docker socket, no host paths, no other servers.
@@ -89,12 +89,12 @@ DECISIONS #336. Most eggs download with a bare `curl` (no `--fail`, no retries, 
 
   The reason ends the install log and is the server's install error. Like Pterodactyl, the script's **exit code does not decide success**: many community scripts end with a harmless failing command. A non-zero exit code is recorded and shown as a warning with the install log.
 - A failed install marks the server `install_failed`. Files are **kept** for debugging, and the server can't start until an install succeeds, unless the owner chooses **skip install script** (Pterodactyl has the same option).
-- **Reinstall** runs the script over the existing files by default (Pterodactyl behavior), after a **safety backup** of them (kept 7 days, never counted by retention; none for a server with no files). The owner can instead choose **wipe and reinstall** (signed with their passkey), which takes the same safety backup, then removes every file before the script runs. If the backup fails, nothing is changed and the reinstall doesn't run. Changing a server's type is a reinstall too, either way. A first install takes none.
+- **Reinstall** runs the script over the existing files by default (Pterodactyl behaviour), after a **safety backup** of them (kept 7 days, never counted by retention; none for a server with no files). The owner can instead choose **wipe and reinstall** (signed with their passkey), which takes the same safety backup, then removes every file before the script runs. If the backup fails, nothing is changed and the reinstall doesn't run. Changing a server's type is a reinstall too, either way. A first install takes none.
 - File ownership is fixed after a failed install too, so the owner can inspect or repair the files over SFTP.
 
 ### Runtime environment
 
-Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server/server.go`), verified by running real eggs (the [conformance suite](#conformance-test-suite)), and compared setting by setting against the real Pterodactyl by the [behavioral diff](#behavioral-diff-against-pterodactyl).
+Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server/server.go`), verified by running real eggs (the [conformance suite](#conformance-test-suite)), and compared setting by setting against the real Pterodactyl by the [behavioural diff](#behavioral-diff-against-pterodactyl).
 
 **Container**
 | Setting | Value |
@@ -132,13 +132,13 @@ Taken from Pterodactyl Wings' source (`environment/docker/container.go`, `server
 
 ### Startup, running, and stop
 - `startup` command with variable substitution. **Never executed through a host shell.**
-- `config.startup.done`: string or list of strings. A console line **containing** one marks the server as running; a value prefixed with `regex:` is a regular expression instead. `strip_ansi` removes color codes before matching. Eggs with no done strings are running as soon as they start.
+- `config.startup.done`: string or list of strings. A console line **containing** one marks the server as running; a value prefixed with `regex:` is a regular expression instead. `strip_ansi` removes colour codes before matching. Eggs with no done strings are running as soon as they start.
 - `config.stop`, as Pterodactyl interprets it: a value **not** starting with `^` is a console command (e.g. `stop`). A value starting with `^` is a signal: after removing one `^`, `C` or `SIGINT` → SIGINT, `SIGTERM` → SIGTERM, `SIGABRT` → SIGABRT, **anything else → SIGKILL** (so `^^C` is SIGKILL). An empty value uses Docker's normal stop. After the stop timeout, the container is killed.
 
 ### Config file parsers (`config.files`)
-Applied by Wings before every start (`internal/eggs/configfile`). Pterodactyl's Wings re-serializes whole files, losing YAML comments and key order and collapsing duplicate INI keys. **Raptor's parsers edit only what they change**, so a file an owner has hand-edited keeps everything else.
+Applied by Wings before every start (`internal/eggs/configfile`). Pterodactyl's Wings re-serialises whole files, losing YAML comments and key order and collapsing duplicate INI keys. **Raptor's parsers edit only what they change**, so a file an owner has hand-edited keeps everything else.
 
-| Parser | Key syntax | Behavior |
+| Parser | Key syntax | Behaviour |
 |---|---|---|
 | `properties` | property name | Java `.properties` syntax (separators `=`, `:`, whitespace; `#`/`!` comments; `\` line continuations; `\uXXXX` escapes, since Java reads these files as ISO-8859-1). Matching entries are rewritten in place, keeping the key's spelling and separator; missing keys are appended. |
 | `file` | line prefix | Every line starting with the key is replaced by the value (which usually repeats the key: `server.port 28015`). CRLF endings are kept. |
@@ -153,10 +153,10 @@ Path syntax for `json`/`yaml`: `a.b.c`, `list[0].host` (or `list.0.host`), and `
 
 **Conditions** (`if_value`): an exact value, or `regex:<pattern>` to replace only the matched part (Go regex syntax, with `$1` references in the value). Conditional rules never create missing keys.
 
-**Where Raptor differs from Pterodactyl's Wings**, verified against Pterodactyl Wings 1.13.3 by the [behavioral diff](#behavioral-diff-against-pterodactyl):
+**Where Raptor differs from Pterodactyl's Wings**, verified against Pterodactyl Wings 1.13.3 by the [behavioural diff](#behavioral-diff-against-pterodactyl):
 - More than one `*` in a path matches at every level; Pterodactyl expands only the first `*` and creates a key literally named `*`.
 - The `file` (text) parser resolves placeholders like `{{server.build.memory}}` (what the Panel rewrites `{{server.build.env.SERVER_MEMORY}}` to); Pterodactyl's text parser writes them unresolved.
-- Edits are made in place (comments, key order, and formatting kept), where Pterodactyl re-serializes the file; the values written are the same.
+- Edits are made in place (comments, key order, and formatting kept), where Pterodactyl re-serialises the file; the values written are the same.
 
 Earlier Pterodactyl versions (read from source) also mishandled `list[0].key` paths and exact `if_value` conditions, and ignored `if_value` for `properties`, `ini`, and `xml`. Current Pterodactyl handles all of these as Raptor does; the diff test covers each.
 
@@ -186,7 +186,7 @@ Unknown `server.*`/`env.*` placeholders become empty and unknown `config.*` plac
 - Values are escaped per destination: env vars (no shell involved), each config parser's format.
 
 `rules` are Laravel validation rules, because that's what Pterodactyl and Pelican use, and eggs depend on Laravel's exact semantics:
-- **Empty fails only `required` and `filled`.** A value that's empty after trimming skips every other rule. That's how Pelican validates: an empty field is validated as its default (an empty string), and Laravel only runs implicit rules on empty strings. Pterodactyl turns empty fields into null first, and null fails type rules like `string`, so Pterodactyl rejects some eggs' own defaults (e.g. SpongeVanilla's `FORGE_VERSION`, rule `string`, default empty). Pelican's behavior accepts everything Pterodactyl's does, and more.
+- **Empty fails only `required` and `filled`.** A value that's empty after trimming skips every other rule. That's how Pelican validates: an empty field is validated as its default (an empty string), and Laravel only runs implicit rules on empty strings. Pterodactyl turns empty fields into null first, and null fails type rules like `string`, so Pterodactyl rejects some eggs' own defaults (e.g. SpongeVanilla's `FORGE_VERSION`, rule `string`, default empty). Pelican's behaviour accepts everything Pterodactyl's does, and more.
 - **Sizes depend on type.** `min`, `max`, `between`, `size`, `gt`/`gte`/`lt`/`lte` compare the number when the variable also has `numeric` or `integer` and the value is numeric; otherwise they count characters.
 - **`boolean`** accepts only `1` and `0` for string values (Laravel rejects the strings `true`/`false`; eggs that want those use `in:true,false`).
 - **`regex:`** patterns are PHP (PCRE) with delimiters, including bracket delimiters (`regex:([a-z]+$)`) and modifiers `i m s U A u D`. They're translated to Go.
@@ -197,9 +197,9 @@ Unknown `server.*`/`env.*` placeholders become empty and unknown `config.*` plac
 Checked against reality: of the 606 eggs, the defaults that fail their own rules are empty values for `required` fields (tokens and passwords the owner must enter) and 10 checks in 8 eggs that are genuine egg bugs Laravel rejects too (a default of `moon` for `in:Moon,Mars`, placeholder text in a `digits_between` field, a port with `integer|max:8`).
 
 ### Features
-`eula`, `java_version`, `pid_limit`, `steam_disk_space`, `gsl_token` and similar. These drive Panel UI prompts (e.g. "accept the Minecraft EULA") and Wings behavior where applicable. Unknown features are ignored.
+`eula`, `java_version`, `pid_limit`, `steam_disk_space`, `gsl_token` and similar. These drive Panel UI prompts (e.g. "accept the Minecraft EULA") and Wings behaviour where applicable. Unknown features are ignored.
 
-`java_version` matters in practice: the e2e tests found that the Pterodactyl-format Paper egg defaults to a Java 21 image, while current Minecraft needs Java 25. Pterodactyl detects the "requires Java" console message and prompts the user to switch images; Raptor must do the same.
+`java_version` matters in practice: the e2e tests found that the Pterodactyl-format Paper egg defaults to a Java 21 image, while current Minecraft needs Java 25. Pterodactyl detects the "requires Java" console message and prompts the user to switch images; Raptor doesn't prompt yet, so the owner picks the image, and the catalog's tests pick a newer one where the default is too old.
 
 ### Inheritance
 `config.extends` / `copy_script_from` (Pterodactyl legacy: parts taken from another egg by its Panel ID). Not resolved: those IDs mean nothing outside the Panel that exported the egg, so an import that uses them is refused.
@@ -230,7 +230,7 @@ Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican i
 
 `x-raptor.backup` is what a backup sends to a **running** server's console (as the user `backup`, so it shows in the console and the job's log):
 - `pre`, before the snapshot (and before its databases are dumped). For Minecraft, `save-off` (no autosave writes during the copy) and `save-all flush` (everything in memory written out now), so the backup never catches region files mid-write.
-- `wait_for`, the console line that says `pre` is done: a substring, or a regular expression after `regex:`, as done lines are, matched with the game's colors stripped. Wings waits up to `timeout` (a duration; the node's default is a minute). If the line doesn't come, the backup is taken anyway with a warning ("the server didn't confirm the save"): a possibly inconsistent backup beats none.
+- `wait_for`, the console line that says `pre` is done: a substring, or a regular expression after `regex:`, as done lines are, matched with the game's colours stripped. Wings waits up to `timeout` (a duration; the node's default is a minute). If the line doesn't come, the backup is taken anyway with a warning ("the server didn't confirm the save"): a possibly inconsistent backup beats none.
 - `post`, after the snapshot, **whatever happened to it**: a failed or cancelled snapshot, a stopping Wings, even a panic. A server left with saving off silently stops saving, which is worse than the bug the hooks fix. If Wings stops or crashes between the two, the job's checkpoint says so: the resumed job sends `post` before anything else, and a job given up on after repeated crashes gets it sent when Wings starts. A server that stopped meanwhile needs nothing (saving is on again after a start).
 
 Stopped servers get no hooks; their files aren't changing. Safety and final backups (taken by a reinstall or a delete, with the server stopped) don't send them.
@@ -241,8 +241,8 @@ Stopped servers get no hooks; their files aren't changing. Safety and final back
 
 ## Egg sources
 
-- Raptor's catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and license preserved ([below](#built-in-catalog)).
-- Orgs make their own eggs (from scratch, or customized copies) and Raptor's staff publish official ones, in the egg library ([PANEL.md](PANEL.md#eggs)); editing writes into the egg file and keeps the format ([Editing eggs](#editing-eggs)).
+- Raptor's catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and licence preserved ([below](#built-in-catalog)).
+- Orgs make their own eggs (from scratch, or customised copies) and Raptor's staff publish official ones, in the egg library ([PANEL.md](PANEL.md#eggs)); editing writes into the egg file and keeps the format ([Editing eggs](#editing-eggs)).
 - Users can import eggs from a URL or file. The Panel shows the **image registry and install script** before importing. A malicious egg is effectively a malicious program on the node. Imported eggs belong to the org that imported them ([PANEL.md](PANEL.md#importing)); eggs that leave parts to another egg (`config.extends`, `copy_script_from`) are refused with a message saying so, since those parts would be missing on the node.
 
 ## Editing eggs
@@ -270,7 +270,7 @@ x-raptor:
 
 ## Steam Workshop
 
-Games that download Steam Workshop items themselves take them under `x-raptor.workshop` (#264):
+Games that download Steam Workshop items themselves take them under `x-raptor.workshop` (DECISIONS #264):
 
 ```yaml
 x-raptor:
@@ -290,7 +290,7 @@ x-raptor:
 
 `eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`): the eggs the conformance suite tests, which the Panel seeds into its official egg library ([below](#in-the-official-library)). One directory per egg, e.g. `eggs/minecraft/paper/`:
 - The egg file, an **unmodified copy** of upstream at a pinned commit, under its upstream file name. Updating an egg means replacing the file and the commit.
-- `raptor.yaml`: where it came from (repository, full commit hash, path), its license, whether it's certified, which CPU architectures the game runs on, and how the conformance suite tests it:
+- `raptor.yaml`: where it came from (repository, full commit hash, path), its licence, whether it's certified, which CPU architectures the game runs on, and how the conformance suite tests it:
 
 ```yaml
 source:
@@ -378,7 +378,7 @@ Hostile eggs (planted symlinks, FIFOs, and links to host files) are `TestPathSaf
 
 For each case the same egg, variables, image, and port run on Pterodactyl, then on Raptor, and the test compares:
 - the container: environment, startup command, user, hostname, mounts, tmpfs, capabilities, security options, limits, logging, DNS, ports;
-- the config files the egg's rules wrote, by value (a properties map, the YAML/JSON tree, INI sections, the XML tree, text lines), since Raptor edits in place and Pterodactyl re-serializes.
+- the config files the egg's rules wrote, by value (a properties map, the YAML/JSON tree, INI sections, the XML tree, text lines), since Raptor edits in place and Pterodactyl re-serialises.
 
 Every difference must be listed as intended, with its reason, and every listed file difference must actually happen: when Pterodactyl changes, the test fails instead of letting the docs go stale. Cases: a test egg that exercises every parser, placeholder form, and condition (`internal/wings/conformance/testdata/parsers.ptdl_v2.json`), and Paper.
 
@@ -431,8 +431,8 @@ Eggs kept with a workaround in their test settings (each explained in its `rapto
 | Other | Discord bot (Node.js), Discord bot (Python), TeamSpeak, Mumble, generic Node.js, generic Python (the Discord bot entries are the generic Node.js and Python eggs) |
 
 Notes:
-- **Hytale isn't certified.** Its official server image signs in to a Hytale account (OAuth device flow) before it downloads the server, so it can't be tested unattended. It stays available as a community egg, and owners sign in with their own account from the console.
+- **Hytale isn't certified.** Its official server image signs in to a Hytale account (OAuth device flow) before it downloads the server, so it can't be tested unattended. It isn't in the catalog either; owners can import a Hytale egg and sign in with their own account from the console.
 - Most Steam dedicated servers are **x86_64-only** (Rust, CS2, …). The Panel hides them on arm64 nodes. No x86 emulation in v1.
 - Only **anonymous SteamCMD** games in v1. No storing Steam credentials.
 - Minecraft: users must accept the EULA. Server jars are downloaded at install time and never redistributed.
-- Windows-only servers (e.g. ARK: Survival Ascended) are not supported in v1.
+- Windows-only servers aren't certified. A few run under Wine or Proton as [community eggs](#community-eggs) where the upstream egg does it.

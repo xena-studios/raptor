@@ -37,6 +37,8 @@ Members see only the servers they've been given access to. On a server's **Acces
 | **Schedules** | Make and run schedules |
 | **Startup settings** | Change its game settings and Workshop items |
 | **Reinstall** | Reinstall it |
+| **See databases** | See its [databases](/servers/databases/) and their connection details, and run read-only queries |
+| **Change databases** | Make, change, and delete its databases, and see and change their passwords |
 
 Creating and deleting servers, backup destinations, and node settings are for admins and owners.
 

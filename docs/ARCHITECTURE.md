@@ -39,7 +39,7 @@
 A single Go binary, `panel serve api`: the HTTP/Connect API, WebSockets for browsers **and for nodes**, background jobs (River), and billing webhooks. It runs behind the **Cloudflare proxy** on its own origin, `api.raptorpanel.net`, and can run as several instances.
 
 - There's no separate tunnel process. A deploy disconnects every node for a moment; Wings reconnects on its own with random delays (see [Node connection](#node-connection)), and servers are never affected.
-- With several instances, a request may land on an instance that doesn't hold the target node's connection. It's forwarded to the instance that does through Postgres (`internal/panel/nodes.Router`): each instance records the nodes it holds (`node_connections`) and says it's alive every 5 seconds (`panel_instances`; one silent for 20 seconds is ignored). A forwarded command is a row in `node_requests` (unlogged); `NOTIFY` on the holder's channel says it's there, and on the sender's that it's answered, with a poll every 2 seconds in case a notification is missed. The holder claims a request before running it, so it runs once; if the holder goes away, the sender retries with the same `command_id` wherever the node reconnects. File transfers still need the instance holding the node (forwarding them comes with the web file manager).
+- With several instances, a request may land on an instance that doesn't hold the target node's connection. It's forwarded to the instance that does through Postgres (`internal/panel/nodes.Router`): each instance records the nodes it holds (`node_connections`) and says it's alive every 5 seconds (`panel_instances`; one silent for 20 seconds is ignored). A forwarded command is a row in `node_requests` (unlogged); `NOTIFY` on the holder's channel says it's there, and on the sender's that it's answered, with a poll every 2 seconds in case a notification is missed. The holder claims a request before running it, so it runs once; if the holder goes away, the sender retries with the same `command_id` wherever the node reconnects. File transfers are the exception: the node opens a transfer connection to the instance that asked ([Files and SFTP](#files-and-sftp)).
 
 The only infrastructure is **Postgres**. No Redis, no NATS, no message broker.
 
@@ -48,12 +48,12 @@ React + TypeScript SPA (Vite, TanStack Router + Query, shadcn/ui + Tailwind, xte
 
 It's served as static files **from separate static hosting, not the API servers**, on `app.raptorpanel.net`, and calls the API cross-origin at `api.raptorpanel.net`. The web app is what asks users' passkeys to sign dangerous commands, so compromising the API must not let anyone change it. Deploys need separate credentials, a strict Content Security Policy applies, it loads no third-party scripts, and each release publishes the bundle hashes (see [SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)).
 
-The API is deliberately **not** served under `/api` on the app's origin: whoever serves a response controls its headers, so a compromised API on that origin could serve a page that asks passkeys to sign, or a service worker that replaces the app (decision 81). In development the Vite dev server still proxies `/api` to the local API.
+The API is deliberately **not** served under `/api` on the app's origin: whoever serves a response controls its headers, so a compromised API on that origin could serve a page that asks passkeys to sign, or a service worker that replaces the app (DECISIONS #81). In development the Vite dev server still proxies `/api` to the local API.
 
 ### Landing page and docs
-The landing page (`raptorpanel.net`) is an **Astro** site in `site/`: one static page with no scripts, in the app's design system, deployed with each stable release and never sharing the app's origin or CSP. It has no waitlist (decision 261). It's there to sell as well as describe: the free first month leads (Start your free month, the price card, the closing band), then a comparison with a game host and with running Pterodactyl, a tour of the app in real screenshots, setup, what stays the owner's, what it runs, pricing, and common questions. The screenshots (`src/assets/screens`, dark and light, served as WebP in the visitor's theme by `Screen.astro`) are taken from a dev Panel with a real node by `scripts/screens.mjs`, which may hide test leftovers from the sidebar and changes nothing else. Its social card (`public/og.png`) is a screenshot of `src/pages/og-card.astro` made by `scripts/og.mjs`; the build leaves that page out. Any analytics or marketing scripts would go there, never in the web app.
+The landing page (`raptorpanel.net`) is an **Astro** site in `site/`: one static page with no scripts, in the app's design system, deployed with each stable release and never sharing the app's origin or CSP. It has no waitlist (DECISIONS #261). It's there to sell as well as describe: the free first month leads (Start your free month, the price card, the closing band), then a comparison with a game host and with running Pterodactyl, a tour of the app in real screenshots, setup, what stays the owner's, what it runs, pricing, and common questions. The screenshots (`src/assets/screens`, dark and light, served as WebP in the visitor's theme by `Screen.astro`) are taken from a dev Panel with a real node by `scripts/screens.mjs`, which may hide test leftovers from the sidebar and changes nothing else. Its social card (`public/og.png`) is a screenshot of `src/pages/og-card.astro` made by `scripts/og.mjs`; the build leaves that page out. Any analytics or marketing scripts would go there, never in the web app.
 
-The docs for owners (`docs.raptorpanel.net`) are an **Astro Starlight** site in `docs-site/`: install and provider guides, troubleshooting keyed to the app's and the installer's own error text, and where to get help. They're static, in the app's design system, with search that runs in the browser (Pagefind) and no third-party scripts, deployed with each stable release so they describe what's live (decision 292). Support, bug reports, and requests are on the **Discord server**, which the docs link to; the web app only links out to either. The design docs for contributors stay in `docs/`.
+The docs for owners (`docs.raptorpanel.net`) are an **Astro Starlight** site in `docs-site/`: install and provider guides, troubleshooting keyed to the app's and the installer's own error text, and where to get help. They're static, in the app's design system, with search that runs in the browser (Pagefind) and no third-party scripts, deployed with each stable release so they describe what's live (DECISIONS #292). Support, bug reports, and requests are on the **Discord server**, which the docs link to; the web app only links out to either. The design docs for contributors stay in `docs/`.
 
 ### Hostnames
 
@@ -67,7 +67,7 @@ The docs for owners (`docs.raptorpanel.net`) are an **Astro Starlight** site in 
 | `verify.raptorpanel.net` | The Turnstile page the sign-in form embeds (`web/verify`), apart from the app's origin | Static |
 | `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |
 | Mail sending subdomain | SPF/DKIM for transactional email | Resend |
-| `<short-id>.raptornodes.net` | Node hostnames, nothing else (#279) | DNS-only; the apex redirects to `raptorpanel.net` |
+| `<short-id>.raptornodes.net` | Node hostnames, nothing else (DECISIONS #279) | DNS-only; the apex redirects to `raptorpanel.net` |
 
 ### Wings
 A single Go binary (`raptor`) that is both the daemon (`raptor wings run`) and the CLI. Runs on the owner's box as a systemd service. See [WINGS.md](WINGS.md).
@@ -83,7 +83,7 @@ Every piece of data has **exactly one owner**. Nothing is merged.
 | Billing, subscriptions, ledger | Panel (Polar) | — |
 | Node identity | Panel stores each node's public key | Wings holds its private key (generated on the box, never leaves it) |
 | Node DNS (`<short-id>.raptornodes.net`) | Panel | Wings reports its public IP |
-| Permission grants (user → server → perms) | Panel | Wings enforces signed grants; caches SFTP public keys |
+| Permission grants (user → server → perms) | Panel | Wings enforces signed grants |
 | Servers, config, allocations | **Wings** | Panel keeps a read-only **mirror** |
 | Schedules, backup config, backup index | **Wings** | mirrored |
 | Jobs, job logs | **Wings** | summaries mirrored |
@@ -184,19 +184,19 @@ How the console gets there (built; stats come later):
 - **The transfer connection:** the Panel calls `OpenTransfer` with the ID of an upload or download a `files.upload` or `files.download` command started (or of a database query a streamed `db.query` started); Wings checks it exists, then opens a second WebSocket with the same handshake and the purpose `transfer:<id>`, and answers that transfer's chunks on it (`PUT /upload?offset=`, `GET /download?offset=&n=`, streamed, not buffered; a query's results as lines of JSON on `GET /query`, see [DATABASES.md](DATABASES.md#how-streamed-queries-readers-and-the-instance-page-are-built)) and nothing else. The Panel closes connections it didn't ask for, so a node can't open one on its own. Its yamux window is 16 MiB (the default 256 KiB would cap a transfer at about 5 MB/s at 50 ms), and Wings closes it after 10 minutes unused.
 - The cap exists because every byte through the Panel costs bandwidth twice and Cloudflare discourages relaying large non-web files. SFTP has no such cost.
 - **SFTP is off by default** and enabled per node in the Panel. With it off, a node has no ports open besides its game servers. It uses SSH host keys, so **nodes need no TLS certificates**.
-- **SFTP auth:** temporary passwords only (DECISIONS #222, #223; accounts have no passwords). A user turns SFTP on for one server and gets a generated username and password, good for 1 hour to 30 days, and logs in with that username alone: the password says which server it's for (#278). Wings asks the Panel over the node connection every time (`PanelService.SFTPLogin`, answered for the node the connection proved it is); nothing is cached, so SFTP logins need the Panel to be reachable.
+- **SFTP auth:** temporary passwords only (DECISIONS #222, #223; accounts have no passwords). A user turns SFTP on for one server and gets a generated username and password, good for 1 hour to 30 days, and logs in with that username alone: the password says which server it's for (DECISIONS #278). Wings asks the Panel over the node connection every time (`PanelService.SFTPLogin`, answered for the node the connection proved it is); nothing is cached, so SFTP logins need the Panel to be reachable.
 
 ## Node DNS
 
-Every node gets a hostname: **`<short-id>.raptornodes.net`**, e.g. `1cdd002cd9a3.raptornodes.net`. The zone is **only for nodes** (#279).
+Every node gets a hostname: **`<short-id>.raptornodes.net`**, e.g. `1cdd002cd9a3.raptornodes.net`. The zone is **only for nodes** (DECISIONS #279).
 - Owners can use it for SFTP and give it to players (`1cdd002cd9a3.raptornodes.net:25565`) instead of an IP.
 - The short ID is the **last part of the node's ID** (`01a14621-e529-7833-b8b3-1cdd002cd9a3` → `1cdd002cd9a3`; a generated column, so it can't drift). In a UUIDv7 that part is random, so it's not sequential or guessable, and it's **never reused**: node rows are never deleted, so old DNS caches and saved addresses never point at someone else's box. Enrollment retries with a new ID in the unlikely case two match.
-- Until #279 hostnames were `n-<8 random characters>.raptornodes.net`. Migration 45 queued those records for deletion (`dns_retired`, which `nodes.Addresses.Retire` empties), and a node gets its new records when it next connects; Wings works out the new name from an old `config.yml` itself.
+- Until DECISIONS #279, hostnames were `n-<8 random characters>.raptornodes.net`. Migration 45 queued those records for deletion (`dns_retired`, which `nodes.Addresses.Retire` empties), and a node gets its new records when it next connects; Wings works out the new name from an old `config.yml` itself.
 - **Dynamic DNS:** the Panel takes the node's public address from its connections (`CF-Connecting-IP`, trusted only because the origin accepts nothing but Cloudflare; `PANEL_CLIENT_IP_HEADER`) and updates the record (60 s TTL, DNS-only) whenever it changes, through a Cloudflare API token scoped to the zone (`internal/panel/dns`, `nodes.Addresses`). Only public addresses get records: a node seen from a private or CGNAT address keeps its last public record. The record appears once the node first connects from a public address.
-- **Both families (#338):** a dual-stack box's control connection usually goes over IPv6, so on each connect Wings also opens an **address connection** (purpose `address`) once over IPv4 and once over IPv6 (`link.showAddresses`). It's the normal signed handshake and nothing else: the Panel records the address it came from (`public_ipv4` or `public_ipv6`) and closes it. So the Panel only ever publishes an address it saw the node's key connect from, never one Wings claims; a family the box can't reach the Panel over just fails, and a Panel older than this refuses the purpose. Existing nodes are fixed when they next connect.
+- **Both families (DECISIONS #338):** a dual-stack box's control connection usually goes over IPv6, so on each connect Wings also opens an **address connection** (purpose `address`) once over IPv4 and once over IPv6 (`link.showAddresses`). It's the normal signed handshake and nothing else: the Panel records the address it came from (`public_ipv4` or `public_ipv6`) and closes it. So the Panel only ever publishes an address it saw the node's key connect from, never one Wings claims; a family the box can't reach the Panel over just fails, and a Panel older than this refuses the purpose. Existing nodes are fixed when they next connect.
 - **Which records (`nodes.Records`):** an **A record** for the public IPv4 address, and **no AAAA while there's an A**: game ports are published on `0.0.0.0` (`hostPorts`, IPv4 only), so an AAAA would send clients that prefer IPv6 where no game listens. A node with no public IPv4 (IPv6-only, or IPv4 behind CGNAT) gets an AAAA for its IPv6 address, as before, so the name resolves at all; the node page and the connection test say servers take players over IPv4 only. An AAAA left from before is removed once the A is written. Syncs of one node take a Postgres advisory lock, since its three connections each start one. If servers' ports are ever published on IPv6 too, the AAAA can stay beside the A.
 - The hostname points at the owner's real IP, often a home connection without DDoS protection. Players see the IP when they connect anyway; the future connection relay add-on is for owners who want to hide it.
-- **Public Suffix List:** `raptornodes.net` should be listed before launch, so each node's hostname counts as its own registered domain: otherwise owners getting Let's Encrypt certificates for their nodes (a web map, say) share one rate limit, and a web page on one node could set cookies for the others. Less pressing since player subdomains are gone (#279).
+- **Public Suffix List:** `raptornodes.net` should be listed before launch, so each node's hostname counts as its own registered domain: otherwise owners getting Let's Encrypt certificates for their nodes (a web map, say) share one rate limit, and a web page on one node could set cookies for the others. Less pressing since player subdomains are gone (DECISIONS #279).
 - **Record volume:** each node is one record (A, or AAAA without IPv4). Cloudflare caps records per zone on Free plans, so `raptornodes.net` needs a plan (or DNS provider) with a quota sized for launch. Decide before launch.
 
 ## Ports on the node
@@ -255,11 +255,13 @@ raptor/
   cmd/
     panel/            # Panel binary (serve api; migrate)
     raptor/           # Wings daemon + CLI + TUI
+    fakewings/        # load-test simulator (RELIABILITY.md)
   internal/
     gen/proto/        # generated Go protobuf + Connect code
     panel/...         # Panel packages (api, store, ...)
     wings/...         # Wings packages (store, ...)
     eggs/             # egg parsing + runtime (used by Wings)
+    loadtest/         # the fake nodes behind cmd/fakewings
     shared/...        # shared Go packages (buildinfo, ...)
   db/
     panel/            # Postgres migrations + sqlc queries
@@ -267,6 +269,8 @@ raptor/
   web/                # React app (src/gen = generated TS protobuf); web/verify: the Turnstile page
   deploy/             # the Panel's servers: images, Compose, Caddy, Postgres, scripts (docs/DEPLOY.md)
   site/               # Astro landing page (raptorpanel.net)
+  docs-site/          # Starlight docs for owners (docs.raptorpanel.net)
+  eggs/               # built-in egg catalog (EGGS.md#built-in-catalog)
   install/            # get.raptorpanel.net bash script
   tools/              # go.mod pinning dev tools (go tool -modfile=tools/go.mod ...)
   scripts/            # CI/release helper scripts

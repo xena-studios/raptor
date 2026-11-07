@@ -16,11 +16,11 @@ People who **own or rent a Linux box but don't have a reliable, easy way to host
 - Server networks running many game servers across a few machines
 - Anyone with a dedicated server or VPS who doesn't want to become a Linux admin to use it
 
-**Not for:** hosting companies reselling servers. Raptor has no white-labeling, reseller features, or billing-system integrations (WHMCS, Paymenter, Blesta), and none are planned.
+**Not for:** hosting companies reselling servers. Raptor has no white-labelling, reseller features, or billing-system integrations (WHMCS, Paymenter, Blesta), and none are planned.
 
 ## What you can host
 
-- **Game servers (primary focus):** the Minecraft family (Paper, Purpur, Fabric, Forge, NeoForge, Vanilla, Velocity, BungeeCord), Rust, popular Steam games, and Hytale (community egg; see [EGGS.md](EGGS.md#certified-at-launch))
+- **Game servers (primary focus):** the Minecraft family (Paper, Purpur, Fabric, Forge, NeoForge, Vanilla, Velocity, BungeeCord), Rust, popular Steam games, and Hytale (from an imported egg; see [EGGS.md](EGGS.md#certified-at-launch))
 - **Also officially supported:** Discord bots (Node.js/Python), voice servers (TeamSpeak, Mumble), generic Node/Python apps
 
 Anything with a Pterodactyl or Pelican egg can run. The list above is what we **certify** (test in CI and document). Raptor is not a general app platform.
@@ -71,12 +71,12 @@ Does the actual work: runs servers in Docker containers, runs schedules and back
 - Every node gets its own hostname (`1cdd002cd9a3.raptornodes.net`) that follows your IP, even on a home connection
 
 **Automation**
-- Multi-step schedules (warn players → wait → back up → restart) in your timezone
+- Multi-step schedules (warn players → wait → back up → restart) in your time zone
 - Backups on by default: incremental, deduplicated, encrypted. Stored on the box, in your own S3/B2, or in Raptor's hosted storage.
 - Alerts to people and team channels: a server down or crashing, an install finished, a node offline, disk low, CPU or memory above a threshold, and every signed dangerous action. Admins pick who hears about what; each person picks how (an inbox under the bell, plus their email, Telegram, ntfy, Discord, Slack, or a webhook). New orgs start with their owners told about the serious ones.
 
 **Teams**
-- Organizations with members and roles
+- Organisations with members and roles
 - Per-server sub-users with fine-grained permissions
 - Full audit log
 
@@ -87,7 +87,7 @@ Does the actual work: runs servers in Docker containers, runs schedules and back
 
 **Support**
 - Support can request temporary, scoped access to your node. You approve it, see everything they do, and can revoke it at any time.
-- If your node can't connect, `raptor doctor --bundle --upload` sends a redacted diagnostics bundle.
+- If your node can't connect, `raptor doctor -upload` sends a redacted diagnostics bundle.
 
 **Migration**
 - `raptor import pterodactyl` moves existing Pterodactyl servers in place, with the same files and eggs
@@ -124,7 +124,7 @@ Billing runs through Polar (merchant of record), which handles VAT and sales tax
 | Plugins, mods, Workshop, egg changer, SFTP importer, database browser, alerts | Paid add-ons (about $75 for one panel, October 2026) | Built in |
 | Help | Community volunteers | The Raptor team: tickets, migration help, approved support access |
 | Eggs | ✓ | ✓ fully compatible |
-| License | MIT / AGPL | AGPL |
+| Licence | MIT / AGPL | AGPL |
 
 **Positioning:** the landing page leads with Pterodactyl ("Pterodactyl had a good run."), because Pterodactyl owners are who Raptor is for. The comparison stays honest: real add-on prices with sources, the year-one cost, and, in the docs (`start/raptor-vs-pterodactyl`), the years after and the cases where Pterodactyl is the better pick. The page never calls Pterodactyl dead or bad; it shows what running it takes.
 

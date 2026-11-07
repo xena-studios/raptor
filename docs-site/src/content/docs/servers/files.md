@@ -22,13 +22,13 @@ Files up to 4 MB open in the editor, with syntax highlighting for configs and sc
 
 ## Uploading and downloading
 
-- **Upload** a file, or drop files anywhere on the file manager. Each can be up to 1 GB; uploads resume if your connection drops.
+- **Upload → From your computer**, or drop files anywhere on the file manager. Each can be up to 1 GB; uploads resume if your connection drops.
 - **Download** a file from its menu, up to 1 GB.
 - Anything bigger: use [SFTP](#sftp).
 
 ## Download from a link
 
-**From URL** in the toolbar downloads a file straight onto the machine, so a big modpack or world never goes through your computer. Paste the link, check the name it's saved as, and choose **Download**. Its progress shows above the file list, where you can cancel it.
+**Upload → From a link** downloads a file straight onto the machine, so a big modpack or world never goes through your computer. Paste the link, check the name it's saved as, and choose **Download**. Its progress shows above the file list, where you can cancel it.
 
 - `http://` and `https://` links, up to 50 GB and what the server has left.
 - The machine only downloads from the public internet: links to your home network, the machine itself, or a cloud provider's internal addresses are refused, even through a redirect.
@@ -36,9 +36,9 @@ Files up to 4 MB open in the editor, with syntax highlighting for configs and sc
 
 ## Import from another host
 
-**Import** in the toolbar copies a server's files in over SFTP: from an old Pterodactyl or Pelican panel, a game host, or a shared host.
+**Upload → From another host (SFTP)** copies a server's files in over SFTP: from an old Pterodactyl or Pelican panel, a game host, or a shared host.
 
-1. Enter the **host** and **port**, the **username**, and the **password** (or a private key), and optionally the **folder** to copy from. Pterodactyl and Pelican show these on the server's Settings page, as SFTP details.
+1. Enter the **host** and **port**, the **username**, and the **password** (or a private key), and optionally the **folder** to copy from. Pterodactyl and Pelican show these on the server's Settings page, as SFTP details. Choose **Continue**.
 2. Raptor shows the host's **key fingerprint**. If your old host shows one, check it's the same: then nothing in between can see your files or password.
 3. Choose **Import**. Progress shows above the file list.
 
@@ -48,7 +48,7 @@ Moving from Pterodactyl on the **same** machine? [`raptor import pterodactyl`](/
 
 ## Archives
 
-- **Compress** selected files into `.tar.gz` (the default), `.zip`, `.tar.zst`, or `.tar`.
+- **Compress** selected files into `.zip` (the first time), `.tar.gz`, `.tar.zst`, or `.tar`. The file manager remembers the format you last used.
 - **Extract** `.zip`, `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.zst`, and single `.gz` files from their menu. Extracting replaces files with the same names. (`.rar`, `.7z`, and `.xz` aren't supported.)
 
 Both run on the machine; the file appears when it's done.
@@ -58,7 +58,7 @@ Both run on the machine; the file appears when it's done.
 Deleting in the file manager **always moves to the trash**, at the bottom of the folder tree. From there you can **Restore** what you deleted, **Purge** it for good, or **Empty trash**.
 
 - The trash keeps things for **7 days**, then empties itself.
-- It still counts toward the server's disk limit until it's purged.
+- It still counts towards the server's disk limit until it's purged.
 - Deletes over SFTP, and by the game itself, don't go through the trash.
 
 ## Protected files

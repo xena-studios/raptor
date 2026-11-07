@@ -95,8 +95,7 @@ When the node has [more than one disk](/nodes/disks/) for servers, the **Disk** 
 
 ## Delete
 
-**Delete server** (admins and owners) is permanent. Type its name and sign with your passkey.
+**Delete server** (admins and owners) is permanent. Type its name and choose **Delete with passkey**.
 
-- **Take a final backup** (on by default when it has somewhere to back up to): the server is backed up first, and if that fails, it isn't deleted. A final backup on the node itself is kept 30 days; offsite ones are kept like any other.
-- Its files, local backups, schedules, and ports go with it.
+- Its files, local backups, schedules, and ports go with it. If you might want it back, [back it up](/servers/backups/) offsite first.
 - A deleted server's offsite backups stay in the Panel, to restore onto another server with your passkey.

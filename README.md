@@ -28,11 +28,13 @@ Raptor is compatible with Pterodactyl and Pelican eggs, and `raptor import ptero
 - [Deploying](docs/DEPLOY.md): running the Panel's servers
 - [Servers](docs/SERVERS.md): server model, states, ports, console, crash policy, deletion
 - [Egg compatibility](docs/EGGS.md): Pterodactyl/Pelican egg support
+- [Networks](docs/NETWORKS.md): keeping servers on one node apart
+- [Databases](docs/DATABASES.md): managed databases on owners' nodes
 - [Security model](docs/SECURITY-MODEL.md): threat model and security rules
 - [Reliability and performance](docs/RELIABILITY.md): requirements and how we meet them
 - [Decisions log](docs/DECISIONS.md): every locked decision and why
 - [Roadmap](docs/ROADMAP.md)
 
-## License
+## Licence
 
 Raptor is licensed under the [GNU Affero General Public License v3.0](LICENSE). Contributions are accepted under the [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin-dco).

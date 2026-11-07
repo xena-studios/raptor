@@ -1,6 +1,6 @@
 # Servers
 
-How Wings models and runs a server: its data, states, ports, console, crash handling, power actions, and deletion. Egg-specific behavior (install, runtime environment, config parsers) is in [EGGS.md](EGGS.md).
+How Wings models and runs a server: its data, states, ports, console, crash handling, power actions, and deletion. Egg-specific behaviour (install, runtime environment, config parsers) is in [EGGS.md](EGGS.md).
 
 "Server" means anything Wings runs from an egg: game servers, Discord bots, voice servers, apps.
 
@@ -51,6 +51,7 @@ Stored in Wings' SQLite (the source of truth) and mirrored to the Panel.
 | `installing` | An install or reinstall job is running. Power actions are rejected. |
 | `restoring` | A backup is being restored. The server is stopped, power actions are refused, and it starts again afterwards if it was meant to be running ([WINGS.md](WINGS.md#backups)). |
 | `moving` | The server's files are being moved to another disk. The server is stopped, power actions and file access are refused, and it starts again afterwards if it was meant to be running ([WINGS.md](WINGS.md#data-disks)). |
+| `deleting` | The server is being deleted after a final backup ([Deleting a server](#deleting-a-server)). Power actions are refused. |
 | `install_failed` | The last install failed. Files are kept. The server can't start until an install succeeds, unless "skip install script" is set. |
 | `offline` | Container not running, by request. |
 | `starting` | Container started, egg "done" string not seen yet. Eggs without a done string go straight to `running`. If `starting` lasts longer than 10 minutes, the Panel shows a warning; Wings doesn't kill it. |
@@ -67,7 +68,7 @@ Stored in Wings' SQLite (the source of truth) and mirrored to the Panel.
 - **Containers use Docker's restart policy `no`.** Wings, not Docker, decides when servers start, because it must first verify that the quota volume is mounted. A Docker restart policy would bypass that check.
 - When Wings starts, it **reconciles**: containers that are still running are reattached and left alone (Wings restarts never stop servers), and the console is refilled from Docker's logs. Servers whose `desired_state` is `running` but whose container isn't running are started, staggered 3 seconds apart so a box with many servers doesn't spike at boot.
 - An install interrupted by a Wings stop is **resumed** by the job engine: its leftover container is removed and the install runs again over the files ([WINGS.md](WINGS.md#job-engine)). Only an install with no job behind it (from before jobs existed) is marked `install_failed` ("interrupted").
-- Containers labeled as Raptor's but with no server in SQLite are reported and **left alone**.
+- Containers labelled as Raptor's but with no server in SQLite are reported and **left alone**.
 - **Docker restarts** (with `live-restore`) keep containers running. Wings notices the log stream dropped, reconnects to the container's output and stdin, and resumes after the last line it saw, so nothing is lost or repeated.
 
 ### Host shutdown
@@ -75,7 +76,7 @@ Stored in Wings' SQLite (the source of truth) and mirrored to the Panel.
 When the box itself shuts down, Docker would normally stop containers with a short timeout, which can corrupt worlds that are still saving. Wings installs `raptor-shutdown.service`, which runs before Docker stops and **gracefully stops every server with its egg's stop command** (in parallel, each with its own stop timeout, through the root-only `ShutdownServers` local API call). `desired_state` isn't changed, so servers come back after the reboot. Docker's `shutdown-timeout` is also raised to 90 seconds in `daemon.json` as a backstop.
 
 Two details make this actually work:
-- **Container scopes wait for it.** With Docker's systemd cgroup driver every container is a `docker-<id>.scope` unit, and on shutdown systemd stops those scopes itself (a plain SIGTERM to the game) in parallel with everything else, before any graceful stop. A prefix drop-in, `/etc/systemd/system/docker-.scope.d/10-raptor.conf`, orders every scope **`Before=raptor-shutdown.service`**. Shutdown runs in reverse start order, so a unit ordered *before* another is stopped *after* it: the scopes are stopped only once the graceful stops are done. (The first version used `After=`, which does the opposite; see decision 87.)
+- **Container scopes wait for it.** With Docker's systemd cgroup driver every container is a `docker-<id>.scope` unit, and on shutdown systemd stops those scopes itself (a plain SIGTERM to the game) in parallel with everything else, before any graceful stop. A prefix drop-in, `/etc/systemd/system/docker-.scope.d/10-raptor.conf`, orders every scope **`Before=raptor-shutdown.service`**. Shutdown runs in reverse start order, so a unit ordered *before* another is stopped *after* it: the scopes are stopped only once the graceful stops are done. (The first version used `After=`, which does the opposite; see DECISIONS #87.)
 - **It has no `Requires=`/`PartOf=` on `raptor-wings`**, only ordering, so `systemctl restart raptor-wings` never triggers it.
 
 `task e2e:host` checks all of it in the VM: Wings restarts, Docker restarts, a host shutdown (exit code 0 from the egg's stop command, `desired_state` kept), and a real reboot, where the journal of the reboot's own shutdown must show `raptor-shutdown` stopping the servers and finishing before systemd stops any container scope. The check was verified both ways: it fails with the old `After=` drop-in and passes with the fixed one.
@@ -115,7 +116,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 
 **What counts as a crash:** the container exits while `desired_state` is `running` and Wings didn't initiate the stop. This includes OOM kills (reported with reason `oom`). Exit code 0 also counts as a crash by default, matching Pterodactyl, because a player-issued `/stop` looks the same as a clean crash. The per-server setting "treat clean exit as stop" changes that (and sets `desired_state` to `stopped`).
 
-**Detecting OOM kills:** Docker 29 doesn't report them on cgroup v2 (`State.OOMKilled` stays false and no `oom` event is sent, even though the kernel log shows the kill). Wings reads the kernel's own counter instead, `oom_kill` in `raptor.slice`'s `memory.events` (it counts every container below the slice). An exit by SIGKILL that Wings didn't send is reported as `oom` if the counter went up, and as `killed` otherwise. Docker's flag is still honored if it's set.
+**Detecting OOM kills:** Docker 29 doesn't report them on cgroup v2 (`State.OOMKilled` stays false and no `oom` event is sent, even though the kernel log shows the kill). Wings reads the kernel's own counter instead, `oom_kill` in `raptor.slice`'s `memory.events` (it counts every container below the slice). An exit by SIGKILL that Wings didn't send is reported as `oom` if the counter went up, and as `killed` otherwise. Docker's flag is still honoured if it's set.
 
 **Auto-restart** (on by default):
 - Restart delays: immediately after the first crash, 10 s after the second.
@@ -125,7 +126,7 @@ An allocation is an `ip`, a `port`, and the protocols to publish (TCP and UDP by
 
 ## Power actions
 
-| Action | Behavior |
+| Action | Behaviour |
 |---|---|
 | `start` | Checks: install succeeded (or skipped), quota volume mounted with project quotas (or, with soft limits, the server not over its limit), allocations free, image present (pulls if needed). Applies config files and creates a **fresh container**, so pending changes (allocations, limits, variables, image) take effect, then starts it → `starting`. Sets `desired_state=running`. |
 | `stop` | Sends the egg's stop command or signal → `stopping`. If it hasn't exited after the **stop timeout** (default 60 s, configurable per server up to 10 minutes), Wings sends SIGKILL. Sets `desired_state=stopped`. |

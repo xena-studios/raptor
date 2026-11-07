@@ -76,7 +76,7 @@ Open a ticket on [Discord](/help/get-help/#reach-the-raptor-team) and the team w
 
 The importer works on the machine both run on. For a server on a different machine, or at a game host:
 
-- If it offers SFTP, use **Import** in the server's file manager: Raptor copies its files in over SFTP. See [Files](/servers/files/#import-from-another-host).
+- If it offers SFTP, use **Upload → From another host (SFTP)** in the server's file manager: Raptor copies its files in over SFTP. See [Files](/servers/files/#import-from-another-host).
 - Or upload an archive of it, and extract it in the file manager.
 
 Make the server in Raptor first, with the same game, then bring its files in.
