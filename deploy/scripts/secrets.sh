@@ -46,6 +46,22 @@ tls_file() { # field file
 tls_file certificate origin.pem
 tls_file private_key origin-key.pem
 tls_file origin_pull_ca origin-pull-ca.pem
+# A file that's there but won't parse (a PEM pasted into a 1Password
+# Password field comes back on one line) would leave Caddy restarting
+# forever; stop here instead, with the field to fix.
+tls_check() { # what field command...
+  if ! "${@:3}" >/dev/null 2>&1; then
+    echo "secrets: $1 from \"Origin certificate\" ($2) isn't valid PEM: paste it whole into a Text field, not a Password one (docs/DEPLOY.md#secrets)" >&2
+    exit 1
+  fi
+}
+tls_check "the certificate" certificate openssl x509 -noout -in /run/raptor/tls/origin.pem
+tls_check "the private key" private_key openssl pkey -noout -in /run/raptor/tls/origin-key.pem
+tls_check "the origin pull CA" origin_pull_ca openssl x509 -noout -in /run/raptor/tls/origin-pull-ca.pem
+if [ "$(openssl x509 -noout -pubkey -in /run/raptor/tls/origin.pem | sha256sum)" != "$(openssl pkey -pubout -in /run/raptor/tls/origin-key.pem | sha256sum)" ]; then
+  echo "secrets: the private key in \"Origin certificate\" isn't the certificate's" >&2
+  exit 1
+fi
 # The Panel refuses keys others can read: 0600, owned by its user.
 chown 65532:65532 /run/raptor/keys/*.key /run/raptor/panel.env
 chmod 0600 /run/raptor/keys/*.key /run/raptor/panel.env /run/raptor/postgres.env
