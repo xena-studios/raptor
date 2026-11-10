@@ -90,8 +90,12 @@ environment:
   PANEL_CLIENT_IP_HEADER       header with the client's address (CF-Connecting-IP);
                                only when the origin accepts nothing but Cloudflare
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
-  PANEL_CLOUDFLARE_DNS_TOKEN   Cloudflare API token that can edit that zone's DNS
-  PANEL_CLOUDFLARE_ZONE_ID     the zone's ID
+  PANEL_ROUTE53_ZONE_ID        the zone's Route 53 hosted zone ID; with the two
+  PANEL_ROUTE53_ACCESS_KEY_ID  below, node records are written there
+  PANEL_ROUTE53_SECRET_ACCESS_KEY  an IAM key that can edit only node records
+  PANEL_CLOUDFLARE_DNS_TOKEN   or, without Route 53: a Cloudflare API token that
+                               can edit the zone's DNS
+  PANEL_CLOUDFLARE_ZONE_ID     the zone's Cloudflare ID
   PANEL_DISCORD_BOT_TOKEN      Raptor Bot's token; the bot is off without it. Its
                                application should be PANEL_DISCORD_CLIENT_ID's
   PANEL_DISCORD_PUBLIC_KEY     the application's public key (hex), which signs
@@ -225,6 +229,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			return err
 		}
 		defer pool.Close()
+		cfg.Ready = pool.Ping
 		reg, err := registry(pool)
 		if err != nil {
 			return err
@@ -351,10 +356,16 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		}
 		nodeDomain := envOr("PANEL_NODE_DOMAIN", "raptornodes.net")
 		addrs := &nodes.Addresses{Store: reg, Domain: nodeDomain, Log: log}
-		if tok := os.Getenv("PANEL_CLOUDFLARE_DNS_TOKEN"); tok != "" {
+		if zone := os.Getenv("PANEL_ROUTE53_ZONE_ID"); zone != "" {
+			addrs.DNS = &dns.Route53{
+				AccessKeyID:     os.Getenv("PANEL_ROUTE53_ACCESS_KEY_ID"),
+				SecretAccessKey: os.Getenv("PANEL_ROUTE53_SECRET_ACCESS_KEY"),
+				ZoneID:          zone,
+			}
+		} else if tok := os.Getenv("PANEL_CLOUDFLARE_DNS_TOKEN"); tok != "" {
 			addrs.DNS = &dns.Cloudflare{Token: tok, ZoneID: os.Getenv("PANEL_CLOUDFLARE_ZONE_ID")}
 		} else {
-			log.Warn("PANEL_CLOUDFLARE_DNS_TOKEN is not set: node hostnames aren't updated")
+			log.Warn("neither PANEL_ROUTE53_ZONE_ID nor PANEL_CLOUDFLARE_DNS_TOKEN is set: node hostnames aren't updated")
 		}
 		// Records that should go (old hostnames, player subdomains) are
 		// deleted in the background.

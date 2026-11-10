@@ -67,7 +67,7 @@ The docs for owners (`docs.raptorpanel.net`) are an **Astro Starlight** site in 
 | `verify.raptorpanel.net` | The Turnstile page the sign-in form embeds (`web/verify`), apart from the app's origin | Static |
 | `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |
 | Mail sending subdomain | SPF/DKIM for transactional email | Resend |
-| `<short-id>.raptornodes.net` | Node hostnames, nothing else (#279) | DNS-only; the apex redirects to `raptorpanel.net` |
+| `<short-id>.raptornodes.net` | Node hostnames, nothing else (#279) | In Route 53, DNS-only; the apex explains the domain, and names that aren't nodes get a 404 |
 
 ### Wings
 A single Go binary (`raptor`) that is both the daemon (`raptor wings run`) and the CLI. Runs on the owner's box as a systemd service. See [WINGS.md](WINGS.md).
@@ -146,7 +146,7 @@ Wings ──wss://api.raptorpanel.net/nodes/connect──► Cloudflare ──�
 - **Version negotiation** at handshake: each side declares its protocol version and capabilities. The Panel supports the last N Wings minor versions.
 
 ### Cloudflare in front of the Panel
-- `raptorpanel.net` and its subdomains are proxied (orange cloud), except `status.`, which must stay up when Cloudflare doesn't. `raptornodes.net` is **DNS-only** (grey cloud): game traffic and SFTP can't go through the proxy.
+- `raptorpanel.net` and its subdomains are proxied (orange cloud), except `status.`, which must stay up when Cloudflare doesn't. `raptornodes.net` isn't on Cloudflare at all: it's in Route 53, and its node records are plain DNS, since game traffic and SFTP can't go through a proxy.
 - **Origin locked to Cloudflare** (Authenticated Origin Pulls, or a firewall allowing only Cloudflare's IP ranges), so nobody can reach the Panel around Cloudflare. The client IP header (`CF-Connecting-IP`) is only trusted on connections from Cloudflare.
 - A WAF rule lets the node connection path through Cloudflare's bot and challenge features, since Wings isn't a browser.
 - Request bodies are limited to 100 MB on Cloudflare's Free and Pro plans, so file uploads through the Panel are sent in chunks.

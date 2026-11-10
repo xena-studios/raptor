@@ -37,8 +37,9 @@ You need:
 | What | Notes |
 |---|---|
 | A Linux server | Debian 12 or 13, or Ubuntu 24.04, x86-64 or arm64, at any provider: production is an Oracle Cloud Ampere A1 (2 OCPU, 12 GB, the Always Free allowance) in Ashburn. 2 vCPU and 4 GB is enough at launch (Postgres's settings assume 4 GB or more), with 40 GB of disk. Its public IPv4 is all `bootstrap.sh` needs; nothing else about the provider matters. On Oracle, see [Oracle Cloud](#oracle-cloud) first. |
-| Object storage | S3-compatible, at a **different provider** from the server (a provider outage or account problem mustn't take the database and its backups together). Backblaze B2 or Wasabi are fine. One bucket, private, versioning off (pgBackRest manages its own retention), and an access key that can only use that bucket. |
-| Cloudflare | `raptorpanel.net` and `raptornodes.net` as zones. The free plan works for both to start; `raptornodes.net` needs a plan with enough DNS records once you pass the free plan's limit (one record per node). |
+| Object storage | S3-compatible, at a **different provider** from the server (a provider outage or account problem mustn't take the database and its backups together). Backblaze B2 or Wasabi are fine. One bucket (production: `raptor-panel-backups` on B2), private, and an access key that can only use that bucket. On B2, its lifecycle is **"Keep prior versions for this number of days: 7"**: pgBackRest's own expiry still frees the space within a week, but someone on the server can't destroy the backups at once. Set a storage cap with an alert at 80% (Caps & Alerts), so a runaway repository is noticed before uploads are refused. |
+| Cloudflare | `raptorpanel.net` as a zone, on the free plan. |
+| AWS Route 53 | `raptornodes.net`: registered there, and its hosted zone, which holds one record per node (10,000 by default). [Below](#raptornodesnet). |
 | 1Password | A vault called **Raptor production**, and a service account that can read it (and nothing else). |
 | Resend, Turnstile, OAuth apps | Already made: you have the keys. They go in the vault, below. |
 | A machine with Go, Docker, and the `op` CLI | Your Mac. For making keys and running the rehearsal. |
@@ -59,7 +60,7 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `Turnstile` | `secret_key` | The production widget's secret. |
 | `GitHub OAuth` | `client_id`, `client_secret` | The production app (callback `https://api.raptorpanel.net/oauth/github/callback`). |
 | `Google OAuth`, `Discord OAuth` | `client_id`, `client_secret` | When you've made them. A provider is offered once both its values are set. |
-| `Cloudflare raptornodes.net DNS` | `token`, `zone_id` | [Below](#raptornodesnet). |
+| `Route 53 DNS` | `access_key_id`, `secret_access_key`, `zone_id` | [Below](#raptornodesnet). |
 | `Support bundles storage` | `bucket`, `endpoint`, `region`, `access_key_id`, `secret_access_key` | [Below](#support-bundles). |
 | `Raptor Backup Storage` | `key_id`, `application_key`, `bucket_id`, `endpoint`, `region` | Optional: without it the Panel doesn't offer it. [Below](#raptor-backup-storage). |
 | `Grafana Cloud OTLP` | `endpoint`, `headers` | [Below](#monitoring). |
@@ -129,10 +130,12 @@ Then the service account: 1Password → Developer → Service accounts → new, 
 
 ### raptornodes.net
 
-1. Every record is **DNS only** (grey cloud). Node hostnames point straight at nodes.
-2. Apex: a Redirect Rule `raptornodes.net/*` → `https://raptorpanel.net`, 301 (with a proxied placeholder record `@ AAAA 100::` for it to answer on).
-3. A token for the Panel: My Profile → API Tokens → Custom: permission **Zone → DNS → Edit**, zone **raptornodes.net only**, client IP filtering **every public address of the server, IPv4 and IPv6** (the Panel's calls leave over IPv4, since its Docker network has none, but commands on the server itself, like checking the token, prefer IPv6). A rebuilt server has new addresses: add them here too, or the Panel can't write node records. The Panel holds this token and no other Cloudflare token; it can't touch `raptorpanel.net`. Put it and the zone ID in the vault (`Cloudflare raptornodes.net DNS`).
-**Moving to Route 53 (in progress, Nov 2026):** a free Cloudflare zone made after September 2024 holds 200 records, one per node, so `raptornodes.net` is moving to AWS Route 53, registration included (Cloudflare's registrar only allows Cloudflare's nameservers). The zone, the Panel's narrowly limited key (1Password `Route 53 DNS`), and CloudFront for the apex and `*` are set up; [`deploy/aws/raptornodes-function.js`](../deploy/aws/raptornodes-function.js) serves the explanation page on the apex and a 404 for names that aren't nodes. Still to come: the Panel writing to Route 53, `panel dns resync` (the Panel keeps what it last wrote, so an empty zone would never be filled), then the nameserver switch. Until then, everything above is current.
+Registered at Amazon Route 53, and served from its hosted zone (`Z0328517Y9QKX0XUWKOX`), in the personal AWS organization's member account "Raptor". It moved off Cloudflare in November 2026: a free Cloudflare zone made after September 2024 holds 200 records, one per node.
+
+1. Node records are plain A (or AAAA) records, 60-second TTL, written by the Panel. They point straight at nodes: game traffic and SFTP can't go through a proxy.
+2. The apex, `www`, and `*` are alias records to a CloudFront distribution whose function, [`deploy/aws/raptornodes-function.js`](../deploy/aws/raptornodes-function.js), answers the apex with what the domain is (and where to report abuse), redirects `www`, and answers every name that isn't a node with a 404. A node's own record always wins over the wildcard.
+3. The Panel's key: an IAM user with only the `raptor-panel-dns` policy, which allows changing A and AAAA records in this zone (never the apex, `www`, or `*`), listing them, and only from the server's IPv4 address (`aws:SourceIp`). A rebuilt server has a new address: add it to the policy, or the Panel can't write node records. Put the key and the zone ID in the vault (`Route 53 DNS`).
+4. DNSSEC: off for now (no DS record at the registry). When turning it on, enable signing in the hosted zone first, then add its DS record in Registered domains; never leave a DS record the zone doesn't sign for, or every validating resolver answers SERVFAIL for every node.
 
 4. Later, before launch: submit `raptornodes.net` to the [Public Suffix List](https://publicsuffix.org) ([ARCHITECTURE.md](ARCHITECTURE.md#node-dns)).
 
@@ -195,7 +198,7 @@ The Panel caps uploads at 32 MB, 10 a day per linked node, 3 a day per address f
 
 Customers' offsite backups ([PANEL.md](PANEL.md#raptor-backup-storage)), in one Backblaze B2 bucket. Use a B2 account of its own, not the one the Panel's own backups are in, so a mistake with one can't touch the other.
 
-1. **The bucket:** name it exactly `raptor-backup-storage` (Wings only accepts this name for Raptor storage, `internal/shared/hosted`; if it's taken, the constant changes and so does every Wings). **Private**, and its lifecycle set to **"Keep prior versions for this number of days: 30"** (`daysFromHidingToDeleting: 30`). Nodes' keys can't delete for good, so their deletes (Kopia's cleanup, or someone on a hacked node) only hide files; this keeps the hidden versions 30 days, then removes them. Not "keep only the last version": a hacked node could then destroy its offsite backups within a day. Not B2's default (keep every version) either: deleted data would be stored, and billed, forever. Note the bucket ID and its S3 endpoint (`s3.<region>.backblazeb2.com`).
+1. **The bucket:** name it exactly `raptor-server-backups` (Wings only accepts this name for Raptor storage, `internal/shared/hosted`; if it's taken, the constant changes and so does every Wings). **Private**, and its lifecycle set to **"Keep prior versions for this number of days: 30"** (`daysFromHidingToDeleting: 30`). Nodes' keys can't delete for good, so their deletes (Kopia's cleanup, or someone on a hacked node) only hide files; this keeps the hidden versions 30 days, then removes them. Not "keep only the last version": a hacked node could then destroy its offsite backups within a day. Not B2's default (keep every version) either: deleted data would be stored, and billed, forever. Note the bucket ID and its S3 endpoint (`s3.<region>.backblazeb2.com`).
 2. **The Panel's key**, with the B2 command line (`brew install b2-tools`, then `b2 account authorize` with the account's master key; the web page's keys can't make keys): `b2 key create raptor-panel listKeys,writeKeys,deleteKeys,listBuckets,listFiles,readFiles,writeFiles,deleteFiles`. It's for all buckets, since B2 only lets those make keys, so use an account with nothing else in it. The Panel uses it to make each node a key limited to `orgs/<org>/nodes/<node>/` in the bucket, delete keys, list files to measure usage, and delete a turned-off node's files after 30 days. It's the most powerful key Raptor holds after the database password: anyone with it can read and delete every customer's (encrypted) backups.
 3. **The vault:** `Raptor Backup Storage` with `key_id`, `application_key`, `bucket_id`, `endpoint` (without `https://`), and `region`. The next deploy sets `PANEL_BACKUP_STORAGE_*`, and the app offers it on every node's Backups tab.
 4. **Check**, with a test node: turn it on, take a backup to it, and see the node's folder in the bucket. Then, with the node's key (from its `state.db`, `backup_destinations`, on the test node only) and the `b2` command line: listing or reading another node's folder is refused; deleting one of its own files only hides it (the old version is still there); deleting a version (`b2 file delete` with its ID) is refused; and a backup and Kopia's cleanup on the node still work. The next day, org settings → Backups shows the usage.
@@ -385,7 +388,7 @@ When the server is gone, broken beyond a quick fix, or you're moving providers: 
    /opt/raptor/deploy/scripts/bootstrap.sh restore v0.x.y
    ```
 
-3. Do the last steps it prints: the `api` record in Cloudflare (proxied records change within seconds, and nodes and browsers reconnect by themselves), and `DEPLOY_HOST` and `DEPLOY_KNOWN_HOSTS` in GitHub. Add the new addresses to the `raptornodes.net` DNS token's IP filter ([raptornodes.net](#raptornodesnet)).
+3. Do the last steps it prints: the `api` record in Cloudflare (proxied records change within seconds, and nodes and browsers reconnect by themselves), and `DEPLOY_HOST` and `DEPLOY_KNOWN_HOSTS` in GitHub. Add the new address to the Route 53 key's policy ([raptornodes.net](#raptornodesnet)).
 
 To stop at a moment instead of the end of the archive (before a bad migration, say), add `--target-time "2026-11-05 12:00:00+00"`, and pick the version that ran at that moment: a newer one would migrate the restored database forward again. Versions before v0.14.0 can't be restored this way (their deploy files are laid out for two servers); use the oldest one that can, as long as its migrations are no newer than that moment's.
 
@@ -419,7 +422,7 @@ The Panel sends metrics and a sample of traces (10% of requests) over OpenTeleme
 
    | Alert | Fires when | Why it matters |
    |---|---|---|
-   | API down (Synthetic Monitoring) | `/healthz` fails from 2 of 3 locations | Nobody can sign in or manage anything |
+   | API down (Synthetic Monitoring) | `/healthz` fails from 2 of 3 locations (it fails when the Panel can't reach Postgres, too) | Nobody can sign in or manage anything |
    | Panel silent | no Panel has sent metrics for 10 min | Every other alert is blind: the Panels are down, or the OTLP token expired or was revoked |
    | API errors | over 5% of requests answer internal, unknown, unavailable, or data loss, for 5 min | Something is broken behind the API |
    | Nodes dropped | connected nodes fall by 30% within 5 min (from at least 5) | Cloudflare, the network, or the Panel is failing nodes |

@@ -11,7 +11,7 @@ import (
 // Bucket is the bucket's name. B2 bucket names are unique across all of
 // Backblaze, so pinning it here means a "Raptor storage" destination can
 // only ever send backups to Raptor's own bucket, whatever a Panel says.
-const Bucket = "raptor-backup-storage"
+const Bucket = "raptor-server-backups"
 
 // endpoint is B2's S3 endpoint, in any region.
 var endpoint = regexp.MustCompile(`^s3\.[a-z0-9-]+\.backblazeb2\.com$`)
