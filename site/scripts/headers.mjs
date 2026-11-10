@@ -11,8 +11,11 @@ const hashes = new Set();
 for (const f of await readdir(dist, { recursive: true })) {
   if (!f.endsWith(".html")) continue;
   const html = await readFile(join(dist, f), "utf8");
-  for (const [, attrs, body] of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)) {
-    if (/\ssrc=/.test(attrs) || !body) continue;
+  // Tag and attribute names are case-insensitive in HTML, and an end tag
+  // may carry spaces or attributes (`</script >`): a script this missed
+  // would be refused by the CSP, one it misread would get the wrong hash.
+  for (const [, attrs, body] of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script(?:[\s/][^>]*)?>/gi)) {
+    if (/\ssrc\s*=/i.test(attrs ?? "") || !body) continue;
     hashes.add(`'sha256-${createHash("sha256").update(body).digest("base64")}'`);
   }
 }
