@@ -87,6 +87,12 @@ services:
       - ./initdb:/docker-entrypoint-initdb.d:ro
     # Not published: only the Panels, on this stack's network, connect.
     shm_size: 256mb
+    # No core dumps: a crash's dump lands in the data directory, where
+    # every backup copies it. On the old server something crashing every few
+    # seconds wrote 31 GB of them, which filled the backup bucket's cap and
+    # then the disk, and took Postgres down (DECISIONS.md #345).
+    ulimits:
+      core: 0
     stop_grace_period: 120s
     healthcheck:
       # As the postgres user: as root, every check logs a failed login.
