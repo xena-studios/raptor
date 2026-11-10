@@ -1,7 +1,6 @@
 # Postgres and pgBackRest secrets (scripts/secrets.sh → /run/raptor/postgres.env).
 POSTGRES_PASSWORD={{ op://Raptor production/Postgres/superuser_password }}
 PANEL_DB_PASSWORD={{ op://Raptor production/Postgres/panel_password }}
-REPLICATOR_PASSWORD={{ op://Raptor production/Postgres/replicator_password }}
 PGBACKREST_REPO1_S3_BUCKET={{ op://Raptor production/Backup storage/bucket }}
 PGBACKREST_REPO1_S3_ENDPOINT={{ op://Raptor production/Backup storage/endpoint }}
 PGBACKREST_REPO1_S3_REGION={{ op://Raptor production/Backup storage/region }}

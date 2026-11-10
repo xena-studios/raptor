@@ -1,0 +1,11 @@
+# Rehearsal (scripts/rehearse.sh): the server's stack on one machine, with
+# local images, and a network shared with MinIO (the backup bucket).
+services:
+  postgres:
+    networks:
+      default: {}
+      rehearsal: {}
+networks:
+  rehearsal:
+    external: true
+    name: raptor-rehearsal

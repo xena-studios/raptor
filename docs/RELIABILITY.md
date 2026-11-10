@@ -12,8 +12,8 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 |---|---|
 | Game server downtime caused by Raptor (Panel, Wings restart/update) | **0** |
 | Panel API availability | 99.9% monthly |
-| Panel data loss on disaster (RPO) | ≤ 1 minute (streaming replica), ≤ 5 minutes worst case (WAL archive) |
-| Panel recovery time (RTO) | ≤ 30 minutes (promote replica) |
+| Panel data loss on disaster (RPO) | ≤ 1 minute (WAL archived every 60 s) |
+| Panel recovery time (RTO) | ≤ 30 minutes (rebuild on a new server from the backups) |
 | Console latency (box → browser) | p95 < 250 ms added by Raptor |
 | Panel API latency | p95 < 150 ms for reads |
 | Node reconnect after a Panel restart | All nodes reconnected < 2 min, without load spikes |
@@ -66,14 +66,13 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 ## Panel
 
 ### Deploys
-The Panel is one process role (`serve api`), deployed with zero downtime for browsers (start new → health check → shift traffic → drain old). Every stable release tag deploys itself (#210). Server #1 runs two instances behind Caddy, and `deploy/scripts/deploy.sh` runs migrations (always compatible with the running version), then replaces one instance at a time, waiting for each to be healthy. A Panel shutting down answers 503 on `/healthz` first, so Caddy stops sending it requests while it drains. The rehearsal (`task deploy:rehearse`) probes the API every 100 ms through a deploy and fails on one error.
+The Panel is one process role (`serve api`), deployed with zero downtime for browsers (start new → health check → shift traffic → drain old). Every stable release tag deploys itself (#210). The server runs two instances behind Caddy, and `deploy/scripts/deploy.sh` runs migrations (always compatible with the running version), then replaces one instance at a time, waiting for each to be healthy. A Panel shutting down answers 503 on `/healthz` first, so Caddy stops sending it requests while it drains. The rehearsal (`task deploy:rehearse`) probes the API every 100 ms through a deploy and fails on one error.
 - Node connections move to the new instances during the drain: on SIGTERM the old instance stops claiming its nodes (so commands go elsewhere at once), turns new node connections away (503), and closes the ones it has spread evenly over 20 seconds, so they reconnect to the other instances a few at a time. Open consoles reconnect the same way. Tested with two instances on one database (`TestRouter`): commands through either reach the node, and draining one moves the node to the other without a command running twice.
 - **Accepted trade-off:** every deploy briefly reconnects every node. Game servers are never affected (they don't depend on the connection), and jittered reconnects avoid a storm. This replaced the separate `tunnel` process of the original design (decision 72).
 
 ### Database
-- **Streaming replica on a second server from launch.** A single Postgres box is a single point of failure for logins and management. Promoting a replica takes minutes; restoring from a WAL archive can take much longer. A second box is cheap compared to the cost of a long outage.
-- WAL archiving (pgBackRest) to object storage **in a different location**. Restores are **tested monthly**, by a timer: the latest backup is restored into a scratch container and compared with the primary (`deploy/scripts/restore-test.sh`).
-- **Failover is manual** (#205): promote the replica, start the Panels on server #2, move the `api` record ([DEPLOY.md](DEPLOY.md#failover)). Automatic failover with two database servers can't tell a dead primary from a split network, and two primaries is worse than a few minutes down.
+- **One server, no standby** (#344). The Panel's Postgres is on the same server as the Panels. If the server dies, a new one is made and restored from the archive with one command (`bootstrap.sh restore`, [DEPLOY.md](DEPLOY.md#rebuilding)), at the same provider or any other: about 15 minutes down, at most a minute of writes lost. Game servers keep running throughout; only managing them waits.
+- WAL archiving (pgBackRest) to object storage **at a different provider**, so an account or provider problem can't take the database and its backups together. Restores are **tested monthly**, by a timer: the latest backup is restored into a scratch container and compared with the live database (`deploy/scripts/restore-test.sh`). The rehearsal (`task deploy:rehearse`) rebuilds a whole server from the archive and checks a write made after the last backup survives.
 - Connection pooling via `pgxpool`. Every query has a context timeout.
 - Event ingestion from Wings is **batched** (multi-row inserts / `COPY`), not one transaction per event.
 - No live stats in Postgres. Only downsampled summaries.
@@ -92,10 +91,10 @@ The Panel is one process role (`serve api`), deployed with zero downtime for bro
 ## Observability
 
 Reliability you can't see isn't reliability.
-- **Panel:** structured logs (`slog`), OpenTelemetry metrics and traces, dashboards and alerts for API error rates and latency, node connection counts, reconnect rates, event lag per node, job queue depth, and Postgres replication lag. Built (`internal/panel/telemetry`, off until `OTEL_EXPORTER_OTLP_ENDPOINT` is set): every RPC's latency and result code, connected nodes and connects per instance, commands by action and outcome, emails by result, mirror sync failures, node event lag and backlog, nodes by Wings version, the nodes' own health (host disks low, doctor's checks failing or warning, counted per check), and the database's replicas, replay lag, archive failures, and WAL size. Still to come: job queue depth. The alert rules are in [DEPLOY.md](DEPLOY.md#monitoring), with an outside uptime check and a dead man's switch for backups and restore tests.
+- **Panel:** structured logs (`slog`), OpenTelemetry metrics and traces, dashboards and alerts for API error rates and latency, node connection counts, reconnect rates, event lag per node, job queue depth, and the WAL archive. Built (`internal/panel/telemetry`, off until `OTEL_EXPORTER_OTLP_ENDPOINT` is set): every RPC's latency and result code, connected nodes and connects per instance, commands by action and outcome, emails by result, mirror sync failures, node event lag and backlog, nodes by Wings version, the nodes' own health (host disks low, doctor's checks failing or warning, counted per check), and the database's archive failures and WAL size. Still to come: job queue depth. The alert rules are in [DEPLOY.md](DEPLOY.md#monitoring), with an outside uptime check and a dead man's switch for backups and restore tests.
 - **Wings:** its own health metrics (reconnects, job failures, crash loops, disk pressure) are reported over the node connection, visible to the owner on the node health page and to us in aggregate.
 - **Status page** (`status.raptorpanel.net`) hosted with a different provider than the Panel, with DNS that doesn't depend on Cloudflare, so it stays up during a Cloudflare outage.
-- Alerting that pages a human for: API down, Cloudflare or node connections failing, replication broken, backup archive failing, mass node disconnects.
+- Alerting that pages a human for: API down, Cloudflare or node connections failing, backup archive failing, mass node disconnects.
 
 ## Testing for reliability
 
