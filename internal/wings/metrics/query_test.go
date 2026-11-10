@@ -108,6 +108,13 @@ func TestQueryFailures(t *testing.T) {
 	if _, err := QueryPlayers(ctx, "source", pc.LocalAddr().String()); err == nil {
 		t.Error("silent server: no error")
 	}
+	// A port that doesn't fit in 16 bits is refused, not truncated into
+	// the handshake.
+	for _, addr := range []string{"127.0.0.1:65536", "127.0.0.1:-1", "127.0.0.1"} {
+		if _, err := QueryPlayers(ctx, "minecraft", addr); err == nil {
+			t.Errorf("address %q: no error", addr)
+		}
+	}
 	if _, err := QueryPlayers(ctx, "quake", "127.0.0.1:1"); err == nil {
 		t.Error("unknown protocol: no error")
 	}
