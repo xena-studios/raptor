@@ -28,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/backupkeys"
 	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/machines"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
@@ -489,9 +490,14 @@ func (s *Service) InviteMember(ctx context.Context, req *panelv1.InviteMemberReq
 	}
 	// The token goes after #, like sign-in links, so it stays out of logs.
 	link := strings.TrimSuffix(s.Auth.AppURL, "/") + "/invite#" + token
-	body := fmt.Sprintf("%s invited you to join %q on Raptor as %s.\n\nAccept the invitation, signed in as %s:\n%s\n\nIt works for 7 days. If you weren't expecting it, ignore it.\n",
-		inviter, orgName, articled(role), email, link)
-	if err := s.Auth.Mailer.Send(ctx, email, fmt.Sprintf("Join %s on Raptor", orgName), body); err != nil {
+	e := mail.Email{
+		Subject: fmt.Sprintf("Join %s on Raptor", orgName),
+		Title:   fmt.Sprintf("Join %s on Raptor", orgName),
+		Body:    []string{fmt.Sprintf("%s invited you to join %q on Raptor as %s. Accept the invitation signed in as %s.", inviter, orgName, articled(role), email)},
+		Button:  &mail.Link{Label: "Accept the invitation", URL: link},
+		Note:    "The invitation works for 7 days. If you weren't expecting it, ignore it.",
+	}
+	if err := s.Auth.Mailer.Send(ctx, email, e); err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("couldn't send the email; try again in a minute"))
 	}
 	return &panelv1.InviteMemberResponse{Invitation: invitationProto(inv)}, nil

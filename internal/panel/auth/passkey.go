@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -368,8 +369,13 @@ func (s *Service) FinishPasskeyRegistration(ctx context.Context, req *panelv1.Fi
 		return nil, err
 	}
 	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "passkey.add", Target: uuid.UUID(row.ID.Bytes).String(), Meta: map[string]any{"name": name}})
-	s.notify(ctx, sess.User, "A passkey was added to your Raptor account",
-		fmt.Sprintf("A passkey named %q was added to your Raptor account. It can sign in without a code.\n\nIf this wasn't you, sign out every device and remove it from your account settings right away.\n", name))
+	s.notify(ctx, sess.User, mail.Email{
+		Subject: "A passkey was added to your Raptor account",
+		Title:   "A passkey was added",
+		Body:    []string{fmt.Sprintf("A passkey named %q was added to your Raptor account. It can sign in without a code.", name)},
+		Button:  s.securityLink(),
+		Note:    "If this wasn't you, sign out every device and remove the passkey right away.",
+	})
 	return &panelv1.FinishPasskeyRegistrationResponse{Passkey: passkeyProto(row)}, nil
 }
 
@@ -437,8 +443,13 @@ func (s *Service) DeletePasskey(ctx context.Context, req *panelv1.DeletePasskeyR
 		return nil, err
 	}
 	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "passkey.remove", Target: req.GetId(), Meta: map[string]any{"name": row.Name}})
-	s.notify(ctx, sess.User, "A passkey was removed from your Raptor account",
-		fmt.Sprintf("The passkey named %q was removed from your Raptor account.\n\nIf this wasn't you, sign out every device from your account settings right away.\n", row.Name))
+	s.notify(ctx, sess.User, mail.Email{
+		Subject: "A passkey was removed from your Raptor account",
+		Title:   "A passkey was removed",
+		Body:    []string{fmt.Sprintf("The passkey named %q was removed from your Raptor account.", row.Name)},
+		Button:  s.securityLink(),
+		Note:    "If this wasn't you, sign out every device right away.",
+	})
 	return &panelv1.DeletePasskeyResponse{}, nil
 }
 

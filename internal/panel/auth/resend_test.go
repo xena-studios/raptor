@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
+
+	"github.com/xena-studios/raptor/internal/panel/mail"
 )
 
 // fakeResend answers POST /emails with the given statuses in turn and
@@ -58,12 +61,20 @@ func TestResend(t *testing.T) {
 	ctx := context.Background()
 	r, f := newFakeResend(t)
 	r.ReplyTo = "support@example.test"
-	if err := r.Send(ctx, "alice@example.com", "Your code", "123456"); err != nil {
+	e := mail.Email{Subject: "Your code", Title: "Your sign-in code", Code: "123456"}
+	if err := r.Send(ctx, "alice@example.com", e); err != nil {
 		t.Fatal(err)
 	}
 	b := f.bodies[0]
-	if b["from"] != "Raptor <account@mail.example.test>" || b["subject"] != "Your code" || b["text"] != "123456" || b["reply_to"] != "support@example.test" {
+	if b["from"] != "Raptor <account@mail.example.test>" || b["subject"] != "Your code" || b["text"] != e.Text() || b["reply_to"] != "support@example.test" {
 		t.Errorf("body: %v", b)
+	}
+	// Both versions, the HTML one with the logo inline: nothing fetched.
+	if html, _ := b["html"].(string); !strings.Contains(html, "123456") || !strings.Contains(html, `src="cid:`+mail.LogoID+`"`) {
+		t.Errorf("html: %q", b["html"])
+	}
+	if att, _ := b["attachments"].([]any); len(att) != 1 || att[0].(map[string]any)["content_id"] != mail.LogoID {
+		t.Errorf("attachments: %v", b["attachments"])
 	}
 	if to, _ := b["to"].([]any); len(to) != 1 || to[0] != "alice@example.com" {
 		t.Errorf("to: %v", b["to"])
@@ -74,7 +85,7 @@ func TestResend(t *testing.T) {
 
 	// A rate limit is retried once, with the same idempotency key.
 	r, f = newFakeResend(t, http.StatusTooManyRequests)
-	if err := r.Send(ctx, "alice@example.com", "s", "t"); err != nil {
+	if err := r.Send(ctx, "alice@example.com", mail.Email{Subject: "s", Title: "t"}); err != nil {
 		t.Fatal(err)
 	}
 	if len(f.keys) != 2 || f.keys[0] != f.keys[1] {
@@ -82,18 +93,18 @@ func TestResend(t *testing.T) {
 	}
 	// Twice is an error.
 	r, _ = newFakeResend(t, http.StatusTooManyRequests, http.StatusTooManyRequests)
-	if err := r.Send(ctx, "alice@example.com", "s", "t"); err == nil {
+	if err := r.Send(ctx, "alice@example.com", mail.Email{Subject: "s", Title: "t"}); err == nil {
 		t.Error("rate limited twice and no error")
 	}
 	// A refused request isn't retried.
 	r, f = newFakeResend(t, http.StatusUnprocessableEntity)
-	if err := r.Send(ctx, "alice@example.com", "s", "t"); err == nil || len(f.bodies) != 1 {
+	if err := r.Send(ctx, "alice@example.com", mail.Email{Subject: "s", Title: "t"}); err == nil || len(f.bodies) != 1 {
 		t.Errorf("refused: %v after %d tries", err, len(f.bodies))
 	}
 	// Each email gets its own key.
 	r, f = newFakeResend(t)
-	_ = r.Send(ctx, "a@example.com", "s", "t")
-	_ = r.Send(ctx, "a@example.com", "s", "t")
+	_ = r.Send(ctx, "a@example.com", mail.Email{Subject: "s", Title: "t"})
+	_ = r.Send(ctx, "a@example.com", mail.Email{Subject: "s", Title: "t"})
 	if f.keys[0] == f.keys[1] {
 		t.Error("two emails shared an idempotency key")
 	}

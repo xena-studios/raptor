@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -156,8 +157,12 @@ func (s *Service) FinishEmailChange(ctx context.Context, req *panelv1.FinishEmai
 		return nil, failure
 	}
 	// The old address hears about it, in case it wasn't its owner.
-	s.notify(ctx, sess.User, "Your Raptor account's email changed",
-		fmt.Sprintf("Your Raptor account now signs in with %s instead of this address.\n\nIf this wasn't you, reply to this email right away.\n", email))
+	s.notify(ctx, sess.User, mail.Email{
+		Subject: "Your Raptor account's email changed",
+		Title:   "Your account's email changed",
+		Body:    []string{fmt.Sprintf("Your Raptor account now signs in with %s instead of this address.", email)},
+		Note:    "If this wasn't you, reply to this email right away.",
+	})
 	return &panelv1.FinishEmailChangeResponse{User: userProto(user)}, nil
 }
 
@@ -208,8 +213,11 @@ func (s *Service) DeleteAccount(ctx context.Context, _ *panelv1.DeleteAccountReq
 		setCookie(c.resp, "", 0)
 	}
 	s.linksChanged()
-	s.notify(ctx, sess.User, "Your Raptor account was deleted",
-		"Your Raptor account and everything that signed in to it were deleted. Signing in with this address again starts a new account.\n")
+	s.notify(ctx, sess.User, mail.Email{
+		Subject: "Your Raptor account was deleted",
+		Title:   "Your account was deleted",
+		Body:    []string{"Your Raptor account and everything that signed in to it were deleted. Signing in with this address again starts a new account."},
+	})
 	return &panelv1.DeleteAccountResponse{}, nil
 }
 

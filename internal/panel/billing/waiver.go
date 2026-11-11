@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -102,16 +103,34 @@ func (s *Service) sweepWaiver(ctx context.Context, q *store.Queries, r store.Bil
 		}
 		if n > 0 {
 			s.ledger(ctx, q, r.OrgID, "waiver.ended", w.Free(int(r.Nodes)), 0, "", "", map[string]any{"waiver": w.ID, "why": "end_date"})
-			s.email(ctx, q, r.OrgID, "Raptor: your free nodes have ended",
-				fmt.Sprintf("Raptor gave your org %%s %s until %s. That's ended, so from today it's charged like any org: %s.\n\nIf the org doesn't have a plan, an owner can start one in Settings, Billing:\n%s\n\nReply to this email if that's not what you expected.\n",
-					what, date, chargedWords(w), s.billingURL(org)))
+			s.email(ctx, q, r.OrgID, func(name string) mail.Email {
+				return mail.Email{
+					Subject: "Raptor: your free nodes have ended",
+					Title:   "Your free nodes have ended",
+					Body: []string{
+						fmt.Sprintf("Raptor gave your org %s %s until %s. That's ended, so from today it's charged like any org: %s.", name, what, date, chargedWords(w)),
+						"If the org doesn't have a plan, an owner can start one in Settings, Billing.",
+					},
+					Button: &mail.Link{Label: "Open billing", URL: s.billingURL(org)},
+					Note:   "Reply to this email if that's not what you expected.",
+				}
+			})
 		}
 		return nil, nil
 	}
 	if now.After(w.EndsAt.Add(-WaiverReminder)) && !slices.Contains(r.WaiverNotified, "reminder") {
-		s.email(ctx, q, r.OrgID, "Raptor: your free nodes end on "+date,
-			fmt.Sprintf("Raptor gives your org %%s %s until %s. After that, it's charged like any org: %s.\n\nIf the org doesn't have a plan by then, an owner can start one in Settings, Billing:\n%s\n\nReply to this email if that's not what you expected.\n",
-				what, date, chargedWords(w), s.billingURL(org)))
+		s.email(ctx, q, r.OrgID, func(name string) mail.Email {
+			return mail.Email{
+				Subject: "Raptor: your free nodes end on " + date,
+				Title:   "Your free nodes end on " + date,
+				Body: []string{
+					fmt.Sprintf("Raptor gives your org %s %s until %s. After that, it's charged like any org: %s.", name, what, date, chargedWords(w)),
+					"If the org doesn't have a plan by then, an owner can start one in Settings, Billing.",
+				},
+				Button: &mail.Link{Label: "Open billing", URL: s.billingURL(org)},
+				Note:   "Reply to this email if that's not what you expected.",
+			}
+		})
 		if err := q.SetWaiverNotified(ctx, store.SetWaiverNotifiedParams{ID: r.WaiverID, Notified: append(slices.Clone(r.WaiverNotified), "reminder")}); err != nil {
 			return nil, err
 		}

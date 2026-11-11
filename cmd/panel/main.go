@@ -33,6 +33,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/discord"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/machines"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/rollout"
@@ -614,8 +615,8 @@ type countingMailer struct {
 	sent metric.Int64Counter
 }
 
-func (m countingMailer) Send(ctx context.Context, to, subject, body string) error {
-	err := m.Mailer.Send(ctx, to, subject, body)
+func (m countingMailer) Send(ctx context.Context, to string, e mail.Email) error {
+	err := m.Mailer.Send(ctx, to, e)
 	result := "sent"
 	if err != nil {
 		result = "failed"

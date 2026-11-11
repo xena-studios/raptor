@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/netip"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -92,8 +92,14 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 		where = ip.String()
 	}
 	return func() {
-		s.notify(ctx, user, "New sign-in to your Raptor account",
-			fmt.Sprintf("Your Raptor account was just signed in to from a device or browser it hasn't used before:\n\n%s\nfrom %s\n\nIf this was you, there's nothing to do. If it wasn't, sign out every device from your account settings and check your sign-in methods right away.\n", ua, where))
+		s.notify(ctx, user, mail.Email{
+			Subject: "New sign-in to your Raptor account",
+			Title:   "New sign-in to your account",
+			Body:    []string{"Your Raptor account was just signed in to from a device or browser it hasn't used before."},
+			Facts:   []mail.Fact{{Label: "Device", Value: ua}, {Label: "From", Value: where}, {Label: "When", Value: s.now().UTC().Format("2 Jan 2006 15:04 UTC")}},
+			Button:  s.securityLink(),
+			Note:    "If this was you, there's nothing to do. If it wasn't, sign out every device and check your sign-in methods right away.",
+		})
 	}, nil
 }
 

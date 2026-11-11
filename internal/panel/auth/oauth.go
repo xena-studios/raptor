@@ -20,6 +20,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -221,8 +222,13 @@ func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity)
 		s.linksChanged()
 	}
 	if linked != nil {
-		s.notify(ctx, *linked, providerNames[provider]+" sign-in was added to your Raptor account",
-			fmt.Sprintf("Someone signed in to your Raptor account with a %s account that has your verified email address, so it can now sign in to your account.\n\nIf this wasn't you, remove it from your account settings and sign out every device right away.\n", providerNames[provider]))
+		s.notify(ctx, *linked, mail.Email{
+			Subject: providerNames[provider] + " sign-in was added to your Raptor account",
+			Title:   providerNames[provider] + " sign-in was added",
+			Body:    []string{fmt.Sprintf("Someone signed in to your Raptor account with a %s account that has your verified email address, so it can now sign in to your account.", providerNames[provider])},
+			Button:  s.methodsLink(),
+			Note:    "If this wasn't you, remove it and sign out every device right away.",
+		})
 	}
 	return dest
 }
@@ -261,8 +267,13 @@ func (s *Service) oauthLink(ctx context.Context, provider string, session pgtype
 	}
 	_ = s.Audit(ctx, nil, Event{User: user.ID, Action: "oauth.link", Target: uuid.UUID(acct.ID.Bytes).String(), Meta: map[string]any{"provider": provider}})
 	s.linksChanged()
-	s.notify(ctx, user, providerNames[provider]+" sign-in was added to your Raptor account",
-		fmt.Sprintf("A %s account can now sign in to your Raptor account.\n\nIf this wasn't you, remove it from your account settings and sign out every device right away.\n", providerNames[provider]))
+	s.notify(ctx, user, mail.Email{
+		Subject: providerNames[provider] + " sign-in was added to your Raptor account",
+		Title:   providerNames[provider] + " sign-in was added",
+		Body:    []string{fmt.Sprintf("A %s account can now sign in to your Raptor account.", providerNames[provider])},
+		Button:  s.methodsLink(),
+		Note:    "If this wasn't you, remove it and sign out every device right away.",
+	})
 	return settings + "?linked=" + url.QueryEscape(provider)
 }
 
@@ -316,7 +327,12 @@ func (s *Service) UnlinkOAuthAccount(ctx context.Context, req *panelv1.UnlinkOAu
 	}
 	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "oauth.unlink", Target: req.GetId(), Meta: map[string]any{"provider": row.Provider}})
 	s.linksChanged()
-	s.notify(ctx, sess.User, providerNames[row.Provider]+" sign-in was removed from your Raptor account",
-		fmt.Sprintf("A %s account can no longer sign in to your Raptor account.\n\nIf this wasn't you, sign out every device from your account settings right away.\n", providerNames[row.Provider]))
+	s.notify(ctx, sess.User, mail.Email{
+		Subject: providerNames[row.Provider] + " sign-in was removed from your Raptor account",
+		Title:   providerNames[row.Provider] + " sign-in was removed",
+		Body:    []string{fmt.Sprintf("A %s account can no longer sign in to your Raptor account.", providerNames[row.Provider])},
+		Button:  s.securityLink(),
+		Note:    "If this wasn't you, sign out every device right away.",
+	})
 	return &panelv1.UnlinkOAuthAccountResponse{}, nil
 }

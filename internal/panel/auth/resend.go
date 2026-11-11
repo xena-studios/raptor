@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/resend/resend-go/v3"
+
+	"github.com/xena-studios/raptor/internal/panel/mail"
 )
 
 // Resend sends the Panel's email through Resend (resend.com), from its own
@@ -29,11 +31,14 @@ func NewResend(apiKey, from string) *Resend {
 	return &Resend{Client: resend.NewCustomClient(&http.Client{Timeout: 15 * time.Second}, apiKey), From: from}
 }
 
-// Send implements Mailer. A rate limit or a network error is retried once
-// with the same idempotency key, so a send whose answer was lost isn't
-// delivered twice.
-func (r *Resend) Send(ctx context.Context, to, subject, text string) error {
-	req := &resend.SendEmailRequest{From: r.From, To: []string{to}, Subject: subject, Text: text, ReplyTo: r.ReplyTo}
+// Send implements Mailer: the text and the HTML versions, with the logo
+// inline. A rate limit or a network error is retried once with the same
+// idempotency key, so a send whose answer was lost isn't delivered twice.
+func (r *Resend) Send(ctx context.Context, to string, e mail.Email) error {
+	req := &resend.SendEmailRequest{
+		From: r.From, To: []string{to}, Subject: e.Subject, Text: e.Text(), Html: e.HTML(), ReplyTo: r.ReplyTo,
+		Attachments: []*resend.Attachment{{Content: mail.Logo, Filename: "raptor.png", ContentType: "image/png", ContentId: mail.LogoID}},
+	}
 	opts := &resend.SendEmailOptions{IdempotencyKey: newToken()}
 	_, err := r.Client.Emails.SendWithOptions(ctx, req, opts)
 	if err == nil || !retryable(err) {

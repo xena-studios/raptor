@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -16,6 +17,7 @@ import (
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/paneltest"
 )
 
@@ -26,15 +28,18 @@ type inbox struct {
 	mail []string
 }
 
-func (b *inbox) Send(_ context.Context, to, _, text string) error {
+func (b *inbox) Send(_ context.Context, to string, e mail.Email) error {
+	if e.HTML() == "" {
+		return errors.New("the HTML version didn't render")
+	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.mail = append(b.mail, to+"\n"+text)
+	b.mail = append(b.mail, to+"\n"+e.Text())
 	return nil
 }
 
 var (
-	codeRe = regexp.MustCompile(`code is (\d{6})`)
+	codeRe = regexp.MustCompile(`\n\n(\d{6})\n\n`)
 	linkRe = regexp.MustCompile(`/signin/link#([A-Za-z0-9_-]+)`)
 )
 

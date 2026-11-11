@@ -16,6 +16,7 @@ import (
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -67,24 +68,38 @@ func (s *Service) sendEmailCode(ctx context.Context, email, purpose string) erro
 	}); err != nil {
 		return err
 	}
-	var subject, body string
+	minutes := int(CodeTTL.Minutes())
+	var e mail.Email
 	switch {
 	case strings.HasPrefix(purpose, "email_change:"):
-		subject = "Confirm your new Raptor email: " + code
-		body = fmt.Sprintf("Your Raptor confirmation code is %s\n\nSomeone signed in to a Raptor account asked to move it to this address. The code works once, for %d minutes. If this wasn't you, ignore it: nothing changes without the code.\n",
-			code, int(CodeTTL.Minutes()))
+		e = mail.Email{
+			Subject: "Confirm your new Raptor email: " + code,
+			Title:   "Confirm your new email",
+			Code:    code,
+			Body:    []string{fmt.Sprintf("Someone signed in to a Raptor account asked to move it to this address. Enter this code to confirm it. It works once, for %d minutes.", minutes)},
+			Note:    "If this wasn't you, ignore this email: nothing changes without the code.",
+		}
 	case purpose == purposeSignIn:
 		// The token goes after #, so it never reaches a server's logs.
 		url := strings.TrimSuffix(s.AppURL, "/") + "/signin/link#" + link
-		subject = "Your Raptor sign-in code: " + code
-		body = fmt.Sprintf("Your Raptor sign-in code is %s\n\nOr sign in with this link:\n%s\n\nBoth work once, for %d minutes. If you didn't ask for this, ignore it: nobody can sign in without the code.\n",
-			code, url, int(CodeTTL.Minutes()))
+		e = mail.Email{
+			Subject: "Your Raptor sign-in code: " + code,
+			Title:   "Your sign-in code",
+			Code:    code,
+			Body:    []string{"Enter this code to sign in to Raptor, or sign in with the button below."},
+			Button:  &mail.Link{Label: "Sign in to Raptor", URL: url},
+			Note:    fmt.Sprintf("The code and the link work once, for %d minutes. If you didn't ask for this, ignore it: nobody can sign in without this email.", minutes),
+		}
 	default:
-		subject = "Your Raptor confirmation code: " + code
-		body = fmt.Sprintf("Your Raptor confirmation code is %s\n\nSomeone signed in to your account is changing how it's secured, and asked to confirm it's you. The code works once, for %d minutes. If this wasn't you, sign out every device from your account settings.\n",
-			code, int(CodeTTL.Minutes()))
+		e = mail.Email{
+			Subject: "Your Raptor confirmation code: " + code,
+			Title:   "Confirm it's you",
+			Code:    code,
+			Body:    []string{fmt.Sprintf("Someone signed in to your account is changing how it's secured, and asked to confirm it's you. The code works once, for %d minutes.", minutes)},
+			Note:    "If this wasn't you, sign out every device from your account settings.",
+		}
 	}
-	if err := s.Mailer.Send(ctx, email, subject, body); err != nil {
+	if err := s.Mailer.Send(ctx, email, e); err != nil {
 		s.log().Error("sending an email failed", "purpose", purpose, "err", err)
 		return connect.NewError(connect.CodeUnavailable, errors.New("couldn't send the email; try again in a minute"))
 	}

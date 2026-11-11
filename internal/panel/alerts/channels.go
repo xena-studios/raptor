@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 )
 
@@ -176,7 +177,7 @@ type target struct {
 // sender sends alerts; Service has one.
 type sender struct {
 	client   *http.Client
-	mail     func(ctx context.Context, to, subject, body string) error
+	mail     func(ctx context.Context, to string, e mail.Email) error
 	telegram *TelegramBot
 	now      func() time.Time
 }
@@ -191,10 +192,10 @@ func (s *sender) send(ctx context.Context, t target, m Message) error {
 		if len(t.Emails) == 0 {
 			return permanent{errors.New("nobody to email: no member of the org matches")}
 		}
-		subject, body := emailText(m)
+		e := emailFor(m)
 		var errs []error
 		for _, to := range t.Emails {
-			if err := s.mail(ctx, to, subject, body); err != nil {
+			if err := s.mail(ctx, to, e); err != nil {
 				errs = append(errs, fmt.Errorf("%s: %w", to, err))
 			}
 		}
@@ -289,39 +290,33 @@ func truncate(s string, n int) string {
 	return s[:n] + "…"
 }
 
-func emailText(m Message) (string, string) {
-	subject := "Raptor: " + m.Title
+func emailFor(m Message) mail.Email {
+	e := mail.Email{Subject: "Raptor: " + m.Title, Title: m.Title}
 	if w := where(m); w != "" {
-		subject += " (" + w + ")"
+		e.Subject += " (" + w + ")"
 	}
-	var b strings.Builder
-	b.WriteString(m.Title + "\n\n")
 	if m.Text != "" {
-		b.WriteString(m.Text + "\n\n")
+		e.Body = []string{m.Text}
 	}
-	if m.Server != "" {
-		b.WriteString("Server: " + m.Server + "\n")
+	for _, f := range []mail.Fact{{Label: "Server", Value: m.Server}, {Label: "Node", Value: m.Node}, {Label: "Org", Value: m.Org}} {
+		if f.Value != "" {
+			e.Facts = append(e.Facts, f)
+		}
 	}
-	if m.Node != "" {
-		b.WriteString("Node: " + m.Node + "\n")
-	}
-	if m.Org != "" {
-		b.WriteString("Org: " + m.Org + "\n")
-	}
-	b.WriteString("When: " + m.At.UTC().Format("2 Jan 2006 15:04 UTC") + "\n")
+	e.Facts = append(e.Facts, mail.Fact{Label: "When", Value: m.At.UTC().Format("2 Jan 2006 15:04 UTC")})
 	if m.URL != "" {
-		b.WriteString("\n" + m.URL + "\n")
+		e.Button = &mail.Link{Label: "Open in Raptor", URL: m.URL}
 	}
 	if m.Condition == "test" {
-		b.WriteString("\nYou sent a test to your email from Raptor. Change how you're told about alerts from the bell at the top of any page.\n")
-		return subject, b.String()
+		e.Note = "You sent a test to your email from Raptor. Change how you're told about alerts from the bell at the top of any page."
+		return e
 	}
-	b.WriteString("\nYou get this because of an alert rule")
+	rule := ""
 	if m.Rule != "" {
-		b.WriteString(" (" + m.Rule + ")")
+		rule = " (" + m.Rule + ")"
 	}
-	b.WriteString(" in this org that tells you. Change how you're told from the bell at the top of any page in Raptor; the org's admins choose which alerts you get.\n")
-	return subject, b.String()
+	e.Note = "You get this because of an alert rule" + rule + " in this org that tells you. Change how you're told from the bell at the top of any page in Raptor; the org's admins choose which alerts you get."
+	return e
 }
 
 // Discord embed colors per level.
