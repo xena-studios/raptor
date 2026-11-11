@@ -12,13 +12,22 @@ if (!manifest) {
   console.error("usage: verify-deployed.mjs <web-bundle.sha256> [origin]");
   process.exit(2);
 }
+const base = new URL(`${origin}/`);
 const config = new Set(["_headers", "_redirects"]);
 const bad = [];
 let checked = 0;
 for (const line of (await readFile(manifest, "utf8")).split("\n")) {
   const m = line.match(/^([0-9a-f]{64}) {2}(.+)$/);
   if (!m || config.has(m[2])) continue;
-  const res = await fetch(new URL(m[2], `${origin}/`));
+  // The manifest names files in the bundle, so each one is a path on the
+  // site being checked: a line that's a URL, or climbs out with `..`, would
+  // send the request (or the check) somewhere else.
+  const url = new URL(m[2], base);
+  if (m[2].split("/").some((p) => p === ".." || p === ".") || url.origin !== base.origin) {
+    bad.push(`${m[2]}: not a path on ${base.origin}`);
+    continue;
+  }
+  const res = await fetch(url);
   if (!res.ok) {
     bad.push(`${m[2]}: ${res.status}`);
     continue;

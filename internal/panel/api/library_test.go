@@ -321,6 +321,10 @@ func TestEggLibrary(t *testing.T) {
 	if err != nil || len(community.GetEggs()) != 1 || community.GetEggs()[0].GetPublisher() != "Acme" || community.GetEggs()[0].GetScope() != "community" {
 		t.Fatalf("community: %v, %v", community, err)
 	}
+	// A page token past int32 is refused, not wrapped into a negative OFFSET.
+	if _, err := carol.lib.ListCommunityEggs(ctx, &panelv1.ListCommunityEggsRequest{OrgId: carolOrg, PageToken: "4294967326"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("an overflowing page token: %v", err)
+	}
 	if _, err := carol.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: carolOrg, Id: shared.GetId()}); err != nil {
 		t.Errorf("a shared egg's page: %v", err)
 	}

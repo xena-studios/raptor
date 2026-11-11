@@ -40,6 +40,14 @@ func QueryPlayers(ctx context.Context, protocol, addr string) (Players, error) {
 // queryMinecraft uses the Java edition's Server List Ping: a handshake into
 // the status state, a status request, and a JSON reply.
 func queryMinecraft(ctx context.Context, addr string) (Players, error) {
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return Players{}, err
+	}
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return Players{}, fmt.Errorf("bad port in %q", addr)
+	}
 	var d net.Dialer
 	c, err := d.DialContext(ctx, "tcp", addr)
 	if err != nil {
@@ -49,16 +57,14 @@ func queryMinecraft(ctx context.Context, addr string) (Players, error) {
 	if dl, ok := ctx.Deadline(); ok {
 		_ = c.SetDeadline(dl)
 	}
-	host, portStr, _ := net.SplitHostPort(addr)
-	port, _ := strconv.Atoi(portStr)
 
 	var hs bytes.Buffer
-	hs.WriteByte(0x00)                                    // handshake
-	hs.Write(varint(-1))                                  // protocol version: any, for status
-	hs.Write(varint(int32(len(host))))                    //nolint:gosec // a hostname
-	hs.WriteString(host)                                  //
-	_ = binary.Write(&hs, binary.BigEndian, uint16(port)) //nolint:gosec // a port
-	hs.Write(varint(1))                                   // next state: status
+	hs.WriteByte(0x00)                 // handshake
+	hs.Write(varint(-1))               // protocol version: any, for status
+	hs.Write(varint(int32(len(host)))) //nolint:gosec // a hostname
+	hs.WriteString(host)               //
+	_ = binary.Write(&hs, binary.BigEndian, uint16(port))
+	hs.Write(varint(1)) // next state: status
 	var out bytes.Buffer
 	out.Write(varint(int32(hs.Len()))) //nolint:gosec // small
 	out.Write(hs.Bytes())
