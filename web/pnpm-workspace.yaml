@@ -2,3 +2,6 @@ overrides:
   # Monaco pins an older DOMPurify with known advisories (GHSA-6688-9rhm-gjv2,
   # and the SAFE_FOR_TEMPLATES and IN_PLACE bypasses fixed in 3.4.17).
   dompurify: ">=3.4.17"
+  # ts-morph (via shadcn) still asks for minimatch ^10, and every 10.x is
+  # affected by GHSA-g3hv-75wg-m249; the fix is only in 11.0.1.
+  "@ts-morph/common>minimatch": ">=11.0.1"
