@@ -47,8 +47,11 @@ func (m LogMailer) Send(_ context.Context, to string, e mail.Email) error {
 	if err != nil {
 		return err
 	}
-	// A browser can't follow cid:, so the logo goes in the page.
-	html := strings.ReplaceAll(e.HTML(), "cid:"+mail.LogoID, "data:image/png;base64,"+base64.StdEncoding.EncodeToString(mail.Logo))
+	// A browser can't follow cid:, so the pictures go in the page.
+	html := e.HTML()
+	for _, img := range mail.Images {
+		html = strings.ReplaceAll(html, `"cid:`+img.ID+`"`, `"data:image/png;base64,`+base64.StdEncoding.EncodeToString(img.PNG)+`"`)
+	}
 	return os.WriteFile(strings.TrimSuffix(m.File, ".txt")+".html", []byte(html), 0o600)
 }
 

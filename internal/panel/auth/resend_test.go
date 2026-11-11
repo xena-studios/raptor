@@ -70,10 +70,10 @@ func TestResend(t *testing.T) {
 		t.Errorf("body: %v", b)
 	}
 	// Both versions, the HTML one with the logo inline: nothing fetched.
-	if html, _ := b["html"].(string); !strings.Contains(html, "123456") || !strings.Contains(html, `src="cid:`+mail.LogoID+`"`) {
+	if html, _ := b["html"].(string); !strings.Contains(html, "123456") || !strings.Contains(html, `src="cid:raptor-logo"`) {
 		t.Errorf("html: %q", b["html"])
 	}
-	if att, _ := b["attachments"].([]any); len(att) != 1 || att[0].(map[string]any)["content_id"] != mail.LogoID {
+	if att, _ := b["attachments"].([]any); len(att) != len(mail.Images) || att[0].(map[string]any)["content_id"] != mail.Images[0].ID {
 		t.Errorf("attachments: %v", b["attachments"])
 	}
 	if to, _ := b["to"].([]any); len(to) != 1 || to[0] != "alice@example.com" {

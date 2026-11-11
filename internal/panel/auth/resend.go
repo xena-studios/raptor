@@ -37,7 +37,9 @@ func NewResend(apiKey, from string) *Resend {
 func (r *Resend) Send(ctx context.Context, to string, e mail.Email) error {
 	req := &resend.SendEmailRequest{
 		From: r.From, To: []string{to}, Subject: e.Subject, Text: e.Text(), Html: e.HTML(), ReplyTo: r.ReplyTo,
-		Attachments: []*resend.Attachment{{Content: mail.Logo, Filename: "raptor.png", ContentType: "image/png", ContentId: mail.LogoID}},
+	}
+	for _, img := range mail.Images {
+		req.Attachments = append(req.Attachments, &resend.Attachment{Content: img.PNG, Filename: img.ID + ".png", ContentType: "image/png", ContentId: img.ID})
 	}
 	opts := &resend.SendEmailOptions{IdempotencyKey: newToken()}
 	_, err := r.Client.Emails.SendWithOptions(ctx, req, opts)

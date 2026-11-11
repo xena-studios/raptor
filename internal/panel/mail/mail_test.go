@@ -24,7 +24,7 @@ func TestEmail(t *testing.T) {
 	html := e.HTML()
 	for _, s := range []string{
 		"Join &lt;Acme&gt; on Raptor", "first &lt;b&gt;not bold&lt;/b&gt;", "two<br>lines",
-		`href="https://app.example/invite#tok"`, ">123456<", ">rust<", `src="cid:` + LogoID + `"`,
+		`href="https://app.example/invite#tok"`, ">123456<", ">rust<", `src="cid:raptor-logo"`, `src="cid:raptor-logo-dark"`,
 		"If this wasn&#39;t you",
 	} {
 		if !strings.Contains(html, s) {
@@ -45,7 +45,9 @@ func TestEmail(t *testing.T) {
 	if got := (Email{Subject: "s", Title: "t"}).Text(); got != "t\n\nRaptor · https://raptorpanel.net\n" {
 		t.Errorf("title only: %q", got)
 	}
-	if len(Logo) == 0 {
-		t.Error("no logo")
+	for _, img := range Images {
+		if len(img.PNG) == 0 {
+			t.Errorf("no %s", img.ID)
+		}
 	}
 }

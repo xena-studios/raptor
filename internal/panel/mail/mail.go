@@ -43,14 +43,24 @@ type Fact struct{ Label, Value string }
 // Link is a button.
 type Link struct{ Label, URL string }
 
-// Logo is the favicon's tile (docs/DESIGN.md#7-brand), sent inline as LogoID:
-// nothing is fetched to show it, so opening an email tells nobody anything.
-//
-//go:embed logo.png
-var Logo []byte
+// Image is a picture sent inline with every email, shown as cid:ID: nothing
+// is fetched to show it, so opening an email tells nobody anything.
+type Image struct {
+	ID  string
+	PNG []byte
+}
 
-// LogoID is the logo's content ID: the HTML shows cid:LogoID.
-const LogoID = "raptor-logo"
+// The full logo (docs/DESIGN.md#7-brand), the raptor and the wordmark, drawn
+// on the card's colour in each theme.
+var (
+	//go:embed logo-light.png
+	logoLight []byte
+	//go:embed logo-dark.png
+	logoDark []byte
+)
+
+// Images are the inline pictures every email's HTML shows.
+var Images = []Image{{ID: "raptor-logo", PNG: logoLight}, {ID: "raptor-logo-dark", PNG: logoDark}}
 
 // Text is the plain-text version.
 func (e Email) Text() string {
@@ -126,6 +136,8 @@ var page = template.Must(template.New("email").Funcs(template.FuncMap{
     .btn a { color: #1b0a09 !important; }
     a { color: #f05653 !important; }
     .muted a { color: #a89b99 !important; }
+    .logo-light { display: none !important; }
+    .logo-dark { display: block !important; max-height: none !important; margin: 0 0 28px !important; }
   }
   @media (max-width: 600px) {
     .card { padding: 24px 20px !important; }
@@ -137,13 +149,9 @@ var page = template.Must(template.New("email").Funcs(template.FuncMap{
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bg" style="background:#f4efee;">
 <tr><td align="center" style="padding:32px 16px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
-  <tr><td style="padding:0 4px 16px;">
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td style="vertical-align:middle;"><img src="cid:raptor-logo" width="28" height="28" alt="" style="display:block;border:0;border-radius:6px;"></td>
-      <td class="fg" style="vertical-align:middle;padding-left:10px;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#190f0e;">Raptor</td>
-    </tr></table>
-  </td></tr>
   <tr><td class="card" style="background:#ffffff;border:1px solid #e3dcdb;border-radius:12px;padding:32px;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <img class="logo-light" src="cid:raptor-logo" width="150" height="24" alt="Raptor" style="display:block;border:0;margin:0 0 28px;">
+    <!--[if !mso]><!--><img class="logo-dark" src="cid:raptor-logo-dark" width="150" height="24" alt="Raptor" style="display:none;max-height:0;overflow:hidden;border:0;margin:0;"><!--<![endif]-->
     <h1 class="fg" style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:700;color:#190f0e;">{{.Title}}</h1>
     {{- if .Code}}
     <div class="code" style="margin:0 0 20px;padding:16px;background:#f9f6f5;border:1px solid #e3dcdb;border-radius:8px;text-align:center;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:8px;color:#190f0e;">{{.Code}}</div>
