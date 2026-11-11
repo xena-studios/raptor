@@ -492,6 +492,7 @@ func (s *Service) InviteMember(ctx context.Context, req *panelv1.InviteMemberReq
 	link := strings.TrimSuffix(s.Auth.AppURL, "/") + "/invite#" + token
 	e := mail.Email{
 		Subject: fmt.Sprintf("Join %s on Raptor", orgName),
+		Kicker:  "invitation",
 		Title:   fmt.Sprintf("Join %s on Raptor", orgName),
 		Body:    []string{fmt.Sprintf("%s invited you to join %q on Raptor as %s. Accept the invitation signed in as %s.", inviter, orgName, articled(role), email)},
 		Button:  &mail.Link{Label: "Accept the invitation", URL: link},

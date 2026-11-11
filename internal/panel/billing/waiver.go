@@ -106,6 +106,7 @@ func (s *Service) sweepWaiver(ctx context.Context, q *store.Queries, r store.Bil
 			s.email(ctx, q, r.OrgID, func(name string) mail.Email {
 				return mail.Email{
 					Subject: "Raptor: your free nodes have ended",
+					Kicker:  "billing",
 					Title:   "Your free nodes have ended",
 					Body: []string{
 						fmt.Sprintf("Raptor gave your org %s %s until %s. That's ended, so from today it's charged like any org: %s.", name, what, date, chargedWords(w)),
@@ -122,6 +123,7 @@ func (s *Service) sweepWaiver(ctx context.Context, q *store.Queries, r store.Bil
 		s.email(ctx, q, r.OrgID, func(name string) mail.Email {
 			return mail.Email{
 				Subject: "Raptor: your free nodes end on " + date,
+				Kicker:  "billing",
 				Title:   "Your free nodes end on " + date,
 				Body: []string{
 					fmt.Sprintf("Raptor gives your org %s %s until %s. After that, it's charged like any org: %s.", name, what, date, chargedWords(w)),

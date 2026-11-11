@@ -19,6 +19,9 @@ type Sender interface {
 // parts appear in this order.
 type Email struct {
 	Subject string
+	// Kicker names the context above the title, as the app's pages do
+	// ("account", "billing"): HTML only, as "// account".
+	Kicker string
 	// Title is the heading, the first thing read.
 	Title string
 	// Code is a one-time code, shown large.
@@ -37,8 +40,12 @@ type Email struct {
 	Note string
 }
 
-// Fact is a labelled value.
-type Fact struct{ Label, Value string }
+// Fact is a labelled value. Mono is for data, which the app shows in mono
+// (an address, a time, an ID); a sentence isn't.
+type Fact struct {
+	Label, Value string
+	Mono         bool
+}
 
 // Link is a button.
 type Link struct{ Label, URL string }
@@ -111,7 +118,12 @@ func (e Email) Preheader() string {
 	return e.Title
 }
 
-// Daylight and Night (web/src/index.css), as hex for mail clients.
+// The page is docs/DESIGN.md's in hex, since mail clients don't know oklch:
+// Daylight (page #f9f6f5, card #f4efee, rule #ded5d4, Graphite #190f0e,
+// Slate #5f5554, Signal Red #d01025) and the Console where a client has a
+// dark mode (Ink #0f0808, Raised Ink #181110, rule #342c2b, Bone #f5f0f0,
+// Ash #9f9695, Signal Red #f05653). Corners are the app's 4px, and the
+// button is its primary key: mono capitals with the key highlight.
 var page = template.Must(template.New("email").Funcs(template.FuncMap{
 	"lines": func(s string) []string { return strings.Split(s, "\n") },
 }).Parse(`<!doctype html>
@@ -123,67 +135,78 @@ var page = template.Must(template.New("email").Funcs(template.FuncMap{
 <meta name="supported-color-schemes" content="light dark">
 <title>{{.Subject}}</title>
 <style>
-  body { margin: 0; padding: 0; }
+  body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
   a { color: #d01025; }
+  .btn a:hover { background: #b80d20 !important; }
   @media (prefers-color-scheme: dark) {
-    .bg { background: #120b0a !important; }
-    .card { background: #1d1413 !important; border-color: #33292a !important; }
-    .fg { color: #f4efee !important; }
-    .muted { color: #a89b99 !important; }
-    .code { background: #120b0a !important; border-color: #33292a !important; color: #f4efee !important; }
-    .rule { border-color: #33292a !important; }
+    .page { background: #0f0808 !important; }
+    .card { background: #181110 !important; border-color: #342c2b !important; }
+    .fg { color: #f5f0f0 !important; }
+    .muted { color: #9f9695 !important; }
+    .rule { border-color: #342c2b !important; }
+    .code { background: #0f0808 !important; border-color: #342c2b !important; color: #f5f0f0 !important; }
     .btn { background: #f05653 !important; }
-    .btn a { color: #1b0a09 !important; }
+    .btn a { background: #f05653 !important; color: #1b0a09 !important; }
+    .btn a:hover { background: #f36d69 !important; }
     a { color: #f05653 !important; }
-    .muted a { color: #a89b99 !important; }
+    .muted a { color: #9f9695 !important; }
     .logo-light { display: none !important; }
-    .logo-dark { display: block !important; max-height: none !important; margin: 0 0 28px !important; }
+    .logo-dark { display: block !important; max-height: none !important; }
   }
   @media (max-width: 600px) {
     .card { padding: 24px 20px !important; }
   }
 </style>
 </head>
-<body class="bg" style="margin:0;padding:0;background:#f4efee;">
+<body class="page" style="margin:0;padding:0;background:#f9f6f5;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{{.Preheader}}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bg" style="background:#f4efee;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" style="background:#f9f6f5;">
 <tr><td align="center" style="padding:32px 16px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
-  <tr><td class="card" style="background:#ffffff;border:1px solid #e3dcdb;border-radius:12px;padding:32px;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <img class="logo-light" src="cid:raptor-logo" width="150" height="24" alt="Raptor" style="display:block;border:0;margin:0 0 28px;">
-    <!--[if !mso]><!--><img class="logo-dark" src="cid:raptor-logo-dark" width="150" height="24" alt="Raptor" style="display:none;max-height:0;overflow:hidden;border:0;margin:0;"><!--<![endif]-->
-    <h1 class="fg" style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:700;color:#190f0e;">{{.Title}}</h1>
+  <tr><td style="padding:0 0 20px;">
+    <img class="logo-light" src="cid:raptor-logo" width="125" height="20" alt="Raptor" style="display:block;border:0;">
+    <!--[if !mso]><!--><img class="logo-dark" src="cid:raptor-logo-dark" width="125" height="20" alt="Raptor" style="display:none;max-height:0;overflow:hidden;border:0;"><!--<![endif]-->
+  </td></tr>
+  <tr><td class="card" style="background:#f4efee;border:1px solid #ded5d4;border-radius:6px;padding:28px;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    {{- if .Kicker}}
+    <p class="muted" style="margin:0 0 8px;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.4;letter-spacing:0.18em;text-transform:uppercase;color:#5f5554;">// {{.Kicker}}</p>
+    {{- end}}
+    <h1 class="fg" style="margin:0 0 16px;font-size:24px;line-height:1.333;font-weight:700;letter-spacing:-0.025em;text-wrap:balance;color:#190f0e;">{{.Title}}</h1>
     {{- if .Code}}
-    <div class="code" style="margin:0 0 20px;padding:16px;background:#f9f6f5;border:1px solid #e3dcdb;border-radius:8px;text-align:center;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:8px;color:#190f0e;">{{.Code}}</div>
+    <div class="code" style="margin:0 0 20px;padding:14px 16px;background:#f9f6f5;border:1px solid #ded5d4;border-radius:4px;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:30px;line-height:1.2;font-weight:500;letter-spacing:0.3em;font-variant-numeric:tabular-nums;color:#190f0e;">{{.Code}}</div>
     {{- end}}
     {{- range .Body}}
-    <p class="fg" style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#190f0e;">{{range $i, $l := lines .}}{{if $i}}<br>{{end}}{{$l}}{{end}}</p>
+    <p class="fg" style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#190f0e;">{{range $i, $l := lines .}}{{if $i}}<br>{{end}}{{$l}}{{end}}</p>
     {{- end}}
     {{- if .Facts}}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;font-size:14px;line-height:1.5;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="rule" style="margin:6px 0 20px;border-bottom:1px solid #ded5d4;">
       {{- range .Facts}}
       <tr>
-        <td class="muted rule" style="padding:8px 16px 8px 0;border-top:1px solid #e3dcdb;color:#6e5f5d;white-space:nowrap;vertical-align:top;">{{.Label}}</td>
-        <td class="fg rule" style="padding:8px 0;border-top:1px solid #e3dcdb;color:#190f0e;word-break:break-word;">{{.Value}}</td>
+        <td class="muted rule" width="96" style="padding:9px 12px 9px 0;border-top:1px solid #ded5d4;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:20px;letter-spacing:0.025em;text-transform:uppercase;color:#5f5554;white-space:nowrap;vertical-align:top;">{{.Label}}</td>
+        {{- if .Mono}}
+        <td class="fg rule" style="padding:9px 0;border-top:1px solid #ded5d4;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:20px;font-variant-numeric:tabular-nums;color:#190f0e;word-break:break-word;">{{.Value}}</td>
+        {{- else}}
+        <td class="fg rule" style="padding:9px 0;border-top:1px solid #ded5d4;font-size:14px;line-height:20px;color:#190f0e;word-break:break-word;">{{.Value}}</td>
+        {{- end}}
       </tr>
       {{- end}}
     </table>
     {{- end}}
     {{- with .Button}}
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 12px;"><tr>
-      <td class="btn" style="background:#d01025;border-radius:8px;"><a href="{{.URL}}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">{{.Label}}</a></td>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 10px;"><tr>
+      <td class="btn" style="background:#d01025;border-radius:4px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.22);"><a href="{{.URL}}" style="display:inline-block;padding:0 18px;line-height:40px;border-radius:4px;background:#d01025;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:#fff9f8;text-decoration:none;">{{.Label}}</a></td>
     </tr></table>
-    <p class="muted" style="margin:0 0 20px;font-size:12px;line-height:1.5;color:#6e5f5d;word-break:break-all;">{{.URL}}</p>
+    <p class="muted" style="margin:0 0 20px;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;color:#5f5554;word-break:break-all;">{{.URL}}</p>
     {{- end}}
     {{- range .After}}
-    <p class="fg" style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#190f0e;">{{range $i, $l := lines .}}{{if $i}}<br>{{end}}{{$l}}{{end}}</p>
+    <p class="fg" style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#190f0e;">{{range $i, $l := lines .}}{{if $i}}<br>{{end}}{{$l}}{{end}}</p>
     {{- end}}
     {{- if .Note}}
-    <p class="muted rule" style="margin:8px 0 0;padding-top:16px;border-top:1px solid #e3dcdb;font-size:13px;line-height:1.5;color:#6e5f5d;">{{.Note}}</p>
+    <p class="muted rule" style="margin:6px 0 0;padding-top:16px;border-top:1px solid #ded5d4;font-size:13px;line-height:1.5;color:#5f5554;">{{.Note}}</p>
     {{- end}}
   </td></tr>
-  <tr><td class="muted" style="padding:16px 4px 0;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#6e5f5d;">
-    Raptor · <a href="https://raptorpanel.net" style="color:#6e5f5d;">raptorpanel.net</a>
+  <tr><td class="muted" style="padding:16px 0 0;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;letter-spacing:0.025em;color:#5f5554;">
+    Raptor · <a href="https://raptorpanel.net" style="color:#5f5554;">raptorpanel.net</a>
   </td></tr>
   </table>
 </td></tr>

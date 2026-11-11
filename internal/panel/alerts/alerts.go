@@ -615,7 +615,7 @@ func (s *Service) failed(ctx context.Context, channel pgtype.UUID, cause error) 
 		return
 	}
 	var owners []string
-	e := mail.Email{Subject: "Raptor: an alert channel was turned off", Title: "An alert channel was turned off"}
+	e := mail.Email{Subject: "Raptor: an alert channel was turned off", Kicker: "alerts", Title: "An alert channel was turned off"}
 	if c.UserID.Valid {
 		email, err := q.UserEmail(ctx, c.UserID)
 		if err != nil {
@@ -637,7 +637,7 @@ func (s *Service) failed(ctx context.Context, channel pgtype.UUID, cause error) 
 			e.Button = &mail.Link{Label: "Open alert settings", URL: l}
 		}
 	}
-	e.Facts = []mail.Fact{{Label: "Last error", Value: cause.Error()}}
+	e.Facts = []mail.Fact{{Label: "Last error", Value: cause.Error(), Mono: true}}
 	for _, to := range owners {
 		if err := s.Mail(ctx, to, e); err != nil {
 			s.Log.Warn("alerts: emailing an owner failed", "err", err)

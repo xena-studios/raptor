@@ -74,6 +74,7 @@ func (s *Service) sendEmailCode(ctx context.Context, email, purpose string) erro
 	case strings.HasPrefix(purpose, "email_change:"):
 		e = mail.Email{
 			Subject: "Confirm your new Raptor email: " + code,
+			Kicker:  "account",
 			Title:   "Confirm your new email",
 			Code:    code,
 			Body:    []string{fmt.Sprintf("Someone signed in to a Raptor account asked to move it to this address. Enter this code to confirm it. It works once, for %d minutes.", minutes)},
@@ -84,6 +85,7 @@ func (s *Service) sendEmailCode(ctx context.Context, email, purpose string) erro
 		url := strings.TrimSuffix(s.AppURL, "/") + "/signin/link#" + link
 		e = mail.Email{
 			Subject: "Your Raptor sign-in code: " + code,
+			Kicker:  "sign in",
 			Title:   "Your sign-in code",
 			Code:    code,
 			Body:    []string{"Enter this code to sign in to Raptor, or sign in with the button below."},
@@ -93,6 +95,7 @@ func (s *Service) sendEmailCode(ctx context.Context, email, purpose string) erro
 	default:
 		e = mail.Email{
 			Subject: "Your Raptor confirmation code: " + code,
+			Kicker:  "account security",
 			Title:   "Confirm it's you",
 			Code:    code,
 			Body:    []string{fmt.Sprintf("Someone signed in to your account is changing how it's secured, and asked to confirm it's you. The code works once, for %d minutes.", minutes)},

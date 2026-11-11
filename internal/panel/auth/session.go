@@ -96,7 +96,7 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 			Subject: "New sign-in to your Raptor account",
 			Title:   "New sign-in to your account",
 			Body:    []string{"Your Raptor account was just signed in to from a device or browser it hasn't used before."},
-			Facts:   []mail.Fact{{Label: "Device", Value: ua}, {Label: "From", Value: where}, {Label: "When", Value: s.now().UTC().Format("2 Jan 2006 15:04 UTC")}},
+			Facts:   []mail.Fact{{Label: "Device", Value: ua, Mono: true}, {Label: "From", Value: where, Mono: true}, {Label: "When", Value: s.now().UTC().Format("2 Jan 2006 15:04 UTC"), Mono: true}},
 			Button:  s.securityLink(),
 			Note:    "If this was you, there's nothing to do. If it wasn't, sign out every device and check your sign-in methods right away.",
 		})

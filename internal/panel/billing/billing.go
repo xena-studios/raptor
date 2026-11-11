@@ -791,6 +791,7 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 			s.email(ctx, q, r.OrgID, func(name string) mail.Email {
 				return mail.Email{
 					Subject: "Raptor: your nodes need a plan",
+					Kicker:  "billing",
 					Title:   "Your nodes need a plan",
 					Body: []string{
 						fmt.Sprintf("Your org %s has linked nodes and no plan that's paid up.", name),
@@ -806,6 +807,7 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 			s.email(ctx, q, r.OrgID, func(name string) mail.Email {
 				return mail.Email{
 					Subject: "Raptor: your nodes are read-only",
+					Kicker:  "billing",
 					Title:   "Your nodes are read-only",
 					Body: []string{
 						fmt.Sprintf("Your org %s's nodes are now read-only in the Panel: nothing can be changed until its bill is paid. Your game servers keep running.", name),

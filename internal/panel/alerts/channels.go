@@ -291,7 +291,7 @@ func truncate(s string, n int) string {
 }
 
 func emailFor(m Message) mail.Email {
-	e := mail.Email{Subject: "Raptor: " + m.Title, Title: m.Title}
+	e := mail.Email{Subject: "Raptor: " + m.Title, Kicker: "alerts", Title: m.Title}
 	if w := where(m); w != "" {
 		e.Subject += " (" + w + ")"
 	}
@@ -303,7 +303,7 @@ func emailFor(m Message) mail.Email {
 			e.Facts = append(e.Facts, f)
 		}
 	}
-	e.Facts = append(e.Facts, mail.Fact{Label: "When", Value: m.At.UTC().Format("2 Jan 2006 15:04 UTC")})
+	e.Facts = append(e.Facts, mail.Fact{Label: "When", Value: m.At.UTC().Format("2 Jan 2006 15:04 UTC"), Mono: true})
 	if m.URL != "" {
 		e.Button = &mail.Link{Label: "Open in Raptor", URL: m.URL}
 	}

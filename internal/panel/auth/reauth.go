@@ -267,6 +267,9 @@ func (s *Service) notify(ctx context.Context, user store.User, e mail.Email) {
 	if s.Mailer == nil {
 		return
 	}
+	if e.Kicker == "" {
+		e.Kicker = "account security"
+	}
 	if err := s.Mailer.Send(context.WithoutCancel(ctx), user.Email, e); err != nil {
 		s.log().Error("sending a security notice failed", "user", uuid.UUID(user.ID.Bytes), "err", err)
 	}

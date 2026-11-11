@@ -116,7 +116,7 @@ func reminderEmail(org, node string, removed bool, name string, purge time.Time,
 		node = "a node"
 	}
 	date := purge.UTC().Format("January 2, 2006")
-	var e mail.Email
+	e := mail.Email{Kicker: "backup storage"}
 	switch name {
 	case "off":
 		e.Subject = fmt.Sprintf("Raptor: %s's offsite backups are deleted on %s", node, date)
@@ -141,7 +141,7 @@ func reminderEmail(org, node string, removed bool, name string, purge time.Time,
 	} else {
 		e.Body = append(e.Body, "To keep them, turn Raptor Backup Storage back on for the node before then (its Backups tab), or recover them onto another node from that node's Backups tab.")
 	}
-	e.Button = &mail.Link{Label: "Your org's backups", URL: url}
+	e.Button = &mail.Link{Label: "Open backups", URL: url}
 	e.Note = "Nothing to do if you don't need them."
 	return e
 }

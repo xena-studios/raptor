@@ -270,6 +270,12 @@ Flat. Depth comes from tone and 1px rules: the sidebar is darker than the page, 
 ### The Node Readout
 - `[ 1 ONLINE ] / 9 NODES` at the foot of the sidebar: the online count in OK when any node is up, breathing (opacity 1 to 0.55 over 1.4s); the only ambient motion in the app, off under reduced motion.
 
+### Email
+- **Layout (`internal/panel/mail`):** a 560px column on the page colour. The full logo goes above one card, in the Raised tone with a Rule hairline and 6px corners. Inside the card come the `//` kicker naming the context (`// sign in`, `// alerts`, `// billing`), the title in the Headline style, then a code as a Readout (30px, tracked wide, on the page colour), sans paragraphs, facts as a hairline-ruled table (Label-style names; data such as addresses, times and IDs in mono), one primary key, and the small print in Slate under a Rule. The footer is `Raptor · raptorpanel.net` in mono.
+- **Colour:** Daylight, as hex because mail clients don't read oklch, and the Console where a client has a dark mode. Red stays the one signal: the button and links only.
+- **The button:** the primary key (mono capitals, 4px corners, the key highlight), 40px tall for touch, with its full address printed under it in mono.
+- **Fonts:** Hanken Grotesk and JetBrains Mono when the reader has them; otherwise the system sans and mono, since fonts aren't loaded into mail.
+
 ## 6. Do's and Don'ts
 
 ### Do:

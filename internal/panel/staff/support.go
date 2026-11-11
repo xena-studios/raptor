@@ -99,12 +99,13 @@ func (s *Service) emailOwners(ctx context.Context, org pgtype.UUID, nodeName, or
 	link := fmt.Sprintf("%s/orgs/%s/nodes/%s", strings.TrimRight(s.Auth.AppURL, "/"), id(org), id(r.NodeID))
 	msg := mail.Email{
 		Subject: "Raptor support asks for access to " + nodeName,
+		Kicker:  "support access",
 		Title:   "Raptor support asks for access to " + nodeName,
 		Body:    []string{fmt.Sprintf("Raptor support (%s) asks for access to %s, in %s. Nothing happens unless you approve it, with your passkey.", r.StaffEmail, nodeName, orgName)},
 		Facts: []mail.Fact{
 			{Label: "What", Value: fmt.Sprintf("%s (level %d) for %s", levelNames[r.Level], r.Level, duration(r.Minutes))},
 			{Label: "Why", Value: r.Reason},
-			{Label: "Ticket", Value: r.Ticket},
+			{Label: "Ticket", Value: r.Ticket, Mono: true},
 		},
 		Button: &mail.Link{Label: "Review the request", URL: link},
 		Note:   "You can approve less than they asked for, deny it, and end it any time. On the node, sudo raptor support off turns support access off.",
