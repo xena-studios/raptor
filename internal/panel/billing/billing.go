@@ -29,6 +29,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -52,9 +53,7 @@ var (
 )
 
 // Mailer sends email (auth.Mailer).
-type Mailer interface {
-	Send(ctx context.Context, to, subject, text string) error
-}
+type Mailer = mail.Sender
 
 // Service is billing. A nil Service, or one without Polar, is billing off:
 // everything is allowed and nothing is charged.
@@ -788,14 +787,35 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 	if since.Valid {
 		readOnlyAt := since.Time.Add(Grace)
 		if !slices.Contains(notified, "reminder") {
-			s.email(ctx, q, r.OrgID, "Raptor: your nodes need a plan",
-				fmt.Sprintf("Your org %%s has linked nodes and no plan that's paid up.\n\nAdd or fix one by %s in Settings, Billing:\n%s\n\nAfter that, your nodes are read-only in the Panel until it's paid. Your game servers keep running either way.\n",
-					readOnlyAt.UTC().Format("January 2, 2006"), s.billingURL(org)))
+			by := readOnlyAt.UTC().Format("January 2, 2006")
+			s.email(ctx, q, r.OrgID, func(name string) mail.Email {
+				return mail.Email{
+					Subject: "Raptor: your nodes need a plan",
+					Kicker:  "billing",
+					Title:   "Your nodes need a plan",
+					Body: []string{
+						fmt.Sprintf("Your org %s has linked nodes and no plan that's paid up.", name),
+						fmt.Sprintf("Add or fix one by %s in Settings, Billing. After that, your nodes are read-only in the Panel until it's paid.", by),
+					},
+					Button: &mail.Link{Label: "Open billing", URL: s.billingURL(org)},
+					Note:   "Your game servers keep running either way.",
+				}
+			})
 			notified = append(notified, "reminder")
 		}
 		if !now.Before(readOnlyAt) && !slices.Contains(notified, "read_only") {
-			s.email(ctx, q, r.OrgID, "Raptor: your nodes are read-only",
-				fmt.Sprintf("Your org %%s's nodes are now read-only in the Panel: nothing can be changed until its bill is paid. Your game servers keep running.\n\nFix it in Settings, Billing:\n%s\n\nOr remove nodes you no longer use.\n", s.billingURL(org)))
+			s.email(ctx, q, r.OrgID, func(name string) mail.Email {
+				return mail.Email{
+					Subject: "Raptor: your nodes are read-only",
+					Kicker:  "billing",
+					Title:   "Your nodes are read-only",
+					Body: []string{
+						fmt.Sprintf("Your org %s's nodes are now read-only in the Panel: nothing can be changed until its bill is paid. Your game servers keep running.", name),
+						"Fix it in Settings, Billing, or remove nodes you no longer use.",
+					},
+					Button: &mail.Link{Label: "Open billing", URL: s.billingURL(org)},
+				}
+			})
 			notified = append(notified, "read_only")
 			s.ledger(ctx, q, r.OrgID, "read_only", nodes, 0, "", r.SubscriptionID, nil)
 		}
@@ -806,8 +826,8 @@ func (s *Service) sweep(ctx context.Context, r store.BillingOrgsRow) error {
 	return nil
 }
 
-// email writes to the org's owners; text's %s is the org's name.
-func (s *Service) email(ctx context.Context, q *store.Queries, org pgtype.UUID, subject, text string) {
+// email writes to the org's owners, given the org's name.
+func (s *Service) email(ctx context.Context, q *store.Queries, org pgtype.UUID, write func(name string) mail.Email) {
 	if s.Mailer == nil {
 		return
 	}
@@ -822,7 +842,7 @@ func (s *Service) email(ctx context.Context, q *store.Queries, org pgtype.UUID, 
 		return
 	}
 	for _, addr := range to {
-		if err := s.Mailer.Send(ctx, addr, subject, fmt.Sprintf(text, name)); err != nil {
+		if err := s.Mailer.Send(ctx, addr, write(name)); err != nil {
 			s.log().Warn("a billing email failed", "org", uuid.UUID(org.Bytes), "err", err)
 		}
 	}

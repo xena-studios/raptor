@@ -13,6 +13,7 @@ import (
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -96,18 +97,21 @@ func (s *Service) emailOwners(ctx context.Context, org pgtype.UUID, nodeName, or
 		return
 	}
 	link := fmt.Sprintf("%s/orgs/%s/nodes/%s", strings.TrimRight(s.Auth.AppURL, "/"), id(org), id(r.NodeID))
-	body := fmt.Sprintf(`Raptor support (%s) asks for access to %s, in %s.
-
-What: %s (level %d) for %s
-Why: %s
-Ticket: %s
-
-Nothing happens unless you approve it, with your passkey: %s
-
-You can approve less than they asked for, deny it, and end it any time. On the node, sudo raptor support off turns support access off.
-`, r.StaffEmail, nodeName, orgName, levelNames[r.Level], r.Level, duration(r.Minutes), r.Reason, r.Ticket, link)
+	msg := mail.Email{
+		Subject: "Raptor support asks for access to " + nodeName,
+		Kicker:  "support access",
+		Title:   "Raptor support asks for access to " + nodeName,
+		Body:    []string{fmt.Sprintf("Raptor support (%s) asks for access to %s, in %s. Nothing happens unless you approve it, with your passkey.", r.StaffEmail, nodeName, orgName)},
+		Facts: []mail.Fact{
+			{Label: "What", Value: fmt.Sprintf("%s (level %d) for %s", levelNames[r.Level], r.Level, duration(r.Minutes))},
+			{Label: "Why", Value: r.Reason},
+			{Label: "Ticket", Value: r.Ticket, Mono: true},
+		},
+		Button: &mail.Link{Label: "Review the request", URL: link},
+		Note:   "You can approve less than they asked for, deny it, and end it any time. On the node, sudo raptor support off turns support access off.",
+	}
 	for _, e := range emails {
-		if err := s.Auth.Mailer.Send(context.WithoutCancel(ctx), e, "Raptor support asks for access to "+nodeName, body); err != nil && s.Log != nil {
+		if err := s.Auth.Mailer.Send(context.WithoutCancel(ctx), e, msg); err != nil && s.Log != nil {
 			s.Log.Warn("emailing a support request failed", "err", err)
 		}
 	}

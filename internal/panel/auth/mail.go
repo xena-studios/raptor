@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,26 +11,28 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/xena-studios/raptor/internal/panel/mail"
 )
 
-// Mailer sends transactional email (the provider comes with 3.2's email
-// setup; LogMailer is for development).
-type Mailer interface {
-	Send(ctx context.Context, to, subject, text string) error
-}
+// Mailer sends transactional email: Resend, or LogMailer in development.
+type Mailer = mail.Sender
 
 // LogMailer writes emails to the log instead of sending them, and to File
-// as plain text if set (task dev:mail shows it): development only, since
-// the codes and links in them sign people in.
+// as plain text if set (task dev:mail shows it), with the newest one's HTML
+// beside it (File with .html for .txt): development only, since the codes
+// and links in them sign people in.
 type LogMailer struct {
 	Log  *slog.Logger
 	File string
 }
 
 // Send implements Mailer.
-func (m LogMailer) Send(_ context.Context, to, subject, text string) error {
-	m.Log.Warn("email (not sent: development mailer)", "to", to, "subject", subject, "text", text)
+func (m LogMailer) Send(_ context.Context, to string, e mail.Email) error {
+	text := e.Text()
+	m.Log.Warn("email (not sent: development mailer)", "to", to, "subject", e.Subject, "text", text)
 	if m.File == "" {
 		return nil
 	}
@@ -37,11 +40,19 @@ func (m LogMailer) Send(_ context.Context, to, subject, text string) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(f, "──── %s ────\nTo: %s\nSubject: %s\n\n%s\n", time.Now().Format(time.TimeOnly), to, subject, text)
+	_, err = fmt.Fprintf(f, "──── %s ────\nTo: %s\nSubject: %s\n\n%s\n", time.Now().Format(time.TimeOnly), to, e.Subject, text)
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	// A browser can't follow cid:, so the pictures go in the page.
+	html := e.HTML()
+	for _, img := range mail.Images {
+		html = strings.ReplaceAll(html, `"cid:`+img.ID+`"`, `"data:image/png;base64,`+base64.StdEncoding.EncodeToString(img.PNG)+`"`)
+	}
+	return os.WriteFile(strings.TrimSuffix(m.File, ".txt")+".html", []byte(html), 0o600)
 }
 
 // Verifier checks a bot challenge's token.

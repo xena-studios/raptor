@@ -7,13 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/xena-studios/raptor/internal/panel/mail"
 )
 
 func TestLogMailerFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "mail.txt")
 	m := LogMailer{Log: slog.New(slog.DiscardHandler), File: path}
 	for _, to := range []string{"a@example.com", "b@example.com"} {
-		if err := m.Send(context.Background(), to, "Your code: 123456", "code is 123456"); err != nil {
+		if err := m.Send(context.Background(), to, mail.Email{Subject: "Your code: 123456", Title: "Your code", Code: "123456"}); err != nil {
 			t.Fatal(err)
 		}
 	}

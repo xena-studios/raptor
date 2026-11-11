@@ -77,7 +77,7 @@ tasks:
       - deploy/scripts/rehearse.sh
 
   dev:mail:
-    desc: "Show the dev Panel's emails (sign-in codes, invitations) as they arrive"
+    desc: "Show the dev Panel's emails (sign-in codes, invitations) as they arrive; the newest one's HTML is .dev/mail.html"
     cmds:
       - mkdir -p .dev && touch .dev/mail.txt
       - tail -n 40 -F .dev/mail.txt

@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -93,9 +94,9 @@ func (s *Service) sendReminder(ctx context.Context, q *store.Queries, r store.Ba
 		s.log().Warn("a backup storage reminder failed", "node", uuid.UUID(r.NodeID.Bytes), "err", err)
 		return
 	}
-	subject, text := reminderText(org, r.NodeName, r.NodeRemoved, name, purge, s.backupsURL(r.OrgID))
+	e := reminderEmail(org, r.NodeName, r.NodeRemoved, name, purge, s.backupsURL(r.OrgID))
 	for _, addr := range to {
-		if err := s.Mailer.Send(ctx, addr, subject, text); err != nil {
+		if err := s.Mailer.Send(ctx, addr, e); err != nil {
 			s.log().Warn("a backup storage reminder failed", "node", uuid.UUID(r.NodeID.Bytes), "err", err)
 		}
 	}
@@ -109,34 +110,38 @@ func (s *Service) backupsURL(org pgtype.UUID) string {
 	return app + "/orgs/" + uuid.UUID(org.Bytes).String() + "/settings/backups"
 }
 
-// reminderText is a reminder's subject and body.
-func reminderText(org, node string, removed bool, name string, purge time.Time, url string) (subject, text string) {
+// reminderEmail is a reminder.
+func reminderEmail(org, node string, removed bool, name string, purge time.Time, url string) mail.Email {
 	if node == "" {
 		node = "a node"
 	}
 	date := purge.UTC().Format("January 2, 2006")
-	var b strings.Builder
+	e := mail.Email{Kicker: "backup storage"}
 	switch name {
 	case "off":
-		subject = fmt.Sprintf("Raptor: %s's offsite backups are deleted on %s", node, date)
+		e.Subject = fmt.Sprintf("Raptor: %s's offsite backups are deleted on %s", node, date)
+		e.Title = "Offsite backups are deleted on " + date
 		if removed {
-			fmt.Fprintf(&b, "%s was removed from your org %s, so its backups in Raptor Backup Storage are no longer kept up.\n\n", node, org)
+			e.Body = append(e.Body, fmt.Sprintf("%s was removed from your org %s, so its backups in Raptor Backup Storage are no longer kept up.", node, org))
 		} else {
-			fmt.Fprintf(&b, "Raptor Backup Storage was turned off for %s in your org %s.\n\n", node, org)
+			e.Body = append(e.Body, fmt.Sprintf("Raptor Backup Storage was turned off for %s in your org %s.", node, org))
 		}
-		fmt.Fprintf(&b, "Its backups there are kept until %s, then deleted for good.\n\n", date)
+		e.Body = append(e.Body, fmt.Sprintf("Its backups there are kept until %s, then deleted for good.", date))
 	case "7d":
-		subject = fmt.Sprintf("Raptor: %s's offsite backups are deleted in 7 days", node)
-		fmt.Fprintf(&b, "The backups of %s (in your org %s) in Raptor Backup Storage are deleted for good on %s.\n\n", node, org, date)
+		e.Subject = fmt.Sprintf("Raptor: %s's offsite backups are deleted in 7 days", node)
+		e.Title = "Offsite backups are deleted in 7 days"
+		e.Body = append(e.Body, fmt.Sprintf("The backups of %s (in your org %s) in Raptor Backup Storage are deleted for good on %s.", node, org, date))
 	default:
-		subject = fmt.Sprintf("Raptor: %s's offsite backups are deleted tomorrow", node)
-		fmt.Fprintf(&b, "The backups of %s (in your org %s) in Raptor Backup Storage are deleted for good on %s.\n\n", node, org, date)
+		e.Subject = fmt.Sprintf("Raptor: %s's offsite backups are deleted tomorrow", node)
+		e.Title = "Offsite backups are deleted tomorrow"
+		e.Body = append(e.Body, fmt.Sprintf("The backups of %s (in your org %s) in Raptor Backup Storage are deleted for good on %s.", node, org, date))
 	}
 	if removed {
-		b.WriteString("To keep them, recover them onto another node before then: on that node's Backups tab, Recover backups.\n")
+		e.Body = append(e.Body, "To keep them, recover them onto another node before then: on that node's Backups tab, Recover backups.")
 	} else {
-		b.WriteString("To keep them, turn Raptor Backup Storage back on for the node before then (its Backups tab), or recover them onto another node from that node's Backups tab.\n")
+		e.Body = append(e.Body, "To keep them, turn Raptor Backup Storage back on for the node before then (its Backups tab), or recover them onto another node from that node's Backups tab.")
 	}
-	fmt.Fprintf(&b, "\nYour org's backups: %s\n\nNothing to do if you don't need them.\n", url)
-	return subject, b.String()
+	e.Button = &mail.Link{Label: "Open backups", URL: url}
+	e.Note = "Nothing to do if you don't need them."
+	return e
 }

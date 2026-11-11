@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/paneltest"
 	"github.com/xena-studios/raptor/internal/shared/hosted"
 )
@@ -22,7 +23,8 @@ type mailbox struct {
 	sent []string // "to\nsubject\ntext"
 }
 
-func (m *mailbox) Send(_ context.Context, to, subject, text string) error {
+func (m *mailbox) Send(_ context.Context, to string, e mail.Email) error {
+	subject, text := e.Subject, e.Text()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.sent = append(m.sent, to+"\n"+subject+"\n"+text)

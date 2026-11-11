@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -14,6 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -247,13 +249,28 @@ func (s *Service) reauthTOTP(ctx context.Context, sess *Session, code string) (f
 	return failure, err
 }
 
+// securityLink is the button in a security notice: where its devices,
+// passkeys, and two-factor authentication are.
+func (s *Service) securityLink() *mail.Link {
+	return &mail.Link{Label: "Review your security settings", URL: strings.TrimSuffix(s.AppURL, "/") + "/settings/security"}
+}
+
+// methodsLink is the button in a notice about a sign-in method: the account's
+// settings, where they're listed.
+func (s *Service) methodsLink() *mail.Link {
+	return &mail.Link{Label: "Review your sign-in methods", URL: strings.TrimSuffix(s.AppURL, "/") + "/settings"}
+}
+
 // notify emails the user about a change to how their account is secured.
 // Best effort: the change already happened.
-func (s *Service) notify(ctx context.Context, user store.User, subject, body string) {
+func (s *Service) notify(ctx context.Context, user store.User, e mail.Email) {
 	if s.Mailer == nil {
 		return
 	}
-	if err := s.Mailer.Send(context.WithoutCancel(ctx), user.Email, subject, body); err != nil {
+	if e.Kicker == "" {
+		e.Kicker = "account security"
+	}
+	if err := s.Mailer.Send(context.WithoutCancel(ctx), user.Email, e); err != nil {
 		s.log().Error("sending a security notice failed", "user", uuid.UUID(user.ID.Bytes), "err", err)
 	}
 }
