@@ -18,7 +18,7 @@ All four must pass before launch.
 |---|---|
 | Install success rate ≥ 95% on supported OSes during the beta | Waits on the beta. `task e2e:bootstrap` passes on Debian 12, Debian 13, and Ubuntu 24.04 (amd64 nightly in CI, arm64 locally). |
 | No known critical or high security issues | DOMPurify's advisories through Monaco are fixed in #270. An outside review of auth is still wanted. |
-| Postgres failover tested | Built and rehearsed (`task deploy:rehearse`); not yet drilled on the real servers. |
+| Rebuilding the Panel from backups tested | Built and rehearsed (`task deploy:rehearse`, #344); first done for real by the move to Oracle (item 9). |
 | Billing tested end to end, failed payments and read-only mode included | Built and on; not yet run against real Polar. |
 
 ## Before launch
@@ -50,13 +50,13 @@ From the Xena Studios GitHub audit of Oct 22, 2026, and the nodes' overdue updat
 ### 2 · Pass the launch gate
 
 8. **Polar's settings for the embedded billing** ([DEPLOY.md](DEPLOY.md#billing)): the embedding host, customer portal seat and plan changes off, the branding, and the Backup Storage meter and its price ([DEPLOY.md](DEPLOY.md#charging-for-raptor-backup-storage), before plans start, since Polar keeps a subscription on the prices it began with). Then the **billing drill** in the sandbox and once in production on a throwaway org: the free month, a second node ending it, a card added and changed, an invoice, a failed payment, read-only mode, paying again, cancelling and keeping the plan.
-9. **The failover drill** from raptor-1 to raptor-2 at a quiet hour ([DEPLOY.md](DEPLOY.md#failover)), about 5 minutes of Panel downtime; afterwards `DEPLOY_HOST` points at the new primary. First, the `raptor-replica` alerts in Grafana.
+9. **Start the Panel over on Oracle Cloud** (#344, #345): the owner chose a fresh install over moving raptor-1's data (two orgs and two nodes, all the owner's). With the release that has #345: the new B2 buckets `raptor-panel-backups` and `raptor-server-backups` and their keys in 1Password (`Backup storage` with a new `encryption_passphrase`, `Raptor Backup Storage`), `Route 53 DNS`, then `bootstrap.sh new <version>` on `raptor-9a4e` ([DEPLOY.md](DEPLOY.md#the-server)), the `api` record, `DEPLOY_HOST`/`DEPLOY_KNOWN_HOSTS`, and `DEPLOY_ENABLED` back to `true`. raptor-1 and raptor-2 are stopped for good when the new server takes over, and cancelled after two weeks, with their old buckets. The nodes are reinstalled and paired again. In Grafana, delete the `raptor-replica` alert rules.
 10. **An outside review of auth**, for the security gate.
 11. **Watch the API latency:** the uptime check's `/healthz` sometimes averaged 3–4 s for 5 minutes from Oregon and Montreal on Oct 14 (normally 100–200 ms). If it pages, match the time against the Panel and Postgres metrics.
 
 ### 3 · Finish the product, then the beta
 
-12. **Sign-in in production:** Google's and Discord's production OAuth apps (callbacks at `https://api.raptorpanel.net/oauth/<provider>/callback`; GitHub's is registered; Discord's is Raptor Bot's application, [DEPLOY.md](DEPLOY.md#discord)), then every sign-in method tried once. Hardware-key 2FA with no SMS recovery confirmed on Cloudflare, GitHub, 1Password, Grafana, B2, OVH, Resend, and Polar.
+12. **Sign-in in production:** Google's and Discord's production OAuth apps (callbacks at `https://api.raptorpanel.net/oauth/<provider>/callback`; GitHub's is registered; Discord's is Raptor Bot's application, [DEPLOY.md](DEPLOY.md#discord)), then every sign-in method tried once. Hardware-key 2FA with no SMS recovery confirmed on Cloudflare, GitHub, 1Password, Grafana, B2, Oracle Cloud, Resend, and Polar.
 13. **Raptor Bot on the Discord server** ([DEPLOY.md](DEPLOY.md#discord)): take Administrator off its role, the 1Password items, the interactions endpoint, the ticket channel's permissions and buttons; then the Customer role's preview in the staff log, and removals on. Until then #open-a-ticket has no way to open one.
 14. **Alerts' Telegram bot:** create it with @BotFather and put its token and a webhook secret in 1Password ([DEPLOY.md](DEPLOY.md#secrets)); until then the app doesn't offer Telegram.
 15. ~~**`raptor uninstall [-wipe-data]`**~~ (#274, [WINGS.md](WINGS.md#uninstall)): stops the servers gracefully, removes Raptor's services, containers, networks, firewall, and mounts, and keeps server files, backups, and databases unless `-wipe-data`; the bootstrap e2e runs it on every supported OS.

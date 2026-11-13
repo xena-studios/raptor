@@ -38,6 +38,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
@@ -84,7 +85,7 @@ type Service struct {
 	// email and Telegram channels can be added.
 	DataKey []byte
 	// Mail sends an email (auth.Mailer's Send); nil: email channels fail.
-	Mail     func(ctx context.Context, to, subject, body string) error
+	Mail     func(ctx context.Context, to string, e mail.Email) error
 	Telegram *TelegramBot
 	// AppURL is the web app, for links in alerts.
 	AppURL string
@@ -614,23 +615,31 @@ func (s *Service) failed(ctx context.Context, channel pgtype.UUID, cause error) 
 		return
 	}
 	var owners []string
-	var body string
+	e := mail.Email{Subject: "Raptor: an alert channel was turned off", Kicker: "alerts", Title: "An alert channel was turned off"}
 	if c.UserID.Valid {
 		email, err := q.UserEmail(ctx, c.UserID)
 		if err != nil {
 			return
 		}
 		owners = []string{email}
-		body = fmt.Sprintf("Your alert channel %q has failed every alert for 3 days, so it's turned off.\n\nThe last error: %s\n\nFix it and turn it back on in Raptor: the bell at the top of the page, then its settings.\n",
-			c.Name, cause)
+		e.Body = []string{
+			fmt.Sprintf("Your alert channel %q has failed every alert for 3 days, so it's turned off.", c.Name),
+			"Fix it and turn it back on in Raptor: the bell at the top of the page, then its settings.",
+		}
 	} else {
 		org, _ := q.OrgName(ctx, c.OrgID)
 		owners, _ = q.OrgOwnerEmails(ctx, c.OrgID)
-		body = fmt.Sprintf("The alert channel %q in %s has failed every alert for 3 days, so it's turned off.\n\nThe last error: %s\n\nFix it and turn it back on in the org's settings, under Alerts:\n%s\n",
-			c.Name, org, cause, s.link(c.OrgID, "", ""))
+		e.Body = []string{
+			fmt.Sprintf("The alert channel %q in %s has failed every alert for 3 days, so it's turned off.", c.Name, org),
+			"Fix it and turn it back on in the org's settings, under Alerts.",
+		}
+		if l := s.link(c.OrgID, "", ""); l != "" {
+			e.Button = &mail.Link{Label: "Open alert settings", URL: l}
+		}
 	}
+	e.Facts = []mail.Fact{{Label: "Last error", Value: cause.Error(), Mono: true}}
 	for _, to := range owners {
-		if err := s.Mail(ctx, to, "Raptor: an alert channel was turned off", body); err != nil {
+		if err := s.Mail(ctx, to, e); err != nil {
 			s.Log.Warn("alerts: emailing an owner failed", "err", err)
 		}
 	}

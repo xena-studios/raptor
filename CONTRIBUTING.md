@@ -47,7 +47,7 @@ task build     # binaries into bin/, web app into web/dist
 task --list    # everything else
 ```
 
-To sign in to the dev Panel, open http://localhost:5173 and ask for a code, then read it with `task dev:mail` in another terminal. In development, emails (codes, links, invitations) aren't sent: they're written to `.dev/mail.txt` and the API's log. The dev Panel's signing key, data key (for TOTP), and org live in `.dev/` (ignored by git).
+To sign in to the dev Panel, open http://localhost:5173 and ask for a code, then read it with `task dev:mail` in another terminal. In development, emails (codes, links, invitations) aren't sent: they're written to `.dev/mail.txt` and the API's log, and the newest one's HTML to `.dev/mail.html` (open it in a browser). The dev Panel's signing key, data key (for TOTP), and org live in `.dev/` (ignored by git).
 
 - **Real email:** put a development Resend key (sending access, the `mail.raptorpanel.net` domain only) in `.dev/resend.env` as `PANEL_RESEND_API_KEY=…`, `PANEL_MAIL_FROM="Raptor <account@mail.raptorpanel.net>"`, and `PANEL_MAIL_REPLY_TO=…`, then run `RESEND=1 task dev`. Sign in with real addresses only, since bounces from made-up ones hurt the domain's reputation.
 - **Google, GitHub, or Discord sign-in:** register a separate development OAuth app with the redirect URI `http://localhost:8080/oauth/<provider>/callback`, and put its `PANEL_<PROVIDER>_CLIENT_ID` and `_CLIENT_SECRET` in `.dev/oauth.env`.
@@ -144,13 +144,13 @@ Versions are `vX.Y.Z`: a **patch** is fixes only, a **minor** is anything new or
 2. **Tag it:** `git tag v0.7.0 && git push origin v0.7.0`. CI builds a draft release with the binaries, `checksums.txt`, and `web-bundle.sha256`, and pushes the Panel's images to GHCR (`raptor-panel`, `raptor-postgres`). A stable tag then deploys the Panel, the web app, the landing page, and the docs to production by itself ([DEPLOY.md](docs/DEPLOY.md#deploying)). Watch the deploy job, then the dashboard and `/healthz`.
 3. **Read the draft's notes:** they're the merged PRs' titles, grouped into features and fixes (`.goreleaser.yaml`), so a good PR title is a good release note. Edit the draft if one needs it.
 4. **Sign and publish:** `task release:sign TAG=v0.7.0`, with the offline minisign key ([release/README.md](release/README.md)). It writes `install.sh` and publishes the release, and GitHub posts it to Discord's #releases. New installs get it at once.
-5. **Update the nodes:** start the staged rollout on server #1 ([DEPLOY.md](docs/DEPLOY.md#updating-nodes)): 5% of nodes, then 25%, then everyone, halted if a tenth of a stage fails. Nothing updates existing nodes until this runs.
+5. **Update the nodes:** start the staged rollout on the server ([DEPLOY.md](docs/DEPLOY.md#updating-nodes)): 5% of nodes, then 25%, then everyone, halted if a tenth of a stage fails. Nothing updates existing nodes until this runs.
 
 Since every stable release goes live, Panel migrations must work with the version before them: add, backfill, and drop in a later release; never rename in one step. The same goes for anything Wings and the Panel say to each other: a node can be a release behind.
 
 ### The Panel's servers
 
-`deploy/` holds everything the production servers run, and [DEPLOY.md](docs/DEPLOY.md) is the guide to setting them up. `task deploy:rehearse` runs the guide on your machine with Docker (about three minutes): both servers' stacks, Caddy's client-certificate check, the streaming replica, a backup to MinIO and a restore test, a rolling deploy that must not drop a request, and a failover. Run it after changing anything in `deploy/`; CI only checks that the images build, the Compose files parse, and the scripts pass shellcheck.
+`deploy/` holds everything the production servers run, and [DEPLOY.md](docs/DEPLOY.md) is the guide to setting them up. `task deploy:rehearse` runs the guide on your machine with Docker (about three minutes): the server's stack, Caddy's client-certificate check, a backup to MinIO and a restore test, a rolling deploy that must not drop a request, and a rebuild of the whole server from the backups. Run it after changing anything in `deploy/`; CI only checks that the images build, the Compose files parse, and the scripts pass shellcheck.
 
 ## Pull requests
 

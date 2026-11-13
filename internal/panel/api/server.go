@@ -54,6 +54,10 @@ type Config struct {
 	// sending this instance new requests and node connections while it hands
 	// its nodes to the others (Run sets it at shutdown).
 	Draining *atomic.Bool
+	// Ready, if set, is asked on every /healthz: an error (the database
+	// unreachable, say) makes it answer 503, so the uptime check and
+	// Docker's health check see an outage the process alone wouldn't show.
+	Ready func(context.Context) error
 	// Auth signs people in (nil without a database).
 	Auth *auth.Service
 	// Orgs manages orgs, members, and invitations (nil without a database).
@@ -91,10 +95,18 @@ type Config struct {
 // Handler returns the API's HTTP handler.
 func Handler(cfg Config) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		if cfg.Draining != nil && cfg.Draining.Load() {
 			http.Error(w, "draining", http.StatusServiceUnavailable)
 			return
+		}
+		if cfg.Ready != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+			defer cancel()
+			if err := cfg.Ready(ctx); err != nil {
+				http.Error(w, "not ready", http.StatusServiceUnavailable)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 	})

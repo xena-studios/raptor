@@ -1,18 +1,11 @@
 #!/bin/bash
-# The server's firewall (docs/DEPLOY.md#both-servers), with ufw: SSH, HTTPS
+# The server's firewall (docs/DEPLOY.md#the-server), with ufw: SSH, and HTTPS
 # from Cloudflare only (api.raptorpanel.net is proxied; anything else
 # reaching the origin is refused here and again by Authenticated Origin
-# Pulls), and Postgres only from the other server, through the private link
-# (wg0, deploy/scripts/wireguard.sh), whose UDP port only that server may
-# reach.
-#   firewall.sh [other server's private IP]
-# The other server's address comes from the argument or PEER_PRIVATE_IP in
-# /etc/raptor/stack.env; with neither (one server), Postgres takes no
-# connections from outside at all. raptor-firewall.service runs this at
-# every boot: Docker publishes ports around ufw, so 443 is limited with
+# Pulls). Postgres isn't published at all. raptor-firewall.service runs this
+# at every boot: Docker publishes ports around ufw, so 443 is limited with
 # DOCKER-USER rules, which don't survive a reboot by themselves.
 set -euo pipefail
-PEER=${1:-${PEER_PRIVATE_IP:-}}
 CACHE=${RAPTOR_CF_IPS:-/etc/raptor/cloudflare-ips}
 
 # Cloudflare's ranges, kept for a boot without network: with no list at
@@ -29,12 +22,6 @@ ufw --force reset >/dev/null
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow OpenSSH
-if [[ -n $PEER ]]; then
-  ufw allow in on wg0 from "$PEER" to any port 5432 proto tcp
-fi
-if [[ -n ${WG_PEER_ENDPOINT:-} ]]; then
-  ufw allow from "${WG_PEER_ENDPOINT%:*}" to any port 51820 proto udp
-fi
 ufw --force enable
 
 # Docker-published 443: Cloudflare's ranges only.
@@ -54,15 +41,8 @@ for cidr in $ranges; do
     iptables -A DOCKER-USER -p tcp --dport 443 -s "$cidr" -j RETURN
   fi
 done
-iptables -A DOCKER-USER -p tcp --dport 443 -j DROP
-ip6tables -A DOCKER-USER -p tcp --dport 443 -j DROP
-# Docker-published Postgres: the other server, through wg0, and nothing
-# else (binding to the private address alone isn't a firewall).
-if [[ -n $PEER ]]; then
-  iptables -A DOCKER-USER -i wg0 -s "$PEER" -p tcp --dport 5432 -j RETURN
-fi
-iptables -A DOCKER-USER -p tcp --dport 5432 -j DROP
-ip6tables -A DOCKER-USER -p tcp --dport 5432 -j DROP
-iptables -A DOCKER-USER -j RETURN
-ip6tables -A DOCKER-USER -j RETURN
-echo "firewall: SSH, 443 from Cloudflare ($(wc -w <<<"$ranges") ranges), 5432 from ${PEER:-nowhere} on wg0, 51820/udp from ${WG_PEER_ENDPOINT:-nowhere}"
+for t in iptables ip6tables; do
+  $t -A DOCKER-USER -p tcp --dport 443 -j DROP
+  $t -A DOCKER-USER -j RETURN
+done
+echo "firewall: SSH, and 443 from Cloudflare ($(wc -w <<<"$ranges") ranges)"

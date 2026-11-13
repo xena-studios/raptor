@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/hosted"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
@@ -58,9 +59,7 @@ type Service struct {
 }
 
 // Mailer sends email (auth.Mailer).
-type Mailer interface {
-	Send(ctx context.Context, to, subject, text string) error
-}
+type Mailer = mail.Sender
 
 // Errors, worded for people.
 var (

@@ -1,12 +1,12 @@
-# Server #2 (docs/DEPLOY.md): a streaming replica of server #1's Postgres,
-# and, after a failover (docs/DEPLOY.md#failover), the same Caddy and Panels
-# as server #1: `docker compose --profile failover up -d`.
+# The Panel's server (docs/DEPLOY.md): Caddy at the origin, two Panel
+# instances (so a deploy replaces one at a time), and Postgres with
+# pgBackRest. Secrets, Caddy's certificate included, come from /run/raptor
+# (scripts/secrets.sh, from 1Password at boot); nothing secret is on disk.
 name: raptor
 
 x-panel: &panel
   image: ${PANEL_IMAGE:-ghcr.io/xena-studios/raptor-panel:latest}
   restart: unless-stopped
-  profiles: [failover]
   env_file: ["${RAPTOR_RUN:-/run/raptor}/panel.env"]
   environment: &panel-env
     PANEL_API_ADDR: ":8080"
@@ -14,6 +14,8 @@ x-panel: &panel
     PANEL_DATA_KEY: /keys/data.key
     PANEL_APP_URL: ${PANEL_APP_URL:-https://app.raptorpanel.net}
     PANEL_API_URL: ${PANEL_API_URL:-https://api.raptorpanel.net}
+    # Only Cloudflare can reach Caddy (Authenticated Origin Pulls), so its
+    # header is the client's real address.
     PANEL_CLIENT_IP_HEADER: CF-Connecting-IP
     PANEL_TURNSTILE_HOSTNAME: verify.raptorpanel.net
     PANEL_MAIL_FROM: "Raptor <account@mail.raptorpanel.net>"
@@ -23,6 +25,7 @@ x-panel: &panel
     - ${RAPTOR_RUN:-/run/raptor}/keys:/keys:ro
   depends_on:
     postgres: { condition: service_healthy }
+  # Shutting down drains node connections over 20 s (nodes.Hub.Drain).
   healthcheck:
     test: ["CMD", "/usr/local/bin/panel", "health"]
     interval: 5s
@@ -35,32 +38,8 @@ x-panel: &panel
   cap_drop: [ALL]
 
 services:
-  postgres:
-    image: ${POSTGRES_IMAGE:-ghcr.io/xena-studios/raptor-postgres:18}
-    restart: unless-stopped
-    env_file: ["${RAPTOR_RUN:-/run/raptor}/postgres.env"]
-    environment:
-      PRIMARY_HOST: ${PRIMARY_PRIVATE_IP:?the primary's private address}
-    # First start: copies the primary (pg_basebackup) and follows it.
-    entrypoint: ["/etc/raptor/replica-entrypoint.sh"]
-    command: ["postgres", "-c", "config_file=/etc/raptor/postgresql.conf", "-c", "hba_file=/etc/raptor/pg_hba.conf"]
-    volumes:
-      - pgdata:/var/lib/postgresql
-      - ../primary/postgresql.conf:/etc/raptor/postgresql.conf:ro
-      - ../primary/pg_hba.conf:/etc/raptor/pg_hba.conf:ro
-      - ../primary/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
-      - ./replica-entrypoint.sh:/etc/raptor/replica-entrypoint.sh:ro
-    ports:
-      - "${PRIVATE_IP:-127.0.0.1}:${PG_PORT:-5432}:5432"
-    shm_size: 256mb
-    stop_grace_period: 120s
-    healthcheck:
-      # As the postgres user: as root, every check logs a failed login.
-      test: ["CMD", "gosu", "postgres", "pg_isready", "-q", "-U", "postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 60
-
+  # Two instances: a deploy restarts one at a time while the other serves,
+  # and nodes move between them (docs/ARCHITECTURE.md#node-connection).
   panel-a:
     <<: *panel
     # A fixed hostname: the Panel's metrics are labelled with it, so each
@@ -81,17 +60,46 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
-    profiles: [failover]
     ports:
       - "${HTTPS_PORT:-443}:443"
     volumes:
-      - ../primary/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ${RAPTOR_TLS:-/etc/raptor/tls}:/etc/raptor/tls:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${RAPTOR_TLS:-/run/raptor/tls}:/etc/raptor/tls:ro
       - caddy-data:/data
     environment:
       API_HOST: ${API_HOST:-api.raptorpanel.net}
     depends_on: [panel-a, panel-b]
     security_opt: ["no-new-privileges:true"]
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-ghcr.io/xena-studios/raptor-postgres:18}
+    restart: unless-stopped
+    env_file: ["${RAPTOR_RUN:-/run/raptor}/postgres.env"]
+    environment:
+      POSTGRES_DB: raptor
+      POSTGRES_USER: postgres
+    command: ["postgres", "-c", "config_file=/etc/raptor/postgresql.conf", "-c", "hba_file=/etc/raptor/pg_hba.conf"]
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./postgresql.conf:/etc/raptor/postgresql.conf:ro
+      - ./pg_hba.conf:/etc/raptor/pg_hba.conf:ro
+      - ./pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    # Not published: only the Panels, on this stack's network, connect.
+    shm_size: 256mb
+    # No core dumps: a crash's dump lands in the data directory, where
+    # every backup copies it. On the old server something crashing every few
+    # seconds wrote 31 GB of them, which filled the backup bucket's cap and
+    # then the disk, and took Postgres down (DECISIONS.md #345).
+    ulimits:
+      core: 0
+    stop_grace_period: 120s
+    healthcheck:
+      # As the postgres user: as root, every check logs a failed login.
+      test: ["CMD", "gosu", "postgres", "pg_isready", "-q", "-U", "postgres", "-d", "raptor"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
 volumes:
   pgdata:

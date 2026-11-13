@@ -37,7 +37,10 @@ func (s *Eggs) ListCommunityEggs(ctx context.Context, req *panelv1.ListCommunity
 	if err := s.tx(ctx, req.GetOrgId(), false, func(lb *lib) error { l = lb; return nil }); err != nil {
 		return nil, err
 	}
-	off, _ := strconv.Atoi(req.GetPageToken())
+	off, err := communityOffset(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
 	category := req.GetCategory()
 	if category != "" && !slices.Contains(Categories, category) {
 		return nil, invalid(errors.New("choose one of the categories"))
@@ -50,7 +53,7 @@ func (s *Eggs) ListCommunityEggs(ctx context.Context, req *panelv1.ListCommunity
 	// connection, which the query filters itself.
 	rows, err := store.New(s.Orgs.DB).ListCommunityEggs(ctx, store.ListCommunityEggsParams{
 		IncludeRemoved: l.official, Query: query, Category: category, Newest: req.GetSort() == "new",
-		Off: int32(max(off, 0)), Lim: communityPage + 1, //nolint:gosec // a page offset
+		Off: off, Lim: communityPage + 1,
 	})
 	if err != nil {
 		return nil, err
@@ -58,7 +61,7 @@ func (s *Eggs) ListCommunityEggs(ctx context.Context, req *panelv1.ListCommunity
 	out := &panelv1.ListCommunityEggsResponse{}
 	if len(rows) > communityPage {
 		rows = rows[:communityPage]
-		out.NextPageToken = strconv.Itoa(max(off, 0) + communityPage)
+		out.NextPageToken = strconv.FormatInt(int64(off)+communityPage, 10)
 	}
 	for _, r := range rows {
 		p, err := describeEgg(l, r.Egg, "")
@@ -69,6 +72,19 @@ func (s *Eggs) ListCommunityEggs(ctx context.Context, req *panelv1.ListCommunity
 		out.Eggs = append(out.Eggs, p)
 	}
 	return out, nil
+}
+
+// communityOffset reads ListCommunityEggs' page token: the offset of the
+// page, which must fit the query's int32. An empty token is the first page.
+func communityOffset(token string) (int32, error) {
+	if token == "" {
+		return 0, nil
+	}
+	off, err := strconv.ParseInt(token, 10, 32)
+	if err != nil || off < 0 {
+		return 0, invalid(errors.New("bad page token"))
+	}
+	return int32(off), nil
 }
 
 // ShareEgg implements EggService.

@@ -72,12 +72,12 @@ tasks:
         exec go run ./cmd/panel serve api
 
   deploy:rehearse:
-    desc: "Rehearse the production setup locally (deploy/): Caddy with client certs, two Panels, streaming replica, pgBackRest to MinIO, restore test, zero-downtime deploy"
+    desc: "Rehearse the production setup locally (deploy/): Caddy with client certs, two Panels, pgBackRest to MinIO, restore test, zero-downtime deploy, rebuild from the backups"
     cmds:
       - deploy/scripts/rehearse.sh
 
   dev:mail:
-    desc: "Show the dev Panel's emails (sign-in codes, invitations) as they arrive"
+    desc: "Show the dev Panel's emails (sign-in codes, invitations) as they arrive; the newest one's HTML is .dev/mail.html"
     cmds:
       - mkdir -p .dev && touch .dev/mail.txt
       - tail -n 40 -F .dev/mail.txt

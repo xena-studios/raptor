@@ -12,8 +12,8 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 |---|---|
 | Game server downtime caused by Raptor (Panel, Wings restart/update) | **0** |
 | Panel API availability | 99.9% monthly |
-| Panel data loss on disaster (RPO) | ≤ 1 minute (streaming replica), ≤ 5 minutes worst case (WAL archive) |
-| Panel recovery time (RTO) | ≤ 30 minutes (promote replica) |
+| Panel data loss on disaster (RPO) | ≤ 1 minute (WAL archived every 60 s) |
+| Panel recovery time (RTO) | ≤ 30 minutes (rebuild on a new server from the backups) |
 | Console latency (box → browser) | p95 < 250 ms added by Raptor |
 | Panel API latency | p95 < 150 ms for reads |
 | Node reconnect after a Panel restart | All nodes reconnected < 2 min, without load spikes |
@@ -30,7 +30,7 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 ### Updates can't break a node
 - Signature-verified download → restart → the running version starts the new one on trial → atomic swap only once it's healthy ([WINGS.md](WINGS.md#updates)).
 - **Automatic rollback** if the new version crashes or isn't healthy within 5 minutes, which includes reconnecting to the Panel. The old version supervises the trial, so a broken new version can't block its own rollback.
-- Staged rollout (5% → 25% → 100%), started by an operator and halted automatically once a tenth of a stage's updates fail ([DEPLOY.md](DEPLOY.md#updating-nodes)).
+- Staged rollout (5% → 25% → 100%) with automatic halt if error rates rise.
 
 ### State durability
 - SQLite in WAL mode, a single writer connection, `busy_timeout`, `synchronous=NORMAL`.
@@ -66,14 +66,13 @@ Raptor's promise is **reliable**, so reliability is a product requirement, not a
 ## Panel
 
 ### Deploys
-The Panel is one process role (`serve api`), deployed with zero downtime for browsers (start new → health check → shift traffic → drain old). Every stable release tag deploys itself (DECISIONS #210). Server #1 runs two instances behind Caddy, and `deploy/scripts/deploy.sh` runs migrations (always compatible with the running version), then replaces one instance at a time, waiting for each to be healthy. A Panel shutting down answers 503 on `/healthz` first, so Caddy stops sending it requests while it drains. The rehearsal (`task deploy:rehearse`) probes the API every 100 ms through a deploy and fails on one error.
+The Panel is one process role (`serve api`), deployed with zero downtime for browsers (start new → health check → shift traffic → drain old). Every stable release tag deploys itself (#210). The server runs two instances behind Caddy, and `deploy/scripts/deploy.sh` runs migrations (always compatible with the running version), then replaces one instance at a time, waiting for each to be healthy. A Panel shutting down answers 503 on `/healthz` first, so Caddy stops sending it requests while it drains. The rehearsal (`task deploy:rehearse`) probes the API every 100 ms through a deploy and fails on one error.
 - Node connections move to the new instances during the drain: on SIGTERM the old instance stops claiming its nodes (so commands go elsewhere at once), turns new node connections away (503), and closes the ones it has spread evenly over 20 seconds, so they reconnect to the other instances a few at a time. Open consoles reconnect the same way. Tested with two instances on one database (`TestRouter`): commands through either reach the node, and draining one moves the node to the other without a command running twice.
-- **Accepted trade-off:** every deploy briefly reconnects every node. Game servers are never affected (they don't depend on the connection), and jittered reconnects avoid a storm. This replaced the separate `tunnel` process of the original design (DECISIONS #72).
+- **Accepted trade-off:** every deploy briefly reconnects every node. Game servers are never affected (they don't depend on the connection), and jittered reconnects avoid a storm. This replaced the separate `tunnel` process of the original design (decision 72).
 
 ### Database
-- **Streaming replica on a second server from launch.** A single Postgres box is a single point of failure for logins and management. Promoting a replica takes minutes; restoring from a WAL archive can take much longer. A second box is cheap compared to the cost of a long outage.
-- WAL archiving (pgBackRest) to object storage **in a different location**. Restores are **tested monthly**, by a timer: the latest backup is restored into a scratch container and compared with the primary (`deploy/scripts/restore-test.sh`).
-- **Failover is manual** (DECISIONS #205): promote the replica, start the Panels on server #2, move the `api` record ([DEPLOY.md](DEPLOY.md#failover)). Automatic failover with two database servers can't tell a dead primary from a split network, and two primaries is worse than a few minutes down.
+- **One server, no standby** (#344). The Panel's Postgres is on the same server as the Panels. If the server dies, a new one is made and restored from the archive with one command (`bootstrap.sh restore`, [DEPLOY.md](DEPLOY.md#rebuilding)), at the same provider or any other: about 15 minutes down, at most a minute of writes lost. Game servers keep running throughout; only managing them waits.
+- WAL archiving (pgBackRest) to object storage **at a different provider**, so an account or provider problem can't take the database and its backups together. Restores are **tested monthly**, by a timer: the latest backup is restored into a scratch container and compared with the live database (`deploy/scripts/restore-test.sh`). The rehearsal (`task deploy:rehearse`) rebuilds a whole server from the archive and checks a write made after the last backup survives.
 - Connection pooling via `pgxpool`. Every query has a context timeout.
 - Event ingestion from Wings is **batched** (multi-row inserts / `COPY`), not one transaction per event.
 - No live stats in Postgres. Only downsampled summaries.
@@ -92,14 +91,14 @@ The Panel is one process role (`serve api`), deployed with zero downtime for bro
 ## Observability
 
 Reliability you can't see isn't reliability.
-- **Panel:** structured logs (`slog`), OpenTelemetry metrics and traces, dashboards and alerts for API error rates and latency, node connection counts, reconnect rates, event lag per node, job queue depth, and Postgres replication lag. Built (`internal/panel/telemetry`, off until `OTEL_EXPORTER_OTLP_ENDPOINT` is set): every RPC's latency and result code, connected nodes and connects per instance, commands by action and outcome, emails by result, mirror sync failures, node event lag and backlog, nodes by Wings version, the nodes' own health (host disks low, doctor's checks failing or warning, counted per check), and the database's replicas, replay lag, archive failures, and WAL size. Still to come: job queue depth. The alert rules are in [DEPLOY.md](DEPLOY.md#monitoring), with an outside uptime check and a dead man's switch for backups and restore tests.
+- **Panel:** structured logs (`slog`), OpenTelemetry metrics and traces, dashboards and alerts for API error rates and latency, node connection counts, reconnect rates, event lag per node, job queue depth, and the WAL archive. Built (`internal/panel/telemetry`, off until `OTEL_EXPORTER_OTLP_ENDPOINT` is set): every RPC's latency and result code, connected nodes and connects per instance, commands by action and outcome, emails by result, mirror sync failures, node event lag and backlog, nodes by Wings version, the nodes' own health (host disks low, doctor's checks failing or warning, counted per check), and the database's archive failures and WAL size. Still to come: job queue depth. The alert rules are in [DEPLOY.md](DEPLOY.md#monitoring), with an outside uptime check and a dead man's switch for backups and restore tests.
 - **Wings:** its own health metrics (reconnects, job failures, crash loops, disk pressure) are reported over the node connection, visible to the owner on the node health page and to us in aggregate.
 - **Status page** (`status.raptorpanel.net`) hosted with a different provider than the Panel, with DNS that doesn't depend on Cloudflare, so it stays up during a Cloudflare outage.
-- Alerting that pages a human for: API down, Cloudflare or node connections failing, replication broken, backup archive failing, mass node disconnects.
+- Alerting that pages a human for: API down, Cloudflare or node connections failing, backup archive failing, mass node disconnects.
 
 ## Testing for reliability
 
-- **Fault-injection tests** (`task e2e:faults`, in a throwaway VM): kill Wings (SIGKILL) mid-backup (the job resumes and finishes; the server never restarts), kill Docker (the server keeps running under live-restore; Wings reattaches its console), fill the host disk to below the threshold and then completely (backups refused, Wings and servers keep running, recovered after freeing it), fill a server's quota (its writes fail; Wings unaffected), unmount the data volume (starts refused with a clear error, nothing written underneath, recovered on remount), corrupt `state.db` (restored from the shutdown snapshot; the server keeps running and is still known). Expected behaviour is asserted, not assumed. Reboots are in `e2e:host`; dropping the node connection mid-command is tested with the connection code (`internal/shared/nodelink`), and through Cloudflare by `task gate:link`.
+- **Fault-injection tests** (`task e2e:faults`, in a throwaway VM): kill Wings (SIGKILL) mid-backup (the job resumes and finishes; the server never restarts), kill Docker (the server keeps running under live-restore; Wings reattaches its console), fill the host disk to below the threshold and then completely (backups refused, Wings and servers keep running, recovered after freeing it), fill a server's quota (its writes fail; Wings unaffected), unmount the data volume (starts refused with a clear error, nothing written underneath, recovered on remount), corrupt `state.db` (restored from the shutdown snapshot; the server keeps running and is still known). Expected behavior is asserted, not assumed. Reboots are in `e2e:host`; dropping the node connection mid-command is tested with the connection code (`internal/shared/nodelink`), and through Cloudflare by `task gate:link`.
 - **Soak test** (`task soak:start`, in its own VM, then `soak:report` and `soak:stop`): servers with scheduled restarts (every 6 h) and backups (every 2 h), Wings restarted at random every 1 to 6 hours, and a monitor recording every server's container each minute. The report counts container restarts against the restarts their schedules asked for, samples where a server was down, and failed backups; anything unscheduled fails it. A week of it with no unexpected downtime is the last item before launch ([ROADMAP.md](ROADMAP.md#before-launch)).
 - **Load tests:** a fake-Wings simulator opening thousands of node connections through Cloudflare and streaming events, run against the Panel before launch and before major releases. The simulator is `cmd/fakewings` (`internal/loadtest`):
   - `fakewings setup -db <url> -panel <url> -nodes N -out nodes.json` makes an org and N join tokens in the Panel's database, then enrolls N nodes through the Panel's enrollment API, as `raptor link` does. Each node gets its own key, kept in `nodes.json`.
@@ -108,8 +107,8 @@ Reliability you can't see isn't reliability.
   - It refuses `*.raptorpanel.net`: the nodes are real nodes in a real org, so use a staging or local Panel.
   - `TestFleet` runs 20 nodes against a real Panel (database, enrollment, hub, mirror) in the test suite.
   - First run, Oct 12, 2026, 500 nodes against the dev Panel on a laptop (no Cloudflare): all linked, handshakes p50 6 ms / p99 19 ms, event delivery p50 4 ms / p99 17 ms, no Panel errors. Still to do: thousands of nodes through Cloudflare against staging.
-- **Install matrix** (`task e2e:bootstrap`): Debian 12, Debian 13, and Ubuntu 24.04, a full install end to end on real VMs. CI runs it on amd64 (the `Bootstrap (amd64)` workflow, nightly and on PRs that touch the install path); arm64 runs locally.
-- **Update tests** (`task e2e:update`, and the `e2e-update` CI job): signed test releases installed through the real systemd unit with a server running: an update, two rollbacks, and a restart mid-trial. Updating from each supported earlier Wings version isn't tested yet.
+- **Install matrix:** Debian 12, Debian 13, Ubuntu 24.04 × amd64/arm64, full install end to end in CI on real VMs.
+- **Upgrade tests:** upgrade from each supported previous Wings version, then roll back.
 - **Egg conformance suite:** see [EGGS.md](EGGS.md).
 
 ## What we deliberately don't need

@@ -270,6 +270,12 @@ Flat. Depth comes from tone and 1px rules: the sidebar is darker than the page, 
 ### The Node Readout
 - `[ 1 ONLINE ] / 9 NODES` at the foot of the sidebar: the online count in OK when any node is up, breathing (opacity 1 to 0.55 over 1.4s); the only ambient motion in the app, off under reduced motion.
 
+### Email
+- **Layout (`internal/panel/mail`):** a 560px column on the page colour. The full logo goes above one card, in the Raised tone with a Rule hairline and 6px corners. Inside the card come the `//` kicker naming the context (`// sign in`, `// alerts`, `// billing`), the title in the Headline style, then a code as a Readout (30px, tracked wide, on the page colour), sans paragraphs, facts as a hairline-ruled table (Label-style names; data such as addresses, times and IDs in mono), one primary key, and the small print in Slate under a Rule. The footer is `Raptor · raptorpanel.net` in mono.
+- **Colour:** Daylight, as hex because mail clients don't read oklch, and the Console where a client has a dark mode. Red stays the one signal: the button and links only.
+- **The button:** the primary key (mono capitals, 4px corners, the key highlight), 40px tall for touch, with its full address printed under it in mono.
+- **Fonts:** Hanken Grotesk and JetBrains Mono when the reader has them; otherwise the system sans and mono, since fonts aren't loaded into mail.
+
 ## 6. Do's and Don'ts
 
 ### Do:
@@ -298,7 +304,7 @@ Flat. Depth comes from tone and 1px rules: the sidebar is darker than the page, 
 
 The marks are in [`web/src/components/logo.tsx`](../web/src/components/logo.tsx); the site's header (`site/src/components/Logo.astro`) and both favicons are copies of them, so change them together.
 
-- **The full logo** is the running raptor in Signal Red beside the **RAPTOR** wordmark: Archivo ExtraBold (800) at width 118 with 0.06em tracking, outlined to a path so no font loads for it. Wherever the wordmark appears, the raptor is beside it, and the raptor never appears without the wordmark: the site's header, the docs site's header (`docs-site/src/assets/logo-dark.svg` and `-light.svg`, with a mono **DOCS** label after a hairline), the full-page error screens, and the expanded sidebar. The raptor is wide, so it never appears alone at small sizes.
+- **The full logo** is the running raptor in Signal Red beside the **RAPTOR** wordmark: Archivo ExtraBold (800) at width 118 with 0.06em tracking, outlined to a path so no font loads for it. Wherever the wordmark appears, the raptor is beside it, and the raptor never appears without the wordmark: the site's header, the docs site's header (`docs-site/src/assets/logo-dark.svg` and `-light.svg`, with a mono **DOCS** label after a hairline), the full-page error screens, the expanded sidebar, and the top of every email (`internal/panel/mail/logo-light.png` and `-dark.png`, PNGs of the docs site's two SVGs with transparent backgrounds, since mail clients don't draw SVG). The raptor is wide, so it never appears alone at small sizes.
 - **The small mark** is an R whose leg is a raptor's sickle claw, in Signal Red on its own: the collapsed sidebar, and anywhere 32px or more with no room for the full logo. It's never beside the wordmark. **The favicons** put the same R in Ink on a Signal Red tile with 6px corners, because at 16px a bare letter turns into a thin mark among the other tabs, and the tile stays a solid shape; app icons and avatars use the tile too.
 - Both are one flat colour each: no gradients, outlines, or shadows. The raptor, the small mark, and the favicon's tile are Signal Red (its Daylight value in the light theme) and the wordmark is the text colour, Bone or Graphite.
 - Archivo is only the wordmark's letters. The app and the site keep Hanken Grotesk and JetBrains Mono.

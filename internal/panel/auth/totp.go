@@ -21,6 +21,7 @@ import (
 	"github.com/pquerna/otp/totp"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
+	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -242,8 +243,13 @@ func (s *Service) FinishTOTPSetup(ctx context.Context, req *panelv1.FinishTOTPSe
 		return nil, failure
 	}
 	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "totp.enable"})
-	s.notify(ctx, sess.User, "Two-factor authentication is on for your Raptor account",
-		"Signing in to your Raptor account by email now also needs a code from your authenticator app, or one of your recovery codes.\n\nIf this wasn't you, sign out every device from your account settings right away.\n")
+	s.notify(ctx, sess.User, mail.Email{
+		Subject: "Two-factor authentication is on for your Raptor account",
+		Title:   "Two-factor authentication is on",
+		Body:    []string{"Signing in to your Raptor account by email now also needs a code from your authenticator app, or one of your recovery codes."},
+		Button:  s.securityLink(),
+		Note:    "If this wasn't you, sign out every device right away.",
+	})
 	return &panelv1.FinishTOTPSetupResponse{RecoveryCodes: codes}, nil
 }
 
@@ -270,8 +276,13 @@ func (s *Service) DisableTOTP(ctx context.Context, _ *panelv1.DisableTOTPRequest
 		return nil, err
 	}
 	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "totp.disable"})
-	s.notify(ctx, sess.User, "Two-factor authentication is off for your Raptor account",
-		"Two-factor authentication was turned off, and your recovery codes no longer work.\n\nIf this wasn't you, sign out every device from your account settings and turn it back on right away.\n")
+	s.notify(ctx, sess.User, mail.Email{
+		Subject: "Two-factor authentication is off for your Raptor account",
+		Title:   "Two-factor authentication is off",
+		Body:    []string{"Two-factor authentication was turned off for your Raptor account, and your recovery codes no longer work."},
+		Button:  s.securityLink(),
+		Note:    "If this wasn't you, sign out every device and turn it back on right away.",
+	})
 	return &panelv1.DisableTOTPResponse{}, nil
 }
 
@@ -297,8 +308,13 @@ func (s *Service) RegenerateRecoveryCodes(ctx context.Context, _ *panelv1.Regene
 		return nil, err
 	}
 	_ = s.Audit(ctx, nil, Event{User: sess.UserID, Action: "recovery_codes.regenerate"})
-	s.notify(ctx, sess.User, "New recovery codes for your Raptor account",
-		"New recovery codes were made for your Raptor account, and the old ones no longer work.\n\nIf this wasn't you, sign out every device from your account settings right away.\n")
+	s.notify(ctx, sess.User, mail.Email{
+		Subject: "New recovery codes for your Raptor account",
+		Title:   "New recovery codes",
+		Body:    []string{"New recovery codes were made for your Raptor account, and the old ones no longer work."},
+		Button:  s.securityLink(),
+		Note:    "If this wasn't you, sign out every device right away.",
+	})
 	return &panelv1.RegenerateRecoveryCodesResponse{RecoveryCodes: codes}, nil
 }
 
@@ -407,8 +423,13 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 	setNamedCookie(c.resp, pendingCookie, "", 0)
 	after()
 	if recovered {
-		s.notify(ctx, user, "A recovery code was used on your Raptor account",
-			fmt.Sprintf("Someone signed in to your Raptor account with a recovery code. %d are left.\n\nIf this wasn't you, sign out every device from your account settings and make new recovery codes right away.\n", out.GetRecoveryCodesLeft()))
+		s.notify(ctx, user, mail.Email{
+			Subject: "A recovery code was used on your Raptor account",
+			Title:   "A recovery code was used",
+			Body:    []string{fmt.Sprintf("Someone signed in to your Raptor account with a recovery code. %d are left.", out.GetRecoveryCodesLeft())},
+			Button:  s.securityLink(),
+			Note:    "If this wasn't you, sign out every device and make new recovery codes right away.",
+		})
 	}
 	return out, nil
 }
