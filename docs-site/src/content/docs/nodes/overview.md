@@ -34,14 +34,14 @@ Rename a node on its **Settings** tab. The machine's own hostname follows the na
 **Remove node** on its **Settings** tab (admins and owners) unlinks it from your org:
 
 - Its servers **keep running** on the machine; you just can't manage them from Raptor.
-- It stops counting toward your plan.
+- It stops counting towards your plan.
 - Its address, Raptor Backup Storage (kept 30 days), and members' access to its servers go.
 
 To bring it back, make a join token and run `sudo raptor relink -token rpt_join_…` on the machine. To take Raptor off the machine entirely, see [Leaving Raptor](/help/faq/#how-do-i-leave-raptor).
 
 ## More than one node
 
-Link as many machines as you like: each is $12 a month. In the app, choose **Connect node** again and run its command on the new machine. Servers are made on one node and stay there; to move one, back it up and restore it, or copy its files with [Import](/servers/files/#import-from-another-host).
+Link as many machines as you like: each is $12 a month. In the app, choose **Connect node** again and run its command on the new machine. Servers are made on one node and stay there; to move one, back it up and restore it, or copy its files over with [an SFTP import](/servers/files/#import-from-another-host).
 
 ## Details
 

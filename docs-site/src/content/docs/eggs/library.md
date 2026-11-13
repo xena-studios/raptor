@@ -10,7 +10,7 @@ An **egg** is the recipe for a kind of server: the Docker image it runs in, how 
 The org's **Eggs** page lists two kinds:
 
 - **Raptor's:** the catalog, maintained by Raptor. **Certified** ones (with a check) are tested with every release: Minecraft (Paper, Purpur, Fabric, Forge, NeoForge, Quilt, Vanilla, Bedrock), proxies (Velocity, BungeeCord), Steam games (Rust, Valheim, Palworld, ARK, CS2, Satisfactory…), Terraria, Factorio, and more.
-- **Your org's own:** imported, made from scratch, or customized copies. Admins and owners change them; members see them.
+- **Your org's own:** imported, made from scratch, or customised copies. Admins and owners change them; members see them.
 
 ## Using an egg
 
@@ -24,12 +24,12 @@ An imported egg is never marked certified, whatever it says. [Community eggs](ht
 
 **Import new version** on one of your eggs replaces its file with a new one, from a link (its own source link is filled in) or an upload: an update upstream, or a change you made elsewhere. You review it the same way, and it's saved as a new version. Files from Pterodactyl and Pelican don't have Raptor's settings (CPUs, players, add-ons), so the egg keeps its own unless you untick that.
 
-## Customizing
+## Customising
 
 **Customize** makes a copy of any egg to edit, as a draft. The editor has tabs for its overview (name, category, and which CPUs it runs on), runtimes, variables, startup, install script, config files, and add-ons, plus the raw file. Saving writes a new **version**, so you can see who changed what. An edited egg is still a valid Pterodactyl egg: **Export** it to use anywhere.
 
 - A **draft** can't be deployed; publish it when it's ready. An **archived** egg is hidden and can't be deployed.
-- **Servers keep the egg they were made from.** Editing, archiving, or deleting an egg never changes a running server; [change a server's type](/servers/settings/#change-the-servers-type) to move it to another egg.
+- **Servers keep the egg they were made from.** Editing, archiving, or deleting an egg never changes a server by itself. To move a server to a newer version of its egg, use its [Egg version](/servers/settings/#egg-version); to move it to another egg, [change its type](/servers/settings/#change-the-servers-type).
 
 ## Accepting a game's EULA
 

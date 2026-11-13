@@ -42,10 +42,10 @@ Destinations are set up per node, on the **node's Backups tab** (admins):
 |---|---|
 | **Raptor Backup Storage** | Offsite, with nothing to set up. [Below](#raptor-backup-storage). |
 | **This node's disk** | Always there. Fast to restore, but gone if the machine is. |
-| **A folder on the node** | A second disk or a mounted NAS, under `/mnt`, `/media`, or `/srv`. |
-| **S3-compatible** | AWS, Backblaze B2, Cloudflare R2, Wasabi, Hetzner, OVH, Google Cloud Storage, MinIO… |
+| **Folder on the node** | A second disk or a mounted NAS, under `/mnt`, `/media`, or `/srv`. |
+| **S3-compatible storage** | AWS, Backblaze B2, Cloudflare R2, Wasabi, Hetzner, OVH, Google Cloud Storage, MinIO… |
 | **Azure Blob Storage** | With an account key or a SAS token. |
-| **SFTP** | Any server over SSH. Raptor shows the server's host key to check, and can sign in with the node's own key, a password, or a private key. |
+| **SFTP server** | Any server over SSH. Raptor shows the server's host key to check, and can sign in with the node's own key, a password, or a private key. |
 | **WebDAV** | Nextcloud, ownCloud, a NAS. |
 
 **Test** a destination before saving it: the node writes a file there, reads it back, and removes it, and says in plain words what's wrong if anything is. Each one can limit its **upload speed**, so backups leave room for players. Its health (when it last worked, or why it's failing) shows on the node's Backups tab, and **Settings → Backups** shows every node's at once.
@@ -85,7 +85,7 @@ Each node encrypts its backups with its own **backup key**. Without it, nobody c
 By default **Raptor keeps a copy**, sealed, so if the machine dies you can recover its backups on another one. Prefer that Raptor couldn't read them? On the node's **Backups** tab → **Backup key**:
 
 - **Download the key** (with an owner's passkey) and keep it somewhere safe, or show it on the machine with `sudo raptor backup key`, so it never passes through Raptor.
-- **Keep it yourself:** Raptor deletes its copy. Lose yours too, and a dead machine's backups are gone for good.
+- **Keep it myself only:** Raptor deletes its copy. Lose yours too, and a dead machine's backups are gone for good.
 
 ## Recovering a lost machine's backups
 

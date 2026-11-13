@@ -2,7 +2,7 @@
 
 Raptor is built. Wings, the Panel, and the web app are done and run in production; what's left is proving them before launch, then bugs, small features, and releases. This file is that list: [the launch gate](#launch-gate), [what's left before launch](#before-launch), [the backlog](#backlog) of small features and known gaps, and [bigger work after launch](#after-launch). How it was built, phase by phase, is [at the end](#how-it-was-built).
 
-Releases are in [CONTRIBUTING.md](../CONTRIBUTING.md#releases). Bugs and requests from people running Raptor come in on the Discord server; one that's taken on goes here, or straight into a pull request.
+Numbers like #270 are pull requests; DECISIONS #n points into [DECISIONS.md](DECISIONS.md). Releases are in [CONTRIBUTING.md](../CONTRIBUTING.md#releases). Bugs and requests from people running Raptor come in on the Discord server; one that's taken on goes here, or straight into a pull request.
 
 ## Where things stand
 
@@ -29,8 +29,8 @@ In order, in three stages. Each item is done when it's crossed off here.
 
 The owner moves their own game servers onto Raptor, on a new node, and lives on it for two weeks before the launch work below. What they trip on goes first.
 
-1. **Fixes from the Oct 28 audit,** before the first real server: a failed download fails the install, with downloads retried (#294); a reinstall over files takes a safety backup first (#294); Minecraft backups save the world first (#293); a node gets its IPv4 record when it reaches the Panel over IPv6 (#292).
-2. **v0.11.0,** signed, with the database work, billing waivers, and the fixes above; new nodes install it.
+1. ~~**Fixes from the Oct 28 audit,**~~ before the first real server: a failed download fails the install, with downloads retried (#294); a reinstall over files takes a safety backup first (#294); Minecraft backups save the world first (#293); a node gets its IPv4 record when it reaches the Panel over IPv6 (#292).
+2. ~~**v0.13.0 signed**~~ (published Oct 29, after v0.11.0 and v0.12.0), with the database work, billing waivers, and the fixes above, so new nodes install it.
 3. **The owner's node:** a new VPS (Debian 13), the org's billing waived (staff → the org → Waive billing), `raptor doctor` green, `dig A <shortid>.raptornodes.net` answering its IPv4.
 4. **Their servers moved,** an offsite backup destination added and one backup restored, crash and offline alerts on, and a friend joining by the node's hostname.
 5. **Two weeks on it,** fixing in small releases. Known now: Java's memory headroom is thin for big modded packs (5–15% over the heap, no swap); Docker on nodes never updates; SFTP deletes skip the trash; the connection test can't check UDP; every crash of a crash-looping server sends its own alert.
@@ -41,7 +41,7 @@ From the Xena Studios GitHub audit of Oct 22, 2026, and the nodes' overdue updat
 
 1. ~~**DOMPurify:**~~ `security` is a required check, and `pnpm audit` failed on DOMPurify ≤3.4.16 through `monaco-editor`, so no pull request could merge. Fixed by the override in `web/pnpm-workspace.yaml` (#270); Renovate's onboarding followed (#269).
 2. **Sign v0.15.0 and reinstall the nodes** on the new Panel: `task release:sign TAG=v0.15.0`, then each node joined again with the app's command (Wings pins the new `raptor-server-backups` bucket), its `<short id>.raptornodes.net` answering from Route 53, and a player joining, with the console and files working. The older `panel rollout` steps are moot: the new Panel started empty.
-3. **One release after every node runs v0.6.0 Wings or newer:** turn `db/panel/pending/drop_node_display_address.sql` into a migration (#253), and remove the SFTP username fallback for old Wings (`nodelink.CapSFTPUsername` in the Panel, the `user.serverid` form in `internal/wings/sftp`). Check in Cloudflare that the old `n-…` and player subdomain records are gone (`dns_retired` empty); then the retiring code can go too.
+3. **One release after every node runs v0.6.0 Wings or newer:** turn `db/panel/pending/drop_node_display_address.sql` into a migration (DECISIONS #253), and remove the SFTP username fallback for old Wings (`nodelink.CapSFTPUsername` in the Panel, the `user.serverid` form in `internal/wings/sftp`). Check in Cloudflare that the old `n-…` and player subdomain records are gone (`dns_retired` empty); then the retiring code can go too.
 4. ~~**Workflows:**~~ (#272) third-party actions (`goreleaser`, `docker/*`, `pnpm/action-setup`, `go-task/setup-task`) pinned to commits, with Renovate keeping the pins current, since the release jobs can push code and images; `pnpm/action-setup` and `go-task/setup-task` past GitHub's Node 20 deprecation; CodeQL for Go, TypeScript, and the workflows (not a required check).
 5. ~~**`security.txt`**~~ (RFC 9116) on raptorpanel.net and docs.raptorpanel.net, and **issue forms** for bugs and feature requests (#273). The files expire on Oct 26, 2027 ([DEPLOY.md](DEPLOY.md#static-sites)).
 6. **Cloudflare's injected scripts off** in the raptorpanel.net zone (Security → Bots: JavaScript Detections, Bot Fight Mode, and Web Analytics). The CSP blocks them anyway, but they break `web/scripts/verify-deployed.mjs`, the published check that the site matches the release; rerun it afterwards.
@@ -74,7 +74,7 @@ From the Xena Studios GitHub audit of Oct 22, 2026, and the nodes' overdue updat
 |---|---|
 | Now (overdue) | Business entity (Polar pays out to it), then the Polar account verified for payouts |
 | Now | Register `raptornodes.com` if it's available and redirect it (`raptorpanel.com` belongs to someone else) |
-| By launch | `raptornodes.net` on the Public Suffix List (takes weeks; less pressing since it only holds node hostnames, #279) |
+| By launch | `raptornodes.net` on the Public Suffix List (takes weeks; less pressing since it only holds node hostnames, DECISIONS #279) |
 | By the beta | Terms of Service, Privacy Policy, and a DPA covering support access and player data |
 | Ongoing | Share progress publicly (devlogs, Discord) to build the beta list |
 
@@ -102,16 +102,16 @@ Docker networks managed from the app, so separate communities on one node can't 
 The owner took every recommendation (October 2026):
 
 - **External access for Redis and MongoDB:** Redis and Valkey get a second, TLS-only port, published, while the plain one stays inside; MongoDB's stays off until someone asks (DECISIONS #331). Built.
-- **Redis and MongoDB admin accounts over the network:** accepted as they are (#320, #332).
-- **Instances backed up on their own:** yes, once databases could outlive their servers (#342): daily to the node's first offsite destination, keeping 7, beside the dumps in servers' backups (#343). Built.
-- **Which Redis to ship:** Valkey, the BSD fork, beside Redis (#333). Built.
-- **MongoDB's default version:** 8.0, with 7.0 for older machines and kernels 6.19+ (#323, #332).
+- **Redis and MongoDB admin accounts over the network:** accepted as they are (DECISIONS #320, #332).
+- **Instances backed up on their own:** yes, once databases could outlive their servers (DECISIONS #342): daily to the node's first offsite destination, keeping 7, beside the dumps in servers' backups (DECISIONS #343). Built.
+- **Which Redis to ship:** Valkey, the BSD fork, beside Redis (DECISIONS #333). Built.
+- **MongoDB's default version:** 8.0, with 7.0 for older machines and kernels 6.19+ (DECISIONS #323, #332).
 
 ### Known gaps
 
 - **Not tried with a real passkey yet:** going back after a version change, restoring one database from a backup, and turning external access on, off, or changing it. Their signing is tested, and the work behind them is tested on real engines, but nobody has clicked them through in the app with a node-trusted passkey.
-- **Patch updates** wait while an instance can still go back from a version change (#315), up to 7 days.
-- **MongoDB 8.0+ on Linux 6.19+** is held back until MongoDB fixes SERVER-121912 (#323): watch for images that start, then drop the check in `versions.go` and bump the digests. Ubuntu 26.04 and newer cloud kernels are 6.19+.
+- **Patch updates** wait while an instance can still go back from a version change (DECISIONS #315), up to 7 days.
+- **MongoDB 8.0+ on Linux 6.19+** is held back until MongoDB fixes SERVER-121912 (DECISIONS #323): watch for images that start, then drop the check in `internal/wings/databases/versions.go` and bump the digests. Ubuntu 26.04 and newer cloud kernels are 6.19+.
 
 ## After launch
 
@@ -143,7 +143,7 @@ Each phase ended with exit criteria, and the riskiest assumptions were checked b
 
 | Phase | What it built | How it was proven |
 |---|---|---|
-| 0 · Foundations | The monorepo, codegen (buf, sqlc), CI with lint, tests, licenses, and secret scanning, and signed releases | `v0.0.1-rc.1` built by CI, signed offline, and verified from its public URLs |
+| 0 · Foundations | The monorepo, codegen (buf, sqlc), CI with lint, tests, licence checks, and secret scanning, and signed releases | `v0.0.1-rc.1` built by CI, signed offline, and verified from its public URLs |
 | 1 · Wings core | The egg runtime (Pterodactyl and Pelican eggs, unmodified images), the Docker runtime and firewall, the server lifecycle, the job engine and signed commands, disk quotas, the first CLI, and the egg conformance suite | Gates: Paper, Rust, and a Node.js egg running on arm64 and x86_64 (1.0); quotas that hold, survive reboots, and grow online (1.6) |
 | 2 · Wings complete | Schedules, Kopia backups, SFTP, file operations, local metrics, `doctor`, the TUI, self-updates that roll back, Pterodactyl import, host disk protection | The fault-injection suite passes; the week-long soak is the last item [before launch](#before-launch) |
 | 3 · Panel core | The production servers, accounts with passkeys, orgs and RLS, the node connection through Cloudflare, enrollment and `raptor bootstrap`, the mirror, node DNS, signed delegations, staged Wings updates | Gate: calls both ways through Cloudflare with idempotent retries (3.0); one command links fresh Debian 12, 13, and Ubuntu 24.04 VMs; a Panel redeploy in production that a connected player never noticed |

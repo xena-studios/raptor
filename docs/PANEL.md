@@ -197,28 +197,28 @@ Destinations live on each node, credentials included: the Panel never stores the
 
 ## Raptor Backup Storage
 
-Offsite backups with nothing to set up (`internal/panel/storage`), priced in [#230](DECISIONS.md): 10 GB included per paid node, then $12/TB-month by the GB.
+Offsite backups with nothing to set up (`internal/panel/storage`), priced in [#230](DECISIONS.md): 10 GB included per linked node, pooled across the org, then $12/TB-month by the GB ([Billing](#billing-polar)).
 
 - **One B2 bucket**, `raptor-server-backups`, reached through its S3 API. Its name is pinned in Wings (`internal/shared/hosted`): B2 bucket names are unique across Backblaze, so a "Raptor storage" destination can only ever send backups to Raptor's bucket, whatever a Panel says.
 - **Turning it on** for a node (`OrgService.EnableBackupStorage`, admins; the first, recommended choice in the node's Backups tab → Add destination, with nothing to fill in, #283): the Panel makes a B2 key that reaches only `orgs/<org>/nodes/<node>/` (list, read, and write files; no deleting for good, no other keys, no bucket settings), and sends the node a `backup.destination.save` with it as the destination `raptor`. Wings takes it unsigned because it can only be Raptor's bucket and that node's own folder (`backup.IsHosted`); pointing a server at it is unsigned for the same reason. The key's secret goes to the node and isn't kept by the Panel (`backup_storage` keeps its ID). Turning it on again makes a new key and deletes the old one. A node that's offline gets nothing and leaves no key behind.
-- **A hacked node can't destroy its backups:** its key can't delete for good, so B2 turns its deletes (Kopia's cleanup included) into hiding the file, and the bucket keeps hidden versions 30 days. Backups wiped from a hacked node can be brought back within that time (in the app with PR 4: restoring the repository as it was before, from those versions, which Kopia can open at a point in time). Only the Panel's key deletes for good, 30 days after storage is turned off.
-- **The data is the node's to read:** backups are encrypted by the node (Kopia, with the node's repository password) before they leave it, and the Panel doesn't have that password, so Raptor stores what it can't read. (Until the key copy of PR 4 exists, a dead node's backups can't be recovered elsewhere either.)
+- **A hacked node can't destroy its backups:** its key can't delete for good, so B2 turns its deletes (Kopia's cleanup included) into hiding the file, and the bucket keeps hidden versions 30 days. Backups wiped from a hacked node can be brought back within that time, by reading the repository as it was before from those versions (**Look back in time**, [below](#recovering-backups)). Only the Panel's key deletes for good, 30 days after storage is turned off.
+- **The data is the node's to read:** backups are encrypted by the node (Kopia, with the node's repository password) before they leave it, and the Panel doesn't have that password, so Raptor stores what it can't read. For a dead node's backups to be recoverable elsewhere, someone needs a copy of that password ([Backup keys](#backup-keys)).
 - **Turning it off:** the node removes the destination (signed, like any), then `DisableBackupStorage` deletes the key. The files stay 30 days, then the Panel deletes every version under the node's folder. Removing a node does the same. Turning it on again within the 30 days keeps the files (it's the same folder), and nothing is deleted.
 - **Reminders before the deletion** (`internal/panel/storage/reminders.go`): the org's owners are emailed when it's turned off or the node is removed, 7 days before, and the day before, each once (`backup_storage.notified`), with how to keep the backups: turn it back on, or recover them onto another node. After a gap (the Panel down) only the latest one due goes.
 - **Usage:** once a day, one Panel instance (an advisory lock) adds up each file's current version under each org's folder (`b2_list_file_versions`) into `backup_storage_usage`. Hidden versions are kept for the customer's protection, so they're Raptor's cost, not counted. `GetBackupStorage` shows it with what's included (10 GB × the org's nodes) and an estimate. Past 500 GB during beta, the org is asked to get in touch and it's logged; nothing is blocked. Billing charges what's past the included amount from the same table ([Billing](#billing-polar)).
 
 ## Backup keys
 
-Each node encrypts its backups with its own key (WINGS.md#backups), so a node that dies takes the only copy with it unless one is kept elsewhere. By default the Panel keeps one (`internal/panel/backupkeys`, `backup_keys`):
+Each node encrypts its backups with its own key ([WINGS.md](WINGS.md#backups)), so a node that dies takes the only copy with it unless one is kept elsewhere. By default the Panel keeps one (`internal/panel/backupkeys`, `backup_keys`):
 
 - **Getting it:** when a node connects, and every 15 minutes for nodes without a copy, the Panel sends `backup.key` (one instance at a time, an advisory lock). In `panel` mode the node answers with the key; it's sealed with AES-256-GCM under `PANEL_DATA_KEY`, bound to the node's ID (a sealed key copied to another node's row doesn't open), and stored with its fingerprint. In `owner` mode the node answers with the mode, and the Panel deletes any copy.
-- **Kept after a node is removed:** recovering a dead node's backups is what it's for. It opens only for that node's org (the recovery in PR 4b).
+- **Kept after a node is removed:** recovering a dead node's backups is what it's for. It opens only for that node's org, for [recovery](#recovering-backups).
 - **The node's Backups tab → Backup key:** who keeps it, the fingerprint, "Download the key" (an owner's passkey; or `raptor backup key` on the node, so it never passes through Raptor), and switching. Keeping it yourself asks to download it first and to confirm it's saved; it's unsigned, then `SyncBackupKey` drops the Panel's copy. Letting Raptor keep a copy takes an owner's passkey. `GetBackupKey` says whether the Panel has a copy, never the key.
 - **What it means:** with a copy, Raptor could decrypt that node's backups (and for Raptor Backup Storage, it also has the storage), which the app says plainly. Owner mode is for those who'd rather it couldn't.
 
 ## Recovering backups
 
-On a node's Backups tab, owners can **Recover backups** (WINGS.md#backups): `ListRecoverySources` lists the org's nodes, removed ones included, with whether the Panel has a copy of each one's key and whether it had Raptor Backup Storage whose files aren't deleted yet. Then:
+On a node's Backups tab, owners can **Recover backups** ([WINGS.md](WINGS.md#backups)): `ListRecoverySources` lists the org's nodes, removed ones included, with whether the Panel has a copy of each one's key and whether it had Raptor Backup Storage whose files aren't deleted yet. Then:
 
 - **From its Raptor Backup Storage:** `PrepareRecovery` (owners, audited as `backup.recover.prepare`) opens the Panel's copy of that node's key and makes a B2 key that only reads its folder, for 90 days; the browser signs and sends `backup.recover` with both.
 - **From a destination of its own:** the destination form, plus that node's key (Raptor's copy filled in, or pasted from where the owner saved it).
@@ -231,7 +231,7 @@ Recovered backups of servers that aren't on the node show under **Recovered back
 
 The egg library (`EggService`, `internal/panel/orgs/library.go`): what servers are made from. Shown together on an org's **Eggs** page:
 - **Official:** Raptor's, managed by staff on the admin panel's **Eggs** page (`eggs.org_id` NULL). Orgs see the published ones. Raptor's catalog (`eggs/` in the repository) is seeded into them when the Panel starts ([EGGS.md](EGGS.md#in-the-official-library)); certified eggs are the files the conformance suite tests.
-- **The org's own** (`eggs`): imported, made from scratch, or customized copies of any egg they can see. Admins and owners change them; members see them. Up to 100 per org (500 official).
+- **The org's own** (`eggs`): imported, made from scratch, or customised copies of any egg they can see. Admins and owners change them; members see them. Up to 100 per org (500 official).
 
 Each egg has a status: a **draft** can't be deployed, a **published** one can, and an **archived** one is hidden and can't be deployed. Made-from-scratch eggs and copies start as drafts; imports are published. An egg's page shows what it runs: add-ons, runtimes, variables and who can change them, the startup command, ready lines and stop, the install script, the config files Wings edits, the file itself, and every version. From there: **Use egg** (the create-server wizard with it picked), **Customize** or **Duplicate** (a draft copy to edit, which remembers what it's based on), **Export**, and **Edit**.
 
@@ -259,7 +259,7 @@ Unpublishing or archiving a shared egg takes it out of the community.
 
 An egg comes in from a link or an upload: Pterodactyl or Pelican, JSON or YAML.
 
-1. **Review** (`EggService.ReviewEggFile`, 30 an hour per user for links): the Panel fetches the link (`internal/panel/eggimport`): https on port 443 only, a GitHub file page read from its raw file, at most 3 redirects and all https, 1 MiB, 15 seconds, and only public addresses, checked on the address actually dialed so DNS can't point it inward. It parses the egg with the same parser Wings uses (refusing one that leaves parts to another egg with `config.extends` or `copy_script_from`) and returns what it would run: images and their registries, the install container, entrypoint, and script, the startup command, variables, and warnings: an image from a publisher the community eggs don't use (anything but Docker Hub's official images and the Pterodactyl, Pelican, and parkervcp ones), an install script that pipes a download into a shell, no CPUs named, or a claim to be certified. Nothing is saved.
+1. **Review** (`EggService.ReviewEggFile`, 30 an hour per user for links): the Panel fetches the link (`internal/panel/eggimport`): https on port 443 only, a GitHub file page read from its raw file, at most 3 redirects and all https, 1 MiB, 15 seconds, and only public addresses, checked on the address actually dialled so DNS can't point it inward. It parses the egg with the same parser Wings uses (refusing one that leaves parts to another egg with `config.extends` or `copy_script_from`) and returns what it would run: images and their registries, the install container, entrypoint, and script, the startup command, variables, and warnings: an image from a publisher the community eggs don't use (anything but Docker Hub's official images and the Pterodactyl, Pelican, and parkervcp ones), an install script that pipes a download into a shell, no CPUs named, or a claim to be certified. Nothing is saved.
 2. The app shows all of it, and Import stays off until the admin ticks that they've looked and trust the egg.
 3. **Import** (`ImportEggFile`): the reviewed file, sent back as it was, is parsed again and saved with its SHA-256 and link; the same file can't be imported twice into one library.
 
@@ -298,7 +298,7 @@ A node's hostname (`<short id>.raptornodes.net`) resolves to the machine's IP ad
 
 ## Pop-outs
 
-A server's console, file manager, and stats, and a node's stats (admins), each open in a window of their own from the button with the arrow out of a box (on the Console card, the Resources card, and the file manager's toolbar): no sidebar, just the server or node, its state, its power buttons, and a link back to it in the app. The pages are `/popout/<org>/servers/<node>/<server>/{console,files,stats}` and `/popout/<org>/nodes/<node>/stats` (`web/src/routes/popout.*`), with the same short IDs and permissions as the app's own pages. Each pop-out is one window by name: opening it again brings it to the front. A middle click or Ctrl/Cmd-click opens it in a tab instead (#282).
+A server's console, file manager, and stats, and a node's stats (admins), each open in a window of their own from the button with the arrow out of a box (on the Console card, the Resources card, and the file manager's toolbar): no sidebar, just the server or node, its state, its power buttons, and a link back to it in the app. The pages are `/popout/<org>/servers/<server>/{console,files,stats}` and `/popout/<org>/nodes/<node>/stats` (`web/src/routes/popout.*`), with the same short IDs and permissions as the app's own pages. Each pop-out is one window by name: opening it again brings it to the front. A middle click or Ctrl/Cmd-click opens it in a tab instead (#282).
 
 ## File manager right-click
 
@@ -318,7 +318,7 @@ Toasts are Base UI's (`web/src/components/ui/toast.tsx`, no other library), with
 
 ## Code editor
 
-Monaco (the file manager and egg scripts) is drawn in the app's colors, not a theme of its own: the text and gutter on the card, and the parts Monaco draws itself (suggestions, hovers, the find box, the right-click menu, the command palette) on the popover's colors with the app's accent, focus ring, corners, and type (`raptorTheme` in `web/src/components/monaco.tsx`). It follows the app's theme as it changes, the OS's included. There's no separate editor theme to pick (#281).
+Monaco (the file manager and egg scripts) is drawn in the app's colours, not a theme of its own: the text and gutter on the card, and the parts Monaco draws itself (suggestions, hovers, the find box, the right-click menu, the command palette) on the popover's colours with the app's accent, focus ring, corners, and type (`raptorTheme` in `web/src/components/monaco.tsx`). It follows the app's theme as it changes, the OS's included. There's no separate editor theme to pick (#281).
 
 ## Charts
 
@@ -453,7 +453,7 @@ The limit, said plainly: this stops a staff account (or one taken over) from rea
 
 ## AGPL obligations
 
-The Panel links to the **exact source commit** that is deployed: the sidebar's footer and the sign-in page show "Source code", pointing at the commit the API reports (`MetaService.GetVersion`, set by the image build's `COMMIT`), or the repository for development builds. All dependencies must be AGPL-compatible (CI checks licenses).
+The Panel links to the **exact source commit** that is deployed: the sidebar's footer and the sign-in page show "Source code", pointing at the commit the API reports (`MetaService.GetVersion`, set by the image build's `COMMIT`), or the repository for development builds. All dependencies must be AGPL-compatible (CI checks licences).
 
 ## Hosting
 

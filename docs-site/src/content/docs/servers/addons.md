@@ -26,7 +26,7 @@ On the tab:
 
 Restart the server for changes to take effect. Installing needs the **Change files** permission.
 
-SpigotMC isn't offered: its downloads often go to other sites without a hash, so the machine couldn't check what it got. Install those by uploading the jar, or with [From URL](/servers/files/#download-from-a-link).
+SpigotMC isn't offered: its downloads often go to other sites without a hash, so the machine couldn't check what it got. Install those by uploading the jar, or with [Upload → From a link](/servers/files/#download-from-a-link).
 
 ## Steam Workshop
 

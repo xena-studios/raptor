@@ -11,10 +11,11 @@ git tag v0.1.0 && git push origin v0.1.0   # CI builds a draft release
 task release:sign TAG=v0.1.0                 # sign, verify, upload signature, publish
 ```
 
-Pushing a stable tag (`vX.Y.Z`) also deploys the Panel and the web app to
-production right away ([DEPLOY.md](../docs/DEPLOY.md#deploying)); only the Wings
-binaries wait for the signature. Existing nodes update once a staged rollout is
-started ([DEPLOY.md](../docs/DEPLOY.md#updating-nodes)). The whole checklist is in
+Pushing a stable tag (`vX.Y.Z`) also deploys the Panel, the web app, the
+landing page and the docs to production right away
+([DEPLOY.md](../docs/DEPLOY.md#deploying)); only the Wings binaries wait for the
+signature. Existing nodes update once a staged rollout is started
+([DEPLOY.md](../docs/DEPLOY.md#updating-nodes)). The whole checklist is in
 [CONTRIBUTING.md](../CONTRIBUTING.md#releases).
 
 `task release:sign` also generates `install.sh` (the install script served at
