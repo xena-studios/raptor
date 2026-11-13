@@ -494,7 +494,9 @@ func (f *FS) addEntry(aw archiveWriter, p, name string, d fs.DirEntry) (bool, er
 	case !fi.Mode().IsRegular():
 		return false, nil
 	}
-	src, err := f.Open(p, os.O_RDONLY)
+	// The walk checked p against the denylist, and fi is its lstat, just
+	// read: a regular file. Open checks the open file again.
+	src, st, err := f.open(p, os.O_RDONLY, false)
 	if errors.Is(err, ErrNotRegular) || errors.Is(err, fs.ErrNotExist) {
 		return false, nil // swapped or removed while walking
 	}
@@ -502,10 +504,6 @@ func (f *FS) addEntry(aw archiveWriter, p, name string, d fs.DirEntry) (bool, er
 		return false, err
 	}
 	defer func() { _ = src.Close() }()
-	st, err := src.Stat()
-	if err != nil {
-		return false, err
-	}
 	// A file that grows while it's read is cut at the size it had.
 	return true, aw.file(name, fi, st.Size(), io.LimitReader(src, st.Size()))
 }
@@ -541,7 +539,7 @@ func (f *FS) Extract(ctx context.Context, archive, dest string, space int64, opt
 	if err := f.MkdirAll(dest); err != nil {
 		return res, err
 	}
-	x := &extractor{f: f, ctx: ctx, dest: dest, space: &spaceLeft{limit: space}, res: &res}
+	x := &extractor{f: f, ctx: ctx, dest: dest, space: &spaceLeft{limit: space}, res: &res, dirs: map[string]bool{}}
 	err = x.extract(src, st.Size(), path.Base(archive), Threads(opts.Threads))
 	return res, err
 }
@@ -595,6 +593,11 @@ type extractor struct {
 	space   *spaceLeft
 	entries int      // entries seen
 	pool    *writers // nil: files are written one at a time
+	// dirs are the directories this extraction made or found, so each is
+	// checked once, not for every file in it. Only names are kept: files
+	// are still opened through the root, which a directory swapped since
+	// can't get them out of. Making a link forgets them all.
+	dirs map[string]bool
 
 	mu  sync.Mutex // res, for the writers
 	res *ArchiveResult
@@ -901,14 +904,17 @@ func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link st
 		return err
 	}
 	if kind == kindDir {
-		if err := f.MkdirAll(target); err != nil {
+		if err := x.mkdirAll(target); err != nil {
 			return err
 		}
 		x.count(1, 0, 0)
 		return nil
 	}
-	if err := f.MkdirAll(path.Dir(target)); err != nil {
+	if err := x.mkdirAll(path.Dir(target)); err != nil {
 		return err
+	}
+	if kind == kindSymlink || kind == kindHardlink {
+		clear(x.dirs)
 	}
 	switch kind {
 	case kindSymlink:
@@ -947,6 +953,20 @@ func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link st
 	return nil
 }
 
+// mkdirAll is MkdirAll for directories not made or found already.
+func (x *extractor) mkdirAll(dir string) error {
+	if x.dirs[dir] {
+		return nil
+	}
+	if err := x.f.MkdirAll(dir); err != nil {
+		return err
+	}
+	for d := dir; d != "." && !x.dirs[d]; d = path.Dir(d) {
+		x.dirs[d] = true
+	}
+	return nil
+}
+
 // replaceLink removes what's at target so a link can take its place, or,
 // for a file (onlyLinks), a symlink, which is replaced, not written
 // through, as tar does. skip is true for a directory in the way.
@@ -962,23 +982,44 @@ func (x *extractor) replaceLink(target string, onlyLinks bool) (skip bool, err e
 	return false, x.f.root.Remove(target)
 }
 
-// file writes one regular file.
+// file writes one regular file. A new one is created with O_EXCL; only
+// when something is in the way is it looked at (a link there is replaced,
+// a directory or special file skipped), and the file opened as Open does.
 func (x *extractor) file(ctx context.Context, target string, perm fs.FileMode, open func() (io.ReadCloser, error), mtime time.Time) error {
-	if _, err := x.replaceLink(target, true); err != nil {
-		return err
-	}
 	r, err := open()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = r.Close() }()
 	f := x.f
-	out, err := f.Open(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-	if errors.Is(err, ErrNotRegular) {
-		x.count(0, 1, 0)
-		return nil
+	mode := perm
+	if mode == 0 {
+		mode = FileMode
+	}
+	out, err := f.create(target, mode)
+	if errors.Is(err, fs.ErrNotExist) {
+		// A directory made earlier was removed meanwhile.
+		if err = f.MkdirAll(path.Dir(target)); err == nil {
+			out, err = f.create(target, mode)
+		}
+	}
+	if errors.Is(err, fs.ErrExist) {
+		if _, err := x.replaceLink(target, true); err != nil {
+			return err
+		}
+		out, err = f.Open(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+		if errors.Is(err, ErrNotRegular) {
+			x.count(0, 1, 0)
+			return nil
+		}
+		if err == nil && perm != 0 {
+			err = out.Chmod(perm)
+		}
 	}
 	if err != nil {
+		if out != nil {
+			_ = out.Close()
+		}
 		return err
 	}
 	w := &limitedWriter{ctx: ctx, w: out, space: x.space}
@@ -986,17 +1027,14 @@ func (x *extractor) file(ctx context.Context, target string, perm fs.FileMode, o
 	_, err = io.CopyBuffer(w, r, *buf)
 	copyBuffers.Put(buf)
 	x.count(0, 0, w.n)
-	if err == nil && perm != 0 {
-		err = out.Chmod(perm)
+	if err == nil && !mtime.IsZero() {
+		_ = setTimes(out, mtime, mtime)
 	}
 	if cerr := out.Close(); err == nil {
 		err = cerr
 	}
 	if err != nil {
 		return err
-	}
-	if !mtime.IsZero() {
-		_ = f.root.Chtimes(target, mtime, mtime)
 	}
 	x.count(1, 0, 0)
 	return nil
