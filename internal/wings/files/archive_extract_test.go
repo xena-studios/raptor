@@ -27,13 +27,13 @@ func TestExtractStaleDirs(t *testing.T) {
 	f, dir := testFS(t)
 	outside := t.TempDir()
 	x := testExtractor(f)
-	if err := x.entry("d/a", kindFile, 0, "", text("a"), time.Time{}); err != nil {
+	if err := x.entry("d/a", kindFile, 0, "", text("a"), false, time.Time{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.RemoveAll(filepath.Join(dir, "d")); err != nil {
 		t.Fatal(err)
 	}
-	if err := x.entry("d/b", kindFile, 0, "", text("b"), time.Time{}); err != nil {
+	if err := x.entry("d/b", kindFile, 0, "", text("b"), false, time.Time{}); err != nil {
 		t.Fatalf("after its directory was removed: %v", err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(dir, "d/b")); string(b) != "b" {
@@ -46,7 +46,7 @@ func TestExtractStaleDirs(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(dir, "d")); err != nil {
 		t.Fatal(err)
 	}
-	if err := x.entry("d/c", kindFile, 0, "", text("c"), time.Time{}); err == nil {
+	if err := x.entry("d/c", kindFile, 0, "", text("c"), false, time.Time{}); err == nil {
 		t.Error("wrote through a directory swapped for a link out")
 	}
 	if entries, _ := os.ReadDir(outside); len(entries) != 0 {
@@ -78,7 +78,7 @@ func TestExtractInTheWay(t *testing.T) {
 	x := testExtractor(f)
 	for _, name := range []string{"link-out", "link-up", "a-dir", "fifo", "denied", "old"} {
 		done := make(chan error, 1)
-		go func() { done <- x.entry(name, kindFile, 0o640, "", text("new"), time.Time{}) }()
+		go func() { done <- x.entry(name, kindFile, 0o640, "", text("new"), false, time.Time{}) }()
 		select {
 		case err := <-done:
 			if err != nil {

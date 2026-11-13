@@ -510,8 +510,7 @@ func (f *FS) addEntry(aw archiveWriter, p, name string, d fs.DirEntry) (bool, er
 
 // ExtractOptions tune Extract.
 type ExtractOptions struct {
-	// Threads is how many files are written at once (0: Threads(0)). Only
-	// zips are written in parallel.
+	// Threads is how many files are written at once (0: Threads(0)).
 	Threads int
 }
 
@@ -544,7 +543,16 @@ func (f *FS) Extract(ctx context.Context, archive, dest string, space int64, opt
 	return res, err
 }
 
-func (x *extractor) extract(src *os.File, size int64, name string, threads int) error {
+func (x *extractor) extract(src *os.File, size int64, name string, threads int) (err error) {
+	if threads > 1 {
+		x.pool = newWriters(x.ctx, threads)
+		// Nothing is written after Extract returns.
+		defer func() {
+			if werr := x.pool.wait(); werr != nil {
+				err = werr
+			}
+		}()
+	}
 	head := make([]byte, 512)
 	n, _ := src.ReadAt(head, 0)
 	head = head[:n]
@@ -555,9 +563,17 @@ func (x *extractor) extract(src *os.File, size int64, name string, threads int) 
 			return err
 		}
 		zr.RegisterDecompressor(zip.Deflate, newFlateReader)
-		return x.zip(zr, threads)
+		return x.zip(zr)
 	case bytes.HasPrefix(head, []byte{0x1f, 0x8b}):
-		zr, err := gzip.NewReader(src)
+		// Inflating can't be split, but it can run ahead of the rest on
+		// its own thread (pgzip, bounded to gzipReadAhead blocks).
+		var zr io.ReadCloser
+		var err error
+		if threads > 1 {
+			zr, err = pgzip.NewReaderN(src, gzipBlock, gzipReadAhead)
+		} else {
+			zr, err = gzip.NewReader(src)
+		}
 		if err != nil {
 			return err
 		}
@@ -581,6 +597,15 @@ func (x *extractor) extract(src *os.File, size int64, name string, threads int) 
 	}
 	return ErrUnsupported
 }
+
+// gzipReadAhead is how many blocks of a gzip stream are inflated ahead.
+const gzipReadAhead = 4
+
+// maxBuffered is the largest tar entry read into memory to be written on
+// another goroutine; larger ones are written as they're read.
+const maxBuffered = 1 << 20
+
+var bigBuffers = sync.Pool{New: func() any { b := make([]byte, maxBuffered); return &b }}
 
 func isTar(head []byte) bool {
 	return len(head) >= 262 && string(head[257:262]) == "ustar"
@@ -762,12 +787,50 @@ func (x *extractor) tarOrSingle(r io.Reader, single string) error {
 	if single == "" {
 		return ErrUnsupported
 	}
-	return x.entry(single, kindFile, 0, "", readerOf(br), time.Time{})
+	return x.entry(single, kindFile, 0, "", readerOf(br), false, time.Time{})
 }
 
-// readerOf opens what's next in a stream.
+// buffered reads a tar entry's contents into memory, so another goroutine
+// can write them while the archive is read on.
+func buffered(tr *tar.Reader, size int64) (func() (io.ReadCloser, error), error) {
+	var buf []byte
+	var big *[]byte
+	if size > 64<<10 {
+		big = bigBuffers.Get().(*[]byte)
+		buf = (*big)[:size]
+	} else {
+		buf = make([]byte, size)
+	}
+	if _, err := io.ReadFull(tr, buf); err != nil {
+		if big != nil {
+			bigBuffers.Put(big)
+		}
+		return nil, err
+	}
+	return func() (io.ReadCloser, error) {
+		return &memFile{Reader: bytes.NewReader(buf), big: big}, nil
+	}, nil
+}
+
+// memFile is a buffered entry; closing it gives its buffer back.
+type memFile struct {
+	*bytes.Reader
+	big *[]byte
+}
+
+func (m *memFile) Close() error {
+	if m.big != nil {
+		bigBuffers.Put(m.big)
+		m.big = nil
+	}
+	return nil
+}
+
+// readerOf opens what's next in a stream. Only Read is passed on: pgzip's
+// WriteTo, which io.Copy would use through a bufio.Reader, returns io.EOF
+// at the end instead of nil.
 func readerOf(r io.Reader) func() (io.ReadCloser, error) {
-	return func() (io.ReadCloser, error) { return io.NopCloser(r), nil }
+	return func() (io.ReadCloser, error) { return io.NopCloser(struct{ io.Reader }{r}), nil }
 }
 
 func (x *extractor) tar(tr *tar.Reader) error {
@@ -792,29 +855,28 @@ func (x *extractor) tar(tr *tar.Reader) error {
 		case tar.TypeXGlobalHeader:
 			continue
 		}
-		if err := x.entry(h.Name, kind, fs.FileMode(h.Mode).Perm(), h.Linkname, readerOf(tr), h.ModTime); err != nil { //nolint:gosec // only the permission bits are kept
+		open, parallel := readerOf(tr), false
+		if kind == kindFile && x.pool != nil && h.Size <= maxBuffered {
+			if open, err = buffered(tr, h.Size); err != nil {
+				return err
+			}
+			parallel = true
+		}
+		if err := x.entry(h.Name, kind, fs.FileMode(h.Mode).Perm(), h.Linkname, open, parallel, h.ModTime); err != nil { //nolint:gosec // only the permission bits are kept
 			return err
 		}
 	}
 }
 
-// zip extracts a zip's entries in order, writing up to threads files at
-// once: each entry is read on its own, so they're inflated in parallel.
-func (x *extractor) zip(zr *zip.Reader, threads int) error {
-	if threads > 1 {
-		x.pool = newWriters(x.ctx, threads)
-	}
-	var err error
+// zip extracts a zip's entries in order. Each is read on its own, so the
+// writers inflate them in parallel.
+func (x *extractor) zip(zr *zip.Reader) error {
 	for _, zf := range zr.File {
-		if err = x.zipEntry(zf); err != nil {
-			break
+		if err := x.zipEntry(zf); err != nil {
+			return err
 		}
 	}
-	// Nothing is written after Extract returns.
-	if werr := x.pool.wait(); werr != nil {
-		return werr
-	}
-	return err
+	return nil
 }
 
 func (x *extractor) zipEntry(zf *zip.File) error {
@@ -841,7 +903,7 @@ func (x *extractor) zipEntry(zf *zip.File) error {
 		}
 		link = string(b)
 	}
-	return x.entry(zf.Name, kind, mode.Perm(), link, zf.Open, zf.Modified)
+	return x.entry(zf.Name, kind, mode.Perm(), link, zf.Open, true, zf.Modified)
 }
 
 // Kinds of archive entries.
@@ -867,8 +929,8 @@ func entryName(name string) (string, bool) {
 }
 
 // entry checks and writes one archive entry. A regular file's contents are
-// read from open, possibly on another goroutine (x.pool).
-func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link string, open func() (io.ReadCloser, error), mtime time.Time) error {
+// read from open, on another goroutine if parallel (and x.pool is set).
+func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link string, open func() (io.ReadCloser, error), parallel bool, mtime time.Time) error {
 	if err := x.pool.failed(); err != nil {
 		return err
 	}
@@ -946,7 +1008,7 @@ func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link st
 		x.count(1, 0, 0)
 		return nil
 	}
-	if x.pool == nil {
+	if x.pool == nil || !parallel {
 		return x.file(x.ctx, target, perm, open, mtime)
 	}
 	x.pool.start(target, func(ctx context.Context) error { return x.file(ctx, target, perm, open, mtime) })

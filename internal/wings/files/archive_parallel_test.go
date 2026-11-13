@@ -283,6 +283,11 @@ func TestExtractZipParallelHostile(t *testing.T) {
 // checks both stayed inside, and that they did the same.
 func compareZipExtract(t *testing.T, archive []byte) error {
 	t.Helper()
+	return compareExtract(t, archive, "a.zip")
+}
+
+func compareExtract(t *testing.T, archive []byte, name string) error {
+	t.Helper()
 
 	var results []ArchiveResult
 	var trees []map[string]string
@@ -295,7 +300,7 @@ func compareZipExtract(t *testing.T, archive []byte) error {
 				t.Fatal(err)
 			}
 		}
-		if err := os.WriteFile(filepath.Join(dir, "a.zip"), archive, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), archive, 0o644); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(dir, "server.jar"), []byte("jar"), 0o644); err != nil {
@@ -307,7 +312,7 @@ func compareZipExtract(t *testing.T, archive []byte) error {
 			t.Fatal(err)
 		}
 		before := runtime.NumGoroutine()
-		res, err := fsys.Extract(context.Background(), "a.zip", "", -1, ExtractOptions{Threads: threads})
+		res, err := fsys.Extract(context.Background(), name, "", -1, ExtractOptions{Threads: threads})
 		waitGoroutines(t, before)
 		_ = fsys.Close()
 		if entries, _ := os.ReadDir(outside); len(entries) != 0 {
@@ -366,6 +371,89 @@ func TestExtractZipParallelSpace(t *testing.T) {
 	const limit = 9 << 20
 	before := runtime.NumGoroutine()
 	res, err := f.Extract(context.Background(), "bomb.zip", "out", limit, ExtractOptions{Threads: 8})
+	if !errors.Is(err, ErrNoSpace) {
+		t.Fatalf("extracting past the limit: %v", err)
+	}
+	waitGoroutines(t, before)
+	var total int64
+	for _, fi := range tree(t, filepath.Join(dir, "out")) {
+		var n int64
+		_, _ = fmt.Sscanf(fi[strings.IndexByte(fi, ' ')+1:], "%d", &n)
+		total += n
+	}
+	if total > limit || res.Bytes > limit {
+		t.Errorf("wrote %d bytes (result %d), limit %d", total, res.Bytes, limit)
+	}
+}
+
+// The same for a hostile tar.gz, inflated ahead by pgzip, with hard links
+// (which wait for every file before them) and files too big to buffer.
+func TestExtractTarParallelHostile(t *testing.T) {
+	big := strings.Repeat("big!", maxBuffered/4+1000)
+	fails := []tarEntry{
+		{name: "ok", data: "ok", typ: tar.TypeReg},
+		{name: "out", link: "../outside", typ: tar.TypeSymlink},
+		{name: "out/through-link", data: "x", typ: tar.TypeReg},
+		{name: "after", data: "x", typ: tar.TypeReg},
+	}
+	entries := []tarEntry{
+		{name: "../escape", data: "x", typ: tar.TypeReg},
+		{name: "/abs", data: "abs", typ: tar.TypeReg},
+		{name: "out", link: "../outside", typ: tar.TypeSymlink},
+		{name: "hard-out", link: "../outside/secret", typ: tar.TypeLink},
+		{name: "fifo", typ: tar.TypeFifo},
+		{name: "dev", typ: tar.TypeChar},
+		{name: "server.jar", data: "evil", typ: tar.TypeReg},
+		{name: "suid", data: "x", typ: tar.TypeReg, mode: 0o4755},
+		{name: "swap", data: "first", typ: tar.TypeReg},
+		{name: "swap", link: "../outside/swapped", typ: tar.TypeSymlink},
+		{name: "swap", data: "last", typ: tar.TypeReg},
+		{name: "dup", data: "1", typ: tar.TypeReg},
+		{name: "dup", data: "2", typ: tar.TypeReg},
+		{name: "dup", data: "3", typ: tar.TypeReg},
+		{name: "big", data: big, typ: tar.TypeReg},
+		{name: "big-link", link: "big", typ: tar.TypeLink},
+		{name: "denied-link", link: "server.jar", typ: tar.TypeLink},
+		{name: "e/", typ: tar.TypeDir},
+		{name: "e/x", data: "x", typ: tar.TypeReg},
+		{name: "e", data: "file", typ: tar.TypeReg},
+	}
+	for i := range 300 {
+		entries = append(entries, tarEntry{name: fmt.Sprintf("many/%02d/f%d", i%7, i), data: strings.Repeat(string(rune('a'+i%26)), i*41), typ: tar.TypeReg})
+		if i%50 == 0 {
+			entries = append(entries, tarEntry{name: fmt.Sprintf("many/l%d", i), link: fmt.Sprintf("many/%02d/f%d", i%7, i), typ: tar.TypeLink})
+		}
+	}
+	t.Run("fails", func(t *testing.T) {
+		if err := compareExtract(t, gz(t, makeTar(t, fails)), "a.tar.gz"); err == nil {
+			t.Error("writing through a link out didn't fail")
+		}
+	})
+	t.Run("rest", func(t *testing.T) {
+		if err := compareExtract(t, gz(t, makeTar(t, entries)), "a.tar.gz"); err != nil {
+			t.Error(err)
+		}
+	})
+}
+
+// The same for a tar.gz bomb, with entries written in parallel (buffered)
+// and as they're read (too big to buffer).
+func TestExtractTarParallelSpace(t *testing.T) {
+	var entries []tarEntry
+	for i := range 40 {
+		size := 512 << 10
+		if i%5 == 0 {
+			size = 3 << 20
+		}
+		entries = append(entries, tarEntry{name: fmt.Sprintf("zeros%d", i), data: strings.Repeat("\x00", size), typ: tar.TypeReg})
+	}
+	f, dir := testFS(t)
+	if err := os.WriteFile(filepath.Join(dir, "bomb.tar.gz"), gz(t, makeTar(t, entries)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	const limit = 9 << 20
+	before := runtime.NumGoroutine()
+	res, err := f.Extract(context.Background(), "bomb.tar.gz", "out", limit, ExtractOptions{Threads: 8})
 	if !errors.Is(err, ErrNoSpace) {
 		t.Fatalf("extracting past the limit: %v", err)
 	}
