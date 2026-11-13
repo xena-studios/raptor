@@ -825,7 +825,10 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterDatabaseDocuments(r.commands, dbsvc)
 	actions.RegisterDatabaseBackups(r.commands, dbsvc, bk)
 	actions.RegisterBackups(r.commands, bk)
-	fsvc := files.NewService(files.Options{Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid})
+	fsvc := files.NewService(files.Options{
+		Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid,
+		GzipLevel: r.cfg.Archives.GzipLevel, Threads: r.cfg.Archives.Threads,
+	})
 	actions.RegisterFiles(r.commands, fsvc)
 	dbsvc.SetFiles(fsvc)
 	actions.RegisterAddons(r.commands, &addons.Service{Files: fsvc, Servers: mgr, UserAgent: "raptor-wings/" + buildinfo.Version})

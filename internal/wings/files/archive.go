@@ -13,12 +13,15 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
+	"github.com/klauspost/pgzip"
 )
 
 // ErrNoSpace is returned when an archive operation would take more disk
@@ -77,6 +80,27 @@ type CompressOptions struct {
 	// Name is the archive's name without its extension; "" is
 	// archive-<UTC time>. A taken name gets -2, -3, ….
 	Name string
+	// Level is the deflate level of tar.gz and zip archives, 1 (fastest)
+	// to 9 (smallest); 0 is DefaultLevel. Node-wide, from config.yml.
+	Level int
+	// Threads is how many blocks are compressed at once (0: Threads(0)).
+	Threads int
+}
+
+// DefaultLevel is the deflate level used when none is configured.
+const DefaultLevel = 2
+
+// MaxThreads caps the cores one archive job uses by default, so a job
+// can't take over the node (docs/WINGS.md#archives).
+const MaxThreads = 4
+
+// Threads returns how many cores one archive job uses: n if set, else
+// GOMAXPROCS (which follows the service's CPU quota) up to MaxThreads.
+func Threads(n int) int {
+	if n > 0 {
+		return n
+	}
+	return min(runtime.GOMAXPROCS(0), MaxThreads)
 }
 
 // Compress writes the named files and directories (relative to dir) into a
@@ -144,10 +168,21 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 		}
 	}()
 	counted := &budget{w: file, left: space}
-	aw, err := newArchiveWriter(counted, format)
+	level := opts.Level
+	if level == 0 {
+		level = DefaultLevel
+	}
+	aw, err := newArchiveWriter(counted, format, level, Threads(opts.Threads))
 	if err != nil {
 		return res, err
 	}
+	closed := false
+	defer func() {
+		// Stops the compressor's goroutines when the archive is abandoned.
+		if !closed {
+			_ = aw.Close()
+		}
+	}()
 	visit := func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -192,6 +227,7 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 			return res, err
 		}
 	}
+	closed = true
 	if err := aw.Close(); err != nil {
 		return res, err
 	}
@@ -214,7 +250,7 @@ type archiveWriter interface {
 	Close() error
 }
 
-func newArchiveWriter(w io.Writer, format string) (archiveWriter, error) {
+func newArchiveWriter(w io.Writer, format string, level, threads int) (archiveWriter, error) {
 	switch format {
 	case FormatZip:
 		return &zipArchive{zw: zip.NewWriter(w)}, nil
@@ -227,12 +263,84 @@ func newArchiveWriter(w io.Writer, format string) (archiveWriter, error) {
 		}
 		return &tarArchive{tw: tar.NewWriter(zw), comp: zw}, nil
 	default:
-		zw, err := gzip.NewWriterLevel(w, gzip.DefaultCompression)
+		zw, err := newParallelGzip(w, level, threads)
 		if err != nil {
 			return nil, err
 		}
 		return &tarArchive{tw: tar.NewWriter(zw), comp: zw}, nil
 	}
+}
+
+// gzipBlock is how much input each of parallelGzip's threads compresses at
+// a time. Each block is primed with the end of the one before, so the
+// output is barely larger than a single stream's.
+const gzipBlock = 1 << 20
+
+// parallelGzip writes one gzip stream, compressing blocks on several
+// threads with pgzip. pgzip's writer goroutine only stops when Close gets
+// to the end, and Close gives up early once a write to the file has
+// failed, which would leak the goroutine and its buffers. So pgzip never
+// sees a failure: the first one is kept here, and returned to the next
+// Write and to Close.
+type parallelGzip struct {
+	z   *pgzip.Writer
+	out *firstError
+}
+
+func newParallelGzip(w io.Writer, level, threads int) (*parallelGzip, error) {
+	out := &firstError{w: w}
+	z, err := pgzip.NewWriterLevel(out, level)
+	if err != nil {
+		return nil, err
+	}
+	if err := z.SetConcurrency(gzipBlock, threads); err != nil {
+		return nil, err
+	}
+	return &parallelGzip{z: z, out: out}, nil
+}
+
+func (g *parallelGzip) Write(p []byte) (int, error) {
+	if err := g.out.Err(); err != nil {
+		return 0, err
+	}
+	return g.z.Write(p)
+}
+
+// Close writes what's left and waits for it: when it returns, nothing
+// writes to the file anymore.
+func (g *parallelGzip) Close() error {
+	err := g.z.Close()
+	if werr := g.out.Err(); werr != nil {
+		return werr
+	}
+	return err
+}
+
+// firstError passes writes on until one fails, then drops the rest and
+// keeps that error.
+type firstError struct {
+	w   io.Writer
+	mu  sync.Mutex
+	err error
+}
+
+func (e *firstError) Write(p []byte) (int, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.err == nil {
+		n, err := e.w.Write(p)
+		if err == nil && n < len(p) {
+			err = io.ErrShortWrite
+		}
+		e.err = err
+	}
+	return len(p), nil
+}
+
+func (e *firstError) Err() error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.err
 }
 
 type tarArchive struct {

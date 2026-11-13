@@ -70,6 +70,9 @@ type Options struct {
 	// PullAllowed says which addresses downloads may connect to (Public
 	// if nil; tests allow the loopback).
 	PullAllowed func(netip.Addr) bool
+	// GzipLevel and Threads tune archive jobs (config.yml archives; 0:
+	// DefaultLevel, Threads(0)).
+	GzipLevel, Threads int
 }
 
 // Service runs the web file manager's operations on servers' files.
@@ -418,7 +421,7 @@ func (s *Service) Decompress(ctx context.Context, id, user, archive, dest string
 func (s *Service) compressJob(ctx context.Context, j jobs.Job, log io.Writer) (any, error) {
 	return s.archiveJob(ctx, j, log, EventCompressed, func(f *FS, p ArchiveJob, space int64) (ArchiveResult, error) {
 		_, _ = fmt.Fprintf(log, "compressing %d item(s) in /%s\n", len(p.Names), p.Dir)
-		return f.Compress(ctx, p.Dir, p.Names, space, s.o.Now(), CompressOptions{Format: p.Format, Name: p.Name})
+		return f.Compress(ctx, p.Dir, p.Names, space, s.o.Now(), CompressOptions{Format: p.Format, Name: p.Name, Level: s.o.GzipLevel, Threads: s.o.Threads})
 	})
 }
 

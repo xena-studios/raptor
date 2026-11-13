@@ -102,6 +102,9 @@ limits:
   host_disk_min_free: 10GiB      # below this: refuse installs and image pulls
   reserved_memory: 0             # kept free of servers; 0 = 10% of RAM, 1–4 GiB
   backup_memory: 1GiB            # memory cap of each backup worker process
+archives:                        # the file manager's archive jobs (not backups)
+  gzip_level: 2                  # tar.gz and zip: 1 (fastest) to 9 (smallest)
+  threads: 0                     # cores one archive job may use; 0 = automatic (up to 4)
 storage:
   quotas: true                   # false = soft disk limits by scanning (tier 3)
 updates:
@@ -460,6 +463,15 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
   - Sessions end when an install or a backup restore starts or the server is deleted, and file access is refused while it installs or restores. With soft disk limits, anything that adds data (uploads, new directories and links) is refused while the server is over its limit, but reading, moving, truncating, and deleting still work so space can be freed; with quotas, the kernel enforces the limit.
 - SFTP host key: Ed25519, generated on the node at first start (whether or not SFTP is on); its fingerprint is reported to the Panel and shown to users. **Nodes need no TLS certificates.**
 - **All file operations use `os.Root`** (symlink-safe, confined to the server directory), in one package (`internal/wings/files`) shared by the web file manager and SFTP.
+
+### Archives
+
+`files.compress` and `files.decompress` run in Wings itself, not in the backup worker's low-weight scope, so how much CPU one job may take is bounded here:
+
+- **tar.gz is compressed on several threads** (`klauspost/pgzip`): the stream is cut into 1 MiB blocks, each compressed on its own thread and primed with the end of the block before, so it's still one ordinary gzip stream and barely larger than a single-threaded one. It's written to `.<name>.part`, synced, and renamed into place, as before.
+- **Threads:** `archives.threads`, or by default `GOMAXPROCS` (which follows the service's CPU quota) up to 4. That's per job, and the `files` class runs 2 at once; when game servers keep every core busy, Wings' cgroup gets an equal share with `raptor.slice`, which bounds what archive jobs take from them.
+- **Level:** `archives.gzip_level`, default **2**. On game data (region files and jars, already compressed) the size barely depends on the level, and level 6 took 40% longer on 1 GiB; on many small text files level 2 makes archives about 13% larger than 6. Level 1 was no faster than 2.
+- A job that fails (out of space, cancelled) stops its compressor threads; nothing is written to the file after `Compress` returns.
 
 ### Benchmarks
 
