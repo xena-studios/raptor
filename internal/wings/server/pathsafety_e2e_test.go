@@ -315,7 +315,7 @@ func fileManagerAttack(t *testing.T, m *Manager, id, sentinelDir string) {
 			t.Error(err)
 			return
 		}
-		_, _ = fsys.Extract(ctx, "evil.tar", "", -1)
+		_, _ = fsys.Extract(ctx, "evil.tar", "", -1, files.ExtractOptions{})
 		for _, p := range []string{"/etc/raptor-pwned", "/etc/raptor-escape", "/etc/raptor-absolute", filepath.Join(sentinelDir, "raptor-pwned")} {
 			if _, err := os.Lstat(p); err == nil {
 				t.Errorf("extracting wrote %s", p)

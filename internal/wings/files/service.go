@@ -428,7 +428,7 @@ func (s *Service) compressJob(ctx context.Context, j jobs.Job, log io.Writer) (a
 func (s *Service) decompressJob(ctx context.Context, j jobs.Job, log io.Writer) (any, error) {
 	return s.archiveJob(ctx, j, log, EventDecompressed, func(f *FS, p ArchiveJob, space int64) (ArchiveResult, error) {
 		_, _ = fmt.Fprintf(log, "extracting /%s\n", p.Archive)
-		return f.Extract(ctx, p.Archive, p.Dest, space)
+		return f.Extract(ctx, p.Archive, p.Dest, space, ExtractOptions{Threads: s.o.Threads})
 	})
 }
 

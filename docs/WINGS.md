@@ -472,6 +472,8 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
 - **Threads:** `archives.threads`, or by default `GOMAXPROCS` (which follows the service's CPU quota) up to 4. That's per job, and the `files` class runs 2 at once; when game servers keep every core busy, Wings' cgroup gets an equal share with `raptor.slice`, which bounds what archive jobs take from them.
 - **Level:** `archives.gzip_level`, default **2**. On game data (region files and jars, already compressed) the size barely depends on the level, and level 6 took 40% longer on 1 GiB; on many small text files level 2 makes archives about 13% larger than 6. Level 1 was no faster than 2.
 - A job that fails (out of space, cancelled) stops its compressor threads; nothing is written to the file after `Compress` returns.
+- **zip** uses klauspost's deflate both ways (at `archives.gzip_level`), several times faster than the standard library's.
+- **Zips are extracted on several threads** (as many as compression uses). Entries are read and checked in order on one goroutine (names cleaned, the denylist, the entry limit, links and directories made there), and only writing a regular file's contents is handed to a writer. An entry at, inside, or above a path still being written waits for it, and a hard link for everything, so the result is the same as extracting one entry at a time; the writers share the job's disk-space budget, which is reserved before each write, so together they can't pass it. Nothing is written after the job ends. tar entries come from one stream and are written one at a time.
 
 ### Benchmarks
 

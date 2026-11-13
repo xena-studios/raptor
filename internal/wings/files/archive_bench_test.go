@@ -263,7 +263,7 @@ func BenchmarkExtract(b *testing.B) {
 				b.SetBytes(size)
 				b.ReportAllocs()
 				for b.Loop() {
-					res, err := f.Extract(context.Background(), archive, "work", -1)
+					res, err := f.Extract(context.Background(), archive, "work", -1, ExtractOptions{})
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -302,7 +302,7 @@ func TestArchiveOnce(t *testing.T) {
 	case "compress":
 		res, err = f.Compress(context.Background(), "src", []string{name}, -1, time.Now(), CompressOptions{Format: format, Name: "once"})
 	case "extract":
-		res, err = f.Extract(context.Background(), "archives/"+name+"."+format, "work-once", -1)
+		res, err = f.Extract(context.Background(), "archives/"+name+"."+format, "work-once", -1, ExtractOptions{})
 	}
 	t.Logf("%+v %v", res, err)
 }
