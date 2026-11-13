@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Benchmark (loop direct I/O on)
         run: sudo RUNS=5 LOOP_DIO=on scripts/storage-bench.sh /var/lib/raptor-bench
       - name: Benchmark fsync and buffered writes (loop direct I/O off)

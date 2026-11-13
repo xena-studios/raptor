@@ -37,7 +37,7 @@ jobs:
           - language: actions
             build-mode: none
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - if: matrix.build-mode == 'manual'
         uses: actions/setup-go@v6
         with:
