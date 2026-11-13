@@ -562,7 +562,7 @@ func (c *Client) Stop(ctx context.Context, id string, a containers.Sender, stop 
 	select {
 	case <-wait.Result:
 		return false, nil
-	case <-wait.Error:
+	case <-wait.Error: //nolint:errcheck // timed out, or the wait itself failed: either way, kill it
 		if ctx.Err() != nil {
 			return false, ctx.Err()
 		}
