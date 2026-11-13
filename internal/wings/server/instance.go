@@ -494,7 +494,7 @@ func (i *instance) follow(ctx context.Context, gen uint64, cid string, cfg eggs.
 				i.setState(Running)
 			}
 		}
-		<-errc
+		<-errc //nolint:errcheck // the stream ended; it resumes below whatever the reason
 		if ctx.Err() != nil {
 			return // Wings is shutting down or the container was replaced
 		}

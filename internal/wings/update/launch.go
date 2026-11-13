@@ -207,10 +207,10 @@ func (l *Launcher) fail(st *State, reason string, log *slog.Logger) {
 func stop(cmd *exec.Cmd, exited <-chan error) {
 	_ = cmd.Process.Signal(syscall.SIGTERM)
 	select {
-	case <-exited:
+	case <-exited: //nolint:errcheck // stopped on purpose: how it exits doesn't matter
 	case <-time.After(stopTimeout):
 		_ = cmd.Process.Kill()
-		<-exited
+		<-exited //nolint:errcheck // killed on purpose
 	}
 }
 
