@@ -131,7 +131,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Install nftables
@@ -165,7 +165,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Install nftables and minisign
@@ -205,7 +205,7 @@ jobs:
           fetch-depth: 0
       # Go only: with Node's pnpm cache, a lockfile change made the cache
       # save fail here, since this job installs no packages.
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache-dependency-path: |
