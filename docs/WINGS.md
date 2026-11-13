@@ -461,6 +461,19 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
 - SFTP host key: Ed25519, generated on the node at first start (whether or not SFTP is on); its fingerprint is reported to the Panel and shown to users. **Nodes need no TLS certificates.**
 - **All file operations use `os.Root`** (symlink-safe, confined to the server directory), in one package (`internal/wings/files`) shared by the web file manager and SFTP.
 
+### Benchmarks
+
+Benchmarks for archives and SFTP live beside the code, and run on Linux (in a VM on macOS), as root, with the files on tmpfs so they measure Wings rather than the disk:
+
+```sh
+RAPTOR_BENCH_DIR=/mnt/tmpfs go test ./internal/wings/files -run '^$' -bench 'Compress|Extract' -cpu 1,2,4 -count 10
+RAPTOR_BENCH_DIR=/mnt/tmpfs go test ./internal/wings/sftp -run '^$' -bench OpenSSH -cpu 1,2,4 -count 10
+```
+
+- **Archives** (`internal/wings/files/archive_bench_test.go`): `Compress` and `Extract`, in tar.gz and zip, of three generated folders: `100m` (about 2,000 files, 100 MiB: random 1 MiB files, a 32 MiB jar, small configs), `1g` (about 22,000 files, 1 GiB), and `many` (50,000 files of 256 B). They're made once, the same every time, under `$RAPTOR_BENCH_DIR`, owned by uid 1000 as servers' files are. The archives `Extract` reads are written by the standard library, so they don't change when `Compress` does. `archive-B` is the archive's size. `RAPTOR_ARCHIVE_ONCE=compress:many go test -run TestArchiveOnce` runs one operation, for `strace -c -f` or `perf`.
+- **SFTP** (`internal/wings/sftp/bench_test.go`): the real `sftp.Server`, with a stand-in Panel, driven by OpenSSH's `sftp` client (`-c aes128-gcm@openssh.com`, password through `SSH_ASKPASS`): a 256 MiB upload and download and 50,000 small files uploaded, each a new connection. The server runs in the test process, so `-cpuprofile` and `-trace` profile it.
+- Compare runs with `benchstat`.
+
 ## Add-ons
 
 `internal/wings/addons` ([EGGS.md](EGGS.md#add-ons)): `addons.list` lists a server's `.jar` files in its egg's add-on folder with their SHA-512s (kept per file while its size and time stay the same), and `addons.install` downloads one from Modrinth's CDN into a hidden `.part` file, checks its SHA-512, renames it into place, and moves the version it replaces to the server's trash. Neither is signed: they need the Panel's grant for the server, like file writes, and Wings decides where files come from and which file is kept.
