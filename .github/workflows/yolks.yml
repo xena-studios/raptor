@@ -1,0 +1,131 @@
+# Raptor's runtime images (yolks/README.md): ghcr.io/xena-studios/yolks:<tag>.
+# Pull requests build and smoke-test every image on both CPUs and publish
+# nothing; main, the weekly rebuild (security updates in the base images),
+# and a manual run also publish them. Each platform is built natively,
+# tested the way Wings runs servers, pushed by digest, then joined into one
+# multi-arch tag.
+name: Yolks
+
+on:
+  pull_request:
+    paths: ["yolks/**", ".github/workflows/yolks.yml"]
+  push:
+    branches: [main]
+    paths: ["yolks/**", ".github/workflows/yolks.yml"]
+  schedule:
+    - cron: "23 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: yolks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/xena-studios/yolks
+  PUBLISH: ${{ github.event_name != 'pull_request' }}
+
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      builds: ${{ steps.m.outputs.builds }}
+      tags: ${{ steps.m.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: m
+        run: |
+          echo "builds=$(jq -c '[.images[] as $i | $i.platforms[] | {tag: $i.tag, dir: $i.dir, version: $i.version, platform: .}]' yolks/images.json)" >> "$GITHUB_OUTPUT"
+          echo "tags=$(jq -c '[.images[] | {tag, platforms}]' yolks/images.json)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.matrix.outputs.builds) }}
+    name: ${{ matrix.tag }} (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: yolks
+          file: yolks/${{ matrix.dir }}/Dockerfile
+          build-args: VERSION=${{ matrix.version }}
+          platforms: linux/${{ matrix.platform }}
+          pull: true
+          load: true
+          tags: yolks-test:${{ matrix.tag }}
+      - name: Smoke test, as Wings runs servers
+        run: yolks/test.sh yolks-test:${{ matrix.tag }} ${{ matrix.tag }}
+      - name: Size
+        run: |
+          size=$(docker image inspect "yolks-test:${{ matrix.tag }}" --format '{{.Size}}')
+          echo "${{ matrix.tag }} (${{ matrix.platform }}): $((size / 1000000)) MB" >> "$GITHUB_STEP_SUMMARY"
+      - if: env.PUBLISH == 'true'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push by digest
+        if: env.PUBLISH == 'true'
+        id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: yolks
+          file: yolks/${{ matrix.dir }}/Dockerfile
+          build-args: VERSION=${{ matrix.version }}
+          platforms: linux/${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          labels: org.opencontainers.image.version=${{ matrix.tag }}
+      - name: Keep the digest
+        if: env.PUBLISH == 'true'
+        run: |
+          mkdir -p digests
+          echo "${{ steps.push.outputs.digest }}" > "digests/${{ matrix.tag }}--${{ matrix.platform }}"
+      - if: env.PUBLISH == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: digest-${{ matrix.tag }}-${{ matrix.platform }}
+          path: digests/*
+          retention-days: 1
+
+  publish:
+    needs: [matrix, build]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: digests
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Join each tag's platforms
+        env:
+          TAGS: ${{ needs.matrix.outputs.tags }}
+        run: |
+          set -euo pipefail
+          for tag in $(echo "$TAGS" | jq -r '.[].tag'); do
+            refs=()
+            for f in digests/"$tag"--*; do refs+=("$IMAGE@$(cat "$f")"); done
+            docker buildx imagetools create -t "$IMAGE:$tag" "${refs[@]}"
+            echo "$tag: $(docker buildx imagetools inspect "$IMAGE:$tag" --format '{{json .Manifest.Digest}}')" >> "$GITHUB_STEP_SUMMARY"
+          done
