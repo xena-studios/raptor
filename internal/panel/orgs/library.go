@@ -1031,11 +1031,14 @@ var builtinIDs = sync.OnceValue(func() map[string]bool {
 // new file has, so the library's later imports update it. Another official
 // egg with the ID refuses the change.
 func (s *Eggs) adoptLibraryID(ctx context.Context, l *lib, egg pgtype.UUID, file []byte) error {
-	r, err := eggimport.Parse(file)
-	if err != nil || r.Egg.Raptor.Library == "" {
+	var library string
+	if r, err := eggimport.Parse(file); err == nil { // checkFile already passed it
+		library = r.Egg.Raptor.Library
+	}
+	if library == "" {
 		return nil
 	}
-	id, err := checkLibraryID(r.Egg.Raptor.Library)
+	id, err := checkLibraryID(library)
 	if err != nil {
 		return err
 	}

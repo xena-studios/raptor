@@ -330,14 +330,8 @@ func (s *Service) checkEggFormat(ctx context.Context, node pgtype.UUID, env node
 	if env.Action != "server.create" && env.Action != "server.update" {
 		return nil
 	}
-	var p struct {
-		Egg []byte `json:"egg"`
-	}
-	if json.Unmarshal(env.Params, &p) != nil || len(p.Egg) == 0 {
-		return nil // the node judges it
-	}
-	e, err := eggs.Parse(p.Egg)
-	if err != nil || !eggs.IsRaptor(e.Format) {
+	// Params or an egg the Panel can't read are for the node to judge.
+	if !raptorEgg(env.Params) {
 		return nil
 	}
 	// Already authorized: read on the Panel's connection, as support
@@ -351,4 +345,17 @@ func (s *Service) checkEggFormat(ctx context.Context, node pgtype.UUID, env node
 			errors.New("this node's Raptor Wings is too old for this egg, which is in Raptor's own format: update Wings on the node first"))
 	}
 	return nil
+}
+
+// raptorEgg reports whether server.create's or server.update's params
+// carry one of Raptor's own eggs.
+func raptorEgg(params []byte) bool {
+	var p struct {
+		Egg []byte `json:"egg"`
+	}
+	if json.Unmarshal(params, &p) != nil || len(p.Egg) == 0 {
+		return false
+	}
+	e, err := eggs.Parse(p.Egg)
+	return err == nil && eggs.IsRaptor(e.Format)
 }
