@@ -74,6 +74,9 @@ const (
 	// StaffServiceUnsuspendOrgProcedure is the fully-qualified name of the StaffService's UnsuspendOrg
 	// RPC.
 	StaffServiceUnsuspendOrgProcedure = "/raptor.panel.v1.StaffService/UnsuspendOrg"
+	// StaffServiceTakeDownImageProcedure is the fully-qualified name of the StaffService's
+	// TakeDownImage RPC.
+	StaffServiceTakeDownImageProcedure = "/raptor.panel.v1.StaffService/TakeDownImage"
 	// StaffServiceSetBillingWaiverProcedure is the fully-qualified name of the StaffService's
 	// SetBillingWaiver RPC.
 	StaffServiceSetBillingWaiverProcedure = "/raptor.panel.v1.StaffService/SetBillingWaiver"
@@ -131,6 +134,10 @@ type StaffServiceClient interface {
 	// game servers keep running. Admins.
 	SuspendOrg(context.Context, *v1.SuspendOrgRequest) (*v1.SuspendOrgResponse, error)
 	UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error)
+	// TakeDownImage removes a picture (a logo or an avatar) everywhere it's
+	// used, stops serving it, and refuses the same file if it's uploaded
+	// again (docs/PANEL.md#images). Admins.
+	TakeDownImage(context.Context, *v1.TakeDownImageRequest) (*v1.TakeDownImageResponse, error)
 	// SetBillingWaiver gives the org nodes free (some, or all of them), and
 	// optionally its Backup Storage past what's included, until an end date
 	// or until ended; or changes the one in force. A reason is required.
@@ -271,6 +278,12 @@ func NewStaffServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(staffServiceMethods.ByName("UnsuspendOrg")),
 			connect.WithClientOptions(opts...),
 		),
+		takeDownImage: connect.NewClient[v1.TakeDownImageRequest, v1.TakeDownImageResponse](
+			httpClient,
+			baseURL+StaffServiceTakeDownImageProcedure,
+			connect.WithSchema(staffServiceMethods.ByName("TakeDownImage")),
+			connect.WithClientOptions(opts...),
+		),
 		setBillingWaiver: connect.NewClient[v1.SetBillingWaiverRequest, v1.SetBillingWaiverResponse](
 			httpClient,
 			baseURL+StaffServiceSetBillingWaiverProcedure,
@@ -356,6 +369,7 @@ type staffServiceClient struct {
 	getStaffOrg             *connect.Client[v1.GetStaffOrgRequest, v1.GetStaffOrgResponse]
 	suspendOrg              *connect.Client[v1.SuspendOrgRequest, v1.SuspendOrgResponse]
 	unsuspendOrg            *connect.Client[v1.UnsuspendOrgRequest, v1.UnsuspendOrgResponse]
+	takeDownImage           *connect.Client[v1.TakeDownImageRequest, v1.TakeDownImageResponse]
 	setBillingWaiver        *connect.Client[v1.SetBillingWaiverRequest, v1.SetBillingWaiverResponse]
 	endBillingWaiver        *connect.Client[v1.EndBillingWaiverRequest, v1.EndBillingWaiverResponse]
 	listActiveAnnouncements *connect.Client[v1.ListActiveAnnouncementsRequest, v1.ListActiveAnnouncementsResponse]
@@ -503,6 +517,15 @@ func (c *staffServiceClient) UnsuspendOrg(ctx context.Context, req *v1.Unsuspend
 	return nil, err
 }
 
+// TakeDownImage calls raptor.panel.v1.StaffService.TakeDownImage.
+func (c *staffServiceClient) TakeDownImage(ctx context.Context, req *v1.TakeDownImageRequest) (*v1.TakeDownImageResponse, error) {
+	response, err := c.takeDownImage.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // SetBillingWaiver calls raptor.panel.v1.StaffService.SetBillingWaiver.
 func (c *staffServiceClient) SetBillingWaiver(ctx context.Context, req *v1.SetBillingWaiverRequest) (*v1.SetBillingWaiverResponse, error) {
 	response, err := c.setBillingWaiver.CallUnary(ctx, connect.NewRequest(req))
@@ -619,6 +642,10 @@ type StaffServiceHandler interface {
 	// game servers keep running. Admins.
 	SuspendOrg(context.Context, *v1.SuspendOrgRequest) (*v1.SuspendOrgResponse, error)
 	UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error)
+	// TakeDownImage removes a picture (a logo or an avatar) everywhere it's
+	// used, stops serving it, and refuses the same file if it's uploaded
+	// again (docs/PANEL.md#images). Admins.
+	TakeDownImage(context.Context, *v1.TakeDownImageRequest) (*v1.TakeDownImageResponse, error)
 	// SetBillingWaiver gives the org nodes free (some, or all of them), and
 	// optionally its Backup Storage past what's included, until an end date
 	// or until ended; or changes the one in force. A reason is required.
@@ -755,6 +782,12 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(staffServiceMethods.ByName("UnsuspendOrg")),
 		connect.WithHandlerOptions(opts...),
 	)
+	staffServiceTakeDownImageHandler := connect.NewUnaryHandlerSimple(
+		StaffServiceTakeDownImageProcedure,
+		svc.TakeDownImage,
+		connect.WithSchema(staffServiceMethods.ByName("TakeDownImage")),
+		connect.WithHandlerOptions(opts...),
+	)
 	staffServiceSetBillingWaiverHandler := connect.NewUnaryHandlerSimple(
 		StaffServiceSetBillingWaiverProcedure,
 		svc.SetBillingWaiver,
@@ -852,6 +885,8 @@ func NewStaffServiceHandler(svc StaffServiceHandler, opts ...connect.HandlerOpti
 			staffServiceSuspendOrgHandler.ServeHTTP(w, r)
 		case StaffServiceUnsuspendOrgProcedure:
 			staffServiceUnsuspendOrgHandler.ServeHTTP(w, r)
+		case StaffServiceTakeDownImageProcedure:
+			staffServiceTakeDownImageHandler.ServeHTTP(w, r)
 		case StaffServiceSetBillingWaiverProcedure:
 			staffServiceSetBillingWaiverHandler.ServeHTTP(w, r)
 		case StaffServiceEndBillingWaiverProcedure:
@@ -939,6 +974,10 @@ func (UnimplementedStaffServiceHandler) SuspendOrg(context.Context, *v1.SuspendO
 
 func (UnimplementedStaffServiceHandler) UnsuspendOrg(context.Context, *v1.UnsuspendOrgRequest) (*v1.UnsuspendOrgResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.UnsuspendOrg is not implemented"))
+}
+
+func (UnimplementedStaffServiceHandler) TakeDownImage(context.Context, *v1.TakeDownImageRequest) (*v1.TakeDownImageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.StaffService.TakeDownImage is not implemented"))
 }
 
 func (UnimplementedStaffServiceHandler) SetBillingWaiver(context.Context, *v1.SetBillingWaiverRequest) (*v1.SetBillingWaiverResponse, error) {

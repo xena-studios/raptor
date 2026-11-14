@@ -27,6 +27,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/backupkeys"
 	"github.com/xena-studios/raptor/internal/panel/billing"
+	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/machines"
 	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
@@ -226,7 +227,7 @@ func (s *Service) ListOrgs(ctx context.Context, _ *panelv1.ListOrgsRequest) (*pa
 	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
 		rows, err := q.UserOrgs(ctx, sess.UserID)
 		for _, r := range rows {
-			out.Orgs = append(out.Orgs, &panelv1.Org{Id: idString(r.ID), Name: r.Name, CreatedAt: timestamppb.New(r.CreatedAt.Time), Role: roleProto(r.Role), Suspended: r.Suspended})
+			out.Orgs = append(out.Orgs, &panelv1.Org{Id: idString(r.ID), Name: r.Name, CreatedAt: timestamppb.New(r.CreatedAt.Time), Role: roleProto(r.Role), Suspended: r.Suspended, Logo: r.Logo.String})
 		}
 		return err
 	})
@@ -258,6 +259,37 @@ func (s *Service) RenameOrg(ctx context.Context, req *panelv1.RenameOrgRequest) 
 	return &panelv1.RenameOrgResponse{}, nil
 }
 
+// SetOrgLogo implements OrgService.
+func (s *Service) SetOrgLogo(ctx context.Context, req *panelv1.SetOrgLogoRequest) (*panelv1.SetOrgLogoResponse, error) {
+	id := ""
+	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
+		org, _, err := member(ctx, q, sess, req.GetOrgId(), "admin")
+		if err != nil {
+			return err
+		}
+		if len(req.GetImage()) > 0 {
+			if err := s.Auth.RateLimit(ctx, "image:user:"+idString(sess.UserID), auth.UploadsPerHour, time.Hour); err != nil {
+				return err
+			}
+			if id, err = images.Upload(ctx, q, req.GetImage()); err != nil {
+				return err
+			}
+		}
+		if err := q.SetOrgLogo(ctx, store.SetOrgLogoParams{ID: org, Logo: images.Text(id)}); err != nil {
+			return err
+		}
+		action := "org.logo.set"
+		if id == "" {
+			action = "org.logo.remove"
+		}
+		return s.audit(ctx, q, sess, org, action, "", nil, nil)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &panelv1.SetOrgLogoResponse{Logo: id}, nil
+}
+
 // ListMembers implements OrgService.
 func (s *Service) ListMembers(ctx context.Context, req *panelv1.ListMembersRequest) (*panelv1.ListMembersResponse, error) {
 	out := &panelv1.ListMembersResponse{}
@@ -269,7 +301,7 @@ func (s *Service) ListMembers(ctx context.Context, req *panelv1.ListMembersReque
 		rows, err := q.OrgMembers(ctx, org)
 		for _, r := range rows {
 			out.Members = append(out.Members, &panelv1.Member{
-				UserId: idString(r.UserID), Email: r.Email, Name: r.Name, Role: roleProto(r.Role), JoinedAt: timestamppb.New(r.CreatedAt.Time),
+				UserId: idString(r.UserID), Email: r.Email, Name: r.Name, Role: roleProto(r.Role), JoinedAt: timestamppb.New(r.CreatedAt.Time), Avatar: r.Avatar.String,
 			})
 		}
 		return err
@@ -608,7 +640,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, req *panelv1.AcceptInvit
 		if err := s.audit(ctx, q, sess, inv.OrgID, "invitation.accept", idString(inv.ID), &sess.UserID, map[string]any{"role": m.Role}); err != nil {
 			return err
 		}
-		out = &panelv1.Org{Id: idString(o.ID), Name: o.Name, CreatedAt: timestamppb.New(o.CreatedAt.Time), Role: roleProto(m.Role)}
+		out = &panelv1.Org{Id: idString(o.ID), Name: o.Name, CreatedAt: timestamppb.New(o.CreatedAt.Time), Role: roleProto(m.Role), Logo: o.Logo.String}
 		return nil
 	})
 	if err != nil {

@@ -1,12 +1,13 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LogOut, ShieldOff } from "lucide-react";
+import { ImageOff, LogOut, ShieldOff } from "lucide-react";
 import { useState } from "react";
 
 import { describeDevice } from "@/components/account/security";
 import { SuspendDialog } from "@/components/admin/suspend-dialog";
 import { DetailList } from "@/components/page";
+import { Avatar } from "@/components/picture";
 import { useReauth } from "@/components/reauth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ function UserPage() {
   const withReauth = useReauth();
   const client = useQueryClient();
   const [suspending, setSuspending] = useState(false);
+  const [takingDown, setTakingDown] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   if (user.error) return <p className="text-sm text-destructive">{message(user.error)}</p>;
@@ -56,6 +58,7 @@ function UserPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <Avatar name={u.name || u.email} image={u.avatar} />
               {u.name || u.email}
               {u.suspendedAt && <Badge variant="destructive">Suspended</Badge>}
               {u.staffRole && (
@@ -131,6 +134,15 @@ function UserPage() {
                     <ShieldOff /> Suspend
                   </Button>
                 )}
+                {u.avatar && (
+                  <Button
+                    variant="outline"
+                    className="justify-start text-destructive"
+                    onClick={() => setTakingDown(true)}
+                  >
+                    <ImageOff /> Take down the picture
+                  </Button>
+                )}
               </>
             )}
             {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
@@ -199,6 +211,20 @@ function UserPage() {
             )
           }
           onClose={() => setSuspending(false)}
+        />
+      )}
+      {takingDown && (
+        <SuspendDialog
+          what={u.email}
+          title="Take down their picture?"
+          action="Take down"
+          effect="It's removed everywhere it's used and soon stops being served, and the same file can't be uploaded again."
+          onSuspend={(reason) =>
+            withReauth(() => staffClient.takeDownImage({ imageId: u.avatar, reason })).then(() =>
+              client.invalidateQueries(),
+            )
+          }
+          onClose={() => setTakingDown(false)}
         />
       )}
     </div>

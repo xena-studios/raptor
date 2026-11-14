@@ -59,6 +59,10 @@ service StaffService {
   // game servers keep running. Admins.
   rpc SuspendOrg(SuspendOrgRequest) returns (SuspendOrgResponse) {}
   rpc UnsuspendOrg(UnsuspendOrgRequest) returns (UnsuspendOrgResponse) {}
+  // TakeDownImage removes a picture (a logo or an avatar) everywhere it's
+  // used, stops serving it, and refuses the same file if it's uploaded
+  // again (docs/PANEL.md#images). Admins.
+  rpc TakeDownImage(TakeDownImageRequest) returns (TakeDownImageResponse) {}
   // SetBillingWaiver gives the org nodes free (some, or all of them), and
   // optionally its Backup Storage past what's included, until an end date
   // or until ended; or changes the one in force. A reason is required.
@@ -211,6 +215,8 @@ message StaffUser {
   int32 passkeys = 8;
   google.protobuf.Timestamp last_seen_at = 9;
   string staff_role = 10;
+  // The avatar's image ID; empty for none.
+  string avatar = 11;
 }
 
 message SearchUsersRequest {
@@ -278,6 +284,8 @@ message StaffOrg {
   int32 members = 6;
   int32 nodes = 7;
   int32 servers = 8;
+  // The logo's image ID; empty for none.
+  string logo = 9;
 }
 
 message SearchOrgsRequest {
@@ -365,6 +373,14 @@ message SuspendOrgRequest {
 }
 
 message SuspendOrgResponse {}
+
+message TakeDownImageRequest {
+  string image_id = 1;
+  // Why, for the staff audit log.
+  string reason = 2;
+}
+
+message TakeDownImageResponse {}
 
 message UnsuspendOrgRequest {
   string org_id = 1;

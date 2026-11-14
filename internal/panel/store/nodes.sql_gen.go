@@ -121,7 +121,7 @@ func (q *Queries) CreateNode(ctx context.Context, arg CreateNodeParams) (Node, e
 }
 
 const createOrg = `-- name: CreateOrg :one
-INSERT INTO orgs (name) VALUES ($1) RETURNING id, name, created_at, suspended_at, suspended_reason, deleted_at
+INSERT INTO orgs (name) VALUES ($1) RETURNING id, name, created_at, suspended_at, suspended_reason, deleted_at, logo
 `
 
 func (q *Queries) CreateOrg(ctx context.Context, name string) (Org, error) {
@@ -134,6 +134,7 @@ func (q *Queries) CreateOrg(ctx context.Context, name string) (Org, error) {
 		&i.SuspendedAt,
 		&i.SuspendedReason,
 		&i.DeletedAt,
+		&i.Logo,
 	)
 	return i, err
 }

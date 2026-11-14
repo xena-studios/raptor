@@ -45,4 +45,4 @@ Raptor emails you when something changes: a new device signing in, a passkey add
 
 ## Your email and linked accounts
 
-On **Settings → General**: change your email (a code goes to the new address, and the old one is told), link or unlink Google, Discord, or GitHub, pick a theme, or delete your account. You can't remove your last way to sign in. Linking Discord also links you on Raptor's Discord server ([the Customer role](/help/get-help/#link-your-raptor-account)).
+On **Settings → General**: add a picture (PNG, JPEG, GIF, or WebP; you crop it square, and Raptor keeps a 256×256 copy without the photo's details, such as where it was taken), change your email (a code goes to the new address, and the old one is told), link or unlink Google, Discord, or GitHub, pick a theme, or delete your account. You can't remove your last way to sign in. Linking Discord also links you on Raptor's Discord server ([the Customer role](/help/get-help/#link-your-raptor-account)).

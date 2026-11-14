@@ -6,7 +6,7 @@ ON CONFLICT (org_id, user_id) DO NOTHING;
 SELECT * FROM org_members WHERE org_id = $1 AND user_id = $2;
 
 -- name: UserOrgs :many
-SELECT o.id, o.name, o.created_at, m.role, (o.suspended_at IS NOT NULL)::bool AS suspended FROM orgs o
+SELECT o.id, o.name, o.created_at, m.role, (o.suspended_at IS NOT NULL)::bool AS suspended, o.logo FROM orgs o
 JOIN org_members m ON m.org_id = o.id
 WHERE m.user_id = $1
 ORDER BY o.created_at;
@@ -20,8 +20,11 @@ SELECT * FROM orgs WHERE id = $1;
 -- name: RenameOrg :exec
 UPDATE orgs SET name = $2 WHERE id = $1;
 
+-- name: SetOrgLogo :exec
+UPDATE orgs SET logo = $2 WHERE id = $1;
+
 -- name: OrgMembers :many
-SELECT m.user_id, m.role, m.created_at, u.email, u.name FROM org_members m
+SELECT m.user_id, m.role, m.created_at, u.email, u.name, u.avatar FROM org_members m
 JOIN users u ON u.id = m.user_id
 WHERE m.org_id = $1
 ORDER BY m.created_at;

@@ -395,6 +395,12 @@ export function OrgActivity({
       case "org.rename":
         [text, icon] = [`renamed the org to "${str(meta.name)}"`, Building2];
         break;
+      case "org.logo.set":
+        [text, icon] = ["changed the org's logo", Building2];
+        break;
+      case "org.logo.remove":
+        [text, icon] = ["removed the org's logo", Building2];
+        break;
       case "member.role":
         [text, icon] = [`made ${subject(e)} ${role}`, Users];
         break;

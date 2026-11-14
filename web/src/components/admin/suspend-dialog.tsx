@@ -12,16 +12,20 @@ import {
 import { Label } from "@/components/ui/label";
 import { message } from "@/lib/errors";
 
-// SuspendDialog asks why, then suspends: the reason goes in the staff log
-// and the account's or org's own.
+// SuspendDialog asks why, then suspends (or does action): the reason goes
+// in the staff log, and for a suspension the account's or org's own.
 export function SuspendDialog({
   what,
   effect,
+  title,
+  action = "Suspend",
   onSuspend,
   onClose,
 }: {
   what: string;
   effect: string;
+  title?: string;
+  action?: string;
   onSuspend: (reason: string) => Promise<unknown>;
   onClose: () => void;
 }) {
@@ -45,7 +49,7 @@ export function SuspendDialog({
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Suspend {what}?</DialogTitle>
+          <DialogTitle>{title ?? `Suspend ${what}?`}</DialogTitle>
           <DialogDescription>{effect}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-4">
@@ -61,7 +65,11 @@ export function SuspendDialog({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Kept in the staff log and their own.</p>
+            <p className="text-xs text-muted-foreground">
+              {action === "Suspend"
+                ? "Kept in the staff log and their own."
+                : "Kept in the staff log."}
+            </p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
@@ -69,7 +77,7 @@ export function SuspendDialog({
               Cancel
             </Button>
             <Button type="submit" variant="destructive" disabled={busy || !reason.trim()}>
-              Suspend
+              {action}
             </Button>
           </DialogFooter>
         </form>

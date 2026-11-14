@@ -63,11 +63,11 @@ func (s *Service) allow(ctx context.Context, key string, l Limit) (bool, error) 
 }
 
 // Prune deletes what's no longer needed: old rate events, expired codes and
-// ceremonies, sessions long past their end, and SFTP passwords that ran
-// out.
+// ceremonies, sessions long past their end, SFTP passwords that ran out,
+// and pictures nothing uses any more.
 func (s *Service) Prune(ctx context.Context) error {
 	q := s.q()
-	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups, q.PruneOAuthFlows, q.PruneAuditLog, q.PruneSFTPPasswords} {
+	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups, q.PruneOAuthFlows, q.PruneAuditLog, q.PruneSFTPPasswords, q.PruneImages} {
 		if err := f(ctx); err != nil {
 			return err
 		}

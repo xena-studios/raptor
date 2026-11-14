@@ -2,7 +2,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BadgePercent, ShieldOff } from "lucide-react";
+import { BadgePercent, ImageOff, ShieldOff } from "lucide-react";
 import { useState } from "react";
 
 import { RequestSupport } from "@/components/admin/request-support";
@@ -10,6 +10,7 @@ import { SuspendDialog } from "@/components/admin/suspend-dialog";
 import { WaiverDialog } from "@/components/admin/waiver-dialog";
 import { useConfirm } from "@/components/confirm";
 import { DetailList } from "@/components/page";
+import { OrgLogo } from "@/components/picture";
 import { useReauth } from "@/components/reauth";
 import { StatusBadge } from "@/components/server-status";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,7 @@ function OrgPage() {
   const client = useQueryClient();
   const { confirm } = useConfirm();
   const [suspending, setSuspending] = useState(false);
+  const [takingDown, setTakingDown] = useState(false);
   const [waiving, setWaiving] = useState(false);
   const [asking, setAsking] = useState<{ id: string; name: string }>();
   const [error, setError] = useState("");
@@ -61,6 +63,7 @@ function OrgPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <OrgLogo name={o.name} image={o.logo} />
               {o.name}
               {o.suspendedAt && <Badge variant="destructive">Suspended</Badge>}
             </CardTitle>
@@ -129,6 +132,15 @@ function OrgPage() {
                   <ShieldOff /> Suspend
                 </Button>
               ))}
+            {admin && o.logo && (
+              <Button
+                variant="outline"
+                className="justify-start text-destructive"
+                onClick={() => setTakingDown(true)}
+              >
+                <ImageOff /> Take down the logo
+              </Button>
+            )}
             {admin && (
               <Button variant="outline" className="justify-start" onClick={() => setWaiving(true)}>
                 <BadgePercent /> {d.waiver ? "Change the waiver" : "Waive billing"}
@@ -297,6 +309,20 @@ function OrgPage() {
             )
           }
           onClose={() => setSuspending(false)}
+        />
+      )}
+      {takingDown && (
+        <SuspendDialog
+          what={o.name}
+          title="Take down the logo?"
+          action="Take down"
+          effect="It's removed everywhere it's used and soon stops being served, and the same file can't be uploaded again."
+          onSuspend={(reason) =>
+            withReauth(() => staffClient.takeDownImage({ imageId: o.logo, reason })).then(() =>
+              client.invalidateQueries(),
+            )
+          }
+          onClose={() => setTakingDown(false)}
         />
       )}
     </div>

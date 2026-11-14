@@ -28,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/billing"
+	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
@@ -319,7 +320,7 @@ func (s *Service) GetOverview(ctx context.Context, req *panelv1.GetOverviewReque
 func staffUser(u store.SearchUsersRow) *panelv1.StaffUser {
 	return &panelv1.StaffUser{
 		Id: id(u.ID), Email: u.Email, Name: u.Name, CreatedAt: ts(u.CreatedAt), SuspendedAt: ts(u.SuspendedAt),
-		Orgs: u.Orgs, Passkeys: u.Passkeys, LastSeenAt: ts(u.LastSeenAt), StaffRole: u.StaffRole,
+		Orgs: u.Orgs, Passkeys: u.Passkeys, LastSeenAt: ts(u.LastSeenAt), StaffRole: u.StaffRole, Avatar: u.Avatar.String,
 	}
 }
 
@@ -470,7 +471,7 @@ func (s *Service) SignOutUser(ctx context.Context, req *panelv1.SignOutUserReque
 func staffOrg(o store.SearchOrgsRow) *panelv1.StaffOrg {
 	return &panelv1.StaffOrg{
 		Id: id(o.ID), Name: o.Name, CreatedAt: ts(o.CreatedAt), SuspendedAt: ts(o.SuspendedAt),
-		Members: o.Members, Nodes: o.Nodes, Servers: o.Servers,
+		Members: o.Members, Nodes: o.Nodes, Servers: o.Servers, Logo: o.Logo.String,
 	}
 }
 
@@ -566,6 +567,28 @@ func (s *Service) SuspendOrg(ctx context.Context, req *panelv1.SuspendOrgRequest
 	_ = s.Auth.Audit(ctx, nil, auth.Event{Org: oid, Actor: c.sess.UserID, Staff: true, Action: "org.suspend", Meta: map[string]any{"reason": why}})
 	_ = s.audit(ctx, c, "org.suspend", "org", id(oid), map[string]any{"reason": why})
 	return &panelv1.SuspendOrgResponse{}, nil
+}
+
+// TakeDownImage implements StaffService.
+func (s *Service) TakeDownImage(ctx context.Context, req *panelv1.TakeDownImageRequest) (*panelv1.TakeDownImageResponse, error) {
+	c, err := s.staff(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	if !images.ValidID(req.GetImageId()) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("that isn't an image ID"))
+	}
+	why, err := reason(req.GetReason())
+	if err != nil {
+		return nil, err
+	}
+	if n, err := store.New(s.DB).TakeDownImage(ctx, req.GetImageId()); err != nil {
+		return nil, err
+	} else if n == 0 {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("that picture doesn't exist or is already taken down"))
+	}
+	_ = s.audit(ctx, c, "image.take_down", "image", req.GetImageId(), map[string]any{"reason": why})
+	return &panelv1.TakeDownImageResponse{}, nil
 }
 
 // UnsuspendOrg implements StaffService.

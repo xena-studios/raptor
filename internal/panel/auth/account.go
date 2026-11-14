@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"connectrpc.com/connect"
@@ -15,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
+	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/mail"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
@@ -74,6 +76,37 @@ func (s *Service) UpdateProfile(ctx context.Context, req *panelv1.UpdateProfileR
 		return nil, err
 	}
 	return &panelv1.UpdateProfileResponse{User: userProto(user)}, nil
+}
+
+// UploadsPerHour is how many pictures (an avatar, a logo, an egg's icon)
+// one account can upload an hour.
+const UploadsPerHour = 30
+
+// SetAvatar implements AuthService.
+func (s *Service) SetAvatar(ctx context.Context, req *panelv1.SetAvatarRequest) (*panelv1.SetAvatarResponse, error) {
+	sess, err := s.Current(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var user store.User
+	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		id := ""
+		if len(req.GetImage()) > 0 {
+			if err := s.RateLimit(ctx, "image:user:"+uuid.UUID(sess.UserID.Bytes).String(), UploadsPerHour, time.Hour); err != nil {
+				return err
+			}
+			if id, err = images.Upload(ctx, q, req.GetImage()); err != nil {
+				return err
+			}
+		}
+		user, err = q.SetUserAvatar(ctx, store.SetUserAvatarParams{ID: sess.UserID, Avatar: images.Text(id)})
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &panelv1.SetAvatarResponse{User: userProto(user)}, nil
 }
 
 // StartEmailChange implements AuthService.

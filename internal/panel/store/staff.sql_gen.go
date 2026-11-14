@@ -195,7 +195,7 @@ func (q *Queries) FailingServers(ctx context.Context) ([]FailingServersRow, erro
 }
 
 const getOrgForStaff = `-- name: GetOrgForStaff :one
-SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at FROM orgs WHERE id = $1
+SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at, logo FROM orgs WHERE id = $1
 `
 
 func (q *Queries) GetOrgForStaff(ctx context.Context, id pgtype.UUID) (Org, error) {
@@ -208,6 +208,7 @@ func (q *Queries) GetOrgForStaff(ctx context.Context, id pgtype.UUID) (Org, erro
 		&i.SuspendedAt,
 		&i.SuspendedReason,
 		&i.DeletedAt,
+		&i.Logo,
 	)
 	return i, err
 }
@@ -653,7 +654,7 @@ func (q *Queries) RevokeUserSessions(ctx context.Context, userID pgtype.UUID) (i
 }
 
 const searchOrgs = `-- name: SearchOrgs :many
-SELECT o.id, o.name, o.created_at, o.suspended_at,
+SELECT o.id, o.name, o.created_at, o.suspended_at, o.logo,
        (SELECT count(*) FROM org_members m WHERE m.org_id = o.id)::int AS members,
        (SELECT count(*) FROM nodes n WHERE n.org_id = o.id AND n.deleted_at IS NULL)::int AS nodes,
        (SELECT count(*) FROM m_servers s JOIN nodes n ON n.id = s.node_id WHERE n.org_id = o.id AND n.deleted_at IS NULL)::int AS servers
@@ -672,6 +673,7 @@ type SearchOrgsRow struct {
 	Name        string
 	CreatedAt   pgtype.Timestamptz
 	SuspendedAt pgtype.Timestamptz
+	Logo        pgtype.Text
 	Members     int32
 	Nodes       int32
 	Servers     int32
@@ -691,6 +693,7 @@ func (q *Queries) SearchOrgs(ctx context.Context, arg SearchOrgsParams) ([]Searc
 			&i.Name,
 			&i.CreatedAt,
 			&i.SuspendedAt,
+			&i.Logo,
 			&i.Members,
 			&i.Nodes,
 			&i.Servers,
@@ -706,7 +709,7 @@ func (q *Queries) SearchOrgs(ctx context.Context, arg SearchOrgsParams) ([]Searc
 }
 
 const searchUsers = `-- name: SearchUsers :many
-SELECT u.id, u.email, u.name, u.created_at, u.suspended_at,
+SELECT u.id, u.email, u.name, u.created_at, u.suspended_at, u.avatar,
        (SELECT count(*) FROM org_members m WHERE m.user_id = u.id)::int AS orgs,
        (SELECT count(*) FROM passkeys p WHERE p.user_id = u.id)::int AS passkeys,
        (SELECT max(last_seen_at) FROM sessions s WHERE s.user_id = u.id)::timestamptz AS last_seen_at,
@@ -727,6 +730,7 @@ type SearchUsersRow struct {
 	Name        string
 	CreatedAt   pgtype.Timestamptz
 	SuspendedAt pgtype.Timestamptz
+	Avatar      pgtype.Text
 	Orgs        int32
 	Passkeys    int32
 	LastSeenAt  pgtype.Timestamptz
@@ -748,6 +752,7 @@ func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]Sea
 			&i.Name,
 			&i.CreatedAt,
 			&i.SuspendedAt,
+			&i.Avatar,
 			&i.Orgs,
 			&i.Passkeys,
 			&i.LastSeenAt,

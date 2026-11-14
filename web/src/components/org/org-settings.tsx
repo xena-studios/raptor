@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 
 import { DetailList } from "@/components/page";
+import { OrgLogo, PicturePicker } from "@/components/picture";
 import { useReauth } from "@/components/reauth";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,7 +60,22 @@ export function OrgSettings({ org, editable }: { org: Org; editable: boolean }) 
       </CardHeader>
       <form onSubmit={rename}>
         <CardContent className="flex flex-col gap-2">
-          <Label htmlFor="org-name">Name</Label>
+          <Label>Logo</Label>
+          {editable ? (
+            <PicturePicker
+              hasPicture={!!org.logo}
+              preview={<OrgLogo name={org.name} image={org.logo} size="lg" />}
+              save={async (png) => {
+                await orgClient.setOrgLogo({ orgId: org.id, image: png ?? new Uint8Array() });
+                await client.invalidateQueries();
+              }}
+            />
+          ) : (
+            <OrgLogo name={org.name} image={org.logo} size="lg" />
+          )}
+          <Label htmlFor="org-name" className="mt-4">
+            Name
+          </Label>
           <Input
             id="org-name"
             required

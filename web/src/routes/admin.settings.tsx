@@ -102,6 +102,7 @@ const actionWords: Record<string, string> = {
   "org.waiver.set": "waived billing for the org",
   "org.waiver.change": "changed the org's billing waiver",
   "org.waiver.end": "ended the org's billing waiver",
+  "image.take_down": "took down a picture",
   "announcement.create": "published an announcement",
   "announcement.update": "changed an announcement",
   "announcement.end": "ended an announcement",

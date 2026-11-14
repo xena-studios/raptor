@@ -174,7 +174,7 @@ func (q *Queries) FindOrgServers(ctx context.Context, arg FindOrgServersParams) 
 }
 
 const getOrg = `-- name: GetOrg :one
-SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at FROM orgs WHERE id = $1
+SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at, logo FROM orgs WHERE id = $1
 `
 
 func (q *Queries) GetOrg(ctx context.Context, id pgtype.UUID) (Org, error) {
@@ -187,6 +187,7 @@ func (q *Queries) GetOrg(ctx context.Context, id pgtype.UUID) (Org, error) {
 		&i.SuspendedAt,
 		&i.SuspendedReason,
 		&i.DeletedAt,
+		&i.Logo,
 	)
 	return i, err
 }
@@ -382,7 +383,7 @@ func (q *Queries) OrgMember(ctx context.Context, arg OrgMemberParams) (OrgMember
 }
 
 const orgMembers = `-- name: OrgMembers :many
-SELECT m.user_id, m.role, m.created_at, u.email, u.name FROM org_members m
+SELECT m.user_id, m.role, m.created_at, u.email, u.name, u.avatar FROM org_members m
 JOIN users u ON u.id = m.user_id
 WHERE m.org_id = $1
 ORDER BY m.created_at
@@ -394,6 +395,7 @@ type OrgMembersRow struct {
 	CreatedAt pgtype.Timestamptz
 	Email     string
 	Name      string
+	Avatar    pgtype.Text
 }
 
 func (q *Queries) OrgMembers(ctx context.Context, orgID pgtype.UUID) ([]OrgMembersRow, error) {
@@ -411,6 +413,7 @@ func (q *Queries) OrgMembers(ctx context.Context, orgID pgtype.UUID) ([]OrgMembe
 			&i.CreatedAt,
 			&i.Email,
 			&i.Name,
+			&i.Avatar,
 		); err != nil {
 			return nil, err
 		}
@@ -608,6 +611,20 @@ func (q *Queries) RevokeOrgInvitations(ctx context.Context, orgID pgtype.UUID) e
 	return err
 }
 
+const setOrgLogo = `-- name: SetOrgLogo :exec
+UPDATE orgs SET logo = $2 WHERE id = $1
+`
+
+type SetOrgLogoParams struct {
+	ID   pgtype.UUID
+	Logo pgtype.Text
+}
+
+func (q *Queries) SetOrgLogo(ctx context.Context, arg SetOrgLogoParams) error {
+	_, err := q.db.Exec(ctx, setOrgLogo, arg.ID, arg.Logo)
+	return err
+}
+
 const setOrgMemberRole = `-- name: SetOrgMemberRole :execrows
 UPDATE org_members SET role = $3 WHERE org_id = $1 AND user_id = $2
 `
@@ -663,7 +680,7 @@ func (q *Queries) UserGrantsInOrg(ctx context.Context, arg UserGrantsInOrgParams
 }
 
 const userOrgs = `-- name: UserOrgs :many
-SELECT o.id, o.name, o.created_at, m.role, (o.suspended_at IS NOT NULL)::bool AS suspended FROM orgs o
+SELECT o.id, o.name, o.created_at, m.role, (o.suspended_at IS NOT NULL)::bool AS suspended, o.logo FROM orgs o
 JOIN org_members m ON m.org_id = o.id
 WHERE m.user_id = $1
 ORDER BY o.created_at
@@ -675,6 +692,7 @@ type UserOrgsRow struct {
 	CreatedAt pgtype.Timestamptz
 	Role      string
 	Suspended bool
+	Logo      pgtype.Text
 }
 
 func (q *Queries) UserOrgs(ctx context.Context, userID pgtype.UUID) ([]UserOrgsRow, error) {
@@ -692,6 +710,7 @@ func (q *Queries) UserOrgs(ctx context.Context, userID pgtype.UUID) ([]UserOrgsR
 			&i.CreatedAt,
 			&i.Role,
 			&i.Suspended,
+			&i.Logo,
 		); err != nil {
 			return nil, err
 		}

@@ -39,6 +39,8 @@ const (
 	OrgServiceListOrgsProcedure = "/raptor.panel.v1.OrgService/ListOrgs"
 	// OrgServiceRenameOrgProcedure is the fully-qualified name of the OrgService's RenameOrg RPC.
 	OrgServiceRenameOrgProcedure = "/raptor.panel.v1.OrgService/RenameOrg"
+	// OrgServiceSetOrgLogoProcedure is the fully-qualified name of the OrgService's SetOrgLogo RPC.
+	OrgServiceSetOrgLogoProcedure = "/raptor.panel.v1.OrgService/SetOrgLogo"
 	// OrgServiceDeleteOrgProcedure is the fully-qualified name of the OrgService's DeleteOrg RPC.
 	OrgServiceDeleteOrgProcedure = "/raptor.panel.v1.OrgService/DeleteOrg"
 	// OrgServiceListMembersProcedure is the fully-qualified name of the OrgService's ListMembers RPC.
@@ -154,6 +156,9 @@ type OrgServiceClient interface {
 	ListOrgs(context.Context, *v1.ListOrgsRequest) (*v1.ListOrgsResponse, error)
 	// RenameOrg renames an org. Admins and owners.
 	RenameOrg(context.Context, *v1.RenameOrgRequest) (*v1.RenameOrgResponse, error)
+	// SetOrgLogo sets or removes an org's logo (docs/PANEL.md#images).
+	// Admins and owners.
+	SetOrgLogo(context.Context, *v1.SetOrgLogoRequest) (*v1.SetOrgLogoResponse, error)
 	// DeleteOrg deletes an org: everyone is taken out of it, and its
 	// invitations and join tokens stop working. Owners, after confirming it's
 	// them, once it has no nodes.
@@ -329,6 +334,12 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+OrgServiceRenameOrgProcedure,
 			connect.WithSchema(orgServiceMethods.ByName("RenameOrg")),
+			connect.WithClientOptions(opts...),
+		),
+		setOrgLogo: connect.NewClient[v1.SetOrgLogoRequest, v1.SetOrgLogoResponse](
+			httpClient,
+			baseURL+OrgServiceSetOrgLogoProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("SetOrgLogo")),
 			connect.WithClientOptions(opts...),
 		),
 		deleteOrg: connect.NewClient[v1.DeleteOrgRequest, v1.DeleteOrgResponse](
@@ -597,6 +608,7 @@ type orgServiceClient struct {
 	createOrg               *connect.Client[v1.CreateOrgRequest, v1.CreateOrgResponse]
 	listOrgs                *connect.Client[v1.ListOrgsRequest, v1.ListOrgsResponse]
 	renameOrg               *connect.Client[v1.RenameOrgRequest, v1.RenameOrgResponse]
+	setOrgLogo              *connect.Client[v1.SetOrgLogoRequest, v1.SetOrgLogoResponse]
 	deleteOrg               *connect.Client[v1.DeleteOrgRequest, v1.DeleteOrgResponse]
 	listMembers             *connect.Client[v1.ListMembersRequest, v1.ListMembersResponse]
 	setMemberRole           *connect.Client[v1.SetMemberRoleRequest, v1.SetMemberRoleResponse]
@@ -660,6 +672,15 @@ func (c *orgServiceClient) ListOrgs(ctx context.Context, req *v1.ListOrgsRequest
 // RenameOrg calls raptor.panel.v1.OrgService.RenameOrg.
 func (c *orgServiceClient) RenameOrg(ctx context.Context, req *v1.RenameOrgRequest) (*v1.RenameOrgResponse, error) {
 	response, err := c.renameOrg.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SetOrgLogo calls raptor.panel.v1.OrgService.SetOrgLogo.
+func (c *orgServiceClient) SetOrgLogo(ctx context.Context, req *v1.SetOrgLogoRequest) (*v1.SetOrgLogoResponse, error) {
+	response, err := c.setOrgLogo.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -1034,6 +1055,9 @@ type OrgServiceHandler interface {
 	ListOrgs(context.Context, *v1.ListOrgsRequest) (*v1.ListOrgsResponse, error)
 	// RenameOrg renames an org. Admins and owners.
 	RenameOrg(context.Context, *v1.RenameOrgRequest) (*v1.RenameOrgResponse, error)
+	// SetOrgLogo sets or removes an org's logo (docs/PANEL.md#images).
+	// Admins and owners.
+	SetOrgLogo(context.Context, *v1.SetOrgLogoRequest) (*v1.SetOrgLogoResponse, error)
 	// DeleteOrg deletes an org: everyone is taken out of it, and its
 	// invitations and join tokens stop working. Owners, after confirming it's
 	// them, once it has no nodes.
@@ -1205,6 +1229,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		OrgServiceRenameOrgProcedure,
 		svc.RenameOrg,
 		connect.WithSchema(orgServiceMethods.ByName("RenameOrg")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orgServiceSetOrgLogoHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceSetOrgLogoProcedure,
+		svc.SetOrgLogo,
+		connect.WithSchema(orgServiceMethods.ByName("SetOrgLogo")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orgServiceDeleteOrgHandler := connect.NewUnaryHandlerSimple(
@@ -1473,6 +1503,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceListOrgsHandler.ServeHTTP(w, r)
 		case OrgServiceRenameOrgProcedure:
 			orgServiceRenameOrgHandler.ServeHTTP(w, r)
+		case OrgServiceSetOrgLogoProcedure:
+			orgServiceSetOrgLogoHandler.ServeHTTP(w, r)
 		case OrgServiceDeleteOrgProcedure:
 			orgServiceDeleteOrgHandler.ServeHTTP(w, r)
 		case OrgServiceListMembersProcedure:
@@ -1572,6 +1604,10 @@ func (UnimplementedOrgServiceHandler) ListOrgs(context.Context, *v1.ListOrgsRequ
 
 func (UnimplementedOrgServiceHandler) RenameOrg(context.Context, *v1.RenameOrgRequest) (*v1.RenameOrgResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.RenameOrg is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) SetOrgLogo(context.Context, *v1.SetOrgLogoRequest) (*v1.SetOrgLogoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.SetOrgLogo is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) DeleteOrg(context.Context, *v1.DeleteOrgRequest) (*v1.DeleteOrgResponse, error) {

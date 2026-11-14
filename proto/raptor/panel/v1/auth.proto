@@ -125,6 +125,10 @@ service AuthService {
   // the account to every browser).
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {}
 
+  // SetAvatar sets or removes the account's picture
+  // (docs/PANEL.md#images).
+  rpc SetAvatar(SetAvatarRequest) returns (SetAvatarResponse) {}
+
   // StartEmailChange emails a code to the new address. Needs a recent
   // re-authentication: the email address signs in.
   rpc StartEmailChange(StartEmailChangeRequest) returns (StartEmailChangeResponse) {}
@@ -183,6 +187,8 @@ message User {
   // "standard", "contrast" (high contrast), or "calm" (neutral, less
   // colour).
   string theme_style = 8;
+  // The avatar's image ID (GET /api/images/<id>.png); empty for none.
+  string avatar = 9;
 }
 
 message GetSessionRequest {}
@@ -437,6 +443,16 @@ message UpdateProfileRequest {
 }
 
 message UpdateProfileResponse {
+  User user = 1;
+}
+
+message SetAvatarRequest {
+  // A PNG, JPEG, GIF, or WebP of at most 1 MB, cropped square and scaled to
+  // 256×256 by the Panel; empty removes the avatar.
+  bytes image = 1;
+}
+
+message SetAvatarResponse {
   User user = 1;
 }
 
