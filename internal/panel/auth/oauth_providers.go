@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -19,6 +21,9 @@ type Identity struct {
 	Subject       string
 	Email         string
 	EmailVerified bool
+	// Picture is the account's picture there, if it has one: copied once
+	// to an account that never had one (copyPicture).
+	Picture string
 }
 
 // OAuthProvider is an account system people can sign in with.
@@ -62,7 +67,7 @@ func NewOIDC(p *oidc.Provider, clientID, secret, redirectURL string) *OIDC {
 	return &OIDC{
 		Config: oauth2.Config{
 			ClientID: clientID, ClientSecret: secret, RedirectURL: redirectURL,
-			Endpoint: p.Endpoint(), Scopes: []string{oidc.ScopeOpenID, "email"},
+			Endpoint: p.Endpoint(), Scopes: []string{oidc.ScopeOpenID, "email", "profile"},
 		},
 		Verifier: p.Verifier(&oidc.Config{ClientID: clientID}),
 	}
@@ -96,11 +101,12 @@ func (o *OIDC) Identify(ctx context.Context, code, verifier, nonce string) (Iden
 	var c struct {
 		Email         string `json:"email"`
 		EmailVerified bool   `json:"email_verified"`
+		Picture       string `json:"picture"`
 	}
 	if err := idt.Claims(&c); err != nil {
 		return Identity{}, err
 	}
-	return Identity{Subject: idt.Subject, Email: c.Email, EmailVerified: c.EmailVerified}, nil
+	return Identity{Subject: idt.Subject, Email: c.Email, EmailVerified: c.EmailVerified, Picture: googlePicture(c.Picture)}, nil
 }
 
 // GitHub signs in with GitHub.
@@ -136,7 +142,8 @@ func (g *GitHub) Identify(ctx context.Context, code, verifier, _ string) (Identi
 	}
 	client := g.Config.Client(ctx, tok)
 	var user struct {
-		ID int64 `json:"id"`
+		ID        int64  `json:"id"`
+		AvatarURL string `json:"avatar_url"`
 	}
 	if err := getJSON(ctx, client, g.API+"/user", &user); err != nil {
 		return Identity{}, err
@@ -152,7 +159,7 @@ func (g *GitHub) Identify(ctx context.Context, code, verifier, _ string) (Identi
 	if err := getJSON(ctx, client, g.API+"/user/emails", &emails); err != nil {
 		return Identity{}, err
 	}
-	id := Identity{Subject: strconv.FormatInt(user.ID, 10)}
+	id := Identity{Subject: strconv.FormatInt(user.ID, 10), Picture: sized(user.AvatarURL, "s", "256")}
 	for _, e := range emails {
 		if e.Primary {
 			id.Email, id.EmailVerified = e.Email, e.Verified
@@ -195,6 +202,7 @@ func (d *Discord) Identify(ctx context.Context, code, verifier, _ string) (Ident
 		ID       string `json:"id"`
 		Email    string `json:"email"`
 		Verified bool   `json:"verified"`
+		Avatar   string `json:"avatar"` // a hash; empty for Discord's default
 	}
 	if err := getJSON(ctx, d.Config.Client(ctx, tok), d.API+"/users/@me", &user); err != nil {
 		return Identity{}, err
@@ -202,7 +210,43 @@ func (d *Discord) Identify(ctx context.Context, code, verifier, _ string) (Ident
 	if user.ID == "" {
 		return Identity{}, errors.New("no user ID")
 	}
-	return Identity{Subject: user.ID, Email: user.Email, EmailVerified: user.Verified}, nil
+	id := Identity{Subject: user.ID, Email: user.Email, EmailVerified: user.Verified}
+	if discordHash.MatchString(user.Avatar) && discordID.MatchString(user.ID) {
+		// The PNG of an animated one is its first frame.
+		id.Picture = "https://cdn.discordapp.com/avatars/" + user.ID + "/" + user.Avatar + ".png?size=256"
+	}
+	return id, nil
+}
+
+var (
+	discordHash = regexp.MustCompile(`^(a_)?[0-9a-f]{32}$`)
+	discordID   = regexp.MustCompile(`^[0-9]{1,20}$`)
+	// googleSize is the size option at the end of a Google picture's URL.
+	googleSize = regexp.MustCompile(`=s[0-9]+(-c)?$`)
+)
+
+// googlePicture asks for Google's picture at 256 pixels (it's 96 by
+// default).
+func googlePicture(u string) string {
+	if u == "" {
+		return ""
+	}
+	if googleSize.MatchString(u) {
+		return googleSize.ReplaceAllString(u, "=s256-c")
+	}
+	return u
+}
+
+// sized adds a size parameter to a picture's URL.
+func sized(raw, key, value string) string {
+	u, err := url.Parse(raw)
+	if err != nil || raw == "" {
+		return ""
+	}
+	q := u.Query()
+	q.Set(key, value)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func getJSON(ctx context.Context, c *http.Client, url string, v any) error {

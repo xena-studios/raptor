@@ -143,6 +143,7 @@ func (s *Service) oauthCallback(ctx context.Context, r *http.Request) string {
 func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity) string {
 	var dest string
 	var linked *store.User
+	var signedIn store.User
 	after := func() {}
 	err := pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -195,6 +196,7 @@ func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity)
 		default:
 			return err
 		}
+		signedIn = user
 		// Like an email sign-in: only as strong as the provider's account,
 		// so TOTP still applies, and it doesn't re-authenticate accounts
 		// that have something stronger.
@@ -218,6 +220,9 @@ func (s *Service) oauthSignIn(ctx context.Context, provider string, id Identity)
 		_ = s.Audit(ctx, nil, Event{Action: "signin.failed", Meta: map[string]any{"method": provider, "reason": "unverified_email"}})
 	}
 	after()
+	if signedIn.ID.Valid {
+		s.copyPicture(signedIn, provider, id.Picture)
+	}
 	if provider == "discord" {
 		s.linksChanged()
 	}
@@ -266,6 +271,7 @@ func (s *Service) oauthLink(ctx context.Context, provider string, session pgtype
 		return settings + "?error=oauth_failed"
 	}
 	_ = s.Audit(ctx, nil, Event{User: user.ID, Action: "oauth.link", Target: uuid.UUID(acct.ID.Bytes).String(), Meta: map[string]any{"provider": provider}})
+	s.copyPicture(user, provider, id.Picture)
 	s.linksChanged()
 	s.notify(ctx, user, mail.Email{
 		Subject: providerNames[provider] + " sign-in was added to your Raptor account",

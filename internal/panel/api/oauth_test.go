@@ -89,7 +89,7 @@ func newIdP(t *testing.T) *idp {
 			http.Error(w, "no", http.StatusUnauthorized)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"id": json.Number(id.Subject), "login": "someone"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": json.Number(id.Subject), "login": "someone", "avatar_url": id.Picture})
 	})
 	mux.HandleFunc("GET /github/user/emails", func(w http.ResponseWriter, r *http.Request) {
 		id, ok := user(r)
@@ -108,7 +108,7 @@ func newIdP(t *testing.T) *idp {
 			http.Error(w, "no", http.StatusUnauthorized)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"id": id.Subject, "email": id.Email, "verified": id.EmailVerified})
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": id.Subject, "email": id.Email, "verified": id.EmailVerified, "avatar": id.Picture})
 	})
 	p.Server = httptest.NewServer(mux)
 	t.Cleanup(p.Close)
@@ -127,7 +127,7 @@ func (p *idp) idToken(t *testing.T, g grant) string {
 	}
 	claims, _ := json.Marshal(map[string]any{
 		"iss": p.URL, "sub": g.id.Subject, "aud": aud, "iat": time.Now().Unix(), "exp": time.Now().Add(time.Hour).Unix(),
-		"nonce": g.nonce, "email": g.id.Email, "email_verified": g.id.EmailVerified,
+		"nonce": g.nonce, "email": g.id.Email, "email_verified": g.id.EmailVerified, "picture": g.id.Picture,
 	})
 	jws, err := signer.Sign(claims)
 	if err != nil {

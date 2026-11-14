@@ -85,7 +85,11 @@ UPDATE users SET theme = $2 WHERE id = $1 RETURNING *;
 UPDATE users SET theme_style = $2 WHERE id = $1 RETURNING *;
 
 -- name: SetUserAvatar :one
-UPDATE users SET avatar = $2 WHERE id = $1 RETURNING *;
+UPDATE users SET avatar = $2, avatar_source = $3 WHERE id = $1 RETURNING *;
+
+-- name: CopyUserAvatar :execrows
+-- A sign-in provider's picture, only if the account never had one.
+UPDATE users SET avatar = $2, avatar_source = $3 WHERE id = $1 AND avatar_source = '';
 
 -- name: SetUserEmail :one
 UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 RETURNING *;
