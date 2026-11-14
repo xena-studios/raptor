@@ -130,6 +130,33 @@ func TestParsePTDLv1(t *testing.T) {
 	}
 }
 
+// "image" is a Pelican egg's icon (a data: URI), but PTDL_v1's Docker
+// image: one is never taken for the other.
+func TestParseIcon(t *testing.T) {
+	icon := "data:image/png;base64,iVBORw0KGgo="
+	e, err := Parse([]byte(`{"meta": {"version": "PLCN_v1"}, "docker_images": {"Java": "ghcr.io/x/java"}, "image": "` + icon + `", "startup": "x"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Icon != icon || e.DefaultImage() != "ghcr.io/x/java" {
+		t.Errorf("Pelican: icon %q, image %q", e.Icon, e.DefaultImage())
+	}
+	e, err = Parse([]byte(`{"meta": {"version": "PTDL_v1"}, "image": "quay.io/example:latest", "startup": "x"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Icon != "" || e.DefaultImage() != "quay.io/example:latest" {
+		t.Errorf("PTDL_v1: icon %q, image %q", e.Icon, e.DefaultImage())
+	}
+	// An icon alone isn't a Docker image.
+	if _, err := Parse([]byte(`{"meta": {"version": "PTDL_v1"}, "image": "` + icon + `", "startup": "x"}`)); err == nil {
+		t.Error("a data: URI was taken for a Docker image")
+	}
+	if e, err := Parse([]byte(`{"meta": {"version": "PLCN_v1"}, "docker_images": {"a": "a"}, "image": "https://example.com/i.png", "startup": "x"}`)); err != nil || e.Icon != "" {
+		t.Errorf("a link isn't an icon: %q %v", e.Icon, err)
+	}
+}
+
 // Pterodactyl's own source-engine eggs (Garry's Mod, TF2, …) are PTDL_v1
 // with an "images" list; older exports have "docker_images" as a list.
 func TestParseImageLists(t *testing.T) {

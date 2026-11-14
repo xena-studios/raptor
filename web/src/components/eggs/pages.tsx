@@ -1,4 +1,5 @@
 import { useQuery } from "@connectrpc/connect-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Download, FileUp, Pencil, Plus, Rocket, SquarePen } from "lucide-react";
 import { useState } from "react";
@@ -6,7 +7,9 @@ import { useState } from "react";
 import { EggImport } from "@/components/egg-import";
 import { NotFound } from "@/components/error-screen";
 import { PageHeader, tabClass } from "@/components/page";
+import { PicturePicker } from "@/components/picture";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +22,7 @@ import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { blankState, categoryName, download, originNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
+import { eggClient } from "@/lib/transport";
 
 import { AddEggButton, CommunityList, EggReports, ModerationCard, ReportButton } from "./community";
 import { CustomizeButton, EggDetails } from "./detail";
@@ -121,6 +125,7 @@ export function LibraryPage({ lib }: { lib: Library }) {
 // EggPage is one egg: what it runs, and what can be done with it.
 export function EggPage({ lib, id }: { lib: Library; id: string }) {
   const canChange = useCanChange(lib);
+  const client = useQueryClient();
   const d = useQuery(EggService.method.getEggDetails, { orgId: lib.orgId, id });
   const egg = d.data?.egg;
   if (d.error) {
@@ -135,7 +140,7 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
         back={{ label: lib.orgId ? "Eggs" : "Official eggs", ...lib.list }}
         title={
           <span className="flex flex-wrap items-center gap-2.5">
-            <EggIcon category={egg.category} />
+            <EggIcon category={egg.category} icon={egg.icon} />
             {egg.name}
             <EggBadges egg={egg} showOfficial={!!lib.orgId} />
           </span>
@@ -189,6 +194,34 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
         }
       />
       {community && !lib.orgId && <ModerationCard d={d.data} />}
+      {mine && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Icon</CardTitle>
+            <CardDescription>
+              {egg.iconUploaded
+                ? "Uploaded for this egg. Removing it brings back the one in the egg's file, if it has one."
+                : egg.icon
+                  ? "From the egg's file. Upload one to show instead."
+                  : "Without one, the egg's category is shown."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PicturePicker
+              hasPicture={egg.iconUploaded}
+              preview={<EggIcon category={egg.category} icon={egg.icon} className="size-16" />}
+              save={async (png) => {
+                await eggClient.setEggIcon({
+                  orgId: lib.orgId,
+                  id: egg.id,
+                  image: png ?? new Uint8Array(),
+                });
+                await client.invalidateQueries();
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
       <EggDetails d={d.data} />
     </>
   );

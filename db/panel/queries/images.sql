@@ -13,11 +13,13 @@ SELECT png FROM images WHERE id = $1 AND png IS NOT NULL;
 DELETE FROM images i
 WHERE i.taken_down_at IS NULL AND i.created_at < now() - interval '1 day'
   AND NOT EXISTS (SELECT 1 FROM orgs WHERE logo = i.id)
-  AND NOT EXISTS (SELECT 1 FROM users WHERE avatar = i.id);
+  AND NOT EXISTS (SELECT 1 FROM users WHERE avatar = i.id)
+  AND NOT EXISTS (SELECT 1 FROM eggs WHERE icon = i.id);
 
 -- name: TakeDownImage :execrows
 -- Empties a picture for good: it's no longer served, nothing shows it, and
 -- the same file can't be uploaded again.
 WITH orgs_cleared AS (UPDATE orgs SET logo = NULL WHERE orgs.logo = @id::text),
-     users_cleared AS (UPDATE users SET avatar = NULL WHERE users.avatar = @id::text)
+     users_cleared AS (UPDATE users SET avatar = NULL WHERE users.avatar = @id::text),
+     eggs_cleared AS (UPDATE eggs SET icon = NULL, icon_source = '' WHERE eggs.icon = @id::text)
 UPDATE images SET png = NULL, taken_down_at = now() WHERE images.id = @id::text AND images.taken_down_at IS NULL;

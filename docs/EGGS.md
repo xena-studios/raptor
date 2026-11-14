@@ -290,6 +290,7 @@ x-raptor:
 
 `eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`): the eggs the conformance suite tests, which the Panel seeds into its official egg library ([below](#in-the-official-library)). One directory per egg, e.g. `eggs/minecraft/paper/`:
 - The egg file, an **unmodified copy** of upstream at a pinned commit, under its upstream file name. Updating an egg means replacing the file and the commit.
+- `icon.png` (optional): the egg's icon, shown instead of the one in the egg file (Pelican eggs carry one as a `data:` image). The seed gives it to the official egg whenever it changes, unless staff uploaded one ([PANEL.md](PANEL.md#images)). Any size; it's cropped square and kept at 256×256.
 - `raptor.yaml`: where it came from (repository, full commit hash, path), its licence, whether it's certified, which CPU architectures the game runs on, and how the conformance suite tests it:
 
 ```yaml

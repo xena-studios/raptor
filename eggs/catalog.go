@@ -35,6 +35,9 @@ type Entry struct {
 	File string
 	// Egg is the egg exactly as upstream published it.
 	Egg []byte
+	// Icon is the entry's icon.png, if it has one: shown instead of the
+	// icon in the egg (docs/EGGS.md#built-in-catalog).
+	Icon []byte
 	Meta
 }
 
@@ -148,6 +151,9 @@ func All() ([]Entry, error) {
 	return out, errors.Join(errs...)
 }
 
+// iconFile is an entry's own icon, used instead of the one in the egg.
+const iconFile = "icon.png"
+
 func load(dir string) (Entry, error) {
 	e := Entry{ID: dir}
 	b, err := files.ReadFile(dir + "/raptor.yaml")
@@ -164,6 +170,12 @@ func load(dir string) (Entry, error) {
 		return e, err
 	}
 	for _, f := range ents {
+		if f.Name() == iconFile {
+			if e.Icon, err = files.ReadFile(dir + "/" + iconFile); err != nil {
+				return e, err
+			}
+			continue
+		}
 		if f.Name() != "raptor.yaml" && f.Name() != "README.md" {
 			if e.File != "" {
 				return e, fmt.Errorf("more than one egg file (%s, %s)", e.File, f.Name())

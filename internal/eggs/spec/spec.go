@@ -389,7 +389,11 @@ func Write(base []byte, s *Spec) ([]byte, error) {
 	}
 	set(root, "docker_images", images)
 	del(root, "images")
-	del(root, "image")
+	// "image" is PTDL_v1's Docker image, now in docker_images, or a Pelican
+	// egg's icon (a data: URI), which stays.
+	if !strings.HasPrefix(scalar(get(root, "image")), "data:") {
+		del(root, "image")
+	}
 	set(root, "file_denylist", strs(s.FileDenylist))
 
 	if n := get(root, "startup_commands"); n != nil || !ptero {

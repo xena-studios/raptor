@@ -94,12 +94,19 @@ func seedOne(ctx context.Context, q *store.Queries, e catalog.Entry) (added, upd
 		if err != nil {
 			return false, false, err
 		}
-		return true, false, q.AddEggVersion(ctx, store.AddEggVersionParams{
+		if err := q.AddEggVersion(ctx, store.AddEggVersionParams{
 			EggID: row.ID, Version: 1, Egg: file, Sha256: sum, Note: "From Raptor's catalog", CreatedBy: By,
-		})
+		}); err != nil {
+			return false, false, err
+		}
+		return true, false, SyncIcon(ctx, q, row, file, e.Icon)
 	}
-	if err != nil || row.Sha256 == sum {
+	if err != nil {
 		return false, false, err
+	}
+	if row.Sha256 == sum {
+		// The egg hasn't changed, but its icon.png may have.
+		return false, false, SyncIcon(ctx, q, row, file, e.Icon)
 	}
 	last, err := q.LatestEggVersion(ctx, row.ID)
 	if err != nil || last.CreatedBy != By {
@@ -111,9 +118,12 @@ func seedOne(ctx context.Context, q *store.Queries, e catalog.Entry) (added, upd
 	}); err != nil {
 		return false, false, err
 	}
-	return false, true, q.UpdateCatalogEgg(ctx, store.UpdateCatalogEggParams{
+	if err := q.UpdateCatalogEgg(ctx, store.UpdateCatalogEggParams{
 		ID: row.ID, Name: name(egg), Egg: file, Sha256: sum, Version: version, SourceUrl: source, Certified: e.Certified,
-	})
+	}); err != nil {
+		return false, false, err
+	}
+	return false, true, SyncIcon(ctx, q, row, file, e.Icon)
 }
 
 func name(e *eggs.Egg) string {

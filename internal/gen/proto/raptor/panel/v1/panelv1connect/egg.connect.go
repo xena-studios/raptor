@@ -50,6 +50,8 @@ const (
 	EggServiceSetEggStatusProcedure = "/raptor.panel.v1.EggService/SetEggStatus"
 	// EggServiceDeleteEggProcedure is the fully-qualified name of the EggService's DeleteEgg RPC.
 	EggServiceDeleteEggProcedure = "/raptor.panel.v1.EggService/DeleteEgg"
+	// EggServiceSetEggIconProcedure is the fully-qualified name of the EggService's SetEggIcon RPC.
+	EggServiceSetEggIconProcedure = "/raptor.panel.v1.EggService/SetEggIcon"
 	// EggServiceReviewEggFileProcedure is the fully-qualified name of the EggService's ReviewEggFile
 	// RPC.
 	EggServiceReviewEggFileProcedure = "/raptor.panel.v1.EggService/ReviewEggFile"
@@ -95,6 +97,11 @@ type EggServiceClient interface {
 	SetEggStatus(context.Context, *v1.SetEggStatusRequest) (*v1.SetEggStatusResponse, error)
 	// DeleteEgg removes an egg no server uses; archive one that's in use.
 	DeleteEgg(context.Context, *v1.DeleteEggRequest) (*v1.DeleteEggResponse, error)
+	// SetEggIcon gives an egg an icon, or removes the one uploaded, which
+	// brings back the icon in the egg's file, if any (docs/PANEL.md#images).
+	// Like other changes: admins and owners for an org's eggs, staff admins
+	// for official ones.
+	SetEggIcon(context.Context, *v1.SetEggIconRequest) (*v1.SetEggIconResponse, error)
 	// ReviewEggFile fetches an egg from a link (or takes a file) and says what
 	// it would run, before ImportEggFile. Nothing is saved.
 	ReviewEggFile(context.Context, *v1.ReviewEggFileRequest) (*v1.ReviewEggFileResponse, error)
@@ -176,6 +183,12 @@ func NewEggServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eggServiceMethods.ByName("DeleteEgg")),
 			connect.WithClientOptions(opts...),
 		),
+		setEggIcon: connect.NewClient[v1.SetEggIconRequest, v1.SetEggIconResponse](
+			httpClient,
+			baseURL+EggServiceSetEggIconProcedure,
+			connect.WithSchema(eggServiceMethods.ByName("SetEggIcon")),
+			connect.WithClientOptions(opts...),
+		),
 		reviewEggFile: connect.NewClient[v1.ReviewEggFileRequest, v1.ReviewEggFileResponse](
 			httpClient,
 			baseURL+EggServiceReviewEggFileProcedure,
@@ -233,6 +246,7 @@ type eggServiceClient struct {
 	customizeEgg      *connect.Client[v1.CustomizeEggRequest, v1.CustomizeEggResponse]
 	setEggStatus      *connect.Client[v1.SetEggStatusRequest, v1.SetEggStatusResponse]
 	deleteEgg         *connect.Client[v1.DeleteEggRequest, v1.DeleteEggResponse]
+	setEggIcon        *connect.Client[v1.SetEggIconRequest, v1.SetEggIconResponse]
 	reviewEggFile     *connect.Client[v1.ReviewEggFileRequest, v1.ReviewEggFileResponse]
 	importEggFile     *connect.Client[v1.ImportEggFileRequest, v1.ImportEggFileResponse]
 	listCommunityEggs *connect.Client[v1.ListCommunityEggsRequest, v1.ListCommunityEggsResponse]
@@ -308,6 +322,15 @@ func (c *eggServiceClient) SetEggStatus(ctx context.Context, req *v1.SetEggStatu
 // DeleteEgg calls raptor.panel.v1.EggService.DeleteEgg.
 func (c *eggServiceClient) DeleteEgg(ctx context.Context, req *v1.DeleteEggRequest) (*v1.DeleteEggResponse, error) {
 	response, err := c.deleteEgg.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SetEggIcon calls raptor.panel.v1.EggService.SetEggIcon.
+func (c *eggServiceClient) SetEggIcon(ctx context.Context, req *v1.SetEggIconRequest) (*v1.SetEggIconResponse, error) {
+	response, err := c.setEggIcon.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -402,6 +425,11 @@ type EggServiceHandler interface {
 	SetEggStatus(context.Context, *v1.SetEggStatusRequest) (*v1.SetEggStatusResponse, error)
 	// DeleteEgg removes an egg no server uses; archive one that's in use.
 	DeleteEgg(context.Context, *v1.DeleteEggRequest) (*v1.DeleteEggResponse, error)
+	// SetEggIcon gives an egg an icon, or removes the one uploaded, which
+	// brings back the icon in the egg's file, if any (docs/PANEL.md#images).
+	// Like other changes: admins and owners for an org's eggs, staff admins
+	// for official ones.
+	SetEggIcon(context.Context, *v1.SetEggIconRequest) (*v1.SetEggIconResponse, error)
 	// ReviewEggFile fetches an egg from a link (or takes a file) and says what
 	// it would run, before ImportEggFile. Nothing is saved.
 	ReviewEggFile(context.Context, *v1.ReviewEggFileRequest) (*v1.ReviewEggFileResponse, error)
@@ -479,6 +507,12 @@ func NewEggServiceHandler(svc EggServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eggServiceMethods.ByName("DeleteEgg")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eggServiceSetEggIconHandler := connect.NewUnaryHandlerSimple(
+		EggServiceSetEggIconProcedure,
+		svc.SetEggIcon,
+		connect.WithSchema(eggServiceMethods.ByName("SetEggIcon")),
+		connect.WithHandlerOptions(opts...),
+	)
 	eggServiceReviewEggFileHandler := connect.NewUnaryHandlerSimple(
 		EggServiceReviewEggFileProcedure,
 		svc.ReviewEggFile,
@@ -541,6 +575,8 @@ func NewEggServiceHandler(svc EggServiceHandler, opts ...connect.HandlerOption) 
 			eggServiceSetEggStatusHandler.ServeHTTP(w, r)
 		case EggServiceDeleteEggProcedure:
 			eggServiceDeleteEggHandler.ServeHTTP(w, r)
+		case EggServiceSetEggIconProcedure:
+			eggServiceSetEggIconHandler.ServeHTTP(w, r)
 		case EggServiceReviewEggFileProcedure:
 			eggServiceReviewEggFileHandler.ServeHTTP(w, r)
 		case EggServiceImportEggFileProcedure:
@@ -594,6 +630,10 @@ func (UnimplementedEggServiceHandler) SetEggStatus(context.Context, *v1.SetEggSt
 
 func (UnimplementedEggServiceHandler) DeleteEgg(context.Context, *v1.DeleteEggRequest) (*v1.DeleteEggResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.EggService.DeleteEgg is not implemented"))
+}
+
+func (UnimplementedEggServiceHandler) SetEggIcon(context.Context, *v1.SetEggIconRequest) (*v1.SetEggIconResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.EggService.SetEggIcon is not implemented"))
 }
 
 func (UnimplementedEggServiceHandler) ReviewEggFile(context.Context, *v1.ReviewEggFileRequest) (*v1.ReviewEggFileResponse, error) {

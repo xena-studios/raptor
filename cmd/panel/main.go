@@ -342,6 +342,12 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		if _, _, err := catalog.Seed(ctx, pool, log); err != nil {
 			return fmt.Errorf("seeding the egg catalog: %w", err)
 		}
+		// Icons for eggs saved before eggs had them; not worth stopping for.
+		if n, err := catalog.BackfillIcons(ctx, pool); err != nil {
+			log.Warn("giving eggs their icons failed", "err", err)
+		} else if n > 0 {
+			log.Info("eggs checked for an icon in their file", "eggs", n)
+		}
 		cfg.Transfers = router
 		mailer, err := mailer(log)
 		if err != nil {

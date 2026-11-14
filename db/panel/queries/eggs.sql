@@ -45,6 +45,13 @@ WHERE id = @id;
 -- name: SetEggSource :exec
 UPDATE eggs SET source_url = @source_url WHERE id = @id;
 
+-- name: SetEggIcon :exec
+UPDATE eggs SET icon = @icon, icon_source = @icon_source WHERE id = @id;
+
+-- name: EggsWithoutIcons :many
+-- Eggs whose file may carry an icon they don't have yet.
+SELECT * FROM eggs WHERE icon IS NULL AND icon_source = '' AND position(convert_to('data:image/', 'UTF8') IN egg) > 0;
+
 -- name: SetEggStatus :execrows
 -- Only published eggs are shared: unpublishing takes one out of the
 -- community too.

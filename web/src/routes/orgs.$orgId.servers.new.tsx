@@ -4,7 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { BadgeCheck, Plus, Search, Server } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
-
+import { EggIcon } from "@/components/eggs/library";
 import { EmptyState, PageHeader } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -213,17 +213,20 @@ function NewServer({
               type="button"
               key={e.id}
               onClick={() => setEgg(e)}
-              className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
+              className="flex items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
             >
-              <span className="flex items-center gap-1.5 font-medium">
-                {e.name}
-                {e.certified && (
-                  <BadgeCheck className="size-4 text-muted-foreground" aria-label="Certified" />
-                )}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {e.scope === "org" ? "Your org's · " : ""}
-                {categoryName(e.category)}
+              <EggIcon category={e.category} icon={e.icon} />
+              <span className="flex min-w-0 flex-col items-start gap-1">
+                <span className="flex items-center gap-1.5 font-medium">
+                  {e.name}
+                  {e.certified && (
+                    <BadgeCheck className="size-4 text-muted-foreground" aria-label="Certified" />
+                  )}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {e.scope === "org" ? "Your org's · " : ""}
+                  {categoryName(e.category)}
+                </span>
               </span>
             </button>
           ))}
