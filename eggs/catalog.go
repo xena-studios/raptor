@@ -6,6 +6,7 @@ package catalog
 
 import (
 	"embed"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -29,8 +30,11 @@ var files embed.FS
 
 // Entry is one egg in the catalog.
 type Entry struct {
-	// ID is the directory under eggs/, e.g. "minecraft/paper".
+	// ID is the directory under eggs/ (or library/), e.g. "minecraft/paper".
 	ID string
+	// Root is the repository folder the entry is in: "eggs" (the catalog)
+	// or "library" (eggs imported by hand, docs/EGGS.md#egg-library).
+	Root string
 	// File is the egg's file name, as upstream named it.
 	File string
 	// Egg is the egg exactly as upstream published it.
@@ -48,8 +52,11 @@ type Meta struct {
 		Commit string `yaml:"commit"` // the egg is copied from this commit
 		Path   string `yaml:"path"`
 	} `yaml:"source"`
-	License   string `yaml:"license"` // SPDX ID of the upstream repository's license
-	Certified bool   `yaml:"certified"`
+	License string `yaml:"license"` // SPDX ID of the upstream repository's license
+	// Credits are what an egg of Raptor's own is based on, with each one's
+	// licence ("https://github.com/pelican-eggs/minecraft (MIT)").
+	Credits   []string `yaml:"credits"`
+	Certified bool     `yaml:"certified"`
 	// Arch lists the CPU architectures the game itself supports.
 	Arch []string `yaml:"arch"`
 	// Players says how to ask the game for its player count (the egg's
@@ -132,15 +139,20 @@ func (d *Duration) UnmarshalYAML(n *yaml.Node) error {
 }
 
 // All returns every entry, sorted by ID. Every entry is validated.
-func All() ([]Entry, error) {
-	metas, err := fs.Glob(files, "*/*/raptor.yaml")
+func All() ([]Entry, error) { return LoadFS(files, "eggs") }
+
+// LoadFS loads entries laid out like the catalog (<category>/<egg>/ with
+// a raptor.yaml) from fsys, which is the repository's root folder (eggs
+// or library), for Raptor's own eggs' paths. Every entry is validated.
+func LoadFS(fsys fs.FS, root string) ([]Entry, error) {
+	metas, err := fs.Glob(fsys, "*/*/raptor.yaml")
 	if err != nil {
 		return nil, err
 	}
 	var out []Entry
 	var errs []error
 	for _, m := range metas {
-		e, err := load(path.Dir(m))
+		e, err := load(fsys, root, path.Dir(m))
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", path.Dir(m), err))
 			continue
@@ -154,6 +166,20 @@ func All() ([]Entry, error) {
 // OwnRepo is this repository: eggs from it are Raptor's own, versioned
 // with the code, not copies of an upstream file at a commit.
 const OwnRepo = "xena-studios/raptor"
+
+func (e Entry) root() string {
+	if e.Root == "" {
+		return "eggs"
+	}
+	return e.Root
+}
+
+// Category is the folder the egg is in, which is its category in a Panel's
+// egg library ("minecraft", "steam", …).
+func (e Entry) Category() string {
+	category, _, _ := strings.Cut(e.ID, "/")
+	return category
+}
 
 // Own reports whether the egg is Raptor's own.
 func (e Entry) Own() bool { return e.Source.Repo == OwnRepo }
@@ -170,9 +196,9 @@ func (e Entry) SourceURL() string {
 // iconFile is an entry's own icon, used instead of the one in the egg.
 const iconFile = "icon.png"
 
-func load(dir string) (Entry, error) {
-	e := Entry{ID: dir}
-	b, err := files.ReadFile(dir + "/raptor.yaml")
+func load(fsys fs.FS, root, dir string) (Entry, error) {
+	e := Entry{ID: dir, Root: root}
+	b, err := fs.ReadFile(fsys, dir+"/raptor.yaml")
 	if err != nil {
 		return e, err
 	}
@@ -181,13 +207,13 @@ func load(dir string) (Entry, error) {
 	if err := dec.Decode(&e.Meta); err != nil {
 		return e, fmt.Errorf("raptor.yaml: %w", err)
 	}
-	ents, err := files.ReadDir(dir)
+	ents, err := fs.ReadDir(fsys, dir)
 	if err != nil {
 		return e, err
 	}
 	for _, f := range ents {
 		if f.Name() == iconFile {
-			if e.Icon, err = files.ReadFile(dir + "/" + iconFile); err != nil {
+			if e.Icon, err = fs.ReadFile(fsys, dir+"/"+iconFile); err != nil {
 				return e, err
 			}
 			continue
@@ -202,7 +228,7 @@ func load(dir string) (Entry, error) {
 	if e.File == "" {
 		return e, errors.New("no egg file")
 	}
-	if e.Egg, err = files.ReadFile(dir + "/" + e.File); err != nil {
+	if e.Egg, err = fs.ReadFile(fsys, dir+"/"+e.File); err != nil {
 		return e, err
 	}
 	return e, e.validate()
@@ -214,8 +240,8 @@ func (e *Entry) validate() error {
 		return err
 	}
 	s := e.Source
-	if e.Own() && (s.Commit != "" || s.Path != "eggs/"+e.ID+"/"+e.File) {
-		return fmt.Errorf("an egg of Raptor's own has no commit, and its path is eggs/%s/%s", e.ID, e.File)
+	if e.Own() && (s.Commit != "" || s.Path != e.root()+"/"+e.ID+"/"+e.File) {
+		return fmt.Errorf("an egg of Raptor's own has no commit, and its path is %s/%s/%s", e.root(), e.ID, e.File)
 	}
 	switch {
 	case !e.Own() && (s.Repo == "" || len(s.Commit) != 40 || s.Path == ""):
@@ -305,6 +331,7 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 		arch.Content = append(arch.Content, str(a))
 	}
 	set(ext, "arch", arch)
+	set(ext, "category", str(e.Category()))
 	if e.Players.Query != "" {
 		p := &yaml.Node{Kind: yaml.MappingNode}
 		set(p, "query", str(e.Players.Query))
@@ -361,6 +388,26 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 		}
 		set(ext, "backup", n)
 	}
+	if path.Ext(e.File) == ".json" {
+		return ordered.EncodeJSON(root, "    ")
+	}
+	return yaml.Marshal(root)
+}
+
+// ImportFile is the egg as one file to import into a Panel's egg library:
+// the server egg with the entry's icon.png in "image", as a data: URI (the
+// way Pelican eggs carry their icons, which the Panel reads as the egg's
+// icon).
+func (e *Entry) ImportFile() ([]byte, error) {
+	file, err := e.ServerEgg()
+	if err != nil || len(e.Icon) == 0 {
+		return file, err
+	}
+	root, err := ordered.Decode(file)
+	if err != nil {
+		return nil, err
+	}
+	set(root, "image", str("data:image/png;base64,"+base64.StdEncoding.EncodeToString(e.Icon)))
 	if path.Ext(e.File) == ".json" {
 		return ordered.EncodeJSON(root, "    ")
 	}

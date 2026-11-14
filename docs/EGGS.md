@@ -348,6 +348,16 @@ A server keeps that file. Its Settings page shows which version it is: the web a
 ### Accepting a EULA
 Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EULA. The web app asks when creating the server and sends `accept_eula: true` in `server.create`, inside what the passkey signs. Wings writes `eula.txt` (`eula=true`, owned by the server's user) once the install succeeds and before the first start. For eggs without the feature the flag does nothing.
 
+## Egg library
+
+`library/` holds eggs for the games and apps people host, made by Raptor and **imported** into a Panel's official library by hand; none is built into the Panel, whose catalog is only the test server (DECISIONS #351, #352). It covers every egg on eggs.pterodactyl.io, in the pelican-eggs repositories, and in FeatherPanel's, plus Pterodactyl's built-in eggs, with variants folded into one egg as options.
+
+- **Layout:** the catalog's (`<category>/<egg>/` with the egg, `raptor.yaml`, and `icon.png`), loaded by the same code (`catalog.LoadFS`), so the same checks and the conformance suite (`RAPTOR_CONFORMANCE_SOURCE=library`, `task e2e:conformance SOURCE=library`) cover it. The `library` Go package embeds it; only tests and tools import it, so the eggs never reach Raptor's binaries. The folders are the library's categories (`minecraft`, `steam`, `standalone`, `software`, `voice`, `generic`).
+- **Each egg is Raptor's own** PTDL_v2 JSON file, MIT-licensed, with `credits` in `raptor.yaml` naming what it's based on (pelican-eggs and Pterodactyl's eggs are MIT; FeatherPanel's have no licence, so they're only a reference) and where its icon came from.
+- **House style** ([library/README.md](../library/README.md#how-eggs-read)), checked by `go test ./library`: names are what people call the game (`Node.js`, `Minecraft: Paper`, no "server", "generic", or versions), descriptions are plain sentences without links or panel names, variables read alike, the author is `support@raptorpanel.net`, every image is Raptor's (`ghcr.io/xena-studios/yolks`) or pelican-eggs' pinned by digest, and every egg has a 256×256 icon.
+- **Export and import:** `task library:export` (`cmd/eggexport`) writes one file per egg with its icon (as a `data:` image) and Raptor's settings, `x-raptor.category` included, in it. **Import eggs** in the app takes them all at once ([PANEL.md](PANEL.md#importing)).
+- **Left out:** database eggs (Raptor's managed databases cover them) and games whose server needs an account to download (DayZ, Arma 3, Starbound; Hytale), until there's a Steam-account feature.
+
 ## Conformance test suite
 
 `internal/wings/conformance` runs catalog eggs through the full Wings lifecycle with the real server manager, Docker, and the eggs' unmodified images:

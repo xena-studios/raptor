@@ -202,3 +202,46 @@ func TestEggIcons(t *testing.T) {
 		t.Errorf("a taken-down icon came back from the file: %q", got)
 	}
 }
+
+// An egg that says its category (x-raptor.category, as the egg library
+// exports them) goes there when imported without one; one chosen wins.
+func TestImportCategory(t *testing.T) {
+	db := paneltest.NewDB(t)
+	ctx := context.Background()
+	mail := &inbox{}
+	_, key, _ := ed25519.GenerateKey(rand.Reader)
+	authSvc := &auth.Service{DB: db, Mailer: mail, AppURL: appOrigin}
+	orgSvc := &orgs.Service{DB: db, Auth: authSvc, Registry: &nodes.Registry{DB: db, PanelKey: key}}
+	srv := httptest.NewTLSServer(Handler(Config{Auth: authSvc, Orgs: orgSvc, AppOrigin: appOrigin}))
+	defer srv.Close()
+	b := newBrowser(t, srv, appOrigin)
+	if _, err := b.auth.StartEmailSignIn(ctx, &panelv1.StartEmailSignInRequest{Email: "a@example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	code, _ := mail.last(t)
+	if _, err := b.auth.FinishEmailSignIn(ctx, &panelv1.FinishEmailSignInRequest{Proof: &panelv1.FinishEmailSignInRequest_Code{Code: &panelv1.EmailCode{Email: "a@example.com", Code: code}}}); err != nil {
+		t.Fatal(err)
+	}
+	created, err := b.orgs.CreateOrg(ctx, &panelv1.CreateOrgRequest{Name: "Acme"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	org := created.GetOrg().GetId()
+	file := []byte(`{"meta":{"version":"PTDL_v2"},"name":"Steamy","docker_images":{"x":"ghcr.io/x/y"},"startup":"./run","x-raptor":{"category":"steam"}}`)
+	r, err := b.lib.ReviewEggFile(ctx, &panelv1.ReviewEggFileRequest{OrgId: org, Source: &panelv1.ReviewEggFileRequest_File{File: file}})
+	if err != nil || r.GetReview().GetCategory() != "steam" {
+		t.Fatalf("review: %q %v", r.GetReview().GetCategory(), err)
+	}
+	for want, category := range map[string]string{"steam": "", "voice": "voice"} {
+		f := append([]byte{}, file...)
+		f = append(f[:len(f)-1], []byte(`,"description":"`+want+`"}`)...) // a different file each time
+		res, err := b.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{OrgId: org, Egg: f, Category: category})
+		if err != nil {
+			t.Fatal(err)
+		}
+		d, err := b.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: res.GetId()})
+		if err != nil || d.GetEgg().GetCategory() != want {
+			t.Errorf("imported with %q: category %q, want %q (%v)", category, d.GetEgg().GetCategory(), want, err)
+		}
+	}
+}

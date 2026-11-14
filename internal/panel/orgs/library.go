@@ -876,6 +876,13 @@ func (s *Eggs) importFile(ctx context.Context, orgID string, data []byte, source
 			return pgtype.UUID{}, invalid(err)
 		}
 	}
+	if category == "" {
+		// The egg's own category (x-raptor.category, as the egg library
+		// exports them), so a bulk import needn't ask for each.
+		if r, err := eggimport.Parse(data); err == nil && slices.Contains(Categories, r.Egg.Raptor.Category) {
+			category = r.Egg.Raptor.Category
+		}
+	}
 	_, category, err = checkMeta("", category)
 	if err != nil {
 		return pgtype.UUID{}, err

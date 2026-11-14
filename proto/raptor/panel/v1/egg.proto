@@ -407,6 +407,9 @@ message EggReview {
   repeated EggWarning warnings = 14;
   // Whether an egg with the same file is already imported.
   bool duplicate = 15;
+  // The category the egg says it belongs in (x-raptor.category); empty if
+  // it doesn't say.
+  string category = 16;
 }
 
 message EggWarning {

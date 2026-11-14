@@ -2552,7 +2552,10 @@ type EggReview struct {
 	Arch     []string      `protobuf:"bytes,13,rep,name=arch,proto3" json:"arch,omitempty"`
 	Warnings []*EggWarning `protobuf:"bytes,14,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	// Whether an egg with the same file is already imported.
-	Duplicate     bool `protobuf:"varint,15,opt,name=duplicate,proto3" json:"duplicate,omitempty"`
+	Duplicate bool `protobuf:"varint,15,opt,name=duplicate,proto3" json:"duplicate,omitempty"`
+	// The category the egg says it belongs in (x-raptor.category); empty if
+	// it doesn't say.
+	Category      string `protobuf:"bytes,16,opt,name=category,proto3" json:"category,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2690,6 +2693,13 @@ func (x *EggReview) GetDuplicate() bool {
 		return x.Duplicate
 	}
 	return false
+}
+
+func (x *EggReview) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
 }
 
 type EggWarning struct {
@@ -2931,7 +2941,7 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06action\x18\x02 \x01(\tR\x06action\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x15\n" +
-	"\x13ModerateEggResponse\"\xa4\x04\n" +
+	"\x13ModerateEggResponse\"\xc0\x04\n" +
 	"\tEggReview\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
@@ -2950,7 +2960,8 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\bfeatures\x18\f \x03(\tR\bfeatures\x12\x12\n" +
 	"\x04arch\x18\r \x03(\tR\x04arch\x127\n" +
 	"\bwarnings\x18\x0e \x03(\v2\x1b.raptor.panel.v1.EggWarningR\bwarnings\x12\x1c\n" +
-	"\tduplicate\x18\x0f \x01(\bR\tduplicate\"4\n" +
+	"\tduplicate\x18\x0f \x01(\bR\tduplicate\x12\x1a\n" +
+	"\bcategory\x18\x10 \x01(\tR\bcategory\"4\n" +
 	"\n" +
 	"EggWarning\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +

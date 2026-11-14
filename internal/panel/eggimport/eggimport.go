@@ -177,10 +177,11 @@ type Review struct {
 	Warnings   []Warning
 }
 
-// knownImages are the publishers the community eggs' images come from.
+// knownImages are the publishers the community eggs' images come from, and
+// Raptor's own runtime images, which the egg library uses.
 var knownImages = []string{
 	"ghcr.io/pterodactyl/", "ghcr.io/parkervcp/", "ghcr.io/pelican-eggs/", "ghcr.io/ptero-eggs/",
-	"quay.io/pterodactyl/",
+	"quay.io/pterodactyl/", "ghcr.io/xena-studios/",
 }
 
 // pipeToShell is a download piped straight into a shell.

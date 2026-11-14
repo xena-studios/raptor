@@ -108,8 +108,11 @@ type Variable struct {
 
 // Extension holds Raptor-specific egg data under "x-raptor".
 type Extension struct {
-	Arch    []string `yaml:"arch"`
-	Install struct {
+	Arch []string `yaml:"arch"`
+	// Category is where the egg goes in a library ("minecraft", "steam",
+	// …) when it's imported without one being chosen.
+	Category string `yaml:"category"`
+	Install  struct {
 		Timeout string `yaml:"timeout"`
 	} `yaml:"install"`
 	// Backup is the egg's own hooks; use Egg.Backup, which falls back to

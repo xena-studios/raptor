@@ -4,6 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Download, FileUp, Pencil, Plus, Rocket, SquarePen } from "lucide-react";
 import { useState } from "react";
 
+import { BulkEggImport } from "@/components/egg-bulk-import";
 import { EggImport } from "@/components/egg-import";
 import { NotFound } from "@/components/error-screen";
 import { PageHeader, tabClass } from "@/components/page";
@@ -53,16 +54,11 @@ function NewEggMenu({ lib }: { lib: Library }) {
             <SquarePen /> Make from scratch
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setImporting(true)}>
-            <FileUp /> Import an egg
+            <FileUp /> Import eggs
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <EggImport
-        orgId={lib.orgId}
-        open={importing}
-        onOpenChange={setImporting}
-        onImported={(id) => navigate(lib.detail(id))}
-      />
+      <BulkEggImport orgId={lib.orgId} open={importing} onOpenChange={setImporting} />
     </>
   );
 }

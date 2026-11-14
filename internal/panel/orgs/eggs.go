@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -82,6 +83,9 @@ func review(r *eggimport.Review) *panelv1.EggReview {
 		Images: p.GetImages(), Registries: r.Registries, InstallContainer: e.Install.Container,
 		InstallEntrypoint: e.Install.Entrypoint, InstallScript: e.Install.Script,
 		Variables: p.GetVariables(), Features: e.Features, Arch: e.Raptor.Arch,
+	}
+	if slices.Contains(Categories, e.Raptor.Category) {
+		out.Category = e.Raptor.Category
 	}
 	for _, c := range e.Startup {
 		out.Startup = append(out.Startup, c.Command)

@@ -18,7 +18,7 @@ The org's **Eggs** page lists two kinds:
 
 ## Importing one
 
-**Import an egg** on the Eggs page takes a Pterodactyl egg (JSON or YAML), uploaded or from a link (a GitHub file page works). Before anything is saved, Raptor shows exactly what it would run: its Docker images and where they come from, its install script, its startup command, and its settings, with warnings for anything unusual, like an image from an unfamiliar publisher or a script that pipes a download into a shell. Tick that you've looked and trust it, then import it.
+**Import eggs** on the Eggs page takes Pterodactyl eggs (JSON or YAML), as many as you like: files you choose or drop, and links (a GitHub file page works). Before anything is saved, Raptor shows exactly what it would run: its Docker images and where they come from, its install script, its startup command, and its settings, with warnings for anything unusual, like an image from an unfamiliar publisher or a script that pipes a download into a shell. Each egg is listed with what it runs (open it to see the install script), its warnings, and its category. Untick any you don't want, tick that you've looked and trust them, then import them.
 
 An imported egg is never marked certified, whatever it says. Most games have a community egg: search for the game's name and "Pterodactyl egg".
 
