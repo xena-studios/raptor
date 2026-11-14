@@ -10,7 +10,8 @@ cmd=$(jq -r --arg t "$tag" '.images[] | select(.tag == $t) | .test' "$here/image
 expect=$(jq -r --arg t "$tag" '.images[] | select(.tag == $t) | .expect' "$here/images.json")
 dir=$(mktemp -d)
 chmod 0777 "$dir"
-trap 'rm -rf "$dir"' EXIT
+# The server writes as UID 987, which the runner can't delete as itself.
+trap 'docker run --rm -v "$dir:/d" --entrypoint /bin/sh "$img" -c "rm -rf /d/* /d/.[!.]*" >/dev/null 2>&1; rm -rf "$dir"' EXIT
 fail() { echo "FAIL $tag: $*" >&2; echo "$out" >&2; exit 1; }
 
 if [ "$tag" = installer ]; then
