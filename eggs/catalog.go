@@ -1,7 +1,7 @@
-// Package catalog is Raptor's built-in egg catalog: unmodified copies of
-// upstream eggs, one directory each, with a raptor.yaml describing where the
-// egg came from, whether it's certified, and how the conformance suite tests
-// it (docs/EGGS.md#built-in-catalog).
+// Package catalog is Raptor's built-in egg catalog: Raptor's own eggs and
+// unmodified copies of upstream ones, one directory each, with a raptor.yaml
+// describing where the egg came from, whether it's certified, and how the
+// conformance suite tests it (docs/EGGS.md#built-in-catalog).
 package catalog
 
 import (
@@ -151,6 +151,22 @@ func All() ([]Entry, error) {
 	return out, errors.Join(errs...)
 }
 
+// OwnRepo is this repository: eggs from it are Raptor's own, versioned
+// with the code, not copies of an upstream file at a commit.
+const OwnRepo = "xena-studios/raptor"
+
+// Own reports whether the egg is Raptor's own.
+func (e Entry) Own() bool { return e.Source.Repo == OwnRepo }
+
+// SourceURL is where the egg comes from: upstream's file at the copied
+// commit, or, for Raptor's own, the file on main.
+func (e Entry) SourceURL() string {
+	if e.Own() {
+		return "https://github.com/" + OwnRepo + "/blob/main/" + e.Source.Path
+	}
+	return fmt.Sprintf("https://github.com/%s/blob/%s/%s", e.Source.Repo, e.Source.Commit, e.Source.Path)
+}
+
 // iconFile is an entry's own icon, used instead of the one in the egg.
 const iconFile = "icon.png"
 
@@ -198,8 +214,11 @@ func (e *Entry) validate() error {
 		return err
 	}
 	s := e.Source
+	if e.Own() && (s.Commit != "" || s.Path != "eggs/"+e.ID+"/"+e.File) {
+		return fmt.Errorf("an egg of Raptor's own has no commit, and its path is eggs/%s/%s", e.ID, e.File)
+	}
 	switch {
-	case s.Repo == "" || len(s.Commit) != 40 || s.Path == "":
+	case !e.Own() && (s.Repo == "" || len(s.Commit) != 40 || s.Path == ""):
 		return errors.New("source needs repo, a full commit hash, and path")
 	case path.Base(s.Path) != e.File:
 		return fmt.Errorf("egg file %s doesn't match the source path %s", e.File, s.Path)

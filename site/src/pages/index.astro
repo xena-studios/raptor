@@ -1,6 +1,4 @@
 ---
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
 import Logo from "../components/Logo.astro";
 import Screen from "../components/Screen.astro";
 import XenaLogo from "../components/XenaLogo.astro";
@@ -172,14 +170,6 @@ const claims: [string, string][] = [
   ["Your files stay on your machine.", "Players connect straight to it, and backups are encrypted with its own key before they go anywhere."],
   ["Open source, all of it.", "Raptor is AGPL-3.0: read every line that runs on your machine."],
 ];
-
-// The catalog's eggs (eggs/<category>/<egg>), counted at build time so the
-// number stays true. The build runs in site/.
-const eggs = join(process.cwd(), "..", "eggs");
-const catalog = readdirSync(eggs, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .flatMap((d) => readdirSync(join(eggs, d.name), { withFileTypes: true }))
-  .filter((d) => d.isDirectory()).length;
 
 const games: [string, string][] = [
   ["Minecraft", "Paper, Purpur, Fabric, Forge, NeoForge, Quilt, Vanilla, Bedrock"],
@@ -545,8 +535,8 @@ const faq: [string, string][] = [
           <div>
             <h2 id="games">Runs what Pterodactyl runs.</h2>
             <p class="intro">
-              Raptor reads Pterodactyl and Pelican eggs, so anything with one can run, and {catalog}
-              are ready to pick. Already on Pterodactyl? <a href="#move">Your servers come with you</a>.
+              Raptor reads Pterodactyl eggs, so anything with one can run: import the game's egg and
+              deploy. Already on Pterodactyl? <a href="#move">Your servers come with you</a>.
             </p>
           </div>
           <ul class="certified" aria-label="Supported games and apps">

@@ -890,6 +890,43 @@ func (q *Queries) RestoreCommunityEgg(ctx context.Context, id pgtype.UUID) (int6
 	return result.RowsAffected(), nil
 }
 
+const retiredCatalogEggs = `-- name: RetiredCatalogEggs :many
+SELECT e.id, e.catalog_id::text AS catalog_id,
+    (SELECT count(*) FROM m_servers s
+     WHERE s.egg_source IN (e.id::text, 'org:' || e.id::text, e.catalog_id))::int AS servers
+FROM eggs e
+WHERE e.org_id IS NULL AND e.catalog_id IS NOT NULL AND NOT (e.catalog_id = ANY ($1::text[]))
+`
+
+type RetiredCatalogEggsRow struct {
+	ID        pgtype.UUID
+	CatalogID string
+	Servers   int32
+}
+
+// Official eggs the catalog no longer has, with how many servers were
+// made from them (by the egg's ID, or its catalog ID from before the
+// library).
+func (q *Queries) RetiredCatalogEggs(ctx context.Context, ids []string) ([]RetiredCatalogEggsRow, error) {
+	rows, err := q.db.Query(ctx, retiredCatalogEggs, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RetiredCatalogEggsRow
+	for rows.Next() {
+		var i RetiredCatalogEggsRow
+		if err := rows.Scan(&i.ID, &i.CatalogID, &i.Servers); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setEggIcon = `-- name: SetEggIcon :exec
 UPDATE eggs SET icon = $1, icon_source = $2 WHERE id = $3
 `

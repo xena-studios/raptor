@@ -1088,8 +1088,8 @@ function FileTab({
     <div className="flex flex-col gap-3">
       <Alert>
         <AlertDescription>
-          The egg file, as Pterodactyl and Pelican read it. Saving it replaces any unsaved changes
-          in the other tabs.
+          The egg file, as Pterodactyl reads it. Saving it replaces any unsaved changes in the other
+          tabs.
         </AlertDescription>
       </Alert>
       <Card className="h-[36rem] overflow-hidden py-0">

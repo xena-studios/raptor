@@ -152,6 +152,16 @@ UPDATE eggs SET name = @name, egg = @egg, sha256 = @sha256, version = @version, 
     certified = @certified, updated_at = now()
 WHERE id = @id;
 
+-- name: RetiredCatalogEggs :many
+-- Official eggs the catalog no longer has, with how many servers were
+-- made from them (by the egg's ID, or its catalog ID from before the
+-- library).
+SELECT e.id, e.catalog_id::text AS catalog_id,
+    (SELECT count(*) FROM m_servers s
+     WHERE s.egg_source IN (e.id::text, 'org:' || e.id::text, e.catalog_id))::int AS servers
+FROM eggs e
+WHERE e.org_id IS NULL AND e.catalog_id IS NOT NULL AND NOT (e.catalog_id = ANY (@ids::text[]));
+
 -- name: LatestEggVersion :one
 SELECT version, created_by FROM egg_versions WHERE egg_id = $1 ORDER BY version DESC LIMIT 1;
 

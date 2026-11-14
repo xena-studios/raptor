@@ -163,7 +163,7 @@ export function EggList({
       <EmptyState
         icon={Egg}
         title="No eggs yet"
-        description="Make one from scratch or import a Pterodactyl or Pelican egg."
+        description="Make one from scratch or import a Pterodactyl egg."
         action={action}
       />
     );

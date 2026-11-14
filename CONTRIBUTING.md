@@ -130,7 +130,7 @@ The web app follows [docs/DESIGN.md](docs/DESIGN.md), with the brief behind it a
 
 ### The landing page
 
-`site/` is [raptorpanel.net](https://raptorpanel.net): one Astro page in the app's design system ([docs/DESIGN.md](docs/DESIGN.md)), with no scripts. `task site:dev` serves it; `task site:build` builds it and loads it under its CSP in both themes, as CI does. Everything it claims must be true of the released product, so check a new claim against the code and the docs, and change the page in the same pull request as anything that makes a claim untrue. The catalog's egg count is read from `eggs/` at build time.
+`site/` is [raptorpanel.net](https://raptorpanel.net): one Astro page in the app's design system ([docs/DESIGN.md](docs/DESIGN.md)), with no scripts. `task site:dev` serves it; `task site:build` builds it and loads it under its CSP in both themes, as CI does. Everything it claims must be true of the released product, so check a new claim against the code and the docs, and change the page in the same pull request as anything that makes a claim untrue.
 
 ### The docs site
 

@@ -9,7 +9,7 @@ Once your node is [connected](/install/first-node/), deploying a server takes a 
 
 1. Open **Servers** and choose **Deploy server**.
 2. **Node:** pick the node to run it on. It has to be online.
-3. **Game:** pick what the server runs. Search the catalog, or pick one of your org's own games.
+3. **Game:** pick what the server runs: one of your org's eggs ([import the game's egg](/eggs/library/#importing-one) first on the Eggs page), or the **Raptor test server** to check the node works.
 4. **Settings:** give it a name, and check the rest:
    - **Runtime:** what the server runs in, such as its Java version, when the game offers more than one. The first is the game's own choice.
    - **Port:** the port players connect to. The app starts at the game's usual port (25565 for Minecraft) and picks the next free one if another server has it.

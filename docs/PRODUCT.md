@@ -20,10 +20,10 @@ People who **own or rent a Linux box but don't have a reliable, easy way to host
 
 ## What you can host
 
-- **Game servers (primary focus):** the Minecraft family (Paper, Purpur, Fabric, Forge, NeoForge, Vanilla, Velocity, BungeeCord), Rust, popular Steam games, and Hytale (from an imported egg; see [EGGS.md](EGGS.md#certified-at-launch))
+- **Game servers (primary focus):** the Minecraft family (Paper, Purpur, Fabric, Forge, NeoForge, Vanilla, Velocity, BungeeCord), Rust, popular Steam games, and Hytale (from an imported egg; see [EGGS.md](EGGS.md#catalog-rules))
 - **Also officially supported:** Discord bots (Node.js/Python), voice servers (TeamSpeak, Mumble), generic Node/Python apps
 
-Anything with a Pterodactyl or Pelican egg can run. The list above is what we **certify** (test in CI and document). Raptor is not a general app platform.
+Anything with a Pterodactyl egg can run (Pelican's formats are read too, but not advertised: few people use them; DECISIONS #351). The list above is what we aim to **certify** (test in CI and document) as the catalog is rebuilt; today it holds only a test egg. Raptor is not a general app platform.
 
 ## How it works
 
@@ -59,7 +59,7 @@ Does the actual work: runs servers in Docker containers, runs schedules and back
 - Runs alongside an existing Pterodactyl install without interfering with it
 
 **Servers**
-- Native Pterodactyl and Pelican egg support
+- Native Pterodactyl egg support
 - Live console, resource graphs, player counts
 - Crash detection and automatic restart, on by default
 - Real disk limits enforced by the kernel, with instant usage reporting

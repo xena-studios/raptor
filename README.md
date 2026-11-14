@@ -4,9 +4,9 @@
 
 Raptor is a hosted game server management platform. You bring your own Linux machine (a dedicated server, a VPS, a spare box at home), run a single install command, and it links to the web panel at [raptorpanel.net](https://raptorpanel.net). From there you create and manage game servers, Discord bots, and voice servers.
 
-Raptor is compatible with Pterodactyl and Pelican eggs, and `raptor import pterodactyl` moves existing servers over on the same machine. How the two compare, with prices: [Raptor vs Pterodactyl](https://docs.raptorpanel.net/start/raptor-vs-pterodactyl/).
+Raptor is compatible with Pterodactyl eggs, and `raptor import pterodactyl` moves existing servers over on the same machine. How the two compare, with prices: [Raptor vs Pterodactyl](https://docs.raptorpanel.net/start/raptor-vs-pterodactyl/).
 
-> **Status:** built and running in production ahead of launch, with no uptime promise yet. Wings (the daemon) runs servers from Pterodactyl and Pelican eggs with a full lifecycle, kernel-enforced disk limits, passkey-signed dangerous actions, schedules, encrypted incremental backups, SFTP, self-updates that roll back, and a local CLI and TUI. The Panel runs at [raptorpanel.net](https://raptorpanel.net) with the web app and billing, backed up to another provider and rebuildable anywhere with one command. What's left before launch (the move to Oracle Cloud, the billing drill, the beta, the soak test) is in the [roadmap](docs/ROADMAP.md).
+> **Status:** built and running in production ahead of launch, with no uptime promise yet. Wings (the daemon) runs servers from Pterodactyl eggs with a full lifecycle, kernel-enforced disk limits, passkey-signed dangerous actions, schedules, encrypted incremental backups, SFTP, self-updates that roll back, and a local CLI and TUI. The Panel runs at [raptorpanel.net](https://raptorpanel.net) with the web app and billing, backed up to another provider and rebuildable anywhere with one command. What's left before launch (the move to Oracle Cloud, the billing drill, the beta, the soak test) is in the [roadmap](docs/ROADMAP.md).
 
 ## Components
 
@@ -27,7 +27,7 @@ Raptor is compatible with Pterodactyl and Pelican eggs, and `raptor import ptero
 - [Design](docs/DESIGN.md): the web app's design system
 - [Deploying](docs/DEPLOY.md): running the Panel's servers
 - [Servers](docs/SERVERS.md): server model, states, ports, console, crash policy, deletion
-- [Egg compatibility](docs/EGGS.md): Pterodactyl/Pelican egg support
+- [Egg compatibility](docs/EGGS.md): Pterodactyl egg support
 - [Networks](docs/NETWORKS.md): keeping servers on one node apart
 - [Databases](docs/DATABASES.md): managed databases on owners' nodes
 - [Security model](docs/SECURITY-MODEL.md): threat model and security rules
