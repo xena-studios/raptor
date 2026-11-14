@@ -10,7 +10,7 @@ func TestParseDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.NodeID != "abc" || cfg.Ports.SFTP != 2022 || cfg.Paths.Socket != "/run/raptor/wings.sock" {
+	if cfg.NodeID != "abc" || cfg.Ports.SFTP != 2022 || cfg.Paths.Socket != "/run/raptor/wings.sock" || cfg.Archives != (Archives{GzipLevel: 2}) {
 		t.Fatalf("cfg = %+v", cfg)
 	}
 	if _, err := Parse(nil); err != nil {
@@ -28,6 +28,9 @@ docker:
 limits:
   host_disk_min_free: 5GiB
   reserved_memory: 2GiB
+archives:
+  gzip_level: 9
+  threads: 2
 log:
   level: debug
 `))
@@ -39,6 +42,9 @@ log:
 	}
 	if cfg.Limits.HostDiskMinFree != 5<<30 || cfg.Limits.ReservedMemory != 2<<30 {
 		t.Errorf("limits = %+v", cfg.Limits)
+	}
+	if cfg.Archives != (Archives{GzipLevel: 9, Threads: 2}) {
+		t.Errorf("archives = %+v", cfg.Archives)
 	}
 	server, install := cfg.Docker.Subnets()
 	if server.String() != "10.50.0.0/16" || install.IsValid() {
@@ -63,6 +69,9 @@ func TestParseRejects(t *testing.T) {
 		"ipv6 subnet":    "docker:\n  subnet: fd00::/64\n",
 		"bad allow":      "docker:\n  install_allow: [lan]\n",
 		"same networks":  "docker:\n  install_network: raptor_nw\n",
+		"gzip level 0":   "archives:\n  gzip_level: 0\n",
+		"gzip level 10":  "archives:\n  gzip_level: 10\n",
+		"bad threads":    "archives:\n  threads: -1\n",
 	} {
 		if _, err := Parse([]byte(in)); err == nil {
 			t.Errorf("%s: expected error", name)

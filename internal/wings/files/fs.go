@@ -199,9 +199,17 @@ func (f *FS) Open(name string, flag int) (*os.File, error) {
 	case err != nil && !created:
 		return nil, err
 	}
+	file, _, err := f.open(name, flag, created)
+	return file, err
+}
+
+// open is Open once name is known to be a regular file (or missing, and
+// created): opened, then checked again on the open file, whose stat it
+// returns (taken before any chown).
+func (f *FS) open(name string, flag int, created bool) (*os.File, fs.FileInfo, error) {
 	file, err := f.root.OpenFile(name, flag|syscall.O_NONBLOCK|syscall.O_NOCTTY, FileMode)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	st, err := file.Stat()
 	if err == nil && !st.Mode().IsRegular() {
@@ -215,6 +223,27 @@ func (f *FS) Open(name string, flag int) (*os.File, error) {
 	}
 	if err != nil {
 		_ = file.Close()
+		return nil, nil, err
+	}
+	return file, st, nil
+}
+
+// create makes a new regular file with perm, owned by the servers' user.
+// O_EXCL means the kernel creates it or fails, never opening what's there
+// or following a link (fs.ErrExist for anything in the way). name must
+// have been checked against the denylist.
+func (f *FS) create(name string, perm fs.FileMode) (*os.File, error) {
+	file, err := f.root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL|syscall.O_NONBLOCK|syscall.O_NOCTTY, 0o600)
+	if err != nil {
+		return nil, err
+	}
+	err = file.Chmod(perm)
+	if err == nil {
+		err = file.Chown(f.uid, f.gid)
+	}
+	if err != nil {
+		_ = file.Close()
+		_ = f.root.Remove(name)
 		return nil, err
 	}
 	return file, nil

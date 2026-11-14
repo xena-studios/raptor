@@ -307,7 +307,7 @@ func FuzzExtract(f *testing.F) {
 			t.Fatal(err)
 		}
 		defer func() { _ = fsys.Close() }()
-		res, _ := fsys.Extract(context.Background(), "a", "x", 1<<20)
+		res, _ := fsys.Extract(context.Background(), "a", "x", 1<<20, ExtractOptions{Threads: 4})
 		if res.Bytes > 1<<20 {
 			t.Fatalf("wrote %d bytes past the limit", res.Bytes)
 		}

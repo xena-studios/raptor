@@ -20,6 +20,7 @@ require (
 	github.com/hashicorp/yamux v0.1.2
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/klauspost/compress v1.20.4
+	github.com/klauspost/pgzip v1.2.6
 	github.com/kopia/kopia v0.23.1
 	github.com/minio/minio-go/v7 v7.4.1
 	github.com/moby/moby/api v1.57.0
@@ -95,7 +96,6 @@ require (
 	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
-	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/klauspost/reedsolomon v1.14.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect

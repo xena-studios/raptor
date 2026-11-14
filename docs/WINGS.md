@@ -102,6 +102,9 @@ limits:
   host_disk_min_free: 10GiB      # below this: refuse installs and image pulls
   reserved_memory: 0             # kept free of servers; 0 = 10% of RAM, 1–4 GiB
   backup_memory: 1GiB            # memory cap of each backup worker process
+archives:                        # the file manager's archive jobs (not backups)
+  gzip_level: 2                  # tar.gz and zip: 1 (fastest) to 9 (smallest)
+  threads: 0                     # cores one archive job may use; 0 = automatic (up to 4)
 storage:
   quotas: true                   # false = soft disk limits by scanning (tier 3)
 updates:
@@ -458,8 +461,34 @@ The machine itself is sampled on the same tick and kept the same way (`host_metr
   - **Limits:** 30 failed logins per address in 5 minutes, then that address is refused until the window ends; 32 connections per address, 512 in total, 8 sessions per connection; 30 s to finish the handshake.
   - **Files:** every operation goes through `os.Root` on the server's directory. FIFOs, device nodes, and sockets are refused (a hostile install can plant them, and Wings runs as root); new files and directories belong to the servers' user with modes 0644/0755; `chmod` sets permission bits only; ownership changes are ignored; symlinks can be created (their target stored as given); plain rename never replaces a file (posix-rename does).
   - Sessions end when an install or a backup restore starts or the server is deleted, and file access is refused while it installs or restores. With soft disk limits, anything that adds data (uploads, new directories and links) is refused while the server is over its limit, but reading, moving, truncating, and deleting still work so space can be freed; with quotas, the kernel enforces the limit.
+  - **Throughput:** pkg/sftp's request server reuses packet buffers (`WithRSAllocator`), which made a 256 MiB upload about 30% faster and a download about 15–20% (DECISIONS #348). What's left is the protocol's pipeline, not CPU: every request passes between pkg/sftp's goroutines in order, and x/crypto/ssh sends a window adjustment for every channel read and flushes every 32 KiB packet on its own, neither of which can be changed without forking them.
 - SFTP host key: Ed25519, generated on the node at first start (whether or not SFTP is on); its fingerprint is reported to the Panel and shown to users. **Nodes need no TLS certificates.**
 - **All file operations use `os.Root`** (symlink-safe, confined to the server directory), in one package (`internal/wings/files`) shared by the web file manager and SFTP.
+
+### Archives
+
+`files.compress` and `files.decompress` run in Wings itself, not in the backup worker's low-weight scope, so how much CPU one job may take is bounded here:
+
+- **tar.gz is compressed on several threads** (`klauspost/pgzip`): the stream is cut into 1 MiB blocks, each compressed on its own thread and primed with the end of the block before, so it's still one ordinary gzip stream and barely larger than a single-threaded one. It's written to `.<name>.part`, synced, and renamed into place, as before.
+- **Threads:** `archives.threads`, or by default `GOMAXPROCS` (which follows the service's CPU quota) up to 4. That's per job, and the `files` class runs 2 at once; when game servers keep every core busy, Wings' cgroup gets an equal share with `raptor.slice`, which bounds what archive jobs take from them.
+- **Level:** `archives.gzip_level`, default **2**. On game data (region files and jars, already compressed) the size barely depends on the level, and level 6 took 40% longer on 1 GiB; on many small text files level 2 makes archives about 13% larger than 6. Level 1 was no faster than 2.
+- A job that fails (out of space, cancelled) stops its compressor threads; nothing is written to the file after `Compress` returns.
+- **zip** uses klauspost's deflate both ways (at `archives.gzip_level`), several times faster than the standard library's.
+- **Archives are extracted on several threads** (as many as compression uses). Entries are read and checked in order on one goroutine (names cleaned, the denylist, the entry limit, links and directories made there), and only writing a regular file's contents is handed to a writer. An entry at, inside, or above a path still being written waits for it, a link waits for everything, and once an archive has made a link its other files are written one at a time, so what the archive does comes out the same as extracting one entry at a time (a link the server already had can make two names the same file, whose contents may then mix; they're its own files); when a writer fails, the job stops after the files already being written; the writers share the job's disk-space budget, which is reserved before each write, so together they can't pass it. Nothing is written after the job ends. A zip's entries are each read on their own, so the writers inflate them too. A tar is one stream: files up to 1 MiB are read into memory and written by a writer while the stream is read on (at most one buffer per writer), larger ones as they're read; a tar.gz is inflated ahead on its own thread (`pgzip`, 4 MiB ahead), since a gzip stream can't be split. With `archives.threads: 1` everything runs on one thread, as before.
+- **Per file**, every path is still resolved through the server's root (`os.Root` walks it one name at a time, so the cost grows with depth), and no directory is kept open from one file to the next, since the trash can move one out of the server's directory mid-job. Within that: compressing opens each file once, checking the `lstat` the directory listing just took instead of a second walk; extracting remembers which directories it made (names only; one removed since is made again), creates new files with `O_EXCL` and sets their mode, owner, and times on the open file, and only looks at what's in the way when there is something. That's about 15 system calls per extracted file, down from about 60, and 14 per compressed one, down from 24 (`strace -c -f`, 50,000 small files).
+
+### Benchmarks
+
+Benchmarks for archives and SFTP live beside the code, and run on Linux (in a VM on macOS), as root, with the files on tmpfs so they measure Wings rather than the disk:
+
+```sh
+RAPTOR_BENCH_DIR=/mnt/tmpfs go test ./internal/wings/files -run '^$' -bench 'Compress|Extract' -cpu 1,2,4 -count 10
+RAPTOR_BENCH_DIR=/mnt/tmpfs go test ./internal/wings/sftp -run '^$' -bench OpenSSH -cpu 1,2,4 -count 10
+```
+
+- **Archives** (`internal/wings/files/archive_bench_test.go`): `Compress` and `Extract`, in tar.gz and zip, of three generated folders: `100m` (about 2,000 files, 100 MiB: random 1 MiB files, a 32 MiB jar, small configs), `1g` (about 22,000 files, 1 GiB), and `many` (50,000 files of 256 B). They're made once, the same every time, under `$RAPTOR_BENCH_DIR`, owned by uid 1000 as servers' files are. The archives `Extract` reads are written by the standard library, so they don't change when `Compress` does. `archive-B` is the archive's size. `RAPTOR_ARCHIVE_ONCE=compress:many go test -run TestArchiveOnce` runs one operation, for `strace -c -f` or `perf`.
+- **SFTP** (`internal/wings/sftp/bench_test.go`): the real `sftp.Server`, with a stand-in Panel, driven by OpenSSH's `sftp` client (`-c aes128-gcm@openssh.com`, password through `SSH_ASKPASS`): a 256 MiB upload and download and 50,000 small files uploaded, each a new connection. The server runs in the test process, so `-cpuprofile` and `-trace` profile it.
+- Compare runs with `benchstat`.
 
 ## Add-ons
 

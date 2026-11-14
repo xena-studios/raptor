@@ -13,12 +13,17 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"runtime"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/klauspost/compress/flate"
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
+	"github.com/klauspost/pgzip"
 )
 
 // ErrNoSpace is returned when an archive operation would take more disk
@@ -77,6 +82,27 @@ type CompressOptions struct {
 	// Name is the archive's name without its extension; "" is
 	// archive-<UTC time>. A taken name gets -2, -3, ….
 	Name string
+	// Level is the deflate level of tar.gz and zip archives, 1 (fastest)
+	// to 9 (smallest); 0 is DefaultLevel. Node-wide, from config.yml.
+	Level int
+	// Threads is how many blocks are compressed at once (0: Threads(0)).
+	Threads int
+}
+
+// DefaultLevel is the deflate level used when none is configured.
+const DefaultLevel = 2
+
+// MaxThreads caps the cores one archive job uses by default, so a job
+// can't take over the node (docs/WINGS.md#archives).
+const MaxThreads = 4
+
+// Threads returns how many cores one archive job uses: n if set, else
+// GOMAXPROCS (which follows the service's CPU quota) up to MaxThreads.
+func Threads(n int) int {
+	if n > 0 {
+		return n
+	}
+	return min(runtime.GOMAXPROCS(0), MaxThreads)
 }
 
 // Compress writes the named files and directories (relative to dir) into a
@@ -144,10 +170,21 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 		}
 	}()
 	counted := &budget{w: file, left: space}
-	aw, err := newArchiveWriter(counted, format)
+	level := opts.Level
+	if level == 0 {
+		level = DefaultLevel
+	}
+	aw, err := newArchiveWriter(counted, format, level, Threads(opts.Threads))
 	if err != nil {
 		return res, err
 	}
+	closed := false
+	defer func() {
+		// Stops the compressor's goroutines when the archive is abandoned.
+		if !closed {
+			_ = aw.Close()
+		}
+	}()
 	visit := func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -192,6 +229,7 @@ func (f *FS) Compress(ctx context.Context, dir string, names []string, space int
 			return res, err
 		}
 	}
+	closed = true
 	if err := aw.Close(); err != nil {
 		return res, err
 	}
@@ -214,10 +252,10 @@ type archiveWriter interface {
 	Close() error
 }
 
-func newArchiveWriter(w io.Writer, format string) (archiveWriter, error) {
+func newArchiveWriter(w io.Writer, format string, level, threads int) (archiveWriter, error) {
 	switch format {
 	case FormatZip:
-		return &zipArchive{zw: zip.NewWriter(w)}, nil
+		return newZipArchive(w, level)
 	case FormatTar:
 		return &tarArchive{tw: tar.NewWriter(w)}, nil
 	case FormatTarZst:
@@ -227,12 +265,84 @@ func newArchiveWriter(w io.Writer, format string) (archiveWriter, error) {
 		}
 		return &tarArchive{tw: tar.NewWriter(zw), comp: zw}, nil
 	default:
-		zw, err := gzip.NewWriterLevel(w, gzip.DefaultCompression)
+		zw, err := newParallelGzip(w, level, threads)
 		if err != nil {
 			return nil, err
 		}
 		return &tarArchive{tw: tar.NewWriter(zw), comp: zw}, nil
 	}
+}
+
+// gzipBlock is how much input each of parallelGzip's threads compresses at
+// a time. Each block is primed with the end of the one before, so the
+// output is barely larger than a single stream's.
+const gzipBlock = 1 << 20
+
+// parallelGzip writes one gzip stream, compressing blocks on several
+// threads with pgzip. pgzip's writer goroutine only stops when Close gets
+// to the end, and Close gives up early once a write to the file has
+// failed, which would leak the goroutine and its buffers. So pgzip never
+// sees a failure: the first one is kept here, and returned to the next
+// Write and to Close.
+type parallelGzip struct {
+	z   *pgzip.Writer
+	out *firstError
+}
+
+func newParallelGzip(w io.Writer, level, threads int) (*parallelGzip, error) {
+	out := &firstError{w: w}
+	z, err := pgzip.NewWriterLevel(out, level)
+	if err != nil {
+		return nil, err
+	}
+	if err := z.SetConcurrency(gzipBlock, threads); err != nil {
+		return nil, err
+	}
+	return &parallelGzip{z: z, out: out}, nil
+}
+
+func (g *parallelGzip) Write(p []byte) (int, error) {
+	if err := g.out.Err(); err != nil {
+		return 0, err
+	}
+	return g.z.Write(p)
+}
+
+// Close writes what's left and waits for it: when it returns, nothing
+// writes to the file anymore.
+func (g *parallelGzip) Close() error {
+	err := g.z.Close()
+	if werr := g.out.Err(); werr != nil {
+		return werr
+	}
+	return err
+}
+
+// firstError passes writes on until one fails, then drops the rest and
+// keeps that error.
+type firstError struct {
+	w   io.Writer
+	mu  sync.Mutex
+	err error
+}
+
+func (e *firstError) Write(p []byte) (int, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.err == nil {
+		n, err := e.w.Write(p)
+		if err == nil && n < len(p) {
+			err = io.ErrShortWrite
+		}
+		e.err = err
+	}
+	return len(p), nil
+}
+
+func (e *firstError) Err() error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.err
 }
 
 type tarArchive struct {
@@ -277,6 +387,57 @@ func (a *tarArchive) Close() error {
 // zipArchive stores links as Info-ZIP does: the target as the content, with
 // the link mode, which the extractor reads back.
 type zipArchive struct{ zw *zip.Writer }
+
+// newZipArchive writes a zip with klauspost's deflate, which is several
+// times faster than compress/flate's. zip writes one entry at a time, so
+// one compressor is reused for all of them.
+func newZipArchive(w io.Writer, level int) (*zipArchive, error) {
+	fw, err := flate.NewWriter(nil, level)
+	if err != nil {
+		return nil, err
+	}
+	zw := zip.NewWriter(w)
+	zw.RegisterCompressor(zip.Deflate, func(w io.Writer) (io.WriteCloser, error) {
+		fw.Reset(w)
+		return fw, nil
+	})
+	return &zipArchive{zw: zw}, nil
+}
+
+// flateReaders are klauspost's inflaters for zip entries, reused across
+// entries and archives, as archive/zip does with its own.
+var flateReaders sync.Pool
+
+func newFlateReader(r io.Reader) io.ReadCloser {
+	fr, ok := flateReaders.Get().(io.ReadCloser)
+	if ok {
+		if err := fr.(flate.Resetter).Reset(r, nil); err != nil {
+			fr = flate.NewReader(r)
+		}
+	} else {
+		fr = flate.NewReader(r)
+	}
+	return &pooledFlate{rc: fr}
+}
+
+type pooledFlate struct{ rc io.ReadCloser }
+
+func (p *pooledFlate) Read(b []byte) (int, error) {
+	if p.rc == nil {
+		return 0, os.ErrClosed
+	}
+	return p.rc.Read(b)
+}
+
+func (p *pooledFlate) Close() error {
+	if p.rc == nil {
+		return nil
+	}
+	err := p.rc.Close()
+	flateReaders.Put(p.rc)
+	p.rc = nil
+	return err
+}
 
 func (a *zipArchive) header(name string, fi fs.FileInfo, mode fs.FileMode, method uint16) *zip.FileHeader {
 	h := &zip.FileHeader{Name: name, Method: method, Modified: fi.ModTime()}
@@ -333,7 +494,9 @@ func (f *FS) addEntry(aw archiveWriter, p, name string, d fs.DirEntry) (bool, er
 	case !fi.Mode().IsRegular():
 		return false, nil
 	}
-	src, err := f.Open(p, os.O_RDONLY)
+	// The walk checked p against the denylist, and fi is its lstat, just
+	// read: a regular file. Open checks the open file again.
+	src, st, err := f.open(p, os.O_RDONLY, false)
 	if errors.Is(err, ErrNotRegular) || errors.Is(err, fs.ErrNotExist) {
 		return false, nil // swapped or removed while walking
 	}
@@ -341,12 +504,19 @@ func (f *FS) addEntry(aw archiveWriter, p, name string, d fs.DirEntry) (bool, er
 		return false, err
 	}
 	defer func() { _ = src.Close() }()
-	st, err := src.Stat()
-	if err != nil {
-		return false, err
+	// Opening follows a link swapped in since the walk checked p, which
+	// could reach a denied file: only the file the walk saw is archived.
+	if !os.SameFile(fi, st) {
+		return false, nil
 	}
 	// A file that grows while it's read is cut at the size it had.
 	return true, aw.file(name, fi, st.Size(), io.LimitReader(src, st.Size()))
+}
+
+// ExtractOptions tune Extract.
+type ExtractOptions struct {
+	// Threads is how many files are written at once (0: Threads(0)).
+	Threads int
 }
 
 // Extract unpacks an archive into dest (default: the archive's directory).
@@ -354,7 +524,7 @@ func (f *FS) addEntry(aw archiveWriter, p, name string, d fs.DirEntry) (bool, er
 // entries that would climb out, denied files, and anything but files,
 // directories, and links are skipped. Existing files are replaced. At most
 // space bytes are written (< 0: unlimited).
-func (f *FS) Extract(ctx context.Context, archive, dest string, space int64) (ArchiveResult, error) {
+func (f *FS) Extract(ctx context.Context, archive, dest string, space int64, opts ExtractOptions) (ArchiveResult, error) {
 	archive = Rel(archive)
 	if dest == "" {
 		dest = path.Dir(archive)
@@ -373,43 +543,74 @@ func (f *FS) Extract(ctx context.Context, archive, dest string, space int64) (Ar
 	if err := f.MkdirAll(dest); err != nil {
 		return res, err
 	}
-	x := &extractor{f: f, ctx: ctx, dest: dest, space: space, res: &res}
+	x := &extractor{f: f, ctx: ctx, dest: dest, space: &spaceLeft{limit: space}, res: &res, dirs: map[string]bool{}}
+	err = x.extract(src, st.Size(), path.Base(archive), Threads(opts.Threads))
+	return res, err
+}
 
+func (x *extractor) extract(src *os.File, size int64, name string, threads int) (err error) {
+	if threads > 1 {
+		x.pool = newWriters(x.ctx, threads)
+		// Nothing is written after Extract returns.
+		defer func() {
+			if werr := x.pool.close(); werr != nil {
+				err = werr
+			}
+		}()
+	}
 	head := make([]byte, 512)
 	n, _ := src.ReadAt(head, 0)
 	head = head[:n]
 	switch {
 	case bytes.HasPrefix(head, []byte("PK\x03\x04")), bytes.HasPrefix(head, []byte("PK\x05\x06")):
-		zr, err := zip.NewReader(src, st.Size())
+		zr, err := zip.NewReader(src, size)
 		if err != nil {
-			return res, err
+			return err
 		}
-		return res, x.zip(zr)
+		zr.RegisterDecompressor(zip.Deflate, newFlateReader)
+		return x.zip(zr)
 	case bytes.HasPrefix(head, []byte{0x1f, 0x8b}):
-		zr, err := gzip.NewReader(src)
+		// Inflating can't be split, but it can run ahead of the rest on
+		// its own thread (pgzip, bounded to gzipReadAhead blocks).
+		var zr io.ReadCloser
+		var err error
+		if threads > 1 {
+			zr, err = pgzip.NewReaderN(src, gzipBlock, gzipReadAhead)
+		} else {
+			zr, err = gzip.NewReader(src)
+		}
 		if err != nil {
-			return res, err
+			return err
 		}
 		defer func() { _ = zr.Close() }()
-		single := strings.TrimSuffix(path.Base(archive), ".gz")
-		if single == path.Base(archive) {
+		single := strings.TrimSuffix(name, ".gz")
+		if single == name {
 			single += ".out"
 		}
-		return res, x.tarOrSingle(zr, single)
+		return x.tarOrSingle(zr, single)
 	case bytes.HasPrefix(head, []byte("BZh")):
-		return res, x.tarOrSingle(bzip2.NewReader(src), "")
+		return x.tarOrSingle(bzip2.NewReader(src), "")
 	case bytes.HasPrefix(head, []byte{0x28, 0xb5, 0x2f, 0xfd}):
 		zr, err := zstd.NewReader(src, zstd.WithDecoderMaxWindow(zstdMaxWindow), zstd.WithDecoderLowmem(true), zstd.WithDecoderConcurrency(1))
 		if err != nil {
-			return res, err
+			return err
 		}
 		defer zr.Close()
-		return res, x.tarOrSingle(zr, "")
+		return x.tarOrSingle(zr, "")
 	case isTar(head):
-		return res, x.tar(tar.NewReader(src))
+		return x.tar(tar.NewReader(src))
 	}
-	return res, ErrUnsupported
+	return ErrUnsupported
 }
+
+// gzipReadAhead is how many blocks of a gzip stream are inflated ahead.
+const gzipReadAhead = 4
+
+// maxBuffered is the largest tar entry read into memory to be written on
+// another goroutine; larger ones are written as they're read.
+const maxBuffered = 1 << 20
+
+var bigBuffers = sync.Pool{New: func() any { b := make([]byte, maxBuffered); return &b }}
 
 func isTar(head []byte) bool {
 	return len(head) >= 262 && string(head[257:262]) == "ustar"
@@ -419,9 +620,178 @@ type extractor struct {
 	f       *FS
 	ctx     context.Context
 	dest    string
-	space   int64
-	written int64
-	res     *ArchiveResult
+	space   *spaceLeft
+	entries int      // entries seen
+	pool    *writers // nil: files are written one at a time
+	serial  bool     // the archive made a link: files are written one at a time
+	// dirs are the directories this extraction made or found, so each is
+	// checked once, not for every file in it. Only names are kept: files
+	// are still opened through the root, which a directory swapped since
+	// can't get them out of. Making a link forgets them all.
+	dirs map[string]bool
+
+	mu  sync.Mutex // res, for the writers
+	res *ArchiveResult
+}
+
+func (x *extractor) count(files, skipped int, bytes int64) {
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	x.res.Files += files
+	x.res.Skipped += skipped
+	x.res.Bytes += bytes
+}
+
+// spaceLeft is what an extraction may still write, shared by its writers.
+type spaceLeft struct {
+	limit int64 // < 0: unlimited
+	used  atomic.Int64
+}
+
+// reserve takes n bytes, or reports false if they don't fit.
+func (s *spaceLeft) reserve(n int64) bool {
+	if s.limit < 0 {
+		return true
+	}
+	for {
+		used := s.used.Load()
+		if n > s.limit-used {
+			return false
+		}
+		if s.used.CompareAndSwap(used, used+n) {
+			return true
+		}
+	}
+}
+
+func (s *spaceLeft) release(n int64) {
+	if s.limit >= 0 {
+		s.used.Add(-n)
+	}
+}
+
+// limitedWriter writes a file within the extraction's space, and stops
+// when it's cancelled.
+type limitedWriter struct {
+	ctx   context.Context
+	w     io.Writer
+	space *spaceLeft
+	n     int64
+}
+
+func (l *limitedWriter) Write(p []byte) (int, error) {
+	if err := l.ctx.Err(); err != nil {
+		return 0, err
+	}
+	if !l.space.reserve(int64(len(p))) {
+		return 0, ErrNoSpace
+	}
+	n, err := l.w.Write(p)
+	l.space.release(int64(len(p) - n))
+	l.n += int64(n)
+	return n, err
+}
+
+// copyBuffers are io.Copy's buffers, which it would otherwise allocate for
+// every file.
+var copyBuffers = sync.Pool{New: func() any { b := make([]byte, 32<<10); return &b }}
+
+// writers writes regular files on several goroutines while the archive is
+// read, and every entry checked, in order. Only paths that don't overlap
+// are written at once: an entry at, inside, or above a path still being
+// written waits for it, and after a link, files are written one at a time,
+// so what the archive does comes out the same as one at a time. (A link
+// the server already had can make two names the same file, which then
+// may get either's contents mixed: the server's own files, which it can
+// change anyway.) When a writer fails, the entries already started finish,
+// and those being read stop at the next one.
+type writers struct {
+	ctx      context.Context
+	cancel   context.CancelFunc
+	slots    chan struct{}
+	wg       sync.WaitGroup
+	mu       sync.Mutex
+	inflight map[string]struct{}
+	err      error // the first writer's error
+}
+
+func newWriters(ctx context.Context, n int) *writers {
+	ctx, cancel := context.WithCancel(ctx)
+	return &writers{ctx: ctx, cancel: cancel, slots: make(chan struct{}, n), inflight: map[string]struct{}{}}
+}
+
+// failed returns the first writer's error.
+func (w *writers) failed() error {
+	if w == nil {
+		return nil
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.err
+}
+
+// wait waits for every writer, and returns the first one's error.
+func (w *writers) wait() error {
+	if w == nil {
+		return nil
+	}
+	w.wg.Wait()
+	return w.failed()
+}
+
+// close waits for every writer and releases the pool.
+func (w *writers) close() error {
+	err := w.wait()
+	w.cancel()
+	return err
+}
+
+// waitFor waits until nothing at, inside, or above target is being
+// written.
+func (w *writers) waitFor(target string) error {
+	if w == nil {
+		return nil
+	}
+	w.mu.Lock()
+	overlaps := false
+	for p := range w.inflight {
+		if p == target || strings.HasPrefix(p, target+"/") || strings.HasPrefix(target, p+"/") {
+			overlaps = true
+			break
+		}
+	}
+	w.mu.Unlock()
+	if overlaps {
+		return w.wait()
+	}
+	return w.failed()
+}
+
+// start writes target on a goroutine, once one is free. The caller has
+// waited for anything overlapping it.
+func (w *writers) start(target string, write func(ctx context.Context) error) {
+	w.slots <- struct{}{}
+	w.mu.Lock()
+	w.inflight[target] = struct{}{}
+	w.mu.Unlock()
+	w.wg.Go(func() {
+		err := func() (err error) {
+			defer func() {
+				if p := recover(); p != nil {
+					err = fmt.Errorf("writing %s panicked: %v", target, p)
+				}
+			}()
+			return write(w.ctx)
+		}()
+		w.mu.Lock()
+		delete(w.inflight, target)
+		if err != nil && w.err == nil {
+			w.err = err
+			w.cancel() // the others stop at their next write
+		}
+		w.mu.Unlock()
+		<-w.slots
+	})
 }
 
 // tarOrSingle extracts a compressed tar, or a single compressed file named
@@ -435,7 +805,50 @@ func (x *extractor) tarOrSingle(r io.Reader, single string) error {
 	if single == "" {
 		return ErrUnsupported
 	}
-	return x.entry(single, kindFile, 0, "", br, time.Time{})
+	return x.entry(single, kindFile, 0, "", readerOf(br), false, time.Time{})
+}
+
+// buffered reads a tar entry's contents into memory, so another goroutine
+// can write them while the archive is read on.
+func buffered(tr *tar.Reader, size int64) (func() (io.ReadCloser, error), error) {
+	var buf []byte
+	var big *[]byte
+	if size > 64<<10 {
+		big = bigBuffers.Get().(*[]byte)
+		buf = (*big)[:size]
+	} else {
+		buf = make([]byte, size)
+	}
+	if _, err := io.ReadFull(tr, buf); err != nil {
+		if big != nil {
+			bigBuffers.Put(big)
+		}
+		return nil, err
+	}
+	return func() (io.ReadCloser, error) {
+		return &memFile{Reader: bytes.NewReader(buf), big: big}, nil
+	}, nil
+}
+
+// memFile is a buffered entry; closing it gives its buffer back.
+type memFile struct {
+	*bytes.Reader
+	big *[]byte
+}
+
+func (m *memFile) Close() error {
+	if m.big != nil {
+		bigBuffers.Put(m.big)
+		m.big = nil
+	}
+	return nil
+}
+
+// readerOf opens what's next in a stream. Only Read is passed on: pgzip's
+// WriteTo, which io.Copy would use through a bufio.Reader, returns io.EOF
+// at the end instead of nil.
+func readerOf(r io.Reader) func() (io.ReadCloser, error) {
+	return func() (io.ReadCloser, error) { return io.NopCloser(struct{ io.Reader }{r}), nil }
 }
 
 func (x *extractor) tar(tr *tar.Reader) error {
@@ -460,12 +873,21 @@ func (x *extractor) tar(tr *tar.Reader) error {
 		case tar.TypeXGlobalHeader:
 			continue
 		}
-		if err := x.entry(h.Name, kind, fs.FileMode(h.Mode).Perm(), h.Linkname, tr, h.ModTime); err != nil { //nolint:gosec // only the permission bits are kept
+		open, parallel := readerOf(tr), false
+		if kind == kindFile && x.pool != nil && h.Size <= maxBuffered {
+			if open, err = buffered(tr, h.Size); err != nil {
+				return err
+			}
+			parallel = true
+		}
+		if err := x.entry(h.Name, kind, fs.FileMode(h.Mode).Perm(), h.Linkname, open, parallel, h.ModTime); err != nil { //nolint:gosec // only the permission bits are kept
 			return err
 		}
 	}
 }
 
+// zip extracts a zip's entries in order. Each is read on its own, so the
+// writers inflate them in parallel.
 func (x *extractor) zip(zr *zip.Reader) error {
 	for _, zf := range zr.File {
 		if err := x.zipEntry(zf); err != nil {
@@ -487,23 +909,19 @@ func (x *extractor) zipEntry(zf *zip.File) error {
 		kind = kindOther
 	}
 	link := ""
-	var r io.Reader
-	if kind == kindFile || kind == kindSymlink {
+	if kind == kindSymlink {
 		rc, err := zf.Open()
 		if err != nil {
 			return err
 		}
-		defer func() { _ = rc.Close() }()
-		r = rc
-		if kind == kindSymlink {
-			b, err := io.ReadAll(io.LimitReader(rc, maxLinkTarget))
-			if err != nil {
-				return err
-			}
-			link = string(b)
+		b, err := io.ReadAll(io.LimitReader(rc, maxLinkTarget))
+		_ = rc.Close()
+		if err != nil {
+			return err
 		}
+		link = string(b)
 	}
-	return x.entry(zf.Name, kind, mode.Perm(), link, r, zf.Modified)
+	return x.entry(zf.Name, kind, mode.Perm(), link, zf.Open, true, zf.Modified)
 }
 
 // Kinds of archive entries.
@@ -528,90 +946,172 @@ func entryName(name string) (string, bool) {
 	return name, true
 }
 
-// entry writes one archive entry.
-func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link string, r io.Reader, mtime time.Time) error {
+// entry checks and writes one archive entry. A regular file's contents are
+// read from open, on another goroutine if parallel (and x.pool is set).
+func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link string, open func() (io.ReadCloser, error), parallel bool, mtime time.Time) error {
+	if err := x.pool.failed(); err != nil {
+		return err
+	}
 	if err := x.ctx.Err(); err != nil {
 		return err
 	}
-	if x.res.Files+x.res.Skipped >= maxEntries {
+	if x.entries >= maxEntries {
 		return fmt.Errorf("archive has more than %d entries", maxEntries)
 	}
+	x.entries++
 	rel, ok := entryName(name)
 	if !ok {
-		x.res.Skipped++
+		x.count(0, 1, 0)
 		return nil
 	}
 	target := path.Join(x.dest, rel)
 	f := x.f
 	if f.Denied(target, kind == kindDir) {
-		x.res.Skipped++
+		x.count(0, 1, 0)
 		return nil
 	}
-	switch kind {
-	case kindDir:
-		if err := f.MkdirAll(target); err != nil {
+	if kind == kindOther {
+		x.count(0, 1, 0)
+		return nil
+	}
+	// Nothing below may race a file being written at, inside, or above
+	// target. A link waits for every file (a hard link needs the one it
+	// points at written), and once one is made, two names in the archive
+	// may be the same file, so the rest is written one at a time.
+	if kind == kindSymlink || kind == kindHardlink {
+		if err := x.pool.wait(); err != nil {
 			return err
 		}
-		x.res.Files++
-		return nil
-	case kindOther:
-		x.res.Skipped++
-		return nil
-	}
-	if err := f.MkdirAll(path.Dir(target)); err != nil {
+		x.serial = true
+	} else if err := x.pool.waitFor(target); err != nil {
 		return err
 	}
-	// Links in the way are replaced, not written through, as tar does.
-	if fi, err := f.root.Lstat(target); err == nil && (kind != kindFile || fi.Mode()&fs.ModeSymlink != 0) {
-		if fi.IsDir() {
-			x.res.Skipped++
-			return nil
-		}
-		if err := f.root.Remove(target); err != nil {
+	if kind == kindDir {
+		if err := x.mkdirAll(target); err != nil {
 			return err
 		}
+		x.count(1, 0, 0)
+		return nil
+	}
+	if err := x.mkdirAll(path.Dir(target)); err != nil {
+		return err
+	}
+	if kind == kindSymlink || kind == kindHardlink {
+		clear(x.dirs)
 	}
 	switch kind {
 	case kindSymlink:
+		if skip, err := x.replaceLink(target, false); skip || err != nil {
+			return err
+		}
 		if len(link) == 0 || len(link) >= maxLinkTarget {
-			x.res.Skipped++
+			x.count(0, 1, 0)
 			return nil
 		}
 		if err := f.Symlink(link, target); err != nil {
 			return err
 		}
-		x.res.Files++
+		x.count(1, 0, 0)
 		return nil
 	case kindHardlink:
+		if skip, err := x.replaceLink(target, false); skip || err != nil {
+			return err
+		}
 		from, ok := entryName(link)
 		if !ok {
-			x.res.Skipped++
+			x.count(0, 1, 0)
 			return nil
 		}
 		if err := f.Link(path.Join(x.dest, from), target); err != nil {
-			x.res.Skipped++ // the file it points at was skipped
-			return nil      //nolint:nilerr // a missing link target doesn't stop the rest
+			x.count(0, 1, 0) // the file it points at was skipped
+			return nil       //nolint:nilerr // a missing link target doesn't stop the rest
 		}
-		x.res.Files++
+		x.count(1, 0, 0)
 		return nil
 	}
-	out, err := f.Open(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-	if errors.Is(err, ErrNotRegular) {
-		x.res.Skipped++
+	if x.pool == nil || !parallel || x.serial {
+		return x.file(x.ctx, target, perm, open, mtime)
+	}
+	x.pool.start(target, func(ctx context.Context) error { return x.file(ctx, target, perm, open, mtime) })
+	return nil
+}
+
+// mkdirAll is MkdirAll for directories not made or found already.
+func (x *extractor) mkdirAll(dir string) error {
+	if x.dirs[dir] {
 		return nil
 	}
+	if err := x.f.MkdirAll(dir); err != nil {
+		return err
+	}
+	for d := dir; d != "." && !x.dirs[d]; d = path.Dir(d) {
+		x.dirs[d] = true
+	}
+	return nil
+}
+
+// replaceLink removes what's at target so a link can take its place, or,
+// for a file (onlyLinks), a symlink, which is replaced, not written
+// through, as tar does. skip is true for a directory in the way.
+func (x *extractor) replaceLink(target string, onlyLinks bool) (skip bool, err error) {
+	fi, err := x.f.root.Lstat(target)
+	if err != nil || (onlyLinks && fi.Mode()&fs.ModeSymlink == 0) {
+		return false, nil //nolint:nilerr // nothing in the way
+	}
+	if fi.IsDir() {
+		x.count(0, 1, 0)
+		return true, nil
+	}
+	return false, x.f.root.Remove(target)
+}
+
+// file writes one regular file. A new one is created with O_EXCL; only
+// when something is in the way is it looked at (a link there is replaced,
+// a directory or special file skipped), and the file opened as Open does.
+func (x *extractor) file(ctx context.Context, target string, perm fs.FileMode, open func() (io.ReadCloser, error), mtime time.Time) error {
+	r, err := open()
 	if err != nil {
 		return err
 	}
-	w := &budget{w: out, left: -1}
-	if x.space >= 0 {
-		w.left = x.space - x.written
+	defer func() { _ = r.Close() }()
+	f := x.f
+	mode := perm
+	if mode == 0 {
+		mode = FileMode
 	}
-	_, err = io.Copy(w, r)
-	x.written += w.n
-	x.res.Bytes += w.n
-	if err == nil && perm != 0 {
-		err = out.Chmod(perm)
+	out, err := f.create(target, mode)
+	if errors.Is(err, fs.ErrNotExist) {
+		// A directory made earlier was removed meanwhile.
+		if err = f.MkdirAll(path.Dir(target)); err == nil {
+			out, err = f.create(target, mode)
+		}
+	}
+	if errors.Is(err, fs.ErrExist) {
+		if _, err := x.replaceLink(target, true); err != nil {
+			return err
+		}
+		out, err = f.Open(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+		if errors.Is(err, ErrNotRegular) {
+			x.count(0, 1, 0)
+			return nil
+		}
+		if err == nil && perm != 0 {
+			err = out.Chmod(perm)
+		}
+	}
+	if err != nil {
+		if out != nil {
+			_ = out.Close()
+		}
+		return err
+	}
+	w := &limitedWriter{ctx: ctx, w: out, space: x.space}
+	buf := copyBuffers.Get().(*[]byte)
+	_, err = io.CopyBuffer(w, r, *buf)
+	copyBuffers.Put(buf)
+	x.count(0, 0, w.n)
+	if err == nil && !mtime.IsZero() {
+		_ = setTimes(out, mtime, mtime)
 	}
 	if cerr := out.Close(); err == nil {
 		err = cerr
@@ -619,9 +1119,6 @@ func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link st
 	if err != nil {
 		return err
 	}
-	if !mtime.IsZero() {
-		_ = f.root.Chtimes(target, mtime, mtime)
-	}
-	x.res.Files++
+	x.count(1, 0, 0)
 	return nil
 }

@@ -35,6 +35,7 @@ type Config struct {
 	Docker   Docker   `yaml:"docker"`
 	Ports    Ports    `yaml:"ports"`
 	Limits   Limits   `yaml:"limits"`
+	Archives Archives `yaml:"archives"`
 	Storage  Storage  `yaml:"storage"`
 	Updates  Updates  `yaml:"updates"`
 	Log      Log      `yaml:"log"`
@@ -101,6 +102,17 @@ type Limits struct {
 	BackupMemory ByteSize `yaml:"backup_memory"`
 }
 
+// Archives tunes the file manager's archive jobs, files.compress and
+// files.decompress (docs/WINGS.md#archives). Backups don't use them.
+type Archives struct {
+	// GzipLevel is the deflate level of tar.gz and zip archives: 1
+	// (fastest) to 9 (smallest).
+	GzipLevel int `yaml:"gzip_level"`
+	// Threads is how many cores one archive job may use; 0 = automatic
+	// (the cores Wings may use, at most 4).
+	Threads int `yaml:"threads"`
+}
+
 // Storage configures the server data volume (docs/WINGS.md#disk-quotas).
 type Storage struct {
 	// Quotas: disk limits enforced by XFS project quotas on the volume
@@ -144,11 +156,12 @@ func Default() Config {
 			Network:        "raptor_nw",
 			InstallNetwork: "raptor_install",
 		},
-		Ports:   Ports{SFTP: 2022},
-		Limits:  Limits{ConcurrentInstalls: 2, ConcurrentBackups: 2, HostDiskMinFree: 10 << 30, BackupMemory: 1 << 30},
-		Storage: Storage{Quotas: true},
-		Updates: Updates{Channel: "stable", Automatic: true},
-		Log:     Log{Level: "info"},
+		Ports:    Ports{SFTP: 2022},
+		Limits:   Limits{ConcurrentInstalls: 2, ConcurrentBackups: 2, HostDiskMinFree: 10 << 30, BackupMemory: 1 << 30},
+		Archives: Archives{GzipLevel: 2},
+		Storage:  Storage{Quotas: true},
+		Updates:  Updates{Channel: "stable", Automatic: true},
+		Log:      Log{Level: "info"},
 	}
 }
 
@@ -219,6 +232,12 @@ func (c Config) Validate() error {
 	}
 	if c.Limits.ConcurrentInstalls < 1 || c.Limits.ConcurrentBackups < 1 {
 		errs = append(errs, errors.New("limits: concurrency must be at least 1"))
+	}
+	if l := c.Archives.GzipLevel; l < 1 || l > 9 {
+		errs = append(errs, fmt.Errorf("archives.gzip_level %d: want 1 (fastest) to 9 (smallest)", l))
+	}
+	if t := c.Archives.Threads; t < 0 || t > 64 {
+		errs = append(errs, fmt.Errorf("archives.threads %d: want 0 (automatic) to 64", t))
 	}
 	if c.Limits.BackupMemory < 256<<20 {
 		errs = append(errs, errors.New("limits.backup_memory: at least 256MiB"))
