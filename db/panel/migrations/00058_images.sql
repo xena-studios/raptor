@@ -24,14 +24,18 @@ CREATE INDEX orgs_logo ON orgs (logo) WHERE logo IS NOT NULL;
 CREATE INDEX users_avatar ON users (avatar) WHERE avatar IS NOT NULL;
 
 -- Members' requests add pictures and can refresh them, but never change
--- one's pixels or bring back one that was taken down.
+-- one's pixels or bring back one that was taken down: they may only update
+-- created_at (the column grant), and not on a taken-down row (WITH CHECK).
+-- USING lets every row through on purpose: INSERT ... ON CONFLICT DO
+-- UPDATE checks it against the existing row before its WHERE, and fails
+-- (since Postgres 18.7) instead of skipping a taken-down one.
 ALTER TABLE images ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT ON images TO raptor_app;
 GRANT UPDATE (created_at) ON images TO raptor_app;
 CREATE POLICY images_read ON images FOR SELECT TO raptor_app USING (true);
 CREATE POLICY images_insert ON images FOR INSERT TO raptor_app WITH CHECK (taken_down_at IS NULL);
 CREATE POLICY images_refresh ON images FOR UPDATE TO raptor_app
-    USING (taken_down_at IS NULL) WITH CHECK (taken_down_at IS NULL);
+    USING (true) WITH CHECK (taken_down_at IS NULL);
 
 -- +goose Down
 DROP INDEX users_avatar;
