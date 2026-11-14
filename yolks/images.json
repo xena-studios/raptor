@@ -1,0 +1,27 @@
+{
+  "_comment": "Raptor's runtime images (yolks/README.md): ghcr.io/xena-studios/yolks:<tag>. dir is the Dockerfile's folder, version its VERSION build argument, test a command whose output must contain expect.",
+  "images": [
+    {"tag": "java_8", "dir": "java", "version": "8", "platforms": ["amd64", "arm64"], "test": "java -version", "expect": "1.8.0"},
+    {"tag": "java_11", "dir": "java", "version": "11", "platforms": ["amd64", "arm64"], "test": "java -version", "expect": "\"11."},
+    {"tag": "java_17", "dir": "java", "version": "17", "platforms": ["amd64", "arm64"], "test": "java -version", "expect": "\"17."},
+    {"tag": "java_21", "dir": "java", "version": "21", "platforms": ["amd64", "arm64"], "test": "java -version", "expect": "\"21."},
+    {"tag": "java_25", "dir": "java", "version": "25", "platforms": ["amd64", "arm64"], "test": "java -version", "expect": "\"25"},
+    {"tag": "nodejs_22", "dir": "nodejs", "version": "22", "platforms": ["amd64", "arm64"], "test": "node --version", "expect": "v22."},
+    {"tag": "nodejs_24", "dir": "nodejs", "version": "24", "platforms": ["amd64", "arm64"], "test": "node --version", "expect": "v24."},
+    {"tag": "nodejs_26", "dir": "nodejs", "version": "26", "platforms": ["amd64", "arm64"], "test": "node --version", "expect": "v26."},
+    {"tag": "python_3.11", "dir": "python", "version": "3.11", "platforms": ["amd64", "arm64"], "test": "python3 --version", "expect": "Python 3.11"},
+    {"tag": "python_3.12", "dir": "python", "version": "3.12", "platforms": ["amd64", "arm64"], "test": "python3 --version", "expect": "Python 3.12"},
+    {"tag": "python_3.13", "dir": "python", "version": "3.13", "platforms": ["amd64", "arm64"], "test": "python3 --version", "expect": "Python 3.13"},
+    {"tag": "python_3.14", "dir": "python", "version": "3.14", "platforms": ["amd64", "arm64"], "test": "python3 --version", "expect": "Python 3.14"},
+    {"tag": "python_3.15", "dir": "python", "version": "3.15", "platforms": ["amd64", "arm64"], "test": "python3 --version", "expect": "Python 3.15"},
+    {"tag": "dotnet_8", "dir": "dotnet", "version": "8.0", "platforms": ["amd64", "arm64"], "test": "dotnet --list-runtimes", "expect": "Microsoft.NETCore.App 8."},
+    {"tag": "dotnet_10", "dir": "dotnet", "version": "10.0", "platforms": ["amd64", "arm64"], "test": "dotnet --list-runtimes", "expect": "Microsoft.NETCore.App 10."},
+    {"tag": "bun_1", "dir": "bun", "version": "1", "platforms": ["amd64", "arm64"], "test": "bun --version", "expect": "1."},
+    {"tag": "deno_2", "dir": "deno", "version": "2", "platforms": ["amd64", "arm64"], "test": "deno --version", "expect": "deno 2."},
+    {"tag": "go_1.26", "dir": "go", "version": "1.26", "platforms": ["amd64", "arm64"], "test": "go version", "expect": "go1.26"},
+    {"tag": "go_1.27", "dir": "go", "version": "1.27", "platforms": ["amd64", "arm64"], "test": "go version", "expect": "go1.27"},
+    {"tag": "rust_1", "dir": "rust", "version": "1", "platforms": ["amd64", "arm64"], "test": "cargo --version", "expect": "cargo 1."},
+    {"tag": "steamcmd", "dir": "steamcmd", "version": "", "platforms": ["amd64"], "test": "ls /usr/lib32/libstdc++.so.6", "expect": "libstdc++"},
+    {"tag": "installer", "dir": "installer", "version": "", "platforms": ["amd64", "arm64"], "test": "", "expect": ""}
+  ]
+}
