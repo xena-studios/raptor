@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/netip"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -55,8 +56,15 @@ type Service struct {
 	// an account is deleted: the Discord bot's roles follow links (nil:
 	// nothing more).
 	LinksChanged func()
+	// Pictures fetches sign-in providers' pictures, from PictureHosts (nil:
+	// a client with a timeout, from each provider's own hosts; tests point
+	// them at a test server).
+	Pictures     *http.Client
+	PictureHosts map[string][]string
 	Log          *slog.Logger
 	Now          func() time.Time
+
+	copying sync.WaitGroup // pictures being copied
 }
 
 func (s *Service) linksChanged() {

@@ -648,6 +648,7 @@ type User struct {
 	SuspendedReason string
 	ThemeStyle      string
 	Avatar          pgtype.Text
+	AvatarSource    string
 }
 
 type WebauthnCeremony struct {

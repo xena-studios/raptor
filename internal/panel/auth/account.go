@@ -100,7 +100,13 @@ func (s *Service) SetAvatar(ctx context.Context, req *panelv1.SetAvatarRequest) 
 				return err
 			}
 		}
-		user, err = q.SetUserAvatar(ctx, store.SetUserAvatarParams{ID: sess.UserID, Avatar: images.Text(id)})
+		// Removing it for good: signing in with a provider won't copy one
+		// back.
+		source := "removed"
+		if id != "" {
+			source = "upload"
+		}
+		user, err = q.SetUserAvatar(ctx, store.SetUserAvatarParams{ID: sess.UserID, Avatar: images.Text(id), AvatarSource: source})
 		return err
 	})
 	if err != nil {

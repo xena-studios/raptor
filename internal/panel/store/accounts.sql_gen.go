@@ -21,6 +21,25 @@ func (q *Queries) AddRateEvent(ctx context.Context, key string) error {
 	return err
 }
 
+const copyUserAvatar = `-- name: CopyUserAvatar :execrows
+UPDATE users SET avatar = $2, avatar_source = $3 WHERE id = $1 AND avatar_source = ''
+`
+
+type CopyUserAvatarParams struct {
+	ID           pgtype.UUID
+	Avatar       pgtype.Text
+	AvatarSource string
+}
+
+// A sign-in provider's picture, only if the account never had one.
+func (q *Queries) CopyUserAvatar(ctx context.Context, arg CopyUserAvatarParams) (int64, error) {
+	result, err := q.db.Exec(ctx, copyUserAvatar, arg.ID, arg.Avatar, arg.AvatarSource)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const countEmailCodeAttempt = `-- name: CountEmailCodeAttempt :exec
 UPDATE email_codes SET attempts = attempts + 1 WHERE id = $1
 `
@@ -111,7 +130,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar
+INSERT INTO users (email, email_verified_at) VALUES ($1, now()) RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar, avatar_source
 `
 
 func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
@@ -132,6 +151,7 @@ func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
 		&i.SuspendedReason,
 		&i.ThemeStyle,
 		&i.Avatar,
+		&i.AvatarSource,
 	)
 	return i, err
 }
@@ -201,7 +221,7 @@ func (q *Queries) GetSession(ctx context.Context, id pgtype.UUID) (Session, erro
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar FROM users WHERE id = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar, avatar_source FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -222,12 +242,13 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.SuspendedReason,
 		&i.ThemeStyle,
 		&i.Avatar,
+		&i.AvatarSource,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar FROM users WHERE email = $1
+SELECT id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar, avatar_source FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -248,6 +269,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.SuspendedReason,
 		&i.ThemeStyle,
 		&i.Avatar,
+		&i.AvatarSource,
 	)
 	return i, err
 }
@@ -421,16 +443,17 @@ func (q *Queries) SetSessionReauth(ctx context.Context, arg SetSessionReauthPara
 }
 
 const setUserAvatar = `-- name: SetUserAvatar :one
-UPDATE users SET avatar = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar
+UPDATE users SET avatar = $2, avatar_source = $3 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar, avatar_source
 `
 
 type SetUserAvatarParams struct {
-	ID     pgtype.UUID
-	Avatar pgtype.Text
+	ID           pgtype.UUID
+	Avatar       pgtype.Text
+	AvatarSource string
 }
 
 func (q *Queries) SetUserAvatar(ctx context.Context, arg SetUserAvatarParams) (User, error) {
-	row := q.db.QueryRow(ctx, setUserAvatar, arg.ID, arg.Avatar)
+	row := q.db.QueryRow(ctx, setUserAvatar, arg.ID, arg.Avatar, arg.AvatarSource)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -447,12 +470,13 @@ func (q *Queries) SetUserAvatar(ctx context.Context, arg SetUserAvatarParams) (U
 		&i.SuspendedReason,
 		&i.ThemeStyle,
 		&i.Avatar,
+		&i.AvatarSource,
 	)
 	return i, err
 }
 
 const setUserEmail = `-- name: SetUserEmail :one
-UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar
+UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar, avatar_source
 `
 
 type SetUserEmailParams struct {
@@ -478,12 +502,13 @@ func (q *Queries) SetUserEmail(ctx context.Context, arg SetUserEmailParams) (Use
 		&i.SuspendedReason,
 		&i.ThemeStyle,
 		&i.Avatar,
+		&i.AvatarSource,
 	)
 	return i, err
 }
 
 const setUserName = `-- name: SetUserName :one
-UPDATE users SET name = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar
+UPDATE users SET name = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar, avatar_source
 `
 
 type SetUserNameParams struct {
@@ -509,12 +534,13 @@ func (q *Queries) SetUserName(ctx context.Context, arg SetUserNameParams) (User,
 		&i.SuspendedReason,
 		&i.ThemeStyle,
 		&i.Avatar,
+		&i.AvatarSource,
 	)
 	return i, err
 }
 
 const setUserTheme = `-- name: SetUserTheme :one
-UPDATE users SET theme = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar
+UPDATE users SET theme = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar, avatar_source
 `
 
 type SetUserThemeParams struct {
@@ -540,12 +566,13 @@ func (q *Queries) SetUserTheme(ctx context.Context, arg SetUserThemeParams) (Use
 		&i.SuspendedReason,
 		&i.ThemeStyle,
 		&i.Avatar,
+		&i.AvatarSource,
 	)
 	return i, err
 }
 
 const setUserThemeStyle = `-- name: SetUserThemeStyle :one
-UPDATE users SET theme_style = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar
+UPDATE users SET theme_style = $2 WHERE id = $1 RETURNING id, email, email_verified_at, name, created_at, webauthn_handle, totp_secret, totp_enabled_at, totp_last_step, theme, suspended_at, suspended_reason, theme_style, avatar, avatar_source
 `
 
 type SetUserThemeStyleParams struct {
@@ -571,6 +598,7 @@ func (q *Queries) SetUserThemeStyle(ctx context.Context, arg SetUserThemeStylePa
 		&i.SuspendedReason,
 		&i.ThemeStyle,
 		&i.Avatar,
+		&i.AvatarSource,
 	)
 	return i, err
 }
