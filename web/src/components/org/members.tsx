@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
+import { Avatar } from "@/components/picture";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -125,9 +126,12 @@ export function Members({
         <CardContent className="flex flex-col divide-y">
           {members.data?.members.map((m) => (
             <div key={m.userId} className="flex items-center justify-between gap-3 py-2 text-sm">
-              <span>
-                {m.email}{" "}
-                {m.userId === myId && <span className="text-muted-foreground">(you)</span>}
+              <span className="flex min-w-0 items-center gap-2">
+                <Avatar name={m.name || m.email} image={m.avatar} size="sm" />
+                <span className="truncate">
+                  {m.email}{" "}
+                  {m.userId === myId && <span className="text-muted-foreground">(you)</span>}
+                </span>
               </span>
               <div className="flex items-center gap-2">
                 {owner ? (

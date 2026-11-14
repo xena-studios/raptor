@@ -24,6 +24,10 @@ service OrgService {
   // RenameOrg renames an org. Admins and owners.
   rpc RenameOrg(RenameOrgRequest) returns (RenameOrgResponse) {}
 
+  // SetOrgLogo sets or removes an org's logo (docs/PANEL.md#images).
+  // Admins and owners.
+  rpc SetOrgLogo(SetOrgLogoRequest) returns (SetOrgLogoResponse) {}
+
   // DeleteOrg deletes an org: everyone is taken out of it, and its
   // invitations and join tokens stop working. Owners, after confirming it's
   // them, once it has no nodes.
@@ -261,6 +265,8 @@ message Org {
   // Suspended by Raptor's staff: it can't be managed until they lift it
   // (its servers keep running).
   bool suspended = 5;
+  // The logo's image ID (GET /api/images/<id>.png); empty for none.
+  string logo = 6;
 }
 
 message CreateOrgRequest {
@@ -284,6 +290,18 @@ message RenameOrgRequest {
 
 message RenameOrgResponse {}
 
+message SetOrgLogoRequest {
+  string org_id = 1;
+  // A PNG, JPEG, GIF, or WebP of at most 1 MB, cropped square and scaled to
+  // 256×256 by the Panel; empty removes the logo.
+  bytes image = 2;
+}
+
+message SetOrgLogoResponse {
+  // The logo's image ID; empty when it was removed.
+  string logo = 1;
+}
+
 message DeleteOrgRequest {
   string org_id = 1;
 }
@@ -296,6 +314,8 @@ message Member {
   string name = 3;
   Role role = 4;
   google.protobuf.Timestamp joined_at = 5;
+  // The member's avatar's image ID; empty for none.
+  string avatar = 6;
 }
 
 message ListMembersRequest {

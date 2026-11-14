@@ -5,6 +5,7 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { DetailList } from "@/components/page";
+import { Avatar, PicturePicker } from "@/components/picture";
 import { useReauth } from "@/components/reauth";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,10 +68,22 @@ export function Profile({ user }: { user: User }) {
     <Card>
       <CardHeader>
         <CardTitle>Profile</CardTitle>
-        <CardDescription>Your name, and the email you sign in with.</CardDescription>
+        <CardDescription>Your picture and name, and the email you sign in with.</CardDescription>
       </CardHeader>
       <form onSubmit={save}>
         <CardContent className="flex flex-col gap-4">
+          <div className="grid gap-2">
+            <Label>Picture</Label>
+            <PicturePicker
+              round
+              hasPicture={!!user.avatar}
+              preview={<Avatar name={user.name || user.email} image={user.avatar} size="lg" />}
+              save={async (png) => {
+                await authClient.setAvatar({ image: png ?? new Uint8Array() });
+                await router.invalidate();
+              }}
+            />
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="account-name">Name</Label>
             <Input

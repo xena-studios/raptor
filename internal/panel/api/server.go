@@ -24,6 +24,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/discord"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
+	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/live"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
@@ -87,6 +88,8 @@ type Config struct {
 	ConsoleRecheck time.Duration
 	// Discord answers Raptor Bot's interactions (nil: the bot is off).
 	Discord http.Handler
+	// Images serves pictures at images.Path (nil without a database).
+	Images http.Handler
 	// AppOrigin is the only origin browsers may call the API from
 	// (https://app.raptorpanel.net; http://localhost:5173 in development).
 	AppOrigin string
@@ -124,7 +127,8 @@ func Handler(cfg Config) http.Handler {
 	api.Handle(path, handler)
 	if cfg.Auth != nil {
 		// Nothing auth takes is big; passkey answers are a few kilobytes.
-		path, handler := panelv1connect.NewAuthServiceHandler(cfg.Auth, opts(connect.WithReadMaxBytes(256<<10))...)
+		// Room for an avatar (SetAvatar); everything else is far smaller.
+		path, handler := panelv1connect.NewAuthServiceHandler(cfg.Auth, opts(connect.WithReadMaxBytes(images.MaxBytes+64<<10))...)
 		api.Handle(path, handler)
 		// Outside /api: browsers arrive here from the provider's site, by
 		// navigation, without an Origin to check.
@@ -180,6 +184,10 @@ func Handler(cfg Config) http.Handler {
 		appOrigin = "https://app.raptorpanel.net"
 	}
 	mux.Handle(apiPrefix+"/", http.StripPrefix(apiPrefix, browserGuard(appOrigin, api)))
+	if cfg.Images != nil {
+		// Loaded by <img> from the web app (no Origin, no cookies needed).
+		mux.Handle("GET "+images.Path+"{name}", cfg.Images)
+	}
 
 	if cfg.Nodes != nil {
 		path, handler := nodev1connect.NewEnrollmentServiceHandler(cfg.Nodes, opts()...)

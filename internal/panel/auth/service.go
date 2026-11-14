@@ -238,7 +238,7 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 func userProto(u store.User) *panelv1.User {
 	return &panelv1.User{
 		Id: uuid.UUID(u.ID.Bytes).String(), Email: u.Email, Name: u.Name, TotpEnabled: u.TotpEnabledAt.Valid,
-		CreatedAt: timestamppb.New(u.CreatedAt.Time), Theme: u.Theme, ThemeStyle: u.ThemeStyle,
+		CreatedAt: timestamppb.New(u.CreatedAt.Time), Theme: u.Theme, ThemeStyle: u.ThemeStyle, Avatar: u.Avatar.String,
 	}
 }
 

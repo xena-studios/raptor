@@ -106,6 +106,8 @@ const (
 	// AuthServiceUpdateProfileProcedure is the fully-qualified name of the AuthService's UpdateProfile
 	// RPC.
 	AuthServiceUpdateProfileProcedure = "/raptor.panel.v1.AuthService/UpdateProfile"
+	// AuthServiceSetAvatarProcedure is the fully-qualified name of the AuthService's SetAvatar RPC.
+	AuthServiceSetAvatarProcedure = "/raptor.panel.v1.AuthService/SetAvatar"
 	// AuthServiceStartEmailChangeProcedure is the fully-qualified name of the AuthService's
 	// StartEmailChange RPC.
 	AuthServiceStartEmailChangeProcedure = "/raptor.panel.v1.AuthService/StartEmailChange"
@@ -197,6 +199,9 @@ type AuthServiceClient interface {
 	// UpdateProfile changes the account's name or theme (the theme follows
 	// the account to every browser).
 	UpdateProfile(context.Context, *v1.UpdateProfileRequest) (*v1.UpdateProfileResponse, error)
+	// SetAvatar sets or removes the account's picture
+	// (docs/PANEL.md#images).
+	SetAvatar(context.Context, *v1.SetAvatarRequest) (*v1.SetAvatarResponse, error)
 	// StartEmailChange emails a code to the new address. Needs a recent
 	// re-authentication: the email address signs in.
 	StartEmailChange(context.Context, *v1.StartEmailChangeRequest) (*v1.StartEmailChangeResponse, error)
@@ -382,6 +387,12 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("UpdateProfile")),
 			connect.WithClientOptions(opts...),
 		),
+		setAvatar: connect.NewClient[v1.SetAvatarRequest, v1.SetAvatarResponse](
+			httpClient,
+			baseURL+AuthServiceSetAvatarProcedure,
+			connect.WithSchema(authServiceMethods.ByName("SetAvatar")),
+			connect.WithClientOptions(opts...),
+		),
 		startEmailChange: connect.NewClient[v1.StartEmailChangeRequest, v1.StartEmailChangeResponse](
 			httpClient,
 			baseURL+AuthServiceStartEmailChangeProcedure,
@@ -431,6 +442,7 @@ type authServiceClient struct {
 	unlinkOAuthAccount        *connect.Client[v1.UnlinkOAuthAccountRequest, v1.UnlinkOAuthAccountResponse]
 	listActivity              *connect.Client[v1.ListActivityRequest, v1.ListActivityResponse]
 	updateProfile             *connect.Client[v1.UpdateProfileRequest, v1.UpdateProfileResponse]
+	setAvatar                 *connect.Client[v1.SetAvatarRequest, v1.SetAvatarResponse]
 	startEmailChange          *connect.Client[v1.StartEmailChangeRequest, v1.StartEmailChangeResponse]
 	finishEmailChange         *connect.Client[v1.FinishEmailChangeRequest, v1.FinishEmailChangeResponse]
 	deleteAccount             *connect.Client[v1.DeleteAccountRequest, v1.DeleteAccountResponse]
@@ -670,6 +682,15 @@ func (c *authServiceClient) UpdateProfile(ctx context.Context, req *v1.UpdatePro
 	return nil, err
 }
 
+// SetAvatar calls raptor.panel.v1.AuthService.SetAvatar.
+func (c *authServiceClient) SetAvatar(ctx context.Context, req *v1.SetAvatarRequest) (*v1.SetAvatarResponse, error) {
+	response, err := c.setAvatar.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // StartEmailChange calls raptor.panel.v1.AuthService.StartEmailChange.
 func (c *authServiceClient) StartEmailChange(ctx context.Context, req *v1.StartEmailChangeRequest) (*v1.StartEmailChangeResponse, error) {
 	response, err := c.startEmailChange.CallUnary(ctx, connect.NewRequest(req))
@@ -777,6 +798,9 @@ type AuthServiceHandler interface {
 	// UpdateProfile changes the account's name or theme (the theme follows
 	// the account to every browser).
 	UpdateProfile(context.Context, *v1.UpdateProfileRequest) (*v1.UpdateProfileResponse, error)
+	// SetAvatar sets or removes the account's picture
+	// (docs/PANEL.md#images).
+	SetAvatar(context.Context, *v1.SetAvatarRequest) (*v1.SetAvatarResponse, error)
 	// StartEmailChange emails a code to the new address. Needs a recent
 	// re-authentication: the email address signs in.
 	StartEmailChange(context.Context, *v1.StartEmailChangeRequest) (*v1.StartEmailChangeResponse, error)
@@ -958,6 +982,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("UpdateProfile")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceSetAvatarHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceSetAvatarProcedure,
+		svc.SetAvatar,
+		connect.WithSchema(authServiceMethods.ByName("SetAvatar")),
+		connect.WithHandlerOptions(opts...),
+	)
 	authServiceStartEmailChangeHandler := connect.NewUnaryHandlerSimple(
 		AuthServiceStartEmailChangeProcedure,
 		svc.StartEmailChange,
@@ -1030,6 +1060,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceListActivityHandler.ServeHTTP(w, r)
 		case AuthServiceUpdateProfileProcedure:
 			authServiceUpdateProfileHandler.ServeHTTP(w, r)
+		case AuthServiceSetAvatarProcedure:
+			authServiceSetAvatarHandler.ServeHTTP(w, r)
 		case AuthServiceStartEmailChangeProcedure:
 			authServiceStartEmailChangeHandler.ServeHTTP(w, r)
 		case AuthServiceFinishEmailChangeProcedure:
@@ -1147,6 +1179,10 @@ func (UnimplementedAuthServiceHandler) ListActivity(context.Context, *v1.ListAct
 
 func (UnimplementedAuthServiceHandler) UpdateProfile(context.Context, *v1.UpdateProfileRequest) (*v1.UpdateProfileResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.UpdateProfile is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) SetAvatar(context.Context, *v1.SetAvatarRequest) (*v1.SetAvatarResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.SetAvatar is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) StartEmailChange(context.Context, *v1.StartEmailChangeRequest) (*v1.StartEmailChangeResponse, error) {

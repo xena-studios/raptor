@@ -48,4 +48,6 @@ Some actions are signed with a passkey and checked by the node itself: restoring
 
 ## Deleting an org
 
+Admins and owners can rename the org and give it a logo on its **Settings** (PNG, JPEG, GIF, or WebP, cropped square); members see it in the org switcher. Without one, it shows the org's initials.
+
 Owners can **Delete organization** from the org's **Settings**, once it has no nodes. Its members are removed, and its activity log is kept.

@@ -33,6 +33,7 @@ import { NotFound } from "@/components/error-screen";
 import { Logo, RaptorMark, Wordmark } from "@/components/logo";
 import { NodeClock } from "@/components/node-clock";
 import { NewOrgDialog } from "@/components/org/new-org-dialog";
+import { Avatar, OrgLogo } from "@/components/picture";
 import { SourceLink } from "@/components/source-link";
 import {
   DropdownMenu,
@@ -228,19 +229,30 @@ function useMenuSide(open: "bottom" | "top"): "bottom" | "top" | "right" {
   return !isMobile && state === "collapsed" ? "right" : open;
 }
 
-type OrgSummary = { id: string; name: string; role: number };
+type OrgSummary = { id: string; name: string; role: number; logo: string };
 
-// Tile is an org's initials, or the admin panel's shield, in a square.
-function Tile({ name, admin, small }: { name?: string; admin?: boolean; small?: boolean }) {
+// Tile is an org's logo (or initials), or the admin panel's shield, in a
+// square.
+function Tile({
+  name,
+  logo,
+  admin,
+  small,
+}: {
+  name?: string;
+  logo?: string;
+  admin?: boolean;
+  small?: boolean;
+}) {
+  if (!admin) return <OrgLogo name={name ?? "?"} image={logo} size={small ? "sm" : "md"} />;
   return (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-md font-mono font-semibold",
-        small ? "size-6 text-[10px]" : "size-8 text-xs",
-        admin ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
+        "flex shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground",
+        small ? "size-6" : "size-8",
       )}
     >
-      {admin ? <Shield className={small ? "size-3.5!" : "size-4!"} /> : initials(name ?? "?")}
+      <Shield className={small ? "size-3.5!" : "size-4!"} />
     </span>
   );
 }
@@ -276,7 +288,7 @@ function Switcher({
               tooltip={name}
               className="border group-data-[collapsible=icon]:border-0"
             >
-              <Tile name={org?.name} admin={admin} />
+              <Tile name={org?.name} logo={org?.logo} admin={admin} />
               <span className="grid min-w-0 flex-1 text-left leading-tight">
                 <span className="truncate font-medium">{name}</span>
                 {sub && <span className="truncate text-xs text-muted-foreground">{sub}</span>}
@@ -293,7 +305,7 @@ function Switcher({
                 key={o.id}
                 onClick={() => navigate({ to: "/orgs/$orgId", params: { orgId: o.id } })}
               >
-                <Tile name={o.name} small />
+                <Tile name={o.name} logo={o.logo} small />
                 <span className="min-w-0 flex-1 truncate">{o.name}</span>
                 {!admin && o.id === current && <Check />}
               </DropdownMenuItem>
@@ -656,9 +668,7 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
           <DropdownMenuTrigger
             render={
               <SidebarMenuButton size="lg" tooltip={name || email}>
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                  {initials(name || email)}
-                </span>
+                <Avatar name={name || email} image={session.user?.avatar} />
                 <span className="grid min-w-0 flex-1 text-left leading-tight">
                   {name && <span className="truncate font-medium">{name}</span>}
                   <span className={cn("truncate", name && "text-xs text-muted-foreground")}>
@@ -701,11 +711,4 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
       </SidebarMenuItem>
     </SidebarMenu>
   );
-}
-
-function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  return (
-    (words.length > 1 ? (words[0]?.[0] ?? "") + (words[1]?.[0] ?? "") : name.slice(0, 2)) || "?"
-  ).toUpperCase();
 }

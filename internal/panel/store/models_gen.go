@@ -283,6 +283,15 @@ type EmailCode struct {
 	CreatedAt     pgtype.Timestamptz
 }
 
+type Image struct {
+	ID          string
+	Png         []byte
+	Width       int32
+	Height      int32
+	CreatedAt   pgtype.Timestamptz
+	TakenDownAt pgtype.Timestamptz
+}
+
 type JoinToken struct {
 	ID        pgtype.UUID
 	OrgID     pgtype.UUID
@@ -439,6 +448,7 @@ type Org struct {
 	SuspendedAt     pgtype.Timestamptz
 	SuspendedReason string
 	DeletedAt       pgtype.Timestamptz
+	Logo            pgtype.Text
 }
 
 type OrgInvitation struct {
@@ -637,6 +647,7 @@ type User struct {
 	SuspendedAt     pgtype.Timestamptz
 	SuspendedReason string
 	ThemeStyle      string
+	Avatar          pgtype.Text
 }
 
 type WebauthnCeremony struct {

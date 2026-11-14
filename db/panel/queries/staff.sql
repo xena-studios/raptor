@@ -77,7 +77,7 @@ WHERE n.deleted_at IS NULL AND (s.state IN ('crashed', 'install_failed') OR s.in
 ORDER BY s.updated_at DESC LIMIT 50;
 
 -- name: SearchUsers :many
-SELECT u.id, u.email, u.name, u.created_at, u.suspended_at,
+SELECT u.id, u.email, u.name, u.created_at, u.suspended_at, u.avatar,
        (SELECT count(*) FROM org_members m WHERE m.user_id = u.id)::int AS orgs,
        (SELECT count(*) FROM passkeys p WHERE p.user_id = u.id)::int AS passkeys,
        (SELECT max(last_seen_at) FROM sessions s WHERE s.user_id = u.id)::timestamptz AS last_seen_at,
@@ -104,7 +104,7 @@ UPDATE users SET suspended_at = NULL, suspended_reason = '' WHERE id = $1;
 UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL;
 
 -- name: SearchOrgs :many
-SELECT o.id, o.name, o.created_at, o.suspended_at,
+SELECT o.id, o.name, o.created_at, o.suspended_at, o.logo,
        (SELECT count(*) FROM org_members m WHERE m.org_id = o.id)::int AS members,
        (SELECT count(*) FROM nodes n WHERE n.org_id = o.id AND n.deleted_at IS NULL)::int AS nodes,
        (SELECT count(*) FROM m_servers s JOIN nodes n ON n.id = s.node_id WHERE n.org_id = o.id AND n.deleted_at IS NULL)::int AS servers
