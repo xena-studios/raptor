@@ -43,7 +43,6 @@ import (
 	"time"
 
 	catalog "github.com/xena-studios/raptor/eggs"
-	"github.com/xena-studios/raptor/library"
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
@@ -56,6 +55,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
+	"github.com/xena-studios/raptor/library"
 )
 
 // Container UID/GID, as the raptor system user has in the VM and on CI.
