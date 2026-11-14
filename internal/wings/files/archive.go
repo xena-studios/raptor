@@ -504,6 +504,11 @@ func (f *FS) addEntry(aw archiveWriter, p, name string, d fs.DirEntry) (bool, er
 		return false, err
 	}
 	defer func() { _ = src.Close() }()
+	// Opening follows a link swapped in since the walk checked p, which
+	// could reach a denied file: only the file the walk saw is archived.
+	if !os.SameFile(fi, st) {
+		return false, nil
+	}
 	// A file that grows while it's read is cut at the size it had.
 	return true, aw.file(name, fi, st.Size(), io.LimitReader(src, st.Size()))
 }
@@ -548,7 +553,7 @@ func (x *extractor) extract(src *os.File, size int64, name string, threads int) 
 		x.pool = newWriters(x.ctx, threads)
 		// Nothing is written after Extract returns.
 		defer func() {
-			if werr := x.pool.wait(); werr != nil {
+			if werr := x.pool.close(); werr != nil {
 				err = werr
 			}
 		}()
@@ -618,6 +623,7 @@ type extractor struct {
 	space   *spaceLeft
 	entries int      // entries seen
 	pool    *writers // nil: files are written one at a time
+	serial  bool     // the archive made a link: files are written one at a time
 	// dirs are the directories this extraction made or found, so each is
 	// checked once, not for every file in it. Only names are kept: files
 	// are still opened through the root, which a directory swapped since
@@ -693,7 +699,12 @@ var copyBuffers = sync.Pool{New: func() any { b := make([]byte, 32<<10); return 
 // writers writes regular files on several goroutines while the archive is
 // read, and every entry checked, in order. Only paths that don't overlap
 // are written at once: an entry at, inside, or above a path still being
-// written waits for it, so the result is the same as one at a time.
+// written waits for it, and after a link, files are written one at a time,
+// so what the archive does comes out the same as one at a time. (A link
+// the server already had can make two names the same file, which then
+// may get either's contents mixed: the server's own files, which it can
+// change anyway.) When a writer fails, the entries already started finish,
+// and those being read stop at the next one.
 type writers struct {
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -726,6 +737,13 @@ func (w *writers) wait() error {
 	}
 	w.wg.Wait()
 	return w.failed()
+}
+
+// close waits for every writer and releases the pool.
+func (w *writers) close() error {
+	err := w.wait()
+	w.cancel()
+	return err
 }
 
 // waitFor waits until nothing at, inside, or above target is being
@@ -957,11 +975,14 @@ func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link st
 		return nil
 	}
 	// Nothing below may race a file being written at, inside, or above
-	// target; a hard link also needs the file it points at written.
-	if kind == kindHardlink {
+	// target. A link waits for every file (a hard link needs the one it
+	// points at written), and once one is made, two names in the archive
+	// may be the same file, so the rest is written one at a time.
+	if kind == kindSymlink || kind == kindHardlink {
 		if err := x.pool.wait(); err != nil {
 			return err
 		}
+		x.serial = true
 	} else if err := x.pool.waitFor(target); err != nil {
 		return err
 	}
@@ -1008,7 +1029,7 @@ func (x *extractor) entry(name string, kind entryKind, perm fs.FileMode, link st
 		x.count(1, 0, 0)
 		return nil
 	}
-	if x.pool == nil || !parallel {
+	if x.pool == nil || !parallel || x.serial {
 		return x.file(x.ctx, target, perm, open, mtime)
 	}
 	x.pool.start(target, func(ctx context.Context) error { return x.file(ctx, target, perm, open, mtime) })

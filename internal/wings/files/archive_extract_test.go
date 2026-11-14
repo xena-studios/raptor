@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"context"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -179,4 +180,37 @@ func setTarTimes(t *testing.T, archive []byte, mtime time.Time) []byte {
 		t.Fatal(err)
 	}
 	return []byte(out.String())
+}
+
+// A file swapped for a link between the walk's lstat and the open isn't
+// archived: the link could reach a denied file.
+func TestCompressSwappedForLink(t *testing.T) {
+	f, dir := testFS(t)
+	for name, data := range map[string]string{"plain": "plain", "denied.txt": "secret"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fi, err := os.Lstat(filepath.Join(dir, "plain"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(dir, "plain")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("denied.txt", filepath.Join(dir, "plain")); err != nil {
+		t.Fatal(err)
+	}
+	var out strings.Builder
+	aw, err := newArchiveWriter(&out, FormatTar, 1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	added, err := f.addEntry(aw, "plain", "plain", fs.FileInfoToDirEntry(fi))
+	if err != nil || added {
+		t.Errorf("added %v, %v", added, err)
+	}
+	if strings.Contains(out.String(), "secret") {
+		t.Error("the swapped-in link's target was archived")
+	}
 }

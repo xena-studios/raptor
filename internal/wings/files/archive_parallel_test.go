@@ -468,3 +468,59 @@ func TestExtractTarParallelSpace(t *testing.T) {
 		t.Errorf("wrote %d bytes (result %d), limit %d", total, res.Bytes, limit)
 	}
 }
+
+// Names an archive makes the same file (a hard link, then both names
+// written again) come out as one at a time would leave them, every time.
+func TestExtractParallelAliases(t *testing.T) {
+	a, b := strings.Repeat("A", 300_000), strings.Repeat("B", 200_000)
+	entries := []tarEntry{
+		{name: "d/f", data: "first", typ: tar.TypeReg},
+		{name: "d/h", link: "d/f", typ: tar.TypeLink},
+		{name: "s", link: "d", typ: tar.TypeSymlink},
+		{name: "d/f", data: a, typ: tar.TypeReg},
+		{name: "d/h", data: b, typ: tar.TypeReg},
+		{name: "s/g", data: a, typ: tar.TypeReg},
+		{name: "d/g", data: b, typ: tar.TypeReg},
+	}
+	for i := range 30 {
+		entries = append(entries, tarEntry{name: fmt.Sprintf("d/x%d", i), data: b[:i*999], typ: tar.TypeReg})
+	}
+	archive := gz(t, makeTar(t, entries))
+	for range 10 {
+		if err := compareExtract(t, archive, "a.tar.gz"); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// A writer's own failure (here, a zip entry in a method Wings can't read)
+// fails the job, one at a time or in parallel, and stops every writer.
+func TestExtractParallelWriterError(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for i := range 20 {
+		h := &zip.FileHeader{Name: fmt.Sprintf("f%d", i), Method: zip.Store}
+		if i == 7 {
+			h.Method = 99
+		}
+		w, err := zw.CreateRaw(h)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = w.Write([]byte("data"))
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for _, threads := range []int{1, 8} {
+		f, dir := testFS(t)
+		if err := os.WriteFile(filepath.Join(dir, "a.zip"), buf.Bytes(), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		before := runtime.NumGoroutine()
+		if _, err := f.Extract(context.Background(), "a.zip", "out", -1, ExtractOptions{Threads: threads}); !errors.Is(err, zip.ErrAlgorithm) {
+			t.Errorf("%d threads: %v", threads, err)
+		}
+		waitGoroutines(t, before)
+	}
+}
