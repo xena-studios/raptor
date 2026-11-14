@@ -319,7 +319,7 @@ func (s *Server) session(ctx context.Context, sess *session, ch ssh.Channel, req
 		h := &files{ctx: ctx, fs: fsys, serverID: sess.login.ServerID, grant: sess.grant, servers: s.o.Servers}
 		// The allocator reuses packet buffers instead of allocating one per
 		// read or write: uploads ~30% faster, downloads ~15% (DECISIONS
-		// #347). Each buffer is reused only once its packet is answered.
+		// #348). Each buffer is reused only once its packet is answered.
 		rs := sftp.NewRequestServer(ch, h.handlers(), sftp.WithRSAllocator())
 		if err := rs.Serve(); err != nil && !errors.Is(err, os.ErrClosed) {
 			s.o.Log.Debug("sftp session ended", "server", sess.login.ServerID, "err", err)
