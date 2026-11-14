@@ -36,9 +36,9 @@ Files up to 4 MB open in the editor, with syntax highlighting for configs and sc
 
 ## Import from another host
 
-**Upload → From another host (SFTP)** copies a server's files in over SFTP: from an old Pterodactyl or Pelican panel, a game host, or a shared host.
+**Upload → From another host (SFTP)** copies a server's files in over SFTP: from an old Pterodactyl panel, a game host, or a shared host.
 
-1. Enter the **host** and **port**, the **username**, and the **password** (or a private key), and optionally the **folder** to copy from. Pterodactyl and Pelican show these on the server's Settings page, as SFTP details. Choose **Continue**.
+1. Enter the **host** and **port**, the **username**, and the **password** (or a private key), and optionally the **folder** to copy from. Pterodactyl shows these on the server's Settings page, as SFTP details. Choose **Continue**.
 2. Raptor shows the host's **key fingerprint**. If your old host shows one, check it's the same: then nothing in between can see your files or password.
 3. Choose **Import**. Progress shows above the file list.
 

@@ -241,7 +241,7 @@ Stopped servers get no hooks; their files aren't changing. Safety and final back
 
 ## Egg sources
 
-- Raptor's catalog: certified eggs plus curated imports from the Pterodactyl and Pelican community repositories, with attribution and licence preserved ([below](#built-in-catalog)).
+- Raptor's catalog ([below](#built-in-catalog)): for now only Raptor's own test egg. Upstream eggs it may hold are unmodified copies, with attribution and licence preserved.
 - Orgs make their own eggs (from scratch, or customised copies) and Raptor's staff publish official ones, in the egg library ([PANEL.md](PANEL.md#eggs)); editing writes into the egg file and keeps the format ([Editing eggs](#editing-eggs)).
 - Users can import eggs from a URL or file. The Panel shows the **image registry and install script** before importing. A malicious egg is effectively a malicious program on the node. Imported eggs belong to the org that imported them ([PANEL.md](PANEL.md#importing)); eggs that leave parts to another egg (`config.extends`, `copy_script_from`) are refused with a message saying so, since those parts would be missing on the node.
 
@@ -288,10 +288,12 @@ x-raptor:
 
 ## Built-in catalog
 
-`eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`): the eggs the conformance suite tests, which the Panel seeds into its official egg library ([below](#in-the-official-library)). One directory per egg, e.g. `eggs/minecraft/paper/`:
-- The egg file, an **unmodified copy** of upstream at a pinned commit, under its upstream file name. Updating an egg means replacing the file and the commit.
+`eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`): the eggs the conformance suite tests, which the Panel seeds into its official egg library ([below](#in-the-official-library)). One directory per egg, e.g. `eggs/generic/raptor-test/`. It holds one egg today, **Raptor's test server** (`generic/raptor-test`): not a game, but the quickest check that a node installs, starts, reaches, talks to, and stops a server. It serves a page on the server's port (its `MESSAGE` variable) and answers `status` on the console (DECISIONS #351).
+- The egg file. Raptor's own eggs (`source.repo: xena-studios/raptor`) are versioned with this repository: no commit, and `source.path` is `eggs/<id>/<file>`. Any other is an **unmodified copy** of upstream at a pinned commit, under its upstream file name; updating one means replacing the file and the commit.
 - `icon.png` (optional): the egg's icon, shown instead of the one in the egg file (Pelican eggs carry one as a `data:` image). The seed gives it to the official egg whenever it changes, unless staff uploaded one ([PANEL.md](PANEL.md#images)). Any size; it's cropped square and kept at 256×256.
-- `raptor.yaml`: where it came from (repository, full commit hash, path), its licence, whether it's certified, which CPU architectures the game runs on, and how the conformance suite tests it:
+- `raptor.yaml`: where it came from (repository, full commit hash, and path; just repository and path for Raptor's own), its licence, whether it's certified, which CPU architectures the game runs on, and how the conformance suite tests it:
+
+An upstream copy's `raptor.yaml`, with every option:
 
 ```yaml
 source:
@@ -327,7 +329,7 @@ test:
   config: {}                # file → text the egg's config parsers must write ({{port}})
 ```
 
-A unit test loads every entry and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, and a chosen image is one the egg offers. `backup` needs both `pre` and `post` and a `wait_for`; every Java server egg (vanilla, Paper, Purpur, Purpur with Geyser, Fabric, Forge, NeoForge, Quilt, SpongeVanilla, Modrinth packs) has the Minecraft hooks, and nothing else does.
+A unit test loads every entry and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, and a chosen image is one the egg offers; another checks `raptor.yaml`'s `players`, `addons`, `workshop`, and `backup` reach the egg servers are made from. `backup` needs both `pre` and `post` and a `wait_for`; Java Minecraft eggs get the Minecraft hooks (`eggs.JavaMinecraftBackup`). The editor's round trip is tested on the catalog and on real community eggs kept as fixtures in `internal/eggs/testdata` (every Pterodactyl and Pelican format version, JSON and YAML).
 
 ### In the official library
 
@@ -337,6 +339,7 @@ The catalog lives in the Panel's database, as official eggs (`internal/panel/cat
 - When the catalog changes (a new release), an egg only the seed has changed gets the new file as a new version. Once staff edit an egg, it's theirs: the seed leaves it alone.
 - Editing a certified egg's file clears `certified`, since it's no longer the file the conformance suite tests.
 - Servers made before the catalog was in the library name the egg by its catalog ID; the library finds it by that ID too, and counts those servers.
+- An egg the catalog no longer has is **deleted if no server was made from it** (by its ID or its catalog ID); one a server uses stays exactly as it is, so the server keeps working and can still be updated or reinstalled from it. Staff's own official eggs (not from the catalog) are never touched.
 
 Servers get the file in the passkey-signed `server.create` as it is (`EggService.GetEggFile`), so what the user approved is what the node runs.
 
@@ -362,9 +365,9 @@ Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EU
 **Tiers** (`test.tier`):
 | Tier | Eggs | When |
 |---|---|---|
-| fast | Certified: Minecraft family, Node.js, Python, Mumble, TeamSpeak, Terraria. Community: Minecraft variants, standalone games, databases, software | PRs that touch eggs or the code that runs them, nightly, on demand; amd64 and arm64 runners |
-| slow | Certified: Rust, Valheim, Palworld, 7 Days to Die. Community: SteamCMD and Wine/Proton games (split across 4 jobs) | Weekly and on demand; amd64 (the games are x86-only) |
-| manual | CS2 (disk, Steam token); Don't Starve Together, Eco, TF2, Unturned (account tokens) | By hand |
+| fast | The test egg | PRs that touch eggs or the code that runs them, nightly, on demand; amd64 and arm64 runners |
+| slow | None now (big SteamCMD downloads go here) | Weekly and on demand; amd64 |
+| manual | None now (eggs that need disk or accounts CI doesn't have) | By hand |
 
 ```bash
 task e2e:conformance                         # fast tier in the VM
@@ -389,15 +392,15 @@ Fuzz tests (`go test -fuzz`) cover egg parsing, rule validation, PHP regex trans
 
 ## Community eggs
 
-46 community eggs are in the catalog (`certified: false`) beside the certified ones, tested the same way. Their CI jobs report failures in the job summary without failing the build: an upstream egg breaking shouldn't block Raptor's PRs, but it should be seen.
+Catalog entries can be `certified: false`: community eggs tested the same way, whose CI jobs report failures in the job summary without failing the build (an upstream egg breaking shouldn't block Raptor's PRs, but it should be seen). There are none now.
 
-**How they were chosen.** Nobody publishes egg download counts, so the list was built from the maintained [pelican-eggs](https://github.com/pelican-eggs) repositories (317 eggs; Raptor's parser reads 316, the other is an empty file upstream):
+**The first catalog** (October to November 2026, 64 upstream eggs, 46 of them community ones) was removed to start over (DECISIONS #351); what was learned building it still applies. Nobody publishes egg download counts, so its list was built from the maintained [pelican-eggs](https://github.com/pelican-eggs) repositories (317 eggs; Raptor's parser reads 316, the other is an empty file upstream):
 - Games with large player bases that people self-host, plus a few widely used non-game servers (databases, Lavalink, Forgejo). Recent upstream commits were a tiebreaker.
 - Anonymous downloads only: eggs that need a game account to install (DayZ, Starbound, Assetto Corsa's Steam variant) were left out. Eggs that need an account token only to run (Don't Starve Together, Eco, TF2, Unturned) are in the **manual** tier.
 - Windows-only servers run under Wine or Proton are included where the egg does it (Enshrouded, V Rising, Abiotic Factor, Conan Exiles); they're x86-only.
 - The upstream arm64 variants of Bedrock and Factorio (x86 servers run through box64) are included for arm64 coverage.
 
-**An egg that doesn't work isn't in the catalog.** The first runs found these broken (as of the pinned commits); they were dropped, and are worth reporting or fixing upstream:
+**An egg that doesn't work isn't in the catalog.** The first catalog's runs found these broken (as of the pinned commits); they were dropped, and are worth reporting or fixing upstream:
 
 | Egg | What's broken |
 |---|---|
@@ -423,15 +426,9 @@ Fuzz tests (`go test -fuzz`) cover egg parsing, rule validation, PHP regex trans
 
 Eggs kept with a workaround in their test settings (each explained in its `raptor.yaml`): Forge, NeoForge, and Forgejo pin versions their scripts can install; TShock and several Minecraft eggs pick a newer image the egg offers; Palworld waits for its real ready line. Known flaky: NeoForge (see above).
 
-## Certified at launch
+## Catalog rules
 
-| Category | Eggs |
-|---|---|
-| Minecraft | Paper, Purpur, Fabric, Forge, NeoForge, Vanilla, Velocity, BungeeCord |
-| Steam | Rust (incl. Oxide/Carbon), Valheim, Palworld, CS2, Terraria, 7 Days to Die |
-| Other | Discord bot (Node.js), Discord bot (Python), TeamSpeak, Mumble, generic Node.js, generic Python (the Discord bot entries are the generic Node.js and Python eggs) |
-
-Notes:
+The catalog has only the test egg now. When games come back to it, these hold:
 - **Hytale isn't certified.** Its official server image signs in to a Hytale account (OAuth device flow) before it downloads the server, so it can't be tested unattended. It isn't in the catalog either; owners can import a Hytale egg and sign in with their own account from the console.
 - Most Steam dedicated servers are **x86_64-only** (Rust, CS2, …). The Panel hides them on arm64 nodes. No x86 emulation in v1.
 - Only **anonymous SteamCMD** games in v1. No storing Steam credentials.

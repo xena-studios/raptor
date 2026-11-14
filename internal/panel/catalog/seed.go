@@ -37,12 +37,14 @@ var categories = map[string]string{
 	"database": "database", "generic": "generic", "voice": "voice",
 }
 
-// Seed adds the catalog's eggs to the official library, and updates the
-// ones only the seed has changed. It reports how many it added and updated.
-func Seed(ctx context.Context, db *pgxpool.Pool, log *slog.Logger) (added, updated int, err error) {
+// Seed adds the catalog's eggs to the official library, updates the ones
+// only the seed has changed, and deletes the ones the catalog no longer has
+// that no server was made from (ones in use stay as they are). It reports
+// how many it added, updated, and removed.
+func Seed(ctx context.Context, db *pgxpool.Pool, log *slog.Logger) (added, updated, removed int, err error) {
 	all, err := catalog.All()
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 	err = pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock($1)", seedLock); err != nil {
@@ -61,12 +63,29 @@ func Seed(ctx context.Context, db *pgxpool.Pool, log *slog.Logger) (added, updat
 				updated++
 			}
 		}
+		ids := make([]string, len(all))
+		for i, e := range all {
+			ids[i] = e.ID
+		}
+		retired, err := q.RetiredCatalogEggs(ctx, ids)
+		if err != nil {
+			return err
+		}
+		for _, r := range retired {
+			if r.Servers > 0 {
+				continue
+			}
+			if _, err := q.DeleteEgg(ctx, r.ID); err != nil {
+				return fmt.Errorf("%s: %w", r.CatalogID, err)
+			}
+			removed++
+		}
 		return nil
 	})
-	if err == nil && (added > 0 || updated > 0) {
-		log.Info("egg catalog seeded", "added", added, "updated", updated)
+	if err == nil && (added > 0 || updated > 0 || removed > 0) {
+		log.Info("egg catalog seeded", "added", added, "updated", updated, "removed", removed)
 	}
-	return added, updated, err
+	return added, updated, removed, err
 }
 
 func seedOne(ctx context.Context, q *store.Queries, e catalog.Entry) (added, updated bool, err error) {
@@ -79,7 +98,7 @@ func seedOne(ctx context.Context, q *store.Queries, e catalog.Entry) (added, upd
 		return false, false, err
 	}
 	sum := eggimport.Sum(file)
-	source := fmt.Sprintf("https://github.com/%s/blob/%s/%s", e.Source.Repo, e.Source.Commit, e.Source.Path)
+	source := e.SourceURL()
 	id := pgtype.Text{String: e.ID, Valid: true}
 	row, err := q.GetEggByCatalogID(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {

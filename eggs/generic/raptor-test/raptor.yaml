@@ -1,0 +1,15 @@
+# Raptor's own test egg: not a game, but the quickest check that a node
+# installs, starts, reaches, talks to, and stops a server. Versioned with
+# this repository, so it has no upstream commit.
+source:
+  repo: xena-studios/raptor
+  path: eggs/generic/raptor-test/egg-raptor-test.json
+license: AGPL-3.0
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 128
+  done_timeout: 3m
+  command: "status"
+  expect: "^ok: \\d+ requests? served$"

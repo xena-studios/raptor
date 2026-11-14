@@ -3,6 +3,7 @@ package catalog
 import (
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,8 +15,8 @@ func TestCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(all) < 18 {
-		t.Fatalf("only %d entries", len(all))
+	if !slices.ContainsFunc(all, func(e Entry) bool { return e.ID == "generic/raptor-test" && e.Own() && len(e.Icon) > 0 }) {
+		t.Fatal("Raptor's test egg isn't in the catalog")
 	}
 	for _, e := range all {
 		egg, err := eggs.Parse(e.Egg)
@@ -40,12 +41,29 @@ func TestCatalog(t *testing.T) {
 	}
 }
 
-func TestValidateRejects(t *testing.T) {
+// test is the catalog's test egg, and upstream the same egg as if it were
+// a copy of someone else's.
+func test(t *testing.T) (own, upstream Entry) {
+	t.Helper()
 	all, err := All()
 	if err != nil {
 		t.Fatal(err)
 	}
-	good := all[0]
+	i := slices.IndexFunc(all, func(e Entry) bool { return e.ID == "generic/raptor-test" })
+	if i < 0 {
+		t.Fatal("no test egg")
+	}
+	own = all[i]
+	upstream = own
+	upstream.Source.Repo, upstream.Source.Commit, upstream.Source.Path = "someone/eggs", strings.Repeat("a", 40), "x/"+own.File
+	if err := upstream.validate(); err != nil {
+		t.Fatalf("an upstream copy: %v", err)
+	}
+	return own, upstream
+}
+
+func TestValidateRejects(t *testing.T) {
+	own, upstream := test(t)
 	for name, mutate := range map[string]func(*Entry){
 		"short commit":   func(e *Entry) { e.Source.Commit = "abc123" },
 		"wrong file":     func(e *Entry) { e.Source.Path = "x/other.json" },
@@ -58,12 +76,28 @@ func TestValidateRejects(t *testing.T) {
 		"bad regexp":     func(e *Entry) { e.Test.Command, e.Test.Expect = "list", "(" },
 		"ready alone":    func(e *Entry) { e.Test.Command, e.Test.Expect, e.Test.Ready = "", "", "x" },
 	} {
-		e := good
-		e.Arch = slices.Clone(good.Arch)
-		mutate(&e)
-		if e.validate() == nil {
-			t.Errorf("%s: accepted", name)
+		for kind, good := range map[string]Entry{"own": own, "upstream": upstream} {
+			e := good
+			e.Arch = slices.Clone(good.Arch)
+			mutate(&e)
+			if e.validate() == nil {
+				t.Errorf("%s, %s: accepted", kind, name)
+			}
 		}
+	}
+	// Raptor's own eggs have no commit to pin, and live where they say.
+	e := own
+	e.Source.Commit = strings.Repeat("a", 40)
+	if e.validate() == nil {
+		t.Error("an own egg with a commit: accepted")
+	}
+	e = own
+	e.Source.Path = "elsewhere/" + own.File
+	if e.validate() == nil {
+		t.Error("an own egg elsewhere: accepted")
+	}
+	if own.SourceURL() != "https://github.com/xena-studios/raptor/blob/main/eggs/generic/raptor-test/egg-raptor-test.json" {
+		t.Errorf("own source URL %s", own.SourceURL())
 	}
 }
 
@@ -97,113 +131,48 @@ func TestServerEgg(t *testing.T) {
 	}
 }
 
-// Minecraft servers get the plugin installer or mod manager their software
-// takes, in the egg they're made from.
-func TestAddons(t *testing.T) {
-	all, err := All()
+// What raptor.yaml says about add-ons, the Steam Workshop, and backups is
+// in the egg servers are made from.
+func TestRaptorSettings(t *testing.T) {
+	_, e := test(t)
+	e.Players.Query = "minecraft"
+	e.Addons = map[string]eggs.Addon{"plugins": {Loaders: []string{"paper"}, Dir: "plugins"}}
+	e.Workshop = &eggs.Workshop{AppID: 4000, Variable: "MESSAGE", Collection: true}
+	b := eggs.JavaMinecraftBackup
+	e.Backup = &b
+	if err := e.validate(); err != nil {
+		t.Fatal(err)
+	}
+	file, err := e.ServerEgg()
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]string{"minecraft/paper": "plugins", "minecraft/velocity": "plugins", "minecraft/fabric": "mods", "minecraft/neoforge": "mods"}
-	for _, e := range all {
-		kind, ok := want[e.ID]
-		if !ok {
-			continue
-		}
-		file, err := e.ServerEgg()
-		if err != nil {
-			t.Fatal(err)
-		}
-		egg, err := eggs.Parse(file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if a, ok := egg.Raptor.Addons[kind]; !ok || len(a.Loaders) == 0 || a.Dir != kind {
-			t.Errorf("%s: addons %+v", e.ID, egg.Raptor.Addons)
-		}
-		delete(want, e.ID)
-	}
-	if len(want) > 0 {
-		t.Errorf("missing: %v", want)
-	}
-}
-
-// Games that download Steam Workshop items themselves get the picker, in
-// the egg they're made from.
-func TestWorkshop(t *testing.T) {
-	all, err := All()
+	egg, err := eggs.Parse(file)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]eggs.Workshop{
-		"steam/gmod":  {AppID: 4000, Variable: "WORKSHOP_ID", Collection: true},
-		"steam/ark":   {AppID: 346110, Variable: "MOD_ID"},
-		"steam/squad": {AppID: 393380, Variable: "WORKSHOP_ITEMS", Apply: "reinstall"},
+	if a, ok := egg.Raptor.Addons["plugins"]; !ok || a.Dir != "plugins" || !slices.Equal(a.Loaders, []string{"paper"}) {
+		t.Errorf("addons %+v", egg.Raptor.Addons)
 	}
-	for _, e := range all {
-		file, err := e.ServerEgg()
-		if err != nil {
-			t.Fatal(err)
-		}
-		egg, err := eggs.Parse(file)
-		if err != nil {
-			t.Fatalf("%s: %v", e.ID, err)
-		}
-		w, ok := want[e.ID]
-		switch {
-		case !ok && egg.Raptor.Workshop != nil:
-			t.Errorf("%s: unexpected workshop %+v", e.ID, egg.Raptor.Workshop)
-		case ok && (egg.Raptor.Workshop == nil || *egg.Raptor.Workshop != w):
-			t.Errorf("%s: workshop %+v, want %+v", e.ID, egg.Raptor.Workshop, w)
-		}
+	if w := egg.Raptor.Workshop; w == nil || *w != *e.Workshop {
+		t.Errorf("workshop %+v", w)
 	}
-}
-
-// Every Minecraft Java server saves around backups (save-off, save-all
-// flush, then save-on), in the egg it's made from; proxies, Bedrock, and
-// other games don't.
-func TestBackupHooks(t *testing.T) {
-	all, err := All()
-	if err != nil {
-		t.Fatal(err)
+	got := egg.Backup()
+	if !slices.Equal(got.Pre, b.Pre) || !slices.Equal(got.Post, b.Post) || got.WaitFor != b.WaitFor || got.WaitTimeout() != 5*time.Minute {
+		t.Errorf("backup %+v", got)
 	}
-	java := []string{
-		"minecraft/fabric", "minecraft/forge", "minecraft/modrinth", "minecraft/neoforge", "minecraft/paper",
-		"minecraft/purpur", "minecraft/purpur-geyser", "minecraft/quilt", "minecraft/spongevanilla", "minecraft/vanilla",
+	if egg.Raptor.Players.Query != "minecraft" {
+		t.Errorf("players %+v", egg.Raptor.Players)
 	}
-	for _, e := range all {
-		file, err := e.ServerEgg()
-		if err != nil {
-			t.Fatal(err)
-		}
-		egg, err := eggs.Parse(file)
-		if err != nil {
-			t.Fatalf("%s: %v", e.ID, err)
-		}
-		got := egg.Raptor.Backup
-		if !slices.Contains(java, e.ID) {
-			if e.Backup != nil || len(got.Pre) > 0 {
-				t.Errorf("%s: unexpected backup hooks %+v", e.ID, got)
-			}
-			continue
-		}
-		want := eggs.JavaMinecraftBackup
-		if !slices.Equal(got.Pre, want.Pre) || !slices.Equal(got.Post, want.Post) || got.WaitFor != want.WaitFor || got.Timeout != want.Timeout {
-			t.Errorf("%s: backup hooks %+v, want %+v", e.ID, got, want)
-		}
-		// The hooks the egg carries are the ones its servers use.
-		if b := egg.Backup(); !slices.Equal(b.Pre, want.Pre) || b.WaitTimeout() != 5*time.Minute {
-			t.Errorf("%s: Backup() = %+v", e.ID, b)
-		}
+	// A workshop variable the egg doesn't have is refused.
+	e.Workshop = &eggs.Workshop{AppID: 4000, Variable: "NOPE"}
+	if e.validate() == nil {
+		t.Error("a workshop variable the egg doesn't have: accepted")
 	}
 }
 
 func TestBackupValidate(t *testing.T) {
-	all, err := All()
-	if err != nil {
-		t.Fatal(err)
-	}
-	good := all[0]
+	good, _ := test(t)
 	for name, b := range map[string]eggs.BackupHooks{
 		"pre alone":  {Pre: []string{"save-off"}, WaitFor: "x"},
 		"post alone": {Post: []string{"save-on"}},

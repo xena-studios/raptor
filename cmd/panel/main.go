@@ -339,7 +339,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.Images = images.Handler(pool)
 		go cfg.Staff.RunStats(ctx)
 		// Raptor's egg catalog, into the official library (docs/PANEL.md#eggs).
-		if _, _, err := catalog.Seed(ctx, pool, log); err != nil {
+		if _, _, _, err := catalog.Seed(ctx, pool, log); err != nil {
 			return fmt.Errorf("seeding the egg catalog: %w", err)
 		}
 		// Icons for eggs saved before eggs had them; not worth stopping for.

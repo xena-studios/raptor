@@ -76,5 +76,5 @@ Some actions can destroy data or change what code runs: deleting a server, resto
 - **Org:** your team, with its members, nodes, and servers. Billing is per org.
 - **Node:** a machine you've linked. It has a name, and an address like `1cdd002cd9a3.raptornodes.net` that follows its IP.
 - **Server:** one game (or bot, or app) running on a node.
-- **Egg:** the recipe a server is made from: what it runs, how to install it, its settings. Raptor reads Pterodactyl and Pelican eggs.
+- **Egg:** the recipe a server is made from: what it runs, how to install it, its settings. Raptor reads Pterodactyl eggs.
 - **Short ID:** the end of a server's or node's ID, shown in the app's addresses and by `raptor ps`.

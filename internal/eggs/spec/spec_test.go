@@ -2,6 +2,7 @@ package spec_test
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -13,19 +14,34 @@ import (
 )
 
 // Reading an egg and writing it back unchanged must not change what it
-// does, for every egg in the catalog (Pterodactyl and Pelican, JSON and
-// YAML).
+// does, for every egg in the catalog and the parser's fixtures (every
+// Pterodactyl and Pelican version, JSON and YAML, icons included).
 func TestRoundTripCatalog(t *testing.T) {
 	all, err := catalog.All()
 	if err != nil {
 		t.Fatal(err)
 	}
+	files := map[string][]byte{}
 	for _, e := range all {
-		t.Run(e.ID, func(t *testing.T) {
-			file, err := e.ServerEgg()
-			if err != nil {
-				t.Fatal(err)
-			}
+		file, err := e.ServerEgg()
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[e.ID] = file
+	}
+	fixtures, _ := filepath.Glob("../testdata/*.*_v*.*")
+	for _, f := range fixtures {
+		b, err := os.ReadFile(f) //nolint:gosec // test fixtures
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[filepath.Base(f)] = b
+	}
+	if len(files) < 10 {
+		t.Fatalf("only %d eggs to round-trip", len(files))
+	}
+	for name, file := range files {
+		t.Run(name, func(t *testing.T) {
 			s, err := spec.Read(file)
 			if err != nil {
 				t.Fatal(err)

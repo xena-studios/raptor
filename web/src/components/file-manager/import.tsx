@@ -274,7 +274,7 @@ export function ImportDialog({
                   onChange={(e) => set({ user: e.target.value })}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Pterodactyl and Pelican show it on the server's Settings page, as SFTP details.
+                  Pterodactyl shows it on the server's Settings page, as SFTP details.
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">

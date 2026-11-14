@@ -169,7 +169,7 @@ export function EggImport({
               <DialogDescription>
                 {replace
                   ? "Its file is replaced with this one, as a new version. Servers keep the version they run until you update them. "
-                  : "A Pterodactyl or Pelican egg, as JSON or YAML. "}
+                  : "A Pterodactyl egg, as JSON or YAML. "}
                 You'll see what it runs before anything is saved.
               </DialogDescription>
             </DialogHeader>
@@ -206,7 +206,7 @@ export function EggImport({
                   type="url"
                   required
                   autoFocus
-                  placeholder="https://github.com/pelican-eggs/games-standalone/blob/main/…/egg.json"
+                  placeholder="https://github.com/…/egg.json"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                 />
@@ -337,7 +337,7 @@ export function EggImport({
                 <span>
                   Keep the egg's Raptor settings (CPUs, players, add-ons) if this file has none
                   <span className="block text-xs text-muted-foreground">
-                    Files from Pterodactyl and Pelican don't have them.
+                    Eggs from elsewhere don't have them.
                   </span>
                 </span>
               </Label>

@@ -6,12 +6,13 @@ import (
 	"crypto/rand"
 	"log/slog"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
 
-	catalogfiles "github.com/xena-studios/raptor/eggs"
 	"github.com/xena-studios/raptor/internal/eggs"
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
@@ -56,34 +57,29 @@ func TestEggIcons(t *testing.T) {
 		}
 	}
 
-	// The catalog's eggs that carry an icon have it in the official library.
-	all, err := catalogfiles.All()
-	if err != nil {
-		t.Fatal(err)
-	}
-	var withIcon []catalogfiles.Entry
-	for _, e := range all {
-		egg, err := eggs.Parse(e.Egg)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, ok, err := images.FromDataURI(egg.Icon); ok && err == nil {
-			withIcon = append(withIcon, e)
-		}
-	}
-	if len(withIcon) == 0 {
-		t.Fatal("no catalog egg has an icon to test with")
-	}
-	if _, _, err := catalog.Seed(ctx, db, slog.New(slog.DiscardHandler)); err != nil {
+	// The catalog's test egg has its icon.png in the official library.
+	if _, _, _, err := catalog.Seed(ctx, db, slog.New(slog.DiscardHandler)); err != nil {
 		t.Fatal(err)
 	}
 	var official int
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM eggs WHERE org_id IS NULL AND icon IS NOT NULL AND icon_source = 'file'`).Scan(&official); err != nil || official != len(withIcon) {
-		t.Errorf("official eggs with icons: %d (%v), want %d", official, err, len(withIcon))
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM eggs WHERE catalog_id = 'generic/raptor-test' AND icon IS NOT NULL AND icon_source = 'file'`).Scan(&official); err != nil || official != 1 {
+		t.Errorf("the test egg's icon: %d (%v)", official, err)
 	}
-	// Seeding again changes nothing.
-	if _, _, err := catalog.Seed(ctx, db, slog.New(slog.DiscardHandler)); err != nil {
-		t.Fatal(err)
+	// Eggs carrying their own icon: Pelican's, as data: URIs.
+	var withIcon [][]byte
+	for _, f := range []string{"python.plcn_v3.json", "neoforge.plcn_v3.json"} {
+		b, err := os.ReadFile(filepath.Join("..", "..", "eggs", "testdata", f)) //nolint:gosec // test fixtures
+		if err != nil {
+			t.Fatal(err)
+		}
+		egg, err := eggs.Parse(b)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok, err := images.FromDataURI(egg.Icon); !ok || err != nil {
+			t.Fatalf("%s has no icon: %v", f, err)
+		}
+		withIcon = append(withIcon, b)
 	}
 
 	alice, _ := signUp("alice@example.com")
@@ -104,7 +100,7 @@ func TestEggIcons(t *testing.T) {
 	}
 
 	// An imported egg shows the icon in its file.
-	imported, err := alice.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{OrgId: org, Egg: withIcon[0].Egg, Category: "minecraft"})
+	imported, err := alice.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{OrgId: org, Egg: withIcon[0], Category: "generic"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +137,7 @@ func TestEggIcons(t *testing.T) {
 	d, _ := alice.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: id})
 	spec := d.GetSpec()
 	spec.Description = "Edited"
-	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_Spec{Spec: spec}, Category: "minecraft"}); err != nil {
+	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_Spec{Spec: spec}, Category: "generic"}); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := icon(id); got != set.GetIcon() {
@@ -199,7 +195,7 @@ func TestEggIcons(t *testing.T) {
 		t.Errorf("a taken-down icon is still shown: %q", got)
 	}
 	spec.Description = "Edited again"
-	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_Spec{Spec: spec}, Category: "minecraft"}); err != nil {
+	if _, err := alice.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{OrgId: org, Id: id, Change: &panelv1.UpdateEggRequest_Spec{Spec: spec}, Category: "generic"}); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := icon(id); got != "" {

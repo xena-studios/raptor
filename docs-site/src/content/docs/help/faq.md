@@ -31,7 +31,7 @@ Yes, on the same machine, and move servers over when you're ready with `raptor i
 
 ## Which games can I run?
 
-Anything with a Pterodactyl or Pelican egg. Raptor's catalog has Minecraft (Paper, Fabric, Forge, and more), Rust, Valheim, Palworld, ARK, Terraria, Factorio, and many others, plus Discord bots and voice servers. See [The egg library](/eggs/library/).
+Anything with a Pterodactyl egg, and most games have one: Minecraft (Paper, Fabric, Forge, and more), Rust, Valheim, Palworld, ARK, Terraria, Factorio, and many others, plus Discord bots and voice servers. Import the egg on the Eggs page; see [The egg library](/eggs/library/).
 
 ## Can my friends help run the servers?
 
