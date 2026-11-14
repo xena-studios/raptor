@@ -9,6 +9,9 @@ All eggs here come from the [pelican-eggs](https://github.com/pelican-eggs)
 repositories, under the MIT licence (`LICENSE.pelican-eggs`):
 Copyright (c) Michael Parker and contributors.
 
+An `icon.png` beside an egg is its icon, instead of the one in the egg
+file, if any (docs/EGGS.md#built-in-catalog).
+
 To update an egg, replace the file with the upstream version and update
 `source.commit`; `go test ./eggs` checks every entry, and
 `task e2e:conformance RUN=<id>` runs it.

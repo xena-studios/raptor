@@ -5,6 +5,7 @@ import { BadgeCheck, Loader2, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
+import { EggIcon } from "@/components/eggs/library";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -162,6 +163,7 @@ export function ChangeServerType({
                     onChange={() => setPicked(e)}
                   />
                   <span className="flex items-center gap-1.5 text-sm font-medium">
+                    <EggIcon category={e.category} icon={e.icon} className="size-5 rounded" />
                     {e.name}
                     {e.name === current && (
                       <span className="font-mono text-[0.7rem] tracking-wide text-muted-foreground uppercase">

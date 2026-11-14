@@ -75,6 +75,11 @@ type CatalogEgg struct {
 	// its org and staff see it.
 	Removed       bool   `protobuf:"varint,24,opt,name=removed,proto3" json:"removed,omitempty"`
 	RemovedReason string `protobuf:"bytes,25,opt,name=removed_reason,json=removedReason,proto3" json:"removed_reason,omitempty"`
+	// The icon's image ID (GET /api/images/<id>.png): one uploaded, or the
+	// one in the egg's file; empty for none.
+	Icon string `protobuf:"bytes,26,opt,name=icon,proto3" json:"icon,omitempty"`
+	// The icon was uploaded, so removing it can bring back the file's.
+	IconUploaded  bool `protobuf:"varint,27,opt,name=icon_uploaded,json=iconUploaded,proto3" json:"icon_uploaded,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -284,6 +289,20 @@ func (x *CatalogEgg) GetRemovedReason() string {
 	return ""
 }
 
+func (x *CatalogEgg) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *CatalogEgg) GetIconUploaded() bool {
+	if x != nil {
+		return x.IconUploaded
+	}
+	return false
+}
+
 type EggImage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -433,7 +452,7 @@ var File_raptor_panel_v1_catalog_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\n" +
-	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa6\x06\n" +
+	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdf\x06\n" +
 	"\n" +
 	"CatalogEgg\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -465,7 +484,9 @@ const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\tshared_at\x18\x16 \x01(\v2\x1a.google.protobuf.TimestampR\bsharedAt\x12\x16\n" +
 	"\x06copies\x18\x17 \x01(\x05R\x06copies\x12\x18\n" +
 	"\aremoved\x18\x18 \x01(\bR\aremoved\x12%\n" +
-	"\x0eremoved_reason\x18\x19 \x01(\tR\rremovedReason\"0\n" +
+	"\x0eremoved_reason\x18\x19 \x01(\tR\rremovedReason\x12\x12\n" +
+	"\x04icon\x18\x1a \x01(\tR\x04icon\x12#\n" +
+	"\ricon_uploaded\x18\x1b \x01(\bR\ficonUploaded\"0\n" +
 	"\bEggImage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\"\xcf\x01\n" +

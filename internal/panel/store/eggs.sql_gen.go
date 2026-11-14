@@ -14,7 +14,7 @@ import (
 const addCatalogEgg = `-- name: AddCatalogEgg :one
 INSERT INTO eggs (org_id, name, category, origin, status, egg, sha256, source_url, catalog_id, certified)
 VALUES (NULL, $1, $2, 'catalog', 'published', $3, $4, $5, $6, $7)
-RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified
+RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source
 `
 
 type AddCatalogEggParams struct {
@@ -61,6 +61,8 @@ func (q *Queries) AddCatalogEgg(ctx context.Context, arg AddCatalogEggParams) (E
 		&i.RemovedBy,
 		&i.CatalogID,
 		&i.Certified,
+		&i.Icon,
+		&i.IconSource,
 	)
 	return i, err
 }
@@ -152,7 +154,7 @@ const createEgg = `-- name: CreateEgg :one
 
 INSERT INTO eggs (org_id, name, summary, category, origin, status, egg, sha256, source_url, parent_id, parent_name, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified
+RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source
 `
 
 type CreateEggParams struct {
@@ -212,6 +214,8 @@ func (q *Queries) CreateEgg(ctx context.Context, arg CreateEggParams) (Egg, erro
 		&i.RemovedBy,
 		&i.CatalogID,
 		&i.Certified,
+		&i.Icon,
+		&i.IconSource,
 	)
 	return i, err
 }
@@ -279,8 +283,58 @@ func (q *Queries) EggServerCounts(ctx context.Context) ([]EggServerCountsRow, er
 	return items, nil
 }
 
+const eggsWithoutIcons = `-- name: EggsWithoutIcons :many
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE icon IS NULL AND icon_source = '' AND position(convert_to('data:image/', 'UTF8') IN egg) > 0
+`
+
+// Eggs whose file may carry an icon they don't have yet.
+func (q *Queries) EggsWithoutIcons(ctx context.Context) ([]Egg, error) {
+	rows, err := q.db.Query(ctx, eggsWithoutIcons)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Egg
+	for rows.Next() {
+		var i Egg
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.Summary,
+			&i.Category,
+			&i.Origin,
+			&i.Status,
+			&i.Version,
+			&i.Egg,
+			&i.Sha256,
+			&i.SourceUrl,
+			&i.ParentID,
+			&i.ParentName,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SharedAt,
+			&i.RemovedAt,
+			&i.RemovedReason,
+			&i.RemovedBy,
+			&i.CatalogID,
+			&i.Certified,
+			&i.Icon,
+			&i.IconSource,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEgg = `-- name: GetEgg :one
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
 WHERE e.id = $1
 `
@@ -316,6 +370,8 @@ func (q *Queries) GetEgg(ctx context.Context, id pgtype.UUID) (GetEggRow, error)
 		&i.Egg.RemovedBy,
 		&i.Egg.CatalogID,
 		&i.Egg.Certified,
+		&i.Egg.Icon,
+		&i.Egg.IconSource,
 		&i.CreatedByEmail,
 	)
 	return i, err
@@ -323,7 +379,7 @@ func (q *Queries) GetEgg(ctx context.Context, id pgtype.UUID) (GetEggRow, error)
 
 const getEggByCatalogID = `-- name: GetEggByCatalogID :one
 
-SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified FROM eggs WHERE catalog_id = $1
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE catalog_id = $1
 `
 
 // Raptor's catalog in the official library (internal/panel/catalog).
@@ -353,12 +409,14 @@ func (q *Queries) GetEggByCatalogID(ctx context.Context, catalogID pgtype.Text) 
 		&i.RemovedBy,
 		&i.CatalogID,
 		&i.Certified,
+		&i.Icon,
+		&i.IconSource,
 	)
 	return i, err
 }
 
 const getEggForUpdate = `-- name: GetEggForUpdate :one
-SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified FROM eggs WHERE id = $1 FOR UPDATE
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetEggForUpdate(ctx context.Context, id pgtype.UUID) (Egg, error) {
@@ -387,6 +445,8 @@ func (q *Queries) GetEggForUpdate(ctx context.Context, id pgtype.UUID) (Egg, err
 		&i.RemovedBy,
 		&i.CatalogID,
 		&i.Certified,
+		&i.Icon,
+		&i.IconSource,
 	)
 	return i, err
 }
@@ -432,7 +492,7 @@ func (q *Queries) LatestEggVersion(ctx context.Context, eggID pgtype.UUID) (Late
 }
 
 const listCommunityEggs = `-- name: ListCommunityEggs :many
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, o.name AS org_name,
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, o.name AS org_name,
     (SELECT count(*) FROM eggs c WHERE c.parent_id = e.id::text)::int AS copies
 FROM eggs e JOIN orgs o ON o.id = e.org_id
 WHERE e.shared_at IS NOT NULL
@@ -500,6 +560,8 @@ func (q *Queries) ListCommunityEggs(ctx context.Context, arg ListCommunityEggsPa
 			&i.Egg.RemovedBy,
 			&i.Egg.CatalogID,
 			&i.Egg.Certified,
+			&i.Egg.Icon,
+			&i.Egg.IconSource,
 			&i.OrgName,
 			&i.Copies,
 		); err != nil {
@@ -553,7 +615,7 @@ func (q *Queries) ListEggVersions(ctx context.Context, eggID pgtype.UUID) ([]Lis
 }
 
 const listLibraryEggs = `-- name: ListLibraryEggs :many
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
 WHERE e.org_id = $1 OR (e.org_id IS NULL AND e.status = 'published')
 ORDER BY e.org_id NULLS LAST, e.name, e.id
@@ -597,6 +659,8 @@ func (q *Queries) ListLibraryEggs(ctx context.Context, orgID pgtype.UUID) ([]Lis
 			&i.Egg.RemovedBy,
 			&i.Egg.CatalogID,
 			&i.Egg.Certified,
+			&i.Egg.Icon,
+			&i.Egg.IconSource,
 			&i.CreatedByEmail,
 		); err != nil {
 			return nil, err
@@ -610,7 +674,7 @@ func (q *Queries) ListLibraryEggs(ctx context.Context, orgID pgtype.UUID) ([]Lis
 }
 
 const listOfficialEggs = `-- name: ListOfficialEggs :many
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
 WHERE e.org_id IS NULL ORDER BY e.name, e.id
 `
@@ -652,6 +716,8 @@ func (q *Queries) ListOfficialEggs(ctx context.Context) ([]ListOfficialEggsRow, 
 			&i.Egg.RemovedBy,
 			&i.Egg.CatalogID,
 			&i.Egg.Certified,
+			&i.Egg.Icon,
+			&i.Egg.IconSource,
 			&i.CreatedByEmail,
 		); err != nil {
 			return nil, err
@@ -822,6 +888,21 @@ func (q *Queries) RestoreCommunityEgg(ctx context.Context, id pgtype.UUID) (int6
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const setEggIcon = `-- name: SetEggIcon :exec
+UPDATE eggs SET icon = $1, icon_source = $2 WHERE id = $3
+`
+
+type SetEggIconParams struct {
+	Icon       pgtype.Text
+	IconSource string
+	ID         pgtype.UUID
+}
+
+func (q *Queries) SetEggIcon(ctx context.Context, arg SetEggIconParams) error {
+	_, err := q.db.Exec(ctx, setEggIcon, arg.Icon, arg.IconSource, arg.ID)
+	return err
 }
 
 const setEggShared = `-- name: SetEggShared :execrows

@@ -26,6 +26,8 @@ An imported egg is never marked certified, whatever it says. [Community eggs](ht
 
 ## Customising
 
+**Icons:** an egg shows the icon in its file, if it has one (eggs from Pelican often do), or its category. Admins and owners can upload another on the egg's page (PNG, JPEG, GIF, or WebP, cropped square); removing it brings back the file's.
+
 **Customize** makes a copy of any egg to edit, as a draft. The editor has tabs for its overview (name, category, and which CPUs it runs on), runtimes, variables, startup, install script, config files, and add-ons, plus the raw file. Saving writes a new **version**, so you can see who changed what. An edited egg is still a valid Pterodactyl egg: **Export** it to use anywhere.
 
 - A **draft** can't be deployed; publish it when it's ready. An **archived** egg is hidden and can't be deployed.

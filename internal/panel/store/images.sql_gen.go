@@ -25,6 +25,7 @@ DELETE FROM images i
 WHERE i.taken_down_at IS NULL AND i.created_at < now() - interval '1 day'
   AND NOT EXISTS (SELECT 1 FROM orgs WHERE logo = i.id)
   AND NOT EXISTS (SELECT 1 FROM users WHERE avatar = i.id)
+  AND NOT EXISTS (SELECT 1 FROM eggs WHERE icon = i.id)
 `
 
 // Pictures nothing uses any more, a day after they were last uploaded.
@@ -62,7 +63,8 @@ func (q *Queries) SaveImage(ctx context.Context, arg SaveImageParams) (string, e
 
 const takeDownImage = `-- name: TakeDownImage :execrows
 WITH orgs_cleared AS (UPDATE orgs SET logo = NULL WHERE orgs.logo = $1::text),
-     users_cleared AS (UPDATE users SET avatar = NULL WHERE users.avatar = $1::text)
+     users_cleared AS (UPDATE users SET avatar = NULL WHERE users.avatar = $1::text),
+     eggs_cleared AS (UPDATE eggs SET icon = NULL, icon_source = '' WHERE eggs.icon = $1::text)
 UPDATE images SET png = NULL, taken_down_at = now() WHERE images.id = $1::text AND images.taken_down_at IS NULL
 `
 

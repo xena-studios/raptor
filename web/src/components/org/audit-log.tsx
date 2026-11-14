@@ -503,6 +503,12 @@ export function OrgActivity({
       case "egg.update":
         [text, icon] = [`edited the egg${meta.name ? ` "${str(meta.name)}"` : ""}`, Egg];
         break;
+      case "egg.icon.set":
+        [text, icon] = [`changed the icon of the egg "${str(meta.name)}"`, Egg];
+        break;
+      case "egg.icon.remove":
+        [text, icon] = [`removed the uploaded icon of the egg "${str(meta.name)}"`, Egg];
+        break;
       case "egg.customize":
         [text, icon] = [
           `made a copy of the egg${meta.name ? ` "${str(meta.name)}"` : ""} to customize`,

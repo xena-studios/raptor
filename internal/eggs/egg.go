@@ -40,6 +40,10 @@ type Egg struct {
 	Variables    []Variable
 	FileDenylist []string
 	Raptor       Extension // the "x-raptor" block, if any
+	// Icon is the egg's picture, as Pelican eggs carry it: a data: URI in
+	// "image" (data:image/png;base64,…). In PTDL_v1 eggs "image" was the
+	// Docker image instead, so only data: URIs count.
+	Icon string
 }
 
 // Image is a selectable Docker image.
@@ -368,8 +372,11 @@ func Parse(data []byte) (*Egg, error) {
 		for _, ref := range refs {
 			e.Images = append(e.Images, Image{Name: ref, Ref: ref})
 		}
-	} else if img := scalar(get(root, "image")); img != "" {
+	} else if img := scalar(get(root, "image")); img != "" && !strings.HasPrefix(img, "data:") {
 		e.Images = []Image{{Name: img, Ref: img}}
+	}
+	if img := scalar(get(root, "image")); strings.HasPrefix(img, "data:image/") {
+		e.Icon = img
 	}
 	if len(e.Images) == 0 {
 		return nil, errors.New("egg: no docker images")

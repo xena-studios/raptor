@@ -16,6 +16,7 @@ import { useState } from "react";
 
 import { LinkRow } from "@/components/entity-list";
 import { EmptyState, ListToolbar, type ListView } from "@/components/page";
+import { Picture } from "@/components/picture";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,18 +70,32 @@ const categoryIcons: Record<string, LucideIcon> = {
   generic: Bot,
 };
 
-// EggIcon is an egg's category as an icon in a tile.
-export function EggIcon({ category, className }: { category: string; className?: string }) {
+// EggIcon is an egg's icon, or its category as an icon, in a tile.
+export function EggIcon({
+  category,
+  icon,
+  className,
+}: {
+  category: string;
+  icon?: string;
+  className?: string;
+}) {
   const Icon = categoryIcons[category] ?? Egg;
   return (
-    <span
-      className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground",
-        className,
-      )}
-    >
-      <Icon className="size-4.5" strokeWidth={1.75} />
-    </span>
+    <Picture
+      image={icon}
+      className={cn("size-9 rounded-lg", className)}
+      fallback={
+        <span
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground",
+            className,
+          )}
+        >
+          <Icon className="size-4.5" strokeWidth={1.75} />
+        </span>
+      }
+    />
   );
 }
 
@@ -217,7 +232,7 @@ export function EggCard({ lib, egg }: { lib: Library; egg: CatalogEgg }) {
     >
       <Card className="h-full transition-colors group-hover:bg-muted/40">
         <CardHeader className="flex flex-row items-start gap-3">
-          <EggIcon category={egg.category} />
+          <EggIcon category={egg.category} icon={egg.icon} />
           <div className="min-w-0 flex-1 space-y-1">
             <CardTitle className="truncate">{egg.name}</CardTitle>
             <CardDescription className="truncate">
@@ -267,7 +282,7 @@ function EggTable({ lib, eggs }: { lib: Library; eggs: CatalogEgg[] }) {
             <LinkRow key={e.id} link={lib.detail(e.id)}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <EggIcon category={e.category} className="size-8" />
+                  <EggIcon category={e.category} icon={e.icon} className="size-8" />
                   <div className="min-w-0">
                     <Link {...lib.detail(e.id)} className="font-medium hover:underline">
                       {e.name}

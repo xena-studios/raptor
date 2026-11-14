@@ -24,6 +24,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/eggimport"
+	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
@@ -196,6 +197,7 @@ func describeEgg(l *lib, e store.Egg, createdBy string) (*panelv1.CatalogEgg, er
 		p.RemovedReason = e.RemovedReason
 	}
 	p.ParentId, p.ParentName, p.UpdatedAt, p.CreatedBy = e.ParentID, e.ParentName, ts(e.UpdatedAt), createdBy
+	p.Icon, p.IconUploaded = e.Icon.String, e.IconSource == "upload"
 	return p, nil
 }
 
@@ -527,7 +529,10 @@ func (s *Eggs) create(ctx context.Context, l *lib, p store.CreateEggParams, note
 	err = l.q.AddEggVersion(ctx, store.AddEggVersionParams{
 		EggID: row.ID, Version: 1, Egg: row.Egg, Sha256: row.Sha256, Note: note, CreatedBy: l.email(),
 	})
-	return row, err
+	if err != nil {
+		return row, err
+	}
+	return row, catalog.SyncIcon(ctx, l.q, row, row.Egg, nil)
 }
 
 // CreateEgg implements EggService.
@@ -658,6 +663,11 @@ func (s *Eggs) UpdateEgg(ctx context.Context, req *panelv1.UpdateEggRequest) (*p
 		}); err != nil {
 			return err
 		}
+		if sum != row.Sha256 {
+			if err := catalog.SyncIcon(ctx, l.q, row, file, nil); err != nil {
+				return err
+			}
+		}
 		out.Version = version
 		return s.audit(ctx, l, "egg.update", idString(row.ID), map[string]any{"name": name, "version": version, "source_url": source})
 	})
@@ -700,8 +710,51 @@ func (s *Eggs) CustomizeEgg(ctx context.Context, req *panelv1.CustomizeEggReques
 		if err != nil {
 			return err
 		}
+		// A copy keeps the icon an admin gave the original.
+		if row.IconSource == "upload" {
+			if err := catalog.SetIcon(ctx, l.q, created, row.Icon.String); err != nil {
+				return err
+			}
+		}
 		out.Id = idString(created.ID)
 		return s.audit(ctx, l, "egg.customize", out.Id, map[string]any{"name": name, "from": req.GetId()})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SetEggIcon implements EggService.
+func (s *Eggs) SetEggIcon(ctx context.Context, req *panelv1.SetEggIconRequest) (*panelv1.SetEggIconResponse, error) {
+	out := &panelv1.SetEggIconResponse{}
+	err := s.tx(ctx, req.GetOrgId(), true, func(l *lib) error {
+		row, err := editable(ctx, l, req.GetId())
+		if err != nil {
+			return err
+		}
+		icon := ""
+		if len(req.GetImage()) > 0 {
+			if err := s.Orgs.Auth.RateLimit(ctx, "image:user:"+idString(l.userID()), auth.UploadsPerHour, time.Hour); err != nil {
+				return err
+			}
+			if icon, err = images.Upload(ctx, l.q, req.GetImage()); err != nil {
+				return err
+			}
+		}
+		if err := catalog.SetIcon(ctx, l.q, row, icon); err != nil {
+			return err
+		}
+		now, err := l.q.GetEgg(ctx, row.ID)
+		if err != nil {
+			return err
+		}
+		out.Icon = now.Egg.Icon.String
+		action := "egg.icon.set"
+		if icon == "" {
+			action = "egg.icon.remove"
+		}
+		return s.audit(ctx, l, action, idString(row.ID), map[string]any{"name": row.Name})
 	})
 	if err != nil {
 		return nil, err

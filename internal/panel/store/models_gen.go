@@ -247,6 +247,8 @@ type Egg struct {
 	RemovedBy     string
 	CatalogID     pgtype.Text
 	Certified     bool
+	Icon          pgtype.Text
+	IconSource    string
 }
 
 type EggReport struct {

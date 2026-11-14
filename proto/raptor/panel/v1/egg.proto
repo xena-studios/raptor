@@ -49,6 +49,12 @@ service EggService {
   // DeleteEgg removes an egg no server uses; archive one that's in use.
   rpc DeleteEgg(DeleteEggRequest) returns (DeleteEggResponse) {}
 
+  // SetEggIcon gives an egg an icon, or removes the one uploaded, which
+  // brings back the icon in the egg's file, if any (docs/PANEL.md#images).
+  // Like other changes: admins and owners for an org's eggs, staff admins
+  // for official ones.
+  rpc SetEggIcon(SetEggIconRequest) returns (SetEggIconResponse) {}
+
   // ReviewEggFile fetches an egg from a link (or takes a file) and says what
   // it would run, before ImportEggFile. Nothing is saved.
   rpc ReviewEggFile(ReviewEggFileRequest) returns (ReviewEggFileResponse) {}
@@ -272,6 +278,19 @@ message DeleteEggRequest {
 }
 
 message DeleteEggResponse {}
+
+message SetEggIconRequest {
+  string org_id = 1;
+  string id = 2;
+  // A PNG, JPEG, GIF, or WebP of at most 1 MB, cropped square and scaled to
+  // 256×256 by the Panel; empty removes the uploaded icon.
+  bytes image = 3;
+}
+
+message SetEggIconResponse {
+  // The egg's icon now; empty for none.
+  string icon = 1;
+}
 
 message ReviewEggFileRequest {
   string org_id = 1;

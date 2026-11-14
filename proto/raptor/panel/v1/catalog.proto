@@ -60,6 +60,12 @@ message CatalogEgg {
   // its org and staff see it.
   bool removed = 24;
   string removed_reason = 25;
+
+  // The icon's image ID (GET /api/images/<id>.png): one uploaded, or the
+  // one in the egg's file; empty for none.
+  string icon = 26;
+  // The icon was uploaded, so removing it can bring back the file's.
+  bool icon_uploaded = 27;
 }
 
 message EggImage {
