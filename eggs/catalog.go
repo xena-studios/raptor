@@ -325,7 +325,7 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 	if root.Kind != yaml.MappingNode {
 		return nil, errors.New("egg isn't an object")
 	}
-	ext := mapping(root, "x-raptor")
+	ext := raptorBlock(root)
 	arch := &yaml.Node{Kind: yaml.SequenceNode, Style: yaml.FlowStyle}
 	for _, a := range e.Arch {
 		arch.Content = append(arch.Content, str(a))
@@ -400,18 +400,41 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 // icon).
 func (e *Entry) ImportFile() ([]byte, error) {
 	file, err := e.ServerEgg()
-	if err != nil || len(e.Icon) == 0 {
-		return file, err
+	if err != nil {
+		return nil, err
 	}
 	root, err := ordered.Decode(file)
 	if err != nil {
 		return nil, err
 	}
-	set(root, "image", str("data:image/png;base64,"+base64.StdEncoding.EncodeToString(e.Icon)))
+	// The entry's ID, so importing it into the official library again
+	// (or over a catalog egg of the same ID) adds a version to that egg
+	// instead of a second one (docs/EGGS.md#egg-library).
+	set(raptorBlock(root), "library", str(e.ID))
+	if len(e.Icon) > 0 {
+		set(root, "image", str("data:image/png;base64,"+base64.StdEncoding.EncodeToString(e.Icon)))
+	}
 	if path.Ext(e.File) == ".json" {
 		return ordered.EncodeJSON(root, "    ")
 	}
 	return yaml.Marshal(root)
+}
+
+// raptorBlock is where an egg's Raptor settings go: the top of one of
+// Raptor's own eggs (RPTR_v1), else its x-raptor block.
+func raptorBlock(root *yaml.Node) *yaml.Node {
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		if root.Content[i].Value != "meta" {
+			continue
+		}
+		m := root.Content[i+1]
+		for j := 0; j+1 < len(m.Content); j += 2 {
+			if m.Content[j].Value == "version" && eggs.IsRaptor(m.Content[j+1].Value) {
+				return root
+			}
+		}
+	}
+	return mapping(root, "x-raptor")
 }
 
 func str(s string) *yaml.Node { return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: s} }

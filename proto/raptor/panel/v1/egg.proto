@@ -186,7 +186,7 @@ message GetEggDetailsResponse {
   EggSpec spec = 2;
   // The file, as a server made from it gets it.
   bytes file = 3;
-  // "pterodactyl" or "pelican".
+  // "raptor" (Raptor's own format), "pterodactyl", or "pelican".
   string format = 4;
   repeated string registries = 5;
   repeated EggWarning warnings = 6;
@@ -390,7 +390,7 @@ message EggReview {
   string name = 1;
   string description = 2;
   string author = 3;
-  // "pterodactyl" or "pelican".
+  // "raptor" (Raptor's own format), "pterodactyl", or "pelican".
   string format = 4;
   repeated EggImage images = 5;
   // Every registry the images and the install container come from.
@@ -410,6 +410,10 @@ message EggReview {
   // The category the egg says it belongs in (x-raptor.category); empty if
   // it doesn't say.
   string category = 16;
+  // The official egg this one is a new version of: an egg from Raptor's
+  // egg library (x-raptor.library) whose ID an official egg already has.
+  // Empty otherwise, and always for an org's library.
+  string updates = 17;
 }
 
 message EggWarning {

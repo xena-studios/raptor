@@ -12,6 +12,7 @@ import (
 	"errors"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/xena-studios/raptor/internal/eggs"
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
@@ -31,6 +33,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/panel/telemetry"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
+	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
 // Sender delivers a command to a node wherever it's connected
@@ -63,6 +66,9 @@ const (
 	// files.write carries a whole file for the editor: up to Wings' 4 MiB,
 	// base64 in JSON.
 	maxWriteJSONLen = 6 << 20
+	// server.create and server.update carry the egg file (up to
+	// eggimport.MaxSize, 1 MiB), base64 in JSON.
+	maxServerJSONLen = 1536 << 10
 )
 
 func (s *Service) now() time.Time {
@@ -159,8 +165,11 @@ func (s *Service) execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	env := nodecmd.Envelope{NodeID: node.String(), Action: req.GetAction(), ServerID: req.GetServerId()}
 	if p := req.GetParamsJson(); p != "" {
 		limit := maxParamsJSONLen
-		if req.GetAction() == "files.write" {
+		switch req.GetAction() {
+		case "files.write":
 			limit = maxWriteJSONLen
+		case "server.create", "server.update":
+			limit = maxServerJSONLen
 		}
 		if len(p) > limit || !json.Valid([]byte(p)) {
 			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("params must be a JSON object"))
@@ -219,6 +228,9 @@ func (s *Service) execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 		if err := s.Billing.CheckWrite(ctx, uuid.UUID(org.Bytes)); err != nil {
 			return nil, nil, err
 		}
+	}
+	if err := s.checkEggFormat(ctx, nodeID, env); err != nil {
+		return nil, nil, err
 	}
 	var granted grantParams
 	if env.Action == "support.grant" && support == "" {
@@ -309,4 +321,34 @@ func mustJSON(v any) []byte {
 		return []byte("{}")
 	}
 	return b
+}
+
+// checkEggFormat refuses to send a server one of Raptor's own eggs
+// (RPTR_v1) on a node whose Wings is too old to read them, saying why,
+// rather than letting the node fail with "unsupported format".
+func (s *Service) checkEggFormat(ctx context.Context, node pgtype.UUID, env nodecmd.Envelope) error {
+	if env.Action != "server.create" && env.Action != "server.update" {
+		return nil
+	}
+	var p struct {
+		Egg []byte `json:"egg"`
+	}
+	if json.Unmarshal(env.Params, &p) != nil || len(p.Egg) == 0 {
+		return nil // the node judges it
+	}
+	e, err := eggs.Parse(p.Egg)
+	if err != nil || !eggs.IsRaptor(e.Format) {
+		return nil
+	}
+	// Already authorized: read on the Panel's connection, as support
+	// access's staff can't see the node as themselves.
+	n, err := store.New(s.Auth.DB).GetNode(ctx, node)
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(n.Capabilities, nodelink.CapRaptorEggs) {
+		return connect.NewError(connect.CodeFailedPrecondition,
+			errors.New("this node's Raptor Wings is too old for this egg, which is in Raptor's own format: update Wings on the node first"))
+	}
+	return nil
 }

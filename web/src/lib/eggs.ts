@@ -30,6 +30,13 @@ const categoryNames: Record<string, string> = {
   other: "Other",
 };
 
+// formatName is an egg format's name ("raptor", "pterodactyl", "pelican").
+export function formatName(f: string): string {
+  if (f === "raptor") return "Raptor";
+  if (f === "pelican") return "Pelican";
+  return "Pterodactyl";
+}
+
 export function categoryName(c: string): string {
   return categoryNames[c] ?? "Other";
 }

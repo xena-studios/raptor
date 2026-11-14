@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/proto"
 
+	eggcatalog "github.com/xena-studios/raptor/eggs"
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/eggs/spec"
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
@@ -140,6 +142,9 @@ func (s *Eggs) audit(ctx context.Context, l *lib, action, target string, meta ma
 // eggID parses a library egg's ID ("org:" and the ID, as servers made
 // before the library name them, works too). ok is false for anything else,
 // such as a catalog ID ("minecraft/paper"), which load looks up.
+// shortEggID is an egg's short ID: its UUID's last part.
+var shortEggID = regexp.MustCompile(`^[0-9a-f]{12}$`)
+
 func eggID(id string) (pgtype.UUID, bool) {
 	u, err := uuid.Parse(strings.TrimPrefix(id, orgEggPrefix))
 	if err != nil {
@@ -263,6 +268,24 @@ func (s *Eggs) ListEggs(ctx context.Context, req *panelv1.EggServiceListEggsRequ
 func resolve(ctx context.Context, l *lib, id string) (pgtype.UUID, error) {
 	if u, ok := eggID(id); ok {
 		return u, nil
+	}
+	if shortEggID.MatchString(id) {
+		// An egg page's URL: the UUID's last part, among the eggs this
+		// library can see (one, or none if two share it).
+		rows, err := l.q.EggsByShortID(ctx, id)
+		if err != nil {
+			return pgtype.UUID{}, err
+		}
+		var found []pgtype.UUID
+		for _, r := range rows {
+			if l.sees(r) {
+				found = append(found, r.ID)
+			}
+		}
+		if len(found) != 1 {
+			return pgtype.UUID{}, errNoEgg
+		}
+		return found[0], nil
 	}
 	r, err := l.q.GetEggByCatalogID(ctx, pgtype.Text{String: id, Valid: true})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -420,7 +443,10 @@ func (s *Eggs) GetEggDetails(ctx context.Context, req *panelv1.GetEggDetailsRequ
 }
 
 func format(e *eggs.Egg) string {
-	if strings.HasPrefix(e.Format, "PLCN") {
+	switch {
+	case eggs.IsRaptor(e.Format):
+		return "raptor"
+	case strings.HasPrefix(e.Format, "PLCN"):
 		return "pelican"
 	}
 	return "pterodactyl"
@@ -629,6 +655,11 @@ func (s *Eggs) UpdateEgg(ctx context.Context, req *panelv1.UpdateEggRequest) (*p
 		name, err := checkFile(file)
 		if err != nil {
 			return err
+		}
+		if l.official && !row.CatalogID.Valid {
+			if err := s.adoptLibraryID(ctx, l, row.ID, file); err != nil {
+				return err
+			}
 		}
 		sum := eggimport.Sum(file)
 		version := row.Version
@@ -845,7 +876,29 @@ func (s *Eggs) ReviewEggFile(ctx context.Context, req *panelv1.ReviewEggFileRequ
 	err = s.tx(ctx, req.GetOrgId(), true, func(l *lib) error {
 		var err error
 		if l.official {
-			out.Review.Duplicate, err = l.q.OfficialEggExists(ctx, out.Sha256)
+			if out.Review.Duplicate, err = l.q.OfficialEggExists(ctx, out.Sha256); err != nil {
+				return err
+			}
+			if r, err := eggimport.Parse(data); err == nil && r.Egg.Raptor.Library != "" {
+				id, err := checkLibraryID(r.Egg.Raptor.Library)
+				if err != nil {
+					return err
+				}
+				row, err := l.q.GetOfficialEggByCatalogID(ctx, pgtype.Text{String: id, Valid: true})
+				switch {
+				case err == nil && row.Sha256 != out.Sha256:
+					// Another egg with the same file doesn't matter: this
+					// one gets the version.
+					out.Review.Updates, out.Review.Duplicate = row.Name, false
+					if row.Status != "published" {
+						out.Review.Updates += " (" + row.Status + ")"
+					}
+				case err == nil:
+					out.Review.Duplicate = true
+				case !errors.Is(err, pgx.ErrNoRows):
+					return err
+				}
+			}
 		} else {
 			out.Review.Duplicate, err = l.q.OrgEggExists(ctx, store.OrgEggExistsParams{OrgID: l.org, Sha256: out.Sha256})
 		}
@@ -876,10 +929,14 @@ func (s *Eggs) importFile(ctx context.Context, orgID string, data []byte, source
 			return pgtype.UUID{}, invalid(err)
 		}
 	}
-	if category == "" {
+	var libraryID string
+	if r, err := eggimport.Parse(data); err == nil {
+		if libraryID, err = checkLibraryID(r.Egg.Raptor.Library); err != nil {
+			return pgtype.UUID{}, err
+		}
 		// The egg's own category (x-raptor.category, as the egg library
 		// exports them), so a bulk import needn't ask for each.
-		if r, err := eggimport.Parse(data); err == nil && slices.Contains(Categories, r.Egg.Raptor.Category) {
+		if category == "" && slices.Contains(Categories, r.Egg.Raptor.Category) {
 			category = r.Egg.Raptor.Category
 		}
 	}
@@ -890,6 +947,23 @@ func (s *Eggs) importFile(ctx context.Context, orgID string, data []byte, source
 	var id pgtype.UUID
 	err = s.tx(ctx, orgID, true, func(l *lib) error {
 		sum := eggimport.Sum(data)
+		if l.official && libraryID != "" {
+			// An egg from Raptor's egg library that the official library
+			// already has (imported before, or the catalog egg of the same
+			// ID that servers still use) gets a new version: servers keep
+			// their file until moved to it (docs/EGGS.md#egg-library).
+			if err := l.q.LockLibraryID(ctx, libraryID); err != nil {
+				return err
+			}
+			row, err := l.q.GetOfficialEggByCatalogID(ctx, pgtype.Text{String: libraryID, Valid: true})
+			if err == nil {
+				id = row.ID
+				return s.libraryVersion(ctx, l, row, data, name, sourceURL)
+			}
+			if !errors.Is(err, pgx.ErrNoRows) {
+				return err
+			}
+		}
 		var dup bool
 		var err error
 		if l.official {
@@ -910,9 +984,107 @@ func (s *Eggs) importFile(ctx context.Context, orgID string, data []byte, source
 			return err
 		}
 		id = row.ID
+		if l.official && libraryID != "" {
+			if err := l.q.SetEggCatalogID(ctx, store.SetEggCatalogIDParams{
+				CatalogID: pgtype.Text{String: libraryID, Valid: true}, ID: row.ID,
+			}); err != nil {
+				return err
+			}
+		}
 		return s.audit(ctx, l, "egg.import", idString(row.ID), map[string]any{
-			"name": name, "source_url": sourceURL, "sha256": row.Sha256,
+			"name": name, "source_url": sourceURL, "sha256": row.Sha256, "library": libraryID,
 		})
 	})
 	return id, err
+}
+
+// libraryIDPattern is an egg-library ID: its folder, <category>/<egg>.
+var libraryIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$`)
+
+// checkLibraryID checks the egg-library ID a file says it has: a folder's
+// name, and not one of the built-in catalog's, whose eggs the seed keeps
+// (an egg claiming one would replace it).
+func checkLibraryID(id string) (string, error) {
+	if id == "" {
+		return "", nil
+	}
+	if !libraryIDPattern.MatchString(id) {
+		return "", invalid(fmt.Errorf("the egg's library ID %q isn't one: it's a folder, like minecraft/paper", id))
+	}
+	if builtinIDs()[id] {
+		return "", invalid(fmt.Errorf("the egg's library ID %q is a built-in egg's", id))
+	}
+	return id, nil
+}
+
+// builtinIDs are the built-in catalog's egg IDs.
+var builtinIDs = sync.OnceValue(func() map[string]bool {
+	ids := map[string]bool{}
+	all, _ := eggcatalog.All() // its tests make sure it loads
+	for _, e := range all {
+		ids[e.ID] = true
+	}
+	return ids
+})
+
+// adoptLibraryID gives an official egg without one the egg-library ID its
+// new file has, so the library's later imports update it. Another official
+// egg with the ID refuses the change.
+func (s *Eggs) adoptLibraryID(ctx context.Context, l *lib, egg pgtype.UUID, file []byte) error {
+	r, err := eggimport.Parse(file)
+	if err != nil || r.Egg.Raptor.Library == "" {
+		return nil
+	}
+	id, err := checkLibraryID(r.Egg.Raptor.Library)
+	if err != nil {
+		return err
+	}
+	if err := l.q.LockLibraryID(ctx, id); err != nil {
+		return err
+	}
+	other, err := l.q.GetOfficialEggByCatalogID(ctx, pgtype.Text{String: id, Valid: true})
+	switch {
+	case err == nil && other.ID != egg:
+		return invalid(fmt.Errorf("the official egg %s already has the library ID %q", other.Name, id))
+	case err != nil && !errors.Is(err, pgx.ErrNoRows):
+		return err
+	}
+	return l.q.SetEggCatalogID(ctx, store.SetEggCatalogIDParams{CatalogID: pgtype.Text{String: id, Valid: true}, ID: egg})
+}
+
+// libraryVersion saves an egg from Raptor's egg library as the newest
+// version of the official egg with its ID. The egg keeps its category and
+// summary; it's no longer certified, as an edit wouldn't be.
+func (s *Eggs) libraryVersion(ctx context.Context, l *lib, row store.Egg, file []byte, name, sourceURL string) error {
+	sum := eggimport.Sum(file)
+	if sum == row.Sha256 {
+		return connect.NewError(connect.CodeAlreadyExists, errors.New("this egg is already in the library"))
+	}
+	version := row.Version + 1
+	if err := l.q.AddEggVersion(ctx, store.AddEggVersionParams{
+		EggID: row.ID, Version: version, Egg: file, Sha256: sum, Note: "Updated from Raptor's egg library", CreatedBy: l.email(),
+	}); err != nil {
+		return err
+	}
+	if sourceURL != "" && sourceURL != row.SourceUrl {
+		if err := l.q.SetEggSource(ctx, store.SetEggSourceParams{SourceUrl: sourceURL, ID: row.ID}); err != nil {
+			return err
+		}
+	}
+	if row.Certified {
+		if err := l.q.ClearEggCertified(ctx, row.ID); err != nil {
+			return err
+		}
+	}
+	if err := l.q.UpdateEgg(ctx, store.UpdateEggParams{
+		ID: row.ID, Name: name, Summary: row.Summary, Category: row.Category, Egg: file, Sha256: sum, Version: version,
+	}); err != nil {
+		return err
+	}
+	if err := catalog.SyncIcon(ctx, l.q, row, file, nil); err != nil {
+		return err
+	}
+	return s.audit(ctx, l, "egg.update", idString(row.ID), map[string]any{
+		"name": name, "version": version, "source_url": sourceURL, "library": row.CatalogID.String,
+	})
 }

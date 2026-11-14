@@ -7,13 +7,20 @@ Panel, whose catalog (`eggs/`) has only the test server. See
 
 One folder per egg, `<category>/<egg>/`, in the catalog's layout:
 
-- `egg-<egg>.json`: a Pterodactyl egg (`PTDL_v2`), Raptor's own file.
+- `egg-<egg>.json`: the egg, in Raptor's own format (`RPTR_v1`,
+  [docs/EGGS.md](../docs/EGGS.md#raptor-eggs)).
 - `raptor.yaml`: `source` (this repository, the egg's path, no commit),
   `license: MIT`, `credits` (what it's based on, with the licence), `arch`,
   Raptor's settings (`players`, `addons`, `workshop`, `backup`), and its
   conformance `test`.
 - `icon.png`: the game's own icon, square, 256×256. Where it came from is
   in `raptor.yaml`'s `credits`.
+
+**The folder is the egg's ID** (`minecraft/paper`), and it never changes:
+importing the library into the official library again adds a version to
+the egg with that ID instead of a second egg, and an egg whose ID a
+retired catalog egg had (one servers still use) becomes that egg's newest
+version. Keep the old catalog's IDs for the games it had.
 
 `go test ./library` checks every egg against the rules below.
 `task library:export` writes one file per egg to import (the egg with its

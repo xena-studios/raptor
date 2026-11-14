@@ -283,6 +283,56 @@ func (q *Queries) EggServerCounts(ctx context.Context) ([]EggServerCountsRow, er
 	return items, nil
 }
 
+const eggsByShortID = `-- name: EggsByShortID :many
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE split_part(id::text, '-', 5) = $1::text LIMIT 10
+`
+
+// Eggs whose UUID ends in a short ID (eggs_short_id), for egg pages' URLs.
+func (q *Queries) EggsByShortID(ctx context.Context, shortID string) ([]Egg, error) {
+	rows, err := q.db.Query(ctx, eggsByShortID, shortID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Egg
+	for rows.Next() {
+		var i Egg
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.Summary,
+			&i.Category,
+			&i.Origin,
+			&i.Status,
+			&i.Version,
+			&i.Egg,
+			&i.Sha256,
+			&i.SourceUrl,
+			&i.ParentID,
+			&i.ParentName,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SharedAt,
+			&i.RemovedAt,
+			&i.RemovedReason,
+			&i.RemovedBy,
+			&i.CatalogID,
+			&i.Certified,
+			&i.Icon,
+			&i.IconSource,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const eggsWithoutIcons = `-- name: EggsWithoutIcons :many
 SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE icon IS NULL AND icon_source = '' AND position(convert_to('data:image/', 'UTF8') IN egg) > 0
 `
@@ -471,6 +521,43 @@ func (q *Queries) GetEggVersion(ctx context.Context, arg GetEggVersionParams) (E
 		&i.Note,
 		&i.CreatedBy,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getOfficialEggByCatalogID = `-- name: GetOfficialEggByCatalogID :one
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE org_id IS NULL AND catalog_id = $1 FOR UPDATE
+`
+
+// An official egg by its catalog or egg-library ID, locked for an update.
+func (q *Queries) GetOfficialEggByCatalogID(ctx context.Context, catalogID pgtype.Text) (Egg, error) {
+	row := q.db.QueryRow(ctx, getOfficialEggByCatalogID, catalogID)
+	var i Egg
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Summary,
+		&i.Category,
+		&i.Origin,
+		&i.Status,
+		&i.Version,
+		&i.Egg,
+		&i.Sha256,
+		&i.SourceUrl,
+		&i.ParentID,
+		&i.ParentName,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.SharedAt,
+		&i.RemovedAt,
+		&i.RemovedReason,
+		&i.RemovedBy,
+		&i.CatalogID,
+		&i.Certified,
+		&i.Icon,
+		&i.IconSource,
 	)
 	return i, err
 }
@@ -780,6 +867,16 @@ func (q *Queries) ListOpenEggReports(ctx context.Context) ([]ListOpenEggReportsR
 	return items, nil
 }
 
+const lockLibraryID = `-- name: LockLibraryID :exec
+SELECT pg_advisory_xact_lock(hashtext('egg-library:' || $1::text))
+`
+
+// Serializes imports of one egg-library ID, which may not have a row yet.
+func (q *Queries) LockLibraryID(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, lockLibraryID, id)
+	return err
+}
+
 const officialEggExists = `-- name: OfficialEggExists :one
 SELECT EXISTS (SELECT 1 FROM eggs WHERE org_id IS NULL AND sha256 = $1)
 `
@@ -895,7 +992,8 @@ SELECT e.id, e.catalog_id::text AS catalog_id,
     (SELECT count(*) FROM m_servers s
      WHERE s.egg_source IN (e.id::text, 'org:' || e.id::text, e.catalog_id))::int AS servers
 FROM eggs e
-WHERE e.org_id IS NULL AND e.catalog_id IS NOT NULL AND NOT (e.catalog_id = ANY ($1::text[]))
+WHERE e.org_id IS NULL AND e.origin = 'catalog' AND e.catalog_id IS NOT NULL AND NOT (e.catalog_id = ANY ($1::text[]))
+    AND (SELECT v.created_by FROM egg_versions v WHERE v.egg_id = e.id ORDER BY v.version DESC LIMIT 1) = 'Raptor'
 `
 
 type RetiredCatalogEggsRow struct {
@@ -906,7 +1004,8 @@ type RetiredCatalogEggsRow struct {
 
 // Official eggs the catalog no longer has, with how many servers were
 // made from them (by the egg's ID, or its catalog ID from before the
-// library).
+// library). Only ones the seed still owns: an egg staff changed or
+// imported (one from the egg library has a catalog ID too) is theirs.
 func (q *Queries) RetiredCatalogEggs(ctx context.Context, ids []string) ([]RetiredCatalogEggsRow, error) {
 	rows, err := q.db.Query(ctx, retiredCatalogEggs, ids)
 	if err != nil {
@@ -925,6 +1024,20 @@ func (q *Queries) RetiredCatalogEggs(ctx context.Context, ids []string) ([]Retir
 		return nil, err
 	}
 	return items, nil
+}
+
+const setEggCatalogID = `-- name: SetEggCatalogID :exec
+UPDATE eggs SET catalog_id = $1 WHERE id = $2 AND org_id IS NULL
+`
+
+type SetEggCatalogIDParams struct {
+	CatalogID pgtype.Text
+	ID        pgtype.UUID
+}
+
+func (q *Queries) SetEggCatalogID(ctx context.Context, arg SetEggCatalogIDParams) error {
+	_, err := q.db.Exec(ctx, setEggCatalogID, arg.CatalogID, arg.ID)
+	return err
 }
 
 const setEggIcon = `-- name: SetEggIcon :exec

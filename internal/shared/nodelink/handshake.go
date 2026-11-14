@@ -221,6 +221,9 @@ const (
 	// (node.db.backups, node.db.backup.*), and node.db.instance.delete
 	// takes a final backup first.
 	CapDatabaseInstanceBackups = "db-instance-backups"
+	// CapRaptorEggs: eggs in Raptor's own format (RPTR_v1,
+	// docs/EGGS.md#raptor-eggs).
+	CapRaptorEggs = "raptor-eggs"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -228,7 +231,7 @@ var nodeCapabilities = []string{
 	CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser,
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
-	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups,
+	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs,
 }
 
 // NewHello starts a handshake for a node.

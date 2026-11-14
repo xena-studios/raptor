@@ -342,7 +342,9 @@ function EggRow({
             ? (i.error ?? "Failed")
             : r?.duplicate
               ? "Already in the library"
-              : "";
+              : r?.updates
+                ? `New version of ${r.updates}`
+                : "";
   return (
     <li className="flex flex-col gap-2 p-3 text-sm">
       <div className="flex min-w-0 items-center gap-3">

@@ -29,9 +29,19 @@ func TestLibrary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	builtin, err := catalog.All()
+	if err != nil {
+		t.Fatal(err)
+	}
 	names := map[string]string{}
+	idPattern := regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$`)
 	for _, e := range all {
 		t.Run(e.ID, func(t *testing.T) {
+			// The folder is the egg's ID, which the Panel matches imports
+			// by (internal/panel/orgs checkLibraryID): never a built-in's.
+			if !idPattern.MatchString(e.ID) || slices.ContainsFunc(builtin, func(b catalog.Entry) bool { return b.ID == e.ID }) {
+				t.Errorf("ID %q: lowercase <category>/<egg>, and not a built-in egg's", e.ID)
+			}
 			if !e.Own() || e.License != "MIT" {
 				t.Errorf("an egg of Raptor's own, MIT: source %+v, license %s", e.Source, e.License)
 			}
@@ -43,8 +53,8 @@ func TestLibrary(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if egg.Format != "PTDL_v2" || !strings.HasSuffix(e.File, ".json") {
-				t.Errorf("a PTDL_v2 JSON egg, not %s %s", egg.Format, e.File)
+			if egg.Format != eggs.Raptor || !strings.HasSuffix(e.File, ".json") {
+				t.Errorf("a %s JSON egg (Raptor's own format), not %s %s", eggs.Raptor, egg.Format, e.File)
 			}
 			name := egg.Name
 			if badName.MatchString(strings.TrimPrefix(name, "Minecraft: ")) || versionName.MatchString(name) || len(name) > 40 || name == "" {

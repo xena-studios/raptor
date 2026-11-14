@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ReviewEggFileResponse } from "@/gen/raptor/panel/v1/egg_pb";
-import { categories, categoryName } from "@/lib/eggs";
+import { categories, categoryName, formatName } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { eggClient } from "@/lib/transport";
 
@@ -169,7 +169,7 @@ export function EggImport({
               <DialogDescription>
                 {replace
                   ? "Its file is replaced with this one, as a new version. Servers keep the version they run until you update them. "
-                  : "A Pterodactyl egg, as JSON or YAML. "}
+                  : "A Raptor or Pterodactyl egg, as JSON or YAML. "}
                 You'll see what it runs before anything is saved.
               </DialogDescription>
             </DialogHeader>
@@ -323,8 +323,7 @@ export function EggImport({
               <p className="text-xs text-muted-foreground">
                 {r.variables.length} {r.variables.length === 1 ? "setting" : "settings"} ·{" "}
                 {r.arch.length ? `Runs on ${r.arch.join(" and ")}` : "CPUs not stated"} ·{" "}
-                {r.format === "pelican" ? "Pelican" : "Pterodactyl"} format · SHA-256{" "}
-                <code>{preview.sha256.slice(0, 12)}</code>
+                {formatName(r.format)} format · SHA-256 <code>{preview.sha256.slice(0, 12)}</code>
               </p>
             </div>
             {!same && replace && (
@@ -342,7 +341,13 @@ export function EggImport({
                 </span>
               </Label>
             )}
-            {!same && !replace && (
+            {!same && !replace && r.updates && (
+              <p className="text-sm">
+                This egg is from Raptor's egg library: importing it saves it as a new version of{" "}
+                <strong>{r.updates}</strong>, which servers can move to when you choose.
+              </p>
+            )}
+            {!same && !replace && !r.updates && (
               <div className="grid gap-1.5">
                 <Label htmlFor="egg-category">Category</Label>
                 <select
@@ -383,7 +388,7 @@ export function EggImport({
                 Back
               </Button>
               <Button onClick={importIt} disabled={busy || !trusted || same}>
-                {busy ? "Importing…" : replace ? "Save as a new version" : "Import"}
+                {busy ? "Importing…" : replace || r.updates ? "Save as a new version" : "Import"}
               </Button>
             </DialogFooter>
           </div>

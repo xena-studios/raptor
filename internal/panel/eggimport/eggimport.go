@@ -35,11 +35,21 @@ var (
 	ErrURL      = errors.New("enter an https:// link to an egg file")
 	ErrPrivate  = errors.New("that link points to a private network address; Raptor only fetches eggs from the internet")
 	ErrTooBig   = errors.New("that file is bigger than 1 MiB, which no egg is")
-	ErrNotEgg   = errors.New("that isn't an egg Raptor can read; eggs are the JSON or YAML files Pterodactyl and Pelican export")
+	ErrNotEgg   = errors.New("that isn't an egg Raptor can read; eggs are the JSON or YAML files Raptor and Pterodactyl export")
 	ErrRedirect = errors.New("that link redirects too many times, or away from https")
 	ErrFetch    = errors.New("couldn't download that link; check it opens in your browser")
 	ErrInherits = errors.New("this egg borrows parts from another egg (Pterodactyl's \"extends\" or \"copy script from\"), which Raptor can't follow; import an egg that has everything in it")
 )
+
+// invalidEgg is an egg in a format Raptor reads that's wrong in itself:
+// it says what's wrong, and counts as ErrNotEgg.
+type invalidEgg struct{ err error }
+
+func (e invalidEgg) Error() string {
+	return "that egg can't be used: " + strings.TrimPrefix(e.err.Error(), "egg: ")
+}
+
+func (e invalidEgg) Is(target error) bool { return target == ErrNotEgg }
 
 // blocked are ranges that aren't private by netip's reckoning but still
 // aren't the internet, or can lead back into a private network.
@@ -194,6 +204,9 @@ func Parse(data []byte) (*Review, error) {
 	}
 	egg, err := eggs.Parse(data)
 	if err != nil {
+		if eggs.Supported(data) {
+			return nil, invalidEgg{err}
+		}
 		return nil, ErrNotEgg
 	}
 	if inherits(data) {
