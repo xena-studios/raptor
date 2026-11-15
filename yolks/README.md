@@ -15,7 +15,7 @@ the way Wings runs servers before anything is published.
 | `go_1.26`, `go_1.27`, `rust_1` | Go, Rust toolchains (Debian) | amd64, arm64 |
 | `debian` | Debian 13 slim with common libraries, for servers that ship their own binaries | amd64, arm64 |
 | `box64` | Debian, with Debian's Box64 on arm64 to run x86-only servers (Bedrock) | amd64, arm64 |
-| `steamcmd` | Debian slim with the 32-bit libraries SteamCMD and Source games need | amd64 |
+| `steamcmd` | Debian 13 slim with the 32-bit libraries SteamCMD and Source games need, plus libcurl-gnutls and SQLite | amd64 |
 | `installer` | Debian slim with what install scripts use (curl, jq, unzip, git, …) | amd64, arm64 |
 
 Only supported releases: Java's long-term ones, Node's LTS and current,
