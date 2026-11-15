@@ -1,0 +1,21 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/bungeecord/egg-bungeecord.json
+license: MIT
+credits:
+  - "Based on the BungeeCord egg in https://github.com/pelican-eggs/minecraft (MIT)"
+  - "Icon: SpigotMC's logo (BungeeCord's maker), the avatar of https://github.com/SpigotMC"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "glist"
+  expect: "Total players online: 0"
+addons:
+  plugins:
+    loaders: [bungeecord, waterfall]
+    dir: plugins

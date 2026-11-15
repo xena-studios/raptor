@@ -1,0 +1,78 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Travertine",
+    "author": "support@raptorpanel.net",
+    "description": "Travertine, PaperMC's Waterfall fork that also lets Minecraft 1.7 players join, a proxy that links servers into one network. PaperMC no longer develops it.",
+    "features": [
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:dda430001e6c1bc8e1c43d1b0cbb2fcd0d38221d3d8f167f3ba1ae658616b374",
+        "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:e71740e2a99017d4273a588310db60da474644ea364da60d086e33635b62dd27"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, and it runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:MaxInlineLevel=15 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{\"config.yml\": {\"parser\": \"yaml\", \"find\": {\"listeners[0].host\": \"0.0.0.0:{{server.build.default.port}}\", \"listeners[0].query_port\": \"{{server.build.default.port}}\", \"servers.*.address\": {\"regex:^(127\\\\.0\\\\.0\\\\.1|localhost)(:\\\\d{1,5})?$\": \"{{config.docker.interface}}$2\"}}}}",
+        "startup": "{\"done\": \"Listening on \"}",
+        "logs": "{}",
+        "stop": "end"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Travertine. Downloads the chosen Travertine build from PaperMC and\n# checks it against PaperMC's checksum. Settings and plugins are never\n# touched, and the jar is only replaced once the new one checks out.\nproject=travertine\nname=Travertine\njar=\"${SERVER_JARFILE:-travertine.jar}\"\nwant_version=\"${MINECRAFT_VERSION:-latest}\"\ncustom_url=\"${DL_LINK:-}\"\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\nsum() { \"${1}sum\" \"$2\" | cut -d' ' -f1; }\ntrap 'rm -f \"$jar.new\"; echo \"The install stopped at line $LINENO of its script. Reinstall to try again.\"' ERR\n\n# install_jar <url> <md5|sha1|sha256|sha512|none> <hash> <what>: skipped\n# when the jar already matches; replaced only once the new one checks out.\ninstall_jar() {\n    if [ \"$2\" != none ] && [ -f \"$jar\" ] && [ \"$(sum \"$2\" \"$jar\")\" = \"$3\" ]; then\n        echo \"$4 is already installed.\"\n        return\n    fi\n    echo \"Downloading $4\"\n    curl -fsSLg --retry 3 -A \"$ua\" -o \"$jar.new\" \"$1\" || { rm -f \"$jar.new\"; fail \"The download failed. Reinstall to try again.\"; }\n    if [ \"$2\" != none ] && [ \"$(sum \"$2\" \"$jar.new\")\" != \"$3\" ]; then\n        rm -f \"$jar.new\"\n        fail \"The download didn't match its checksum. Reinstall to try again.\"\n    fi\n    unzip -tq \"$jar.new\" >/dev/null 2>&1 || { rm -f \"$jar.new\"; fail \"The download isn't a valid jar. Reinstall to try again.\"; }\n    mv -f \"$jar.new\" \"$jar\"\n}\n\n# The Java the jar needs, from its main class: the startup command checks it.\njar_java() {\n    local main major\n    main=$(unzip -p \"$jar\" META-INF/MANIFEST.MF 2>/dev/null | tr -d '\\r' | sed -n 's/^Main-Class: *//p' | head -n1) || true\n    major=$(unzip -p \"$jar\" \"${main//.//}.class\" 2>/dev/null | od -An -j6 -N2 -tu1 | awk 'NF == 2 { print $1 * 256 + $2 - 44 }') || true\n    echo \"${major:-8}\"\n}\n\napi=\"https://fill.papermc.io/v3/projects/$project\"\nif [ -n \"${custom_url:-}\" ]; then\n    install_jar \"$custom_url\" none \"\" \"the server jar from the download link\"\n    jar_java > .raptor-java\n    echo \"Installed the jar from the download link. It needs Java $(cat .raptor-java) or newer.\"\n    exit 0\nfi\n\nversions=$(get \"$api/versions\") || fail \"PaperMC can't be reached right now. Reinstall to try again.\"\nversion=\"${want_version:-latest}\"\nbuild=\"${BUILD_NUMBER:-latest}\"\nstable() { get \"$api/versions/$1/builds?channel=STABLE\" | jq -c '.[0] // empty'; }\nif [ \"$version\" = latest ]; then\n    # The newest version PaperMC still supports with a stable build, or,\n    # for a project it no longer develops, its newest one.\n    build_json=\"\"\n    for v in $(jq -r '(.versions | map(select(.version.support.status == \"SUPPORTED\"))) as $s | (if ($s | length) > 0 then $s else .versions end)[] | .version.id' <<<\"$versions\"); do\n        if [ \"$build\" = latest ]; then\n            build_json=$(stable \"$v\") || true\n        else\n            build_json=$(get \"$api/versions/$v/builds/$build\" 2>/dev/null) || true\n        fi\n        if [ -n \"$build_json\" ]; then version=$v; break; fi\n    done\n    [ -n \"$build_json\" ] || fail \"PaperMC has no stable $name build to install right now. Reinstall to try again later.\"\nelse\n    jq -e --arg v \"$version\" 'any(.versions[]; .version.id == $v)' <<<\"$versions\" >/dev/null ||\n        fail \"$name has no version $version. Set Version to latest, or to one $name has, such as $(jq -r '.versions[0].version.id' <<<\"$versions\").\"\n    if [ \"$build\" = latest ]; then\n        build_json=$(stable \"$version\") || true\n        if [ -z \"$build_json\" ]; then\n            build_json=$(get \"$api/versions/$version/builds/latest\") || fail \"PaperMC can't be reached right now. Reinstall to try again.\"\n            echo \"$name $version has no stable build, so this is an experimental one.\"\n        fi\n    else\n        build_json=$(get \"$api/versions/$version/builds/$build\" 2>/dev/null) ||\n            fail \"$name has no build $build for version $version. Set Build to latest, or to one of its builds.\"\n    fi\nfi\n\nid=$(jq -r '.id' <<<\"$build_json\")\ndl=$(jq -c '.downloads.\"server:default\" // .downloads.application // empty' <<<\"$build_json\")\n[ -n \"$dl\" ] || fail \"$name $version build $id has no server jar. Choose another build.\"\nurl=$(jq -r .url <<<\"$dl\")\nsha=$(jq -r .checksums.sha256 <<<\"$dl\")\njava=$(jq -r --arg v \"$version\" '.versions[] | select(.version.id == $v) | .version.java.version.minimum // 8' <<<\"$versions\")\ninstall_jar \"$url\" sha256 \"$sha\" \"$name $version build $id\"\necho \"$java\" > .raptor-java\n# Waterfall's and Travertine's commands (glist, send, alert...) are modules\n# they'd download from a link PaperMC has retired, so they come from here.\nwhile IFS=$'\\t' read -r mod murl msha; do\n    mkdir -p modules\n    if [ -f \"modules/$mod.jar\" ] && [ \"$(sum sha256 \"modules/$mod.jar\")\" = \"$msha\" ]; then continue; fi\n    curl -fsSL --retry 3 -A \"$ua\" -o \"modules/$mod.jar.new\" \"$murl\"\n    [ \"$(sum sha256 \"modules/$mod.jar.new\")\" = \"$msha\" ] || { rm -f \"modules/$mod.jar.new\"; fail \"The $mod module didn't match PaperMC's checksum. Reinstall to try again.\"; }\n    mv -f \"modules/$mod.jar.new\" \"modules/$mod.jar\"\ndone < <(jq -r '.downloads | to_entries[] | select(.key | startswith(\"module:\")) | [(.key | ltrimstr(\"module:\")), .value.url, .value.checksums.sha256] | @tsv' <<<\"$build_json\")\necho \"Installed $name $version build $id. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Travertine version, such as 1.21, or latest for its newest. Reinstall after changing it.",
+            "env_variable": "MINECRAFT_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Build",
+            "description": "The Travertine build for that version, or latest for its newest stable build.",
+            "env_variable": "BUILD_NUMBER",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "travertine.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Download link",
+            "description": "A link to download the server jar from instead of PaperMC, which only staff can set.",
+            "env_variable": "DL_LINK",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        }
+    ]
+}

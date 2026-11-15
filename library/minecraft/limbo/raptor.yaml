@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/limbo/egg-limbo.json
+license: MIT
+credits:
+  - "Based on the Limbo egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: a plain L lettermark drawn for Raptor, since Limbo has no logo"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  command: "version"
+  expect: "This server is running Limbo version"

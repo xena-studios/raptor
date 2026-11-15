@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/viaaas/egg-viaaas.json
+license: MIT
+credits:
+  - "Based on the VIAaaS egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: ViaVersion's logo, the avatar of https://github.com/ViaVersion"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 4m
+  command: "list"
+  expect: "List of player connections"

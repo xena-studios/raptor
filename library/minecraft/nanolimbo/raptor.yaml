@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/nanolimbo/egg-nanolimbo.json
+license: MIT
+credits:
+  - "Based on the NanoLimbo egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: a plain NL lettermark drawn for Raptor, since NanoLimbo has no logo"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 3m
+  command: "conn"
+  expect: "Connections: 0"

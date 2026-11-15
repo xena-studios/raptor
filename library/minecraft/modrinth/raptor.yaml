@@ -1,0 +1,33 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/modrinth/egg-modrinth.json
+license: MIT
+credits:
+  - "Based on the Modrinth egg in https://github.com/pelican-eggs/minecraft (MIT)"
+  - "Icon: Modrinth's logo, the avatar of https://github.com/modrinth"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 2048
+  eula: true
+  # Adrenaserver: a small server-side performance pack (Fabric).
+  variables:
+    PROJECT_ID: "adrenaserver"
+    MINECRAFT_VERSION: "1.21.1"
+  done_timeout: 5m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"
+addons:
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+# save-off and everything written out before the snapshot, so it never
+# catches region files mid-write; save-on after, even if the backup fails.
+backup:
+  pre: ["save-off", "save-all flush"]
+  post: ["save-on"]
+  wait_for: "regex:Saved the (game|world)" # 1.13+ says game, older world
+  timeout: 5m

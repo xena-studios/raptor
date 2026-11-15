@@ -1,0 +1,34 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/curseforge/egg-curseforge.json
+license: MIT
+credits:
+  - "Based on the CurseForge egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: CurseForge's anvil logo, from https://docs.curseforge.com, in CurseForge's orange"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: slow
+  # VerityPack: a small Forge 1.20.1 pack (30 files), installed from
+  # CurseForge's file list; the loader comes from Forge's own installer.
+  memory_mib: 3072
+  eula: true
+  variables:
+    PROJECT_ID: "1587394"
+    VERSION_ID: "8316994"
+  done_timeout: 10m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"
+addons:
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+# save-off and everything written out before the snapshot, so it never
+# catches region files mid-write; save-on after, even if the backup fails.
+backup:
+  pre: ["save-off", "save-all flush"]
+  post: ["save-on"]
+  wait_for: "regex:Saved the (game|world)" # 1.13+ says game, older world
+  timeout: 5m
