@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/nightingale/egg-nightingale.json
+license: MIT
+credits:
+  - "Based on the Nightingale egg in https://github.com/pterodactyl/game-eggs (MIT) and the developer's dedicated server guide (Inflexion Games)"
+  - "Icon: Nightingale's logo, from its Steam store page (Inflexion Games)"
+certified: true
+arch: [amd64]
+# No player count: Nightingale doesn't answer Steam's server query.
+# No backup hooks: the server has no console; it saves on its own and when
+# stopped.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 60m

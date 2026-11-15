@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/longvinter/egg-longvinter.json
+license: MIT
+credits:
+  - "Based on the Longvinter egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Longvinter's icon, from Steam (Uuvana Studios)"
+certified: true
+arch: [amd64]
+# No player count: Longvinter lists itself through Epic Online Services, not
+# Steam's server query.
+# No backup hooks: the server has no console; it saves on its own.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

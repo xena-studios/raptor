@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/terratech-worlds/egg-terratech-worlds.json
+license: MIT
+credits:
+  - "Based on the TerraTech Worlds egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: TerraTech Worlds' icon, from Steam (Payload Studios)"
+certified: true
+arch: [amd64]
+# No player count: the server doesn't answer Steam's server query.
+# No backup hooks: the server has no console; it saves on its own.
+test:
+  tier: slow
+  memory_mib: 6144
+  done_timeout: 45m

@@ -1,0 +1,241 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Smalland: Survive the Wilds egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Smalland: Survive the Wilds",
+    "author": "support@raptorpanel.net",
+    "description": "The tiny-scale multiplayer survival adventure where insects tower over you. Installs the Linux dedicated server with SteamCMD and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:3da8e0bc90c94c7f9aca1355f2ae31c0484ee78dd446a0c6c1d796dfe4d7677d"
+    },
+    "file_denylist": [],
+    "startup": "set -f; v=; [ \"{{VALIDATE}}\" = 1 ] && v=validate; if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $v +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; f=start-server.sh; [ -f $f ] || { echo \"start-server.sh, which holds the server's Epic Online Services keys, is missing. Reinstall the server.\"; exit 1; }; eos() { tr -d '\\r' < $f | sed -n \"s/^$1=\\\"\\(.*\\)\\\"$/\\1/p\" | head -n 1; }; dep=$(eos DEPLOYMENTID); cid=$(eos CLIENTID); sec=$(eos CLIENTSECRET); pk=$(eos PRIVATEKEY); [ -n \"$dep\" ] && [ -n \"$cid\" ] && [ -n \"$sec\" ] || { echo \"start-server.sh has no Epic Online Services keys (DEPLOYMENTID, CLIENTID, CLIENTSECRET). Reinstall the server.\"; exit 1; }; exec ./SMALLAND/Binaries/Linux/SMALLANDServer-Linux-Shipping SMALLAND /Game/Maps/WorldGame/WorldGame_Smalland?SERVERNAME=\\\"{{SERVERNAME}}\\\"?WORLDNAME=\\\"{{WORLDNAME}}\\\"${PASSWORD:+?PASSWORD=\\\"$PASSWORD\\\"}$([ \"{{FRIENDLYFIRE}}\" = 1 ] && echo ?FRIENDLYFIRE)$([ \"{{PEACEFULMODE}}\" = 1 ] && echo ?PEACEFULMODE)$([ \"{{KEEPINVENTORY}}\" = 1 ] && echo ?KEEPINVENTORY)$([ \"{{DETERIORATION}}\" = 1 ] || echo ?NODETERIORATION)$([ \"{{TAMEDCREATURESIMMORTAL}}\" = 1 ] && echo ?TAMEDCREATURESIMMORTAL)$([ \"{{PRIVATE}}\" = 1 ] && echo ?PRIVATE)$([ \"{{CROSSPLAY}}\" = 1 ] && echo ?CROSSPLAY)?lengthofdayseconds={{LENGTHOFDAYSECONDS}}?lengthofseasonseconds={{LENGTHOFSEASONSECONDS}}?creaturehealthmodifier={{CREATUREHEALTHMODIFIER}}?creaturedamagemodifier={{CREATUREDAMAGEMODIFIER}}?nourishmentlossmodifier={{NOURISHMENTLOSSMODIFIER}}?falldamagemodifier={{FALLDAMAGEMODIFIER}}?SESSIONPLATFORM=pc -ini:Engine:[EpicOnlineServices]:DeploymentId=$dep -ini:Engine:[EpicOnlineServices]:DedicatedServerClientId=$cid -ini:Engine:[EpicOnlineServices]:DedicatedServerClientSecret=$sec ${pk:+-ini:Engine:[EpicOnlineServices]:DedicatedServerPrivateKey=$pk} -port={{SERVER_PORT}} -NOSTEAM -log",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Session 'GameSession' is being set as 'listening'\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Smalland: Survive the Wilds. Installs or updates the dedicated server (Steam app 808040) with\n# SteamCMD, signed in anonymously. Worlds are never touched.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-808040}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\nchmod +x SMALLAND/Binaries/Linux/SMALLANDServer-Linux-Shipping\necho \"Installed Smalland: Survive the Wilds build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVERNAME",
+            "default_value": "A Smalland server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[^\"\\\\?]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World",
+            "description": "The world save to load, or create when there's none by that name.",
+            "env_variable": "WORLDNAME",
+            "default_value": "World",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:3|max:32|regex:/^[^\\s\"\\\\?]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Private",
+            "description": "Hide the server from the server browser.",
+            "env_variable": "PRIVATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Crossplay",
+            "description": "Let players on other platforms see and join the server.",
+            "env_variable": "CROSSPLAY",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Friendly fire",
+            "description": "Let players hurt each other.",
+            "env_variable": "FRIENDLYFIRE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Peaceful mode",
+            "description": "Creatures don't attack.",
+            "env_variable": "PEACEFULMODE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Keep inventory",
+            "description": "Players keep their items when they die.",
+            "env_variable": "KEEPINVENTORY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Deterioration",
+            "description": "Weather wears down buildings.",
+            "env_variable": "DETERIORATION",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Immortal tamed creatures",
+            "description": "Tamed creatures can't die.",
+            "env_variable": "TAMEDCREATURESIMMORTAL",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Day length",
+            "description": "How long a day lasts, in seconds.",
+            "env_variable": "LENGTHOFDAYSECONDS",
+            "default_value": "1800",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:300,86400",
+            "field_type": "text"
+        },
+        {
+            "name": "Season length",
+            "description": "How long a season lasts, in seconds.",
+            "env_variable": "LENGTHOFSEASONSECONDS",
+            "default_value": "10800",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:600,604800",
+            "field_type": "text"
+        },
+        {
+            "name": "Creature health",
+            "description": "Creatures' health, in percent of normal.",
+            "env_variable": "CREATUREHEALTHMODIFIER",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:20,300",
+            "field_type": "text"
+        },
+        {
+            "name": "Creature damage",
+            "description": "Creatures' damage, in percent of normal.",
+            "env_variable": "CREATUREDAMAGEMODIFIER",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:20,300",
+            "field_type": "text"
+        },
+        {
+            "name": "Hunger and thirst",
+            "description": "How fast players get hungry and thirsty, in percent of normal.",
+            "env_variable": "NOURISHMENTLOSSMODIFIER",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,100",
+            "field_type": "text"
+        },
+        {
+            "name": "Fall damage",
+            "description": "Fall damage, in percent of normal.",
+            "env_variable": "FALLDAMAGEMODIFIER",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:50,100",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "808040",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:808040",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/smalland/egg-smalland.json
+license: MIT
+credits:
+  - "Based on the Smalland: Survive the Wilds egg in https://github.com/pterodactyl/game-eggs (MIT) and the start-server.sh that ships with the server (Merge Games)"
+  - "Icon: Smalland: Survive the Wilds' logo, from its Steam store page (Merge Games)"
+certified: true
+arch: [amd64]
+# No player count: Smalland lists itself through Epic Online Services, not
+# Steam's server query.
+# No backup hooks: the server has no console; it saves on its own.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

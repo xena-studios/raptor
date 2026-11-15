@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/starrupture/egg-starrupture.json
+license: MIT
+credits:
+  - "Based on the StarRupture egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: StarRupture's icon, from Steam (Creepy Jar)"
+certified: true
+arch: [amd64]
+# No player count: StarRupture lists itself through Epic Online Services, not
+# Steam's server query.
+# No backup hooks: the server has no console; it saves on its own (Save
+# interval). Players set the server's passwords in the game (Manage Server).
+test:
+  tier: manual
+  reason: "the server is about 21 GB, more than standard CI runners have room for"
+  memory_mib: 12288
+  done_timeout: 60m

@@ -1,0 +1,191 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Zombie Survival Game Online egg in https://github.com/pelican-eggs/games-steamcmd (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Zombie Survival Game Online",
+    "author": "support@raptorpanel.net",
+    "description": "The open-world post-apocalyptic looter shooter of scavenging and surviving the undead. Installs the Windows dedicated server with SteamCMD, runs it under Proton and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "Proton": "ghcr.io/pelican-eggs/steamcmd:proton@sha256:099a9eba9b0e623c124680fd011948d09b2f5b24f49b0776b5821ff35e5b2530"
+    },
+    "file_denylist": [],
+    "startup": "cfg=ZSGO/Content/DedicatedServer/ServerConfig.json; pw=\"${SERVER_PASSWORD:-NoConfiguredPassword}\"; gslt=false; [ -n \"${GSLT_TOKEN:-}\" ] && gslt=true; sed -i -E \"s/(\\\"ServerPassword\\\": *)\\\"[^\\\"]*\\\"/\\1\\\"$pw\\\"/; s/(\\\"SteamGSLT\\\": *)\\\"[^\\\"]*\\\"/\\1\\\"${GSLT_TOKEN:-}\\\"/; s/(\\\"IsGSLTUsed\\\": *)\\\"?(true|false)\\\"?/\\1$gslt/; s/(\\\"ValveAntiCheat\\\": *)\\\"?(true|false)\\\"?/\\1{{ANTI_CHEAT}}/; s/(\\\"LAN\\\": *)\\\"?(true|false)\\\"?/\\1{{LAN}}/; s/(\\\"AdvertiseServer\\\": *)\\\"?(true|false)\\\"?/\\1{{ADVERTISE_SERVER}}/\" \"$cfg\"; rm -f ZSGO/Saved/Logs/ZSGO.log; PROTON_USE_XALIA=0 proton run ./ZSGO/Binaries/Win64/ZSGOServer-Win64-Shipping.exe -server -log -port={{SERVER_PORT}} -queryport={{QUERY_PORT}} -multihome=0.0.0.0 & pid=$!; tail -n +1 -F ZSGO/Saved/Logs/ZSGO.log --pid=$pid 2>/dev/null",
+    "config": {
+        "files": "{\"ZSGO/Content/DedicatedServer/ServerConfig.json\": {\"parser\": \"json\", \"find\": {\"ServerName\": \"{{server.build.env.SERVER_NAME}}\", \"WorldName\": \"{{server.build.env.WORLD_NAME}}\", \"ServerMap\": \"{{server.build.env.SERVER_MAP}}\", \"MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": \"regex:\\\\(Engine Initialization\\\\) Total time\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Zombie Survival Game Online. Installs or updates the dedicated server (Steam app 2536350) with\n# SteamCMD, signed in anonymously. Saves are kept; ServerConfig.json is replaced only by game updates.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-2536350}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+@sSteamCmdForcePlatformType windows +force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\necho \"Installed Zombie Survival Game Online build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A ZSGO server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:5|max:128|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World name",
+            "description": "The world name shown in the server browser.",
+            "env_variable": "WORLD_NAME",
+            "default_value": "Zombie Survival Game Online",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:5|max:128|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|alpha_dash|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server loads.",
+            "env_variable": "SERVER_MAP",
+            "default_value": "MainLevel",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once; the developers suggest at most 20.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,32",
+            "field_type": "text"
+        },
+        {
+            "name": "Anti-cheat",
+            "description": "true turns on Valve Anti-Cheat protection.",
+            "env_variable": "ANTI_CHEAT",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "LAN only",
+            "description": "true shows the server only in the LAN server list.",
+            "env_variable": "LAN",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Listed",
+            "description": "true lists the server in the server browser; false hides it.",
+            "env_variable": "ADVERTISE_SERVER",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Game server token",
+            "description": "A Steam game server login token, so the server keeps its identity; empty runs without one.",
+            "env_variable": "GSLT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|alpha_num|size:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Query port",
+            "description": "The port Steam's server queries use; give it an allocation.",
+            "env_variable": "QUERY_PORT",
+            "default_value": "27015",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Windows install",
+            "description": "Install the Windows version of the server, which runs under Proton.",
+            "env_variable": "WINDOWS_INSTALL",
+            "default_value": "1",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "2536350",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:2536350",
+            "field_type": "text"
+        }
+    ]
+}

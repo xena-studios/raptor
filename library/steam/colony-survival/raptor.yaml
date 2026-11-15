@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/colony-survival/egg-colony-survival.json
+license: MIT
+credits:
+  - "Based on the Colony Survival egg in https://github.com/pterodactyl/game-eggs (MIT) and the hosting files that ship with the server (Pipliz)"
+  - "Icon: Colony Survival's logo, from its Steam store page (Pipliz)"
+certified: true
+arch: [amd64]
+# No player count: the server stopped answering Steam's server query in 0.17.
+# No backup hooks: saving is an RCON or chat command, not a console one. The
+# game saves on its own and when stopped.
+test:
+  tier: slow
+  memory_mib: 3072
+  done_timeout: 20m
