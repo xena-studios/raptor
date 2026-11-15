@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "KissMP",
+    "author": "support@raptorpanel.net",
+    "description": "The server for KISS Multiplayer, the BeamNG.drive multiplayer mod. Installs the KissMP release your players use, checked against GitHub's checksum.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "jq --argjson l \"$([ \"{{SHOW_IN_LIST}}\" = 1 ] && echo true || echo false)\" --arg m \"{{MAP}}\" '.show_in_server_list = $l | .map = $m | .upnp_enabled = false' config.json > config.json.new && mv -f config.json.new config.json; exec ./kissmp-server",
+    "config": {
+        "files": "{\"config.json\": {\"parser\": \"json\", \"find\": {\"port\": \"{{server.build.default.port}}\", \"server_name\": \"{{server.build.env.SERVER_NAME}}\", \"description\": \"{{server.build.env.SERVER_DESC}}\", \"max_players\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": \"Server is running!\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# KissMP. Downloads the KissMP server of the chosen release from its GitHub\n# releases, checked against GitHub's checksum, for the node's CPU. The\n# settings in config.json and the mods and addons folders are never touched.\nset -euo pipefail\ncd /mnt/server\nrepo=TheHellBox/KISS-multiplayer\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nwant=\"${VERSION:-latest}\"\ntag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) || tag=$(gh-release tag \"$repo\" \"v$want\" 2>/dev/null) ||\n    fail \"KissMP has no release $want. Set Version to latest, or to a release such as 0.8.0.\"\nzip=$(gh-release assets \"$repo\" \"$tag\" | awk '$1 ~ /^KissMP.*\\.zip$/ && !f { print $1; f = 1 }')\n[ -n \"$zip\" ] || fail \"KissMP $tag has no server download. Choose another version.\"\ncase \"$(uname -m)\" in\nx86_64) dir=linux ;;\naarch64) dir=linux-arm ;;\n*) fail \"KissMP has no server for this CPU ($(uname -m)).\" ;;\nesac\n\nif [ -x kissmp-server ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag $dir\" ]; then\n    echo \"KissMP $tag is already installed.\"\n    exit 0\nfi\nrm -rf \"$build\" && mkdir -p \"$build\"\necho \"Downloading KissMP $tag\"\ngh-release download \"$repo\" \"$tag\" \"$zip\" \"$build/kissmp.zip\" || fail \"The download failed. Reinstall to try again.\"\nunzip -q \"$build/kissmp.zip\" -d \"$build/x\"\nbin=$(find \"$build/x\" -type f -name kissmp-server -path \"*/$dir/*\" | sed -n 1p)\n[ -n \"$bin\" ] || fail \"KissMP $tag has no server for this CPU in its download. Choose a newer version.\"\nchmod +x \"$bin\"\nmv -f \"$bin\" kissmp-server\nmkdir -p mods addons\n\n# The server's settings, which the server keeps as it is once it exists.\nif [ ! -f config.json ]; then\n    cat > config.json <<'JSON'\n{\n  \"server_name\": \"A KissMP server\",\n  \"description\": \"BeamNG.drive multiplayer\",\n  \"map\": \"/levels/smallgrid/info.json\",\n  \"max_players\": 8,\n  \"tickrate\": 60,\n  \"port\": 3698,\n  \"max_vehicles_per_client\": 3,\n  \"show_in_server_list\": false,\n  \"upnp_enabled\": false,\n  \"require_scripts\": false\n}\nJSON\nfi\necho \"$tag $dir\" > .raptor-version\necho \"Installed KissMP $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The KissMP release, such as 0.8.0, or latest for the newest: the same one your players have. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?[0-9][0-9._]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A KissMP server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The description players see in the server list.",
+            "env_variable": "SERVER_DESC",
+            "default_value": "BeamNG.drive multiplayer",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map's info file, such as /levels/smallgrid/info.json or /levels/gridmap_v2/info.json or /levels/west_coast_usa/info.json.",
+            "env_variable": "MAP",
+            "default_value": "/levels/smallgrid/info.json",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:120|regex:/^\\/levels\\/[A-Za-z0-9_.-]+\\/info\\.json$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Show in server list",
+            "description": "List the server in KissMP's public server list. Off, players join by address.",
+            "env_variable": "SHOW_IN_LIST",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

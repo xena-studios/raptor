@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/zandronum/egg-zandronum.json
+license: MIT
+credits:
+  - "Based on the Zandronum egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Zandronum's icon, from https://zandronum.com"
+certified: true
+# zandronum.com's ARM build is an older version that needs OpenSSL 1.1.
+arch: [amd64]
+# No backup hooks: Zandronum keeps no world to save.
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  command: "sv_hostname"
+  expect: "\"sv_hostname\" is"

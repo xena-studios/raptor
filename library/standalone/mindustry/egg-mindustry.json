@@ -1,0 +1,83 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Mindustry",
+    "author": "support@raptorpanel.net",
+    "description": "The tower-defense factory game, hosting a multiplayer map. Installs any Mindustry release, checked against GitHub's checksum.",
+    "features": [],
+    "docker_images": {
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:f335acf05ede2f413094a66ea5d14bbb9e47a38566b74e4aa79e86b641db16d6",
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:930b1dea4a4db3f839ca86e717e0de245904f81b85a96b5014a0d2a6f43fbeb9",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:cc5d0fa4091596c6a3ce4d2037e8545e14fc706ddb4896a41c9392c7e9466ada"
+    },
+    "file_denylist": [],
+    "startup": "java -Xms128M -XX:MaxRAMPercentage=85.0 -jar server-release.jar \"config port {{SERVER_PORT}},config name {{SERVER_NAME}},config desc {{SERVER_DESC}},host {{MAPNAME}} {{GAMEMODE}}\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Opened a server on port\"}",
+        "logs": "{}",
+        "stop": "exit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Mindustry. Downloads the server jar of the chosen release from Anuken's\n# GitHub releases and checks it against GitHub's checksum. Maps, saves and\n# settings in config/ are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\ncase \"$want\" in latest | v*) ;; *) want=\"v$want\" ;; esac\ntag=$(gh-release tag Anuken/Mindustry \"$want\" 2>/dev/null) ||\n    fail \"Mindustry has no release $want. Set Version to latest, or to a release such as v146.\"\nsum=$(gh-release assets Anuken/Mindustry \"$tag\" | awk '$1 == \"server-release.jar\" { print $2 }')\n[ -n \"$sum\" ] || fail \"Mindustry $tag has no server download. Choose another version.\"\n\nif [ -f server-release.jar ] && [ \"$(sha256sum server-release.jar | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Mindustry $tag is already installed.\"\nelse\n    echo \"Downloading the Mindustry $tag server\"\n    gh-release download Anuken/Mindustry \"$tag\" server-release.jar server-release.jar ||\n        fail \"The download failed. Reinstall to try again.\"\nfi\necho \"Installed Mindustry $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Mindustry release, such as v146, or latest for the newest. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Mindustry server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40|regex:/^[^,]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The description players see in the server list, or off for none.",
+            "env_variable": "SERVER_DESC",
+            "default_value": "off",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[^,]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map to host, with _ for spaces: Ancient_Caldera, Fortress, Glacier, Islands, Labyrinth, Maze, Tendrils, Veins, or one of your own in config/maps.",
+            "env_variable": "MAPNAME",
+            "default_value": "Tendrils",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60|regex:/^[^, ]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "survival, attack, pvp or sandbox.",
+            "env_variable": "GAMEMODE",
+            "default_value": "survival",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:survival,attack,pvp,sandbox",
+            "field_type": "text"
+        }
+    ]
+}

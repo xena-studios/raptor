@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/games-standalone (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "The Battle for Wesnoth",
+    "author": "support@raptorpanel.net",
+    "description": "The turn-based fantasy strategy game's multiplayer server, for players to meet in a lobby and host games. Installs Debian's build of the Wesnoth 1.18 server, checked against Debian's checksums.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "rm -f .wesnothd/socket; mkdir -p .wesnothd; LD_LIBRARY_PATH=wesnoth/lib wesnoth/wesnothd -c wesnothd.cfg -p {{SERVER_PORT}} & p=$!; while kill -0 $p 2>/dev/null; do if read -r -t 1 l; then [ -p .wesnothd/socket ] && printf \"%s\\n\" \"$l\" > .wesnothd/socket; elif [ $? -lt 128 ]; then sleep 1; fi; done; wait $p",
+    "config": {
+        "files": "{\"wesnothd.cfg\": {\"parser\": \"file\", \"find\": {\"motd=\": \"motd=\\\"{{server.build.env.MOTD}}\\\"\", \"passwd=\": \"passwd=\\\"{{server.build.env.PASSWD}}\\\"\"}}}",
+        "startup": "{\"done\": \"Server commands may be written to this file.\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# The Battle for Wesnoth. Installs Debian's build of the Wesnoth multiplayer\n# server (wesnothd) and the Boost libraries it needs, checked against\n# Debian's checksums, into wesnoth/. wesnothd.cfg (your settings) is never\n# touched.\nset -euo pipefail\ncd /mnt/server\nmirror=https://deb.debian.org/debian\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\ncase \"$(uname -m)\" in\nx86_64) arch=amd64 ;;\naarch64) arch=arm64 ;;\n*) fail \"Wesnoth's server isn't built for this CPU ($(uname -m)).\" ;;\nesac\n# Debian 13's package lists: the backports (newer Wesnoth releases) first.\nrm -rf \"$build\" && mkdir -p \"$build/x\"\nfor dist in trixie-backports trixie; do\n    curl -fsSL --retry 3 \"$mirror/dists/$dist/main/binary-$arch/Packages.xz\" | xz -d > \"$build/$dist\" ||\n        fail \"Debian's package lists can't be reached right now. Reinstall to try again.\"\ndone\n# field <package> <Field>: the field of the newest list that has the package.\nfield() {\n    for dist in trixie-backports trixie; do\n        v=$(awk -v RS= -v p=\"$1\" -v f=\"$2\" '$0 ~ \"(^|\\n)Package: \" p \"\\n\" {\n            n = split($0, l, \"\\n\"); for (i = 1; i <= n; i++) if (index(l[i], f \": \") == 1) { print substr(l[i], length(f) + 3); exit } }' \"$build/$dist\")\n        if [ -n \"$v\" ]; then echo \"$v\"; return; fi\n    done\n}\n\nserver=wesnoth-1.18-server\nversion=$(field \"$server\" Version)\n[ -n \"$version\" ] || fail \"Debian has no Wesnoth server right now. Reinstall to try again later.\"\nversion=${version#*:}; version=${version%%-*}\nif [ -x wesnoth/wesnothd ] && [ \"$(cat wesnoth/version 2>/dev/null)\" = \"$version $arch\" ]; then\n    echo \"Wesnoth's server $version is already installed.\"\nelse\n    # The server and the Boost libraries it needs, which the runtime image\n    # doesn't have; the image has everything else.\n    pkgs=(\"$server\") i=0\n    while [ \"$i\" -lt \"${#pkgs[@]}\" ]; do\n        for d in $(field \"${pkgs[$i]}\" Depends | tr ',' '\\n' | awk '{ print $1 }' | grep '^libboost-' || true); do\n            [[ \" ${pkgs[*]} \" == *\" $d \"* ]] || pkgs+=(\"$d\")\n        done\n        i=$((i + 1))\n    done\n    echo \"Downloading Wesnoth's server $version from Debian\"\n    for p in \"${pkgs[@]}\"; do\n        file=$(field \"$p\" Filename) sum=$(field \"$p\" SHA256)\n        [ -n \"$file\" ] && [ -n \"$sum\" ] || fail \"Debian's package list has no $p. Reinstall to try again later.\"\n        curl -fsSL --retry 3 -o \"$build/$p.deb\" \"$mirror/$file\" || fail \"The download of $p failed. Reinstall to try again.\"\n        [ \"$(sha256sum \"$build/$p.deb\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"$p didn't match Debian's checksum. Reinstall to try again.\"\n        dpkg-deb -x \"$build/$p.deb\" \"$build/x\"\n    done\n    mkdir -p \"$build/new/lib\"\n    mv \"$build/x/usr/games/wesnothd-1.18\" \"$build/new/wesnothd\"\n    find \"$build/x/usr/lib\" -name 'libboost_*.so*' -exec mv {} \"$build/new/lib/\" \\;\n    echo \"$version $arch\" > \"$build/new/version\"\n    rm -rf wesnoth && mv \"$build/new\" wesnoth\nfi\n\nmkdir -p .wesnothd\nif [ ! -f wesnothd.cfg ]; then\n    cat > wesnothd.cfg <<'CFG'\n# Wesnoth server settings: https://wiki.wesnoth.org/ServerAdministration\n# The message of the day and the admin password are set from the server's\n# variables at start.\nmotd=\"\"\npasswd=\"\"\nfifo_path=\"/home/container/.wesnothd/socket\"\nversions_accepted=\"1.18*\"\nmax_messages=4\nmessages_time_period=10\nconnections_allowed=5\nCFG\nfi\n# The console sends commands through this file (servers from older eggs\n# have a wesnothd.cfg without it).\ngrep -q '^fifo_path=' wesnothd.cfg || echo 'fifo_path=\"/home/container/.wesnothd/socket\"' >> wesnothd.cfg\necho \"Installed Wesnoth's server $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Message of the day",
+            "description": "The message players see when they join the lobby.",
+            "env_variable": "MOTD",
+            "default_value": "Welcome to the server!",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for /query admin, which makes a player a server admin. Empty turns it off.",
+            "env_variable": "PASSWD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:40|regex:/^[^\"]*$/",
+            "field_type": "text"
+        }
+    ]
+}

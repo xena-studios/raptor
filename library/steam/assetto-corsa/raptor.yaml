@@ -1,0 +1,26 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/assetto-corsa/egg-assetto-corsa.json
+license: MIT
+credits:
+  - "Based on the Assetto Corsa (Freeroam + AI) egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: AssettoServer's logo, from https://assettoserver.org"
+certified: true
+# Kunos' own server only comes with the game through a Steam account that
+# owns it, so this ID (the old catalog's, which already ran AssettoServer)
+# runs AssettoServer, which needs no account.
+arch: [amd64, arm64]
+# No backup hooks: AssettoServer keeps no world to save.
+test:
+  tier: fast
+  memory_mib: 1024
+  variables:
+    ADMIN_PASSWORD: raptor-conformance
+  # The game's own car and track data can't be shipped, so the test runs
+  # without their checksums, as AssettoServer allows.
+  files:
+    cfg/extra_cfg.yml: |
+      IgnoreConfigurationErrors:
+        MissingCarChecksums: true
+        MissingTrackParams: true
+  done_timeout: 3m

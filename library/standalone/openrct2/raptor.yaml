@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/openrct2/egg-openrct2.json
+license: MIT
+credits:
+  - "Based on the OpenRCT2 egg in https://github.com/pterodactyl/game-eggs (MIT), whose starting park the install downloads"
+  - "Icon: OpenRCT2's logo, from https://github.com/OpenRCT2"
+certified: true
+# OpenRCT2 publishes Linux builds for x86-64 only.
+arch: [amd64]
+# No backup hooks: OpenRCT2 has no console; it autosaves (Autosave interval).
+test:
+  tier: fast
+  memory_mib: 1024
+  variables:
+    SERVER_ADVERTISE: "false"
+  done_timeout: 3m

@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Assetto Corsa",
+    "author": "support@raptorpanel.net",
+    "description": "Runs AssettoServer, the open-source Assetto Corsa server built for freeroam, with AI traffic and plugins; no Steam account needed. Your cfg and content folders, as Content Manager packs them, are kept.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"{{ADMIN_PASSWORD}}\" ]; then echo \"AssettoServer needs an admin password. Set Admin password in Startup, then start the server again.\"; exit 1; fi; exec ./AssettoServer",
+    "config": {
+        "files": "{\"cfg/server_cfg.ini\": {\"parser\": \"ini\", \"find\": {\"SERVER.NAME\": \"{{server.build.env.SERVER_NAME}}\", \"SERVER.PASSWORD\": \"{{server.build.env.SERVER_PASSWORD}}\", \"SERVER.ADMIN_PASSWORD\": \"{{server.build.env.ADMIN_PASSWORD}}\", \"SERVER.UDP_PORT\": \"{{server.build.default.port}}\", \"SERVER.TCP_PORT\": \"{{server.build.default.port}}\", \"SERVER.HTTP_PORT\": \"{{server.build.env.HTTP_PORT}}\", \"SERVER.MAX_CLIENTS\": \"{{server.build.env.MAX_CLIENTS}}\"}}}",
+        "startup": "{\"done\": \"Starting update loop\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Assetto Corsa, run by AssettoServer: downloads the chosen release for this node's CPU from its\n# GitHub releases (checked against GitHub's SHA-256 when GitHub shows one).\n# cfg, content and your own plugins are never touched; a starting\n# server_cfg.ini and entry_list.ini are written only when there are none.\nset -euo pipefail\ncd /mnt/server\n\nrepo=compujuckel/AssettoServer\nfail() { echo \"$1\"; exit 1; }\ncase $(uname -m) in\nx86_64) asset=assetto-server-linux-x64.tar.gz ;;\naarch64) asset=assetto-server-linux-arm64.tar.gz ;;\n*) fail \"AssettoServer isn't built for $(uname -m) CPUs.\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n    fail \"AssettoServer has no release $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" latest 2>/dev/null || echo v0.0.54).\"\ngh-release assets \"$repo\" \"$tag\" | awk -v a=\"$asset\" '$1 == a { f = 1 } END { exit !f }' ||\n    fail \"AssettoServer's release $tag has no download for this CPU ($asset).\"\n\nif [ \"$(cat .raptor-assettoserver 2>/dev/null)\" = \"$tag $asset\" ] && [ -x AssettoServer ]; then\n    echo \"AssettoServer $tag is already installed.\"\nelse\n    build=/mnt/server/.raptor-build\n    rm -rf \"$build\"; mkdir -p \"$build/x\"\n    trap 'rm -rf \"$build\"' EXIT\n    echo \"Downloading AssettoServer $tag\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/server.tar.gz\" || fail \"The download of AssettoServer failed. Reinstall to try again.\"\n    tar -xzf \"$build/server.tar.gz\" -C \"$build/x\"\n    [ -f \"$build/x/AssettoServer\" ] || fail \"AssettoServer's download has no server in it.\"\n    chmod +x \"$build/x/AssettoServer\"\n    cp -a \"$build/x/.\" .\n    echo \"$tag $asset\" > .raptor-assettoserver\nfi\n\nmkdir -p cfg content\nif [ ! -f cfg/server_cfg.ini ]; then\n    cat > cfg/server_cfg.ini <<'INI'\n[SERVER]\nNAME=AssettoServer\nCARS=ks_mazda_miata\nTRACK=magione\nCONFIG_TRACK=\nSUN_ANGLE=16\nPASSWORD=\nADMIN_PASSWORD=\nUDP_PORT=9600\nTCP_PORT=9600\nHTTP_PORT=8081\nMAX_CLIENTS=8\nREGISTER_TO_LOBBY=1\nPICKUP_MODE_ENABLED=1\nLOOP_MODE=1\nCLIENT_SEND_INTERVAL_HZ=18\nABS_ALLOWED=1\nTC_ALLOWED=1\nFUEL_RATE=100\nDAMAGE_MULTIPLIER=100\nTYRE_WEAR_RATE=100\nALLOWED_TYRES_OUT=2\nLEGAL_TYRES=\n\n[PRACTICE]\nNAME=Practice\nTIME=600\nIS_OPEN=1\n\n[WEATHER_0]\nGRAPHICS=3_clear\nBASE_TEMPERATURE_AMBIENT=20\nBASE_TEMPERATURE_ROAD=7\nVARIATION_AMBIENT=1\nVARIATION_ROAD=1\nINI\nfi\nif [ ! -f cfg/entry_list.ini ]; then\n    for i in 0 1 2 3 4 5 6 7; do\n        printf '[CAR_%s]\\nMODEL=ks_mazda_miata\\nSKIN=\\nSPECTATOR_MODE=0\\nDRIVERNAME=\\nTEAM=\\nGUID=\\nBALLAST=0\\nRESTRICTOR=0\\n\\n' \"$i\"\n    done > cfg/entry_list.ini\nfi\necho \"Installed AssettoServer $tag. Upload your cars and track to content, or a Content Manager server pack, then start the server.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The AssettoServer release to install, such as v0.0.54, or latest. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^(latest|v?[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Assetto Corsa server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players need to join. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password that makes a player an admin in game. The server won't start without one.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTP port",
+            "description": "A second port the server needs for Content Manager and the server list; add it as an allocation.",
+            "env_variable": "HTTP_PORT",
+            "default_value": "8081",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be connected at once, up to the cars in entry_list.ini.",
+            "env_variable": "MAX_CLIENTS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,255",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,131 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "FiveM",
+    "author": "support@raptorpanel.net",
+    "description": "Cfx.re's multiplayer server for GTA V (FiveM) and Red Dead Redemption 2 (RedM), with txAdmin if you want it. Needs a free license key from Cfx.re.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"{{FIVEM_LICENSE}}\" ]; then echo \"FiveM needs a license key from portal.cfx.re. Set License key in Startup, then start the server again.\"; exit 1; fi; a=/home/container/alpine; c=(); [ \"{{TXADMIN_ENABLE}}\" = 1 ] || c=(+exec server.cfg); exec $a/opt/cfx-server/ld-musl-x86_64.so.1 --library-path \"$a/usr/lib/v8/:$a/lib/:$a/usr/lib/\" -- $a/opt/cfx-server/FXServer +set citizen_dir $a/opt/cfx-server/citizen/ +set sv_licenseKey \"{{FIVEM_LICENSE}}\" +set steam_webApiKey \"{{STEAM_WEBAPIKEY}}\" +set sv_maxclients {{MAX_PLAYERS}} +set gamename \"$([ \"{{TXHOST_GAME_NAME}}\" = redm ] && echo rdr3 || echo gta5)\" \"${c[@]}\"",
+    "config": {
+        "files": "{\"server.cfg\": {\"parser\": \"file\", \"find\": {\"endpoint_add_tcp\": \"endpoint_add_tcp \\\"0.0.0.0:{{server.build.default.port}}\\\"\", \"endpoint_add_udp\": \"endpoint_add_udp \\\"0.0.0.0:{{server.build.default.port}}\\\"\", \"sv_hostname\": \"sv_hostname \\\"{{server.build.env.SERVER_HOSTNAME}}\\\"\", \"sv_maxclients\": \"sv_maxclients {{server.build.env.MAX_PLAYERS}}\", \"set sv_licenseKey\": \"set sv_licenseKey \\\"{{server.build.env.FIVEM_LICENSE}}\\\"\", \"set steam_webApiKey\": \"set steam_webApiKey \\\"{{server.build.env.STEAM_WEBAPIKEY}}\\\"\"}}}",
+        "startup": "{\"done\": \"succeeded. Welcome!\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# FiveM. Downloads the chosen FXServer build for Linux from Cfx.re (the\n# recommended one by default) and the standard resources. server.cfg, your\n# resources and txAdmin's data are never touched; FXServer is replaced only\n# once the new build has arrived whole.\nset -euo pipefail\ncd /mnt/server\nua=\"raptor-installer (+https://raptorpanel.net)\"\nartifacts=https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\n[ \"$(uname -m)\" = x86_64 ] || fail \"Cfx.re publishes FXServer for x86-64 Linux only.\"\nwant=\"${FIVEM_VERSION:-recommended}\"\ncase \"$want\" in\nrecommended | latest | optional | critical)\n    url=$(curl -fsSL --retry 3 -A \"$ua\" https://changelogs-live.fivem.net/api/changelog/versions/linux/server | jq -r --arg k \"${want}_download\" '.[$k] // empty') ||\n        fail \"Cfx.re's build list can't be reached right now. Reinstall to try again.\"\n    [ -n \"$url\" ] || fail \"Cfx.re lists no $want build right now. Reinstall to try again later.\"\n    ;;\n*)\n    url=\"$artifacts/$want/fx.tar.xz\"\n    curl -fsIL -A \"$ua\" -o /dev/null \"$url\" ||\n        fail \"Cfx.re has no build $want. Set Version to recommended, or to a build's full name such as 7290-a654bcc2adfa27c4e020fc915a1a6343c3b4f921.\"\n    ;;\nesac\n[ -z \"${DOWNLOAD_URL:-}\" ] || url=\"$DOWNLOAD_URL\"\nname=${url%/fx.tar.xz}; name=${name##*/}\n\nif [ -x alpine/opt/cfx-server/FXServer ] && [ \"$(cat alpine/.raptor-version 2>/dev/null)\" = \"$url\" ]; then\n    echo \"FXServer $name is already installed.\"\nelse\n    rm -rf \"$build\" && mkdir -p \"$build/x\"\n    echo \"Downloading FXServer $name\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$build/fx.tar.xz\" \"$url\" || fail \"The download from Cfx.re failed. Reinstall to try again.\"\n    # Cfx.re publishes no checksums, so check the archive is whole.\n    xz -tq \"$build/fx.tar.xz\" || fail \"The download from Cfx.re was damaged. Reinstall to try again.\"\n    tar -xJf \"$build/fx.tar.xz\" -C \"$build/x\"\n    [ -f \"$build/x/alpine/opt/cfx-server/FXServer\" ] || fail \"FXServer $name's download has no server in it. Choose another version.\"\n    echo \"$url\" > \"$build/x/alpine/.raptor-version\"\n    rm -rf alpine && mv \"$build/x/alpine\" alpine\nfi\n\n# The standard resources (chat, spawn manager, map manager...), added only\n# where you don't have them.\nmkdir -p resources\nrm -rf \"$build/data\"\nif git clone -q --depth 1 https://github.com/citizenfx/cfx-server-data.git \"$build/data\"; then\n    for r in \"$build/data/resources\"/*; do\n        [ -e \"resources/${r##*/}\" ] || cp -a \"$r\" resources/\n    done\nelse\n    echo \"The standard resources can't be downloaded right now, so they weren't updated.\"\nfi\n\nif [ ! -f server.cfg ]; then\n    cat > server.cfg <<'CFG'\n# FiveM server settings: https://docs.fivem.net/docs/server-manual/setting-up-a-server/\n# The port, name and max players are set from the server's variables at\n# every start, and the license key and Steam key on the command line.\nendpoint_add_tcp \"0.0.0.0:30120\"\nendpoint_add_udp \"0.0.0.0:30120\"\n\nensure mapmanager\nensure chat\nensure spawnmanager\nensure sessionmanager\nensure basic-gamemode\nensure hardcap\n\nsv_scriptHookAllowed 0\nsets tags \"default\"\nsets locale \"en-US\"\nsv_hostname \"A FiveM server\"\nsv_maxclients 48\nCFG\nfi\nmkdir -p logs\necho \"Installed FXServer $name.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "License key",
+            "description": "Your server's license key, free from portal.cfx.re. The server won't start without one.",
+            "env_variable": "FIVEM_LICENSE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9_-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game",
+            "description": "fivem for GTA V, or redm for Red Dead Redemption 2.",
+            "env_variable": "TXHOST_GAME_NAME",
+            "default_value": "fivem",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:fivem,redm",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_HOSTNAME",
+            "default_value": "A FiveM server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once: up to 48, or more with OneSync and a key that allows it.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "48",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,2048",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "recommended (the default), latest, optional, critical, or a build's full name such as 7290-a654bcc2adfa27c4e020fc915a1a6343c3b4f921. Reinstall the server after changing it.",
+            "env_variable": "FIVEM_VERSION",
+            "default_value": "recommended",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^(recommended|latest|optional|critical|[0-9]+-[0-9a-f]{40})$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam Web API key",
+            "description": "A Steam Web API key, for Steam sign-in in resources, or none.",
+            "env_variable": "STEAM_WEBAPIKEY",
+            "default_value": "none",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Use txAdmin",
+            "description": "Run txAdmin, Cfx.re's web dashboard for managing the server, on the txAdmin port instead of starting server.cfg directly.",
+            "env_variable": "TXADMIN_ENABLE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Port for txAdmin",
+            "description": "The port txAdmin's web dashboard listens on; add it as an allocation.",
+            "env_variable": "TXHOST_TXA_PORT",
+            "default_value": "40120",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Folder for txAdmin",
+            "description": "Where txAdmin keeps its data.",
+            "env_variable": "TXHOST_DATA_PATH",
+            "default_value": "/home/container/txData",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200|regex:/^\\/home\\/container(\\/[A-Za-z0-9_.-]+)*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Download link",
+            "description": "A link to an fx.tar.xz to install instead of Cfx.re's build, which only staff can set.",
+            "env_variable": "DOWNLOAD_URL",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        }
+    ]
+}

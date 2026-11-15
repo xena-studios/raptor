@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/urban-terror/egg-urban-terror.json
+license: MIT
+credits:
+  - "Based on the Urban Terror egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: FrozenSand's logo (Urban Terror's developer), from https://github.com/FrozenSand"
+certified: true
+# x86 only; ARM nodes run it through Box64 (the Box64 image).
+arch: [amd64, arm64]
+# No backup hooks: Urban Terror keeps no world to save.
+test:
+  # About 1.5 GB of game data from FrozenSand's server.
+  tier: slow
+  memory_mib: 512
+  done_timeout: 5m
+  command: "status"
+  expect: "map: ut4_casa"

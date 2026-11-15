@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/sauerbraten/egg-sauerbraten.json
+license: MIT
+credits:
+  - "Based on the Cube 2: Sauerbraten egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: the cube from Sauerbraten's logo, from http://sauerbraten.org"
+certified: true
+# x86 only; ARM nodes run it through Box64 (the Box64 image).
+arch: [amd64, arm64]
+# No backup hooks: Sauerbraten has no console and keeps no world to save.
+test:
+  # The only Linux release is a 1 GB archive of game data (the server
+  # keeps about 600 KB of it).
+  tier: slow
+  memory_mib: 256
+  done_timeout: 2m

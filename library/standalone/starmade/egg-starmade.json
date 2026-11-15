@@ -1,0 +1,42 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "StarMade",
+    "author": "support@raptorpanel.net",
+    "description": "The voxel space sandbox: build ships and stations block by block and fight over a shared universe. Installs any StarMade build from Schine's update server, every file checked against Schine's checksums.",
+    "features": [],
+    "docker_images": {
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:f335acf05ede2f413094a66ea5d14bbb9e47a38566b74e4aa79e86b641db16d6",
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:930b1dea4a4db3f839ca86e717e0de245904f81b85a96b5014a0d2a6f43fbeb9"
+    },
+    "file_denylist": [],
+    "startup": "java -Xms128M -XX:MaxRAMPercentage=85.0 -javaagent:StarMade.jar --add-opens=java.base/jdk.internal.ref=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED -jar StarMade.jar -server -port:{{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Server initialization OK... now waiting for connections\"}",
+        "logs": "{}",
+        "stop": "/shutdown 0"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# StarMade. Installs the chosen StarMade build from Schine's own update\n# server, the way its launcher does, checking every file against Schine's\n# checksums. Only files that changed are downloaded, and they replace the\n# old ones only once all of them have arrived and checked out. Your\n# universe (server-database), server.cfg and blueprints are never touched.\nset -euo pipefail\ncd /mnt/server\nsite=http://files.star-made.org\nua=\"raptor-installer (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nindex=$(curl -fsSL --retry 3 -A \"$ua\" \"$site/releasebuildindex\") || fail \"StarMade's update server can't be reached right now. Reinstall to try again.\"\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    line=$(grep '#' <<<\"$index\" | tail -n 1)\nelse\n    line=$(grep -F \"$want#\" <<<\"$index\" | grep \"^$want#\" | tail -n 1) ||\n        fail \"StarMade has no build $want. Set Version to latest, or to a build such as $(grep '#' <<<\"$index\" | tail -n 1 | cut -d'#' -f1).\"\nfi\nversion=${line%%#*}\ndir=${line##* }; dir=${dir#./}\n[ -n \"$version\" ] && [ -n \"$dir\" ] || fail \"StarMade's update server sent a build list this script can't read. Reinstall to try again later.\"\n\nif [ -f StarMade.jar ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"StarMade $version is already installed.\"\n    exit 0\nfi\n\nrm -rf \"$build\" && mkdir -p \"$build/new\"\ncurl -fsSL --retry 3 -A \"$ua\" -o \"$build/sums\" \"$site/$dir/checksums\" || fail \"StarMade's file list can't be downloaded right now. Reinstall to try again.\"\n# Each line is \"<path> <size> <sha1>\"; paths can have spaces.\nawk 'NF >= 3 { sha = $NF; n = length($0) - length($NF) - length($(NF-1)) - 2; p = substr($0, 1, n); sub(/^\\.\\//, \"\", p); print sha \"\\t\" p }' \"$build/sums\" > \"$build/files\"\n[ -s \"$build/files\" ] || fail \"StarMade's file list was empty. Reinstall to try again later.\"\n\n# The files that are missing or differ from this build.\n: > \"$build/todo\"\nwhile IFS=$'\\t' read -r sha path; do\n    case \"$path\" in /* | *..*) fail \"StarMade's file list has an unsafe path ($path).\" ;; esac\n    if [ ! -f \"$path\" ] || [ \"$(sha1sum \"$path\" | cut -d' ' -f1)\" != \"$sha\" ]; then\n        printf '%s\\t%s\\n' \"$sha\" \"$path\" >> \"$build/todo\"\n    fi\ndone < \"$build/files\"\ntotal=$(wc -l < \"$build/todo\")\necho \"Downloading StarMade $version ($total of $(wc -l < \"$build/files\") files changed)\"\n\nexport site dir ua build\nfetch() {\n    local sha=${1%%$'\\t'*} path=${1#*$'\\t'} url\n    url=$(jq -Rr 'split(\"/\") | map(@uri) | join(\"/\")' <<<\"$path\")\n    mkdir -p \"$build/new/$(dirname \"$path\")\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$build/new/$path\" \"$site/$dir/$url\" &&\n        [ \"$(sha1sum \"$build/new/$path\" | cut -d' ' -f1)\" = \"$sha\" ] ||\n        { echo \"$path didn't download or didn't match its checksum.\"; return 1; }\n}\nexport -f fetch\nif [ \"$total\" -gt 0 ]; then\n    tr '\\n' '\\0' < \"$build/todo\" | xargs -0 -P 8 -I{} bash -c 'fetch \"$1\"' _ {} ||\n        fail \"Some of StarMade's files didn't download. Reinstall to try again.\"\n    cp -a \"$build/new/.\" .\nfi\necho \"$version\" > .raptor-version\necho \"Installed StarMade $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The StarMade build, such as 0.305.16, or latest for the newest: the same one your players have. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9.]*)$/",
+            "field_type": "text"
+        }
+    ]
+}

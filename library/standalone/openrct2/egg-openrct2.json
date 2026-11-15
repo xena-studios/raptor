@@ -1,0 +1,211 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "OpenRCT2",
+    "author": "support@raptorpanel.net",
+    "description": "The open-source RollerCoaster Tycoon 2, hosting a park for players to build together. Installs any OpenRCT2 release, checked against GitHub's checksum, and picks up the latest autosave at start.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "save=\"{{SAVE_URI}}\"; if [ \"{{LOAD_AUTOSAVE}}\" = true ]; then a=$(ls -t ServerData/save/autosave/*.park 2>/dev/null | head -n 1); [ -z \"$a\" ] || save=$a; fi; echo \"Hosting $save\"; LD_LIBRARY_PATH=./OpenRCT2 exec ./OpenRCT2/openrct2-cli host \"$save\" --port {{SERVER_PORT}} --user-data-path /home/container/ServerData/",
+    "config": {
+        "files": "{\"ServerData/config.ini\": {\"parser\": \"ini\", \"find\": {\"general.autosave\": \"{{server.build.env.AUTOSAVE_INTERVAL}}\", \"general.autosave_amount\": \"{{server.build.env.AUTOSAVE_AMOUNT}}\", \"network.player_name\": \"\\\"{{server.build.env.SERVER_PLAYER_NAME}}\\\"\", \"network.default_port\": \"{{server.build.default.port}}\", \"network.default_password\": \"\\\"{{server.build.env.SERVER_PASSWORD}}\\\"\", \"network.advertise\": \"{{server.build.env.SERVER_ADVERTISE}}\", \"network.maxplayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"network.server_name\": \"\\\"{{server.build.env.SERVER_NAME}}\\\"\", \"network.server_description\": \"\\\"{{server.build.env.SERVER_DESCRIPTION}}\\\"\", \"network.server_greeting\": \"\\\"{{server.build.env.SERVER_GREETING}}\\\"\", \"network.provider_name\": \"\\\"{{server.build.env.PROVIDER_NAME}}\\\"\", \"network.provider_email\": \"\\\"{{server.build.env.PROVIDER_EMAIL}}\\\"\", \"network.provider_website\": \"\\\"{{server.build.env.PROVIDER_WEBSITE}}\\\"\", \"network.log_chat\": \"{{server.build.env.LOG_CHAT}}\", \"network.log_server_actions\": \"{{server.build.env.LOG_SERVER_ACTIONS}}\", \"network.pause_server_if_no_clients\": \"{{server.build.env.PAUSE_NO_CLIENTS}}\"}}}",
+        "startup": "{\"done\": \"Listening for clients on\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# OpenRCT2. Downloads the chosen OpenRCT2 release's Linux build from its\n# GitHub releases (checked against GitHub's checksum), and Debian's libzip,\n# which it needs (checked against Debian's). Your parks, saves and settings\n# in ServerData/ are never touched; the game is replaced only once the new\n# download has arrived whole.\nset -euo pipefail\ncd /mnt/server\nrepo=OpenRCT2/OpenRCT2\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\n[ \"$(uname -m)\" = x86_64 ] || fail \"OpenRCT2 publishes Linux builds for x86-64 only.\"\ntag=$(gh-release tag \"$repo\" \"${VERSION:-latest}\" 2>/dev/null) ||\n    fail \"OpenRCT2 has no release ${VERSION:-latest}. Set Version to latest, or to a release such as v0.5.7.\"\n# The build for Debian 13, which the server's image runs.\nasset=\"OpenRCT2-$tag-Linux-trixie-x86_64.tar.gz\"\ngrep -q \"^$asset \" <<<\"$(gh-release assets \"$repo\" \"$tag\")\" ||\n    fail \"OpenRCT2 $tag has no build for this server's system (Debian 13). Choose a newer version.\"\n\nif [ -x OpenRCT2/openrct2-cli ] && [ -f OpenRCT2/libzip.so.5 ] && [ \"$(cat OpenRCT2/.raptor-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"OpenRCT2 $tag is already installed.\"\nelse\n    rm -rf \"$build\" && mkdir -p \"$build/x\" \"$build/zip\"\n    echo \"Downloading OpenRCT2 $tag\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/o.tar.gz\" || fail \"The download failed. Reinstall to try again.\"\n    tar -xzf \"$build/o.tar.gz\" -C \"$build/x\"\n    [ -x \"$build/x/OpenRCT2/openrct2-cli\" ] || fail \"OpenRCT2 $tag's download has no server in it. Choose another version.\"\n    rm -f \"$build/x/OpenRCT2/openrct2\"   # the game client\n\n    # libzip, from Debian 13 like the rest of the image.\n    pkg=$(curl -fsSL --retry 3 https://deb.debian.org/debian/dists/trixie/main/binary-amd64/Packages.xz | xz -d |\n        awk -v RS= '/(^|\\n)Package: libzip5\\n/') || fail \"Debian's package list can't be reached right now. Reinstall to try again.\"\n    file=$(sed -n 's/^Filename: //p' <<<\"$pkg\") sum=$(sed -n 's/^SHA256: //p' <<<\"$pkg\")\n    [ -n \"$file\" ] && [ -n \"$sum\" ] || fail \"Debian's package list has no libzip. Reinstall to try again later.\"\n    curl -fsSL --retry 3 -o \"$build/libzip.deb\" \"https://deb.debian.org/debian/$file\" || fail \"The download of libzip failed. Reinstall to try again.\"\n    [ \"$(sha256sum \"$build/libzip.deb\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"libzip didn't match Debian's checksum. Reinstall to try again.\"\n    dpkg-deb -x \"$build/libzip.deb\" \"$build/zip\"\n    cp -a \"$build/zip/usr/lib/x86_64-linux-gnu/\"libzip.so.5* \"$build/x/OpenRCT2/\"\n\n    echo \"$tag\" > \"$build/x/OpenRCT2/.raptor-version\"\n    rm -rf OpenRCT2 && mv \"$build/x/OpenRCT2\" OpenRCT2\nfi\n\n# A park to start with: OpenRCT2 can't make one without the original game.\nmkdir -p ServerData/save\nif [ ! -f ServerData/save/save.park ]; then\n    echo \"Downloading a starting park\"\n    curl -fsSL --retry 3 -o ServerData/save/save.park.part https://raw.githubusercontent.com/pterodactyl/game-eggs/main/openrct2/save.park ||\n        fail \"The starting park's download failed. Reinstall to try again.\"\n    mv ServerData/save/save.park.part ServerData/save/save.park\nfi\necho \"Installed OpenRCT2 $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The OpenRCT2 release, such as v0.5.7, or latest for the newest: the same one your players have. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Park",
+            "description": "The park to host: a .park, .sv6 or .sv4 file in the server's folder, or a link to one.",
+            "env_variable": "SAVE_URI",
+            "default_value": "ServerData/save/save.park",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:4|max:300|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Load latest autosave",
+            "description": "true to host the newest autosave instead of the park, when there is one, so the park carries on after a restart.",
+            "env_variable": "LOAD_AUTOSAVE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Autosave interval",
+            "description": "0 every minute, 1 every 5 minutes, 2 every 15, 3 every 30, 4 every hour, 5 never.",
+            "env_variable": "AUTOSAVE_INTERVAL",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,5",
+            "field_type": "text"
+        },
+        {
+            "name": "Autosaves to keep",
+            "description": "How many autosaves to keep before the oldest is deleted.",
+            "env_variable": "AUTOSAVE_AMOUNT",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "true to list the server in OpenRCT2's server list.",
+            "env_variable": "SERVER_ADVERTISE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Pause when empty",
+            "description": "true to pause the park while nobody is connected.",
+            "env_variable": "PAUSE_NO_CLIENTS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An OpenRCT2 server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:80|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The description players see in the server list.",
+            "env_variable": "SERVER_DESCRIPTION",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server player name",
+            "description": "The server shows in the player list as a player with this name.",
+            "env_variable": "SERVER_PLAYER_NAME",
+            "default_value": "Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Greeting",
+            "description": "The message players get when they join.",
+            "env_variable": "SERVER_GREETING",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Provider name",
+            "description": "Who runs the server, shown in the server's details.",
+            "env_variable": "PROVIDER_NAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:80|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Provider email",
+            "description": "An email address shown in the server's details.",
+            "env_variable": "PROVIDER_EMAIL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:80|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Provider website",
+            "description": "A website shown in the server's details.",
+            "env_variable": "PROVIDER_WEBSITE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Log chat",
+            "description": "true to log the chat to ServerData/chatlogs.",
+            "env_variable": "LOG_CHAT",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Log actions",
+            "description": "true to log what players do to ServerData/serverlogs.",
+            "env_variable": "LOG_SERVER_ACTIONS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

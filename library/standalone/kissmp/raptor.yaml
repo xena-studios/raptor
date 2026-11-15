@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/kissmp/egg-kissmp.json
+license: MIT
+credits:
+  - "Based on the KissMP egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: KissMP's logo, from https://github.com/TheHellBox/KISS-multiplayer (MIT)"
+certified: true
+arch: [amd64, arm64]
+# No backup hooks: KissMP keeps no game state to save.
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

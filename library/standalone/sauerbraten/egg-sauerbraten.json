@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Cube 2: Sauerbraten",
+    "author": "support@raptorpanel.net",
+    "description": "The free old-school deathmatch shooter with co-op map editing. Installs the newest Sauerbraten server, checked against SourceForge's checksum, and runs on ARM through Box64.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:a2ee132ea89015a735e52574a626e0f9f4ef63e2385b49299298268499466b8d"
+    },
+    "file_denylist": [],
+    "startup": "b=; command -v box64 >/dev/null && b=box64; BOX64_LOG=0 exec $b ./linux_64_server",
+    "config": {
+        "files": "{\"server-init.cfg\": {\"parser\": \"file\", \"find\": {\"serverport \": \"serverport {{server.build.default.port}}\", \"maxclients \": \"maxclients {{server.build.env.CUBE_MAXPLAYERS}}\", \"serverdesc \": \"serverdesc \\\"{{server.build.env.CUBE_SERVERDESCRIPTION}}\\\"\", \"serverpass \": \"serverpass \\\"{{server.build.env.CUBE_PASSWORD}}\\\"\", \"adminpass \": \"adminpass \\\"{{server.build.env.CUBE_ADMINPASSWORD}}\\\"\", \"mastername \": \"mastername \\\"{{server.build.env.CUBE_MASTERSERVER}}\\\"\"}}}",
+        "startup": "{\"done\": \"dedicated server started, waiting for clients...\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Cube 2: Sauerbraten. Downloads the newest Sauerbraten release for Linux\n# from SourceForge and keeps only the server from it, checked against\n# SourceForge's checksum. server-init.cfg (your settings) is never touched.\nset -euo pipefail\ncd /mnt/server\nua=\"raptor-installer (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nrss=$(curl -fsSL --retry 3 -A \"$ua\" \"https://sourceforge.net/projects/sauerbraten/rss?path=/sauerbraten\") ||\n    fail \"SourceForge can't be reached right now. Reinstall to try again.\"\n# The newest Linux release and its checksum, from the project's file feed.\nitem=$(tr -d '\\r\\n' <<<\"$rss\" | sed 's#</item>#&\\n#g' | grep -E '<link>[^<]*_linux\\.tar\\.bz2/download</link>' | sed -n 1p)\nurl=$(sed -nE 's#.*<link>([^<]*_linux\\.tar\\.bz2/download)</link>.*#\\1#p' <<<\"$item\")\nmd5=$(sed -nE 's#.*<media:hash algo=\"md5\">([0-9a-f]{32})</media:hash>.*#\\1#p' <<<\"$item\")\n[ -n \"$url\" ] && [ -n \"$md5\" ] || fail \"SourceForge's file list had no Linux release. Reinstall to try again later.\"\nfile=${url%/download}; file=${file##*/}\nrelease=$(sed -E 's/^sauerbraten_([0-9_]+)_.*/\\1/' <<<\"$file\" | tr _ -)\n\nif [ -x linux_64_server ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$file\" ]; then\n    echo \"Sauerbraten $release is already installed.\"\nelse\n    rm -rf \"$build\" && mkdir -p \"$build/x\"\n    # The release is about 1 GB of game data; only the server is kept.\n    echo \"Downloading Sauerbraten $release (about 1 GB, of which the server keeps a few files)\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$build/s.tar.bz2\" \"$url\" || fail \"The download from SourceForge failed. Reinstall to try again.\"\n    [ \"$(md5sum \"$build/s.tar.bz2\" | cut -d' ' -f1)\" = \"$md5\" ] || fail \"The download didn't match SourceForge's checksum. Reinstall to try again.\"\n    tar -xjf \"$build/s.tar.bz2\" -C \"$build/x\" --wildcards '*/bin_unix/linux_64_server' '*/server-init.cfg' ||\n        fail \"Sauerbraten's download has no Linux server in it.\"\n    bin=$(find \"$build/x\" -name linux_64_server -type f | sed -n 1p)\n    chmod +x \"$bin\"\n    mv -f \"$bin\" linux_64_server\n    [ -f server-init.cfg ] || mv \"$(find \"$build/x\" -name server-init.cfg | sed -n 1p)\" server-init.cfg\n    echo \"$file\" > .raptor-version\nfi\n# The settings the server's variables set, as lines Raptor can rewrite at\n# each start (the game's own file has them commented out).\nfor k in serverport maxclients serverdesc serverpass adminpass mastername; do\n    grep -q \"^$k \" server-init.cfg || echo \"$k \\\"\\\"\" >> server-init.cfg\ndone\necho \"Installed Sauerbraten $release.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "CUBE_SERVERDESCRIPTION",
+            "default_value": "A Sauerbraten server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once; each one adds a lot of bandwidth.",
+            "env_variable": "CUBE_MAXPLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,128",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for /setmaster, which gives a player admin rights. Empty turns it off.",
+            "env_variable": "CUBE_ADMINPASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:60|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "CUBE_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:60|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Master server",
+            "description": "The master server the server registers with, so players find it.",
+            "env_variable": "CUBE_MASTERSERVER",
+            "default_value": "sauerbraten.org",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:120|regex:/^[A-Za-z0-9.-]+$/",
+            "field_type": "text"
+        }
+    ]
+}
