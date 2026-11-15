@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/archisteamfarm/egg-archisteamfarm.json
+license: MIT
+credits:
+  - "Based on the ArchiSteamFarm egg in https://github.com/pelican-eggs/software (MIT)"
+  - "Icon: the ArchiSteamFarm logo, from https://github.com/JustArchiNET/ArchiSteamFarm (Apache-2.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  variables:
+    IPC_PASSWORD: raptor-test
+  config:
+    config/IPC.config: "http://*:{{port}}"

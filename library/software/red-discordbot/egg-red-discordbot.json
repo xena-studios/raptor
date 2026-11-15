@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Red egg in pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Red-DiscordBot",
+    "author": "support@raptorpanel.net",
+    "description": "Red is a self-hosted, modular Discord bot for moderation, fun and more, extended with community cogs. It needs a Discord bot token.",
+    "features": [],
+    "docker_images": {
+        "Python 3.11": "ghcr.io/xena-studios/yolks:python_3.11@sha256:3eb6743895e42706b7e0b902d0042dcb2a9343c49c1c773fabe9fd08c3ab5baa"
+    },
+    "file_denylist": [],
+    "startup": "v=\"$(cat .red-version) $(python3 --version)\"; if [ \"$v\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Red-DiscordBot $(cat .red-version)\"; { python3 -m venv --clear .venv && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check \"Red-DiscordBot==$(cat .red-version)\" && echo \"$v\" > .venv/.raptor-installed; } || exit 1; fi; cfg=.config/Red-DiscordBot/config.json; [ -f \"$cfg\" ] || .venv/bin/redbot-setup --no-prompt --instance-name red --data-path /home/container/data --backend json || exit 1; inst=$(.venv/bin/python -c \"import json; print(next(iter(json.load(open('$cfg')))))\"); if [ -z \"$TOKEN\" ]; then echo \"Red needs a Discord bot token: set it in Startup, then restart the server.\"; exec sleep infinity; fi; export RED_TOKEN=\"$TOKEN\"; exec .venv/bin/python -O -m redbot \"$inst\" --no-prompt --prefix \"{{PREFIX}}\" ${OWNER:+--owner \"$OWNER\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:Loaded \\\\d+ cogs with \\\\d+ commands\", \"Red needs a Discord bot token\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Red-DiscordBot: checks the chosen version on PyPI. Red itself is installed\n# when the server starts, into its own Python environment (.venv), for the\n# Python version it runs. Your bot's data and settings are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    url=https://pypi.org/pypi/Red-DiscordBot/json\nelse\n    url=\"https://pypi.org/pypi/Red-DiscordBot/$want/json\"\nfi\ncode=$(curl -sSL -o $work/red.json -w '%{http_code}' \"$url\") || fail \"PyPI can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 404 ] && fail \"Red-DiscordBot has no version $want. Set Version to latest, or to a release such as 3.5.24.\"\n[ \"$code\" = 200 ] || fail \"PyPI can't be reached right now (HTTP $code). Reinstall to try again.\"\nversion=$(jq -r .info.version $work/red.json)\necho \"$version\" > .red-version\nmkdir -p data\necho \"Installed Red-DiscordBot $version. It's set up when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Discord bot token",
+            "description": "The bot's token, from the Discord Developer Portal.",
+            "env_variable": "TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Prefix",
+            "description": "What commands start with in Discord, such as . or !.",
+            "env_variable": "PREFIX",
+            "default_value": ".",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:10|regex:/^\\S+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Owner",
+            "description": "The Discord user ID of the bot's owner. Empty makes the owner of the bot's Discord application the owner.",
+            "env_variable": "OWNER",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:30|regex:/^\\d+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The Red-DiscordBot version to install, such as 3.5.24, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|\\d+\\.\\d+\\.\\d+(\\.\\w+)?)$/",
+            "field_type": "text"
+        }
+    ]
+}

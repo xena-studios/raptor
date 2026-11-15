@@ -1,0 +1,30 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the SFTP Storage Share egg in pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "SFTP Storage Share",
+    "author": "support@raptorpanel.net",
+    "description": "A private file share reached over SFTP, with no game or app. Add subusers to share it, and give it as much disk as you need.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:6571c195b896e426f774b8c8d93f835d9fe6a2ac186ffa47f717b72a37ebdb44"
+    },
+    "file_denylist": [],
+    "startup": "echo \"This server only stores files: connect over SFTP to reach them. It doesn't need to be running.\"; exec sleep infinity",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"only stores files\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# SFTP Storage Share: nothing to download. Files are uploaded over SFTP.\nset -euo pipefail\necho \"Nothing to install: connect over SFTP to store files. Subusers you add can reach them too.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": []
+}

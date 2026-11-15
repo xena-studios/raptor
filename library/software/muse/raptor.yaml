@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/muse/egg-muse.json
+license: MIT
+credits:
+  - "Based on the Muse egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: Muse's logo, from https://github.com/museofficial (MIT)"
+certified: true
+arch: [amd64, arm64]
+# Without a bot token it installs its dependencies, then waits for one.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 10m

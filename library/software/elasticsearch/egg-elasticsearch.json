@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Elasticsearch egg in pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Elasticsearch",
+    "author": "support@raptorpanel.net",
+    "description": "Elasticsearch is a search and analytics engine, run here as a single node with security on. Its REST API is on the server's port over HTTPS; the elastic user's password is the one you set, or one made and printed when it first starts.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "if ! ./bin/elasticsearch-keystore list 2>/dev/null | grep -qx bootstrap.password; then p=\"$ELASTIC_PASSWORD\"; if [ -z \"$p\" ]; then p=$(head -c 18 /dev/urandom | base64 | tr -d \"/+=\"); echo \"$p\" > elastic-password.txt; echo \"The elastic user's password is $p (saved in elastic-password.txt).\"; fi; [ -f config/elasticsearch.keystore ] || ./bin/elasticsearch-keystore create >/dev/null; printf \"%s\" \"$p\" | ./bin/elasticsearch-keystore add -x bootstrap.password; fi; h=$(( {{SERVER_MEMORY}} / 5 + {{SERVER_MEMORY}} / 5 )); export ES_JAVA_OPTS=\"-Xms${h}m -Xmx${h}m\"; exec ./bin/elasticsearch -E http.port={{SERVER_PORT}} -E network.host=0.0.0.0 -E discovery.type=single-node",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:\\\\]\\\\s+started(\\\\s|$)\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Elasticsearch: downloads the release for the chosen version from Elastic\n# and checks its checksum. Your settings (config), indices (data), logs and\n# plugins are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"This server's CPU ($(uname -m)) isn't supported.\" ;;\nesac\nput_release() {\n    local new=$1 e; shift\n    local keep=\" $* \"\n    if [ -f .raptor-files ]; then\n        while IFS= read -r e; do\n            if [ -n \"$e\" ] && [ ! -e \"$new/$e\" ] && [ \"${keep#* \"$e\" }\" = \"$keep\" ]; then rm -rf -- \"./$e\"; fi\n        done < .raptor-files\n    fi\n    : > .raptor-files.new\n    while IFS= read -r e; do\n        if [ \"${keep#* \"$e\" }\" != \"$keep\" ] && [ -e \"./$e\" ]; then\n            if [ -d \"$new/$e\" ]; then cp -rn \"$new/$e/.\" \"./$e/\" || true; fi\n        else\n            rm -rf -- \"./$e\"\n            mv \"$new/$e\" \"./$e\"\n        fi\n        echo \"$e\" >> .raptor-files.new\n    done < <(find \"$new\" -mindepth 1 -maxdepth 1 -printf '%f\\n')\n    mv -f .raptor-files.new .raptor-files\n    rm -rf \"$new\"\n}\n\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag elastic/elasticsearch latest) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    version=\"${tag#v}\"\nelse\n    version=\"${want#v}\"\nfi\ncase \"$arch\" in amd64) es_arch=x86_64 ;; arm64) es_arch=aarch64 ;; esac\nname=\"elasticsearch-$version-linux-$es_arch.tar.gz\"\nbase=\"https://artifacts.elastic.co/downloads/elasticsearch/$name\"\ncode=$(curl -sSL -o $work/es.sha512 -w '%{http_code}' \"$base.sha512\") || fail \"Elastic can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 404 ] && fail \"Elasticsearch has no version $want. Set Version to latest, or to a release such as 8.19.0.\"\n[ \"$code\" = 200 ] || fail \"Elastic can't be reached right now (HTTP $code). Reinstall to try again.\"\nsum=$(cut -d' ' -f1 $work/es.sha512)\n\nif [ -f \"lib/elasticsearch-$version.jar\" ]; then\n    echo \"Elasticsearch $version is already installed.\"\nelse\n    echo \"Downloading Elasticsearch $version\"\n    curl -fsSL -o $work/es.tar.gz \"$base\" || fail \"The download failed ($base). Reinstall to try again.\"\n    [ \"$(sha512sum $work/es.tar.gz | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f $work/es.tar.gz; fail \"The download didn't match its checksum. Reinstall to try again.\"; }\n    mkdir .raptor-new\n    tar -xzf $work/es.tar.gz -C .raptor-new --strip-components=1\n    rm -f $work/es.tar.gz\n    put_release .raptor-new config data logs plugins\nfi\nmkdir -p data logs plugins\necho \"Installed Elasticsearch $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Elasticsearch version to install, such as 8.19.0, or latest. Indices can't be moved back to an older version.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Elastic password",
+            "description": "The password for the elastic user, used when it first starts. Leave it empty to have one made, printed in the console and saved in elastic-password.txt.",
+            "env_variable": "ELASTIC_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:6|max:100",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/code-server/egg-code-server.json
+license: MIT
+credits:
+  - "Based on the code-server egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the code-server logo, from https://github.com/coder/code-server (MIT)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  variables:
+    PASSWORD: raptor-test-password

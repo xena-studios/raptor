@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the TS3 Manager egg in pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "TS3 Manager",
+    "author": "support@raptorpanel.net",
+    "description": "TS3 Manager is a web interface for managing TeamSpeak 3 servers through their ServerQuery. Open the server's address and sign in with a ServerQuery login.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./ts3-manager --port {{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Server listening on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# TS3 Manager: downloads the release for the chosen version from GitHub and\n# checks its checksum. It's one program, ts3-manager; nothing else is\n# touched.\nset -euo pipefail\ncd /mnt/server\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"This server's CPU ($(uname -m)) isn't supported.\" ;;\nesac\n\n[ \"$arch\" = amd64 ] || fail \"TS3 Manager is only built for x86-64 CPUs, and this server is $arch.\"\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag joni1802/ts3-manager \"$tag\") || fail \"Set Version to latest, or to a release such as 2.2.6, then reinstall.\"\nversion=\"${tag#v}\"\nname=\"ts3-manager-linux-x64-v$version\"\n\nif [ -x ts3-manager ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"TS3 Manager $version is already installed.\"\nelse\n    echo \"Downloading TS3 Manager $version\"\n    gh-release download joni1802/ts3-manager \"$tag\" \"$name\" ts3-manager\n    chmod +x ts3-manager\n    echo \"$version\" > .raptor-version\nfi\n# The old egg's name for it.\nrm -f start_ts3-manager\necho \"Installed TS3 Manager $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The TS3 Manager version to install, such as 2.2.6, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Allowed servers",
+            "description": "The TeamSpeak servers it may connect to, as addresses separated by commas. Leave it empty to allow any.",
+            "env_variable": "WHITELIST",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        }
+    ]
+}

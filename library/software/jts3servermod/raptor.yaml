@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/jts3servermod/egg-jts3servermod.json
+license: MIT
+credits:
+  - "Based on the JTS3ServerMod egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the TeamSpeak logo, from https://commons.wikimedia.org/wiki/File:TeamSpeak_logo.svg (CC-BY-SA 4.0)"
+certified: true
+arch: [amd64, arm64]
+# No TeamSpeak server to join in CI: the bot starts, reads the settings the
+# Panel wrote, and tries to connect.
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  variables:
+    TS3_ADDRESS: 127.0.0.1
+  config:
+    config/server1/JTS3ServerMod_server.cfg: "ts3_server_address = 127.0.0.1"

@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Grafana egg in pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Grafana",
+    "author": "support@raptorpanel.net",
+    "description": "Grafana is a dashboard and visualization platform for metrics, logs and traces from sources such as Prometheus and Loki. Sign in as admin with the password admin, then choose a new one.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./bin/grafana server --homepath /home/container",
+    "config": {
+        "files": "{\"conf/custom.ini\": {\"parser\": \"ini\", \"find\": {\"server.http_port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"HTTP Server Listen\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Grafana: downloads the release for the chosen version from Grafana Labs\n# and checks its checksum, then installs the plugins asked for. Your\n# settings (conf/custom.ini, conf/provisioning) and the data folder (the\n# database, plugins) are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"This server's CPU ($(uname -m)) isn't supported.\" ;;\nesac\ndownload() {\n    curl -fsSL -o \"$2.part\" \"$1\" || { rm -f \"$2.part\"; fail \"The download failed ($1). Reinstall to try again.\"; }\n    if [ -n \"${3:-}\" ] && [ \"$(sha256sum \"$2.part\" | cut -d' ' -f1)\" != \"$3\" ]; then\n        rm -f \"$2.part\"; fail \"The download didn't match its checksum. Reinstall to try again.\"\n    fi\n    mv -f \"$2.part\" \"$2\"\n}\nput_release() {\n    local new=$1 e; shift\n    local keep=\" $* \"\n    if [ -f .raptor-files ]; then\n        while IFS= read -r e; do\n            if [ -n \"$e\" ] && [ ! -e \"$new/$e\" ] && [ \"${keep#* \"$e\" }\" = \"$keep\" ]; then rm -rf -- \"./$e\"; fi\n        done < .raptor-files\n    fi\n    : > .raptor-files.new\n    while IFS= read -r e; do\n        if [ \"${keep#* \"$e\" }\" != \"$keep\" ] && [ -e \"./$e\" ]; then\n            if [ -d \"$new/$e\" ]; then cp -rn \"$new/$e/.\" \"./$e/\" || true; fi\n        else\n            rm -rf -- \"./$e\"\n            mv \"$new/$e\" \"./$e\"\n        fi\n        echo \"$e\" >> .raptor-files.new\n    done < <(find \"$new\" -mindepth 1 -maxdepth 1 -printf '%f\\n')\n    mv -f .raptor-files.new .raptor-files\n    rm -rf \"$new\"\n}\n\nwant=\"${GRAFANA_VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag grafana/grafana latest) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    version=\"${tag#v}\"\nelse\n    version=\"${want#v}\"\nfi\nbase=\"https://dl.grafana.com/oss/release/grafana-$version.linux-$arch.tar.gz\"\ncode=$(curl -sSL -o $work/grafana.sha256 -w '%{http_code}' \"$base.sha256\") || fail \"Grafana Labs can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 404 ] && fail \"Grafana has no version $want. Set Version to latest, or to a release such as 12.3.0.\"\n[ \"$code\" = 200 ] || fail \"Grafana Labs can't be reached right now (HTTP $code). Reinstall to try again.\"\nsum=$(cut -d' ' -f1 $work/grafana.sha256)\n\nif [ -f VERSION ] && [ \"$(cat VERSION)\" = \"$version\" ] && [ -x bin/grafana ]; then\n    echo \"Grafana $version is already installed.\"\nelse\n    echo \"Downloading Grafana $version\"\n    download \"$base\" $work/grafana.tar.gz \"$sum\"\n    mkdir .raptor-new\n    tar -xzf $work/grafana.tar.gz -C .raptor-new --strip-components=1\n    rm -f $work/grafana.tar.gz\n    # Your settings carry over into the new conf folder.\n    if [ -f conf/custom.ini ]; then cp -a conf/custom.ini .raptor-new/conf/; fi\n    if [ -d conf/provisioning ]; then rm -rf .raptor-new/conf/provisioning; cp -a conf/provisioning .raptor-new/conf/; fi\n    put_release .raptor-new data\nfi\n\nmkdir -p data/plugins\nif [ ! -f conf/custom.ini ]; then\n    cat > conf/custom.ini <<'EOF'\n; Your Grafana settings: https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/\n; They override conf/defaults.ini, which a reinstall replaces, so make changes here.\n; The port is set from the server's own port each time it starts.\n[server]\nhttp_port = 3000\n\n[paths]\ndata = data\nlogs = data/log\nplugins = data/plugins\nEOF\nfi\n\nif [ -n \"${GRAFANA_PLUGINS:-}\" ]; then\n    for p in $(tr ',' ' ' <<<\"$GRAFANA_PLUGINS\"); do\n        echo \"Installing the plugin $p\"\n        ./bin/grafana cli --homepath /mnt/server --pluginsDir /mnt/server/data/plugins plugins install \"$p\" >/dev/null ||\n            fail \"The plugin $p couldn't be installed. Check its name in Grafana's plugin catalog, then reinstall.\"\n    done\nfi\necho \"Installed Grafana $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Grafana version to install, such as 12.3.0, or latest. Reinstall to change it.",
+            "env_variable": "GRAFANA_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Plugins",
+            "description": "Plugins to install, separated by commas, such as yesoreyeram-infinity-datasource. Reinstall to add them.",
+            "env_variable": "GRAFANA_PLUGINS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500|regex:/^[a-z0-9,._ -]*$/",
+            "field_type": "text"
+        }
+    ]
+}
