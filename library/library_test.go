@@ -2,6 +2,7 @@ package library
 
 import (
 	"bytes"
+	"fmt"
 	"image/png"
 	"regexp"
 	"slices"
@@ -23,6 +24,11 @@ var (
 )
 
 const author = "support@raptorpanel.net"
+
+var (
+	placeholder      = regexp.MustCompile(`\{\{\s*([^}]*?)\s*\}\}`)
+	knownPlaceholder = regexp.MustCompile(`^(server\.(build|allocations)\.default\.(port|ip)|server\.build\.env\.\w+|server\.environment\.\w+|env\.\w+|server\.build\.(memory|memory_limit|swap|disk|disk_space|cpu|cpu_limit)|server\.uuid|config\.docker\.interface)$`)
+)
 
 // Real product names that contain a word the house style refuses in names
 // (badName). Each is the project's own name, which the egg keeps as it is.
@@ -100,6 +106,18 @@ func TestLibrary(t *testing.T) {
 			}
 			for _, l := range egg.Lint() {
 				t.Errorf("rule: %s", l)
+			}
+			// Config files take variables as {{server.build.env.X}} (or
+			// {{env.X}}): a bare {{X}} is written as it is (docs/EGGS.md
+			// #placeholders), which broke Pumpkin's TOML.
+			for _, f := range egg.Config.Files {
+				for _, r := range f.Find {
+					for _, m := range placeholder.FindAllStringSubmatch(fmt.Sprint(r.Value), -1) {
+						if !knownPlaceholder.MatchString(m[1]) {
+							t.Errorf("config file %s, %s: {{%s}} isn't a placeholder Wings fills in; a variable is {{server.build.env.%s}}", f.Path, r.Key, m[1], m[1])
+						}
+					}
+				}
 			}
 			if c := egg.Install.Container; c != "" && !digest.MatchString(c) {
 				t.Errorf("install container %s: Raptor's or pelican-eggs' images, pinned by digest", c)
