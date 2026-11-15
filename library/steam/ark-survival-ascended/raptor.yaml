@@ -7,9 +7,14 @@ credits:
   - "Icon: ARK: Survival Ascended's logo, from its Steam store page (Studio Wildcard)"
 certified: true
 arch: [amd64]
-# The console reaches the game over RCON. No backup hooks yet: ARK can save
-# (SaveWorld, answered "World Saved") but not pause saving, and save-only
-# hooks need the library's support for them.
+# The console reaches the game over RCON. ARK can't pause saving, so a backup
+# saves first and has nothing to undo. RCON answers SaveWorld "World Saved"
+# while files may still be written; the game log's "World Save Complete.
+# Took: ..." (tailed into the console) comes once they are.
+backup:
+  pre: ["SaveWorld"]
+  wait_for: "World Save Complete"
+  timeout: 10m
 # No player count: ARK: Survival Ascended lists through Epic, not Steam's query.
 test:
   tier: slow

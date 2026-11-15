@@ -8,6 +8,13 @@ credits:
 certified: true
 # The Linux server bundles x86-64 native libraries (SQLite) only.
 arch: [amd64]
+# Vintage Story can't pause saving, so a backup saves first and has nothing to
+# undo. /autosavenow says "Autosave completed" before its background writes
+# finish; the savegame's write is the last of them.
+backup:
+  pre: ["/autosavenow"]
+  wait_for: "Offthread save of savegame done"
+  timeout: 5m
 test:
   tier: fast
   memory_mib: 4096

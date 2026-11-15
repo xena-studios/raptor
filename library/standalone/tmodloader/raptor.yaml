@@ -7,6 +7,9 @@ credits:
   - "Icon: tModLoader's logo, from https://github.com/tModLoader"
 certified: true
 arch: [amd64, arm64]
+# No backup hooks: `save` prints nothing once it's done. Its last line,
+# "Saving modded world data", comes as the mod data (.twld) starts being
+# written, so a backup waiting for it could catch that file half-written.
 test:
   tier: fast
   memory_mib: 3072
