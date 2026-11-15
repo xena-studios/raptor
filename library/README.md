@@ -56,3 +56,24 @@ same way. Image names say the runtime and version (`Java 21`,
 `Node.js 22`).
 
 **The author** is `support@raptorpanel.net`.
+
+## Minecraft Java eggs
+
+`minecraft/paper` is the pattern for every Minecraft Java egg:
+
+- **Images** are Raptor's Java images, newest first (`Java 25` … `Java 8`),
+  so `latest` works out of the box.
+- **The install** asks the software's own API for the version and build,
+  refuses a version that doesn't exist (never falls back to the latest,
+  which would upgrade the world), verifies the download against the
+  published checksum, skips it when the jar already matches, and replaces
+  the jar only once the new one checks out. It writes the Java version
+  that Minecraft version needs to `.raptor-java`.
+- **The startup command** reads `.raptor-java` and refuses to start on an
+  older Java, saying which image to choose. It uses no command
+  substitution (`$(…)`), so Wings can still check the jar. The heap is
+  `-XX:MaxRAMPercentage=85.0` with PaperMC's recommended G1 flags and
+  `-XX:+IgnoreUnrecognizedVMOptions`, so one command runs on Java 8 to 25.
+- **Variables** keep upstream's environment names (`MINECRAFT_VERSION`,
+  `BUILD_NUMBER`, `SERVER_JARFILE`), so a server on the old egg updates to
+  the library's without losing its settings.
