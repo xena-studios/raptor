@@ -23,6 +23,8 @@
 //   - RAPTOR_CONFORMANCE_PRUNE=1: remove unused Docker images after each egg
 //     (CI runners' disks can't hold every game's image at once)
 //   - RAPTOR_CONFORMANCE_REPORT: file that receives a Markdown summary
+//   - RAPTOR_CONFORMANCE_IDS: space-separated egg IDs to run, whatever their
+//     tier (except manual), in place of the tier: a PR's changed eggs
 //
 // -test.run picks eggs by catalog ID. Eggs for another CPU architecture are
 // skipped.
@@ -81,10 +83,14 @@ func TestConformance(t *testing.T) {
 			t.Fatalf("RAPTOR_CONFORMANCE_SHARD=%q: want i/n", v)
 		}
 	}
+	ids := strings.Fields(os.Getenv("RAPTOR_CONFORMANCE_IDS"))
 	var selected []catalog.Entry
 	for _, e := range all {
-		if (tier == "all" || e.Test.Tier == tier) &&
-			(set == "all" || (set == "certified") == e.Certified) {
+		inTier := tier == "all" || e.Test.Tier == tier
+		if len(ids) > 0 {
+			inTier = slices.Contains(ids, e.ID) && e.Test.Tier != catalog.TierManual
+		}
+		if inTier && (set == "all" || (set == "certified") == e.Certified) {
 			selected = append(selected, e)
 		}
 	}
