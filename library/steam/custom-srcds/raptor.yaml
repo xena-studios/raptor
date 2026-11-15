@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/custom-srcds/egg-custom-srcds.json
+license: MIT
+credits:
+  - "Based on the Custom Source Engine Game egg in https://github.com/pterodactyl/panel (MIT)"
+  - "Icon: the Source engine's logo, from Wikimedia Commons (Valve)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+# Half-Life 2: Deathmatch by default, the smallest Source game that runs alone.
+test:
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 30m
+  command: "status"
+  expect: "hostname"

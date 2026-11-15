@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/sven-coop/egg-sven-coop.json
+license: MIT
+credits:
+  - "Based on the Sven Co-op egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Sven Co-op's icon, from Steam (Sven Co-op Team)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 30m
+  command: "status"
+  expect: "hostname"

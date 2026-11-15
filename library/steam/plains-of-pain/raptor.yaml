@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/plains-of-pain/egg-plains-of-pain.json
+license: MIT
+credits:
+  - "Based on the Plains of Pain egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Plains of Pain's logo, from its Steam store page (Coldwild Games)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

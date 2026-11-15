@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/soulmask/egg-soulmask.json
+license: MIT
+credits:
+  - "Based on the Soulmask egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Soulmask's logo, from its Steam store page (CampFire Studio)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: the console isn't on standard input (it's a telnet port).
+# The game saves on its own (Save interval) and when stopped.
+test:
+  tier: slow
+  memory_mib: 12288
+  done_timeout: 40m

@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/nova-life/egg-nova-life.json
+license: MIT
+credits:
+  - "Based on the Nova-Life: Amboise egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Nova-Life: Amboise's logo, from its Steam store page (Nova-Life)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 6144
+  variables:
+    PUBLIC: "0"
+  done_timeout: 40m
