@@ -1,0 +1,56 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' Waterdog PE eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Waterdog PE",
+    "author": "support@raptorpanel.net",
+    "description": "WaterdogPE, a proxy for Minecraft: Bedrock Edition that links several Bedrock servers into one network players move between. Installs any release, checked against GitHub's checksums.",
+    "features": [
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -Dterminal.ansi=true -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{\"config.yml\": {\"parser\": \"yaml\", \"find\": {\"listener.host\": \"0.0.0.0:{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"Started query on\", \"NetherNet signaling listening\"]}",
+        "logs": "{}",
+        "stop": "end"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Waterdog PE. Downloads a WaterdogPE release from GitHub and\n# checks it against the checksum GitHub publishes. config.yml and plugins\n# are never touched, and the jar is only replaced once the new one has\n# downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\njar=\"${SERVER_JARFILE:-server.jar}\"\nfail() { echo \"$1\"; exit 1; }\n# The Java version the jar was built for, from its main class's file format.\njar_java() {\n    local main major\n    main=$(unzip -p \"$1\" META-INF/MANIFEST.MF | tr -d '\\r' | sed -n 's/^Main-Class: *//p' | head -n 1)\n    [ -n \"$main\" ] || { echo 8; return; }\n    major=$(unzip -p \"$1\" \"${main//.//}.class\" | od -An -j6 -N2 -tu1 | awk '{ print $1 * 256 + $2 }')\n    if [ -n \"$major\" ] && [ \"$major\" -gt 52 ]; then echo $((major - 44)); else echo 8; fi\n}\n\n# gh_release <owner/repo> <tag, or latest> <file>: sets tag and sum (the\n# SHA-256 GitHub publishes, or -), through the installer's gh-release\n# (GitHub's API has a low anonymous limit). Returns 1 when there's no such\n# release or file, 2 when GitHub can't be reached.\ngh_release() {\n    local repo=$1 want=$2 asset=$3 out assets\n    if ! out=$(gh-release tag \"$repo\" \"$want\" 2>&1); then\n        case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n    fi\n    tag=$out\n    assets=$(gh-release assets \"$repo\" \"$tag\") || return 2\n    sum=$(awk -v a=\"$asset\" '$1 == a { print $2; f = 1 } END { exit !f }' <<<\"$assets\") || return 1\n}\n\n# WaterdogPE's newest build is the release tagged latest; older ones are v2.0.3 and so on.\nwant=\"${WATERDOG_VERSION:-latest}\"\ncase \"$want\" in latest | v*) ;; *) want=\"v$want\" ;; esac\nrc=0; gh_release WaterdogPE/WaterdogPE \"$want\" Waterdog.jar || rc=$?\ncase $rc in\n1) fail \"WaterdogPE has no release ${WATERDOG_VERSION}. Set Version to latest, or to a release such as 2.0.3.\" ;;\n2) fail \"GitHub can't be reached right now. Reinstall to try again.\" ;;\nesac\nname=\"WaterdogPE $tag\"\n[ \"$tag\" = latest ] && name=\"WaterdogPE's newest build\"\n\nif [ \"$sum\" != - ] && [ -f \"$jar\" ] && [ \"$(sha256sum \"$jar\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"$name is already installed.\"\nelse\n    echo \"Downloading $name\"\n    # gh-release replaces the jar only once the new one has arrived and checked out.\n    gh-release download WaterdogPE/WaterdogPE \"$tag\" Waterdog.jar \"$jar\" || fail \"The download from GitHub failed or didn't match GitHub's checksum. Reinstall to try again.\"\nfi\njava=$(jar_java \"$jar\")\necho \"$java\" > .raptor-java\necho \"Installed $name. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The WaterdogPE release, such as 2.0.3, or latest for the newest build. Reinstall the server after changing it.",
+            "env_variable": "WATERDOG_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?[0-9]+(\\.[0-9]+)*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the proxy's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        }
+    ]
+}

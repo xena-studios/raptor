@@ -1,0 +1,58 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' Nukkit egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Nukkit",
+    "author": "support@raptorpanel.net",
+    "description": "Nukkit, CloudburstMC's Minecraft: Bedrock Edition server written in Java, with its own plugins. Installs any Nukkit build, checked against the repository's checksums.",
+    "features": [
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:dda430001e6c1bc8e1c43d1b0cbb2fcd0d38221d3d8f167f3ba1ae658616b374",
+        "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:e71740e2a99017d4273a588310db60da474644ea364da60d086e33635b62dd27"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -jar {{SERVER_JARFILE}} --language eng",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"0.0.0.0\", \"server-port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \")! For help, type\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Nukkit. Downloads a Nukkit build from CloudburstMC's Maven\n# repository and checks it against the repository's checksum. Worlds,\n# plugins and settings are never touched, and the jar is only replaced once\n# the new one has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nrepo=https://repo.opencollab.dev/maven-snapshots/cn/nukkit/nukkit/1.0-SNAPSHOT\njar=\"${SERVER_JARFILE:-server.jar}\"\nget() { curl -fsSL --retry 3 \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n# The Java version the jar was built for, from its main class's file format.\njar_java() {\n    local main major\n    main=$(unzip -p \"$1\" META-INF/MANIFEST.MF | tr -d '\\r' | sed -n 's/^Main-Class: *//p' | head -n 1)\n    [ -n \"$main\" ] || { echo 8; return; }\n    major=$(unzip -p \"$1\" \"${main//.//}.class\" | od -An -j6 -N2 -tu1 | awk '{ print $1 * 256 + $2 }')\n    if [ -n \"$major\" ] && [ \"$major\" -gt 52 ]; then echo $((major - 44)); else echo 8; fi\n}\n\n# Every build, oldest first: 1.0-<date>.<time>-<build number>.\nbuilds=$(get \"https://repo.opencollab.dev/api/maven/details/maven-snapshots/cn/nukkit/nukkit/1.0-SNAPSHOT\" |\n    jq -r '.files[].name' | sed -nE 's/^nukkit-(1\\.0-[0-9]{8}\\.[0-9]{6}-([0-9]+))\\.jar$/\\2 \\1/p' | sort -n) ||\n    fail \"CloudburstMC's repository can't be reached right now. Reinstall to try again.\"\n[ -n \"$builds\" ] || fail \"CloudburstMC's repository lists no Nukkit builds right now. Reinstall to try again later.\"\nwant=\"${NUKKIT_VERSION:-latest}\"\ncase \"$want\" in\nlatest | \"\") version=$(tail -n 1 <<<\"$builds\" | cut -d' ' -f2) ;;\n*) version=$(awk -v w=\"$want\" '$1 == w || $2 == w { print $2 }' <<<\"$builds\") ;;\nesac\n[ -n \"$version\" ] ||\n    fail \"Nukkit has no build $want. Set Version to latest, or to a build number such as $(tail -n 1 <<<\"$builds\" | cut -d' ' -f1).\"\nbuild=${version##*-}\n\nsum=$(get \"$repo/nukkit-$version.jar.sha256\" | cut -c1-64) || fail \"CloudburstMC's repository can't be reached right now. Reinstall to try again.\"\nif [ -f \"$jar\" ] && [ \"$(sha256sum \"$jar\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Nukkit build $build is already installed.\"\nelse\n    echo \"Downloading Nukkit build $build\"\n    curl -fsSL --retry 3 -o \"$jar.new\" \"$repo/nukkit-$version.jar\"\n    [ \"$(sha256sum \"$jar.new\" | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f \"$jar.new\"; fail \"The download didn't match the repository's checksum. Reinstall to try again.\"; }\n    mv -f \"$jar.new\" \"$jar\"\nfi\njava=$(jar_java \"$jar\")\necho \"$java\" > .raptor-java\necho \"Installed Nukkit build $build. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Nukkit build, such as 1253, or latest for the newest one. Reinstall the server after changing it.",
+            "env_variable": "NUKKIT_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:50",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        }
+    ]
+}

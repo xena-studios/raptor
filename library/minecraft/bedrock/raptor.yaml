@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/bedrock/egg-bedrock.json
+license: MIT
+credits:
+  - "Based on the Vanilla Bedrock and Vanilla Bedrock ARM64 eggs in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Minecraft's site icon, from https://www.minecraft.net (Mojang)"
+certified: true
+# Mojang's server is x86 only; on arm64 the image's Box64 runs it.
+arch: [amd64, arm64]
+# Bedrock answers neither Java's status ping nor A2S, and its save commands
+# (save hold / query / resume) need more than backup hooks can express.
+test:
+  tier: fast
+  memory_mib: 2048 # killed at 1 GiB under Box64
+  done_timeout: 10m
+  command: "list"
+  expect: "There are 0/\\d+ players online"
