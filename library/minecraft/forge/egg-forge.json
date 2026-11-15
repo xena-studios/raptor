@@ -1,0 +1,79 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/panel and pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Forge",
+    "author": "support@raptorpanel.net",
+    "description": "Forge, the mod loader most Minecraft Java modpacks are made for. Any Minecraft version Forge has, from 1.7.10 to the newest, checked against Forge's checksums.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:00161884f448144104d564ccbd53baa62ac64536ab5c4e90aa24742b39c6384d",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:21a2b40e47225af6bef3ed69944511c64dd99a5fbcb33ddbeda50018bcea4095",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:c2c395bbd036751bf263fcc0db9c7c70b60ac89ab311158759041534be1768e9",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:9259ae9cdf1ab00edad5e92bd851c3c7a010db7ad346b7f6776602564a82d2fd",
+        "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:4c9cee13c49cfdad0073ea77f9948832e74542318441c4fb2924003b91db0f86"
+    },
+    "file_denylist": [],
+    "startup": "read -r need most 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" -v most=\"$most\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Minecraft version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } if (most != \"\" && have + 0 > most + 0) { printf \"This Minecraft version runs on Java %s at most, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", most, have, most; exit 1 } exit }' && if [ -f unix_args.txt ]; then exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true @user_jvm_args.txt @unix_args.txt nogui; else exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} nogui; fi",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"\", \"server-port\": \"{{server.build.default.port}}\", \"query.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \")! For help, type \"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Forge. Runs Forge's installer (checked against Forge's\n# checksum) for the chosen version, then moves what it made into place:\n# launch arguments for Minecraft 1.17 and newer, the server jar for older\n# ones. Worlds, mods, configs and your Java options are never touched.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nget() { curl -fsSL -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n# True when version $1 is $2 or older.\nolder_or_same() { [ \"$(printf '%s\\n%s\\n' \"$1\" \"$2\" | sort -V | head -n 1)\" = \"$1\" ]; }\n# Downloads $1 to $2 and checks it against $3, its published checksum\n# (sha256:…, sha1:… or md5:…); a jar with none must at least be a whole\n# zip. Only then is it put in place.\nfetch() {\n    curl -fsSL -A \"$ua\" -o \"$2.new\" \"$1\" || { rm -f \"$2.new\"; fail \"The download from $1 failed. Reinstall to try again.\"; }\n    if [ -n \"${3:-}\" ]; then\n        if [ \"$(\"${3%%:*}sum\" \"$2.new\" | cut -d' ' -f1)\" != \"${3#*:}\" ]; then\n            rm -f \"$2.new\"\n            fail \"The download didn't match its published checksum. Reinstall to try again.\"\n        fi\n    elif [[ $2 == *.jar ]] && ! unzip -tq \"$2.new\" >/dev/null 2>&1; then\n        rm -f \"$2.new\"\n        fail \"The download isn't a whole jar file. Reinstall to try again.\"\n    fi\n    mv -f \"$2.new\" \"$2\"\n}\n# True when file $1 has the checksum $2 (as fetch takes it).\nmatches() { [ -f \"$1\" ] && [ \"$(\"${2%%:*}sum\" \"$1\" | cut -d' ' -f1)\" = \"${2#*:}\" ]; }\n# The Java version Minecraft $1 needs, from Mojang's version list (8 for\n# versions older than the list says).\njava_for() {\n    local url\n    url=$(get https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -r --arg v \"$1\" '.versions[] | select(.id == $v) | .url') || true\n    if [ -n \"$url\" ]; then get \"$url\" | jq -r '.javaVersion.majorVersion // 8' || echo 8; else echo 8; fi\n}\n# Writes the Java versions the server runs on to .raptor-java, which the\n# startup command checks: the oldest, and for $2 the newest, if any.\nwrite_java() {\n    echo \"$1${2:+ $2}\" > .raptor-java\n}\n# The newest Java that Forge, and the servers built on Forge or on its\n# launcher, run on for Minecraft $1: 8 before 1.13 (LaunchWrapper), 11\n# before 1.17 (the old ModLauncher fails on Java 16's locked-down\n# internals). Nothing for newer versions.\njava_most() {\n    [[ $1 == 1.* ]] || return 0\n    if older_or_same \"$1\" 1.12.2; then echo 8\n    elif older_or_same \"$1\" 1.16.5; then echo 11; fi\n}\n# How to say which Java it runs on.\njava_text() {\n    if [ -z \"${2:-}\" ]; then echo \"Java $1 or newer\"\n    elif [ \"$1\" = \"$2\" ]; then echo \"Java $1 only\"\n    else echo \"Java $1 to $2\"; fi\n}\n\n# Runs a Forge or NeoForge installer ($1, its SHA-256 $2, named $3) in a\n# folder of its own, and only once it has succeeded moves what it made into\n# the server: the libraries, and how to start it. Minecraft 1.17 and newer\n# start from the launch arguments it writes (unix_args.txt, and the small\n# jar they name in newer versions), with your own Java options in\n# user_jvm_args.txt; older versions from the server jar, saved as the jar\n# file name.\nrun_installer() {\n    local url=$1 sum=$2 name=$3 stage=.raptor-installer args jar\n    rm -rf \"$stage\"\n    mkdir \"$stage\"\n    echo \"Downloading the $name installer\"\n    fetch \"$url\" \"$stage/installer.jar\" \"sha256:$sum\"\n    echo \"Running the $name installer. This takes a minute or two.\"\n    if ! (cd \"$stage\" && HOME=/tmp java -XX:MaxRAMPercentage=75.0 -jar installer.jar --installServer >installer-output.log 2>&1); then\n        tail -n 20 \"$stage/installer-output.log\"\n        rm -rf \"$stage\"\n        fail \"The $name installer failed (its last lines are above). Reinstall to try again.\"\n    fi\n    mkdir -p libraries\n    cp -a \"$stage/libraries/.\" libraries/\n    args=$(find \"$stage/libraries\" -name unix_args.txt | head -n 1)\n    if [ -n \"$args\" ]; then\n        cp \"$args\" unix_args.txt.new\n        mv -f unix_args.txt.new unix_args.txt\n        [ -f user_jvm_args.txt ] || cp \"$stage/user_jvm_args.txt\" user_jvm_args.txt 2>/dev/null || echo \"# Your own Java options, one per line.\" > user_jvm_args.txt\n        # Newer versions start from a small jar the arguments name.\n        find . -maxdepth 1 -name '*-shim.jar' -delete\n        find \"$stage\" -maxdepth 1 -name '*.jar' ! -name installer.jar -exec mv -f {} . \\;\n    else\n        jar=$(find \"$stage\" -maxdepth 1 -name '*.jar' ! -name installer.jar ! -name 'minecraft_server.*' | sort | head -n 1)\n        [ -n \"$jar\" ] || { rm -rf \"$stage\"; fail \"The $name installer didn't make a server jar. Reinstall to try again.\"; }\n        find \"$stage\" -maxdepth 1 -name 'minecraft_server.*.jar' -exec cp {} . \\;\n        mv -f \"$jar\" \"${SERVER_JARFILE:-server.jar}\"\n        rm -f unix_args.txt\n    fi\n    rm -rf \"$stage\"\n}\n# True when what starts the server is all there.\nlaunch_ready() {\n    local j\n    if [ -f unix_args.txt ]; then\n        j=$(awk '{ for (i = 1; i < NF; i++) if ($i == \"-jar\") print $(i + 1) }' unix_args.txt)\n        [ -z \"$j\" ] || [ -f \"$j\" ]\n    else\n        [ -f \"${SERVER_JARFILE:-server.jar}\" ]\n    fi\n}\n\nforge_maven=https://maven.minecraftforge.net/net/minecraftforge/forge\n# Every Forge version, as Minecraft-Forge (1.20.1-47.3.0; the oldest end\n# with -<Minecraft> again).\nforge_versions() {\n    get \"$forge_maven/maven-metadata.xml\" | grep -o '<version>[^<]*</version>' | sed -e 's/<[^>]*>//g'\n}\n# The full Forge version for Forge $1 on Minecraft $2 (or any Minecraft for\n# latest), from the list $3. Takes 47.3.0, 1.20.1-47.3.0, or the build alone\n# for the oldest (2838 for 14.23.5.2838).\nforge_full() {\n    awk -F- -v f=\"$1\" -v m=\"$2\" '$0 == f || ((m == \"latest\" || $1 == m) && ($2 == f || $2 ~ (\"\\\\.\" f \"$\"))) { print; exit }' <<<\"$3\"\n}\n# Installs Forge $1 (a full version) unless it's already there.\ninstall_forge() {\n    local full=$1 sum\n    if [ \"$(cat .raptor-loader 2>/dev/null)\" = \"forge $full\" ] && launch_ready; then\n        echo \"Forge $full is already installed.\"\n        return\n    fi\n    sum=$(get \"$forge_maven/$full/forge-$full-installer.jar.sha256\") ||\n        fail \"Forge $full has no server installer to run. Choose a newer Forge version.\"\n    run_installer \"$forge_maven/$full/forge-$full-installer.jar\" \"$sum\" \"Forge $full\"\n    echo \"forge $full\" > .raptor-loader\n}\n\nneo_maven=https://maven.neoforged.net/releases/net/neoforged\n# NeoForge's versions for Minecraft $1: its own for 1.20.2 and newer\n# (21.1.x is 1.21.1, 26.1.2.x is 26.1.2), its Forge fork's for 1.20.1.\nneo_artifact() { if [ \"$1\" = 1.20.1 ]; then echo forge; else echo neoforge; fi; }\nneo_versions() {\n    get \"https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/$1\" | jq -r '.versions[]'\n}\nneo_prefix() {\n    local v=$1\n    case \"$v\" in\n    1.20.1) echo \"1.20.1-\" ;;\n    1.*) v=${v#1.}; [[ $v == *.* ]] || v=\"$v.0\"; echo \"$v.\" ;;\n    *) [[ $v == *.*.* ]] || v=\"$v.0\"; echo \"$v.\" ;;\n    esac\n}\n# The Minecraft version NeoForge $1 is for.\nneo_minecraft() {\n    local a b c\n    case \"$1\" in 1.20.1-* | 47.*) echo 1.20.1; return ;; esac\n    IFS=. read -r a b c _ <<<\"${1%%-*}\"\n    if [ \"$a\" -ge 25 ]; then\n        if [ \"$c\" = 0 ]; then echo \"$a.$b\"; else echo \"$a.$b.$c\"; fi\n    elif [ \"$b\" = 0 ]; then echo \"1.$a\"; else echo \"1.$a.$b\"; fi\n}\n# Installs NeoForge $1 unless it's already there.\ninstall_neoforge() {\n    local v=$1 artifact sum\n    artifact=$(neo_artifact \"$(neo_minecraft \"$v\")\")\n    if [ \"$(cat .raptor-loader 2>/dev/null)\" = \"neoforge $v\" ] && launch_ready; then\n        echo \"NeoForge $v is already installed.\"\n        return\n    fi\n    sum=$(get \"$neo_maven/$artifact/$v/$artifact-$v-installer.jar.sha256\") ||\n        fail \"NeoForge $v has no server installer to run. Choose another NeoForge version.\"\n    run_installer \"$neo_maven/$artifact/$v/$artifact-$v-installer.jar\" \"$sum\" \"NeoForge $v\"\n    echo \"neoforge $v\" > .raptor-loader\n}\n\nmc=\"${MC_VERSION:-latest}\"\nforge=\"${FORGE_VERSION:-}\"\ntype=\"${BUILD_TYPE:-recommended}\"\npromos=$(get https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json) &&\n    all=$(forge_versions) || fail \"Forge's version list can't be reached right now. Reinstall to try again.\"\nnewest=$(jq -r '.promos | keys[] | sub(\"-(latest|recommended)$\"; \"\")' <<<\"$promos\" | grep -E '^[0-9]+(\\.[0-9]+)+$' | sort -uV | tail -n 1)\n\nif [ -n \"$forge\" ]; then\n    full=$(forge_full \"$forge\" \"$mc\" \"$all\")\n    if [ -z \"$full\" ]; then\n        [ \"$mc\" = latest ] && fail \"Forge has no version $forge. Clear Forge version to install the $type build, or set a version Forge has.\"\n        fail \"Forge has no version $forge for Minecraft $mc. Clear Forge version to install its $type build, or set one Forge has.\"\n    fi\n    mc=${full%%-*}\nelse\n    [ \"$mc\" = latest ] && mc=$newest\n    grep -q \"^$mc-\" <<<\"$all\" ||\n        fail \"Forge has no Minecraft $mc. Set Minecraft version to latest, or to a version Forge has, such as $newest.\"\n    v=$(jq -r --arg k \"$mc-$type\" '.promos[$k] // empty' <<<\"$promos\")\n    if [ -z \"$v\" ]; then\n        v=$(jq -r --arg k \"$mc-latest\" '.promos[$k] // empty' <<<\"$promos\")\n        [ -n \"$v\" ] || fail \"Forge has no build for Minecraft $mc to install. Set Forge version to one of its versions.\"\n        echo \"Minecraft $mc has no recommended Forge build, so this is its latest one.\"\n    fi\n    full=$(forge_full \"$v\" \"$mc\" \"$all\")\n    [ -n \"$full\" ] || fail \"Forge's version list doesn't have Forge $v for Minecraft $mc yet. Reinstall to try again later.\"\nfi\n\ninstall_forge \"$full\"\nneed=$(java_for \"$mc\")\nmost=$(java_most \"$mc\")\nwrite_java \"$need\" \"$most\"\necho \"Installed Forge $full for Minecraft $mc. It runs on $(java_text \"$need\" \"$most\").\"\n",
+            "container": "ghcr.io/xena-studios/yolks:java_25@sha256:00161884f448144104d564ccbd53baa62ac64536ab5c4e90aa24742b39c6384d",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Minecraft version",
+            "description": "The Minecraft version, such as 1.21.1, or latest for the newest one Forge supports. Reinstall the server after changing it.",
+            "env_variable": "MC_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Build type",
+            "description": "Which Forge build to install when Forge version is empty: recommended, or latest.",
+            "env_variable": "BUILD_TYPE",
+            "default_value": "recommended",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:recommended,latest",
+            "field_type": "text"
+        },
+        {
+            "name": "Forge version",
+            "description": "A Forge version to install, such as 47.3.0, instead of the build type. Leave it empty to use the build type.",
+            "env_variable": "FORGE_VERSION",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[0-9][0-9.]*(-[0-9][0-9.]*)*$/|max:40",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        }
+    ]
+}
