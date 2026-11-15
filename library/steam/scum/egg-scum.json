@@ -12,7 +12,7 @@
         "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
     },
     "file_denylist": [],
-    "startup": "rm -f SCUM/Saved/Logs/SCUM.log; wine ./SCUM/Binaries/Win64/SCUMServer.exe -log -port={{SERVER_PORT}} -QueryPort={{QUERY_PORT}} -MaxPlayers={{MAX_PLAYERS}} & pid=$!; tail -n +1 -F SCUM/Saved/Logs/SCUM.log --pid=$pid 2>/dev/null",
+    "startup": "rm -f SCUM/Saved/Logs/SCUM.log; tail -n +1 -F SCUM/Saved/Logs/SCUM.log 2>/dev/null & (trap - INT TERM; exec wine ./SCUM/Binaries/Win64/SCUMServer.exe -log -port={{SERVER_PORT}} -QueryPort={{QUERY_PORT}} -MaxPlayers={{MAX_PLAYERS}}) & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; wineserver -w 2>/dev/null; sleep 1; exit $r",
     "config": {
         "files": "{\"SCUM/Saved/Config/WindowsServer/ServerSettings.ini\": {\"parser\": \"ini\", \"find\": {\"General.[scum.ServerName]\": \"{{server.build.env.SERVER_NAME}}\", \"General.[scum.ServerDescription]\": \"{{server.build.env.SERVER_DESCRIPTION}}\", \"General.[scum.ServerPassword]\": \"{{server.build.env.SERVER_PASSWORD}}\", \"General.[scum.ServerPlaystyle]\": \"{{server.build.env.SERVER_PLAYSTYLE}}\"}}}",
         "startup": "{\"done\": \"LogWorld: Bringing up level for play took\"}",

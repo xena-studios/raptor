@@ -12,7 +12,7 @@
         "Proton": "ghcr.io/pelican-eggs/steamcmd:proton@sha256:099a9eba9b0e623c124680fd011948d09b2f5b24f49b0776b5821ff35e5b2530"
     },
     "file_denylist": [],
-    "startup": "rm -f TT2/Saved/Logs/TT2.log; PROTON_USE_XALIA=0 proton run ./TT2/Binaries/Win64/TT2Server-Win64-Shipping.exe -log & pid=$!; tail -n +1 -F TT2/Saved/Logs/TT2.log --pid=$pid 2>/dev/null",
+    "startup": "rm -f TT2/Saved/Logs/TT2.log; tail -n +1 -F TT2/Saved/Logs/TT2.log 2>/dev/null & (trap - INT TERM; PROTON_USE_XALIA=0 exec proton run ./TT2/Binaries/Win64/TT2Server-Win64-Shipping.exe -log) & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; sleep 1; exit $r",
     "config": {
         "files": "{\"dedicated_server_config.json\": {\"parser\": \"json\", \"find\": {\"Port\": \"{{server.build.default.port}}\", \"Password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"SlotCount\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
         "startup": "{\"done\": \"IpNetDriver listening on port\"}",

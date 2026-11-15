@@ -12,7 +12,7 @@
         "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
     },
     "file_denylist": [],
-    "startup": "rm -f LF/Saved/Logs/LF.log; (trap - INT; exec wine ./LF/Binaries/Win64/LFServer-Win64-Shipping.exe \"?listen\" -Port={{SERVER_PORT}} -QueryPort={{QUERY_PORT}} -log) & pid=$!; tail -n +1 -F LF/Saved/Logs/LF.log --pid=$pid 2>/dev/null & trap 'kill -INT $pid 2>/dev/null; (sleep 60; kill -9 $pid 2>/dev/null) &' INT TERM; while kill -0 $pid 2>/dev/null; do wait $pid; done",
+    "startup": "rm -f LF/Saved/Logs/LF.log; tail -n +1 -F LF/Saved/Logs/LF.log 2>/dev/null & (trap - INT TERM; exec wine ./LF/Binaries/Win64/LFServer-Win64-Shipping.exe \"?listen\" -Port={{SERVER_PORT}} -QueryPort={{QUERY_PORT}} -log) & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; wineserver -w 2>/dev/null; sleep 1; exit $r",
     "config": {
         "files": "{\"LF/Saved/Config/ServerSettings.ini\": {\"parser\": \"ini\", \"find\": {\"ServerSettings.ServerName\": \"{{server.build.env.SERVER_NAME}}\", \"ServerSettings.Password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"ServerSettings.MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"SystemSettings.IngameAdminPassword\": \"{{server.build.env.SERVER_ADMIN_PASSWORD}}\", \"SystemSettings.DefaultMessageOfTheDay\": \"{{server.build.env.SERVER_MOTD}}\", \"SystemSettings.SaveName\": \"{{server.build.env.SERVER_SAVEGAME}}\", \"GameSettings.Difficulty\": \"{{server.build.env.DIFFICULTY}}\", \"GameSettings/General.MODSelect\": \"{{server.build.env.PVP}}\"}}}",
         "startup": "{\"done\": \"Start Session Complete\"}",

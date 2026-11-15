@@ -12,7 +12,7 @@
         "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
     },
     "file_denylist": [],
-    "startup": "rm -f \"Icarus/Saved/Logs/Icarus.log\"; wine ./Icarus/Binaries/Win64/IcarusServer-Win64-Shipping.exe -Log -SteamServerName=\"{{SERVER_NAME}}\" -PORT={{SERVER_PORT}} -QueryPort={{QUERY_PORT}} & pid=$!; tail -n +1 -F \"Icarus/Saved/Logs/Icarus.log\" --pid=$pid 2>/dev/null",
+    "startup": "rm -f \"Icarus/Saved/Logs/Icarus.log\"; tail -n +1 -F \"Icarus/Saved/Logs/Icarus.log\" 2>/dev/null & (trap - INT TERM; exec wine ./Icarus/Binaries/Win64/IcarusServer-Win64-Shipping.exe -Log -SteamServerName=\"{{SERVER_NAME}}\" -PORT={{SERVER_PORT}} -QueryPort={{QUERY_PORT}}) & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; wineserver -w 2>/dev/null; sleep 1; exit $r",
     "config": {
         "files": "{\"Icarus/Saved/Config/WindowsServer/ServerSettings.ini\": {\"parser\": \"ini\", \"find\": {\"[/Script/Icarus.DedicatedServerSettings].SessionName\": \"{{server.build.env.SERVER_NAME}}\", \"[/Script/Icarus.DedicatedServerSettings].JoinPassword\": \"{{server.build.env.JOIN_PASSWORD}}\", \"[/Script/Icarus.DedicatedServerSettings].AdminPassword\": \"{{server.build.env.ADMIN_PASSWORD}}\", \"[/Script/Icarus.DedicatedServerSettings].MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
         "startup": "{\"done\": [\"Game Engine Initialized\", \"(Engine Initialization) Total time:\"]}",
