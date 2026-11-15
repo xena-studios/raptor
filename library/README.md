@@ -93,3 +93,7 @@ gh-release download owner/repo "$tag" app-linux-x64.tar.gz app.tar.gz   # checke
 
 `latest` is the newest full release (no pre-releases). Pick the file for
 the node's CPU from `assets` by name (`uname -m`).
+
+The install container's `/tmp` is a small in-memory folder: big
+temporary files (a JDK to build with, archives) go in a folder under
+`/mnt/server` such as `.raptor-build`, removed when the script exits.
