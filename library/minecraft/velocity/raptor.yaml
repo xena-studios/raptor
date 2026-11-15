@@ -1,0 +1,21 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/velocity/egg-velocity.json
+license: MIT
+credits:
+  - "Based on the Velocity egg in https://github.com/pelican-eggs/minecraft (MIT)"
+  - "Icon: Velocity's logo, from PaperMC's brand assets in https://github.com/PaperMC/website, in blue"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "glist"
+  expect: "0 players are currently connected to the proxy"
+addons:
+  plugins:
+    loaders: [velocity]
+    dir: plugins

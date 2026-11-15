@@ -1,0 +1,68 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/minecraft (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: ViaProxy",
+    "author": "support@raptorpanel.net",
+    "description": "ViaProxy, a standalone proxy that lets players on any Minecraft version, from Classic to the newest and Bedrock, join your server. Any release, checked against GitHub's checksum.",
+    "features": [
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:dda430001e6c1bc8e1c43d1b0cbb2fcd0d38221d3d8f167f3ba1ae658616b374",
+        "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:e71740e2a99017d4273a588310db60da474644ea364da60d086e33635b62dd27"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, and it runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:MaxInlineLevel=15 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} config viaproxy.yml",
+    "config": {
+        "files": "{\"viaproxy.yml\": {\"parser\": \"yaml\", \"find\": {\"bind-address\": \"0.0.0.0:{{server.build.default.port}}\", \"target-address\": \"{{server.build.env.TARGET_ADDRESS}}\"}}}",
+        "startup": "{\"done\": \"Binding proxy server to\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: ViaProxy. Downloads the chosen ViaProxy release from GitHub,\n# checked against GitHub's checksum. Settings and plugins are never touched.\nrepo=ViaVersion/ViaProxy\nname=ViaProxy\nasset='^ViaProxy-[0-9.]+\\.jar$'\njar=\"${SERVER_JARFILE:-viaproxy.jar}\"\nwant_version=\"${VERSION:-latest}\"\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\nsum() { \"${1}sum\" \"$2\" | cut -d' ' -f1; }\ntrap 'rm -f \"$jar.new\"; echo \"The install stopped at line $LINENO of its script. Reinstall to try again.\"' ERR\n\n# install_jar <url> <md5|sha1|sha256|sha512|none> <hash> <what>: skipped\n# when the jar already matches; replaced only once the new one checks out.\ninstall_jar() {\n    if [ \"$2\" != none ] && [ -f \"$jar\" ] && [ \"$(sum \"$2\" \"$jar\")\" = \"$3\" ]; then\n        echo \"$4 is already installed.\"\n        return\n    fi\n    echo \"Downloading $4\"\n    curl -fsSLg --retry 3 -A \"$ua\" -o \"$jar.new\" \"$1\" || { rm -f \"$jar.new\"; fail \"The download failed. Reinstall to try again.\"; }\n    if [ \"$2\" != none ] && [ \"$(sum \"$2\" \"$jar.new\")\" != \"$3\" ]; then\n        rm -f \"$jar.new\"\n        fail \"The download didn't match its checksum. Reinstall to try again.\"\n    fi\n    unzip -tq \"$jar.new\" >/dev/null 2>&1 || { rm -f \"$jar.new\"; fail \"The download isn't a valid jar. Reinstall to try again.\"; }\n    mv -f \"$jar.new\" \"$jar\"\n}\n\n# The Java the jar needs, from its main class: the startup command checks it.\njar_java() {\n    local main major\n    main=$(unzip -p \"$jar\" META-INF/MANIFEST.MF 2>/dev/null | tr -d '\\r' | sed -n 's/^Main-Class: *//p' | head -n1) || true\n    major=$(unzip -p \"$jar\" \"${main//.//}.class\" 2>/dev/null | od -An -j6 -N2 -tu1 | awk 'NF == 2 { print $1 * 256 + $2 - 44 }') || true\n    echo \"${major:-8}\"\n}\n\n# release <owner/repo> <version or latest> <asset name pattern>: sets tag,\n# url and sha (GitHub's SHA-256 of the file, when it has one), through the\n# installer's gh-release (GitHub's API has a low anonymous limit).\n# gh_tag <owner/repo> <tag or latest>: 1 when there's no such release, 2 when\n# GitHub can't be reached.\ngh_tag() {\n    local out\n    out=$(gh-release tag \"$1\" \"$2\" 2>&1) && { echo \"$out\"; return 0; }\n    case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n}\nrelease() {\n    local rc=0 assets line file\n    if [ -z \"$2\" ] || [ \"$2\" = latest ]; then\n        tag=$(gh_tag \"$1\" latest) || rc=$?\n        [ \"$rc\" != 1 ] || fail \"$1 has no releases on GitHub right now.\"\n    else\n        tag=$(gh_tag \"$1\" \"$2\") || rc=$?\n        if [ \"$rc\" = 1 ]; then rc=0; tag=$(gh_tag \"$1\" \"v${2#v}\") || rc=$?; fi\n        [ \"$rc\" != 1 ] || fail \"There's no version $2. Set Version to latest, or to a release, such as $(gh_tag \"$1\" latest || echo \"the newest one\").\"\n    fi\n    [ \"$rc\" = 0 ] || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    assets=$(gh-release assets \"$1\" \"$tag\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    line=$(re=\"$3\" awk '$1 ~ ENVIRON[\"re\"] { print; exit }' <<<\"$assets\")\n    [ -n \"$line\" ] || fail \"Release $tag has no server jar to download. Choose another version.\"\n    file=${line%% *}\n    sha=${line##* }\n    [ \"$sha\" != - ] || sha=\"\"\n    url=\"https://github.com/$1/releases/download/$tag/$file\"\n}\n\nif [ -n \"${custom_url:-}\" ]; then\n    install_jar \"$custom_url\" none \"\" \"the server jar from the download link\"\n    label=\"the jar from the download link\"\nelse\n    release \"$repo\" \"${want_version:-latest}\" \"$asset\"\n    algo=sha256\n    [ -n \"$sha\" ] || algo=none\n    if [ \"$algo\" = none ] && [ -f \"$jar\" ] && [ \"$(cat .raptor-build 2>/dev/null)\" = \"$tag\" ]; then\n        echo \"$name $tag is already installed.\"\n    else\n        install_jar \"$url\" \"$algo\" \"$sha\" \"$name $tag\"\n        echo \"$tag\" > .raptor-build\n    fi\n    label=\"$name $tag\"\nfi\njava=$(jar_java)\necho \"$java\" > .raptor-java\necho \"Installed $label. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The ViaProxy release, such as 3.4.14, or latest for the newest one. Reinstall after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Target server",
+            "description": "The address and port of the server players are sent to, such as play.example.com:25565.",
+            "env_variable": "TARGET_ADDRESS",
+            "default_value": "127.0.0.1:25566",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "viaproxy.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        }
+    ]
+}
