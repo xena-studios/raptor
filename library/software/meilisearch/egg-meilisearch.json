@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Meilisearch egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Meilisearch",
+    "author": "support@raptorpanel.net",
+    "description": "Meilisearch is a fast, typo-tolerant search engine with a simple HTTP API. Downloads the official release and keeps its database between updates.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./meilisearch --http-addr 0.0.0.0:{{SERVER_PORT}} --db-path data.ms --dump-dir dumps --snapshot-dir snapshots $([ \"{{SERVER_MEMORY}}\" -gt 0 ] 2>/dev/null && echo \"--max-indexing-memory $(({{SERVER_MEMORY}} - {{SERVER_MEMORY}} / 3))MiB\") $([ \"{{NO_ANALYTICS}}\" = 1 ] && echo --no-analytics)",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"actix-web-service-\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Meilisearch: downloads the meilisearch binary from its GitHub releases,\n# checked against the release's SHA-256. The database (data.ms), dumps and\n# config.toml are never touched.\nset -euo pipefail\ncd /mnt/server\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=aarch64 ;;\n    *) echo \"Meilisearch has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag meilisearch/meilisearch \"$version\") || exit 1\nasset=\"meilisearch-linux-${arch}\"\n\nif [ -x meilisearch ] && [ \"$(cat .meilisearch-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Meilisearch $tag is already installed.\"\nelse\n    echo \"Downloading Meilisearch $tag.\"\n    gh-release download meilisearch/meilisearch \"$tag\" \"$asset\" meilisearch.new\n    chmod 0755 meilisearch.new\n    mv -f meilisearch.new meilisearch\n    echo \"$tag\" > .meilisearch-version\nfi\nmkdir -p dumps snapshots\necho \"Installed Meilisearch $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Meilisearch version to install, such as 1.56.2, or latest. Moving to a new minor version may need a dump and import of your data.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/|max:30",
+            "field_type": "text"
+        },
+        {
+            "name": "Master key",
+            "description": "The key that protects the API, at least 16 characters. Required in production.",
+            "env_variable": "MEILI_MASTER_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:16|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Environment",
+            "description": "production requires a master key and hides the search preview; development is for testing.",
+            "env_variable": "MEILI_ENV",
+            "default_value": "production",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:development,production",
+            "field_type": "text"
+        },
+        {
+            "name": "Log level",
+            "description": "How much Meilisearch writes to the console.",
+            "env_variable": "MEILI_LOG_LEVEL",
+            "default_value": "INFO",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:ERROR,WARN,INFO,DEBUG,TRACE,OFF",
+            "field_type": "text"
+        },
+        {
+            "name": "Indexing threads",
+            "description": "The most CPU threads indexing may use.",
+            "env_variable": "MEILI_MAX_INDEXING_THREADS",
+            "default_value": "2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Turn off analytics",
+            "description": "Stop sending anonymous usage data to Meilisearch.",
+            "env_variable": "NO_ANALYTICS",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

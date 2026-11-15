@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/folding-at-home/egg-folding-at-home.json
+license: MIT
+credits:
+  - "Based on the Folding@home egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the Folding@home logo, from https://github.com/FoldingAtHome"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Mumble egg in https://github.com/pelican-eggs/voice (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Mumble",
+    "author": "support@raptorpanel.net",
+    "description": "Mumble is an open source, low-latency voice chat for gaming. Runs the official Mumble server, with the user limit, password and SuperUser password set from the server's settings.",
+    "features": [],
+    "docker_images": {
+        "Mumble": "ghcr.io/pelican-eggs/yolks:voice_mumble@sha256:3e35919b65eb26cb92fc6daa4b6a4629e413ceeeb6a7793900a905add20320c1"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"$SUPERUSER_PASSWORD\" ]; then mumble-server -ini murmur.ini -supw \"$SUPERUSER_PASSWORD\" 2>&1 | grep -i superuser; fi; exec mumble-server -fg -ini murmur.ini",
+    "config": {
+        "files": "{\n    \"murmur.ini\": {\n        \"parser\": \"ini\",\n        \"find\": {\n            \"port\": \"{{server.allocations.default.port}}\",\n            \"host\": \"\",\n            \"database\": \"murmur.sqlite\",\n            \"logfile\": \"\",\n            \"users\": \"{{server.environment.MAX_USERS}}\",\n            \"serverpassword\": \"\\\"{{server.environment.SERVER_PASSWORD}}\\\"\",\n            \"welcometext\": \"\\\"{{server.environment.WELCOME_TEXT}}\\\"\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": [\n        \"Server listening on\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Mumble: the server program comes with the runtime image, so this only\n# writes a starting murmur.ini. An existing murmur.ini and the database\n# (murmur.sqlite, with channels, users and certificates) are kept.\nset -euo pipefail\ncd /mnt/server\n\nif [ -f murmur.ini ]; then\n    echo \"murmur.ini is already here: keeping it.\"\nelse\n    cat > murmur.ini <<'CONF'\n; Mumble server settings: https://www.mumble.info/documentation/administration/config-file/\n; The port, user limit, password and welcome message are set by the\n; server's settings.\ndatabase=murmur.sqlite\nlogfile=\nport=64738\nhost=\nusers=100\nserverpassword=\nwelcometext=\"Welcome to this Mumble server.\"\nbandwidth=558000\ntimeout=30\ntextmessagelength=5000\nimagemessagelength=131072\nallowhtml=true\nopusthreshold=0\nsendversion=true\nCONF\n    echo \"Wrote murmur.ini.\"\nfi\necho \"Installed Mumble's settings. Start the server to create its database.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Max users",
+            "description": "The most people who can be connected at once.",
+            "env_variable": "MAX_USERS",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,10000",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "A password everyone needs to join, without double quotes. Leave it empty for an open server.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|not_regex:/\"/|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "SuperUser password",
+            "description": "Sets the SuperUser account's password at every start. Leave it empty to keep the one printed on the first start.",
+            "env_variable": "SUPERUSER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Welcome message",
+            "description": "The message people see when they join, without double quotes. It can use simple HTML.",
+            "env_variable": "WELCOME_TEXT",
+            "default_value": "Welcome to this Mumble server.",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|not_regex:/\"/|max:500",
+            "field_type": "text"
+        }
+    ]
+}

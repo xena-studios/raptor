@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/game-server-watcher/egg-game-server-watcher.json
+license: MIT
+credits:
+  - "Based on the Game Server Watcher egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: Game Server Watcher's favicon, from https://github.com/a-sync/game-server-watcher (AGPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 10m
+  variables:
+    SECRET: "raptor-test"

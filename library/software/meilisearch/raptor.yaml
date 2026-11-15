@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/meilisearch/egg-meilisearch.json
+license: MIT
+credits:
+  - "Based on the Meilisearch egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the Meilisearch logo, from https://github.com/meilisearch (Meili SAS)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  variables:
+    MEILI_MASTER_KEY: "raptor-conformance-test-key"

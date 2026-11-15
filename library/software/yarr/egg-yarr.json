@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Yarr egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Yarr",
+    "author": "support@raptorpanel.net",
+    "description": "Yarr is a small, self-hosted RSS and Atom feed reader in the browser. Downloads the official release and keeps your feeds in one database file.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./yarr -addr 0.0.0.0:{{SERVER_PORT}} -db feed.sql ${PASSWORD:+-auth \"$USERNAME:$PASSWORD\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"starting server\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Yarr: downloads yarr from its GitHub releases, checked against\n# GitHub's SHA-256. The feed database is never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) echo \"Yarr has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag nkanaev/yarr \"$version\") || exit 1\nasset=\"yarr_linux_${arch}.zip\"\n\nif [ -x yarr ] && [ \"$(cat .yarr-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Yarr $tag is already installed.\"\nelse\n    echo \"Downloading Yarr $tag.\"\n    gh-release download nkanaev/yarr \"$tag\" \"$asset\" $work/yarr.zip\n    unzip -qo $work/yarr.zip -d $work/yarr\n    install -m 0755 $work/yarr/yarr yarr.new\n    mv -f yarr.new yarr\n    echo \"$tag\" > .yarr-version\nfi\necho \"Installed Yarr $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Yarr version to install, such as 2.9, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+(\\.\\d+)+)$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Username",
+            "description": "The username to log in to Yarr with.",
+            "env_variable": "USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|alpha_dash|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password to log in with. Leave it empty to let anyone who can reach the port read your feeds.",
+            "env_variable": "PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        }
+    ]
+}

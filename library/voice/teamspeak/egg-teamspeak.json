@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the TeamSpeak 3 eggs in https://github.com/pelican-eggs/voice and https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "TeamSpeak 3",
+    "author": "support@raptorpanel.net",
+    "description": "TeamSpeak 3 is a voice chat server known for clear audio and fine-grained permissions. Downloads the official server, which runs through Box64 on ARM64; starting it accepts TeamSpeak's licence agreement.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:e59b56f2ec25462503dba08a790d5ea9e2eccb88d8da2840a14f98067c1e3a6d"
+    },
+    "file_denylist": [],
+    "startup": "run=; if [ \"$(uname -m)\" = aarch64 ]; then run=box64; fi; export LD_LIBRARY_PATH=.; exec $run ./ts3server license_accepted=1 default_voice_port={{SERVER_PORT}} voice_ip=0.0.0.0 query_port={{QUERY_PORT}} query_ip=0.0.0.0 filetransfer_port={{FILE_TRANSFER}} filetransfer_ip=0.0.0.0 query_http_port={{QUERY_HTTP}} query_ssh_port={{QUERY_SSH}} query_protocols={{QUERY_PROTOCOLS_VAR}} ${SERVERADMIN_PASSWORD:+serveradmin_password=\"$SERVERADMIN_PASSWORD\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"regex:VirtualServerBase.*listening on\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# TeamSpeak 3: downloads the TeamSpeak 3 server for Linux from\n# teamspeak.com (the x86-64 build, which ARM64 servers run through the image's Box64),\n# checked against the published SHA-256 for the current version. The\n# database, uploaded files, licence key and query allow lists are kept.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\nlatest=$(curl -fsSL https://teamspeak.com/versions/server.json) || { echo \"Couldn't reach teamspeak.com to look up the version. Try again in a few minutes.\"; exit 1; }\nversion=\"${TS_VERSION:-latest}\"\nsha=\"\"\nif [ \"$version\" = latest ] || [ \"$version\" = \"$(echo \"$latest\" | jq -r .linux.x86_64.version)\" ]; then\n    version=$(echo \"$latest\" | jq -r .linux.x86_64.version)\n    sha=$(echo \"$latest\" | jq -r .linux.x86_64.checksum)\nfi\nurl=\"https://files.teamspeak-services.com/releases/server/$version/teamspeak3-server_linux_amd64-$version.tar.bz2\"\nif [ \"$(curl -sIL -o /dev/null -w '%{http_code}' \"$url\")\" != 200 ]; then\n    echo \"TeamSpeak 3 version $version doesn't exist: see https://teamspeak.com/en/downloads/#server.\"\n    exit 1\nfi\n\nif [ -x ts3server ] && [ \"$(cat .ts3-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"TeamSpeak 3 $version is already installed.\"\nelse\n    echo \"Downloading TeamSpeak 3 $version.\"\n    curl -fsSL -o $work/ts3.tar.bz2 \"$url\"\n    if [ -n \"$sha\" ]; then\n        echo \"$sha  $work/ts3.tar.bz2\" | sha256sum -c --quiet - || { echo \"The download is damaged (checksum mismatch). Try again.\"; exit 1; }\n    fi\n    mkdir -p $work/ts3\n    tar -xjf $work/ts3.tar.bz2 -C $work/ts3 --strip-components=1\n    cp -a $work/ts3/. .\n    echo \"$version\" > .ts3-version\nfi\ntouch .ts3server_license_accepted\necho \"Installed TeamSpeak 3 $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The TeamSpeak 3 server version to install, such as 3.13.9, or latest.",
+            "env_variable": "TS_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|\\d+\\.\\d+\\.\\d+)$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Query password",
+            "description": "Sets the serveradmin query account's password at every start. Leave it empty to keep the one printed on the first start.",
+            "env_variable": "SERVERADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|alpha_num|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Query port",
+            "description": "The ServerQuery port (raw protocol).",
+            "env_variable": "QUERY_PORT",
+            "default_value": "10011",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "File transfer port",
+            "description": "The port for file uploads and downloads in channels.",
+            "env_variable": "FILE_TRANSFER",
+            "default_value": "30033",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Query SSH port",
+            "description": "The ServerQuery port over SSH.",
+            "env_variable": "QUERY_SSH",
+            "default_value": "10022",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Query HTTP port",
+            "description": "The ServerQuery port over HTTP (WebQuery).",
+            "env_variable": "QUERY_HTTP",
+            "default_value": "10080",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Query protocols",
+            "description": "The ServerQuery protocols to turn on, separated by commas: raw, ssh and http.",
+            "env_variable": "QUERY_PROTOCOLS_VAR",
+            "default_value": "raw,ssh,http",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(raw|ssh|http)(,(raw|ssh|http))*$/|max:20",
+            "field_type": "text"
+        }
+    ]
+}

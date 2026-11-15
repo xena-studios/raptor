@@ -1,0 +1,52 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the LanguageTool egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "LanguageTool",
+    "author": "support@raptorpanel.net",
+    "description": "LanguageTool is an open source grammar, style and spell checker for more than 20 languages. Runs its HTTP server, with optional n-gram data for better results.",
+    "features": [],
+    "docker_images": {
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1"
+    },
+    "file_denylist": [],
+    "startup": "exec java -XX:MaxRAMPercentage=80 -cp languagetool-server.jar org.languagetool.server.HTTPServer --port {{SERVER_PORT}} --public --allow-origin --config config.properties $([ -n \"$(ls -A models 2>/dev/null)\" ] && echo \"--languageModel models\")",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Server started\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# LanguageTool: downloads the LanguageTool server from languagetool.org\n# and, if asked, the n-gram data for some languages. config.properties and\n# downloaded n-gram data are kept.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nbase=https://languagetool.org/download\n\nversion=\"${VERSION:-latest}\"\nif [ \"$version\" = latest ]; then\n    version=$(curl -fsSL \"$base/\" | grep -oE 'LanguageTool-[0-9]+\\.[0-9]+[a-z]?\\.zip' | sed -E 's/LanguageTool-(.*)\\.zip/\\1/' | sort -uV | tail -n 1)\n    if [ -z \"$version\" ]; then\n        echo \"Couldn't find the latest LanguageTool version on languagetool.org. Try again in a few minutes.\"\n        exit 1\n    fi\nfi\nurl=\"$base/LanguageTool-$version.zip\"\nif [ \"$(curl -sIL -o /dev/null -w '%{http_code}' \"$url\")\" != 200 ]; then\n    url=\"$base/archive/LanguageTool-$version.zip\"\n    if [ \"$(curl -sIL -o /dev/null -w '%{http_code}' \"$url\")\" != 200 ]; then\n        echo \"LanguageTool version $version doesn't exist: see $base/.\"\n        exit 1\n    fi\nfi\n\nif [ -f languagetool-server.jar ] && [ \"$(cat .languagetool-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"LanguageTool $version is already installed.\"\nelse\n    echo \"Downloading LanguageTool $version (about 250 MB).\"\n    curl -fsSL -o $work/lt.zip \"$url\"\n    unzip -tq $work/lt.zip >/dev/null || { echo \"The download is damaged. Try again.\"; exit 1; }\n    mkdir -p $work/lt\n    unzip -q $work/lt.zip -d $work/lt\n    src=$(find $work/lt -mindepth 1 -maxdepth 1 -type d -name 'LanguageTool-*' | head -n 1)\n    # The program's own folders are replaced whole, so no old library stays behind.\n    rm -rf libs org META-INF\n    cp -a \"$src\"/. .\n    echo \"$version\" > .languagetool-version\nfi\n\nmkdir -p models\nfor lang in ${TRAIN_MODELS:-}; do\n    if [ -d \"models/$lang\" ]; then\n        echo \"The $lang n-gram data is already here.\"\n        continue\n    fi\n    file=$(curl -fsSL \"$base/ngram-data/\" | grep -oE \"ngrams-$lang-[0-9]+\\.zip\" | sort -u | tail -n 1)\n    if [ -z \"$file\" ]; then\n        echo \"There's no n-gram data for \\\"$lang\\\": see $base/ngram-data/.\"\n        exit 1\n    fi\n    echo \"Downloading the $lang n-gram data ($file, several gigabytes).\"\n    curl -fsSL -o \"$work/$file\" \"$base/ngram-data/$file\"\n    unzip -q \"$work/$file\" -d models.new\n    [ -d \"models.new/$lang\" ] || { echo \"The $lang n-gram download didn't have the expected $lang folder.\"; exit 1; }\n    mv \"models.new/$lang\" \"models/$lang\"\n    rm -rf models.new \"$work/$file\"\ndone\n\nif [ ! -f config.properties ]; then\n    cat > config.properties <<'CONF'\n# LanguageTool server settings: https://dev.languagetool.org/http-server\n# n-gram data in the models folder is used when it is there.\nmaxTextLength=50000\nCONF\nfi\necho \"Installed LanguageTool $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The LanguageTool version to install, such as 6.6, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|\\d+\\.\\d+[a-z]?)$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "N-gram data",
+            "description": "Languages to download n-gram data for, separated by spaces, such as en de. Each takes several gigabytes.",
+            "env_variable": "TRAIN_MODELS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[a-z]{2}( [a-z]{2})*$/|max:100",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/languagetool/egg-languagetool.json
+license: MIT
+credits:
+  - "Based on the LanguageTool egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the LanguageTool logo, from https://github.com/languagetool-org (LanguageTooler GmbH)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 4m

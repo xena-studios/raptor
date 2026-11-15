@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/yarr/egg-yarr.json
+license: MIT
+credits:
+  - "Based on the Yarr egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: Yarr's app icon, from https://github.com/nkanaev/yarr (MIT)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  variables:
+    PASSWORD: "raptor-test"

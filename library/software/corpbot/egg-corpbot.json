@@ -1,0 +1,52 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the CorpBot egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "CorpBot",
+    "author": "support@raptorpanel.net",
+    "description": "CorpBot is a Python Discord bot with moderation, music, games and plenty of fun commands. Installs its latest code and its Python packages on first start.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:747c1bcb1c15d3c1a51f49254b8e86db5a7c70e40b40ac42380909cf94c3735e",
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:bbd606b71dd99f5cb54f2f3c07f9a2689c83e284dc97bc8509f550ec9dc79815"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"$TOKEN\" ]; then echo \"Set the bot token in the server's startup settings, then start it again.\"; exit 1; fi; h=$(cat .git/HEAD 2>/dev/null)$(python3 --version); if [ ! -x venv/bin/python ] || [ \"$h\" != \"$(cat venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing CorpBot's Python packages. This takes a few minutes.\"; python3 Install.py --no-interaction --clear-venv && echo \"$h\" > venv/.raptor-installed || exit 1; fi; exec venv/bin/python -u Main.py",
+    "config": {
+        "files": "{\n    \"settings_dict.json\": {\n        \"parser\": \"json\",\n        \"find\": {\n            \"token\": \"{{server.environment.TOKEN}}\",\n            \"prefix\": \"{{server.environment.PREFIX}}\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": [\n        \"Logged in as\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "shutdown"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# CorpBot: clones CorpBot from its Git repository, or pulls the newest\n# code into an existing copy. CorpBot has no releases, so this is always\n# its latest code. settings_dict.json and the bot's saved settings are\n# kept; its Python packages are installed when the server starts.\nset -euo pipefail\ncd /mnt/server\nrepo=https://github.com/corpnewt/CorpBot.py\n\ngit config --global --add safe.directory /mnt/server\n[ -d .git ] || git init -q\ngit fetch -q --depth 1 \"$repo\" HEAD\n# Only CorpBot's own files are replaced; settings and the venv aren't part of it.\ngit -c advice.detachedHead=false checkout -q -f FETCH_HEAD\ncommit=$(git rev-parse --short HEAD)\n\nif [ ! -f settings_dict.json ]; then\n    echo '{\"token\": \"\", \"prefix\": \"$\"}' | jq . > settings_dict.json\n    echo \"Wrote settings_dict.json.\"\nfi\necho \"Installed CorpBot at commit $commit. Its Python packages are installed when it first starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Bot token",
+            "description": "Your Discord bot's token, from the Discord Developer Portal.",
+            "env_variable": "TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Prefix",
+            "description": "The prefix for the bot's commands, such as $ or !.",
+            "env_variable": "PREFIX",
+            "default_value": "$",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:10",
+            "field_type": "text"
+        }
+    ]
+}

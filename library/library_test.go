@@ -24,6 +24,12 @@ var (
 
 const author = "support@raptorpanel.net"
 
+// Real product names that contain a word the house style refuses in names
+// (badName). Each is the project's own name, which the egg keeps as it is.
+var realNames = map[string]bool{
+	"Game Server Watcher": true, // https://github.com/a-sync/game-server-watcher
+}
+
 func TestLibrary(t *testing.T) {
 	all, err := All()
 	if err != nil {
@@ -57,7 +63,7 @@ func TestLibrary(t *testing.T) {
 				t.Errorf("a %s JSON egg (Raptor's own format), not %s %s", eggs.Raptor, egg.Format, e.File)
 			}
 			name := egg.Name
-			if badName.MatchString(strings.TrimPrefix(name, "Minecraft: ")) || versionName.MatchString(name) || len(name) > 40 || name == "" {
+			if (!realNames[name] && badName.MatchString(strings.TrimPrefix(name, "Minecraft: "))) || versionName.MatchString(name) || len(name) > 40 || name == "" {
 				t.Errorf("name %q doesn't follow the style", name)
 			}
 			if strings.HasPrefix(e.ID, "minecraft/") && !strings.HasPrefix(name, "Minecraft: ") {

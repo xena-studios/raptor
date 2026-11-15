@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/voice/mumble/egg-mumble.json
+license: MIT
+credits:
+  - "Based on the Mumble egg in https://github.com/pelican-eggs/voice (MIT)"
+  - "Icon: the Mumble logo, from https://github.com/mumble-voip (BSD-3-Clause)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  variables:
+    SUPERUSER_PASSWORD: "raptor-test"
+  config:
+    murmur.ini: "port={{port}}"

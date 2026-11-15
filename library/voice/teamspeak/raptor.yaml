@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/voice/teamspeak/egg-teamspeak.json
+license: MIT
+credits:
+  - "Based on the TeamSpeak 3 eggs in https://github.com/pelican-eggs/voice and https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the TeamSpeak logo, from https://github.com/teamspeak (TeamSpeak Systems GmbH)"
+certified: true
+# x86-64 only upstream; on ARM64 the image's Box64 runs it.
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 2m
+  variables:
+    SERVERADMIN_PASSWORD: "raptortest"
