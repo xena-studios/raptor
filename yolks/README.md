@@ -13,6 +13,7 @@ the way Wings runs servers before anything is published.
 | `dotnet_8`, `dotnet_10` | .NET SDK, with the ASP.NET Core runtime (Ubuntu) | amd64, arm64 |
 | `bun_1`, `deno_2` | Bun, Deno (Debian) | amd64, arm64 |
 | `go_1.26`, `go_1.27`, `rust_1` | Go, Rust toolchains (Debian) | amd64, arm64 |
+| `box64` | Debian, with Debian's Box64 on arm64 to run x86-only servers (Bedrock) | amd64, arm64 |
 | `steamcmd` | Debian slim with the 32-bit libraries SteamCMD and Source games need | amd64 |
 | `installer` | Debian slim with what install scripts use (curl, jq, unzip, git, …) | amd64, arm64 |
 

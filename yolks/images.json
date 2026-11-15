@@ -21,6 +21,7 @@
     {"tag": "go_1.26", "dir": "go", "version": "1.26", "platforms": ["amd64", "arm64"], "test": "go version && go env GOPATH", "expect": "/home/container/.go"},
     {"tag": "go_1.27", "dir": "go", "version": "1.27", "platforms": ["amd64", "arm64"], "test": "go version", "expect": "go1.27"},
     {"tag": "rust_1", "dir": "rust", "version": "1", "platforms": ["amd64", "arm64"], "test": "cargo --version && echo \"cargo home $CARGO_HOME\"", "expect": "cargo home /home/container/.cargo"},
+    {"tag": "box64", "dir": "box64", "version": "", "platforms": ["amd64", "arm64"], "test": "if [ $(uname -m) = aarch64 ]; then box64 --version; else echo x86 Box64; fi", "expect": "Box64"},
     {"tag": "steamcmd", "dir": "steamcmd", "version": "", "platforms": ["amd64"], "test": "ls /usr/lib32/libstdc++.so.6", "expect": "libstdc++"},
     {"tag": "installer", "dir": "installer", "version": "", "platforms": ["amd64", "arm64"], "test": "", "expect": ""}
   ]
