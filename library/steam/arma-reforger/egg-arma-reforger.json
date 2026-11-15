@@ -1,0 +1,234 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Arma Reforger egg in https://github.com/pelican-eggs/games-steamcmd (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Arma Reforger",
+    "author": "support@raptorpanel.net",
+    "description": "Bohemia's Cold War military sandbox, with Conflict and Game Master scenarios. Installs the dedicated server with SteamCMD and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:3da8e0bc90c94c7f9aca1355f2ae31c0484ee78dd446a0c6c1d796dfe4d7677d"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $([ \"{{VALIDATE}}\" = 1 ] && echo validate) +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; if jq --arg v \"{{VISIBLE}}\" --arg b \"{{BATTLEYE}}\" --arg t \"{{DISABLE_THIRD}}\" --arg c \"{{CROSS_PLATFORM}}\" --arg r \"$RCON_PASSWORD\" --arg rp \"{{RCON_PORT}}\" '.game.visible = ($v == \"true\") | .game.gameProperties.battlEye = ($b == \"true\") | .game.gameProperties.disableThirdPerson = ($t == \"true\") | .game.crossPlatform = ($c == \"true\") | .game.supportedPlatforms = (if $c == \"true\" then [\"PLATFORM_PC\",\"PLATFORM_XBL\",\"PLATFORM_PSN\"] else [\"PLATFORM_PC\"] end) | if $r == \"\" then del(.rcon) else .rcon = ((.rcon // {}) + {address: \"0.0.0.0\", port: ($rp | tonumber), password: $r, permission: (.rcon.permission // \"admin\")}) end' config.json > config.json.new; then mv -f config.json.new config.json; else rm -f config.json.new; echo \"config.json isn't valid JSON, so the server starts with it as it is.\"; fi; ./ArmaReforgerServer -config ./config.json -profile ./profile -addonTempDir ./tmp -backendlog -nothrow -maxFPS {{MAX_FPS}} $([ \"{{LOG_INTERVAL}}\" -gt 0 ] && echo -logStats $(({{LOG_INTERVAL}} * 1000))) $([ \"{{CRASH_REPORTS}}\" = true ] || echo -disableCrashReporter) 2>&1 | (trap '' INT TERM; while IFS= read -r l; do printf '%s\\n' \"$l\"; case \"$l\" in *'Replication finished.'*) (sleep 10; kill 0) & ;; esac; done)",
+    "config": {
+        "files": "{\"config.json\": {\"parser\": \"json\", \"find\": {\"bindPort\": \"{{server.build.default.port}}\", \"publicPort\": \"{{server.build.default.port}}\", \"a2s.address\": \"0.0.0.0\", \"a2s.port\": \"{{server.build.env.QUERY_PORT}}\", \"game.name\": \"{{server.build.env.SERVER_NAME}}\", \"game.password\": \"{{server.build.env.SERVER_PASS}}\", \"game.passwordAdmin\": \"{{server.build.env.ADMIN_PASS}}\", \"game.scenarioId\": \"{{server.build.env.SCENARIO_ID}}\", \"game.maxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": \"Entered online game state.\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Arma Reforger. Installs or updates the dedicated server (Steam app 1874900) with\n# SteamCMD, signed in anonymously.\n# Saves, mods and config.json are never replaced.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-1874900}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# config.json is written once; the Panel sets the ports, name, passwords,\n# scenario and player count in it at every start, and the startup the\n# true/false settings and RCON. Mods, admins and the rest are the owner's.\nmkdir -p profile\nif [ ! -f config.json ]; then\n    cat > config.json <<'EOF'\n{\n    \"bindAddress\": \"\",\n    \"bindPort\": 2001,\n    \"publicAddress\": \"\",\n    \"publicPort\": 2001,\n    \"a2s\": {\n        \"address\": \"0.0.0.0\",\n        \"port\": 17777\n    },\n    \"game\": {\n        \"name\": \"An Arma Reforger server\",\n        \"password\": \"\",\n        \"passwordAdmin\": \"\",\n        \"admins\": [],\n        \"scenarioId\": \"{ECC61978EDCC2B5A}Missions/23_Campaign.conf\",\n        \"maxPlayers\": 32,\n        \"visible\": true,\n        \"crossPlatform\": false,\n        \"supportedPlatforms\": [\"PLATFORM_PC\"],\n        \"gameProperties\": {\n            \"serverMaxViewDistance\": 2500,\n            \"serverMinGrassDistance\": 50,\n            \"networkViewDistance\": 1000,\n            \"disableThirdPerson\": false,\n            \"fastValidation\": true,\n            \"battlEye\": true,\n            \"VONDisableUI\": false,\n            \"VONDisableDirectSpeechUI\": false\n        },\n        \"mods\": []\n    },\n    \"operating\": {\n        \"lobbyPlayerSynchronise\": true\n    }\n}\nEOF\n    echo \"Made config.json.\"\nfi\necho \"Installed Arma Reforger build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "install": {
+        "timeout": "4h"
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Arma Reforger server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "SERVER_PASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password that makes a player an admin in game (#login), with no spaces; empty for none.",
+            "env_variable": "ADMIN_PASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^\\S*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Scenario",
+            "description": "The scenario's ID, such as {ECC61978EDCC2B5A}Missions/23_Campaign.conf (Conflict on Everon); the server lists the others when it starts.",
+            "env_variable": "SCENARIO_ID",
+            "default_value": "{ECC61978EDCC2B5A}Missions/23_Campaign.conf",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "32",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,128",
+            "field_type": "text"
+        },
+        {
+            "name": "Visible",
+            "description": "List the server in the in-game server browser (true or false).",
+            "env_variable": "VISIBLE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "BattlEye",
+            "description": "Run the BattlEye anti-cheat, which every player then needs (true or false).",
+            "env_variable": "BATTLEYE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Disable third person",
+            "description": "Keep players in first person (true or false).",
+            "env_variable": "DISABLE_THIRD",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Crossplay",
+            "description": "Let Xbox and PlayStation players join as well (true or false); every mod must then be available on consoles.",
+            "env_variable": "CROSS_PLATFORM",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Query port",
+            "description": "The port Steam's server queries use; give it an allocation.",
+            "env_variable": "QUERY_PORT",
+            "default_value": "17777",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON port",
+            "description": "The port for remote admin tools (BattlEye RCON); give it an allocation to use it.",
+            "env_variable": "RCON_PORT",
+            "default_value": "19999",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The password for remote admin tools, at least 3 characters without spaces; empty turns RCON off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:3|max:32|regex:/^\\S*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max FPS",
+            "description": "The server's frame limit; Bohemia recommends 60 to 120, and higher uses more CPU.",
+            "env_variable": "MAX_FPS",
+            "default_value": "60",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:10,240",
+            "field_type": "text"
+        },
+        {
+            "name": "Stats interval",
+            "description": "How often, in seconds, the server logs its FPS and player stats to the console; 0 turns it off.",
+            "env_variable": "LOG_INTERVAL",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,3600",
+            "field_type": "text"
+        },
+        {
+            "name": "Crash reports",
+            "description": "Send crash reports to Bohemia Interactive (true or false).",
+            "env_variable": "CRASH_REPORTS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "1874900",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:1874900",
+            "field_type": "text"
+        }
+    ]
+}

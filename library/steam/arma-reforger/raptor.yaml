@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/arma-reforger/egg-arma-reforger.json
+license: MIT
+credits:
+  - "Based on the Arma Reforger eggs in https://github.com/pelican-eggs/games-steamcmd and https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Arma Reforger's icon, from Steam (Bohemia Interactive)"
+certified: true
+arch: [amd64]
+# Steam's query (A2S) answers on Query port: config.json's a2s block, which
+# the Panel keeps.
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: Reforger has no console to save from.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 60m

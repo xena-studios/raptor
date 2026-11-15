@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/tower-unite/egg-tower-unite.json
+license: MIT
+credits:
+  - "Based on the Tower Unite eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT), and the game's Linux server guide"
+  - "Icon: Tower Unite's icon, from Steam (PixelTail Games)"
+certified: true
+arch: [amd64]
+# No player count: until the server has signed in to Steam (a Steam login
+# token), its answer to Steam's query reports 0 slots.
+# No backup hooks: no console; condos save on their own (CondoAutoSave).
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

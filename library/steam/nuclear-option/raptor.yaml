@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/nuclear-option/egg-nuclear-option.json
+license: MIT
+credits:
+  - "Based on the Nuclear Option egg in https://github.com/pterodactyl/game-eggs (MIT) and the game's server guide, https://github.com/Shockfront-Studios/Nuclear-Option-Server-Tools"
+  - "Icon: Nuclear Option's logo, from its Steam store page (Shockfront Studios)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: there's nothing to save between missions.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

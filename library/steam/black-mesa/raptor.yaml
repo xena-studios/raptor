@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/black-mesa/egg-black-mesa.json
+license: MIT
+credits:
+  - "Based on the Black Mesa egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Black Mesa's icon, from Steam (Crowbar Collective)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+test:
+  tier: manual
+  reason: "the server is about 30 GB, more than standard CI runners have room for"
+  memory_mib: 2048
+  done_timeout: 60m
+  command: "status"
+  expect: "hostname"

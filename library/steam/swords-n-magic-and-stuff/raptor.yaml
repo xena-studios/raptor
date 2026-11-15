@@ -1,0 +1,20 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/swords-n-magic-and-stuff/egg-swords-n-magic-and-stuff.json
+license: MIT
+credits:
+  - "Based on the Swords 'n Magic and Stuff egg in https://github.com/pterodactyl/game-eggs (MIT) and the server's own Dedicated-Server-README.txt"
+  - "Icon: Swords 'n Magic and Stuff's logo, from its Steam store page (Kindred Games)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: no console; the world resets on its schedule anyway.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 40m
+  # The server refuses to start without an owner; the test gives it a well-formed SteamID64.
+  variables:
+    SNM_OWNER_STEAM_ID: "76561197960265729"

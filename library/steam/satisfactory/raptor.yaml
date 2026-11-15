@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/satisfactory/egg-satisfactory.json
+license: MIT
+credits:
+  - "Based on the Satisfactory eggs in https://github.com/pelican-eggs/games-steamcmd and https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Satisfactory's logo, from its Steam store page (Coffee Stain Studios)"
+certified: true
+arch: [amd64]
+# No player count: Satisfactory answers its own query protocol, not
+# Steam's. No backup hooks: it has no console; it autosaves every few
+# minutes.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 30m

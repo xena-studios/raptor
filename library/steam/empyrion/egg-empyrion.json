@@ -1,0 +1,254 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Empyrion: Galactic Survival egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Empyrion: Galactic Survival",
+    "author": "support@raptorpanel.net",
+    "description": "The space sandbox of ships, bases and planets to survive on. Installs the Windows dedicated server with SteamCMD, runs it under Wine and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
+    },
+    "file_denylist": [],
+    "startup": "mkdir -p Logs; rm -f Logs/raptor.log; (exec tail -n +1 -F Logs/raptor.log 2>/dev/null) & (until (exec 3<>/dev/tcp/127.0.0.1/{{TELNET_PORT}}) 2>/dev/null; do sleep 2; done; { printf \"%s\\n\" \"$TELNET_PASSWORD\"; exec cat; } | exec telnet 127.0.0.1 {{TELNET_PORT}}) <&0 & cd DedicatedServer && wine EmpyrionDedicated.exe -batchmode -nographics -dedicated dedicated.yaml -logFile ../Logs/raptor.log; r=$?; sleep 1; exit $r",
+    "config": {
+        "files": "{\"dedicated.yaml\": {\"parser\": \"yaml\", \"find\": {\"ServerConfig.Srv_Port\": \"{{server.build.default.port}}\", \"ServerConfig.Srv_Name\": \"{{server.build.env.SERVER_NAME}}\", \"ServerConfig.Srv_Description\": \"{{server.build.env.SERVER_DESCRIPTION}}\", \"ServerConfig.Srv_Password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"ServerConfig.Srv_MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"ServerConfig.Srv_Public\": \"{{server.build.env.SERVER_PUBLIC}}\", \"ServerConfig.Tel_Enabled\": true, \"ServerConfig.Tel_Port\": \"{{server.build.env.TELNET_PORT}}\", \"ServerConfig.Tel_Pwd\": \"{{server.build.env.TELNET_PASSWORD}}\", \"ServerConfig.EACActive\": \"{{server.build.env.EAC_ACTIVE}}\", \"ServerConfig.MaxAllowedSizeClass\": \"{{server.build.env.MAX_ALLOWED_SIZE_CLASS}}\", \"ServerConfig.AllowedBlueprints\": \"{{server.build.env.ALLOWED_BLUEPRINTS}}\", \"ServerConfig.HeartbeatServer\": \"{{server.build.env.SERVER_HEARTBEAT}}\", \"ServerConfig.TimeoutBootingPfServer\": \"{{server.build.env.TIMEOUT_BOOTING_PF_SERVER}}\", \"GameConfig.GameName\": \"{{server.build.env.GAME_NAME}}\", \"GameConfig.Mode\": \"{{server.build.env.GAME_MODE}}\", \"GameConfig.Seed\": \"{{server.build.env.GAME_SEED}}\", \"GameConfig.CustomScenario\": \"{{server.build.env.CUSTOM_SCENARIO}}\"}}}",
+        "startup": "{\"done\": \"Connected to 127.0.0.1\"}",
+        "logs": "{}",
+        "stop": "saveandexit 0"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Empyrion: Galactic Survival. Installs or updates the dedicated server (Steam app 530870) with\n# SteamCMD, signed in anonymously (the Windows version, run under Wine).\n# Saves, scenarios and dedicated.yaml are never replaced.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-530870}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+@sSteamCmdForcePlatformType windows +force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\necho \"Installed Empyrion: Galactic Survival build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "install": {
+        "timeout": "4h"
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Empyrion server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40|regex:/^[^\\r\\n]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The server's description in the list, where [b]bold[/b] and [url=...]links[/url] work.",
+            "env_variable": "SERVER_DESCRIPTION",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:127|regex:/^[^\\r\\n]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^\\S*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,100",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "List the server in the server browser (true or false); otherwise players join by address.",
+            "env_variable": "SERVER_PUBLIC",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Save name",
+            "description": "The save game to load, or create when there's none by that name.",
+            "env_variable": "GAME_NAME",
+            "default_value": "DediGame",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "Survival or Creative, for a new save.",
+            "env_variable": "GAME_MODE",
+            "default_value": "Survival",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:Survival,Creative",
+            "field_type": "text"
+        },
+        {
+            "name": "Seed",
+            "description": "The seed a new save's galaxy is made from; the same seed makes the same galaxy.",
+            "env_variable": "GAME_SEED",
+            "default_value": "1011345",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,9999999",
+            "field_type": "text"
+        },
+        {
+            "name": "Scenario",
+            "description": "The scenario a new save uses, by its folder name in Content/Scenarios.",
+            "env_variable": "CUSTOM_SCENARIO",
+            "default_value": "Default Multiplayer",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\\r\\n]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "EasyAntiCheat",
+            "description": "Run EasyAntiCheat, which every player then needs (true or false).",
+            "env_variable": "EAC_ACTIVE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Allowed blueprints",
+            "description": "All, StockOnly (only the game's own) or None (no blueprints).",
+            "env_variable": "ALLOWED_BLUEPRINTS",
+            "default_value": "All",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:All,StockOnly,None",
+            "field_type": "text"
+        },
+        {
+            "name": "Max blueprint size",
+            "description": "The largest blueprint size class players may build or spawn; 1 allows only small ones.",
+            "env_variable": "MAX_ALLOWED_SIZE_CLASS",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,30",
+            "field_type": "text"
+        },
+        {
+            "name": "Heartbeat timeout",
+            "description": "Seconds without a heartbeat before a playfield server is restarted, dropping its players; 0 turns it off.",
+            "env_variable": "SERVER_HEARTBEAT",
+            "default_value": "15",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,180",
+            "field_type": "text"
+        },
+        {
+            "name": "Playfield boot timeout",
+            "description": "Seconds a playfield server may take to start before it's stopped; 0 turns it off.",
+            "env_variable": "TIMEOUT_BOOTING_PF_SERVER",
+            "default_value": "90",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,600",
+            "field_type": "text"
+        },
+        {
+            "name": "Console port",
+            "description": "The server's telnet console port, which the console uses inside the server; don't give it an allocation.",
+            "env_variable": "TELNET_PORT",
+            "default_value": "30004",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Console password",
+            "description": "The password of the telnet console, which the console signs in with; at least 8 letters, digits or ._- characters.",
+            "env_variable": "TELNET_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:8|max:64|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Windows install",
+            "description": "Install the Windows version of the server, which runs under Wine.",
+            "env_variable": "WINDOWS_INSTALL",
+            "default_value": "1",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine debug",
+            "description": "What Wine logs; -all keeps its messages out of the console.",
+            "env_variable": "WINEDEBUG",
+            "default_value": "-all",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "530870",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:530870",
+            "field_type": "text"
+        }
+    ]
+}
