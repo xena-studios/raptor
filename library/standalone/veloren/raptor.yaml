@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/veloren/egg-veloren.json
+license: MIT
+credits:
+  - "Based on the Veloren eggs in https://github.com/pelican-eggs/games-standalone and https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Veloren's logo, from https://github.com/veloren"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 3072
+  done_timeout: 10m
+  command: "list-players"
+  expect: "Players: \\[\\]"

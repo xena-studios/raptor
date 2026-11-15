@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/foundry-vtt/egg-foundry-vtt.json
+license: MIT
+credits:
+  - "Based on the Foundry VTT egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Foundry VTT's logo, from https://github.com/foundryvtt"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: manual
+  reason: "Foundry is a licensed download: the install needs a timed link from a foundryvtt.com account that owns a licence."
+  memory_mib: 1024
+  done_timeout: 3m

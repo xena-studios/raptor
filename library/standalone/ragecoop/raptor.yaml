@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/ragecoop/egg-ragecoop.json
+license: MIT
+credits:
+  - "Based on the RageCOOP egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: RageCOOP's logo, from https://github.com/RAGECOOP"
+certified: true
+# The Linux server is built for x86-64 only.
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m

@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the OpenTTD eggs in https://github.com/pelican-eggs/games-standalone and https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "OpenTTD",
+    "author": "support@raptorpanel.net",
+    "description": "The open source transport simulation game based on Transport Tycoon Deluxe. Installs the chosen OpenTTD release with the OpenGFX graphics, both checked against their published checksums, and continues the last game when the server starts again.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{CONTINUE_GAME}}\" = 1 ] && [ -f save/autosave/exit.sav ]; then set -- -g save/autosave/exit.sav; fi; LD_LIBRARY_PATH=lib exec ./openttd -D -c openttd.cfg \"$@\"",
+    "config": {
+        "files": "{\"openttd.cfg\": {\"parser\": \"ini\", \"find\": {\"network.server_port\": \"{{server.build.default.port}}\", \"network.server_name\": \"{{server.build.env.SERVER_NAME}}\", \"network.server_game_type\": \"{{server.build.env.SERVER_VISIBILITY}}\", \"network.max_clients\": \"{{server.build.env.MAX_CLIENTS}}\"}}, \"secrets.cfg\": {\"parser\": \"ini\", \"find\": {\"network.server_password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"network.rcon_password\": \"{{server.build.env.RCON_PASSWORD}}\"}}}",
+        "startup": "{\"done\": \"Network revision name:\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# OpenTTD: downloads the chosen OpenTTD release and the OpenGFX graphics from\n# OpenTTD's own servers and checks both against their published SHA-256.\n# Saves, openttd.cfg, secrets.cfg, AIs and NewGRFs are never touched.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\ncdn=https://cdn.openttd.org\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n[ \"$(uname -m)\" = x86_64 ] || fail \"OpenTTD's Linux server is only built for x86-64 (amd64) CPUs, and this node is $(uname -m).\"\n\n# resolve <category> <version or latest/testing>: the version, and the file's sha256 from its manifest.\nresolve() {\n    local cat=$1 want=$2 name\n    if [ \"$want\" = latest ] || [ \"$want\" = testing ]; then\n        name=$([ \"$want\" = latest ] && echo stable || echo testing)\n        want=$(get \"$cdn/$cat-releases/latest.yaml\" | awk -v n=\"$name\" '$1 == \"-\" && $2 == \"version:\" { v = $3 } $1 == \"name:\" && $2 == n { print v; exit }') ||\n            fail \"OpenTTD's download server can't be reached right now. Reinstall to try again.\"\n        [ -n \"$want\" ] || fail \"OpenTTD has no $name release of $cat right now.\"\n    fi\n    echo \"$want\"\n}\nsha() { # sha <manifest url> <file>\n    get \"$1\" | awk -v f=\"$2\" '$2 == \"id:\" && $3 == f { found = 1; next } found && $1 == \"sha256sum:\" { print $2; exit } $1 == \"-\" { found = 0 }'\n}\nfetch() { # fetch <url> <sha256> <dest>\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$3.part\" \"$1\"\n    [ \"$(sha256sum \"$3.part\" | cut -d' ' -f1)\" = \"$2\" ] || { rm -f \"$3.part\"; fail \"The download of ${1##*/} didn't match its published checksum. Reinstall to try again.\"; }\n    mv -f \"$3.part\" \"$3\"\n}\n\nversion=$(resolve openttd \"${OPENTTD_VERSION:-latest}\")\nfile=\"openttd-$version-linux-generic-amd64.tar.xz\"\nsum=$(sha \"$cdn/openttd-releases/$version/manifest.yaml\" \"$file\" || true)\n[ -n \"$sum\" ] || fail \"OpenTTD has no version $version for Linux. Set Version to latest, testing, or a release such as $(resolve openttd latest).\"\ngfx=$(resolve opengfx \"${OPENGFX_VERSION:-latest}\")\ngfile=\"opengfx-$gfx-all.zip\"\ngsum=$(sha \"$cdn/opengfx-releases/$gfx/manifest.yaml\" \"$gfile\" || true)\n[ -n \"$gsum\" ] || fail \"OpenGFX has no version $gfx. Set OpenGFX version to latest, or a release such as $(resolve opengfx latest).\"\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"; mkdir -p \"$build\"\ntrap 'rm -rf \"$build\"' EXIT\n\nif [ \"$(cat .raptor-openttd 2>/dev/null)\" = \"$sum\" ] && [ -x openttd ]; then\n    echo \"OpenTTD $version is already installed.\"\nelse\n    echo \"Downloading OpenTTD $version\"\n    fetch \"$cdn/openttd-releases/$version/$file\" \"$sum\" \"$build/openttd.tar.xz\"\n    mkdir \"$build/x\"\n    tar -xJf \"$build/openttd.tar.xz\" -C \"$build/x\" --strip-components=1\n    cp -a \"$build/x/.\" .\n    echo \"$sum\" > .raptor-openttd\nfi\n\nmkdir -p baseset\nif [ \"$(cat baseset/.raptor-opengfx 2>/dev/null)\" = \"$gsum\" ]; then\n    echo \"OpenGFX $gfx is already installed.\"\nelse\n    echo \"Downloading OpenGFX $gfx\"\n    fetch \"$cdn/opengfx-releases/$gfx/$gfile\" \"$gsum\" \"$build/opengfx.zip\"\n    rm -f baseset/opengfx-*.tar\n    unzip -qo \"$build/opengfx.zip\" -d baseset\n    echo \"$gsum\" > baseset/.raptor-opengfx\nfi\n\nif [ ! -f openttd.cfg ]; then\n    # Saves the game when the server stops, so the next start continues it.\n    printf '[gui]\\nautosave_on_exit = true\\n\\n[network]\\nserver_port = 3979\\n' > openttd.cfg\nfi\n# The passwords, which OpenTTD keeps apart from openttd.cfg.\n[ -f secrets.cfg ] || printf '[network]\\n' > secrets.cfg\necho \"Installed OpenTTD $version with OpenGFX $gfx.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The OpenTTD release to install, such as 15.3, latest for the newest stable release, or testing for the newest beta.",
+            "env_variable": "OPENTTD_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|testing|[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "OpenGFX version",
+            "description": "The OpenGFX graphics release to install, such as 8.0, or latest.",
+            "env_variable": "OPENGFX_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "My OpenTTD server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Visibility",
+            "description": "public lists the server, invite-only lets players join with its invite code, and local accepts only direct connections.",
+            "env_variable": "SERVER_VISIBILITY",
+            "default_value": "public",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:public,invite-only,local",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be connected at once.",
+            "env_variable": "MAX_CLIENTS",
+            "default_value": "25",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:2,255",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players need to join. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Rcon password",
+            "description": "The password for the remote console. Empty turns it off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Continue last game",
+            "description": "Load the game saved when the server last stopped, instead of starting a new map.",
+            "env_variable": "CONTINUE_GAME",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

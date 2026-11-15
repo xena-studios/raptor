@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/mcgalaxy/egg-mcgalaxy.json
+license: MIT
+credits:
+  - "Based on the ClassiCube (MCGalaxy) egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: ClassiCube's logo, from https://github.com/ClassiCube"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    PUBLIC: "false"
+  done_timeout: 3m
+  command: "/players"
+  expect: "There are 0 players online"

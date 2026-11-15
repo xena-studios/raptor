@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Veloren eggs in https://github.com/pelican-eggs/games-standalone and https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Veloren",
+    "author": "support@raptorpanel.net",
+    "description": "The open source multiplayer voxel RPG. Installs the server from Veloren's own download server, on the weekly or nightly channel, for x86-64 and ARM nodes; worlds, settings and the admin list are kept.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "./veloren-server-cli",
+    "config": {
+        "files": "{\"userdata/server/server_config/settings.ron\": {\"parser\": \"file\", \"find\": {\"            address: \\\"0.0.0.0:\": \"            address: \\\"0.0.0.0:{{server.build.default.port}}\\\",\", \"    server_name: \": \"    server_name: \\\"{{server.build.env.SERVER_NAME}}\\\",\", \"    max_players: \": \"    max_players: {{server.build.env.MAX_PLAYERS}},\"}}}",
+        "startup": "{\"done\": \"Server is ready to accept connections\"}",
+        "logs": "{}",
+        "stop": "shutdown graceful 10"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Veloren: downloads the server from Veloren's download server, for the\n# chosen channel and this node's CPU. Worlds, settings, the admin list and\n# the database in userdata are never touched.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\ndl=https://download.veloren.net\nfail() { echo \"$1\"; exit 1; }\ncase $(uname -m) in\nx86_64) arch=x86_64 ;;\naarch64) arch=aarch64 ;;\n*) fail \"Veloren's server isn't built for $(uname -m) CPUs.\" ;;\nesac\nchannel=\"${VERSION:-weekly}\"\nchannels=$(curl -fsSL --retry 3 -A \"$ua\" \"$dl/channels/linux/$arch\") || fail \"Veloren's download server can't be reached right now. Reinstall to try again.\"\njq -e --arg c \"$channel\" 'index($c) != null' <<<\"$channels\" >/dev/null ||\n    fail \"Veloren has no $channel channel. Set Version to one of: $(jq -r 'join(\", \")' <<<\"$channels\").\"\nrev=$(curl -fsSL --retry 3 -A \"$ua\" \"$dl/version/linux/$arch/$channel\") || fail \"Veloren's download server can't be reached right now. Reinstall to try again.\"\n\n# The settings the server's Startup page owns, for the first start; Veloren\n# fills in the rest. Later the egg's config edits keep them in step.\ncfg=userdata/server/server_config/settings.ron\nif [ ! -f \"$cfg\" ]; then\n    mkdir -p \"${cfg%/*}\"\n    cat > \"$cfg\" <<CFG\n(\n    gameserver_protocols: [\n        Tcp(\n            address: \"0.0.0.0:${SERVER_PORT:-14004}\",\n        ),\n    ],\n    max_players: 100,\n    server_name: \"Veloren Server\",\n)\nCFG\nfi\n\nif [ \"$(cat .raptor-veloren 2>/dev/null)\" = \"$channel $rev\" ] && [ -x veloren-server-cli ]; then\n    echo \"Veloren $channel (${rev:0:10}) is already installed.\"\n    exit 0\nfi\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"; mkdir -p \"$build\"\ntrap 'rm -rf \"$build\"' EXIT\necho \"Downloading Veloren $channel (${rev:0:10}), about 450 MB\"\ncurl -fsSL --retry 3 -A \"$ua\" -o \"$build/veloren.zip\" \"$dl/latest/linux/$arch/$channel\"\nunzip -tq \"$build/veloren.zip\" >/dev/null || fail \"The download from Veloren is damaged. Reinstall to try again.\"\n# The server and the game's assets; the client in the same download isn't needed.\nunzip -q \"$build/veloren.zip\" veloren-server-cli 'assets/*' -d \"$build/x\"\nchmod +x \"$build/x/veloren-server-cli\"\nrm -rf assets.old\n[ ! -d assets ] || mv assets assets.old\nmv \"$build/x/assets\" assets\nmv -f \"$build/x/veloren-server-cli\" veloren-server-cli\nrm -rf assets.old\necho \"$channel $rev\" > .raptor-veloren\necho \"Installed Veloren $channel (${rev:0:10}).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The channel to install: weekly, which most players are on, or nightly. Players need the same version as the server.",
+            "env_variable": "VERSION",
+            "default_value": "weekly",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:weekly,nightly",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "Veloren Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|not_regex:/[\"\\\\]/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,1000",
+            "field_type": "text"
+        }
+    ]
+}

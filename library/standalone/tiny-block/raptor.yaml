@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/tiny-block/egg-tiny-block.json
+license: MIT
+credits:
+  - "Based on the Tiny Block egg in https://github.com/pelican-eggs/games-standalone (MIT)"
+  - "Icon: Tiny Block's icon, from https://github.com/hardtab/tinyblock-server"
+certified: true
+# The release is built for x86-64 only.
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 1024
+  variables:
+    WORLD_ID: world_raptor_conformance
+    WORLD_NAME: Raptor conformance test
+  done_timeout: 3m

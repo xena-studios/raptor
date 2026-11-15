@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Stay In Tarkov egg in https://github.com/pterodactyl/game-eggs and the Single Player Tarkov egg in https://github.com/pelican-eggs/games-standalone (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Single Player Tarkov",
+    "author": "support@raptorpanel.net",
+    "description": "The server for SPT, the offline Escape from Tarkov mod, with Fika for co-op if you turn it on. Installs the chosen SPT release's Linux server, checked against GitHub's checksum; profiles and mods in SPT_Runtime/user are kept.",
+    "features": [],
+    "docker_images": {
+        ".NET 10": "ghcr.io/xena-studios/yolks:dotnet_10@sha256:11a7153a1a29151bd6b495eedced4a9127b724707a75ea1cb19d4fd4f75e7ff6"
+    },
+    "file_denylist": [],
+    "startup": "cd SPT_Runtime && exec dotnet SPT.Server.Linux.dll",
+    "config": {
+        "files": "{\"SPT_Runtime/SPT_Data/configs/http.json\": {\"parser\": \"json\", \"find\": {\"ip\": \"0.0.0.0\", \"port\": \"{{server.build.default.port}}\", \"backendIp\": \"{{server.build.default.ip}}\", \"backendPort\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \"Server has started, happy playing\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# SPT (Single Player Tarkov): downloads the chosen SPT release's server from\n# its GitHub releases, checked against GitHub's SHA-256, and Fika (the co-op\n# mod) when it's turned on. Profiles, mods and settings in SPT_Runtime/user\n# are never touched.\nset -euo pipefail\ncd /mnt/server\n\nfail() { echo \"$1\"; exit 1; }\n[ \"$(uname -m)\" = x86_64 ] || fail \"SPT's server is only built for x86-64 (amd64) CPUs, and this node is $(uname -m).\"\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nrepo=sp-tarkov/build\nwant=\"${SPT_VERSION:-latest}\"\ntag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n    fail \"SPT has no release $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" latest 2>/dev/null || echo 4.1.2).\"\nread -r asset sum < <(gh-release assets \"$repo\" \"$tag\" | awk '$1 ~ /^SPT-.*\\.7z$/ { print; exit }') || true\n[ -n \"${asset:-}\" ] || fail \"SPT's release $tag has no server download.\"\n\nif [ \"$(cat .raptor-spt 2>/dev/null)\" = \"$tag $sum\" ] && [ -f SPT_Runtime/SPT.Server.Linux.dll ]; then\n    echo \"SPT $tag is already installed.\"\nelse\n    [ -f SPT_Runtime/SPT.Server.Linux.dll ] || [ ! -f SPT_Runtime/SPT.Server.exe ] ||\n        echo \"SPT $tag replaces the Windows server that was here; your profiles in SPT_Runtime/user stay.\"\n    export DEBIAN_FRONTEND=noninteractive\n    command -v 7z >/dev/null || { apt-get update -qq && apt-get install -y -qq --no-install-recommends p7zip-full; } >/dev/null ||\n        fail \"7-Zip couldn't be installed to unpack SPT. Reinstall to try again.\"\n    rm -rf \"$build\"; mkdir -p \"$build/x\"\n    echo \"Downloading SPT $tag, about 150 MB\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/spt.7z\" || fail \"The download of SPT failed. Reinstall to try again.\"\n    7z x -bd -y -o\"$build/x\" \"$build/spt.7z\" 'SPT_Runtime/*' >/dev/null || fail \"The download of SPT is damaged. Reinstall to try again.\"\n    [ -f \"$build/x/SPT_Runtime/SPT.Server.Linux.dll\" ] || fail \"SPT $tag has no Linux server. Choose 4.0 or newer.\"\n    # Your profiles and mods stay; the server and its data are replaced.\n    rm -rf \"$build/x/SPT_Runtime/user\"\n    mkdir -p SPT_Runtime\n    # SPT_Data is the release's own; your edited configs in it are saved first.\n    if [ -d SPT_Runtime/SPT_Data/configs ]; then\n        old=$(cut -d' ' -f1 .raptor-spt 2>/dev/null || echo old)\n        mkdir -p SPT_Runtime/user\n        rm -rf \"SPT_Runtime/user/configs-before-$tag\"\n        cp -a SPT_Runtime/SPT_Data/configs \"SPT_Runtime/user/configs-before-$tag\"\n        echo \"Your SPT $old configs were saved to SPT_Runtime/user/configs-before-$tag.\"\n    fi\n    rm -rf SPT_Runtime/SPT_Data\n    cp -a \"$build/x/SPT_Runtime/.\" SPT_Runtime/\n    echo \"$tag $sum\" > .raptor-spt\nfi\nmkdir -p SPT_Runtime/user/mods\n\n# fits <version> <range>: whether an SPT version is in a range like ~4.1.3, ^4.1.0 or >=4.1.0.\nfits() {\n    local v=$1 op=${2%%[0-9]*} min=${2#\"${2%%[0-9]*}\"} a b\n    IFS=. read -r a b _ <<<\"$min\"\n    [ \"$(printf '%s\\n%s\\n' \"$min\" \"$v\" | sort -V | head -n1)\" = \"$min\" ] || return 1\n    case $op in\n    \"~\") [ \"$(printf '%s\\n%s\\n' \"$v\" \"$a.$((b + 1)).0\" | sort -V | head -n1)\" = \"$v\" ] && [ \"$v\" != \"$a.$((b + 1)).0\" ] ;;\n    \"^\") [ \"${v%%.*}\" = \"$a\" ] ;;\n    *) true ;;\n    esac\n}\n\nif [ \"${FIKA:-0}\" = 1 ]; then\n    frepo=project-fika/Fika-Server-CSharp\n    fwant=\"${FIKA_VERSION:-latest}\"\n    ftag=$(gh-release tag \"$frepo\" \"$fwant\" 2>/dev/null) ||\n        fail \"Fika has no release $fwant. Set Fika version to latest, or to a release such as v2.4.2.\"\n    read -r fasset fsum < <(gh-release assets \"$frepo\" \"$ftag\" | awk '$1 ~ /^Fika\\.Server.*\\.zip$/ { print; exit }') || true\n    [ -n \"${fasset:-}\" ] || fail \"Fika's release $ftag has no server download.\"\n    if [ \"$(cat .raptor-fika 2>/dev/null)\" = \"$ftag $fsum\" ] && [ -d SPT_Runtime/user/mods/fika-server ]; then\n        echo \"Fika $ftag is already installed.\"\n    else\n        rm -rf \"$build/fika\"; mkdir -p \"$build/fika\"\n        echo \"Downloading Fika $ftag\"\n        gh-release download \"$frepo\" \"$ftag\" \"$fasset\" \"$build/fika.zip\" || fail \"The download of Fika failed. Reinstall to try again.\"\n        unzip -q \"$build/fika.zip\" -d \"$build/fika\"\n        dll=\"$build/fika/SPT_Runtime/user/mods/fika-server/FikaServer.dll\"\n        [ -f \"$dll\" ] || fail \"Fika's download has no server mod in it.\"\n        # The SPT versions this Fika is for, as the mod declares them (such as ~4.1.3).\n        range=$(perl -0777 -ne 'while (/((?:[~^>=<]\\x00)+(?:[0-9]\\x00)+\\.\\x00(?:[0-9]\\x00)+\\.\\x00(?:[0-9]\\x00)+)/g) { ($r = $1) =~ s/\\x00//g; print \"$r\\n\"; last }' \"$dll\")\n        spt=$(sed -E 's/^([0-9.]+).*/\\1/' <<<\"$tag\")\n        if [ -n \"$range\" ] && ! fits \"$spt\" \"$range\"; then\n            fail \"Fika $ftag is for SPT $range, and SPT $spt is installed. Set Fika version to an older Fika release made for SPT $spt, or Version to a newer SPT.\"\n        fi\n        # Fika's settings, written by the mod on its first start, stay.\n        cp -a \"$build/fika/SPT_Runtime/.\" SPT_Runtime/\n        echo \"$ftag $fsum\" > .raptor-fika\n    fi\nfi\necho \"Installed SPT $tag$( [ \"${FIKA:-0}\" = 1 ] && echo \" with Fika $ftag\").\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The SPT release to install, 4.0 or newer, such as 4.1.2, or latest. Players need the same SPT version.",
+            "env_variable": "SPT_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Fika",
+            "description": "Install Fika, the co-op mod, so friends can play raids together.",
+            "env_variable": "FIKA",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Fika version",
+            "description": "The Fika release to install, such as v2.4.0, or latest. It must be one made for the installed SPT version.",
+            "env_variable": "FIKA_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        }
+    ]
+}
