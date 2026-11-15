@@ -1,0 +1,142 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/chatbots (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "VoiceTwine",
+    "author": "support@raptorpanel.net",
+    "description": "VoiceTwine is a Discord bot that creates temporary voice channels for members as they join, and removes them when they empty. The egg runs it with SQLite or a MariaDB database.",
+    "features": [],
+    "docker_images": {
+        "Node.js 22": "ghcr.io/pelican-eggs/yolks:nodejs_22@sha256:4f39280ee390e31df51b035c857c69c48cc598f999eea7ffc76ff476be8e2d14",
+        "Node.js 24": "ghcr.io/pelican-eggs/yolks:nodejs_24@sha256:9bea7a00f841600bb163e8df89747a5a69469c566c15d3597c10f24b6be280a9"
+    },
+    "file_denylist": [],
+    "startup": "h=\"$(cat package.json pnpm-lock.yaml | sha256sum | cut -c1-64)-$(node -v)\"; if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing dependencies\"; COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm install --frozen-lockfile --reporter=append-only --config.confirmModulesPurge=false || exit 1; echo \"$h\" > node_modules/.raptor-installed; fi; node node_modules/sequelize-cli/lib/sequelize db:migrate || exit 1; exec node dist/app.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"App started successfully!\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# VoiceTwine: downloads the VoiceTwine release (already built) from its\n# GitHub releases and checks it against GitHub's checksum. The database and\n# .env are never touched; dependencies are installed by the server when it\n# starts, for the Node.js it runs.\nset -euo pipefail\ncd /mnt/server\n\nrepo=Twijn/VoiceTwine\nfail() { echo \"$1\"; exit 1; }\n# GitHub releases, through the installer's gh-release (GitHub's API has a\n# low anonymous limit). gh_tag <latest|tag> prints the release's tag;\n# returns 1 when there's no such release, 2 when GitHub can't be reached.\ngh_tag() {\n    local out\n    out=$(gh-release tag \"$repo\" \"$1\" 2>&1) && { echo \"$out\"; return 0; }\n    case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n}\noffline=\"GitHub can't be reached right now, or is limiting downloads. Reinstall to try again in a few minutes.\"\nversion=\"${VERSION:-latest}\"\ncase \"$version\" in latest|v*) ;; *) version=\"v$version\" ;; esac\nrc=0; tag=$(gh_tag \"$version\") || rc=$?\nif [ \"$rc\" = 1 ]; then\n    latest=$(gh_tag latest) || fail \"$offline\"\n    fail \"VoiceTwine has no version ${VERSION}. Set Version to latest, or to a release such as $latest.\"\nfi\n[ \"$rc\" = 0 ] || fail \"$offline\"\nversion=$tag\nassets=$(gh-release assets \"$repo\" \"$version\") || fail \"$offline\"\nsum=$(awk '$1 == \"voicetwine.tar.gz\" { print $2; f = 1 } END { exit !f }' <<<\"$assets\") ||\n    fail \"VoiceTwine $version has no release download. Choose a newer version.\"\n\nif [ \"$sum\" != - ] && [ -f dist/app.js ] && [ \"$(cat .raptor-voicetwine 2>/dev/null)\" = \"$sum\" ]; then\n    echo \"VoiceTwine $version is already installed.\"\nelse\n    echo \"Downloading VoiceTwine $version\"\n    tmp=/mnt/server/.raptor-build\n    rm -rf \"$tmp\" && mkdir -p \"$tmp\"\n    trap 'rm -rf \"$tmp\"' EXIT\n    gh-release download \"$repo\" \"$version\" voicetwine.tar.gz \"$tmp/vt.tar.gz\" || fail \"The download failed or didn't match GitHub's checksum. Reinstall to try again.\"\n    mkdir \"$tmp/x\"\n    tar -xzf \"$tmp/vt.tar.gz\" -C \"$tmp/x\"\n    [ -f \"$tmp/x/dist/app.js\" ] || fail \"The download has no dist/app.js in it. Choose another version.\"\n    # The built code is replaced as a whole, so no file of an older version stays behind.\n    rm -rf dist\n    cp -a \"$tmp/x/.\" .\n    rm -rf \"$tmp\"\n    echo \"$sum\" > .raptor-voicetwine\nfi\necho \"Installed VoiceTwine $version. Set the Discord bot token and client ID, then start the server.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The VoiceTwine version to install, such as 1.4.1, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord bot token",
+            "description": "The bot's token, from the Discord developer portal (Bot page).",
+            "env_variable": "DISCORD_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord client ID",
+            "description": "The application's ID, from the Discord developer portal (General Information page).",
+            "env_variable": "DISCORD_CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|numeric",
+            "field_type": "text"
+        },
+        {
+            "name": "Database type",
+            "description": "sqlite keeps the database in a file in the server's folder; mariadb uses the MariaDB or MySQL database set below.",
+            "env_variable": "DIALECT",
+            "default_value": "sqlite",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:sqlite,mariadb",
+            "field_type": "text"
+        },
+        {
+            "name": "Database host",
+            "description": "The MariaDB server's address, when the database type is mariadb.",
+            "env_variable": "MARIADB_HOST",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Database port",
+            "description": "The MariaDB server's port.",
+            "env_variable": "MARIADB_PORT",
+            "default_value": "3306",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Database user",
+            "description": "The MariaDB user.",
+            "env_variable": "MARIADB_USER",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Database password",
+            "description": "The MariaDB user's password.",
+            "env_variable": "MARIADB_PASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Database name",
+            "description": "The MariaDB database VoiceTwine uses.",
+            "env_variable": "MARIADB_DB",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Log level",
+            "description": "How much VoiceTwine logs: debug, info, warn or error.",
+            "env_variable": "LOG_LEVEL",
+            "default_value": "info",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:debug,info,warn,error",
+            "field_type": "text"
+        },
+        {
+            "name": "Node environment",
+            "description": "development logs readable lines; production logs JSON, for log collectors.",
+            "env_variable": "NODE_ENV",
+            "default_value": "development",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:production,development",
+            "field_type": "text"
+        }
+    ]
+}

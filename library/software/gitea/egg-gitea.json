@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Gitea",
+    "author": "support@raptorpanel.net",
+    "description": "Gitea is a lightweight, self-hosted Git service with issues, pull requests, packages and CI. The egg runs it with SQLite, and you finish the setup in the browser on the first visit.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "./gitea web --config custom/conf/app.ini --port {{SERVER_PORT}}",
+    "config": {
+        "files": "{\"custom/conf/app.ini\": {\"parser\": \"ini\", \"find\": {\"server.HTTP_ADDR\": \"0.0.0.0\", \"server.HTTP_PORT\": \"{{server.build.default.port}}\", \"server.START_SSH_SERVER\": \"true\", \"server.DISABLE_SSH\": \"{{server.build.env.DISABLE_SSH}}\", \"server.SSH_PORT\": \"{{server.build.env.SSH_PORT}}\", \"server.SSH_LISTEN_PORT\": \"{{server.build.env.SSH_PORT}}\"}}}",
+        "startup": "{\"done\": [\"Starting new Web server: tcp:\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Gitea: downloads the Gitea binary from dl.gitea.com and checks it against\n# Gitea's checksum. Repositories, the database and settings are never\n# touched, and the binary is only replaced once the new one checks out.\nset -euo pipefail\ncd /mnt/server\n\nget() { curl -fsSL --retry 3 \"$@\"; }\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Gitea has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nbase=https://dl.gitea.com/gitea\nlatest=$(get \"$base/version.json\" | jq -r '.latest.version') || fail \"dl.gitea.com can't be reached right now. Reinstall to try again.\"\nversion=\"${VERSION:-latest}\"\nversion=\"${version#v}\"\n[ \"$version\" = latest ] && version=\"$latest\"\nurl=\"$base/$version/gitea-$version-linux-$arch\"\nsum=$(get \"$url.sha256\" 2>/dev/null | cut -d' ' -f1) ||\n    fail \"Gitea has no version $version. Set Version to latest, or to a release such as $latest.\"\n\nif [ -f gitea ] && [ \"$(sha256sum gitea | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Gitea $version is already installed.\"\nelse\n    echo \"Downloading Gitea $version\"\n    get -o gitea.xz.new \"$url.xz\"\n    xz -dc gitea.xz.new > gitea.new\n    rm -f gitea.xz.new\n    [ \"$(sha256sum gitea.new | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f gitea.new; fail \"The download didn't match Gitea's checksum. Reinstall to try again.\"; }\n    chmod +x gitea.new\n    mv -f gitea.new gitea\nfi\n\nmkdir -p custom/conf data\n# Older eggs kept the settings in app.ini or custom/app.ini: move them to\n# where Gitea looks, so the server keeps its setup.\nif [ ! -f custom/conf/app.ini ]; then\n    for old in app.ini custom/app.ini; do\n        if [ -f \"$old\" ] && grep -q INSTALL_LOCK \"$old\"; then\n            mv \"$old\" custom/conf/app.ini\n            echo \"Moved the settings from $old to custom/conf/app.ini.\"\n            break\n        fi\n    done\nfi\n# A first configuration: SQLite, logs on the console. The owner finishes\n# the setup on the first visit (admin account, site name, address), which\n# Gitea then saves here. Ports are kept up to date at every start.\nif [ ! -f custom/conf/app.ini ]; then\n    root_url=\"\"\n    case \"${SERVER_IP:-}\" in\n        \"\"|0.0.0.0|127.0.0.1) ;;\n        *) root_url=\"ROOT_URL = http://${SERVER_IP}:${SERVER_PORT}/\" ;;\n    esac\n    cat > custom/conf/app.ini <<INI\nGitea_NAME = Gitea\nRUN_MODE = prod\nWORK_PATH = /home/container\n\n[server]\nPROTOCOL = http\nHTTP_ADDR = 0.0.0.0\nHTTP_PORT = ${SERVER_PORT:-3000}\n${root_url}\nSTART_SSH_SERVER = true\nBUILTIN_SSH_SERVER_USER = git\nSSH_PORT = ${SSH_PORT:-2020}\nSSH_LISTEN_PORT = ${SSH_PORT:-2020}\nDISABLE_SSH = ${DISABLE_SSH:-true}\nGitea_DATA_PATH = /home/container/data\nLFS_START_SERVER = true\n\n[database]\nDB_TYPE = sqlite3\nPATH = /home/container/data/gitea.db\n\n[repository]\nROOT = /home/container/data/repositories\n\n[log]\nMODE = console\nLEVEL = info\nROOT_PATH = /home/container/log\n\n[security]\nINSTALL_LOCK = false\nINI\n    echo \"Wrote a first configuration. Open the server's address to finish setting Gitea up.\"\nfi\necho \"Installed Gitea $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Gitea version to install, such as 1.27.3, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Disable SSH",
+            "description": "Set it to false to clone and push over SSH as well as HTTP. SSH needs its own port, added to the server first.",
+            "env_variable": "DISABLE_SSH",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "SSH port",
+            "description": "The port Gitea's own SSH server listens on and shows in clone links, when SSH is on.",
+            "env_variable": "SSH_PORT",
+            "default_value": "2020",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        }
+    ]
+}

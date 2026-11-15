@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Owncast",
+    "author": "support@raptorpanel.net",
+    "description": "Owncast is a self-hosted live video and web chat server that streams from OBS or any RTMP software. The egg installs it with ffmpeg, so it is ready to stream to.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "./owncast -webserverip 0.0.0.0 -webserverport {{SERVER_PORT}} -rtmpport {{RTMP_PORT}} ${ADMIN_PASSWORD:+-adminpassword \"$ADMIN_PASSWORD\"} ${STREAM_KEY:+-streamkey \"$STREAM_KEY\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Web server is listening\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Owncast: downloads Owncast from its GitHub releases and a static ffmpeg\n# (which Owncast needs to transcode the stream) from BtbN's FFmpeg builds,\n# each checked against its published checksum. The database, uploads and\n# backups in data/ are never touched; binaries are only replaced once the\n# new ones have downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nrepo=owncast/owncast\nfail() { echo \"$1\"; exit 1; }\n# GitHub releases, through the installer's gh-release (GitHub's API has a\n# low anonymous limit). gh_tag <latest|tag> prints the release's tag;\n# returns 1 when there's no such release, 2 when GitHub can't be reached.\ngh_tag() {\n    local out\n    out=$(gh-release tag \"$repo\" \"$1\" 2>&1) && { echo \"$out\"; return 0; }\n    case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n}\noffline=\"GitHub can't be reached right now, or is limiting downloads. Reinstall to try again in a few minutes.\"\ncase \"$(uname -m)\" in\n    x86_64) arch=64bit ffarch=linux64 ;;\n    aarch64) arch=arm64 ffarch=linuxarm64 ;;\n    *) fail \"Owncast has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\ncase \"$version\" in latest|v*) ;; *) version=\"v$version\" ;; esac\nrc=0; tag=$(gh_tag \"$version\") || rc=$?\nif [ \"$rc\" = 1 ]; then\n    latest=$(gh_tag latest) || fail \"$offline\"\n    fail \"Owncast has no version ${VERSION}. Set Version to latest, or to a release such as $latest.\"\nfi\n[ \"$rc\" = 0 ] || fail \"$offline\"\nversion=$tag\nassets=$(gh-release assets \"$repo\" \"$version\") || fail \"$offline\"\nread -r asset sum < <(awk -v a=\"linux-$arch.zip\" 'substr($1, length($1) - length(a) + 1) == a { print; exit }' <<<\"$assets\") || true\n[ -n \"${asset:-}\" ] || fail \"Owncast $version has no Linux build for this CPU. Choose another version.\"\n\ntmp=/mnt/server/.raptor-build\nrm -rf \"$tmp\" && mkdir -p \"$tmp\"\ntrap 'rm -rf \"$tmp\"' EXIT\nif [ \"$sum\" != - ] && [ -x owncast ] && [ \"$(cat .raptor-owncast 2>/dev/null)\" = \"$sum\" ]; then\n    echo \"Owncast $version is already installed.\"\nelse\n    echo \"Downloading Owncast $version\"\n    gh-release download \"$repo\" \"$version\" \"$asset\" \"$tmp/owncast.zip\" || fail \"The download failed or didn't match GitHub's checksum. Reinstall to try again.\"\n    unzip -q -o \"$tmp/owncast.zip\" owncast -d \"$tmp\"\n    chmod +x \"$tmp/owncast\"\n    mv -f \"$tmp/owncast\" owncast\n    echo \"$sum\" > .raptor-owncast\nfi\n\n# ffmpeg: the newest release build (not the development one) for this CPU.\nff=https://github.com/BtbN/FFmpeg-Builds/releases/download/latest\nsums=$(curl -fsSL --retry 3 \"$ff/checksums.sha256\") || fail \"The ffmpeg builds can't be reached right now. Reinstall to try again.\"\nline=$(grep -E \"  ffmpeg-n[0-9.]+-latest-$ffarch-gpl-[0-9.]+\\.tar\\.xz$\" <<<\"$sums\" | sort -V -k2 | tail -n 1)\n[ -n \"$line\" ] || fail \"There's no ffmpeg build for this CPU right now. Reinstall to try again later.\"\nffsum=${line%% *}\nffname=${line##* }\nif [ -x ffmpeg ] && [ \"$(cat .raptor-ffmpeg 2>/dev/null)\" = \"$ffsum\" ]; then\n    echo \"ffmpeg is up to date.\"\nelse\n    echo \"Downloading ${ffname%.tar.xz}\"\n    curl -fsSL --retry 3 -o \"$tmp/ffmpeg.tar.xz\" \"$ff/$ffname\"\n    [ \"$(sha256sum \"$tmp/ffmpeg.tar.xz\" | cut -d' ' -f1)\" = \"$ffsum\" ] || fail \"The ffmpeg download didn't match its checksum. Reinstall to try again.\"\n    tar -xJf \"$tmp/ffmpeg.tar.xz\" -C \"$tmp\" --wildcards --strip-components=2 '*/bin/ffmpeg'\n    mv -f \"$tmp/ffmpeg\" ffmpeg\n    echo \"$ffsum\" > .raptor-ffmpeg\nfi\n# A new Owncast's admin password is abc123, which anyone could guess. Unless\n# Admin password is set, start it once here to give it a random one.\nif [ ! -f data/owncast.db ] && [ -z \"${ADMIN_PASSWORD:-}\" ]; then\n    password=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')\n    ./owncast -webserverip 127.0.0.1 -webserverport 18089 -rtmpport 18090 -adminpassword \"$password\" > \"$tmp/first.log\" 2>&1 &\n    pid=$!\n    for _ in $(seq 60); do\n        grep -q \"Web server is listening\" \"$tmp/first.log\" && break\n        kill -0 \"$pid\" 2>/dev/null || break\n        sleep 1\n    done\n    kill -TERM \"$pid\" 2>/dev/null || true\n    wait \"$pid\" || true\n    grep -q \"Admin password changed\" \"$tmp/first.log\" || { cat \"$tmp/first.log\"; fail \"Owncast didn't start to set its admin password. Reinstall to try again.\"; }\n    echo \"The admin page's password (user admin) is $password. Change it there, or set Admin password.\"\nfi\necho \"Installed Owncast $version with ${ffname%-latest-*}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Owncast version to install, such as 0.3.0, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "RTMP port",
+            "description": "The port OBS or other streaming software sends the stream to. Add it to the server's ports first.",
+            "env_variable": "RTMP_PORT",
+            "default_value": "8091",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "Sets the password of the admin page (user admin) at every start. Empty keeps the one set in the admin page.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Stream key",
+            "description": "A stream key used at every start, on top of the keys set in the admin page. Empty uses only those.",
+            "env_variable": "STREAM_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:128",
+            "field_type": "text"
+        }
+    ]
+}

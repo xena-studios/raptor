@@ -1,0 +1,44 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Reposilite",
+    "author": "support@raptorpanel.net",
+    "description": "Reposilite is a lightweight repository manager for Maven artifacts, for publishing and mirroring Java libraries. Manage it from its web interface and console.",
+    "features": [],
+    "docker_images": {
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:dda430001e6c1bc8e1c43d1b0cbb2fcd0d38221d3d8f167f3ba1ae658616b374"
+    },
+    "file_denylist": [],
+    "startup": "java -Xms32M -XX:MaxRAMPercentage=85.0 -jar reposilite.jar --port {{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Done (\"]}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Reposilite: downloads Reposilite from its own Maven repository and checks\n# it against the published checksum. Repositories, the database and\n# settings are never touched; the jar is only replaced once the new one\n# has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nbase=https://maven.reposilite.com/releases/com/reposilite/reposilite\nget() { curl -fsSL --retry 3 \"$@\"; }\nfail() { echo \"$1\"; exit 1; }\n\nmeta=$(get \"$base/maven-metadata.xml\") || fail \"maven.reposilite.com can't be reached right now. Reinstall to try again.\"\nlatest=$(sed -n 's:.*<release>\\(.*\\)</release>.*:\\1:p' <<<\"$meta\")\nversion=\"${REPOSILITE_VERSION:-latest}\"\n[ \"$version\" = latest ] && version=\"$latest\"\ngrep -q \"<version>$version</version>\" <<<\"$meta\" ||\n    fail \"Reposilite has no version $version. Set Version to latest, or to a release such as $latest.\"\n\n# Reposilite 3 ships an -all jar with its dependencies; older ones don't.\nurl=\"$base/$version/reposilite-$version-all.jar\"\nsum=$(get \"$url.sha256\" 2>/dev/null) || { url=\"$base/$version/reposilite-$version.jar\"; sum=$(get \"$url.sha256\") || fail \"Reposilite $version has no checksum to check the download against. Choose another version.\"; }\nsum=$(cut -d' ' -f1 <<<\"$sum\")\n\nif [ -f reposilite.jar ] && [ \"$(sha256sum reposilite.jar | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Reposilite $version is already installed.\"\nelse\n    echo \"Downloading Reposilite $version\"\n    get -o reposilite.jar.new \"$url\"\n    [ \"$(sha256sum reposilite.jar.new | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f reposilite.jar.new; fail \"The download didn't match Reposilite's checksum. Reinstall to try again.\"; }\n    mv -f reposilite.jar.new reposilite.jar\nfi\necho \"Installed Reposilite $version. Create an access token on the console with: token-generate admin m\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Reposilite version to install, such as 3.6.7, or latest.",
+            "env_variable": "REPOSILITE_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20",
+            "field_type": "text"
+        }
+    ]
+}

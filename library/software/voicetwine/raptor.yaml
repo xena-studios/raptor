@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/voicetwine/egg-voicetwine.json
+license: MIT
+credits:
+  - "Based on the VoiceTwine egg in https://github.com/pelican-eggs/chatbots (MIT)"
+  - "Icon: a plain VT lettermark drawn for Raptor, since VoiceTwine has no logo"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  # No Discord token: it installs its dependencies, migrates its SQLite
+  # database, logs that the token is missing, and stays up.
+  done_timeout: 5m
