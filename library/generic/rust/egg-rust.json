@@ -4,7 +4,7 @@
         "version": "RPTR_v1"
     },
     "exported_at": "2026-11-15T00:00:00+00:00",
-    "name": "Rust",
+    "name": "Rust (language)",
     "author": "support@raptorpanel.net",
     "description": "Builds and runs a Rust app, such as a Discord bot, from your files or a Git repository with Cargo. Release builds are incremental, so starts after the first are quick.",
     "features": [],
