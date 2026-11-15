@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/stationeers/egg-stationeers.json
+license: MIT
+credits:
+  - "Based on the Stationeers and Stationeers (BepInEx) eggs in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Stationeers' icon, from Steam (RocketWerkz)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 12288
+  done_timeout: 30m

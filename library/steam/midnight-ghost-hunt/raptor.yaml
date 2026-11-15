@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/midnight-ghost-hunt/egg-midnight-ghost-hunt.json
+license: MIT
+credits:
+  - "Based on the Midnight Ghost Hunt egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Midnight Ghost Hunt's logo, from its Steam store page (Vaulting Mongoose)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

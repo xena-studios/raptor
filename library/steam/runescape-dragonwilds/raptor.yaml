@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/runescape-dragonwilds/egg-runescape-dragonwilds.json
+license: MIT
+credits:
+  - "Based on the RuneScape: Dragonwilds egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: RuneScape: Dragonwilds' logo, from its Steam store page (Jagex)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 8192
+  variables:
+    # A made-up player ID: the server only needs one to start.
+    OWNER_ID: "0123456789abcdef0123456789abcdef"
+    ADMIN_PASSWORD: "conformance"
+  done_timeout: 40m

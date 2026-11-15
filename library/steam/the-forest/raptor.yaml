@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/the-forest/egg-the-forest.json
+license: MIT
+credits:
+  - "Based on The Forest egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: The Forest's logo, from its Steam store page (Endnight Games)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 4096
+  variables:
+    ADMIN_PASS: "conformance"
+  done_timeout: 30m
