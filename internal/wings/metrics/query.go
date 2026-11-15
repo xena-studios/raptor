@@ -258,11 +258,18 @@ func parseA2SInfo(b []byte) (Players, error) {
 		ID      uint16
 		Players uint8
 		Max     uint8
+		Bots    uint8
 	}
 	if err := binary.Read(r, binary.LittleEndian, &hdr); err != nil {
 		return Players{}, err
 	}
-	return Players{Online: int(hdr.Players), Max: int(hdr.Max)}, nil
+	// Players includes the server's bots (IOSoccer's goalkeepers, Source
+	// games' bot fill): count only people.
+	online := int(hdr.Players) - int(hdr.Bots)
+	if online < 0 {
+		online = 0
+	}
+	return Players{Online: online, Max: int(hdr.Max)}, nil
 }
 
 func readCString(r *bytes.Reader) (string, error) {
