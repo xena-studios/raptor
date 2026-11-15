@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/insurgency/egg-insurgency.json
+license: MIT
+credits:
+  - "Based on the Insurgency egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Insurgency's icon, from Steam (New World Interactive)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 40m
+  command: "status"
+  expect: "hostname"

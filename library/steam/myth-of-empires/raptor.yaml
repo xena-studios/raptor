@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/myth-of-empires/egg-myth-of-empires.json
+license: MIT
+credits:
+  - "Based on the Myth of Empires egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Myth of Empires' logo, from its Steam store page (Angela Game)"
+certified: true
+arch: [amd64]
+# No player count: the server's answer to Steam's query isn't confirmed.
+# No backup hooks: no console; it saves on its own.
+test:
+  tier: manual
+  reason: "The server needs more memory than a standard runner can give it: its own minimum is 9 GiB, and on CI's 16 GB runner it was killed for memory at both 8 and 12 GiB."
+  memory_mib: 12288
+  done_timeout: 60m

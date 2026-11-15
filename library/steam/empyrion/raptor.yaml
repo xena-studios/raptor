@@ -1,0 +1,21 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/empyrion/egg-empyrion.json
+license: MIT
+credits:
+  - "Based on the Empyrion: Galactic Survival egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Empyrion: Galactic Survival's icon, from Steam (Eleon Game Studios)"
+certified: true
+arch: [amd64]
+# No player count: the server's answer to Steam's query isn't confirmed.
+# No backup hooks: the telnet console can save only on the way out
+# (saveandexit).
+test:
+  tier: manual
+  reason: "the server is about 19 GB, more than standard CI runners have room for"
+  memory_mib: 8192
+  variables:
+    TELNET_PASSWORD: "conformance"
+  done_timeout: 60m
+  command: "help"
+  expect: "saveandexit"

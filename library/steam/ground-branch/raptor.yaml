@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/ground-branch/egg-ground-branch.json
+license: MIT
+credits:
+  - "Based on the Ground Branch eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Ground Branch's logo, from its Steam store page (BlackFoot Studios)"
+certified: true
+arch: [amd64]
+# No player count: the server answers Steam's query only once it has
+# signed in to Steam, which can't be counted on (and doesn't happen on CI).
+# No backup hooks: no console, and nothing persists between rounds.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 40m

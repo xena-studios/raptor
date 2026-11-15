@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/squad-44/egg-squad-44.json
+license: MIT
+credits:
+  - "Based on the Post Scriptum egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Squad 44's logo, from its Steam store page (Offworld Industries)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: no console, and nothing persists between matches.
+test:
+  tier: manual
+  reason: "the server is about 35 GB, more than standard CI runners have room for"
+  memory_mib: 8192
+  done_timeout: 60m

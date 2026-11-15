@@ -1,0 +1,20 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/killing-floor-2/egg-killing-floor-2.json
+license: MIT
+credits:
+  - "Based on the Killing Floor 2 eggs in https://github.com/pelican-eggs/games-steamcmd and https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Killing Floor 2's logo, from its Steam store page (Tripwire Interactive)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: no console, and nothing persists between matches.
+test:
+  tier: manual
+  reason: "the server is about 32 GB, more than standard CI runners have room for"
+  memory_mib: 4096
+  variables:
+    ADMIN_PASS: "conformance"
+  done_timeout: 60m
