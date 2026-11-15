@@ -11,4 +11,4 @@ RUN apt-get update \
  && if [ "$(dpkg --print-architecture)" = amd64 ]; then apt-get install -y --no-install-recommends lib32gcc-s1 lib32stdc++6; fi \
  && rm -rf /var/lib/apt/lists/*
 # GitHub releases without GitHub's API (yolks/README.md).
-COPY --chmod=0755 gh-release /usr/local/bin/gh-release
+COPY --chmod=0755 installer/gh-release /usr/local/bin/gh-release
