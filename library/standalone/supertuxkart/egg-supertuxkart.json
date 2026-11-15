@@ -1,0 +1,131 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "SuperTuxKart",
+    "author": "support@raptorpanel.net",
+    "description": "SuperTuxKart, the free kart racing game. Runs a LAN server, or an internet server listed in the game when you give it an STK online account.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"{{STK_USERNAME}}\" ] && [ -n \"{{STK_PASSWORD}}\" ]; then set -- --wan-server=\"{{SERVER_NAME}}\" --login=\"{{STK_USERNAME}}\" --password=\"{{STK_PASSWORD}}\"; else set -- --lan-server=\"{{SERVER_NAME}}\"; fi; exec ./run_game.sh --server-config=\"{{CONFIG_NAME}}\" --network-console \"$@\" --port={{SERVER_PORT}} --max-players={{MAX_PLAYERS}} --mode={{MODE}} --difficulty={{DIFFICULTY}} --motd=\"{{MOTD}}\" ${SERVER_PASSWORD:+--server-password=\"$SERVER_PASSWORD\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Listening has been started\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# SuperTuxKart. Downloads SuperTuxKart's official Linux release for the\n# node's CPU from GitHub, checked against GitHub's checksum. The server's\n# settings (the server config file) and add-ons are never touched.\nset -euo pipefail\ncd /mnt/server\nrepo=supertuxkart/stk-code\ncase \"$(uname -m)\" in\nx86_64) arch=x86_64 ;;\naarch64) arch=arm64 ;;\n*) echo \"SuperTuxKart has no Linux build for $(uname -m).\"; exit 1 ;;\nesac\n\ntag=$(gh-release tag \"$repo\" \"${VERSION:-latest}\") ||\n    { echo \"SuperTuxKart has no release ${VERSION}. Set Version to latest, or to a release such as 1.5.\"; exit 1; }\nasset=\"SuperTuxKart-$tag-linux-$arch.tar.gz\"\nsum=$(gh-release assets \"$repo\" \"$tag\" | awk -v a=\"$asset\" '$1 == a { print $2 }')\n[ -n \"$sum\" ] || { echo \"SuperTuxKart $tag has no Linux download for $arch.\"; exit 1; }\n\nif [ \"$(cat .raptor-stk 2>/dev/null)\" = \"$sum\" ] && [ -x bin/supertuxkart ]; then\n    echo \"SuperTuxKart $tag is already installed.\"\n    exit 0\nfi\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"\nmkdir -p \"$build\"\ntrap 'rm -rf \"$build\"' EXIT\necho \"Downloading SuperTuxKart $tag ($arch, about 700 MB)\"\ngh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/stk.tar.gz\"\necho \"Unpacking\"\ntar -xzf \"$build/stk.tar.gz\" -C \"$build\"\nrm -f \"$build/stk.tar.gz\"\nnew=\"$build/SuperTuxKart-$tag-linux-$arch\"\n[ -x \"$new/bin/supertuxkart\" ] || { echo \"The download has no bin/supertuxkart in it.\"; exit 1; }\n# The game's own folders are replaced whole; everything else stays.\nfor d in bin lib data; do\n    rm -rf \"$d\"\n    mv \"$new/$d\" \"$d\"\ndone\ncp -f \"$new/run_game.sh\" run_game.sh\nchmod +x run_game.sh bin/supertuxkart\necho \"$sum\" > .raptor-stk\necho \"Installed SuperTuxKart $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The SuperTuxKart release to install, such as 1.5, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A SuperTuxKart server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50|regex:/^[^\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "0 normal race, 1 time trial, 2 battle, 3 soccer, 4 follow the leader, 5 capture the flag.",
+            "env_variable": "MODE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1,2,3,4,5",
+            "field_type": "text"
+        },
+        {
+            "name": "Difficulty",
+            "description": "0 beginner, 1 intermediate, 2 expert, 3 SuperTux.",
+            "env_variable": "DIFFICULTY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1,2,3",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players at once. More than 8 can slow the server down.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,24",
+            "field_type": "text"
+        },
+        {
+            "name": "Message of the day",
+            "description": "Shown to players in the lobby.",
+            "env_variable": "MOTD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "A password players need to join. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "STK username",
+            "description": "Your SuperTuxKart online account. With its password set, the server is listed on the internet; empty runs a LAN server.",
+            "env_variable": "STK_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9_.-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "STK password",
+            "description": "The password of that SuperTuxKart online account.",
+            "env_variable": "STK_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128|regex:/^[^\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Config file",
+            "description": "The server's settings file, created on the first start.",
+            "env_variable": "CONFIG_NAME",
+            "default_value": "server_config.xml",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+\\.xml$/",
+            "field_type": "text"
+        }
+    ]
+}

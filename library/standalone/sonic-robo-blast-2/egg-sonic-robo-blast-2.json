@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Sonic Robo Blast 2",
+    "author": "support@raptorpanel.net",
+    "description": "Sonic Robo Blast 2, the 3D Sonic fan game, as a netgame server run with Wine. Put addons in the addons folder.",
+    "features": [],
+    "docker_images": {
+        "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
+    },
+    "file_denylist": [],
+    "startup": "rm -f latest-log.txt; wine ./srb2win.exe -dedicated -port {{SERVER_PORT}} -room {{ROOM_NR}} & pid=$!; tail -n +1 -F latest-log.txt --pid=$pid 2>/dev/null; wait $pid",
+    "config": {
+        "files": "{\"adedserv.cfg\": {\"parser\": \"file\", \"find\": {\"servername \": \"servername \\\"{{server.build.env.SRV_NAME}}\\\"\", \"maxplayers \": \"maxplayers {{server.build.env.MAX_PLAYERS}}\", \"password \": \"password \\\"{{server.build.env.SRV_PW}}\\\"\"}}}",
+        "startup": "{\"done\": \"DEDICATED: No players\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Sonic Robo Blast 2. Downloads the full Windows release from GitHub (run\n# with Wine; SRB2 publishes no Linux build). The game's own files are\n# replaced; adedserv.cfg, config.cfg, addons and saves are never touched.\nset -euo pipefail\ncd /mnt/server\nrepo=STJr/SRB2\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${SRB2_VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"SRB2_release_${want#SRB2_release_}\"\ntag=$(gh-release tag \"$repo\" \"$want\") ||\n    fail \"Sonic Robo Blast 2 has no release ${SRB2_VERSION}. Set Version to latest, or to a release such as 2.2.15.\"\nver=${tag#SRB2_release_}\nasset=$(gh-release assets \"$repo\" \"$tag\" | awk '!f && $1 ~ /^SRB2-v[0-9]+-Full\\.zip$/ { print $1; f = 1 }')\n[ -n \"$asset\" ] || fail \"Sonic Robo Blast 2 $ver has no full Windows download.\"\n\nif [ \"$(cat .raptor-srb2 2>/dev/null)\" = \"$asset\" ] && [ -f srb2win.exe ]; then\n    echo \"Sonic Robo Blast 2 $ver is already installed.\"\nelse\n    build=/mnt/server/.raptor-build\n    rm -rf \"$build\"\n    mkdir -p \"$build/x\"\n    trap 'rm -rf \"$build\"' EXIT\n    echo \"Downloading Sonic Robo Blast 2 $ver\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/srb2.zip\"\n    unzip -tq \"$build/srb2.zip\" >/dev/null 2>&1 || fail \"The download isn't a whole zip file. Reinstall to try again.\"\n    unzip -q \"$build/srb2.zip\" -d \"$build/x\"\n    [ -f \"$build/x/srb2win.exe\" ] || fail \"The download has no srb2win.exe in it.\"\n    cp -af \"$build/x/.\" .\n    echo \"$asset\" > .raptor-srb2\nfi\n\n# What the dedicated server runs at start; the Panel sets these lines.\nif [ ! -f adedserv.cfg ]; then\n    cat > adedserv.cfg <<'CFG'\nservername \"Sonic Robo Blast 2\"\nmaxplayers 16\npassword \"\"\nCFG\nfi\nmkdir -p addons\necho \"Installed Sonic Robo Blast 2 $ver.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The release to install, such as 2.2.15, or latest.",
+            "env_variable": "SRB2_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40|regex:/^(latest|(SRB2_release_)?[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SRV_NAME",
+            "default_value": "Sonic Robo Blast 2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[^\"\\\\;]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password to log in as admin from the game (login <password>).",
+            "env_variable": "SRV_PW",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[^\"\\\\; ]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players at once, up to 32.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,32",
+            "field_type": "text"
+        },
+        {
+            "name": "Room",
+            "description": "The master server room to list the server in: 33 standard, 28 casual.",
+            "env_variable": "ROOM_NR",
+            "default_value": "33",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,999",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine debug",
+            "description": "Wine's debug channels. -all keeps the console quiet.",
+            "env_variable": "WINEDEBUG",
+            "default_value": "-all",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Los Angeles Crimes",
+    "author": "support@raptorpanel.net",
+    "description": "The online server for Los Angeles Crimes. Settings, the admin code (type /code in the chat to become admin) and editor maps are in .config/unity3d/MA/LAC.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "exec ./LAC_Linux_v*.x86_64",
+    "config": {
+        "files": "{\".config/unity3d/MA/LAC/ServerConfig.txt\": {\"parser\": \"file\", \"find\": {\"starting port=\": \"starting port={{server.build.default.port}}\", \"max players=\": \"max players={{server.build.env.MAX_PLAYERS}}\", \"map name=\": \"map name={{server.build.env.MAP}}\", \"share to community=\": \"share to community={{server.build.env.SHARE}}\"}}}",
+        "startup": "{\"done\": \"[NetworkManager] Server Started.\"}",
+        "logs": "{}",
+        "stop": "^SIGTERM"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Los Angeles Crimes. Downloads the Linux server build from\n# lacrimesonline.com (which publishes no checksums: the archive is checked to\n# be whole before anything is replaced). ServerConfig.txt, bans and editor\n# maps live in .config/unity3d/MA/LAC and are never touched once they exist.\nset -euo pipefail\ncd /mnt/server\nbase=https://lacrimesonline.com/builds\nfail() { echo \"$1\"; exit 1; }\n[ \"$(uname -m)\" = x86_64 ] || fail \"Los Angeles Crimes' server only runs on x86 (amd64) nodes.\"\n\nlist=$(curl -fsSL --retry 3 \"$base/\" | grep -oE 'LAC_Linux_v[0-9][0-9.]*\\.zip' | sed -E 's/^LAC_Linux_v(.*)\\.zip$/\\1/' | sort -uV) ||\n    fail \"lacrimesonline.com can't be reached right now. Reinstall to try again.\"\n[ -n \"$list\" ] || fail \"lacrimesonline.com lists no Linux server right now. Reinstall to try again later.\"\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\nif [ \"$want\" = latest ]; then\n    ver=$(tail -n 1 <<<\"$list\")\nelse\n    grep -qxF \"$want\" <<<\"$list\" || fail \"Los Angeles Crimes has no server $want. Set Version to latest, or to one of: $(tr '\\n' ' ' <<<\"$list\")\"\n    ver=$want\nfi\nbin=\"LAC_Linux_v$ver.x86_64\"\n\nif [ -x \"$bin\" ] && [ -d \"LAC_Linux_v${ver}_Data\" ] && [ -z \"$(ls -d LAC_Linux_v*.x86_64 | grep -vxF \"$bin\")\" ]; then\n    echo \"Los Angeles Crimes $ver is already installed.\"\nelse\n    build=/mnt/server/.raptor-build\n    rm -rf \"$build\"\n    mkdir -p \"$build/x\"\n    trap 'rm -rf \"$build\"' EXIT\n    echo \"Downloading Los Angeles Crimes $ver\"\n    curl -fsSL --retry 3 -o \"$build/lac.zip\" \"$base/LAC_Linux_v$ver.zip\"\n    unzip -tq \"$build/lac.zip\" >/dev/null 2>&1 || fail \"The download isn't a whole zip file. Reinstall to try again.\"\n    unzip -q \"$build/lac.zip\" -d \"$build/x\"\n    [ -f \"$build/x/$bin\" ] || fail \"The download has no $bin in it.\"\n    # Only one version at a time, so the start command finds the right one.\n    rm -rf LAC_Linux_v*.x86_64 LAC_Linux_v*_Data GameAssembly.so UnityPlayer.so\n    cp -a \"$build/x/.\" .\n    chmod +x \"$bin\"\nfi\n\ncfg=.config/unity3d/MA/LAC\nmkdir -p \"$cfg/editor\"\nif [ ! -f \"$cfg/ServerConfig.txt\" ]; then\n    # A random admin code: players type /<code> in the chat to become admin.\n    code=$(( (RANDOM << 15 | RANDOM) % 900000 + 100000 ))\n    cat > \"$cfg/ServerConfig.txt\" <<CFG\n#Maps (City, Garage, RagdollParty, TrainFacility)\n#Maps (ZombieSurvival, NewTerrainRamps, Island, CarSoccer)\n#Editor Maps (editor:myMap), from .config/unity3d/MA/LAC/editor/myMap.txt\n#make map rotation with \",\"\n#players can get admin by typing \"/YOUR-NUM-CODE\" in the chat\n#lock down will avoids changes in: server option, editor obj sync\n#starting port, max players, map name and share to community come from\n#the server's settings in the Panel.\n\n(Moderator)\nadmin code=$code\nlock down=true\n\n(Basic)\nrestart timer=never\nmax players=16\nmap name=TrainFacility\nstarting port=7777\n\n(Server List)\nshare to community=true\nserver language=English\nserver password=none\n\n(Roleplay)\nusername=HOST\npassword=0000\nCFG\nfi\necho \"Installed Los Angeles Crimes $ver. The admin code is in $cfg/ServerConfig.txt.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The server version to install, such as 1.9.7, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,100",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map, or maps to rotate separated by commas: City, Garage, RagdollParty, TrainFacility, ZombieSurvival, NewTerrainRamps, Island, CarSoccer, or editor:<name>.",
+            "env_variable": "MAP",
+            "default_value": "TrainFacility",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200|regex:/^[A-Za-z0-9:_, -]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "List the server in the game's community server list.",
+            "env_variable": "SHARE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

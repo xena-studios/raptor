@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/et-legacy/egg-et-legacy.json
+license: MIT
+credits:
+  - "Based on the ET Legacy egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: ET: Legacy's logo, from https://github.com/etlegacy"
+certified: true
+arch: [amd64, arm64]
+# Rounds keep no world: no backup hooks.
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  command: "status"
+  expect: "map\\s+: oasis"

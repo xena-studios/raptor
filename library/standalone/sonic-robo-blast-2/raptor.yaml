@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/sonic-robo-blast-2/egg-sonic-robo-blast-2.json
+license: MIT
+credits:
+  - "Based on the Sonic Robo Blast 2 egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: SRB2's game icon (srb2.png), from https://github.com/STJr/SRB2"
+certified: true
+# The Windows build, run with Wine (amd64 images only).
+arch: [amd64]
+# Its output goes to a log file the startup follows, so the console takes
+# no commands; netgames keep no world to back up.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m

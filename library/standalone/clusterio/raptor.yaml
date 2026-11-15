@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/clusterio/egg-clusterio.json
+license: MIT
+credits:
+  - "Based on the Clusterio egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Clusterio's logo, from https://github.com/clusterio"
+certified: true
+arch: [amd64, arm64]
+# The controller saves its database on its own (autosave_interval) and has
+# no console: no backup hooks. CI tests the controller; a host needs one.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m

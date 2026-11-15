@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/supertuxkart/egg-supertuxkart.json
+license: MIT
+credits:
+  - "Based on the SuperTuxKart egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: SuperTuxKart's game icon (data/supertuxkart_1024.png), from https://github.com/supertuxkart/stk-code"
+certified: true
+arch: [amd64, arm64]
+# A race server keeps no world: no backup hooks.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m
+  command: "help"
+  expect: "quit, Shut down the server"

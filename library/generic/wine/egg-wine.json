@@ -1,0 +1,93 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/generic (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Wine",
+    "author": "support@raptorpanel.net",
+    "description": "Runs a Windows-only server with Wine, from files you upload or a download link. Choose the program to start and any Winetricks it needs.",
+    "features": [],
+    "docker_images": {
+        "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b",
+        "Wine Staging": "ghcr.io/pelican-eggs/yolks:wine_staging@sha256:c25a24f1fabeb462e1856a5d8902cedc49b2a718676a5329e7a2fd91bc8b4ae8",
+        "Wine Devel": "ghcr.io/pelican-eggs/yolks:wine_devel@sha256:d849f069c767ec5ee311b0f265f0e2d940334c9b4ce3d57743cc48f5ae2d657f"
+    },
+    "file_denylist": [],
+    "startup": "cd \"./{{INSTALL_DIR}}\" && exec wine \"{{SERVER_EXECUTABLE}}\" {{SERVER_ARGS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": []}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Wine. Downloads and unpacks a Windows server's files from a link, if one\n# is set; otherwise the files are uploaded by hand. Unpacking adds and\n# replaces the archive's own files only: nothing else is deleted.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nif [ -z \"${DOWNLOAD_URL:-}\" ]; then\n    echo \"No download link set: upload the server's files, then set its program and start it.\"\n    exit 0\nfi\ncase \"$DOWNLOAD_URL\" in https://* | http://*) ;; *) fail \"The download link must start with https:// or http://.\" ;; esac\ndir=\"${INSTALL_DIR:-.}\"\ncase \"$dir\" in /* | *..*) fail \"The install folder must be inside the server's folder.\" ;; esac\nmkdir -p \"$dir\"\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"\nmkdir -p \"$build\"\ntrap 'rm -rf \"$build\"' EXIT\nname=\"${DOWNLOAD_URL%%\\?*}\"\nname=\"${name##*/}\"\necho \"Downloading $name\"\ncurl -fsSL --retry 3 -o \"$build/download\" \"$DOWNLOAD_URL\" || fail \"The download failed. Check the link, then reinstall.\"\ncase \"$(file -b \"$build/download\")\" in\nZip*) unzip -oq \"$build/download\" -d \"$dir\" ;;\ngzip*) tar -xzf \"$build/download\" -C \"$dir\" ;;\nXZ*) tar -xJf \"$build/download\" -C \"$dir\" ;;\nbzip2*) tar -xjf \"$build/download\" -C \"$dir\" ;;\nZstandard*) tar --zstd -xf \"$build/download\" -C \"$dir\" ;;\n*tar\\ archive*) tar -xf \"$build/download\" -C \"$dir\" ;;\n*) mv \"$build/download\" \"$dir/${name:-download}\"; echo \"Saved $name as it is (not an archive).\" ;;\nesac\necho \"Installed the files from $name.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Program",
+            "description": "The Windows program that starts the server, such as Server.exe, relative to the install folder.",
+            "env_variable": "SERVER_EXECUTABLE",
+            "default_value": "Server.exe",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200|regex:/^[^\"$`;&|]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to the program.",
+            "env_variable": "SERVER_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500|regex:/^[^`;&|]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Download link",
+            "description": "A link to the server's files (a zip or tar archive, or one file), downloaded when the server is installed. Empty to upload them yourself.",
+            "env_variable": "DOWNLOAD_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Install folder",
+            "description": "A folder inside the server's folder to unpack into and start from, such as server/bin. Empty uses the server's folder.",
+            "env_variable": "INSTALL_DIR",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[A-Za-z0-9 ._\\/-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Winetricks",
+            "description": "Winetricks packages to install at start, separated by spaces, such as vcrun2019 dotnet48.",
+            "env_variable": "WINETRICKS_RUN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300|regex:/^[A-Za-z0-9_. -]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine debug",
+            "description": "Wine's debug channels. -all keeps the console quiet.",
+            "env_variable": "WINEDEBUG",
+            "default_value": "-all",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        }
+    ]
+}

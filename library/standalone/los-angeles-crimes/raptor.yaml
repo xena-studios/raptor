@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/los-angeles-crimes/egg-los-angeles-crimes.json
+license: MIT
+credits:
+  - "Based on the LAC-Online Public Server egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Los Angeles Crimes Online's logo, from https://lacrimesonline.com"
+certified: true
+# The Linux server is an x86-64 Unity build.
+arch: [amd64]
+# No console and no save command: no backup hooks.
+test:
+  tier: fast
+  memory_mib: 1536
+  variables:
+    SHARE: "false"
+  done_timeout: 5m

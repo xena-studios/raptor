@@ -1,0 +1,92 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/games-standalone (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "CrewLink",
+    "author": "support@raptorpanel.net",
+    "description": "The voice relay server for CrewLink and BetterCrewLink, the proximity voice chat for Among Us. Players set its address as the voice server in their client.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:c9e7ca4b0c826f314244b6633aab6606df1114b2b7b990a83215b34da060df2b",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:eb9fbea67b491a40b5e5b0b3ea17d617a1cb6184ef304908424e0e93fcbed80e"
+    },
+    "file_denylist": [],
+    "startup": "a=\"{{ADDRESS}}\"; if [ -z \"$a\" ]; then a=$(curl -fsS4 --max-time 5 https://api.ipify.org || true); echo \"Public address: ${a:-not found}\"; fi; export PORT={{SERVER_PORT}} ADDRESS=\"$a\" HOSTNAME=\"$a\" NAME=\"{{NAME}}\"; exec node dist/index.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Server started:\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# CrewLink. Clones the voice relay server for CrewLink or BetterCrewLink\n# from GitHub (or updates it), installs its packages and builds it. Files\n# the repository doesn't track (certificates, config/peerConfig.yml) are\n# never touched.\nset -euo pipefail\nexport npm_config_update_notifier=false\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\ncase \"${SERVER_SOFTWARE:-bettercrewlink}\" in\nbettercrewlink) repo=https://github.com/OhMyGuus/BetterCrewlink-server.git name=BetterCrewLink ;;\ncrewlink) repo=https://github.com/ottomated/crewlink-server.git name=CrewLink ;;\n*) fail \"Server must be bettercrewlink or crewlink.\" ;;\nesac\ngit() { command git -c safe.directory=/mnt/server -c advice.detachedHead=false \"$@\"; }\nref=\"${BRANCH:-HEAD}\"\n\nif [ -d .git ]; then\n    echo \"Updating the $name server\"\n    git remote set-url origin \"$repo\"\n    git fetch -q --depth 1 origin \"$ref\" || fail \"GitHub has no branch $ref for the $name server, or can't be reached right now.\"\n    git reset -q --hard FETCH_HEAD\nelif [ -n \"$(ls -A)\" ]; then\n    fail \"The folder already has files and isn't a Git repository, so nothing was cloned. Empty it, then reinstall.\"\nelse\n    echo \"Downloading the $name server\"\n    git init -q .\n    git remote add origin \"$repo\"\n    git fetch -q --depth 1 origin \"$ref\" || fail \"GitHub has no branch $ref for the $name server, or can't be reached right now.\"\n    git reset -q --hard FETCH_HEAD\nfi\n\necho \"Installing packages and building\"\nrm -rf dist node_modules\nnpm install --no-fund --no-audit --loglevel=error\nnpx --no-install tsc\n[ -f dist/index.js ] || fail \"The build made no dist/index.js.\"\necho \"Installed the $name server ($(git rev-parse --short HEAD)).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:c9e7ca4b0c826f314244b6633aab6606df1114b2b7b990a83215b34da060df2b",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server",
+            "description": "bettercrewlink for BetterCrewLink clients, or crewlink for the original CrewLink.",
+            "env_variable": "SERVER_SOFTWARE",
+            "default_value": "bettercrewlink",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:bettercrewlink,crewlink",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name the server reports to clients.",
+            "env_variable": "NAME",
+            "default_value": "CrewLink",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:75|regex:/^[^\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The domain or IP address players connect to. Empty finds the server's public IPv4 address at every start.",
+            "env_variable": "ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:253|regex:/^[A-Za-z0-9.:-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to install. Empty uses the repository's default branch.",
+            "env_variable": "BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:50|regex:/^[A-Za-z0-9._\\/-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTPS",
+            "description": "Serve over https: put privkey.pem and fullchain.pem in the server's folder. Empty serves plain http (set it to true for https).",
+            "env_variable": "HTTPS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|in:true",
+            "field_type": "text"
+        },
+        {
+            "name": "Certificate folder",
+            "description": "Another folder to read the https certificates from.",
+            "env_variable": "SSLPATH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:250",
+            "field_type": "text"
+        }
+    ]
+}
