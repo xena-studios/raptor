@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/terraria/egg-terraria.json
+license: MIT
+credits:
+  - "Based on the Terraria eggs in https://github.com/pelican-eggs/games-standalone and https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Terraria's icon, from the official dedicated server download (Re-Logic)"
+certified: true
+# The Linux server is an x86-64 build with its own Mono.
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 1536
+  done_timeout: 10m
+  command: "playing"
+  expect: "No players connected"

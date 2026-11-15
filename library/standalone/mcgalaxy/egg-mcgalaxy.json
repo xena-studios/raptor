@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the ClassiCube (MCGalaxy) egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "ClassiCube: MCGalaxy",
+    "author": "support@raptorpanel.net",
+    "description": "MCGalaxy, the server software most ClassiCube servers run. Installs the current release from ClassiCube's download server, checked against its published checksum; levels, ranks, plugins and settings are kept.",
+    "features": [],
+    "docker_images": {
+        "Mono": "ghcr.io/pelican-eggs/yolks:mono_latest@sha256:f8668c475d4685253826cb7b81798f470d4b72476959a9a5da32c42bc05787e1"
+    },
+    "file_denylist": [],
+    "startup": "mono MCGalaxyCLI.exe",
+    "config": {
+        "files": "{\"properties/server.properties\": {\"parser\": \"properties\", \"find\": {\"server-name\": \"{{server.build.env.SERVER_NAME}}\", \"motd\": \"{{server.build.env.MOTD}}\", \"max-players\": \"{{server.build.env.MAX_PLAYERS}}\", \"public\": \"{{server.build.env.PUBLIC}}\", \"port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \"Finished setting up server\"}",
+        "logs": "{}",
+        "stop": "/shutdown 1"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# MCGalaxy: downloads the current MCGalaxy release from ClassiCube's\n# download server and checks it against the MD5 the server publishes for it.\n# Levels, properties, ranks, plugins and the database are never touched.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nurl=https://cdn.classicube.net/client/mcg/release/MCGalaxy.zip\nfail() { echo \"$1\"; exit 1; }\n\n# The download server's ETag is the file's MD5.\netag=$(curl -fsSI --retry 3 -A \"$ua\" \"$url\" | tr -d '\\r' | awk -F'\"' 'tolower($1) ~ /^etag: / { print $2 }') ||\n    fail \"ClassiCube's download server can't be reached right now. Reinstall to try again.\"\nif [ -n \"$etag\" ] && [ \"$(cat .raptor-mcgalaxy 2>/dev/null)\" = \"$etag\" ] && [ -f MCGalaxy_.dll ]; then\n    echo \"The current MCGalaxy release is already installed.\"\n    exit 0\nfi\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"; mkdir -p \"$build/x\"\ntrap 'rm -rf \"$build\"' EXIT\necho \"Downloading MCGalaxy\"\ncurl -fsSL --retry 3 -A \"$ua\" -o \"$build/mcgalaxy.zip\" \"$url\"\nif [[ $etag =~ ^[0-9a-f]{32}$ ]]; then\n    [ \"$(md5sum \"$build/mcgalaxy.zip\" | cut -d' ' -f1)\" = \"$etag\" ] || fail \"The download didn't match its published checksum. Reinstall to try again.\"\nfi\nunzip -q -j \"$build/mcgalaxy.zip\" -d \"$build/x\"\n[ -f \"$build/x/MCGalaxyCLI.exe\" ] || fail \"The download has no MCGalaxy in it.\"\ncp -a \"$build/x/.\" .\necho \"$etag\" > .raptor-mcgalaxy\necho \"Installed the current MCGalaxy release.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name shown in ClassiCube's server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "[MCGalaxy] Default",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Message of the day",
+            "description": "The message players see when they join.",
+            "env_variable": "MOTD",
+            "default_value": "Welcome!",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,255",
+            "field_type": "text"
+        },
+        {
+            "name": "Show in server list",
+            "description": "true lists the server on classicube.net, false keeps it unlisted.",
+            "env_variable": "PUBLIC",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

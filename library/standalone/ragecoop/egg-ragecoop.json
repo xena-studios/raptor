@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the RageCOOP egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "RageCOOP",
+    "author": "support@raptorpanel.net",
+    "description": "Co-op multiplayer for Grand Theft Auto V through the RageCOOP mod. Installs the chosen release of its server; Settings.xml and your resources are kept. The project is no longer developed, so its last release is the newest.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "./RageCoop.Server",
+    "config": {
+        "files": "{\"Settings.xml\": {\"parser\": \"xml\", \"find\": {\"Settings.Port\": \"{{server.build.default.port}}\", \"Settings.Name\": \"{{server.build.env.SERVER_NAME}}\", \"Settings.MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"Settings.AnnounceSelf\": \"{{server.build.env.ANNOUNCE}}\"}}}",
+        "startup": "{\"done\": \"Listening for clients\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# RageCOOP: downloads the chosen release of the RageCOOP server from its\n# GitHub releases. Settings.xml, resources and logs are never touched.\nset -euo pipefail\ncd /mnt/server\n\nrepo=RAGECOOP/RAGECOOP-V\nasset=RageCoop.Server-linux-x64.zip\nfail() { echo \"$1\"; exit 1; }\n[ \"$(uname -m)\" = x86_64 ] || fail \"RageCOOP's Linux server is only built for x86-64 (amd64) CPUs, and this node is $(uname -m).\"\n\nwant=\"${VERSION:-latest}\"\ntag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n    fail \"RageCOOP has no release $want. Set Version to latest, or to a release such as 1.5.4.7.\"\nline=$(gh-release assets \"$repo\" \"$tag\" | awk -v a=\"$asset\" '$1 == a') || true\n[ -n \"$line\" ] || fail \"RageCOOP's release $tag has no Linux server.\"\n\nif [ \"$(cat .raptor-ragecoop 2>/dev/null)\" = \"$tag\" ] && [ -x RageCoop.Server ]; then\n    echo \"RageCOOP $tag is already installed.\"\n    exit 0\nfi\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"; mkdir -p \"$build/x\"\ntrap 'rm -rf \"$build\"' EXIT\necho \"Downloading RageCOOP $tag\"\n# GitHub shows no checksum for these older files; gh-release checks one when it does.\ngh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/server.zip\" || fail \"The download of RageCOOP failed. Reinstall to try again.\"\nunzip -tq \"$build/server.zip\" >/dev/null || fail \"The download of RageCOOP is damaged. Reinstall to try again.\"\nunzip -q \"$build/server.zip\" -d \"$build/x\"\n[ -f \"$build/x/RageCoop.Server\" ] || fail \"RageCOOP's download has no server in it.\"\nchmod +x \"$build/x/RageCoop.Server\"\ncp -a \"$build/x/.\" .\necho \"$tag\" > .raptor-ragecoop\necho \"Installed RageCOOP $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The RageCOOP release to install, such as 1.5.4.7, or latest. Players need a matching client mod.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|nightly|[0-9][0-9.]*[a-z]?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "RAGECOOP server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "32",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,256",
+            "field_type": "text"
+        },
+        {
+            "name": "Show in server list",
+            "description": "true lists the server publicly, false keeps it unlisted.",
+            "env_variable": "ANNOUNCE",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

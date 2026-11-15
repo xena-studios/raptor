@@ -1,0 +1,42 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Foundry VTT egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Foundry VTT",
+    "author": "support@raptorpanel.net",
+    "description": "The self-hosted virtual tabletop for roleplaying games. Installs Foundry from the timed download link on your foundryvtt.com account (a licence is needed); worlds, systems and modules in data are kept, and a failed update keeps the installed version.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:c9e7ca4b0c826f314244b6633aab6606df1114b2b7b990a83215b34da060df2b",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:eb9fbea67b491a40b5e5b0b3ea17d617a1cb6184ef304908424e0e93fcbed80e"
+    },
+    "file_denylist": [],
+    "startup": "if [ -f app/main.js ]; then m=app/main.js; else m=app/resources/app/main.js; fi; exec node \"$m\" --dataPath=/home/container/data --port={{SERVER_PORT}} --noupnp --noupdate",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Server started and listening on port\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Foundry VTT: downloads Foundry from the timed link on your foundryvtt.com\n# account (Purchased Licenses, the Node.js build). The program in app is\n# replaced; your worlds, systems, modules and settings in data are never\n# touched.\nset -euo pipefail\ncd /mnt/server\n\ninstalled=false\n[ -f app/main.js ] || [ -f app/resources/app/main.js ] && installed=true\n# A failed update keeps the Foundry that's installed, so a reinstall with an\n# expired link never leaves the server without one.\nfail() {\n    if $installed; then echo \"$1 The installed Foundry was kept.\"; exit 0; fi\n    echo \"$1\"; exit 1\n}\nurl=\"${TIMED_URL:-}\"\nif [ -z \"$url\" ]; then\n    $installed && { echo \"Foundry is already installed, and no Timed URL is set to update it.\"; exit 0; }\n    fail \"Set Timed URL to the Node.js download link from your foundryvtt.com account, then reinstall.\"\nfi\ncase $url in https://*) ;; *) fail \"Timed URL must be the https link from your foundryvtt.com account.\" ;; esac\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"; mkdir -p \"$build/x\"\ntrap 'rm -rf \"$build\"' EXIT\necho \"Downloading Foundry VTT\"\ncode=$(curl -sSL --retry 3 -o \"$build/foundry.zip\" -w '%{http_code}' \"$url\") || fail \"The Timed URL can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 200 ] || fail \"foundryvtt.com refused the download ($code). Timed URLs expire after a few minutes: copy a new one from your account, set it, and reinstall.\"\nunzip -tq \"$build/foundry.zip\" >/dev/null 2>&1 || fail \"The download isn't a Foundry zip. Use the Node.js build's link, not the Windows, macOS or Linux app.\"\nunzip -q \"$build/foundry.zip\" -d \"$build/x\"\nif [ -f \"$build/x/main.js\" ]; then\n    :\nelif [ -f \"$build/x/resources/app/main.js\" ]; then\n    :\nelse\n    fail \"The download has no main.js. Use the Node.js build's link, not the Windows, macOS or Linux app.\"\nfi\nversion=$(jq -r '.release.generation as $g | \"\\($g).\\(.release.build)\"' \"$build/x/package.json\" \"$build/x/resources/app/package.json\" 2>/dev/null | head -n1 || true)\nrm -rf app.old\n[ ! -d app ] || mv app app.old\nmv \"$build/x\" app\nrm -rf app.old\nmkdir -p data\necho \"Installed Foundry VTT${version:+ $version}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Timed URL",
+            "description": "The Node.js download link from Purchased Licenses on your foundryvtt.com account. It expires after a few minutes, so set it just before installing.",
+            "env_variable": "TIMED_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:1000",
+            "field_type": "text"
+        }
+    ]
+}

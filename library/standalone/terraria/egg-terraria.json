@@ -1,0 +1,121 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Terraria eggs in https://github.com/pelican-eggs/games-standalone and https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Terraria",
+    "author": "support@raptorpanel.net",
+    "description": "The 2D sandbox adventure game. Installs the chosen version of the official dedicated server from terraria.org and creates the world on first start; worlds and serverconfig.txt are kept.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "./TerrariaServer.bin.x86_64 -config serverconfig.txt",
+    "config": {
+        "files": "{\"serverconfig.txt\": {\"parser\": \"properties\", \"find\": {\"worldpath\": \"/home/container/saves/Worlds\", \"worldname\": \"{{server.build.env.WORLD_NAME}}\", \"world\": \"/home/container/saves/Worlds/{{server.build.env.WORLD_NAME}}.wld\", \"autocreate\": \"{{server.build.env.WORLD_SIZE}}\", \"difficulty\": \"{{server.build.env.WORLD_DIFFICULTY}}\", \"seed\": \"{{server.build.env.WORLD_SEED}}\", \"port\": \"{{server.build.default.port}}\", \"maxplayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"password\": \"{{server.build.env.PASSWORD}}\", \"motd\": \"{{server.build.env.SERVER_MOTD}}\", \"npcstream\": \"{{server.build.env.NPCSTREAM}}\"}}}",
+        "startup": "{\"done\": \"Type 'help' for a list of commands\"}",
+        "logs": "{}",
+        "stop": "exit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Terraria: downloads the chosen dedicated server from terraria.org. Worlds\n# and serverconfig.txt are never touched.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\napi=https://terraria.org/api\nfail() { echo \"$1\"; exit 1; }\n[ \"$(uname -m)\" = x86_64 ] || fail \"Terraria's Linux server is only built for x86-64 (amd64) CPUs, and this node is $(uname -m).\"\n\nlatest=$(curl -fsSL --retry 3 -A \"$ua\" \"$api/get/dedicated-servers-names\" | jq -r '.[0]' | grep -oE '[0-9]+') ||\n    fail \"terraria.org can't be reached right now. Reinstall to try again.\"\nversion=\"${TERRARIA_VERSION:-latest}\"\nif [ \"$version\" = latest ]; then\n    num=$latest\nelse\n    num=${version//./}  # 1.4.5.8 is file 1458\nfi\ncode=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 -A \"$ua\" -r 0-0 \"$api/download/pc-dedicated-server/terraria-server-$num.zip\") ||\n    fail \"terraria.org can't be reached right now. Reinstall to try again.\"\ncase $code in 200|206) ;; *) fail \"terraria.org has no server for Terraria $version. Set Version to latest, or to a version such as $(sed -E 's/(.)/\\1./g; s/\\.$//' <<<\"$latest\").\";; esac\npretty=$(sed -E 's/(.)/\\1./g; s/\\.$//' <<<\"$num\")\n\nif [ \"$(cat .raptor-terraria 2>/dev/null)\" = \"$num\" ] && [ -x TerrariaServer.bin.x86_64 ]; then\n    echo \"Terraria $pretty is already installed.\"\nelse\n    build=/mnt/server/.raptor-build\n    rm -rf \"$build\"; mkdir -p \"$build\"\n    trap 'rm -rf \"$build\"' EXIT\n    echo \"Downloading Terraria $pretty\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$build/server.zip\" \"$api/download/pc-dedicated-server/terraria-server-$num.zip\"\n    unzip -tq \"$build/server.zip\" >/dev/null || fail \"The download from terraria.org is damaged. Reinstall to try again.\"\n    unzip -q \"$build/server.zip\" -d \"$build/x\"\n    src=$(find \"$build/x\" -maxdepth 3 -type d -name Linux | head -n1)\n    [ -n \"$src\" ] || fail \"terraria.org's download has no Linux server in it.\"\n    cp -a \"$src/.\" .\n    chmod +x TerrariaServer.bin.x86_64\n    echo \"$num\" > .raptor-terraria\nfi\n\nmkdir -p saves/Worlds\nif [ ! -f serverconfig.txt ]; then\n    cat > serverconfig.txt <<'CFG'\nworldpath=/home/container/saves/Worlds\nworldname=world\nworld=/home/container/saves/Worlds/world.wld\nautocreate=1\ndifficulty=0\nport=7777\nmaxplayers=8\nCFG\nfi\necho \"Installed Terraria $pretty.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Terraria version to install, such as 1.4.5.8 or 1458, or latest.",
+            "env_variable": "TERRARIA_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9](\\.?[0-9])+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World name",
+            "description": "The world's name, and its file in saves/Worlds. A new world is made when there's none by this name.",
+            "env_variable": "WORLD_NAME",
+            "default_value": "world",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40|regex:/^[A-Za-z0-9 _-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World size",
+            "description": "The size of a new world: 1 small, 2 medium, 3 large.",
+            "env_variable": "WORLD_SIZE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:1,2,3",
+            "field_type": "text"
+        },
+        {
+            "name": "Difficulty",
+            "description": "The difficulty of a new world: 0 classic, 1 expert, 2 master, 3 journey.",
+            "env_variable": "WORLD_DIFFICULTY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1,2,3",
+            "field_type": "text"
+        },
+        {
+            "name": "World seed",
+            "description": "The seed for a new world. Empty picks one at random.",
+            "env_variable": "WORLD_SEED",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:40",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,255",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players need to join. Empty lets anyone join.",
+            "env_variable": "PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Message of the day",
+            "description": "The message players see when they join.",
+            "env_variable": "SERVER_MOTD",
+            "default_value": "Welcome!",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "NPC stream",
+            "description": "Sends enemies more often when lower, so they skip less, at the cost of bandwidth. 0 turns it off; the game's default is 60.",
+            "env_variable": "NPCSTREAM",
+            "default_value": "60",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,60",
+            "field_type": "text"
+        }
+    ]
+}

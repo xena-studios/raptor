@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/spt/egg-spt.json
+license: MIT
+credits:
+  - "Based on the Stay In Tarkov egg in https://github.com/pterodactyl/game-eggs and the Single Player Tarkov egg in https://github.com/pelican-eggs/games-standalone (MIT)"
+  - "Icon: SPT's logo, from https://github.com/sp-tarkov"
+certified: true
+# SPT's Linux server is built for x86-64 only.
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 4096
+  done_timeout: 10m

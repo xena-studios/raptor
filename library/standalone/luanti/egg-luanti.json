@@ -1,0 +1,141 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Minetest egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Luanti",
+    "author": "support@raptorpanel.net",
+    "description": "The open source voxel game engine, formerly Minetest. Builds the chosen Luanti release's server and downloads the chosen game from ContentDB, for x86-64 and ARM nodes; worlds, mods, games and minetest.conf are kept.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "exec bin/luantiserver --port {{SERVER_PORT}} --config minetest.conf --world \"worlds/{{WORLD_NAME}}\" --gameid \"{{GAME_ID}}\"",
+    "config": {
+        "files": "{\"minetest.conf\": {\"parser\": \"properties\", \"find\": {\"server_name\": \"{{server.build.env.SERVER_NAME}}\", \"server_description\": \"{{server.build.env.SERVER_DESC}}\", \"server_announce\": \"{{server.build.env.SERVER_ANNOUNCE}}\", \"max_users\": \"{{server.build.env.SERVER_MAX_USERS}}\", \"name\": \"{{server.build.env.SERVER_ADMIN_NAME}}\", \"default_password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"motd\": \"{{server.build.env.SERVER_MOTD}}\"}}}",
+        "startup": "{\"done\": \"listening on\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Luanti (formerly Minetest): builds the chosen Luanti release's server from\n# its source (Luanti publishes no Linux server binaries), and downloads the\n# chosen game from ContentDB, checked against ContentDB's SHA-256, when it\n# isn't there yet. Worlds, mods, games and minetest.conf are never touched.\nset -euo pipefail\ncd /mnt/server\n\nrepo=luanti-org/luanti\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nwant=\"${LUANTI_VERSION:-latest}\"\ntag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n    fail \"Luanti has no release $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" latest 2>/dev/null || echo 5.18.0).\"\n\nif [ \"$(cat .raptor-luanti 2>/dev/null)\" = \"$tag $(uname -m)\" ] && [ -x bin/luantiserver ]; then\n    echo \"Luanti $tag is already installed.\"\nelse\n    echo \"Building the Luanti $tag server, which takes a few minutes\"\n    export DEBIAN_FRONTEND=noninteractive\n    { apt-get update -qq && apt-get install -y -qq --no-install-recommends g++ make cmake \\\n        libsqlite3-dev libcurl4-openssl-dev zlib1g-dev libzstd-dev libluajit-5.1-dev; } >/dev/null ||\n        fail \"The build tools couldn't be installed. Reinstall to try again.\"\n    rm -rf \"$build\"; mkdir -p \"$build\"\n    git clone -q --depth 1 --branch \"$tag\" \"https://github.com/$repo.git\" \"$build/src\" ||\n        fail \"Luanti's source can't be downloaded right now. Reinstall to try again.\"\n    tri=$(gcc -dumpmachine)\n    # LuaJIT, JsonCpp and GMP built in, so the server runs on the plain runtime image.\n    cmake -S \"$build/src\" -B \"$build/out\" -DCMAKE_BUILD_TYPE=Release -DRUN_IN_PLACE=TRUE \\\n        -DBUILD_CLIENT=FALSE -DBUILD_SERVER=TRUE -DBUILD_UNITTESTS=FALSE -DENABLE_GETTEXT=FALSE \\\n        -DENABLE_CURSES=FALSE -DENABLE_PROMETHEUS=FALSE -DENABLE_SPATIAL=FALSE -DENABLE_REDIS=FALSE \\\n        -DENABLE_POSTGRESQL=FALSE -DENABLE_LEVELDB=FALSE -DENABLE_SYSTEM_JSONCPP=FALSE -DENABLE_SYSTEM_GMP=FALSE \\\n        -DLUA_LIBRARY=\"/usr/lib/$tri/libluajit-5.1.a\" -DLUA_INCLUDE_DIR=/usr/include/luajit-2.1 >\"$build/cmake.log\" ||\n        { tail -n 20 \"$build/cmake.log\"; fail \"Luanti $tag couldn't be configured to build.\"; }\n    # One compiler per ~700 MB of the install's memory (at least 1 GB, the\n    # server's if more), so a small server doesn't run out mid-build.\n    jobs=$(( ${SERVER_MEMORY:-1024} / 700 )); [ \"$jobs\" -ge 1 ] || jobs=1\n    [ \"$jobs\" -le \"$(nproc)\" ] || jobs=$(nproc)\n    make -C \"$build/out\" -j\"$jobs\" >\"$build/make.log\" 2>&1 ||\n        { tail -n 30 \"$build/make.log\"; fail \"Luanti $tag didn't build. If the log above says Killed, give the server more memory, then reinstall.\"; }\n    server=$(ls \"$build/src/bin/luantiserver\" \"$build/src/bin/minetestserver\" 2>/dev/null | head -n1)\n    [ -n \"$server\" ] || fail \"Luanti $tag built no server.\"\n    mkdir -p bin\n    cp -f \"$server\" bin/luantiserver.new && mv -f bin/luantiserver.new bin/luantiserver\n    # The engine's own Lua code, replaced to match the new server.\n    rm -rf builtin.new && cp -a \"$build/src/builtin\" builtin.new && rm -rf builtin && mv builtin.new builtin\n    cp -f \"$build/src/minetest.conf.example\" . 2>/dev/null || true\n    echo \"$tag $(uname -m)\" > .raptor-luanti\nfi\n\nmkdir -p games mods worlds\ngame=\"${CONTENTDB_GAME:-}\"\nif [ -n \"$game\" ]; then\n    name=${game#*/}\n    if [ -d \"games/$name\" ]; then\n        echo \"The game $name is already in games.\"\n    else\n        rel=$(curl -fsSL --retry 3 -A \"$ua\" \"https://content.luanti.org/api/packages/$game/releases/\") ||\n            fail \"ContentDB has no package $game. Set Game to a game's author/name from content.luanti.org, such as Luanti/minetest_game.\"\n        url=$(jq -r '.[0].url // empty' <<<\"$rel\"); sum=$(jq -r '.[0].sha256 // empty' <<<\"$rel\")\n        [ -n \"$url\" ] || fail \"ContentDB's package $game has no release to download.\"\n        echo \"Downloading $game from ContentDB\"\n        mkdir -p \"$build/game\"\n        curl -fsSL --retry 3 -A \"$ua\" -o \"$build/game.zip\" \"$url\"\n        [ -z \"$sum\" ] || [ \"$(sha256sum \"$build/game.zip\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"The download of $game didn't match ContentDB's checksum. Reinstall to try again.\"\n        unzip -q \"$build/game.zip\" -d \"$build/game\"\n        conf=$(find \"$build/game\" -maxdepth 2 -name game.conf | head -n1)\n        [ -n \"$conf\" ] || fail \"$game isn't a game: it has no game.conf. Set Game to a game, not a mod.\"\n        mv \"$(dirname \"$conf\")\" \"games/$name\"\n    fi\nfi\n\nif [ ! -f minetest.conf ]; then\n    cat > minetest.conf <<'CONF'\n# Luanti's settings: minetest.conf.example lists them all.\nserver_name = Luanti server\nserver_description = A Luanti server\nserver_announce = false\nmax_users = 15\nname = admin\ndefault_password =\nmotd =\nCONF\nfi\necho \"Installed Luanti $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Luanti release to build, such as 5.18.0, or latest. Players need this version or newer.",
+            "env_variable": "LUANTI_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game",
+            "description": "A game from content.luanti.org to download at install, as author/name. Empty downloads none: upload one to games instead.",
+            "env_variable": "CONTENTDB_GAME",
+            "default_value": "Luanti/minetest_game",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100|regex:/^[A-Za-z0-9_-]+\\/[A-Za-z0-9_]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game ID",
+            "description": "The game a new world uses: its folder name in games.",
+            "env_variable": "GAME_ID",
+            "default_value": "minetest_game",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World name",
+            "description": "The world's folder in worlds. A new world is made when there's none by this name.",
+            "env_variable": "WORLD_NAME",
+            "default_value": "world",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "Luanti server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The description shown in the server list.",
+            "env_variable": "SERVER_DESC",
+            "default_value": "A Luanti server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Show in server list",
+            "description": "true lists the server on the public server list.",
+            "env_variable": "SERVER_ANNOUNCE",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be connected at once.",
+            "env_variable": "SERVER_MAX_USERS",
+            "default_value": "15",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin name",
+            "description": "The player who gets every privilege when they join with this name.",
+            "env_variable": "SERVER_ADMIN_NAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password new players need to join. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Message of the day",
+            "description": "The message players see when they join.",
+            "env_variable": "SERVER_MOTD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        }
+    ]
+}

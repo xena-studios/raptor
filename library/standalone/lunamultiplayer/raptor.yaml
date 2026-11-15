@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/lunamultiplayer/egg-lunamultiplayer.json
+license: MIT
+credits:
+  - "Based on the KSP LMP egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: LunaMultiplayer's logo, from https://github.com/LunaMultiplayer"
+certified: true
+arch: [amd64, arm64]
+# /backup now writes the universe out of memory; the post command is a
+# harmless one, since the server has nothing to turn back on.
+backup:
+  pre: ["/backup now"]
+  post: ["/countclients"]
+  wait_for: "Manual backup completed"
+  timeout: 2m
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "/listclients"
+  expect: "No Clients connected"

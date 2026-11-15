@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/openttd/egg-openttd.json
+license: MIT
+credits:
+  - "Based on the OpenTTD eggs in https://github.com/pelican-eggs/games-standalone and https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: OpenTTD's logo, from https://github.com/OpenTTD"
+certified: true
+# OpenTTD publishes its Linux build for x86-64 only.
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 1024
+  variables:
+    SERVER_VISIBILITY: local
+  done_timeout: 5m
+  command: "echo raptor-ready"
+  expect: "^raptor-ready$"

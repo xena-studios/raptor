@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Tiny Block egg in https://github.com/pelican-eggs/games-standalone (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Tiny Block",
+    "author": "support@raptorpanel.net",
+    "description": "A community world for Tiny Block, the 2D block sandbox game. Installs the chosen release of the headless server, checked against GitHub's checksum; it lists itself in the game's Online Worlds and needs no open port.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "./tinyblock-server.x86_64 --headless --tinyblock-server --world \"{{WORLD_ID}}\" --world-name \"{{WORLD_NAME}}\" --world-mode \"{{WORLD_MODE}}\" --max-players {{MAX_PLAYERS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Tiny Block headless server is online:\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Tiny Block: downloads the chosen release of the headless server from its\n# GitHub releases and checks it against GitHub's SHA-256. Worlds (in\n# .local/share/godot) are never touched.\nset -euo pipefail\ncd /mnt/server\n\nrepo=hardtab/tinyblock-server\nasset=tinyblock-server-linux-x86_64.tar.gz\nfail() { echo \"$1\"; exit 1; }\n[ \"$(uname -m)\" = x86_64 ] || fail \"Tiny Block's server is only built for x86-64 (amd64) CPUs, and this node is $(uname -m).\"\n\nwant=\"${VERSION:-latest}\"\ntag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n    fail \"Tiny Block has no release $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" latest 2>/dev/null || echo v0.2.32).\"\nsum=$(gh-release assets \"$repo\" \"$tag\" | awk -v a=\"$asset\" '$1 == a { print $2 }')\n[ -n \"$sum\" ] || fail \"Tiny Block's release $tag has no Linux server.\"\n\nif [ \"$(cat .raptor-tinyblock 2>/dev/null)\" = \"$tag $sum\" ] && [ -x tinyblock-server.x86_64 ]; then\n    echo \"Tiny Block $tag is already installed.\"\n    exit 0\nfi\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"; mkdir -p \"$build/x\"\ntrap 'rm -rf \"$build\"' EXIT\necho \"Downloading Tiny Block $tag\"\ngh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/server.tar.gz\" || fail \"The download of Tiny Block failed. Reinstall to try again.\"\ntar -xzf \"$build/server.tar.gz\" -C \"$build/x\" --strip-components=1\nchmod +x \"$build/x/tinyblock-server.x86_64\"\ncp -a \"$build/x/.\" .\necho \"$tag $sum\" > .raptor-tinyblock\necho \"Installed Tiny Block $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The release to install, such as v0.2.32, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^(latest|v?[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World ID",
+            "description": "The world's save name. Keep it the same to keep the world across restarts.",
+            "env_variable": "WORLD_ID",
+            "default_value": "world_community_1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World name",
+            "description": "The name shown in the game's Online Worlds list.",
+            "env_variable": "WORLD_NAME",
+            "default_value": "Tiny Block Community",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|not_regex:/[\"\\\\$`]/",
+            "field_type": "text"
+        },
+        {
+            "name": "World mode",
+            "description": "How a new world is made: skyblock, floating_islands, procedural, one_block or challenge_run.",
+            "env_variable": "WORLD_MODE",
+            "default_value": "skyblock",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:skyblock,floating_islands,procedural,one_block,challenge_run",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,256",
+            "field_type": "text"
+        }
+    ]
+}
