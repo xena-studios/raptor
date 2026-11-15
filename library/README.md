@@ -49,7 +49,10 @@ accepts. Version variables are called `Version` and default to `latest`.
 
 **Images** are Raptor's runtime images (`ghcr.io/xena-studios/yolks`) or,
 where Raptor has none, pelican-eggs' (`ghcr.io/pelican-eggs/…`), always
-pinned by digest. Image names say the runtime and version (`Java 21`,
+pinned by digest: write the tag (`ghcr.io/xena-studios/yolks:java_21`) and
+run `task library:pin`, which adds the digest it points to now. The
+install container is `ghcr.io/xena-studios/yolks:installer`, pinned the
+same way. Image names say the runtime and version (`Java 21`,
 `Node.js 22`).
 
 **The author** is `support@raptorpanel.net`.

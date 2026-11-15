@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/nodejs/egg-nodejs.json
+license: MIT
+credits:
+  - "Based on the node.js generic egg in https://github.com/pelican-eggs/generic (MIT)"
+  - "Icon: the Node.js logo, from https://github.com/nodejs (OpenJS Foundation)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  files:
+    index.js: |
+      // Stands in for a bot: says it's ready, then echoes the console.
+      console.log("ready");
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", (d) => { for (const l of d.split("\n")) if (l.trim()) console.log("got: " + l.trim()); });
+  done_timeout: 3m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"

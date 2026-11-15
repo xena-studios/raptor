@@ -1,0 +1,113 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/generic (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Node.js",
+    "author": "support@raptorpanel.net",
+    "description": "Runs a Node.js app, such as a Discord bot, from your files or a Git repository. Dependencies are installed when package.json changes, and TypeScript runs as it is.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:02144cd715df62fb31c15de7fb3e97fb0e2febe2e8b861249e4778b9befbcd85",
+        "Node.js 26": "ghcr.io/xena-studios/yolks:nodejs_26@sha256:e33323cd6a84f8d0c6777e38013f10f9d0abb9e6ef6e9badf752b277be64b6d7",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:799a28ea3e1736ddf8fad3554d14039ecd9542f7620c3254e300829a0a9c319e"
+    },
+    "file_denylist": [],
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; if [ -n \"{{NODE_PACKAGES}}\" ]; then npm install --no-fund --no-audit {{NODE_PACKAGES}}; fi; if [ -f package.json ]; then h=$(cat package.json package-lock.json 2>/dev/null | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then if [ -f package-lock.json ]; then npm ci --no-fund --no-audit; else npm install --no-fund --no-audit; fi && echo \"$h\" > node_modules/.raptor-installed; fi; fi; case \"{{MAIN_FILE}}\" in *.ts|*.mts|*.cts) exec node --experimental-strip-types \"{{MAIN_FILE}}\" {{NODE_ARGS}} ;; *) exec node \"{{MAIN_FILE}}\" {{NODE_ARGS}} ;; esac",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": []}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Node.js: clones the app's Git repository, if one is set. Files already in\n# the server's folder are never deleted or overwritten.\nset -euo pipefail\ncd /mnt/server\n\nif [ -z \"${GIT_ADDRESS:-}\" ]; then\n    echo \"No Git repository set: upload your app's files, then start the server.\"\n    exit 0\nfi\nurl=\"${GIT_ADDRESS}\"\ncase \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\nif [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n    url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\nfi\n\nif [ -d .git ]; then\n    echo \"The repository is already here: pulling the latest changes.\"\n    git pull --ff-only\nelif [ -n \"$(ls -A)\" ]; then\n    echo \"The folder already has files and isn't a Git repository, so nothing was cloned.\"\n    exit 0\nelse\n    git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" .\nfi\necho \"Installed.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:3baa9fe27a6a06a78b32d5ef3ce8bf1df9da1a65b416c2fc01ee54fc3e8b86d7",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Main file",
+            "description": "The file that starts your app, such as index.js or src/bot.ts.",
+            "env_variable": "MAIN_FILE",
+            "default_value": "index.js",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the app's repository, cloned when the server is installed. Leave it empty to upload the files yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra packages",
+            "description": "npm packages to install as well, separated by spaces.",
+            "env_variable": "NODE_PACKAGES",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to your app.",
+            "env_variable": "NODE_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}

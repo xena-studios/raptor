@@ -86,6 +86,9 @@ func TestLibrary(t *testing.T) {
 					t.Errorf("variable %s has no rules", v.Env)
 				}
 			}
+			if c := egg.Install.Container; c != "" && !digest.MatchString(c) {
+				t.Errorf("install container %s: Raptor's or pelican-eggs' images, pinned by digest", c)
+			}
 			for _, img := range egg.Images {
 				if !digest.MatchString(img.Ref) {
 					t.Errorf("image %s: Raptor's or pelican-eggs' images, pinned by digest", img.Ref)
