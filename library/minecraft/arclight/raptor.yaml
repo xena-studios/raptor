@@ -1,0 +1,38 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/arclight/egg-arclight.json
+license: MIT
+credits:
+  - "Based on the Arclight egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Arclight's logo, from https://github.com/IzzelAliz/Arclight"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 3072
+  eula: true
+  done_timeout: 10m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"
+addons:
+  plugins:
+    loaders: [paper, spigot, bukkit]
+    dir: plugins
+    version: MINECRAFT_VERSION
+  mods:
+    loaders: [forge, neoforge, fabric]
+    dir: mods
+    version: MINECRAFT_VERSION
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+    version: MINECRAFT_VERSION
+# save-off and everything written out before the snapshot, so it never
+# catches region files mid-write; save-on after, even if the backup fails.
+backup:
+  pre: ["save-off", "save-all flush"]
+  post: ["save-on"]
+  wait_for: "regex:Saved the (game|world)" # 1.13+ says game, older world
+  timeout: 5m

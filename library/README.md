@@ -68,9 +68,11 @@ same way. Image names say the runtime and version (`Java 21`,
   which would upgrade the world), verifies the download against the
   published checksum, skips it when the jar already matches, and replaces
   the jar only once the new one checks out. It writes the Java version
-  that Minecraft version needs to `.raptor-java`.
-- **The startup command** reads `.raptor-java` and refuses to start on an
-  older Java, saying which image to choose. It uses no command
+  that Minecraft version needs to `.raptor-java`, and, after it, the
+  newest Java it runs on where there is one (old Forge: `8 8`, Forge
+  1.13–1.16.5: `8 11`, NeoForge 1.20.1: `17 21`).
+- **The startup command** reads `.raptor-java` and refuses to start on a
+  Java outside that range, saying which image to choose. It uses no command
   substitution (`$(…)`), so Wings can still check the jar. The heap is
   `-XX:MaxRAMPercentage=85.0` with PaperMC's recommended G1 flags and
   `-XX:+IgnoreUnrecognizedVMOptions`, so one command runs on Java 8 to 25.

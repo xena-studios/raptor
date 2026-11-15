@@ -1,0 +1,38 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/ketting/egg-ketting.json
+license: MIT
+credits:
+  - "Based on the Ketting egg in https://github.com/pelican-eggs/minecraft (MIT)"
+  - "Icon: KettingPowered's logo, from https://github.com/kettingpowered"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 3072
+  eula: true
+  done_timeout: 10m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"
+addons:
+  plugins:
+    loaders: [spigot, bukkit]
+    dir: plugins
+    version: GAME_VERSION
+  mods:
+    loaders: [forge]
+    dir: mods
+    version: GAME_VERSION
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+    version: GAME_VERSION
+# save-off and everything written out before the snapshot, so it never
+# catches region files mid-write; save-on after, even if the backup fails.
+backup:
+  pre: ["save-off", "save-all flush"]
+  post: ["save-on"]
+  wait_for: "regex:Saved the (game|world)" # 1.13+ says game, older world
+  timeout: 5m
