@@ -20,7 +20,7 @@
         "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:4c9cee13c49cfdad0073ea77f9948832e74542318441c4fb2924003b91db0f86"
     },
     "file_denylist": [],
-    "startup": "read -r need most 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" -v most=\"$most\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Minecraft version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } if (most != \"\" && have + 0 > most + 0) { printf \"This Minecraft version runs on Java %s at most, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", most, have, most; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} nogui",
+    "startup": "mkdir -p plugins/bStats; b=plugins/bStats/config.yml; touch $b; if ! grep -q \"^serverUuid:\" $b; then read -r u < /proc/sys/kernel/random/uuid; echo \"serverUuid: \\\"$u\\\"\" >> $b; fi; grep -q \"^logFailedRequests:\" $b || echo \"logFailedRequests: false\" >> $b; if grep -q \"^enabled:\" $b; then sed -i \"s/^enabled:.*/enabled: {{BSTATS}}/\" $b; else echo \"enabled: {{BSTATS}}\" >> $b; fi; read -r need most 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" -v most=\"$most\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Minecraft version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } if (most != \"\" && have + 0 > most + 0) { printf \"This Minecraft version runs on Java %s at most, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", most, have, most; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} nogui",
     "config": {
         "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"\", \"server-port\": \"{{server.build.default.port}}\", \"query.port\": \"{{server.build.default.port}}\"}}}",
         "startup": "{\"done\": \")! For help, type \"}",
@@ -83,6 +83,16 @@
             "user_viewable": false,
             "user_editable": false,
             "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage statistics",
+            "description": "Send anonymous statistics about the server and its plugins to bStats.org, where plugin authors see them (true or false).",
+            "env_variable": "BSTATS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
             "field_type": "text"
         }
     ]

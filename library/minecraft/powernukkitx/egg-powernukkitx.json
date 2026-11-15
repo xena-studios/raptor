@@ -16,7 +16,7 @@
         "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e"
     },
     "file_denylist": [],
-    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseZGC -XX:+UseStringDeduplication -Dfile.encoding=UTF-8 -Djansi.passthrough=true -Dterminal.ansi=true --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -cp \"powernukkitx.jar:libs/*\" org.powernukkitx.PowerNukkitX --skip-setup --accept-license --language eng",
+    "startup": "touch pnx.yml; if grep -q \"^  enableMetrics:\" pnx.yml; then sed -i \"s/^  enableMetrics:.*/  enableMetrics: {{BSTATS}}/\" pnx.yml; elif grep -q \"^misc-settings:\" pnx.yml; then sed -i \"/^misc-settings:/a\\\\  enableMetrics: {{BSTATS}}\" pnx.yml; else printf \"misc-settings:\\n  enableMetrics: %s\\n\" {{BSTATS}} >> pnx.yml; fi; read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseZGC -XX:+UseStringDeduplication -Dfile.encoding=UTF-8 -Djansi.passthrough=true -Dterminal.ansi=true --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -cp \"powernukkitx.jar:libs/*\" org.powernukkitx.PowerNukkitX --skip-setup --accept-license --language eng",
     "config": {
         "files": "{\"pnx.yml\": {\"parser\": \"yaml\", \"find\": {\"settings.ip\": \"0.0.0.0\", \"settings.port\": \"{{server.build.default.port}}\"}}}",
         "startup": "{\"done\": \")! For help, type\"}",
@@ -39,6 +39,16 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|string|regex:/^[A-Za-z0-9._-]{1,32}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage statistics",
+            "description": "Send anonymous statistics about the server to bStats.org, where PowerNukkitX's developers see them (true or false).",
+            "env_variable": "BSTATS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
             "field_type": "text"
         }
     ]

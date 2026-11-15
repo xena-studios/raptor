@@ -19,7 +19,7 @@
         "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:e71740e2a99017d4273a588310db60da474644ea364da60d086e33635b62dd27"
     },
     "file_denylist": [],
-    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -jar {{SERVER_JARFILE}} --language eng",
+    "startup": "mkdir -p plugins/bStats; b=plugins/bStats/config.yml; touch $b; if ! grep -q \"^serverUuid:\" $b; then read -r u < /proc/sys/kernel/random/uuid; echo \"serverUuid: \\\"$u\\\"\" >> $b; fi; grep -q \"^logFailedRequests:\" $b || echo \"logFailedRequests: false\" >> $b; if grep -q \"^enabled:\" $b; then sed -i \"s/^enabled:.*/enabled: {{BSTATS}}/\" $b; else echo \"enabled: {{BSTATS}}\" >> $b; fi; read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -jar {{SERVER_JARFILE}} --language eng",
     "config": {
         "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"0.0.0.0\", \"server-port\": \"{{server.build.default.port}}\"}}}",
         "startup": "{\"done\": \")! For help, type\"}",
@@ -52,6 +52,16 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage statistics",
+            "description": "Send anonymous statistics about the server and its plugins to bStats.org, where plugin authors see them (true or false).",
+            "env_variable": "BSTATS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
             "field_type": "text"
         }
     ]

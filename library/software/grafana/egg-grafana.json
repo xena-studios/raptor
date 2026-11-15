@@ -12,7 +12,7 @@
         "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
     },
     "file_denylist": [],
-    "startup": "exec ./bin/grafana server --homepath /home/container",
+    "startup": "export GF_ANALYTICS_REPORTING_ENABLED={{USAGE_REPORTS}}; exec ./bin/grafana server --homepath /home/container",
     "config": {
         "files": "{\"conf/custom.ini\": {\"parser\": \"ini\", \"find\": {\"server.http_port\": \"{{server.build.default.port}}\"}}}",
         "startup": "{\"done\": [\"HTTP Server Listen\"]}",
@@ -45,6 +45,16 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "nullable|string|max:500|regex:/^[a-z0-9,._ -]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage reports",
+            "description": "Send anonymous usage statistics to Grafana Labs (true or false); this overrides reporting_enabled in custom.ini.",
+            "env_variable": "USAGE_REPORTS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
             "field_type": "text"
         }
     ]
