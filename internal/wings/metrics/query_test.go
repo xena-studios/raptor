@@ -45,7 +45,7 @@ func fakeMinecraft(t *testing.T, status string) string {
 }
 
 // fakeSource answers A2S_INFO, asking for a challenge first.
-func fakeSource(t *testing.T, players, maxPlayers byte) string {
+func fakeSource(t *testing.T, players, maxPlayers, bots byte) string {
 	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -73,7 +73,7 @@ func fakeSource(t *testing.T, players, maxPlayers byte) string {
 				b.WriteByte(0)
 			}
 			_ = binary.Write(&b, binary.LittleEndian, uint16(730))
-			b.Write([]byte{players, maxPlayers, 0})
+			b.Write([]byte{players, maxPlayers, bots})
 			_, _ = pc.WriteTo(b.Bytes(), addr)
 		}
 	}()
@@ -89,9 +89,14 @@ func TestQueryMinecraft(t *testing.T) {
 }
 
 func TestQuerySource(t *testing.T) {
-	p, err := QueryPlayers(context.Background(), "source", fakeSource(t, 7, 24))
+	p, err := QueryPlayers(context.Background(), "source", fakeSource(t, 7, 24, 0))
 	if err != nil || p != (Players{Online: 7, Max: 24}) {
 		t.Fatalf("players %+v, %v", p, err)
+	}
+	// Bots aren't players.
+	p, err = QueryPlayers(context.Background(), "source", fakeSource(t, 9, 32, 2))
+	if err != nil || p != (Players{Online: 7, Max: 32}) {
+		t.Fatalf("with bots: players %+v, %v", p, err)
 	}
 }
 
