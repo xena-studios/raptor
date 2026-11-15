@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/sunkenland/egg-sunkenland.json
+license: MIT
+credits:
+  - "Based on the Sunkenland egg in https://github.com/pterodactyl/game-eggs (MIT), whose starter world it downloads"
+  - "Icon: Sunkenland's logo, from its Steam store page (Vector3 Studio)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: manual
+  reason: "the dedicated server is about 16 GB, more than a standard runner has room for"
+  memory_mib: 8192
+  done_timeout: 60m

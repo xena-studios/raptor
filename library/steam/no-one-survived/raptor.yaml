@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/no-one-survived/egg-no-one-survived.json
+license: MIT
+credits:
+  - "Based on the No One Survived egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: No One Survived's logo, from its Steam store page (WAN Interactive)"
+certified: true
+arch: [amd64]
+# Steam networking stays off: the server doesn't start with it on.
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 12288
+  variables:
+    SERVER_ADMIN_PASSWORD: "conformance"
+  done_timeout: 60m

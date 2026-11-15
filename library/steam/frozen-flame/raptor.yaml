@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/frozen-flame/egg-frozen-flame.json
+license: MIT
+credits:
+  - "Based on the Frozen Flame egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Frozen Flame's logo, from its Steam store page (Dreamside Interactive)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 4096
+  variables:
+    RCON_PASSWORD: "conformance"
+  done_timeout: 30m

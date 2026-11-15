@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/ark-survival-ascended/egg-ark-survival-ascended.json
+license: MIT
+credits:
+  - "Based on the ARK: Survival Ascended egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: ARK: Survival Ascended's logo, from its Steam store page (Studio Wildcard)"
+certified: true
+arch: [amd64]
+# The console reaches the game over RCON. No backup hooks yet: ARK can save
+# (SaveWorld, answered "World Saved") but not pause saving, and save-only
+# hooks need the library's support for them.
+# No player count: ARK: Survival Ascended lists through Epic, not Steam's query.
+test:
+  tier: slow
+  memory_mib: 12288
+  variables:
+    ARK_ADMIN_PASSWORD: "conformance"
+    BATTLE_EYE: "0"
+  done_timeout: 60m
+  command: "ListPlayers"
+  expect: "No Players Connected"

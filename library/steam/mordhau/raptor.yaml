@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/mordhau/egg-mordhau.json
+license: MIT
+credits:
+  - "Based on the Mordhau and Mordhau Wine eggs in https://github.com/pterodactyl/game-eggs and the Mordhau egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Mordhau's logo, from its Steam store page (Triternion)"
+certified: true
+arch: [amd64]
+# No player count: on a test runner it doesn't answer Steam (A2S) queries on
+# its query port. No backup hooks: no console; nothing to save between matches.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m
