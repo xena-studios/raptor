@@ -157,13 +157,18 @@ func queryMinecraft(ctx context.Context, addr string) (Players, error) {
 		return Players{}, err
 	}
 	var st struct {
-		Players struct {
+		Players *struct {
 			Online int `json:"online"`
 			Max    int `json:"max"`
 		} `json:"players"`
 	}
 	if err := json.Unmarshal(body, &st); err != nil {
 		return Players{}, err
+	}
+	if st.Players == nil {
+		// Forge answers {"text":"Server is still starting! ..."} until
+		// it's ready: no count yet, rather than 0 of 0.
+		return Players{}, errors.New("no player count in the status (the server is still starting)")
 	}
 	return Players{Online: st.Players.Online, Max: st.Players.Max}, nil
 }

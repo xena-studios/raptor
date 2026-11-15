@@ -103,6 +103,10 @@ func TestQueryFailures(t *testing.T) {
 	if _, err := QueryPlayers(ctx, "minecraft", fakeMinecraft(t, `not json`)); err == nil {
 		t.Error("garbage: no error")
 	}
+	// Forge while it starts: a reply with no players isn't 0 of 0.
+	if p, err := QueryPlayers(ctx, "minecraft", fakeMinecraft(t, `{"text":"Server is still starting! Please wait before reconnecting."}`)); err == nil {
+		t.Errorf("still starting: %+v, no error", p)
+	}
 	// A UDP port nobody answers on times out instead of hanging.
 	pc, _ := net.ListenPacket("udp", "127.0.0.1:0")
 	defer func() { _ = pc.Close() }()
