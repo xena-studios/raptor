@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/ets2/egg-ets2.json
+license: MIT
+credits:
+  - "Based on the Euro Truck Simulator 2 egg in https://github.com/pterodactyl/game-eggs (MIT); the base-map server_packages files are from that repository"
+  - "Icon: Euro Truck Simulator 2's logo, from its Steam store page (SCS Software)"
+certified: true
+arch: [amd64]
+# The server answers Steam's server queries on the query port.
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: the server has nothing to save; jobs live in players'
+# own profiles.
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 20m

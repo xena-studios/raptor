@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/v-rising/egg-v-rising.json
+license: MIT
+credits:
+  - "Based on the V Rising and V Rising BepInEx eggs in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: V Rising's logo, from its Steam store page (Stunlock Studios)"
+certified: true
+arch: [amd64]
+# V Rising answers Steam's server queries on the query port when it's
+# listed on Steam (List on Steam); otherwise the Panel shows no player count.
+players:
+  query: source
+  port: VR_QUERY_PORT
+# No backup hooks: the server has no console (RCON only); it autosaves and
+# saves when stopped.
+test:
+  tier: slow
+  memory_mib: 8192
+  variables:
+    VR_LIST_ON_STEAM: "true"
+  done_timeout: 40m

@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/cryofall/egg-cryofall.json
+license: MIT
+credits:
+  - "Based on the CryoFall egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: CryoFall's logo, from its Steam store page (AtomicTorch Studio)"
+certified: true
+# The server is .NET, but SteamCMD installs it, and SteamCMD runs only on
+# amd64.
+arch: [amd64]
+# No player count: CryoFall doesn't answer Steam's server queries. No backup
+# hooks: it has no save command; it autosaves (autosave_interval in
+# SettingsServer.xml) and saves on stop.
+test:
+  tier: slow
+  memory_mib: 3072
+  done_timeout: 15m

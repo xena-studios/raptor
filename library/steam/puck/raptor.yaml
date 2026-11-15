@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/puck/egg-puck.json
+license: MIT
+credits:
+  - "Based on the Puck eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Puck's logo, from its Steam store page (Puck)"
+certified: true
+arch: [amd64]
+# No player count: Puck lists servers through its own backend, not Steam's
+# server queries. No backup hooks: matches aren't saved.
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 15m

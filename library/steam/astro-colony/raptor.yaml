@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/astro-colony/egg-astro-colony.json
+license: MIT
+credits:
+  - "Based on the Astro Colony egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Astro Colony's logo, from its Steam store page (Teamtwo)"
+certified: true
+arch: [amd64]
+# Astro Colony answers Steam's server queries on the query port.
+# No players query: the query port only answers once Steam has registered
+# the server, which doesn't happen on CI's runners.
+# No backup hooks: the server has no console; it autosaves on its own.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 20m
