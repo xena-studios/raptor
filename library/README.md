@@ -77,3 +77,19 @@ same way. Image names say the runtime and version (`Java 21`,
 - **Variables** keep upstream's environment names (`MINECRAFT_VERSION`,
   `BUILD_NUMBER`, `SERVER_JARFILE`), so a server on the old egg updates to
   the library's without losing its settings.
+
+## Downloads from GitHub
+
+Install scripts never call GitHub's API (`api.github.com`): its anonymous
+limit, 60 requests an hour per address, runs out on nodes that share an
+address and on CI runners. The installer image's `gh-release` reads the
+same release pages a browser does:
+
+```bash
+tag=$(gh-release tag owner/repo "${VERSION:-latest}") || exit 1   # refuses a tag that doesn't exist
+gh-release assets owner/repo "$tag"                              # "<file> <sha256>" per file
+gh-release download owner/repo "$tag" app-linux-x64.tar.gz app.tar.gz   # checked against GitHub's SHA-256
+```
+
+`latest` is the newest full release (no pre-releases). Pick the file for
+the node's CPU from `assets` by name (`uname -m`).

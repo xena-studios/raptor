@@ -1,0 +1,67 @@
+#!/bin/bash
+# gh-release: GitHub releases for install scripts, without GitHub's API
+# (its anonymous limit, 60 requests an hour per address, runs out on shared
+# hosts and CI runners). It reads the same pages a browser does.
+#
+#   gh-release tag <owner/repo> [latest|<tag>]
+#       The release's tag: the newest full release for latest (the default),
+#       or <tag> if that release exists. Exit 1 if there's none.
+#   gh-release assets <owner/repo> <tag>
+#       One line per file: "<name> <sha256>", or "<name> -" when GitHub
+#       shows no checksum for it.
+#   gh-release download <owner/repo> <tag> <asset> <file>
+#       Downloads the asset to <file> (only once it has arrived whole) and
+#       checks it against GitHub's SHA-256 when there is one.
+set -euo pipefail
+
+die() { echo "$1" >&2; exit 1; }
+ua="raptor-installer (+https://raptorpanel.net)"
+cmd=${1:-}
+repo=${2:-}
+[[ $repo =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || die "usage: gh-release tag|assets|download <owner/repo> ..."
+enc() { jq -rn --arg s "$1" '$s|@uri'; }
+
+case $cmd in
+tag)
+    want=${3:-latest}
+    if [ "$want" = latest ]; then
+        read -r code url < <(curl -sS --retry 3 -A "$ua" -o /dev/null -w '%{http_code} %{redirect_url}\n' "https://github.com/$repo/releases/latest") ||
+            die "GitHub can't be reached right now."
+        [ "$code" != 404 ] || die "There's no GitHub repository $repo."
+        case ${url:-} in
+        */releases/tag/*) tag=${url##*/releases/tag/} ;;
+        *) die "$repo has no releases." ;;
+        esac
+        # The tag as written (it's URL-encoded in the address).
+        printf '%b\n' "${tag//%/\\x}"
+    else
+        code=$(curl -sS --retry 3 -A "$ua" -o /dev/null -w '%{http_code}' "https://github.com/$repo/releases/tag/$(enc "$want")") ||
+            die "GitHub can't be reached right now."
+        [ "$code" = 200 ] || die "$repo has no release $want."
+        echo "$want"
+    fi
+    ;;
+assets)
+    tag=${3:?tag}
+    html=$(curl -fsS --retry 3 -A "$ua" "https://github.com/$repo/releases/expanded_assets/$(enc "$tag")") ||
+        die "GitHub can't be reached right now, or $repo has no release $tag."
+    grep -oE 'href="/[^"]+/releases/download/[^"]+"|sha256:[0-9a-f]{64}' <<<"$html" | awk '
+        /^href=/ { if (name != "") print name, (sum == "" ? "-" : sum); sub(/"$/, ""); n = split($0, p, "/"); name = p[n]; sum = ""; next }
+        /^sha256:/ { if (sum == "") sum = substr($0, 8) }
+        END { if (name != "") print name, (sum == "" ? "-" : sum) }' |
+        while read -r n s; do printf '%b %s\n' "${n//%/\\x}" "$s"; done
+    ;;
+download)
+    tag=${3:?tag} asset=${4:?asset} out=${5:?file}
+    sum=$("$0" assets "$repo" "$tag" | awk -v a="$asset" '$1 == a { print $2; f = 1 } END { exit !f }') ||
+        die "$repo's release $tag has no file $asset."
+    curl -fsSL --retry 3 -A "$ua" -o "$out.part" "https://github.com/$repo/releases/download/$(enc "$tag")/$(enc "$asset")" ||
+        { rm -f "$out.part"; die "The download of $asset failed."; }
+    if [ "$sum" != - ] && [ "$(sha256sum "$out.part" | cut -d' ' -f1)" != "$sum" ]; then
+        rm -f "$out.part"
+        die "$asset didn't match GitHub's checksum."
+    fi
+    mv -f "$out.part" "$out"
+    ;;
+*) die "usage: gh-release tag|assets|download <owner/repo> ..." ;;
+esac

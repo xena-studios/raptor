@@ -32,6 +32,12 @@ upstream support ends.
   the Pterodactyl and Pelican yolks': it sets `TZ` and `INTERNAL_IP`, turns
   `{{VAR}}` in `STARTUP` into `${VAR}`, and evaluates it in
   `/home/container`, under `tini` so signals reach the server.
+- **`gh-release`** (installer image): GitHub releases without GitHub's
+  API, whose anonymous limit (60 requests an hour per address) shared
+  hosts and CI runners run out of. `gh-release tag <owner/repo> [latest|<tag>]`
+  resolves a release, `gh-release assets <owner/repo> <tag>` lists its files
+  with GitHub's SHA-256s, and `gh-release download <owner/repo> <tag>
+  <asset> <file>` downloads one and checks it.
 - **Has nothing to install at start:** curl, git, jq, and the runtime are
   in the image. The installer image has what install scripts use, so no
   script runs `apt-get`.
