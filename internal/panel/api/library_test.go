@@ -108,8 +108,17 @@ func TestEggLibrary(t *testing.T) {
 		e.GetSummary() != "Says hi" || e.GetVersion() != 1 || e.GetCreatedBy() != "alice@example.com" {
 		t.Errorf("made: %v", e)
 	}
-	if d.GetCanEdit() || d.GetSpec().GetStartup()[0].GetCommand() != "./hello {{GREETING}}" || d.GetFormat() != "pterodactyl" || len(d.GetVersions()) != 1 {
+	if d.GetCanEdit() || d.GetSpec().GetStartup()[0].GetCommand() != "./hello {{GREETING}}" || d.GetFormat() != "raptor" || len(d.GetVersions()) != 1 {
 		t.Errorf("details for a member: %v", d)
+	}
+	// Egg pages' URLs have the short ID, the UUID's last part; another org
+	// can't find the egg by it either.
+	short := id[strings.LastIndex(id, "-")+1:]
+	if d, err := bob.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: short}); err != nil || d.GetEgg().GetId() != id {
+		t.Errorf("by short ID: %v, %v", d.GetEgg().GetId(), err)
+	}
+	if _, err := carol.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: other.GetOrg().GetId(), Id: short}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("another org by short ID: %v", err)
 	}
 	if _, err := carol.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: other.GetOrg().GetId(), Id: id}); connect.CodeOf(err) != connect.CodeNotFound {
 		t.Errorf("another org's egg: %v", err)
@@ -295,6 +304,67 @@ func TestEggLibrary(t *testing.T) {
 	staffLog, err := admin.staff.ListStaffAudit(ctx, &panelv1.ListStaffAuditRequest{})
 	if err != nil || len(staffLog.GetEntries()) < 2 || staffLog.GetEntries()[0].GetAction() != "egg.publish" {
 		t.Errorf("staff log: %v, %v", staffLog, err)
+	}
+
+	// Raptor's egg library: an egg whose ID a retired catalog egg has
+	// (servers still use it) becomes its newest version; a new one keeps
+	// its ID, so importing the library again updates it. An org's import
+	// is its own.
+	var paper string
+	if err := db.QueryRow(ctx, `INSERT INTO eggs (org_id, name, category, origin, status, egg, sha256, catalog_id)
+		VALUES (NULL, 'Paper', 'minecraft', 'catalog', 'published', '{}', 'old', 'minecraft/paper') RETURNING id`).Scan(&paper); err != nil {
+		t.Fatal(err)
+	}
+	exec(`INSERT INTO egg_versions (egg_id, version, egg, sha256, created_by) VALUES ($1, 1, '{}', 'old', 'Raptor')`, paper)
+	libEgg := func(id, name, desc string) []byte {
+		return []byte(`{"meta":{"version":"RPTR_v1"},"name":"` + name + `","description":"` + desc + `","docker_images":{"J":"ghcr.io/xena-studios/yolks:java_21"},"startup":"run","category":"minecraft","library":"` + id + `"}`)
+	}
+	review, err := admin.lib.ReviewEggFile(ctx, &panelv1.ReviewEggFileRequest{Source: &panelv1.ReviewEggFileRequest_File{File: libEgg("minecraft/paper", "Minecraft: Paper", "a")}})
+	if err != nil || review.GetReview().GetUpdates() != "Paper" || review.GetReview().GetDuplicate() {
+		t.Errorf("review of the library's Paper: %v, %v", review.GetReview(), err)
+	}
+	upd, err := admin.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{Egg: libEgg("minecraft/paper", "Minecraft: Paper", "a")})
+	if err != nil || upd.GetId() != paper {
+		t.Fatalf("importing the library's Paper: %v, %v (want %s)", upd, err, paper)
+	}
+	pd, err := admin.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{Id: paper})
+	if err != nil || pd.GetEgg().GetVersion() != 2 || pd.GetEgg().GetName() != "Minecraft: Paper" {
+		t.Errorf("Paper after the import: %v, %v", pd.GetEgg(), err)
+	}
+	if _, err := admin.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{Egg: libEgg("minecraft/paper", "Minecraft: Paper", "a")}); connect.CodeOf(err) != connect.CodeAlreadyExists {
+		t.Errorf("importing the same Paper again: %v", err)
+	}
+	fresh, err := admin.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{Egg: libEgg("minecraft/fabric", "Minecraft: Fabric", "a")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := admin.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{Egg: libEgg("minecraft/fabric", "Minecraft: Fabric", "b")})
+	if err != nil || again.GetId() != fresh.GetId() {
+		t.Errorf("re-importing the library's Fabric: %v, %v (want %s)", again, err, fresh.GetId())
+	}
+	for _, bad := range []string{"generic/raptor-test", "../etc", "Minecraft/Paper"} {
+		if _, err := admin.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{Egg: libEgg(bad, "X", bad)}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+			t.Errorf("library ID %q: %v", bad, err)
+		}
+	}
+	// A Raptor egg's file put on an official egg without an ID gives it one.
+	if _, err := admin.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{Id: off.GetId(), Change: &panelv1.UpdateEggRequest_File{File: libEgg("generic/hello", "Official hello", "a")}}); err != nil {
+		t.Fatal(err)
+	}
+	if again, err := admin.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{Egg: libEgg("generic/hello", "Official hello", "b")}); err != nil || again.GetId() != off.GetId() {
+		t.Errorf("importing over an adopted ID: %v, %v", again, err)
+	}
+	if _, err := admin.lib.UpdateEgg(ctx, &panelv1.UpdateEggRequest{Id: fresh.GetId(), Change: &panelv1.UpdateEggRequest_File{File: libEgg("generic/hello", "Hello again", "c")}}); err == nil {
+		// Fabric already has its own ID, which a file doesn't change.
+		var cid string
+		_ = db.QueryRow(ctx, `SELECT catalog_id FROM eggs WHERE id = $1`, fresh.GetId()).Scan(&cid)
+		if cid != "minecraft/fabric" {
+			t.Errorf("an egg's library ID changed to %q", cid)
+		}
+	}
+	orgCopy, err := alice.lib.ImportEggFile(ctx, &panelv1.ImportEggFileRequest{OrgId: org, Egg: libEgg("minecraft/paper", "Minecraft: Paper", "c")})
+	if err != nil || orgCopy.GetId() == paper {
+		t.Errorf("an org importing the library's Paper: %v, %v", orgCopy, err)
 	}
 
 	// The community: alice's org shares a published egg; carol's org finds

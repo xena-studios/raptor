@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -371,5 +372,33 @@ func TestEnvironment(t *testing.T) {
 	}
 	if !slices.Equal(env, want) {
 		t.Fatalf("env =\n%q\nwant\n%q", env, want)
+	}
+}
+
+// Raptor's own eggs have their settings at the top level, checked the same
+// way, and named without x-raptor in errors.
+func TestRaptorFormat(t *testing.T) {
+	base := `{"meta":{"version":"RPTR_v1"},"name":"A","docker_images":{"J":"x"},"startup":"run"`
+	e, err := Parse([]byte(base + `,"arch":["arm64"],"players":{"query":"source"},"library":"steam/rust","category":"steam"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Format != Raptor || !e.SupportsArch("arm64") || e.SupportsArch("amd64") || e.Raptor.Players.Query != "source" ||
+		e.Raptor.Library != "steam/rust" || e.Raptor.Category != "steam" {
+		t.Errorf("settings: %+v", e.Raptor)
+	}
+	if _, err := Parse([]byte(base + `,"arch":["sparc"]}`)); err == nil || strings.Contains(err.Error(), "x-raptor") {
+		t.Errorf("bad arch: %v", err)
+	}
+	if _, err := Parse([]byte(base + `,"x-raptor":{"arch":["amd64"]}}`)); err == nil {
+		t.Error("an x-raptor block in a Raptor egg was taken")
+	}
+	// x-raptor at the top of a Pterodactyl egg is still read.
+	e, err = Parse([]byte(`{"meta":{"version":"PTDL_v2"},"name":"A","docker_images":{"J":"x"},"startup":"run","arch":["arm64"],"x-raptor":{"arch":["amd64"]}}`))
+	if err != nil || !e.SupportsArch("amd64") || e.SupportsArch("arm64") {
+		t.Errorf("a Pterodactyl egg's settings: %v, %v", e, err)
+	}
+	if !Supported([]byte(base+`}`)) || Supported([]byte(`{"meta":{"version":"XYZ_v1"}}`)) || Supported([]byte(`not: [json`)) {
+		t.Error("Supported")
 	}
 }

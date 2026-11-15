@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Download, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { useReauth } from "@/components/reauth";
@@ -16,11 +16,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { GetEggDetailsResponse } from "@/gen/raptor/panel/v1/egg_pb";
-import { download, statusNames, usage } from "@/lib/eggs";
+import { statusNames, usage } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { eggClient } from "@/lib/transport";
 
 import { SharingCard } from "./community";
+import { ExportButton } from "./export";
 import type { Library } from "./library";
 
 // EggManagement publishes, archives, exports, and deletes an egg the
@@ -88,9 +89,7 @@ export function EggManagement({ lib, d }: { lib: Library; d: GetEggDetailsRespon
               {egg.status === "archived" ? "Restore and publish" : "Publish"}
             </Button>
           )}
-          <Button variant="outline" onClick={() => download(egg.name, d.file)}>
-            <Download /> Export
-          </Button>
+          <ExportButton name={egg.name} file={d.file} />
         </CardContent>
       </Card>
       <Card className="border-destructive/30">

@@ -13,6 +13,7 @@ Raptor runs **Pterodactyl and Pelican eggs natively**. Eggs are Raptor's templat
 | `PTDL_v1` | Pterodactyl (legacy) | `meta.version` |
 | `PTDL_v2` | Pterodactyl | `meta.version` |
 | `PLCN_v1`–`PLCN_v3` | Pelican (JSON or YAML) | `meta.version` |
+| `RPTR_v1` | Raptor's own ([below](#raptor-eggs)) | `meta.version` |
 
 Unknown versions are rejected with a clear error rather than half-supported.
 
@@ -204,9 +205,32 @@ Checked against reality: of the 606 eggs, the defaults that fail their own rules
 ### Inheritance
 `config.extends` / `copy_script_from` (Pterodactyl legacy: parts taken from another egg by its Panel ID). Not resolved: those IDs mean nothing outside the Panel that exported the egg, so an import that uses them is refused.
 
+## Raptor eggs
+
+`RPTR_v1` is Raptor's own format: the eggs Raptor makes (the egg editor's new eggs, the catalog's test server, every egg in the [egg library](#egg-library)) are in it. It's Pelican's layout (an ordered `docker_images` map, `startup` or an ordered `startup_commands` map, the icon as a `data:` image in `image`, Pterodactyl's `config`, `scripts`, and `variables`) with **Raptor's settings as top-level fields** instead of under `x-raptor`:
+
+```json
+{
+  "meta": { "version": "RPTR_v1" },
+  "name": "Minecraft: Paper",
+  "library": "minecraft/paper",
+  "category": "minecraft",
+  "arch": ["amd64", "arm64"],
+  "players": { "query": "minecraft" },
+  "docker_images": { "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:…" },
+  "startup": "java -Xms128M -jar {{SERVER_JARFILE}}",
+  ...
+}
+```
+
+The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
+
+- **Nodes:** Wings lists the `raptor-eggs` capability when it reads the format. The Panel refuses a `server.create` or `server.update` with a Raptor egg for a node without it, saying to update Wings, rather than letting the node fail with "unsupported format" (DECISIONS #353).
+- **Other panels** don't read `RPTR_v1`. Eggs imported from Pterodactyl or Pelican keep their format (and Raptor's settings for them stay under `x-raptor`, which those panels ignore); re-importing one over a Raptor egg keeps the Raptor egg's settings, moved under `x-raptor` (`spec.KeepRaptor`).
+
 ## Raptor extensions
 
-Raptor-specific data lives under a namespaced key that Pterodactyl and Pelican ignore, so **Raptor-enhanced eggs still load elsewhere**:
+In Pterodactyl's and Pelican's formats, Raptor's settings live under a namespaced key those panels ignore, so **Raptor-enhanced eggs still load elsewhere** (Raptor's own eggs have the same fields at the top level, [above](#raptor-eggs)):
 
 ```json
 "x-raptor": {
@@ -247,7 +271,7 @@ Stopped servers get no hooks; their files aren't changing. Safety and final back
 
 ## Editing eggs
 
-The Panel's egg editor (`internal/eggs/spec`) reads an egg into fields (name, runtimes, startup commands, stop, ready lines, install script, variables, config files, features, and `x-raptor`'s `arch` and `players`) and writes edits back into the same file. Only those fields change; other keys stay, and so does each format's style: Pterodactyl's JSON-encoded `config.files`/`config.startup` and `a|b` rules, Pelican's objects and rule lists. Images are written as an ordered `docker_images` map, which every format reads. The output is JSON. Whitespace in ready lines and in the `file` parser's keys is kept: it's part of the match.
+The Panel's egg editor (`internal/eggs/spec`) reads an egg into fields (name, runtimes, startup commands, stop, ready lines, install script, variables, config files, features, and Raptor's `arch`, `players`, and `addons`) and writes edits back into the same file, Raptor's settings where its format keeps them (top-level in a [Raptor egg](#raptor-eggs), else `x-raptor`). A new egg starts as a Raptor egg (`spec.Blank`). Only those fields change; other keys stay, and so does each format's style: Pterodactyl's JSON-encoded `config.files`/`config.startup` and `a|b` rules, Pelican's objects and rule lists. Images are written as an ordered `docker_images` map, which every format reads. The output is JSON. Whitespace in ready lines and in the `file` parser's keys is kept: it's part of the match.
 
 ## Add-ons
 
@@ -347,6 +371,17 @@ A server keeps that file. Its Settings page shows which version it is: the web a
 
 ### Accepting a EULA
 Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EULA. The web app asks when creating the server and sends `accept_eula: true` in `server.create`, inside what the passkey signs. Wings writes `eula.txt` (`eula=true`, owned by the server's user) once the install succeeds and before the first start. For eggs without the feature the flag does nothing.
+
+## Egg library
+
+`library/` holds eggs for the games and apps people host, made by Raptor and **imported** into a Panel's official library by hand; none is built into the Panel, whose catalog is only the test server (DECISIONS #351, #352). It covers every egg on eggs.pterodactyl.io, in the pelican-eggs repositories, and in FeatherPanel's, plus Pterodactyl's built-in eggs, with variants folded into one egg as options.
+
+- **Layout:** the catalog's (`<category>/<egg>/` with the egg, `raptor.yaml`, and `icon.png`), loaded by the same code (`catalog.LoadFS`), so the same checks and the conformance suite (`RAPTOR_CONFORMANCE_SOURCE=library`, `task e2e:conformance SOURCE=library`) cover it. The `library` Go package embeds it; only tests and tools import it, so the eggs never reach Raptor's binaries. The folders are the library's categories (`minecraft`, `steam`, `standalone`, `software`, `voice`, `generic`).
+- **Each egg is Raptor's own** [`RPTR_v1`](#raptor-eggs) JSON file, MIT-licensed, with `credits` in `raptor.yaml` naming what it's based on (pelican-eggs and Pterodactyl's eggs are MIT; FeatherPanel's have no licence, so they're only a reference) and where its icon came from.
+- **House style** ([library/README.md](../library/README.md#how-eggs-read)), checked by `go test ./library`: names are what people call the game (`Node.js`, `Minecraft: Paper`, no "server", "generic", or versions), descriptions are plain sentences without links or panel names, variables read alike, the author is `support@raptorpanel.net`, every image is Raptor's (`ghcr.io/xena-studios/yolks`) or pelican-eggs' pinned by digest, and every egg has a 256×256 icon.
+- **Export and import:** `task library:export` (`cmd/eggexport`) writes one file per egg with its icon (as a `data:` image) and Raptor's settings, `category` and `library` (the egg's ID, its folder) included, in it. **Import eggs** in the app takes them all at once ([PANEL.md](PANEL.md#importing)).
+- **IDs make imports updates.** An egg's ID is its folder (`minecraft/paper`), and never changes. Imported into the official library, an egg whose ID an official egg already has (as its `catalog_id`) becomes that egg's **newest version** instead of a second egg: an egg imported from the library before, or a retired catalog egg servers still use (the old catalog's Paper). Servers keep the file they have, see the egg is out of date, and move to the new version when an admin chooses, seeing what changes ([In the official library](#in-the-official-library)); the egg keeps its category and summary, and is no longer certified. A new egg gets its ID as its `catalog_id`. The seed only deletes retired catalog eggs it still owns (origin `catalog`, newest version by Raptor), never one staff gave a new version or imported (DECISIONS #354). An org's import is its own and matches nothing.
+- **Left out:** database eggs (Raptor's managed databases cover them) and games whose server needs an account to download (DayZ, Arma 3, Starbound; Hytale), until there's a Steam-account feature.
 
 ## Conformance test suite
 

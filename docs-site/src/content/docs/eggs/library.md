@@ -18,7 +18,7 @@ The org's **Eggs** page lists two kinds:
 
 ## Importing one
 
-**Import an egg** on the Eggs page takes a Pterodactyl egg (JSON or YAML), uploaded or from a link (a GitHub file page works). Before anything is saved, Raptor shows exactly what it would run: its Docker images and where they come from, its install script, its startup command, and its settings, with warnings for anything unusual, like an image from an unfamiliar publisher or a script that pipes a download into a shell. Tick that you've looked and trust it, then import it.
+**Import eggs** on the Eggs page takes Raptor and Pterodactyl eggs (JSON or YAML), as many as you like: files you choose or drop, and links (a GitHub file page works). Before anything is saved, Raptor shows exactly what it would run: its Docker images and where they come from, its install script, its startup command, and its settings, with warnings for anything unusual, like an image from an unfamiliar publisher or a script that pipes a download into a shell. Each egg is listed with what it runs (open it to see the install script), its warnings, and its category. Untick any you don't want, tick that you've looked and trust them, then import them.
 
 An imported egg is never marked certified, whatever it says. Most games have a community egg: search for the game's name and "Pterodactyl egg".
 
@@ -28,7 +28,7 @@ An imported egg is never marked certified, whatever it says. Most games have a c
 
 **Icons:** an egg shows the icon in its file, if it has one, or its category. Admins and owners can upload another on the egg's page (PNG, JPEG, GIF, or WebP, cropped square); removing it brings back the file's.
 
-**Customize** makes a copy of any egg to edit, as a draft. The editor has tabs for its overview (name, category, and which CPUs it runs on), runtimes, variables, startup, install script, config files, and add-ons, plus the raw file. Saving writes a new **version**, so you can see who changed what. An edited egg is still a valid Pterodactyl egg: **Export** it to use anywhere.
+**Customize** makes a copy of any egg to edit, as a draft. The editor has tabs for its overview (name, category, and which CPUs it runs on), runtimes, variables, startup, install script, config files, and add-ons, plus the raw file. Saving writes a new **version**, so you can see who changed what. Eggs you make from scratch are in Raptor's own format; an edited Pterodactyl egg stays one. **Export** a Raptor egg as a Pterodactyl egg to use it on another panel.
 
 - A **draft** can't be deployed; publish it when it's ready. An **archived** egg is hidden and can't be deployed.
 - **Servers keep the egg they were made from.** Editing, archiving, or deleting an egg never changes a server by itself. To move a server to a newer version of its egg, use its [Egg version](/servers/settings/#egg-version); to move it to another egg, [change its type](/servers/settings/#change-the-servers-type).

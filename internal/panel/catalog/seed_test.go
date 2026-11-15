@@ -111,6 +111,11 @@ func TestSeedRetires(t *testing.T) {
 	vanilla := insert("Vanilla", "minecraft/vanilla", "catalog")
 	rust := insert("Rust", "steam/rust", "catalog")
 	staffs := insert("Staff's own", "", "scratch")
+	// Ones the seed doesn't own: a retired catalog egg staff gave a new
+	// version (from the egg library), and an egg imported from the library.
+	adopted := insert("Fabric", "minecraft/fabric", "catalog")
+	exec(`INSERT INTO egg_versions (egg_id, version, egg, sha256, created_by) VALUES ($1, 2, '{}', 'y', 'admin@raptor.example')`, adopted)
+	imported := insert("Valheim", "steam/valheim", "import")
 
 	var org, node string
 	if err := db.QueryRow(ctx, `INSERT INTO orgs (name) VALUES ('Acme') RETURNING id`).Scan(&org); err != nil {
@@ -134,6 +139,9 @@ func TestSeedRetires(t *testing.T) {
 		var id string
 		_ = rows.Scan(&id)
 		left[id] = true
+	}
+	if !left[adopted] || !left[imported] {
+		t.Errorf("the seed deleted an egg it doesn't own: adopted %v, imported %v", left[adopted], left[imported])
 	}
 	if !left[paper] || !left[vanilla] || left[rust] || !left[staffs] {
 		t.Errorf("left %v: paper %v, vanilla %v, rust %v, staff's %v", left, left[paper], left[vanilla], left[rust], left[staffs])

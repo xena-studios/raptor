@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -274,6 +275,21 @@ func TestCommands(t *testing.T) {
 	}
 	if _, err := alice.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: nodeID, Action: "files.mkdir", ServerId: "s1", ParamsJson: big}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Errorf("3 MiB of params for another action: %v", err)
+	}
+
+	// One of Raptor's own eggs goes only to a node whose Wings reads them;
+	// an egg with a big icon fits.
+	rptr := base64.StdEncoding.EncodeToString([]byte(`{"meta":{"version":"RPTR_v1"},"name":"T","docker_images":{"A":"x"},"startup":"run","image":"data:image/png;base64,` +
+		strings.Repeat("A", 600<<10) + `"}`))
+	update := &panelv1.ExecuteRequest{NodeId: nodeID, Action: "server.update", ServerId: "s1", ParamsJson: `{"egg":"` + rptr + `"}`}
+	if _, err := alice.cmds.Execute(ctx, update); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Errorf("a Raptor egg to an old node: %v", err)
+	}
+	if _, err := db.Exec(ctx, `UPDATE nodes SET capabilities = ARRAY['raptor-eggs'] WHERE id = $1`, nodeID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := alice.cmds.Execute(ctx, update); err != nil {
+		t.Errorf("a Raptor egg to a new node: %v", err)
 	}
 
 	// A server's settings (which can hold secrets) go to those who may

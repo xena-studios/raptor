@@ -155,12 +155,29 @@ WHERE id = @id;
 -- name: RetiredCatalogEggs :many
 -- Official eggs the catalog no longer has, with how many servers were
 -- made from them (by the egg's ID, or its catalog ID from before the
--- library).
+-- library). Only ones the seed still owns: an egg staff changed or
+-- imported (one from the egg library has a catalog ID too) is theirs.
 SELECT e.id, e.catalog_id::text AS catalog_id,
     (SELECT count(*) FROM m_servers s
      WHERE s.egg_source IN (e.id::text, 'org:' || e.id::text, e.catalog_id))::int AS servers
 FROM eggs e
-WHERE e.org_id IS NULL AND e.catalog_id IS NOT NULL AND NOT (e.catalog_id = ANY (@ids::text[]));
+WHERE e.org_id IS NULL AND e.origin = 'catalog' AND e.catalog_id IS NOT NULL AND NOT (e.catalog_id = ANY (@ids::text[]))
+    AND (SELECT v.created_by FROM egg_versions v WHERE v.egg_id = e.id ORDER BY v.version DESC LIMIT 1) = 'Raptor';
+
+-- name: EggsByShortID :many
+-- Eggs whose UUID ends in a short ID (eggs_short_id), for egg pages' URLs.
+SELECT * FROM eggs WHERE split_part(id::text, '-', 5) = @short_id::text LIMIT 10;
+
+-- name: GetOfficialEggByCatalogID :one
+-- An official egg by its catalog or egg-library ID, locked for an update.
+SELECT * FROM eggs WHERE org_id IS NULL AND catalog_id = $1 FOR UPDATE;
+
+-- name: LockLibraryID :exec
+-- Serializes imports of one egg-library ID, which may not have a row yet.
+SELECT pg_advisory_xact_lock(hashtext('egg-library:' || @id::text));
+
+-- name: SetEggCatalogID :exec
+UPDATE eggs SET catalog_id = @catalog_id WHERE id = @id AND org_id IS NULL;
 
 -- name: LatestEggVersion :one
 SELECT version, created_by FROM egg_versions WHERE egg_id = $1 ORDER BY version DESC LIMIT 1;

@@ -187,3 +187,22 @@ func TestBackupValidate(t *testing.T) {
 		}
 	}
 }
+
+// The file to import carries the icon, which the Panel reads as the egg's.
+func TestImportFile(t *testing.T) {
+	own, _ := test(t)
+	file, err := own.ImportFile()
+	if err != nil {
+		t.Fatal(err)
+	}
+	egg, err := eggs.Parse(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(egg.Icon, "data:image/png;base64,") || len(egg.Icon) < len(own.Icon) {
+		t.Errorf("icon %.40q", egg.Icon)
+	}
+	if !slices.Equal(egg.Raptor.Arch, own.Arch) {
+		t.Errorf("x-raptor %+v", egg.Raptor)
+	}
+}

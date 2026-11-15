@@ -1,6 +1,7 @@
 package spec_test
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -96,7 +97,10 @@ func TestBlank(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if e.Format != "PTDL_v2" || e.Name != "Hello" || e.DefaultStartup() != "./run.sh {{GREETING}}" ||
+	if bytes.Contains(out, []byte("x-raptor")) {
+		t.Fatalf("Raptor's own egg put its settings under x-raptor:\n%s", out)
+	}
+	if e.Format != eggs.Raptor || e.Name != "Hello" || e.DefaultStartup() != "./run.sh {{GREETING}}" ||
 		e.Config.Stop.Signal == 0 || len(e.Config.Done) != 2 || e.Install.Script != "echo hi" ||
 		len(e.Variables) != 1 || strings.Join(e.Variables[0].Rules, "|") != "required|string|max:20" ||
 		len(e.Config.Files) != 1 || len(e.Config.Files[0].Find) != 2 || e.Config.Files[0].Find[1].IfValue != "a" ||
@@ -217,5 +221,36 @@ func TestKeepRaptor(t *testing.T) {
 	}
 	if same, err := spec.KeepRaptor(upstream, upstream); err != nil || string(same) != string(upstream) {
 		t.Errorf("nothing to keep changed the file: %v", err)
+	}
+}
+
+// A file from upstream replacing one of Raptor's own eggs keeps its
+// settings, under x-raptor; one of Raptor's eggs keeps its own.
+func TestKeepRaptorFromRaptorEgg(t *testing.T) {
+	prev := []byte(`{"meta":{"version":"RPTR_v1"},"name":"A","docker_images":{"J":"x"},"startup":"run",
+		"arch":["amd64"],"players":{"query":"minecraft"},"library":"minecraft/paper"}`)
+	upstream := []byte(`{"meta":{"version":"PTDL_v2"},"name":"A","docker_images":{"J":"x"},"startup":"run"}`)
+	out, err := spec.KeepRaptor(upstream, prev)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := eggs.Parse(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Raptor.Players.Query != "minecraft" || e.Raptor.Library != "minecraft/paper" || e.SupportsArch("arm64") {
+		t.Fatalf("settings not kept: %s", out)
+	}
+	own := []byte(`{"meta":{"version":"RPTR_v1"},"name":"B","docker_images":{"J":"x"},"startup":"run","arch":["arm64"]}`)
+	if out, err := spec.KeepRaptor(own, prev); err != nil || !bytes.Equal(out, own) {
+		t.Fatalf("an egg with its own settings changed: %s, %v", out, err)
+	}
+	bare := []byte(`{"meta":{"version":"RPTR_v1"},"name":"B","docker_images":{"J":"x"},"startup":"run"}`)
+	out, err = spec.KeepRaptor(bare, prev)
+	if err != nil || bytes.Contains(out, []byte("x-raptor")) {
+		t.Fatalf("Raptor's egg without settings: %s, %v", out, err)
+	}
+	if e, err := eggs.Parse(out); err != nil || e.Raptor.Players.Query != "minecraft" {
+		t.Fatalf("settings not kept at the top: %s, %v", out, err)
 	}
 }

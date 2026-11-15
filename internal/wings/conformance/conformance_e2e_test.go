@@ -14,6 +14,8 @@
 //	task e2e:conformance TIER=slow RUN=steam/rust
 //
 // Environment:
+//   - RAPTOR_CONFORMANCE_SOURCE: catalog (default; the built-in catalog) or
+//     library (the egg library, docs/EGGS.md#egg-library)
 //   - RAPTOR_CONFORMANCE_TIER: fast (default), slow, manual, or all
 //   - RAPTOR_CONFORMANCE_SET: certified, community, or all (default)
 //   - RAPTOR_CONFORMANCE_SHARD: "i/n" runs every n-th selected egg from the
@@ -53,6 +55,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/storage"
 	"github.com/xena-studios/raptor/internal/wings/store"
+	"github.com/xena-studios/raptor/library"
 )
 
 // Container UID/GID, as the raptor system user has in the VM and on CI.
@@ -62,7 +65,11 @@ const uid, gid = 988, 988
 const replyTimeout = time.Minute
 
 func TestConformance(t *testing.T) {
-	all, err := catalog.All()
+	load := catalog.All
+	if os.Getenv("RAPTOR_CONFORMANCE_SOURCE") == "library" {
+		load = library.All
+	}
+	all, err := load()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,6 +14,7 @@ import {
   accessNames,
   addonKinds,
   addons,
+  formatName,
   knownFeatures,
   loaderName,
   originNames,
@@ -269,7 +270,7 @@ function Overview({ d }: { d: GetEggDetailsResponse }) {
             rows={[
               ["Origin", originNames[egg.origin] ?? "—"],
               ...(egg.parentName ? [["Based on", egg.parentName] as [string, ReactNode]] : []),
-              ["Format", d.format === "pelican" ? "Pelican" : "Pterodactyl"],
+              ["Format", formatName(d.format)],
               ["Author", spec.author || "—"],
               ["CPUs", spec.arch.length ? spec.arch.join(", ") : "Not said"],
               ["In use", egg.servers === 1 ? "1 server" : `${egg.servers} servers`],

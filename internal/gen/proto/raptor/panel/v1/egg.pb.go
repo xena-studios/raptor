@@ -706,7 +706,7 @@ type GetEggDetailsResponse struct {
 	Spec  *EggSpec               `protobuf:"bytes,2,opt,name=spec,proto3" json:"spec,omitempty"`
 	// The file, as a server made from it gets it.
 	File []byte `protobuf:"bytes,3,opt,name=file,proto3" json:"file,omitempty"`
-	// "pterodactyl" or "pelican".
+	// "raptor" (Raptor's own format), "pterodactyl", or "pelican".
 	Format     string        `protobuf:"bytes,4,opt,name=format,proto3" json:"format,omitempty"`
 	Registries []string      `protobuf:"bytes,5,rep,name=registries,proto3" json:"registries,omitempty"`
 	Warnings   []*EggWarning `protobuf:"bytes,6,rep,name=warnings,proto3" json:"warnings,omitempty"`
@@ -2536,7 +2536,7 @@ type EggReview struct {
 	Name        string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Description string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	Author      string                 `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
-	// "pterodactyl" or "pelican".
+	// "raptor" (Raptor's own format), "pterodactyl", or "pelican".
 	Format string      `protobuf:"bytes,4,opt,name=format,proto3" json:"format,omitempty"`
 	Images []*EggImage `protobuf:"bytes,5,rep,name=images,proto3" json:"images,omitempty"`
 	// Every registry the images and the install container come from.
@@ -2552,7 +2552,14 @@ type EggReview struct {
 	Arch     []string      `protobuf:"bytes,13,rep,name=arch,proto3" json:"arch,omitempty"`
 	Warnings []*EggWarning `protobuf:"bytes,14,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	// Whether an egg with the same file is already imported.
-	Duplicate     bool `protobuf:"varint,15,opt,name=duplicate,proto3" json:"duplicate,omitempty"`
+	Duplicate bool `protobuf:"varint,15,opt,name=duplicate,proto3" json:"duplicate,omitempty"`
+	// The category the egg says it belongs in (x-raptor.category); empty if
+	// it doesn't say.
+	Category string `protobuf:"bytes,16,opt,name=category,proto3" json:"category,omitempty"`
+	// The official egg this one is a new version of: an egg from Raptor's
+	// egg library (x-raptor.library) whose ID an official egg already has.
+	// Empty otherwise, and always for an org's library.
+	Updates       string `protobuf:"bytes,17,opt,name=updates,proto3" json:"updates,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2690,6 +2697,20 @@ func (x *EggReview) GetDuplicate() bool {
 		return x.Duplicate
 	}
 	return false
+}
+
+func (x *EggReview) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *EggReview) GetUpdates() string {
+	if x != nil {
+		return x.Updates
+	}
+	return ""
 }
 
 type EggWarning struct {
@@ -2931,7 +2952,7 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06action\x18\x02 \x01(\tR\x06action\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x15\n" +
-	"\x13ModerateEggResponse\"\xa4\x04\n" +
+	"\x13ModerateEggResponse\"\xda\x04\n" +
 	"\tEggReview\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
@@ -2950,7 +2971,9 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\bfeatures\x18\f \x03(\tR\bfeatures\x12\x12\n" +
 	"\x04arch\x18\r \x03(\tR\x04arch\x127\n" +
 	"\bwarnings\x18\x0e \x03(\v2\x1b.raptor.panel.v1.EggWarningR\bwarnings\x12\x1c\n" +
-	"\tduplicate\x18\x0f \x01(\bR\tduplicate\"4\n" +
+	"\tduplicate\x18\x0f \x01(\bR\tduplicate\x12\x1a\n" +
+	"\bcategory\x18\x10 \x01(\tR\bcategory\x12\x18\n" +
+	"\aupdates\x18\x11 \x01(\tR\aupdates\"4\n" +
 	"\n" +
 	"EggWarning\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +

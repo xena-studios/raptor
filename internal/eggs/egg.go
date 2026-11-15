@@ -24,7 +24,21 @@ var formats = map[string]bool{
 	"PLCN_v1": true,
 	"PLCN_v2": true,
 	"PLCN_v3": true,
+	"RPTR_v1": true,
 }
+
+// Raptor is the format of Raptor's own eggs: Pelican's layout (an ordered
+// docker_images map, startup or startup_commands, an icon in "image") with
+// Raptor's settings as top-level fields, where other formats carry them
+// under "x-raptor" (docs/EGGS.md#raptor-eggs).
+const Raptor = "RPTR_v1"
+
+// IsRaptor reports whether format is one of Raptor's own.
+func IsRaptor(format string) bool { return strings.HasPrefix(format, "RPTR_") }
+
+// RaptorKeys are Raptor's settings: top-level fields in Raptor's eggs, and
+// the keys of "x-raptor" in other formats.
+var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop"}
 
 // Egg is the normalized form of every supported egg format.
 type Egg struct {
@@ -39,7 +53,7 @@ type Egg struct {
 	Install      Install
 	Variables    []Variable
 	FileDenylist []string
-	Raptor       Extension // the "x-raptor" block, if any
+	Raptor       Extension // Raptor's settings: top-level in RPTR_v1, else the "x-raptor" block
 	// Icon is the egg's picture, as Pelican eggs carry it: a data: URI in
 	// "image" (data:image/png;base64,…). In PTDL_v1 eggs "image" was the
 	// Docker image instead, so only data: URIs count.
@@ -106,9 +120,16 @@ type Variable struct {
 	Rules        []string
 }
 
-// Extension holds Raptor-specific egg data under "x-raptor".
+// Extension holds Raptor's settings: top-level fields in Raptor's own
+// eggs, and the "x-raptor" block in other formats.
 type Extension struct {
-	Arch    []string `yaml:"arch"`
+	Arch []string `yaml:"arch"`
+	// Category is where the egg goes in a library ("minecraft", "steam",
+	// …) when it's imported without one being chosen.
+	Category string `yaml:"category"`
+	// Library is the egg's ID in Raptor's egg library ("minecraft/paper"),
+	// which an import into the official library matches an egg by.
+	Library string `yaml:"library"`
 	Install struct {
 		Timeout string `yaml:"timeout"`
 	} `yaml:"install"`
@@ -335,6 +356,14 @@ func (e *Egg) DefaultStartup() string {
 	return e.Startup[0].Command
 }
 
+// Supported reports whether data looks like an egg in a supported format
+// (an object whose meta.version Parse knows), so a Parse error is about
+// the egg itself rather than the file not being one.
+func Supported(data []byte) bool {
+	root, err := ordered.Decode(data)
+	return err == nil && root.Kind == yaml.MappingNode && formats[scalar(get(get(root, "meta"), "version"))]
+}
+
 // Parse parses an egg in any supported format (JSON or YAML), preserving the
 // order of images, startup commands, and config keys.
 func Parse(data []byte) (*Egg, error) {
@@ -426,30 +455,52 @@ func Parse(data []byte) (*Egg, error) {
 		}
 	}
 
-	if n := get(root, "x-raptor"); n != nil {
-		if err := n.Decode(&e.Raptor); err != nil {
-			return nil, fmt.Errorf("egg: x-raptor: %w", err)
+	n := get(root, "x-raptor")
+	if IsRaptor(e.Format) {
+		n = root
+	}
+	if IsRaptor(e.Format) && get(root, "x-raptor") != nil {
+		return nil, errors.New("egg: Raptor's eggs have their settings at the top level, not under x-raptor")
+	}
+	if err := e.parseRaptor(n); err != nil {
+		if IsRaptor(e.Format) {
+			// Raptor's eggs have the settings at the top.
+			msg := strings.ReplaceAll(err.Error(), "x-raptor: ", "")
+			return nil, errors.New(strings.ReplaceAll(msg, "x-raptor.", ""))
 		}
+		return nil, err
+	}
+	return e, nil
+}
+
+// parseRaptor reads and checks Raptor's settings from n, if there are any.
+func (e *Egg) parseRaptor(n *yaml.Node) error {
+	if n != nil {
+		var ext Extension
+		if err := n.Decode(&ext); err != nil {
+			return fmt.Errorf("egg: x-raptor: %w", err)
+		}
+		e.Raptor = ext
 		if get(n, "backup") != nil {
 			e.Raptor.Backup.set = true
 			if err := CheckBackup(e.Raptor.Backup); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		if t := e.Raptor.Install.Timeout; t != "" {
 			if d, err := time.ParseDuration(t); err != nil || d <= 0 {
-				return nil, fmt.Errorf("egg: x-raptor.install.timeout %q: want a duration like 90m", t)
+				return fmt.Errorf("egg: x-raptor.install.timeout %q: want a duration like 90m", t)
 			}
 		}
 		for _, a := range e.Raptor.Arch {
 			if n := normalizeArch(a); n != "amd64" && n != "arm64" {
-				return nil, fmt.Errorf("egg: x-raptor.arch %q: want amd64 or arm64", a)
+				return fmt.Errorf("egg: x-raptor.arch %q: want amd64 or arm64", a)
 			}
 		}
 		switch q := e.Raptor.Players.Query; q {
 		case "", "minecraft", "source":
 		default:
-			return nil, fmt.Errorf("egg: x-raptor.players.query %q: want minecraft or source", q)
+			return fmt.Errorf("egg: x-raptor.players.query %q: want minecraft or source", q)
 		}
 		// Kinds this version doesn't know are left out, not refused, so an
 		// egg with a newer kind still runs on an older node.
@@ -459,14 +510,14 @@ func Parse(data []byte) (*Egg, error) {
 			}
 		}
 		if err := CheckAddons(e.Raptor.Addons); err != nil {
-			return nil, err
+			return err
 		}
 		if err := CheckWorkshop(e.Raptor.Workshop, e.Variables); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return e, nil
+	return nil
 }
 
 // scalarValue decodes a replacement value: a string, bool, or number. Anything

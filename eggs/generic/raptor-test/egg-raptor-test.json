@@ -1,14 +1,13 @@
 {
     "_comment": "Raptor's test egg (docs/EGGS.md#built-in-catalog): checks that a node can install, start, reach, talk to, and stop a server.",
     "meta": {
-        "version": "PTDL_v2",
-        "update_url": null
+        "version": "RPTR_v1"
     },
     "exported_at": "2026-11-14T00:00:00+00:00",
     "name": "Raptor test server",
     "author": "support@raptorpanel.net",
     "description": "A tiny server for checking a node works: it answers in a browser on its port and says \"ok\" to status in the console. Nothing to download but Python.",
-    "features": null,
+    "features": [],
     "docker_images": {
         "Python 3.12": "ghcr.io/parkervcp/yolks:python_3.12"
     },

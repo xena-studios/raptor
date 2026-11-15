@@ -30,3 +30,4 @@ bin/
 
 # The impeccable installer's Copilot hook; the skill lives in .agents/, and Copilot isn't used
 .github/hooks/impeccable.json
+/library-export/

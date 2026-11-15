@@ -8,7 +8,7 @@ import { useParams } from "@tanstack/react-router";
 import { shortId } from "@/lib/short-id";
 import { orgClient } from "@/lib/transport";
 
-export { canonical, sameId, shortId } from "@/lib/short-id";
+export { canonical, sameId, shortEggId, shortId } from "@/lib/short-id";
 
 // Full IDs by scope and short ID: orgs, and an org's nodes.
 const known = new Map<string, string>();

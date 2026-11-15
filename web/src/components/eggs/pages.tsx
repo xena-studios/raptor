@@ -1,9 +1,10 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Download, FileUp, Pencil, Plus, Rocket, SquarePen } from "lucide-react";
+import { ChevronDown, FileUp, Pencil, Plus, Rocket, SquarePen } from "lucide-react";
 import { useState } from "react";
 
+import { BulkEggImport } from "@/components/egg-bulk-import";
 import { EggImport } from "@/components/egg-import";
 import { NotFound } from "@/components/error-screen";
 import { PageHeader, tabClass } from "@/components/page";
@@ -19,7 +20,7 @@ import {
 import { EggService, type GetEggDetailsResponse } from "@/gen/raptor/panel/v1/egg_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
-import { blankState, categoryName, download, originNames } from "@/lib/eggs";
+import { blankState, categoryName, originNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
 import { eggClient } from "@/lib/transport";
@@ -27,6 +28,7 @@ import { eggClient } from "@/lib/transport";
 import { AddEggButton, CommunityList, EggReports, ModerationCard, ReportButton } from "./community";
 import { CustomizeButton, EggDetails } from "./detail";
 import { EggEditor } from "./editor";
+import { ExportButton } from "./export";
 import { EggBadges, EggIcon, EggList, type Library } from "./library";
 import { EggManagement } from "./manage";
 
@@ -53,16 +55,11 @@ function NewEggMenu({ lib }: { lib: Library }) {
             <SquarePen /> Make from scratch
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setImporting(true)}>
-            <FileUp /> Import an egg
+            <FileUp /> Import eggs
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <EggImport
-        orgId={lib.orgId}
-        open={importing}
-        onOpenChange={setImporting}
-        onImported={(id) => navigate(lib.detail(id))}
-      />
+      <BulkEggImport orgId={lib.orgId} open={importing} onOpenChange={setImporting} />
     </>
   );
 }
@@ -156,9 +153,7 @@ export function EggPage({ lib, id }: { lib: Library; id: string }) {
           .join(" · ")}
         actions={
           <>
-            <Button variant="outline" onClick={() => download(egg.name, d.data.file)}>
-              <Download /> Export
-            </Button>
+            <ExportButton name={egg.name} file={d.data.file} />
             {mine && <ReimportButton lib={lib} d={d.data} />}
             {mine && (
               <Link {...lib.edit(egg.id)} className={buttonVariants({ variant: "outline" })}>

@@ -227,13 +227,15 @@ func (m *Manager) runInstall(ctx context.Context, i *instance, jobID string, p i
 		i.console.Notice("install interrupted by a Wings stop; it resumes when Wings starts")
 		return err
 	}
-	if err := m.finishInstall(i, srv, res, err); err != nil {
-		return err
-	}
-	if p.AcceptEULA && slices.Contains(srv.Egg().Features, "eula") {
+	// eula.txt before the server shows as installed, so a start can't
+	// beat it.
+	if err == nil && p.AcceptEULA && slices.Contains(srv.Egg().Features, "eula") {
 		if err := m.writeEULA(dir); err != nil {
 			i.console.Notice("writing eula.txt: %v", err)
 		}
+	}
+	if err := m.finishInstall(i, srv, res, err); err != nil {
+		return err
 	}
 	if p.StartAfter {
 		return i.startLocked(ctx, true)

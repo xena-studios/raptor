@@ -50,7 +50,7 @@ type Spec struct {
 	// Features are the egg's features: "eula" asks for the Minecraft EULA.
 	Features     []string
 	FileDenylist []string
-	// Raptor's x-raptor block.
+	// Raptor's settings (top-level in Raptor's eggs, else x-raptor).
 	Arch         []string
 	PlayersQuery string
 	PlayersPort  string
@@ -138,14 +138,12 @@ func signalName(sig syscall.Signal) string {
 	return "SIGKILL"
 }
 
-// Blank is the egg "create from scratch" starts from: Pterodactyl's
-// current export format.
+// Blank is the egg "create from scratch" starts from: Raptor's own format.
 func Blank(now time.Time) []byte {
 	return fmt.Appendf(nil, `{
     "_comment": "Made with Raptor's egg editor",
     "meta": {
-        "version": "PTDL_v2",
-        "update_url": null
+        "version": "RPTR_v1"
     },
     "exported_at": %q,
     "name": "",
@@ -164,7 +162,7 @@ func Blank(now time.Time) []byte {
     "scripts": {
         "installation": {
             "script": "",
-            "container": "ghcr.io/pterodactyl/installers:debian",
+            "container": "ghcr.io/xena-studios/yolks:installer",
             "entrypoint": "bash"
         }
     },
@@ -434,7 +432,9 @@ func Write(base []byte, s *Spec) ([]byte, error) {
 	writeVariables(root, s.Variables, ptero)
 
 	ext := get(root, "x-raptor")
-	if ext == nil && (len(s.Arch) > 0 || s.PlayersQuery != "" || len(s.Addons) > 0) {
+	if raptorFile(root) {
+		ext = root // Raptor's own eggs have the settings at the top
+	} else if ext == nil && (len(s.Arch) > 0 || s.PlayersQuery != "" || len(s.Addons) > 0) {
 		ext = mapping(root, "x-raptor")
 	}
 	if ext != nil && ext.Kind == yaml.MappingNode {
@@ -485,10 +485,12 @@ func Write(base []byte, s *Spec) ([]byte, error) {
 	return out, nil
 }
 
-// KeepRaptor gives a re-imported file the x-raptor block of the egg it
+// KeepRaptor gives a re-imported file the Raptor settings of the egg it
 // replaces, when it has none of its own: upstream's file doesn't have
-// Raptor's settings (CPUs, players, add-ons, Workshop, backup hooks). A file
-// with its own block, or a previous egg without one, is returned as it is.
+// Raptor's settings (CPUs, players, add-ons, Workshop, backup hooks). They
+// go where the new file's format keeps them: the top of one of Raptor's
+// own eggs, else x-raptor. A file with settings of its own, or a previous
+// egg without any, is returned as it is.
 func KeepRaptor(file, prev []byte) ([]byte, error) {
 	root, err := ordered.Decode(file)
 	if err != nil {
@@ -497,18 +499,28 @@ func KeepRaptor(file, prev []byte) ([]byte, error) {
 	if root.Kind != yaml.MappingNode {
 		return nil, errors.New("egg isn't an object")
 	}
-	if get(root, "x-raptor") != nil {
+	if settings(root) != nil {
 		return file, nil
 	}
 	old, err := ordered.Decode(prev)
 	if err != nil {
 		return nil, err
 	}
-	ext := get(old, "x-raptor")
+	ext := settings(old)
 	if ext == nil {
 		return file, nil
 	}
-	set(root, "x-raptor", clone(ext))
+	if raptorFile(root) {
+		// Raptor's settings only: x-raptor can hold keys that would
+		// clobber the egg's own fields at the top.
+		for i := 0; i+1 < len(ext.Content); i += 2 {
+			if k := ext.Content[i].Value; slices.Contains(eggs.RaptorKeys, k) {
+				set(root, k, clone(ext.Content[i+1]))
+			}
+		}
+	} else {
+		set(root, "x-raptor", clone(ext))
+	}
 	out, err := ordered.EncodeJSON(root, "    ")
 	if err != nil {
 		return nil, err
@@ -518,6 +530,30 @@ func KeepRaptor(file, prev []byte) ([]byte, error) {
 			strings.TrimPrefix(err.Error(), "egg: "))
 	}
 	return out, nil
+}
+
+// settings is an egg's Raptor settings as a mapping (x-raptor's keys), or
+// nil if it has none.
+func settings(root *yaml.Node) *yaml.Node {
+	if !raptorFile(root) {
+		return get(root, "x-raptor")
+	}
+	ext := &yaml.Node{Kind: yaml.MappingNode}
+	for _, k := range eggs.RaptorKeys {
+		if v := get(root, k); v != nil {
+			set(ext, k, v)
+		}
+	}
+	if len(ext.Content) == 0 {
+		return nil
+	}
+	return ext
+}
+
+// raptorFile reports whether an egg is one of Raptor's own (RPTR_v1),
+// whose settings are top-level fields.
+func raptorFile(root *yaml.Node) bool {
+	return eggs.IsRaptor(scalar(get(get(root, "meta"), "version")))
 }
 
 // embeddedNode reads config.files or config.startup: a JSON string in
