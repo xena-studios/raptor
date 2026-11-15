@@ -1,0 +1,52 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the code-server egg in pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "code-server",
+    "author": "support@raptorpanel.net",
+    "description": "Coder's code-server, the open-source editor of VS Code run in the browser. Open the server's address, sign in with the password, and work on the files in the projects folder.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:6571c195b896e426f774b8c8d93f835d9fe6a2ac186ffa47f717b72a37ebdb44",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:ee64d6b777297e60eecf8050c7f148f6d851760629ddb32eff82b9159b178507"
+    },
+    "file_denylist": [],
+    "startup": "exec .local/lib/code-server/bin/code-server --bind-addr 0.0.0.0:{{SERVER_PORT}} --auth password --disable-telemetry --disable-update-check projects",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"HTTP server listening on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# code-server: downloads the release for the chosen version from GitHub and\n# checks its checksum. Your projects, settings and extensions are never\n# touched; only .local/lib/code-server is replaced.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"This server's CPU ($(uname -m)) isn't supported.\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag coder/code-server \"$tag\") || fail \"Set Version to latest, or to a release such as 4.100.0, then reinstall.\"\nversion=\"${tag#v}\"\nname=\"code-server-$version-linux-$arch.tar.gz\"\n\ndir=.local/lib/code-server\nif [ -f \"$dir/package.json\" ] && [ \"$(jq -r .version \"$dir/package.json\")\" = \"$version\" ]; then\n    echo \"code-server $version is already installed.\"\nelse\n    echo \"Downloading code-server $version\"\n    gh-release download coder/code-server \"$tag\" \"$name\" $work/code-server.tar.gz\n    mkdir -p .local/lib .raptor-new\n    tar -xzf $work/code-server.tar.gz -C .raptor-new --strip-components=1\n    rm -rf \"$dir\" $work/code-server.tar.gz\n    mv .raptor-new \"$dir\"\nfi\n# Folders the old egg's layout used.\nrm -rf .local/lib/code-server-*\nmkdir -p projects\necho \"Installed code-server $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Password",
+            "description": "The password to sign in with. Leave it empty to use a random one, saved in .config/code-server/config.yaml.",
+            "env_variable": "PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The code-server version to install, such as 4.100.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}

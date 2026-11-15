@@ -1,0 +1,181 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Gryt egg in pelican-eggs/voice (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Gryt",
+    "author": "support@raptorpanel.net",
+    "description": "Gryt is a self-hosted voice and text chat server. It needs two more ports: a TCP port for the voice server and a UDP port for audio, set in Startup.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:6571c195b896e426f774b8c8d93f835d9fe6a2ac186ffa47f717b72a37ebdb44"
+    },
+    "file_denylist": [],
+    "startup": "export SERVER_VERSION=\"$(jq -r .version server/package.json)\"; if [ -z \"$JWT_SECRET\" ]; then [ -s .jwt_secret ] || head -c 48 /dev/urandom | base64 > .jwt_secret; JWT_SECRET=\"$(cat .jwt_secret)\"; export JWT_SECRET; fi; ./gryt_sfu & if [ \"{{IMAGE_WORKER_ENABLED}}\" = true ]; then node --env-file=config.env image-worker/dist/index.js & fi; exec node --env-file=config.env server/dist/index.js",
+    "config": {
+        "files": "{\"config.env\": {\"parser\": \"properties\", \"find\": {\"PORT\": \"{{server.build.default.port}}\", \"HOST\": \"0.0.0.0\", \"DATA_DIR\": \"./data\", \"SFU_WS_HOST\": \"ws://127.0.0.1:{{server.build.env.SFU_PORT}}\"}}}",
+        "startup": "{\"done\": [\"Signaling server started at\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Gryt: downloads the self-hosted bundle for the chosen version from GitHub\n# and checks its checksum. Your settings (config.env), the data folder\n# (messages, uploads) and the session secret are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"This server's CPU ($(uname -m)) isn't supported.\" ;;\nesac\nput_release() {\n    local new=$1 e; shift\n    local keep=\" $* \"\n    if [ -f .raptor-files ]; then\n        while IFS= read -r e; do\n            if [ -n \"$e\" ] && [ ! -e \"$new/$e\" ] && [ \"${keep#* \"$e\" }\" = \"$keep\" ]; then rm -rf -- \"./$e\"; fi\n        done < .raptor-files\n    fi\n    : > .raptor-files.new\n    while IFS= read -r e; do\n        if [ \"${keep#* \"$e\" }\" != \"$keep\" ] && [ -e \"./$e\" ]; then\n            if [ -d \"$new/$e\" ]; then cp -rn \"$new/$e/.\" \"./$e/\" || true; fi\n        else\n            rm -rf -- \"./$e\"\n            mv \"$new/$e\" \"./$e\"\n        fi\n        echo \"$e\" >> .raptor-files.new\n    done < <(find \"$new\" -mindepth 1 -maxdepth 1 -printf '%f\\n')\n    mv -f .raptor-files.new .raptor-files\n    rm -rf \"$new\"\n}\n\n[ \"$arch\" = amd64 ] || fail \"Gryt is only built for x86-64 CPUs, and this server is $arch.\"\nwant=\"${GRYT_VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag Gryt-chat/server \"$tag\") || fail \"Set Version to latest, or to a release such as 1.12.0, then reinstall.\"\nversion=\"${tag#v}\"\nname=\"gryt-server-linux-x64-v$version.zip\"\n\nif [ -f server/package.json ] && [ \"$(jq -r .version server/package.json)\" = \"$version\" ]; then\n    echo \"Gryt $version is already installed.\"\nelse\n    echo \"Downloading Gryt $version\"\n    gh-release download Gryt-chat/server \"$tag\" \"$name\" $work/gryt.zip\n    unzip -q $work/gryt.zip -d $work/gryt\n    mv $work/gryt/gryt-server-linux-x64 .raptor-new\n    rm -rf $work/gryt $work/gryt.zip .raptor-new/*.bat .raptor-new/*.sh\n    chmod +x .raptor-new/gryt_sfu\n    put_release .raptor-new config.env\nfi\nmkdir -p data\necho \"Installed Gryt $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name people see for this server.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "My Gryt Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "A short description of the server.",
+            "env_variable": "SERVER_DESCRIPTION",
+            "default_value": "A Gryt voice chat server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Voice port",
+            "description": "The TCP port of the voice server. Add it to the server's ports as well.",
+            "env_variable": "SFU_PORT",
+            "default_value": "5005",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Audio port",
+            "description": "The one UDP port all audio flows over. Add it to the server's ports as well.",
+            "env_variable": "ICE_UDP_MUX_PORT",
+            "default_value": "3478",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Voice address",
+            "description": "Where clients reach the voice server: this server's public IP or domain and the voice port, such as 203.0.113.10:5005.",
+            "env_variable": "SFU_PUBLIC_HOST",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Public IP",
+            "description": "The public IP addresses clients send audio to, separated by commas. Leave it empty to find it with STUN.",
+            "env_variable": "ICE_ADVERTISE_IP",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Server address",
+            "description": "The web address clients use to reach this server: http or https, then its public IP or domain and port.",
+            "env_variable": "EXTERNAL_HOST",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Identities",
+            "description": "Who may join, separated by commas: account (a Gryt account) and local (no account).",
+            "env_variable": "GRYT_IDENTITY_TIERS",
+            "default_value": "account",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^(account|local)(,(account|local))*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Allowed web origins",
+            "description": "The web addresses of the apps allowed to connect, separated by commas. Keep the defaults for Gryt's desktop and web apps.",
+            "env_variable": "CORS_ORIGIN",
+            "default_value": "http://127.0.0.1:15738,https://app.gryt.chat",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "STUN servers",
+            "description": "STUN servers used to find the public address, separated by commas.",
+            "env_variable": "STUN_SERVERS",
+            "default_value": "stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Max voice peers",
+            "description": "How many people may be connected to voice at once.",
+            "env_variable": "MAX_PEERS",
+            "default_value": "200",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,10000",
+            "field_type": "text"
+        },
+        {
+            "name": "Image worker",
+            "description": "Run the image worker, which makes thumbnails and recompresses uploads.",
+            "env_variable": "IMAGE_WORKER_ENABLED",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Turn off STUN",
+            "description": "Stop the voice server from finding its public address with STUN.",
+            "env_variable": "DISABLE_STUN",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Session secret",
+            "description": "The secret sessions are signed with. Leave it empty to have one made and kept in .jwt_secret.",
+            "env_variable": "JWT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:32|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The Gryt version to install, such as 1.12.0, or latest. Reinstall to change it.",
+            "env_variable": "GRYT_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}

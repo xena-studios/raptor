@@ -1,0 +1,41 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Loki egg in pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Loki",
+    "author": "support@raptorpanel.net",
+    "description": "Loki stores and searches logs, like Prometheus does metrics; agents such as Grafana Alloy send it the logs. Its settings are in loki.yaml.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./loki -config.file=loki.yaml -config.expand-env=true",
+    "config": {
+        "files": "{\"loki.yaml\": {\"parser\": \"yaml\", \"find\": {\"server.http_listen_port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"Loki started\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Loki: downloads the release for the chosen version from GitHub and checks\n# its checksum. loki.yaml and the data folder are never touched; only the\n# loki program is replaced.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"This server's CPU ($(uname -m)) isn't supported.\" ;;\nesac\n\nwant=\"${LOKI_VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag grafana/loki \"$tag\") || fail \"Set Version to latest, or to a release such as 3.5.0, then reinstall.\"\nversion=\"${tag#v}\"\nname=\"loki-linux-$arch.zip\"\n\nif [ -x loki ] && ./loki -version 2>/dev/null | grep -q \"version $version \"; then\n    echo \"Loki $version is already installed.\"\nelse\n    echo \"Downloading Loki $version\"\n    gh-release download grafana/loki \"$tag\" \"$name\" $work/loki.zip\n    unzip -q -o $work/loki.zip -d $work/loki\n    chmod +x \"$work/loki/loki-linux-$arch\"\n    mv -f \"$work/loki/loki-linux-$arch\" loki.new && mv -f loki.new loki\n    rm -rf $work/loki $work/loki.zip\nfi\n\nmkdir -p data\nif [ ! -f loki.yaml ]; then\n    cat > loki.yaml <<'EOF'\n# Loki's settings: https://grafana.com/docs/loki/latest/configure/\n# The port is set from the server's own port each time it starts.\nauth_enabled: false\n\nserver:\n  http_listen_port: 3100\n  grpc_listen_port: 9096\n  log_level: info\n\ncommon:\n  instance_addr: 127.0.0.1\n  path_prefix: data\n  storage:\n    filesystem:\n      chunks_directory: data/chunks\n      rules_directory: data/rules\n  replication_factor: 1\n  ring:\n    kvstore:\n      store: inmemory\n\nquery_range:\n  results_cache:\n    cache:\n      embedded_cache:\n        enabled: true\n        max_size_mb: 100\n\nschema_config:\n  configs:\n    - from: 2020-10-24\n      store: tsdb\n      object_store: filesystem\n      schema: v13\n      index:\n        prefix: index_\n        period: 24h\nEOF\nfi\necho \"Installed Loki $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Loki version to install, such as 3.5.0, or latest. Reinstall to change it.",
+            "env_variable": "LOKI_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}

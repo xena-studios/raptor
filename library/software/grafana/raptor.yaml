@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/grafana/egg-grafana.json
+license: MIT
+credits:
+  - "Based on the Grafana egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the Grafana logo, from https://github.com/grafana (Grafana Labs)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  variables:
+    GRAFANA_PLUGINS: yesoreyeram-infinity-datasource
+  config:
+    conf/custom.ini: "http_port = {{port}}"

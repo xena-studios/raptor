@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/prometheus/egg-prometheus.json
+license: MIT
+credits:
+  - "Based on the Prometheus egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the Prometheus logo, from https://commons.wikimedia.org/wiki/File:Prometheus_software_logo.svg (Apache-2.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m

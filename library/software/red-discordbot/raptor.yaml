@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/red-discordbot/egg-red-discordbot.json
+license: MIT
+credits:
+  - "Based on the Red egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: Red's logo, from https://github.com/Cog-Creators (GPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+# Without a bot token it installs Red and sets up its instance, then waits
+# for one.
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 8m

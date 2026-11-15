@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/ts3-manager/egg-ts3-manager.json
+license: MIT
+credits:
+  - "Based on the TS3 Manager egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the TS3 Manager logo, from https://github.com/joni1802/ts3-manager (MIT)"
+certified: true
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

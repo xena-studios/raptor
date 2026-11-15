@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/sftp-storage-share/egg-sftp-storage-share.json
+license: MIT
+credits:
+  - "Based on the SFTP Storage Share egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the file folder emoji from Twemoji, https://commons.wikimedia.org/wiki/File:Twemoji12_1f4c1.svg (CC-BY 4.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 64
+  done_timeout: 1m

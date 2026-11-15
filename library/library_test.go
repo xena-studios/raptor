@@ -28,6 +28,7 @@ const author = "support@raptorpanel.net"
 // (badName). Each is the project's own name, which the egg keeps as it is.
 var realNames = map[string]bool{
 	"Game Server Watcher": true, // https://github.com/a-sync/game-server-watcher
+	"code-server":         true, // https://github.com/coder/code-server
 }
 
 func TestLibrary(t *testing.T) {
