@@ -1,7 +1,8 @@
 name: Egg conformance
 
-# Runs catalog eggs through the full Wings lifecycle with their unmodified
-# images (internal/wings/conformance). Certified eggs must pass; community
+# Runs catalog eggs, and the egg library's (library/, all certified),
+# through the full Wings lifecycle with their unmodified images
+# (internal/wings/conformance). Certified eggs must pass; community
 # eggs run in their own jobs, whose failures are reported (job summary) but
 # don't fail the workflow. Tiers (eggs/*/*/raptor.yaml):
 #   fast: on PRs that touch eggs or the code that runs them, nightly, on
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - eggs/**
+      - library/**
       - internal/eggs/**
       - internal/wings/containers/**
       - internal/wings/docker/**
@@ -54,7 +56,13 @@ jobs:
       matrix:
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
         set: [certified, community]
-    name: fast ${{ matrix.set }} (${{ matrix.runner }})
+        # Its own value, so the library's entries below are new jobs rather
+        # than changes to the catalog's.
+        source: [catalog]
+        include:
+          - { runner: ubuntu-24.04, set: certified, source: library }
+          - { runner: ubuntu-24.04-arm, set: certified, source: library }
+    name: fast ${{ matrix.source || 'catalog' }} ${{ matrix.set }} (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
     continue-on-error: ${{ matrix.set == 'community' }}
     timeout-minutes: 180
@@ -72,6 +80,7 @@ jobs:
       - name: Run eggs
         run: |
           sudo RAPTOR_CONFORMANCE_TIER=fast RAPTOR_CONFORMANCE_SET=${{ matrix.set }} RAPTOR_CONFORMANCE_PRUNE=1 \
+            RAPTOR_CONFORMANCE_SOURCE=${{ matrix.source || 'catalog' }} \
             RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
             /tmp/conformance-e2e -test.v -test.timeout 170m -test.run 'TestConformance/${{ inputs.run || '.' }}'
 
@@ -114,7 +123,9 @@ jobs:
           - { set: community, shard: 1/4 }
           - { set: community, shard: 2/4 }
           - { set: community, shard: 3/4 }
-    name: slow ${{ matrix.set }} ${{ matrix.shard }}
+          - { set: certified, shard: 0/2, source: library }
+          - { set: certified, shard: 1/2, source: library }
+    name: slow ${{ matrix.source || 'catalog' }} ${{ matrix.set }} ${{ matrix.shard }}
     runs-on: ubuntu-24.04
     continue-on-error: ${{ matrix.set == 'community' }}
     timeout-minutes: 360
@@ -135,6 +146,7 @@ jobs:
       - name: Run eggs
         run: |
           sudo RAPTOR_CONFORMANCE_TIER=slow RAPTOR_CONFORMANCE_SET=${{ matrix.set }} \
+            RAPTOR_CONFORMANCE_SOURCE=${{ matrix.source || 'catalog' }} \
             RAPTOR_CONFORMANCE_SHARD=${{ matrix.shard }} RAPTOR_CONFORMANCE_PRUNE=1 \
             RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
             /tmp/conformance-e2e -test.v -test.timeout 350m -test.run 'TestConformance/${{ inputs.run || '.' }}'
