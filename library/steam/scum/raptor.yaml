@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/scum/egg-scum.json
+license: MIT
+credits:
+  - "Based on the SCUM egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: SCUM's logo, from its Steam store page (Gamepires)"
+certified: true
+arch: [amd64]
+# SCUM answers Steam's server queries on the query port.
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: the server has no console; it saves on its own.
+test:
+  tier: manual
+  reason: "The dedicated server is about 16 GB, more than a standard GitHub runner has free"
+  memory_mib: 12288
+  done_timeout: 60m

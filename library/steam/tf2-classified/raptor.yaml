@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/tf2-classified/egg-tf2-classified.json
+license: MIT
+credits:
+  - "Based on the Team Fortress 2 Classic egg in https://github.com/pterodactyl/game-eggs (MIT), moved to the Steam release as its wiki describes"
+  - "Icon: Team Fortress 2 Classified's logo, from its Steam store page (Eminoma)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+test:
+  tier: manual
+  reason: "It needs the Team Fortress 2 dedicated server too: about 23 GB together, more than a standard GitHub runner has free"
+  memory_mib: 4096
+  done_timeout: 60m
+  command: "status"
+  expect: "hostname"

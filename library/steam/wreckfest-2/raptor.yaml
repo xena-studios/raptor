@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/wreckfest-2/egg-wreckfest-2.json
+license: MIT
+credits:
+  - "Based on the Wreckfest 2 egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Wreckfest 2's logo, from its Steam store page (Bugbear Entertainment)"
+certified: true
+arch: [amd64]
+# No player count: it isn't known whether the server answers Steam's server
+# queries. No backup hooks: races aren't saved.
+test:
+  tier: manual
+  reason: >-
+    On CI's runners the second start fails to register with the game's
+    online service ("Failed to start online server! 5012-80190001"), so it
+    never becomes ready; the first start passes. Test it on a real host.
+  memory_mib: 6144
+  done_timeout: 40m

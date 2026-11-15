@@ -1,0 +1,25 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/squad/egg-squad.json
+license: MIT
+credits:
+  - "Based on the Squad egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Squad's logo, from its Steam store page (Offworld Industries)"
+certified: true
+arch: [amd64]
+# Squad answers Steam's server queries on the query port.
+players:
+  query: source
+  port: QUERY_PORT
+# The install script downloads the items (workshop_download_item), so a
+# change takes a reinstall.
+workshop:
+  app_id: 393380
+  variable: WORKSHOP_ITEMS
+  apply: reinstall
+# No backup hooks: matches aren't saved.
+test:
+  tier: manual
+  reason: "The dedicated server is about 15 GB, more than a standard GitHub runner has free"
+  memory_mib: 8192
+  done_timeout: 40m

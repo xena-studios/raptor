@@ -1,0 +1,21 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/abiotic-factor/egg-abiotic-factor.json
+license: MIT
+credits:
+  - "Based on the Abiotic Factor eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Abiotic Factor's logo, from its Steam store page (Deep Field Games)"
+certified: true
+arch: [amd64]
+# Abiotic Factor answers Steam's server queries on the query port.
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: the server has no console. It saves on its own and
+# when stopped.
+test:
+  tier: slow
+  memory_mib: 8192
+  variables:
+    SERVER_PASSWORD: "conformance"
+  done_timeout: 40m

@@ -37,6 +37,14 @@ var realNames = map[string]bool{
 	"code-server":         true, // https://github.com/coder/code-server
 }
 
+// Variable names an old catalog egg used, kept so servers moving to the
+// library's version keep their values (a renamed variable loses its value).
+var legacyEnv = map[string]bool{
+	"steam/squad servername": true, "steam/squad maxplayers": true,
+	"steam/squad reservedslots": true, "steam/squad advertise": true,
+	"steam/squad allowteamchange": true, "steam/squad teambal": true,
+}
+
 func TestLibrary(t *testing.T) {
 	all, err := All()
 	if err != nil {
@@ -85,7 +93,7 @@ func TestLibrary(t *testing.T) {
 			}
 			checkText(t, "description", egg.Description, 40, 400)
 			for _, v := range egg.Variables {
-				if !envName.MatchString(v.Env) {
+				if !envName.MatchString(v.Env) && !legacyEnv[e.ID+" "+v.Env] {
 					t.Errorf("variable %s: the environment name is UPPER_SNAKE_CASE", v.Env)
 				}
 				if v.Name == "" || len(v.Name) > 40 || v.Name != strings.TrimSpace(v.Name) || strings.HasSuffix(v.Name, ".") {

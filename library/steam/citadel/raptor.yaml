@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/citadel/egg-citadel.json
+license: MIT
+credits:
+  - "Based on the Citadel: Forged with Fire egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Citadel: Forged with Fire's logo, from its Steam store page (Blue Isle Studios)"
+certified: true
+arch: [amd64]
+# Citadel answers Steam's server queries on the query port.
+players:
+  query: source
+  port: QPORT
+# No backup hooks: the server has no console; it saves on its own.
+test:
+  tier: slow
+  memory_mib: 6144
+  done_timeout: 20m

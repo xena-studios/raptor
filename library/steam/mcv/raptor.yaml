@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/mcv/egg-mcv.json
+license: MIT
+credits:
+  - "Based on the Military Conflict: Vietnam egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Military Conflict: Vietnam's logo, from its Steam store page (Asterisk Entertainment)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+test:
+  tier: manual
+  reason: "The dedicated server is about 25 GB, more than a standard GitHub runner has free"
+  memory_mib: 4096
+  done_timeout: 60m
+  command: "status"
+  expect: "hostname"

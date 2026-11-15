@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/night-of-the-dead/egg-night-of-the-dead.json
+license: MIT
+credits:
+  - "Based on the Night Of The Dead egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Night of the Dead's logo, from its Steam store page (Jackto)"
+certified: true
+arch: [amd64]
+# No player count: the server lists itself through Epic Online Services
+# and doesn't answer Steam's server queries.
+# No backup hooks: the server has no console; it saves on its own
+# (SaveIntervalHour) and when stopped.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 60m

@@ -1,0 +1,20 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/holdfast/egg-holdfast.json
+license: MIT
+credits:
+  - "Based on the Holdfast NaW egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Holdfast: Nations at War's logo, from its Steam store page (Anvil Game Studios)"
+certified: true
+arch: [amd64]
+# Holdfast answers Steam's server queries on the query port.
+players:
+  query: source
+  port: SERVER_QUERY_PORT
+# No backup hooks: rounds aren't saved.
+test:
+  tier: slow
+  memory_mib: 6144
+  variables:
+    ADMIN_PASS: "conformance"
+  done_timeout: 40m

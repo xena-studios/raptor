@@ -1,0 +1,131 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Euro Truck Simulator 2 egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Euro Truck Simulator 2",
+    "author": "support@raptorpanel.net",
+    "description": "SCS Software's trucking game in convoy multiplayer for up to 8 drivers. Installs the dedicated server with SteamCMD and keeps it updated; upload your own exported server packages for DLC and mods.",
+    "features": [],
+    "docker_images": {
+        "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:3da8e0bc90c94c7f9aca1355f2ae31c0484ee78dd446a0c6c1d796dfe4d7677d"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $([ \"{{VALIDATE}}\" = 1 ] && echo validate) +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; cd bin/linux_x64 && LD_LIBRARY_PATH=\"../../linux64:$LD_LIBRARY_PATH\" exec ./eurotrucks2_server",
+    "config": {
+        "files": "{\".local/share/Euro Truck Simulator 2/server_config.sii\": {\"parser\": \"file\", \"find\": {\" lobby_name:\": \" lobby_name: \\\"{{server.build.env.LOBBY_NAME}}\\\"\", \" password:\": \" password: \\\"{{server.build.env.SERVER_PASSWORD}}\\\"\", \" max_players:\": \" max_players: {{server.build.env.MAX_PLAYERS}}\", \" connection_dedicated_port:\": \" connection_dedicated_port: {{server.build.default.port}}\", \" query_dedicated_port:\": \" query_dedicated_port: {{server.build.env.QUERY_PORT}}\", \" server_logon_token:\": \" server_logon_token: \\\"{{server.build.env.STEAM_TOKEN}}\\\"\"}}}",
+        "startup": "{\"done\": \"[MP] Session running.\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Euro Truck Simulator 2. Installs or updates the dedicated server (Steam app\n# 1948160) with SteamCMD, signed in anonymously. Settings and server packages\n# in .local/share/Euro Truck Simulator 2 are never replaced.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-1948160}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# The server keeps its settings in its home folder. It won't start without\n# server_packages.sii and .dat, which only the game can export (console\n# command export_server_packages, with your DLC and mods). Until you upload\n# yours, a pair for the base map without DLC is put there.\nhome=\".local/share/Euro Truck Simulator 2\"\nmkdir -p \"$home\"\npkg=https://raw.githubusercontent.com/pterodactyl/game-eggs/60ef9fbfdac42eef89d656c3f587e96376f90aba/truck-simulator/euro-truck-simulator2/ets2-files\nfor f in sii:87c192641c26bd525c98c58af75c23bc7bbec25d17445514eb0808b1a5c2c138 dat:1ef4ac7e1a85ff68357903803a461193ca9e349c7cef10756a45a038521f9a7c; do\n    ext=${f%%:*} sum=${f#*:}\n    [ -f \"$home/server_packages.$ext\" ] && continue\n    curl -fsSL --retry 3 -o \"$home/server_packages.$ext.new\" \"$pkg/server_packages.$ext\" ||\n        fail \"The base server packages couldn't be downloaded. Reinstall to try again, or upload your own.\"\n    echo \"$sum  $home/server_packages.$ext.new\" | sha256sum -c --status || fail \"The base server packages download is damaged. Reinstall to try again.\"\n    mv \"$home/server_packages.$ext.new\" \"$home/server_packages.$ext\"\n    echo \"Added server_packages.$ext for the base map without DLC.\"\ndone\n# The Panel sets the name, password, player count, ports and token in\n# server_config.sii at every start; the rest of it is yours.\ncfg=\"$home/server_config.sii\"\nif [ ! -f \"$cfg\" ]; then\n    cat > \"$cfg\" <<'EOF'\nSiiNunit\n{\nserver_config : _nameless.raptor.cfg {\n lobby_name: \"A Euro Truck Simulator 2 server\"\n description: \"\"\n welcome_message: \"\"\n password: \"\"\n max_players: 8\n max_vehicles_total: 100\n max_ai_vehicles_player: 50\n max_ai_vehicles_player_spawn: 50\n connection_virtual_port: 100\n query_virtual_port: 101\n connection_dedicated_port: 27015\n query_dedicated_port: 27016\n server_logon_token: \"\"\n player_damage: true\n traffic: true\n hide_in_company: false\n hide_colliding: true\n force_speed_limiter: false\n mods_optioning: false\n timezones: 0\n service_no_collision: false\n in_menu_ghosting: false\n name_tags: true\n friends_only: false\n show_server: true\n moderator_list: 0\n}\n\n}\nEOF\n    echo \"Made server_config.sii.\"\nfi\necho \"Installed Euro Truck Simulator 2 build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Session name",
+            "description": "The name players see in the session browser.",
+            "env_variable": "LOBBY_NAME",
+            "default_value": "A Euro Truck Simulator 2 server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:63|regex:/^[^\\\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:63|regex:/^[^\\\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be in the session at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,8",
+            "field_type": "text"
+        },
+        {
+            "name": "Server token",
+            "description": "A Steam game server login token made for app 227300, for a session ID that stays the same. Without one the server gets a new ID each start.",
+            "env_variable": "STEAM_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|alpha_num|max:40",
+            "field_type": "text"
+        },
+        {
+            "name": "Query port",
+            "description": "The port the session browser and Steam's server queries use; give it an allocation.",
+            "env_variable": "QUERY_PORT",
+            "default_value": "27016",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "1948160",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:1948160",
+            "field_type": "text"
+        }
+    ]
+}
