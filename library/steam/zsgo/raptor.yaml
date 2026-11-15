@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/zsgo/egg-zsgo.json
+license: MIT
+credits:
+  - "Based on the Zombie Survival Game Online egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Zombie Survival Game Online's logo, from its Steam store page (Sprewell Studios)"
+certified: true
+arch: [amd64]
+# No players query: the game answers queries through Steam, which only works
+# once Steam lists the server.
+# No backup hooks: the server has no console; it saves on its own.
+test:
+  tier: slow
+  memory_mib: 6144
+  done_timeout: 40m

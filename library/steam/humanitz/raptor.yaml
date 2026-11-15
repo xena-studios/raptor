@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/humanitz/egg-humanitz.json
+license: MIT
+credits:
+  - "Based on the HumanitZ egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: HumanitZ's icon, from Steam (Yodubzz Studios)"
+certified: true
+arch: [amd64]
+# No player count: HumanitZ lists itself through Epic Online Services, not
+# Steam's server query.
+# No backup hooks: saving is an RCON or chat command; the server has no
+# console. It saves on its own (Save interval).
+test:
+  tier: slow
+  memory_mib: 6144
+  done_timeout: 30m

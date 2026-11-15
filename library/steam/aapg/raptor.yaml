@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/aapg/egg-aapg.json
+license: MIT
+credits:
+  - "Based on the America's Army: Proving Grounds egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: America's Army: Proving Grounds' header art, from its Steam store page (U.S. Army)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: the server has no console to save from.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

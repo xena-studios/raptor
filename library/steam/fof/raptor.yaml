@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/fof/egg-fof.json
+license: MIT
+credits:
+  - "Based on the Fistful of Frags egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Fistful of Frags' icon, from Steam (Fistful of Frags Team)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 30m
+  command: "status"
+  expect: "hostname"

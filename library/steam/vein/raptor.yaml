@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/vein/egg-vein.json
+license: MIT
+credits:
+  - "Based on the VEIN egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: VEIN's logo, from its Steam store page (Ramjet Studios)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: the server has no console; it saves on its own.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 45m

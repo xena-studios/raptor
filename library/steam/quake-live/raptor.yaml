@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/quake-live/egg-quake-live.json
+license: MIT
+credits:
+  - "Based on the Quake Live egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Quake Live's icon, from Steam (id Software)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+# No backup hooks: matches don't save anything.
+test:
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 20m
+  command: "status"
+  expect: "map:"
