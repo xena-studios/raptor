@@ -266,6 +266,20 @@ func (r *run) prepare() {
 	dir := filepath.Join(r.env.volumes, r.id)
 	write := func(name, content string) {
 		p := filepath.Join(dir, name)
+		// Folders the file is in (src/main.rs), owned by the server's user.
+		sub := dir
+		for _, part := range strings.Split(filepath.Dir(name), "/") {
+			if part == "." {
+				break
+			}
+			sub = filepath.Join(sub, part)
+			if err := os.Mkdir(sub, 0o755); err != nil && !os.IsExist(err) { //nolint:gosec // server files
+				r.fail("mkdir %s: %v", sub, err)
+			}
+			if err := os.Chown(sub, uid, gid); err != nil {
+				r.fail("chown %s: %v", sub, err)
+			}
+		}
 		if err := os.WriteFile(p, []byte(content), 0o644); err != nil { //nolint:gosec // server files
 			r.fail("write %s: %v", name, err)
 		}
