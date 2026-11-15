@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/generic (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Bun",
+    "author": "support@raptorpanel.net",
+    "description": "Runs a JavaScript or TypeScript app, such as a Discord bot, on Bun from your files or a Git repository. Dependencies are installed when package.json or the lockfile changes.",
+    "features": [],
+    "docker_images": {
+        "Bun 1": "ghcr.io/xena-studios/yolks:bun_1@sha256:9835aab1c0daad690f9435b6ff9748831347a9bb070e05f5484e2c160c198fb5"
+    },
+    "file_denylist": [],
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; if [ -n \"{{BUN_PACKAGES}}\" ]; then bun add {{BUN_PACKAGES}}; fi; if [ -f package.json ]; then h=$(cat package.json bun.lock bun.lockb 2>/dev/null | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then if [ -f bun.lock ] || [ -f bun.lockb ]; then bun install --frozen-lockfile; else bun install; fi && cat package.json bun.lock bun.lockb 2>/dev/null | sha256sum | cut -d\" \" -f1 > node_modules/.raptor-installed; fi; fi; exec bun run \"{{MAIN_FILE}}\" {{BUN_ARGS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": []}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Bun: clones the app's Git repository, if one is set. Files already in\n# the server's folder are never deleted or overwritten.\nset -euo pipefail\ncd /mnt/server\n\nclone() {\n    if [ -z \"${GIT_ADDRESS:-}\" ]; then\n        echo \"No Git repository set: upload your app's files, then start the server.\"\n        return 0\n    fi\n    local url=\"${GIT_ADDRESS}\"\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\n    if [ -d .git ]; then\n        echo \"The repository is already here: pulling the latest changes.\"\n        git pull --ff-only\n    elif [ -n \"$(ls -A)\" ]; then\n        echo \"The folder already has files and isn't a Git repository, so nothing was cloned.\"\n    else\n        GIT_TERMINAL_PROMPT=0 git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" . || {\n            echo \"The repository couldn't be cloned: check its address, and the username and access token for a private one.\"\n            exit 1\n        }\n    fi\n}\n\nclone\necho \"Installed.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Main file",
+            "description": "The file that starts your app, such as index.js or src/bot.ts.",
+            "env_variable": "MAIN_FILE",
+            "default_value": "index.js",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the app's repository, cloned when the server is installed. Leave it empty to upload the files yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra packages",
+            "description": "Packages to add as well, separated by spaces.",
+            "env_variable": "BUN_PACKAGES",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to your app.",
+            "env_variable": "BUN_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,44 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/elixir/egg-elixir.json
+license: MIT
+credits:
+  - "Based on the Elixir egg in https://github.com/pterodactyl/generic-eggs (elixir/egg-elixir.json, MIT)"
+  - "Icon: Elixir's logo, the https://github.com/elixir-lang avatar (The Elixir Team)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  files:
+    mix.exs: |
+      defmodule Echo.MixProject do
+        use Mix.Project
+
+        def project, do: [app: :echo, version: "0.1.0", deps: [{:jason, "~> 1.4"}]]
+        def application, do: [mod: {Echo, []}]
+      end
+    lib/echo.ex: |
+      # Stands in for a bot: says it's ready, then echoes the console.
+      defmodule Echo do
+        use Application
+
+        def start(_type, _args) do
+          IO.puts(Jason.decode!(~s("ready")))
+          Task.start_link(&loop/0)
+        end
+
+        defp loop do
+          case IO.gets("") do
+            :eof -> :ok
+            {:error, _} -> :ok
+            line ->
+              if String.trim(line) != "", do: IO.puts("got: " <> String.trim(line))
+              loop()
+          end
+        end
+      end
+  done_timeout: 5m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"

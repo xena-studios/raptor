@@ -1,0 +1,30 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/python/egg-python.json
+license: MIT
+credits:
+  - "Based on the Python egg in https://github.com/pterodactyl/generic-eggs (python/egg-python-generic.json, MIT)"
+  - "Icon: the Python logo, the https://github.com/python avatar (Python Software Foundation)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  files:
+    app.py: |
+      # Stands in for a bot: says it's ready, then echoes the console.
+      import sys
+
+      print("ready")
+      try:
+          for line in sys.stdin:
+              if line.strip():
+                  print("got: " + line.strip())
+      except KeyboardInterrupt:
+          pass
+    requirements.txt: |
+      six==1.17.0
+  done_timeout: 3m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"
