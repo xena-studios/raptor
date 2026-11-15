@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/wesnoth/egg-wesnoth.json
+license: MIT
+credits:
+  - "Based on the Battle for Wesnoth egg in https://github.com/pelican-eggs/games-standalone (MIT)"
+  - "Icon: Wesnoth's logo, from https://github.com/wesnoth"
+certified: true
+arch: [amd64, arm64]
+# No backup hooks: the lobby server keeps no game state to save.
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  command: "status"
+  expect: "STATUS REPORT"

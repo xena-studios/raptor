@@ -1,0 +1,191 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Zandronum",
+    "author": "support@raptorpanel.net",
+    "description": "The multiplayer Doom port: cooperative, deathmatch, capture the flag and more. Installs any Zandronum release with Freedoom's free game data, and plays your own Doom WADs.",
+    "features": [],
+    "docker_images": {
+        "Ubuntu": "ghcr.io/pelican-eggs/yolks:ubuntu@sha256:32fae83f86e38ed2f3922ef3cb5b626b5784598bd9e6d0e02fb57f935a5eb352"
+    },
+    "file_denylist": [],
+    "startup": "a=(); for f in dmflags dmflags2 zadmflags compatflags compatflags2 zacompatflags; do v=${f^^}; [ -z \"${!v}\" ] || a+=(+set \"$f\" \"${!v}\"); done; for w in {{PWADS}}; do a+=(-file \"PWAD/$w\"); done; [ -z \"{{SKILL}}\" ] || a+=(-skill \"{{SKILL}}\"); exec ./zandronum-server -config zandronum.ini -host {{MAX_PLAYERS}} -port {{SERVER_PORT}} -iwad \"IWAD/{{IWAD}}\" \"${a[@]}\" +sv_hostname \"{{SERVER_NAME}}\" +sv_password \"{{SERVER_PASSWORD}}\" +sv_forcepassword \"$([ -n \"{{SERVER_PASSWORD}}\" ] && echo 1 || echo 0)\" +sv_rconpassword \"{{RCON_PASSWORD}}\" +{{GAME_MODE}} 1 +exec server.cfg +map \"{{MAP}}\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"UDP Initialized.\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Zandronum. Downloads the chosen Zandronum release for Linux from\n# zandronum.com, and Freedoom's free game data from its GitHub releases\n# (checked against Freedoom's checksums). Your WADs in IWAD/ and PWAD/,\n# server.cfg and the admin, ban and whitelists are never touched.\nset -euo pipefail\ncd /mnt/server\n# zandronum.com shows browsers a bot check; it lets plain clients through.\nua=\"raptor-installer (+https://raptorpanel.net)\"\nsite=https://zandronum.com/downloads\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\npage=$(curl -fsSL --retry 3 -A \"$ua\" \"$site/\") || fail \"zandronum.com can't be reached right now. Reinstall to try again.\"\nversions=$(grep -oE 'zandronum[0-9][0-9.]*-linux-x86_64\\.tar\\.bz2' <<<\"$page\" | sed -E 's/^zandronum(.*)-linux.*/\\1/' | sort -uV)\n[ -n \"$versions\" ] || fail \"zandronum.com lists no Linux downloads right now. Reinstall to try again later.\"\nversion=\"${VERSION:-latest}\"\nif [ \"$version\" = latest ]; then\n    version=$(tail -n 1 <<<\"$versions\")\nelif ! grep -qxF \"$version\" <<<\"$versions\"; then\n    fail \"Zandronum has no Linux release $version. Set Version to latest, or to one of: $(echo $versions).\"\nfi\n\nif [ -x zandronum-server ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Zandronum $version is already installed.\"\nelse\n    rm -rf \"$build\" && mkdir -p \"$build/x\"\n    echo \"Downloading Zandronum $version\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$build/z.tar.bz2\" \"$site/zandronum$version-linux-x86_64.tar.bz2\" ||\n        fail \"The download from zandronum.com failed. Reinstall to try again.\"\n    # zandronum.com publishes no checksums, so check the archive is whole.\n    bzip2 -tq \"$build/z.tar.bz2\" || fail \"The download from zandronum.com was damaged. Reinstall to try again.\"\n    tar -xjf \"$build/z.tar.bz2\" -C \"$build/x\"\n    [ -x \"$build/x/zandronum-server\" ] || fail \"Zandronum $version's download has no server in it. Choose another version.\"\n    rm -f \"$build/x/zandronum\"   # the game client\n    cp -f \"$build/x\"/* .\n    echo \"$version\" > .raptor-version\nfi\n\n# Freedoom: free game data (IWADs) that plays the Doom and Doom II maps.\nmkdir -p IWAD PWAD\nfd=$(gh-release tag freedoom/freedoom latest 2>/dev/null) || fd=\"\"\nif [ -z \"$fd\" ]; then\n    echo \"Freedoom's releases can't be reached right now, so its game data wasn't updated.\"\nelif [ -f IWAD/freedoom1.wad ] && [ \"$(cat IWAD/.freedoom-version 2>/dev/null)\" = \"$fd\" ]; then\n    echo \"Freedoom ${fd#v} is already installed.\"\nelse\n    v=${fd#v}\n    rm -rf \"$build\" && mkdir -p \"$build/fd\"\n    echo \"Downloading Freedoom $v\"\n    gh-release download freedoom/freedoom \"$fd\" \"freedoom-$v-CHECKSUM\" \"$build/sums\" || fail \"Freedoom's download failed. Reinstall to try again.\"\n    for z in \"freedoom-$v.zip\" \"freedm-$v.zip\"; do\n        gh-release download freedoom/freedoom \"$fd\" \"$z\" \"$build/$z\" || fail \"Freedoom's download failed. Reinstall to try again.\"\n        want=$(sed -n \"s/^SHA256 ($z) = \\([0-9a-f]*\\)$/\\1/p\" \"$build/sums\")\n        [ -n \"$want\" ] && [ \"$(sha256sum \"$build/$z\" | cut -d' ' -f1)\" = \"$want\" ] ||\n            fail \"Freedoom's download didn't match its checksum. Reinstall to try again.\"\n        unzip -qjo \"$build/$z\" '*.wad' -d \"$build/fd\"\n    done\n    mv -f \"$build/fd\"/*.wad IWAD/\n    echo \"$fd\" > IWAD/.freedoom-version\nfi\n\ntouch adminlist.txt whitelist.txt banlist.txt\n# Zandronum finds its home folder through the system's user list, which has\n# no entry for the server's user, and then uses a folder named ~ here.\nmkdir -p \"~\"\nif [ ! -f server.cfg ]; then\n    cat > server.cfg <<'CFG'\n// Zandronum server settings, run at every start. The name, passwords,\n// players, map and game mode are set from the server's variables.\nsv_motd \"Welcome!\"\nsv_maxlives 0\nsv_updatemaster 1\nsv_broadcast 1\nCFG\nfi\necho \"Installed Zandronum $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Zandronum release, such as 3.2.1, or latest for the newest: the same one your players have. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Zandronum server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:80|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:40|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Remote console password",
+            "description": "The password for the remote console. Empty turns it off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:40|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "cooperative, survival, invasion, deathmatch, teamplay, duel, terminator, lastmanstanding, teamlms, possession, teampossession, ctf, oneflagctf, skulltag or domination.",
+            "env_variable": "GAME_MODE",
+            "default_value": "cooperative",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:cooperative,survival,invasion,deathmatch,teamplay,duel,terminator,lastmanstanding,teamlms,possession,teampossession,ctf,oneflagctf,skulltag,domination",
+            "field_type": "text"
+        },
+        {
+            "name": "IWAD",
+            "description": "The game data in IWAD/: freedoom1.wad (Doom maps), freedoom2.wad (Doom II maps), freedm.wad (deathmatch), or a Doom WAD you upload.",
+            "env_variable": "IWAD",
+            "default_value": "freedoom1.wad",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[A-Za-z0-9_.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "PWADs",
+            "description": "Add-on WADs or PK3s from PWAD/ to load, separated by spaces.",
+            "env_variable": "PWADS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500|regex:/^[A-Za-z0-9_. -]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map to start on, such as e1m1 for Doom maps or map01 for Doom II maps.",
+            "env_variable": "MAP",
+            "default_value": "e1m1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40|regex:/^[A-Za-z0-9_]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Skill",
+            "description": "The difficulty, from 1 (easiest) to 5 (hardest). Empty uses the default, 3.",
+            "env_variable": "SKILL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|between:1,5",
+            "field_type": "text"
+        },
+        {
+            "name": "Gameplay flags",
+            "description": "The dmflags value, a number. Empty leaves the default.",
+            "env_variable": "DMFLAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|min:0",
+            "field_type": "text"
+        },
+        {
+            "name": "More gameplay flags",
+            "description": "The dmflags2 value, a number. Empty leaves the default.",
+            "env_variable": "DMFLAGS2",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|min:0",
+            "field_type": "text"
+        },
+        {
+            "name": "Zandronum gameplay flags",
+            "description": "The zadmflags value, a number. Empty leaves the default.",
+            "env_variable": "ZADMFLAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|min:0",
+            "field_type": "text"
+        },
+        {
+            "name": "Compatibility flags",
+            "description": "The compatflags value, a number. Empty leaves the default.",
+            "env_variable": "COMPATFLAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|min:0",
+            "field_type": "text"
+        },
+        {
+            "name": "More compatibility flags",
+            "description": "The compatflags2 value, a number. Empty leaves the default.",
+            "env_variable": "COMPATFLAGS2",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|min:0",
+            "field_type": "text"
+        },
+        {
+            "name": "Zandronum compatibility flags",
+            "description": "The zacompatflags value, a number. Empty leaves the default.",
+            "env_variable": "ZACOMPATFLAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|min:0",
+            "field_type": "text"
+        }
+    ]
+}

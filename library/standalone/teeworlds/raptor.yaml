@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/teeworlds/egg-teeworlds.json
+license: MIT
+credits:
+  - "Based on the Teeworlds egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Teeworlds' avatar, from https://github.com/teeworlds"
+certified: true
+# x86 only; ARM nodes run it through Box64 (the Box64 image).
+arch: [amd64, arm64]
+# No backup hooks: Teeworlds has no console and keeps no world to save.
+test:
+  tier: fast
+  memory_mib: 256
+  variables:
+    PUBLIC: "0"
+  done_timeout: 2m

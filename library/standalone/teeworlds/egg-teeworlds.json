@@ -1,0 +1,121 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Teeworlds",
+    "author": "support@raptorpanel.net",
+    "description": "The fast 2D multiplayer shooter: deathmatch, team deathmatch, capture the flag and more. Installs any Teeworlds release, and runs on ARM through Box64.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:a2ee132ea89015a735e52574a626e0f9f4ef63e2385b49299298268499466b8d"
+    },
+    "file_denylist": [],
+    "startup": "if command -v box64 >/dev/null; then BOX64_LOG=0 exec box64 ./teeworlds_srv; else exec ./teeworlds_srv; fi",
+    "config": {
+        "files": "{\"autoexec.cfg\": {\"parser\": \"file\", \"find\": {\"sv_port \": \"sv_port {{server.build.default.port}}\", \"sv_name \": \"sv_name \\\"{{server.build.env.SERVER_NAME}}\\\"\", \"sv_motd \": \"sv_motd \\\"{{server.build.env.SERVER_MOTD}}\\\"\", \"sv_max_clients \": \"sv_max_clients {{server.build.env.MAX_PLAYERS}}\", \"password \": \"password \\\"{{server.build.env.SERVER_PASSWORD}}\\\"\", \"sv_rcon_password \": \"sv_rcon_password \\\"{{server.build.env.RCON_PASSWORD}}\\\"\", \"sv_map \": \"sv_map \\\"{{server.build.env.MAP}}\\\"\", \"sv_gametype \": \"sv_gametype \\\"{{server.build.env.GAMETYPE}}\\\"\", \"sv_register \": \"sv_register {{server.build.env.PUBLIC}}\"}}}",
+        "startup": "{\"done\": \"server name is '\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Teeworlds. Downloads the chosen Teeworlds release for Linux from its\n# GitHub releases and installs its server. autoexec.cfg (your settings) and\n# your own maps in maps/ are never touched; the game's data is replaced\n# only once the new download has arrived whole.\nset -euo pipefail\ncd /mnt/server\nrepo=teeworlds/teeworlds\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\ntag=$(gh-release tag \"$repo\" \"${VERSION:-latest}\" 2>/dev/null) ||\n    fail \"Teeworlds has no release ${VERSION:-latest}. Set Version to latest, or to a release such as 0.7.5.\"\nasset=\"teeworlds-$tag-linux_x86_64.tar.gz\"\n\nif [ -x teeworlds_srv ] && [ -d data ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Teeworlds $tag is already installed.\"\nelse\n    grep -q \"^$asset \" <<<\"$(gh-release assets \"$repo\" \"$tag\")\" || fail \"Teeworlds $tag has no Linux download. Choose another version.\"\n    rm -rf \"$build\" && mkdir -p \"$build\"\n    echo \"Downloading Teeworlds $tag\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/tw.tar.gz\" || fail \"The download failed. Reinstall to try again.\"\n    tar -xzf \"$build/tw.tar.gz\" -C \"$build\" || fail \"The download was damaged. Reinstall to try again.\"\n    new=\"$build/teeworlds-$tag-linux_x86_64\"\n    [ -x \"$new/teeworlds_srv\" ] || fail \"Teeworlds $tag's download has no server in it. Choose another version.\"\n    rm -rf data && mv \"$new/data\" data\n    mv -f \"$new/teeworlds_srv\" teeworlds_srv\n    cp -f \"$new/license.txt\" license.txt 2>/dev/null || true\n    rm -f teeworlds\n    echo \"$tag\" > .raptor-version\nfi\n\n# Read the server folder first, so maps/ and autoexec.cfg here win over the\n# game's own data.\nprintf 'add_path $CURRENTDIR\\nadd_path $DATADIR\\n' > storage.cfg\nmkdir -p maps\nif [ ! -f autoexec.cfg ]; then\n    cat > autoexec.cfg <<'CFG'\n# Teeworlds server settings. The lines for the name, port, passwords,\n# players, map and game type are set from the server's variables at start.\nsv_name \"A Teeworlds server\"\nsv_motd \"\"\nsv_port 8303\nsv_register 1\nsv_max_clients 12\npassword \"\"\nsv_rcon_password \"\"\nsv_map \"dm1\"\nsv_gametype \"dm\"\nCFG\nfi\necho \"Installed Teeworlds $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Teeworlds release, such as 0.7.5, or latest for the newest. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Teeworlds server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Message of the day",
+            "description": "The message players see when they join.",
+            "env_variable": "SERVER_MOTD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "12",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Remote console password",
+            "description": "The password for the in-game remote console. Empty, the server makes one up at each start and shows it in the console.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map to start on, such as dm1, dm2, ctf1 or ctf2, or one of your own in maps/.",
+            "env_variable": "MAP",
+            "default_value": "dm1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60|regex:/^[A-Za-z0-9_.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game type",
+            "description": "dm (deathmatch), tdm (team deathmatch), ctf (capture the flag), lms (last man standing) or lts (last team standing).",
+            "env_variable": "GAMETYPE",
+            "default_value": "dm",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:dm,tdm,ctf,lms,lts",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "List the server in the in-game server browser.",
+            "env_variable": "PUBLIC",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

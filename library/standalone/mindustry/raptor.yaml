@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/mindustry/egg-mindustry.json
+license: MIT
+credits:
+  - "Based on the Mindustry egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Mindustry's icon, from https://github.com/Anuken/Mindustry (GPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+# No backup hooks: Mindustry's save command writes a separate save slot
+# rather than flushing the running game, and the game has no pause.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "status"
+  expect: "Playing on map"

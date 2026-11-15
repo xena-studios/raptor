@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/starmade/egg-starmade.json
+license: MIT
+credits:
+  - "Based on the StarMade egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: StarMade's logo, from https://www.star-made.org, on a dark background"
+certified: true
+# StarMade's native libraries are x86-64 only; it won't start on ARM.
+arch: [amd64]
+# No backup hooks: StarMade saves its universe on its own and at /shutdown.
+test:
+  # About 1.4 GB from Schine's update server.
+  tier: slow
+  memory_mib: 3072
+  done_timeout: 10m
+  command: "/server_message_broadcast info raptor"
+  expect: "used: 'SERVER_MESSAGE_BROADCAST'"

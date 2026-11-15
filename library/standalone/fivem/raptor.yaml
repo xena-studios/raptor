@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/fivem/egg-fivem.json
+license: MIT
+credits:
+  - "Based on the FiveM egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Cfx.re's logo, from https://github.com/citizenfx"
+certified: true
+# Cfx.re publishes FXServer for x86-64 Linux only.
+arch: [amd64]
+# No backup hooks: FiveM keeps no world of its own; resources save their data.
+test:
+  tier: manual
+  reason: "FXServer only starts with a Cfx.re license key, which is tied to an account (free from portal.cfx.re)."
+  memory_mib: 2048
+  done_timeout: 5m
