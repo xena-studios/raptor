@@ -9,7 +9,7 @@
     "description": "TeamSpeak 6 is the newest TeamSpeak voice server, for low-latency voice chat with channels and permissions. The egg runs it on the server's port with its own SQLite database.",
     "features": [],
     "docker_images": {
-        "Debian": "ghcr.io/pelican-eggs/yolks:debian@sha256:f4e18fadc9b2f2d1a300bffee78e5b87cccde4544e512acc36a1d370c1340121"
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
     },
     "file_denylist": [],
     "startup": "./tsserver --default-voice-port={{SERVER_PORT}}",
