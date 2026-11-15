@@ -1,0 +1,27 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/rust/egg-rust.json
+license: MIT
+credits:
+  - "Based on the Rust eggs in https://github.com/pelican-eggs/games-steamcmd and https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Rust's emblem, from its Steam store page (Facepunch Studios)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# Rust can't pause saving, so a backup saves first and has nothing to undo.
+backup:
+  pre: ["server.save"]
+  wait_for: "regex:Saved [0-9,]+ ents"
+  timeout: 5m
+test:
+  tier: slow
+  memory_mib: 8192
+  variables:
+    RCON_PASS: "conformance"
+    WORLD_SIZE: "1000"
+    SERVER_HOSTNAME: "raptor-conformance"
+  done_timeout: 60m
+  command: "status"
+  expect: "hostname"

@@ -174,17 +174,23 @@ func TestRaptorSettings(t *testing.T) {
 func TestBackupValidate(t *testing.T) {
 	good, _ := test(t)
 	for name, b := range map[string]eggs.BackupHooks{
-		"pre alone":  {Pre: []string{"save-off"}, WaitFor: "x"},
-		"post alone": {Post: []string{"save-on"}},
-		"no wait":    {Pre: []string{"save-off"}, Post: []string{"save-on"}},
-		"bad regex":  {Pre: []string{"save-off"}, Post: []string{"save-on"}, WaitFor: "regex:("},
-		"bad time":   {Pre: []string{"save-off"}, Post: []string{"save-on"}, WaitFor: "x", Timeout: "later"},
+		"pause alone": {Pre: []string{"save-off"}, WaitFor: "x"},
+		"post alone":  {Post: []string{"save-on"}},
+		"no wait":     {Pre: []string{"save-off"}, Post: []string{"save-on"}},
+		"bad regex":   {Pre: []string{"save-off"}, Post: []string{"save-on"}, WaitFor: "regex:("},
+		"bad time":    {Pre: []string{"save-off"}, Post: []string{"save-on"}, WaitFor: "x", Timeout: "later"},
 	} {
 		e := good
 		e.Backup = &b
 		if e.validate() == nil {
 			t.Errorf("%s: accepted", name)
 		}
+	}
+	// A save with nothing to undo (Rust's server.save).
+	e := good
+	e.Backup = &eggs.BackupHooks{Pre: []string{"server.save"}, WaitFor: "Saved"}
+	if err := e.validate(); err != nil {
+		t.Errorf("a save alone: %v", err)
 	}
 }
 

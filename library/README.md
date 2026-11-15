@@ -99,3 +99,112 @@ the node's CPU from `assets` by name (`uname -m`).
 The install container's `/tmp` is a small in-memory folder: big
 temporary files (a JDK to build with, archives) go in a folder under
 `/mnt/server` such as `.raptor-build`, removed when the script exits.
+
+## SteamCMD eggs
+
+`steam/valheim` is the pattern for every SteamCMD game (`steam/rust` and
+`steam/cs2` follow it with pelican-eggs' images):
+
+- **The install** (on the installer image, as root) downloads SteamCMD
+  into the server's `steamcmd/` folder once and keeps it there, so the
+  server can update itself at start. It signs in **anonymously only**
+  (a game that needs an account is left out of the library) and runs
+  `app_update`, with `-beta`/`-betapassword` when set and `validate` only
+  when Validate files is on. SteamCMD's exit code means nothing: success is
+  its `Success! App '<id>'` line. Its transient failures (`Missing
+  configuration`, state `0x202` or `0x602`, often right after it updates
+  itself) are retried up to 5 times; `No subscription` (needs an account)
+  and a refused beta stop at once, with one plain line. It then copies
+  `steamclient.so` to `.steam/sdk32` and `.steam/sdk64` and ends with the
+  installed build from `steamapps/appmanifest_<id>.acf`. `app_update`
+  only adds and replaces the game's own files, so saves and configs stay;
+  game-specific steps (mod loaders, config lines the Panel replaces, an
+  opt-in wipe) come after, and anything destructive only once the game
+  installed. Large games set `"install": {"timeout": "4h"}` in the egg.
+- **Images:** Raptor's `steamcmd` (Debian with SteamCMD's 32-bit
+  libraries) when the game runs on it, named `SteamCMD`. Its entrypoint
+  updates nothing, so the startup starts with the update step below and
+  ends with `exec <game>`. pelican-eggs' images where the game needs
+  something Raptor's lacks: `steamcmd:sniper` (`Steam Runtime 3`, Source 2
+  games), a game image with a console wrapper (`games:rust`, which talks to
+  Rust over RCON), or `wine`/`proton` for Windows-only servers (with
+  `+@sSteamCmdForcePlatformType windows` in the install). Their
+  entrypoints run the same update from the same variables and the same
+  `steamcmd/` folder, so the startup is just the game.
+- **Variables** keep upstream's names: `SRCDS_APPID` (`Steam app ID`,
+  hidden, `in:<id>`), `AUTO_UPDATE` (`Auto update`, default 1),
+  `VALIDATE` (`Validate files`, default 0), `SRCDS_BETAID` (`Beta
+  branch`), `SRCDS_BETAPASS` (`Beta password`), and the game's own
+  (`SERVER_NAME`, `MAX_PLAYERS`, `QUERY_PORT`, `RCON_PASS` …) as the old
+  catalog's egg had them. Passwords and tokens have no default; one the
+  console needs (Rust's RCON) is `required`, others `nullable`. Settings
+  in a config file go through `config.files`, with the install adding the
+  lines a `file` parser replaces.
+- **Startup and stop:** the game's real done line; `stop` is the game's
+  quit command (`quit`), or `^C` when it has no console, which reaches the
+  game because the startup `exec`s it. A log filter runs in a process
+  substitution that ignores SIGINT (`> >(trap '' INT; exec sed -u …)`), so
+  the game's last lines still show while it saves.
+- **Raptor's settings:** `arch: [amd64]`. `players: {query: source}` for
+  games that answer A2S, with `port` when that isn't the game port (`"+1"`,
+  `QUERY_PORT`). `backup` when the console can save: `pre` the save command and
+  `wait_for` its line, plus pause/resume (`post`) where the game has them. `workshop` when the game downloads Workshop items
+  from a variable.
+- **Tests:** `tier: slow` (a PR runs the eggs it changes; the whole tier
+  runs weekly, amd64), `manual` with a reason for servers
+  over about 14 GB, with the test variables a server needs to start
+  (passwords) and a console `command`/`expect` where it has one.
+
+The install's SteamCMD part, copied as it is (set `app`, then add the
+game's own steps):
+
+```bash
+#!/bin/bash
+# <Game>. Installs or updates the dedicated server (Steam app <id>) with
+# SteamCMD, signed in anonymously. <What is never touched.>
+set -euo pipefail
+cd /mnt/server
+export HOME=/mnt/server
+app="${SRCDS_APPID:-<id>}"
+fail() { echo "$1"; exit 1; }
+
+# SteamCMD stays in the server folder, so the server can update itself at start.
+if [ ! -x steamcmd/steamcmd.sh ]; then
+    echo "Downloading SteamCMD"
+    mkdir -p steamcmd
+    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd
+fi
+mkdir -p steamapps
+args=(+force_install_dir /mnt/server +login anonymous +app_update "$app")
+[ -z "${SRCDS_BETAID:-}" ] || args+=(-beta "$SRCDS_BETAID")
+[ -z "${SRCDS_BETAPASS:-}" ] || args+=(-betapassword "$SRCDS_BETAPASS")
+[ "${VALIDATE:-0}" != 1 ] || args+=(validate)
+# SteamCMD often fails once for no lasting reason (Missing configuration,
+# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.
+for try in 1 2 3 4 5; do
+    ./steamcmd/steamcmd.sh "${args[@]}" +quit 2>&1 | tee /tmp/steamcmd.log || true
+    grep -aq "Success! App '$app'" /tmp/steamcmd.log && break
+    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true
+    case "$err" in
+    *"No subscription"*) fail "Steam won't give this game to an anonymous account, so it can't be installed." ;;
+    *"Invalid Password"* | *"Invalid beta"*) fail "Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall." ;;
+    esac
+    [ "$try" = 5 ] && fail "SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again."
+    echo "SteamCMD failed; trying again ($((try + 1)) of 5)."
+    sleep 5
+done
+# Steam's client library, where the game looks for it.
+mkdir -p .steam/sdk32 .steam/sdk64
+cp -f steamcmd/linux32/steamclient.so .steam/sdk32/
+cp -f steamcmd/linux64/steamclient.so .steam/sdk64/
+build=$(sed -n 's/^[[:space:]]*"buildid"[[:space:]]*"\([0-9]*\)".*/\1/p' "steamapps/appmanifest_$app.acf" | head -n 1)
+
+
+echo "Installed <Game> build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}."
+```
+
+And the update step a startup on Raptor's `steamcmd` image begins with:
+
+```bash
+if [ "{{AUTO_UPDATE}}" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta "$SRCDS_BETAID"} ${SRCDS_BETAPASS:+-betapassword "$SRCDS_BETAPASS"} $([ "{{VALIDATE}}" = 1 ] && echo validate) +quit || echo "Steam couldn't update the game, so the server starts as it is."; fi; exec ./<game> …
+```

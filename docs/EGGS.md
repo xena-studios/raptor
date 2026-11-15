@@ -255,7 +255,7 @@ In Pterodactyl's and Pelican's formats, Raptor's settings live under a namespace
 `x-raptor.backup` is what a backup sends to a **running** server's console (as the user `backup`, so it shows in the console and the job's log):
 - `pre`, before the snapshot (and before its databases are dumped). For Minecraft, `save-off` (no autosave writes during the copy) and `save-all flush` (everything in memory written out now), so the backup never catches region files mid-write.
 - `wait_for`, the console line that says `pre` is done: a substring, or a regular expression after `regex:`, as done lines are, matched with the game's colours stripped. Wings waits up to `timeout` (a duration; the node's default is a minute). If the line doesn't come, the backup is taken anyway with a warning ("the server didn't confirm the save"): a possibly inconsistent backup beats none.
-- `post`, after the snapshot, **whatever happened to it**: a failed or cancelled snapshot, a stopping Wings, even a panic. A server left with saving off silently stops saving, which is worse than the bug the hooks fix. If Wings stops or crashes between the two, the job's checkpoint says so: the resumed job sends `post` before anything else, and a job given up on after repeated crashes gets it sent when Wings starts. A server that stopped meanwhile needs nothing (saving is on again after a start).
+- `post`, after the snapshot, **whatever happened to it**. Optional: a game that can only save, not pause saving (Rust's `server.save`), has `pre` alone; one whose `pre` pauses saving (`save-off`, `save hold`) must have it, and the catalog refuses it without. a failed or cancelled snapshot, a stopping Wings, even a panic. A server left with saving off silently stops saving, which is worse than the bug the hooks fix. If Wings stops or crashes between the two, the job's checkpoint says so: the resumed job sends `post` before anything else, and a job given up on after repeated crashes gets it sent when Wings starts. A server that stopped meanwhile needs nothing (saving is on again after a start).
 
 Stopped servers get no hooks; their files aren't changing. Safety and final backups (taken by a reinstall or a delete, with the server stopped) don't send them.
 
@@ -401,9 +401,11 @@ Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EU
 **Tiers** (`test.tier`):
 | Tier | Eggs | When |
 |---|---|---|
-| fast | The test egg | PRs that touch eggs or the code that runs them, nightly, on demand; amd64 and arm64 runners |
-| slow | None now (big SteamCMD downloads go here) | Weekly and on demand; amd64 |
-| manual | None now (eggs that need disk or accounts CI doesn't have) | By hand |
+| fast | The test egg; library eggs that install quickly (Minecraft, apps, languages) | PRs that touch eggs or the code that runs them, nightly, on demand; amd64 and arm64 runners |
+| slow | Library SteamCMD games (Rust, Valheim, …) | Weekly and on demand; amd64 |
+| manual | Library eggs too big for a runner's disk or needing an account (Counter-Strike 2, about 60 GB) | By hand |
+
+A PR runs the library eggs it changes whatever their tier, except `manual`.
 
 ```bash
 task e2e:conformance                         # fast tier in the VM

@@ -129,6 +129,11 @@ type Test struct {
 type Duration time.Duration
 
 // UnmarshalYAML implements yaml.Unmarshaler.
+
+// pausesSaving matches console commands that stop a game saving (save-off,
+// Bedrock's save hold), which a backup's post must undo.
+var pausesSaving = regexp.MustCompile(`(?i)save-?off|save hold|autosave (off|false|0)|disable|pause`)
+
 func (d *Duration) UnmarshalYAML(n *yaml.Node) error {
 	v, err := time.ParseDuration(n.Value)
 	if err != nil {
@@ -274,10 +279,13 @@ func (e *Entry) validate() error {
 			return err
 		}
 		switch {
-		case len(b.Pre) == 0 || len(b.Post) == 0:
-			// Pre without post leaves the game not saving; post without
-			// pre undoes nothing.
-			return errors.New("backup needs both pre and post commands")
+		case len(b.Pre) == 0:
+			// Post without pre undoes nothing. Pre alone is a save before
+			// the snapshot (Rust's server.save), for games that can't
+			// pause saving; one that pauses it must have a post.
+			return errors.New("backup needs pre commands")
+		case len(b.Post) == 0 && slices.ContainsFunc(b.Pre, pausesSaving.MatchString):
+			return errors.New("backup: pre pauses saving, so post must resume it")
 		case b.WaitFor == "":
 			return errors.New("backup.wait_for is required: the line that says the save is done")
 		}

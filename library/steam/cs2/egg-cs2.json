@@ -1,0 +1,204 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/games-steamcmd (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Counter-Strike 2",
+    "author": "support@raptorpanel.net",
+    "description": "Valve's tactical shooter. Installs the dedicated server with SteamCMD and keeps it updated, with game mode, map and Workshop collection settings.",
+    "features": [],
+    "docker_images": {
+        "Steam Runtime 3": "ghcr.io/pelican-eggs/steamcmd:sniper@sha256:99d436be50b2c57e94e922597adca0f327a8fcc29204520be929c26efb1f4810"
+    },
+    "file_denylist": [],
+    "startup": "LD_LIBRARY_PATH=\"$HOME/game/bin/linuxsteamrt64:$LD_LIBRARY_PATH\" ./game/bin/linuxsteamrt64/cs2 -dedicated $([ \"{{VAC_ENABLED}}\" = 1 ] || echo -insecure) $([ \"{{RCON_ENABLED}}\" = 1 ] && echo -usercon) -ip 0.0.0.0 -port {{SERVER_PORT}} -tv_port {{TV_PORT}} -maxplayers {{MAX_PLAYERS}} +game_type {{GAME_TYPE}} +game_mode {{GAME_MODE}} +map {{SRCDS_MAP}} +hostname \"{{SERVER_NAME}}\" +sv_password \"{{SERVER_PASSWORD}}\" +rcon_password \"{{RCON_PASSWORD}}\" ${STEAM_GSLT:++sv_setsteamaccount $STEAM_GSLT} ${WORKSHOP_COLLECTION:++host_workshop_collection $WORKSHOP_COLLECTION}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Connection to Steam servers successful\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Counter-Strike 2. Installs or updates the dedicated server (Steam app 730)\n# with SteamCMD, signed in anonymously. Configs, maps and plugins are kept.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-730}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\necho \"Installed Counter-Strike 2 build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Counter-Strike 2 server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[\\w.-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server starts on, such as de_dust2 or de_mirage.",
+            "env_variable": "SRCDS_MAP",
+            "default_value": "de_dust2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[\\w.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game type",
+            "description": "With Game mode, what's played: 0 and 1 is Competitive, 0 and 0 Casual, 0 and 2 Wingman, 1 and 2 Deathmatch, 1 and 0 Arms Race.",
+            "env_variable": "GAME_TYPE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,6",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "With Game type, what's played: see Game type.",
+            "env_variable": "GAME_MODE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,6",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "12",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Game server token",
+            "description": "A Game Server Login Token from Steam's game server account page (app 730), which public servers need to be listed. Empty, the server is only joinable by address.",
+            "env_variable": "STEAM_GSLT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|alpha_num|size:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Workshop collection",
+            "description": "The ID of a Steam Workshop map collection to host, or empty for none.",
+            "env_variable": "WORKSHOP_COLLECTION",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[0-9]+$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "VAC",
+            "description": "Valve Anti-Cheat. Off, the server runs insecure and isn't listed.",
+            "env_variable": "VAC_ENABLED",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON",
+            "description": "Let RCON tools connect, with the RCON password.",
+            "env_variable": "RCON_ENABLED",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The password RCON tools and in-game rcon use.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[\\w.-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "SourceTV port",
+            "description": "The port for SourceTV spectators, when tv_enable is on. Add it as an allocation.",
+            "env_variable": "TV_PORT",
+            "default_value": "27020",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, such as staging, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "730",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:730",
+            "field_type": "text"
+        }
+    ],
+    "install": {
+        "timeout": "4h"
+    }
+}
