@@ -86,6 +86,15 @@ func TestLibrary(t *testing.T) {
 					t.Errorf("variable %s has no rules", v.Env)
 				}
 			}
+			// The defaults, with the test's values, pass the egg's own rules,
+			// as a server made with them must (Wings refuses it otherwise),
+			// and every rule is one Raptor can check.
+			if _, err := egg.Validate(e.Test.Variables); err != nil {
+				t.Errorf("defaults and test variables fail the egg's rules: %v", err)
+			}
+			for _, l := range egg.Lint() {
+				t.Errorf("rule: %s", l)
+			}
 			if c := egg.Install.Container; c != "" && !digest.MatchString(c) {
 				t.Errorf("install container %s: Raptor's or pelican-eggs' images, pinned by digest", c)
 			}
