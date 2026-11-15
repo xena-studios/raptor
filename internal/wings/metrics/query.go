@@ -11,7 +11,9 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf16"
 )
 
 // Players is a game's answer to a player query.
@@ -26,15 +28,81 @@ const queryTimeout = 2 * time.Second
 // QueryPlayers asks a game server for its player count with the protocol its
 // egg names.
 func QueryPlayers(ctx context.Context, protocol, addr string) (Players, error) {
-	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
-	defer cancel()
 	switch protocol {
 	case "minecraft":
-		return queryMinecraft(ctx, addr)
+		p, err := withTimeout(ctx, addr, queryMinecraft)
+		var ne net.Error
+		if err != nil && (!errors.As(err, &ne) || !ne.Timeout()) {
+			// Minecraft before 1.7 (old modpacks) only answers the legacy
+			// ping; it drops the modern one at once. A server that didn't
+			// answer at all isn't asked twice.
+			if lp, lerr := withTimeout(ctx, addr, queryMinecraftLegacy); lerr == nil {
+				return lp, nil
+			}
+		}
+		return p, err
 	case "source":
-		return querySource(ctx, addr)
+		return withTimeout(ctx, addr, querySource)
 	}
 	return Players{}, fmt.Errorf("unknown player query %q", protocol)
+}
+
+func withTimeout(ctx context.Context, addr string, q func(context.Context, string) (Players, error)) (Players, error) {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
+	return q(ctx, addr)
+}
+
+// queryMinecraftLegacy uses the ping Minecraft answered before 1.7: 0xFE
+// 0x01, answered by a kick packet (0xFF) whose UTF-16 reason is
+// "§1\x00<protocol>\x00<version>\x00<motd>\x00<online>\x00<max>" (1.4 to
+// 1.6) or "<motd>§<online>§<max>" (beta 1.8 to 1.3).
+func queryMinecraftLegacy(ctx context.Context, addr string) (Players, error) {
+	var d net.Dialer
+	c, err := d.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return Players{}, err
+	}
+	defer func() { _ = c.Close() }()
+	if dl, ok := ctx.Deadline(); ok {
+		_ = c.SetDeadline(dl)
+	}
+	if _, err := c.Write([]byte{0xfe, 0x01}); err != nil {
+		return Players{}, err
+	}
+	var head [3]byte
+	if _, err := io.ReadFull(c, head[:]); err != nil {
+		return Players{}, err
+	}
+	if head[0] != 0xff {
+		return Players{}, errors.New("not a legacy ping response")
+	}
+	buf := make([]byte, 2*int(binary.BigEndian.Uint16(head[1:])))
+	if _, err := io.ReadFull(c, buf); err != nil {
+		return Players{}, err
+	}
+	u := make([]uint16, len(buf)/2)
+	for i := range u {
+		u[i] = binary.BigEndian.Uint16(buf[2*i:])
+	}
+	return parseLegacyPing(string(utf16.Decode(u)))
+}
+
+func parseLegacyPing(s string) (Players, error) {
+	var online, maxPlayers string
+	if f := strings.Split(s, "\x00"); len(f) >= 6 && f[0] == "§1" {
+		online, maxPlayers = f[4], f[5]
+	} else if f := strings.Split(s, "§"); len(f) >= 3 {
+		online, maxPlayers = f[len(f)-2], f[len(f)-1]
+	} else {
+		return Players{}, errors.New("unrecognised legacy ping response")
+	}
+	on, err1 := strconv.Atoi(online)
+	mx, err2 := strconv.Atoi(maxPlayers)
+	if err1 != nil || err2 != nil {
+		return Players{}, errors.New("unrecognised legacy ping response")
+	}
+	return Players{Online: on, Max: mx}, nil
 }
 
 // queryMinecraft uses the Java edition's Server List Ping: a handshake into
