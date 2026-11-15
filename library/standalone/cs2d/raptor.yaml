@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/cs2d/egg-cs2d.json
+license: MIT
+credits:
+  - "Based on the CS2D egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: CS2D's icon, from its Steam logo (Unreal Software)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 5m

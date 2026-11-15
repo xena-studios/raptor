@@ -1,0 +1,121 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the OpenRA eggs in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "OpenRA",
+    "author": "support@raptorpanel.net",
+    "description": "OpenRA, the open-source remake of the classic Command & Conquer games. Runs a dedicated server for Red Alert, Tiberian Dawn or Dune 2000.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "exec ./squashfs-root/AppRun --server Server.Name=\"{{SERVER_NAME}}\" Server.ListenPort={{SERVER_PORT}} Server.AdvertiseOnline={{PUBLIC}} Server.EnableSingleplayer={{SINGLEPLAYER}} Server.Password=\"{{PASSWORD}}\" Server.RequireAuthentication={{AUTH}} Server.EnableGeoIP={{GEOIP}} Server.ShareAnonymizedIPs={{ANONYMOUS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Starting dedicated server for mod\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# OpenRA: downloads the chosen mod's AppImage (Red Alert, Tiberian Dawn or\n# Dune 2000) from OpenRA's GitHub releases and unpacks it. Maps, replays\n# and settings in .config/openra are never touched, and the game is\n# replaced only once the new one has unpacked.\nset -euo pipefail\ncd /mnt/server\n\nrepo=OpenRA/OpenRA\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\n[ \"$(uname -m)\" = x86_64 ] || fail \"OpenRA's Linux server only runs on x86_64 (amd64) nodes.\"\ncase \"${MOD:-ra}\" in\n    ra) name=Red-Alert ;;\n    cnc) name=Tiberian-Dawn ;;\n    d2k) name=Dune-2000 ;;\n    *) fail \"Mod must be ra (Red Alert), cnc (Tiberian Dawn) or d2k (Dune 2000).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag \"$repo\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    tag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n        fail \"OpenRA has no version $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" 2>/dev/null || echo release-20250330).\"\nfi\nasset=\"OpenRA-$name-x86_64.AppImage\"\n\nif [ -x squashfs-root/AppRun ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag $MOD\" ]; then\n    echo \"OpenRA $tag ($name) is already installed.\"\nelse\n    mkdir -p \"$build\"\n    echo \"Downloading OpenRA $tag ($name)\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/openra.AppImage\" || fail \"OpenRA $tag has no $name download.\"\n    chmod +x \"$build/openra.AppImage\"\n    (cd \"$build\" && ./openra.AppImage --appimage-extract >/dev/null) || fail \"The AppImage couldn't be unpacked.\"\n    rm -rf squashfs-root\n    mv \"$build/squashfs-root\" squashfs-root\n    echo \"$tag $MOD\" > .raptor-version\nfi\necho \"Installed OpenRA $tag ($name).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Mod",
+            "description": "The game to host: ra (Red Alert), cnc (Tiberian Dawn) or d2k (Dune 2000). Reinstall the server after changing it.",
+            "env_variable": "MOD",
+            "default_value": "ra",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:ra,cnc,d2k",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The OpenRA release, such as release-20250330, or latest for the newest one. Players need the same version. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|(release|playtest)-[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "OpenRA Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players need to join. Leave it empty for none.",
+            "env_variable": "PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "List the server in the public server browser.",
+            "env_variable": "PUBLIC",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Require accounts",
+            "description": "Only let players with an OpenRA forum account join.",
+            "env_variable": "AUTH",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Singleplayer",
+            "description": "Let a game start with only one player.",
+            "env_variable": "SINGLEPLAYER",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "GeoIP",
+            "description": "Show each player's country in the lobby.",
+            "env_variable": "GEOIP",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Anonymized IPs",
+            "description": "Show players only part of each other's IP addresses.",
+            "env_variable": "ANONYMOUS",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

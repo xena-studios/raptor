@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the AssaultCube egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "AssaultCube",
+    "author": "support@raptorpanel.net",
+    "description": "AssaultCube, the free fast-paced multiplayer shooter. It uses the server port and the next one up, and is listed on the master server once it has a server key.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:a2ee132ea89015a735e52574a626e0f9f4ef63e2385b49299298268499466b8d"
+    },
+    "file_denylist": [],
+    "startup": "r=; command -v box64 >/dev/null && r=box64; exec $r ./bin_unix/linux_64_server -f{{SERVER_PORT}} -c{{ASSAULT_SERVER_MAXPLAYERS}} -n\"{{ASSAULT_SERVER_DESCRIPTION}}\" -o\"{{ASSAULT_SERVER_MOTD}}\" -m{{ASSAULT_SERVER_MASTERSERVER}} ${ASSAULT_SERVER_KEY:+-Y$ASSAULT_SERVER_KEY} ${ASSAULT_SERVER_ADMINPASSWORD:+\"-x$ASSAULT_SERVER_ADMINPASSWORD\"} ${ASSAULT_SERVER_PLAYERPASSWORD:+\"-p$ASSAULT_SERVER_PLAYERPASSWORD\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"dedicated server started, waiting for clients\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# AssaultCube: downloads a release from GitHub and keeps what the server\n# needs (the server, its config folder and the official maps). Config files\n# are added only when they aren't there yet, so your edits are kept.\nset -euo pipefail\ncd /mnt/server\n\nrepo=assaultcube/AC\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag \"$repo\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    case \"$want\" in v*) ;; *) want=\"v$want\" ;; esac\n    tag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n        fail \"AssaultCube has no version $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" 2>/dev/null || echo v1.3.0.2).\"\nfi\nasset=$(gh-release assets \"$repo\" \"$tag\" | awk '{print $1}' | grep -E '\\.tar\\.bz2$' | head -n1 || true)\n[ -n \"$asset\" ] || fail \"AssaultCube $tag has no Linux download.\"\n\nif [ -x bin_unix/linux_64_server ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"AssaultCube $tag is already installed.\"\nelse\n    mkdir -p \"$build/x\"\n    echo \"Downloading AssaultCube $tag\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/ac.tar.bz2\" || fail \"The download failed. Reinstall to try again.\"\n    tar -xjf \"$build/ac.tar.bz2\" -C \"$build/x\" --wildcards './bin_unix/linux_64_server' './config/*' './packages/maps/*' ||\n        fail \"AssaultCube $tag has no Linux server in its download.\"\n    rm -f \"$build/ac.tar.bz2\"\n    # Config files are the server's own once they're there.\n    (cd \"$build/x\" && find config -type f) | while read -r f; do\n        if [ -e \"$f\" ]; then rm -f \"$build/x/$f\"; fi\n    done\n    cp -a \"$build/x/.\" .\n    chmod +x bin_unix/linux_64_server\n    echo \"$tag\" > .raptor-version\nfi\n\n# The example command line file has a well-known server key; the key is\n# the Server key variable instead.\nif [ -f config/servercmdline.txt ]; then\n    sed -i '/^-Y AAAAAAAAAAAAAAAA/d' config/servercmdline.txt\nfi\nmkdir -p demos logs\necho \"Installed AssaultCube $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The AssaultCube release, such as v1.3.0.2, or latest for the newest one. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?[0-9]+(\\.[0-9]+)*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server key",
+            "description": "Your private server key (64 hex characters, made in the game with authkey new server). Without one the server is LAN only.",
+            "env_variable": "ASSAULT_SERVER_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[0-9a-fA-F]{64}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The server's name in the server browser.",
+            "env_variable": "ASSAULT_SERVER_DESCRIPTION",
+            "default_value": "An AssaultCube server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Message of the day",
+            "description": "The message players see when they join.",
+            "env_variable": "ASSAULT_SERVER_MOTD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be on the server.",
+            "env_variable": "ASSAULT_SERVER_MAXPLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,16",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password to claim admin on the server. Leave it empty for none.",
+            "env_variable": "ASSAULT_SERVER_ADMINPASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Player password",
+            "description": "The password players need to join. Leave it empty for a public server.",
+            "env_variable": "ASSAULT_SERVER_PLAYERPASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Master server",
+            "description": "The master server the server registers with.",
+            "env_variable": "ASSAULT_SERVER_MASTERSERVER",
+            "default_value": "ms.cubers.net",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[A-Za-z0-9.:-]+$/",
+            "field_type": "text"
+        }
+    ]
+}

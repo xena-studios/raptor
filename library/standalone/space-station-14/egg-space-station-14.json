@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Space Station 14 egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Space Station 14",
+    "author": "support@raptorpanel.net",
+    "description": "Space Station 14, the multiplayer space station roleplay game. Installs the official server build, or a fork's from its build manifest.",
+    "features": [],
+    "docker_images": {
+        ".NET 10": "ghcr.io/xena-studios/yolks:dotnet_10@sha256:11a7153a1a29151bd6b495eedced4a9127b724707a75ea1cb19d4fd4f75e7ff6"
+    },
+    "file_denylist": [],
+    "startup": "exec ./Robust.Server",
+    "config": {
+        "files": "{\"server_config.toml\": {\"parser\": \"file\", \"find\": {\"port =\": \"port = {{server.build.default.port}}\", \"hostname =\": \"hostname = \\\"{{server.build.env.SERVER_NAME}}\\\"\", \"tickrate =\": \"tickrate = {{server.build.env.SERVER_TICK}}\", \"max_connections =\": \"max_connections = {{server.build.env.SERVER_MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": [\"Server Version\"]}",
+        "logs": "{}",
+        "stop": "shutdown"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Space Station 14: downloads a server build from the build manifest (Space\n# Wizards' by default, or a fork's) and checks it against the manifest's\n# SHA-256. The database, config and logs are never touched; the server's\n# files are replaced only once the new build is downloaded and unpacked.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nmanifest_url=\"${BUILD_MANIFEST:-https://wizards.cdn.spacestation14.com/fork/wizards/manifest}\"\nmanifest=$(curl -fsSL -A \"$ua\" \"$manifest_url\") || fail \"The build manifest at $manifest_url can't be reached right now. Reinstall to try again.\"\njq -e '.builds | type == \"object\"' <<<\"$manifest\" >/dev/null 2>&1 || fail \"$manifest_url isn't a Space Station 14 build manifest.\"\n\ncase \"$(uname -m)\" in\n    x86_64) platform=linux-x64 ;;\n    aarch64) platform=linux-arm64 ;;\n    *) fail \"Space Station 14 has no server for this CPU.\" ;;\nesac\n\nwant=\"${SS14_VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    version=$(jq -r --arg p \"$platform\" '[.builds | to_entries[] | select(.value.server[$p])] | sort_by(.value.time) | last | .key // empty' <<<\"$manifest\")\n    [ -n \"$version\" ] || fail \"The manifest has no server build for $platform.\"\nelse\n    version=$(jq -r --arg v \"$want\" '[.builds | keys[] | select(startswith($v))] | if length == 1 then .[0] else empty end' <<<\"$manifest\")\n    [ -n \"$version\" ] || fail \"The manifest has no build $want (or more than one starts with it). Set Version to latest, or to a build's full commit hash.\"\nfi\nurl=$(jq -r --arg v \"$version\" --arg p \"$platform\" '.builds[$v].server[$p].url // empty' <<<\"$manifest\")\nsum=$(jq -r --arg v \"$version\" --arg p \"$platform\" '.builds[$v].server[$p].sha256 // empty | ascii_downcase' <<<\"$manifest\")\n[ -n \"$url\" ] || fail \"Build $version has no server for $platform.\"\n\nif [ -f Robust.Server ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version $platform\" ]; then\n    echo \"Space Station 14 build ${version:0:12} is already installed.\"\nelse\n    mkdir -p \"$build/x\"\n    echo \"Downloading Space Station 14 build ${version:0:12} ($platform)\"\n    curl -fsSL -A \"$ua\" -o \"$build/server.zip\" \"$url\" || fail \"The download failed. Reinstall to try again.\"\n    if [ -n \"$sum\" ]; then\n        [ \"$(sha256sum \"$build/server.zip\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"The download didn't match the manifest's checksum. Reinstall to try again.\"\n    fi\n    unzip -q \"$build/server.zip\" -d \"$build/x\"\n    # The server's settings are its own after the first install.\n    if [ -f server_config.toml ]; then rm -f \"$build/x/server_config.toml\"; fi\n    # Files the last build had and this one doesn't are removed; nothing else.\n    (cd \"$build/x\" && find . -type f | sort) > \"$build/files\"\n    if [ -f .raptor-files ]; then\n        comm -23 <(sort .raptor-files) \"$build/files\" | while read -r f; do rm -f -- \"$f\"; rmdir -p --ignore-fail-on-non-empty \"$(dirname \"$f\")\" 2>/dev/null || true; done\n    fi\n    cp -a \"$build/x/.\" .\n    mv -f \"$build/files\" .raptor-files\n    chmod +x Robust.Server\n    echo \"$version $platform\" > .raptor-version\nfi\necho \"Installed Space Station 14 build ${version:0:12}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The build's commit hash from the manifest, or latest for the newest build. Reinstall the server after changing it.",
+            "env_variable": "SS14_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9a-f]{6,40})$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Build manifest",
+            "description": "The build manifest to install from. Change it to run a fork's builds.",
+            "env_variable": "BUILD_MANIFEST",
+            "default_value": "https://wizards.cdn.spacestation14.com/fork/wizards/manifest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|url|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "MyServer",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:48",
+            "field_type": "text"
+        },
+        {
+            "name": "Tick rate",
+            "description": "Server ticks per second.",
+            "env_variable": "SERVER_TICK",
+            "default_value": "30",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,120",
+            "field_type": "text"
+        },
+        {
+            "name": "Max connections",
+            "description": "The most players that can be connected at once.",
+            "env_variable": "SERVER_MAX_PLAYERS",
+            "default_value": "256",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,1024",
+            "field_type": "text"
+        }
+    ]
+}

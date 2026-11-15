@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Xonotic egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Xonotic",
+    "author": "support@raptorpanel.net",
+    "description": "Xonotic, the fast open-source arena shooter. Its settings are in .xonotic/data/server.cfg.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:a2ee132ea89015a735e52574a626e0f9f4ef63e2385b49299298268499466b8d"
+    },
+    "file_denylist": [],
+    "startup": "r=; command -v box64 >/dev/null && r=box64; exec $r ./xonotic-linux64-dedicated +set net_address 0.0.0.0 +port {{SERVER_PORT}} +maxplayers {{MAX_PLAYERS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Server listening on address\"]}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Xonotic: downloads a release from dl.xonotic.org, checks it against the\n# published checksum, and keeps only what the server needs (the game data\n# and the dedicated server). server.cfg and everything else the server\n# writes are never touched.\nset -euo pipefail\ncd /mnt/server\n\nbase=https://dl.xonotic.org\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nindex=$(curl -fsSL -A \"$ua\" \"$base/\") || fail \"dl.xonotic.org can't be reached right now. Reinstall to try again.\"\nreleases=$(grep -oE 'xonotic-[0-9]+\\.[0-9]+\\.[0-9]+\\.zip\"' <<<\"$index\" | sed -E 's/^xonotic-//; s/\\.zip\"$//' | sort -uV)\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    version=$(tail -n1 <<<\"$releases\")\nelse\n    grep -qxF \"$want\" <<<\"$releases\" || fail \"Xonotic has no version $want. Set Version to latest, or to a release such as $(tail -n1 <<<\"$releases\").\"\n    version=$want\nfi\nfile=\"xonotic-$version.zip\"\n\nif [ -f xonotic-linux64-dedicated ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Xonotic $version is already installed.\"\nelse\n    mkdir -p \"$build/x\"\n    echo \"Downloading Xonotic $version (about 1.2 GB)\"\n    curl -fsSL -A \"$ua\" -o \"$build/$file\" \"$base/$file\" || fail \"The download failed. Reinstall to try again.\"\n    checked=\n    for algo in sha512 sha256 md5; do\n        if sums=$(curl -fsSL -A \"$ua\" \"$base/xonotic-$version.$algo\" 2>/dev/null); then\n            sum=$(awk -v f=\"$file\" '$2 == f || $2 == \"*\"f { print $1 }' <<<\"$sums\")\n            if [ -n \"$sum\" ]; then\n                [ \"$(\"${algo}sum\" \"$build/$file\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"The download didn't match Xonotic's checksum. Reinstall to try again.\"\n                checked=1\n                break\n            fi\n        fi\n    done\n    [ -n \"$checked\" ] || echo \"Xonotic publishes no checksum for $version, so the download wasn't checked.\"\n    unzip -q \"$build/$file\" 'Xonotic/data/*' 'Xonotic/key_0.d0pk' 'Xonotic/xonotic-linux64-dedicated' 'Xonotic/server/server.cfg' -d \"$build/x\"\n    rm -f \"$build/$file\"\n    # Files the last version had and this one doesn't (its game data) are\n    # removed; nothing else is.\n    (cd \"$build/x/Xonotic\" && find . -type f | sort) > \"$build/files\"\n    if [ -f .raptor-files ]; then\n        comm -23 <(sort .raptor-files) \"$build/files\" | while read -r f; do rm -f -- \"$f\"; done\n    fi\n    cp -a \"$build/x/Xonotic/.\" .\n    mv -f \"$build/files\" .raptor-files\n    chmod +x xonotic-linux64-dedicated\n    echo \"$version\" > .raptor-version\nfi\n\n# The server reads its settings from .xonotic/data/server.cfg.\nmkdir -p .xonotic/data\n[ -f .xonotic/data/server.cfg ] || cp server/server.cfg .xonotic/data/server.cfg\necho \"Installed Xonotic $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Xonotic release, such as 0.8.6, or latest for the newest one. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+\\.[0-9]+\\.[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be on the server, spectators included.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,255",
+            "field_type": "text"
+        }
+    ]
+}

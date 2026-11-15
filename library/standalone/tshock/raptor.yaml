@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/tshock/egg-tshock.json
+license: MIT
+credits:
+  - "Based on the tshock and tshock legacy eggs in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Pryaxis's logo, from https://github.com/Pryaxis"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 10m
+  command: "playing"
+  expect: "no players online"

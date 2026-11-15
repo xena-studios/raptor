@@ -1,0 +1,141 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Factorio eggs in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Factorio",
+    "author": "support@raptorpanel.net",
+    "description": "Factorio's headless server, from factorio.com. It creates a map on first start and can update the server's mods from the mod portal when reinstalled.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:a2ee132ea89015a735e52574a626e0f9f4ef63e2385b49299298268499466b8d"
+    },
+    "file_denylist": [],
+    "startup": "b=bin/x64/factorio; [ -x bin/arm64/factorio ] && b=bin/arm64/factorio; r=; [ \"$b\" = bin/x64/factorio ] && command -v box64 >/dev/null && r=box64; if [ ! -f \"saves/{{SAVE_NAME}}.zip\" ]; then $r $b --create \"saves/{{SAVE_NAME}}.zip\" --map-gen-settings data/map-gen-settings.json --map-settings data/map-settings.json || exit 1; fi; exec $r $b --port {{SERVER_PORT}} --server-settings data/server-settings.json --start-server \"saves/{{SAVE_NAME}}.zip\"",
+    "config": {
+        "files": "{\"data/server-settings.json\": {\"parser\": \"json\", \"find\": {\"name\": \"{{server.build.env.SERVER_NAME}}\", \"description\": \"{{server.build.env.SERVER_DESC}}\", \"max_players\": \"{{server.build.env.MAX_SLOTS}}\", \"username\": \"{{server.build.env.SERVER_USERNAME}}\", \"token\": \"{{server.build.env.SERVER_TOKEN}}\", \"autosave_interval\": \"{{server.build.env.SAVE_INTERVAL}}\", \"autosave_slots\": \"{{server.build.env.SAVE_SLOTS}}\", \"afk_autokick_interval\": \"{{server.build.env.AFK_KICK}}\"}}}",
+        "startup": "{\"done\": [\"Hosting game at\"]}",
+        "logs": "{}",
+        "stop": "/quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Factorio: downloads the headless server from factorio.com and checks it\n# against Factorio's published SHA-256. Saves, mods and settings are never\n# touched; the game's files are replaced only once the new ones are in.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nreleases=$(curl -fsSL -A \"$ua\" https://factorio.com/api/latest-releases) ||\n    fail \"factorio.com can't be reached right now. Reinstall to try again.\"\nwant=\"${FACTORIO_VERSION:-latest}\"\ncase \"$want\" in\n    \"\"|latest|stable) version=$(jq -r '.stable.headless' <<<\"$releases\") ;;\n    experimental) version=$(jq -r '.experimental.headless' <<<\"$releases\") ;;\n    *)\n        [[ $want =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]] ||\n            fail \"Version must be latest, experimental, or a Factorio version such as 2.0.72.\"\n        version=$want ;;\nesac\n\nsums=$(curl -fsSL -A \"$ua\" https://factorio.com/download/sha256sums/ || true)\nexists() { [ \"$(curl -s -o /dev/null -w '%{http_code}' -A \"$ua\" \"https://www.factorio.com/get-download/$version/headless/$1\")\" = 302 ]; }\n\n# Factorio has an arm64 build from 2.1.18; older versions run through\n# Box64 on arm64 (the runtime image starts them that way).\nplatform=linux64 file=\"factorio-headless_linux_$version.tar.xz\" bin=x64\nif [ \"$(uname -m)\" = aarch64 ] && exists linux-arm64; then\n    platform=linux-arm64 file=\"factorio-headless_linux-arm64_$version.tar.xz\" bin=arm64\nfi\nexists \"$platform\" || fail \"Factorio has no version $version. Set Version to latest, experimental, or a released version such as $(jq -r '.stable.headless' <<<\"$releases\").\"\n\nif [ -x \"bin/$bin/factorio\" ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version $bin\" ]; then\n    echo \"Factorio $version is already installed.\"\nelse\n    mkdir -p \"$build\"\n    echo \"Downloading Factorio $version ($bin)\"\n    curl -fsSL -A \"$ua\" -o \"$build/$file\" \"https://www.factorio.com/get-download/$version/headless/$platform\"\n    sum=$(awk -v f=\"$file\" '$2 == f { print $1 }' <<<\"$sums\")\n    if [ -n \"$sum\" ]; then\n        [ \"$(sha256sum \"$build/$file\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"The download didn't match Factorio's checksum. Reinstall to try again.\"\n    else\n        echo \"Factorio publishes no checksum for $version, so the download wasn't checked.\"\n    fi\n    tar -xJf \"$build/$file\" -C \"$build\"\n    # The game's files. Files the last version had and this one doesn't are\n    # removed; the server's own files (settings, saves, mods) never are.\n    (cd \"$build/factorio\" && find . -type f | sort) > \"$build/files\"\n    if [ -f .raptor-files ]; then\n        comm -23 <(sort .raptor-files) \"$build/files\" | while read -r f; do rm -f -- \"$f\"; rmdir -p --ignore-fail-on-non-empty \"$(dirname \"$f\")\" 2>/dev/null || true; done\n    fi\n    rm -rf bin\n    cp -a \"$build/factorio/.\" .\n    mv -f \"$build/files\" .raptor-files\n    echo \"$version $bin\" > .raptor-version\nfi\n\nfor f in server-settings map-gen-settings map-settings; do\n    [ -e \"data/$f.json\" ] || cp \"data/$f.example.json\" \"data/$f.json\"\ndone\nmkdir -p saves mods\n\n# Mods: updates every mod in mods/mod-list.json to its newest release for\n# this Factorio version, from the mod portal (which needs a factorio.com\n# account's username and token).\nif [ \"${UPDATE_MODS:-0}\" = 1 ] && [ -f mods/mod-list.json ]; then\n    if [ -z \"${SERVER_USERNAME:-}\" ] || [ -z \"${SERVER_TOKEN:-}\" ]; then\n        echo \"Mods weren't updated: the mod portal needs your factorio.com username and token.\"\n    else\n        major=$(cut -d. -f1-2 <<<\"$version\")\n        for mod in $(jq -r '.mods[] | select(.name | IN(\"base\", \"space-age\", \"quality\", \"elevated-rails\") | not) | .name' mods/mod-list.json); do\n            info=$(curl -fsSL -A \"$ua\" \"https://mods.factorio.com/api/mods/$(jq -rn --arg s \"$mod\" '$s|@uri')\") || { echo \"The mod portal has no mod $mod, so it was left as it is.\"; continue; }\n            rel=$(jq -c --arg v \"$major\" '[.releases[] | select(.info_json.factorio_version == $v)] | last // empty' <<<\"$info\")\n            [ -n \"$rel\" ] || { echo \"$mod has no release for Factorio $major, so it was left as it is.\"; continue; }\n            name=$(jq -r .file_name <<<\"$rel\")\n            if [ -f \"mods/$name\" ]; then echo \"$mod is up to date.\"; continue; fi\n            curl -fsSL -A \"$ua\" -o \"mods/$name.part\" -G --data-urlencode \"username=$SERVER_USERNAME\" --data-urlencode \"token=$SERVER_TOKEN\" \\\n                \"https://mods.factorio.com$(jq -r .download_url <<<\"$rel\")\" || { rm -f \"mods/$name.part\"; echo \"$mod couldn't be downloaded: check the username and token.\"; continue; }\n            if [ \"$(sha1sum \"mods/$name.part\" | cut -d' ' -f1)\" != \"$(jq -r .sha1 <<<\"$rel\")\" ]; then\n                rm -f \"mods/$name.part\"; echo \"$mod's download didn't match the mod portal's checksum, so it was left as it is.\"; continue\n            fi\n            find mods -maxdepth 1 -name \"${mod}_*.zip\" ! -name \"$name\" -delete\n            mv -f \"mods/$name.part\" \"mods/$name\"\n            echo \"Updated $mod to $(jq -r .version <<<\"$rel\").\"\n        done\n    fi\nfi\necho \"Installed Factorio $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Factorio version, such as 2.0.72, latest for the newest stable one, or experimental. Reinstall the server after changing it.",
+            "env_variable": "FACTORIO_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|stable|experimental|[0-9]+\\.[0-9]+\\.[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Save name",
+            "description": "The save in the saves folder to run, without .zip. A new map is created when it doesn't exist.",
+            "env_variable": "SAVE_NAME",
+            "default_value": "gamesave",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^[A-Za-z0-9_-]{1,100}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "Factorio Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The description shown in the server list.",
+            "env_variable": "SERVER_DESC",
+            "default_value": "A Factorio server.",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be online at once, or 0 for no limit.",
+            "env_variable": "MAX_SLOTS",
+            "default_value": "20",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Factorio username",
+            "description": "Your factorio.com username, for a public server and for mod updates.",
+            "env_variable": "SERVER_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Factorio token",
+            "description": "Your factorio.com token (on your profile page), for a public server and for mod updates.",
+            "env_variable": "SERVER_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Update mods on reinstall",
+            "description": "Update every mod in mods/mod-list.json to its newest release when the server is reinstalled. Needs your username and token.",
+            "env_variable": "UPDATE_MODS",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Autosave interval",
+            "description": "Minutes between autosaves.",
+            "env_variable": "SAVE_INTERVAL",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,999",
+            "field_type": "text"
+        },
+        {
+            "name": "Autosave slots",
+            "description": "How many autosaves to keep.",
+            "env_variable": "SAVE_SLOTS",
+            "default_value": "5",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,999",
+            "field_type": "text"
+        },
+        {
+            "name": "AFK kick",
+            "description": "Minutes before an idle player is kicked, or 0 to never kick.",
+            "env_variable": "AFK_KICK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,999",
+            "field_type": "text"
+        }
+    ]
+}

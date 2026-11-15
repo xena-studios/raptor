@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/factorio/egg-factorio.json
+license: MIT
+credits:
+  - "Based on the Factorio and Factorio ARM64 eggs in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Factorio's own icon, from the game's files (Wube Software)"
+certified: true
+# Native arm64 builds from 2.1.18; older versions run through Box64.
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 10m
+  command: "/players"
+  expect: "Players \\(0\\)"

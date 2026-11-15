@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the CS2D egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "CS2D",
+    "author": "support@raptorpanel.net",
+    "description": "CS2D, the free top-down tactical shooter. Installs the latest game and dedicated server from Unreal Software; more settings are in sys/server.cfg.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "exec ./cs2d_dedicated",
+    "config": {
+        "files": "{\"sys/server.cfg\": {\"parser\": \"file\", \"find\": {\"sv_hostport \": \"sv_hostport {{server.build.default.port}}\", \"sv_name \": \"sv_name {{server.build.env.SERVER_NAME}}\", \"sv_password \": \"sv_password {{server.build.env.SERVER_PASSWORD}}\", \"sv_rcon \": \"sv_rcon {{server.build.env.RCON_PASSWORD}}\", \"sv_maxplayers \": \"sv_maxplayers {{server.build.env.SERVER_PLAYERS}}\"}}}",
+        "startup": "{\"done\": [\"----- Server started -----\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# CS2D: downloads the game and the dedicated server for this CPU from\n# Unreal Software. Settings in sys/ are added only when they aren't there\n# yet, so your edits, maps and bans are kept.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\npage=$(curl -fsSL -A \"$ua\" https://www.cs2d.com/download.php) || fail \"cs2d.com can't be reached right now. Reinstall to try again.\"\nfile=$(grep -oE 'get=cs2d_[0-9]+_linux\\.zip' <<<\"$page\" | head -n1 | cut -d= -f2 || true)\n[ -n \"$file\" ] || fail \"cs2d.com's download page has changed, so the game couldn't be found. Reinstall to try again later.\"\nversion=$(cut -d_ -f2 <<<\"$file\")\ncase \"$(uname -m)\" in\n    x86_64) server=cs2d_dedicated_linux.zip bin=cs2d_dedicated ;;\n    aarch64) server=cs2d_dedicated_linux_arm.zip bin=cs2d_dedicated_arm ;;\n    *) fail \"CS2D has no server for this CPU.\" ;;\nesac\n\nif [ -x cs2d_dedicated ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version $bin\" ]; then\n    echo \"CS2D $version is already installed.\"\nelse\n    mkdir -p \"$build/game\" \"$build/server\"\n    echo \"Downloading CS2D $version\"\n    # The download link needs the id the download page gives it.\n    cid=$(curl -fsSL -A \"$ua\" \"https://www.unrealsoftware.de/get.php?get=$file\" | grep -oE \"get\\.php\\?get=$file&(amp;)?p=1&(amp;)?cid=[0-9]+\" | head -n1 | grep -oE 'cid=[0-9]+' || true)\n    [ -n \"$cid\" ] || fail \"Unreal Software's download page has changed, so the game couldn't be downloaded. Reinstall to try again later.\"\n    curl -fsSL -A \"$ua\" -o \"$build/game.zip\" \"https://www.unrealsoftware.de/get.php?get=$file&p=1&$cid\" || fail \"The download failed. Reinstall to try again.\"\n    curl -fsSL -A \"$ua\" -o \"$build/server.zip\" \"https://www.unrealsoftware.de/files_pub/$server\" || fail \"The download failed. Reinstall to try again.\"\n    unzip -q \"$build/game.zip\" -d \"$build/game\" || fail \"The game's download is damaged. Reinstall to try again.\"\n    unzip -q \"$build/server.zip\" -d \"$build/server\" || fail \"The server's download is damaged. Reinstall to try again.\"\n    [ -f \"$build/server/$bin\" ] || fail \"The server's download has no $bin in it.\"\n    # Settings are the server's own once they're there.\n    (cd \"$build/game\" && find sys -maxdepth 1 -type f) | while read -r f; do\n        if [ -e \"$f\" ]; then rm -f \"$build/game/$f\"; fi\n    done\n    rm -f \"$build/game/CS2D\" \"$build/game/libsteam_api.so\"\n    cp -a \"$build/game/.\" .\n    mv -f \"$build/server/$bin\" cs2d_dedicated\n    chmod +x cs2d_dedicated\n    echo \"$version $bin\" > .raptor-version\nfi\necho \"Installed CS2D $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "CS2D Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players need to join. Leave it empty for a public server.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The password for remote administration. Leave it empty to turn RCON off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be on the server.",
+            "env_variable": "SERVER_PLAYERS",
+            "default_value": "12",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,32",
+            "field_type": "text"
+        }
+    ]
+}

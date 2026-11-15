@@ -1,0 +1,72 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the TShock eggs in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Terraria: TShock",
+    "author": "support@raptorpanel.net",
+    "description": "Terraria with TShock, the server mod with accounts, permissions and plugins. The world is created on first start.",
+    "features": [],
+    "docker_images": {
+        ".NET 10": "ghcr.io/xena-studios/yolks:dotnet_10@sha256:11a7153a1a29151bd6b495eedced4a9127b724707a75ea1cb19d4fd4f75e7ff6",
+        "Mono": "ghcr.io/pelican-eggs/yolks:mono_latest@sha256:f8668c475d4685253826cb7b81798f470d4b72476959a9a5da32c42bc05787e1"
+    },
+    "file_denylist": [],
+    "startup": "if [ -x ./TShock.Server ]; then DOTNET_ROLL_FORWARD=Major exec ./TShock.Server -ip 0.0.0.0 -port {{SERVER_PORT}} -maxplayers {{MAX_PLAYERS}} -world {{WORLD_NAME}}.wld -autocreate {{WORLD_SIZE}}; elif command -v mono >/dev/null; then exec mono TerrariaServer.exe -ip 0.0.0.0 -port {{SERVER_PORT}} -maxplayers {{MAX_PLAYERS}} -world {{WORLD_NAME}}.wld -autocreate {{WORLD_SIZE}}; else echo \"TShock 4 runs with Mono: choose the Mono image in Startup, then start the server again.\"; exit 1; fi",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Type 'help' for a list of commands\"]}",
+        "logs": "{}",
+        "stop": "exit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Terraria: TShock. Downloads a TShock release from GitHub, checked against\n# GitHub's checksum. Worlds, configs and plugins are never touched; TShock's\n# files are replaced only once the new ones are downloaded and unpacked.\nset -euo pipefail\ncd /mnt/server\n\nrepo=Pryaxis/TShock\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nwant=\"${TSHOCK_VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag \"$repo\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    case \"$want\" in v*) ;; *) want=\"v$want\" ;; esac\n    tag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n        fail \"TShock has no version $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" 2>/dev/null || echo v6.2.1).\"\nfi\nassets=$(gh-release assets \"$repo\" \"$tag\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n\ncase \"$(uname -m)\" in\n    x86_64) pattern='linux-(x64|amd64)' ;;\n    aarch64) pattern='linux-arm64' ;;\n    *) fail \"TShock has no build for this CPU.\" ;;\nesac\nasset=$(awk '{print $1}' <<<\"$assets\" | grep -E \"$pattern\" | grep -E '\\.zip$' | head -n1 || true)\nif [ -z \"$asset\" ]; then\n    # TShock 4 is one zip for every CPU, run with Mono.\n    asset=$(awk '{print $1}' <<<\"$assets\" | grep -viE 'win|osx|linux|mac' | grep -E '\\.zip$' | head -n1 || true)\nfi\n[ -n \"$asset\" ] || fail \"TShock $tag has no download for this CPU (Linux $(uname -m)).\"\nsum=$(awk -v a=\"$asset\" '$1 == a { print $2 }' <<<\"$assets\")\n\nif [ -n \"$sum\" ] && [ \"$sum\" != - ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag $sum\" ]; then\n    echo \"TShock $tag is already installed.\"\nelse\n    mkdir -p \"$build/x\"\n    echo \"Downloading TShock $tag ($asset)\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/tshock.zip\" || fail \"The download failed. Reinstall to try again.\"\n    unzip -q -o \"$build/tshock.zip\" -d \"$build/x\"\n    for t in \"$build\"/x/*.tar; do\n        [ -e \"$t\" ] || continue\n        tar -xf \"$t\" -C \"$build/x\" && rm -f \"$t\"\n    done\n    # Some releases put everything in one folder.\n    src=\"$build/x\"\n    if [ \"$(find \"$src\" -mindepth 1 -maxdepth 1 | wc -l)\" = 1 ] && [ -d \"$(find \"$src\" -mindepth 1 -maxdepth 1)\" ]; then\n        src=$(find \"$src\" -mindepth 1 -maxdepth 1)\n    fi\n    # Files the last release had and this one doesn't (another version's\n    # libraries) are removed; nothing else is.\n    (cd \"$src\" && find . -type f | sort) > \"$build/files\"\n    if [ -f .raptor-files ]; then\n        comm -23 <(sort .raptor-files) \"$build/files\" | while read -r f; do rm -f -- \"$f\"; rmdir -p --ignore-fail-on-non-empty \"$(dirname \"$f\")\" 2>/dev/null || true; done\n    fi\n    cp -a \"$src/.\" .\n    mv -f \"$build/files\" .raptor-files\n    if [ -f \"$src/TShock.Server\" ]; then rm -f TerrariaServer.exe; else rm -f TShock.Server TShock.Installer; fi\n    chmod +x TShock.Server TShock.Installer 2>/dev/null || true\n    echo \"$tag $sum\" > .raptor-version\nfi\nif [ -f TShock.Server ]; then\n    echo \"Installed TShock $tag.\"\nelse\n    echo \"Installed TShock $tag. It runs with Mono: choose the Mono image in Startup.\"\nfi\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The TShock release, such as v6.2.1, or latest for the newest one. TShock 4 needs the Mono image. Reinstall the server after changing it.",
+            "env_variable": "TSHOCK_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?[0-9][0-9A-Za-z.\\-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World name",
+            "description": "The world file to run, without .wld. It's created when it doesn't exist.",
+            "env_variable": "WORLD_NAME",
+            "default_value": "world",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^[A-Za-z0-9_-]{1,60}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World size",
+            "description": "The size of a new world: 1 small, 2 medium, 3 large.",
+            "env_variable": "WORLD_SIZE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:1,2,3",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be online at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,255",
+            "field_type": "text"
+        }
+    ]
+}
