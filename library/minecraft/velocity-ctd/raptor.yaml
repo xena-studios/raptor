@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/velocity-ctd/egg-velocity-ctd.json
+license: MIT
+credits:
+  - "Written for Raptor"
+  - "Icon: GemstoneGG's logo, from https://github.com/GemstoneGG"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "glist"
+  expect: "0 players are currently connected to the proxy"
+# A proxy has no world, so no backup hooks and no datapacks.
+addons:
+  plugins:
+    loaders: [velocity]
+    dir: plugins
