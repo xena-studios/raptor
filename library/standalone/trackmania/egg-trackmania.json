@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Trackmania",
+    "author": "support@raptorpanel.net",
+    "description": "The dedicated server for Trackmania. Runs on the LAN without an account; with a dedicated server login it's listed online for everyone.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "exec ./TrackmaniaServer /dedicated_cfg=dedicated_cfg.txt /game_settings=\"{{GAME_CONFIG}}\" /nodaemon",
+    "config": {
+        "files": "{\"UserData/Config/dedicated_cfg.txt\": {\"parser\": \"xml\", \"find\": {\"dedicated.masterserver_account.login\": \"{{server.build.env.MASTERSERVER_LOGIN}}\", \"dedicated.masterserver_account.password\": \"{{server.build.env.MASTERSERVER_PASSWORD}}\", \"dedicated.server_options.name\": \"{{server.build.env.SERVER_NAME}}\", \"dedicated.server_options.comment\": \"{{server.build.env.SERVER_COMMENT}}\", \"dedicated.server_options.password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"dedicated.server_options.max_players\": \"{{server.build.env.MAX_PLAYERS}}\", \"dedicated.system_config.server_port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \"...Load succeeds\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Trackmania. Downloads Nadeo's current dedicated server (which publishes no\n# checksums: the archive is checked to be whole before anything is\n# replaced). UserData (settings, maps, match settings) is never touched once\n# it exists; the server's own files are replaced.\nset -euo pipefail\ncd /mnt/server\n# Nadeo's file host only answers plain HTTP.\nurl=http://files.v04.maniaplanet.com/server/TrackmaniaServer_Latest.zip\nfail() { echo \"$1\"; exit 1; }\n[ \"$(uname -m)\" = x86_64 ] || fail \"The Trackmania server only runs on x86 (amd64) nodes.\"\n\netag=$(curl -fsSI --retry 3 \"$url\" | tr -d '\\r' | awk 'tolower($1) == \"etag:\" { print $2 }') ||\n    fail \"Nadeo's download server can't be reached right now. Reinstall to try again.\"\nif [ -n \"$etag\" ] && [ \"$(cat .raptor-tm 2>/dev/null)\" = \"$etag\" ] && [ -x TrackmaniaServer ]; then\n    echo \"The current Trackmania server is already installed.\"\nelse\n    build=/mnt/server/.raptor-build\n    rm -rf \"$build\"\n    mkdir -p \"$build/x\"\n    trap 'rm -rf \"$build\"' EXIT\n    echo \"Downloading the Trackmania server (about 250 MB)\"\n    curl -fsSL --retry 3 -o \"$build/tm.zip\" \"$url\"\n    unzip -tq \"$build/tm.zip\" >/dev/null 2>&1 || fail \"The download isn't a whole zip file. Reinstall to try again.\"\n    unzip -q \"$build/tm.zip\" -d \"$build/x\"\n    [ -f \"$build/x/TrackmaniaServer\" ] || fail \"The download has no TrackmaniaServer in it.\"\n    rm -rf Packs RemoteControlExamples\n    mv \"$build/x/Packs\" Packs\n    [ ! -d \"$build/x/RemoteControlExamples\" ] || mv \"$build/x/RemoteControlExamples\" RemoteControlExamples\n    mkdir -p UserData\n    cp -an \"$build/x/UserData/.\" UserData/\n    rm -rf \"$build/x/UserData\"\n    chmod +x \"$build/x/TrackmaniaServer\"\n    cp -af \"$build/x/.\" .\n    echo \"$etag\" > .raptor-tm\nfi\n\nif [ ! -f UserData/Config/dedicated_cfg.txt ]; then\n    cp UserData/Config/dedicated_cfg.default.txt UserData/Config/dedicated_cfg.txt\nfi\necho \"Installed the current Trackmania server.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server login",
+            "description": "The login of a dedicated server account, made on the Trackmania website. Empty runs a LAN server.",
+            "env_variable": "MASTERSERVER_LOGIN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Server login password",
+            "description": "That dedicated server account's password.",
+            "env_variable": "MASTERSERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Trackmania server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Comment",
+            "description": "A description shown with the server.",
+            "env_variable": "SERVER_COMMENT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:1024",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "A password players need to join. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "32",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,255",
+            "field_type": "text"
+        },
+        {
+            "name": "Match settings",
+            "description": "The match settings file, relative to UserData/Maps, that sets the mode and the maps.",
+            "env_variable": "GAME_CONFIG",
+            "default_value": "MatchSettings/example.txt",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:255|regex:/^[A-Za-z0-9 ._\\/\\\\-]+$/",
+            "field_type": "text"
+        }
+    ]
+}

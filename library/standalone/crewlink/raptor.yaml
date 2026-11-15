@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/crewlink/egg-crewlink.json
+license: MIT
+credits:
+  - "Based on the Crewlink server egg in https://github.com/pelican-eggs/games-standalone (MIT)"
+  - "Icon: BetterCrewLink's logo (logo.png), from https://github.com/OhMyGuus/BetterCrewlink-server"
+certified: true
+arch: [amd64, arm64]
+# A voice relay keeps nothing to back up, and has no console commands.
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    ADDRESS: "127.0.0.1"
+  done_timeout: 3m

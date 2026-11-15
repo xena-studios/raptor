@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "ET: Legacy",
+    "author": "support@raptorpanel.net",
+    "description": "ET: Legacy, the open-source server for Wolfenstein: Enemy Territory, with the original game's files and Omni-bot. Settings are in etmain/etl_server.cfg.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "exec ./etlded +set fs_homepath /home/container/.etlegacy +set net_port {{SERVER_PORT}} +exec {{CONFIG_FILE}} +map {{MAP}}",
+    "config": {
+        "files": "{\"etmain/etl_server.cfg\": {\"parser\": \"file\", \"find\": {\"set sv_hostname \": \"set sv_hostname \\\"{{server.build.env.SERVER_NAME}}\\\"\", \"set sv_maxclients \": \"set sv_maxclients \\\"{{server.build.env.MAX_PLAYERS}}\\\"\", \"set g_password \": \"set g_password \\\"{{server.build.env.SERVER_PASSWORD}}\\\"\", \"set rconpassword \": \"set rconpassword \\\"{{server.build.env.RCON_PASSWORD}}\\\"\"}}, \"etmain/legacy.cfg\": {\"parser\": \"file\", \"find\": {\"set omnibot_enable \": \"set omnibot_enable \\\"{{server.build.env.OMNIBOT}}\\\"\"}}}",
+        "startup": "{\"done\": \"Game Initialization completed\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# ET: Legacy. Downloads the ET: Legacy server for the node's CPU from\n# etlegacy.com, checked against the SHA-256 the site lists, and the original\n# Enemy Territory game files (pak0-2.pk3) from ET: Legacy's mirror, checked\n# against their known checksums. Server configs, Lua scripts, maps and the\n# mod's settings are never touched once they exist.\nset -euo pipefail\ncd /mnt/server\nsite=https://www.etlegacy.com\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$@\"; }\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\nx86_64) arch=x86_64 ;;\naarch64) arch=aarch64 ;;\n*) fail \"ET: Legacy has no server for $(uname -m).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\nif [ \"$want\" = latest ]; then\n    page=$(get \"$site/download\" | tr -s ' \\t\\r\\n' ' ') || fail \"etlegacy.com can't be reached right now. Reinstall to try again.\"\n    ver=$(grep -oE \"etlegacy-v[0-9][0-9.]*-$arch\\.tar\\.gz\" <<<\"$page\" | head -n 1 | sed -E 's/^etlegacy-v(.*)-[^-]*\\.tar\\.gz$/\\1/') || true\n    [ -n \"$ver\" ] || fail \"etlegacy.com doesn't list a Linux $arch download right now. Reinstall to try again later.\"\nelse\n    list=$(get \"$site/download/release/list\" | tr -s ' \\t\\r\\n' ' ') || fail \"etlegacy.com can't be reached right now. Reinstall to try again.\"\n    id=$(grep -oE \"/download/release/[0-9]+\\\"> ?<span class=\\\"dl-release-version[^\\\"]*\\\">${want//./\\\\.}<\" <<<\"$list\" | head -n 1 | grep -oE '[0-9]+' | head -n 1) || true\n    [ -n \"$id\" ] || fail \"ET: Legacy has no release $want. Set Version to latest, or to a release such as 2.86.2.\"\n    page=$(get \"$site/download/release/$id\" | tr -s ' \\t\\r\\n' ' ') || fail \"etlegacy.com can't be reached right now. Reinstall to try again.\"\n    ver=$want\nfi\nasset=\"etlegacy-v$ver-$arch.tar.gz\"\nfile=$(grep -oE \"href=\\\"$site/download/file/[0-9]+\\\"[^>]*title=\\\"${asset//./\\\\.}\\\"\" <<<\"$page\" | head -n 1 | grep -oE '/file/[0-9]+' | cut -d/ -f3) || true\nsum=$(grep -oE \"${asset//./\\\\.} &middot; .{0,200}SHA-256</dt> <dd[^>]*>[0-9a-f]{64}\" <<<\"$page\" | head -n 1 | grep -oE '[0-9a-f]{64}$') || true\n[ -n \"$file\" ] && [ -n \"$sum\" ] || fail \"ET: Legacy $ver has no Linux $arch download.\"\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"\nmkdir -p \"$build\"\ntrap 'rm -rf \"$build\"' EXIT\n\nif [ \"$(cat .raptor-etl 2>/dev/null)\" = \"$sum\" ] && [ -x etlded ]; then\n    echo \"ET: Legacy $ver is already installed.\"\nelse\n    echo \"Downloading ET: Legacy $ver ($arch)\"\n    get -o \"$build/etl.tar.gz\" \"$site/download/file/$file\"\n    [ \"$(sha256sum \"$build/etl.tar.gz\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"The download didn't match etlegacy.com's checksum. Reinstall to try again.\"\n    tar -xzf \"$build/etl.tar.gz\" -C \"$build\"\n    new=\"$build/etlegacy-v$ver-$arch\"\n    [ -x \"$new/etlded.$arch\" ] || fail \"The download has no etlded.$arch in it.\"\n    mkdir -p legacy etmain\n    # The mod's code is replaced (an older legacy_v*.pk3 left behind would\n    # clash); its settings and scripts are only added where missing.\n    rm -f legacy/legacy_v*.pk3 legacy/*.so\n    cp -an \"$new/legacy/.\" legacy/\n    cp -af \"$new/legacy/omni-bot/.\" legacy/omni-bot/ 2>/dev/null || true\n    cp -an \"$new/etmain/.\" etmain/\n    cp -f \"$new/etlded.$arch\" etlded.new\n    chmod +x etlded.new\n    mv -f etlded.new etlded\n    echo \"$sum\" > .raptor-etl\nfi\n\n# The original game's files, which ET: Legacy needs and can't ship itself.\nwhile read -r pak psum; do\n    if [ -f \"etmain/$pak\" ] && [ \"$(sha256sum \"etmain/$pak\" | cut -d' ' -f1)\" = \"$psum\" ]; then continue; fi\n    echo \"Downloading Enemy Territory's $pak\"\n    get -o \"$build/$pak\" \"https://mirror.etlegacy.com/etmain/$pak\" || fail \"ET: Legacy's mirror can't be reached right now. Reinstall to try again.\"\n    [ \"$(sha256sum \"$build/$pak\" | cut -d' ' -f1)\" = \"$psum\" ] || fail \"$pak didn't match its known checksum. Reinstall to try again.\"\n    mv -f \"$build/$pak\" \"etmain/$pak\"\ndone <<'PAKS'\npak0.pk3 712966b20e06523fe81419516500e499c86b2b4fec823856ddbd333fcb3d26e5\npak1.pk3 5610fd749024405b4425a7ce6397e58187b941d22092ef11d4844b427df53e5d\npak2.pk3 a48ab749a1a12ab4d9137286b1f23d642c29da59845b2bafc8f64e052cf06f3e\nPAKS\nmkdir -p .etlegacy\necho \"Installed ET: Legacy $ver.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The ET: Legacy release to install, such as 2.86.2, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name in the server browser, up to 26 characters without colour codes.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "ET: Legacy",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"\\\\;]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The player slots, private slots included.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "24",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server starts on.",
+            "env_variable": "MAP",
+            "default_value": "oasis",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "A password players need to join. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[^\"\\\\;]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The remote console password. Empty turns the remote console off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[^\"\\\\;]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Omni-bot",
+            "description": "Fill empty slots with Omni-bot's bots.",
+            "env_variable": "OMNIBOT",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Config file",
+            "description": "The server config in etmain that runs at start.",
+            "env_variable": "CONFIG_FILE",
+            "default_value": "etl_server.cfg",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+\\.cfg$/",
+            "field_type": "text"
+        }
+    ]
+}

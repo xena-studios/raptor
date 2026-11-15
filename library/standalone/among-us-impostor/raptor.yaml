@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/among-us-impostor/egg-among-us-impostor.json
+license: MIT
+credits:
+  - "Based on the Among Us - Impostor Server egg in https://github.com/pelican-eggs/games-standalone (MIT)"
+  - "Icon: the Impostor project's logo, from https://github.com/Impostor"
+certified: true
+arch: [amd64, arm64]
+# Impostor has no console commands and no world to save.
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    PUBLIC_IP: "127.0.0.1"
+  done_timeout: 3m

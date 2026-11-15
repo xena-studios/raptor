@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/wine/egg-wine.json
+license: MIT
+credits:
+  - "Based on the Wine Generic egg in https://github.com/pelican-eggs/generic (MIT)"
+  - "Icon: Wine's logo, from https://commons.wikimedia.org/wiki/File:Wine_logo.svg (LGPL)"
+certified: true
+# Wine runs x86 Windows programs; the images are amd64 only.
+arch: [amd64]
+# Wine's own cmd.exe stands in for a server: it echoes what the console sends.
+test:
+  # Wine's cmd.exe doesn't answer a console that isn't a terminal, so the
+  # test checks install, start and stop only.
+  tier: fast
+  memory_mib: 1024
+  variables:
+    SERVER_EXECUTABLE: "cmd"
+  done_timeout: 5m

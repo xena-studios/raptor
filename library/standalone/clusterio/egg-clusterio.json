@@ -1,0 +1,142 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Clusterio",
+    "author": "support@raptorpanel.net",
+    "description": "Clusterio, which links Factorio servers into one cluster. Install a controller (the web interface) on one server and hosts, which run the Factorio games, on others.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:c9e7ca4b0c826f314244b6633aab6606df1114b2b7b990a83215b34da060df2b",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:eb9fbea67b491a40b5e5b0b3ea17d617a1cb6184ef304908424e0e93fcbed80e"
+    },
+    "file_denylist": [],
+    "startup": "b=node_modules/.bin; set_cfg() { jq \"$@\" \"$cfg\" > \"$cfg.new\" && mv -f \"$cfg.new\" \"$cfg\"; }; if [ \"{{SERVER_MODE}}\" = controller ]; then cfg=config-controller.json; set_cfg --argjson p {{SERVER_PORT}} --arg n \"{{CLUSTER_NAME}}\" '.\"controller.http_port\" = $p | .\"controller.name\" = $n' && exec $b/clusteriocontroller run --log-level {{LOG_LEVEL}}; else cfg=config-host.json; a=\"{{PUBLIC_ADDRESS}}\"; [ -n \"$a\" ] || a=$(curl -fsS4 --max-time 5 https://api.ipify.org || echo localhost); r=\"{{FACTORIO_PORTS}}\"; [ -n \"$r\" ] || r=\"{{SERVER_PORT}}-{{SERVER_PORT}}\"; set_cfg --arg n \"{{HOST_NAME}}\" --arg u \"{{CONTROLLER_URL}}\" --arg t \"{{CONTROLLER_TOKEN}}\" --arg a \"$a\" --arg r \"$r\" '.\"host.name\" = $n | .\"host.controller_url\" = $u | .\"host.public_address\" = $a | .\"host.factorio_port_range\" = $r | if $t != \"\" then .\"host.controller_token\" = $t else . end' && exec $b/clusteriohost run --log-level {{LOG_LEVEL}}; fi",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Started controller\", \"Started host\", \"Waiting for approval of\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Clusterio. Installs (or updates) Clusterio's controller or host from npm,\n# with the plugins listed. On a host it also downloads Factorio's headless\n# server from factorio.com, checked against Factorio's published checksum.\n# Configs, the database, instances, saves and mods are never touched once\n# they exist.\nset -euo pipefail\nexport npm_config_update_notifier=false\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nmode=\"${SERVER_MODE:-controller}\"\ncase \"$mode\" in controller | host) ;; *) fail \"Mode must be controller or host.\" ;; esac\nb=node_modules/.bin\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"\nmkdir -p \"$build\"\ntrap 'rm -rf \"$build\"' EXIT\n\n# Node.js to install with, kept only for the install: the server runs on\n# the image's own Node.js.\ncase \"$(uname -m)\" in\nx86_64) narch=x64 dist=linux64 file=linux ;;\naarch64) narch=arm64 dist=linux-arm64 file=linux-arm64 ;;\n*) fail \"Clusterio's install has no Node.js for $(uname -m).\" ;;\nesac\nnodes=$(curl -fsSL --retry 3 https://nodejs.org/dist/latest-v24.x/SHASUMS256.txt) || fail \"nodejs.org can't be reached right now. Reinstall to try again.\"\nread -r nsum nfile < <(grep -E \" node-v[0-9.]+-linux-$narch\\.tar\\.xz$\" <<<\"$nodes\")\ncurl -fsSL --retry 3 -o \"$build/node.tar.xz\" \"https://nodejs.org/dist/latest-v24.x/$nfile\"\n[ \"$(sha256sum \"$build/node.tar.xz\" | cut -d' ' -f1)\" = \"$nsum\" ] || fail \"The Node.js download didn't match its checksum. Reinstall to try again.\"\nmkdir -p \"$build/node\"\ntar -xJf \"$build/node.tar.xz\" -C \"$build/node\" --strip-components=1\nexport PATH=\"$build/node/bin:$PATH\"\n\n[ -f package.json ] || echo '{ \"name\": \"clusterio-install\", \"private\": true }' > package.json\npkgs=(\"@clusterio/$mode@latest\" \"@clusterio/ctl@latest\")\nfor p in ${PLUGINS:-}; do\n    [[ $p =~ ^(@[a-z0-9._-]+/)?[a-z0-9._-]+(@[A-Za-z0-9._^~-]+)?$ ]] || fail \"$p isn't an npm package name.\"\n    pkgs+=(\"$p\")\ndone\necho \"Installing ${pkgs[*]}\"\nnpm install --no-fund --no-audit --loglevel=error \"${pkgs[@]}\"\n\nif [ \"$mode\" = controller ]; then\n    if [ ! -f config-controller.json ]; then\n        $b/clusteriocontroller config create\n        admin=\"${ADMIN_STRING:-admin}\"\n        $b/clusteriocontroller bootstrap create-admin \"$admin\"\n        token=$($b/clusteriocontroller bootstrap generate-user-token \"$admin\" 2>/dev/null | tail -n 1)\n        echo \"The admin account is $admin. Its login token for the web interface:\"\n        echo \"$token\"\n    fi\nelse\n    [ -f config-host.json ] || $b/clusteriohost config create\n    # Factorio's headless server, which the host's instances run.\n    want=\"${FACTORIO_VERSION:-latest}\"\n    if [ \"$want\" = latest ]; then\n        want=$(curl -fsSL --retry 3 https://factorio.com/api/latest-releases | jq -r '.stable.headless') ||\n            fail \"factorio.com can't be reached right now. Reinstall to try again.\"\n    fi\n    sums=$(curl -fsSL --retry 3 https://factorio.com/download/sha256sums/) || fail \"factorio.com can't be reached right now. Reinstall to try again.\"\n    sum=$(awk -v f=\"factorio-headless_${file}_$want.tar.xz\" '$2 == f { print $1 }' <<<\"$sums\")\n    [ -n \"$sum\" ] || fail \"Factorio has no headless server $want for this CPU. Set Factorio version to latest, or to a release such as 2.0.72.\"\n    if [ \"$(cat factorio/.raptor-factorio 2>/dev/null)\" = \"$sum\" ]; then\n        echo \"Factorio $want is already installed.\"\n    else\n        echo \"Downloading Factorio $want (headless)\"\n        curl -fsSL --retry 3 -o \"$build/factorio.tar.xz\" \"https://factorio.com/get-download/$want/headless/$dist\"\n        [ \"$(sha256sum \"$build/factorio.tar.xz\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"The Factorio download didn't match its checksum. Reinstall to try again.\"\n        tar -xJf \"$build/factorio.tar.xz\" -C \"$build\"\n        rm -rf factorio\n        mv \"$build/factorio\" factorio\n        echo \"$sum\" > factorio/.raptor-factorio\n    fi\nfi\necho \"Installed the Clusterio $mode $(node -p 'require(\"@clusterio/'\"$mode\"'/package.json\").version').\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Mode",
+            "description": "controller runs the cluster and its web interface; host runs Factorio games for a controller.",
+            "env_variable": "SERVER_MODE",
+            "default_value": "controller",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:controller,host",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin account",
+            "description": "The admin account the controller is created with (its Factorio username). Its login token is shown in the install log.",
+            "env_variable": "ADMIN_STRING",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Cluster name",
+            "description": "The cluster's name, shown in the web interface (controller).",
+            "env_variable": "CLUSTER_NAME",
+            "default_value": "Your Cluster",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Host name",
+            "description": "This host's name in the web interface (host).",
+            "env_variable": "HOST_NAME",
+            "default_value": "Your Host",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"\\\\$`]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Controller URL",
+            "description": "The controller's web address, with its port, such as the controller server's IP and port 8080 (host).",
+            "env_variable": "CONTROLLER_URL",
+            "default_value": "http://localhost:8080/",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|url|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Controller token",
+            "description": "Optional: without one, the host asks the controller to approve it and shows the approval link in the console (host).",
+            "env_variable": "CONTROLLER_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public address",
+            "description": "The address players join this host's games on. Empty finds the server's public IPv4 address at every start (host).",
+            "env_variable": "PUBLIC_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:253|regex:/^[A-Za-z0-9.:-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Factorio ports",
+            "description": "The UDP ports the host's games use, such as 34100-34110; allocate them to the server too. Empty uses the server's port, enough for one game (host).",
+            "env_variable": "FACTORIO_PORTS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:20|regex:/^([0-9]{1,5}-[0-9]{1,5})?$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Factorio version",
+            "description": "The Factorio headless server a host installs, such as 2.0.72, or latest.",
+            "env_variable": "FACTORIO_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9]+\\.[0-9]+\\.[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Plugins",
+            "description": "Clusterio plugins to install from npm, separated by spaces, such as @clusterio/plugin-global_chat.",
+            "env_variable": "PLUGINS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "Log level",
+            "description": "How much the console shows.",
+            "env_variable": "LOG_LEVEL",
+            "default_value": "info",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:none,fatal,error,warn,audit,info,http,server,verbose",
+            "field_type": "text"
+        }
+    ]
+}

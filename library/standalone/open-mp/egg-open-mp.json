@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "open.mp",
+    "author": "support@raptorpanel.net",
+    "description": "open.mp, the multiplayer mod for Grand Theft Auto: San Andreas that SA-MP clients can join. Put your gamemodes in gamemodes and set them in config.json.",
+    "features": [],
+    "docker_images": {
+        "Steam Runtime 3": "ghcr.io/pelican-eggs/steamcmd:sniper@sha256:99d436be50b2c57e94e922597adca0f327a8fcc29204520be929c26efb1f4810"
+    },
+    "file_denylist": [],
+    "startup": "./omp-server",
+    "config": {
+        "files": "{\"config.json\": {\"parser\": \"json\", \"find\": {\"network.port\": \"{{server.build.default.port}}\", \"artwork.port\": \"{{server.build.default.port}}\", \"name\": \"{{server.build.env.SERVER_NAME}}\", \"max_players\": \"{{server.build.env.MAX_PLAYERS}}\", \"rcon.password\": \"{{server.build.env.RCON_PASSWORD}}\"}}}",
+        "startup": "{\"done\": \"Legacy Network started on port\"}",
+        "logs": "{}",
+        "stop": "exit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# open.mp. Downloads the open.mp server from GitHub, checked against\n# GitHub's checksum. The server and its components are replaced; config.json,\n# bans, scripts and the user's gamemodes are never touched (the release's\n# example gamemodes are only added when missing).\nset -euo pipefail\ncd /mnt/server\nrepo=openmultiplayer/open.mp\n[ \"$(uname -m)\" = x86_64 ] || { echo \"open.mp's Linux server only runs on x86 (amd64) nodes.\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag \"$repo\" \"$want\") ||\n    { echo \"open.mp has no release ${VERSION}. Set Version to latest, or to a release such as v1.6.7.3218.\"; exit 1; }\nasset=open.mp-linux-x86.tar.gz\nsum=$(gh-release assets \"$repo\" \"$tag\" | awk -v a=\"$asset\" '$1 == a { print $2 }')\n[ -n \"$sum\" ] || { echo \"open.mp ${tag#v} has no Linux download.\"; exit 1; }\nif [ \"$(cat .raptor-omp 2>/dev/null)\" = \"$sum\" ] && [ -x omp-server ]; then\n    echo \"open.mp ${tag#v} is already installed.\"\n    exit 0\nfi\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"\nmkdir -p \"$build\"\ntrap 'rm -rf \"$build\"' EXIT\necho \"Downloading open.mp ${tag#v}\"\ngh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/omp.tar.gz\"\ntar -xzf \"$build/omp.tar.gz\" -C \"$build\"\nnew=\"$build/Server\"\n[ -x \"$new/omp-server\" ] || { echo \"The download has no omp-server in it.\"; exit 1; }\n# The server itself and its components are replaced.\nrm -rf components\nmv \"$new/components\" components\nmv -f \"$new/omp-server\" omp-server\n# Everything else is the user's: only added where missing.\ncp -an \"$new/.\" .\necho \"$sum\" > .raptor-omp\necho \"Installed open.mp ${tag#v}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The open.mp release to install, such as v1.6.7.3218, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An open.mp server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "50",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,1000",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The password for remote administration. RCON stays off until you turn it on in config.json.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        }
+    ]
+}

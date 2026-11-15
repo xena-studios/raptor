@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/trackmania/egg-trackmania.json
+license: MIT
+credits:
+  - "Based on the Trackmania egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Trackmania's logo, from https://www.trackmania.com, on a dark square"
+certified: true
+# Nadeo's Linux server is x86-64 only.
+arch: [amd64]
+# Without a server login it runs as a LAN server, which is what CI tests.
+# No console and nothing to save: no backup hooks.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m

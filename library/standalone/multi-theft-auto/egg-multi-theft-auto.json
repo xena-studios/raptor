@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Multi Theft Auto",
+    "author": "support@raptorpanel.net",
+    "description": "Multi Theft Auto, the multiplayer mod for Grand Theft Auto: San Andreas. Installs the current server with the default resources; add your own in mods/deathmatch/resources.",
+    "features": [],
+    "docker_images": {
+        "MTA": "ghcr.io/pelican-eggs/games:mta@sha256:62209c629b503455cd8a85cb30f37df3c748b246e81d281a4830d4d426c7fc51"
+    },
+    "file_denylist": [],
+    "startup": "./mta-server -n -u",
+    "config": {
+        "files": "{\"mods/deathmatch/mtaserver.conf\": {\"parser\": \"xml\", \"find\": {\"config.servername\": \"{{server.build.env.SERVER_NAME}}\", \"config.serverip\": \"auto\", \"config.serverport\": \"{{server.build.default.port}}\", \"config.httpport\": \"{{server.build.env.SERVER_WEBPORT}}\", \"config.maxplayers\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": \"Server started and is ready to accept connections\"}",
+        "logs": "{}",
+        "stop": "shutdown"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Multi Theft Auto: San Andreas. Downloads the current MTA server for the\n# node's CPU from multitheftauto.com. Settings (mtaserver.conf, acl.xml),\n# resources and databases are never touched once they exist; the default\n# resources are only added on the first install.\nset -euo pipefail\ncd /mnt/server\ndl=https://linux.multitheftauto.com/dl\nget() { curl -fsSL --retry 3 -o \"$2\" \"$1\"; }\ncase \"$(uname -m)\" in\nx86_64) pkg=multitheftauto_linux_x64 bin=mta-server64 ;;\naarch64) pkg=multitheftauto_linux_arm64 bin=mta-server-arm64 ;;\n*) echo \"Multi Theft Auto has no server for $(uname -m).\"; exit 1 ;;\nesac\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"\nmkdir -p \"$build\"\ntrap 'rm -rf \"$build\"' EXIT\n\necho \"Downloading the MTA server ($pkg)\"\nget \"$dl/$pkg.tar.gz\" \"$build/mta.tar.gz\" || { echo \"multitheftauto.com can't be reached right now. Reinstall to try again.\"; exit 1; }\ntar -xzf \"$build/mta.tar.gz\" -C \"$build\"\n[ -x \"$build/$pkg/$bin\" ] || { echo \"The download has no $bin in it.\"; exit 1; }\n# The server's own files only: mods/deathmatch keeps the user's settings.\ncp -a \"$build/$pkg/.\" .\nln -sfn \"$bin\" mta-server\n\nmkdir -p mods/deathmatch/resources mods/deathmatch/logs\nmissing=0\nfor f in mtaserver.conf acl.xml vehiclecolors.conf; do [ -f \"mods/deathmatch/$f\" ] || missing=1; done\nif [ \"$missing\" = 1 ]; then\n    echo \"Adding the default settings\"\n    get \"$dl/baseconfig.tar.gz\" \"$build/baseconfig.tar.gz\"\n    tar -xzf \"$build/baseconfig.tar.gz\" -C \"$build\"\n    for f in \"$build\"/baseconfig/*; do\n        [ -e \"mods/deathmatch/${f##*/}\" ] || cp -a \"$f\" mods/deathmatch/\n    done\nfi\nif [ -z \"$(ls -A mods/deathmatch/resources)\" ]; then\n    echo \"Adding the default resources\"\n    get https://mirror-cdn.multitheftauto.com/mtasa/resources/mtasa-resources-latest.zip \"$build/resources.zip\"\n    unzip -q \"$build/resources.zip\" -d mods/deathmatch/resources\nfi\necho \"Installed the current MTA server ($bin).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name shown in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Multi Theft Auto server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:96|regex:/^[^<>&]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "32",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,4096",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTP port",
+            "description": "The TCP port players download resources from. Allocate it to the server too.",
+            "env_variable": "SERVER_WEBPORT",
+            "default_value": "22005",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        }
+    ]
+}

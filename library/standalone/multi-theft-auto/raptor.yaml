@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/multi-theft-auto/egg-multi-theft-auto.json
+license: MIT
+credits:
+  - "Based on the Multi Theft Auto egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Multi Theft Auto's logo, from https://github.com/multitheftauto"
+certified: true
+arch: [amd64, arm64]
+# MTA keeps its data in SQLite databases it writes as it goes: no save
+# command to hook a backup on.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "ver"
+  expect: "MTA:SA Server v"

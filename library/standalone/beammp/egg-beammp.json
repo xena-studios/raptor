@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "BeamMP",
+    "author": "support@raptorpanel.net",
+    "description": "The multiplayer server for BeamNG.drive, through the BeamMP mod. Needs an AuthKey from BeamMP's Keymaster; Lua plugins go in Resources/Server and mods in Resources/Client.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "./BeamMP-Server | while IFS= read -r l; do printf \"%s\\n\" \"$l\"; case \"$l\" in *\"[INFO] Shutdown.\") kill 0 ;; esac; done",
+    "config": {
+        "files": "{\"ServerConfig.toml\": {\"parser\": \"file\", \"find\": {\"Name =\": \"Name = \\\"{{server.build.env.NAME}}\\\"\", \"Description =\": \"Description = \\\"{{server.build.env.DESCRIPTION}}\\\"\", \"Port =\": \"Port = {{server.build.default.port}}\", \"AuthKey =\": \"AuthKey = \\\"{{server.build.env.AUTHKEY}}\\\"\", \"Private =\": \"Private = {{server.build.env.PRIVATE}}\", \"MaxPlayers =\": \"MaxPlayers = {{server.build.env.MAX_PLAYERS}}\", \"MaxCars =\": \"MaxCars = {{server.build.env.MAX_CARS}}\", \"Map =\": \"Map = \\\"{{server.build.env.MAP}}\\\"\"}}}",
+        "startup": "{\"done\": \"ALL SYSTEMS STARTED SUCCESSFULLY\"}",
+        "logs": "{}",
+        "stop": "exit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# BeamMP. Downloads the BeamMP server for the node's CPU from GitHub and\n# checks it against GitHub's checksum. ServerConfig.toml, Resources (mods\n# and Lua plugins) are never touched once they exist.\nset -euo pipefail\ncd /mnt/server\nrepo=BeamMP/BeamMP-Server\ncase \"$(uname -m)\" in\nx86_64) arch=x86_64 ;;\naarch64) arch=arm64 ;;\n*) echo \"BeamMP has no server for $(uname -m).\"; exit 1 ;;\nesac\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag \"$repo\" \"$want\") ||\n    { echo \"BeamMP has no release ${VERSION}. Set Version to latest, or to a release such as v3.9.3.\"; exit 1; }\n# Built for the Debian the server's image runs.\nasset=\"BeamMP-Server.debian.13.$arch\"\nassets=$(gh-release assets \"$repo\" \"$tag\")\nif ! awk -v a=\"$asset\" '$1 == a { f = 1 } END { exit !f }' <<<\"$assets\"; then\n    asset=\"BeamMP-Server.debian.12.$arch\"\n    awk -v a=\"$asset\" '$1 == a { f = 1 } END { exit !f }' <<<\"$assets\" ||\n        { echo \"BeamMP ${tag#v} has no Linux server for $arch. Choose a newer version.\"; exit 1; }\nfi\nsum=$(awk -v a=\"$asset\" '$1 == a { print $2 }' <<<\"$assets\")\n\nif [ -x BeamMP-Server ] && [ \"$(sha256sum BeamMP-Server | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"BeamMP ${tag#v} is already installed.\"\nelse\n    echo \"Downloading BeamMP ${tag#v} ($asset)\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" BeamMP-Server.new\n    chmod +x BeamMP-Server.new\n    mv -f BeamMP-Server.new BeamMP-Server\nfi\nmkdir -p Resources/Client Resources/Server\n\n# The settings the Panel writes at every start need their lines; BeamMP\n# adds its other settings itself.\nif [ ! -f ServerConfig.toml ]; then\n    cat > ServerConfig.toml <<'TOML'\n# BeamMP's settings: https://docs.beammp.com/server/server-maintenance/\n# Name, Description, Port, AuthKey, MaxPlayers, MaxCars, Map and Private\n# come from the server's settings in the Panel.\n[General]\nName = \"BeamMP Server\"\nDescription = \"A BeamMP server\"\nPort = 30814\nAuthKey = \"\"\nPrivate = true\nMaxPlayers = 8\nMaxCars = 1\nMap = \"/levels/gridmap_v2/info.json\"\nTags = \"Freeroam\"\nLogChat = true\nResourceFolder = \"Resources\"\nTOML\nfi\necho \"Installed BeamMP ${tag#v}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The BeamMP server release to install, such as v3.9.3, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "AuthKey",
+            "description": "Your server's key from BeamMP's Keymaster. The server doesn't start without one.",
+            "env_variable": "AUTHKEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list.",
+            "env_variable": "NAME",
+            "default_value": "A BeamMP server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:128|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The description shown in the server list.",
+            "env_variable": "DESCRIPTION",
+            "default_value": "A BeamMP server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:256|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Private",
+            "description": "Keep the server out of the public server list.",
+            "env_variable": "PRIVATE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players connected at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,100",
+            "field_type": "text"
+        },
+        {
+            "name": "Max cars",
+            "description": "The most cars each player can spawn.",
+            "env_variable": "MAX_CARS",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,50",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map's info.json path, such as /levels/west_coast_usa/info.json.",
+            "env_variable": "MAP",
+            "default_value": "/levels/gridmap_v2/info.json",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:128|regex:/^\\/levels\\/[A-Za-z0-9_.\\/-]+$/",
+            "field_type": "text"
+        }
+    ]
+}

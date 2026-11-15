@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/games-standalone (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Among Us: Impostor",
+    "author": "support@raptorpanel.net",
+    "description": "Impostor, a private server for Among Us. Players connect through a custom region set to this server's address and port.",
+    "features": [],
+    "docker_images": {
+        ".NET 8": "ghcr.io/xena-studios/yolks:dotnet_8@sha256:94a5ecb74bd76d19cd875d9073b96453db1acafb43586dedb8f977801c131bef"
+    },
+    "file_denylist": [],
+    "startup": "ip=\"{{PUBLIC_IP}}\"; if [ -z \"$ip\" ]; then ip=$(curl -fsS4 --max-time 5 https://api.ipify.org || true); echo \"Public address: ${ip:-not found, using 127.0.0.1}\"; fi; export IMPOSTOR_Server__PublicIp=\"${ip:-127.0.0.1}\" DOTNET_CLI_TELEMETRY_OPTOUT=1; exec ./Impostor.Server",
+    "config": {
+        "files": "{\"config.json\": {\"parser\": \"json\", \"find\": {\"Server.PublicPort\": \"{{server.build.default.port}}\", \"Server.ListenPort\": \"{{server.build.default.port}}\", \"Server.ListenIp\": \"0.0.0.0\", \"HttpServer.ListenPort\": \"{{server.build.default.port}}\", \"HttpServer.ListenIp\": \"0.0.0.0\"}}}",
+        "startup": "{\"done\": \"Matchmaker is listening on\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Among Us: Impostor. Downloads the Impostor release for the node's CPU from\n# GitHub and checks it against GitHub's checksum. config.json and plugins\n# are never touched once they exist.\nset -euo pipefail\ncd /mnt/server\nrepo=Impostor/Impostor\ncase \"$(uname -m)\" in\nx86_64) arch=linux-x64 ;;\naarch64) arch=linux-arm64 ;;\n*) echo \"Impostor has no build for $(uname -m).\"; exit 1 ;;\nesac\n\nwant=\"${VERSION:-latest}\"\n# Impostor's tags start with a v; accept the version either way.\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag \"$repo\" \"$want\") ||\n    { echo \"Impostor has no release ${VERSION}. Set Version to latest, or to a release such as v1.10.9.\"; exit 1; }\nver=${tag#v}\nasset=$(gh-release assets \"$repo\" \"$tag\" | awk -v a=\"_$arch.tar.gz\" '!f && index($1, a) { print $1; f = 1 }')\n[ -n \"$asset\" ] || { echo \"Impostor $ver has no download for $arch.\"; exit 1; }\n\nif [ \"$(cat .raptor-impostor 2>/dev/null)\" = \"$asset\" ] && [ -x Impostor.Server ]; then\n    echo \"Impostor $ver is already installed.\"\n    exit 0\nfi\n\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\"\nmkdir -p \"$build/x\"\ntrap 'rm -rf \"$build\"' EXIT\necho \"Downloading Impostor $ver ($arch)\"\ngh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/impostor.tar.gz\"\ntar -xzf \"$build/impostor.tar.gz\" -C \"$build/x\"\n[ -f \"$build/x/Impostor.Server\" ] || { echo \"The download has no Impostor.Server in it.\"; exit 1; }\n# The user's settings stay: the release's config.json is only used when\n# there is none yet.\nif [ -f config.json ]; then rm -f \"$build/x/config.json\"; fi\ncp -a \"$build/x/.\" .\nchmod +x Impostor.Server\nmkdir -p plugins libraries\necho \"$asset\" > .raptor-impostor\necho \"Installed Impostor $ver.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Impostor release to install, such as v1.10.9, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public address",
+            "description": "The address players connect to, an IPv4 address or a hostname. Empty finds the server's public IPv4 address at every start.",
+            "env_variable": "PUBLIC_IP",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:253|regex:/^[A-Za-z0-9.-]*$/",
+            "field_type": "text"
+        }
+    ]
+}

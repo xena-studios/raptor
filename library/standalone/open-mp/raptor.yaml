@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/open-mp/egg-open-mp.json
+license: MIT
+credits:
+  - "Based on the OpenMP egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: open.mp's logo, from https://github.com/openmultiplayer"
+certified: true
+# open.mp ships a 32-bit x86 Linux server only.
+arch: [amd64]
+# open.mp answers SA-MP's own query protocol, not A2S. Gamemodes save
+# through their own scripts: no backup hooks.
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  command: "cmdlist"
+  expect: "Console commands:"
