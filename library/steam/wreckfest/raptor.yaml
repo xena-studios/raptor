@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/wreckfest/egg-wreckfest.json
+license: MIT
+credits:
+  - "Based on the Wreckfest egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Wreckfest's icon, from Steam (Bugbear Entertainment)"
+certified: true
+arch: [amd64]
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 40m
