@@ -33,12 +33,14 @@ package conformance
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -159,6 +161,28 @@ func (r *run) lifecycle() {
 	r.m = r.env.manager()
 	t.Cleanup(func() { r.m.Close() })
 	port := freePort(t)
+	allocs := []server.Allocation{{IP: "0.0.0.0", Port: port, Primary: true}}
+	vars := maps.Clone(e.Test.Variables)
+	// Where the game answers player queries, given the port it needs, as a
+	// node would (server.queryAddr): an offset, or a variable.
+	queryPort := port
+	switch v := strings.TrimSpace(e.Players.Port); {
+	case v == "":
+	case strings.HasPrefix(v, "+") || strings.HasPrefix(v, "-"):
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			t.Fatalf("players.port %q", v)
+		}
+		queryPort = port + n
+		allocs = append(allocs, server.Allocation{IP: "0.0.0.0", Port: queryPort})
+	default:
+		queryPort = freePort(t)
+		if vars == nil {
+			vars = map[string]string{}
+		}
+		vars[strings.Trim(v, "{} ")] = strconv.Itoa(queryPort)
+		allocs = append(allocs, server.Allocation{IP: "0.0.0.0", Port: queryPort})
+	}
 
 	r.step("install", func() {
 		id, err := r.m.Create(context.Background(), server.Config{
@@ -166,10 +190,10 @@ func (r *run) lifecycle() {
 			Egg:         e.Egg,
 			EggSource:   "catalog:" + e.ID,
 			Image:       e.Test.Image,
-			Variables:   e.Test.Variables,
+			Variables:   vars,
 			Limits:      containers.Limits{MemoryMiB: e.Test.MemoryMiB},
 			Settings:    server.DefaultSettings(),
-			Allocations: []server.Allocation{{IP: "0.0.0.0", Port: port, Primary: true}},
+			Allocations: allocs,
 		}, server.CreateOptions{})
 		if err != nil {
 			r.fail("create: %v", err)
@@ -182,7 +206,7 @@ func (r *run) lifecycle() {
 	r.step("start", func() { r.start() })
 	r.checkConfig(port)
 	if q := e.Players.Query; q != "" {
-		r.step("players", func() { r.players(q, port) })
+		r.step("players", func() { r.players(q, queryPort) })
 	}
 	if e.Test.Command != "" {
 		r.step("command", func() { r.command(e.Test.Command) })
