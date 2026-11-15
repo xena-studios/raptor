@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/archean/egg-archean.json
+license: MIT
+credits:
+  - "Based on the Archean egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Archean's logo, from its Steam store page (Xenon Wireless)"
+certified: true
+arch: [amd64]
+# No player count: Archean lists servers through its own service, not
+# Steam's query. No backup hooks: it saves on its own (Save interval) and
+# when stopped, and its console has no save command.
+test:
+  tier: slow
+  memory_mib: 6144
+  done_timeout: 30m
+  command: "info"
+  expect: "Ticks per second: [0-9]+"

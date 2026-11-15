@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/soldat/egg-soldat.json
+license: MIT
+credits:
+  - "Based on the Soldat egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Soldat's logo, from its Steam store page (Soldat Team)"
+certified: true
+# A 32-bit x86 server.
+arch: [amd64]
+# No player count: Soldat answers its own lobby, not Steam's query. Its
+# console takes no commands (Soldat Admin does that); Ctrl+C stops it.
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    ADMIN_PASSWD: "conformance"
+  done_timeout: 10m

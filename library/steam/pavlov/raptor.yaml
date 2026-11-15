@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/pavlov/egg-pavlov.json
+license: MIT
+credits:
+  - "Based on the Pavlov VR egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Pavlov VR's logo, from its Steam store page (Vankrupt Games)"
+certified: true
+# Needs libc++, which Raptor's steamcmd image lacks.
+arch: [amd64]
+# No player count: Pavlov lists servers through its own master server, not
+# Steam's query. No console (RCON does that); Ctrl+C stops it.
+test:
+  tier: slow
+  memory_mib: 4096
+  variables:
+    RCON_PASSWORD: "conformance"
+  done_timeout: 40m

@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/modiverse/egg-modiverse.json
+license: MIT
+credits:
+  - "Based on the Modiverse egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Modiverse's logo, from its Steam store page (KillerJim)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No console and no saves: Ctrl+C stops it.
+test:
+  tier: fast
+  memory_mib: 4096
+  done_timeout: 20m

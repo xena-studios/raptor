@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/foundry/egg-foundry.json
+license: MIT
+credits:
+  - "Based on the Foundry eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Foundry's logo, from its Steam store page (Channel 3 Entertainment)"
+certified: true
+arch: [amd64]
+# Steam's query answers on Query port, only for a public server: otherwise
+# the Panel shows no player count.
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: Foundry has no console to save from. It saves on its
+# own (Save interval) and when stopped.
+test:
+  tier: slow
+  memory_mib: 6144
+  variables:
+    PUBLIC_SERVER: "true"
+  done_timeout: 40m

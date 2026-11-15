@@ -1,0 +1,211 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Avorion",
+    "author": "support@raptorpanel.net",
+    "description": "The co-op space sandbox: build ships from scalable blocks, trade, fight and claim a procedural galaxy. Installs the dedicated server with SteamCMD and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:3da8e0bc90c94c7f9aca1355f2ae31c0484ee78dd446a0c6c1d796dfe4d7677d"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $([ \"{{VALIDATE}}\" = 1 ] && echo validate) +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; ini=\"galaxy/{{GALAXY_NAME}}/server.ini\"; if [ ! -f \"$ini\" ]; then mkdir -p \"galaxy/{{GALAXY_NAME}}\"; printf \"[System]\\nbackupsPath=/home/container/backups\\n\" > \"$ini\"; elif grep -q \"^backupsPath=$\" \"$ini\"; then sed -i \"s|^backupsPath=$|backupsPath=/home/container/backups|\" \"$ini\"; fi; export LD_LIBRARY_PATH=\"./linux64:$LD_LIBRARY_PATH\"; exec ./bin/AvorionServer --galaxy-name \"{{GALAXY_NAME}}\" --datapath galaxy --admin {{ADMIN_ID}} --port {{SERVER_PORT}} --query-port {{QUERY_PORT}} --steam-query-port {{STEAM_QUERY_PORT}} --steam-master-port {{STEAM_MASTER_PORT}} --server-name \"{{SERVER_NAME}}\" --max-players {{MAX_PLAYERS}} --difficulty {{DIFFICULTY}} --collision-damage {{COLLISION_DMG}} --save-interval {{SAVE_INTERVAL}} --same-start-sector {{SAME_START_SECTOR}} --threads {{GAME_THREADS}} --listed {{SERVER_LISTED}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Server startup complete\"}",
+        "logs": "{}",
+        "stop": "/stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Avorion. Installs or updates the dedicated server (Steam app 565060) with\n# SteamCMD, signed in anonymously. Galaxies and their settings (galaxy/) are\n# never touched; the startup only points the game's backups into backups/\n# (it looks for a home folder the server's user doesn't have).\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-565060}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\necho \"Installed Avorion build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Galaxy",
+            "description": "The galaxy to load, or create when there's none by that name.",
+            "env_variable": "GALAXY_NAME",
+            "default_value": "Avorion",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z0-9 _-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Avorion server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin Steam ID",
+            "description": "The 17-digit Steam ID of the player who administers the server.",
+            "env_variable": "ADMIN_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^7656119[0-9]{10}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Difficulty",
+            "description": "From -3 (easiest) to 3 (hardest), used when the galaxy is created.",
+            "env_variable": "DIFFICULTY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:-3,-2,-1,0,1,2,3",
+            "field_type": "text"
+        },
+        {
+            "name": "Collision damage",
+            "description": "How much damage colliding objects take, from 0 (none) to 1 (full).",
+            "env_variable": "COLLISION_DMG",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|between:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Save interval",
+            "description": "How often the galaxy is saved, in seconds.",
+            "env_variable": "SAVE_INTERVAL",
+            "default_value": "300",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Same start sector",
+            "description": "true starts every player in the same sector; false gives each a sector of their own on the outer rim.",
+            "env_variable": "SAME_START_SECTOR",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Threads",
+            "description": "How many threads update sectors.",
+            "env_variable": "GAME_THREADS",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,20",
+            "field_type": "text"
+        },
+        {
+            "name": "Listed",
+            "description": "true lists the server in the public server list.",
+            "env_variable": "SERVER_LISTED",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Query port",
+            "description": "The port the game's own query uses; give it an allocation.",
+            "env_variable": "QUERY_PORT",
+            "default_value": "27003",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam query port",
+            "description": "The port Steam's server queries use; give it an allocation.",
+            "env_variable": "STEAM_QUERY_PORT",
+            "default_value": "27020",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam master port",
+            "description": "The port Steam's master server talks to; give it an allocation.",
+            "env_variable": "STEAM_MASTER_PORT",
+            "default_value": "27021",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, such as beta, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "565060",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:565060",
+            "field_type": "text"
+        }
+    ]
+}

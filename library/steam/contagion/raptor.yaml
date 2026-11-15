@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/contagion/egg-contagion.json
+license: MIT
+credits:
+  - "Based on the Contagion egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Contagion's logo, from its Steam store page (Monochrome)"
+certified: true
+arch: [amd64]
+# A Source engine server: Steam's query answers on the game port.
+players:
+  query: source
+# No backup hooks: Contagion keeps no world to save. Its console runs under
+# Wine without input, so Ctrl+C stops it.
+test:
+  tier: manual
+  reason: "The server is about 17 GB, more than a standard runner can hold beside the images."
+  memory_mib: 4096
+  done_timeout: 90m

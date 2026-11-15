@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/rising-world/egg-rising-world.json
+license: MIT
+credits:
+  - "Based on the Rising World Unity egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Rising World's logo, from its Steam store page (JIW-Games)"
+certified: true
+arch: [amd64]
+# Steam's query answers on the port below the game's.
+players:
+  query: source
+  port: "-1"
+# No backup hooks: the console has no save command; the world is saved as
+# it changes and when the server shuts down.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m
