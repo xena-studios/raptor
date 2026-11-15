@@ -1,0 +1,38 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/rust/egg-rust.json
+license: MIT
+credits:
+  - "Based on the Rust egg in https://github.com/pterodactyl/generic-eggs (rust/egg-rust-generic.json, MIT)"
+  - "Icon: Rust's logo, the https://github.com/rust-lang avatar (Rust Foundation)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  files:
+    Cargo.toml: |
+      [package]
+      name = "echo"
+      version = "0.1.0"
+      edition = "2021"
+
+      [dependencies]
+      itoa = "1"
+    src/main.rs: |
+      // Stands in for a bot: says it's ready, then echoes the console.
+      use std::io::BufRead;
+
+      fn main() {
+          println!("ready{}", itoa::Buffer::new().format(0u8).replace('0', ""));
+          for line in std::io::stdin().lock().lines() {
+              let line = line.unwrap();
+              if !line.trim().is_empty() {
+                  println!("got: {}", line.trim());
+              }
+          }
+      }
+  done_timeout: 5m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"

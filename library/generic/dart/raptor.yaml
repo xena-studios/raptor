@@ -1,0 +1,35 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/dart/egg-dart.json
+license: MIT
+credits:
+  - "Based on the Dart egg in https://github.com/pterodactyl/generic-eggs (dart/egg-dart-generic.json, MIT)"
+  - "Icon: Dart's logo, the https://github.com/dart-lang avatar (Google)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  files:
+    pubspec.yaml: |
+      name: echo
+      environment:
+        sdk: ^3.0.0
+      dependencies:
+        path: ^1.9.0
+    bin/echo.dart: |
+      // Stands in for a bot: says it's ready, then echoes the console.
+      import 'dart:convert';
+      import 'dart:io';
+      import 'package:path/path.dart' as p;
+
+      void main() {
+        print(p.basename('/x/ready'));
+        stdin.transform(utf8.decoder).transform(const LineSplitter()).listen((l) {
+          if (l.trim().isNotEmpty) print('got: ${l.trim()}');
+        });
+      }
+  done_timeout: 3m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"

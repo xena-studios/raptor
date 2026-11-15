@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/generic (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Rust",
+    "author": "support@raptorpanel.net",
+    "description": "Builds and runs a Rust app, such as a Discord bot, from your files or a Git repository with Cargo. Release builds are incremental, so starts after the first are quick.",
+    "features": [],
+    "docker_images": {
+        "Rust 1": "ghcr.io/xena-studios/yolks:rust_1@sha256:f0d19eee29e90f6fe7d03f95c0182f44b1b63d63e805f47936dc86e2686e361f"
+    },
+    "file_denylist": [],
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; exec cargo run --release ${RUST_BIN:+--bin \"$RUST_BIN\"} -- {{RUST_ARGS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": []}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Rust: clones the app's Git repository, if one is set. Files already in\n# the server's folder are never deleted or overwritten.\nset -euo pipefail\ncd /mnt/server\n\nclone() {\n    if [ -z \"${GIT_ADDRESS:-}\" ]; then\n        echo \"No Git repository set: upload your app's files, then start the server.\"\n        return 0\n    fi\n    local url=\"${GIT_ADDRESS}\"\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\n    if [ -d .git ]; then\n        echo \"The repository is already here: pulling the latest changes.\"\n        git pull --ff-only\n    elif [ -n \"$(ls -A)\" ]; then\n        echo \"The folder already has files and isn't a Git repository, so nothing was cloned.\"\n    else\n        GIT_TERMINAL_PROMPT=0 git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" . || {\n            echo \"The repository couldn't be cloned: check its address, and the username and access token for a private one.\"\n            exit 1\n        }\n    fi\n}\n\nclone\necho \"Installed.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Binary",
+            "description": "The binary to run, for a package with more than one. Empty runs the only one.",
+            "env_variable": "RUST_BIN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the app's repository, cloned when the server is installed. Leave it empty to upload the files yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to your app.",
+            "env_variable": "RUST_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,32 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/lua/egg-lua.json
+license: MIT
+credits:
+  - "Based on the Luvit egg in https://github.com/pterodactyl/generic-eggs (lua/luvit/egg-luvit-generic.json, MIT)"
+  - "Icon: Luvit's logo, the https://github.com/luvit avatar (The Luvit Authors)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  files:
+    app.lua: |
+      -- Stands in for a bot: says it's ready, then echoes the console.
+      local uv = require("uv")
+      print("ready")
+      local stdin = uv.new_tty(0, true)
+      local buf = ""
+      stdin:read_start(function(err, data)
+        if not data then return end
+        buf = buf .. data
+        for line in buf:gmatch("([^\n]*)\n") do
+          line = line:match("^%s*(.-)%s*$")
+          if line ~= "" then print("got: " .. line) end
+        end
+        buf = buf:match("[^\n]*$")
+      end)
+  done_timeout: 3m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"

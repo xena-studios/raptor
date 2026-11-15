@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/java/egg-java.json
+license: MIT
+credits:
+  - "Based on the Java egg in https://github.com/pterodactyl/generic-eggs (java/egg-java.json, MIT)"
+  - "Icon: Duke, the https://github.com/openjdk avatar (OpenJDK, BSD)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    JAR_URL: "https://repo1.maven.org/maven2/org/mozilla/rhino/1.7.15/rhino-1.7.15.jar"
+    JARFILE: "rhino.jar"
+  done_timeout: 3m
+  ready: "^Rhino 1\\.7\\.15"
+  command: 'print("got: " + "hel" + "lo")'
+  expect: "got: hello$"

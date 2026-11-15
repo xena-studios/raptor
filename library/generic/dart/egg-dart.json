@@ -1,0 +1,102 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/generic (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Dart",
+    "author": "support@raptorpanel.net",
+    "description": "Runs a Dart app, such as a Discord bot, from your files or a Git repository. Packages are fetched when pubspec.yaml changes.",
+    "features": [],
+    "docker_images": {
+        "Dart stable": "ghcr.io/pelican-eggs/yolks:dart_stable@sha256:fd4b944343942ef20a7b11e231c6df6f9113926128cd5cc6fd44a09ede58ecad",
+        "Dart 3.3": "ghcr.io/pelican-eggs/yolks:dart_3.3@sha256:3500e3daa7e3f621f1886b763944541e6effac3597b2f57b75b34d3de4756742"
+    },
+    "file_denylist": [],
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; exec dart run {{DART_FILE}} {{DART_ARGS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": []}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Dart: clones the app's Git repository, if one is set. Files already in\n# the server's folder are never deleted or overwritten.\nset -euo pipefail\ncd /mnt/server\n\nclone() {\n    if [ -z \"${GIT_ADDRESS:-}\" ]; then\n        echo \"No Git repository set: upload your app's files, then start the server.\"\n        return 0\n    fi\n    local url=\"${GIT_ADDRESS}\"\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\n    if [ -d .git ]; then\n        echo \"The repository is already here: pulling the latest changes.\"\n        git pull --ff-only\n    elif [ -n \"$(ls -A)\" ]; then\n        echo \"The folder already has files and isn't a Git repository, so nothing was cloned.\"\n    else\n        GIT_TERMINAL_PROMPT=0 git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" . || {\n            echo \"The repository couldn't be cloned: check its address, and the username and access token for a private one.\"\n            exit 1\n        }\n    fi\n}\n\nclone\necho \"Installed.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Main file",
+            "description": "The file that starts your app, such as bin/bot.dart. Empty runs the package's own executable.",
+            "env_variable": "DART_FILE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the app's repository, cloned when the server is installed. Leave it empty to upload the files yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to your app.",
+            "env_variable": "DART_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,121 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/generic (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Lua",
+    "author": "support@raptorpanel.net",
+    "description": "Runs a Lua app, such as a Discord bot, on Luvit from your files or a Git repository. Packages from package.lua are installed with lit when it changes.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; h=$(cat package.lua 2>/dev/null; echo \"{{LIT_PACKAGES}}\"); h=$(echo \"$h\" | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat deps/.raptor-installed 2>/dev/null)\" ]; then if [ -f package.lua ]; then ./lit install || exit 1; fi; if [ -n \"{{LIT_PACKAGES}}\" ]; then ./lit install {{LIT_PACKAGES}} || exit 1; fi; mkdir -p deps && echo \"$h\" > deps/.raptor-installed; fi; exec ./luvit \"{{LUA_FILE}}\" {{LUA_ARGS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": []}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Lua: clones the app's Git repository, if one is set. Files already in\n# the server's folder are never deleted or overwritten.\nset -euo pipefail\ncd /mnt/server\n\nclone() {\n    if [ -z \"${GIT_ADDRESS:-}\" ]; then\n        echo \"No Git repository set: upload your app's files, then start the server.\"\n        return 0\n    fi\n    local url=\"${GIT_ADDRESS}\"\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\n    if [ -d .git ]; then\n        echo \"The repository is already here: pulling the latest changes.\"\n        git pull --ff-only\n    elif [ -n \"$(ls -A)\" ]; then\n        echo \"The folder already has files and isn't a Git repository, so nothing was cloned.\"\n    else\n        GIT_TERMINAL_PROMPT=0 git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" . || {\n            echo \"The repository couldn't be cloned: check its address, and the username and access token for a private one.\"\n            exit 1\n        }\n    fi\n}\n\nclone\n\n# Luvit: luvi (the runtime) from its GitHub releases, then lit and luvit\n# built with it from lit.luvit.io, as luvit's own get-lit.sh does.\nwant=\"${VERSION:-latest}\"\nversions=$(curl -fsSL --retry 3 https://lit.luvit.io/packages/luvit/luvit) || { echo \"Luvit's package list couldn't be fetched.\"; exit 1; }\nif [ \"$want\" = latest ]; then\n    want=$(jq -r 'keys[]' <<<\"$versions\" | sort -V | tail -n 1)\nelif ! jq -e --arg v \"$want\" 'has($v)' <<<\"$versions\" >/dev/null; then\n    echo \"Luvit ${want} doesn't exist: see https://lit.luvit.io/packages/luvit/luvit for the versions.\"\n    exit 1\nfi\nif [ -x luvit ] && [ \"$(./luvit --version 2>/dev/null | head -n 1)\" = \"luvit version: ${want}\" ]; then\n    echo \"Luvit ${want} is already installed.\"\nelse\n    case \"$(uname -m)\" in\n        x86_64) arch=x86_64 ;;\n        aarch64|arm64) arch=aarch64 ;;\n        *) echo \"Luvit has no build for $(uname -m).\"; exit 1 ;;\n    esac\n    luvi=$(gh-release tag luvit/luvi latest) || exit 1\n    lit=$(curl -fsSL --retry 3 https://lit.luvit.io/packages/luvit/lit | jq -r 'keys[]' | sort -V | tail -n 1)\n    work=/mnt/server/.raptor-build\n    rm -rf \"$work\"\n    mkdir -p \"$work\"\n    trap 'rm -rf \"$work\"' EXIT\n    export HOME=\"$work\"\n    gh-release download luvit/luvi \"$luvi\" \"luvi-Linux-${arch}-luajit-regular\" \"$work/luvi\"\n    chmod +x \"$work/luvi\"\n    curl -fsSL --retry 3 -o \"$work/lit.zip\" \"https://lit.luvit.io/packages/luvit/lit/v${lit}.zip\"\n    (cd \"$work\" && ./luvi lit.zip -- make lit.zip lit luvi >/dev/null && ./lit make \"lit://luvit/luvit@${want}\" luvit luvi >/dev/null)\n    mv -f \"$work/lit\" \"$work/luvit\" .\n    export HOME=/mnt/server\n    echo \"Installed Luvit ${want} (luvi ${luvi#v}, lit ${lit}).\"\nfi\n\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Main file",
+            "description": "The file that starts your app, such as app.lua.",
+            "env_variable": "LUA_FILE",
+            "default_value": "app.lua",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The Luvit version, such as 2.18.1, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the app's repository, cloned when the server is installed. Leave it empty to upload the files yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra packages",
+            "description": "lit packages to install as well, separated by spaces.",
+            "env_variable": "LIT_PACKAGES",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to your app.",
+            "env_variable": "LUA_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}

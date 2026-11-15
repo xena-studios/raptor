@@ -1,0 +1,112 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/generic (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Go",
+    "author": "support@raptorpanel.net",
+    "description": "Builds and runs a Go app, such as a Discord bot, from your files or a Git repository. It's rebuilt at every start, which takes seconds once the build cache is warm.",
+    "features": [],
+    "docker_images": {
+        "Go 1.27": "ghcr.io/xena-studios/yolks:go_1.27@sha256:e0590fe748f3044947f45e27d522106ae1920c1418f0137325facab312329a01",
+        "Go 1.26": "ghcr.io/xena-studios/yolks:go_1.26@sha256:b73b60231871b88501161917380ddbe92f34a79016f2719e96d2519d5350871d"
+    },
+    "file_denylist": [],
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; export GOFLAGS=-modcacherw; if [ -f go.mod ]; then go build -o \"{{EXECUTABLE}}\" {{GO_PACKAGE}} || exit 1; fi; exec \"./{{EXECUTABLE}}\" {{GO_ARGS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": []}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Go: clones the app's Git repository, if one is set. Files already in\n# the server's folder are never deleted or overwritten.\nset -euo pipefail\ncd /mnt/server\n\nclone() {\n    if [ -z \"${GIT_ADDRESS:-}\" ]; then\n        echo \"No Git repository set: upload your app's files, then start the server.\"\n        return 0\n    fi\n    local url=\"${GIT_ADDRESS}\"\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\n    if [ -d .git ]; then\n        echo \"The repository is already here: pulling the latest changes.\"\n        git pull --ff-only\n    elif [ -n \"$(ls -A)\" ]; then\n        echo \"The folder already has files and isn't a Git repository, so nothing was cloned.\"\n    else\n        GIT_TERMINAL_PROMPT=0 git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" . || {\n            echo \"The repository couldn't be cloned: check its address, and the username and access token for a private one.\"\n            exit 1\n        }\n    fi\n}\n\nclone\necho \"Installed.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Package",
+            "description": "The package to build, such as . or ./cmd/bot.",
+            "env_variable": "GO_PACKAGE",
+            "default_value": ".",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Executable",
+            "description": "The file the build writes and the server runs. Without a go.mod, the server runs this file as it is.",
+            "env_variable": "EXECUTABLE",
+            "default_value": "app",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the app's repository, cloned when the server is installed. Leave it empty to upload the files yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to your app.",
+            "env_variable": "GO_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,34 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/dotnet/egg-dotnet.json
+license: MIT
+credits:
+  - "Based on the C# egg in https://github.com/pterodactyl/generic-eggs (c%23/egg-generic-c.json, MIT)"
+  - "Icon: the .NET logo, the https://github.com/dotnet avatar (.NET Foundation)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1536
+  files:
+    Echo.csproj: |
+      <Project Sdk="Microsoft.NET.Sdk">
+        <PropertyGroup>
+          <OutputType>Exe</OutputType>
+          <TargetFramework>net10.0</TargetFramework>
+          <ImplicitUsings>enable</ImplicitUsings>
+          <Nullable>enable</Nullable>
+        </PropertyGroup>
+      </Project>
+    Program.cs: |
+      // Stands in for a bot: says it's ready, then echoes the console.
+      Console.WriteLine("ready");
+      string? line;
+      while ((line = Console.ReadLine()) != null)
+      {
+          if (line.Trim().Length > 0) Console.WriteLine("got: " + line.Trim());
+      }
+  done_timeout: 6m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"

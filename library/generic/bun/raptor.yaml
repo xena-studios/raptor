@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/bun/egg-bun.json
+license: MIT
+credits:
+  - "Based on the Bun egg in https://github.com/pterodactyl/generic-eggs (bun/egg-bun.json, MIT)"
+  - "Icon: Bun's logo, from https://github.com/oven-sh/bun (Oven)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  files:
+    index.js: |
+      // Stands in for a bot: says it's ready, then echoes the console.
+      console.log("ready");
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", (d) => { for (const l of d.split("\n")) if (l.trim()) console.log("got: " + l.trim()); });
+  done_timeout: 3m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"

@@ -1,0 +1,49 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/go/egg-go.json
+license: MIT
+credits:
+  - "Based on the Go egg in https://github.com/pterodactyl/generic-eggs (golang/egg-golang-generic.json, MIT)"
+  - "Icon: the Go gopher, the https://github.com/golang avatar (The Go Authors, CC BY 4.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  files:
+    go.mod: |
+      module example.com/echo
+
+      go 1.26
+
+      require golang.org/x/text v0.21.0
+    go.sum: |
+      golang.org/x/text v0.21.0 h1:zyQAAkrwaneQ066sspRyJaG9VNi/YJ1NfzcGB3hZ/qo=
+      golang.org/x/text v0.21.0/go.mod h1:4IBbMaMmOPCJ8SecivzSH54+73PCFmPWxNTLm+vZkEQ=
+    main.go: |
+      // Stands in for a bot: says it's ready, then echoes the console.
+      package main
+
+      import (
+      	"bufio"
+      	"fmt"
+      	"os"
+      	"strings"
+
+      	"golang.org/x/text/cases"
+      	"golang.org/x/text/language"
+      )
+
+      func main() {
+      	fmt.Println(cases.Lower(language.English).String("READY"))
+      	s := bufio.NewScanner(os.Stdin)
+      	for s.Scan() {
+      		if l := strings.TrimSpace(s.Text()); l != "" {
+      			fmt.Println("got: " + l)
+      		}
+      	}
+      }
+  done_timeout: 5m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"
