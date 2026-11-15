@@ -1,0 +1,89 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Purpur and Purpur Geyser Floodgate eggs in pelican-eggs/minecraft (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Purpur",
+    "author": "support@raptorpanel.net",
+    "description": "Purpur, a Paper fork with many more gameplay settings, that runs Bukkit, Spigot and Paper plugins. Any Minecraft version Purpur has, checked against PurpurMC's checksums, with Geyser and Floodgate for Bedrock players as an option.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:dda430001e6c1bc8e1c43d1b0cbb2fcd0d38221d3d8f167f3ba1ae658616b374",
+        "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:e71740e2a99017d4273a588310db60da474644ea364da60d086e33635b62dd27"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Minecraft version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && GEYSER_BEDROCK_CLONE_REMOTE_PORT=true exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} nogui",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"\", \"server-port\": \"{{server.build.default.port}}\", \"query.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \")! For help, type \"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Purpur. Downloads the Purpur build for the chosen Minecraft\n# version from PurpurMC and checks it against PurpurMC's checksum, and\n# with Bedrock players on, Geyser and Floodgate from GeyserMC, checked\n# against theirs. Worlds, plugins and settings are never touched, and a\n# jar is only replaced once the new one has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\napi=https://api.purpurmc.org/v2/purpur\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\njar=\"${SERVER_JARFILE:-server.jar}\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n\n# Geyser and Floodgate, newest builds, into plugins/ (updating the files\n# already there, whatever they're called).\ngeyser() {\n    [ \"${BEDROCK_SUPPORT:-0}\" = 1 ] || [ \"${BEDROCK_SUPPORT:-0}\" = true ] || return 0\n    mkdir -p plugins\n    local project file name sum have build\n    for project in geyser floodgate; do\n        build=$(get \"https://download.geysermc.org/v2/projects/$project/versions/latest/builds/latest\") ||\n            fail \"GeyserMC can't be reached right now. Reinstall to try again.\"\n        name=$(jq -r '.downloads.spigot.name' <<<\"$build\")\n        sum=$(jq -r '.downloads.spigot.sha256' <<<\"$build\")\n        file=$(find plugins -maxdepth 1 -type f -iname \"$project-spigot*.jar\" | head -n 1)\n        [ -n \"$file\" ] || file=\"plugins/$name\"\n        have=$(sha256sum \"$file\" 2>/dev/null | cut -d' ' -f1) || true\n        if [ \"$have\" = \"$sum\" ]; then\n            echo \"$name $(jq -r '.version' <<<\"$build\") is already installed.\"\n            continue\n        fi\n        echo \"Downloading $name $(jq -r '.version' <<<\"$build\")\"\n        curl -fsSL --retry 3 -A \"$ua\" -o \"$file.new\" \"https://download.geysermc.org/v2/projects/$project/versions/latest/builds/latest/downloads/spigot\"\n        [ \"$(sha256sum \"$file.new\" | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f \"$file.new\"; fail \"The $name download didn't match GeyserMC's checksum. Reinstall to try again.\"; }\n        mv -f \"$file.new\" \"$file\"\n    done\n}\n\nif [ -n \"${DL_PATH:-}\" ]; then\n    echo \"Downloading the server jar from $DL_PATH\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$jar.new\" \"$DL_PATH\"\n    mv -f \"$jar.new\" \"$jar\"\n    rm -f .raptor-java\n    geyser\n    echo \"Installed.\"\n    exit 0\nfi\n\nversions=$(get \"$api\") || fail \"PurpurMC can't be reached right now. Reinstall to try again.\"\nversion=\"${MINECRAFT_VERSION:-latest}\"\nif [ -z \"$version\" ] || [ \"$version\" = latest ]; then\n    version=$(jq -r '.versions[-1]' <<<\"$versions\")\nelif ! jq -e --arg v \"$version\" 'any(.versions[]; . == $v)' <<<\"$versions\" >/dev/null; then\n    fail \"Purpur has no Minecraft $version. Set Version to latest, or to a version Purpur has, such as $(jq -r '.versions[-1]' <<<\"$versions\").\"\nfi\nbuilds=$(get \"$api/$version\") || fail \"PurpurMC can't be reached right now. Reinstall to try again.\"\nbuild=\"${BUILD_NUMBER:-latest}\"\nif [ -z \"$build\" ] || [ \"$build\" = latest ]; then\n    build=$(jq -r '.builds.latest' <<<\"$builds\")\nelif ! jq -e --arg b \"$build\" 'any(.builds.all[]; . == $b)' <<<\"$builds\" >/dev/null; then\n    fail \"Purpur has no build $build for Minecraft $version. Set Build to latest, or to one of its builds, such as $(jq -r '.builds.latest' <<<\"$builds\").\"\nfi\ninfo=$(get \"$api/$version/$build\") || fail \"PurpurMC can't be reached right now. Reinstall to try again.\"\n[ \"$(jq -r '.result' <<<\"$info\")\" = SUCCESS ] || fail \"Purpur build $build for Minecraft $version failed to build upstream. Choose another build.\"\nsum=$(jq -r '.md5' <<<\"$info\")\n\n# The Java version that Minecraft version needs, from Mojang.\njava=8\nif manifest=$(get https://piston-meta.mojang.com/mc/game/version_manifest_v2.json); then\n    meta_url=$(jq -r --arg v \"$version\" '.versions[] | select(.id == $v) | .url' <<<\"$manifest\")\n    if [ -n \"$meta_url\" ] && meta=$(get \"$meta_url\"); then\n        java=$(jq -r '.javaVersion.majorVersion // 8' <<<\"$meta\")\n    fi\nfi\n\nif [ -f \"$jar\" ] && [ \"$(md5sum \"$jar\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Purpur $version build $build is already installed.\"\nelse\n    echo \"Downloading Purpur $version build $build\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$jar.new\" \"$api/$version/$build/download\"\n    [ \"$(md5sum \"$jar.new\" | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f \"$jar.new\"; fail \"The download didn't match PurpurMC's checksum. Reinstall to try again.\"; }\n    mv -f \"$jar.new\" \"$jar\"\nfi\ngeyser\n# The Java version it needs, which the startup command checks.\necho \"$java\" > .raptor-java\necho \"Installed Purpur $version build $build. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Minecraft version, such as 1.21.4, or latest for the newest one Purpur has. Reinstall the server after changing it.",
+            "env_variable": "MINECRAFT_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Build",
+            "description": "The Purpur build for that version, or latest for its newest build.",
+            "env_variable": "BUILD_NUMBER",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Bedrock players",
+            "description": "Installs Geyser and Floodgate, so Bedrock players can join on the server's port too, and updates them on each reinstall.",
+            "env_variable": "BEDROCK_SUPPORT",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Download link",
+            "description": "A link to download the server jar from instead of PurpurMC, which only staff can set.",
+            "env_variable": "DL_PATH",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        }
+    ]
+}

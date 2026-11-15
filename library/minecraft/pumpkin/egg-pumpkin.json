@@ -1,0 +1,53 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Raptor's own egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Pumpkin",
+    "author": "support@raptorpanel.net",
+    "description": "Pumpkin, a fast Minecraft Java server written in Rust, for the newest Minecraft version. Still in heavy development, so many game features are missing. Checked against the release's checksums.",
+    "features": [
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "./pumpkin",
+    "config": {
+        "files": "{\"pumpkin.toml\": {\"parser\": \"ini\", \"find\": {\"[networking.java].address\": \"\\\"0.0.0.0:{{server.build.default.port}}\\\"\", \"[telemetry].enabled\": \"{{server.build.env.TELEMETRY}}\"}}}",
+        "startup": "{\"done\": \"Server is now running.\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Pumpkin. Downloads the chosen Pumpkin release for this CPU\n# from Pumpkin's GitHub releases and checks it against the release's\n# published SHA-256. Worlds, plugins and settings are never touched, and\n# the program is only replaced once the new one checks out.\nset -euo pipefail\ncd /mnt/server\n\nrepo=https://github.com/Pumpkin-MC/Pumpkin\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) asset=pumpkin-X64-Linux ;;\n    aarch64) asset=pumpkin-ARM64-Linux ;;\n    *) fail \"Pumpkin has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${PUMPKIN_VERSION:-latest}\"\nif [ -z \"$version\" ] || [ \"$version\" = latest ]; then\n    # The newest release (not a nightly), from where GitHub's latest link points.\n    version=$(curl -fsSI --retry 3 -A \"$ua\" -o /dev/null -w '%{redirect_url}' \"$repo/releases/latest\") ||\n        fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    version=${version##*/tag/}\n    version=$(printf '%b' \"${version//%/\\\\x}\")\n    [ -n \"$version\" ] && [ \"${version#http}\" = \"$version\" ] || fail \"Pumpkin has no release to install right now. Reinstall to try again later.\"\nfi\ntag=$(jq -rn --arg v \"$version\" '$v | @uri')\nsums=$(curl -fsSL --retry 3 -A \"$ua\" \"$repo/releases/download/$tag/checksums.sha256\" 2>/dev/null) ||\n    fail \"Pumpkin has no release $version (or GitHub can't be reached). Set Version to latest, or to a release such as 0.2.2+26.3-26.60.\"\nsum=$(awk -v a=\"$asset\" '$2 == a || $2 == \"*\" a { print $1 }' <<<\"$sums\")\n[ -n \"$sum\" ] || fail \"Pumpkin $version has no build for this CPU. Choose a newer release.\"\n\nif [ -f pumpkin ] && [ \"$(sha256sum pumpkin | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Pumpkin $version is already installed.\"\nelse\n    echo \"Downloading Pumpkin $version\"\n    curl -fsSL --retry 3 -A \"$ua\" -o pumpkin.new \"$repo/releases/download/$tag/$asset\"\n    [ \"$(sha256sum pumpkin.new | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f pumpkin.new; fail \"The download didn't match the release's checksum. Reinstall to try again.\"; }\n    chmod +x pumpkin.new\n    mv -f pumpkin.new pumpkin\nfi\necho \"Installed Pumpkin $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Pumpkin release, such as 0.2.2+26.3-26.60, or latest for the newest. Reinstall the server after changing it.",
+            "env_variable": "PUMPKIN_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9][0-9A-Za-z.+-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Telemetry",
+            "description": "Send Pumpkin's developers anonymous heartbeats about the server, every five minutes.",
+            "env_variable": "TELEMETRY",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

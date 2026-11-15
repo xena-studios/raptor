@@ -1,0 +1,59 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Vanilla Minecraft egg in pelican-eggs/minecraft (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Vanilla",
+    "author": "support@raptorpanel.net",
+    "description": "The official Minecraft Java server from Mojang. Any release or snapshot, checked against Mojang's checksums, with tuned Java settings.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:dda430001e6c1bc8e1c43d1b0cbb2fcd0d38221d3d8f167f3ba1ae658616b374",
+        "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:e71740e2a99017d4273a588310db60da474644ea364da60d086e33635b62dd27"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Minecraft version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} nogui",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"\", \"server-port\": \"{{server.build.default.port}}\", \"query.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \")! For help, type \"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Vanilla. Downloads Mojang's server jar for the chosen version\n# and checks it against Mojang's SHA-1. Worlds and settings are never\n# touched, and the jar is only replaced once the new one checks out.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\njar=\"${SERVER_JARFILE:-server.jar}\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n\nmanifest=$(get https://piston-meta.mojang.com/mc/game/version_manifest_v2.json) ||\n    fail \"Mojang can't be reached right now. Reinstall to try again.\"\nversion=\"${VANILLA_VERSION:-latest}\"\ncase \"$version\" in\n    \"\" | latest) version=$(jq -r '.latest.release' <<<\"$manifest\") ;;\n    snapshot) version=$(jq -r '.latest.snapshot' <<<\"$manifest\") ;;\nesac\nmeta_url=$(jq -r --arg v \"$version\" '.versions[] | select(.id == $v) | .url' <<<\"$manifest\")\n[ -n \"$meta_url\" ] ||\n    fail \"Minecraft has no version $version. Set Version to latest, snapshot, or a version such as $(jq -r '.latest.release' <<<\"$manifest\").\"\nmeta=$(get \"$meta_url\") || fail \"Mojang can't be reached right now. Reinstall to try again.\"\nurl=$(jq -r '.downloads.server.url // empty' <<<\"$meta\")\n[ -n \"$url\" ] || fail \"Minecraft $version has no server download from Mojang. Choose a newer version.\"\nsum=$(jq -r '.downloads.server.sha1' <<<\"$meta\")\njava=$(jq -r '.javaVersion.majorVersion // 8' <<<\"$meta\")\n\nif [ -f \"$jar\" ] && [ \"$(sha1sum \"$jar\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Minecraft $version is already installed.\"\nelse\n    echo \"Downloading Minecraft $version\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$jar.new\" \"$url\"\n    [ \"$(sha1sum \"$jar.new\" | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f \"$jar.new\"; fail \"The download didn't match Mojang's checksum. Reinstall to try again.\"; }\n    mv -f \"$jar.new\" \"$jar\"\nfi\n# The Java version it needs, which the startup command checks.\necho \"$java\" > .raptor-java\necho \"Installed Minecraft $version. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Minecraft version, such as 1.21.4, latest for the newest release, or snapshot for the newest snapshot. Reinstall the server after changing it.",
+            "env_variable": "VANILLA_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        }
+    ]
+}

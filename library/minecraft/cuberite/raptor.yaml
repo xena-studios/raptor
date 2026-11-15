@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/cuberite/egg-cuberite.json
+license: MIT
+credits:
+  - "Based on the Cuberite egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Cuberite's logo, from https://github.com/cuberite"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m
+  command: "list"
+  expect: "Players \\(0\\)"

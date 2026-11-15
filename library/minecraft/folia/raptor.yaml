@@ -1,0 +1,35 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/folia/egg-folia.json
+license: MIT
+credits:
+  - "Based on the Folia egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Folia's logo, from https://github.com/PaperMC/Folia"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 2048
+  eula: true
+  done_timeout: 5m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"
+addons:
+  plugins:
+    loaders: [folia]
+    dir: plugins
+    version: MINECRAFT_VERSION
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+    version: MINECRAFT_VERSION
+# Folia has no save-all (each region saves on its own), so a backup turns
+# autosave off, which stops region files being written during the
+# snapshot, and back on after, even if the backup fails.
+backup:
+  pre: ["save-off"]
+  post: ["save-on"]
+  wait_for: "regex:Automatic saving is now disabled|Saving is already turned off"
+  timeout: 1m

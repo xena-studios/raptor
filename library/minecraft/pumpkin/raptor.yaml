@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/pumpkin/egg-pumpkin.json
+license: MIT
+credits:
+  - "Raptor's own egg, written from scratch"
+  - "Icon: Pumpkin's logo, from https://github.com/Pumpkin-MC"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"
+# No backup hooks: Pumpkin is in early development and doesn't confirm
+# saves on its console yet.
