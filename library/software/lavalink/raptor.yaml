@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/lavalink/egg-lavalink.json
+license: MIT
+credits:
+  - "Based on the Lavalink egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the Lavalink logo, from https://github.com/lavalink-devs"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m
+  config:
+    application.yml: "port: {{port}}"

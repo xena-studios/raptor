@@ -1,0 +1,211 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the TeamSpeak 6 eggs in pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "TeamSpeak 6",
+    "author": "support@raptorpanel.net",
+    "description": "TeamSpeak 6 is the newest TeamSpeak voice server, for low-latency voice chat with channels and permissions. The egg runs it on the server's port with its own SQLite database.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/pelican-eggs/yolks:debian@sha256:f4e18fadc9b2f2d1a300bffee78e5b87cccde4544e512acc36a1d370c1340121"
+    },
+    "file_denylist": [],
+    "startup": "./tsserver --default-voice-port={{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:Transport *\\\\|.*listening on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# TeamSpeak 6: downloads the TeamSpeak 6 server from TeamSpeak's GitHub\n# releases for this CPU and checks it against GitHub's checksum. The\n# database, uploaded files, keys and logs are never touched: only the\n# server's own files from the release are replaced.\nset -euo pipefail\ncd /mnt/server\n\nrepo=teamspeak/teamspeak6-server\nfail() { echo \"$1\"; exit 1; }\n# GitHub releases, through the installer's gh-release (GitHub's API has a\n# low anonymous limit). gh_tag <latest|tag> prints the release's tag;\n# returns 1 when there's no such release, 2 when GitHub can't be reached.\ngh_tag() {\n    local out\n    out=$(gh-release tag \"$repo\" \"$1\" 2>&1) && { echo \"$out\"; return 0; }\n    case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n}\noffline=\"GitHub can't be reached right now, or is limiting downloads. Reinstall to try again in a few minutes.\"\ncase \"$(uname -m)\" in\n    x86_64) arch='(amd64|x86_64)' ;;\n    aarch64) arch='(arm64|aarch64)' ;;\n    *) fail \"TeamSpeak 6 has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${TS_VERSION:-latest}\"\ncase \"$version\" in latest|v*) ;; *) version=\"v$version\" ;; esac\nrc=0; tag=$(gh_tag \"$version\") || rc=$?\nif [ \"$rc\" = 1 ]; then\n    latest=$(gh_tag latest) || fail \"$offline\"\n    fail \"TeamSpeak 6 has no version ${TS_VERSION}. Set Version to latest, or to a release such as $latest.\"\nfi\n[ \"$rc\" = 0 ] || fail \"$offline\"\nversion=$tag\nassets=$(gh-release assets \"$repo\" \"$version\") || fail \"$offline\"\nread -r asset sum < <(grep -E \"linux[-_]$arch.*\\.tar\\.(xz|bz2|gz) \" <<<\"$assets\" | head -n 1) || true\n[ -n \"${asset:-}\" ] || fail \"TeamSpeak $version has no Linux server for this CPU. Choose another version.\"\n\nif [ \"$sum\" != - ] && [ -x tsserver ] && [ \"$(cat .raptor-teamspeak 2>/dev/null)\" = \"$sum\" ]; then\n    echo \"TeamSpeak $version is already installed.\"\nelse\n    echo \"Downloading TeamSpeak $version\"\n    tmp=/mnt/server/.raptor-build\n    rm -rf \"$tmp\" && mkdir -p \"$tmp\"\n    trap 'rm -rf \"$tmp\"' EXIT\n    gh-release download \"$repo\" \"$version\" \"$asset\" \"$tmp/server.tar\" || fail \"The download failed or didn't match GitHub's checksum. Reinstall to try again.\"\n    mkdir \"$tmp/x\"\n    tar -xf \"$tmp/server.tar\" -C \"$tmp/x\"\n    src=\"$tmp/x\"\n    # Some releases have everything in one folder.\n    if [ ! -e \"$src/tsserver\" ] && [ \"$(ls -A \"$src\" | wc -l)\" = 1 ]; then src=\"$src/$(ls -A \"$src\")\"; fi\n    [ -f \"$src/tsserver\" ] || fail \"The download has no tsserver in it. Choose another version.\"\n    cp -a \"$src/.\" .\n    rm -rf \"$tmp\"\n    chmod +x tsserver\n    echo \"$sum\" > .raptor-teamspeak\nfi\necho \"Installed TeamSpeak $version. On the first start, the console shows the privilege key that makes you server admin.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The TeamSpeak 6 server version to install, such as v6.0.0-beta13.1, or latest.",
+            "env_variable": "TS_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40",
+            "field_type": "text"
+        },
+        {
+            "name": "License",
+            "description": "Set to accept, this accepts TeamSpeak's server license (LICENSE in the server's folder). Empty, the server asks on the console.",
+            "env_variable": "TSSERVER_LICENSE_ACCEPTED",
+            "default_value": "accept",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|in:accept",
+            "field_type": "text"
+        },
+        {
+            "name": "Query admin password",
+            "description": "Sets the password of the serveradmin query account. Empty keeps the one the server made on its first start.",
+            "env_variable": "TSSERVER_QUERY_ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "File transfer port",
+            "description": "The port file transfers (uploads, avatars, icons) listens on. Add it to the server's ports first.",
+            "env_variable": "TSSERVER_FILE_TRANSFER_PORT",
+            "default_value": "30033",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "SSH query",
+            "description": "Set it to 1 to turn on the SSH query interface.",
+            "env_variable": "TSSERVER_QUERY_SSH_ENABLED",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "SSH query port",
+            "description": "The port the SSH query interface listens on. Add it to the server's ports first.",
+            "env_variable": "TSSERVER_QUERY_SSH_PORT",
+            "default_value": "10022",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTP query",
+            "description": "Set it to 1 to turn on the HTTP query interface.",
+            "env_variable": "TSSERVER_QUERY_HTTP_ENABLED",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTP query port",
+            "description": "The port the HTTP query interface listens on. Add it to the server's ports first.",
+            "env_variable": "TSSERVER_QUERY_HTTP_PORT",
+            "default_value": "10080",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTPS query",
+            "description": "Set it to 1 to turn on the HTTPS query interface, with the certificate and key below.",
+            "env_variable": "TSSERVER_QUERY_HTTPS_ENABLED",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTPS query port",
+            "description": "The port the HTTPS query interface listens on. Add it to the server's ports first.",
+            "env_variable": "TSSERVER_QUERY_HTTPS_PORT",
+            "default_value": "10443",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTPS certificate",
+            "description": "The certificate file for the HTTPS query interface, uploaded to the server's folder, such as cert.pem.",
+            "env_variable": "TSSERVER_QUERY_HTTPS_CERT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTPS private key",
+            "description": "The private key file for the certificate, uploaded to the server's folder, such as key.pem.",
+            "env_variable": "TSSERVER_QUERY_HTTPS_PRIVATE_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "S3 file transfer",
+            "description": "Set it to 1 to turn on storing file transfers in S3 storage instead of the server's folder.",
+            "env_variable": "TSSERVER_S3FT_ENABLED",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "S3 access key",
+            "description": "The access key for the S3 storage.",
+            "env_variable": "TSSERVER_S3FT_ACCESS_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "S3 secret key",
+            "description": "The secret key for the S3 storage.",
+            "env_variable": "TSSERVER_S3FT_SECRET_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "S3 bucket",
+            "description": "The S3 bucket file transfers are stored in.",
+            "env_variable": "TSSERVER_S3FT_BUCKET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "S3 domain",
+            "description": "The S3 storage's endpoint, such as s3.example.com.",
+            "env_variable": "TSSERVER_S3FT_DOMAIN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "S3 region",
+            "description": "The S3 storage's region, such as eu-central-1.",
+            "env_variable": "TSSERVER_S3FT_REGION",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,43 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Lavalink",
+    "author": "support@raptorpanel.net",
+    "description": "Lavalink is a standalone audio node that plays music for Discord bots, so the audio never reaches the bot's own process. The egg sets it up with a random password and the YouTube plugin.",
+    "features": [],
+    "docker_images": {
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1"
+    },
+    "file_denylist": [],
+    "startup": "java -Xms64M -XX:MaxRAMPercentage=85.0 -jar Lavalink.jar",
+    "config": {
+        "files": "{\"application.yml\": {\"parser\": \"yaml\", \"find\": {\"server.address\": \"0.0.0.0\", \"server.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"Lavalink is ready to accept connections.\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Lavalink: downloads Lavalink.jar from Lavalink's GitHub releases and\n# checks it against GitHub's checksum. application.yml, plugins and logs\n# are never touched once they exist; the jar is only replaced once the new\n# one has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nrepo=lavalink-devs/Lavalink\nfail() { echo \"$1\"; exit 1; }\n# GitHub releases, through the installer's gh-release (GitHub's API has a\n# low anonymous limit). gh_tag <latest|tag> prints the release's tag;\n# returns 1 when there's no such release, 2 when GitHub can't be reached.\ngh_tag() {\n    local out\n    out=$(gh-release tag \"$repo\" \"$1\" 2>&1) && { echo \"$out\"; return 0; }\n    case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n}\noffline=\"GitHub can't be reached right now, or is limiting downloads. Reinstall to try again in a few minutes.\"\nversion=\"${VERSION:-latest}\"\nrc=0; tag=$(gh_tag \"$version\") || rc=$?\nif [ \"$rc\" = 1 ]; then\n    latest=$(gh_tag latest) || fail \"$offline\"\n    fail \"Lavalink has no version $version. Set Version to latest, or to a release such as $latest.\"\nfi\n[ \"$rc\" = 0 ] || fail \"$offline\"\nversion=$tag\nassets=$(gh-release assets \"$repo\" \"$version\") || fail \"$offline\"\nsum=$(awk '$1 == \"Lavalink.jar\" { print $2; f = 1 } END { exit !f }' <<<\"$assets\") ||\n    fail \"Lavalink $version has no Lavalink.jar to download. Choose another version.\"\n\nif [ \"$sum\" != - ] && [ -f Lavalink.jar ] && [ \"$(sha256sum Lavalink.jar | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Lavalink $version is already installed.\"\nelse\n    echo \"Downloading Lavalink $version\"\n    # gh-release replaces the jar only once the new one has arrived and checked out.\n    gh-release download \"$repo\" \"$version\" Lavalink.jar Lavalink.jar || fail \"The download failed or didn't match GitHub's checksum. Reinstall to try again.\"\nfi\n\n# A first application.yml, with a random password and the YouTube plugin\n# (Lavalink's own YouTube source is retired). The port is kept up to date\n# at every start; everything else is yours to change.\nif [ ! -f application.yml ]; then\n    password=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')\n    yt=$(curl -fsSL --retry 3 https://maven.lavalink.dev/releases/dev/lavalink/youtube/youtube-plugin/maven-metadata.xml | sed -n 's:.*<release>\\(.*\\)</release>.*:\\1:p') || yt=\"\"\n    {\n        cat <<YML\nserver:\n  port: ${SERVER_PORT:-2333}\n  address: 0.0.0.0\n  http2:\n    enabled: false\nYML\n        if [ -n \"$yt\" ]; then\n            cat <<YML\nplugins:\n  youtube:\n    enabled: true\n    allowSearch: true\n    allowDirectVideoIds: true\n    allowDirectPlaylistIds: true\nlavalink:\n  plugins:\n    - dependency: \"dev.lavalink.youtube:youtube-plugin:$yt\"\n      snapshot: false\nYML\n        else\n            echo \"lavalink:\"\n        fi\n        cat <<YML\n  server:\n    password: \"$password\"\n    sources:\n      youtube: false\n      bandcamp: true\n      soundcloud: true\n      twitch: true\n      vimeo: true\n      nico: true\n      http: true\n      local: false\n    bufferDurationMs: 400\n    frameBufferDurationMs: 5000\n    opusEncodingQuality: 10\n    resamplingQuality: LOW\n    trackStuckThresholdMs: 10000\n    useSeekGhosting: true\n    playerUpdateInterval: 5\n    youtubeSearchEnabled: true\n    soundcloudSearchEnabled: true\n    gc-warnings: true\n\nmetrics:\n  prometheus:\n    enabled: false\n    endpoint: /metrics\n\nlogging:\n  file:\n    path: ./logs/\n  level:\n    root: INFO\n    lavalink: INFO\n  request:\n    enabled: true\n    includeClientInfo: true\n    includeHeaders: false\n    includeQueryString: true\n    includePayload: true\n    maxPayloadLength: 10000\n  logback:\n    rollingpolicy:\n      max-file-size: 1GB\n      max-history: 30\nYML\n    } > application.yml\n    echo \"Wrote application.yml. Lavalink's password is $password (lavalink.server.password in application.yml).\"\nfi\necho \"Installed Lavalink $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Lavalink version to install, such as 4.2.2, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20",
+            "field_type": "text"
+        }
+    ]
+}
