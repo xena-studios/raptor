@@ -1,0 +1,23 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/7-days-to-die/egg-7-days-to-die.json
+license: MIT
+credits:
+  - "Based on the 7 Days to Die egg in https://github.com/pterodactyl/game-eggs (MIT) and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: 7 Days to Die's icon, from Steam (The Fun Pimps)"
+certified: true
+arch: [amd64]
+# 7 Days to Die answers Steam's query on its game port.
+players:
+  query: source
+# No backup hooks: saveworld saves, but the game can't pause saving, and
+# hooks without a post command aren't allowed yet.
+test:
+  tier: manual
+  reason: "the server is about 18 GB, more than standard CI runners have room for"
+  memory_mib: 8192
+  variables:
+    PASSWORD: "conformance"
+  done_timeout: 60m
+  command: "version"
+  expect: "(?i)game version"

@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/craftopia/egg-craftopia.json
+license: MIT
+credits:
+  - "Based on the Craftopia egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Craftopia's icon, from Steam (Pocketpair)"
+certified: true
+arch: [amd64]
+test:
+  tier: slow
+  memory_mib: 6144
+  done_timeout: 60m

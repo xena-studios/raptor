@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/brickadia/egg-brickadia.json
+license: MIT
+credits:
+  - "Based on the Brickadia egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Brickadia's icon, from Steam (Brickadia)"
+certified: true
+arch: [amd64]
+test:
+  tier: manual
+  reason: "the server needs a hosting token from a Brickadia account"
+  memory_mib: 4096
+  done_timeout: 20m
