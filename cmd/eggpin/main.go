@@ -42,11 +42,16 @@ func main() {
 func run(ctx context.Context, dir string, check bool) error {
 	r := &resolver{client: &http.Client{Timeout: 30 * time.Second}, digests: map[string]string{}, tokens: map[string]string{}}
 	var stale []string
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = root.Close() }()
+	err = fs.WalkDir(root.FS(), ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasPrefix(d.Name(), "egg-") || filepath.Ext(path) != ".json" {
 			return err
 		}
-		data, err := os.ReadFile(path)
+		data, err := root.ReadFile(path)
 		if err != nil {
 			return err
 		}
@@ -71,8 +76,12 @@ func run(ctx context.Context, dir string, check bool) error {
 			stale = append(stale, path)
 			return nil
 		}
-		fmt.Println("pinned", path)
-		return os.WriteFile(path, out, 0o644)
+		fmt.Println("pinned", filepath.Join(dir, path))
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		return root.WriteFile(path, out, info.Mode().Perm())
 	})
 	if err == nil && len(stale) > 0 {
 		err = fmt.Errorf("not pinned to the current digests (run task library:pin): %s", strings.Join(stale, ", "))
@@ -109,7 +118,7 @@ func (r *resolver) digest(ctx context.Context, repo, tag string) (string, error)
 	if err != nil {
 		return "", err
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	d := res.Header.Get("Docker-Content-Digest")
 	if res.StatusCode != http.StatusOK || !strings.HasPrefix(d, "sha256:") {
 		return "", fmt.Errorf("the registry answered %s", res.Status)
@@ -130,7 +139,7 @@ func (r *resolver) token(ctx context.Context, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	var body struct {
 		Token string `json:"token"`
 	}
