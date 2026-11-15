@@ -1,0 +1,79 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/minecraft (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Paper",
+    "author": "support@raptorpanel.net",
+    "description": "Paper, the fast Minecraft Java server that runs Bukkit and Spigot plugins. Any Minecraft version Paper has, checked against PaperMC's checksums, with tuned Java settings.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:00161884f448144104d564ccbd53baa62ac64536ab5c4e90aa24742b39c6384d",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:21a2b40e47225af6bef3ed69944511c64dd99a5fbcb33ddbeda50018bcea4095",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:c2c395bbd036751bf263fcc0db9c7c70b60ac89ab311158759041534be1768e9",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:9259ae9cdf1ab00edad5e92bd851c3c7a010db7ad346b7f6776602564a82d2fd",
+        "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:4c9cee13c49cfdad0073ea77f9948832e74542318441c4fb2924003b91db0f86"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Minecraft version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} nogui",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"\", \"server-port\": \"{{server.build.default.port}}\", \"query.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \")! For help, type \"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Paper. Downloads the Paper build for the chosen Minecraft\n# version from PaperMC and checks it against PaperMC's checksum. Worlds,\n# plugins and settings are never touched, and the jar is only replaced\n# once the new one has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\napi=https://fill.papermc.io/v3/projects/paper\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\njar=\"${SERVER_JARFILE:-server.jar}\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n\nif [ -n \"${DL_PATH:-}\" ]; then\n    echo \"Downloading the server jar from $DL_PATH\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$jar.new\" \"$DL_PATH\"\n    mv -f \"$jar.new\" \"$jar\"\n    rm -f .raptor-java\n    echo \"Installed.\"\n    exit 0\nfi\n\nversions=$(get \"$api/versions\") || fail \"PaperMC can't be reached right now. Reinstall to try again.\"\nversion=\"${MINECRAFT_VERSION:-}\"\nbuild=\"${BUILD_NUMBER:-latest}\"\nif [ -z \"$version\" ] || [ \"$version\" = latest ]; then\n    # The newest version PaperMC supports that has a stable build.\n    build_json=\"\"\n    for v in $(jq -r '.versions[] | select(.version.support.status == \"SUPPORTED\") | .version.id' <<<\"$versions\"); do\n        if [ \"$build\" = latest ]; then\n            build_json=$(get \"$api/versions/$v/builds?channel=STABLE\" | jq -c '.[0] // empty') || true\n        else\n            build_json=$(get \"$api/versions/$v/builds/$build\") || true\n        fi\n        if [ -n \"$build_json\" ]; then version=$v; break; fi\n    done\n    [ -n \"$build_json\" ] || fail \"PaperMC has no stable build to install right now. Reinstall to try again later.\"\nelse\n    jq -e --arg v \"$version\" 'any(.versions[]; .version.id == $v)' <<<\"$versions\" >/dev/null ||\n        fail \"Paper has no Minecraft $version. Set Version to latest, or to a version Paper has, such as $(jq -r '.versions[0].version.id' <<<\"$versions\").\"\n    if [ \"$build\" = latest ]; then\n        build_json=$(get \"$api/versions/$version/builds?channel=STABLE\" | jq -c '.[0] // empty') || true\n        if [ -z \"$build_json\" ]; then\n            build_json=$(get \"$api/versions/$version/builds/latest\") || fail \"PaperMC can't be reached right now. Reinstall to try again.\"\n            echo \"Minecraft $version has no stable Paper build yet, so this is an experimental one.\"\n        fi\n    else\n        build_json=$(get \"$api/versions/$version/builds/$build\") ||\n            fail \"Paper has no build $build for Minecraft $version. Set Build to latest, or to one of its builds.\"\n    fi\nfi\n\nid=$(jq -r '.id' <<<\"$build_json\")\nurl=$(jq -r '.downloads.\"server:default\".url' <<<\"$build_json\")\nsum=$(jq -r '.downloads.\"server:default\".checksums.sha256' <<<\"$build_json\")\njava=$(jq -r --arg v \"$version\" '.versions[] | select(.version.id == $v) | .version.java.version.minimum // 8' <<<\"$versions\")\n\nif [ -f \"$jar\" ] && [ \"$(sha256sum \"$jar\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Paper $version build $id is already installed.\"\nelse\n    echo \"Downloading Paper $version build $id\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$jar.new\" \"$url\"\n    [ \"$(sha256sum \"$jar.new\" | cut -d' ' -f1)\" = \"$sum\" ] || { rm -f \"$jar.new\"; fail \"The download didn't match PaperMC's checksum. Reinstall to try again.\"; }\n    mv -f \"$jar.new\" \"$jar\"\nfi\n# The Java version it needs, which the startup command checks.\necho \"$java\" > .raptor-java\necho \"Installed Paper $version build $id. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:3baa9fe27a6a06a78b32d5ef3ce8bf1df9da1a65b416c2fc01ee54fc3e8b86d7",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Minecraft version, such as 1.21.4, or latest for the newest one Paper supports. Reinstall the server after changing it.",
+            "env_variable": "MINECRAFT_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Build",
+            "description": "The Paper build for that version, or latest for its newest stable build.",
+            "env_variable": "BUILD_NUMBER",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Download link",
+            "description": "A link to download the server jar from instead of PaperMC, which only staff can set.",
+            "env_variable": "DL_PATH",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        }
+    ]
+}

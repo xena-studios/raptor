@@ -200,7 +200,7 @@ Checked against reality: of the 606 eggs, the defaults that fail their own rules
 ### Features
 `eula`, `java_version`, `pid_limit`, `steam_disk_space`, `gsl_token` and similar. These drive Panel UI prompts (e.g. "accept the Minecraft EULA") and Wings behaviour where applicable. Unknown features are ignored.
 
-`java_version` matters in practice: the e2e tests found that the Pterodactyl-format Paper egg defaults to a Java 21 image, while current Minecraft needs Java 25. Pterodactyl detects the "requires Java" console message and prompts the user to switch images; Raptor doesn't prompt yet, so the owner picks the image, and the catalog's tests pick a newer one where the default is too old.
+`java_version` matters in practice: the e2e tests found that the Pterodactyl-format Paper egg defaults to a Java 21 image, while current Minecraft needs Java 25. Pterodactyl detects the "requires Java" console message and prompts the user to switch images; Raptor doesn't prompt yet, so the owner picks the image. The egg library's Minecraft eggs check for themselves: the install writes the Java version that Minecraft version needs (from the server software's own API) to `.raptor-java`, and the startup command refuses to start on an older Java, saying which to choose in Startup ([library/README.md](../library/README.md#minecraft-java-eggs)).
 
 ### Inheritance
 `config.extends` / `copy_script_from` (Pterodactyl legacy: parts taken from another egg by its Panel ID). Not resolved: those IDs mean nothing outside the Panel that exported the egg, so an import that uses them is refused.
