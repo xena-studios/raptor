@@ -1,0 +1,20 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/powernukkitx/egg-powernukkitx.json
+license: MIT
+credits:
+  - "Based on the PowerNukkitX egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: PowerNukkitX's logo, from https://github.com/PowerNukkitX"
+certified: true
+arch: [amd64, arm64]
+backup:
+  pre: ["save-off", "save-all"]
+  post: ["save-on"]
+  wait_for: "Saved the world"
+  timeout: 5m
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 5m
+  command: "list"
+  expect: "There are 0/\\d+ players online"

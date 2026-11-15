@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/nukkit/egg-nukkit.json
+license: MIT
+credits:
+  - "Based on the Nukkit egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: CloudburstMC's logo, from https://github.com/CloudburstMC"
+certified: true
+arch: [amd64, arm64]
+# Nukkit has save-all but no save-off or save-on: save everything before
+# the snapshot (and again after, as post has to send something).
+backup:
+  pre: ["save-all"]
+  post: ["save-all"]
+  wait_for: "Saved the world"
+  timeout: 2m
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m
+  command: "list"
+  expect: "There are 0/\\d+ players online"

@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' Vanilla Bedrock eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Bedrock",
+    "author": "support@raptorpanel.net",
+    "description": "Mojang's own server for Minecraft: Bedrock Edition, which players join from phones, consoles, Windows and tablets. Installs any release or preview from Mojang, keeps worlds and settings when it updates, and runs on ARM through Box64.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:e59b56f2ec25462503dba08a790d5ea9e2eccb88d8da2840a14f98067c1e3a6d"
+    },
+    "file_denylist": [],
+    "startup": "export LD_LIBRARY_PATH=.; if [ \"$(uname -m)\" = x86_64 ]; then exec ./bedrock_server; else exec box64 ./bedrock_server; fi",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-port\": \"{{server.build.default.port}}\", \"server-udp-ports\": \"{{server.build.default.port}}\", \"server-name\": \"{{server.build.env.SERVERNAME}}\", \"gamemode\": \"{{server.build.env.GAMEMODE}}\", \"difficulty\": \"{{server.build.env.DIFFICULTY}}\", \"allow-cheats\": \"{{server.build.env.CHEATS}}\"}}}",
+        "startup": "{\"done\": \"Server started.\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Bedrock. Downloads Mojang's Bedrock server for Linux from\n# Mojang's own download links. Worlds, server.properties, the allow list,\n# permissions and add-on packs are kept; Mojang's files are replaced only\n# once the new download has arrived whole. Mojang's server is x86 only:\n# on ARM the image's Box64 runs it.\nset -euo pipefail\ncd /mnt/server\n\n# minecraft.net refuses requests that don't look like a browser.\nua=\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36\"\nfail() { echo \"$1\"; exit 1; }\nexists() { curl -fsIL -A \"$ua\" -o /dev/null \"$1\"; }\n\nversion=\"${BEDROCK_VERSION:-latest}\"\ncase \"$version\" in\nlatest | preview)\n    type=serverBedrockLinux\n    [ \"$version\" = preview ] && type=serverBedrockPreviewLinux\n    links=$(curl -fsSL --retry 3 https://net-secondary.web.minecraft-services.net/api/v1.0/download/links) ||\n        fail \"Mojang's download service can't be reached right now. Reinstall to try again.\"\n    url=$(jq -r --arg t \"$type\" '.result.links[] | select(.downloadType == $t) | .downloadUrl' <<<\"$links\")\n    [ -n \"$url\" ] || fail \"Mojang's download service didn't list a Linux server. Reinstall to try again later.\"\n    version=$(sed -E 's/.*bedrock-server-(.*)\\.zip$/\\1/' <<<\"$url\")\n    ;;\n*)\n    url=\"https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-$version.zip\"\n    if ! exists \"$url\"; then\n        url=\"https://www.minecraft.net/bedrockdedicatedserver/bin-linux-preview/bedrock-server-$version.zip\"\n        exists \"$url\" || fail \"Mojang has no Bedrock server $version. Set Version to latest, or to a version Mojang has, such as 1.21.50.10.\"\n    fi\n    ;;\nesac\n\nif [ -x bedrock_server ] && [ \"$(cat .bedrock-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Bedrock server $version is already installed.\"\nelse\n    echo \"Downloading Bedrock server $version\"\n    rm -rf .bedrock-update .bedrock-update.zip\n    curl -fsSL --retry 3 -A \"$ua\" -o .bedrock-update.zip \"$url\" ||\n        { rm -f .bedrock-update.zip; fail \"The download from Mojang failed. Reinstall to try again.\"; }\n    # Mojang publishes no checksums, so check the archive itself is whole.\n    unzip -tq .bedrock-update.zip >/dev/null ||\n        { rm -f .bedrock-update.zip; fail \"The download from Mojang was damaged. Reinstall to try again.\"; }\n    unzip -q .bedrock-update.zip -d .bedrock-update\n    rm -f .bedrock-update.zip\n    # The owner's settings stay: Mojang's copies are only used the first time.\n    for keep in server.properties allowlist.json permissions.json packetlimitconfig.json config/default/permissions.json; do\n        if [ -e \"$keep\" ]; then rm -f \".bedrock-update/$keep\"; fi\n    done\n    mv -f .bedrock-update/bedrock_server bedrock_server.new\n    cp -rf .bedrock-update/. .\n    mv -f bedrock_server.new bedrock_server\n    chmod +x bedrock_server\n    rm -rf .bedrock-update\n    echo \"$version\" > .bedrock-version\nfi\n\necho \"Installed Bedrock server $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Bedrock server version, such as 1.21.50.10, latest for the newest release, or preview for the newest preview. Reinstall the server after changing it.",
+            "env_variable": "BEDROCK_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|preview|[0-9]+(\\.[0-9]+){2,3})$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in their server list.",
+            "env_variable": "SERVERNAME",
+            "default_value": "Bedrock Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "The game mode new players start in: survival, creative or adventure.",
+            "env_variable": "GAMEMODE",
+            "default_value": "survival",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:survival,creative,adventure",
+            "field_type": "text"
+        },
+        {
+            "name": "Difficulty",
+            "description": "The world's difficulty: peaceful, easy, normal or hard.",
+            "env_variable": "DIFFICULTY",
+            "default_value": "easy",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:peaceful,easy,normal,hard",
+            "field_type": "text"
+        },
+        {
+            "name": "Cheats",
+            "description": "Whether commands such as /gamemode and /give work for operators: true or false.",
+            "env_variable": "CHEATS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

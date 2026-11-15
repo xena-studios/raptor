@@ -1,0 +1,45 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' PowerNukkitX egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: PowerNukkitX",
+    "author": "support@raptorpanel.net",
+    "description": "PowerNukkitX, a Minecraft: Bedrock Edition server written in Java, with Nukkit plugins, custom blocks and items, and vanilla features such as redstone and mobs. Installs any release, checked against GitHub's checksums.",
+    "features": [
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseZGC -XX:+UseStringDeduplication -Dfile.encoding=UTF-8 -Djansi.passthrough=true -Dterminal.ansi=true --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -cp \"powernukkitx.jar:libs/*\" org.powernukkitx.PowerNukkitX --skip-setup --accept-license --language eng",
+    "config": {
+        "files": "{\"pnx.yml\": {\"parser\": \"yaml\", \"find\": {\"settings.ip\": \"0.0.0.0\", \"settings.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \")! For help, type\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: PowerNukkitX. Downloads a PowerNukkitX release from GitHub and\n# checks it against the checksum GitHub publishes. Worlds, plugins and\n# settings are never touched, and the jar is only replaced once the new one\n# has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\njar=powernukkitx.jar\nfail() { echo \"$1\"; exit 1; }\n# The Java version the jar was built for, from its main class's file format.\njar_java() {\n    local main major\n    main=$(unzip -p \"$1\" META-INF/MANIFEST.MF | tr -d '\\r' | sed -n 's/^Main-Class: *//p' | head -n 1)\n    [ -n \"$main\" ] || { echo 8; return; }\n    major=$(unzip -p \"$1\" \"${main//.//}.class\" | od -An -j6 -N2 -tu1 | awk '{ print $1 * 256 + $2 }')\n    if [ -n \"$major\" ] && [ \"$major\" -gt 52 ]; then echo $((major - 44)); else echo 8; fi\n}\n\n# gh_release <owner/repo> <tag, or latest> <file>: sets tag and sum (the\n# SHA-256 GitHub publishes, or -), through the installer's gh-release\n# (GitHub's API has a low anonymous limit). Returns 1 when there's no such\n# release or file, 2 when GitHub can't be reached.\ngh_release() {\n    local repo=$1 want=$2 asset=$3 out assets\n    if ! out=$(gh-release tag \"$repo\" \"$want\" 2>&1); then\n        case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n    fi\n    tag=$out\n    assets=$(gh-release assets \"$repo\" \"$tag\") || return 2\n    sum=$(awk -v a=\"$asset\" '$1 == a { print $2; f = 1 } END { exit !f }' <<<\"$assets\") || return 1\n}\n\nwant=\"${VERSION:-latest}\"\nrc=0; gh_release PowerNukkitX/PowerNukkitX \"$want\" \"$jar\" || rc=$?\ncase $rc in\n1) fail \"PowerNukkitX has no release $want. Set Version to latest, snapshot, nightly, or a release such as 3.0.6.\" ;;\n2) fail \"GitHub can't be reached right now. Reinstall to try again.\" ;;\nesac\n\nif [ \"$sum\" != - ] && [ -f \"$jar\" ] && [ \"$(sha256sum \"$jar\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"PowerNukkitX $tag is already installed.\"\nelse\n    echo \"Downloading PowerNukkitX $tag\"\n    # gh-release replaces the jar only once the new one has arrived and checked out.\n    gh-release download PowerNukkitX/PowerNukkitX \"$tag\" \"$jar\" \"$jar\" || fail \"The download from GitHub failed or didn't match GitHub's checksum. Reinstall to try again.\"\nfi\njava=$(jar_java \"$jar\")\necho \"$java\" > .raptor-java\necho \"Installed PowerNukkitX $tag. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The PowerNukkitX release, such as 3.0.6, latest for the newest one, or snapshot or nightly for a development build. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^[A-Za-z0-9._-]{1,32}$/",
+            "field_type": "text"
+        }
+    ]
+}

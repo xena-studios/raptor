@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/waterdog-pe/egg-waterdog-pe.json
+license: MIT
+credits:
+  - "Based on the Waterdog PE eggs in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: WaterdogPE's logo, from https://github.com/WaterdogPE"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "wdlist"
+  expect: "Total online players: 0"
