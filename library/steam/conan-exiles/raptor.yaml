@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/conan-exiles/egg-conan-exiles.json
+license: MIT
+credits:
+  - "Based on the Conan Exiles and Conan Exiles Enhanced eggs in https://github.com/pterodactyl/game-eggs and the Conan Exiles egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Conan Exiles' logo, from its Steam store page (Funcom)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+workshop:
+  app_id: 440900
+  variable: MOD_IDS
+  apply: reinstall
+# No backup hooks: the console has no save command. The game saves on its
+# own and when stopped.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 40m

@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/nmrih/egg-nmrih.json
+license: MIT
+credits:
+  - "Based on the No More Room in Hell egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: No More Room in Hell's icon, from Steam (No More Room in Hell Team)"
+certified: true
+arch: [amd64]
+# Source servers answer Steam's query on their game port.
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 40m
+  command: "status"
+  expect: "hostname"

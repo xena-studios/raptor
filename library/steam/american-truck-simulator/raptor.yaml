@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/american-truck-simulator/egg-american-truck-simulator.json
+license: MIT
+credits:
+  - "Based on the American Truck Simulator egg in https://github.com/pterodactyl/game-eggs (MIT); its base-map server packages are downloaded from there at a pinned commit"
+  - "Icon: American Truck Simulator's icon, from Steam (SCS Software)"
+certified: true
+arch: [amd64]
+# No player count: whether the server answers Steam's query isn't known.
+# No backup hooks: the server has no save command.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

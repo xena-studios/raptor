@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/custom-hlds/egg-custom-hlds.json
+license: MIT
+credits:
+  - "Based on the Custom HLDS Engine Game and Custom ReHLDS Engine Game eggs in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Half-Life's logo, from its Steam store page (Valve)"
+certified: true
+arch: [amd64]
+# HLDS answers Steam's query on its game port.
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 30m
+  command: "status"
+  expect: "hostname"

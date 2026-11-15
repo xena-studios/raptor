@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/solace-crafting/egg-solace-crafting.json
+license: MIT
+credits:
+  - "Based on the Solace Crafting egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Solace Crafting's logo, from its Steam store page (Big Kitty Games)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 20m

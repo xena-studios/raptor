@@ -1,0 +1,131 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Voyagers of Nera",
+    "author": "support@raptorpanel.net",
+    "description": "Co-op survival crafting for up to 10 players on a vast ocean of ruins. Installs the Windows dedicated server with SteamCMD, runs it under Wine and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
+    },
+    "file_denylist": [],
+    "startup": "rm -f BoatGame/Saved/Logs/BoatGame.log; wine BoatGame/Binaries/Win64/BoatGameServer-Win64-Shipping.exe -Port={{SERVER_PORT}} -log -LoggingInShippingEnabled=true & pid=$!; tail -n +1 -F BoatGame/Saved/Logs/BoatGame.log --pid=$pid 2>/dev/null; wait $pid",
+    "config": {
+        "files": "{\"BoatGame/Saved/PersistedData/CustomConfig/CustomHostServerUserSettings.ini\": {\"parser\": \"ini\", \"find\": {\"[/Script/BoatGame.BGCustomHostServerSettings].HostServerDisplayName\": \"{{server.build.env.SERVER_NAME}}\", \"[/Script/BoatGame.BGCustomHostServerSettings].HostServerPassword\": \"{{server.build.env.SERVER_PASSWORD}}\", \"[/Script/BoatGame.BGCustomHostServerSettings].MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"[/Script/BoatGame.BGCustomHostServerSettings].AutosaveTimerSeconds\": \"{{server.build.env.AUTOSAVE_TIMER_SECONDS}}\"}}}",
+        "startup": "{\"done\": \"Successfully created session\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Voyagers of Nera. Installs or updates the dedicated server (Steam app 3937860) with\n# SteamCMD, signed in anonymously (the Windows version, run under Wine).\n# Saves and settings are never touched.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-3937860}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+@sSteamCmdForcePlatformType windows +force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# The Panel sets the name, password, player count and autosave in the\n# server's settings file at every start; the rest of it is the owner's.\nmkdir -p BoatGame/Saved/PersistedData/CustomConfig\ntouch BoatGame/Saved/PersistedData/CustomConfig/CustomHostServerUserSettings.ini\necho \"Installed Voyagers of Nera build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list: letters, digits, spaces, dashes and underscores.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Voyagers of Nera server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50|regex:/^[A-Za-z0-9 _-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|alpha_dash|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,10",
+            "field_type": "text"
+        },
+        {
+            "name": "Autosave interval",
+            "description": "How often the world is saved, in seconds.",
+            "env_variable": "AUTOSAVE_TIMER_SECONDS",
+            "default_value": "300",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:10,900",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Windows install",
+            "description": "Install the Windows version of the server, which runs under Wine.",
+            "env_variable": "WINDOWS_INSTALL",
+            "default_value": "1",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine debug",
+            "description": "What Wine logs; -all keeps its messages out of the console.",
+            "env_variable": "WINEDEBUG",
+            "default_value": "-all",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "3937860",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:3937860",
+            "field_type": "text"
+        }
+    ]
+}

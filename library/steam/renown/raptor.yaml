@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/renown/egg-renown.json
+license: MIT
+credits:
+  - "Based on the Renown egg in https://github.com/pterodactyl/game-eggs (MIT); the Epic Online Services client ID and secret on the command line are the game's own, from it"
+  - "Icon: Renown's logo, from its Steam store page (Dark Lantern)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 8192
+  variables:
+    ADMIN_PASSWORD: "conformance"
+  done_timeout: 60m
