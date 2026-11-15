@@ -6,7 +6,7 @@
     "exported_at": "2026-11-15T00:00:00+00:00",
     "name": "open.mp",
     "author": "support@raptorpanel.net",
-    "description": "open.mp, the multiplayer mod for Grand Theft Auto: San Andreas that SA-MP clients can join. Put your gamemodes in gamemodes and set them in config.json.",
+    "description": "open.mp, the multiplayer mod for Grand Theft Auto: San Andreas. It runs SA-MP gamemodes and filterscripts, and SA-MP clients can join. Put your gamemodes in gamemodes and set them in config.json.",
     "features": [],
     "docker_images": {
         "Steam Runtime 3": "ghcr.io/pelican-eggs/steamcmd:sniper@sha256:99d436be50b2c57e94e922597adca0f327a8fcc29204520be929c26efb1f4810"
