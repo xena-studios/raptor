@@ -1,0 +1,29 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/valheim/egg-valheim.json
+license: MIT
+credits:
+  - "Based on the Valheim, Valheim BepInEx and Valheim Plus eggs in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Valheim's logo, from its Steam store page (Iron Gate)"
+certified: true
+arch: [amd64]
+# Valheim answers Steam's server queries on the port after the game's.
+# Steam's query answers on the port after the game's, only for a public
+# server without crossplay (crossplay uses Microsoft's PlayFab instead):
+# otherwise the Panel shows no player count.
+players:
+  query: source
+  port: "+1"
+# No backup hooks: Valheim has no console to save from. It saves on its
+# own (Save interval) and when stopped.
+test:
+  tier: slow
+  memory_mib: 4096
+  variables:
+    # Public and without crossplay: only then does Valheim answer Steam's
+    # query (an unlisted server answers nothing).
+    PUBLIC_SERVER: "1"
+    ENABLE_CROSSPLAY: "0"
+    SERVER_NAME: "raptor-conformance"
+    PASSWORD: "conformance"
+  done_timeout: 20m

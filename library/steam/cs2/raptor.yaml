@@ -1,0 +1,25 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/cs2/egg-cs2.json
+license: MIT
+credits:
+  - "Based on the Counter-Strike 2 egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Counter-Strike 2's logo, from its Steam store page (Valve)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+# The game downloads the collection's maps when it starts
+# (+host_workshop_collection).
+workshop:
+  app_id: 730
+  variable: WORKSHOP_COLLECTION
+  collection: true
+  apply: restart
+test:
+  tier: manual
+  reason: "the server is about 60 GB, more than standard CI runners have"
+  memory_mib: 4096
+  done_timeout: 60m
+  command: "status"
+  expect: "hostname"

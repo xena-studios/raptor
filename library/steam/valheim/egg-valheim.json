@@ -1,0 +1,191 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/games-steamcmd (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Valheim",
+    "author": "support@raptorpanel.net",
+    "description": "The Viking survival game for up to 10 players. Installs the dedicated server with SteamCMD and keeps it updated, with BepInEx or Valheim Plus for mods if you want them.",
+    "features": [],
+    "docker_images": {
+        "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:4cf4d00fbbb7b487eb2af8fd4bf80add97e2ab8283fc1d470c00b9d53fe55547"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $([ \"{{VALIDATE}}\" = 1 ] && echo validate) +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; if [ \"{{MOD_LOADER}}\" != vanilla ]; then if [ -f BepInEx/core/BepInEx.Preloader.dll ]; then export DOORSTOP_ENABLED=1 DOORSTOP_TARGET_ASSEMBLY=./BepInEx/core/BepInEx.Preloader.dll LD_PRELOAD=libdoorstop_x64.so LD_LIBRARY_PATH=\"./doorstop_libs:$LD_LIBRARY_PATH\"; else echo \"BepInEx isn't installed, so the server starts without mods. Reinstall the server to install it.\"; fi; fi; export LD_LIBRARY_PATH=\"./linux64:$LD_LIBRARY_PATH\" SteamAppId=892970; exec ./valheim_server.x86_64 -nographics -batchmode -name \"{{SERVER_NAME}}\" -port {{SERVER_PORT}} -world \"{{WORLD}}\" -password \"{{PASSWORD}}\" -public {{PUBLIC_SERVER}} -saveinterval {{BACKUP_INTERVAL}} -backups {{BACKUP_COUNT}} -backupshort {{BACKUP_SHORTTIME}} -backuplong {{BACKUP_LONGTIME}} $([ \"{{ENABLE_CROSSPLAY}}\" = 1 ] && echo -crossplay) > >(trap '' INT; exec sed -u -E '/^\\(Filename: .* Line: [0-9]+\\)$/d; /^[[:space:]]*$/d') 2>&1",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"regex:Opened (Steam|PlayFab) server\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Valheim. Installs or updates the dedicated server (Steam app 896660) with\n# SteamCMD, signed in anonymously, and BepInEx or Valheim Plus when asked.\n# Worlds, configs and mods are never touched.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-896660}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# BepInEx, the mod loader, for BepInEx and Valheim Plus. Its core files are\n# replaced; its config and plugins folders are left alone.\nmods=\"${MOD_LOADER:-vanilla}\"\nextra=\"\"\nif [ \"$mods\" != vanilla ]; then\n    ua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\n    pack=$(curl -fsSL --retry 3 -A \"$ua\" https://thunderstore.io/api/experimental/package/denikson/BepInExPack_Valheim/) ||\n        fail \"Thunderstore can't be reached right now to download BepInEx. Reinstall to try again.\"\n    bep=$(jq -r '.latest.version_number' <<<\"$pack\")\n    if [ \"$(cat BepInEx/.raptor-version 2>/dev/null)\" = \"$bep\" ]; then\n        echo \"BepInEx $bep is already installed.\"\n    else\n        echo \"Downloading BepInEx $bep\"\n        work=/mnt/server/.raptor-build\n        rm -rf \"$work\" && mkdir -p \"$work\"\n        trap 'rm -rf \"$work\"' EXIT\n        curl -fsSL --retry 3 -A \"$ua\" -o \"$work/pack.zip\" \"$(jq -r '.latest.download_url' <<<\"$pack\")\"\n        unzip -q \"$work/pack.zip\" 'BepInExPack_Valheim/*' -d \"$work\" || fail \"The BepInEx download is damaged. Reinstall to try again.\"\n        src=\"$work/BepInExPack_Valheim\"\n        mkdir -p BepInEx/plugins BepInEx/config\n        rm -rf BepInEx/core doorstop_libs\n        cp -r \"$src/BepInEx/core\" BepInEx/core\n        cp -r \"$src/doorstop_libs\" doorstop_libs\n        cp -f \"$src/doorstop_config.ini\" \"$src/.doorstop_version\" .\n        [ -f BepInEx/config/BepInEx.cfg ] || cp \"$src/BepInEx/config/BepInEx.cfg\" BepInEx/config/\n        echo \"$bep\" > BepInEx/.raptor-version\n    fi\n    extra=\" with BepInEx $bep\"\nfi\nif [ \"$mods\" = valheimplus ]; then\n    repo=Grantapher/ValheimPlus\n    want=\"${VERSION:-latest}\"\n    if ! tag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null); then\n        [ \"$want\" = latest ] && fail \"GitHub can't be reached right now to download Valheim Plus. Reinstall to try again.\"\n        fail \"Valheim Plus has no version $want. Set Valheim Plus version to latest, or to one of its releases, such as $(gh-release tag \"$repo\" latest 2>/dev/null || echo 0.9.13.2).\"\n    fi\n    sum=$(gh-release assets \"$repo\" \"$tag\" | awk '$1 == \"ValheimPlus.dll\" { print $2; f = 1 } END { exit !f }') ||\n        fail \"Valheim Plus $tag has no server download. Choose another version.\"\n    dll=BepInEx/plugins/ValheimPlus.dll\n    if [ \"$sum\" != - ] && [ -f \"$dll\" ] && [ \"$(sha256sum \"$dll\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n        echo \"Valheim Plus $tag is already installed.\"\n    else\n        echo \"Downloading Valheim Plus $tag\"\n        gh-release download \"$repo\" \"$tag\" ValheimPlus.dll \"$dll\" || fail \"The Valheim Plus download failed. Reinstall to try again.\"\n    fi\n    extra=\" with Valheim Plus $tag\"\nfi\necho \"Installed Valheim build ${build:-unknown}$extra.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Valheim server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with: at least 5 characters, and not part of the server name.",
+            "env_variable": "PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:5|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "World",
+            "description": "The world to load, or create when there's none by that name.",
+            "env_variable": "WORLD",
+            "default_value": "Dedicated",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "List the server in the in-game server browser. Off, players join by address.",
+            "env_variable": "PUBLIC_SERVER",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Crossplay",
+            "description": "Let Xbox and Microsoft Store players join, through Microsoft's servers.",
+            "env_variable": "ENABLE_CROSSPLAY",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Mod loader",
+            "description": "vanilla, bepinex (put mods in BepInEx/plugins), or valheimplus (BepInEx with Valheim Plus). Reinstall after changing it.",
+            "env_variable": "MOD_LOADER",
+            "default_value": "vanilla",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:vanilla,bepinex,valheimplus",
+            "field_type": "text"
+        },
+        {
+            "name": "Valheim Plus version",
+            "description": "The Valheim Plus release to install, such as 10.4.0.0, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Save interval",
+            "description": "How often the world is saved, in seconds.",
+            "env_variable": "BACKUP_INTERVAL",
+            "default_value": "1800",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Backups",
+            "description": "How many of the game's own world backups to keep.",
+            "env_variable": "BACKUP_COUNT",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:0|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "First backup after",
+            "description": "Seconds between the game's first world backups.",
+            "env_variable": "BACKUP_SHORTTIME",
+            "default_value": "7200",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Later backups every",
+            "description": "Seconds between the game's later world backups.",
+            "env_variable": "BACKUP_LONGTIME",
+            "default_value": "43200",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, such as staging, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "896660",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:896660",
+            "field_type": "text"
+        }
+    ]
+}

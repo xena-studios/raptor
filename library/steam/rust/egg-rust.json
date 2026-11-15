@@ -1,0 +1,271 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pelican-eggs/games-steamcmd (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Rust",
+    "author": "support@raptorpanel.net",
+    "description": "The multiplayer survival game. Installs the dedicated server with SteamCMD and keeps it updated, with Oxide or Carbon for plugins and an optional map wipe on reinstall.",
+    "features": [],
+    "docker_images": {
+        "Rust": "ghcr.io/pelican-eggs/games:rust@sha256:c2b16a7b08355a43803b712af1401fd7a867ac04dba92951fe27ce2698f5687c"
+    },
+    "file_denylist": [],
+    "startup": "./RustDedicated -batchmode +server.port {{SERVER_PORT}} +server.queryport {{QUERY_PORT}} +server.identity \"rust\" +rcon.port {{RCON_PORT}} +rcon.web true +server.maxplayers {{MAX_PLAYERS}} +rcon.password \"{{RCON_PASS}}\" +server.saveinterval {{SAVEINTERVAL}} +app.port {{APP_PORT}} {{ADDITIONAL_ARGS}}",
+    "config": {
+        "files": "{\"server/rust/cfg/server.cfg\": {\"parser\": \"file\", \"find\": {\"server.hostname \": \"server.hostname \\\"{{server.environment.SERVER_HOSTNAME}}\\\"\", \"server.description \": \"server.description \\\"{{server.environment.DESCRIPTION}}\\\"\", \"server.url \": \"server.url \\\"{{server.environment.SERVER_URL}}\\\"\", \"server.headerimage \": \"server.headerimage \\\"{{server.environment.SERVER_IMG}}\\\"\", \"server.logoimage \": \"server.logoimage \\\"{{server.environment.SERVER_LOGO}}\\\"\", \"server.tags \": \"server.tags \\\"{{server.environment.SERVER_TAGS}}\\\"\", \"server.level \": \"server.level \\\"{{server.environment.LEVEL}}\\\"\", \"server.worldsize \": \"server.worldsize {{server.environment.WORLD_SIZE}}\", \"server.seed \": \"server.seed {{server.environment.WORLD_SEED}}\", \"server.levelurl \": \"server.levelurl \\\"{{server.environment.MAP_URL}}\\\"\"}}}",
+        "startup": "{\"done\": \"Server startup complete\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Rust. Installs or updates the dedicated server (Steam app 258550) with\n# SteamCMD, signed in anonymously. The map, saves, blueprints and configs are\n# kept, unless Wipe on reinstall is on. Oxide or Carbon is installed by the\n# server image when the server starts.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-258550}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# Only once the game is installed, so a failed install wipes nothing.\nif [ \"${REGEN_SERVER:-0}\" = 1 ]; then\n    echo \"Wiping the map and its saves, as Wipe on reinstall is on. Blueprints and player data are kept.\"\n    rm -f server/rust/*.map server/rust/*.sav server/rust/*.sav.*\nfi\n\n# The settings the Panel writes into server.cfg at every start need a line\n# each to replace.\nmkdir -p server/rust/cfg\ncfg=server/rust/cfg/server.cfg\ntouch \"$cfg\"\nfor key in server.hostname server.description server.url server.headerimage server.logoimage server.level server.worldsize server.seed server.tags server.levelurl; do\n    grep -q \"^$key \" \"$cfg\" || echo \"$key \\\"\\\"\" >> \"$cfg\"\ndone\necho \"Installed Rust build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_HOSTNAME",
+            "default_value": "A Rust server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The text under the name in the server list; \\n starts a new line.",
+            "env_variable": "DESCRIPTION",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "Website",
+            "description": "The link behind the server's Visit Website button.",
+            "env_variable": "SERVER_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Header image",
+            "description": "A link to the image at the top of the server's listing (512×256).",
+            "env_variable": "SERVER_IMG",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Logo",
+            "description": "A link to the server's logo in the Rust+ app (256×256).",
+            "env_variable": "SERVER_LOGO",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Tags",
+            "description": "Comma-separated tags for the server list, such as monthly,vanilla.",
+            "env_variable": "SERVER_TAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players online at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "50",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,1000",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map to generate: Procedural Map, Barren, HapisIsland, CraggyIsland, or SavasIsland.",
+            "env_variable": "LEVEL",
+            "default_value": "Procedural Map",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "World size",
+            "description": "The size of a procedural map, in metres across.",
+            "env_variable": "WORLD_SIZE",
+            "default_value": "3000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1000,6000",
+            "field_type": "text"
+        },
+        {
+            "name": "World seed",
+            "description": "The seed of a procedural map, or empty for Rust's default.",
+            "env_variable": "WORLD_SEED",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|between:0,2147483647",
+            "field_type": "text"
+        },
+        {
+            "name": "Custom map link",
+            "description": "A direct download link to a custom map, used instead of generating one.",
+            "env_variable": "MAP_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Mod framework",
+            "description": "vanilla, oxide (uMod) or carbon, installed or updated when the server starts.",
+            "env_variable": "FRAMEWORK",
+            "default_value": "vanilla",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:vanilla,oxide,carbon",
+            "field_type": "text"
+        },
+        {
+            "name": "Wipe on reinstall",
+            "description": "Delete the map and its saves on every reinstall, so the next start is a fresh map. Blueprints are kept.",
+            "env_variable": "REGEN_SERVER",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Query port",
+            "description": "The port the server list and player count queries use. Add it as an allocation.",
+            "env_variable": "QUERY_PORT",
+            "default_value": "28017",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON port",
+            "description": "The port for RCON tools, and for the console here. Add it as an allocation to use outside tools.",
+            "env_variable": "RCON_PORT",
+            "default_value": "28016",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The RCON password. The console needs it to send commands.",
+            "env_variable": "RCON_PASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[\\w.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Rust+ port",
+            "description": "The port for the Rust+ companion app, or -1 to turn it off.",
+            "env_variable": "APP_PORT",
+            "default_value": "28082",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:-1,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Save interval",
+            "description": "How often the world is saved, in seconds.",
+            "env_variable": "SAVEINTERVAL",
+            "default_value": "600",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:60,3600",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra arguments",
+            "description": "More startup arguments, such as +server.pve true.",
+            "env_variable": "ADDITIONAL_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, such as staging, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "258550",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:258550",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam on the next install, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}
