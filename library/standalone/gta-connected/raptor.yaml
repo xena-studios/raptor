@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/gta-connected/egg-gta-connected.json
+license: MIT
+credits:
+  - "Based on the Grand Theft Auto Connected egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: GTA Connected's logo, from https://gtaconnected.com"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    SERVERBROWSER: "false"
+  done_timeout: 3m
+  command: "restart freeroam"
+  expect: "Restarted resource freeroam"

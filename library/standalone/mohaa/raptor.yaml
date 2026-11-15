@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/mohaa/egg-mohaa.json
+license: MIT
+credits:
+  - "Based on the mohaa egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: OpenMoHAA's logo, from https://github.com/openmoh"
+certified: true
+# OpenMoHAA publishes Linux builds for both CPUs.
+arch: [amd64, arm64]
+test:
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 5m
+  command: "status"
+  expect: "map: dm/mohdm7"

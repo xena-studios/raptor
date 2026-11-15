@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' DDRaceNetwork egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "DDNet",
+    "author": "support@raptorpanel.net",
+    "description": "DDraceNetwork, the cooperative racing mod of Teeworlds. Installs the release you choose from ddnet.org; your own settings go in myServerconfig.cfg.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./DDNet-Server",
+    "config": {
+        "files": "{\"myServerconfig.cfg\": {\"parser\": \"file\", \"find\": {\"sv_port\": \"sv_port {{server.build.default.port}}\", \"sv_name\": \"sv_name \\\"{{server.build.env.SERVER_NAME}}\\\"\", \"password\": \"password \\\"{{server.build.env.SERVER_PASSWORD}}\\\"\", \"sv_rcon_password\": \"sv_rcon_password \\\"{{server.build.env.RCON_PASSWORD}}\\\"\", \"sv_map\": \"sv_map \\\"{{server.build.env.SERVER_MAP}}\\\"\", \"sv_register\": \"sv_register {{server.build.env.SERVER_REGISTER}}\"}}}",
+        "startup": "{\"done\": \"server: version \"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# DDNet. Downloads the Linux release from ddnet.org and checks it against\n# ddnet.org's published SHA-256. Your settings (myServerconfig.cfg), maps\n# and records are never touched; the server's files are only replaced once\n# the new release has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nbase=https://ddnet.org/downloads\nwant=\"${VERSION:-latest}\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\npage=$(curl -fsSL --retry 3 \"$base/\") || fail \"ddnet.org can't be reached right now. Reinstall to try again.\"\n# The releases, newest first, as ddnet.org lists them.\nversions=$(grep -oE 'DDNet-[0-9][0-9.]*-linux_x86_64\\.tar\\.xz' <<<\"$page\" | sed 's/^DDNet-//; s/-linux_x86_64\\.tar\\.xz$//' | awk '!seen[$0]++')\ncase \"$want\" in\nlatest) version=$(head -n 1 <<<\"$versions\") ;;\nnightly) version=nightly ;;\n*)\n    grep -qxF \"$want\" <<<\"$versions\" ||\n        fail \"DDNet has no version $want. Set Version to latest, nightly, or a released version such as $(head -n 1 <<<\"$versions\").\"\n    version=$want\n    ;;\nesac\n[ -n \"$version\" ] || fail \"ddnet.org lists no Linux release right now. Reinstall to try again later.\"\nfile=\"DDNet-$version-linux_x86_64.tar.xz\"\n# ddnet.org's checksums (its list can lag a day behind a new release).\nsum=$(curl -fsSL --retry 3 \"$base/sha256sums.txt\" | awk -v f=\"$file\" '$2 == f { print $1 }') || true\n\nif [ \"$version\" != nightly ] && [ -x DDNet-Server ] && [ \"$(cat .raptor-ddnet 2>/dev/null)\" = \"$version $sum\" ]; then\n    echo \"DDNet $version is already installed.\"\nelse\n    echo \"Downloading DDNet $version\"\n    curl -fsSL --retry 3 -o \"$build/$file\" \"$base/$file\" || fail \"The download of DDNet $version failed. Reinstall to try again.\"\n    if [ -z \"$sum\" ]; then\n        [ \"$version\" = nightly ] || echo \"ddnet.org has no checksum for DDNet $version yet, so the download can't be checked.\"\n    elif [ \"$(sha256sum \"$build/$file\" | cut -d' ' -f1)\" != \"$sum\" ]; then\n        fail \"The download didn't match ddnet.org's checksum. Reinstall to try again.\"\n    fi\n    mkdir \"$build/x\"\n    # The server and its data only, not the game client.\n    tar -xJf \"$build/$file\" -C \"$build/x\" --strip-components=1 --wildcards '*/DDNet-Server' '*/data' '*/storage.cfg' '*/license.txt'\n    cp -a \"$build/x/.\" /mnt/server/\n    chmod +x DDNet-Server\n    echo \"$version $sum\" > .raptor-ddnet\nfi\n\n# The settings the server owns, read after the release's own\n# data/autoexec_server.cfg (which updates replace).\nif [ ! -f myServerconfig.cfg ]; then\n    cat > myServerconfig.cfg <<'CFG'\n# Your settings: updates never replace this file. The server's port, name,\n# password, map and listing are set from the Startup page.\nsv_port 8303\nsv_name \"My DDNet server\"\npassword \"\"\nsv_rcon_password \"\"\nsv_map \"Tutorial\"\nsv_register 0\nCFG\nfi\necho \"Installed DDNet $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The DDNet release to install, such as 20.2.1, latest, or nightly.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|nightly|[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "My DDNet server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The remote console password for admins. Empty makes a random one, shown in the console at start.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server starts with, from data/maps.",
+            "env_variable": "SERVER_MAP",
+            "default_value": "Tutorial",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "1 lists the server in the in-game server browser, 0 keeps it unlisted.",
+            "env_variable": "SERVER_REGISTER",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1,ipv4,ipv6",
+            "field_type": "text"
+        }
+    ]
+}

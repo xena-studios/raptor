@@ -1,0 +1,82 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' Vintage Story egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Vintage Story",
+    "author": "support@raptorpanel.net",
+    "description": "The uncompromising wilderness survival sandbox. Installs the stable, unstable or pre-release server version you choose from vintagestory.at.",
+    "features": [],
+    "docker_images": {
+        ".NET 10": "ghcr.io/xena-studios/yolks:dotnet_10@sha256:806aecf8e00a18c11340eccbef8186274bf94a15074ca1fde8e69b3f4b3b01ed",
+        ".NET 8": "ghcr.io/xena-studios/yolks:dotnet_8@sha256:b5f361a48229641a76234d9639825ebce7dc3f44e825672da676ab8f631fa828"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-dotnet || need=8; if ! dotnet --list-runtimes | grep -q \"^Microsoft.NETCore.App $need\\.\"; then echo \"This Vintage Story version needs .NET $need, which this image doesn't have. Choose .NET $need in Startup, then start the server again.\"; exit 1; fi; exec dotnet VintagestoryServer.dll --dataPath ./data --port {{SERVER_PORT}} --maxclients {{MAX_CLIENTS}} {{OPTIONS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Dedicated Server now running on Port \"}",
+        "logs": "{}",
+        "stop": "/stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Vintage Story. Downloads the Linux server from vintagestory.at and checks\n# it against the published MD5. Worlds, settings and mods (all in data/)\n# are never touched; the game's own files are only replaced once the new\n# version has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nbranch=\"${FILES_BRANCH:-stable}\"\nwant=\"${RELEASE_VERSION:-latest}\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\nsum=\"\"\nif [ \"$branch\" = pre ]; then\n    # Pre-releases aren't in the version list: the version has to be named.\n    [ \"$want\" != latest ] || fail \"Pre-releases have no latest: set Version to the pre-release you want, such as 1.22.0-pre.1.\"\n    version=$want\n    url=\"https://cdn.vintagestory.at/gamefiles/pre/vs_server_linux-x64_$version.tar.gz\"\n    code=$(curl -sS --retry 3 -o /dev/null -w '%{http_code}' -I \"$url\") || fail \"vintagestory.at can't be reached right now. Reinstall to try again.\"\n    [ \"$code\" = 200 ] || fail \"Vintage Story has no pre-release $version.\"\nelse\n    list=$(curl -fsSL --retry 3 \"https://api.vintagestory.at/$branch.json\") || fail \"vintagestory.at can't be reached right now. Reinstall to try again.\"\n    if [ \"$want\" = latest ]; then\n        version=$(jq -r 'to_entries | map(select(.value.linuxserver)) | .[0].key // empty' <<<\"$list\")\n        [ -n \"$version\" ] || fail \"vintagestory.at lists no $branch server right now. Reinstall to try again later.\"\n    else\n        jq -e --arg v \"$want\" 'has($v) and (.[$v].linuxserver != null)' <<<\"$list\" >/dev/null ||\n            fail \"Vintage Story has no $branch version $want. Set Version to latest, or to a version such as $(jq -r 'keys_unsorted[0]' <<<\"$list\").\"\n        version=$want\n    fi\n    url=$(jq -r --arg v \"$version\" '.[$v].linuxserver.urls.cdn // .[$v].linuxserver.urls.local' <<<\"$list\")\n    sum=$(jq -r --arg v \"$version\" '.[$v].linuxserver.md5 // empty' <<<\"$list\")\nfi\n\nif [ -f VintagestoryServer.dll ] && [ \"$(cat .raptor-vintagestory 2>/dev/null)\" = \"$version $sum\" ] && [ \"$branch\" != pre ]; then\n    echo \"Vintage Story $version is already installed.\"\nelse\n    echo \"Downloading Vintage Story $version\"\n    curl -fsSL --retry 3 -o \"$build/server.tar.gz\" \"$url\" || fail \"The download failed. Reinstall to try again.\"\n    if [ -n \"$sum\" ] && [ \"$(md5sum \"$build/server.tar.gz\" | cut -d' ' -f1)\" != \"$sum\" ]; then\n        fail \"The download didn't match vintagestory.at's checksum. Reinstall to try again.\"\n    fi\n    mkdir \"$build/x\"\n    tar -xzf \"$build/server.tar.gz\" -C \"$build/x\"\n    [ -f \"$build/x/VintagestoryServer.dll\" ] || fail \"The download didn't contain the server. Reinstall to try again.\"\n    rm -f \"$build/x/server.sh\"\n    # Files a version dropped would still load, so the game's own folders\n    # are replaced whole. Your worlds, settings and mods live in data/.\n    rm -rf assets Lib\n    cp -a \"$build/x/.\" /mnt/server/\n    echo \"$version $sum\" > .raptor-vintagestory\nfi\nmkdir -p data/Backups\n# The .NET version it needs, which the startup command checks.\njq -r '.runtimeOptions.framework.version' VintagestoryServer.runtimeconfig.json | cut -d. -f1 > .raptor-dotnet\necho \"Installed Vintage Story $version. It needs .NET $(cat .raptor-dotnet).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Branch",
+            "description": "stable, unstable, or pre for a pre-release (which needs a Version).",
+            "env_variable": "FILES_BRANCH",
+            "default_value": "stable",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:stable,unstable,pre",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The game version to install, such as 1.22.7, or latest.",
+            "env_variable": "RELEASE_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_CLIENTS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Options",
+            "description": "More command-line options for the server.",
+            "env_variable": "OPTIONS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "SQLite temporary folder",
+            "description": "Where the world database keeps temporary files, such as during /db vacuum, so they don't fill the small temporary folder.",
+            "env_variable": "SQLITE_TMPDIR",
+            "default_value": "/home/container/data/Backups",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|string|max:100",
+            "field_type": "text"
+        }
+    ]
+}

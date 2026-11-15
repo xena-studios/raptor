@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' KSP DMP egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "KSP Dark Multiplayer",
+    "author": "support@raptorpanel.net",
+    "description": "Dark Multiplayer, the multiplayer mod for Kerbal Space Program. Installs the DMP server release you choose; players need the matching DMP client mod.",
+    "features": [],
+    "docker_images": {
+        "Mono": "ghcr.io/pelican-eggs/yolks:mono_latest@sha256:f8668c475d4685253826cb7b81798f470d4b72476959a9a5da32c42bc05787e1"
+    },
+    "file_denylist": [],
+    "startup": "exec mono DMPServer.exe",
+    "config": {
+        "files": "{\"Config/Settings.txt\": {\"parser\": \"properties\", \"find\": {\"port\": \"{{server.build.default.port}}\", \"serverName\": \"{{server.build.env.SERVERNAME}}\", \"maxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"gameMode\": \"{{server.build.env.GAMEMODE}}\", \"gameDifficulty\": \"{{server.build.env.DIFFICULTY}}\", \"warpMode\": \"{{server.build.env.WARPMODE}}\", \"modpackMode\": \"{{server.build.env.MODPACKMODE}}\", \"whitelisted\": \"{{server.build.env.WHITELIST}}\"}}}",
+        "startup": "{\"done\": \"] : Ready!\"}",
+        "logs": "{}",
+        "stop": "/exit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# KSP Dark Multiplayer. Downloads the DMP server release from d-mp.org.\n# The universe (Universe/), settings and ban lists (Config/) and plugins are\n# never touched; the server's files are only replaced once the download is\n# complete.\nset -euo pipefail\ncd /mnt/server\n\nwant=\"${VERSION:-latest}\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\npage=$(curl -fsSL --retry 3 https://d-mp.org/downloads) || fail \"d-mp.org can't be reached right now. Reinstall to try again.\"\n# The releases, newest first, as d-mp.org lists them.\nversions=$(grep -oE '/builds/release/v[0-9][0-9.]*/DMPServer\\.zip' <<<\"$page\" | sed 's#/builds/release/v##; s#/DMPServer\\.zip##' | awk '!seen[$0]++')\nif [ \"$want\" = latest ]; then\n    version=$(head -n 1 <<<\"$versions\")\n    [ -n \"$version\" ] || fail \"d-mp.org lists no server release right now. Reinstall to try again later.\"\nelse\n    version=\"${want#v}\"\n    grep -qxF \"$version\" <<<\"$versions\" || fail \"Dark Multiplayer has no release $want. Set Version to latest, or to a release such as $(head -n 1 <<<\"$versions\").\"\nfi\n\nif [ -f DMPServer.exe ] && [ \"$(cat .raptor-dmp 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Dark Multiplayer $version is already installed.\"\nelse\n    echo \"Downloading Dark Multiplayer $version\"\n    curl -fsSL --retry 3 -o \"$build/DMPServer.zip\" \"https://d-mp.org/builds/release/v$version/DMPServer.zip\" || fail \"The download failed. Reinstall to try again.\"\n    unzip -q \"$build/DMPServer.zip\" -d \"$build/x\"\n    src=$(dirname \"$(find \"$build/x\" -name DMPServer.exe | head -n 1)\")\n    [ -f \"$src/DMPServer.exe\" ] || fail \"The download didn't contain the server. Reinstall to try again.\"\n    cp -a \"$src/.\" /mnt/server/\n    echo \"$version\" > .raptor-dmp\nfi\n\n# The server fills in the rest of its settings on first start.\nif [ ! -f Config/Settings.txt ]; then\n    mkdir -p Config\n    printf 'port=6702\\nserverName=A Dark Multiplayer server\\n' > Config/Settings.txt\nfi\necho \"Installed Dark Multiplayer $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The DMP server release to install, such as 0.3.8.5, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVERNAME",
+            "default_value": "A Dark Multiplayer server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:48",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "20",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "SANDBOX, SCIENCE or CAREER.",
+            "env_variable": "GAMEMODE",
+            "default_value": "SANDBOX",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:SANDBOX,SCIENCE,CAREER",
+            "field_type": "text"
+        },
+        {
+            "name": "Difficulty",
+            "description": "EASY, NORMAL, MODERATE, HARD or CUSTOM.",
+            "env_variable": "DIFFICULTY",
+            "default_value": "NORMAL",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:EASY,NORMAL,MODERATE,HARD,CUSTOM",
+            "field_type": "text"
+        },
+        {
+            "name": "Warp mode",
+            "description": "How players share time warp: SUBSPACE (each their own), SUBSPACE_SIMPLE, MCW_FORCE, MCW_VOTE, MCW_LOWEST, or NONE.",
+            "env_variable": "WARPMODE",
+            "default_value": "SUBSPACE",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:MCW_FORCE,MCW_VOTE,MCW_LOWEST,SUBSPACE_SIMPLE,SUBSPACE,NONE",
+            "field_type": "text"
+        },
+        {
+            "name": "Mod pack mode",
+            "description": "Whether players can sync mods from the server: NONE, CKAN (Config/DarkMultiPlayer.ckan) or GAMEDATA (Config/GameData).",
+            "env_variable": "MODPACKMODE",
+            "default_value": "NONE",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:NONE,CKAN,GAMEDATA",
+            "field_type": "text"
+        },
+        {
+            "name": "Whitelist",
+            "description": "True lets only whitelisted players join.",
+            "env_variable": "WHITELIST",
+            "default_value": "False",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:True,False",
+            "field_type": "text"
+        }
+    ]
+}

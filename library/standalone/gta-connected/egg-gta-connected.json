@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' Grand Theft Auto Connected egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "GTA Connected",
+    "author": "support@raptorpanel.net",
+    "description": "A scriptable multiplayer mod for GTA III, Vice City, San Andreas, Liberty City Stories and GTA IV. Installs the server version you choose and starts the free roam resource.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./Server",
+    "config": {
+        "files": "{\"server.xml\": {\"parser\": \"xml\", \"find\": {\"server.servername\": \"{{server.build.env.SERVERNAME}}\", \"server.game\": \"{{server.build.env.GAMETYPE}}\", \"server.serverbrowser\": \"{{server.build.env.SERVERBROWSER}}\", \"server.maxplayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"server.password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"server.port\": \"{{server.build.default.port}}\", \"server.httpport\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \"Resources loaded,\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# GTA Connected. Downloads the Linux server for the node's CPU from\n# gtaconnected.com. server.xml and your resources are never overwritten;\n# the server's own files are only replaced once the download is complete.\nset -euo pipefail\ncd /mnt/server\n\nwant=\"${DL_VERSION:-latest}\"\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\nx86_64) flavour=Linux latest=linux ;;\naarch64) flavour=Linux-ARM64 latest=linux-arm64 ;;\n*) fail \"GTA Connected has no server for this CPU ($(uname -m)).\" ;;\nesac\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\nsite=https://gtaconnected.com/downloads/server\nif [ \"$want\" = latest ]; then\n    # The latest download redirects to the versioned file.\n    loc=$(curl -fsS --retry 3 -o /dev/null -w '%{redirect_url}' \"$site/latest/$latest/\") || fail \"gtaconnected.com can't be reached right now. Reinstall to try again.\"\n    version=$(sed -n \"s/.*GTAC-Server-$flavour-\\([0-9][0-9.]*\\)\\.tar\\.gz$/\\1/p\" <<<\"$loc\")\n    [ -n \"$version\" ] || fail \"gtaconnected.com didn't say which version is the latest. Reinstall to try again.\"\nelse\n    version=\"$want\"\nfi\nfile=\"GTAC-Server-$flavour-$version.tar.gz\"\ncode=$(curl -sS --retry 3 -o /dev/null -w '%{http_code}' -I \"$site/$file\") || fail \"gtaconnected.com can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 200 ] || fail \"GTA Connected has no version $version for this CPU. Set Version to latest, or to a version such as 1.7.3.\"\n\nif [ -x Server ] && [ \"$(cat .raptor-gtac 2>/dev/null)\" = \"$file\" ]; then\n    echo \"GTA Connected $version is already installed.\"\nelse\n    echo \"Downloading GTA Connected $version\"\n    curl -fsSL --retry 3 -o \"$build/server.tar.gz\" \"$site/$file\" || fail \"The download failed. Reinstall to try again.\"\n    mkdir \"$build/x\"\n    tar -xzf \"$build/server.tar.gz\" -C \"$build/x\"\n    [ -f \"$build/x/Server\" ] || fail \"The download didn't contain the server. Reinstall to try again.\"\n    # The server and its libraries replace the old ones; the example\n    # settings and resources are only added where there are none.\n    find \"$build/x\" -maxdepth 1 -type f ! -name server.xml -exec cp -f {} /mnt/server/ \\;\n    [ -f server.xml ] || cp \"$build/x/server.xml\" server.xml\n    mkdir -p resources\n    cp -rn \"$build/x/resources/.\" resources/ 2>/dev/null || true\n    chmod +x Server\n    echo \"$file\" > .raptor-gtac\nfi\necho \"Installed GTA Connected $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The server version to install, such as 1.7.3, or latest.",
+            "env_variable": "DL_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game",
+            "description": "The game players connect from: gta:iii, gta:vc, gta:sa, gta:ug (Liberty City Stories), gta:iv or gta:eflc.",
+            "env_variable": "GAMETYPE",
+            "default_value": "gta:iv",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:gta:iii,gta:vc,gta:sa,gta:ug,gta:iv,gta:eflc",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVERNAME",
+            "default_value": "A GTA Connected server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "true lists the server in the server browser, false keeps it unlisted.",
+            "env_variable": "SERVERBROWSER",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "32",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        }
+    ]
+}
