@@ -1,0 +1,33 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/ark/egg-ark.json
+license: MIT
+credits:
+  - "Based on the ARK: Survival Evolved eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: ARK: Survival Evolved's logo, from its Steam store page (Studio Wildcard)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# The game downloads the mods when it starts (-automanagedmods).
+workshop:
+  app_id: 346110
+  variable: MOD_ID
+  apply: restart
+# ARK can't pause saving, so a backup saves first and has nothing to undo.
+# The console is an RCON client: saveworld runs before the server answers,
+# so its reply ("World Saved", or the generic one) means the save is done.
+backup:
+  pre: ["saveworld"]
+  wait_for: "regex:World Saved|Server received, But no response"
+  timeout: 5m
+test:
+  tier: manual
+  reason: "the server is about 23 GB, more than standard CI runners have room for"
+  memory_mib: 8192
+  variables:
+    ARK_ADMIN_PASSWORD: "conformance"
+  done_timeout: 60m
+  command: "listplayers"
+  expect: "regex:No Players Connected|[0-9]+\\. "

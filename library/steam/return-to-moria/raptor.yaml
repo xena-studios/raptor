@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/return-to-moria/egg-return-to-moria.json
+license: MIT
+credits:
+  - "Based on The Lord of the Rings: Return to Moria egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: The Lord of the Rings: Return to Moria's logo, from its Steam store page (Free Range Games)"
+certified: true
+arch: [amd64]
+# No player count: the server answers no known query. No backup hooks: its
+# console is a window Wine can't show; it saves on its own and when stopped.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 40m

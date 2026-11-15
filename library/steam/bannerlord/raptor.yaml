@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/bannerlord/egg-bannerlord.json
+license: MIT
+credits:
+  - "Based on the Mount & Blade II: Bannerlord egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Mount & Blade II: Bannerlord's logo, from its Steam store page (TaleWorlds Entertainment)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work, and matches
+# keep nothing to save.
+test:
+  tier: manual
+  reason: "the server won't start without a token that only a Bannerlord owner can make (customserver.gettoken)"
+  memory_mib: 4096
+  variables:
+    # Replace with a real token when running the test by hand.
+    AUTH_TOKEN: "set-a-real-token"
+  done_timeout: 30m

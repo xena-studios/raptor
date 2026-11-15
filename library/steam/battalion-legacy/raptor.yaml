@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/battalion-legacy/egg-battalion-legacy.json
+license: MIT
+credits:
+  - "Based on the BATTALION: Legacy egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: BATTALION: Legacy's logo, from its Steam store page (Bulkhead)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: there is nothing to save; matches don't persist.
+test:
+  tier: slow
+  memory_mib: 4096
+  variables:
+    ADMIN_PW: "conformance"
+  done_timeout: 30m

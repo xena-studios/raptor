@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/eco/egg-eco.json
+license: MIT
+credits:
+  - "Based on the Eco eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Eco's logo, from its Steam store page (Strange Loop Games)"
+certified: true
+arch: [amd64]
+# No player count: Eco doesn't answer Steam's query offline, and the test has
+# no server token. No backup hooks: the console has no save command; the
+# game saves on its own and when stopped (Ctrl+C).
+test:
+  tier: slow
+  memory_mib: 4096
+  variables:
+    # Without a token the server starts offline, which is enough to prove it runs.
+    PUB_SRV: "false"
+  done_timeout: 30m

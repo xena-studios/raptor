@@ -1,0 +1,221 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Eco eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Eco",
+    "author": "support@raptorpanel.net",
+    "description": "The ecosystem game where players build a civilisation together without destroying the world it depends on. Installs the dedicated server with SteamCMD and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        ".NET": "ghcr.io/pelican-eggs/steamcmd:dotnet@sha256:66c02bb50c07a156ccfecf795c4d5d39538b5b3571e96d01e298db697cd9e1f6"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"$SLG_TOKEN\" ]; then exec ./EcoServer -userToken=\"$SLG_TOKEN\"; else echo \"No server token is set, so the server starts offline: it isn't listed and players' accounts aren't checked. Set Server token (from play.eco, Account, Server Authentication) to fix it.\"; exec ./EcoServer -offline; fi",
+    "config": {
+        "files": "{\"Configs/Network.eco\": {\"parser\": \"json\", \"find\": {\"GameServerPort\": \"{{server.build.default.port}}\", \"WebServerPort\": \"{{server.build.env.WEB_PORT}}\", \"SteamServerPort\": \"{{server.build.env.QUERY_PORT}}\", \"RconServerPort\": \"{{server.build.env.RCON_PORT}}\", \"RconPassword\": \"{{server.build.env.RCON_PW}}\", \"PublicServer\": \"{{server.build.env.PUB_SRV}}\", \"Password\": \"{{server.build.env.SRV_PW}}\", \"UPnPEnabled\": \"false\", \"Description\": \"{{server.build.env.SRV_NAME}}\", \"DetailedDescription\": \"{{server.build.env.DEDES}}\", \"Playtime\": \"{{server.build.env.PLAYTIME}}\", \"DefaultSlots\": \"{{server.build.env.MAX_CON}}\", \"DiscordAddress\": \"{{server.build.env.DISCORD_SRV}}\", \"ServerCategory\": \"{{server.build.env.SRV_CAT}}\"}}, \"Configs/Localization.eco\": {\"parser\": \"json\", \"find\": {\"Language\": \"{{server.build.env.LANGUAGE}}\"}}}",
+        "startup": "{\"done\": \"regex:Server Initialization +\\\\.\\\\.\\\\. Finished\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Eco. Installs or updates the dedicated server (Steam app 739590) with\n# SteamCMD, signed in anonymously. The world (Storage), mods and Configs are\n# never touched.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-739590}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# The settings files start from the game's templates; the Panel sets the\n# name, ports, passwords and listing in Network.eco and the language in\n# Localization.eco at every start, and the rest is the owner's.\nfor f in Network Localization; do\n    [ -f \"Configs/$f.eco\" ] || cp \"Configs/$f.eco.template\" \"Configs/$f.eco\"\ndone\nchmod +x EcoServer\necho \"Installed Eco build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SRV_NAME",
+            "default_value": "An Eco server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"\\\\\\r\\n]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The longer description in the server list.",
+            "env_variable": "DEDES",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^\"\\\\\\r\\n]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server token",
+            "description": "The server token from play.eco (Account, Server Authentication, Generate token). Without one the server runs offline: unlisted, and players' accounts aren't checked.",
+            "env_variable": "SLG_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "SRV_PW",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "true lists the server in the in-game server browser.",
+            "env_variable": "PUB_SRV",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once, or -1 for no limit.",
+            "env_variable": "MAX_CON",
+            "default_value": "-1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:-1,500",
+            "field_type": "text"
+        },
+        {
+            "name": "Category",
+            "description": "The category the server browser shows the server under.",
+            "env_variable": "SRV_CAT",
+            "default_value": "None",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:None,Beginner,Established,BeginnerHard,Strange",
+            "field_type": "text"
+        },
+        {
+            "name": "Playtime",
+            "description": "When people usually play, shown in the server browser.",
+            "env_variable": "PLAYTIME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord",
+            "description": "A Discord invite shown in the server browser.",
+            "env_variable": "DISCORD_SRV",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128|regex:/^[^\"\\\\\\s]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Language",
+            "description": "The server's language, such as English, French or German.",
+            "env_variable": "LANGUAGE",
+            "default_value": "English",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Web port",
+            "description": "The TCP port of the server's web map and the client's world data. Give the server this port.",
+            "env_variable": "WEB_PORT",
+            "default_value": "3001",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam port",
+            "description": "The port Steam asks about the server on. Give the server this port.",
+            "env_variable": "QUERY_PORT",
+            "default_value": "3003",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON port",
+            "description": "The port of the remote console. It needs no extra port unless you use RCON from outside.",
+            "env_variable": "RCON_PORT",
+            "default_value": "3002",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The remote console's password, or empty to turn it off.",
+            "env_variable": "RCON_PW",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "739590",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:739590",
+            "field_type": "text"
+        }
+    ]
+}

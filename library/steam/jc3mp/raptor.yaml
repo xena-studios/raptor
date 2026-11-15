@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/jc3mp/egg-jc3mp.json
+license: MIT
+credits:
+  - "Based on the Just Cause 3 Multiplayer egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: from Just Cause 3 Multiplayer's Steam store header (Nanos)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: the server answers no known query, and it
+# keeps nothing to save.
+test:
+  tier: slow
+  memory_mib: 2048
+  variables:
+    ANNOUNCE: "0"
+  done_timeout: 20m

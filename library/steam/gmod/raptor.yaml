@@ -1,0 +1,23 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/gmod/egg-gmod.json
+license: MIT
+credits:
+  - "Based on the Garry's Mod eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Garry's Mod's logo from its Steam store page (Facepunch Studios), on a dark square"
+certified: true
+arch: [amd64]
+players:
+  query: source
+# The game downloads the collection's items when it starts
+# (+host_workshop_collection).
+workshop:
+  app_id: 4000
+  variable: WORKSHOP_ID
+  collection: true
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 30m
+  command: "status"
+  expect: "hostname"
