@@ -7,7 +7,9 @@ LABEL org.opencontainers.image.description="Raptor runtime image (yolks/README.m
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl iproute2 tini tzdata git jq pkg-config libssl-dev \
  && rm -rf /var/lib/apt/lists/*
-ENV RAPTOR_RUNTIME_VERSION="cargo --version"
+# Crates and the registry go in the server's folder; the toolchain stays
+# where the base image put it (PATH still has /usr/local/cargo/bin).
+ENV RAPTOR_RUNTIME_VERSION="cargo --version" CARGO_HOME=/home/container/.cargo
 ENV HOME=/home/container USER=container
 WORKDIR /home/container
 STOPSIGNAL SIGINT

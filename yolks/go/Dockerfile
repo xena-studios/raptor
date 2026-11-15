@@ -9,7 +9,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 # No telemetry from servers, and the image's own Go (no toolchain
 # downloads); modules and the build cache go in HOME, the server's folder.
-ENV RAPTOR_RUNTIME_VERSION="go version" GOTELEMETRY=off GOTOOLCHAIN=local
+ENV RAPTOR_RUNTIME_VERSION="go version" GOTELEMETRY=off GOTOOLCHAIN=local GOPATH=/home/container/.go
 ENV HOME=/home/container USER=container
 WORKDIR /home/container
 STOPSIGNAL SIGINT

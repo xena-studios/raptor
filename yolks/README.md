@@ -10,7 +10,7 @@ the way Wings runs servers before anything is published.
 | `java_8`, `java_11`, `java_17`, `java_21`, `java_25` | Eclipse Temurin JRE (Ubuntu) | amd64, arm64 |
 | `nodejs_22`, `nodejs_24`, `nodejs_26` | Node.js (Debian slim) | amd64, arm64 |
 | `python_3.11` … `python_3.15` | Python (Debian slim) | amd64, arm64 |
-| `dotnet_8`, `dotnet_10` | ASP.NET Core runtime (Ubuntu) | amd64, arm64 |
+| `dotnet_8`, `dotnet_10` | .NET SDK, with the ASP.NET Core runtime (Ubuntu) | amd64, arm64 |
 | `bun_1`, `deno_2` | Bun, Deno (Debian) | amd64, arm64 |
 | `go_1.26`, `go_1.27`, `rust_1` | Go, Rust toolchains (Debian) | amd64, arm64 |
 | `steamcmd` | Debian slim with the 32-bit libraries SteamCMD and Source games need | amd64 |
@@ -25,7 +25,8 @@ upstream support ends.
 - **Works the way Wings runs servers:** as the servers' user (no account
   in the image is needed), with a read-only root filesystem and a tmpfs
   `/tmp`. `HOME` is `/home/container`, the server's folder; nothing is
-  written anywhere else.
+  written anywhere else, so caches point there too (`GOPATH`,
+  `CARGO_HOME`, `DENO_DIR`, NuGet's in `HOME`).
 - **Starts eggs unchanged:** the entrypoint (`entrypoint.sh`) behaves like
   the Pterodactyl and Pelican yolks': it sets `TZ` and `INTERNAL_IP`, turns
   `{{VAR}}` in `STARTUP` into `${VAR}`, and evaluates it in
