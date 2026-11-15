@@ -1,0 +1,27 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/avorion/egg-avorion.json
+license: MIT
+credits:
+  - "Based on the Avorion egg in https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Avorion's logo, from its Steam store page (Boxelware)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: STEAM_QUERY_PORT
+# /save writes every sector out; Avorion can't pause saving, so there's
+# no post command.
+backup:
+  pre: ["/save"]
+  wait_for: "All sectors saved successfully"
+  timeout: 5m
+test:
+  tier: fast
+  memory_mib: 4096
+  variables:
+    # Any Steam ID; this is the first one ever issued.
+    ADMIN_ID: "76561197960265728"
+  done_timeout: 20m
+  command: "/save"
+  expect: "All sectors saved successfully"

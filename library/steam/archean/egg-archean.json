@@ -1,0 +1,181 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Archean",
+    "author": "support@raptorpanel.net",
+    "description": "The sandbox for building vehicles, bases and rockets on a full-size Earth and Moon, in creative or adventure mode. Installs the dedicated server with SteamCMD and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:3da8e0bc90c94c7f9aca1355f2ae31c0484ee78dd446a0c6c1d796dfe4d7677d"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $([ \"{{VALIDATE}}\" = 1 ] && echo validate) +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; cd Archean-game && exec ./Archean_server",
+    "config": {
+        "files": "{\"Archean-data/server/server.ini\": {\"parser\": \"ini\", \"find\": {\"server.server_public_name\": \"{{server.build.env.SERVER_NAME}}\", \"server.password\": \"{{server.build.env.PASSWORD}}\", \"server.max_simultaneous_players\": \"{{server.build.env.MAX_PLAYERS}}\", \"server.game_mode\": \"{{server.build.env.GAME_MODE}}\", \"server.server_online\": \"{{server.build.env.ONLINE_MODE}}\", \"server.accept_remote_connections\": \"yes\", \"networking.listen_port\": \"{{server.build.default.port}}\", \"game.world\": \"{{server.build.env.WORLD_NAME}}\", \"game.spawn\": \"{{server.build.env.SPAWN_PLANET}}\", \"performance.auto_save_interval_seconds\": \"{{server.build.env.AUTOSAVE_INTERVAL}}\", \"performance.updates_per_second\": \"{{server.build.env.UPDATES_PER_SECOND}}\", \"performance.physics_steps_per_update\": \"{{server.build.env.PHYSICS_UPDATES_PER_UPDATE}}\"}}}",
+        "startup": "{\"done\": \"Server started\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Archean. Installs or updates the dedicated server (Steam app 3557220) with\n# SteamCMD, signed in anonymously. Worlds and server.ini are never touched,\n# once written.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-3557220}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# Archean asks for its settings on the console when server.ini lacks them,\n# and on a console that isn't a terminal it asks forever. So the install\n# writes the whole file once; the Panel owns the settings it sets at start.\nini=Archean-data/server/server.ini\nif [ ! -f \"$ini\" ]; then\n    mkdir -p Archean-data/server\n    cat > \"$ini\" <<'INI'\n[server]\nserver_online = no\nserver_public_name = An Archean server\ngame_mode = 0\naccept_remote_connections = yes\nmax_simultaneous_players = 16\npassword =\nexternal_mods_dir =\n\n[game]\nworld = world\nspawn = earth\n\n[networking]\nlisten_port = 8881\nlisten_new_connection_timeout_ms = 500\nautomatic_blacklist = no\n\n[performance]\nupdates_per_second = 25\nphysics_steps_per_update = 8\nauto_save_interval_seconds = 30\nscreens_compression_level = 2\nserver_loop_thread_cpu_affinity = -1\nINI\nfi\necho \"Installed Archean build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Archean server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,100",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "0 for creative, 1 for adventure.",
+            "env_variable": "GAME_MODE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Listed",
+            "description": "yes lists the server in the in-game server list; no, players join by address.",
+            "env_variable": "ONLINE_MODE",
+            "default_value": "no",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:yes,no",
+            "field_type": "text"
+        },
+        {
+            "name": "World",
+            "description": "The world to load, or create when there's none by that name.",
+            "env_variable": "WORLD_NAME",
+            "default_value": "world",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9 _-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Spawn planet",
+            "description": "Where new players start: earth or moon.",
+            "env_variable": "SPAWN_PLANET",
+            "default_value": "earth",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:earth,moon",
+            "field_type": "text"
+        },
+        {
+            "name": "Save interval",
+            "description": "How often the world is saved, in seconds.",
+            "env_variable": "AUTOSAVE_INTERVAL",
+            "default_value": "30",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:10,3600",
+            "field_type": "text"
+        },
+        {
+            "name": "Updates per second",
+            "description": "How many times a second the world updates. Change it only if you know you need to.",
+            "env_variable": "UPDATES_PER_SECOND",
+            "default_value": "25",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,100",
+            "field_type": "text"
+        },
+        {
+            "name": "Physics steps per update",
+            "description": "How many physics steps each update runs. Change it only if you know you need to.",
+            "env_variable": "PHYSICS_UPDATES_PER_UPDATE",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,32",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "3557220",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:3557220",
+            "field_type": "text"
+        }
+    ]
+}

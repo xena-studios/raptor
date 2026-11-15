@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/the-front/egg-the-front.json
+license: MIT
+credits:
+  - "Based on the The Front eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: The Front's logo, from its Steam store page (Hongkong Zhengyou Network)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No console and no save command: it saves on its own (Save interval) and
+# Ctrl+C stops it.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 45m

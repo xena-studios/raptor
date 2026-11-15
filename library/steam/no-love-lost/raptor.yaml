@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/no-love-lost/egg-no-love-lost.json
+license: MIT
+credits:
+  - "Based on the No Love Lost egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: No Love Lost's logo, from its Steam store page (Gagezilla Games)"
+certified: true
+arch: [amd64]
+# No player count: the server lists itself through Epic Online Services
+# and doesn't answer Steam's server queries.
+# No console and no saves: Ctrl+C stops it.
+test:
+  tier: slow
+  memory_mib: 6144
+  done_timeout: 40m
