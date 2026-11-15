@@ -10,9 +10,11 @@ the way Wings runs servers before anything is published.
 | `java_8`, `java_11`, `java_17`, `java_21`, `java_25` | Eclipse Temurin JRE (Ubuntu) | amd64, arm64 |
 | `nodejs_22`, `nodejs_24`, `nodejs_26` | Node.js (Debian slim) | amd64, arm64 |
 | `python_3.11` … `python_3.15` | Python (Debian slim) | amd64, arm64 |
-| `dotnet_8`, `dotnet_10` | ASP.NET Core runtime (Ubuntu) | amd64, arm64 |
+| `dotnet_8`, `dotnet_10` | .NET SDK, with the ASP.NET Core runtime (Ubuntu) | amd64, arm64 |
 | `bun_1`, `deno_2` | Bun, Deno (Debian) | amd64, arm64 |
 | `go_1.26`, `go_1.27`, `rust_1` | Go, Rust toolchains (Debian) | amd64, arm64 |
+| `debian` | Debian 13 slim with common libraries, for servers that ship their own binaries | amd64, arm64 |
+| `box64` | Debian, with Debian's Box64 on arm64 to run x86-only servers (Bedrock) | amd64, arm64 |
 | `steamcmd` | Debian slim with the 32-bit libraries SteamCMD and Source games need | amd64 |
 | `installer` | Debian slim with what install scripts use (curl, jq, unzip, git, …) | amd64, arm64 |
 
@@ -25,11 +27,18 @@ upstream support ends.
 - **Works the way Wings runs servers:** as the servers' user (no account
   in the image is needed), with a read-only root filesystem and a tmpfs
   `/tmp`. `HOME` is `/home/container`, the server's folder; nothing is
-  written anywhere else.
+  written anywhere else, so caches point there too (`GOPATH`,
+  `CARGO_HOME`, `DENO_DIR`, NuGet's in `HOME`).
 - **Starts eggs unchanged:** the entrypoint (`entrypoint.sh`) behaves like
   the Pterodactyl and Pelican yolks': it sets `TZ` and `INTERNAL_IP`, turns
   `{{VAR}}` in `STARTUP` into `${VAR}`, and evaluates it in
   `/home/container`, under `tini` so signals reach the server.
+- **`gh-release`** (installer image): GitHub releases without GitHub's
+  API, whose anonymous limit (60 requests an hour per address) shared
+  hosts and CI runners run out of. `gh-release tag <owner/repo> [latest|<tag>]`
+  resolves a release, `gh-release assets <owner/repo> <tag>` lists its files
+  with GitHub's SHA-256s, and `gh-release download <owner/repo> <tag>
+  <asset> <file>` downloads one and checks it.
 - **Has nothing to install at start:** curl, git, jq, and the runtime are
   in the image. The installer image has what install scripts use, so no
   script runs `apt-get`.

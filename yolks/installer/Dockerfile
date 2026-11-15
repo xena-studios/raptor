@@ -10,3 +10,5 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl wget jq unzip zip tar xz-utils zstd bzip2 git file sed gawk \
  && if [ "$(dpkg --print-architecture)" = amd64 ]; then apt-get install -y --no-install-recommends lib32gcc-s1 lib32stdc++6; fi \
  && rm -rf /var/lib/apt/lists/*
+# GitHub releases without GitHub's API (yolks/README.md).
+COPY --chmod=0755 installer/gh-release /usr/local/bin/gh-release

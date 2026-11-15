@@ -7,7 +7,8 @@ LABEL org.opencontainers.image.description="Raptor runtime image (yolks/README.m
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl iproute2 tini tzdata git jq \
  && rm -rf /var/lib/apt/lists/*
-ENV RAPTOR_RUNTIME_VERSION="deno --version"
+# Downloaded modules go in the server's folder.
+ENV RAPTOR_RUNTIME_VERSION="deno --version" DENO_DIR=/home/container/.cache/deno
 ENV HOME=/home/container USER=container
 WORKDIR /home/container
 STOPSIGNAL SIGINT
