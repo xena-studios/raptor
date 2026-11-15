@@ -1,0 +1,66 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the CanvasMC egg in pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: CanvasMC",
+    "author": "support@raptorpanel.net",
+    "description": "CanvasMC, a Folia fork with fixes to region threading and extra performance work. Runs plugins made for Folia. Any Minecraft version CanvasMC builds, with tuned Java settings.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Minecraft version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true --add-modules=jdk.incubator.vector -jar {{SERVER_JARFILE}} nogui",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"\", \"server-port\": \"{{server.build.default.port}}\", \"query.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \")! For help, type \"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: CanvasMC. Downloads the CanvasMC build for the chosen Minecraft\n# version from CanvasMC. CanvasMC publishes no checksums, so the jar is\n# checked to be a whole, readable archive before it's used. Worlds, plugins\n# and settings are never touched, and the jar is only replaced once the new\n# one checks out.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\njar=\"${SERVER_JARFILE:-server.jar}\"\nget() { curl -fsSL --retry 3 -A \"$ua\" -H \"Accept: application/json\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n\nall=$(get \"https://canvasmc.io/api/v2/builds?project=canvas\") || fail \"CanvasMC can't be reached right now. Reinstall to try again.\"\n# Successful builds of known Minecraft versions, newest first.\nbuilds=$(jq -c '[.builds[] | select(.result == \"SUCCESS\" and .channelVersion != \"unknown\")] | sort_by(-.buildNumber)' <<<\"$all\")\nversion=\"${MC_VERSION:-latest}\"\nbuild=\"${CANVAS_BUILD:-latest}\"\n[ -n \"$version\" ] || version=latest\n[ -n \"$build\" ] || build=latest\n\nif [ \"$build\" != latest ]; then\n    info=$(jq -c --argjson b \"$build\" 'first(.[] | select(.buildNumber == $b)) // empty' <<<\"$builds\")\n    [ -n \"$info\" ] || fail \"CanvasMC has no successful build $build. Set Build to latest, or to one of its builds.\"\n    if [ \"$version\" != latest ] && [ \"$(jq -r '.channelVersion' <<<\"$info\")\" != \"$version\" ]; then\n        fail \"CanvasMC build $build is for Minecraft $(jq -r '.channelVersion' <<<\"$info\"), not $version. Set Build to latest, or to a build for $version.\"\n    fi\nelif [ \"$version\" = latest ]; then\n    info=$(jq -c '.[0] // empty' <<<\"$builds\")\n    [ -n \"$info\" ] || fail \"CanvasMC has no build to install right now. Reinstall to try again later.\"\nelse\n    info=$(jq -c --arg v \"$version\" 'first(.[] | select(.channelVersion == $v)) // empty' <<<\"$builds\")\n    [ -n \"$info\" ] || fail \"CanvasMC has no Minecraft $version. Set Version to latest, or to a version CanvasMC has, such as $(jq -r '.[0].channelVersion' <<<\"$builds\").\"\nfi\nversion=$(jq -r '.channelVersion' <<<\"$info\")\nid=$(jq -r '.buildNumber' <<<\"$info\")\nurl=$(jq -r '.downloadUrl' <<<\"$info\")\n\n# The Java version that Minecraft version needs, from Mojang (CanvasMC\n# itself needs 21 or newer).\njava=21\nif manifest=$(get https://piston-meta.mojang.com/mc/game/version_manifest_v2.json); then\n    meta_url=$(jq -r --arg v \"$version\" '.versions[] | select(.id == $v) | .url' <<<\"$manifest\")\n    if [ -n \"$meta_url\" ] && meta=$(get \"$meta_url\"); then\n        java=$(jq -r '.javaVersion.majorVersion // 21' <<<\"$meta\")\n        [ \"$java\" -ge 21 ] || java=21\n    fi\nfi\n\nif [ -f \"$jar\" ] && [ \"$(cat .raptor-canvasmc 2>/dev/null)\" = \"$version $id\" ]; then\n    echo \"CanvasMC $version build $id is already installed.\"\nelse\n    echo \"Downloading CanvasMC $version build $id\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$jar.new\" \"$url\"\n    unzip -tqq \"$jar.new\" >/dev/null 2>&1 || { rm -f \"$jar.new\"; fail \"The download is incomplete or damaged. Reinstall to try again.\"; }\n    mv -f \"$jar.new\" \"$jar\"\n    echo \"$version $id\" > .raptor-canvasmc\nfi\n# The Java version it needs, which the startup command checks.\necho \"$java\" > .raptor-java\necho \"Installed CanvasMC $version build $id. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Minecraft version, such as 1.21.8, or latest for the newest one CanvasMC builds. Reinstall the server after changing it.",
+            "env_variable": "MC_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Build",
+            "description": "The CanvasMC build, or latest for the newest build of that version.",
+            "env_variable": "CANVAS_BUILD",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        }
+    ]
+}

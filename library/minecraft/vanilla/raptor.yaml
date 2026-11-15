@@ -1,0 +1,30 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/vanilla/egg-vanilla.json
+license: MIT
+credits:
+  - "Based on the Vanilla Minecraft egg in https://github.com/pelican-eggs/minecraft (MIT)"
+  - "Icon: Minecraft's grass block, from the same egg (Minecraft is Mojang's)"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+test:
+  tier: fast
+  memory_mib: 2048
+  eula: true
+  done_timeout: 5m
+  command: "list"
+  expect: "There are 0 of a max of \\d+ players"
+addons:
+  datapacks:
+    loaders: [datapack]
+    dir: world/datapacks
+    version: VANILLA_VERSION
+# save-off and everything written out before the snapshot, so it never
+# catches region files mid-write; save-on after, even if the backup fails.
+backup:
+  pre: ["save-off", "save-all flush"]
+  post: ["save-on"]
+  wait_for: "regex:Saved the (game|world)" # 1.13+ says game, older world
+  timeout: 5m

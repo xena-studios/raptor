@@ -1,0 +1,43 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Cuberite egg in pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Cuberite",
+    "author": "support@raptorpanel.net",
+    "description": "Cuberite, a fast and light Minecraft Java server written in C++ with Lua plugins, for Minecraft 1.8 to 1.12.2. Installs Cuberite's newest build, checked against its checksum.",
+    "features": [
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "./Cuberite",
+    "config": {
+        "files": "{\"settings.ini\": {\"parser\": \"ini\", \"find\": {\"Server.Ports\": \"{{server.build.default.port}}\", \"Server.Description\": \"{{server.build.env.SERV_DESC}}\"}}}",
+        "startup": "{\"done\": \"Startup complete, took\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Cuberite. Downloads Cuberite's newest build for this CPU from\n# Cuberite's build server and checks it against the build's SHA-1. The\n# program and its stock assets are replaced; worlds, settings, plugins and\n# any file you've edited are kept.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) job=linux-x86_64 ;;\n    aarch64) job=linux-aarch64 ;;\n    *) fail \"Cuberite has no build for this CPU ($(uname -m)).\" ;;\nesac\njenkins=\"https://builds.cuberite.org/job/$job\"\ninfo=$(get \"$jenkins/lastSuccessfulBuild/api/json?tree=number\") || fail \"Cuberite's build server can't be reached right now. Reinstall to try again.\"\nbuild=$(jq -r '.number' <<<\"$info\")\nsum=$(get \"$jenkins/$build/artifact/Cuberite.tar.gz.sha1\" | cut -d' ' -f1) || fail \"Cuberite's build server can't be reached right now. Reinstall to try again.\"\n\nif [ -x Cuberite ] && [ \"$(cat .raptor-cuberite 2>/dev/null)\" = \"$job $build\" ]; then\n    echo \"Cuberite build $build is already installed.\"\n    exit 0\nfi\n\n# Unpacked in the server's folder (the install's /tmp is small), removed at the end.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\necho \"Downloading Cuberite build $build\"\ncurl -fsSL --retry 3 -A \"$ua\" -o \"$work/Cuberite.tar.gz\" \"$jenkins/$build/artifact/Cuberite.tar.gz\"\n[ \"$(sha1sum \"$work/Cuberite.tar.gz\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"The download didn't match the build's checksum. Reinstall to try again.\"\nmkdir \"$work/new\"\ntar -xzf \"$work/Cuberite.tar.gz\" -C \"$work/new\"\n\n# The program, its protocol data, prefabs, web admin pages and notices are\n# Cuberite's own: replace them. Everything else (settings, item and mob\n# lists, the bundled plugins) is copied only where it isn't there yet.\nfor f in Cuberite Protocol Prefabs webadmin BACKERS CONTRIBUTORS LICENSE README.txt ThirdPartyLicenses buildinfo.txt; do\n    [ -e \"$work/new/$f\" ] || continue\n    rm -rf \"$f.new\"\n    cp -a \"$work/new/$f\" \"$f.new\"\n    rm -rf \"$f\"\n    mv \"$f.new\" \"$f\"\n    rm -rf \"$work/new/$f\"\ndone\ncp -an \"$work/new/.\" .\n\n# The web admin has no users until you add one, so it's off until then.\n[ -f webadmin.ini ] || printf '[WebAdmin]\\nEnabled=0\\nPorts=8080\\n' > webadmin.ini\n\necho \"$job $build\" > .raptor-cuberite\necho \"Installed Cuberite build $build, for Minecraft 1.8 to 1.12.2.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Description",
+            "description": "The message players see in their server list.",
+            "env_variable": "SERV_DESC",
+            "default_value": "A Cuberite server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        }
+    ]
+}

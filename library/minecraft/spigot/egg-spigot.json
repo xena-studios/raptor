@@ -1,0 +1,69 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Spigot egg in pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Minecraft: Spigot",
+    "author": "support@raptorpanel.net",
+    "description": "Spigot, the Minecraft Java server that runs Bukkit and Spigot plugins. Built from SpigotMC's source with its own BuildTools on install, checked against SpigotMC's checksum, with tuned Java settings.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:299fa2e47bf0ac98b36fd874ea24070bacc4b5e1ed0d11d8248c6dabfe999a18",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:951c1f8dacd1ccc80be975a1b1c71c3f389025b5d81949c12ed14df4fcb6b57e",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1",
+        "Java 11": "ghcr.io/xena-studios/yolks:java_11@sha256:dda430001e6c1bc8e1c43d1b0cbb2fcd0d38221d3d8f167f3ba1ae658616b374",
+        "Java 8": "ghcr.io/xena-studios/yolks:java_8@sha256:e71740e2a99017d4273a588310db60da474644ea364da60d086e33635b62dd27"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Minecraft version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompactObjectHeaders -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC -XX:+PerfDisableSharedMem -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} nogui",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-ip\": \"\", \"server-port\": \"{{server.build.default.port}}\", \"query.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \")! For help, type \"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Spigot. SpigotMC only publishes its server as source, so this\n# builds it with SpigotMC's BuildTools, on the Java it asks for (Eclipse\n# Temurin, checked against Adoptium's checksum). Worlds, plugins and\n# settings are never touched, and the jar is only replaced once the new\n# one has built.\nset -euo pipefail\ncd /mnt/server\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\njar=\"${SERVER_JARFILE:-server.jar}\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n\nif [ -n \"${DL_PATH:-}\" ]; then\n    echo \"Downloading the server jar from $DL_PATH\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$jar.new\" \"$DL_PATH\"\n    mv -f \"$jar.new\" \"$jar\"\n    rm -f .raptor-java .raptor-spigot\n    echo \"Installed.\"\n    exit 0\nfi\n\nversion=\"${DL_VERSION:-latest}\"\n[ -n \"$version\" ] || version=latest\ninfo=$(get \"https://hub.spigotmc.org/versions/$version.json\" 2>/dev/null) || {\n    get \"https://hub.spigotmc.org/versions/latest.json\" >/dev/null || fail \"SpigotMC can't be reached right now. Reinstall to try again.\"\n    fail \"Spigot has no Minecraft $version. Set Version to latest, or to a Minecraft version Spigot builds, such as 1.21.4.\"\n}\nbuild=$(jq -r '.name' <<<\"$info\")\n# SpigotMC's builds are reproducible, and it publishes the jar's SHA-256\n# (builds from before 2023 don't have one).\nsum=$(jq -r '.hashes.Spigot // empty' <<<\"$info\")\n\n# The Java versions this build supports, as class file versions (52 is\n# Java 8). Builds older than the field are Java 8.\nmin=$(jq -r '(.javaVersions[0] // 52) - 44' <<<\"$info\")\nmax=$(jq -r '(.javaVersions[1] // 52) - 44' <<<\"$info\")\njdk=\"\"\nfor v in 25 21 17 11 8; do\n    if [ \"$v\" -ge \"$min\" ] && [ \"$v\" -le \"$max\" ]; then jdk=$v; break; fi\ndone\n[ -n \"$jdk\" ] || jdk=$max\n\n# The same build is already installed: nothing to do.\nread -r had_version had_build had_mc 2>/dev/null < .raptor-spigot || true\nif [ -f \"$jar\" ] && { { [ -n \"$sum\" ] && [ \"$(sha256sum \"$jar\" | cut -d' ' -f1)\" = \"$sum\" ]; } || [ \"${had_version:-} ${had_build:-}\" = \"$version $build\" ]; }; then\n    echo \"$min\" > .raptor-java\n    echo \"Spigot ${had_mc:-$version} (SpigotMC build $build) is already installed.\"\n    exit 0\nfi\n\ncase \"$(uname -m)\" in\n    x86_64) arch=x64 ;;\n    aarch64) arch=aarch64 ;;\n    *) fail \"Spigot can't be built on this CPU ($(uname -m)).\" ;;\nesac\n\n# The JDK and the build need about 1 GB, more than the install's small\n# /tmp holds, so they go in a folder in the server's, removed at the end.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\"\nmkdir -p \"$work/tmp\"\ntrap 'rm -rf \"$work\"' EXIT\ncd \"$work\"\n\necho \"Downloading Java $jdk to build Spigot with\"\ntemurin=$(get \"https://api.adoptium.net/v3/assets/latest/$jdk/hotspot?architecture=$arch&image_type=jdk&os=linux&vendor=eclipse\") ||\n    fail \"Adoptium can't be reached right now. Reinstall to try again.\"\nlink=$(jq -r '.[0].binary.package.link' <<<\"$temurin\")\njdksum=$(jq -r '.[0].binary.package.checksum' <<<\"$temurin\")\ncurl -fsSL --retry 3 -A \"$ua\" -o jdk.tar.gz \"$link\"\n[ \"$(sha256sum jdk.tar.gz | cut -d' ' -f1)\" = \"$jdksum\" ] || fail \"The Java download didn't match Adoptium's checksum. Reinstall to try again.\"\nmkdir jdk\ntar -xzf jdk.tar.gz -C jdk --strip-components=1\nrm jdk.tar.gz\nexport JAVA_HOME=\"$work/jdk\" PATH=\"$work/jdk/bin:$PATH\"\n# BuildTools runs Maven and the decompiler as Java programs of their own,\n# so each gets a share of the memory instead of the default quarter.\nexport JAVA_TOOL_OPTIONS=\"-XX:MaxRAMPercentage=40.0 -Djava.io.tmpdir=$work/tmp\" HOME=\"$work\"\n\necho \"Downloading BuildTools\"\ncurl -fsSL --retry 3 -A \"$ua\" -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar ||\n    fail \"SpigotMC's BuildTools can't be downloaded right now. Reinstall to try again.\"\n\necho \"Building Spigot $version (SpigotMC build $build). This takes a few minutes.\"\nif ! java -jar BuildTools.jar --rev \"$version\" --output-dir \"$work/out\" --final-name spigot.jar > build.log 2>&1; then\n    tail -n 30 build.log\n    fail \"BuildTools couldn't build Spigot $version (the end of its log is above). It needs at least 1.5 GB of memory; give the server more, then reinstall.\"\nfi\n[ -f out/spigot.jar ] || { tail -n 30 build.log; fail \"BuildTools finished without a Spigot jar. Reinstall to try again.\"; }\nif [ -n \"$sum\" ] && [ \"$(sha256sum out/spigot.jar | cut -d' ' -f1)\" != \"$sum\" ]; then\n    fail \"The jar BuildTools built doesn't match SpigotMC's checksum. Reinstall to try again.\"\nfi\n\n# BuildTools says which Minecraft version \"latest\" was.\nmc=$(grep -o 'minecraftVersion=[^,)]*' build.log | head -n 1 | cut -d= -f2) || true\n[ -n \"$mc\" ] || mc=$version\n\ncd /mnt/server\nmv -f \"$work/out/spigot.jar\" \"$jar\"\necho \"$version $build $mc\" > .raptor-spigot\n# The Java version it needs, which the startup command checks.\necho \"$min\" > .raptor-java\necho \"Installed Spigot $mc (SpigotMC build $build). It needs Java $min or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Minecraft version, such as 1.21.4, or latest for the newest one Spigot builds. Reinstall the server after changing it; building takes a few minutes and at least 1.5 GB of memory.",
+            "env_variable": "DL_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of the server's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Download link",
+            "description": "A link to download the server jar from instead of building it, which only staff can set.",
+            "env_variable": "DL_PATH",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        }
+    ]
+}
