@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/hl2dm/egg-hl2dm.json
+license: MIT
+credits:
+  - "Based on the Half-Life 2: Deathmatch egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Half-Life 2: Deathmatch's icon, from Steam (Valve)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 30m
+  command: "status"
+  expect: "hostname"
