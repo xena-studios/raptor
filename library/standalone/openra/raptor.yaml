@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/openra/egg-openra.json
+license: MIT
+credits:
+  - "Based on the OpenRA eggs in https://github.com/pterodactyl/game-eggs and https://github.com/pelican-eggs/games-standalone (MIT)"
+  - "Icon: OpenRA's logo, from https://github.com/OpenRA"
+certified: true
+# OpenRA ships Linux only as x86_64 AppImages.
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m

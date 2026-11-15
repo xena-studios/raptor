@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the World of PADMAN egg in https://github.com/pelican-eggs/games-standalone (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "World of PADMAN",
+    "author": "support@raptorpanel.net",
+    "description": "World of PADMAN, the free comic-style arena shooter. Runs the dedicated server with the game's map rotation; more settings are in the config file in the wop folder.",
+    "features": [],
+    "docker_images": {
+        "Ubuntu": "ghcr.io/pelican-eggs/yolks:ubuntu@sha256:32fae83f86e38ed2f3922ef3cb5b626b5784598bd9e6d0e02fb57f935a5eb352"
+    },
+    "file_denylist": [],
+    "startup": "exec ./wopded.x86_64 +set fs_homepath . +set fs_basepath . +set fs_game {{FS_GAME}} +set dedicated {{DEDICATED_TYPE}} +set net_port {{SERVER_PORT}} +exec \"{{SERVER_CONFIG}}\" +sv_hostName \"{{SERVER_HOSTNAME}}\" +sv_maxClients {{MAX_PLAYERS}} +sv_allowDownload {{ALLOW_DOWNLOAD}} +rconPassword \"{{RCON_PASSWORD}}\" +vstr nextmap",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"InitGame:\"]}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# World of PADMAN: downloads a release from GitHub (checked against\n# GitHub's checksum when it has one) and keeps only what the server needs:\n# the dedicated server and the game's data. Config files the game ships are\n# added only when they aren't there yet, so your edits are kept.\nset -euo pipefail\ncd /mnt/server\n\nrepo=PadWorld-Entertainment/worldofpadman\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag \"$repo\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    case \"$want\" in v*) ;; *) want=\"v$want\" ;; esac\n    tag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n        fail \"World of PADMAN has no version $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" 2>/dev/null || echo v1.7.0).\"\nfi\nassets=$(gh-release assets \"$repo\" \"$tag\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nasset=$(awk '{print $1}' <<<\"$assets\" | grep -E 'unified\\.zip$' | head -n1 || true)\n[ -n \"$asset\" ] || fail \"World of PADMAN $tag has no Linux download.\"\n\nif [ -f wopded.x86_64 ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"World of PADMAN $tag is already installed.\"\nelse\n    mkdir -p \"$build/x\"\n    echo \"Downloading World of PADMAN $tag (about 1.2 GB)\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/wop.zip\" || fail \"The download failed. Reinstall to try again.\"\n    unzip -q \"$build/wop.zip\" 'wopded.x86_64' 'wop/*' -x 'wop/*.dylib' 'wop/*.dll' -d \"$build/x\"\n    rm -f \"$build/wop.zip\"\n    [ -f \"$build/x/wopded.x86_64\" ] || fail \"World of PADMAN $tag has no Linux server in its download.\"\n    # Config files are the server's own once they're there.\n    for f in \"$build\"/x/wop/*.cfg; do\n        if [ -e \"wop/$(basename \"$f\")\" ]; then rm -f \"$f\"; fi\n    done\n    # Files the last version had and this one doesn't (its game data) are\n    # removed; nothing else is.\n    (cd \"$build/x\" && find . -type f ! -name '*.cfg' | sort) > \"$build/files\"\n    if [ -f .raptor-files ]; then\n        comm -23 <(sort .raptor-files) \"$build/files\" | while read -r f; do rm -f -- \"$f\"; done\n    fi\n    mkdir -p wop\n    cp -a \"$build/x/.\" .\n    mv -f \"$build/files\" .raptor-files\n    chmod +x wopded.x86_64\n    echo \"$tag\" > .raptor-version\nfi\necho \"Installed World of PADMAN $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The release, such as v1.7.0, or latest for the newest one. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?[0-9]+(\\.[0-9]+)*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server list. It can have colour codes such as ^2.",
+            "env_variable": "SERVER_HOSTNAME",
+            "default_value": "A World of PADMAN Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players on the server, bots included.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "12",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Visibility",
+            "description": "1 for a LAN server, 2 to list it on the master server.",
+            "env_variable": "DEDICATED_TYPE",
+            "default_value": "2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:1,2",
+            "field_type": "text"
+        },
+        {
+            "name": "Allow downloads",
+            "description": "Let players download maps they don't have from the server.",
+            "env_variable": "ALLOW_DOWNLOAD",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The password for remote administration. Leave it empty to turn RCON off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Config file",
+            "description": "The config file in the game folder that the server runs.",
+            "env_variable": "SERVER_CONFIG",
+            "default_value": "server-settings.cfg",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^[A-Za-z0-9._-]+\\.cfg$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game folder",
+            "description": "The folder with the game's data, or a mod's folder.",
+            "env_variable": "FS_GAME",
+            "default_value": "wop",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        }
+    ]
+}

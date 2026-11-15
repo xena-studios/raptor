@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/xonotic/egg-xonotic.json
+license: MIT
+credits:
+  - "Based on the Xonotic egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Xonotic's logo, from https://github.com/xonotic"
+certified: true
+# x86_64 server only; arm64 runs it through Box64.
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 10m
+  command: "status"
+  expect: "players:\\s+0 active"

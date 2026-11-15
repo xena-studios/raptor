@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Rimworld Together egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Rimworld Together",
+    "author": "support@raptorpanel.net",
+    "description": "The server for Rimworld Together, the community multiplayer mod for RimWorld. Installs the self-contained Linux server from the mod's releases.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
+    },
+    "file_denylist": [],
+    "startup": "exec ./RTServer",
+    "config": {
+        "files": "{\"Configs/ServerConfig.json\": {\"parser\": \"json\", \"find\": {\"IP\": \"0.0.0.0\", \"Port\": \"{{server.build.default.port}}\", \"Name\": \"{{server.build.env.SERVER_NAME}}\", \"Description\": \"{{server.build.env.SERVER_DESC}}\", \"MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": [\"Listening for users at\"]}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Rimworld Together: downloads the server from the mod's GitHub releases,\n# checked against GitHub's checksum. Saves, users and configs are never\n# touched; the server is replaced only once the new one has downloaded.\nset -euo pipefail\ncd /mnt/server\n\nrepo=RimWorld-Together/Rimworld-Together\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag \"$repo\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    tag=$(gh-release tag \"$repo\" \"$want\" 2>/dev/null) ||\n        fail \"Rimworld Together has no version $want. Set Version to latest, or to a release such as $(gh-release tag \"$repo\" 2>/dev/null || echo 26.11.2.1).\"\nfi\nassets=$(gh-release assets \"$repo\" \"$tag\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\ncase \"$(uname -m)\" in\n    x86_64) a=x64 ;;\n    aarch64) a=arm64 ;;\n    *) fail \"Rimworld Together has no server for this CPU.\" ;;\nesac\n# The self-contained server (it needs no .NET installed).\nasset=$(awk '{print $1}' <<<\"$assets\" | grep -xiE \"Server-linux-$a\\.zip\" | head -n1 || true)\n[ -n \"$asset\" ] || fail \"Rimworld Together $tag has no Linux $a server to download.\"\nsum=$(awk -v a=\"$asset\" '$1 == a { print $2 }' <<<\"$assets\")\n\nif [ -x RTServer ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag $sum\" ]; then\n    echo \"Rimworld Together $tag is already installed.\"\nelse\n    mkdir -p \"$build/x\"\n    echo \"Downloading Rimworld Together $tag ($asset)\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/server.zip\" || fail \"The download failed. Reinstall to try again.\"\n    unzip -q \"$build/server.zip\" -d \"$build/x\"\n    [ -f \"$build/x/RTServer\" ] || fail \"The download has no server in it.\"\n    chmod +x \"$build/x/RTServer\"\n    mv -f \"$build/x/RTServer\" RTServer\n    rm -f GameServer\n    echo \"$tag $sum\" > .raptor-version\nfi\n\n# The server writes the rest of its settings on first start; this makes it\n# listen on the server's port from the start.\nif [ ! -f Configs/ServerConfig.json ]; then\n    mkdir -p Configs\n    jq -n --argjson port \"${SERVER_PORT:-25555}\" --argjson max \"${MAX_PLAYERS:-100}\" \\\n        '{Name: \"RimWorld Together Server\", IP: \"0.0.0.0\", Port: $port, MaxPlayers: $max}' > Configs/ServerConfig.json\nfi\necho \"Installed Rimworld Together $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Rimworld Together release, such as 26.11.2.1, or latest for the newest one. It must match the mod version players have. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9A-Za-z][0-9A-Za-z._-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "RimWorld Together Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The description shown in the server browser.",
+            "env_variable": "SERVER_DESC",
+            "default_value": "Welcome to our RimWorld Together server!",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "The most players that can be online at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,500",
+            "field_type": "text"
+        }
+    ]
+}

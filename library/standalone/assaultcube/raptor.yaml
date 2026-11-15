@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/assaultcube/egg-assaultcube.json
+license: MIT
+credits:
+  - "Based on the AssaultCube egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: AssaultCube's logo, from https://github.com/assaultcube"
+certified: true
+# x86_64 server only; arm64 runs it through Box64.
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 5m
