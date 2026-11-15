@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"testing"
+	"unicode/utf16"
 )
 
 // fakeMinecraft answers one Server List Ping like a Java edition server.
@@ -133,5 +134,49 @@ func TestVarint(t *testing.T) {
 		if err != nil || got != v {
 			t.Errorf("varint %d: %d, %v", v, got, err)
 		}
+	}
+}
+
+// fakeLegacyMinecraft answers like a server from before 1.7: it drops the
+// modern handshake and answers 0xFE with a kick packet carrying reason.
+func fakeLegacyMinecraft(t *testing.T, reason string) string {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = l.Close() })
+	go func() {
+		for {
+			c, err := l.Accept()
+			if err != nil {
+				return
+			}
+			var b [1]byte
+			if _, err := io.ReadFull(c, b[:]); err == nil && b[0] == 0xfe {
+				u := utf16.Encode([]rune(reason))
+				out := []byte{0xff, byte(len(u) >> 8), byte(len(u))}
+				for _, r := range u {
+					out = append(out, byte(r>>8), byte(r))
+				}
+				_, _ = c.Write(out)
+			}
+			_ = c.Close()
+		}
+	}()
+	return l.Addr().String()
+}
+
+func TestQueryMinecraftLegacy(t *testing.T) {
+	for name, reason := range map[string]string{
+		"1.4 to 1.6":      "§1\x0078\x001.6.4\x00A Tekkit server\x002\x0020",
+		"beta 1.8 to 1.3": "A Tekkit Classic server§2§20",
+	} {
+		p, err := QueryPlayers(context.Background(), "minecraft", fakeLegacyMinecraft(t, reason))
+		if err != nil || p != (Players{Online: 2, Max: 20}) {
+			t.Errorf("%s: players %+v, %v", name, p, err)
+		}
+	}
+	if _, err := parseLegacyPing("no numbers here"); err == nil {
+		t.Error("garbage parsed")
 	}
 }
