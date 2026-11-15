@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/tmodloader/egg-tmodloader.json
+license: MIT
+credits:
+  - "Based on the tModLoader egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: tModLoader's logo, from https://github.com/tModLoader"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 3072
+  done_timeout: 20m
+  command: "playing"
+  expect: "No players connected"

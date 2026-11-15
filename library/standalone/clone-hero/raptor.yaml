@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/clone-hero/egg-clone-hero.json
+license: MIT
+credits:
+  - "Based on the Clone Hero egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Clone Hero's logo, from https://github.com/clonehero-game"
+certified: true
+arch: [amd64, arm64]
+# The server has no console: it's stopped with Ctrl+C and keeps no saves.
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m

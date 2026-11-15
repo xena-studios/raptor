@@ -1,0 +1,112 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' tModLoader egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "tModLoader",
+    "author": "support@raptorpanel.net",
+    "description": "Terraria with mods. Installs the tModLoader release you choose and creates the world on first start; put mods in the mods folder.",
+    "features": [],
+    "docker_images": {
+        ".NET 8": "ghcr.io/xena-studios/yolks:dotnet_8@sha256:b5f361a48229641a76234d9639825ebce7dc3f44e825672da676ab8f631fa828",
+        ".NET 10": "ghcr.io/xena-studios/yolks:dotnet_10@sha256:806aecf8e00a18c11340eccbef8186274bf94a15074ca1fde8e69b3f4b3b01ed"
+    },
+    "file_denylist": [],
+    "startup": "read -r need 2>/dev/null < .raptor-dotnet || need=8; if ! dotnet --list-runtimes | grep -q \"^Microsoft.NETCore.App $need\\.\"; then echo \"This tModLoader version needs .NET $need, which this image doesn't have. Choose .NET $need in Startup, then start the server again.\"; exit 1; fi; if [ -n \"${SERVER_PASSWORD}\" ]; then set -- -password \"${SERVER_PASSWORD}\"; fi; exec dotnet tModLoader.dll -server -ip 0.0.0.0 -port {{SERVER_PORT}} -maxplayers {{MAX_PLAYERS}} -motd \"{{MOTD}}\" -lang {{LANGUAGE}} -world ~/saves/Worlds/{{WORLD_NAME}}.wld -worldname \"{{WORLD_NAME}}\" -autocreate {{WORLD_SIZE}} -config serverconfig.txt -savedirectory ~/ -tmlsavedirectory ~/saves -modpath ~/mods \"$@\"",
+    "config": {
+        "files": "{\"serverconfig.txt\": {\"parser\": \"file\", \"find\": {\"difficulty\": \"difficulty={{server.build.env.DIFFICULTY}}\"}}}",
+        "startup": "{\"done\": \"Type 'help' for a list of commands\"}",
+        "logs": "{}",
+        "stop": "exit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# tModLoader. Downloads the release from tModLoader's GitHub releases and\n# checks it against GitHub's SHA-256. Worlds (saves/), mods (mods/) and\n# serverconfig.txt are never touched; the game's files are only replaced\n# once the new release has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nrepo=tModLoader/tModLoader\nwant=\"${VERSION:-latest}\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag \"$repo\" latest) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    tag=\"v${want#v}\"\n    case \"$tag\" in v0.*) fail \"tModLoader $tag is for the old Terraria 1.3 and isn't supported. Set Version to latest, or to a 2022 or newer release such as v2026.09.3.1.\" ;; esac\n    gh-release tag \"$repo\" \"$tag\" >/dev/null 2>&1 || fail \"tModLoader has no release $tag. Set Version to latest, or to a release such as v2026.09.3.1.\"\nfi\nsum=$(gh-release assets \"$repo\" \"$tag\" | awk '$1 == \"tModLoader.zip\" { print $2 }') || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n[ -n \"$sum\" ] || fail \"tModLoader $tag has no tModLoader.zip to install.\"\n\nif [ -f tModLoader.dll ] && [ \"$(cat .raptor-tmodloader 2>/dev/null)\" = \"$tag $sum\" ]; then\n    echo \"tModLoader $tag is already installed.\"\nelse\n    echo \"Downloading tModLoader $tag\"\n    gh-release download \"$repo\" \"$tag\" tModLoader.zip \"$build/tModLoader.zip\" || fail \"The download failed. Reinstall to try again.\"\n    mkdir \"$build/x\"\n    # Not its example serverconfig.txt, which would replace yours.\n    unzip -q \"$build/tModLoader.zip\" -d \"$build/x\" -x serverconfig.txt\n    [ -f \"$build/x/tModLoader.dll\" ] || fail \"The download didn't contain tModLoader. Reinstall to try again.\"\n    # Libraries a release dropped would still load, so they're replaced whole.\n    rm -rf Libraries\n    cp -a \"$build/x/.\" /mnt/server/\n    echo \"$tag $sum\" > .raptor-tmodloader\nfi\nmkdir -p saves/Worlds mods\n[ -f serverconfig.txt ] || printf '# tModLoader settings: https://terraria.wiki.gg/wiki/Server#Server_config_file\\ndifficulty=0\\n' > serverconfig.txt\n# The .NET version it needs, which the startup command checks.\njq -r '.runtimeOptions.framework.version' tModLoader.runtimeconfig.json | cut -d. -f1 > .raptor-dotnet\necho \"Installed tModLoader $tag. It needs .NET $(cat .raptor-dotnet).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The tModLoader release to install, such as v2026.09.3.1, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World name",
+            "description": "The world's file name in saves/Worlds, created when there's none: letters, digits, - and _.",
+            "env_variable": "WORLD_NAME",
+            "default_value": "world",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "World size",
+            "description": "The size of a new world: 1 (small), 2 (medium) or 3 (large).",
+            "env_variable": "WORLD_SIZE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:1,2,3",
+            "field_type": "text"
+        },
+        {
+            "name": "Difficulty",
+            "description": "The difficulty of a new world: 0 (classic), 1 (expert), 2 (master) or 3 (journey).",
+            "env_variable": "DIFFICULTY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1,2,3",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Message of the day",
+            "description": "The message players see when they join.",
+            "env_variable": "MOTD",
+            "default_value": "Please don't cut the purple trees!",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:80",
+            "field_type": "text"
+        },
+        {
+            "name": "Language",
+            "description": "The server's language: 1 English, 2 German, 3 Italian, 4 French, 5 Spanish, 6 Russian, 7 Chinese, 8 Portuguese, 9 Polish.",
+            "env_variable": "LANGUAGE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:1,2,3,4,5,6,7,8,9",
+            "field_type": "text"
+        }
+    ]
+}

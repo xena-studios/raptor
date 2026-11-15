@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/redm/egg-redm.json
+license: MIT
+credits:
+  - "Based on the RedM egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Cfx.re's logo, from https://github.com/citizenfx"
+certified: true
+# FXServer is built for x86-64 Linux only.
+arch: [amd64]
+test:
+  tier: manual
+  reason: "FXServer won't start without a Cfx.re licence key, which is tied to an account."
+  memory_mib: 2048
+  done_timeout: 5m

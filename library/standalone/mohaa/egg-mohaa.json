@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' mohaa egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Medal of Honor: Allied Assault",
+    "author": "support@raptorpanel.net",
+    "description": "The classic World War II shooter, run on OpenMoHAA, the open-source engine. Installs the engine for the node's CPU and the game's data; add your settings to main/server.cfg.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./omohaaded +set dedicated 1 +set net_ip 0.0.0.0 +set net_port {{SERVER_PORT}} +set sv_hostname \"{{SERVER_NAME}}\" +set sv_maxclients {{SERVER_MAXCLIENTS}} +set rconPassword \"{{RCON_PASSWORD}}\" +set g_password \"{{SERVER_PASSWORD}}\" +exec server.cfg +map {{SERVER_MAP}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"------ Server Initialization Complete ------\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Medal of Honor: Allied Assault. Runs on OpenMoHAA, the open-source engine\n# (from its GitHub releases, checked against GitHub's SHA-256, for the\n# node's CPU), with the game's data from LinuxGSM's server archive,\n# downloaded once. main/server.cfg and added maps are never touched.\nset -euo pipefail\ncd /mnt/server\n\nrepo=openmoh/openmohaa\nwant=\"${OPENMOHAA_VERSION:-latest}\"\ndata_url=http://linuxgsm.download/MedalofHonorAlliedAssault/moh_revival_v1.12_RC3.5.1.tar.xz\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\nx86_64) arch=amd64 ;;\naarch64) arch=arm64 ;;\n*) fail \"OpenMoHAA has no Linux build for this CPU ($(uname -m)).\" ;;\nesac\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\n# The engine.\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag \"$repo\" latest) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    tag=\"v${want#v}\"\n    gh-release tag \"$repo\" \"$tag\" >/dev/null 2>&1 || fail \"OpenMoHAA has no release $tag. Set OpenMoHAA version to latest, or to a release such as v0.82.1.\"\nfi\nasset=\"openmohaa-$tag-linux-$arch.zip\"\nsum=$(gh-release assets \"$repo\" \"$tag\" | awk -v a=\"$asset\" '$1 == a { print $2 }') || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n[ -n \"$sum\" ] || fail \"OpenMoHAA $tag has no Linux build for $arch.\"\nif [ -x omohaaded ] && [ \"$(cat .raptor-openmohaa 2>/dev/null)\" = \"$asset $sum\" ]; then\n    echo \"OpenMoHAA $tag is already installed.\"\nelse\n    echo \"Downloading OpenMoHAA $tag\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/engine.zip\" || fail \"The download failed. Reinstall to try again.\"\n    unzip -q -o \"$build/engine.zip\" -d \"$build/engine\"\n    [ -f \"$build/engine/omohaaded\" ] || fail \"OpenMoHAA $tag has no dedicated server in its Linux build.\"\n    cp -a \"$build/engine/.\" /mnt/server/\n    chmod +x omohaaded\n    echo \"$asset $sum\" > .raptor-openmohaa\nfi\n\n# The game's data: Allied Assault's main folder, about 1.6 GB.\nif [ -f main/Pak0.pk3 ] && [ -f main/Pak5.pk3 ]; then\n    echo \"The game data is already here.\"\nelse\n    echo \"Downloading the game data (2.9 GB; only Allied Assault's part is kept)\"\n    curl -fsSL --retry 3 -o \"$build/data.tar.xz\" \"$data_url\" || fail \"The game data's download failed. Reinstall to try again.\"\n    mkdir \"$build/data\"\n    tar -xJf \"$build/data.tar.xz\" -C \"$build/data\" --wildcards 'main/*' || fail \"The game data didn't unpack. Reinstall to try again.\"\n    rm -f \"$build/data.tar.xz\"\n    [ -f \"$build/data/main/Pak0.pk3\" ] || fail \"The game data is incomplete. Reinstall to try again.\"\n    mkdir -p main\n    # Windows game libraries the engine doesn't use stay behind.\n    rm -f \"$build\"/data/main/*.dll\n    cp -rn \"$build/data/main/.\" main/\nfi\n\nif [ ! -f main/server.cfg ]; then\n    cat > main/server.cfg <<'CFG'\n// Your server settings, run at every start. The name, players, passwords\n// and first map are set from the Startup page.\nseta g_gametype 1          // 1 free-for-all, 2 team deathmatch, 3 round-based, 4 objective\nseta fraglimit 0\nseta timelimit 20\nseta sv_maplist \"dm/mohdm1 dm/mohdm2 dm/mohdm3 dm/mohdm4 dm/mohdm5 dm/mohdm6 dm/mohdm7\"\nseta sv_gamespy 1\nCFG\nfi\necho \"Installed OpenMoHAA $tag with Medal of Honor: Allied Assault's data.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "OpenMoHAA version",
+            "description": "The OpenMoHAA engine release to install, such as v0.82.1, or latest.",
+            "env_variable": "OPENMOHAA_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Medal of Honor server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "SERVER_MAXCLIENTS",
+            "default_value": "14",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server starts on, such as dm/mohdm7 or obj/obj_team2.",
+            "env_variable": "SERVER_MAP",
+            "default_value": "dm/mohdm7",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_\\/-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Remote console password",
+            "description": "The password for rcon commands. Empty turns the remote console off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        }
+    ]
+}

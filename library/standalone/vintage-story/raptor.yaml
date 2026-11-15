@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/vintage-story/egg-vintage-story.json
+license: MIT
+credits:
+  - "Based on the Vintage Story egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Anego Studios' logo, from https://github.com/anegostudios"
+certified: true
+# The Linux server bundles x86-64 native libraries (SQLite) only.
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 4096
+  done_timeout: 15m
+  command: "/list clients"
+  expect: "List of online Players"

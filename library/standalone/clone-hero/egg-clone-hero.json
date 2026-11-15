@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' Clone Hero egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Clone Hero",
+    "author": "support@raptorpanel.net",
+    "description": "Online play for Clone Hero, the guitar and drums rhythm game. Installs the standalone server release you choose for the node's CPU.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"${SERVER_PASSWORD}\" ]; then set -- -ps \"${SERVER_PASSWORD}\"; else set -- -np; fi; exec ./Server -l {{LOG_LEVEL}} -n \"{{SERVER_DISPLAY_NAME}}\" -a 0.0.0.0 -p {{SERVER_PORT}} \"$@\"",
+    "config": {
+        "files": "{\"settings.ini\": {\"parser\": \"ini\", \"find\": {\"online.maxplayers\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": \"Server running...\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Clone Hero. Downloads the standalone server from Clone Hero's GitHub\n# releases (checked against GitHub's SHA-256) and keeps the program for the\n# node's CPU. settings.ini and the ban list are never touched.\nset -euo pipefail\ncd /mnt/server\n\nrepo=clonehero-game/releases\nwant=\"${VERSION:-latest}\"\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\nx86_64) arch=linux-x64 ;;\naarch64) arch=linux-arm64 ;;\n*) fail \"Clone Hero has no server for this CPU ($(uname -m)).\" ;;\nesac\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\n# Releases are tagged like v1.1.0.6161-final; take 1.1.0.6161 as well.\ntag=\"\"\nif [ \"$want\" = latest ]; then\n    tag=$(gh-release tag \"$repo\" latest) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    for t in \"$want\" \"v$want\" \"v$want-final\" \"$want-final\" \"v${want#[vV]}\" \"v${want#[vV]}-final\"; do\n        if tag=$(gh-release tag \"$repo\" \"$t\" 2>/dev/null); then break; fi\n        tag=\"\"\n    done\n    [ -n \"$tag\" ] || fail \"Clone Hero has no release $want. Set Version to latest, or to a release such as v1.1.0.6161-final.\"\nfi\nassets=$(gh-release assets \"$repo\" \"$tag\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nasset=$(awk '!f && tolower($1) ~ /standalone.?server.*\\.zip$/ { print $1; f = 1 }' <<<\"$assets\")\n[ -n \"$asset\" ] || fail \"Clone Hero $tag has no standalone server download.\"\nsum=$(awk -v a=\"$asset\" '$1 == a { print $2 }' <<<\"$assets\")\n\nif [ -x Server ] && [ \"$(cat .raptor-clonehero 2>/dev/null)\" = \"$tag $arch $sum\" ]; then\n    echo \"Clone Hero $tag is already installed.\"\nelse\n    echo \"Downloading Clone Hero $tag\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/server.zip\" || fail \"The download failed. Reinstall to try again.\"\n    # The zip's layout changes between releases: find this CPU's program.\n    path=$(unzip -Z1 \"$build/server.zip\" | grep -E \"(^|/)$arch/Server$\") || true\n    path=$(head -n 1 <<<\"$path\")\n    [ -n \"$path\" ] || fail \"Clone Hero $tag has no server for $arch.\"\n    unzip -q -j \"$build/server.zip\" \"$path\" -d \"$build/x\"\n    chmod +x \"$build/x/Server\"\n    mv -f \"$build/x/Server\" Server\n    echo \"$tag $arch $sum\" > .raptor-clonehero\nfi\n# The server fills in the rest of its settings on first start.\n[ -f settings.ini ] || printf '[online]\\nmaxplayers = 4\\n' > settings.ini\necho \"Installed Clone Hero $tag ($arch).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Clone Hero release to install, such as v1.1.0.6161-final, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see when they join.",
+            "env_variable": "SERVER_DISPLAY_NAME",
+            "default_value": "A Clone Hero server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:80",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with: letters, digits and underscores. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:40|regex:/^[A-Za-z0-9_]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can play at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:16",
+            "field_type": "text"
+        },
+        {
+            "name": "Log level",
+            "description": "How much the server logs, from 0 (errors only) to 4 (everything).",
+            "env_variable": "LOG_LEVEL",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1,2,3,4",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/openarena/egg-openarena.json
+license: MIT
+credits:
+  - "Based on the OpenArena egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: OpenArena's logo, from https://github.com/OpenArena"
+certified: true
+# Debian builds the engine and game code for both CPUs.
+arch: [amd64, arm64]
+# OpenArena answers Quake III status queries, not A2S, so no players query.
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 10m
+  command: "status"
+  expect: "map: aggressor"

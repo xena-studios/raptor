@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/ddnet/egg-ddnet.json
+license: MIT
+credits:
+  - "Based on the DDRaceNetwork egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: DDNet's logo, from https://github.com/ddnet"
+certified: true
+# DDNet ships x86-64 Linux builds only, and Box64 can't run it (its libcurl
+# lacks functions DDNet calls).
+arch: [amd64]
+# No backup hooks: the server has no console to save from (it keeps no
+# world, only records it writes as they happen).
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m

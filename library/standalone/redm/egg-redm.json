@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' RedM egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "RedM",
+    "author": "support@raptorpanel.net",
+    "description": "Cfx.re's multiplayer framework for Red Dead Redemption 2. Installs the server build you choose with Cfx.re's default resources; it needs a free licence key from Cfx.re.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"${CFX_LICENSE}\" ]; then echo \"RedM needs a licence key: get one free at portal.cfx.re, put it in Licence key on the Startup page, then start the server again.\"; exit 1; fi; d=/home/container/alpine; exec $d/opt/cfx-server/ld-musl-x86_64.so.1 --library-path \"$d/usr/lib/v8/:$d/lib/:$d/usr/lib/\" -- $d/opt/cfx-server/FXServer +set citizen_dir $d/opt/cfx-server/citizen/ +set gamename rdr3 +set sv_licenseKey \"{{CFX_LICENSE}}\" +set steam_webApiKey \"{{STEAM_WEBAPIKEY}}\" +exec server.cfg",
+    "config": {
+        "files": "{\"server.cfg\": {\"parser\": \"file\", \"find\": {\"endpoint_add_tcp\": \"endpoint_add_tcp \\\"0.0.0.0:{{server.build.default.port}}\\\"\", \"endpoint_add_udp\": \"endpoint_add_udp \\\"0.0.0.0:{{server.build.default.port}}\\\"\", \"sv_hostname\": \"sv_hostname \\\"{{server.build.env.SERVER_HOSTNAME}}\\\"\", \"sv_maxclients\": \"sv_maxclients {{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": \"succeeded. Welcome!\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# RedM. Downloads the Cfx.re server (FXServer) build you choose for Linux,\n# and Cfx.re's default resources. server.cfg and your resources are never\n# overwritten; the server's files are only replaced once the download is\n# complete.\nset -euo pipefail\ncd /mnt/server\n\nwant=\"${CFX_VERSION:-recommended}\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\nartifacts=https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master\n\nif [ -n \"${DOWNLOAD_URL:-}\" ]; then\n    url=\"$DOWNLOAD_URL\"\n    label=\"from $url\"\nelse\n    case \"$want\" in\n    recommended | latest)\n        info=$(curl -fsSL --retry 3 https://changelogs-live.fivem.net/api/changelog/versions/linux/server) ||\n            fail \"Cfx.re can't be reached right now. Reinstall to try again.\"\n        url=$(jq -r --arg k \"${want}_download\" '.[$k] // empty' <<<\"$info\")\n        [ -n \"$url\" ] || fail \"Cfx.re didn't say which build is $want. Reinstall to try again.\"\n        ;;\n    *)\n        builds=$(curl -fsSL --retry 3 \"$artifacts/\" | grep -oE '[0-9]+-[0-9a-f]{40}' | sort -u) ||\n            fail \"Cfx.re can't be reached right now. Reinstall to try again.\"\n        b=$(grep -E \"^${want%%-*}-\" <<<\"$builds\" | head -n 1) || true\n        [ -n \"$b\" ] || fail \"Cfx.re has no build $want (it keeps only recent ones). Set Version to recommended, latest, or a build number such as $(sort -t- -k1 -n <<<\"$builds\" | tail -n 1 | cut -d- -f1).\"\n        url=\"$artifacts/$b/fx.tar.xz\"\n        ;;\n    esac\n    label=\"build $(sed -n 's#.*/\\([0-9]*\\)-[0-9a-f]*/fx\\.tar\\.xz$#\\1#p' <<<\"$url\")\"\nfi\n\nif [ -x alpine/opt/cfx-server/FXServer ] && [ -z \"${DOWNLOAD_URL:-}\" ] && [ \"$(cat .raptor-fxserver 2>/dev/null)\" = \"$url\" ]; then\n    echo \"RedM $label is already installed.\"\nelse\n    echo \"Downloading RedM $label\"\n    curl -fsSL --retry 3 -o \"$build/fx.tar.xz\" \"$url\" || fail \"The download failed. Reinstall to try again.\"\n    mkdir \"$build/x\"\n    tar -xJf \"$build/fx.tar.xz\" -C \"$build/x\" || fail \"The download isn't a server build (an fx.tar.xz). Reinstall to try again.\"\n    [ -x \"$build/x/alpine/opt/cfx-server/FXServer\" ] || fail \"The download didn't contain FXServer.\"\n    rm -rf alpine\n    mv \"$build/x/alpine\" alpine\n    echo \"$url\" > .raptor-fxserver\nfi\n\n# Cfx.re's default resources (chat, spawns, sessions), added where missing.\nmkdir -p resources\nif [ ! -d \"resources/[system]\" ]; then\n    git clone -q --depth 1 https://github.com/citizenfx/cfx-server-data.git \"$build/data\" || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    cp -rn \"$build/data/resources/.\" resources/\nfi\n\nif [ ! -f server.cfg ]; then\n    cat > server.cfg <<'CFG'\n# RedM settings. The port, name, player count and licence key are set from\n# the Startup page; add your own resources with \"ensure <name>\".\nendpoint_add_tcp \"0.0.0.0:30120\"\nendpoint_add_udp \"0.0.0.0:30120\"\n\nensure mapmanager\nensure chat\nensure spawnmanager\nensure sessionmanager-rdr3\nensure basic-gamemode\nensure hardcap\n\nsv_scriptHookAllowed 0\nsv_enforceGameBuild 1491\nsv_hostname \"A RedM server\"\nsv_maxclients 32\nCFG\nfi\necho \"Installed RedM $label.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Licence key",
+            "description": "Your server licence key, free from portal.cfx.re. The server won't start without it.",
+            "env_variable": "CFX_LICENSE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The server build: recommended, latest, or a build number such as 38435.",
+            "env_variable": "CFX_VERSION",
+            "default_value": "recommended",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60|regex:/^(recommended|latest|[0-9]+(-[0-9a-f]{40})?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_HOSTNAME",
+            "default_value": "A RedM server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once: 32 without a Cfx.re subscription.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "32",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:2048",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam Web API key",
+            "description": "A Steam Web API key for Steam sign-in, or none.",
+            "env_variable": "STEAM_WEBAPIKEY",
+            "default_value": "none",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Download link",
+            "description": "A link to an fx.tar.xz build to install instead of Version. Leave empty normally.",
+            "env_variable": "DOWNLOAD_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url|max:300",
+            "field_type": "text"
+        }
+    ]
+}

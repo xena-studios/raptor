@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/one-hour-one-life/egg-one-hour-one-life.json
+license: MIT
+credits:
+  - "Based on the One Hour One Life egg in https://github.com/pelican-eggs/games-standalone (MIT)"
+  - "Icon: One Hour One Life's logo, from its Steam store page (Jason Rohrer)"
+certified: true
+# Built from source on the node, so it runs on both CPUs.
+arch: [amd64, arm64]
+# No console: Ctrl+C stops it, and it writes its world as it goes.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 10m

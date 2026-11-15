@@ -1,0 +1,121 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' Soldat 2 egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Soldat 2",
+    "author": "support@raptorpanel.net",
+    "description": "The 2D deathmatch shooter with ragdoll physics. Installs the dedicated server, which patches itself to the newest game version when it starts.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./soldat2 Port={{SERVER_PORT}}",
+    "config": {
+        "files": "{\"autoconfig.ini\": {\"parser\": \"ini\", \"find\": {\"GameServerConfig.Name\": \"{{server.build.env.SERVER_NAME}}\", \"GameServerConfig.Port\": \"{{server.build.default.port}}\", \"GameServerConfig.WebSocketsPort\": \"{{server.build.env.WEBSOCKETS_PORT}}\", \"GameServerConfig.WebSocketsRconPort\": \"{{server.build.env.RCON_PORT}}\", \"GameServerConfig.RconPassword\": \"{{server.build.env.RCON_PASSWORD}}\", \"GameServerConfig.MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"GameServerConfig.GreetMessage\": \"{{server.build.env.GREET_MESSAGE}}\", \"GameServerConfig.AdminPlayfabId\": \"{{server.build.env.ADMIN_PLAYFAB_ID}}\", \"GameServerConfig.ServerPassword\": \"{{server.build.env.SERVER_PASSWORD}}\"}}}",
+        "startup": "{\"done\": \"ALL RULES SCRIPTS INITIALIZED\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Soldat 2. Downloads the Linux server from Transhuman Design. The server\n# patches itself to the newest game version when it starts. Your settings\n# (autoconfig.ini) and custom levels, rules and scripts are never touched.\nset -euo pipefail\ncd /mnt/server\n\nbranch=\"${BRANCH:-release}\"\nurl=\"https://dl.thd.vg/soldat2-linuxserver-$branch.tar.gz\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\n# The download has no version or checksum: its ETag says whether it changed.\netag=$(curl -fsSI --retry 3 \"$url\" | tr -d '\\r' | awk -F': ' 'tolower($1) == \"etag\" { print $2 }') ||\n    fail \"dl.thd.vg can't be reached right now. Reinstall to try again.\"\nif [ -x soldat2 ] && [ -n \"$etag\" ] && [ \"$(cat .raptor-soldat2 2>/dev/null)\" = \"$branch $etag\" ]; then\n    echo \"The latest Soldat 2 $branch server is already installed.\"\nelse\n    echo \"Downloading the Soldat 2 $branch server\"\n    curl -fsSL --retry 3 -o \"$build/server.tar.gz\" \"$url\" || fail \"The download failed. Reinstall to try again.\"\n    mkdir \"$build/x\"\n    # Without the debug symbols, which only matter to the developers.\n    tar -xzf \"$build/server.tar.gz\" -C \"$build/x\" --strip-components=1 --exclude='*_s.debug'\n    [ -f \"$build/x/soldat2\" ] || fail \"The download didn't contain the server. Reinstall to try again.\"\n    cp -a \"$build/x/.\" /mnt/server/\n    chmod +x soldat2\n    echo \"$branch $etag\" > .raptor-soldat2\nfi\n\n# The server rewrites a settings file it doesn't recognise as complete, so\n# this is its own default, with the settings the server's Startup page owns.\nif [ ! -f autoconfig.ini ]; then\n    cat > autoconfig.ini <<'INI'\n[DesignerFile]\nLastFilename = new_level\n\n[PatreonIntegration]\nToken = \n\n[AntiLag]\nAntiLagAdjustment = 0.00\n\n[GameServerConfig]\nName = A Soldat 2 server\nAddress = 0.0.0.0\nPort = 23073\nWebSocketsPort = 0\nWebSocketsRconPort = 0\nCertificateName = \nCertificatePassword = \nCertificateProtocols = 4092\nRconPassword = \nUseIPv6 = False\nDefaultKickSecs = 3600.00\nMaxPlayers = 12\nVisibleInGamesList = True\nGreetMessage = Welcome! Be friendly, help newcomers and have fun!\nAdminPlayfabId = \nSecurityChecks = True\nTimeOutPlayersSecs = 90.00\nAutoShutdownAfterHours = 12\nAutoShutdownAfterMatches = 50\nServerPassword = \nAllowTeamChanging = True\nEndMatchIfPlayersLeft = True\nUseBuiltInPatching = True\nRestartAfterPatching = True\nUpdateURL = https://update.thd.vg\nPatchURL = https://dl.thd.vg\n\n[GamesCycle]\nGamesCycleFile = Cycles/Standard/cycle-default.json\nShuffleGamesCycle = True\n\n[BalanceTeams]\nAutoBalance = True\n\n[Lobby]\nUseLobby = True\nMinimumPlayersToStart = 2\nPercentOfPlayersToReady = 1.00\nHalfReadySecs = 30.00\n\n[Voting]\nAllowVoting = True\nAutoVoteOnMatchEnd = True\nLevelsToVote = 3\nVotingPercentRequired = 35\nVoteMapIntervalSecs = 30\n\n[ConfigUpdater]\nVersion = 36\nINI\nfi\necho \"Installed the Soldat 2 $branch server.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Branch",
+            "description": "release, or test for the developers' test builds. Reinstall after changing it.",
+            "env_variable": "BRANCH",
+            "default_value": "release",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:release,test",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Soldat 2 server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once, up to 12.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "12",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:12",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Greeting",
+            "description": "The message players see when they join.",
+            "env_variable": "GREET_MESSAGE",
+            "default_value": "Welcome! Be friendly and have fun!",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin PlayFab ID",
+            "description": "Your PlayFab ID, which makes you an admin: the console shows it when you join.",
+            "env_variable": "ADMIN_PLAYFAB_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "WebSockets port",
+            "description": "A port for players joining from a browser, one of the server's ports. 0 turns it off.",
+            "env_variable": "WEBSOCKETS_PORT",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:0|max:65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Remote console port",
+            "description": "A port for the WebSocket remote console, one of the server's ports. 0 turns it off.",
+            "env_variable": "RCON_PORT",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:0|max:65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Remote console password",
+            "description": "The password the remote console asks for first.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        }
+    ]
+}

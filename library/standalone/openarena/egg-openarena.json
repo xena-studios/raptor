@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs' OpenArena egg (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "OpenArena",
+    "author": "support@raptorpanel.net",
+    "description": "The free deathmatch shooter built on the Quake III engine. Installs the ioquake3 server with OpenArena 0.8.8; add your settings to baseoa/server.cfg.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./ioq3ded +set com_basegame baseoa +set fs_basepath /home/container +set fs_homepath /home/container +set com_legacyprotocol 71 +set com_protocol 71 +set sv_master1 dpmaster.deathmask.net +set dedicated {{PUBLIC}} +set net_port {{SERVER_PORT}} +set sv_hostname \"{{SERVER_NAME}}\" +set sv_maxclients {{MAX_PLAYERS}} +set g_password \"{{SERVER_PASSWORD}}\" +set rconpassword \"{{RCON_PASSWORD}}\" +set g_gametype {{GAME_TYPE}} +exec server.cfg +map {{GAME_MAP}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"AAS initialized.\"}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# OpenArena. Takes the server from Debian's packages for the node's CPU:\n# the ioquake3 engine, OpenArena's game code built for it, and the 0.8.8\n# game data (apt checks every package against Debian's signed archive).\n# Your settings (baseoa/server.cfg) and added maps and mods are never touched.\nset -euo pipefail\ncd /mnt/server\n\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\"\nmkdir -p \"$build\"\n\npkgs=(ioquake3-server openarena-server openarena-data openarena-085-data openarena-088-data\n    openarena-081-maps openarena-081-misc openarena-081-players openarena-081-players-mature openarena-081-textures)\napt-get update -qq >/dev/null 2>&1 || fail \"Debian's package archive can't be reached right now. Reinstall to try again.\"\nversions=$(apt-cache policy \"${pkgs[@]}\" | awk '/^[a-z0-9]/ { p = $1 } /Candidate:/ { printf \"%s%s \", p, $2 }')\ncase \"$versions\" in *\"(none)\"*) fail \"Debian's archive is missing an OpenArena package right now. Reinstall to try again later.\" ;; esac\nversion=$(apt-cache policy openarena-server | awk '/Candidate:/ { print $2 }')\n\nif [ -x ioq3ded ] && [ \"$(cat .raptor-openarena 2>/dev/null)\" = \"$(uname -m) $versions\" ]; then\n    echo \"OpenArena $version is already installed.\"\nelse\n    echo \"Downloading OpenArena $version (about 420 MB)\"\n    (cd \"$build\" && apt-get download -qq \"${pkgs[@]}\") || fail \"The download failed. Reinstall to try again.\"\n    for deb in \"$build\"/*.deb; do dpkg-deb -x \"$deb\" \"$build/x\"; done\n    x=\"$build/x\"\n    [ -x \"$x/usr/lib/ioquake3/ioq3ded\" ] || fail \"The packages didn't contain the server. Reinstall to try again.\"\n    mkdir -p baseoa missionpack\n    # Debian links the data into the server's folder; here they're copied.\n    cp -f \"$x\"/usr/share/games/openarena/baseoa/*.pk3 baseoa/\n    cp -f \"$x\"/usr/share/games/openarena/missionpack/*.pk3 missionpack/\n    cp -f \"$x\"/usr/lib/openarena-server/baseoa/qagame*.so baseoa/\n    cp -f \"$x\"/usr/lib/openarena-server/missionpack/qagame*.so missionpack/\n    cp -f \"$x/usr/lib/ioquake3/ioq3ded\" ioq3ded.new\n    mv -f ioq3ded.new ioq3ded\n    chmod +x ioq3ded\n    echo \"$(uname -m) $versions\" > .raptor-openarena\nfi\n\nif [ ! -f baseoa/server.cfg ]; then\n    cat > baseoa/server.cfg <<'CFG'\n// Your OpenArena settings, run at every start. The server's name, port,\n// players, passwords, game type and first map are set from the Startup page.\nseta fraglimit 20\nseta timelimit 15\nseta capturelimit 8\nseta g_allowVote 1\nseta bot_minplayers 0\nCFG\nfi\necho \"Installed OpenArena $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Map",
+            "description": "The map the server starts on, such as aggressor or oa_dm1.",
+            "env_variable": "GAME_MAP",
+            "default_value": "aggressor",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game type",
+            "description": "0 deathmatch, 1 duel, 3 team deathmatch, 4 capture the flag, 5 one-flag CTF, 6 overload, 7 harvester, 8 elimination, 9 CTF elimination, 10 last man standing, 11 double domination, 12 domination.",
+            "env_variable": "GAME_TYPE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1,3,4,5,6,7,8,9,10,11,12",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An OpenArena server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "12",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "2 lists the server in the master server list, 1 keeps it unlisted.",
+            "env_variable": "PUBLIC",
+            "default_value": "2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:1,2",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty lets anyone join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        },
+        {
+            "name": "Remote console password",
+            "description": "The password for rcon commands. Empty turns the remote console off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|not_regex:/\"/",
+            "field_type": "text"
+        }
+    ]
+}

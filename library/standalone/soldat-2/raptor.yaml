@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/soldat-2/egg-soldat-2.json
+license: MIT
+credits:
+  - "Based on the Soldat 2 egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Soldat 2's logo, from its Steam store page (Transhuman Design)"
+certified: true
+# An x86-64 Unity server. Box64 0.4 runs it on arm64, but the Box64 in
+# Raptor's image (Debian's 0.3) crashes in its Mono runtime.
+arch: [amd64]
+# No console: Ctrl+C stops it cleanly, and it keeps no world to save.
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 10m
