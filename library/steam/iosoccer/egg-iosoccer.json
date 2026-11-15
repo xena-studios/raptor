@@ -9,10 +9,10 @@
     "description": "A free team football game on the Source engine. Installs the dedicated server with SteamCMD and keeps it updated.",
     "features": [],
     "docker_images": {
-        "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:4cf4d00fbbb7b487eb2af8fd4bf80add97e2ab8283fc1d470c00b9d53fe55547"
+        "SteamCMD": "ghcr.io/pelican-eggs/steamcmd:debian@sha256:c59cff8cd1202c8f283b8b36344166a9fc16e3f781aa1be7d10187cd9d7566d8"
     },
     "file_denylist": [],
-    "startup": "v=; [ \"{{VALIDATE}}\" = 1 ] && v=validate; if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $v +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; if [ -x srcds_run_64 ]; then run=./srcds_run_64; else run=./srcds_run; fi; exec $run -game iosoccer -console -norestart -strictportbind -ip 0.0.0.0 -port {{SERVER_PORT}} -tickrate {{TICKRATE}} +maxplayers {{SLOTS}} +fps_max {{MAX_FPS}} +map {{MAP}}",
+    "startup": "if [ -x srcds_run_64 ]; then run=./srcds_run_64; else run=./srcds_run; fi; exec $run -game iosoccer -console -norestart -strictportbind -ip 0.0.0.0 -port {{SERVER_PORT}} -tickrate {{TICKRATE}} +maxplayers {{SLOTS}} +fps_max {{MAX_FPS}} +map {{MAP}}",
     "config": {
         "files": "{\"iosoccer/cfg/server.cfg\": {\"parser\": \"file\", \"find\": {\"hostname \": \"hostname \\\"{{server.build.env.SERVER_NAME}}\\\"\", \"sv_password \": \"sv_password \\\"{{server.build.env.SERVER_PASSWORD}}\\\"\", \"rcon_password \": \"rcon_password \\\"{{server.build.env.RCON}}\\\"\"}}}",
         "startup": "{\"done\": \"Connection to Steam servers successful\"}",

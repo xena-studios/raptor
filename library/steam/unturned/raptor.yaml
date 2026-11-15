@@ -7,8 +7,11 @@ credits:
   - "Icon: Unturned's logo, from its Steam store page (Smartly Dressed Games)"
 certified: true
 arch: [amd64]
-# No backup hooks: "save" saves, but the game can't pause saving, and hooks
-# without a post command aren't allowed yet.
+# Unturned can't pause saving, so a backup saves first and has nothing to undo.
+backup:
+  pre: ["save"]
+  wait_for: "Successfully saved the game"
+  timeout: 5m
 test:
   tier: slow
   memory_mib: 3072

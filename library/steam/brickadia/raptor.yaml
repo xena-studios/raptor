@@ -11,4 +11,6 @@ test:
   tier: manual
   reason: "the server needs a hosting token from a Brickadia account"
   memory_mib: 4096
+  variables:
+    SERVER_HOSTING_TOKEN: "placeholder"
   done_timeout: 20m

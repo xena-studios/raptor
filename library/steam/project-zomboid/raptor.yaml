@@ -7,11 +7,16 @@ credits:
   - "Icon: Project Zomboid's icon, from Steam (The Indie Stone)"
 certified: true
 arch: [amd64]
-# No backup hooks: "save" saves, but the game can't pause saving, and hooks
-# without a post command aren't allowed yet.
+# Project Zomboid can't pause saving, so a backup saves first and has nothing
+# to undo. "World saved" comes when the save is only queued; "Saving finish"
+# when it's written.
+backup:
+  pre: ["save"]
+  wait_for: "Saving finish"
+  timeout: 5m
 test:
   tier: slow
-  memory_mib: 6144
+  memory_mib: 8192
   variables:
     ADMIN_PASSWORD: "conformance"
   done_timeout: 40m

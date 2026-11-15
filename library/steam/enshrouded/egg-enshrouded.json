@@ -12,7 +12,7 @@
         "Proton": "ghcr.io/pelican-eggs/steamcmd:proton@sha256:099a9eba9b0e623c124680fd011948d09b2f5b24f49b0776b5821ff35e5b2530"
     },
     "file_denylist": [],
-    "startup": "rm -f logs/enshrouded_server.log; proton run ./enshrouded_server.exe & pid=$!; tail -n +1 -F logs/enshrouded_server.log --pid=$pid 2>/dev/null",
+    "startup": "export PROTON_USE_XALIA=0; rm -f logs/enshrouded_server.log; proton run ./enshrouded_server.exe & pid=$!; tail -n +1 -F logs/enshrouded_server.log --pid=$pid 2>/dev/null",
     "config": {
         "files": "{\"enshrouded_server.json\": {\"parser\": \"json\", \"find\": {\"name\": \"{{server.build.env.SRV_NAME}}\", \"queryPort\": \"{{server.build.default.port}}\", \"slotCount\": \"{{server.build.env.MAX_PLAYERS}}\", \"userGroups[0].password\": \"{{server.build.env.SRV_PW}}\", \"userGroups[1].password\": \"{{server.build.env.SRV_PW2}}\", \"userGroups[2].password\": \"{{server.build.env.SRV_PW3}}\", \"userGroups[3].password\": \"{{server.build.env.SRV_PW4}}\"}}}",
         "startup": "{\"done\": \"[Session] 'HostOnline' (up)!\"}",

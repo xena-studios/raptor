@@ -10,8 +10,12 @@ arch: [amd64]
 # 7 Days to Die answers Steam's query on its game port.
 players:
   query: source
-# No backup hooks: saveworld saves, but the game can't pause saving, and
-# hooks without a post command aren't allowed yet.
+# 7 Days to Die can't pause saving, so a backup saves first and has nothing
+# to undo. The reply comes back through the telnet console.
+backup:
+  pre: ["saveworld"]
+  wait_for: "World saved"
+  timeout: 5m
 test:
   tier: manual
   reason: "the server is about 18 GB, more than standard CI runners have room for"
