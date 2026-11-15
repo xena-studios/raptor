@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/bastion/egg-bastion.json
+license: MIT
+credits:
+  - "Based on the Bastion egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: Bastion's logo, from https://github.com/TheBastionBot (GPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: manual
+  reason: "Bastion needs a real Discord bot token and a MongoDB database to start; with a fake token it exits after Discord refuses it. Tested by hand: it installs, builds, and reaches Discord's login on arm64."
+  memory_mib: 1024
+  done_timeout: 10m

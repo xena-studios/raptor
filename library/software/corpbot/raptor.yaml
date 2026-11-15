@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/corpbot/egg-corpbot.json
+license: MIT
+credits:
+  - "Based on the CorpBot egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the avatar of CorpNewt, CorpBot's author, from https://github.com/corpnewt"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: manual
+  reason: "CorpBot needs a real Discord bot token: without one it stops right after Discord refuses the login. Tested by hand: it installs, sets up its Python packages, and reaches Discord's login on arm64."
+  memory_mib: 1024
+  done_timeout: 10m

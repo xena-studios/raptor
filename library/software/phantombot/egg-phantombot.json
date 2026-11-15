@@ -1,0 +1,41 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the PhantomBot egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "PhantomBot",
+    "author": "support@raptorpanel.net",
+    "description": "PhantomBot is an open source Twitch chat bot with moderation, games, alerts and a Discord bot. Downloads the official release; set it up from its web page on the server's port.",
+    "features": [],
+    "docker_images": {
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1"
+    },
+    "file_denylist": [],
+    "startup": "java @java.opt -Dinteractive @java.opt.custom -jar PhantomBot.jar",
+    "config": {
+        "files": "{\n    \"config/botlogin.txt\": {\n        \"parser\": \"properties\",\n        \"find\": {\n            \"baseport\": \"{{server.build.default.port}}\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": [\n        \"Joined \",\n        \"Bot Setup and OAuth\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# PhantomBot: downloads PhantomBot (the build without a bundled Java) from\n# its GitHub releases. config (botlogin.txt and the database), addons,\n# logs and custom scripts are kept.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\nversion=\"${RELEASE_VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag PhantomBot/PhantomBot \"$version\") || exit 1\nversion=\"${tag#v}\"\nasset=\"PhantomBot-${version}-bot_only.zip\"\n\nif [ -f PhantomBot.jar ] && [ \"$(cat .phantombot-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"PhantomBot $version is already installed.\"\nelse\n    echo \"Downloading PhantomBot $version.\"\n    gh-release download PhantomBot/PhantomBot \"$tag\" \"$asset\" $work/pb.zip\n    mkdir -p $work/pb\n    unzip -q $work/pb.zip -d $work/pb\n    src=$(find $work/pb -mindepth 1 -maxdepth 1 -type d | head -n 1)\n    # The program and its libraries are replaced whole; config and addons\n    # only get files they don't have yet.\n    # Custom scripts are set aside while scripts is replaced.\n    for c in scripts/custom scripts/lang/custom; do\n        [ -d \"$c\" ] && mkdir -p \"$work/keep/$c\" && cp -a \"$c\"/. \"$work/keep/$c\"/\n    done\n    for d in \"$src\"/*; do\n        name=$(basename \"$d\")\n        case \"$name\" in\n            config|addons) mkdir -p \"$name\"; cp -an \"$d\"/. \"$name\"/ ;;\n            *) rm -rf \"$name.new\"; cp -a \"$d\" \"$name.new\"; rm -rf \"$name\"; mv \"$name.new\" \"$name\" ;;\n        esac\n    done\n    [ -d $work/keep/scripts ] && cp -a $work/keep/scripts/. scripts/\n    echo \"$version\" > .phantombot-version\nfi\n[ -f java.opt.custom ] || touch java.opt.custom\necho \"Installed PhantomBot $version. Start it, then open the bot's web page on the server's port to finish the setup.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The PhantomBot version to install, such as 3.24.2.1, or latest.",
+            "env_variable": "RELEASE_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+(\\.\\d+){2,3})$/|max:20",
+            "field_type": "text"
+        }
+    ]
+}

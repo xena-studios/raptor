@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/rabbitmq/egg-rabbitmq.json
+license: MIT
+credits:
+  - "Based on the RabbitMQ egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the RabbitMQ logo, from https://github.com/rabbitmq (Broadcom)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  variables:
+    RABBITMQ_PASS: "raptor-test"
+  config:
+    etc/rabbitmq/rabbitmq.conf: "listeners.tcp.default = 0.0.0.0:{{port}}"

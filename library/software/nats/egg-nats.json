@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the NATS egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "NATS",
+    "author": "support@raptorpanel.net",
+    "description": "NATS is a fast messaging system for publish and subscribe, request and reply, and streams. Downloads the official nats-server release, with JetStream persistence and an optional login.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./nats-server -c nats.conf -a 0.0.0.0 -p {{SERVER_PORT}} $([ \"{{JETSTREAM}}\" = 1 ] && echo \"-js -sd data\") ${USERNAME:+--user \"$USERNAME\"} ${PASSWORD:+--pass \"$PASSWORD\"} ${AUTH_TOKEN:+--auth \"$AUTH_TOKEN\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Server is ready\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# NATS: downloads nats-server from its GitHub releases, checked against\n# GitHub's SHA-256. nats.conf and the JetStream data are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) echo \"NATS has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag nats-io/nats-server \"$version\") || exit 1\nasset=\"nats-server-${tag}-linux-${arch}.tar.gz\"\n\nif [ -x nats-server ] && [ \"$(cat .nats-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"NATS $tag is already installed.\"\nelse\n    echo \"Downloading NATS $tag.\"\n    gh-release download nats-io/nats-server \"$tag\" \"$asset\" $work/nats.tar.gz\n    tar -xzf $work/nats.tar.gz -C $work\n    install -m 0755 \"$work/nats-server-${tag}-linux-${arch}/nats-server\" nats-server.new\n    mv -f nats-server.new nats-server\n    echo \"$tag\" > .nats-version\nfi\n\nif [ ! -f nats.conf ]; then\n    cat > nats.conf <<'EOF'\n# NATS configuration: https://docs.nats.io/running-a-nats-service/configuration\n# The port, JetStream and the login are set by the server's settings.\nserver_name: nats\nmax_payload: 1MB\nEOF\nfi\nmkdir -p data\necho \"Installed NATS $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The nats-server version to install, such as 2.15.3, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/|max:30",
+            "field_type": "text"
+        },
+        {
+            "name": "JetStream",
+            "description": "Turn on JetStream, which stores streams and key-value data in the data folder.",
+            "env_variable": "JETSTREAM",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Username",
+            "description": "A username clients must log in with. Leave it empty for no login.",
+            "env_variable": "USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password that goes with the username.",
+            "env_variable": "PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Token",
+            "description": "A token clients must send instead of a username and password. Leave it empty for none.",
+            "env_variable": "AUTH_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        }
+    ]
+}

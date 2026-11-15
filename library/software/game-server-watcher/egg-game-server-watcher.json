@@ -1,0 +1,112 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Game Server Watcher egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Game Server Watcher",
+    "author": "support@raptorpanel.net",
+    "description": "Game Server Watcher keeps live status messages for your game servers in Discord, Telegram and Slack. Builds its latest code on first start and serves its setup page on the server's port.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:6571c195b896e426f774b8c8d93f835d9fe6a2ac186ffa47f717b72a37ebdb44",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:ee64d6b777297e60eecf8050c7f148f6d851760629ddb32eff82b9159b178507"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"$SECRET\" ]; then echo \"Set the admin password in the server's startup settings, then start it again.\"; exit 1; fi; h=$(cat .git/HEAD package-lock.json 2>/dev/null | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat dist/.raptor-built 2>/dev/null)\" ]; then echo \"Installing packages and building Game Server Watcher. This takes a few minutes.\"; npm ci --include=dev --no-fund --no-audit && npm run build && echo \"$h\" > dist/.raptor-built || exit 1; fi; export HOST=0.0.0.0 PORT={{SERVER_PORT}} DATA_PATH=./data/ NODE_ENV=production; exec node dist/server.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"starting loop...\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Game Server Watcher: clones it from its Git repository, or pulls the\n# newest code into an existing copy. It has no releases, so this is always\n# its latest code. It's built when the server starts. The data folder (the\n# watched servers and the bots' messages) is kept.\nset -euo pipefail\ncd /mnt/server\nrepo=https://github.com/a-sync/game-server-watcher\n\ngit config --global --add safe.directory /mnt/server\n[ -d .git ] || git init -q\ngit fetch -q --depth 1 \"$repo\" HEAD\n# Only the app's own files are replaced; data/ holds nothing it tracks.\ngit -c advice.detachedHead=false checkout -q -f FETCH_HEAD\nmkdir -p data\necho \"Installed Game Server Watcher at commit $(git rev-parse --short HEAD). It is built the first time it starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Admin password",
+            "description": "The password for the setup page, at least 8 characters.",
+            "env_variable": "SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Refresh minutes",
+            "description": "How often, in minutes, the servers are checked and the messages updated.",
+            "env_variable": "REFRESH_TIME_MINUTES",
+            "default_value": "2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,1440",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord bot token",
+            "description": "A Discord bot's token, to post status messages in Discord.",
+            "env_variable": "DISCORD_BOT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Telegram bot token",
+            "description": "A Telegram bot's token, to post status messages in Telegram.",
+            "env_variable": "TELEGRAM_BOT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Slack bot token",
+            "description": "A Slack bot token (xoxb-), to post status messages in Slack.",
+            "env_variable": "SLACK_BOT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Slack app token",
+            "description": "The Slack app-level token (xapp-) that goes with the Slack bot.",
+            "env_variable": "SLACK_APP_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam web API key",
+            "description": "A Steam web API key, for details of Steam games that need one.",
+            "env_variable": "STEAM_WEB_API_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Debug logging",
+            "description": "Write detailed logs to the console.",
+            "env_variable": "DBG",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

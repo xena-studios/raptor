@@ -1,0 +1,131 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Bastion egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Bastion",
+    "author": "support@raptorpanel.net",
+    "description": "Bastion is a multi-purpose Discord bot for moderation, automation and music. Installs a Bastion release and builds it on first start; it needs a MongoDB database.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:6571c195b896e426f774b8c8d93f835d9fe6a2ac186ffa47f717b72a37ebdb44"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"$BOT_TOKEN\" ] || [ -z \"$MONGO_URI\" ]; then echo \"Set the bot token and the MongoDB connection in the server's startup settings, then start it again.\"; exit 1; fi; h=$(cat .bastion-version package-lock.json 2>/dev/null | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat dist/.raptor-built 2>/dev/null)\" ]; then echo \"Installing Bastion's packages and building it. This takes a few minutes.\"; npm ci --no-fund --no-audit && npm run build && echo \"$h\" > dist/.raptor-built || exit 1; fi; if [ \"{{PUBLISH_COMMANDS}}\" = 1 ]; then npm run --silent commands || echo \"Publishing the slash commands failed: starting anyway.\"; fi; export BASTION_API_PORT={{SERVER_PORT}}; exec node .",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"\\u2014 Ready\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Bastion: fetches a Bastion release from its Git repository. The bot is\n# built when the server first starts. settings.yaml, .env and anything else\n# that isn't part of Bastion's code are kept.\nset -euo pipefail\ncd /mnt/server\nrepo=https://github.com/TheBastionBot/Bastion\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag TheBastionBot/Bastion \"$version\") || exit 1\n\ngit config --global --add safe.directory /mnt/server\nif [ \"$(cat .bastion-version 2>/dev/null)\" = \"$tag\" ] && [ -d .git ]; then\n    echo \"Bastion $tag is already here.\"\nelse\n    echo \"Fetching Bastion $tag.\"\n    [ -d .git ] || git init -q\n    git fetch -q --depth 1 \"$repo\" \"refs/tags/$tag:refs/tags/$tag\"\n    # Only Bastion's own files are replaced; settings.yaml is not one of them.\n    git -c advice.detachedHead=false checkout -q -f \"$tag\"\n    grep -qx .bastion-version .git/info/exclude 2>/dev/null || echo .bastion-version >> .git/info/exclude\n    echo \"$tag\" > .bastion-version\nfi\n\nif [ ! -f settings.yaml ]; then\n    cp settings.example.yaml settings.yaml\n    echo \"Wrote settings.yaml: set the bot owners and presences there.\"\nfi\necho \"Installed Bastion $tag. It is built the first time it starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Bastion release to install, such as 10.19.0, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Bot token",
+            "description": "Your Discord bot's token, from the Discord Developer Portal.",
+            "env_variable": "BOT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Bot ID",
+            "description": "Your Discord application's client ID.",
+            "env_variable": "BOT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^\\d{15,25}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Owner ID",
+            "description": "The Discord user ID of the bot's owner, added to the owners in settings.yaml.",
+            "env_variable": "OWNER_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^\\d{15,25}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "MongoDB connection",
+            "description": "The MongoDB connection string, such as mongodb://user:password@host:27017/bastion.",
+            "env_variable": "MONGO_URI",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Publish commands at start",
+            "description": "Register Bastion's slash commands with Discord every time it starts.",
+            "env_variable": "PUBLISH_COMMANDS",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Music activity",
+            "description": "Show the track that's playing as the bot's activity.",
+            "env_variable": "BASTION_MUSIC_ACTIVITY",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Relay direct messages",
+            "description": "Forward direct messages the bot gets to its owner.",
+            "env_variable": "BASTION_RELAY_DMS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Unsafe mode",
+            "description": "Allow the owner-only exec and eval commands. Leave it off unless you alone own the bot.",
+            "env_variable": "UNSAFE_MODE",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "API password",
+            "description": "A password for Bastion's web API on the server's port. Leave it empty to turn the API off.",
+            "env_variable": "BASTION_API_AUTH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/phantombot/egg-phantombot.json
+license: MIT
+credits:
+  - "Based on the PhantomBot egg in https://github.com/pterodactyl/application-eggs (MIT)"
+  - "Icon: the PhantomBot logo, from https://github.com/PhantomBot (GPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 3m
+  config:
+    config/botlogin.txt: "baseport={{port}}"

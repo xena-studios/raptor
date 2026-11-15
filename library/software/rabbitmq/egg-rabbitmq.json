@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the RabbitMQ egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "RabbitMQ",
+    "author": "support@raptorpanel.net",
+    "description": "RabbitMQ is a reliable message broker that speaks AMQP, MQTT and STOMP. Downloads the official release, with an optional login and management web interface.",
+    "features": [],
+    "docker_images": {
+        "Erlang 27": "ghcr.io/pelican-eggs/yolks:erlang_27@sha256:786f86cb7f121173991435dea5cc304a588d7992ff5d46ea949a33d7be9a5190"
+    },
+    "file_denylist": [],
+    "startup": "mkdir -p etc/rabbitmq/conf.d; { if [ -n \"$RABBITMQ_PASS\" ]; then echo \"default_user = $RABBITMQ_USER\"; echo \"default_pass = $RABBITMQ_PASS\"; fi; if [ -n \"{{MANAGEMENT_PORT}}\" ]; then echo \"management.tcp.port = {{MANAGEMENT_PORT}}\"; fi; } > etc/rabbitmq/conf.d/10-server.conf; if [ -n \"{{MANAGEMENT_PORT}}\" ]; then export RABBITMQ_ENABLED_PLUGINS=rabbitmq_management; fi; exec ./sbin/rabbitmq-server",
+    "config": {
+        "files": "{\n    \"etc/rabbitmq/rabbitmq.conf\": {\n        \"parser\": \"file\",\n        \"find\": {\n            \"listeners.tcp.default\": \"listeners.tcp.default = 0.0.0.0:{{server.build.default.port}}\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": [\n        \"Starting broker... completed with\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# RabbitMQ: downloads RabbitMQ's generic Unix build from its GitHub\n# releases, checked against the release's SHA-256. The configuration (etc)\n# and the message store (var) are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\nversion=\"${RABBITMQ_VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag rabbitmq/rabbitmq-server \"$version\") || exit 1\nversion=\"${tag#v}\"\nasset=\"rabbitmq-server-generic-unix-${version}.tar.xz\"\n\nif [ -x sbin/rabbitmq-server ] && [ \"$(cat .rabbitmq-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"RabbitMQ $version is already installed.\"\nelse\n    echo \"Downloading RabbitMQ $version.\"\n    gh-release download rabbitmq/rabbitmq-server \"$tag\" \"$asset\" $work/rabbitmq.tar.xz\n    mkdir -p $work/rabbitmq\n    tar -xJf $work/rabbitmq.tar.xz -C $work/rabbitmq\n    src=\"$work/rabbitmq/rabbitmq_server-$version\"\n    # The program's own folders are replaced whole; etc and var stay.\n    for d in \"$src\"/*; do\n        name=$(basename \"$d\")\n        case \"$name\" in etc|var) continue ;; esac\n        rm -rf \"$name\"\n        cp -a \"$d\" \"$name\"\n    done\n    echo \"$version\" > .rabbitmq-version\nfi\n\nmkdir -p etc/rabbitmq/conf.d var\nif [ ! -f etc/rabbitmq/rabbitmq.conf ]; then\n    cat > etc/rabbitmq/rabbitmq.conf <<'CONF'\n# RabbitMQ settings: https://www.rabbitmq.com/docs/configure\n# The port is set by the server's settings, and the login and management\n# port are in conf.d/10-server.conf, written at every start.\nlisteners.tcp.default = 0.0.0.0:5672\nCONF\nfi\nif [ ! -f etc/rabbitmq/rabbitmq-env.conf ]; then\n    # A fixed node name: the message store's folder is named after it.\n    echo \"NODENAME=rabbit@localhost\" > etc/rabbitmq/rabbitmq-env.conf\nfi\necho \"Installed RabbitMQ $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The RabbitMQ version to install, such as 4.4.0, or latest.",
+            "env_variable": "RABBITMQ_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Username",
+            "description": "The user RabbitMQ creates on its first start, instead of guest, which can only log in from the server itself.",
+            "env_variable": "RABBITMQ_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|alpha_dash|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "That user's password. Leave it empty to keep the guest user.",
+            "env_variable": "RABBITMQ_PASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Management port",
+            "description": "A port for the management web interface, one of the server's ports. Leave it empty to turn it off.",
+            "env_variable": "MANAGEMENT_PORT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|between:1024,65535",
+            "field_type": "text"
+        }
+    ]
+}

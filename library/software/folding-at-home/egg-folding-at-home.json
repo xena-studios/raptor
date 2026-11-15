@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Folding@home egg in https://github.com/pterodactyl/application-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Folding@home",
+    "author": "support@raptorpanel.net",
+    "description": "Folding@home lends your CPU to scientists simulating proteins to fight diseases. Runs the official client; link it to your Folding@home account with a token to start folding and manage it on the web.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:72efdffc171b2920c3fb6afcc0a44aa9e93a062b19d73571600c75492901089c"
+    },
+    "file_denylist": [],
+    "startup": "exec ./fah-client --http-addresses=127.0.0.1:{{SERVER_PORT}} --log-color=false --log-rotate-dir=logs --user=\"$FAH_USERNAME\" --team={{FAH_TEAM}} --cpus={{FAH_CPUS}} --cause={{FAH_CAUSE}} --machine-name=\"$FAH_MACHINE_NAME\" ${FAH_PASSKEY:+--passkey=\"$FAH_PASSKEY\"} ${FAH_ACCOUNT_TOKEN:+--account-token=\"$FAH_ACCOUNT_TOKEN\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Listening for HTTP on\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Folding@home: downloads the Folding@home client (version 8) from\n# foldingathome.org. Its database (client.db, with the work in progress)\n# and logs are kept.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nbase=https://download.foldingathome.org/releases/public/fah-client\n\ncase \"$(uname -m)\" in\n    x86_64) worker=debian-10-64bit ;;\n    aarch64) worker=debian-stable-arm64 ;;\n    *) echo \"Folding@home has no client for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${FAH_VERSION:-latest}\"\nif [ \"$version\" = latest ]; then\n    meta=$(curl -fsSL --retry 3 \"$base/meta.json\") || { echo \"foldingathome.org can't be reached right now. Reinstall to try again.\"; exit 1; }\n    version=$(jq -r --arg w \"$worker\" '[.[] | select(.worker == $w and .mode == \"release\" and (.package | endswith(\".tar.bz2\")))][0].version | map(tostring) | join(\".\")' <<<\"$meta\")\n    [ -n \"$version\" ] && [ \"$version\" != null ] || { echo \"foldingathome.org lists no client for this CPU right now.\"; exit 1; }\nfi\nurl=\"$base/$worker/release/fah-client_${version}-64bit-release.tar.bz2\"\nif [ \"$(curl -sIL -o /dev/null -w '%{http_code}' \"$url\")\" != 200 ]; then\n    echo \"Folding@home client version $version doesn't exist for this CPU: see $base/$worker/release/.\"\n    exit 1\nfi\n\nif [ -x fah-client ] && [ \"$(cat .fah-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Folding@home client $version is already installed.\"\nelse\n    echo \"Downloading the Folding@home client $version.\"\n    curl -fsSL --retry 3 -o $work/fah.tar.bz2 \"$url\"\n    mkdir -p $work/fah\n    tar -xjf $work/fah.tar.bz2 -C $work/fah --strip-components=1\n    install -m 0755 $work/fah/fah-client fah-client.new\n    mv -f fah-client.new fah-client\n    echo \"$version\" > .fah-version\nfi\necho \"Installed the Folding@home client $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Folding@home client version to install, such as 8.5.6, or latest.",
+            "env_variable": "FAH_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|8\\.\\d+\\.\\d+)$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Account token",
+            "description": "The token from your account settings on foldingathome.org. The client stays paused until it's linked to an account.",
+            "env_variable": "FAH_ACCOUNT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Machine name",
+            "description": "The name this machine has in your Folding@home account.",
+            "env_variable": "FAH_MACHINE_NAME",
+            "default_value": "raptor",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|alpha_dash|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Username",
+            "description": "The donor name your points are credited to.",
+            "env_variable": "FAH_USERNAME",
+            "default_value": "Anonymous",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Team",
+            "description": "The number of the team your points go to; 0 for none.",
+            "env_variable": "FAH_TEAM",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:0",
+            "field_type": "text"
+        },
+        {
+            "name": "Passkey",
+            "description": "Your passkey, for bonus points.",
+            "env_variable": "FAH_PASSKEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|alpha_num|size:32",
+            "field_type": "text"
+        },
+        {
+            "name": "CPUs",
+            "description": "How many CPU threads to fold with. Keep it within the server's CPU limit.",
+            "env_variable": "FAH_CPUS",
+            "default_value": "2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,256",
+            "field_type": "text"
+        },
+        {
+            "name": "Cause",
+            "description": "The research to prefer.",
+            "env_variable": "FAH_CAUSE",
+            "default_value": "any",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:any,alzheimers,cancer,huntingtons,parkinsons,influenza,diabetes,covid-19",
+            "field_type": "text"
+        }
+    ]
+}
