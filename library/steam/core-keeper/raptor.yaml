@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/core-keeper/egg-core-keeper.json
+license: MIT
+credits:
+  - "Based on the Core Keeper egg in https://github.com/pelican-eggs/games-steamcmd and https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Core Keeper's logo, from its Steam store page (Pugstorm)"
+certified: true
+arch: [amd64]
+# Players join with the Game ID (Steam's relay) or by address and port.
+# No player count (it doesn't answer Steam's query) and no backup hooks
+# (no console; it saves on its own and when stopped).
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 15m

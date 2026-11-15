@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/sons-of-the-forest/egg-sons-of-the-forest.json
+license: MIT
+credits:
+  - "Based on the Sons Of The Forest egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Sons Of The Forest's logo, from its Steam store page (Endnight Games)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 6144
+  variables:
+    # A test runner can't be reached from the internet, so the server's own
+    # reachability check would fail.
+    SKIP_TESTS: "true"
+  done_timeout: 30m

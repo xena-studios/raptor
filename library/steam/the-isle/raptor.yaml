@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/the-isle/egg-the-isle.json
+license: MIT
+credits:
+  - "Based on The Isle egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: The Isle's logo, from its Steam store page (Afterthought)"
+certified: true
+arch: [amd64]
+# No player count (Evrima lists through Epic, not Steam's query) and no
+# backup hooks (no console; it saves on its own).
+test:
+  tier: manual
+  reason: "The server only starts with The Isle's Epic Online Services client ID and secret, which the egg can't ship and CI doesn't have. Tested by hand: it opens its port once the Gateway map loads."
+  memory_mib: 6144
+  done_timeout: 30m

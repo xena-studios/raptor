@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/pixark/egg-pixark.json
+license: MIT
+credits:
+  - "Based on the PixARK egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: PixARK's logo, from Steam (Snail Games)"
+certified: true
+arch: [amd64]
+# Saves stay in the PteroPixArk folder, as on the old egg, so existing
+# servers keep their worlds.
+# No player count or backup hooks: neither is known to work under Wine.
+test:
+  tier: slow
+  memory_mib: 8192
+  variables:
+    ARK_ADMIN_PASSWORD: "conformance"
+  done_timeout: 45m

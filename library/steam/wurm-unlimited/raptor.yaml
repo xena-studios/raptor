@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/wurm-unlimited/egg-wurm-unlimited.json
+license: MIT
+credits:
+  - "Based on the Wurm Unlimited egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Wurm Unlimited's logo, from its Steam store page (Code Club AB)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: neither is known to work.
+test:
+  tier: slow
+  memory_mib: 3072
+  done_timeout: 15m

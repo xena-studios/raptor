@@ -1,0 +1,20 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/dont-starve-together/egg-dont-starve-together.json
+license: MIT
+credits:
+  - "Based on the Don't Starve Together egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Don't Starve Together's logo, from its Steam store page (Klei Entertainment)"
+certified: true
+arch: [amd64]
+# The console is the surface (Master) shard's; Caves runs beside it and is
+# shut down after it. No player count (Klei's lobby, not Steam's query) and
+# no backup hooks (c_save() has no line to wait for).
+test:
+  tier: manual
+  reason: "needs a cluster token (SERVER_TOKEN) from a Klei account"
+  memory_mib: 3072
+  variables:
+    # A stand-in: a real run needs a token from a Klei account.
+    SERVER_TOKEN: "your-klei-cluster-token"
+  done_timeout: 20m

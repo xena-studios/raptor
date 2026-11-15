@@ -1,0 +1,204 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "ARK: Survival Ascended",
+    "author": "support@raptorpanel.net",
+    "description": "The dinosaur survival game rebuilt in Unreal Engine 5. Installs the Windows dedicated server with SteamCMD, runs it under Proton and keeps it updated, with CurseForge mods by ID.",
+    "features": [],
+    "docker_images": {
+        "Proton": "ghcr.io/pelican-eggs/steamcmd:proton@sha256:099a9eba9b0e623c124680fd011948d09b2f5b24f49b0776b5821ff35e5b2530"
+    },
+    "file_denylist": [],
+    "startup": "mkdir -p ShooterGame/Saved/Logs; rm -f ShooterGame/Saved/Logs/ShooterGame.log; proton run ./ShooterGame/Binaries/Win64/ArkAscendedServer.exe \"{{SERVER_MAP}}?listen?SessionName={{SESSION_NAME}}?Port={{SERVER_PORT}}?RCONEnabled=True?RCONPort={{RCON_PORT}}?MaxPlayers={{MAX_PLAYERS}}?ServerAdminPassword={{ARK_ADMIN_PASSWORD}}${SERVER_PASSWORD:+?ServerPassword=$SERVER_PASSWORD}$([ \"{{SERVER_PVE}}\" = 1 ] && echo ?ServerPVE=True){{ARGS_PARAMS}}\" -WinLiveMaxPlayers={{MAX_PLAYERS}} -oldconsole -servergamelog ${MOD_IDS:+-mods=$MOD_IDS} $([ \"{{BATTLE_EYE}}\" = 1 ] || echo -NoBattlEye) {{ARGS_FLAGS}} & pid=$!; tail -n +1 -F ShooterGame/Saved/Logs/ShooterGame.log --pid=$pid 2>/dev/null & rc() { rcon -a 127.0.0.1:{{RCON_PORT}} -p \"$ARK_ADMIN_PASSWORD\" \"$1\"; }; while kill -0 $pid 2>/dev/null; do read -r -t 2 line; r=$?; if [ $r -gt 128 ]; then continue; elif [ $r -ne 0 ]; then wait $pid; break; fi; case \"$line\" in \"\") ;; stop) echo \"Saving the world and stopping the server.\"; rc SaveWorld; rc DoExit; wait $pid; break ;; *) rc \"$line\" || echo \"The server isn't taking commands yet; it does once it has started.\" ;; esac; done",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Server has completed startup and is now advertising for join\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# ARK: Survival Ascended. Installs or updates the dedicated server (Steam app 2430930) with\n# SteamCMD, signed in anonymously (the Windows version, run under Proton).\n# Saves and configs are never touched.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-2430930}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+@sSteamCmdForcePlatformType windows +force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\necho \"Installed ARK: Survival Ascended build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SESSION_NAME",
+            "default_value": "An ARK server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:63|regex:/^[^\"?\\\\\\r\\n]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map to run, such as TheIsland_WP, ScorchedEarth_WP, TheCenter_WP, Aberration_WP, Extinction_WP, Ragnarok_WP or Valguero_WP.",
+            "env_variable": "SERVER_MAP",
+            "default_value": "TheIsland_WP",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "70",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,200",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "The password players join with, or empty for none.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|alpha_dash|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for admin commands in game and for the console, which talks to the server over RCON.",
+            "env_variable": "ARK_ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|alpha_dash|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "PvE",
+            "description": "Players can't hurt each other or their bases. Off is PvP.",
+            "env_variable": "SERVER_PVE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "BattlEye",
+            "description": "Turn on BattlEye, the anti-cheat.",
+            "env_variable": "BATTLE_EYE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Mods",
+            "description": "CurseForge project IDs of the mods to load, separated by commas; the server downloads them at start.",
+            "env_variable": "MOD_IDS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512|regex:/^[0-9,]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra options",
+            "description": "More map options, each as ?Option=value, such as ?AllowFlyerCarryPvE=True.",
+            "env_variable": "ARGS_PARAMS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512|regex:/^(\\?[A-Za-z0-9_]+=[^\\s\"?]*)*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra flags",
+            "description": "More launch flags, such as -ForceAllowCaveFlyers or -crossplay.",
+            "env_variable": "ARGS_FLAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512|regex:/^[A-Za-z0-9 =,._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON port",
+            "description": "The port the console talks to the server on (over RCON); give it an allocation.",
+            "env_variable": "RCON_PORT",
+            "default_value": "27020",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Windows install",
+            "description": "Install the Windows version of the server, which runs under Proton.",
+            "env_variable": "WINDOWS_INSTALL",
+            "default_value": "1",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "2430930",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:2430930",
+            "field_type": "text"
+        }
+    ],
+    "install": {
+        "timeout": "4h"
+    }
+}

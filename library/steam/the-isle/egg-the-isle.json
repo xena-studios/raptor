@@ -1,0 +1,231 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "The Isle",
+    "author": "support@raptorpanel.net",
+    "description": "The open-world dinosaur survival game, Evrima. Installs the dedicated server with SteamCMD and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:3da8e0bc90c94c7f9aca1355f2ae31c0484ee78dd446a0c6c1d796dfe4d7677d"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"{{EOS_CLIENT_ID}}\" ] || [ -z \"{{EOS_CLIENT_SECRET}}\" ]; then echo \"The Isle needs its dedicated server Epic Online Services client ID and secret (from the game's server hosting guide). Set them in Startup, then start the server again.\"; exit 1; fi; if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $([ \"{{VALIDATE}}\" = 1 ] && echo validate) +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; exec ./TheIsle/Binaries/Linux/TheIsleServer-Linux-Shipping -Port={{SERVER_PORT}} -log \"-ini:Engine:[EpicOnlineServices]:DedicatedServerClientId={{EOS_CLIENT_ID}}\" \"-ini:Engine:[EpicOnlineServices]:DedicatedServerClientSecret={{EOS_CLIENT_SECRET}}\"",
+    "config": {
+        "files": "{\"TheIsle/Saved/Config/LinuxServer/Game.ini\": {\"parser\": \"file\", \"find\": {\"ServerName=\": \"ServerName={{server.build.env.SERVER_NAME}}\", \"MaxPlayerCount=\": \"MaxPlayerCount={{server.build.env.PLAYER_COUNT}}\", \"bEnableHumans=\": \"bEnableHumans={{server.build.env.HUMANS}}\", \"bQueueEnabled=\": \"bQueueEnabled={{server.build.env.ENABLE_QUEUE}}\", \"QueuePort=\": \"QueuePort={{server.build.env.QUEUE_PORT}}\", \"bServerPassword=\": \"bServerPassword={{server.build.env.SERVER_PASSWORD_ENABLED}}\", \"ServerPassword=\": \"ServerPassword={{server.build.env.SERVER_PASSWORD}}\", \"bRconEnabled=\": \"bRconEnabled={{server.build.env.RCON}}\", \"RconPassword=\": \"RconPassword={{server.build.env.RCON_PASSWORD}}\", \"RconPort=\": \"RconPort={{server.build.env.RCON_PORT}}\", \"bServerDynamicWeather=\": \"bServerDynamicWeather={{server.build.env.DYNAMIC_WEATHER}}\", \"bAllowReplay=\": \"bAllowReplay={{server.build.env.ALLOW_REPLAY}}\", \"Discord=\": \"Discord={{server.build.env.DISCORD}}\"}}}",
+        "startup": "{\"done\": \"Load map complete /Game/TheIsle/Maps/Game/\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# The Isle. Installs or updates the dedicated server (Steam app 412680) with\n# SteamCMD, signed in anonymously.\n# Game.ini, the admins and saves are never replaced.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-412680}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\nchmod +x TheIsle/Binaries/Linux/TheIsleServer-Linux-Shipping\n# Without steam_appid.txt next to the server binary (its working folder),\n# Steam's server API fails to start.\necho 412680 > TheIsle/Binaries/Linux/steam_appid.txt\n# The server reads Game.ini. One is written when there's none; the Panel sets\n# the name, players, passwords, RCON, queue and game options in it at every\n# start, and the rest (admins, whitelist) is yours.\nini=TheIsle/Saved/Config/LinuxServer/Game.ini\nmkdir -p \"$(dirname \"$ini\")\"\nif [ ! -f \"$ini\" ]; then\n    cat > \"$ini\" <<'EOF'\n[/Script/TheIsle.TIGameSession]\nServerName=An Isle server\nMaxPlayerCount=100\nMapName=Gateway\nbEnableHumans=false\nbQueueEnabled=false\nQueuePort=10000\nbServerPassword=false\nServerPassword=\nbRconEnabled=false\nRconPassword=\nRconPort=8888\nbServerDynamicWeather=true\nbAllowReplay=true\nDiscord=\n\n[/Script/TheIsle.TIGameStateBase]\nAdminsSteamIDs=\nEOF\n    echo \"Made Game.ini.\"\nfi\nfor key in ServerName MaxPlayerCount bEnableHumans bQueueEnabled QueuePort bServerPassword ServerPassword bRconEnabled RconPassword RconPort bServerDynamicWeather bAllowReplay Discord; do\n    grep -q \"^$key=\" \"$ini\" || sed -i \"/^\\[\\/Script\\/TheIsle.TIGameSession\\]/a $key=\" \"$ini\"\ndone\necho \"Installed The Isle build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:d2129cd70b59156a69b157918c4bdf01b276a86f5c0bd47d9980411db4d177d2",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Isle server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:70|regex:/^[^\"\\\\\\r\\n]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "PLAYER_COUNT",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,300",
+            "field_type": "text"
+        },
+        {
+            "name": "Password on",
+            "description": "true makes players join with the server password.",
+            "env_variable": "SERVER_PASSWORD_ENABLED",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Server password",
+            "description": "The password players join with when Password on is true.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[^\\s]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Humans",
+            "description": "true lets players play as humans.",
+            "env_variable": "HUMANS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Dynamic weather",
+            "description": "true turns on changing weather.",
+            "env_variable": "DYNAMIC_WEATHER",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Replay",
+            "description": "true lets players replay as a new dinosaur after dying.",
+            "env_variable": "ALLOW_REPLAY",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord",
+            "description": "The invite code of your Discord server, shown to players, or empty for none.",
+            "env_variable": "DISCORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32|regex:/^[A-Za-z0-9_-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Queue",
+            "description": "true queues players when the server is full; give the queue port an allocation.",
+            "env_variable": "ENABLE_QUEUE",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Queue port",
+            "description": "The port the join queue uses; give it an allocation.",
+            "env_variable": "QUEUE_PORT",
+            "default_value": "10000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON",
+            "description": "true turns on remote admin tools (RCON).",
+            "env_variable": "RCON",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The password for remote admin tools (RCON).",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\\s]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON port",
+            "description": "The port remote admin tools (RCON) connect to; give it an allocation.",
+            "env_variable": "RCON_PORT",
+            "default_value": "8888",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "EOS client ID",
+            "description": "The dedicated server's Epic Online Services client ID, from The Isle's server hosting guide. The server won't start without it.",
+            "env_variable": "EOS_CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "EOS client secret",
+            "description": "The dedicated server's Epic Online Services client secret, from The Isle's server hosting guide. The server won't start without it.",
+            "env_variable": "EOS_CLIENT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128|regex:/^[A-Za-z0-9+\\/=_-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate files",
+            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
+            "env_variable": "VALIDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam branch to install: evrima, the current game. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "evrima",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "412680",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:412680",
+            "field_type": "text"
+        }
+    ]
+}

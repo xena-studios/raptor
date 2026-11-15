@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/insurgency-sandstorm/egg-insurgency-sandstorm.json
+license: MIT
+credits:
+  - "Based on the Insurgency: Sandstorm egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Insurgency: Sandstorm's logo, from its Steam store page (New World Interactive)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+  port: QUERY_PORT
+# No backup hooks: no console; nothing to save between matches.
+test:
+  tier: slow
+  memory_mib: 4096
+  done_timeout: 30m

@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/barotrauma/egg-barotrauma.json
+license: MIT
+credits:
+  - "Based on the Barotrauma egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Barotrauma's logo, from its Steam store page (FakeFish, Undertow Games)"
+certified: true
+arch: [amd64]
+# The name, port, query port, listing, player count and password are
+# Barotrauma's own command-line options, which override serversettings.xml.
+# No player count (Barotrauma answers Steam's query only when listed) and no
+# backup hooks (it has no save command; it saves between rounds).
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 15m
