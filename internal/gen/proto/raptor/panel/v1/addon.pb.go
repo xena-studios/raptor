@@ -1233,7 +1233,8 @@ type ResolveAddonDependenciesRequest struct {
 	// Projects already on the server (Modrinth IDs, or Factorio mod names),
 	// left out of what's needed and checked against incompatible ones.
 	Installed []string `protobuf:"bytes,5,rep,name=installed,proto3" json:"installed,omitempty"`
-	// "modrinth" (the default) or "factorio" (version_id is "mod@version").
+	// "modrinth" (the default), "factorio" (version_id is "mod@version"), or
+	// "curseforge" (version_id is "mod@file", both CurseForge IDs).
 	Source        string `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

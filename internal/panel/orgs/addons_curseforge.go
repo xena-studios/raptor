@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 	"strconv"
+	"strings"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -230,4 +231,99 @@ func curseForgeError(err error) error {
 		return connect.NewError(connect.CodeUnavailable, curseforge.ErrUnavailable)
 	}
 	return err
+}
+
+// resolveCurseForge is ResolveAddonDependencies for a CurseForge file
+// (version_id "mod@file"): its required dependencies and theirs, each the
+// newest file for the loaders and game version, and its own optional
+// ones. A dependency whose author blocks other apps' downloads can't be
+// installed, so it's unavailable.
+func (s *Addons) resolveCurseForge(ctx context.Context, req *panelv1.ResolveAddonDependenciesRequest) (*panelv1.ResolveAddonDependenciesResponse, error) {
+	if !s.CurseForge.On() {
+		return nil, errNoCurseForge
+	}
+	modStr, fileStr, ok := strings.Cut(req.GetVersionId(), "@")
+	modID, err1 := strconv.ParseInt(modStr, 10, 64)
+	fileID, err2 := strconv.ParseInt(fileStr, 10, 64)
+	if !ok || err1 != nil || err2 != nil || modID <= 0 || fileID <= 0 {
+		return nil, invalid(errors.New("that isn't a CurseForge file"))
+	}
+	root, err := s.CurseForge.Mod(ctx, modID)
+	if err != nil {
+		return nil, curseForgeError(err)
+	}
+	top, err := s.CurseForge.File(ctx, modID, fileID)
+	if err != nil {
+		return nil, curseForgeError(err)
+	}
+	_, loader, _ := curseForgeClass("", req.GetLoaders())
+	if root.ClassID == curseforge.ClassPlugins {
+		loader = ""
+	}
+	installed := req.GetInstalled()
+	if len(installed) > curseforge.MaxFingerprints {
+		return nil, invalid(errors.New("too many installed projects"))
+	}
+	seen := map[int64]bool{modID: true}
+	out := &panelv1.ResolveAddonDependenciesResponse{}
+	var walk func(f curseforge.File, by string, first bool) error
+	walk = func(f curseforge.File, by string, first bool) error {
+		for _, d := range f.Dependencies {
+			id := strconv.FormatInt(d.ModID, 10)
+			t := curseforge.Relation(d.RelationType)
+			switch {
+			case t == "incompatible":
+				if slices.Contains(installed, id) {
+					out.Incompatible = append(out.Incompatible, &panelv1.AddonProject{Id: id, Title: id, Source: sourceCurseForge})
+				}
+				continue
+			case t == "", t == "optional" && !first, seen[d.ModID], slices.Contains(installed, id):
+				continue
+			}
+			if len(seen) >= maxResolved {
+				return nil
+			}
+			seen[d.ModID] = true
+			m, err := s.CurseForge.Mod(ctx, d.ModID)
+			if errors.Is(err, curseforge.ErrNotFound) {
+				if t == "required" {
+					out.Unavailable = append(out.Unavailable, &panelv1.AddonProject{Id: id, Title: id, Source: sourceCurseForge})
+				}
+				continue
+			}
+			if err != nil {
+				return curseForgeError(err)
+			}
+			files, err := s.CurseForge.Files(ctx, d.ModID, loader, req.GetGameVersion())
+			if err != nil && !errors.Is(err, curseforge.ErrNotFound) {
+				return curseForgeError(err)
+			}
+			var v *panelv1.AddonVersion
+			var picked curseforge.File
+			if len(files) > 0 {
+				picked = files[0]
+				v = curseForgeVersion(m, picked)
+			}
+			if v == nil || v.GetFile().GetUrl() == "" {
+				if t == "required" {
+					out.Unavailable = append(out.Unavailable, curseForgeProject(m))
+				}
+				continue
+			}
+			r := &panelv1.ResolvedAddon{Project: curseForgeProject(m), Version: v, NeededBy: by}
+			if t == "optional" {
+				out.Optional = append(out.Optional, r)
+				continue
+			}
+			if err := walk(picked, m.Name, false); err != nil {
+				return err
+			}
+			out.Required = append(out.Required, r)
+		}
+		return nil
+	}
+	if err := walk(top, root.Name, true); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
