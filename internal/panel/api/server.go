@@ -36,6 +36,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/steam"
+	"github.com/xena-studios/raptor/internal/panel/thunderstore"
 	"github.com/xena-studios/raptor/internal/panel/transfers"
 	"github.com/xena-studios/raptor/internal/panel/umod"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
@@ -88,6 +89,8 @@ type Config struct {
 	UMod *umod.Client
 	// Factorio is Factorio's mod portal (nil: mods.factorio.com).
 	Factorio *factorio.Client
+	// Thunderstore is Valheim's and V Rising's mods (nil: thunderstore.io).
+	Thunderstore *thunderstore.Client
 	// Versions lists game software's versions (nil: their own APIs).
 	Versions *gameversions.Client
 	// Mojang looks Minecraft players up (nil: api.mojang.com).
@@ -193,6 +196,10 @@ func Handler(cfg Config) http.Handler {
 		if fa == nil {
 			fa = &factorio.Client{UserAgent: ua}
 		}
+		ts := cfg.Thunderstore
+		if ts == nil {
+			ts = &thunderstore.Client{UserAgent: ua}
+		}
 		gv := cfg.Versions
 		if gv == nil {
 			gv = &gameversions.Client{UserAgent: ua}
@@ -206,7 +213,7 @@ func Handler(cfg Config) http.Handler {
 			mp = &modpacks.Client{UserAgent: ua}
 		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv, Mojang: mj, Modpacks: mp, CurseForge: cfg.CurseForge}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Thunderstore: ts, Versions: gv, Mojang: mj, Modpacks: mp, CurseForge: cfg.CurseForge}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {

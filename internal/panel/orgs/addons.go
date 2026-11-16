@@ -28,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/mojang"
 	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/thunderstore"
 	"github.com/xena-studios/raptor/internal/panel/umod"
 )
 
@@ -45,6 +46,8 @@ type Addons struct {
 	Mojang   *mojang.Client
 	// CurseForge is off (nil, or no key) until the Panel has an API key.
 	CurseForge *curseforge.Client
+	// Thunderstore is Valheim's and V Rising's mods (#410).
+	Thunderstore *thunderstore.Client
 }
 
 // kindModpacks is the pack picker's kind (#413): Modrinth's modpacks,
@@ -167,8 +170,8 @@ func hangarPlatform(kind string, loaders []string) (string, error) {
 
 func checkSource(source string) error {
 	if source != "" && source != sourceModrinth && source != sourceHangar && source != sourceUMod && source != sourceFactorio &&
-		source != sourceFTB && source != sourceTechnic && source != sourceCurseForge {
-		return invalid(errors.New("the source is modrinth, hangar, curseforge, umod, factorio, ftb, or technic"))
+		source != sourceFTB && source != sourceTechnic && source != sourceCurseForge && source != sourceThunderstore {
+		return invalid(errors.New("the source is modrinth, hangar, curseforge, umod, factorio, thunderstore, ftb, or technic"))
 	}
 	return nil
 }
@@ -338,6 +341,12 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 	if req.GetSource() == sourceCurseForge {
 		return s.searchCurseForge(ctx, req, query, offset)
 	}
+	if req.GetKind() == sourceThunderstore || req.GetSource() == sourceThunderstore {
+		if req.GetSource() != sourceThunderstore {
+			return nil, invalid(errors.New("thunderstore has the thunderstore kind's mods, and only it has them"))
+		}
+		return s.searchThunderstore(ctx, req, query, offset)
+	}
 	if req.GetSource() == sourceHangar {
 		platform, err := hangarPlatform(req.GetKind(), req.GetLoaders())
 		if err != nil {
@@ -414,6 +423,9 @@ func (s *Addons) ListAddonVersions(ctx context.Context, req *panelv1.ListAddonVe
 			}
 		}
 		return out, nil
+	}
+	if req.GetSource() == sourceThunderstore {
+		return s.thunderstoreVersions(ctx, req)
 	}
 	if !projectRef.MatchString(req.GetProjectId()) {
 		return nil, invalid(errors.New("that isn't a project"))
@@ -498,6 +510,13 @@ func (s *Addons) IdentifyAddons(ctx context.Context, req *panelv1.IdentifyAddons
 	}
 	out := &panelv1.IdentifyAddonsResponse{}
 	if len(hashes) == 0 {
+		return out, nil
+	}
+	// Thunderstore's mods are on Thunderstore only.
+	if _, err := community(req.GetLoaders()); err == nil {
+		if err := s.identifyOnThunderstore(ctx, req, out); err != nil {
+			return nil, err
+		}
 		return out, nil
 	}
 	current, err := s.Modrinth.ByHash(ctx, hashes)

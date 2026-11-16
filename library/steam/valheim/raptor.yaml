@@ -7,6 +7,13 @@ credits:
   - "Icon: Valheim's logo, from its Steam store page (Iron Gate)"
 certified: true
 arch: [amd64]
+# Mods from Thunderstore (#410), unpacked one folder each into BepInEx's
+# plugins folder, as r2modman does. They load only with Mod loader BepInEx or Valheim Plus (which runs on BepInEx);
+# the install script installs BepInEx itself.
+addons:
+  thunderstore:
+    loaders: [valheim]
+    dir: BepInEx/plugins
 # Valheim answers Steam's server queries on the port after the game's.
 # Steam's query answers on the port after the game's, only for a public
 # server without crossplay (crossplay uses Microsoft's PlayFab instead):

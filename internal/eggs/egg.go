@@ -357,28 +357,34 @@ func (a Addon) DirFor(vars map[string]string) string {
 
 // AddonKinds are the add-on kinds and the loaders each takes. Datapacks
 // run on any Java server; Modrinth names their one loader "datapack".
-// umod is Rust's plugins from uMod, for Oxide and Carbon.
+// umod is Rust's plugins from uMod, for Oxide and Carbon. thunderstore is
+// BepInEx mods from Thunderstore, whose loaders are its communities (the
+// game each mod is for).
 var AddonKinds = map[string][]string{
 	"plugins":   {"paper", "spigot", "bukkit", "purpur", "folia", "velocity", "bungeecord", "waterfall", "sponge"},
 	"mods":      {"fabric", "forge", "neoforge", "quilt"},
 	"datapacks": {"datapack"},
 	"umod":      {"oxide", "carbon"},
 	"factorio":  {"factorio"},
+	// Thunderstore's communities that have dedicated servers Raptor runs.
+	"thunderstore": {"valheim", "v-rising"},
 }
 
 // AddonDir is where a kind's files go by default: datapacks in the world
 // (server.properties' level-name, "world" unless changed).
-var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods", "datapacks": "world/datapacks", "umod": "oxide/plugins", "factorio": "mods"}
+var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods", "datapacks": "world/datapacks", "umod": "oxide/plugins", "factorio": "mods", "thunderstore": "BepInEx/plugins"}
 
 // AddonExt is a kind's file extension: uMod's plugins are C# source.
-var AddonExt = map[string]string{"plugins": ".jar", "mods": ".jar", "datapacks": ".zip", "umod": ".cs", "factorio": ".zip"}
+// Thunderstore's packages are downloaded as zips and unpacked, one folder
+// each.
+var AddonExt = map[string]string{"plugins": ".jar", "mods": ".jar", "datapacks": ".zip", "umod": ".cs", "factorio": ".zip", "thunderstore": ".zip"}
 
 // CheckAddons validates x-raptor.addons.
 func CheckAddons(addons map[string]Addon) error {
 	for kind, a := range addons {
 		known, ok := AddonKinds[kind]
 		if !ok {
-			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins, mods, datapacks, umod, or factorio", kind)
+			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins, mods, datapacks, umod, factorio, or thunderstore", kind)
 		}
 		if len(a.Loaders) == 0 {
 			return fmt.Errorf("egg: x-raptor.addons.%s: name its loaders", kind)

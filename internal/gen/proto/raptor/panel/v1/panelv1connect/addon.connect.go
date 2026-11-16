@@ -57,6 +57,9 @@ const (
 	// AddonServiceListAddonSourcesProcedure is the fully-qualified name of the AddonService's
 	// ListAddonSources RPC.
 	AddonServiceListAddonSourcesProcedure = "/raptor.panel.v1.AddonService/ListAddonSources"
+	// AddonServiceHashAddonFileProcedure is the fully-qualified name of the AddonService's
+	// HashAddonFile RPC.
+	AddonServiceHashAddonFileProcedure = "/raptor.panel.v1.AddonService/HashAddonFile"
 )
 
 // AddonServiceClient is a client for the raptor.panel.v1.AddonService service.
@@ -93,6 +96,11 @@ type AddonServiceClient interface {
 	// ListAddonSources lists the add-on sources this Panel has besides the
 	// ones it always has: "curseforge" once it has an API key (#412).
 	ListAddonSources(context.Context, *v1.ListAddonSourcesRequest) (*v1.ListAddonSourcesResponse, error)
+	// HashAddonFile is a file to install from a source that publishes no
+	// hashes (Thunderstore, #410): the Panel downloads the version once,
+	// hashes it, and answers with its CDN URL and SHA-256, which the node's
+	// addons.install checks. Remembered by version.
+	HashAddonFile(context.Context, *v1.HashAddonFileRequest) (*v1.HashAddonFileResponse, error)
 }
 
 // NewAddonServiceClient constructs a client for the raptor.panel.v1.AddonService service. By
@@ -162,6 +170,13 @@ func NewAddonServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		hashAddonFile: connect.NewClient[v1.HashAddonFileRequest, v1.HashAddonFileResponse](
+			httpClient,
+			baseURL+AddonServiceHashAddonFileProcedure,
+			connect.WithSchema(addonServiceMethods.ByName("HashAddonFile")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -175,6 +190,7 @@ type addonServiceClient struct {
 	lookupMinecraftPlayer    *connect.Client[v1.LookupMinecraftPlayerRequest, v1.LookupMinecraftPlayerResponse]
 	listGameVersions         *connect.Client[v1.ListGameVersionsRequest, v1.ListGameVersionsResponse]
 	listAddonSources         *connect.Client[v1.ListAddonSourcesRequest, v1.ListAddonSourcesResponse]
+	hashAddonFile            *connect.Client[v1.HashAddonFileRequest, v1.HashAddonFileResponse]
 }
 
 // SearchAddons calls raptor.panel.v1.AddonService.SearchAddons.
@@ -249,6 +265,15 @@ func (c *addonServiceClient) ListAddonSources(ctx context.Context, req *v1.ListA
 	return nil, err
 }
 
+// HashAddonFile calls raptor.panel.v1.AddonService.HashAddonFile.
+func (c *addonServiceClient) HashAddonFile(ctx context.Context, req *v1.HashAddonFileRequest) (*v1.HashAddonFileResponse, error) {
+	response, err := c.hashAddonFile.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AddonServiceHandler is an implementation of the raptor.panel.v1.AddonService service.
 type AddonServiceHandler interface {
 	// SearchAddons searches a source for a kind's projects that run on the
@@ -283,6 +308,11 @@ type AddonServiceHandler interface {
 	// ListAddonSources lists the add-on sources this Panel has besides the
 	// ones it always has: "curseforge" once it has an API key (#412).
 	ListAddonSources(context.Context, *v1.ListAddonSourcesRequest) (*v1.ListAddonSourcesResponse, error)
+	// HashAddonFile is a file to install from a source that publishes no
+	// hashes (Thunderstore, #410): the Panel downloads the version once,
+	// hashes it, and answers with its CDN URL and SHA-256, which the node's
+	// addons.install checks. Remembered by version.
+	HashAddonFile(context.Context, *v1.HashAddonFileRequest) (*v1.HashAddonFileResponse, error)
 }
 
 // NewAddonServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -348,6 +378,13 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	addonServiceHashAddonFileHandler := connect.NewUnaryHandlerSimple(
+		AddonServiceHashAddonFileProcedure,
+		svc.HashAddonFile,
+		connect.WithSchema(addonServiceMethods.ByName("HashAddonFile")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AddonService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AddonServiceSearchAddonsProcedure:
@@ -366,6 +403,8 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 			addonServiceListGameVersionsHandler.ServeHTTP(w, r)
 		case AddonServiceListAddonSourcesProcedure:
 			addonServiceListAddonSourcesHandler.ServeHTTP(w, r)
+		case AddonServiceHashAddonFileProcedure:
+			addonServiceHashAddonFileHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -405,4 +444,8 @@ func (UnimplementedAddonServiceHandler) ListGameVersions(context.Context, *v1.Li
 
 func (UnimplementedAddonServiceHandler) ListAddonSources(context.Context, *v1.ListAddonSourcesRequest) (*v1.ListAddonSourcesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.ListAddonSources is not implemented"))
+}
+
+func (UnimplementedAddonServiceHandler) HashAddonFile(context.Context, *v1.HashAddonFileRequest) (*v1.HashAddonFileResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.HashAddonFile is not implemented"))
 }

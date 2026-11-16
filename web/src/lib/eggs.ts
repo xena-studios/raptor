@@ -154,6 +154,17 @@ export const addonKinds: Record<
     dir: "mods",
     capability: "addons-factorio",
   },
+  thunderstore: {
+    label: "Thunderstore mods",
+    tab: "Mods",
+    noun: "mod",
+    description:
+      "Find, install, and update Valheim's and V Rising's BepInEx mods from Thunderstore, with what they need. Each unpacks into its own folder.",
+    loaders: ["valheim", "v-rising"],
+    dflt: ["valheim"],
+    dir: "BepInEx/plugins",
+    capability: "addons-thunderstore",
+  },
 };
 
 // addonSources are where a kind's add-ons can come from, the default
@@ -162,6 +173,7 @@ export const addonKinds: Record<
 export function addonSources(kind: string, loaders: string[], curseforge = false): string[] {
   if (kind === "umod") return ["umod"];
   if (kind === "factorio") return ["factorio"];
+  if (kind === "thunderstore") return ["thunderstore"];
   const out = onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
   if (curseforge && onCurseForge(kind, loaders)) out.push("curseforge");
   return out;
@@ -202,12 +214,14 @@ export const sourceNames: Record<string, string> = {
   curseforge: "CurseForge",
   umod: "uMod",
   factorio: "the Factorio mod portal",
+  thunderstore: "Thunderstore",
 };
 
 const loaderNames: Record<string, string> = {
   oxide: "Oxide",
   bungeecord: "BungeeCord",
   neoforge: "NeoForge",
+  "v-rising": "V Rising",
 };
 
 export function loaderName(l: string): string {
