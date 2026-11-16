@@ -1,0 +1,78 @@
+---
+// The docs' own not-found page, in place of Starlight's (disable404Route in
+// astro.config.mjs): it says what happened, offers search and the places
+// people most often meant, and keeps itself out of search engines.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+
+// Plain links, not Starlight's LinkCard: importing its component barrel here
+// pulls the FileTree's native Markdown parser into the shared build chunks,
+// where it can't be found.
+const links: [href: string, title: string, description: string][] = [
+  ["/", "Docs home", "Everything about Raptor, by section."],
+  ["/install/first-node/", "Connect your first node", "Turn a Linux machine into a Raptor node."],
+  ["/help/faq/", "Questions", "Short answers to what people ask most."],
+  ["/help/get-help/", "Get help", "Discord, bug reports, and the Raptor team."],
+];
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Page not found",
+    description: "There's no docs page at this address.",
+    template: "splash",
+    pagefind: false,
+    editUrl: false,
+    lastUpdated: false,
+    prev: false,
+    next: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>There's no page at this address. It may have moved when the docs were reorganised: try the search at the top, or start from one of these.</p>
+  <ul class="places">
+    {links.map(([href, title, description]) => (
+      <li>
+        <a href={href}>
+          <span class="title">{title}</span>
+          <span class="description">{description}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</StarlightPage>
+
+
+<style>
+  /* The look of the docs' link cards (theme.css): hairline, raised, the red
+     on hover. */
+  .places {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+    gap: 1rem;
+    padding: 0;
+    list-style: none;
+  }
+  .places li {
+    margin: 0;
+  }
+  .places a {
+    display: grid;
+    gap: 0.25rem;
+    height: 100%;
+    padding: 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 6px;
+    background: var(--sl-color-gray-6);
+    text-decoration: none;
+  }
+  .places a:hover {
+    border-color: var(--sl-color-accent);
+  }
+  .title {
+    color: var(--sl-color-white);
+    font-weight: 600;
+  }
+  .description {
+    color: var(--sl-color-gray-3);
+  }
+</style>

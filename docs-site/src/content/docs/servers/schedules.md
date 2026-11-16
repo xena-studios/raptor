@@ -2,7 +2,7 @@
 title: Schedules
 description: Restarts, backups, and commands on a timer, in steps, in your time zone.
 sidebar:
-  order: 5
+  order: 8
 ---
 
 Schedules run on the machine's own clock, so they keep running even when Raptor's Panel can't be reached. Find them on a server's **Schedules** tab (the **Schedules** permission).

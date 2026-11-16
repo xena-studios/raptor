@@ -25,7 +25,7 @@ Servers with a web page of their own (FiveM's txAdmin when it's on, Grafana, cod
 
 When something about the server needs you, a **Needs attention** list sits at the top of its Overview, each line with the button that fixes it:
 
-- **A problem in the console:** the wrong Java, running out of memory, a port in use, and the others in [Server problems](/help/server-problems/).
+- **A problem in the console:** the wrong Java, running out of memory, a port in use, and the others in [Server problems](/help/server-problems/). When a server stopped because it needs another Java, the line says which (**This server needs Java 21**, say) and, if its egg has that Java, offers **Switch to Java 21 and start**. Your passkey signs it, and it needs the **Startup settings** permission (and **Start and stop** to start it).
 - **The install failed:** the server can't start until it's reinstalled. Fix the cause the console shows, then **Reinstall**.
 - **The disk is nearly full:** 90% of its limit or more. Delete old files or backups in **Files**, or ask for more space; a full disk can't save the world.
 - **An add-on missing what it needs:** a mod or plugin that needs another one that isn't installed.
@@ -73,7 +73,7 @@ When the node is offline, the server's state is the last one reported, shown fad
 
 Raptor restarts a server that stops on its own: at once after the first crash, 10 seconds after the second. A third crash within 10 minutes means something's wrong, so it leaves the server **crashed** and alerts you, instead of restarting forever. The crash count resets once it's been running for 10 minutes.
 
-- A crash's alert includes the exit code, why (out of memory, killed, or exited), and the last 50 lines of the console.
+- A crash's alert includes the exit code, why (out of memory, killed, or exited), and the last 10 lines of the console.
 - **Out of memory** means the game needed more than its memory limit: raise it in [Settings](/servers/settings/).
 - A `/stop` typed in the game's own console counts as a crash by default (as in Pterodactyl). Turn on **A clean exit means it stopped** in [Settings](/servers/settings/#crashes-and-stopping) to change that.
 - Turn auto-restart off there too, if you'd rather it stayed down.

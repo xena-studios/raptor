@@ -16,7 +16,7 @@ The org's **Eggs** page lists two kinds:
 
 ## Using an egg
 
-**Use egg** on its page opens Deploy server with it picked. Each egg's page shows what it runs: its runtimes, settings and who can change them, the startup command, the install script, and the config files it edits.
+**Use egg** on its page opens Deploy server with it picked. Modpack eggs (Modrinth, FTB, and Technic) have **Browse modpacks** there, to pick the pack and its version instead of typing their IDs. Each egg's page shows what it runs: its runtimes, settings and who can change them, the startup command, the install script, and the config files it edits.
 
 ## Importing one
 
@@ -30,7 +30,7 @@ An imported egg is never marked certified, whatever it says. For a game Raptor d
 
 **Icons:** an egg shows the icon in its file, if it has one, or its category. Admins and owners can upload another on the egg's page (PNG, JPEG, GIF, or WebP, cropped square); removing it brings back the file's.
 
-**Customize** makes a copy of any egg to edit, as a draft. The editor has tabs for its overview (name, category, and which CPUs it runs on), runtimes, variables, startup, install script, config files, and add-ons, plus the raw file. Saving writes a new **version**, so you can see who changed what. Eggs you make from scratch are in Raptor's own format; an edited Pterodactyl egg stays one. **Export** a Raptor egg as a Pterodactyl egg to use it on another panel.
+**Customize** makes a copy of any egg to edit, as a draft (on your org's own eggs it's **Duplicate**; **Edit** changes the egg itself). The editor has tabs for its overview (name, category, and which CPUs it runs on), runtimes, variables, startup, install script, config files, and add-ons, plus the raw file. Saving writes a new **version**, so you can see who changed what. Eggs you make from scratch are in Raptor's own format; an edited Pterodactyl egg stays one. **Export** a Raptor egg as a Pterodactyl egg to use it on another panel.
 
 - A **draft** can't be deployed; publish it when it's ready. An **archived** egg is hidden and can't be deployed.
 - **Servers keep the egg they were made from.** Editing, archiving, or deleting an egg never changes a server by itself. To move a server to a newer version of its egg, use its [Egg version](/servers/settings/#egg-version); to move it to another egg, [change its type](/servers/settings/#change-the-servers-type).

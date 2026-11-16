@@ -1,9 +1,11 @@
 ---
 title: Worlds
 description: A Minecraft server's worlds and game rules, from the app.
+sidebar:
+  order: 6
 ---
 
-Minecraft Java servers have a **Worlds** tab for what you'd otherwise do in the file manager.
+Minecraft Java servers (not proxies) have a **Worlds** tab, after Players, for what you'd otherwise do in the file manager. Seeing it needs the **See files** permission.
 
 ## Your worlds
 

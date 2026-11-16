@@ -2,7 +2,7 @@
 title: Databases
 description: Give a server its own MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB database, and connect plugins to it.
 sidebar:
-  order: 7
+  order: 9
 ---
 
 Plugins like LuckPerms and CoreProtect, and most bots and web apps, want a database. A server's **Databases** tab gives it one on a database instance running on the same node, included in the node's price. Each database has its own user, which reaches that database and nothing else.

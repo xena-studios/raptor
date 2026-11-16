@@ -32,11 +32,11 @@ Pterodactyl is two programs: the **Panel**, a PHP web app, and **Wings**, on eac
 | Feature | Pterodactyl | Raptor |
 |---|---|---|
 | Console, power, stats, file manager, SFTP, schedules | Built in | Built in |
-| Pterodactyl eggs | Built in | Built in, and [your servers move over](/install/from-pterodactyl/) |
+| Pterodactyl eggs | Built in | Built in, beside Raptor's own [library of 350+](/eggs/library/), and [your servers move over](/install/from-pterodactyl/) |
 | Sub-users with per-server permissions, activity log | Built in | Built in |
 | MySQL databases for servers | Built in (MySQL and MariaDB) | Built in: MariaDB, MySQL, PostgreSQL, Redis, Valkey, and MongoDB. See [Databases](/nodes/databases/) |
-| Install plugins (Modrinth, Hangar, CurseForge) | Add-on | Built in, with dependencies and Update all. See [Plugins, mods, and the Workshop](/servers/addons/) |
-| Install mods | Add-on | Built in |
+| Install plugins (Modrinth, Hangar, CurseForge) | Add-on | Built in, with dependencies and Update all. See [Add-ons](/servers/addons/) |
+| Install mods and modpacks | Add-on | Built in: mods from Modrinth and CurseForge, modpacks from Modrinth, CurseForge, FTB, and Technic, plus Rust (uMod) and Factorio mods |
 | Steam Workshop items | None in general; add-ons for single games | Built in, for Garry's Mod, Counter-Strike 2, ARK, Conan Exiles, and Squad |
 | Change a server's type (egg) | Add-on | Built in. See [Server settings](/servers/settings/#change-the-servers-type) |
 | Import a server from another host over SFTP | Add-on | Built in. See [Files](/servers/files/#import-from-another-host) |

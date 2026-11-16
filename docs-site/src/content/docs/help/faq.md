@@ -19,7 +19,7 @@ Yes, on any machine that meets [the requirements](/start/requirements/), includi
 
 ## What happens if Raptor goes down?
 
-Your servers keep running, and schedules, backups, and crash restarts carry on. The `raptor` command on the machine still works. See [How Raptor works](/start/how-it-works/#if-raptor-goes-offline).
+Your servers keep running, and schedules, backups, and crash restarts carry on. The `raptor` command on the machine still works. [status.raptorpanel.net](https://status.raptorpanel.net) says what's down. See [How Raptor works](/start/how-it-works/#if-raptor-goes-offline).
 
 ## How is Raptor different from Pterodactyl?
 
@@ -31,7 +31,7 @@ Yes, on the same machine, and move servers over when you're ready with `raptor i
 
 ## Which games can I run?
 
-Anything with a Pterodactyl egg, and most games have one: Minecraft (Paper, Fabric, Forge, and more), Rust, Valheim, Palworld, ARK, Terraria, Factorio, and many others, plus Discord bots and voice servers. Import the egg on the Eggs page; see [The egg library](/eggs/library/).
+Raptor's egg library has more than 350 games and apps ready to deploy: Minecraft (Paper, Fabric, Forge, modpacks, proxies, and more), Rust, Valheim, Palworld, ARK, Counter-Strike 2, Terraria, Factorio, and many others, plus Discord bots, voice servers, and apps. For anything else with a Pterodactyl egg, import the egg on the Eggs page. See [The egg library](/eggs/library/).
 
 ## Can my friends help run the servers?
 

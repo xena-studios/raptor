@@ -23,7 +23,7 @@ Raptor has two halves: **the Panel**, the website you manage everything from, an
 
 The Panel is hosted by Raptor at [app.raptorpanel.net](https://app.raptorpanel.net). It's where you:
 
-- create and manage servers: console, files, backups, schedules, settings;
+- create and manage servers: console, files, add-ons, backups, schedules, settings;
 - invite your team and decide what each person may do;
 - get alerts when something goes wrong;
 - pay for your plan.
@@ -34,7 +34,7 @@ There's nothing to install or keep updated: Raptor runs it.
 
 Wings runs on every machine you link, which Raptor calls a **node**. It:
 
-- runs each game server in its own Docker container, with the memory, CPU, and disk limits you set;
+- runs each game server in Docker, kept apart from the others, with the memory, CPU, and disk limits you set;
 - restarts servers that crash, runs your schedules, and takes your backups;
 - serves your files to the file manager and over SFTP;
 - keeps its own records of everything, in a database on the machine.
@@ -65,7 +65,7 @@ See the [command line reference](/cli/reference/).
 
 ## If your machine goes offline
 
-Its servers stop with it, and the Panel shows the node as offline. You can still see its servers and settings, as they were last reported, but nothing can be changed until it's back. When it reconnects, Wings starts the servers that were running and tells the Panel what happened while it was away.
+Its servers stop with it, and the Panel shows the node as offline, under **Needs attention** on the org's home page too. You can still see its servers and settings, as they were last reported, but nothing can be changed until it's back. When it reconnects, Wings starts the servers that were running and tells the Panel what happened while it was away.
 
 ## Your passkey and your machine
 
@@ -76,5 +76,5 @@ Some actions can destroy data or change what code runs: deleting a server, resto
 - **Org:** your team, with its members, nodes, and servers. Billing is per org.
 - **Node:** a machine you've linked. It has a name, and an address like `1cdd002cd9a3.raptornodes.net` that follows its IP.
 - **Server:** one game (or bot, or app) running on a node.
-- **Egg:** the recipe a server is made from: what it runs, how to install it, its settings. Raptor reads Pterodactyl eggs.
+- **Egg:** the recipe a server is made from: what it runs, how to install it, its settings. Raptor has [a library](/eggs/library/) of more than 350, and reads Pterodactyl eggs.
 - **Short ID:** the end of a server's or node's ID, shown in the app's addresses and by `raptor ps`.

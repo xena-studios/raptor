@@ -51,6 +51,7 @@ New orgs start with rules that tell their owners about crash loops, offline node
 - Disk above a percent of its disk limit, for a while. Instances without a disk limit aren't checked.
 - Connections above a percent of its max connections, for a while.
 - A version change, patch update, or going back finished or failed.
+- A backup of the instance failed ([Back up an instance](/nodes/databases/#back-up-an-instance)).
 
 They need Wings v0.11.0 or later on the node.
 

@@ -25,7 +25,7 @@ The node's Overview shows the Wings version, and alerts can tell you when a node
 ```bash
 sudo raptor update -check     # what it would install
 sudo raptor update            # install the newest release
-sudo raptor update -version v0.6.0
+sudo raptor update -version v0.17.0
 ```
 
 `raptor update` follows the trial and prints the outcome. `-version` can go back to an older release, too.
@@ -37,7 +37,7 @@ In `/etc/raptor/config.yml` on the machine:
 ```yaml
 updates:
   automatic: false   # don't update from staged rollouts
-  pin: "0.6.0"       # or install this version and stay on it
+  pin: "0.17.0"      # or install this version and stay on it
   channel: stable    # or beta, for pre-releases
 ```
 

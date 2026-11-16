@@ -2,7 +2,7 @@
 title: Backups
 description: Automatic backups, where they go, how many are kept, restoring all or part of a server, backup keys, and Raptor Backup Storage.
 sidebar:
-  order: 4
+  order: 7
 ---
 
 Every new server backs itself up once a day, with nothing to set up. Backups are **incremental** (only what changed is stored), **deduplicated** (a file several servers share is stored once), **compressed**, and **encrypted on your machine** before they go anywhere.

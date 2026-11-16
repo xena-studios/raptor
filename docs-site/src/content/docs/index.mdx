@@ -1,10 +1,10 @@
 ---
 title: Raptor Docs
-description: Pterodactyl had a good run. Everything you need to run game servers with Raptor, from your first node to backups, teams, and the command line, with no panel to host.
+description: "Guides for Raptor: linking a machine, deploying from 350+ games and apps, add-ons, backups, databases, networks, your team, and the raptor command."
 template: splash
 hero:
-  title: Pterodactyl had a good run.
-  tagline: Raptor runs game servers on your own machine, with no panel to host. Everything about it is here, from linking your first machine to backups, teams, alerts, and the command line.
+  title: Run game servers on your own machine.
+  tagline: Raptor runs the panel; your machine runs the games. This guide covers it all, from linking your first machine to add-ons, backups, databases, teams, alerts, and the command line.
   image:
     html: '<img class="hero-shot light:sl-hidden" src="/hero-dark.webp" width="1400" height="758" alt="A Minecraft server running in Raptor, with its live console and stats" /><img class="hero-shot dark:sl-hidden" src="/hero-light.webp" width="1400" height="758" alt="A Minecraft server running in Raptor, with its live console and stats" />' 
   actions:
@@ -12,8 +12,8 @@ hero:
       link: /install/first-node/
       icon: right-arrow
       variant: primary
-    - text: Raptor vs Pterodactyl
-      link: /start/raptor-vs-pterodactyl/
+    - text: How Raptor works
+      link: /start/how-it-works/
       variant: minimal
 ---
 
@@ -27,7 +27,7 @@ import { CardGrid, LinkCard, Steps } from "@astrojs/starlight/components";
 
 2. **Connect it.** Make a join token in the app and paste one command on the machine. It installs everything and links it in about five minutes. [Connect your first node](/install/first-node/)
 
-3. **Deploy a server.** Pick a game, name it, and Raptor installs and starts it. Give your players its address. [Deploy your first server](/install/first-server/)
+3. **Deploy a server.** Pick a game from the egg library, name it, and Raptor installs and starts it. Give your players its address. [Deploy your first server](/install/first-server/)
 
 </Steps>
 
@@ -36,12 +36,14 @@ Your first machine is free for a month, then $12 a month each. [Pricing](/start/
 ## Run your servers
 
 <CardGrid>
-  <LinkCard title="The server page" description="The live console, stats, power, and what happens when a server crashes." href="/servers/overview/" />
+  <LinkCard title="The egg library" description="350+ games and apps, sorted by what people host, with Popular and Trending badges. Import a Pterodactyl egg for anything else." href="/eggs/library/" />
+  <LinkCard title="The server page" description="The live console, stats, power, Needs attention, and what happens when a server crashes." href="/servers/overview/" />
+  <LinkCard title="Add-ons" description="Plugins, mods, datapacks, and modpacks from Modrinth, Hangar, and CurseForge, Rust and Factorio mods, and Steam Workshop items." href="/servers/addons/" />
   <LinkCard title="Files" description="The file manager, uploads, downloading links, importing from another host, and SFTP." href="/servers/files/" />
   <LinkCard title="Backups" description="Daily by default, encrypted, and restorable a file at a time." href="/servers/backups/" />
   <LinkCard title="Schedules" description="Warn players, wait, back up, restart: on a timer, in your time zone." href="/servers/schedules/" />
-  <LinkCard title="Server settings" description="Memory, disk, swap, CPU, crash behaviour, changing the game, and reinstalling." href="/servers/settings/" />
-  <LinkCard title="Plugins and mods" description="Install from Modrinth and Hangar, and Steam Workshop items." href="/servers/addons/" />
+  <LinkCard title="Server settings" description="Memory, disk, CPU, crash behaviour, Minecraft's settings, changing the game, and reinstalling." href="/servers/settings/" />
+  <LinkCard title="Use your own domain" description="The DNS records that point play.example.com at a server, so players don't type a port." href="/help/your-own-domain/" />
 </CardGrid>
 
 ## Run your team and machines
@@ -50,6 +52,8 @@ Your first machine is free for a month, then $12 a month each. [Pricing](/start/
   <LinkCard title="Members and access" description="Roles, invitations, and exactly what each person may do on each server." href="/team/members/" />
   <LinkCard title="Alerts" description="Crashes, offline machines, full disks: to your inbox, email, Discord, and more." href="/team/alerts/" />
   <LinkCard title="Nodes" description="Health, addresses, disks, the firewall, and updates." href="/nodes/overview/" />
+  <LinkCard title="Databases" description="MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB on your node, shared by the servers you link." href="/nodes/databases/" />
+  <LinkCard title="Networks" description="Keep communities on one machine apart, and let a proxy reach its backends." href="/nodes/networks/" />
   <LinkCard title="The raptor command" description="Status, power, the console, logs, and backups, right on the machine." href="/cli/reference/" />
 </CardGrid>
 
@@ -57,9 +61,9 @@ Your first machine is free for a month, then $12 a month each. [Pricing](/start/
 
 <CardGrid>
   <LinkCard title="Players can't connect" description="The connection test says which side is wrong. Fix it step by step." href="/help/players-cant-connect/" />
-  <LinkCard title="A server keeps crashing" description="Out of memory, the wrong Java, a bad plugin: what to check." href="/help/server-problems/" />
+  <LinkCard title="A server keeps crashing" description="Out of memory, the wrong Java, a missing mod: what to check." href="/help/server-problems/" />
   <LinkCard title="Install problems" description="What the installer's errors mean, and how to fix each one." href="/help/install-problems/" />
   <LinkCard title="Ask for help" description="The community and the Raptor team, on Discord." href="/help/get-help/" />
 </CardGrid>
 
-Coming from Pterodactyl? See [Raptor vs Pterodactyl](/start/raptor-vs-pterodactyl/) for what changes, then [bring your servers across](/install/from-pterodactyl/) on the same machine, files and all.
+Coming from Pterodactyl? See [Raptor vs Pterodactyl](/start/raptor-vs-pterodactyl/) for what changes, then [bring your servers across](/install/from-pterodactyl/) on the same machine, files and all. To weigh Raptor against other panels, see [Game panels compared](/start/compare-panels/).

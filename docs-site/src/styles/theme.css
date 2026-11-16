@@ -20,6 +20,12 @@
   --sl-color-black: oklch(0.145 0.012 25);
   --sl-color-bg-sidebar: oklch(0.125 0.01 25);
   --sl-color-bg-nav: oklch(0.125 0.01 25);
+  /* Muted Ink: the Rule colour behind inline code left a red link in it
+     under 4.5:1. */
+  --sl-color-bg-inline-code: oklch(0.225 0.014 25);
+  /* The current page's wash, a step under DESIGN.md's 0.28 so the red on
+     it holds 4.5:1. */
+  --wash: oklch(0.25 0.065 25);
 
   --sl-color-accent-low: oklch(0.28 0.075 25);
   --sl-color-accent: oklch(0.66 0.19 25);
@@ -44,6 +50,8 @@
   --sl-color-black: oklch(0.975 0.004 25);
   --sl-color-bg-sidebar: oklch(0.955 0.006 25);
   --sl-color-bg-nav: oklch(0.955 0.006 25);
+  --sl-color-bg-inline-code: oklch(0.955 0.006 25);
+  --wash: oklch(0.95 0.025 25);
 
   --sl-color-accent-low: oklch(0.93 0.04 25);
   --sl-color-accent: oklch(0.545 0.215 25);
@@ -63,10 +71,85 @@
   --sl-shadow-md: none;
   --sl-shadow-lg: none;
   --sl-color-text-accent: var(--sl-color-accent);
+  /* Every hairline is the Rule colour: Starlight's darker shades vanished
+     against the page in the dark and the light. */
+  --sl-color-hairline: var(--sl-color-gray-5);
+  --sl-color-hairline-shade: var(--sl-color-gray-5);
 }
 
+/* The site's focus ring: the red, 2px, clear of the control. */
 :focus-visible {
-  outline-color: var(--sl-color-accent);
+  outline: 2px solid var(--sl-color-accent);
+  outline-offset: 2px;
+}
+
+/* The skip link as a primary key, not Starlight's shadowed slab. */
+a[href="#_top"]:focus {
+  border-radius: 4px;
+  font-family: var(--__sl-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-accent);
+  background-color: var(--sl-color-accent);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Header icons and controls: neutral, since red is for where you are and
+   what you'd do (DESIGN.md, the One Signal Rule). */
+.social-icons a,
+.mobile-preferences a {
+  color: var(--sl-color-gray-3);
+}
+.social-icons a:hover,
+.mobile-preferences a:hover {
+  color: var(--sl-color-white);
+}
+/* The phone menu button: a 4px key with a hairline, not a white disc. */
+.sl-menu-button {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 4px;
+  background-color: var(--sl-color-bg-nav);
+  color: var(--sl-color-white);
+  box-shadow: none;
+}
+:root[data-theme="light"] .sl-menu-button {
+  background-color: var(--sl-color-bg-nav);
+  color: var(--sl-color-white);
+}
+.sl-menu-button:has(~ :popover-open),
+:root[data-theme="light"] .sl-menu-button:has(~ :popover-open) {
+  background-color: var(--sl-color-gray-6);
+  border-color: var(--sl-color-gray-4);
+}
+
+/* Search: the field and its dialog at the app's corners. */
+button[data-open-modal] {
+  border-radius: 4px;
+}
+button[data-open-modal] > kbd {
+  border-radius: 2.4px;
+  font-family: var(--__sl-font-mono);
+}
+dialog[aria-label] {
+  border-radius: 6px;
+}
+#starlight__search {
+  --pagefind-ui-border-radius: 4px;
+}
+mobile-starlight-toc .toggle {
+  border-radius: 4px;
 }
 
 .site-title {
@@ -108,7 +191,7 @@
 .sidebar-content a[aria-current="page"]:hover,
 .sidebar-content a[aria-current="page"]:focus {
   color: var(--sl-color-accent);
-  background-color: var(--sl-color-accent-low);
+  background-color: var(--wash);
   font-weight: 600;
 }
 
@@ -205,10 +288,95 @@
   font-family: var(--__sl-font-mono);
 }
 
-/* Asides: hairline borders in the state colours, no side stripe. */
+/* Asides: hairline boxes, no side stripe. A note or tip is a neutral
+   raised box; caution and danger take the state washes (DESIGN.md: a tinted
+   fill with a 35% border of the same hue), never Starlight's blue and
+   purple. Links in them stay the one red. */
 .starlight-aside {
-  border-inline-start-width: 1px;
-  border-width: 1px;
-  border-style: solid;
+  border: 1px solid var(--sl-color-gray-5);
   border-radius: 6px;
+  background-color: var(--sl-color-gray-6);
+}
+.starlight-aside--note,
+.starlight-aside--tip {
+  --sl-color-asides-text-accent: var(--sl-color-white);
+}
+.starlight-aside--note .starlight-aside__icon,
+.starlight-aside--tip .starlight-aside__icon {
+  color: var(--sl-color-gray-3);
+}
+.starlight-aside--caution {
+  --sl-color-asides-text-accent: var(--sl-color-orange);
+  border-color: color-mix(in oklch, var(--sl-color-orange) 35%, transparent);
+  background-color: color-mix(in oklch, var(--sl-color-orange) 8%, var(--sl-color-black));
+}
+.starlight-aside--danger {
+  --sl-color-asides-text-accent: var(--sl-color-red);
+  border-color: color-mix(in oklch, var(--sl-color-red) 35%, transparent);
+  background-color: color-mix(in oklch, var(--sl-color-red) 8%, var(--sl-color-black));
+}
+.starlight-aside__content a {
+  color: var(--sl-color-text-accent);
+}
+
+/* Previous and next: hairline cards at the app's corners, the direction as
+   a mono label and the page's name at body-title size. */
+.pagination-links a {
+  border-radius: 6px;
+  box-shadow: none;
+  font-family: var(--__sl-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+.pagination-links a:hover {
+  border-color: var(--sl-color-accent);
+}
+.pagination-links .link-title {
+  margin-top: 0.25rem;
+  display: block;
+  font-family: var(--__sl-font);
+  font-size: var(--sl-text-lg);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Wide tables scroll in their own box (Starlight's); the first column stays
+   put while they do, so a row's name is always in view. */
+.sl-markdown-content :is(tbody td, thead th):first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  background-color: var(--sl-color-bg);
+}
+/* And, where the browser can tell the table scrolls, a hairline marks the
+   frozen edge. */
+.sl-markdown-content table {
+  container-type: scroll-state;
+}
+@container scroll-state(scrollable: inline) {
+  .sl-markdown-content :is(tbody td, thead th):first-child {
+    box-shadow: inset -1px 0 var(--sl-color-gray-5);
+  }
+}
+
+/* The home page's opening reads left to right on phones too, like the
+   site's page heads. */
+.hero .stack {
+  text-align: start;
+}
+.hero .copy {
+  align-items: flex-start;
+}
+.hero .actions {
+  justify-content: flex-start;
+}
+/* The headline in DESIGN.md's style (700, tight tracking), a size down from
+   Starlight's so a sentence-long title holds two lines, not three. */
+.hero h1 {
+  font-size: clamp(var(--sl-text-3xl), calc(0.25rem + 4vw), var(--sl-text-5xl));
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
 }

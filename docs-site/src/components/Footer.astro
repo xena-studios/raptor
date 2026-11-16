@@ -1,0 +1,61 @@
+---
+// Starlight's footer (edit link, last updated, previous and next), then a
+// strip of raptorpanel.net's links, so every page, phones included, has a way
+// back to the site. The labels and order follow site/src/layouts/Base.astro.
+import Default from "@astrojs/starlight/components/Footer.astro";
+
+import { app, discord, site, siteNav, status } from "../links";
+
+const links: [href: string, label: string][] = [
+  ...siteNav.map(([path, label]): [string, string] => [`${site}${path}`, label]),
+  [`${site}/changelog/`, "What's new"],
+  [status, "Status"],
+  [discord, "Discord"],
+  [app, "Open the app"],
+];
+---
+
+<Default><slot /></Default>
+<div class="site-foot print:hidden">
+  <nav aria-label="raptorpanel.net">
+    <a class="home" href={site}>raptorpanel.net</a>
+    {links.map(([href, label]) => <a href={href}>{label}</a>)}
+  </nav>
+  <p>© {new Date().getFullYear()} Xena Studios. Pterodactyl is a trademark of its owners; Raptor isn't affiliated with it.</p>
+</div>
+
+<style>
+  .site-foot {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+  }
+  a {
+    padding-block: 0.25rem;
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--sl-color-white);
+  }
+  /* The site's address in the label style, as the docs' own header has it. */
+  .home {
+    font-family: var(--__sl-font-mono);
+    font-size: var(--sl-text-xs);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--sl-color-white);
+    align-self: center;
+  }
+  p {
+    margin-top: 1rem;
+    font-size: var(--sl-text-xs);
+  }
+</style>

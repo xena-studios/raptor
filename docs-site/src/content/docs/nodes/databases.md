@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-A **database instance** is a database server Raptor runs on your node: MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB, in a container of its own. Its **databases** belong to it, each with its own user, and the servers you link to one get its details. Instances are included in the node's price, and your data stays on your machine.
+A **database instance** is a database server Raptor runs on your node: MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB, running apart from your servers. Its **databases** belong to it, each with its own user, and the servers you link to one get its details. Instances are included in the node's price, and your data stays on your machine.
 
 **Databases** in the sidebar (admins and owners) lists every instance on every node, with its databases and the servers linked to each. A node's own **Databases** tab shows the same for that node.
 

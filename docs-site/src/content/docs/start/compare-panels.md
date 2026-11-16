@@ -48,17 +48,17 @@ A hosted panel: we run it at app.raptorpanel.net, and your machines run the game
 | To install | Nothing for the panel. One command per node, which installs Docker and Raptor. See [Connect your first node](/install/first-node/) |
 | Ports to open on a node | None for Raptor: the node connects out. SFTP's port opens only while someone uses it |
 | Pterodactyl eggs | Run as they are, beside Raptor's own library of 350+. See [The egg library](/eggs/library/) |
-| Plugins and mods | Built in: Modrinth, Hangar, and CurseForge for Minecraft, uMod for Rust, the Factorio mod portal; dependencies and Update all. See [Plugins, mods, and the Workshop](/servers/addons/) |
+| Plugins and mods | Built in: Modrinth, Hangar, and CurseForge for Minecraft, uMod for Rust, the Factorio mod portal; dependencies and Update all. See [Add-ons](/servers/addons/) |
 | Modpacks | Modrinth, CurseForge, Feed The Beast, and Technic |
 | Steam Workshop | Built in, for Garry's Mod, Counter-Strike 2, ARK, Conan Exiles, and Squad |
 | Extensions | None: what others add with plugins is built in. You can't add your own code to the panel |
 | Backups | Incremental, deduplicated, and encrypted on the machine; to the machine, S3, B2, SFTP, or Raptor Backup Storage. See [Backups](/servers/backups/) |
 | Databases | MariaDB, MySQL, PostgreSQL, Redis, Valkey, and MongoDB, each with a browser. See [Database instances](/nodes/databases/) |
 | Disk limits | Enforced by the kernel (XFS quotas) as files are written. See [Disks](/nodes/disks/) |
-| Sign-in | Passkeys, authenticator apps, Google, GitHub, Discord; dangerous actions are signed with your passkey and checked by your machine. See [How Raptor protects you](/security/how-raptor-protects-you/) |
+| Sign-in | Passkeys, authenticator apps, emailed codes, Google, GitHub, Discord; dangerous actions are signed with your passkey and checked by your machine. See [How Raptor protects you](/security/how-raptor-protects-you/) |
 | Alerts | Email, Discord, Slack, Telegram, ntfy, and webhooks. See [Alerts](/team/alerts/) |
 | Isolation | Docker; Linux nodes only (Debian 12 or 13, Ubuntu 24.04) |
-| From Pterodactyl | `raptor import pterodactyl`, on the same machine, beside it. See [Moving from Pterodactyl](/install/from-pterodactyl/) |
+| From Pterodactyl | `raptor import pterodactyl`, on the same machine, beside it. See [Move from Pterodactyl](/install/from-pterodactyl/) |
 | Latest release | 0.17.0, November 15, 2026: early access |
 
 **Where Raptor falls short:** you can't host the panel yourself, so you depend on us for management (your servers, schedules, and backups keep running without us). It costs money where the others are free. There's no extension system, so you can't add your own panel features. It's young: early access, at version 0.17.

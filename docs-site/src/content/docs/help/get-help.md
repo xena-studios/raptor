@@ -13,12 +13,12 @@ Raptor's [Discord server](https://discord.gg/HyUa3sRpeN) is where questions, bug
 
 - **🤝 community-help:** how do I…? Questions about setting up a node, a game, or a provider.
 - **🐛 bug-reports:** something in Raptor is broken. Say what you did, what you expected, and what happened instead.
-
-If a server won't start or keeps crashing, share its log: **Share** on the console, or on `logs/latest.log` in the file manager, gives you a link to paste instead of screenshots. IP addresses are hidden first.
 - **💡 feature-requests:** an idea for Raptor.
-- **🥚 egg-requests:** a game you'd like in the catalog.
+- **🥚 egg-requests:** a game you'd like in the [egg library](/eggs/library/).
 - **📢 announcements** and **🚀 releases:** what's new, and when.
-- **🟢 status:** incidents and planned downtime for the app.
+- **🟢 status:** incidents and planned downtime for the app. [status.raptorpanel.net](https://status.raptorpanel.net) shows whether the app, the API, the installer, and the docs are up right now, checked every minute from outside Raptor's own servers.
+
+If a server won't start or keeps crashing, share its log: **Share** on the console, or on a log file like `logs/latest.log` in the file manager, puts it on mclo.gs and gives you a link to paste instead of screenshots. IP addresses and the node's address are hidden first.
 
 On GitHub, you can also [open an issue](https://github.com/xena-studios/raptor/issues/new/choose) for a bug or an idea.
 
