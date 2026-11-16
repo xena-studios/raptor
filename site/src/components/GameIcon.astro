@@ -1,0 +1,25 @@
+---
+// A library entry's icon (library/<category>/<egg>/icon.png, 256x256), as
+// WebP at the size it's shown and twice that.
+import type { ImageMetadata } from "astro";
+import { getImage } from "astro:assets";
+
+const icons = import.meta.glob<{ default: ImageMetadata }>("../../../library/*/*/icon.png", { eager: true });
+const { icon, size = 48, eager = false, alt = "" } = Astro.props as { icon: string; size?: number; eager?: boolean; alt?: string };
+const meta = icons[`../../../library/${icon}`]?.default;
+const img = meta && (await getImage({ src: meta, width: size, densities: [1, 2], format: "webp", quality: 80 }));
+---
+{img ? (
+  <img
+    class="game-icon"
+    src={img.src}
+    srcset={img.srcSet.attribute}
+    width={size}
+    height={size}
+    alt={alt}
+    loading={eager ? "eager" : "lazy"}
+    decoding="async"
+  />
+) : (
+  <span class="game-icon blank" style={`width:${size}px;height:${size}px`} aria-hidden="true"></span>
+)}

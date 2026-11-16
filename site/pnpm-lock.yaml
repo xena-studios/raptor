@@ -184,6 +184,9 @@ importers:
       astro:
         specifier: ^7.3.8
         version: 7.4.12(yaml@2.9.1)
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
     devDependencies:
       playwright:
         specifier: ^1.64.0

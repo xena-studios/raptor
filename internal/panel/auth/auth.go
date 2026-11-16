@@ -40,6 +40,10 @@ type Service struct {
 	// AppURL is the web app's origin, for sign-in links
 	// (https://app.raptorpanel.net).
 	AppURL string
+	// HintDomain, when set (raptorpanel.net), gets HintCookie at sign-in
+	// and loses it at sign-out, so the marketing site knows to offer the
+	// dashboard. Empty: no hint, as in development.
+	HintDomain string
 	// ClientIPHeader is trusted for the client's address when set (see
 	// nodes.ClientIP).
 	ClientIPHeader string

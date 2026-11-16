@@ -7,7 +7,7 @@ sidebar:
 
 Raptor does the job Pterodactyl does: it runs game servers on your machines in Docker, from eggs, managed in your browser. The difference is who runs the panel. With Pterodactyl, you do. With Raptor, we do, and your machine only runs your games.
 
-This page compares the two honestly, including where Pterodactyl is the better choice. Prices and features are as of October 2026.
+This page compares the two honestly, including where Pterodactyl is the better choice. For the other panels people run (Calagopus, FeatherPanel, Hydrodactyl, Pelican, PufferPanel), see [Game panels compared](/start/compare-panels/). Prices and features are as of October 2026.
 
 ## What you run
 
@@ -35,9 +35,9 @@ Pterodactyl is two programs: the **Panel**, a PHP web app, and **Wings**, on eac
 | Pterodactyl eggs | Built in | Built in, and [your servers move over](/install/from-pterodactyl/) |
 | Sub-users with per-server permissions, activity log | Built in | Built in |
 | MySQL databases for servers | Built in (MySQL and MariaDB) | Built in: MariaDB, MySQL, PostgreSQL, Redis, Valkey, and MongoDB. See [Databases](/nodes/databases/) |
-| Install plugins (Modrinth, Hangar) | Add-on | Built in. See [Plugins, mods, and the Workshop](/servers/addons/) |
+| Install plugins (Modrinth, Hangar, CurseForge) | Add-on | Built in, with dependencies and Update all. See [Plugins, mods, and the Workshop](/servers/addons/) |
 | Install mods | Add-on | Built in |
-| Steam Workshop items | None in general; add-ons for single games | Built in, for Garry's Mod, ARK, and Squad |
+| Steam Workshop items | None in general; add-ons for single games | Built in, for Garry's Mod, Counter-Strike 2, ARK, Conan Exiles, and Squad |
 | Change a server's type (egg) | Add-on | Built in. See [Server settings](/servers/settings/#change-the-servers-type) |
 | Import a server from another host over SFTP | Add-on | Built in. See [Files](/servers/files/#import-from-another-host) |
 | Browse and edit a database | Add-on (phpMyAdmin) | Built in, for every engine, with read-only users |

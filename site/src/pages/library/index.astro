@@ -1,0 +1,121 @@
+---
+// The library: every egg Raptor ships (src/lib/library.ts), by category,
+// with a filter that works without a reload. Without JavaScript it's the
+// whole list, which is also what search engines read.
+import GameIcon from "../../components/GameIcon.astro";
+import Base from "../../layouts/Base.astro";
+import { docs, start } from "../../data/links";
+import { byCategory, categories, href, library } from "../../lib/library";
+
+const count = library.length;
+const floor = Math.floor(count / 50) * 50;
+const tags = (e: (typeof library)[number]) =>
+  [
+    e.addons.length ? "Add-ons" : null,
+    e.modpack ? "Modpacks" : null,
+    e.workshop ? "Workshop" : null,
+    e.arch.includes("arm64") ? "ARM" : null,
+  ].filter(Boolean) as string[];
+---
+<Base
+  title="Games and apps"
+  description={`${count} games and apps Raptor installs on your own machine in a click: Minecraft, Rust, Valheim, Palworld, CS2, ARK, voice servers, bots, and self-hosted apps, each tested by Raptor.`}
+  path="/library/"
+>
+  <div class="page-head wrap">
+    <h1 class="page-title">{floor}+ games and apps, <span class="accent">one click each.</span></h1>
+    <p class="lead">
+      Every one is made and tested by Raptor on a real machine, runs on images we build and pin, and
+      gets updated when the game does. Pick one, and your machine installs it and starts it.
+    </p>
+    <form class="lib-search" role="search" action="/library/" data-lib-search>
+      <label class="sr-only" for="q">Find a game or app</label>
+      <input id="q" name="q" type="search" placeholder={`Search ${count} games and apps`} autocomplete="off" spellcheck="false" />
+      <span class="lib-count" aria-live="polite" data-lib-count>{count} shown</span>
+    </form>
+    <nav class="lib-cats" aria-label="Categories">
+      {categories.map((c) => (
+        <a href={`#${c.id}`}>{c.name}<span>{byCategory(c.id).length}</span></a>
+      ))}
+    </nav>
+  </div>
+
+  <div class="wrap lib">
+    {categories.map((c) => {
+      const items = byCategory(c.id);
+      return items.length > 0 && (
+        <section class="lib-group" aria-labelledby={c.id} data-lib-group>
+          <header>
+            <h2 id={c.id}>{c.name}</h2>
+            <p>{c.blurb}</p>
+          </header>
+          <ul class="lib-grid">
+            {items.map((e) => (
+              <li data-lib-item data-q={`${e.name} ${e.slug} ${e.description}`.toLowerCase()}>
+                <a href={href(e)}>
+                  <GameIcon icon={e.icon} size={40} />
+                  <span class="lib-name">{c.id === "minecraft" ? e.name.replace(/^Minecraft: /, "") : e.name}</span>
+                  <span class="lib-tags">{tags(e).join(" · ")}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    })}
+    <div class="lib-none" hidden data-lib-none>
+      <h2>Not in the library yet?</h2>
+      <p>
+        Raptor reads Pterodactyl eggs, so anything with one can run: import it from a link or a file in
+        the app. Or ask for it on Discord, and we'll add it.
+      </p>
+      <a class="button" href={`${docs}/eggs/library/`}>Importing an egg</a>
+    </div>
+  </div>
+
+  <aside class="band-cta" slot="after">
+    <div class="wrap band-cta-inner">
+      <div>
+        <h2>Run as many as your machine can handle.</h2>
+        <p>One price per machine, not per server: ${12} a month, and your first month is free.</p>
+      </div>
+      <a class="button primary large" href={start}>Start your free month</a>
+    </div>
+  </aside>
+</Base>
+
+<script>
+  // Filters the list as you type, and keeps ?q= in the address so a search
+  // can be shared. Sections with nothing left are hidden.
+  const form = document.querySelector<HTMLFormElement>("[data-lib-search]");
+  const input = form?.querySelector<HTMLInputElement>("input");
+  const items = [...document.querySelectorAll<HTMLElement>("[data-lib-item]")];
+  const groups = [...document.querySelectorAll<HTMLElement>("[data-lib-group]")];
+  const none = document.querySelector<HTMLElement>("[data-lib-none]");
+  const count = document.querySelector<HTMLElement>("[data-lib-count]");
+  const apply = (raw: string) => {
+    const words = raw.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const li of items) {
+      const hit = words.every((w) => li.dataset.q!.includes(w));
+      li.hidden = !hit;
+      if (hit) shown++;
+    }
+    for (const g of groups) g.hidden = !g.querySelector("[data-lib-item]:not([hidden])");
+    if (none) none.hidden = shown > 0;
+    if (count) count.textContent = `${shown} shown`;
+  };
+  if (form && input) {
+    const q = new URLSearchParams(location.search).get("q") ?? "";
+    input.value = q;
+    if (q) apply(q);
+    input.addEventListener("input", () => {
+      apply(input.value);
+      const url = new URL(location.href);
+      if (input.value.trim()) url.searchParams.set("q", input.value.trim());
+      else url.searchParams.delete("q");
+      history.replaceState(null, "", url);
+    });
+    form.addEventListener("submit", (e) => e.preventDefault());
+  }
+</script>

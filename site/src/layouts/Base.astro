@@ -1,0 +1,133 @@
+---
+// Every page's frame: the head, the header with the main links, and the
+// footer. Pages give a title (a name, then " · Raptor" is added unless it's
+// the home page), a description, and their path.
+import Logo from "../components/Logo.astro";
+import XenaLogo from "../components/XenaLogo.astro";
+import { app, discord, docs, source, start, status } from "../data/links";
+import "../styles/site.css";
+
+type Props = { title: string; description: string; path: string; home?: boolean; noindex?: boolean };
+const { title, description, path, home = false, noindex = false } = Astro.props;
+const full = home ? title : `${title} · Raptor`;
+const url = new URL(path, "https://raptorpanel.net").href;
+
+const nav: [href: string, label: string][] = [
+  ["/features/", "Features"],
+  ["/library/", "Games"],
+  ["/pricing/", "Pricing"],
+  ["/compare/", "Compare"],
+];
+const here = (href: string) => path === href || (href !== "/" && path.startsWith(href));
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{full}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={url} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
+    <meta name="theme-color" content="#1a1314" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8f5f5" media="(prefers-color-scheme: light)" />
+    <meta property="og:site_name" content="Raptor" />
+    <meta property="og:title" content={full} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={url} />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://raptorpanel.net/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Raptor: your Linux box, turned into a game server host. First month free." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <slot name="head" />
+    <!-- Signed in to the app? The Panel sets raptor_signed_in=1 on
+         raptorpanel.net at sign-in (DECISIONS #366); it holds no token. Set
+         before the page paints, so the buttons never flicker. -->
+    <script is:inline>try{if(/(?:^|; )raptor_signed_in=1(?:;|$)/.test(document.cookie))document.documentElement.classList.add("signed-in")}catch(e){}</script>
+  </head>
+  <body>
+    <a class="skip button small" href="#main">Skip to content</a>
+    <header class="site-top">
+      <div class="wrap top">
+        <a class="brand" href="/" aria-label="Raptor, home"><Logo /></a>
+        <nav class="nav-main" aria-label="Main">
+          {nav.map(([href, label]) => (
+            <a href={href} aria-current={here(href) ? "page" : undefined}>{label}</a>
+          ))}
+          <a href={docs}>Docs</a>
+        </nav>
+        <div class="nav-end">
+          <a class="link-signin" href={app} data-out>Sign in</a>
+          <a class="button small primary" href={start} data-out>Start free</a>
+          <a class="button small primary" href={app} data-in>Dashboard</a>
+          <details class="menu">
+            <summary aria-label="Menu"><span aria-hidden="true"></span></summary>
+            <nav aria-label="Menu">
+              {nav.map(([href, label]) => (
+                <a href={href} aria-current={here(href) ? "page" : undefined}>{label}</a>
+              ))}
+              <a href="/changelog/" aria-current={here("/changelog/") ? "page" : undefined}>What's new</a>
+              <a href={docs}>Docs</a>
+              <a href={discord}>Discord</a>
+              <a href={app} data-out>Sign in</a>
+              <a href={app} data-in>Your dashboard</a>
+            </nav>
+          </details>
+        </div>
+      </div>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <slot name="after" />
+    <footer class="site-foot">
+      <div class="wrap">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a class="brand" href="/" aria-label="Raptor, home"><Logo /></a>
+            <p>Your Linux box, turned into a game server host. Open source under the AGPL-3.0.</p>
+          </div>
+          <nav aria-label="Product">
+            <p>Product</p>
+            <a href="/features/">Features</a>
+            <a href="/library/">Games and apps</a>
+            <a href="/pricing/">Pricing</a>
+            <a href="/changelog/">What's new</a>
+            <a href={status}>Status</a>
+          </nav>
+          <nav aria-label="Switching">
+            <p>Switching</p>
+            <a href="/vs/pterodactyl/">Raptor vs Pterodactyl</a>
+            <a href="/compare/">Every panel, compared</a>
+            <a href={`${docs}/install/from-pterodactyl/`}>Moving from Pterodactyl</a>
+            <a href={`${docs}/start/requirements/`}>What you need</a>
+          </nav>
+          <nav aria-label="Help">
+            <p>Help</p>
+            <a href={docs}>Docs</a>
+            <a href={discord}>Discord</a>
+            <a href={`${docs}/help/get-help/`}>Get help</a>
+          </nav>
+          <nav aria-label="Raptor">
+            <p>Raptor</p>
+            <a href={source}>Source</a>
+            <a href={`${source}/blob/main/SECURITY.md`}>Security</a>
+            <a href="/privacy">Privacy</a>
+            <a href="mailto:abuse@raptorpanel.net" title="A raptornodes.net name used for phishing, malware, or spam">Report abuse</a>
+          </nav>
+        </div>
+        <div class="foot-base">
+          <p class="studio">
+            <a href="https://xenastudios.co" aria-label="Xena Studios"><XenaLogo /></a>
+            <span>© {new Date().getFullYear()} Xena Studios</span>
+          </p>
+          <span>Pterodactyl is a trademark of its owners; Raptor isn't affiliated with it. Game names and icons belong to their owners.</span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

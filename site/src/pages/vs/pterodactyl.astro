@@ -1,0 +1,338 @@
+---
+// Raptor next to Pterodactyl, for people who run it or are choosing: what
+// each asks you to run, row by row, a first year's cost, what no add-on
+// gives it, and how moving works. docs-site's Raptor vs Pterodactyl page has
+// the long version with sources; keep the two in step.
+import Base from "../../layouts/Base.astro";
+import { docs, start } from "../../data/links";
+
+// What each side asks of you before the first server: Pterodactyl's
+// panel is yours to run (its install guide), Raptor's is ours.
+const chores: [string, string][] = [
+  ["A machine for the panel", "A VPS, or a share of your game box's memory"],
+  ["A domain, with DNS", "For the panel, and for every node"],
+  ["nginx, PHP, and Composer", "The panel is a PHP app you deploy"],
+  ["MariaDB and Redis", "Its database and cache, which you back up"],
+  ["A queue worker and a cron job", "Or schedules quietly stop running"],
+  ["TLS certificates", "For the panel, and again for every node"],
+  ["Ports 8080 and 2022 open", "On every node, so the panel can reach it"],
+  ["Updates, by hand", "Back up, pull, migrate, then re-apply your add-ons"],
+];
+
+// Head to head, row by row. docs-site's Raptor vs Pterodactyl page has
+// the long version; keep the two in step.
+const versus: { row: string; ptero: string; raptor: string }[] = [
+  { row: "The panel", ptero: "Yours to host, patch, and back up", raptor: "Ours to run, at app.raptorpanel.net" },
+  { row: "Linking a node", ptero: "A config file, a certificate, and two open ports", raptor: "One command. It connects out, so no ports" },
+  { row: "If the panel goes down", ptero: "Nothing can be managed, and schedules stop", raptor: "Servers, schedules, and backups carry on" },
+  { row: "Plugins, mods, the Workshop", ptero: "Paid add-ons, if one exists", raptor: "Built in" },
+  { row: "Backups", ptero: "A full archive every time", raptor: "Incremental, deduplicated, and encrypted" },
+  { row: "Disk limits", ptero: "Checked by scanning, after the fact", raptor: "Enforced by the kernel, as files are written" },
+  { row: "Deleting a server or a backup", ptero: "Anyone who gets into the panel", raptor: "Only with your passkey, checked by your machine" },
+  { row: "Players can't connect", ptero: "You work out why", raptor: "A connection test says what to fix" },
+  { row: "When something breaks", ptero: "Volunteers on forums and Discord", raptor: "Our team, in a private ticket, and on your machine if you approve it" },
+];
+
+// What Pterodactyl costs once it does what Raptor does: a current add-on
+// for each, from BuiltByBit, sourceXchange, or Blueprint (October 2026),
+// one panel licence each. The listings are linked from the docs page
+// (start/raptor-vs-pterodactyl); change both together.
+const addons: [feature: string, addon: string, price: number][] = [
+  ["Plugin installer", "Minecraft Plugin Installer", 17.5],
+  ["Mod installer", "Modpack & Mods Installer", 5.99],
+  ["Change a server's type", "Egg Changer", 6.49],
+  ["Import from another host", "Server Importer", 7.99],
+  ["Browse and edit databases", "Automatic phpMyAdmin", 16.99],
+  ["Databases in backups", "MySQL Backup Manager", 14.49],
+  ["Alerts on Discord", "Discord Notifications", 5.0],
+];
+const running: [what: string, detail: string, price: number][] = [
+  ["A small VPS for the panel", "$6 a month", 72],
+  ["A domain for it", "About $12 a year", 12],
+];
+// The cheapest install we found for hire (a BuiltByBit listing, $20 for
+// the panel and one node; Fiverr gigs run up to $50). Nobody lists a
+// monthly price for keeping it patched, so that's our estimate, $20 to
+// $35 a month, counted at the low end and labelled as an estimate.
+const hired: [what: string, detail: string, price: number][] = [
+  ["A sysadmin to install it", "Panel, one node, and certificates", 20],
+  ["A sysadmin to keep it patched", "Our estimate: $20 to $35 a month", 240],
+];
+const sum = (rows: [string, string, number][]) => rows.reduce((t, [, , p]) => t + p, 0);
+const pteroSelf = sum(addons) + sum(running);
+const pteroHired = pteroSelf + sum(hired);
+const raptorYear = 11 * 12;
+const usd = (n: number) => `$${n.toFixed(2)}`;
+
+// What Pterodactyl has no answer for, with or without add-ons.
+const only: { title: string; points: string[] }[] = [
+  {
+    title: "Backups you can trust",
+    points: [
+      "Incremental and deduplicated, not a full archive each time",
+      "Encrypted on your machine before they go anywhere",
+      "Open one and restore a single file",
+      "A safety backup before every wipe or full restore",
+      "Offsite in Raptor Backup Storage, with nothing to set up",
+    ],
+  },
+  {
+    title: "Tools on the machine",
+    points: [
+      "The raptor command and a terminal UI: status, power, console, logs, restores",
+      "raptor doctor finds what's wrong and says how to fix it",
+      "Wings updates itself, and rolls back if an update fails",
+      "Disk limits the kernel enforces, with usage that's never stale",
+    ],
+  },
+  {
+    title: "Safety you can see",
+    points: [
+      "Deleting, restoring, and changing what runs needs your passkey",
+      "A trash in the file manager, so a deleted file isn't gone",
+      "Support only gets in when you approve it, for as long as you say",
+      "Servers keep running, and schedules keep firing, when the panel is down",
+    ],
+  },
+  {
+    title: "More than game servers",
+    points: [
+      "MySQL, MariaDB, PostgreSQL, Redis, Valkey, and MongoDB, with a browser for each",
+      "Change a database's version, and reach it from outside, safely",
+      "Private networks between servers, with rules between them",
+      "Alerts to email, Discord, Slack, Telegram, ntfy, or a webhook",
+      "A connection test that tells you why players can't join",
+    ],
+  },
+];
+
+---
+<Base
+  title="Raptor vs Pterodactyl"
+  description="Raptor does everything you run Pterodactyl for, with the add-ons you'd buy for it built in, and no panel to host or patch. Side by side, a first year's cost, and how to move over."
+  path="/vs/pterodactyl/"
+>
+  <div class="page-head wrap">
+    <h1 class="page-title">Pterodactyl had <span class="accent">a good run.</span></h1>
+    <p class="lead">
+      Raptor does everything you run Pterodactyl for, with the add-ons you'd buy for it built in, and no
+      panel to host, patch, or keep alive. Here's the difference, row by row, and what a year of each costs.
+    </p>
+    <div class="actions">
+      <a class="button primary large" href={start}>Start your free month</a>
+      <a class="button large" href="#move">How moving works</a>
+    </div>
+  </div>
+      <section aria-labelledby="versus" class="why">
+        <div class="wrap">
+          <h2 id="versus">Pterodactyl makes you run the panel. Raptor is the panel.</h2>
+          <p class="intro">
+            Pterodactyl is free software, and the panel is yours to keep alive: a whole web stack
+            you install, secure, and update, before your first server and long after it. With Raptor,
+            your machine runs the games and we run everything else.
+          </p>
+          <div class="versus">
+            <div class="side">
+              <p class="side-head"><span>Pterodactyl</span><span class="side-count">{chores.length} things to run</span></p>
+              <ol class="chores">
+                {chores.map(([what, why]) => (
+                  <li><span>{what}</span><span>{why}</span></li>
+                ))}
+              </ol>
+            </div>
+            <div class="side us">
+              <p class="side-head"><span>Raptor</span><span class="side-count">1 command</span></p>
+              <pre class="one-line"><code>curl -fsSL https://get.raptorpanel.net | sudo bash -s -- -token rpt_join_…</code></pre>
+              <ul class="done-list">
+                <li>No ports to open for it: your machine connects out</li>
+                <li>A hostname for every node, that follows its IP</li>
+                <li>Updates itself, and rolls back if an update fails</li>
+                <li>The panel is ours to host, patch, and back up</li>
+              </ul>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="compare">
+              <thead>
+                <tr>
+                  <th scope="col"><span class="sr-only">What</span></th>
+                  <th scope="col">Pterodactyl</th>
+                  <th scope="col" class="us">Raptor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {versus.map((v) => (
+                  <tr>
+                    <th scope="row">{v.row}</th>
+                    <td data-label="Pterodactyl">{v.ptero}</td>
+                    <td class="us" data-label="Raptor">{v.raptor}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="cost" class="cost">
+        <div class="wrap">
+          <h2 id="cost">Pterodactyl is free. Making it do what Raptor does isn't.</h2>
+          <p class="intro">
+            What Raptor has built in, Pterodactyl leaves to paid add-ons from different authors,
+            and many have to be applied again after every panel update. Here's a first year with
+            one machine, at what the add-ons sell for today.
+          </p>
+          <div class="receipts">
+            <figure class="receipt" aria-labelledby="r-ptero">
+              <figcaption id="r-ptero">Pterodactyl, year one</figcaption>
+              <table>
+                <caption class="sr-only">What a year of Pterodactyl with Raptor's features costs</caption>
+                <tbody>
+                  <tr class="group"><th scope="rowgroup" colspan="2">Add-ons, once</th></tr>
+                  {addons.map(([feature, addon, price]) => (
+                    <tr>
+                      <th scope="row">{feature}<span>{addon}</span></th>
+                      <td>{usd(price)}</td>
+                    </tr>
+                  ))}
+                  <tr class="group"><th scope="rowgroup" colspan="2">Running the panel</th></tr>
+                  {running.map(([what, detail, price]) => (
+                    <tr>
+                      <th scope="row">{what}<span>{detail}</span></th>
+                      <td>{usd(price)}</td>
+                    </tr>
+                  ))}
+                  <tr class="group"><th scope="rowgroup" colspan="2">Unless you're the sysadmin</th></tr>
+                  {hired.map(([what, detail, price]) => (
+                    <tr>
+                      <th scope="row">{what}<span>{detail}</span></th>
+                      <td>{usd(price)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr class="subtotal">
+                    <th scope="row">Doing it all yourself<span>Every install, update, and fix is yours</span></th>
+                    <td>{usd(pteroSelf)}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Year one<span>With a sysadmin doing it for you</span></th>
+                    <td>{usd(pteroHired)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </figure>
+            <figure class="receipt us" aria-labelledby="r-raptor">
+              <figcaption id="r-raptor">Raptor, year one</figcaption>
+              <table>
+                <caption class="sr-only">What a year of Raptor costs</caption>
+                <tbody>
+                  <tr>
+                    <th scope="row">Your first month<span>Free</span></th>
+                    <td>{usd(0)}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">The next 11 months<span>$12 a month</span></th>
+                    <td>{usd(raptorYear)}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Every add-on Pterodactyl needed<span>Built in, updated with Raptor</span></th>
+                    <td>{usd(0)}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">A machine for the panel<span>We run it</span></th>
+                    <td>{usd(0)}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">A domain<span>Every node comes with a hostname</span></th>
+                    <td>{usd(0)}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Help from our team<span>Moving over, and when your machine acts up</span></th>
+                    <td>{usd(0)}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row">Year one<span>And nothing to patch</span></th>
+                    <td>{usd(raptorYear)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+              <a class="button primary large block" href={start}>Start your free month</a>
+            </figure>
+          </div>
+          <p class="fine footnote">
+            Add-on prices are from current listings on BuiltByBit, sourceXchange, and Blueprint in
+            October 2026, each licensed for one panel; some have cheaper look-alikes, some pricier.
+            The install is the cheapest we found for hire; Fiverr gigs charge up to $50. Nobody
+            lists a price for keeping it patched, so that line is our estimate, counted at $20 a month. You can run the panel on your game machine instead of a VPS,
+            and give up some of its memory. <a href={`${docs}/start/raptor-vs-pterodactyl/`}>The full
+            comparison, with sources</a>.
+          </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="only" class="only-section">
+        <div class="wrap">
+          <h2 id="only">What no add-on gives Pterodactyl.</h2>
+          <p class="intro">
+            Some of Raptor isn't for sale anywhere else, because it's built into how Raptor works: on
+            your machine, signed by you, and still running when we're not.
+          </p>
+          <div class="only">
+            {only.map((o) => (
+              <div>
+                <h3>{o.title}</h3>
+                <ul>
+                  {o.points.map((p) => <li>{p}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="move" class="move">
+        <div class="wrap move-grid">
+          <div>
+            <h2 id="move">Leaving Pterodactyl? We'll help you move.</h2>
+            <p class="intro">
+              You don't start over, and you don't switch in one night. Raptor runs beside Pterodactyl
+              on the same machine, so you move one server at a time and keep the way back open.
+            </p>
+            <ol class="steps">
+              <li>
+                <h3>Link the machine Pterodactyl's on</h3>
+                <p>Raptor keeps its ports, networks, and containers apart from Pterodactyl's, so nothing there changes.</p>
+              </li>
+              <li>
+                <h3>Run <code>raptor import pterodactyl</code></h3>
+                <p>Each server comes over with its egg, settings, ports, and files. Pterodactyl's copy is suspended, never deleted.</p>
+              </li>
+              <li>
+                <h3>Check it runs, then turn Pterodactyl off</h3>
+                <p>Players join on the same ports. Remove the old copies when you're sure.</p>
+              </li>
+            </ol>
+          </div>
+          <div class="helpdesk">
+            <h3>And a team behind you, not a forum.</h3>
+            <p>
+              Running servers on your own machine shouldn't mean being your own sysadmin. Open a
+              ticket and the people who build Raptor help with the move and with the machine:
+              installs, firewalls, ports, disks, and players who can't connect.
+            </p>
+            <ul>
+              <li>A private ticket on Discord, not a public thread</li>
+              <li><code>raptor doctor</code> sends us what's wrong, with secrets removed</li>
+              <li>If we need to look, you approve it with your passkey, for as long as you choose</li>
+              <li>Everything we do is in your activity log, and we never get a shell</li>
+            </ul>
+            <a class="button large" href={`${docs}/install/from-pterodactyl/`}>How moving works</a>
+          </div>
+        </div>
+      </section>
+
+      
+</Base>

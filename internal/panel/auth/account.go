@@ -251,6 +251,7 @@ func (s *Service) DeleteAccount(ctx context.Context, _ *panelv1.DeleteAccountReq
 	}
 	if c, ok := callOf(ctx); ok {
 		setCookie(c.resp, "", 0)
+		s.setHint(c.resp, false)
 	}
 	s.linksChanged()
 	s.notify(ctx, sess.User, mail.Email{

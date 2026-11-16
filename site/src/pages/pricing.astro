@@ -1,0 +1,77 @@
+---
+// The price, what it includes, and the billing questions. Keep the numbers
+// in step with docs-site's start/pricing page and the Panel's billing.
+import Base from "../layouts/Base.astro";
+import { billing as faq } from "../data/faq";
+import { discord, docs, price, start } from "../data/links";
+
+const included: [string, string][] = [
+  ["Unlimited servers", "As many as the machine can run, of any game in the library."],
+  ["Unlimited people", "Invite your whole team, with permissions per server."],
+  ["Every feature", "Add-ons, databases, networks, backups, alerts: nothing is a tier."],
+  ["No resource limits", "No caps on RAM, CPU, disk, or players. It's your hardware."],
+  ["10 GB of backup storage", `In Raptor Backup Storage, per machine. Then $${price} per TB a month.`],
+  ["Help from our team", "Moving over, and when your machine acts up, in a private ticket."],
+];
+---
+<Base
+  title="Pricing"
+  description={`Raptor costs $${price} a month for each machine you link, with every server, person, and feature included. Your first month is free.`}
+  path="/pricing/"
+>
+  <div class="page-head wrap">
+    <h1 class="page-title">${price} a machine. <span class="accent">Everything on it included.</span></h1>
+    <p class="lead">
+      A game host bills every server by its memory. Raptor bills the machine you bring, so ten servers on
+      one box cost the same as one.
+    </p>
+  </div>
+
+  <section class="wrap pricing" aria-label="The price">
+    <dl class="included">
+      {included.map(([t, d]) => (
+        <div><dt>{t}</dt><dd>{d}</dd></div>
+      ))}
+    </dl>
+    <div class="price">
+      <p class="price-first"><span class="figure">$0</span> for your first month</p>
+      <p class="price-then">then <strong>${price}</strong> a month for each machine you link</p>
+      <ul>
+        <li>Cancel anytime from the app</li>
+        <li>Read-only if you stop paying: your servers keep running</li>
+        <li>Taxes handled by Polar, who bills for us</li>
+      </ul>
+      <a class="button primary large block" href={start}>Start your free month</a>
+      <p class="fine">A card is needed to start. Nothing is charged for 30 days.</p>
+    </div>
+  </section>
+
+  <section class="wrap math" aria-labelledby="math">
+    <h2 id="math">What it works out to.</h2>
+    <div class="math-rows">
+      <div><span class="num">1</span><span>server on a machine</span><span class="num">${price}.00</span><span>a month</span></div>
+      <div><span class="num">5</span><span>servers on a machine</span><span class="num">${(price / 5).toFixed(2)}</span><span>a server</span></div>
+      <div><span class="num">20</span><span>servers on a machine</span><span class="num">${(price / 20).toFixed(2)}</span><span>a server</span></div>
+    </div>
+    <p class="fine">
+      Plus whatever your machine costs you, if you rent it. Already running Pterodactyl? <a href="/vs/pterodactyl/#cost">See a year of each, side by side</a>.
+    </p>
+  </section>
+
+  <section aria-labelledby="faq">
+    <div class="wrap faq">
+      <div>
+        <h2 id="faq">Billing questions.</h2>
+        <p class="fine">More in <a href={`${docs}/start/pricing/`}>the docs</a>, or ask on <a href={discord}>Discord</a>.</p>
+      </div>
+      <div class="answers">
+        {faq.map(([q, a], i) => (
+          <details open={i === 0}>
+            <summary>{q}</summary>
+            <p>{a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,89 @@
+---
+// Raptor beside the panels people run (src/data/panels.ts), in one table.
+// The docs page has every cell's source, and what each one does best.
+import Base from "../layouts/Base.astro";
+import { docs, start } from "../data/links";
+import { longDate } from "../data/changelog";
+import { checked, groups, isGap, links, panels, text } from "../data/panels";
+---
+<Base
+  title="Game panels compared"
+  description="Raptor beside Calagopus, FeatherPanel, Hydrodactyl, Pelican, Pterodactyl, and PufferPanel: who runs the panel, ports, eggs, mod installers, backups, databases, disk limits, passkeys, alerts, and price."
+  path="/compare/"
+>
+  <div class="page-head wrap">
+    <h1 class="page-title">Every panel, <span class="accent">side by side.</span></h1>
+    <p class="lead">
+      Raptor beside the panels people run today, row by row, from each project's own docs, code, and
+      releases. The others are free software you host yourself; Raptor is the one where we run the panel.
+      Where they do something better, the table says so.
+    </p>
+    <p class="fine">
+      Checked {longDate(checked)}. "None found" means we looked through its docs and code and found
+      nothing. <a href={`${docs}/start/compare-panels/`}>Every cell, with its source</a>. Spotted something
+      wrong? Tell us on Discord and we'll fix it.
+    </p>
+  </div>
+
+  <div class="wrap">
+    <div class="matrix-scroll" tabindex="0" role="region" aria-label="Panels compared, scrolls sideways">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th scope="col"><span class="sr-only">Feature</span></th>
+            {panels.map((p, i) => (
+              <th scope="col" class={i === 0 ? "us" : undefined}><a href={links[p]}>{p}</a></th>
+            ))}
+          </tr>
+        </thead>
+        {groups.map((g) => (
+          <tbody>
+            <tr class="matrix-group"><th scope="rowgroup" colspan={panels.length + 1}>{g.name}</th></tr>
+            {g.rows.map((r) => (
+              <tr>
+                <th scope="row">{r.row}</th>
+                {r.cells.map((c, i) => (
+                  <td class:list={[{ us: i === 0, gap: isGap(c) }]}>{text(c)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        ))}
+      </table>
+    </div>
+  </div>
+
+  <section aria-labelledby="pick" class="pick">
+    <div class="wrap">
+      <h2 id="pick">Which one is for you.</h2>
+      <dl class="claims">
+        <div>
+          <dt>You'd rather not run a panel at all.</dt>
+          <dd>Raptor. Your machine runs the games, we run everything else, and your servers keep going if we don't.</dd>
+        </div>
+        <div>
+          <dt>You want to host your own panel, for free.</dt>
+          <dd>Calagopus is the closest to Raptor in features: quotas, passkeys, a database browser, and a Pterodactyl importer, under MIT. Pelican if you'd like plugins and a large community.</dd>
+        </div>
+        <div>
+          <dt>You need Windows nodes.</dt>
+          <dd>None of these run game servers on Windows, Raptor included. PufferPanel dropped Windows in 3.0.</dd>
+        </div>
+        <div>
+          <dt>You're happy on Pterodactyl.</dt>
+          <dd>Stay. If you'd rather not host it, Raptor runs beside it and moves servers over one at a time. <a href="/vs/pterodactyl/">Raptor vs Pterodactyl</a>.</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <aside class="band-cta" slot="after">
+    <div class="wrap band-cta-inner">
+      <div>
+        <h2>Try the one with no panel to run.</h2>
+        <p>Link a machine and your first month is free.</p>
+      </div>
+      <a class="button primary large" href={start}>Start your free month</a>
+    </div>
+  </aside>
+</Base>

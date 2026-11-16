@@ -131,7 +131,9 @@ The web app follows [docs/DESIGN.md](docs/DESIGN.md), with the brief behind it a
 
 ### The landing page
 
-`site/` is [raptorpanel.net](https://raptorpanel.net): one Astro page in the app's design system ([docs/DESIGN.md](docs/DESIGN.md)), with no scripts. `task site:dev` serves it; `task site:build` builds it and loads it under its CSP in both themes, as CI does. Everything it claims must be true of the released product, so check a new claim against the code and the docs, and change the page in the same pull request as anything that makes a claim untrue.
+`site/` is [raptorpanel.net](https://raptorpanel.net), in Astro and the app's design system ([docs/DESIGN.md](docs/DESIGN.md)): the home page, Features, Pricing, What's new, Raptor vs Pterodactyl, the panel comparison, and a page for every game and app in `library/`, built from the eggs themselves, so a new egg gets its page with the next release. `task site:dev` serves it; `task site:build` builds it and loads every page under its CSP in both themes, as CI does. It runs only its own scripts: the library's filter, and one inline line that reads the Panel's signed-in hint (DECISIONS #366).
+
+Everything it claims must be true of the released product, so check a new claim against the code and the docs, and change the site in the same pull request as anything that makes a claim untrue. When a feature people would notice ships, add it to `site/src/data/changelog.ts` (What's new, and the home page's New this week) and to Features if it belongs there. The panel comparison (`site/src/data/panels.ts`) and its long version in the docs (`start/compare-panels`) change together, with a source for every cell.
 
 ### The docs site
 

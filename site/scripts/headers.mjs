@@ -16,6 +16,9 @@ for (const f of await readdir(dist, { recursive: true })) {
   // would be refused by the CSP, one it misread would get the wrong hash.
   for (const [, attrs, body] of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script(?:[\s/][^>]*)?>/gi)) {
     if (/\ssrc\s*=/i.test(attrs ?? "") || !body) continue;
+    // Data blocks (structured data for search engines) never run, so the
+    // CSP needn't list them.
+    if (/\stype\s*=\s*["']?application\/(ld\+)?json/i.test(attrs ?? "")) continue;
     hashes.add(`'sha256-${createHash("sha256").update(body).digest("base64")}'`);
   }
 }
