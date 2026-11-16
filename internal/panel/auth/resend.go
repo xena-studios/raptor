@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/resend/resend-go/v3"
+	"github.com/resend/resend-go/v4"
 
 	"github.com/xena-studios/raptor/internal/panel/mail"
 )
