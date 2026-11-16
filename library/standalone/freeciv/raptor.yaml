@@ -1,0 +1,21 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/freeciv/egg-freeciv.json
+license: MIT
+credits:
+  - "Written for Raptor; the server is Debian's freeciv-server package (GPL-2.0+)"
+  - "Icon: Freeciv's logo, from https://github.com/freeciv"
+certified: true
+# Debian builds it for both.
+arch: [amd64, arm64]
+# "save" writes the game to saves/ (it also autosaves every turn).
+backup:
+  pre: ["save"]
+  wait_for: "Game saved as"
+  timeout: 2m
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  command: "show maxplayers"
+  expect: "maxplayers\\s+\\S*\\s*16 \\(1, 500\\)"

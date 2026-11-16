@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/warfork/egg-warfork.json
+license: MIT
+credits:
+  - "Written for Raptor, following the Steam egg pattern in library/README.md"
+  - "Icon: Warfork's icon, from Steam (Team Forbidden, app 671610)"
+certified: true
+arch: [amd64]
+# No players query: Warfork answers Quake-style info queries, and Steam's
+# only once registered with Steam, which doesn't happen on CI. No backup
+# hooks: matches don't save anything.
+test:
+  # An 860 MB SteamCMD download.
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 20m
+  command: "status"
+  expect: "map\\s+:"

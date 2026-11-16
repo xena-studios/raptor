@@ -1,0 +1,20 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/odamex/egg-odamex.json
+license: MIT
+credits:
+  - "Written for Raptor; the build follows Odamex's own Docker image (docker/ in https://github.com/odamex/odamex, GPL-2.0)"
+  - "Game data: Freedoom (https://freedoom.github.io, BSD-3-Clause)"
+  - "Icon: Odamex's logo, from https://github.com/odamex"
+certified: true
+# Built from source on the node, so it runs natively on both.
+arch: [amd64, arm64]
+# No players query (Odamex's own protocol, not A2S) and no backup hooks
+# (matches don't save anything).
+test:
+  # Builds the server from source (a few minutes on two cores).
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 3m
+  command: "sv_gametype"
+  expect: "\"sv_gametype\" is \"1\""

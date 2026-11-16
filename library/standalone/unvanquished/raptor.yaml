@@ -1,0 +1,21 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/unvanquished/egg-unvanquished.json
+license: MIT
+credits:
+  - "Written for Raptor from Unvanquished's own documentation"
+  - "Icon: Unvanquished's logo, from https://github.com/Unvanquished"
+certified: true
+# amd64 only: the game logic runs in a NaCl sandbox, which on ARM needs
+# 32-bit ARM support that most arm64 servers (Graviton 3, Ampere One,
+# GitHub's runners) don't have.
+arch: [amd64]
+# No players query (the Quake 3 protocol, not A2S) and no backup hooks
+# (matches don't save anything).
+test:
+  # A 600 MB download of maps and models.
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 5m
+  command: "status"
+  expect: "map:\\s+plat23"

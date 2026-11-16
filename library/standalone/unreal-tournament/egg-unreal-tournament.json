@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Unreal Tournament",
+    "author": "support@raptorpanel.net",
+    "description": "The 1999 arena shooter, Game of the Year edition, with OldUnreal's community patch. It also uses the port after the server's port for the server browser, so add that one too. Other settings are in System/UnrealTournament.ini.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "cd System && exec ./ucc-bin server \"{{MAP}}?Game={{GAME_TYPE}}?MaxPlayers={{MAX_PLAYERS}}\" port={{SERVER_PORT}} ini=UnrealTournament.ini userini=User.ini -nohomedir",
+    "config": {
+        "files": "{\"System/UnrealTournament.ini\": {\"parser\": \"ini\", \"find\": {\"[URL].Port\": \"{{server.build.default.port}}\", \"[Engine.GameReplicationInfo].ServerName\": \"{{server.build.env.SERVER_NAME}}\", \"[Engine.GameInfo].GamePassword\": \"{{server.build.env.SERVER_PASSWORD}}\", \"[Engine.GameInfo].AdminPassword\": \"{{server.build.env.ADMIN_PASSWORD}}\", \"[IpServer.UdpServerUplink].DoUplink\": \"{{server.build.env.PUBLIC}}\"}}}",
+        "startup": "{\"done\": [\"Game engine initialized\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Unreal Tournament (GOTY) with OldUnreal's patch, installed as OldUnreal's\n# own Linux installer does: the game CD image from OldUnreal's mirrors (free\n# to download, with Epic's blessing), Bonus Pack 4, then the patch for this\n# CPU from GitHub, all checked against their SHA-256. Your settings\n# (System/UnrealTournament.ini, User.ini) and anything you add are never\n# overwritten.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nua=\"raptor-installer (+https://raptorpanel.net)\"\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\" && mkdir -p \"$build\"\n\ncase \"$(uname -m)\" in\nx86_64) arch=amd64; zarch=x64 ;;\naarch64) arch=arm64; zarch=arm64 ;;\n*) fail \"Unreal Tournament's server runs on x86-64 and ARM64 machines only.\" ;;\nesac\n\nwant=${VERSION:-latest}\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag OldUnreal/UnrealTournamentPatches \"$want\") ||\n    fail \"OldUnreal patch ${VERSION} doesn't exist. Check Version and reinstall.\"\npatch=$(gh-release assets OldUnreal/UnrealTournamentPatches \"$tag\" | awk -v a=\"-Linux-$arch.tar.bz2\" '$1 ~ a\"$\" && !f { print $1; f = 1 }')\n[ -n \"$patch\" ] || fail \"OldUnreal patch $tag has no Linux build for $arch.\"\n\n# Downloads <file> from OldUnreal's mirrors, checked against its SHA-256.\nmirror() {\n    local name=$1 sum=$2 out=$3 host\n    for host in files.oldunreal.net files2.oldunreal.net files3.oldunreal.net; do\n        if curl -fsSL --retry 2 -A \"$ua\" -o \"$out\" \"https://$host/$name\" &&\n            [ \"$(sha256sum \"$out\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n            return 0\n        fi\n        echo \"The download from $host failed or didn't match its checksum; trying the next mirror.\"\n    done\n    fail \"None of OldUnreal's mirrors gave a good copy of $name. Reinstall to try again.\"\n}\n\n# 7-Zip, only for unpacking the CD image; not kept.\nseven() {\n    [ -x \"$build/7z/7zzs\" ] && return 0\n    local t\n    t=$(gh-release tag ip7z/7zip latest) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    gh-release download ip7z/7zip \"$t\" \"7z${t//./}-linux-$zarch.tar.xz\" \"$build/7z.tar.xz\" ||\n        fail \"7-Zip couldn't be downloaded from GitHub. Reinstall to try again.\"\n    mkdir -p \"$build/7z\" && tar -xJf \"$build/7z.tar.xz\" -C \"$build/7z\" 7zzs\n}\n\n# Copies the files under $1 into the server folder, never replacing one\n# that's already there (your settings, and the patch's newer files).\nmerge() { (cd \"$1\" && find . -type f -print0) | while IFS= read -r -d '' f; do\n    [ -e \"$f\" ] || { mkdir -p \"$(dirname \"$f\")\" && mv \"$1/$f\" \"$f\"; }\ndone; }\n\niso_sum=e184984ca88f001c5ddd52035d76cd64e266e26c74975161b5ed72366c74704f\nbp4_sum=5b7a1080724a122a596c226c50d4dc7c2d7636ceaf067e9c12112014a170ffba\nif [ \"$(cat .raptor-game 2>/dev/null)\" != \"$iso_sum $bp4_sum\" ]; then\n    seven\n    echo \"Downloading Unreal Tournament GOTY (the 620 MB game CD image)\"\n    mirror UT_GOTY_CD1.ISO \"$iso_sum\" \"$build/cd1.iso\"\n    echo \"Downloading Bonus Pack 4\"\n    mirror utbonuspack4-zip.7z \"$bp4_sum\" \"$build/bp4.7z\"\n    mkdir -p \"$build/game\"\n    # Everything but the Windows setup, programs and default settings,\n    # as OldUnreal's installer does.\n    \"$build/7z/7zzs\" x -y -bd -o\"$build/game\" \"$build/cd1.iso\" \\\n        -x'!System/UnrealTournament.ini' -x'!System/User.ini' -x'!System/*.bat' -x'!System/*.dll' \\\n        -x'!System/*.exe' -x'!Autorun.inf' -x'!Setup.exe' -x'!DirectX7' -x'!Microsoft' -x'!System400' >/dev/null ||\n        fail \"The game CD image couldn't be unpacked. Reinstall to try again.\"\n    \"$build/7z/7zzs\" x -y -bd -o\"$build/game\" \"$build/bp4.7z\" >/dev/null ||\n        fail \"Bonus Pack 4 couldn't be unpacked. Reinstall to try again.\"\n    rm -f \"$build/cd1.iso\" \"$build/bp4.7z\"\n    # The patch replaces these, and the game's must not stay behind.\n    rm -f .raptor-version\n    merge \"$build/game\"\n    echo \"$iso_sum $bp4_sum\" > .raptor-game\nfi\n\nif [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag\" ] && [ -x System/ucc-bin ]; then\n    echo \"OldUnreal's patch $tag is already installed.\"\nelse\n    echo \"Downloading OldUnreal's patch $tag for $arch\"\n    gh-release download OldUnreal/UnrealTournamentPatches \"$tag\" \"$patch\" \"$build/patch.tar.bz2\" ||\n        fail \"The patch download from GitHub failed. Reinstall to try again.\"\n    mkdir -p \"$build/patch\"\n    tar -xjf \"$build/patch.tar.bz2\" -C \"$build/patch\"\n    # The patch's own files replace the game's (fonts, textures, programs).\n    cp -a \"$build/patch/.\" .\n    echo \"$tag\" > .raptor-version\nfi\n\n# Old patches kept the programs in System64 or SystemARM64; they now live in System.\nfor d in System64 SystemARM64; do\n    [ -d \"$d\" ] || continue\n    for f in \"$d\"/*; do [ -f \"$f\" ] && [ ! -e \"System/${f##*/}\" ] && mv \"$f\" System/; done\n    rm -rf \"$d\"\ndone\n\n# Maps come compressed (.uz) on the CD; the server needs them unpacked.\nshopt -s nullglob\nuz=(Maps/*.unr.uz)\nif [ ${#uz[@]} -gt 0 ]; then\n    echo \"Unpacking ${#uz[@]} maps\"\n    for f in \"${uz[@]}\"; do\n        m=${f##*/}; m=${m%.uz}\n        if [ ! -f \"Maps/$m\" ]; then\n            (cd System && ./ucc-bin decompress \"../$f\" -nohomedir >/dev/null 2>&1) && [ -f \"System/$m\" ] ||\n                fail \"The map $m couldn't be unpacked. Reinstall to try again.\"\n            mv -f \"System/$m\" \"Maps/$m\"\n        fi\n        rm -f \"$f\"\n    done\nfi\n# DM-Cybrosis][ is also a Domination map, as OldUnreal's installer sets up.\n[ ! -f \"Maps/DM-Cybrosis][.unr\" ] || [ -f \"Maps/DOM-Cybrosis][.unr\" ] || cp \"Maps/DM-Cybrosis][.unr\" \"Maps/DOM-Cybrosis][.unr\"\n\n# The server's settings start from the patch's defaults, as the game does on\n# its first start; the Panel sets the port, name and passwords at each start.\n[ -f System/UnrealTournament.ini ] || cp System/Default.ini System/UnrealTournament.ini\n[ -f System/User.ini ] || cp System/DefUser.ini System/User.ini\n# No match stats sent to the long-gone ngWorldStats service.\ngrep -q '^bWorldLog=' System/UnrealTournament.ini ||\n    sed -i 's/^\\[Engine.GameInfo\\]\\r\\?$/&\\nbWorldLog=False/' System/UnrealTournament.ini\nchmod +x System/ucc-bin System/ucc-bin-* 2>/dev/null || true\necho \"Installed Unreal Tournament GOTY with OldUnreal's patch $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "OldUnreal's patch, such as v469e, or latest for the newest one. Players need a 469 patch too. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?4[0-9]{2}[a-z]?(-rc[0-9]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Unreal Tournament server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server starts on, such as DM-Deck16][ or CTF-Face; it must suit the game type.",
+            "env_variable": "MAP",
+            "default_value": "DM-Deck16][",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_\\-\\[\\]]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game type",
+            "description": "The game type: Botpack.DeathMatchPlus, Botpack.TeamGamePlus, Botpack.CTFGame, Botpack.Domination, Botpack.Assault or Botpack.LastManStanding, or a mod's.",
+            "env_variable": "GAME_TYPE",
+            "default_value": "Botpack.DeathMatchPlus",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for adminlogin, which gives a player admin commands. Empty turns it off.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "True lists the server on the master servers so players find it; False keeps it unlisted.",
+            "env_variable": "PUBLIC",
+            "default_value": "True",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:True,False",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Unvanquished",
+    "author": "support@raptorpanel.net",
+    "description": "Unvanquished, the free team-based shooter of humans against aliens who build bases. Installs a release with its maps, and runs home/config/server.cfg at every start.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "exec ./daemonded -homepath /home/container/home -set net_port {{SERVER_PORT}} -set sv_hostname \"{{SERVER_NAME}}\" -set sv_maxclients {{MAX_PLAYERS}} -set g_password \"{{SERVER_PASSWORD}}\" -set rcon.server.password \"{{RCON_PASSWORD}}\" +exec server.cfg +map {{MAP}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"-----------------------------------\"]}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Unvanquished. Downloads a release from GitHub, checks it against the\n# release's SHA-512 list, and keeps the Linux engine and the game's own\n# packages (pkg/). Your settings and downloads (home/) and packages you add\n# to home/pkg are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\ncase \"$(uname -m)\" in\nx86_64) arch=amd64 ;;\n*) fail \"Unvanquished's server only runs on x86-64 (amd64) machines.\" ;;\nesac\n\nwant=${VERSION:-latest}\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag Unvanquished/Unvanquished \"$want\") ||\n    fail \"Unvanquished ${VERSION} doesn't exist. Check Version and reinstall.\"\nversion=${tag#v}\n\nif [ -x daemonded ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Unvanquished $version is already installed.\"\nelse\n    rm -rf \"$build\" && mkdir -p \"$build/x\"\n    zip=\"unvanquished_$version.zip\"\n    echo \"Downloading Unvanquished $version (about 600 MB)\"\n    gh-release download Unvanquished/Unvanquished \"$tag\" \"$zip\" \"$build/u.zip\" ||\n        fail \"The download from GitHub failed. Reinstall to try again.\"\n    # The release also publishes SHA-512s; check against those too.\n    sum=$(curl -fsSL --retry 3 \"https://github.com/Unvanquished/Unvanquished/releases/download/$tag/unvanquished_$version.sha512sum\" |\n        awk -v f=\"$zip\" '{ n = $2; sub(/^\\*/, \"\", n) } n == f { print $1 }') || sum=\n    if [ -n \"$sum\" ]; then\n        [ \"$(sha512sum \"$build/u.zip\" | cut -d' ' -f1)\" = \"$sum\" ] ||\n            fail \"The download didn't match the release's checksum. Reinstall to try again.\"\n    fi\n    unzip -q \"$build/u.zip\" \"unvanquished_$version/linux-$arch.zip\" \"unvanquished_$version/pkg/*\" -d \"$build/x\" ||\n        fail \"Unvanquished's download has no Linux server in it.\"\n    rel=\"$build/x/unvanquished_$version\"\n    unzip -q -o \"$rel/linux-$arch.zip\" -d \"$build/engine\"\n    # Swap in the new packages: the previous release's are removed, any\n    # other file in pkg/ stays.\n    mkdir -p pkg\n    if [ -f .raptor-pkgs ]; then\n        while IFS= read -r f; do [ -z \"$f\" ] || rm -f \"pkg/$f\"; done < .raptor-pkgs\n    fi\n    (cd \"$rel/pkg\" && ls -1 *.dpk) > \"$build/pkgs\"\n    mv -f \"$rel\"/pkg/*.dpk pkg/\n    mv -f \"$build/pkgs\" .raptor-pkgs\n    chmod +x \"$build\"/engine/daemon* \"$build\"/engine/nacl_* \"$build\"/engine/crash_server\n    # Only what the dedicated server needs; daemon and daemon-tty are the game client.\n    for f in daemonded crash_server nacl_helper_bootstrap nacl_loader irt_core-$arch.nexe; do\n        mv -f \"$build/engine/$f\" \"$f\"\n    done\n    echo \"$version\" > .raptor-version\nfi\n\n# A starting config, only when there is none: the Panel sets the port, name\n# and slots at each start; the rest is yours to change.\nmkdir -p home/config\n[ -f home/config/server.cfg ] || cat > home/config/server.cfg <<'EOF'\n// Unvanquished server settings, run at every start. The port, server name,\n// player slots and password come from the server's variables.\nset g_motd \"Welcome to an Unvanquished server.\"\nset sv_contact \"\"\nEOF\necho \"Installed Unvanquished $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Unvanquished release, such as 0.56.2, or latest for the newest one. Players need the same release. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?[0-9]+\\.[0-9]+(\\.[0-9]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Unvanquished server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "24",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server starts on, such as plat23, chasm or yocto; the map rotation takes over after it.",
+            "env_variable": "MAP",
+            "default_value": "plat23",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The password for remote admin commands over rcon. Empty turns rcon off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        }
+    ]
+}

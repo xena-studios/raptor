@@ -1,0 +1,84 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Simutrans",
+    "author": "support@raptorpanel.net",
+    "description": "Simutrans, the free transport tycoon game, as a multiplayer server. Builds the headless server with the pak64 graphics set; the game is saved when the server stops and picked up again at the next start.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "pw=\"{{ADMIN_PASSWORD}}\"; [ -n \"$pw\" ] || pw=$(od -An -N12 -tx1 /dev/urandom | tr -d \" \n\"); a=(); [ \"{{PUBLIC}}\" = 1 ] && a=(-announce -server_name \"{{SERVER_NAME}}\"); (trap \"\" INT TERM; exec ./simutrans -server {{SERVER_PORT}} -objects {{PAKSET}}/ -singleuser -nosound -nomidi -lang en -server_admin_pw \"$pw\" \"${a[@]}\") & pid=$!; n() { ./nettool -q -s 127.0.0.1:{{SERVER_PORT}} -p \"$pw\" \"$@\"; }; trap \"(n force-sync; sleep 5; n shutdown; sleep 60; kill -KILL \\$pid) >/dev/null 2>&1 &\" INT TERM; until n clients >/dev/null 2>&1 || ! kill -0 $pid 2>/dev/null; do sleep 2; done; kill -0 $pid 2>/dev/null && echo \"Simutrans is ready for players on port {{SERVER_PORT}}.\"; wait $pid; wait $pid",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Simutrans is ready for players\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Simutrans. Its Linux release needs a desktop (SDL and a sound server), so\n# this builds the headless server and its nettool admin tool from the\n# release's source, with the game's data from the same source, then adds the\n# pak64 graphics set from SourceForge, checked against its checksum. Your\n# game (server<port>-network.sve), saves and other paksets are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nua=\"raptor-installer (+https://raptorpanel.net)\"\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\" && mkdir -p \"$build\"\n\nwant=${VERSION:-latest}\nif [ \"$want\" = latest ]; then\n    # GitHub's latest release is the nightly build; the newest numbered\n    # release is the newest folder on SourceForge (125-0-1 is 125.0.1).\n    want=$(curl -fsSL --retry 3 -A \"$ua\" \"https://sourceforge.net/projects/simutrans/rss?path=/simutrans\" |\n        grep -oE '<title><!\\[CDATA\\[/simutrans/[0-9]+(-[0-9]+)+/' | sed -n 1p | grep -oE '[0-9]+(-[0-9]+)+' | tr - .) || want=\n    [ -n \"$want\" ] || fail \"SourceForge can't be reached right now. Reinstall to try again.\"\nfi\ntag=$(gh-release tag simutrans/simutrans \"$want\") ||\n    fail \"Simutrans ${VERSION} doesn't exist. Check Version and reinstall.\"\n\nif [ -x simutrans ] && [ -x nettool ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Simutrans $tag is already installed.\"\nelse\n    echo \"Downloading Simutrans $tag's source\"\n    mkdir -p \"$build/src\"\n    curl -fsSL --retry 3 -A \"$ua\" \"https://github.com/simutrans/simutrans/archive/refs/tags/$tag.tar.gz\" |\n        tar -xz -C \"$build/src\" --strip-components=1 || fail \"The download from GitHub failed. Reinstall to try again.\"\n    # The release's revision, which the server reports to players and the\n    # server list (the source archive doesn't carry it).\n    rev=$(curl -fsSL --retry 3 -A \"$ua\" \"https://github.com/simutrans/simutrans/releases/tag/$tag\" | grep -oE '\\br[0-9]{4,6}\\b' | sed -n 1p | tr -d r) || rev=\n    echo \"Installing the build tools\"\n    export DEBIAN_FRONTEND=noninteractive\n    { apt-get update -q && apt-get install -y -q --no-install-recommends g++ cmake ninja-build pkg-config \\\n        zlib1g-dev libbz2-dev libpng-dev libzstd-dev libfreetype-dev; } >\"$build/apt.log\" 2>&1 ||\n        { tail -n 5 \"$build/apt.log\"; fail \"The build tools couldn't be installed. Reinstall to try again.\"; }\n    echo \"Building the Simutrans server (a few minutes)\"\n    mkdir -p \"$build/b\"\n    (cd \"$build/b\" && cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D SIMUTRANS_BACKEND=none -D SIMUTRANS_USE_UPNP=OFF \\\n        -D SIMUTRANS_USE_FLUIDSYNTH_MIDI=OFF -D SIMUTRANS_USE_FONTCONFIG=OFF -D SIMUTRANS_USE_CCACHE=OFF \\\n        ${rev:+-D SIMUTRANS_USE_REVISION=$rev} \"$build/src\" &&\n        cmake --build . --parallel \"$(nproc)\" --target simutrans nettool) >\"$build/build.log\" 2>&1 ||\n        { tail -n 20 \"$build/build.log\"; fail \"Simutrans didn't build. Reinstall to try again.\"; }\n    [ -x \"$build/b/simutrans/simutrans\" ] && [ -x \"$build/b/src/nettool/nettool\" ] || fail \"Simutrans' build made no server.\"\n    # The game's own data (settings, translations, scripts, AI); config/ stays\n    # as you changed it.\n    d=\"$build/src/simutrans\"\n    for x in ai font music script text themes; do\n        [ -d \"$d/$x\" ] || continue\n        rm -rf \"$x\" && mv \"$d/$x\" \"$x\"\n    done\n    mkdir -p config\n    (cd \"$d/config\" && find . -type f -print0) | while IFS= read -r -d '' f; do\n        [ -e \"config/$f\" ] || { mkdir -p \"config/$(dirname \"$f\")\" && mv \"$d/config/$f\" \"config/$f\"; }\n    done\n    mv -f \"$build/b/simutrans/simutrans\" simutrans\n    mv -f \"$build/b/src/nettool/nettool\" nettool\n    echo \"$tag\" > .raptor-version\nfi\n\n# pak64, Simutrans' standard graphics set, from SourceForge.\nrss=$(curl -fsSL --retry 3 -A \"$ua\" \"https://sourceforge.net/projects/simutrans/rss?path=/pak64\") ||\n    fail \"SourceForge can't be reached right now. Reinstall to try again.\"\nitem=$(tr -d '\\r\\n' <<<\"$rss\" | sed 's#</item>#&\\n#g' | grep -E '<link>[^<]*/simupak64-[0-9-]+\\.zip/download</link>' | sed -n 1p)\nurl=$(sed -nE 's#.*<link>([^<]*/simupak64-[0-9-]+\\.zip/download)</link>.*#\\1#p' <<<\"$item\")\nmd5=$(sed -nE 's#.*<media:hash algo=\"md5\">([0-9a-f]{32})</media:hash>.*#\\1#p' <<<\"$item\")\n[ -n \"$url\" ] && [ -n \"$md5\" ] || fail \"SourceForge's file list had no pak64. Reinstall to try again later.\"\npak=${url%/download}; pak=${pak##*/}\nif [ -f pak/ground.Outside.pak ] && [ \"$(cat .raptor-pak64 2>/dev/null)\" = \"$pak\" ]; then\n    echo \"pak64 ($pak) is already installed.\"\nelse\n    echo \"Downloading pak64 ($pak)\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$build/pak.zip\" \"$url\" || fail \"The download from SourceForge failed. Reinstall to try again.\"\n    [ \"$(md5sum \"$build/pak.zip\" | cut -d' ' -f1)\" = \"$md5\" ] || fail \"The download didn't match SourceForge's checksum. Reinstall to try again.\"\n    mkdir -p \"$build/pak\"\n    unzip -q \"$build/pak.zip\" -d \"$build/pak\"\n    p=$(find \"$build/pak\" -name ground.Outside.pak -printf '%h\\n' | sed -n 1p)\n    [ -n \"$p\" ] || fail \"The pak64 download has no pakset in it.\"\n    rm -rf pak && mv \"$p\" pak\n    echo \"$pak\" > .raptor-pak64\nfi\necho \"Installed Simutrans $tag with pak64.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Simutrans release, such as 125.0.1, or latest for the newest one. Players need the same release. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+\\.[0-9]+(\\.[0-9]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Simutrans server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "1 lists the server on Simutrans' server list so players find it; 0 keeps it unlisted.",
+            "env_variable": "PUBLIC",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Pakset",
+            "description": "The folder of the graphics set the game uses: pak (pak64, installed) or one you upload. Players need the same pakset.",
+            "env_variable": "PAKSET",
+            "default_value": "pak",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for nettool, Simutrans' admin tool (kick, ban, say). Empty uses a new random one at each start.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        }
+    ],
+    "install": {
+        "timeout": "1h"
+    }
+}
