@@ -176,9 +176,9 @@ type RCON struct {
 	// take RCON on their game port), "+1" an offset from it, or a
 	// variable's name (RCON_PORT).
 	Port string `yaml:"port"`
-	// PasswordVar is the variable holding the password (its name, never
+	// PwVar is the variable holding the password (its name, never
 	// the password). An empty value means RCON is off.
-	PasswordVar string `yaml:"password"`
+	PwVar string `yaml:"password"`
 	// Enabled is a variable that turns RCON on ("1" or "true"); empty: on
 	// whenever there's a password.
 	Enabled string `yaml:"enabled"`
@@ -225,7 +225,7 @@ func (r *RCON) PasswordFor(vars map[string]string) string {
 			return ""
 		}
 	}
-	return vars[r.PasswordVar]
+	return vars[r.PwVar]
 }
 
 // RCONProtocols are the RCON protocols Wings speaks.
@@ -244,8 +244,8 @@ func CheckRCON(r *RCON, vars []Variable) error {
 		return fmt.Errorf("egg: x-raptor.rcon.protocol %q: want source or webrcon", r.Protocol)
 	}
 	isVar := func(v string) bool { return slices.ContainsFunc(vars, func(x Variable) bool { return x.Env == v }) }
-	if !isVar(r.PasswordVar) {
-		return fmt.Errorf("egg: x-raptor.rcon.password %q: not one of the egg's variables", r.PasswordVar)
+	if !isVar(r.PwVar) {
+		return fmt.Errorf("egg: x-raptor.rcon.password %q: not one of the egg's variables", r.PwVar)
 	}
 	if r.Enabled != "" && !isVar(r.Enabled) {
 		return fmt.Errorf("egg: x-raptor.rcon.enabled %q: not one of the egg's variables", r.Enabled)

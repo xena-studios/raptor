@@ -423,7 +423,7 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 		if r.Port != "" {
 			set(n, "port", str(r.Port))
 		}
-		set(n, "password", str(r.PasswordVar))
+		set(n, "password", str(r.PwVar))
 		if r.Enabled != "" {
 			set(n, "enabled", str(r.Enabled))
 		}
