@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/modmail/egg-modmail.json
+license: MIT
+credits:
+  - "Written for Raptor from Modmail's own install guide and Dockerfile in https://github.com/modmail-dev/Modmail (AGPL-3.0)"
+  - "Icon: Modmail's logo, from https://github.com/modmail-dev (AGPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+# Without a bot token and a MongoDB database it installs its dependencies,
+# checks they import, then waits for them.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 10m

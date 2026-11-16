@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from NadekoBot's own Docker setup (AGPL-3.0).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "NadekoBot",
+    "author": "support@raptorpanel.net",
+    "description": "NadekoBot is a Discord bot for moderation, music, games, an economy and more. The egg installs a release with FFmpeg and yt-dlp for its music commands, and it needs a Discord bot token.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export PATH=\"/home/container/bin:$PATH\"; [ -n \"$BOT_TOKEN\" ] || unset BOT_TOKEN; [ -n \"$BOT_OWNERIDS__0\" ] || unset BOT_OWNERIDS__0; [ -f data/creds.yml ] || cp data/creds_example.yml data/creds.yml; if [ \"{{YT_DLP_AUTO_UPDATE}}\" = true ]; then bin/yt-dlp -U 2>&1 | tail -n 1; fi; if [ -z \"${BOT_TOKEN:-}\" ] && ! grep -qE \"^token: *['\\\"]?[A-Za-z0-9]\" data/creds.yml; then if ./NadekoBot --commandlist /tmp/raptor-commands.json >/dev/null 2>&1 && [ -s /tmp/raptor-commands.json ]; then echo \"NadekoBot works, but needs a Discord bot token: set it in Startup (or in data/creds.yml), then restart the server.\"; exec sleep infinity; else echo \"NadekoBot could not load its commands. Reinstall the server to repair it.\"; exit 1; fi; fi; exec ./NadekoBot",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:Shard \\\\d+ ready\", \"regex:^[^\\\"]*NadekoBot works, but needs a Discord bot token\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# NadekoBot: downloads the chosen release from GitHub (checked against\n# GitHub's checksum), with the FFmpeg, yt-dlp and Deno its music commands\n# use. Everything in data/ that's already there (creds.yml, the database,\n# configs, medusae) is kept; only files the release adds are copied in, and\n# the voice libraries in data/lib are always replaced.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=x64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"This server's CPU ($(uname -m)) isn't supported.\" ;;\nesac\ndownload() {\n    curl -fsSL -o \"$2.part\" \"$1\" || { rm -f \"$2.part\"; fail \"The download failed ($1). Reinstall to try again.\"; }\n    if [ -n \"${3:-}\" ] && [ \"$(sha256sum \"$2.part\" | cut -d' ' -f1)\" != \"$3\" ]; then\n        rm -f \"$2.part\"; fail \"The download didn't match its checksum. Reinstall to try again.\"\n    fi\n    mv -f \"$2.part\" \"$2\"\n}\n\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\ntag=$(gh-release tag nadeko-bot/nadekobot \"$want\") || fail \"There's no NadekoBot release $want. Set Version to latest, or to a release such as 7.10.2, then reinstall.\"\nasset=\"nadeko-linux-$arch.tar.gz\"\n\nif [ -x NadekoBot ] && [ \"$(cat .raptor-nadeko 2>/dev/null)\" = \"$tag $arch\" ]; then\n    echo \"NadekoBot $tag is already installed.\"\nelse\n    echo \"Downloading NadekoBot $tag\"\n    gh-release download nadeko-bot/nadekobot \"$tag\" \"$asset\" \"$work/nadeko.tar.gz\" || fail \"NadekoBot $tag couldn't be downloaded. Reinstall to try again.\"\n    mkdir \"$work/new\"\n    tar -xzf \"$work/nadeko.tar.gz\" -C \"$work/new\" --strip-components=1\n    rm -f \"$work/nadeko.tar.gz\"\n    [ -x \"$work/new/NadekoBot\" ] || fail \"The NadekoBot $tag download has no NadekoBot program in it.\"\n    # The program: files from the last release that this one dropped go,\n    # the rest are replaced. data/ is the bot's own and is handled below.\n    if [ -f .raptor-files ]; then\n        while IFS= read -r e; do\n            if [ -n \"$e\" ] && [ \"$e\" != data ] && [ ! -e \"$work/new/$e\" ]; then rm -rf -- \"./$e\"; fi\n        done < .raptor-files\n    fi\n    find \"$work/new\" -mindepth 1 -maxdepth 1 ! -name data -printf '%f\\n' > \"$work/files\"\n    while IFS= read -r e; do\n        rm -rf -- \"./$e\"\n        mv \"$work/new/$e\" \"./$e\"\n    done < \"$work/files\"\n    mv -f \"$work/files\" .raptor-files\n    # data/: new files only, never the owner's; the voice libraries and the\n    # command list always come from the release.\n    mkdir -p data/lib\n    cp -Rn \"$work/new/data/.\" data/\n    cp -f \"$work/new/data/lib/\"*.so data/lib/\n    cp -f \"$work/new/data/commandlist.json\" data/ 2>/dev/null || true\n    echo \"$tag $arch\" > .raptor-nadeko\nfi\nmkdir -p data/lib bin\n[ -f data/creds.yml ] || cp data/creds_example.yml data/creds.yml\n\n# The arm64 release ships x86 voice libraries: use Debian's Opus and\n# libsodium and Discord's own libdave (the same ones NadekoBot's Docker\n# image uses) instead.\nif [ \"$arch\" = arm64 ] && [ \"$(cat data/lib/.raptor-arm64 2>/dev/null)\" != \"$tag\" ]; then\n    echo \"Downloading the voice libraries for arm64\"\n    apt-get update -qq >/dev/null 2>&1 || fail \"Debian's package mirror can't be reached right now. Reinstall to try again.\"\n    (cd \"$work\" && apt-get download -qq libopus0 libsodium23 >/dev/null 2>&1) || fail \"Opus and libsodium couldn't be downloaded. Reinstall to try again.\"\n    mkdir \"$work/deb\"\n    for d in \"$work\"/*.deb; do dpkg-deb -x \"$d\" \"$work/deb\"; done\n    cp -fL \"$work\"/deb/usr/lib/aarch64-linux-gnu/libopus.so.0 data/lib/opus.so\n    cp -fL \"$work\"/deb/usr/lib/aarch64-linux-gnu/libsodium.so.23 data/lib/libsodium.so\n    gh-release download discord/libdave v1.1.1/cpp libdave-Linux-ARM64-boringssl.zip \"$work/libdave.zip\" || fail \"libdave couldn't be downloaded. Reinstall to try again.\"\n    unzip -qo \"$work/libdave.zip\" -d \"$work/libdave\"\n    find \"$work/libdave\" -name libdave.so -exec cp -f {} data/lib/libdave.so \\;\n    echo \"$tag\" > data/lib/.raptor-arm64\nfi\n\n# FFmpeg: the newest release build for Linux.\nff=https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/latest\ncase \"$arch\" in x64) ffa=linux64 ;; arm64) ffa=linuxarm64 ;; esac\nsums=$(curl -fsSL \"$ff/checksums.sha256\") || fail \"FFmpeg's builds can't be reached right now. Reinstall to try again.\"\nline=$(grep -E \"  ffmpeg-n[0-9.]+-latest-$ffa-gpl-[0-9.]+\\.tar\\.xz$\" <<<\"$sums\" | sort -V -k2 | tail -n1)\n[ -n \"$line\" ] || fail \"There's no FFmpeg build for this CPU ($arch) right now. Reinstall to try again later.\"\nffsum=\"${line%% *}\"; ffname=\"${line##* }\"\nif [ -x bin/ffmpeg ] && [ \"$(cat bin/.ffmpeg 2>/dev/null)\" = \"$ffsum\" ]; then\n    echo \"FFmpeg is up to date.\"\nelse\n    echo \"Downloading FFmpeg (${ffname%.tar.xz})\"\n    download \"$ff/$ffname\" \"$work/ffmpeg.tar.xz\" \"$ffsum\"\n    mkdir \"$work/ffmpeg\"\n    tar -xJf \"$work/ffmpeg.tar.xz\" -C \"$work/ffmpeg\" --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe'\n    mv -f \"$work/ffmpeg/ffmpeg\" \"$work/ffmpeg/ffprobe\" bin/\n    echo \"$ffsum\" > bin/.ffmpeg\nfi\n\n# yt-dlp: the newest release.\ncase \"$arch\" in x64) yta=yt-dlp_linux ;; arm64) yta=yt-dlp_linux_aarch64 ;; esac\nyt=https://github.com/yt-dlp/yt-dlp/releases/latest/download\nytsum=$(curl -fsSL \"$yt/SHA2-256SUMS\" | awk -v n=\"$yta\" '$2 == n { print $1 }') || true\n[ -n \"$ytsum\" ] || fail \"yt-dlp's releases can't be reached right now. Reinstall to try again.\"\nif [ -x bin/yt-dlp ] && [ \"$(sha256sum bin/yt-dlp | cut -d' ' -f1)\" = \"$ytsum\" ]; then\n    echo \"yt-dlp is up to date.\"\nelse\n    echo \"Downloading yt-dlp\"\n    download \"$yt/$yta\" bin/yt-dlp \"$ytsum\"\n    chmod +x bin/yt-dlp\nfi\n\n# Deno: yt-dlp needs a JavaScript runtime to read YouTube.\ndtag=$(gh-release tag denoland/deno latest) || fail \"Deno's releases can't be reached right now. Reinstall to try again.\"\ncase \"$arch\" in x64) da=deno-x86_64-unknown-linux-gnu.zip ;; arm64) da=deno-aarch64-unknown-linux-gnu.zip ;; esac\nif [ -x bin/deno ] && [ \"$(cat bin/.deno 2>/dev/null)\" = \"$dtag\" ]; then\n    echo \"Deno is up to date.\"\nelse\n    echo \"Downloading Deno $dtag\"\n    gh-release download denoland/deno \"$dtag\" \"$da\" \"$work/deno.zip\" || fail \"Deno couldn't be downloaded. Reinstall to try again.\"\n    unzip -qo \"$work/deno.zip\" -d \"$work/deno\"\n    mv -f \"$work/deno/deno\" bin/deno\n    chmod +x bin/deno\n    echo \"$dtag\" > bin/.deno\nfi\necho \"Installed NadekoBot $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Discord bot token",
+            "description": "The bot's token, from the Discord Developer Portal. Leave it empty to use the one in data/creds.yml.",
+            "env_variable": "BOT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Owner ID",
+            "description": "Your Discord user ID, which may use the bot's owner commands. More owners go in data/creds.yml.",
+            "env_variable": "BOT_OWNERIDS__0",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^\\d{17,20}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Update yt-dlp at start",
+            "description": "Update yt-dlp when the bot starts, since YouTube changes often.",
+            "env_variable": "YT_DLP_AUTO_UPDATE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The NadekoBot version to install, such as 7.10.2, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}

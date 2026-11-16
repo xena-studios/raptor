@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Modmail's own install guide.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Modmail",
+    "author": "support@raptorpanel.net",
+    "description": "Modmail is a Discord bot that turns members' direct messages into threads your staff answer together. It needs a Discord bot token and a MongoDB database, such as a free MongoDB Atlas one.",
+    "features": [],
+    "docker_images": {
+        "Python 3.11": "ghcr.io/pelican-eggs/yolks:python_3.11@sha256:4dcb3f7451d69eff90ab4e17adb132aa46e801788751bb03d82922781b26412c"
+    },
+    "file_denylist": [],
+    "startup": "export PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_DISABLE_PIP_VERSION_CHECK=1 DISABLE_AUTOUPDATES=true DISABLE_UPDATES=true; h=$( (python3 --version; cat requirements.txt) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Modmail's dependencies\"; rm -rf .venv; { python3 -m venv .venv && .venv/bin/pip install -q --no-cache-dir -r requirements.txt && echo \"$h\" > .venv/.raptor-installed; } || exit 1; fi; for v in TOKEN CONNECTION_URI GUILD_ID OWNERS LOG_URL; do [ -n \"${!v}\" ] || unset $v; done; need=; for v in TOKEN CONNECTION_URI GUILD_ID OWNERS; do [ -n \"${!v:-}\" ] || grep -qE \"^$v=.+\" .env 2>/dev/null || need=1; done; if [ -n \"$need\" ]; then if .venv/bin/python -c \"import discord, motor, cairosvg, lottie\" 2>/dev/null; then echo \"Modmail is installed, but needs a Discord bot token, a MongoDB connection string, a server ID and owner IDs: set them in Startup, then restart the server.\"; exec sleep infinity; else echo \"Modmail's dependencies are broken. Restart the server to install them again.\"; rm -f .venv/.raptor-installed; exit 1; fi; fi; exec .venv/bin/python bot.py",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:Logged in as: \", \"regex:^Modmail is installed, but needs\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Modmail: downloads the chosen release's source from GitHub. .env,\n# installed plugins and everything else of the owner's are kept; its\n# Python dependencies are installed when the server starts, for the Python\n# it runs on. Its settings and threads live in the owner's MongoDB.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag modmail-dev/Modmail \"$tag\") || fail \"There's no Modmail release $want. Set Version to latest, or to a release such as 4.2.1, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -f bot.py ] && [ \"$(cat .raptor-modmail 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Modmail $version is already installed.\"\nelse\n    echo \"Downloading Modmail $version\"\n    curl -fsSL -o \"$work/modmail.tar.gz\" \"https://github.com/modmail-dev/Modmail/archive/refs/tags/$tag.tar.gz\" || fail \"Modmail $version couldn't be downloaded. Reinstall to try again.\"\n    mkdir \"$work/new\"\n    tar -xzf \"$work/modmail.tar.gz\" -C \"$work/new\" --strip-components=1\n    [ -f \"$work/new/bot.py\" ] && [ -f \"$work/new/requirements.txt\" ] || fail \"The Modmail $version download isn't a Modmail release.\"\n    rm -rf \"$work/new/.github\" \"$work/new/Dockerfile\" \"$work/new/docker-compose.yml\" \"$work/new/.dockerignore\" \"$work/new/app.json\" \"$work/new/Procfile\"\n    # The program: files from the last release that this one dropped go,\n    # the rest are replaced. Plugins the owner installed stay; the plugin\n    # registry comes from the release.\n    if [ -f .raptor-files ]; then\n        while IFS= read -r e; do\n            if [ -n \"$e\" ] && [ \"$e\" != plugins ] && [ ! -e \"$work/new/$e\" ]; then rm -rf -- \"./$e\"; fi\n        done < .raptor-files\n    fi\n    find \"$work/new\" -mindepth 1 -maxdepth 1 ! -name plugins -printf '%f\\n' > \"$work/files\"\n    while IFS= read -r e; do\n        rm -rf -- \"./$e\"\n        mv \"$work/new/$e\" \"./$e\"\n    done < \"$work/files\"\n    echo plugins >> \"$work/files\"\n    mkdir -p plugins\n    cp -Rn \"$work/new/plugins/.\" plugins/\n    cp -f \"$work/new/plugins/registry.json\" plugins/\n    mv -f \"$work/files\" .raptor-files\n    echo \"$tag\" > .raptor-modmail\nfi\necho \"Installed Modmail $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Discord bot token",
+            "description": "The bot's token, from the Discord Developer Portal, with the server members and message content intents on.",
+            "env_variable": "TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "MongoDB connection string",
+            "description": "Where Modmail keeps its settings and threads, such as mongodb+srv://user:password@cluster.mongodb.net.",
+            "env_variable": "CONNECTION_URI",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500|regex:/^mongodb(\\+srv)?:\\/\\//",
+            "field_type": "text"
+        },
+        {
+            "name": "Server ID",
+            "description": "The ID of the Discord server members message the bot from.",
+            "env_variable": "GUILD_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^\\d{17,20}$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Owner IDs",
+            "description": "The Discord user IDs of the bot's owners, separated by commas.",
+            "env_variable": "OWNERS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300|regex:/^\\d{17,20}(\\s*,\\s*\\d{17,20})*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Log viewer address",
+            "description": "The address of your Modmail log viewer, if you run one, for links to closed threads.",
+            "env_variable": "LOG_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\//",
+            "field_type": "text"
+        },
+        {
+            "name": "Send usage data",
+            "description": "Send anonymous usage data (server and member counts) to Modmail's developers once an hour.",
+            "env_variable": "DATA_COLLECTION",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The Modmail version to install, such as 4.2.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}
