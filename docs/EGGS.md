@@ -395,7 +395,7 @@ x-raptor:
 
 ### Workshop items in a config file
 
-Games that read their items from a config file instead of the command line say which file and how it lists them, under `file` in place of `variable` (#408, DECISIONS #363):
+Games that read their items from a config file instead of the command line say which file and how it lists them, under `file` in place of `variable` (#408, DECISIONS #366):
 
 ```yaml
 x-raptor:
