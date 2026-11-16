@@ -6,13 +6,13 @@
     "exported_at": "2026-11-15T00:00:00+00:00",
     "name": "Enshrouded",
     "author": "support@raptorpanel.net",
-    "description": "The voxel survival action RPG for up to 16 players. Installs the Windows dedicated server with SteamCMD, runs it under Proton and keeps it updated.",
+    "description": "The voxel survival action RPG for up to 16 players. Installs the Windows dedicated server with SteamCMD, runs it under Wine and keeps it updated.",
     "features": [],
     "docker_images": {
-        "Proton": "ghcr.io/pelican-eggs/steamcmd:proton@sha256:099a9eba9b0e623c124680fd011948d09b2f5b24f49b0776b5821ff35e5b2530"
+        "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
     },
     "file_denylist": [],
-    "startup": "export PROTON_USE_XALIA=0; rm -f logs/enshrouded_server.log; proton run ./enshrouded_server.exe & pid=$!; tail -n +1 -F logs/enshrouded_server.log --pid=$pid 2>/dev/null",
+    "startup": "python3 .raptor-groups.py || exit 1; rm -f logs/enshrouded_server.log; mkdir -p logs; touch logs/enshrouded_server.log; set -m; wine ./enshrouded_server.exe > logs/wine.log 2>&1 & pid=$!; trap \"kill -INT $pid\" INT TERM; tail -n +1 -F logs/enshrouded_server.log --pid=$pid & rc=0; while kill -0 $pid 2>/dev/null; do wait $pid; rc=$?; done; [ \"$rc\" = 0 ] || { echo \"The server stopped with code $rc. Wine's last lines:\"; grep -v \"Crypto API failed\" logs/wine.log | tail -n 20; exit $rc; }",
     "config": {
         "files": "{\"enshrouded_server.json\": {\"parser\": \"json\", \"find\": {\"name\": \"{{server.build.env.SRV_NAME}}\", \"queryPort\": \"{{server.build.default.port}}\", \"slotCount\": \"{{server.build.env.MAX_PLAYERS}}\", \"userGroups[0].password\": \"{{server.build.env.SRV_PW}}\", \"userGroups[1].password\": \"{{server.build.env.SRV_PW2}}\", \"userGroups[2].password\": \"{{server.build.env.SRV_PW3}}\", \"userGroups[3].password\": \"{{server.build.env.SRV_PW4}}\"}}}",
         "startup": "{\"done\": \"[Session] 'HostOnline' (up)!\"}",
@@ -21,7 +21,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\n# Enshrouded. Installs or updates the dedicated server (Steam app 2278520) with\n# SteamCMD, signed in anonymously. Saves and the\n# settings the Panel doesn't own are never touched.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-2278520}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+@sSteamCmdForcePlatformType windows +force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# Enshrouded reads enshrouded_server.json. Write one when there's none, with\n# the four player groups whose passwords the Panel sets.\ncfg=enshrouded_server.json\ngroup() {\n    jq -n --arg n \"$1\" --argjson all \"$2\" --argjson kick \"$3\" --argjson slots \"$4\" \\\n        '{name: $n, password: \"\", canKickBan: $kick, canAccessInventories: $all, canEditWorld: $all, canEditBase: $all, canExtendBase: $all, reservedSlots: $slots}'\n}\ngroups=$(jq -s . <(group Admin true true 0) <(group Friend true false 1) <(group Guest false false 0) <(group Visitor false false 0))\nif [ ! -f \"$cfg\" ]; then\n    jq -n --argjson g \"$groups\" '{name: \"An Enshrouded server\", saveDirectory: \"./savegame\", logDirectory: \"./logs\",\n        ip: \"0.0.0.0\", queryPort: 15637, slotCount: 16, gameSettingsPreset: \"Default\", userGroups: $g}' > \"$cfg\"\n    echo \"Made enshrouded_server.json.\"\nelif ! jq -e '.userGroups | length >= 4' \"$cfg\" >/dev/null 2>&1; then\n    # A config from before player groups: add them, keeping everything else.\n    jq --argjson g \"$groups\" '.userGroups = $g | del(.password, .gamePort)' \"$cfg\" > \"$cfg.new\" && mv \"$cfg.new\" \"$cfg\"\n    echo \"Added the player groups to enshrouded_server.json.\"\nfi\nmkdir -p savegame logs\necho \"Installed Enshrouded build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "script": "#!/bin/bash\n# Enshrouded. Installs or updates the dedicated server (Steam app 2278520) with\n# SteamCMD, signed in anonymously. Saves and the\n# settings the Panel doesn't own are never touched.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-2278520}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+@sSteamCmdForcePlatformType windows +force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# Enshrouded reads enshrouded_server.json. Write one when there's none, with\n# the four player groups whose passwords the Panel sets.\ncfg=enshrouded_server.json\ngroup() {\n    jq -n --arg n \"$1\" --argjson all \"$2\" --argjson kick \"$3\" --argjson slots \"$4\" \\\n        '{name: $n, password: \"\", canKickBan: $kick, canAccessInventories: $all, canEditWorld: $all, canEditBase: $all, canExtendBase: $all, reservedSlots: $slots}'\n}\ngroups=$(jq -s . <(group Admin true true 0) <(group Friend true false 1) <(group Guest false false 0) <(group Visitor false false 0))\nif [ ! -f \"$cfg\" ]; then\n    jq -n --argjson g \"$groups\" '{name: \"An Enshrouded server\", saveDirectory: \"./savegame\", logDirectory: \"./logs\",\n        ip: \"0.0.0.0\", queryPort: 15637, slotCount: 16, gameSettingsPreset: \"Default\", userGroups: $g}' > \"$cfg\"\n    echo \"Made enshrouded_server.json.\"\nelif ! jq -e '.userGroups | length >= 4' \"$cfg\" >/dev/null 2>&1; then\n    # A config from before player groups: add them, keeping everything else.\n    jq --argjson g \"$groups\" '.userGroups = $g | del(.password, .gamePort)' \"$cfg\" > \"$cfg.new\" && mv \"$cfg.new\" \"$cfg\"\n    echo \"Added the player groups to enshrouded_server.json.\"\nfi\nmkdir -p savegame logs\n# Enshrouded refuses a config where two groups share a password or more than\n# one group has none. The Panel writes the passwords at every start; this runs\n# after it: the most trusted group without a password stays open to anyone\n# (lower ones would add nothing), the others get a random password nobody\n# knows, and two groups with the same password stop the start with a message.\ncat > .raptor-groups.py <<'EOF'\nimport json, secrets, sys\npath = \"enshrouded_server.json\"\ncfg = json.load(open(path))\ngroups = cfg.get(\"userGroups\", [])\nset_pw = [g[\"password\"] for g in groups if g.get(\"password\")]\nif len(set_pw) != len(set(set_pw)):\n    print(\"Two player groups have the same password. Give each group its own password, then start again.\")\n    sys.exit(1)\nopen_group = None\nfor g in groups:\n    if not g.get(\"password\"):\n        if open_group is None:\n            open_group = g.get(\"name\")\n        else:\n            g[\"password\"] = \"closed-\" + secrets.token_hex(12)\nwith open(path, \"w\") as f:\n    json.dump(cfg, f, indent=2)\nif open_group:\n    print(f\"Anyone can join as {open_group}: that group has no password.\")\nEOF\necho \"Installed Enshrouded build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
             "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
             "entrypoint": "bash"
         }
@@ -59,7 +59,7 @@
         },
         {
             "name": "Friend password",
-            "description": "Players joining with it can build and use chests. Empty lets anyone join as a friend.",
+            "description": "Players joining with it can build and use chests. Empty lets anyone join as a friend. Only the most trusted group without a password is open.",
             "env_variable": "SRV_PW2",
             "default_value": "",
             "user_viewable": true,
@@ -69,7 +69,7 @@
         },
         {
             "name": "Guest password",
-            "description": "Players joining with it can play but not build or open chests. Empty lets anyone join as a guest.",
+            "description": "Players joining with it can play but not build or open chests. Empty lets anyone join as a guest. Only the most trusted group without a password is open.",
             "env_variable": "SRV_PW3",
             "default_value": "",
             "user_viewable": true,
@@ -79,7 +79,7 @@
         },
         {
             "name": "Visitor password",
-            "description": "Players joining with it can only look around. Empty lets anyone join as a visitor.",
+            "description": "Players joining with it can only look around. Empty lets anyone join as a visitor. Only the most trusted group without a password is open.",
             "env_variable": "SRV_PW4",
             "default_value": "",
             "user_viewable": true,
@@ -92,16 +92,6 @@
             "description": "Update the game from Steam every time the server starts.",
             "env_variable": "AUTO_UPDATE",
             "default_value": "1",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|boolean",
-            "field_type": "text"
-        },
-        {
-            "name": "Validate files",
-            "description": "Check every game file against Steam when installing or updating, which repairs damaged files but takes longer.",
-            "env_variable": "VALIDATE",
-            "default_value": "0",
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|boolean",
@@ -139,12 +129,22 @@
         },
         {
             "name": "Windows install",
-            "description": "Install the Windows version of the server, which runs under Proton.",
+            "description": "Install the Windows version of the server, which runs under Wine.",
             "env_variable": "WINDOWS_INSTALL",
             "default_value": "1",
             "user_viewable": false,
             "user_editable": false,
             "rules": "required|string|in:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine debug",
+            "description": "What Wine logs; -all keeps its messages out of the console.",
+            "env_variable": "WINEDEBUG",
+            "default_value": "-all",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|max:64",
             "field_type": "text"
         }
     ],

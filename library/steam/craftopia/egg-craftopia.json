@@ -12,12 +12,12 @@
         "SteamCMD": "ghcr.io/pelican-eggs/steamcmd:debian@sha256:c59cff8cd1202c8f283b8b36344166a9fc16e3f781aa1be7d10187cd9d7566d8"
     },
     "file_denylist": [],
-    "startup": "exec ./Craftopia.x86_64 -batchmode -nographics",
+    "startup": "d=.config/unity3d/PocketPair/Craftopia/Logs_DS; mkdir -p \"$d\"; touch .raptor-start; (until f=$(find \"$d\" -name \"PlayerLog_*.log\" -newer .raptor-start | head -n 1); [ -n \"$f\" ]; do kill -0 $$ 2>/dev/null || exit; sleep 1; done; tail -n +1 -F \"$f\" --pid=$$ 2>/dev/null | sed -u -e \"s/\\x00//g\") & ./Craftopia.x86_64 -batchmode -nographics 2>&1 | grep -av --line-buffered \"Shader\\|#pragma\\|Fallback off\\|No mesh data\\|BlitCopy\\|Convex Mesh\"",
     "config": {
         "files": "{\"ServerSetting.ini\": {\"parser\": \"ini\", \"find\": {\"GameWorld.name\": \"{{server.build.env.WORLD_NAME}}\", \"Host.port\": \"{{server.build.default.port}}\", \"Host.maxPlayerNumber\": \"{{server.build.env.MAX_PLAYERS}}\", \"Save.savePath\": \"/home/container/DedicatedServerSave/\"}}}",
         "startup": "{\"done\": \"World is loaded!\"}",
         "logs": "{}",
-        "stop": "^C"
+        "stop": "stop"
     },
     "scripts": {
         "installation": {

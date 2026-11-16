@@ -10,4 +10,6 @@ arch: [amd64]
 test:
   tier: slow
   memory_mib: 6144
-  done_timeout: 60m
+  done_timeout: 30m
+  command: "version"
+  expect: "Version :"
