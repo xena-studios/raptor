@@ -24,6 +24,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/discord"
 	"github.com/xena-studios/raptor/internal/panel/factorio"
+	"github.com/xena-studios/raptor/internal/panel/gameversions"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/live"
@@ -84,6 +85,8 @@ type Config struct {
 	UMod *umod.Client
 	// Factorio is Factorio's mod portal (nil: mods.factorio.com).
 	Factorio *factorio.Client
+	// Versions lists game software's versions (nil: their own APIs).
+	Versions *gameversions.Client
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -177,8 +180,12 @@ func Handler(cfg Config) http.Handler {
 		if fa == nil {
 			fa = &factorio.Client{UserAgent: ua}
 		}
+		gv := cfg.Versions
+		if gv == nil {
+			gv = &gameversions.Client{UserAgent: ua}
+		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {

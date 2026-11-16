@@ -1334,6 +1334,156 @@ func (x *ResolveAddonDependenciesResponse) GetUnavailable() []*AddonProject {
 	return nil
 }
 
+type ListGameVersionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListGameVersionsRequest) Reset() {
+	*x = ListGameVersionsRequest{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListGameVersionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListGameVersionsRequest) ProtoMessage() {}
+
+func (x *ListGameVersionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListGameVersionsRequest.ProtoReflect.Descriptor instead.
+func (*ListGameVersionsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListGameVersionsRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *ListGameVersionsRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+type GameVersion struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// A release, not a snapshot, pre-release, or release candidate.
+	Stable        bool `protobuf:"varint,2,opt,name=stable,proto3" json:"stable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GameVersion) Reset() {
+	*x = GameVersion{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GameVersion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GameVersion) ProtoMessage() {}
+
+func (x *GameVersion) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GameVersion.ProtoReflect.Descriptor instead.
+func (*GameVersion) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GameVersion) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *GameVersion) GetStable() bool {
+	if x != nil {
+		return x.Stable
+	}
+	return false
+}
+
+type ListGameVersionsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Newest first.
+	Versions      []*GameVersion `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListGameVersionsResponse) Reset() {
+	*x = ListGameVersionsResponse{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListGameVersionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListGameVersionsResponse) ProtoMessage() {}
+
+func (x *ListGameVersionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListGameVersionsResponse.ProtoReflect.Descriptor instead.
+func (*ListGameVersionsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListGameVersionsResponse) GetVersions() []*GameVersion {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
 var File_raptor_panel_v1_addon_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_addon_proto_rawDesc = "" +
@@ -1459,13 +1609,22 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"\brequired\x18\x01 \x03(\v2\x1e.raptor.panel.v1.ResolvedAddonR\brequired\x12:\n" +
 	"\boptional\x18\x02 \x03(\v2\x1e.raptor.panel.v1.ResolvedAddonR\boptional\x12A\n" +
 	"\fincompatible\x18\x03 \x03(\v2\x1d.raptor.panel.v1.AddonProjectR\fincompatible\x12?\n" +
-	"\vunavailable\x18\x04 \x03(\v2\x1d.raptor.panel.v1.AddonProjectR\vunavailable2\xc7\x04\n" +
+	"\vunavailable\x18\x04 \x03(\v2\x1d.raptor.panel.v1.AddonProjectR\vunavailable\"H\n" +
+	"\x17ListGameVersionsRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\"5\n" +
+	"\vGameVersion\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06stable\x18\x02 \x01(\bR\x06stable\"T\n" +
+	"\x18ListGameVersionsResponse\x128\n" +
+	"\bversions\x18\x01 \x03(\v2\x1c.raptor.panel.v1.GameVersionR\bversions2\xb5\x05\n" +
 	"\fAddonService\x12`\n" +
 	"\fSearchAddons\x12$.raptor.panel.v1.SearchAddonsRequest\x1a%.raptor.panel.v1.SearchAddonsResponse\"\x03\x90\x02\x01\x12o\n" +
 	"\x11ListAddonVersions\x12).raptor.panel.v1.ListAddonVersionsRequest\x1a*.raptor.panel.v1.ListAddonVersionsResponse\"\x03\x90\x02\x01\x12f\n" +
 	"\x0eIdentifyAddons\x12&.raptor.panel.v1.IdentifyAddonsRequest\x1a'.raptor.panel.v1.IdentifyAddonsResponse\"\x03\x90\x02\x01\x12u\n" +
 	"\x13LookupWorkshopItems\x12+.raptor.panel.v1.LookupWorkshopItemsRequest\x1a,.raptor.panel.v1.LookupWorkshopItemsResponse\"\x03\x90\x02\x01\x12\x84\x01\n" +
-	"\x18ResolveAddonDependencies\x120.raptor.panel.v1.ResolveAddonDependenciesRequest\x1a1.raptor.panel.v1.ResolveAddonDependenciesResponse\"\x03\x90\x02\x01B\xca\x01\n" +
+	"\x18ResolveAddonDependencies\x120.raptor.panel.v1.ResolveAddonDependenciesRequest\x1a1.raptor.panel.v1.ResolveAddonDependenciesResponse\"\x03\x90\x02\x01\x12l\n" +
+	"\x10ListGameVersions\x12(.raptor.panel.v1.ListGameVersionsRequest\x1a).raptor.panel.v1.ListGameVersionsResponse\"\x03\x90\x02\x01B\xca\x01\n" +
 	"\x13com.raptor.panel.v1B\n" +
 	"AddonProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
@@ -1481,7 +1640,7 @@ func file_raptor_panel_v1_addon_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_addon_proto_rawDescData
 }
 
-var file_raptor_panel_v1_addon_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_raptor_panel_v1_addon_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_raptor_panel_v1_addon_proto_goTypes = []any{
 	(*AddonProject)(nil),                     // 0: raptor.panel.v1.AddonProject
 	(*AddonDependency)(nil),                  // 1: raptor.panel.v1.AddonDependency
@@ -1500,25 +1659,28 @@ var file_raptor_panel_v1_addon_proto_goTypes = []any{
 	(*ResolveAddonDependenciesRequest)(nil),  // 14: raptor.panel.v1.ResolveAddonDependenciesRequest
 	(*ResolvedAddon)(nil),                    // 15: raptor.panel.v1.ResolvedAddon
 	(*ResolveAddonDependenciesResponse)(nil), // 16: raptor.panel.v1.ResolveAddonDependenciesResponse
-	nil,                                      // 17: raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
-	nil,                                      // 18: raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
-	nil,                                      // 19: raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
-	(*timestamppb.Timestamp)(nil),            // 20: google.protobuf.Timestamp
+	(*ListGameVersionsRequest)(nil),          // 17: raptor.panel.v1.ListGameVersionsRequest
+	(*GameVersion)(nil),                      // 18: raptor.panel.v1.GameVersion
+	(*ListGameVersionsResponse)(nil),         // 19: raptor.panel.v1.ListGameVersionsResponse
+	nil,                                      // 20: raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
+	nil,                                      // 21: raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
+	nil,                                      // 22: raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
+	(*timestamppb.Timestamp)(nil),            // 23: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_addon_proto_depIdxs = []int32{
-	20, // 0: raptor.panel.v1.AddonVersion.published_at:type_name -> google.protobuf.Timestamp
+	23, // 0: raptor.panel.v1.AddonVersion.published_at:type_name -> google.protobuf.Timestamp
 	2,  // 1: raptor.panel.v1.AddonVersion.file:type_name -> raptor.panel.v1.AddonFile
 	1,  // 2: raptor.panel.v1.AddonVersion.dependencies:type_name -> raptor.panel.v1.AddonDependency
 	0,  // 3: raptor.panel.v1.SearchAddonsResponse.projects:type_name -> raptor.panel.v1.AddonProject
 	3,  // 4: raptor.panel.v1.ListAddonVersionsResponse.versions:type_name -> raptor.panel.v1.AddonVersion
-	17, // 5: raptor.panel.v1.IdentifyAddonsRequest.sha256:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
-	18, // 6: raptor.panel.v1.IdentifyAddonsRequest.names:type_name -> raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
-	19, // 7: raptor.panel.v1.IdentifyAddonsRequest.sha1:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
+	20, // 5: raptor.panel.v1.IdentifyAddonsRequest.sha256:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
+	21, // 6: raptor.panel.v1.IdentifyAddonsRequest.names:type_name -> raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
+	22, // 7: raptor.panel.v1.IdentifyAddonsRequest.sha1:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
 	0,  // 8: raptor.panel.v1.IdentifiedAddon.project:type_name -> raptor.panel.v1.AddonProject
 	3,  // 9: raptor.panel.v1.IdentifiedAddon.version:type_name -> raptor.panel.v1.AddonVersion
 	3,  // 10: raptor.panel.v1.IdentifiedAddon.latest:type_name -> raptor.panel.v1.AddonVersion
 	9,  // 11: raptor.panel.v1.IdentifyAddonsResponse.addons:type_name -> raptor.panel.v1.IdentifiedAddon
-	20, // 12: raptor.panel.v1.WorkshopItem.updated_at:type_name -> google.protobuf.Timestamp
+	23, // 12: raptor.panel.v1.WorkshopItem.updated_at:type_name -> google.protobuf.Timestamp
 	12, // 13: raptor.panel.v1.LookupWorkshopItemsResponse.items:type_name -> raptor.panel.v1.WorkshopItem
 	0,  // 14: raptor.panel.v1.ResolvedAddon.project:type_name -> raptor.panel.v1.AddonProject
 	3,  // 15: raptor.panel.v1.ResolvedAddon.version:type_name -> raptor.panel.v1.AddonVersion
@@ -1526,21 +1688,24 @@ var file_raptor_panel_v1_addon_proto_depIdxs = []int32{
 	15, // 17: raptor.panel.v1.ResolveAddonDependenciesResponse.optional:type_name -> raptor.panel.v1.ResolvedAddon
 	0,  // 18: raptor.panel.v1.ResolveAddonDependenciesResponse.incompatible:type_name -> raptor.panel.v1.AddonProject
 	0,  // 19: raptor.panel.v1.ResolveAddonDependenciesResponse.unavailable:type_name -> raptor.panel.v1.AddonProject
-	4,  // 20: raptor.panel.v1.AddonService.SearchAddons:input_type -> raptor.panel.v1.SearchAddonsRequest
-	6,  // 21: raptor.panel.v1.AddonService.ListAddonVersions:input_type -> raptor.panel.v1.ListAddonVersionsRequest
-	8,  // 22: raptor.panel.v1.AddonService.IdentifyAddons:input_type -> raptor.panel.v1.IdentifyAddonsRequest
-	11, // 23: raptor.panel.v1.AddonService.LookupWorkshopItems:input_type -> raptor.panel.v1.LookupWorkshopItemsRequest
-	14, // 24: raptor.panel.v1.AddonService.ResolveAddonDependencies:input_type -> raptor.panel.v1.ResolveAddonDependenciesRequest
-	5,  // 25: raptor.panel.v1.AddonService.SearchAddons:output_type -> raptor.panel.v1.SearchAddonsResponse
-	7,  // 26: raptor.panel.v1.AddonService.ListAddonVersions:output_type -> raptor.panel.v1.ListAddonVersionsResponse
-	10, // 27: raptor.panel.v1.AddonService.IdentifyAddons:output_type -> raptor.panel.v1.IdentifyAddonsResponse
-	13, // 28: raptor.panel.v1.AddonService.LookupWorkshopItems:output_type -> raptor.panel.v1.LookupWorkshopItemsResponse
-	16, // 29: raptor.panel.v1.AddonService.ResolveAddonDependencies:output_type -> raptor.panel.v1.ResolveAddonDependenciesResponse
-	25, // [25:30] is the sub-list for method output_type
-	20, // [20:25] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	18, // 20: raptor.panel.v1.ListGameVersionsResponse.versions:type_name -> raptor.panel.v1.GameVersion
+	4,  // 21: raptor.panel.v1.AddonService.SearchAddons:input_type -> raptor.panel.v1.SearchAddonsRequest
+	6,  // 22: raptor.panel.v1.AddonService.ListAddonVersions:input_type -> raptor.panel.v1.ListAddonVersionsRequest
+	8,  // 23: raptor.panel.v1.AddonService.IdentifyAddons:input_type -> raptor.panel.v1.IdentifyAddonsRequest
+	11, // 24: raptor.panel.v1.AddonService.LookupWorkshopItems:input_type -> raptor.panel.v1.LookupWorkshopItemsRequest
+	14, // 25: raptor.panel.v1.AddonService.ResolveAddonDependencies:input_type -> raptor.panel.v1.ResolveAddonDependenciesRequest
+	17, // 26: raptor.panel.v1.AddonService.ListGameVersions:input_type -> raptor.panel.v1.ListGameVersionsRequest
+	5,  // 27: raptor.panel.v1.AddonService.SearchAddons:output_type -> raptor.panel.v1.SearchAddonsResponse
+	7,  // 28: raptor.panel.v1.AddonService.ListAddonVersions:output_type -> raptor.panel.v1.ListAddonVersionsResponse
+	10, // 29: raptor.panel.v1.AddonService.IdentifyAddons:output_type -> raptor.panel.v1.IdentifyAddonsResponse
+	13, // 30: raptor.panel.v1.AddonService.LookupWorkshopItems:output_type -> raptor.panel.v1.LookupWorkshopItemsResponse
+	16, // 31: raptor.panel.v1.AddonService.ResolveAddonDependencies:output_type -> raptor.panel.v1.ResolveAddonDependenciesResponse
+	19, // 32: raptor.panel.v1.AddonService.ListGameVersions:output_type -> raptor.panel.v1.ListGameVersionsResponse
+	27, // [27:33] is the sub-list for method output_type
+	21, // [21:27] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_addon_proto_init() }
@@ -1554,7 +1719,7 @@ func file_raptor_panel_v1_addon_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_addon_proto_rawDesc), len(file_raptor_panel_v1_addon_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
