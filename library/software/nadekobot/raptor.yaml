@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/nadekobot/egg-nadekobot.json
+license: MIT
+credits:
+  - "Written for Raptor, following NadekoBot's own Docker image in https://github.com/nadeko-bot/nadekobot (AGPL-3.0)"
+  - "Icon: NadekoBot's avatar, from https://github.com/nadeko-bot (AGPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+# Without a bot token it loads all its commands (no Discord login), says it
+# works, then waits for one.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 10m
