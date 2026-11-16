@@ -18,10 +18,11 @@ SELECT count(*) FROM eggs WHERE org_id = $1;
 SELECT count(*) FROM eggs WHERE org_id IS NULL;
 
 -- name: ListLibraryEggs :many
--- An org's eggs, and the official ones it can see.
+-- An org's eggs, and the official ones it can see (not Raptor's internal
+-- ones, such as the test server).
 SELECT sqlc.embed(e), u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
-WHERE e.org_id = @org_id OR (e.org_id IS NULL AND e.status = 'published')
+WHERE e.org_id = @org_id OR (e.org_id IS NULL AND e.status = 'published' AND NOT e.internal)
 ORDER BY e.org_id NULLS LAST, e.name, e.id;
 
 -- name: ListOfficialEggs :many
@@ -137,26 +138,45 @@ WHERE id = @id AND removed_at IS NOT NULL;
 UPDATE egg_reports SET resolved_at = now(), resolved_by = @resolved_by, resolution = @resolution
 WHERE egg_id = @egg_id AND resolved_at IS NULL;
 
--- Raptor's catalog in the official library (internal/panel/catalog).
+-- Raptor's egg library in the official library (internal/panel/catalog).
 
 -- name: GetEggByCatalogID :one
 SELECT * FROM eggs WHERE catalog_id = $1;
 
+-- name: LibraryEggs :many
+-- Every egg with a library ID, and whether the seed still owns it: its
+-- newest version is the seed's, or one imported by hand from the egg
+-- library (before the Panel seeded it), or its file is one the seed
+-- wrote (staff went back to it). Anything else is staff's.
+SELECT e.id, e.catalog_id::text AS catalog_id, e.sha256, e.library_sum, coalesce(v.version, 0)::int AS latest, e.icon, e.icon_source,
+    coalesce(v.created_by = 'Raptor' OR v.note = 'Updated from Raptor''s egg library'
+     OR (v.note = 'Imported' AND e.origin = 'import')
+     OR EXISTS (SELECT 1 FROM egg_versions r WHERE r.egg_id = e.id AND r.created_by = 'Raptor' AND r.sha256 = e.sha256), false)::bool AS seeded
+FROM eggs e
+LEFT JOIN LATERAL (SELECT version, created_by, note FROM egg_versions WHERE egg_id = e.id ORDER BY version DESC LIMIT 1) v ON true
+WHERE e.org_id IS NULL AND e.catalog_id IS NOT NULL;
+
 -- name: AddCatalogEgg :one
-INSERT INTO eggs (org_id, name, category, origin, status, egg, sha256, source_url, catalog_id, certified)
-VALUES (NULL, @name, @category, 'catalog', 'published', @egg, @sha256, @source_url, @catalog_id, @certified)
+INSERT INTO eggs (org_id, name, category, origin, status, egg, sha256, source_url, catalog_id, certified, internal, library_sum)
+VALUES (NULL, @name, @category, 'catalog', 'published', @egg, @sha256, @source_url, @catalog_id, @certified, @internal, @library_sum)
 RETURNING *;
 
 -- name: UpdateCatalogEgg :exec
+-- A new library version of an egg the seed owns. One imported by hand
+-- from the egg library becomes the seed's (origin catalog).
 UPDATE eggs SET name = @name, egg = @egg, sha256 = @sha256, version = @version, source_url = @source_url,
-    certified = @certified, updated_at = now()
+    certified = @certified, internal = @internal, library_sum = @library_sum, origin = 'catalog', updated_at = now()
 WHERE id = @id;
 
+-- name: SetEggLibrarySum :exec
+-- The library's settings or icon changed, but not the egg file.
+UPDATE eggs SET certified = @certified, internal = @internal, library_sum = @library_sum WHERE id = @id;
+
 -- name: RetiredCatalogEggs :many
--- Official eggs the catalog no longer has, with how many servers were
+-- Official eggs the library no longer has, with how many servers were
 -- made from them (by the egg's ID, or its catalog ID from before the
 -- library). Only ones the seed still owns: an egg staff changed or
--- imported (one from the egg library has a catalog ID too) is theirs.
+-- imported is theirs.
 SELECT e.id, e.catalog_id::text AS catalog_id,
     (SELECT count(*) FROM m_servers s
      WHERE s.egg_source IN (e.id::text, 'org:' || e.id::text, e.catalog_id))::int AS servers

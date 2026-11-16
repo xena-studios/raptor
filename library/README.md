@@ -1,31 +1,34 @@
 # Egg library
 
-Eggs for the games and apps people host, made by Raptor and imported into
-a Panel's official egg library by hand: none of them is built into the
-Panel, whose catalog (`eggs/`) has only the test server. See
-[docs/EGGS.md](../docs/EGGS.md#egg-library).
+Raptor's one egg library: eggs for the games and apps people host, made by
+Raptor, and Raptor's own test server (`generic/raptor-test`). The Panel
+embeds this folder and seeds it into its official egg library on every
+start, so a merged egg reaches users with the next deploy; nothing is
+imported by hand. See [docs/EGGS.md](../docs/EGGS.md#egg-library).
 
-One folder per egg, `<category>/<egg>/`, in the catalog's layout:
+One folder per egg, `<category>/<egg>/`:
 
 - `egg-<egg>.json`: the egg, in Raptor's own format (`RPTR_v1`,
   [docs/EGGS.md](../docs/EGGS.md#raptor-eggs)).
 - `raptor.yaml`: `source` (this repository, the egg's path, no commit),
   `license: MIT`, `credits` (what it's based on, with the licence), `arch`,
   Raptor's settings (`players`, `addons`, `workshop`, `backup`), and its
-  conformance `test`.
+  conformance `test`. `internal: true` keeps an egg out of orgs'
+  libraries (only the test server, which is also AGPL like Raptor).
 - `icon.png`: the game's own icon, square, 256×256. Where it came from is
   in `raptor.yaml`'s `credits`.
 
 **The folder is the egg's ID** (`minecraft/paper`), and it never changes:
-importing the library into the official library again adds a version to
-the egg with that ID instead of a second egg, and an egg whose ID a
-retired catalog egg had (one servers still use) becomes that egg's newest
-version. Keep the old catalog's IDs for the games it had.
+it's the official egg's ID in the Panel, so a changed egg becomes a new
+version of the same official egg (servers on it move when an admin
+chooses), and an egg staff edited in the Panel stops following this
+folder. Keep the old catalog's IDs for the games it had. Removing a folder
+retires the egg: the Panel deletes it if no server was made from it.
 
-`go test ./library` checks every egg against the rules below.
-`task library:export` writes one file per egg to import (the egg with its
-icon and Raptor's settings in it), and
-`task e2e:conformance SOURCE=library RUN=<id>` runs one through Wings.
+`go test ./library` checks every egg against the rules below, and
+`task e2e:conformance RUN=<id>` runs one through Wings.
+`task library:export` writes one importable file per egg (the egg with its
+icon and Raptor's settings in it), for another Panel.
 
 ## How eggs read
 

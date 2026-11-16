@@ -150,7 +150,7 @@ Applied by Wings before every start (`internal/eggs/configfile`). Pterodactyl's 
 
 Path syntax for `json`/`yaml`: `a.b.c`, `list[0].host` (or `list.0.host`), and `*` wildcards (`servers.*.address`). Missing keys are created for unconditional rules, as in Pterodactyl.
 
-**Values:** for JSON and YAML, integers written as strings become numbers (`"{{server.build.default.port}}"` → `25565`) and booleans stay booleans, as in Pterodactyl. Other formats write text.
+**Values:** for JSON and YAML, integers written as strings become numbers (`"{{server.build.default.port}}"` → `25565`) and booleans written as booleans in the egg stay booleans, as in Pterodactyl. A templated `"true"` (`"{{server.build.env.PVP}}"`) stays the string `"true"`, also as in Pterodactyl; an egg whose game needs a real boolean from a variable fixes the file in its startup (DECISIONS #358). Other formats write text.
 
 **Conditions** (`if_value`): an exact value, or `regex:<pattern>` to replace only the matched part (Go regex syntax, with `$1` references in the value). Conditional rules never create missing keys.
 
@@ -193,7 +193,7 @@ Unknown `server.*`/`env.*` placeholders become empty and unknown `config.*` plac
 - **`regex:`** patterns are PHP (PCRE) with delimiters, including bracket delimiters (`regex:([a-z]+$)`) and modifiers `i m s U A u D`. They're translated to Go.
 - **Supported:** `required`, `nullable`, `sometimes`, `present`, `filled`, `string`, `integer` (and `int`), `numeric`, `boolean`, `in`, `not_in`, `min`, `max`, `between`, `size`, `gt`, `gte`, `lt`, `lte`, `digits`, `digits_between`, `regex`, `not_regex`, `alpha`, `alpha_num`, `alpha_dash`, `url`, `ip`, `ipv4`, `ipv6`, `starts_with`, `ends_with`, `lowercase`, `uppercase`, `json`, `uuid`. That covers every rule in the 606 surveyed eggs.
 - Parameters are trimmed (`in: a,b` is common in eggs) and may be quoted (`in:"a,b",c`), as Laravel's parser allows.
-- Unknown rules and PCRE-only patterns (lookarounds, backreferences) are **skipped, not failed**, so an egg never becomes unusable; `Egg.Lint` reports them for the catalog.
+- Unknown rules and PCRE-only patterns (lookarounds, backreferences) are **skipped, not failed**, so an egg never becomes unusable; `Egg.Lint` reports them for the library.
 
 Checked against reality: of the 606 eggs, the defaults that fail their own rules are empty values for `required` fields (tokens and passwords the owner must enter) and 10 checks in 8 eggs that are genuine egg bugs Laravel rejects too (a default of `moon` for `in:Moon,Mars`, placeholder text in a `digits_between` field, a port with `integer|max:8`).
 
@@ -207,7 +207,7 @@ Checked against reality: of the 606 eggs, the defaults that fail their own rules
 
 ## Raptor eggs
 
-`RPTR_v1` is Raptor's own format: the eggs Raptor makes (the egg editor's new eggs, the catalog's test server, every egg in the [egg library](#egg-library)) are in it. It's Pelican's layout (an ordered `docker_images` map, `startup` or an ordered `startup_commands` map, the icon as a `data:` image in `image`, Pterodactyl's `config`, `scripts`, and `variables`) with **Raptor's settings as top-level fields** instead of under `x-raptor`:
+`RPTR_v1` is Raptor's own format: the eggs Raptor makes (the egg editor's new eggs and every egg in the [egg library](#egg-library), its test server included) are in it. It's Pelican's layout (an ordered `docker_images` map, `startup` or an ordered `startup_commands` map, the icon as a `data:` image in `image`, Pterodactyl's `config`, `scripts`, and `variables`) with **Raptor's settings as top-level fields** instead of under `x-raptor`:
 
 ```json
 {
@@ -255,7 +255,7 @@ In Pterodactyl's and Pelican's formats, Raptor's settings live under a namespace
 `x-raptor.backup` is what a backup sends to a **running** server's console (as the user `backup`, so it shows in the console and the job's log):
 - `pre`, before the snapshot (and before its databases are dumped). For Minecraft, `save-off` (no autosave writes during the copy) and `save-all flush` (everything in memory written out now), so the backup never catches region files mid-write.
 - `wait_for`, the console line that says `pre` is done: a substring, or a regular expression after `regex:`, as done lines are, matched with the game's colours stripped. Wings waits up to `timeout` (a duration; the node's default is a minute). If the line doesn't come, the backup is taken anyway with a warning ("the server didn't confirm the save"): a possibly inconsistent backup beats none.
-- `post`, after the snapshot, **whatever happened to it**. Optional: a game that can only save, not pause saving (Rust's `server.save`), has `pre` alone; one whose `pre` pauses saving (`save-off`, `save hold`) must have it, and the catalog refuses it without. a failed or cancelled snapshot, a stopping Wings, even a panic. A server left with saving off silently stops saving, which is worse than the bug the hooks fix. If Wings stops or crashes between the two, the job's checkpoint says so: the resumed job sends `post` before anything else, and a job given up on after repeated crashes gets it sent when Wings starts. A server that stopped meanwhile needs nothing (saving is on again after a start).
+- `post`, after the snapshot, **whatever happened to it**. Optional: a game that can only save, not pause saving (Rust's `server.save`), has `pre` alone; one whose `pre` pauses saving (`save-off`, `save hold`) must have it, and the library refuses it without. a failed or cancelled snapshot, a stopping Wings, even a panic. A server left with saving off silently stops saving, which is worse than the bug the hooks fix. If Wings stops or crashes between the two, the job's checkpoint says so: the resumed job sends `post` before anything else, and a job given up on after repeated crashes gets it sent when Wings starts. A server that stopped meanwhile needs nothing (saving is on again after a start).
 
 Stopped servers get no hooks; their files aren't changing. Safety and final backups (taken by a reinstall or a delete, with the server stopped) don't send them.
 
@@ -265,7 +265,7 @@ Stopped servers get no hooks; their files aren't changing. Safety and final back
 
 ## Egg sources
 
-- Raptor's catalog ([below](#built-in-catalog)): for now only Raptor's own test egg. Upstream eggs it may hold are unmodified copies, with attribution and licence preserved.
+- Raptor's egg library ([below](#egg-library)): Raptor's eggs for the games and apps people host, and its test server, seeded into the official library on every Panel start.
 - Orgs make their own eggs (from scratch, or customised copies) and Raptor's staff publish official ones, in the egg library ([PANEL.md](PANEL.md#eggs)); editing writes into the egg file and keeps the format ([Editing eggs](#editing-eggs)).
 - Users can import eggs from a URL or file. The Panel shows the **image registry and install script** before importing. A malicious egg is effectively a malicious program on the node. Imported eggs belong to the org that imported them ([PANEL.md](PANEL.md#importing)); eggs that leave parts to another egg (`config.extends`, `copy_script_from`) are refused with a message saying so, since those parts would be missing on the node.
 
@@ -287,7 +287,7 @@ x-raptor:
 ```
 
 - **Plugins** (Paper, Spigot, Bukkit, Purpur, Folia, Velocity, BungeeCord, Waterfall, Sponge), **mods** (Fabric, Forge, NeoForge, Quilt), and **datapacks** (any Java server; their one loader is `datapack`). Plugins and mods are `.jar` files, and datapacks are `.zip` files in the world's `datapacks` folder (`world/datapacks` by default; an egg or server whose `level-name` isn't `world` sets `dir` to match). Each gives servers a page (Plugins, Mods, Datapacks) to search Modrinth (and Hangar, for plugins), install a version, see what's installed, update, and remove (to the server's trash). Results are for the server's game version when its variable holds one (`1.21.1`), and any version when it says `latest`.
-- In the egg editor they're the **Plugin installer**, **Mod manager**, and **Datapack manager** cards on the Add-ons tab (the CPUs, `arch`, are on the Overview tab). The catalog's Minecraft eggs set them in `raptor.yaml` (`addons:`), added to the egg like `players`. Every Java server egg has datapacks; the proxies (Velocity, BungeeCord) don't.
+- In the egg editor they're the **Plugin installer**, **Mod manager**, and **Datapack manager** cards on the Add-ons tab (the CPUs, `arch`, are on the Overview tab). The library's Minecraft eggs set them in `raptor.yaml` (`addons:`), added to the egg like `players`. Every Java server egg has datapacks; the proxies (Velocity, BungeeCord) don't.
 - **Modrinth and Hangar.** Both publish file hashes. Plugins for Paper (and the servers that load its plugins), Velocity, and BungeeCord or Waterfall can also be found on **Hangar**, PaperMC's repository: the Plugins page has a Modrinth/Hangar switch. SpigotMC isn't offered: its downloads often go to outside sites without hashes, so Wings couldn't check what it fetched.
 - **What's installed** is named from Modrinth by each file's SHA-512, then, for files Modrinth doesn't know, from Hangar by its SHA-256 (`addons.list` gives both). Hangar looks up one file per request, so at most 50 a listing. An update is offered for a Hangar file only when the file is one of the project's listed versions, so it's never a step back. Files neither knows show as added by hand.
 - Installing is the node's `addons.install` (the `files.write` permission): Wings downloads from `cdn.modrinth.com` and `hangarcdn.papermc.io` only, over https (redirects too), keeps the file only if its hash is the one the Panel passed from the source's listing (a SHA-512 from Modrinth's CDN, a SHA-256 from Hangar's), and writes it through the server's file system like the file manager (symlink-safe, the denylist, the disk limit). A file from Modrinth's CDN always needs its SHA-512. Hangar versions hosted elsewhere (an external link, no hash) aren't offered. The Panel finds things (`AddonService`, which asks Modrinth and Hangar with its own user agent and caches answers for 5 minutes), so the browser talks only to Raptor; only the projects' icons load from their CDNs.
@@ -308,27 +308,30 @@ x-raptor:
 - **Raptor downloads nothing.** The game (`+host_workshop_collection`, `-automanagedmods`) or the egg's install script (`workshop_download_item`) fetches the items; Raptor edits the variable. So there's no new download path on the node, and nothing for Wings to check: what runs is what the game would run with the same IDs typed into Startup.
 - Servers get a **Workshop** tab (for those with the `startup` permission, which changing variables already needs): the items or collection named from Steam with their pictures, a box that takes a Workshop link or ID, shows what it is, and refuses items for another game; for games that take a list, a collection's link adds its items. Saving is `server.update` with the variable, unsigned like any variable. The page says whether a restart or a reinstall picks the change up.
 - The Panel names the IDs (`AddonService.LookupWorkshopItems`, from Steam's public `ISteamRemoteStorage` API, which needs no key; cached like Modrinth). Items that aren't public, or are banned, are left out. Previews load only from `images.steamusercontent.com`, which the app's CSP allows. There's no search: Steam's search API needs a key, and the Workshop's own site is better at browsing, so the page links to it.
-- The catalog sets it in `raptor.yaml` (`workshop:`) for Garry's Mod (a collection, at start), ARK (mods, at start), and Squad (items, at reinstall). `variable` must be one of the egg's variables, and `apply` `restart` or `reinstall`; anything else rejects the egg.
+- The library sets it in `raptor.yaml` (`workshop:`) for Garry's Mod (a collection, at start), ARK (mods, at start), and Squad (items, at reinstall). `variable` must be one of the egg's variables, and `apply` `restart` or `reinstall`; anything else rejects the egg.
 
-## Built-in catalog
+## Egg library
 
-`eggs/` in the repository, exposed by a Go package that embeds it (`github.com/xena-studios/raptor/eggs`): the eggs the conformance suite tests, which the Panel seeds into its official egg library ([below](#in-the-official-library)). One directory per egg, e.g. `eggs/generic/raptor-test/`. It holds one egg today, **Raptor's test server** (`generic/raptor-test`): not a game, but the quickest check that a node installs, starts, reaches, talks to, and stops a server. It serves a page on the server's port (its `MESSAGE` variable) and answers `status` on the console (DECISIONS #351).
-- The egg file. Raptor's own eggs (`source.repo: xena-studios/raptor`) are versioned with this repository: no commit, and `source.path` is `eggs/<id>/<file>`. Any other is an **unmodified copy** of upstream at a pinned commit, under its upstream file name; updating one means replacing the file and the commit.
-- `icon.png` (optional): the egg's icon, shown instead of the one in the egg file (Pelican eggs carry one as a `data:` image). The seed gives it to the official egg whenever it changes, unless staff uploaded one ([PANEL.md](PANEL.md#images)). Any size; it's cropped square and kept at 256×256.
-- `raptor.yaml`: where it came from (repository, full commit hash, and path; just repository and path for Raptor's own), its licence, whether it's certified, which CPU architectures the game runs on, and how the conformance suite tests it:
+`library/` in the repository is Raptor's one egg library: Raptor's eggs for the games and apps people host, and Raptor's own test server. The `library` Go package (`github.com/xena-studios/raptor/library`) embeds it, the Panel seeds it into its official egg library on **every start** ([below](#in-the-official-library)), and the conformance suite runs the same files through Wings. There is nothing to import by hand (DECISIONS #357). It covers every egg on eggs.pterodactyl.io, in the pelican-eggs repositories, and in FeatherPanel's, plus Pterodactyl's built-in eggs, with variants folded into one egg as options.
 
-An upstream copy's `raptor.yaml`, with every option:
+One folder per egg, `<category>/<egg>/`. **The folder is the egg's ID** (`minecraft/paper`), its `catalog_id` in the official library, and never changes. The categories are the library's (`minecraft`, `steam`, `standalone`, `software`, `voice`, `generic`). Each folder has:
+
+- The egg file: Raptor's own [`RPTR_v1`](#raptor-eggs) JSON (`source.repo: xena-studios/raptor`, no commit, `source.path` is `library/<id>/<file>`). The loader still accepts an unmodified upstream copy at a pinned commit (`source.repo`, a full `source.commit`, `source.path`, upstream's file name), with its licence kept, though the library has none today.
+- `icon.png`: the game's own icon, 256×256, shown instead of any icon in the egg file. The seed gives it to the official egg whenever it changes, unless staff uploaded one ([PANEL.md](PANEL.md#images)).
+- `raptor.yaml`: the source, licence, `credits` (what the egg is based on, with the licence, and where its icon came from; pelican-eggs and Pterodactyl's eggs are MIT, FeatherPanel's have no licence so they're only a reference), whether it's `certified`, whether it's `internal`, the CPU architectures the game runs on, Raptor's settings, and how the conformance suite tests it:
 
 ```yaml
 source:
-  repo: pelican-eggs/minecraft
-  commit: 75bf05db3c6c305e0fa6eef1d38c7e7176121de9
-  path: java/paper/egg-paper.yaml
+  repo: xena-studios/raptor
+  path: library/minecraft/paper/egg-paper.json
 license: MIT
+credits:
+  - "Based on the Paper egg in https://github.com/pelican-eggs/minecraft (MIT); icon from PaperMC"
 certified: true
+internal: false     # true: Raptor's own tool (the test server), not listed in orgs' libraries
 arch: [amd64, arm64]
 players:            # optional: how to ask the game for its player count
-  query: minecraft  # added to the egg's x-raptor when the Panel creates a server from the catalog
+  query: minecraft  # added to the egg servers are made from (top-level in RPTR_v1, else x-raptor)
 addons:             # optional: the plugin installer or mod manager (see Add-ons), added the same way
   plugins:
     loaders: [paper, spigot, bukkit]
@@ -353,40 +356,36 @@ test:
   config: {}                # file → text the egg's config parsers must write ({{port}})
 ```
 
-A unit test loads every entry and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, and a chosen image is one the egg offers; another checks `raptor.yaml`'s `players`, `addons`, `workshop`, and `backup` reach the egg servers are made from. `backup` needs both `pre` and `post` and a `wait_for`; Java Minecraft eggs get the Minecraft hooks (`eggs.JavaMinecraftBackup`). The editor's round trip is tested on the catalog and on real community eggs kept as fixtures in `internal/eggs/testdata` (every Pterodactyl and Pelican format version, JSON and YAML).
+**Raptor's test server** (`generic/raptor-test`) isn't a game, but the quickest check that a node installs, starts, reaches, talks to, and stops a server: it serves a page on the server's port (its `MESSAGE` variable) and answers `status` on the console (DECISIONS #351). It's AGPL like the rest of Raptor, and `internal`: seeded so staff and the conformance suite have it, but orgs' libraries don't list it.
+
+**Checks.** `go test ./library` loads every egg and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, a chosen image is one the egg offers, and `raptor.yaml`'s `players`, `addons`, `workshop`, and `backup` reach the egg servers are made from. `backup` needs `pre` and a `wait_for`, and a `post` when `pre` pauses saving. It also holds every egg to the **house style** ([library/README.md](../library/README.md#how-eggs-read)): names are what people call the game (`Node.js`, `Minecraft: Paper`, no "server", "generic", or versions; real product names that contain one, such as Raptor's test server, are listed), descriptions are plain sentences without links or panel names, variables read alike, the author is `support@raptorpanel.net`, the licence is MIT (Raptor's test server: AGPL-3.0), every image (runtimes and the install container) is Raptor's (`ghcr.io/xena-studios/yolks`) or pelican-eggs' pinned by digest, and every egg has a 256×256 icon. `task library:pin` (`cmd/eggpin`) pins images to the digests their tags point to now; `-check` fails instead of changing anything. The editor's round trip is tested on the library and on real community eggs kept as fixtures in `internal/eggs/testdata` (every Pterodactyl and Pelican format version, JSON and YAML).
+
+**Left out:** database eggs (Raptor's managed databases cover them) and games whose server needs an account to download (DayZ, Arma 3, Starbound; Hytale), until there's a Steam-account feature.
 
 ### In the official library
 
-The catalog lives in the Panel's database, as official eggs (`internal/panel/catalog`, run when the Panel starts, under an advisory lock so two Panels don't race). Each egg's file is upstream's with `raptor.yaml`'s `arch`, `players`, `addons`, `workshop`, and `backup` added under `x-raptor`, in the same format and key order; it keeps the catalog's ID (`catalog_id`, e.g. `minecraft/paper`) and whether it's `certified`.
+The library lives in the Panel's database as official eggs (`internal/panel/catalog`), seeded when the Panel starts, in one transaction under an advisory lock, so two Panels starting together don't race. Each egg's file is the library's with `raptor.yaml`'s `arch`, `category`, `players`, `addons`, `workshop`, and `backup` added (top-level in an `RPTR_v1` egg, else under `x-raptor`), in the same format and key order; the row keeps the egg's ID (`catalog_id`), whether it's `certified`, and whether it's `internal`.
 
-- An egg the library doesn't have is added, published.
-- When the catalog changes (a new release), an egg only the seed has changed gets the new file as a new version. Once staff edit an egg, it's theirs: the seed leaves it alone.
+- An egg the official library doesn't have is added, published, as version 1 by "Raptor" ("From Raptor's egg library").
+- When the library changes (a deploy), an egg **the seed owns** gets the new file as a new version by "Raptor" ("Updated from Raptor's egg library"); a change to only its icon or `raptor.yaml` settings updates those without a version. The seed owns an egg whose newest version is its own, or one imported by hand from the egg library before the Panel seeded it (taken over on the first start, its origin becoming `catalog`).
+- **An egg staff changed is theirs.** Once its newest version is by anyone else, the seed leaves it exactly as staff left it, through any number of deploys. It follows the library again only when staff put back a file the seed wrote (a version by "Raptor"); from the next start on, library changes reach it again.
+- What the seed last wrote is kept as a hash (`library_sum`: the file, its icon, and its settings), so a start where nothing changed is one query and a hash per egg: no icons decoded, no rows written. Icons that do need saving are decoded side by side.
+- **Internal eggs** (`internal: true`, only the test server) are official eggs like the rest: staff see and manage them, the conformance suite and anyone with the ID find them, servers made from one keep working. Orgs' library listings skip them.
 - Editing a certified egg's file clears `certified`, since it's no longer the file the conformance suite tests.
-- Servers made before the catalog was in the library name the egg by its catalog ID; the library finds it by that ID too, and counts those servers.
-- An egg the catalog no longer has is **deleted if no server was made from it** (by its ID or its catalog ID); one a server uses stays exactly as it is, so the server keeps working and can still be updated or reinstalled from it. Staff's own official eggs (not from the catalog) are never touched.
+- Servers made before the catalog was in the library name the egg by its ID; the library finds it by that ID too, and counts those servers.
+- An egg the library no longer has (**retired**) is **deleted if no server was made from it** (by its row's ID or its library ID) and the seed still owns it; one a server uses stays exactly as it is, so the server keeps working and can still be updated or reinstalled from it. Staff's own official eggs, and eggs staff changed, are never touched.
+- **Importing** a file whose `library` ID is one of the library's into the official library is refused ("the Panel keeps it up to date itself"); a file with an ID the library doesn't have (an old export, another Raptor's) still becomes the newest version of the official egg with that ID, or a new one with it (DECISIONS #354). An org's import is its own and matches nothing. `task library:export` (`cmd/eggexport`) still writes one importable file per egg, with its icon as a `data:` image and its `category` and `library` ID, for another Panel.
 
 Servers get the file in the passkey-signed `server.create` as it is (`EggService.GetEggFile`), so what the user approved is what the node runs.
 
-A server keeps that file. Its Settings page shows which version it is: the web app finds the server's `egg_hash` among the SHA-256s of the egg's versions (none matching: an edited copy), and it's out of date when the newest version's isn't it. Admins can move it to any version, newer or older, seeing what changes between the two versions' specs (`GetEggDetails` with `version`). That's a signed `server.update` with the chosen file, reinstalling only if asked; the Reinstall card can take the newest version in the same update, opt-in ([SERVERS.md](SERVERS.md), DECISIONS #339, #341).
+A server keeps that file. A new library version doesn't touch existing servers: their Settings page shows which version they're on (the web app finds the server's `egg_hash` among the SHA-256s of the egg's versions; none matching: an edited copy) and that it's out of date when the newest version's isn't it. Admins can move a server to any version, newer or older, seeing what changes between the two versions' specs (`GetEggDetails` with `version`). That's a signed `server.update` with the chosen file, reinstalling only if asked; the Reinstall card can take the newest version in the same update, opt-in ([SERVERS.md](SERVERS.md), DECISIONS #339, #341). Library eggs are `RPTR_v1`, which only Wings with the `raptor-eggs` capability runs; the Panel refuses to send one to an older node, with a message to update it (DECISIONS #353).
 
 ### Accepting a EULA
 Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EULA. The web app asks when creating the server and sends `accept_eula: true` in `server.create`, inside what the passkey signs. Wings writes `eula.txt` (`eula=true`, owned by the server's user) once the install succeeds and before the first start. For eggs without the feature the flag does nothing.
 
-## Egg library
-
-`library/` holds eggs for the games and apps people host, made by Raptor and **imported** into a Panel's official library by hand; none is built into the Panel, whose catalog is only the test server (DECISIONS #351, #352). It covers every egg on eggs.pterodactyl.io, in the pelican-eggs repositories, and in FeatherPanel's, plus Pterodactyl's built-in eggs, with variants folded into one egg as options.
-
-- **Layout:** the catalog's (`<category>/<egg>/` with the egg, `raptor.yaml`, and `icon.png`), loaded by the same code (`catalog.LoadFS`), so the same checks and the conformance suite (`RAPTOR_CONFORMANCE_SOURCE=library`, `task e2e:conformance SOURCE=library`) cover it. The `library` Go package embeds it; only tests and tools import it, so the eggs never reach Raptor's binaries. The folders are the library's categories (`minecraft`, `steam`, `standalone`, `software`, `voice`, `generic`).
-- **Each egg is Raptor's own** [`RPTR_v1`](#raptor-eggs) JSON file, MIT-licensed, with `credits` in `raptor.yaml` naming what it's based on (pelican-eggs and Pterodactyl's eggs are MIT; FeatherPanel's have no licence, so they're only a reference) and where its icon came from.
-- **House style** ([library/README.md](../library/README.md#how-eggs-read)), checked by `go test ./library`: names are what people call the game (`Node.js`, `Minecraft: Paper`, no "server", "generic", or versions), descriptions are plain sentences without links or panel names, variables read alike, the author is `support@raptorpanel.net`, every image (runtimes and the install container) is Raptor's (`ghcr.io/xena-studios/yolks`) or pelican-eggs' pinned by digest, and every egg has a 256×256 icon. `task library:pin` (`cmd/eggpin`) pins them to the digests their tags point to now; `-check` fails instead of changing anything.
-- **Tested like the catalog:** the conformance workflow runs the library's eggs in their own jobs, and they must pass. A PR runs the library eggs it changes, whatever their tier (but `manual`), on amd64 and arm64 (`RAPTOR_CONFORMANCE_IDS`); the whole library's fast tier runs nightly in four shards per CPU, and its slow tier weekly in four.
-- **Export and import:** `task library:export` (`cmd/eggexport`) writes one file per egg with its icon (as a `data:` image) and Raptor's settings, `category` and `library` (the egg's ID, its folder) included, in it. **Import eggs** in the app takes them all at once ([PANEL.md](PANEL.md#importing)).
-- **IDs make imports updates.** An egg's ID is its folder (`minecraft/paper`), and never changes. Imported into the official library, an egg whose ID an official egg already has (as its `catalog_id`) becomes that egg's **newest version** instead of a second egg: an egg imported from the library before, or a retired catalog egg servers still use (the old catalog's Paper). Servers keep the file they have, see the egg is out of date, and move to the new version when an admin chooses, seeing what changes ([In the official library](#in-the-official-library)); the egg keeps its category and summary, and is no longer certified. A new egg gets its ID as its `catalog_id`. The seed only deletes retired catalog eggs it still owns (origin `catalog`, newest version by Raptor), never one staff gave a new version or imported (DECISIONS #354). An org's import is its own and matches nothing.
-- **Left out:** database eggs (Raptor's managed databases cover them) and games whose server needs an account to download (DayZ, Arma 3, Starbound; Hytale), until there's a Steam-account feature.
-
 ## Conformance test suite
 
-`internal/wings/conformance` runs catalog eggs through the full Wings lifecycle with the real server manager, Docker, and the eggs' unmodified images:
+`internal/wings/conformance` runs the egg library's eggs through the full Wings lifecycle with the real server manager, Docker, and the eggs' unmodified images:
 
 **install → EULA and uploads → start → done string → console command → backup hooks → Wings restart → stop → reinstall → start → stop → delete**
 
@@ -401,11 +400,11 @@ Eggs with the `eula` feature (Minecraft's) need the user to accept the game's EU
 **Tiers** (`test.tier`):
 | Tier | Eggs | When |
 |---|---|---|
-| fast | The test egg; library eggs that install quickly (Minecraft, apps, languages) | PRs that touch eggs or the code that runs them, nightly, on demand; amd64 and arm64 runners |
-| slow | Library SteamCMD games (Rust, Valheim, …) | Weekly and on demand; amd64 |
-| manual | Library eggs too big for a runner's disk or needing an account (Counter-Strike 2, about 60 GB) | By hand |
+| fast | The test server; eggs that install quickly (Minecraft, apps, languages) | Nightly and on demand (a PR runs the ones it changes, and the test server); amd64 and arm64 runners |
+| slow | SteamCMD games (Rust, Valheim, …) | Weekly and on demand; amd64 |
+| manual | Eggs too big for a runner's disk or needing an account (Counter-Strike 2, about 60 GB) | By hand |
 
-A PR runs the library eggs it changes whatever their tier, except `manual`.
+A PR that touches eggs or the code that runs them runs the test server and the library eggs it changes, whatever their tier except `manual`, on amd64 and arm64 (`RAPTOR_CONFORMANCE_IDS`). The whole fast tier runs nightly in four shards per CPU, the slow tier weekly in four. Every library egg is certified, so every run must pass (`RAPTOR_CONFORMANCE_SET` still picks certified or community eggs, for when there are both).
 
 ```bash
 task e2e:conformance                         # fast tier in the VM
@@ -466,8 +465,8 @@ Eggs kept with a workaround in their test settings (each explained in its `rapto
 
 ## Catalog rules
 
-The catalog has only the test egg now. When games come back to it, these hold:
-- **Hytale isn't certified.** Its official server image signs in to a Hytale account (OAuth device flow) before it downloads the server, so it can't be tested unattended. It isn't in the catalog either; owners can import a Hytale egg and sign in with their own account from the console.
+What the egg library takes:
+- **Hytale isn't certified.** Its official server image signs in to a Hytale account (OAuth device flow) before it downloads the server, so it can't be tested unattended. It isn't in the library either; owners can import a Hytale egg and sign in with their own account from the console.
 - Most Steam dedicated servers are **x86_64-only** (Rust, CS2, …). The Panel hides them on arm64 nodes. No x86 emulation in v1.
 - Only **anonymous SteamCMD** games in v1. No storing Steam credentials.
 - Minecraft: users must accept the EULA. Server jars are downloaded at install time and never redistributed.

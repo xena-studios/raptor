@@ -14,7 +14,7 @@ export function sameId(a: string, b: string): boolean {
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 // shortEggId is an egg's ID for its page's URL: a UUID's last part. The
-// built-in catalog's IDs (minecraft/paper) are left alone.
+// egg library's IDs (minecraft/paper) are left alone.
 export function shortEggId(id: string): string {
   return uuid.test(id) ? shortId(id) : id;
 }

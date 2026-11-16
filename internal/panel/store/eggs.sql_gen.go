@@ -12,19 +12,21 @@ import (
 )
 
 const addCatalogEgg = `-- name: AddCatalogEgg :one
-INSERT INTO eggs (org_id, name, category, origin, status, egg, sha256, source_url, catalog_id, certified)
-VALUES (NULL, $1, $2, 'catalog', 'published', $3, $4, $5, $6, $7)
-RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source
+INSERT INTO eggs (org_id, name, category, origin, status, egg, sha256, source_url, catalog_id, certified, internal, library_sum)
+VALUES (NULL, $1, $2, 'catalog', 'published', $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source, internal, library_sum
 `
 
 type AddCatalogEggParams struct {
-	Name      string
-	Category  string
-	Egg       []byte
-	Sha256    string
-	SourceUrl string
-	CatalogID pgtype.Text
-	Certified bool
+	Name       string
+	Category   string
+	Egg        []byte
+	Sha256     string
+	SourceUrl  string
+	CatalogID  pgtype.Text
+	Certified  bool
+	Internal   bool
+	LibrarySum string
 }
 
 func (q *Queries) AddCatalogEgg(ctx context.Context, arg AddCatalogEggParams) (Egg, error) {
@@ -36,6 +38,8 @@ func (q *Queries) AddCatalogEgg(ctx context.Context, arg AddCatalogEggParams) (E
 		arg.SourceUrl,
 		arg.CatalogID,
 		arg.Certified,
+		arg.Internal,
+		arg.LibrarySum,
 	)
 	var i Egg
 	err := row.Scan(
@@ -63,6 +67,8 @@ func (q *Queries) AddCatalogEgg(ctx context.Context, arg AddCatalogEggParams) (E
 		&i.Certified,
 		&i.Icon,
 		&i.IconSource,
+		&i.Internal,
+		&i.LibrarySum,
 	)
 	return i, err
 }
@@ -154,7 +160,7 @@ const createEgg = `-- name: CreateEgg :one
 
 INSERT INTO eggs (org_id, name, summary, category, origin, status, egg, sha256, source_url, parent_id, parent_name, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source
+RETURNING id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source, internal, library_sum
 `
 
 type CreateEggParams struct {
@@ -216,6 +222,8 @@ func (q *Queries) CreateEgg(ctx context.Context, arg CreateEggParams) (Egg, erro
 		&i.Certified,
 		&i.Icon,
 		&i.IconSource,
+		&i.Internal,
+		&i.LibrarySum,
 	)
 	return i, err
 }
@@ -284,7 +292,7 @@ func (q *Queries) EggServerCounts(ctx context.Context) ([]EggServerCountsRow, er
 }
 
 const eggsByShortID = `-- name: EggsByShortID :many
-SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE split_part(id::text, '-', 5) = $1::text LIMIT 10
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source, internal, library_sum FROM eggs WHERE split_part(id::text, '-', 5) = $1::text LIMIT 10
 `
 
 // Eggs whose UUID ends in a short ID (eggs_short_id), for egg pages' URLs.
@@ -322,6 +330,8 @@ func (q *Queries) EggsByShortID(ctx context.Context, shortID string) ([]Egg, err
 			&i.Certified,
 			&i.Icon,
 			&i.IconSource,
+			&i.Internal,
+			&i.LibrarySum,
 		); err != nil {
 			return nil, err
 		}
@@ -334,7 +344,7 @@ func (q *Queries) EggsByShortID(ctx context.Context, shortID string) ([]Egg, err
 }
 
 const eggsWithoutIcons = `-- name: EggsWithoutIcons :many
-SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE icon IS NULL AND icon_source = '' AND position(convert_to('data:image/', 'UTF8') IN egg) > 0
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source, internal, library_sum FROM eggs WHERE icon IS NULL AND icon_source = '' AND position(convert_to('data:image/', 'UTF8') IN egg) > 0
 `
 
 // Eggs whose file may carry an icon they don't have yet.
@@ -372,6 +382,8 @@ func (q *Queries) EggsWithoutIcons(ctx context.Context) ([]Egg, error) {
 			&i.Certified,
 			&i.Icon,
 			&i.IconSource,
+			&i.Internal,
+			&i.LibrarySum,
 		); err != nil {
 			return nil, err
 		}
@@ -384,7 +396,7 @@ func (q *Queries) EggsWithoutIcons(ctx context.Context) ([]Egg, error) {
 }
 
 const getEgg = `-- name: GetEgg :one
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, e.internal, e.library_sum, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
 WHERE e.id = $1
 `
@@ -422,6 +434,8 @@ func (q *Queries) GetEgg(ctx context.Context, id pgtype.UUID) (GetEggRow, error)
 		&i.Egg.Certified,
 		&i.Egg.Icon,
 		&i.Egg.IconSource,
+		&i.Egg.Internal,
+		&i.Egg.LibrarySum,
 		&i.CreatedByEmail,
 	)
 	return i, err
@@ -429,10 +443,10 @@ func (q *Queries) GetEgg(ctx context.Context, id pgtype.UUID) (GetEggRow, error)
 
 const getEggByCatalogID = `-- name: GetEggByCatalogID :one
 
-SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE catalog_id = $1
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source, internal, library_sum FROM eggs WHERE catalog_id = $1
 `
 
-// Raptor's catalog in the official library (internal/panel/catalog).
+// Raptor's egg library in the official library (internal/panel/catalog).
 func (q *Queries) GetEggByCatalogID(ctx context.Context, catalogID pgtype.Text) (Egg, error) {
 	row := q.db.QueryRow(ctx, getEggByCatalogID, catalogID)
 	var i Egg
@@ -461,12 +475,14 @@ func (q *Queries) GetEggByCatalogID(ctx context.Context, catalogID pgtype.Text) 
 		&i.Certified,
 		&i.Icon,
 		&i.IconSource,
+		&i.Internal,
+		&i.LibrarySum,
 	)
 	return i, err
 }
 
 const getEggForUpdate = `-- name: GetEggForUpdate :one
-SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE id = $1 FOR UPDATE
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source, internal, library_sum FROM eggs WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetEggForUpdate(ctx context.Context, id pgtype.UUID) (Egg, error) {
@@ -497,6 +513,8 @@ func (q *Queries) GetEggForUpdate(ctx context.Context, id pgtype.UUID) (Egg, err
 		&i.Certified,
 		&i.Icon,
 		&i.IconSource,
+		&i.Internal,
+		&i.LibrarySum,
 	)
 	return i, err
 }
@@ -526,7 +544,7 @@ func (q *Queries) GetEggVersion(ctx context.Context, arg GetEggVersionParams) (E
 }
 
 const getOfficialEggByCatalogID = `-- name: GetOfficialEggByCatalogID :one
-SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source FROM eggs WHERE org_id IS NULL AND catalog_id = $1 FOR UPDATE
+SELECT id, org_id, name, summary, category, origin, status, version, egg, sha256, source_url, parent_id, parent_name, created_by, created_at, updated_at, shared_at, removed_at, removed_reason, removed_by, catalog_id, certified, icon, icon_source, internal, library_sum FROM eggs WHERE org_id IS NULL AND catalog_id = $1 FOR UPDATE
 `
 
 // An official egg by its catalog or egg-library ID, locked for an update.
@@ -558,6 +576,8 @@ func (q *Queries) GetOfficialEggByCatalogID(ctx context.Context, catalogID pgtyp
 		&i.Certified,
 		&i.Icon,
 		&i.IconSource,
+		&i.Internal,
+		&i.LibrarySum,
 	)
 	return i, err
 }
@@ -578,8 +598,62 @@ func (q *Queries) LatestEggVersion(ctx context.Context, eggID pgtype.UUID) (Late
 	return i, err
 }
 
+const libraryEggs = `-- name: LibraryEggs :many
+SELECT e.id, e.catalog_id::text AS catalog_id, e.sha256, e.library_sum, coalesce(v.version, 0)::int AS latest, e.icon, e.icon_source,
+    coalesce(v.created_by = 'Raptor' OR v.note = 'Updated from Raptor''s egg library'
+     OR (v.note = 'Imported' AND e.origin = 'import')
+     OR EXISTS (SELECT 1 FROM egg_versions r WHERE r.egg_id = e.id AND r.created_by = 'Raptor' AND r.sha256 = e.sha256), false)::bool AS seeded
+FROM eggs e
+LEFT JOIN LATERAL (SELECT version, created_by, note FROM egg_versions WHERE egg_id = e.id ORDER BY version DESC LIMIT 1) v ON true
+WHERE e.org_id IS NULL AND e.catalog_id IS NOT NULL
+`
+
+type LibraryEggsRow struct {
+	ID         pgtype.UUID
+	CatalogID  string
+	Sha256     string
+	LibrarySum string
+	Latest     int32
+	Icon       pgtype.Text
+	IconSource string
+	Seeded     bool
+}
+
+// Every egg with a library ID, and whether the seed still owns it: its
+// newest version is the seed's, or one imported by hand from the egg
+// library (before the Panel seeded it), or its file is one the seed
+// wrote (staff went back to it). Anything else is staff's.
+func (q *Queries) LibraryEggs(ctx context.Context) ([]LibraryEggsRow, error) {
+	rows, err := q.db.Query(ctx, libraryEggs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LibraryEggsRow
+	for rows.Next() {
+		var i LibraryEggsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CatalogID,
+			&i.Sha256,
+			&i.LibrarySum,
+			&i.Latest,
+			&i.Icon,
+			&i.IconSource,
+			&i.Seeded,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCommunityEggs = `-- name: ListCommunityEggs :many
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, o.name AS org_name,
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, e.internal, e.library_sum, o.name AS org_name,
     (SELECT count(*) FROM eggs c WHERE c.parent_id = e.id::text)::int AS copies
 FROM eggs e JOIN orgs o ON o.id = e.org_id
 WHERE e.shared_at IS NOT NULL
@@ -649,6 +723,8 @@ func (q *Queries) ListCommunityEggs(ctx context.Context, arg ListCommunityEggsPa
 			&i.Egg.Certified,
 			&i.Egg.Icon,
 			&i.Egg.IconSource,
+			&i.Egg.Internal,
+			&i.Egg.LibrarySum,
 			&i.OrgName,
 			&i.Copies,
 		); err != nil {
@@ -702,9 +778,9 @@ func (q *Queries) ListEggVersions(ctx context.Context, eggID pgtype.UUID) ([]Lis
 }
 
 const listLibraryEggs = `-- name: ListLibraryEggs :many
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, e.internal, e.library_sum, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
-WHERE e.org_id = $1 OR (e.org_id IS NULL AND e.status = 'published')
+WHERE e.org_id = $1 OR (e.org_id IS NULL AND e.status = 'published' AND NOT e.internal)
 ORDER BY e.org_id NULLS LAST, e.name, e.id
 `
 
@@ -713,7 +789,8 @@ type ListLibraryEggsRow struct {
 	CreatedByEmail pgtype.Text
 }
 
-// An org's eggs, and the official ones it can see.
+// An org's eggs, and the official ones it can see (not Raptor's internal
+// ones, such as the test server).
 func (q *Queries) ListLibraryEggs(ctx context.Context, orgID pgtype.UUID) ([]ListLibraryEggsRow, error) {
 	rows, err := q.db.Query(ctx, listLibraryEggs, orgID)
 	if err != nil {
@@ -748,6 +825,8 @@ func (q *Queries) ListLibraryEggs(ctx context.Context, orgID pgtype.UUID) ([]Lis
 			&i.Egg.Certified,
 			&i.Egg.Icon,
 			&i.Egg.IconSource,
+			&i.Egg.Internal,
+			&i.Egg.LibrarySum,
 			&i.CreatedByEmail,
 		); err != nil {
 			return nil, err
@@ -761,7 +840,7 @@ func (q *Queries) ListLibraryEggs(ctx context.Context, orgID pgtype.UUID) ([]Lis
 }
 
 const listOfficialEggs = `-- name: ListOfficialEggs :many
-SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, u.email AS created_by_email
+SELECT e.id, e.org_id, e.name, e.summary, e.category, e.origin, e.status, e.version, e.egg, e.sha256, e.source_url, e.parent_id, e.parent_name, e.created_by, e.created_at, e.updated_at, e.shared_at, e.removed_at, e.removed_reason, e.removed_by, e.catalog_id, e.certified, e.icon, e.icon_source, e.internal, e.library_sum, u.email AS created_by_email
 FROM eggs e LEFT JOIN users u ON u.id = e.created_by
 WHERE e.org_id IS NULL ORDER BY e.name, e.id
 `
@@ -805,6 +884,8 @@ func (q *Queries) ListOfficialEggs(ctx context.Context) ([]ListOfficialEggsRow, 
 			&i.Egg.Certified,
 			&i.Egg.Icon,
 			&i.Egg.IconSource,
+			&i.Egg.Internal,
+			&i.Egg.LibrarySum,
 			&i.CreatedByEmail,
 		); err != nil {
 			return nil, err
@@ -1002,10 +1083,10 @@ type RetiredCatalogEggsRow struct {
 	Servers   int32
 }
 
-// Official eggs the catalog no longer has, with how many servers were
+// Official eggs the library no longer has, with how many servers were
 // made from them (by the egg's ID, or its catalog ID from before the
 // library). Only ones the seed still owns: an egg staff changed or
-// imported (one from the egg library has a catalog ID too) is theirs.
+// imported is theirs.
 func (q *Queries) RetiredCatalogEggs(ctx context.Context, ids []string) ([]RetiredCatalogEggsRow, error) {
 	rows, err := q.db.Query(ctx, retiredCatalogEggs, ids)
 	if err != nil {
@@ -1052,6 +1133,28 @@ type SetEggIconParams struct {
 
 func (q *Queries) SetEggIcon(ctx context.Context, arg SetEggIconParams) error {
 	_, err := q.db.Exec(ctx, setEggIcon, arg.Icon, arg.IconSource, arg.ID)
+	return err
+}
+
+const setEggLibrarySum = `-- name: SetEggLibrarySum :exec
+UPDATE eggs SET certified = $1, internal = $2, library_sum = $3 WHERE id = $4
+`
+
+type SetEggLibrarySumParams struct {
+	Certified  bool
+	Internal   bool
+	LibrarySum string
+	ID         pgtype.UUID
+}
+
+// The library's settings or icon changed, but not the egg file.
+func (q *Queries) SetEggLibrarySum(ctx context.Context, arg SetEggLibrarySumParams) error {
+	_, err := q.db.Exec(ctx, setEggLibrarySum,
+		arg.Certified,
+		arg.Internal,
+		arg.LibrarySum,
+		arg.ID,
+	)
 	return err
 }
 
@@ -1112,20 +1215,24 @@ func (q *Queries) SetEggStatus(ctx context.Context, arg SetEggStatusParams) (int
 
 const updateCatalogEgg = `-- name: UpdateCatalogEgg :exec
 UPDATE eggs SET name = $1, egg = $2, sha256 = $3, version = $4, source_url = $5,
-    certified = $6, updated_at = now()
-WHERE id = $7
+    certified = $6, internal = $7, library_sum = $8, origin = 'catalog', updated_at = now()
+WHERE id = $9
 `
 
 type UpdateCatalogEggParams struct {
-	Name      string
-	Egg       []byte
-	Sha256    string
-	Version   int32
-	SourceUrl string
-	Certified bool
-	ID        pgtype.UUID
+	Name       string
+	Egg        []byte
+	Sha256     string
+	Version    int32
+	SourceUrl  string
+	Certified  bool
+	Internal   bool
+	LibrarySum string
+	ID         pgtype.UUID
 }
 
+// A new library version of an egg the seed owns. One imported by hand
+// from the egg library becomes the seed's (origin catalog).
 func (q *Queries) UpdateCatalogEgg(ctx context.Context, arg UpdateCatalogEggParams) error {
 	_, err := q.db.Exec(ctx, updateCatalogEgg,
 		arg.Name,
@@ -1134,6 +1241,8 @@ func (q *Queries) UpdateCatalogEgg(ctx context.Context, arg UpdateCatalogEggPara
 		arg.Version,
 		arg.SourceUrl,
 		arg.Certified,
+		arg.Internal,
+		arg.LibrarySum,
 		arg.ID,
 	)
 	return err

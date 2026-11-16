@@ -249,6 +249,8 @@ type Egg struct {
 	Certified     bool
 	Icon          pgtype.Text
 	IconSource    string
+	Internal      bool
+	LibrarySum    string
 }
 
 type EggReport struct {

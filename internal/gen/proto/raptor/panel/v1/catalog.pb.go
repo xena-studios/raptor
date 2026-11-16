@@ -24,8 +24,8 @@ const (
 
 // CatalogEgg is an egg in the library (EggService, docs/PANEL.md#eggs), as
 // lists show it and server creation needs it. (The name is from when it
-// described the built-in catalog, which is now part of the official
-// library.)
+// described the built-in catalog, which is now Raptor's egg library,
+// seeded into the official library.)
 type CatalogEgg struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -33,7 +33,7 @@ type CatalogEgg struct {
 	Description string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// "minecraft", "steam", ... (docs/PANEL.md#eggs).
 	Category string `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
-	// The file is the one Raptor's conformance suite tests (eggs/ in the
+	// The file is the one Raptor's conformance suite tests (library/ in the
 	// repository); editing it clears this.
 	Certified bool `protobuf:"varint,5,opt,name=certified,proto3" json:"certified,omitempty"`
 	// The CPU architectures the game runs on: amd64, arm64.
@@ -43,15 +43,15 @@ type CatalogEgg struct {
 	Variables []*EggVariable `protobuf:"bytes,8,rep,name=variables,proto3" json:"variables,omitempty"`
 	// The egg's features: "eula" means the user must accept the game's EULA.
 	Features []string `protobuf:"bytes,9,rep,name=features,proto3" json:"features,omitempty"`
-	// Where the egg comes from: for Raptor's catalog, the upstream file at
-	// the copied commit; for an imported egg, the link it was fetched from.
+	// Where the egg comes from: for Raptor's egg library, the file in the
+	// repository; for an imported egg, the link it was fetched from.
 	SourceUrl string `protobuf:"bytes,10,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
 	// One line for the egg's card.
 	Summary string `protobuf:"bytes,11,opt,name=summary,proto3" json:"summary,omitempty"`
 	// "official" (Raptor's, managed by staff), "org" (the org's own), or
 	// "community" (another org's, shared).
 	Scope string `protobuf:"bytes,12,opt,name=scope,proto3" json:"scope,omitempty"`
-	// How it came to be: "catalog" (Raptor's catalog), "scratch", "import",
+	// How it came to be: "catalog" (Raptor's egg library), "scratch", "import",
 	// or "fork" (a customized copy).
 	Origin string `protobuf:"bytes,13,opt,name=origin,proto3" json:"origin,omitempty"`
 	// "draft", "published" (can be deployed), or "archived".

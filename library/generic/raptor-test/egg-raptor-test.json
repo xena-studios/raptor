@@ -1,5 +1,5 @@
 {
-    "_comment": "Raptor's test egg (docs/EGGS.md#built-in-catalog): checks that a node can install, start, reach, talk to, and stop a server.",
+    "_comment": "Raptor's test egg (docs/EGGS.md#egg-library): checks that a node can install, start, reach, talk to, and stop a server.",
     "meta": {
         "version": "RPTR_v1"
     },

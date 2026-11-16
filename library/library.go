@@ -1,19 +1,16 @@
-// Package library is Raptor's egg library: eggs for every game and app
-// people host, kept in this repository in the catalog's layout
-// (<category>/<egg>/ with the egg, a raptor.yaml, and an icon.png) and
-// imported into a Panel's official library by hand, never built into the
-// Panel (docs/EGGS.md#egg-library). Only tests and tools import this
-// package, so the eggs never end up in Raptor's binaries.
+// Package library is Raptor's egg library: Raptor's eggs for the games and
+// apps people host, plus its own test server, one folder each
+// (<category>/<egg>/ with the egg, a raptor.yaml, and an icon.png). The
+// folder is the egg's ID. The Panel embeds the library and seeds it into
+// its official egg library on every start (internal/panel/catalog,
+// docs/EGGS.md#egg-library); the conformance suite runs the same files
+// through Wings.
 package library
 
-import (
-	"embed"
+import "embed"
 
-	catalog "github.com/xena-studios/raptor/eggs"
-)
-
-//go:embed *
+//go:embed */*/*
 var files embed.FS
 
 // All returns every egg in the library, validated, sorted by ID.
-func All() ([]catalog.Entry, error) { return catalog.LoadFS(files, "library") }
+func All() ([]Entry, error) { return loadFS(files) }

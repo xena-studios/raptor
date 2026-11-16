@@ -57,7 +57,7 @@ func TestEggIcons(t *testing.T) {
 		}
 	}
 
-	// The catalog's test egg has its icon.png in the official library.
+	// The library's test egg has its icon.png in the official library.
 	if _, _, _, err := catalog.Seed(ctx, db, slog.New(slog.DiscardHandler)); err != nil {
 		t.Fatal(err)
 	}

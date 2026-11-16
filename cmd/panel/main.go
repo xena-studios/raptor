@@ -338,9 +338,9 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		cfg.Staff = &staff.Service{DB: pool, Auth: cfg.Auth, Log: log}
 		cfg.Images = images.Handler(pool)
 		go cfg.Staff.RunStats(ctx)
-		// Raptor's egg catalog, into the official library (docs/PANEL.md#eggs).
+		// Raptor's egg library, into the official library (docs/EGGS.md#egg-library).
 		if _, _, _, err := catalog.Seed(ctx, pool, log); err != nil {
-			return fmt.Errorf("seeding the egg catalog: %w", err)
+			return fmt.Errorf("seeding the egg library: %w", err)
 		}
 		// Icons for eggs saved before eggs had them; not worth stopping for.
 		if n, err := catalog.BackfillIcons(ctx, pool); err != nil {

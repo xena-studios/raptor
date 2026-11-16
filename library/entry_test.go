@@ -1,4 +1,4 @@
-package catalog
+package library
 
 import (
 	"reflect"
@@ -10,13 +10,14 @@ import (
 	"github.com/xena-studios/raptor/internal/eggs"
 )
 
-func TestCatalog(t *testing.T) {
+// Every egg's conformance test is one a user could set up in the Panel.
+func TestTests(t *testing.T) {
 	all, err := All()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !slices.ContainsFunc(all, func(e Entry) bool { return e.ID == "generic/raptor-test" && e.Own() && len(e.Icon) > 0 }) {
-		t.Fatal("Raptor's test egg isn't in the catalog")
+		t.Fatal("Raptor's test egg isn't in the library")
 	}
 	for _, e := range all {
 		egg, err := eggs.Parse(e.Egg)
@@ -41,7 +42,7 @@ func TestCatalog(t *testing.T) {
 	}
 }
 
-// test is the catalog's test egg, and upstream the same egg as if it were
+// test is the library's test egg, and upstream the same egg as if it were
 // a copy of someone else's.
 func test(t *testing.T) (own, upstream Entry) {
 	t.Helper()
@@ -96,7 +97,7 @@ func TestValidateRejects(t *testing.T) {
 	if e.validate() == nil {
 		t.Error("an own egg elsewhere: accepted")
 	}
-	if own.SourceURL() != "https://github.com/xena-studios/raptor/blob/main/eggs/generic/raptor-test/egg-raptor-test.json" {
+	if own.SourceURL() != "https://github.com/xena-studios/raptor/blob/main/library/generic/raptor-test/egg-raptor-test.json" {
 		t.Errorf("own source URL %s", own.SourceURL())
 	}
 }

@@ -42,7 +42,7 @@ export function categoryName(c: string): string {
 }
 
 export const originNames: Record<string, string> = {
-  catalog: "Raptor's catalog",
+  catalog: "Raptor's egg library",
   scratch: "From scratch",
   import: "Imported",
   fork: "Customized",
