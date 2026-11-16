@@ -98,6 +98,10 @@ func (s *Service) check(ctx context.Context, fresh time.Duration, adminOnly bool
 	if err != nil {
 		return nil, err
 	}
+	// Staff tools are the web app's only, never the phone app's.
+	if err := auth.RefuseApp(sess); err != nil {
+		return nil, err
+	}
 	q := store.New(s.DB)
 	role, err := q.StaffRole(ctx, sess.UserID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -182,6 +186,9 @@ func (s *Service) GetStaffMe(ctx context.Context, _ *panelv1.GetStaffMeRequest) 
 	sess, err := s.Auth.Current(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if sess.App() {
+		return &panelv1.GetStaffMeResponse{}, nil
 	}
 	role, err := store.New(s.DB).StaffRole(ctx, sess.UserID)
 	if errors.Is(err, pgx.ErrNoRows) {

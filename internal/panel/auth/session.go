@@ -133,13 +133,24 @@ func namedCookie(h http.Header, name string) string {
 }
 
 // Current returns the request's session, or UNAUTHENTICATED. Other services
-// call it first thing.
+// call it first thing. Browsers send the cookie; the phone app sends its
+// access token as Authorization: Bearer. Each only works its own way.
 func (s *Service) Current(ctx context.Context) (*Session, error) {
 	c, ok := callOf(ctx)
 	if !ok {
 		return nil, errSignedOut
 	}
-	return s.lookup(ctx, cookieToken(c.req))
+	if token, ok := bearerToken(c.req); ok {
+		return s.lookupApp(ctx, token)
+	}
+	sess, err := s.lookup(ctx, cookieToken(c.req))
+	if err != nil {
+		return nil, err
+	}
+	if sess.App() {
+		return nil, errSignedOut
+	}
+	return sess, nil
 }
 
 func (s *Service) lookup(ctx context.Context, token string) (*Session, error) {

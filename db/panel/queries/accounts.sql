@@ -100,3 +100,32 @@ DELETE FROM users WHERE id = $1;
 -- name: DeleteUserActivity :exec
 -- An account's own events go with it; its orgs' events stay.
 DELETE FROM audit_log WHERE user_id = $1 AND org_id IS NULL;
+
+-- name: CreateAppCode :exec
+INSERT INTO app_codes (code_hash, user_id, client, redirect_uri, challenge, device_name, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
+
+-- name: TakeAppCode :one
+-- A code works once, even if the exchange then fails.
+DELETE FROM app_codes WHERE code_hash = $1 RETURNING *;
+
+-- name: PruneAppCodes :exec
+DELETE FROM app_codes WHERE expires_at < now();
+
+-- name: CreateAppSession :one
+INSERT INTO sessions (user_id, token_hash, expires_at, ip, user_agent, client, device_name, access_expires_at, refresh_hash)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING *;
+
+-- name: AppSessionByRefresh :one
+SELECT * FROM sessions WHERE refresh_hash = $1 AND client <> '' FOR UPDATE;
+
+-- name: AppSessionByPreviousRefresh :one
+SELECT * FROM sessions WHERE previous_refresh_hash = $1 AND client <> '' FOR UPDATE;
+
+-- name: RotateAppSession :exec
+-- New tokens for an app session; the refresh token just used is kept to
+-- notice it being used again.
+UPDATE sessions SET token_hash = $2, access_expires_at = $3, refresh_hash = $4, previous_refresh_hash = $5,
+    expires_at = $6, last_seen_at = $9, ip = $7, user_agent = $8
+WHERE id = $1;

@@ -521,7 +521,11 @@ type Session struct {
 	Current bool `protobuf:"varint,6,opt,name=current,proto3" json:"current,omitempty"`
 	// Sensitive account changes are allowed until then (the current session
 	// only; unset if they need a re-authentication).
-	ReauthUntil   *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=reauth_until,json=reauthUntil,proto3" json:"reauth_until,omitempty"`
+	ReauthUntil *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=reauth_until,json=reauthUntil,proto3" json:"reauth_until,omitempty"`
+	// Which app holds the session ("raptor-mobile"); empty for a browser.
+	Client string `protobuf:"bytes,8,opt,name=client,proto3" json:"client,omitempty"`
+	// The phone's name, as the app gave it.
+	DeviceName    string `protobuf:"bytes,9,opt,name=device_name,json=deviceName,proto3" json:"device_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -603,6 +607,20 @@ func (x *Session) GetReauthUntil() *timestamppb.Timestamp {
 		return x.ReauthUntil
 	}
 	return nil
+}
+
+func (x *Session) GetClient() string {
+	if x != nil {
+		return x.Client
+	}
+	return ""
+}
+
+func (x *Session) GetDeviceName() string {
+	if x != nil {
+		return x.DeviceName
+	}
+	return ""
 }
 
 type SignOutRequest struct {
@@ -3390,6 +3408,123 @@ func (*DeleteAccountResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{66}
 }
 
+type ApproveAppRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The app ("raptor-mobile") and where it asked to be sent back, which
+	// must be one of its own addresses.
+	ClientId    string `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	RedirectUri string `protobuf:"bytes,2,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
+	// PKCE (RFC 7636): base64url(SHA-256(verifier)), S256 only.
+	CodeChallenge string `protobuf:"bytes,3,opt,name=code_challenge,json=codeChallenge,proto3" json:"code_challenge,omitempty"`
+	// What to call the phone in the list of devices (at most 64 characters).
+	DeviceName    string `protobuf:"bytes,4,opt,name=device_name,json=deviceName,proto3" json:"device_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApproveAppRequest) Reset() {
+	*x = ApproveAppRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApproveAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApproveAppRequest) ProtoMessage() {}
+
+func (x *ApproveAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApproveAppRequest.ProtoReflect.Descriptor instead.
+func (*ApproveAppRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *ApproveAppRequest) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
+func (x *ApproveAppRequest) GetRedirectUri() string {
+	if x != nil {
+		return x.RedirectUri
+	}
+	return ""
+}
+
+func (x *ApproveAppRequest) GetCodeChallenge() string {
+	if x != nil {
+		return x.CodeChallenge
+	}
+	return ""
+}
+
+func (x *ApproveAppRequest) GetDeviceName() string {
+	if x != nil {
+		return x.DeviceName
+	}
+	return ""
+}
+
+type ApproveAppResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Single use, for 2 minutes.
+	Code          string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApproveAppResponse) Reset() {
+	*x = ApproveAppResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApproveAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApproveAppResponse) ProtoMessage() {}
+
+func (x *ApproveAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApproveAppResponse.ProtoReflect.Descriptor instead.
+func (*ApproveAppResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *ApproveAppResponse) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
 var File_raptor_panel_v1_auth_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_auth_proto_rawDesc = "" +
@@ -3427,7 +3562,7 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x12GetSessionResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x122\n" +
 	"\asession\x18\x02 \x01(\v2\x18.raptor.panel.v1.SessionR\asession\x12.\n" +
-	"\x13recovery_codes_left\x18\x03 \x01(\x05R\x11recoveryCodesLeft\"\x9a\x02\n" +
+	"\x13recovery_codes_left\x18\x03 \x01(\x05R\x11recoveryCodesLeft\"\xd3\x02\n" +
 	"\aSession\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +
@@ -3438,7 +3573,10 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"user_agent\x18\x05 \x01(\tR\tuserAgent\x12\x18\n" +
 	"\acurrent\x18\x06 \x01(\bR\acurrent\x12=\n" +
-	"\freauth_until\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vreauthUntil\"\x10\n" +
+	"\freauth_until\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vreauthUntil\x12\x16\n" +
+	"\x06client\x18\b \x01(\tR\x06client\x12\x1f\n" +
+	"\vdevice_name\x18\t \x01(\tR\n" +
+	"deviceName\"\x10\n" +
 	"\x0eSignOutRequest\"\x11\n" +
 	"\x0fSignOutResponse\"\x15\n" +
 	"\x13ListSessionsRequest\"L\n" +
@@ -3583,7 +3721,15 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x19FinishEmailChangeResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\"\x16\n" +
 	"\x14DeleteAccountRequest\"\x17\n" +
-	"\x15DeleteAccountResponse2\xbf\x18\n" +
+	"\x15DeleteAccountResponse\"\x9b\x01\n" +
+	"\x11ApproveAppRequest\x12\x1b\n" +
+	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12!\n" +
+	"\fredirect_uri\x18\x02 \x01(\tR\vredirectUri\x12%\n" +
+	"\x0ecode_challenge\x18\x03 \x01(\tR\rcodeChallenge\x12\x1f\n" +
+	"\vdevice_name\x18\x04 \x01(\tR\n" +
+	"deviceName\"(\n" +
+	"\x12ApproveAppResponse\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code2\x98\x19\n" +
 	"\vAuthService\x12i\n" +
 	"\x10StartEmailSignIn\x12(.raptor.panel.v1.StartEmailSignInRequest\x1a).raptor.panel.v1.StartEmailSignInResponse\"\x00\x12l\n" +
 	"\x11FinishEmailSignIn\x12).raptor.panel.v1.FinishEmailSignInRequest\x1a*.raptor.panel.v1.FinishEmailSignInResponse\"\x00\x12Z\n" +
@@ -3616,7 +3762,9 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\tSetAvatar\x12!.raptor.panel.v1.SetAvatarRequest\x1a\".raptor.panel.v1.SetAvatarResponse\"\x00\x12i\n" +
 	"\x10StartEmailChange\x12(.raptor.panel.v1.StartEmailChangeRequest\x1a).raptor.panel.v1.StartEmailChangeResponse\"\x00\x12l\n" +
 	"\x11FinishEmailChange\x12).raptor.panel.v1.FinishEmailChangeRequest\x1a*.raptor.panel.v1.FinishEmailChangeResponse\"\x00\x12`\n" +
-	"\rDeleteAccount\x12%.raptor.panel.v1.DeleteAccountRequest\x1a&.raptor.panel.v1.DeleteAccountResponse\"\x00B\xc9\x01\n" +
+	"\rDeleteAccount\x12%.raptor.panel.v1.DeleteAccountRequest\x1a&.raptor.panel.v1.DeleteAccountResponse\"\x00\x12W\n" +
+	"\n" +
+	"ApproveApp\x12\".raptor.panel.v1.ApproveAppRequest\x1a#.raptor.panel.v1.ApproveAppResponse\"\x00B\xc9\x01\n" +
 	"\x13com.raptor.panel.v1B\tAuthProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
 var (
@@ -3631,7 +3779,7 @@ func file_raptor_panel_v1_auth_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_auth_proto_rawDescData
 }
 
-var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 67)
+var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
 var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*StartEmailSignInRequest)(nil),           // 0: raptor.panel.v1.StartEmailSignInRequest
 	(*StartEmailSignInResponse)(nil),          // 1: raptor.panel.v1.StartEmailSignInResponse
@@ -3700,19 +3848,21 @@ var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*FinishEmailChangeResponse)(nil),         // 64: raptor.panel.v1.FinishEmailChangeResponse
 	(*DeleteAccountRequest)(nil),              // 65: raptor.panel.v1.DeleteAccountRequest
 	(*DeleteAccountResponse)(nil),             // 66: raptor.panel.v1.DeleteAccountResponse
-	(*timestamppb.Timestamp)(nil),             // 67: google.protobuf.Timestamp
-	(*ActivityFilter)(nil),                    // 68: raptor.panel.v1.ActivityFilter
-	(*AuditEvent)(nil),                        // 69: raptor.panel.v1.AuditEvent
+	(*ApproveAppRequest)(nil),                 // 67: raptor.panel.v1.ApproveAppRequest
+	(*ApproveAppResponse)(nil),                // 68: raptor.panel.v1.ApproveAppResponse
+	(*timestamppb.Timestamp)(nil),             // 69: google.protobuf.Timestamp
+	(*ActivityFilter)(nil),                    // 70: raptor.panel.v1.ActivityFilter
+	(*AuditEvent)(nil),                        // 71: raptor.panel.v1.AuditEvent
 }
 var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: raptor.panel.v1.FinishEmailSignInRequest.code:type_name -> raptor.panel.v1.EmailCode
 	5,  // 1: raptor.panel.v1.FinishEmailSignInResponse.user:type_name -> raptor.panel.v1.User
-	67, // 2: raptor.panel.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	69, // 2: raptor.panel.v1.User.created_at:type_name -> google.protobuf.Timestamp
 	5,  // 3: raptor.panel.v1.GetSessionResponse.user:type_name -> raptor.panel.v1.User
 	8,  // 4: raptor.panel.v1.GetSessionResponse.session:type_name -> raptor.panel.v1.Session
-	67, // 5: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
-	67, // 6: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
-	67, // 7: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
+	69, // 5: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
+	69, // 6: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
+	69, // 7: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
 	8,  // 8: raptor.panel.v1.ListSessionsResponse.sessions:type_name -> raptor.panel.v1.Session
 	15, // 9: raptor.panel.v1.BeginPasskeySignInResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 10: raptor.panel.v1.FinishPasskeySignInRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
@@ -3720,18 +3870,18 @@ var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	15, // 12: raptor.panel.v1.BeginPasskeyRegistrationResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 13: raptor.panel.v1.FinishPasskeyRegistrationRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
 	25, // 14: raptor.panel.v1.FinishPasskeyRegistrationResponse.passkey:type_name -> raptor.panel.v1.Passkey
-	67, // 15: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
-	67, // 16: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
+	69, // 15: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
+	69, // 16: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
 	25, // 17: raptor.panel.v1.ListPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
 	15, // 18: raptor.panel.v1.BeginReauthResponse.passkey:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 19: raptor.panel.v1.FinishReauthRequest.passkey:type_name -> raptor.panel.v1.PasskeyAnswer
-	67, // 20: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
+	69, // 20: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
 	5,  // 21: raptor.panel.v1.FinishSecondFactorResponse.user:type_name -> raptor.panel.v1.User
-	67, // 22: raptor.panel.v1.OAuthAccount.created_at:type_name -> google.protobuf.Timestamp
-	67, // 23: raptor.panel.v1.OAuthAccount.last_used_at:type_name -> google.protobuf.Timestamp
+	69, // 22: raptor.panel.v1.OAuthAccount.created_at:type_name -> google.protobuf.Timestamp
+	69, // 23: raptor.panel.v1.OAuthAccount.last_used_at:type_name -> google.protobuf.Timestamp
 	50, // 24: raptor.panel.v1.ListOAuthAccountsResponse.accounts:type_name -> raptor.panel.v1.OAuthAccount
-	68, // 25: raptor.panel.v1.ListActivityRequest.filter:type_name -> raptor.panel.v1.ActivityFilter
-	69, // 26: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
+	70, // 25: raptor.panel.v1.ListActivityRequest.filter:type_name -> raptor.panel.v1.ActivityFilter
+	71, // 26: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
 	5,  // 27: raptor.panel.v1.UpdateProfileResponse.user:type_name -> raptor.panel.v1.User
 	5,  // 28: raptor.panel.v1.SetAvatarResponse.user:type_name -> raptor.panel.v1.User
 	5,  // 29: raptor.panel.v1.FinishEmailChangeResponse.user:type_name -> raptor.panel.v1.User
@@ -3765,38 +3915,40 @@ var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	61, // 57: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
 	63, // 58: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
 	65, // 59: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
-	1,  // 60: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
-	4,  // 61: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
-	7,  // 62: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
-	10, // 63: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
-	12, // 64: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
-	14, // 65: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
-	18, // 66: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
-	20, // 67: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
-	22, // 68: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
-	24, // 69: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
-	27, // 70: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
-	29, // 71: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
-	31, // 72: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
-	33, // 73: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
-	35, // 74: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
-	37, // 75: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
-	39, // 76: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
-	41, // 77: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
-	43, // 78: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
-	45, // 79: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
-	47, // 80: raptor.panel.v1.AuthService.GetSignInMethods:output_type -> raptor.panel.v1.GetSignInMethodsResponse
-	49, // 81: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
-	52, // 82: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
-	54, // 83: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
-	56, // 84: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
-	58, // 85: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
-	60, // 86: raptor.panel.v1.AuthService.SetAvatar:output_type -> raptor.panel.v1.SetAvatarResponse
-	62, // 87: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
-	64, // 88: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
-	66, // 89: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
-	60, // [60:90] is the sub-list for method output_type
-	30, // [30:60] is the sub-list for method input_type
+	67, // 60: raptor.panel.v1.AuthService.ApproveApp:input_type -> raptor.panel.v1.ApproveAppRequest
+	1,  // 61: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
+	4,  // 62: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
+	7,  // 63: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
+	10, // 64: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
+	12, // 65: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
+	14, // 66: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
+	18, // 67: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
+	20, // 68: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
+	22, // 69: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
+	24, // 70: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
+	27, // 71: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
+	29, // 72: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
+	31, // 73: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
+	33, // 74: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
+	35, // 75: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
+	37, // 76: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
+	39, // 77: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
+	41, // 78: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
+	43, // 79: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
+	45, // 80: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
+	47, // 81: raptor.panel.v1.AuthService.GetSignInMethods:output_type -> raptor.panel.v1.GetSignInMethodsResponse
+	49, // 82: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
+	52, // 83: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
+	54, // 84: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
+	56, // 85: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
+	58, // 86: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
+	60, // 87: raptor.panel.v1.AuthService.SetAvatar:output_type -> raptor.panel.v1.SetAvatarResponse
+	62, // 88: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
+	64, // 89: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
+	66, // 90: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
+	68, // 91: raptor.panel.v1.AuthService.ApproveApp:output_type -> raptor.panel.v1.ApproveAppResponse
+	61, // [61:92] is the sub-list for method output_type
+	30, // [30:61] is the sub-list for method input_type
 	30, // [30:30] is the sub-list for extension type_name
 	30, // [30:30] is the sub-list for extension extendee
 	0,  // [0:30] is the sub-list for field type_name
@@ -3836,7 +3988,7 @@ func file_raptor_panel_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_auth_proto_rawDesc), len(file_raptor_panel_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   67,
+			NumMessages:   69,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

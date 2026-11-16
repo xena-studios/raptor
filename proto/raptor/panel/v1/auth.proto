@@ -7,7 +7,9 @@ import "raptor/panel/v1/audit.proto";
 
 // AuthService signs people in and out of the Panel (docs/PANEL.md#auth).
 // The session is a host-only __Host- cookie the Panel sets; nothing here
-// returns a token to scripts.
+// returns a token to scripts. Raptor's phone app gets its tokens from
+// POST /oauth/token instead, with a code ApproveApp made
+// (docs/PANEL.md#the-phone-app).
 service AuthService {
   // StartEmailSignIn emails a 6-digit code and a sign-in link for the
   // address (signing up if it's new). The answer is the same whether or not
@@ -141,6 +143,12 @@ service AuthService {
   // recent re-authentication. Refused while the account is an org's only
   // owner and the org has other members or nodes.
   rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse) {}
+
+  // ApproveApp lets Raptor's phone app sign in to this account: the web
+  // app calls it from the page the phone opened and sends the code back to
+  // the phone, which trades it at POST /oauth/token with its PKCE verifier.
+  // Browser sessions only, with a recent re-authentication.
+  rpc ApproveApp(ApproveAppRequest) returns (ApproveAppResponse) {}
 }
 
 message StartEmailSignInRequest {
@@ -211,6 +219,10 @@ message Session {
   // Sensitive account changes are allowed until then (the current session
   // only; unset if they need a re-authentication).
   google.protobuf.Timestamp reauth_until = 7;
+  // Which app holds the session ("raptor-mobile"); empty for a browser.
+  string client = 8;
+  // The phone's name, as the app gave it.
+  string device_name = 9;
 }
 
 message SignOutRequest {}
@@ -474,3 +486,19 @@ message FinishEmailChangeResponse {
 message DeleteAccountRequest {}
 
 message DeleteAccountResponse {}
+
+message ApproveAppRequest {
+  // The app ("raptor-mobile") and where it asked to be sent back, which
+  // must be one of its own addresses.
+  string client_id = 1;
+  string redirect_uri = 2;
+  // PKCE (RFC 7636): base64url(SHA-256(verifier)), S256 only.
+  string code_challenge = 3;
+  // What to call the phone in the list of devices (at most 64 characters).
+  string device_name = 4;
+}
+
+message ApproveAppResponse {
+  // Single use, for 2 minutes.
+  string code = 1;
+}

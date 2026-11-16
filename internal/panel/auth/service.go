@@ -246,6 +246,7 @@ func sessionProto(sess store.Session, current pgtype.UUID) *panelv1.Session {
 	out := &panelv1.Session{
 		Id: uuid.UUID(sess.ID.Bytes).String(), CreatedAt: timestamppb.New(sess.CreatedAt.Time),
 		LastSeenAt: timestamppb.New(sess.LastSeenAt.Time), UserAgent: sess.UserAgent, Current: sess.ID == current,
+		Client: sess.Client, DeviceName: sess.DeviceName,
 	}
 	if sess.Ip != nil {
 		out.Ip = sess.Ip.String()

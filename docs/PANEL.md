@@ -60,7 +60,11 @@ email_codes      id, email, code_hash, link_token_hash, purpose, attempts,
                  expires_at, used_at
 recovery_codes   id, user_id, code_hash, used_at, created_at
 sessions         id, user_id, token_hash, created_at, last_seen_at, expires_at,
-                 reauth_at, ip, user_agent, revoked_at
+                 reauth_at, ip, user_agent, revoked_at, passkey_at,
+                 client, device_name, access_expires_at, refresh_hash,
+                 previous_refresh_hash (the last five: the phone app's)
+app_codes        code_hash, user_id, client, redirect_uri, challenge,
+                 device_name, expires_at
 orgs             id, name, created_at
 org_members      org_id, user_id, role (owner|admin|member), created_at
 org_invitations  id, org_id, email, role, token_hash, invited_by, expires_at,
@@ -143,7 +147,7 @@ How TOTP works (`internal/panel/auth`, `pquerna/otp`): 30-second, 6-digit, SHA-1
 - The Panel issues its own sessions: random tokens (stored hashed) in a host-only `__Host-` cookie on `api.raptorpanel.net` (`HttpOnly`, `Secure`, `SameSite=Strict`, no `Domain`). The short-lived OAuth state cookie is `SameSite=Lax` so it survives the provider's redirect back.
 - **CSRF and sibling subdomains:** every `*.raptorpanel.net` site is same-site, so `SameSite` alone doesn't stop the landing page or docs from sending credentialed requests. The API only accepts browser requests whose `Origin` is `https://app.raptorpanel.net` (CORS allows only that origin) and requires the Connect content type. The `__Host-` prefix stops sibling subdomains from setting or overwriting the session cookie.
 - **Passkeys use the RP ID `app.raptorpanel.net`**, not `raptorpanel.net`, so no other subdomain can ask for signatures from them. Passkeys are bound to their RP ID permanently.
-- Sessions expire after 30 days of inactivity and 90 days at most. Users see their devices and can log out one or all of them. Signing in rotates the session token, and ends the session the browser had before.
+- Sessions expire after 30 days of inactivity and 90 days at most. Users see their devices and can log out one or all of them. Signing in rotates the session token, and ends the session the browser had before. The phone app's sessions work differently: see [the phone app](#the-phone-app).
 - **Actions on nodes that destroy data, change code, or change access** (deleting servers, wiping reinstalls, changing eggs/images/startup, granting support access, delegating signed actions to members) are **signed by the user's passkey and verified by Wings itself**, so the Panel can't forge them ([SECURITY-MODEL.md](SECURITY-MODEL.md#passkey-signed-commands)). They require a passkey.
 - **Re-authentication for sensitive account actions** that stay in the Panel (billing changes, adding a node, adding or removing passkeys/OAuth/TOTP, changing the email): a passkey or TOTP (or an email code if neither is set up) within the last 5 minutes. Signing in with a passkey counts; signing in by email counts only on accounts with no passkey or TOTP, so someone who gets into the inbox can't sign in and remove the passkeys. The API answers `FAILED_PRECONDITION` when one is needed, and the web app runs `BeginReauth`/`FinishReauth` and retries.
 
@@ -153,6 +157,18 @@ How TOTP works (`internal/panel/auth`, `pquerna/otp`): 30-second, 6-digit, SHA-1
 - Every sign-in, failure, and change to sign-in methods goes to the audit log, and security changes (new passkey, TOTP disabled, new device) are emailed to the user.
 
 **Staff** accounts are separate from customer accounts and must use hardware security keys (passkeys on a physical key).
+
+### The phone app
+
+Raptor's app for iOS and Android ([#450](https://github.com/xena-studios/raptor/issues/450); DECISIONS #363) signs in like an OAuth 2.1 public client, through the web app, so it needs none of the sign-in methods itself (`internal/panel/auth/app.go`, `web/src/routes/authorize.tsx`):
+
+1. The app makes a PKCE verifier and opens `https://app.raptorpanel.net/authorize?client_id=raptor-mobile&redirect_uri=net.raptorpanel.app:/oauth&code_challenge=…&code_challenge_method=S256&state=…&device=<phone name>` in the system browser (`ASWebAuthenticationSession`, Custom Tabs), where the person may already be signed in.
+2. The page (after signing in, if needed) shows what the app can and can't do. **Sign in** runs `ApproveApp` behind a re-authentication (a fresh confirmation, like linking a sign-in method), which checks the client and its exact redirect address (`auth.AppClients`) and returns a code: random, stored hashed with the challenge and device name, single use, for 2 minutes. The browser goes to `net.raptorpanel.app:/oauth?code=…&state=…` (or `?error=access_denied` on Cancel).
+3. The app trades it at **`POST https://api.raptorpanel.net/oauth/token`** (form-encoded, `grant_type=authorization_code` with `client_id`, `redirect_uri`, `code`, and `code_verifier`). The endpoint is outside `/api` and refuses any request with an `Origin`, since only the app uses it. A wrong verifier uses the code up. The answer is an **access token** (1 hour) and a **refresh token**, both random and stored hashed on a new session row (`client` `raptor-mobile`, `device_name`). The person is emailed that the app signed in.
+4. The app calls the same Connect services with `Authorization: Bearer <access token>`. An access token works only as a bearer and a browser's token only as a cookie. Requests without an `Origin` already pass the browser guard.
+5. `grant_type=refresh_token` gives a new pair and retires the old refresh token. **Using a retired refresh token again ends the session** (someone has a copy; the activity says so), so the app refreshes one request at a time. App sessions end after 30 days without a refresh, but have no 90-day limit. They're listed under Devices as "Raptor's app on <device>", and signing one out there, or in the app (`SignOut`), ends it.
+
+**What the app can't do.** An app session can't re-authenticate (`BeginReauth` and `FinishReauth` refuse it), so anything that needs a recent confirmation answers PERMISSION_DENIED, "only in the web app": sensitive account changes, billing changes, adding a node, approving another app. Staff tools and support access refuse it outright (`GetStaffMe` reports no role), and `CommandService` refuses passkey-signed commands from it: the app never signs anything, and its tokens never authorize a signed action. Rate limits: 20 approvals an hour per account, 600 token requests an hour per IP.
 
 ## Permissions
 

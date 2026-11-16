@@ -222,6 +222,13 @@ func (s *Service) execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 	if err != nil {
 		return nil, nil, err
 	}
+	// Passkey-signed commands come from the web app only: the phone app's
+	// tokens never authorize one (docs/SECURITY-MODEL.md).
+	if env.Signature != nil {
+		if err := auth.RefuseApp(sess); err != nil {
+			return nil, nil, err
+		}
+	}
 	// An unpaid org's nodes are read-only; taking support access away still
 	// works. Staff helping under support access aren't stopped.
 	if support == "" && !perms.Read(env.Action) && env.Action != "support.revoke" && env.Action != "support.disable" {

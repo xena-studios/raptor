@@ -59,6 +59,11 @@ func (s *Service) reauthUntil(sess *Session) time.Time {
 // re-authenticated in the last 5 minutes. The web app sees
 // FAILED_PRECONDITION, runs BeginReauth, and retries.
 func (s *Service) requireReauth(sess *Session) error {
+	// The phone app can't confirm it's the user, so what needs a
+	// confirmation is the web app's to do.
+	if sess.App() {
+		return errAppOnlyInBrowser
+	}
 	if s.reauthUntil(sess).IsZero() {
 		return errReauth
 	}
@@ -70,6 +75,9 @@ func (s *Service) requireReauth(sess *Session) error {
 func (s *Service) BeginReauth(ctx context.Context, _ *panelv1.BeginReauthRequest) (*panelv1.BeginReauthResponse, error) {
 	sess, err := s.Current(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := RefuseApp(sess); err != nil {
 		return nil, err
 	}
 	if err := s.limit(ctx, "reauth:user:"+uuid.UUID(sess.UserID.Bytes).String(), limitReauthPerUser); err != nil {
@@ -117,6 +125,9 @@ func (s *Service) BeginReauth(ctx context.Context, _ *panelv1.BeginReauthRequest
 func (s *Service) FinishReauth(ctx context.Context, req *panelv1.FinishReauthRequest) (*panelv1.FinishReauthResponse, error) {
 	sess, err := s.Current(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := RefuseApp(sess); err != nil {
 		return nil, err
 	}
 	if err := s.limit(ctx, "check:ip:"+s.clientIP(ctx).String(), limitCheckPerIP); err != nil {

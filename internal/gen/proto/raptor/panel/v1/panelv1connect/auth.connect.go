@@ -117,6 +117,8 @@ const (
 	// AuthServiceDeleteAccountProcedure is the fully-qualified name of the AuthService's DeleteAccount
 	// RPC.
 	AuthServiceDeleteAccountProcedure = "/raptor.panel.v1.AuthService/DeleteAccount"
+	// AuthServiceApproveAppProcedure is the fully-qualified name of the AuthService's ApproveApp RPC.
+	AuthServiceApproveAppProcedure = "/raptor.panel.v1.AuthService/ApproveApp"
 )
 
 // AuthServiceClient is a client for the raptor.panel.v1.AuthService service.
@@ -212,6 +214,11 @@ type AuthServiceClient interface {
 	// recent re-authentication. Refused while the account is an org's only
 	// owner and the org has other members or nodes.
 	DeleteAccount(context.Context, *v1.DeleteAccountRequest) (*v1.DeleteAccountResponse, error)
+	// ApproveApp lets Raptor's phone app sign in to this account: the web
+	// app calls it from the page the phone opened and sends the code back to
+	// the phone, which trades it at POST /oauth/token with its PKCE verifier.
+	// Browser sessions only, with a recent re-authentication.
+	ApproveApp(context.Context, *v1.ApproveAppRequest) (*v1.ApproveAppResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the raptor.panel.v1.AuthService service. By default,
@@ -411,6 +418,12 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("DeleteAccount")),
 			connect.WithClientOptions(opts...),
 		),
+		approveApp: connect.NewClient[v1.ApproveAppRequest, v1.ApproveAppResponse](
+			httpClient,
+			baseURL+AuthServiceApproveAppProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ApproveApp")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -446,6 +459,7 @@ type authServiceClient struct {
 	startEmailChange          *connect.Client[v1.StartEmailChangeRequest, v1.StartEmailChangeResponse]
 	finishEmailChange         *connect.Client[v1.FinishEmailChangeRequest, v1.FinishEmailChangeResponse]
 	deleteAccount             *connect.Client[v1.DeleteAccountRequest, v1.DeleteAccountResponse]
+	approveApp                *connect.Client[v1.ApproveAppRequest, v1.ApproveAppResponse]
 }
 
 // StartEmailSignIn calls raptor.panel.v1.AuthService.StartEmailSignIn.
@@ -718,6 +732,15 @@ func (c *authServiceClient) DeleteAccount(ctx context.Context, req *v1.DeleteAcc
 	return nil, err
 }
 
+// ApproveApp calls raptor.panel.v1.AuthService.ApproveApp.
+func (c *authServiceClient) ApproveApp(ctx context.Context, req *v1.ApproveAppRequest) (*v1.ApproveAppResponse, error) {
+	response, err := c.approveApp.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthServiceHandler is an implementation of the raptor.panel.v1.AuthService service.
 type AuthServiceHandler interface {
 	// StartEmailSignIn emails a 6-digit code and a sign-in link for the
@@ -811,6 +834,11 @@ type AuthServiceHandler interface {
 	// recent re-authentication. Refused while the account is an org's only
 	// owner and the org has other members or nodes.
 	DeleteAccount(context.Context, *v1.DeleteAccountRequest) (*v1.DeleteAccountResponse, error)
+	// ApproveApp lets Raptor's phone app sign in to this account: the web
+	// app calls it from the page the phone opened and sends the code back to
+	// the phone, which trades it at POST /oauth/token with its PKCE verifier.
+	// Browser sessions only, with a recent re-authentication.
+	ApproveApp(context.Context, *v1.ApproveAppRequest) (*v1.ApproveAppResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -1006,6 +1034,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("DeleteAccount")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceApproveAppHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceApproveAppProcedure,
+		svc.ApproveApp,
+		connect.WithSchema(authServiceMethods.ByName("ApproveApp")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceStartEmailSignInProcedure:
@@ -1068,6 +1102,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceFinishEmailChangeHandler.ServeHTTP(w, r)
 		case AuthServiceDeleteAccountProcedure:
 			authServiceDeleteAccountHandler.ServeHTTP(w, r)
+		case AuthServiceApproveAppProcedure:
+			authServiceApproveAppHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1195,4 +1231,8 @@ func (UnimplementedAuthServiceHandler) FinishEmailChange(context.Context, *v1.Fi
 
 func (UnimplementedAuthServiceHandler) DeleteAccount(context.Context, *v1.DeleteAccountRequest) (*v1.DeleteAccountResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.DeleteAccount is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ApproveApp(context.Context, *v1.ApproveAppRequest) (*v1.ApproveAppResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.ApproveApp is not implemented"))
 }

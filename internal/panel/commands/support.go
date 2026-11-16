@@ -35,6 +35,9 @@ func (s *Service) authorizeSupport(ctx context.Context, node pgtype.UUID, reques
 	if err != nil {
 		return nil, org, err
 	}
+	if err := auth.RefuseApp(sess); err != nil {
+		return nil, org, err
+	}
 	q := store.New(s.Auth.DB)
 	if _, err := q.StaffRole(ctx, sess.UserID); err != nil {
 		return nil, org, errNoSupportAccess
