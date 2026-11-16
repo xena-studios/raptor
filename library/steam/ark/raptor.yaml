@@ -22,6 +22,12 @@ backup:
   pre: ["saveworld"]
   wait_for: "regex:World Saved|Server received, But no response"
   timeout: 5m
+# The Players tab talks to the game over RCON with the admin password.
+rcon:
+  protocol: source
+  port: RCON_PORT
+  password: ARK_ADMIN_PASSWORD
+  players: ark
 test:
   tier: manual
   reason: "the server is about 23 GB, more than standard CI runners have room for"

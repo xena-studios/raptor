@@ -10,6 +10,12 @@ arch: [amd64]
 # Source servers answer Steam's query on their game port.
 players:
   query: source
+# The Players tab talks to the game over RCON, on its game port; RCON is
+# off until a password is set.
+rcon:
+  protocol: source
+  password: RCON_PASSWORD
+  players: source
 test:
   tier: slow
   memory_mib: 2048

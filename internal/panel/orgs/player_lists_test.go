@@ -20,3 +20,16 @@ func TestPlayerLists(t *testing.T) {
 		t.Error("eggOf")
 	}
 }
+
+func TestRCONPlayers(t *testing.T) {
+	for egg, want := range map[string]string{
+		`{"rcon":{"protocol":"webrcon","password":"RCON_PASS","players":"rust"}}`: "rust",
+		`{"rcon":{"protocol":"source","password":"RCON_PASSWORD"}}`:               "",
+		`{"players":"source"}`: "",
+		``:                     "",
+	} {
+		if got := rconPlayers([]byte(egg)); got != want {
+			t.Errorf("%s: %q", egg, got)
+		}
+	}
+}

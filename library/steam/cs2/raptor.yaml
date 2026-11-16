@@ -16,6 +16,13 @@ workshop:
   variable: WORKSHOP_COLLECTION
   collection: true
   apply: restart
+# The Players tab talks to the game over RCON, on its game port, when
+# RCON is turned on and has a password.
+rcon:
+  protocol: source
+  password: RCON_PASSWORD
+  enabled: RCON_ENABLED
+  players: source
 test:
   tier: manual
   reason: "the server is about 60 GB, more than standard CI runners have"

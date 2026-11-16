@@ -306,6 +306,54 @@ func TestParseWorkshop(t *testing.T) {
 	}
 }
 
+func TestParseRCON(t *testing.T) {
+	base := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"variables": [{"env_variable": "RCON_PORT"}, {"env_variable": "RCON_PASS"}, {"env_variable": "RCON_ON"}], "x-raptor": {"rcon": %s}}`
+	e, err := Parse(fmt.Appendf(nil, base, `{"protocol": "webrcon", "port": "RCON_PORT", "password": "RCON_PASS", "players": "rust"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := e.Raptor.RCON
+	if r == nil || r.Protocol != "webrcon" || r.Players != "rust" {
+		t.Fatalf("rcon: %+v", r)
+	}
+	vars := map[string]string{"RCON_PORT": "28016", "RCON_PASS": "pw", "RCON_ON": "0"}
+	if p := r.PortFor(28015, vars); p != 28016 {
+		t.Errorf("port %d", p)
+	}
+	if pw := r.PasswordFor(vars); pw != "pw" {
+		t.Errorf("password %q", pw)
+	}
+	r.Enabled = "RCON_ON"
+	if pw := r.PasswordFor(vars); pw != "" {
+		t.Errorf("off, but password %q", pw)
+	}
+	for port, want := range map[string]int{"": 27015, "+1": 27016, "RCON_PORT": 28016, "MISSING": 0} {
+		if got := (&RCON{Port: port}).PortFor(27015, vars); got != want {
+			t.Errorf("port %q: %d, want %d", port, got, want)
+		}
+	}
+	// A newer protocol or command set is left out, not refused.
+	if e, err := Parse(fmt.Appendf(nil, base, `{"protocol": "battleye", "password": "RCON_PASS"}`)); err != nil || e.Raptor.RCON != nil {
+		t.Errorf("unknown protocol: %v, %+v", err, e)
+	}
+	if e, err := Parse(fmt.Appendf(nil, base, `{"protocol": "source", "password": "RCON_PASS", "players": "future"}`)); err != nil || e.Raptor.RCON.Players != "" {
+		t.Errorf("unknown players: %v", err)
+	}
+	for _, bad := range []string{
+		`{"protocol": "source"}`,                                          // no password
+		`{"protocol": "source", "password": "OTHER"}`,                     // not the egg's
+		`{"protocol": "source", "password": "RCON_PASS", "port": "NOPE"}`, // not the egg's
+		`{"protocol": "source", "password": "RCON_PASS", "port": "+x"}`,
+		`{"protocol": "source", "password": "RCON_PASS", "enabled": "NOPE"}`,
+		`{"protocol": "source", "password": "RCON_PASS", "players": "rust"}`, // rust is webrcon
+	} {
+		if _, err := Parse(fmt.Appendf(nil, base, bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
+	}
+}
+
 func TestParseRulesKeepsRegexPipes(t *testing.T) {
 	e, err := Parse([]byte(`{"meta":{"version":"PTDL_v2"},"docker_images":{"a":"b"},"startup":"x",
 		"variables":[{"env_variable":"V","rules":"required|regex:/^(a|b)$/i|max:5"}]}`))

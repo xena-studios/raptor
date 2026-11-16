@@ -223,7 +223,7 @@ Checked against reality: of the 606 eggs, the defaults that fail their own rules
 }
 ```
 
-The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`, `web`, `modpack`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
+The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`, `web`, `modpack`, `rcon`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
 
 - **Nodes:** Wings lists the `raptor-eggs` capability when it reads the format. The Panel refuses a `server.create` or `server.update` with a Raptor egg for a node without it, saying to update Wings, rather than letting the node fail with "unsupported format" (DECISIONS #353).
 - **Other panels** don't read `RPTR_v1`. Eggs imported from Pterodactyl or Pelican keep their format (and Raptor's settings for them stay under `x-raptor`, which those panels ignore); re-importing one over a Raptor egg keeps the Raptor egg's settings, moved under `x-raptor` (`spec.KeepRaptor`).
@@ -351,6 +351,33 @@ web:
 - Both variables must be the egg's. The library sets it for FiveM's txAdmin and the software eggs with a web page (code-server, Grafana, Uptime Kuma, Forgejo, Gitea, Owncast, yarr, Reposilite, Prometheus, RabbitMQ's management page, Game Server Watcher, TS3 Manager).
 - Wings reports it in the egg summary (`web`), so servers on older Wings show no link until they update.
 
+## RCON
+
+An egg whose game has a remote console says how to reach it under `x-raptor.rcon` (#423), so the server gets a **Players** tab over RCON: who's on, kick, ban, unban, and a message to everyone.
+
+```yaml
+rcon:
+  protocol: source          # source (Valve's Source RCON) or webrcon (Rust's)
+  port: RCON_PORT           # a variable, an offset ("+1"), or omitted: the primary port
+  password: RCON_PASSWORD   # the variable with the password; empty means RCON is off
+  enabled: RCON_ENABLED     # optional: a variable that turns it on (1 or true)
+  players: source           # the command set: source, ark, palworld, or rust
+```
+
+- **Wings connects, never the Panel.** It reads the password from the server's variables on the node and connects to the container's own address (the RCON port needn't be an allocation, and isn't exposed for this), or the node's for a server on the host network. The Panel only learns the command set (`Server.rcon_players`), never the password.
+- **Commands are templates.** `players` names a command set built into Wings (`internal/wings/rcon/players.go`), not commands in the egg: reading each game's list is code, and a template in the egg would let an egg author choose what a moderator's click runs. Arguments are checked: player IDs must look like the game's (Source: a user ID or `STEAM_x:y:z` / `[U:1:n]`; ARK: a SteamID64 or Epic ID; Palworld: letters, digits, underscores; Rust: a SteamID64), and reasons and messages are one plain line without quotes, backslashes, or semicolons. An answer saying the game doesn't know a command (`Unknown command`) is an error, not a success.
+
+  | `players` | List | Kick | Ban | Unban | Message |
+  |---|---|---|---|---|---|
+  | `source` | `status` (Source 1 and CS2's layout) | `kickid <id> [reason]` | `banid 0 <id> kick`, `writeid` | `removeid <steam id>`, `writeid` | `say` |
+  | `ark` | `ListPlayers` | `KickPlayer` | `BanPlayer` | `UnbanPlayer` | `ServerChat` |
+  | `palworld` | `ShowPlayers` | `KickPlayer` | `BanPlayer` | `UnBanPlayer` | `Broadcast` |
+  | `rust` | `playerlist` (JSON) | `kick <id> "reason"` | `banid <id> "name" "reason"`, `server.writecfg` | `unban`, `server.writecfg` | `say` |
+
+- `protocol` must be one Wings speaks and `players` must go with it (`rust` is `webrcon`, the rest `source`); every variable named must be the egg's. A protocol or command set a node doesn't know yet is left out rather than refused, so newer eggs still run. BattlEye RCon (DayZ, Arma) is planned as a third protocol.
+- The library sets it for the Source games (on the game port, with `RCON_PASSWORD`; CS2 also needs `RCON_ENABLED`), ARK and ARK: Survival Ascended (`RCON_PORT`, the admin password), Palworld (`RCON_PORT`, the admin password), and Rust (WebRCON on `RCON_PORT`). Other games with RCON (Conan Exiles, V Rising, Squad, Arma Reforger, The Isle, Eco, and others) need their list output checked against a running server first.
+- `rcon` is meant for more than players: a console for games without one on stdin, and backup hooks sent over RCON, are the next uses.
+
 ## Modpacks
 
 Modpack eggs name the variables that pick their pack under `x-raptor.modpack` (#413), so the app can offer a pack picker instead of IDs typed by hand:
@@ -441,13 +468,13 @@ test:
 
 **Raptor's test server** (`generic/raptor-test`) isn't a game, but the quickest check that a node installs, starts, reaches, talks to, and stops a server: it serves a page on the server's port (its `MESSAGE` variable) and answers `status` on the console (DECISIONS #351). It's AGPL like the rest of Raptor, and `internal`: seeded so staff and the conformance suite have it, but orgs' libraries don't list it.
 
-**Checks.** `go test ./library` loads every egg and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, a chosen image is one the egg offers, and `raptor.yaml`'s `players`, `addons`, `workshop`, and `backup` reach the egg servers are made from. `backup` needs `pre` and a `wait_for`, and a `post` when `pre` pauses saving. It also holds every egg to the **house style** ([library/README.md](../library/README.md#how-eggs-read)): names are what people call the game (`Node.js`, `Minecraft: Paper`, no "server", "generic", or versions; real product names that contain one, such as Raptor's test server, are listed), descriptions are plain sentences without links or panel names, variables read alike, the author is `support@raptorpanel.net`, the licence is MIT (Raptor's test server: AGPL-3.0), every image (runtimes and the install container) is Raptor's (`ghcr.io/xena-studios/yolks`) or pelican-eggs' pinned by digest, and every egg has a 256×256 icon. `task library:pin` (`cmd/eggpin`) pins images to the digests their tags point to now; `-check` fails instead of changing anything. The editor's round trip is tested on the library and on real community eggs kept as fixtures in `internal/eggs/testdata` (every Pterodactyl and Pelican format version, JSON and YAML).
+**Checks.** `go test ./library` loads every egg and checks it: the egg parses, the source matches the file, test variables pass the egg's rules, a chosen image is one the egg offers, and `raptor.yaml`'s `players`, `addons`, `workshop`, `rcon`, and `backup` reach the egg servers are made from. `backup` needs `pre` and a `wait_for`, and a `post` when `pre` pauses saving. It also holds every egg to the **house style** ([library/README.md](../library/README.md#how-eggs-read)): names are what people call the game (`Node.js`, `Minecraft: Paper`, no "server", "generic", or versions; real product names that contain one, such as Raptor's test server, are listed), descriptions are plain sentences without links or panel names, variables read alike, the author is `support@raptorpanel.net`, the licence is MIT (Raptor's test server: AGPL-3.0), every image (runtimes and the install container) is Raptor's (`ghcr.io/xena-studios/yolks`) or pelican-eggs' pinned by digest, and every egg has a 256×256 icon. `task library:pin` (`cmd/eggpin`) pins images to the digests their tags point to now; `-check` fails instead of changing anything. The editor's round trip is tested on the library and on real community eggs kept as fixtures in `internal/eggs/testdata` (every Pterodactyl and Pelican format version, JSON and YAML).
 
 **Left out:** database eggs (Raptor's managed databases cover them) and games whose server needs an account to download (DayZ, Arma 3, Starbound; Hytale), until there's a Steam-account feature.
 
 ### In the official library
 
-The library lives in the Panel's database as official eggs (`internal/panel/catalog`), seeded when the Panel starts, in one transaction under an advisory lock, so two Panels starting together don't race. Each egg's file is the library's with `raptor.yaml`'s `arch`, `category`, `players`, `addons`, `workshop`, and `backup` added (top-level in an `RPTR_v1` egg, else under `x-raptor`), in the same format and key order; the row keeps the egg's ID (`catalog_id`), whether it's `certified`, and whether it's `internal`.
+The library lives in the Panel's database as official eggs (`internal/panel/catalog`), seeded when the Panel starts, in one transaction under an advisory lock, so two Panels starting together don't race. Each egg's file is the library's with `raptor.yaml`'s `arch`, `category`, `players`, `addons`, `workshop`, `rcon`, and `backup` added (top-level in an `RPTR_v1` egg, else under `x-raptor`), in the same format and key order; the row keeps the egg's ID (`catalog_id`), whether it's `certified`, and whether it's `internal`.
 
 - An egg the official library doesn't have is added, published, as version 1 by "Raptor" ("From Raptor's egg library").
 - When the library changes (a deploy), an egg **the seed owns** gets the new file as a new version by "Raptor" ("Updated from Raptor's egg library"); a change to only its icon or `raptor.yaml` settings updates those without a version. The seed owns an egg whose newest version is its own, or one imported by hand from the egg library before the Panel seeded it (taken over on the first start, its origin becoming `catalog`).

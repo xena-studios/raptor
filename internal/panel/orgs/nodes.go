@@ -118,7 +118,7 @@ func (s *Service) ListServers(ctx context.Context, req *panelv1.ListServersReque
 			out.Servers = append(out.Servers, &panelv1.Server{
 				Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, EggSource: r.EggSource, Permissions: perms,
 				Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
-				DisplayAddress: r.DisplayAddress, PlayerLists: playerLists(r.Egg),
+				DisplayAddress: r.DisplayAddress, PlayerLists: playerLists(r.Egg), RconPlayers: rconPlayers(r.Egg),
 			})
 		}
 		return err
@@ -174,7 +174,7 @@ func (s *Service) GetServer(ctx context.Context, req *panelv1.GetServerRequest) 
 		out.Server = &panelv1.Server{
 			Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, EggSource: r.EggSource, Permissions: perms,
 			Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
-			DisplayAddress: r.DisplayAddress, PlayerLists: playerLists(eggOf(r.Config)),
+			DisplayAddress: r.DisplayAddress, PlayerLists: playerLists(eggOf(r.Config)), RconPlayers: rconPlayers(eggOf(r.Config)),
 		}
 		if slices.Contains(perms, "*") || slices.Contains(perms, "startup") {
 			out.ConfigJson = string(r.Config)
@@ -483,6 +483,20 @@ func eggOf(config []byte) []byte {
 		return nil
 	}
 	return c.Egg
+}
+
+// rconPlayers is the Players tab's RCON command set in a server's egg
+// (its config's egg, as JSON; #423), or "".
+func rconPlayers(egg []byte) string {
+	var e struct {
+		RCON *struct {
+			Players string `json:"players"`
+		} `json:"rcon"`
+	}
+	if json.Unmarshal(egg, &e) != nil || e.RCON == nil {
+		return ""
+	}
+	return e.RCON.Players
 }
 
 // playerLists reports whether a server's egg (its config's egg, as JSON)

@@ -112,6 +112,19 @@ type eggInfo struct {
 	// Players is how the game answers player queries ("minecraft" for the
 	// Java edition), so the Panel knows which servers get an SRV record.
 	Players string `json:"players,omitempty"`
+	// RCON is how Wings reaches the game's remote console (#423): its
+	// variables' names, never their values.
+	RCON *eggRCON `json:"rcon,omitempty"`
+}
+
+type eggRCON struct {
+	Protocol string `json:"protocol"`
+	Port     string `json:"port,omitempty"`
+	Password string `json:"password"`
+	Enabled  string `json:"enabled,omitempty"`
+	// Players is the Players tab's command set ("source", "ark",
+	// "palworld", "rust"); empty: none.
+	Players string `json:"players,omitempty"`
 }
 
 type eggModpack struct {
@@ -173,6 +186,9 @@ func describeEgg(s *server.Server) *eggInfo {
 	}
 	if w := e.Raptor.Web; w != nil {
 		out.Web = &eggWeb{Name: w.Name, Port: w.Port, Enabled: w.Enabled}
+	}
+	if r := e.Raptor.RCON; r != nil {
+		out.RCON = &eggRCON{Protocol: r.Protocol, Port: r.Port, Password: r.Password, Enabled: r.Enabled, Players: r.Players}
 	}
 	if m := e.Raptor.Modpack; m != nil {
 		out.Modpack = &eggModpack{Source: m.Source, Project: m.Project, Version: m.Version, GameVersion: m.GameVersion}
