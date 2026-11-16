@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Ollama",
+    "author": "support@raptorpanel.net",
+    "description": "Ollama runs open large language models such as Llama, Gemma and Qwen on the CPU, behind an HTTP API. Downloads the chosen models at start; its API has no login, so share the address only with apps you trust.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "o=./ollama/bin/ollama; [ -x $o ] || { echo \"Ollama isn't installed: reinstall the server.\"; exit 1; }; export HOME=/home/container OLLAMA_HOST=0.0.0.0:{{SERVER_PORT}} OLLAMA_MODELS=/home/container/models; if [ \"{{OLLAMA_CLOUD}}\" = 1 ]; then unset OLLAMA_NO_CLOUD; else export OLLAMA_NO_CLOUD=1; fi; for v in OLLAMA_KEEP_ALIVE OLLAMA_CONTEXT_LENGTH OLLAMA_ORIGINS; do [ -n \"${!v}\" ] || unset $v; done; (trap - INT TERM; exec $o serve) & pid=$!; trap : INT TERM; until curl -fs -o /dev/null http://127.0.0.1:{{SERVER_PORT}}/api/version; do kill -0 $pid 2>/dev/null || { wait $pid; exit; }; sleep 1; done; for m in {{MODELS}}; do $o show \"$m\" >/dev/null 2>&1 && continue; echo \"Downloading the model $m.\"; $o pull \"$m\" </dev/null || echo \"The model $m couldn't be downloaded.\"; done; echo \"Ollama is ready on port {{SERVER_PORT}}. Type an ollama command here: list, ps, pull <model>, rm <model>, run <model> <prompt>.\"; while kill -0 $pid 2>/dev/null; do if read -r -t 1 -a a; then [ ${#a[@]} = 0 ] || $o \"${a[@]}\" </dev/null; elif [ $? -le 128 ]; then break; fi; done; wait $pid",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"regex:^Ollama is ready on port\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Ollama: downloads the release for this CPU from GitHub, checked against its\n# SHA-256, and keeps only what runs on the CPU (the GPU libraries are most of\n# the download, and a server here has no GPU). Downloaded models (models/)\n# are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Ollama has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag ollama/ollama \"$version\") || exit 1\nasset=\"ollama-linux-${arch}.tar.zst\"\nmkdir -p models\n\nif [ -x ollama/bin/ollama ] && [ \"$(cat ollama/.raptor-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Ollama $tag is already installed.\"\n    exit 0\nfi\nsum=$(gh-release assets ollama/ollama \"$tag\" | awk -v a=\"$asset\" '$1 == a { print $2 }')\n[ -n \"$sum\" ] || fail \"Ollama $tag has no build for this CPU ($asset).\"\n\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work/new\"\ntrap 'rm -rf \"$work\"' EXIT\necho \"Downloading Ollama $tag. Only its CPU parts (about 70 MB of the 1.5 GB) are kept.\"\n# The archive is unpacked as it arrives, so it never takes up the disk; it's\n# checked against the release's SHA-256 before anything is replaced.\nmkfifo \"$work/pipe\"\ntar --zstd -x -C \"$work/new\" --exclude='lib/ollama/cuda_*' --exclude='lib/ollama/rocm*' --exclude='lib/ollama/vulkan*' < \"$work/pipe\" &\nuntar=$!\ncurl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" \\\n    \"https://github.com/ollama/ollama/releases/download/$tag/$asset\" | tee \"$work/pipe\" | sha256sum | cut -d' ' -f1 > \"$work/sum\" ||\n    fail \"The download of Ollama $tag failed. Reinstall to try again.\"\nwait \"$untar\" || fail \"Ollama $tag's archive couldn't be unpacked. Reinstall to try again.\"\nif [ \"$sum\" = - ]; then\n    echo \"GitHub shows no SHA-256 for $asset, so it wasn't checked.\"\nelif [ \"$(cat \"$work/sum\")\" != \"$sum\" ]; then\n    fail \"Ollama $tag's download doesn't match its SHA-256. Reinstall to try again.\"\nfi\n[ -x \"$work/new/bin/ollama\" ] || fail \"Ollama $tag's archive has no bin/ollama.\"\n\necho \"$tag\" > \"$work/new/.raptor-version\"\nrm -rf ollama.old\n[ ! -e ollama ] || mv ollama ollama.old\nmv \"$work/new\" ollama\nrm -rf ollama.old\necho \"Installed Ollama $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Ollama version to install, such as 0.40.16, or latest. Reinstall the server to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-rc\\d+)?)$/|max:30",
+            "field_type": "text"
+        },
+        {
+            "name": "Models",
+            "description": "Models from ollama.com/library to download when the server starts, separated by spaces, such as llama3.2:1b qwen3:4b. Models you already have aren't downloaded again.",
+            "env_variable": "MODELS",
+            "default_value": "llama3.2:1b",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[A-Za-z0-9._:\\/-]+( +[A-Za-z0-9._:\\/-]+)*$/|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Keep loaded",
+            "description": "How long a model stays in memory after its last request, such as 5m or 1h; -1 keeps it loaded.",
+            "env_variable": "OLLAMA_KEEP_ALIVE",
+            "default_value": "5m",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^(-1|\\d+(ms|s|m|h)?)$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Parallel requests",
+            "description": "How many requests each model answers at once. More needs more memory.",
+            "env_variable": "OLLAMA_NUM_PARALLEL",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Context length",
+            "description": "The context window in tokens, unless a request sets its own. Empty lets Ollama choose from the memory it has.",
+            "env_variable": "OLLAMA_CONTEXT_LENGTH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|integer|min:256|max:1048576",
+            "field_type": "text"
+        },
+        {
+            "name": "Allowed origins",
+            "description": "Extra web origins allowed to call the API from a browser, separated by commas, such as your chat app's address.",
+            "env_variable": "OLLAMA_ORIGINS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Cloud features",
+            "description": "Allow Ollama's cloud models and web search, which send prompts to ollama.com.",
+            "env_variable": "OLLAMA_CLOUD",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

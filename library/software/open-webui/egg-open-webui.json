@@ -1,0 +1,112 @@
+{
+    "_comment": "Raptor's egg library (library/README.md).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Open WebUI",
+    "author": "support@raptorpanel.net",
+    "description": "Open WebUI is a chat interface for Ollama and OpenAI-compatible APIs, with documents, web search and accounts, keeping its data in SQLite. Installs it with PyTorch for the CPU at first start; the first account made becomes the admin, and sign-ups are closed after it.",
+    "features": [],
+    "docker_images": {
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:7cebda1186da0e0830d7947537d488e8d0f039249a70391c907ceac92fb0ce76",
+        "Python 3.11": "ghcr.io/xena-studios/yolks:python_3.11@sha256:a199c5f18a7ef25e50f59300d8c2ddb302697e63c085b54e4200af5b9b6ee2ab"
+    },
+    "file_denylist": [],
+    "startup": "export TMPDIR=/home/container/.raptor-build UV_LINK_MODE=copy UV_NO_CACHE=1; ver=$(cat .open-webui-version 2>/dev/null) || { echo \"Open WebUI isn't installed: reinstall the server.\"; exit 1; }; py=\"$(python3 --version) $(uname -m)\"; if [ \"$ver $py\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Open WebUI $ver. The first time takes several minutes.\"; rm -rf $TMPDIR; mkdir -p $TMPDIR; { { [ \"$py\" = \"$(cat .venv/.raptor-python 2>/dev/null)\" ] || { python3 -m venv --clear .venv && echo \"$py\" > .venv/.raptor-python; }; } && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check uv && .venv/bin/uv pip install -q --python .venv/bin/python \"torch<=2.9.1\" --index-url https://download.pytorch.org/whl/cpu && .venv/bin/uv pip install -q --python .venv/bin/python \"open-webui==$ver\" && echo \"$ver $py\" > .venv/.raptor-installed; } || { rm -rf $TMPDIR; echo \"Open WebUI $ver couldn't be installed.\"; exit 1; }; rm -rf $TMPDIR; fi; unset TMPDIR; b() { [ \"$1\" = 1 ] && echo True || echo False; }; export ENABLE_SIGNUP=$(b {{ENABLE_SIGNUP}}) ENABLE_VERSION_UPDATE_CHECK=$(b {{UPDATE_CHECK}}) ANONYMIZED_TELEMETRY=$(b {{TELEMETRY}}) DATA_DIR=/home/container/data HF_HOME=/home/container/data/cache/huggingface SENTENCE_TRANSFORMERS_HOME=/home/container/data/cache/embedding WHISPER_MODEL_DIR=/home/container/data/cache/whisper TIKTOKEN_CACHE_DIR=/home/container/data/cache/tiktoken; [ \"{{TELEMETRY}}\" = 1 ] || export SCARF_NO_ANALYTICS=true DO_NOT_TRACK=true; for v in OLLAMA_BASE_URL OPENAI_API_BASE_URL OPENAI_API_KEY WEBUI_URL; do [ -n \"${!v}\" ] || unset $v; done; (trap \"\" INT TERM; for i in $(seq 600); do sleep 2; curl -fs -o /dev/null http://127.0.0.1:{{SERVER_PORT}}/health && exec echo \"Open WebUI is ready on port {{SERVER_PORT}}.\"; done) & exec .venv/bin/open-webui serve --host 0.0.0.0 --port {{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"regex:^Open WebUI is ready on port\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Open WebUI: checks the chosen version on PyPI. Open WebUI itself is\n# installed when the server starts, into its own Python environment (.venv),\n# for the Python version it runs. Your data (data/: the database, uploads and\n# settings) is never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\nif [ \"$want\" = latest ]; then\n    url=https://pypi.org/pypi/open-webui/json\nelse\n    url=\"https://pypi.org/pypi/open-webui/$want/json\"\nfi\nout=$(mktemp)\ntrap 'rm -f \"$out\"' EXIT\ncode=$(curl -sSL -A \"raptor-installer (+https://raptorpanel.net)\" -o \"$out\" -w '%{http_code}' \"$url\") || fail \"PyPI can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 404 ] && fail \"Open WebUI has no version $want. Set Version to latest, or to a release such as 0.13.3.\"\n[ \"$code\" = 200 ] || fail \"PyPI can't be reached right now (HTTP $code). Reinstall to try again.\"\nversion=$(jq -r .info.version \"$out\")\necho \"$version\" > .open-webui-version\nmkdir -p data\necho \"Installed Open WebUI $version. It's set up when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Open WebUI version to install, such as 0.13.3, or latest. Reinstall the server to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+([.\\-]?[0-9A-Za-z.]+)?)$/|max:30",
+            "field_type": "text"
+        },
+        {
+            "name": "Ollama address",
+            "description": "The address of your Ollama server: http, its IP and port 11434 unless you changed it. Used when the database is first made; after that, change it in Admin settings.",
+            "env_variable": "OLLAMA_BASE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^https?:\\/\\/\\S+$/|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "OpenAI-compatible address",
+            "description": "The address of an OpenAI-compatible API, ending in /v1 for most. Used when the database is first made; after that, change it in Admin settings.",
+            "env_variable": "OPENAI_API_BASE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^https?:\\/\\/\\S+$/|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "OpenAI-compatible API key",
+            "description": "The key for that API. Used when the database is first made; after that, change it in Admin settings.",
+            "env_variable": "OPENAI_API_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Public address",
+            "description": "The full address people open Open WebUI at, for links and sign-in providers.",
+            "env_variable": "WEBUI_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^https?:\\/\\/\\S+$/|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Open sign-ups",
+            "description": "Let anyone create an account after the first one, which becomes the admin. New accounts still wait for an admin's approval. Used when the database is first made; after that, change it in Admin settings.",
+            "env_variable": "ENABLE_SIGNUP",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Update check",
+            "description": "Ask Open WebUI's servers whether a new version is out.",
+            "env_variable": "UPDATE_CHECK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Telemetry",
+            "description": "Send anonymous usage data to Open WebUI's and its libraries' developers.",
+            "env_variable": "TELEMETRY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

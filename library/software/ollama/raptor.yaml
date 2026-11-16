@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/ollama/egg-ollama.json
+license: MIT
+credits:
+  - "Written for Raptor from Ollama's documentation (https://github.com/ollama/ollama, MIT)"
+  - "Icon: the Ollama logo, from https://github.com/ollama (Ollama, Inc.)"
+certified: true
+arch: [amd64, arm64]
+# A 270 MB model, so the test proves a model downloads and the console's
+# ollama commands work, without a big download.
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 8m
+  variables:
+    MODELS: "smollm2:135m"
+  command: "list"
+  expect: "^smollm2:135m"

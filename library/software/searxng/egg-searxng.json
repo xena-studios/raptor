@@ -1,0 +1,102 @@
+{
+    "_comment": "Raptor's egg library (library/README.md).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "SearXNG",
+    "author": "support@raptorpanel.net",
+    "description": "SearXNG is a private metasearch engine: it asks Google, Bing, DuckDuckGo and many others at once, without tracking or profiling the people who search. Installs the chosen commit, and keeps your settings.yml between updates.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617",
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:7cebda1186da0e0830d7947537d488e8d0f039249a70391c907ceac92fb0ce76"
+    },
+    "file_denylist": [],
+    "startup": "[ -f searxng/searx/webapp.py ] || { echo \"SearXNG isn't installed: reinstall the server.\"; exit 1; }; want=\"$(cat searxng/requirements.txt searxng/requirements-server.txt | sha256sum | cut -c1-16) $(python3 --version) $(uname -m)\"; if [ \"$want\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing SearXNG's Python packages.\"; export TMPDIR=/home/container/.raptor-build; rm -rf $TMPDIR; mkdir -p $TMPDIR; { python3 -m venv --clear .venv && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check -r searxng/requirements.txt -r searxng/requirements-server.txt && echo \"$want\" > .venv/.raptor-installed; } || { rm -rf $TMPDIR; echo \"SearXNG's Python packages couldn't be installed.\"; exit 1; }; rm -rf $TMPDIR; unset TMPDIR; fi; export SEARXNG_SETTINGS_PATH=/home/container/settings.yml SEARXNG_PORT={{SERVER_PORT}} SEARXNG_BIND_ADDRESS=0.0.0.0; for v in SEARXNG_BASE_URL SEARXNG_CONTACT_URL SEARXNG_VALKEY_URL; do [ -n \"${!v}\" ] || unset $v; done; cd searxng && exec ../.venv/bin/granian --interface wsgi --host 0.0.0.0 --port {{SERVER_PORT}} --no-ws --blocking-threads 4 --workers-kill-timeout 30 searx.webapp:app",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"regex:Started worker\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# SearXNG: downloads its source (the newest commit, or the one chosen) into\n# searxng/, replacing only that folder. Its Python packages are installed when\n# the server starts, into .venv. settings.yml is made once, with a random\n# secret key, and never touched again.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nrepo=https://github.com/searxng/searxng\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work/src\"\ntrap 'rm -rf \"$work\"' EXIT\n\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    commit=$(git ls-remote \"$repo\" refs/heads/master | cut -f1) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    [ -n \"$commit\" ] || fail \"SearXNG's master branch wasn't found.\"\nelse\n    commit=\"$want\"\nfi\n\nif [ -f searxng/searx/webapp.py ] && [ \"$(cat searxng/.raptor-commit 2>/dev/null)\" = \"$commit\" ]; then\n    echo \"SearXNG ${commit:0:9} is already installed.\"\nelse\n    echo \"Downloading SearXNG ${commit:0:9}.\"\n    cd \"$work/src\"\n    git init -q\n    git fetch -q --depth 1 \"$repo\" \"$commit\" 2>/dev/null || fail \"SearXNG has no commit $commit. Set Version to latest, or to a full commit hash from $repo/commits/master.\"\n    git checkout -q FETCH_HEAD\n    # The version SearXNG shows, as its own release script freezes it.\n    v=$(git show -s --date='format:%Y.%m.%d' --format='%cd+%h' | sed 's/\\.0/./g')\n    printf 'VERSION_STRING = \"%s\"\\nVERSION_TAG = \"%s\"\\nDOCKER_TAG = \"%s\"\\nGIT_URL = \"%s\"\\nGIT_BRANCH = \"master\"\\n' \"$v\" \"$v\" \"${v/+/-}\" \"$repo\" > searx/version_frozen.py\n    mkdir -p \"$work/new\"\n    cp -a searx requirements.txt requirements-server.txt LICENSE \"$work/new/\"\n    echo \"$commit\" > \"$work/new/.raptor-commit\"\n    echo \"$v\" > \"$work/new/.raptor-version\"\n    cd /mnt/server\n    rm -rf searxng.old\n    [ ! -e searxng ] || mv searxng searxng.old\n    mv \"$work/new\" searxng\n    rm -rf searxng.old\nfi\n\nif [ ! -f settings.yml ]; then\n    key=$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')\n    cat > settings.yml <<EOF\n# SearXNG's settings: https://docs.searxng.org/admin/settings/\n# Only what differs from SearXNG's defaults goes here. The port, limiter,\n# image proxy, public instance and address come from the server's Startup\n# settings.\nuse_default_settings: true\n\ngeneral:\n  instance_name: \"SearXNG\"\n\nserver:\n  secret_key: \"$key\"\n\nsearch:\n  # Add json to let apps such as Open WebUI search through this instance.\n  formats:\n    - html\nEOF\n    echo \"Made settings.yml with a new secret key.\"\nfi\necho \"Installed SearXNG $(cat searxng/.raptor-version). Its Python packages are installed when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The SearXNG commit to install: latest for the newest, or a full commit hash. SearXNG has no releases; reinstall the server to update it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9a-f]{40})$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public address",
+            "description": "The full address people open SearXNG at, for links and the search engine people add to their browser.",
+            "env_variable": "SEARXNG_BASE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^https?:\\/\\/\\S+$/|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Contact address",
+            "description": "How the instance's admin can be reached, such as mailto:admin@example.com. Wikipedia, Wikidata and OpenStreetMap results need it.",
+            "env_variable": "SEARXNG_CONTACT_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^(https?|mailto):\\S+$/|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Image proxy",
+            "description": "Load result images through this server, so the sites they come from don't see who is searching.",
+            "env_variable": "SEARXNG_IMAGE_PROXY",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Limiter",
+            "description": "Block bots that flood the instance with searches. Needs a Valkey or Redis server, set below.",
+            "env_variable": "SEARXNG_LIMITER",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Valkey address",
+            "description": "A Valkey or Redis server for the limiter, such as valkey://203.0.113.5:6379/0.",
+            "env_variable": "SEARXNG_VALKEY_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^(valkey|valkeys|redis|rediss|unix):\\/\\/\\S+$/|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Public instance",
+            "description": "Turn on the protections for an instance anyone can use. Needs the limiter.",
+            "env_variable": "SEARXNG_PUBLIC_INSTANCE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}
