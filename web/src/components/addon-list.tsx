@@ -345,12 +345,16 @@ function Review({
       const incompatible = new Set<string>();
       await Promise.all(
         out.ok
-          .filter((r) => r.p.want.source === "modrinth" || r.p.want.source === "factorio")
+          .filter((r) => ["modrinth", "factorio", "curseforge"].includes(r.p.want.source))
           .map(async (r) => {
             try {
               const deps = await addonClient.resolveAddonDependencies({
                 orgId,
-                versionId: r.versionId,
+                // CurseForge names a file by its mod and file IDs.
+                versionId:
+                  r.p.want.source === "curseforge"
+                    ? `${r.p.want.project}@${r.versionId}`
+                    : r.versionId,
                 loaders,
                 gameVersion: version,
                 installed: [...have],
