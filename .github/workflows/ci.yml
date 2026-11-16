@@ -14,28 +14,28 @@ concurrency:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: task lint
 
   generated:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: task check:gen
 
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: task test
 
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -67,7 +67,7 @@ jobs:
   # raptorpanel.net: builds, loads under its CSP in both themes with no
   # violation or failed request, and its Worker config parses.
   site:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -83,7 +83,7 @@ jobs:
   # under its CSP in both themes (every page, the 404, and a search) with no
   # violation or failed request, and its Worker config parses.
   docs:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -98,7 +98,7 @@ jobs:
   # The Panel's server images and compose files (deploy/) still build and
   # parse; the full rehearsal is local: task deploy:rehearse.
   deploy:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - run: docker build -q -f deploy/images/panel.Dockerfile -t panel:ci .
@@ -115,7 +115,7 @@ jobs:
           jq -e '.uid == "raptor-panel" and (.panels | length > 0)' deploy/grafana/raptor-panel.json >/dev/null
 
   security:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -128,7 +128,7 @@ jobs:
   # The container runtime against a real Docker: networks, firewall isolation,
   # limits, hardening. Needs root, so it runs the compiled test binary with sudo.
   e2e-runtime:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -162,7 +162,7 @@ jobs:
   # crashing and a hanging version, a restart during a trial, with a server
   # that must keep running throughout.
   e2e-update:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -198,7 +198,7 @@ jobs:
 
   pr:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
         with:

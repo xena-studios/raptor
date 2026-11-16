@@ -29,7 +29,7 @@ env:
 
 jobs:
   matrix:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       builds: ${{ steps.m.outputs.builds }}
       tags: ${{ steps.m.outputs.tags }}
@@ -102,7 +102,7 @@ jobs:
   publish:
     needs: [matrix, build]
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       packages: write
