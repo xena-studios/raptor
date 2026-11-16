@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/yamux v0.1.2
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/klauspost/compress v1.20.4
-	github.com/klauspost/pgzip v1.2.6
+	github.com/klauspost/pgzip v1.3.0
 	github.com/kopia/kopia v0.23.1
 	github.com/minio/minio-go/v7 v7.4.1
 	github.com/moby/moby/api v1.57.0
