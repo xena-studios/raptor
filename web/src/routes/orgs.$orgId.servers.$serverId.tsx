@@ -9,6 +9,7 @@ import type { Server } from "@/gen/raptor/panel/v1/org_pb";
 import { useAddonSections } from "@/lib/addon-sections";
 import { useGameTab } from "@/lib/game-tab";
 import { canonical, resolveServer, shortId, useIds } from "@/lib/ids";
+import { useMinecraftServer } from "@/lib/minecraft-tab";
 import { can, useServer } from "@/lib/org-data";
 import { usePlayersTab } from "@/lib/players-tab";
 import { serverStatus } from "@/lib/servers";
@@ -64,6 +65,7 @@ function ServerLayout() {
   const { sections } = useAddonSections(orgId, nodeId, serverId, server, node?.capabilities);
   const game = useGameTab(orgId, nodeId, serverId, server);
   const players = usePlayersTab(orgId, nodeId, serverId, server);
+  const minecraft = useMinecraftServer(orgId, nodeId, serverId, server);
   const [error, setError] = useState("");
   const status = server && serverStatus(server, node?.connected ?? false);
   const params = { orgId, serverId };
@@ -133,6 +135,18 @@ function ServerLayout() {
                       className={tabClass}
                     >
                       Players
+                    </Link>,
+                  ]
+                : []),
+              ...(t.label === "Overview" && minecraft
+                ? [
+                    <Link
+                      key="worlds"
+                      to="/orgs/$orgId/servers/$serverId/worlds"
+                      params={params}
+                      className={tabClass}
+                    >
+                      Worlds
                     </Link>,
                   ]
                 : []),
