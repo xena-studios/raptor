@@ -76,7 +76,7 @@ From the Xena Studios GitHub audit of Oct 22, 2026, and the nodes' overdue updat
 | Now | The Polar account verified for payouts (to the owner personally; a business entity isn't needed yet) |
 | Now | Register `raptornodes.com` if it's available and redirect it (`raptorpanel.com` belongs to someone else) |
 | By launch | `raptornodes.net` on the Public Suffix List (takes weeks; less pressing since it only holds node hostnames, DECISIONS #279) |
-| By the beta | Terms of Service, Privacy Policy, and a DPA covering support access and player data |
+| By the beta | Terms of Service and a DPA covering support access and player data (the Privacy Policy is at raptorpanel.net/privacy, Nov 16, 2026) |
 | Ongoing | Share progress publicly (devlogs, Discord) to build the beta list |
 
 ## Backlog
